@@ -70,7 +70,9 @@ the static `ApplyConfChange` (`RawNode`, `node`) only in a cluster without a wit
 (`γ.reWit = 0`, from the allocation through `NewServer.spec`); a witness configuration is never
 joint (`ownTrackerC`'s `Hwj`); the static mode's configuration has no witness or the cluster's
 (`ghostRestM`, sound: `notes/raft-witness.md`). Next: the static CC subset (`ConfStateM.Witness`,
-`Restore` with `AddWitness`, `RestartNode` with a witness), W4's path. Model gaps found:
+`Restore` with `AddWitness`, `RestartNode` with a witness), W4's path. (2026-10-20, later: CC1 done, `confchange` with Go's witness changes; CC2 in progress, the
+conf state's witness through `Restore`; the remaining steps for `RestartNode` with a witness are in
+`notes/raft-witness.md`, "CC1 status".) Model gaps found:
 `leaveJointState` drops the witness, `ConfStateM` has no witness fields. Details:
 `notes/raft-witness.md`, "W3b-A".
 

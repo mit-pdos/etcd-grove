@@ -408,6 +408,71 @@ which `NodeBridge`'s `raftPropose_of_isNode` reads. kv's dynamic mode passes the
 vacuously. The premise goes with the static CC subset (a witness configuration's `Simple`), the
 next stage.
 
+### CC1 status: the static CC subset (2026-10-20, handoff)
+
+**Done (pushed; CC1 `a8ab6922a7`, full build and tcb check clean).** `confchange`'s model has Go's
+witness changes (`InvConfchange.lean`): `makeWitnessM` (AddWitness: another incoming witness is an
+error; an untracked id becomes voter and witness, `initWitnessM`; the tracked witness is unchanged
+-- it is an incoming voter already; any other tracked id is an error), `makeVoterO`/`makeLearnerO`
+(refuse the tracked witness), `removeCfg` clears `wit` on the witness; `applyOne` type 4 is
+`makeWitnessM`. Representation: `ownCfgCC` is at `c.wit` (`ownCfgCCw c.wit`; `Hwit` also says the
+witness is an incoming voter, so `checkInvariants`' witness check always passes and `CfgInv` is
+unchanged), `ownPrsW`/`ownTrackerCC` carry `WitT w pvs` (the witness alone has `IsWitness`, and is
+tracked); `FreshPr`/`ownNewPr` no longer pin `IsWitness`; `ownNewPr_transfer` passes a per-object
+fact `F`. Proved at any witness: `initProgress(isWitness)`, `makeWitness` (new spec and proof,
+`Link` regenerated), `remove`, `makeVoter`, `makeLearner` (now `err`-returning, `ownWorkO`),
+`apply` (premise `outgoing = ∅ ∨ (wit = 0 ∧ NoAddWit)`, loop invariant `apply_inv`), `Simple` (no
+premise), `Config.Clone`, `checkInvariants`; `EnterJoint`/`LeaveJoint` take `c.wit = 0`.
+`NoAddWit` (`CCApply.lean`): `ccStepB` filters it (so `ccStepB_wit` and W5 keep one witness
+identity), `raft.applyConfChange` and the static `ApplyConfChange` (`RawNode`, `node`: with
+`γ.reWit = 0`) take it; `ccApplyM_wit`/`ccApplyM_wit0` without an `AddWitness`.
+
+**WIP (committed after CC1, raft `Link` builds; the full build was running at handoff):**
+`ConfStateM.Witness'` (the field; `csPts` reads it; every `ConfStateM.mk` gained a 6th argument
+`(W64 0)`), `GetWitness` at any witness, `ConfState.Equivalent`/`assertConfStatesEquivalent`
+compare it (new premise `c1.Witness' = c2.Witness'`), `toConfChangeSingle` emits `AddWitness` for
+the conf state's witness (`voterCC w`, `restoreInCC vo v l ln w`, `w` defaulting to `0`),
+`Restore.spec` at `restoreM ... c.Witness'` (premise: a joint conf state has no witness) with each
+`Progress`'s `witness = decide (k = s'.cfg.wit ∧ s'.cfg.wit ≠ 0)`. The `MemoryStorage` holds only
+witness-free conf states (`memSnapOwn`'s `Hsnap_id`; `ApplySnapshot`/`CreateSnapshot` take it as a
+premise); `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`Step`'s snapshot clause
+take `c.wit = 0 ∧ sv...ConfState'.Witness' = 0`.
+
+**The temporary premise** `csm.Witness' = W64 0` on `newRaft`, `NewRawNode`, `setupNode`,
+`RestartNode`, `StartNode` (the last premise of each, `Hcw0`): `newRaft` restores through
+`Restore.spec_simple`, which takes `c.Witness' = 0` (the model lemma for a witness's ops is not
+written), and installs through `switchToConfig`, which takes `c.wit = 0`. `StartNode`/`Bootstrap`
+keep it for good (etcd's peers are no witnesses); `RestartNode`/`NewRawNode`/`newRaft` lose it in
+the remaining step.
+
+**Remaining for RestartNode with a witness (W4's critical path):**
+1. A model lemma: `restoreM [] v [] [] false w = some ⟨{cfgM (listToSet v) ∅ with wit := w},
+   cfgFlags (listToSet v) ∅⟩` for `w ∈ v` (or `w = 0`), `v` nodup, `0 ∉ v` -- by induction on
+   `v.map (voterCC w)` from `stW V wc := ⟨{cfgM V ∅ with wit := wc}, cfgFlags V ∅⟩`, `wc ∈ {0, w}`:
+   `simpleM [addNodeCC x]` (as `simpleM_cfgState_addNode`, `makeVoterO`'s guard false for `x ≠ w`)
+   and `simpleM [addWitnessCC w]` (`initWitnessM` at `wc = 0`, `w ∉ V`). Then `spec_simple` with
+   `c.Witness' = 0 ∨ c.Witness' ∈ c.Voters'`, its post `cfgv.Witnesses = [w, 0]` and each
+   `Progress`'s witness flag.
+2. `ownConfig_restore`/`switchToConfig` at a witness: `switchToConfig`'s spec takes `c.wit = 0`
+   (with one, Go calls `maybeStartNewSubterm(false, true)`); prove that branch (the epoch reset
+   at a non-leader is `ResetReplicationSet`'s, already specified) and `ProgressTracker.ConfState`'s
+   `Witness: Witnesses[0]` (its spec still takes `c.wit = 0`; with `ConfStateM.Witness'` it can now
+   say it). The tracker conversions `ownTrackerC_toCC`/`ownTrackerC_reconfig`/`ownResult_transfer`
+   still take `c.wit = 0`; only the newRaft path needs a witness version.
+3. `newRaft`/`NewRawNode`/`RestartNode`: replace `csm.Witness' = 0` by `csm.Witness' = 0 ∨
+   (csm.Witness' ∈ csm.Voters' ∧ csm.Witness' = γ.reWit)` (RestartNode; the static `ghostRestM`
+   needs `c.wit = 0 ∨ c.wit = γ.reWit`), building the node at `{CfgM.simple .. with wit := w}`
+   (`ownRawNode_intro_static` uses `CfgM.simple`: generalize it to the witness configuration).
+4. A storage for W4 that hands out a conf state with a witness: not the `MemoryStorage` (which
+   now holds witness-free ones only); kv's own `Storage` (`examples/kv`), whose `InitialState` is
+   what `RestartNode`'s premise asks.
+
+**Named premises left (all recorded above):** NoWitReconf (`raft.applyConfChange`,
+`switchToConfig`, `DynCCPreOp`; now also `NoAddWit`), the snapshot premise (a snapshot only at and
+of a witness-free configuration), NoOutWit (dynamic), the static `ApplyConfChange`'s `γ.reWit = 0 ∧
+NoAddWit`, `EnterJoint`/`LeaveJoint` at a witness-free configuration, `MemoryStorage` witness-free,
+and the temporary `csm.Witness' = 0` on the node constructors.
+
 ## W3b-C: the candidate's witness paths (2026-10-20, branch `raft-witness-w3c`)
 
 Proved with their witness branches (no `ownRaftPhysC_wit0` left at these sites):
