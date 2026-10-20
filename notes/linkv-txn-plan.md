@@ -83,6 +83,24 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
   trigger ⇒ registered at `IsRegistered` (ids are not reused) ⇒ `skip = false`. Put it in
   `txnReplied`'s writing case. **Fallback** if this turns out expensive: gens with no Get in a
   writing Txn (the CAS's `Else(Get)` then becomes `Else()`), and B1 later.
+  **Findings (2026-10-20, before any change)**: the apply thread already proves the
+  dichotomy at a *known* registration (`request_delivered`, `entryDelivered`: `out.waived = false`
+  or the registration with token `t` is gone), but (i) both apply loops (`EtcdServer.apply`)
+  call `applyEntryNormal` at `ot = none` (`entryRegd_none`): no entry carries its id's
+  registration, because the claim (`srv_claim_mint`, `entryClaim`) is minted *before*
+  `Register` (whose condition `reqWaitR` needs the claim); and (ii) `Trigger(id, x)` demands
+  `waitTrig` (every registered expectation's `Ψ x`) even when the registration is gone, so the
+  result handed over cannot say "not waived" unless the apply thread proves it in every case.
+  What B1 needs: (a) `isWait`'s `Trigger` also accepting `waitGone γw id t` (provable in
+  `wait/List.lean`: a gone id is out of the live map and cannot come back, the record map
+  being written once per id); (b) every own-prefix entry carrying its registration: the
+  proposer, after `Register`, records `waitRegd ρ.wait id t` where `kv_prop_au` builds the
+  entry's `entryClaim` (the claim is cluster-level since D21e (A): another member's entries
+  need no record, `reqWaitR`'s prefix clause makes `waitTrig` vacuous for them); (c) the loops
+  passing `some t` for own-prefix entries; (d) `resultΨ` (`resultIsW`) carrying
+  `⌜out.waived = false⌝`, through `appliedOk` to `txnAppliedOk` and `txnReplied` (`skip =
+  false`). Every other consumer of `entryClaim`/`entryWaitOk` (`BuildGap`, `InvRun`, boot logs)
+  follows (b).
 - **B2 read-only Txn with a read update** (item 3): the read-only case of
   `client_txn_end_to_end` takes `kvReadAu γr.kv Q` and returns `□ Q (kvStateOf log)` (already in
   `txnReplied`); for a linearizable (non-serializable) txn only.

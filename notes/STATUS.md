@@ -101,6 +101,21 @@ etcd's cache. Done: closed, with watchkv's four checks unweakened.
   error may still apply), so the program would read the watch up to the `Get`'s revision, and the
   proof needs a lemma relating `stateAt` of a watchkv log to the puts' `revAt`s (none exists).
 
+## linkv-txn stage B2, B3: read-only Txn's read update; the replies' values (2026-10-20, branch `linkv-txn-b`)
+
+- **B2**: `client_txn_end_to_end` takes, for a linearizable read-only transaction, a read update
+  (`kvReadAu γr.kv Q`, a third case of its premise; `etcdTxnSpec` already took one), whose `□ Q`
+  `txnReplied` carries. "Open work", item 3, done at the client.
+- **B3** (`client/v3/ReplyValues.lean`, new): `client_put_value`, `client_delete_value`,
+  `client_txn_value` (writing), `client_txn_value_ro`: the state `σ` a reply's update fired at and
+  the reply's fields as functions of it (a put's revision `σ.rev + 1` and previous key-value; a
+  delete's count `|rangeIn σ.kvs o|`, revision `(kvOpStep (.deleteRange o) σ).rev`, previous
+  key-values; a transaction's verdict and branch responses from `srvRunTxn` at `σ`, its revision
+  `(σ.commit cs).rev`). Helpers `kvStateOf_rev_succ`, `kvStateOf_commit_rev`. List is
+  `rangeReply_state` (existing). A writing transaction's ranges still under `skip` (B1).
+- **B1 not done**: needs a decision (the plan's findings, `notes/linkv-txn-plan.md`, B1).
+- **Gates**: full build; every link mode unchanged; trust base and collections unchanged.
+
 ## linkv-txn stage A: at-most-once Delete and Txn (2026-10-20, branch `linkv-txn`)
 
 Stage A of `notes/linkv-txn-plan.md`: D21 M6's at-most-once firing, which covered Put only,
