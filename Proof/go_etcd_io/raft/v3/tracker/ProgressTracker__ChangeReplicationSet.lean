@@ -30,7 +30,8 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
   wp_start as ⟨Htrk, #He⟩
   ihave #He' := He
   iunfold ownEpochNW at He'
-  icases He' with ⟨%ev, #Hev, -⟩
+  iunfold ownEpoch at He'
+  icases He' with ⟨%ev, %r0, %r1, #Hev, -⟩
   ihave %Hnn := typedPointsto_not_null $$ Hev
   wp_auto
   icases (Access.access
@@ -41,7 +42,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.wp_proof
   ihave Htrk := Htrkback $$ Hef
   rw [decide_eq_false (by simpa using Hnn)]
   wp_auto
-  wp_apply wp_HasWitness tv.Epoch' $$ [$He]
+  wp_apply (tracker.Epoch.HasWitness.spec_nw wp_HasWitness tv.Epoch') $$ [$He]
   iapply HΦ; iframe Htrk
 
 end proof

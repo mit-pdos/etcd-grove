@@ -35,7 +35,7 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof
       (P := trk ↦{dq} tv)) $$ Htrk with ⟨Hef, Htrkback⟩
   wp_auto
   ihave Htrk := Htrkback $$ Hef
-  wp_apply wp_ReplicateToWitness tv.Epoch' $$ [$He]
+  wp_apply (tracker.Epoch.ReplicateToWitness.spec_nw wp_ReplicateToWitness tv.Epoch') $$ [$He]
   iapply HΦ; iframe Htrk
 
 end proof

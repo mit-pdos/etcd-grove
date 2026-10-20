@@ -23,11 +23,29 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem tracker.Epoch.ReplicateToWitness.wp_proof :
     tracker.Epoch.ReplicateToWitness.spec (GF := GF) (hG := hG) := by
-  intro e
+  intro e em
   wp_start as #He
-  icases ownEpochNW_fields e $$ He with ⟨-, #Hw0, #He0, #Hw1, #He1⟩
+  icases ownEpoch_we e em $$ He with ⟨#Hw0, #He0, #Hw1, #He1⟩
   wp_auto
-  iapply HΦ; ipureintro; trivial
+  wp_if_destruct
+  · have h0 := Hif
+    rw [show em.rs0.rep = false by simp [RSM.rep, h0]]
+    wp_if_destruct
+    · have h1 := Hif
+      rw [show em.rs1.rep = false by simp [RSM.rep, h1]]
+      iapply HΦ; itrivial
+    · have h1 := Hif
+      rw [show em.rs1.rep = !decide (em.rs1.excl = em.rs1.wit) by simp [RSM.rep]; exact fun _ => h1]
+      iapply HΦ; itrivial
+  · have h0 := Hif
+    rw [show em.rs0.rep = !decide (em.rs0.excl = em.rs0.wit) by simp [RSM.rep]; exact fun _ => h0]
+    wp_if_destruct
+    · have h1 := Hif
+      rw [show em.rs1.rep = false by simp [RSM.rep, h1]]
+      iapply HΦ; itrivial
+    · have h1 := Hif
+      rw [show em.rs1.rep = !decide (em.rs1.excl = em.rs1.wit) by simp [RSM.rep]; exact fun _ => h1]
+      iapply HΦ; itrivial
 
 end proof
 

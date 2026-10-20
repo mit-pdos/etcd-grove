@@ -59,7 +59,7 @@ theorem raft.maybeStartNewSubterm.wp_proof
     wp_apply wp_ProgressTracker_ResetReplicationSet c _ tv _ $$ [$Htrkf $Htrk]
       as %e ⟨Htrkf, Htrk⟩
     icases ownTrackerC_epoch $$ Htrk with ⟨#Hep, Htrk⟩
-    wp_apply wp_Epoch_HasWitness $$ [$Hep]
+    wp_apply (tracker.Epoch.HasWitness.spec_nw wp_Epoch_HasWitness _) $$ [$Hep]
     ihave Hphys := Hback $$ %_ Htrkf Htrk
     wp_pures; (try wp_auto)
     -- `emptyEnt := &pb.Entry{Data: nil}`: a fresh entry, frozen read-only
@@ -93,7 +93,7 @@ theorem raft.maybeStartNewSubterm.wp_proof
     simp only [↓reduceIte]
     wp_auto
     wp_apply raft.wp_load_trk_EpochC c r id _ $$ Hphys as %ep' ⟨Hphys, #Hep'⟩
-    wp_apply wp_Epoch_HasWitness $$ [$Hep']
+    wp_apply (tracker.Epoch.HasWitness.spec_nw wp_Epoch_HasWitness _) $$ [$Hep']
     iapply HΦ
     iexact Hphys
 

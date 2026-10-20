@@ -38,10 +38,7 @@ theorem tracker.MakeProgressTracker.wp_proof :
   · ipureintro
     simp [sint.nat]
   iunfold ownEpochNW
-  iexists _
-  iframe He
-  ipureintro
-  exact ⟨rfl, zero_val _, zero_val _, rfl, rfl, rfl, rfl, rfl⟩
+  iapply ownEpoch_bare_intro _ _ _ rfl rfl $$ He
 
 end proof
 

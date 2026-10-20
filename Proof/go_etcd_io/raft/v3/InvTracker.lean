@@ -38,7 +38,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
+public import Proof.go_etcd_io.raft.v3.InvEpoch
 
 @[expose] public section
 
@@ -456,13 +456,6 @@ def LearnersOk (cfg : GSet w64) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
     (learners learnersNext : GMap w64 Unit) : Prop :=
   domSet learners = domSet prs \ cfg ∧ learnersNext = ∅ ∧ LearnerFlags cfg pvs
 
-/-- A witness-free epoch (2026-10-19, witness support): subterm 0, and in both halves no
-witness and no voter excluded -- what `ResetReplicationSet(true)` builds when the
-configuration has no witness, and what `MakeProgressTracker` starts from. -/
-def EpochNW (ev : tracker.Epoch) : Prop :=
-  ev.Subterm' = W64 0 ∧ ∃ r0 r1, ev.ReplicationSet'.arr = [r0, r1] ∧
-    r0.Witness' = W64 0 ∧ r0.Excluded' = W64 0 ∧ r1.Witness' = W64 0 ∧ r1.Excluded' = W64 0
-
 /-- No peer is the witness (2026-10-19, witness support): the tracker of a witness-free
 configuration. No peer's `Progress` is a witness's, and no peer is `0`: raft#168 reads
 `Witnesses[i] == id` with `0` for "no witness", so a peer `0` would be taken for the witness
@@ -494,10 +487,11 @@ theorem NoWitP.no0 {peers : GMap w64 Progress} (H : NoWitP peers) : peers !! W64
   | none => rfl
   | some p => exact absurd rfl (H _ p h).2
 
-/-- The tracker's epoch, witness-free (2026-10-19): an `Epoch` nobody writes in place
-(`ResetReplicationSet` and `ChangeReplicationSet` allocate a new one), hence persistent. -/
+/-- The tracker's epoch, witness-free (2026-10-19): the bare epoch at subterm 0 (`ownEpoch`,
+`InvEpoch.lean`) -- what `ResetReplicationSet(true)` builds when the configuration has no
+witness, and what `MakeProgressTracker` starts from. -/
 def ownEpochNW (e : Loc) : IProp GF :=
-  iprop(∃ ev : tracker.Epoch, e ↦□ ev ∗ ⌜EpochNW ev⌝)
+  ownEpoch e (EpochM.bare (W64 0))
 
 instance ownEpochNW_persistent (e : Loc) : Persistent (ownEpochNW (GF := GF) e) := by
   unfold ownEpochNW; infer_instance
@@ -1414,23 +1408,6 @@ theorem wp_min2_uint64 (x y : w64) :
   · rw [show w64Min x y = y by unfold w64Min; rw [ite_eq_right (by omega)]]
     iapply HΦ; itrivial
 
-/-- `array_acc`, putting back the same element. -/
-theorem array_acc_same {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
-    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
-    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
-    typedPointsto (GF := GF) p a dq ⊢
-      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
-        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
-  have hset : a.arr.set i.toNat v = a.arr := by
-    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
-    exact List.set_getElem_self h
-  iintro Ha
-  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
-  iframe Hv
-  iintro Hv
-  ihave Ha := Ha $$ %v Hv
-  rw [hset]
-  iexact Ha
 
 /-- The fields of a witness-free epoch the tracker's functions read, each persistent: the
 subterm, and in both halves the witness and the excluded voter, all `0`. -/
@@ -1445,49 +1422,15 @@ theorem ownEpochNW_fields (e : Loc) :
         e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ W64 0 ∗
       (arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
         e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ W64 0 := by
-  iintro He
-  iunfold ownEpochNW at He
-  icases He with ⟨%ev, #Hev, %Hnw⟩
-  obtain ⟨Hsub, r0, r1, Harr, H0w, H0e, H1w, H1e⟩ := Hnw
-  icases (Access.access (A := iprop(e.[tracker.Epoch, go!"Subterm"] ↦□ ev.Subterm'))
-    (A' := iprop(e.[tracker.Epoch, go!"Subterm"] ↦□ ev.Subterm'))
-    (P := iprop(e ↦□ ev))) $$ Hev with ⟨#Hs, -⟩
-  icases (Access.access (A := iprop(e.[tracker.Epoch, go!"ReplicationSet"] ↦□ ev.ReplicationSet'))
-    (A' := iprop(e.[tracker.Epoch, go!"ReplicationSet"] ↦□ ev.ReplicationSet'))
-    (P := iprop(e ↦□ ev))) $$ Hev with ⟨#Hrs, -⟩
-  icases array_acc_same _ (sint.Z (W64 0)) _ _ _ r0 (by decide) (by rw [Harr]; rfl) $$ Hrs
-    with ⟨#H0, -⟩
-  icases array_acc_same _ (sint.Z (W64 1)) _ _ _ r1 (by decide) (by rw [Harr]; rfl) $$ Hrs
-    with ⟨#H1, -⟩
-  icases (Access.access (A := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ r0.Witness'))
-    (A' := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ r0.Witness'))
-    (P := iprop(arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-      e.[tracker.Epoch, go!"ReplicationSet"] ↦□ r0))) $$ H0 with ⟨#Hw0, -⟩
-  icases (Access.access (A := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ r0.Excluded'))
-    (A' := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ r0.Excluded'))
-    (P := iprop(arrayIndexRef tracker.ReplicationSet (sint.Z (W64 0))
-      e.[tracker.Epoch, go!"ReplicationSet"] ↦□ r0))) $$ H0 with ⟨#He0, -⟩
-  icases (Access.access (A := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ r1.Witness'))
-    (A' := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Witness"] ↦□ r1.Witness'))
-    (P := iprop(arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-      e.[tracker.Epoch, go!"ReplicationSet"] ↦□ r1))) $$ H1 with ⟨#Hw1, -⟩
-  icases (Access.access (A := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ r1.Excluded'))
-    (A' := iprop((arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-      e.[tracker.Epoch, go!"ReplicationSet"]).[tracker.ReplicationSet, go!"Excluded"] ↦□ r1.Excluded'))
-    (P := iprop(arrayIndexRef tracker.ReplicationSet (sint.Z (W64 1))
-      e.[tracker.Epoch, go!"ReplicationSet"] ↦□ r1))) $$ H1 with ⟨#He1, -⟩
-  isplitr; · iExactEq Hs; simp only [Hsub]
-  isplitr; · iExactEq Hw0; simp only [H0w]
-  isplitr; · iExactEq He0; simp only [H0e]
-  isplitr; · iExactEq Hw1; simp only [H1w]
-  iExactEq He1; simp only [H1e]
+  have Hf := ownEpoch_fields (GF := GF) e (EpochM.bare (W64 0))
+  have Hw := ownEpoch_we (GF := GF) e (EpochM.bare (W64 0))
+  simp only [EpochM.bare, RSM.bare] at Hf Hw
+  unfold ownEpochNW
+  simp only [EpochM.bare, RSM.bare]
+  iintro #He
+  icases Hf $$ He with ⟨#Hs, -⟩
+  icases Hw $$ He with ⟨#Hw0, #He0, #Hw1, #He1⟩
+  iframe Hs Hw0 He0 Hw1 He1
 
 /-- `max` on `uint64` (Rocq: the framework's `wp_max2_uint64`, which the Lean port lacks). -/
 theorem wp_max2_uint64 (x y : w64) :

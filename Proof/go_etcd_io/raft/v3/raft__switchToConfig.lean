@@ -112,7 +112,7 @@ theorem raft.switchToConfig.wp_proof
       ihave Hwf := Hw1back $$ Hw1
       ihave Htrkf := Htrkback $$ Hwf
       wp_auto
-      wp_apply wp_Epoch_HasWitness $$ [$Hepw]
+      wp_apply (tracker.Epoch.HasWitness.spec_nw wp_Epoch_HasWitness _) $$ [$Hepw]
       ihave Hphys := Hback $$ %tvw Htrkf Htrk
       wp_join_done
     · rw [decide_eq_false (show stateW64 s0.role ≠ W64 2 by

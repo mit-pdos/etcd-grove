@@ -329,7 +329,9 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
+public import Proof.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNonWitnessVoterSlice
 public import Proof.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
+public import Proof.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
 public import Proof.go_etcd_io.raft.v3.unstable__acceptInProgress
 public import Proof.go_etcd_io.raft.v3.unstable__maybeFirstIndex
 public import Proof.go_etcd_io.raft.v3.unstable__maybeLastIndex
@@ -1529,6 +1531,14 @@ theorem tracker.ProgressTracker.wp_LearnerNodes :
 theorem tracker.ProgressTracker.wp_TallyVotes :
     tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.TallyVotes.wp_proof quorum.JointConfig.wp_VoteResult
+
+theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
+    tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
+  tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
+
+theorem tracker.scopedAckIndexer.wp_AckedIndex :
+    tracker.scopedAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
+  tracker.scopedAckIndexer.AckedIndex.wp_proof
 
 end links
 

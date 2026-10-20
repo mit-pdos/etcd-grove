@@ -22,11 +22,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem tracker.Epoch.HasWitness.wp_proof : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG) := by
-  intro e
+  intro e em
   wp_start as #He
-  icases ownEpochNW_fields e $$ He with ⟨-, #Hw0, -, #Hw1, -⟩
+  icases ownEpoch_we e em $$ He with ⟨#Hw0, -, #Hw1, -⟩
   wp_auto
-  iapply HΦ; ipureintro; trivial
+  wp_if_destruct
+  · have h0 := Hif
+    rw [show em.hasWit = !decide (em.rs1.wit = W64 0) by simp [EpochM.hasWit, h0]]
+    iapply HΦ; itrivial
+  · have h0 := Hif
+    rw [show em.hasWit = true by simp [EpochM.hasWit]; exact Or.inl h0]
+    iapply HΦ; itrivial
 
 end proof
 
