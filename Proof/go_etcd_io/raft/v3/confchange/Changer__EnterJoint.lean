@@ -201,26 +201,26 @@ theorem confchange.Changer.EnterJoint.wp_proof
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   ihave Hc0 : ownCfgCC ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
-      tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM)
+      tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false, c.wit⟩ : CfgM)
     $$ [Hin Hmout Hl Hln]
   · iapply ownCfgCC_intro ({ cfg' with Voters' := array.mk 2 (cfg'.Voters'.arr.set 1 mout) } :
-      tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM)
+      tracker.Config) (DFrac.own 1) (⟨c.incoming, c.incoming, c.learners, c.learnersNext, false, c.wit⟩ : CfgM)
       vin mout Harr2 (by simpa using Hal) Hwit $$ Hin [Hmout] Hl Hln
     unfold ownIdsetC; iright; iframe Hmout; ipureintro; exact Hi0
   ihave Hnew := ownNewPr_copies (GF := GF) chg pvs Hnw
   ihave Hw := ownWork_intro chg pvs cfg_ptr trk
-    (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState)
+    (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false, c.wit⟩ : CfgM), flagsOf pvs⟩ : CCState)
     _ prs' pvs rfl $$ Hcfgp Hc0 Htrk Hcopies Hnew
   -- `c.apply(&cfg, trk, ccs...)`
   wp_apply wp_Changer_apply c_ptr cfg_ptr trk chg pvs _ ccs ls l _ _ Hmi Hnow $$ [$c $Hccs $Hcl $Hw]
     as %err2 ⟨c, Hccs, Hres⟩
   have Hej : enterJointM autoLeave l { cfg := c, prs := flagsOf pvs } =
-      match (applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState)) with
+      match (applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false, c.wit⟩ : CfgM), flagsOf pvs⟩ : CCState)) with
       | none => none
       | some s1 => checkedM { cfg := { s1.cfg with autoLeave := autoLeave }, prs := s1.prs } := by
     simp only [enterJointM, ite_eq_right Hs0, ite_eq_right Hj, ite_eq_right Hi0] <;> rfl
   rw [Hej]
-  rcases Happ : applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false⟩ : CfgM), flagsOf pvs⟩ : CCState) with _ | s1
+  rcases Happ : applyM l (⟨(⟨c.incoming, c.incoming, c.learners, c.learnersNext, false, c.wit⟩ : CfgM), flagsOf pvs⟩ : CCState) with _ | s1
   · icases Hres with %Herr2
     cases err2 with
     | nil => exact absurd rfl Herr2

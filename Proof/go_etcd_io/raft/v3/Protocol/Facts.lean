@@ -1387,10 +1387,10 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (D19p, 2026-10-18) the tracked bound, if any: the voters' superset, the static mode's
     (trk : Option (GSet w64)) (Htrk : ∀ T, trk = some T → cfg ⊆ T ∧ dyn = none)
     -- (2026-10-19, D21 M3) the no-snapshot mode, only with a bootstrap log
-    (ns : Bool) (Hns : ns = true → L ≠ []) :
+    (ns : Bool) (Hns : ns = true → L ≠ [])
     -- (2026-10-19, witness support) the witness, `0` for none: not a node, a voter of a static
     -- configuration
-    (wit : w64) (Hwit : wit ∉ ids ∧ (wit = W64 0 ∨ (wit ∈ cfg ∧ dyn = none))) →
+    (wit : w64) (Hwit : wit ∉ ids ∧ (wit = W64 0 ∨ (wit ∈ cfg ∧ dyn = none))) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1406,7 +1406,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) ∗
         -- (2026-10-19) the witness's storage's ghost state, at its first state
         (⌜γ.reWit = wit⌝ ∗ wGhost γ wInit) := by
-  intro wit Hwit Hcne Hnz HLok Ht Hdyn
+  intro Hcne Hnz HLok Ht Hdyn
   have HwfL := HLok.wf
   have Hones := HLok.terms
   have Hlen : (L.length : Int) < 2 ^ 64 := by have := HLok.1; omega
@@ -1604,7 +1604,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     · simp at hx; subst hx; exact Int.le_refl _
   isplitr
   · iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => wStJust (GF := GF) γ0 x)).2
-    unfold wStJust; rw [if_pos rfl]; ipureintro; rfl
+    unfold wStJust; rw [if_pos (show wInit.lt = W64 0 from rfl)]; ipureintro; rfl
   isplitr
   · ipureintro
     refine ⟨by rw [eW, e1, GMap.lookup_insert], fun t ht => by simp at ht, by simp [wInit]⟩
