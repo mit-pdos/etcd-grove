@@ -427,6 +427,21 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "watchkv")],
     ),
     Project(
+        name="cachekv",
+        # watchkv with the watch read through etcd's cache: one member started in-process, as in
+        # putget, a cache of the prefix over the client, a cache watch from revision 2, writer
+        # goroutines putting random keys under the prefix, and watchkv's check. A Go module of
+        # this repository, with putget's replaces and the cache module's (keep them in step); its
+        # imports are the etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "cachekv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "cachekv")],
+    ),
+    Project(
         name="putget3",
         # putget with three members (D21 stage M5): three members started in-process, each
         # serving its raft handler on its own peer listener, a client's Put and Get through the
