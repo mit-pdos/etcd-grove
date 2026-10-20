@@ -146,14 +146,16 @@ PROJECTS = [
         # server-canceled substream's id reset (04375baaa,
         # issues/etcd-watch-resume-stale-canceled-id.md) and no nil channel on `retc`
         # (a8a459955, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
-        # moving forward (16f73d6eb, issues/etcd-watch-resume-below-start-revision.md).
-        # `goose-lean` (2e2dc077c) is the collaborator's three D22 server commits (de825d8c6..)
-        # with these three fixes cherry-picked on top: a later bump to `goose-lean` brings both.
+        # moving forward (16f73d6eb, issues/etcd-watch-resume-below-start-revision.md) and
+        # `waitCancelSubstreams` adding one goroutine at a time to its wait group (b3c29bc17,
+        # issues/etcd-watch-resume-waitgroup-overflow.md).
+        # `goose-lean` (2aed163b1) is the collaborator's three D22 server commits (de825d8c6..)
+        # with these four fixes cherry-picked on top: a later bump to `goose-lean` brings both.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="16f73d6eb2c1d64504adcbb29fd46f5471955557",
+        rev="b3c29bc17f266cbb3e99fed9675c8d928122dca5",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
