@@ -12084,3 +12084,38 @@ branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
     waiters' authority (`ownWaitGroupWaiters γ 0`) shared in an invariant with fractional tokens
     for the goroutines, rejoined after the local wait group's `Wait`. A local join idiom backed
     by thread tokens returns each goroutine's lent state at `Done`.
+
+**R4's findings (2026-10-20; R4a and R4b done).**
+- *The reconnection is `newWatchClient`'s proof, over `run`'s state.* Its spec takes `run`'s
+  model and substreams (`RunSt`, `wsElem`, moved to `WatchRun.lean` so that the spec can name
+  them) and returns the reconnection's (`RunSt.reconnect`, every phase's `WPh.recon`: registered
+  and queued substreams queued, `closedRun` ones `closed`), independent of the next stream. The
+  per-substream steps are lemmas of `WatchRecon.lean`: the deposit taken after
+  `joinSubstreams` (`take_dep`: `lifeQ` now includes the deposit's flag `γt`, so the deposit
+  is there), a live substream re-queued from its resume revision with its next goroutine's start
+  (`recon_alive`: `sspsc_sync` gives `sent = rcv`; a registered substream's created response was
+  received, so its goroutine owns the whole `rev` field, by `lifeStart`/`psAt`; the new base is
+  `⟨rv, cplOf P, hl⟩`), a stopped one re-queued without a goroutine (`recon_dead`).
+- *A stopped substream in the queue* (`wsRest .queued`'s second disjunct): one that a
+  reconnection resumed after its goroutine stopped for good keeps only what its create and its
+  registration need (a fraction of `rev` at a start revision `startOk` holds of, the dispatch
+  cursors' authorities, `recvc`'s producer); its registration's dispatch fails on the closed
+  `donec` (`reg_post_dead`). `stopBody` keeps the resume revision's facts (`resumeOk`) for it.
+- *`regBOk` drops `0 ≤ rr`* (`dispatch_content` never used it); the promised case is `1 ≤ rr`.
+- *Lifetimes of an earlier generation.* `wsLife` holds the token or the taken deposit
+  (`lifeTk`), and `genOk` (current generation, or stopped) except for orphans, whose goroutine
+  may have resumed: dispatches need `genOk`, `take_stop` does not (a whole membership element
+  posted on `closingc` refutes a resumed deposit, which holds the element too).
+- *`waitCancelSubstreams`' wait groups* (`InvWcJoin.lean`). The local join is Perennial's
+  idiom with thread tokens instead of a bound on the `Add`s. A goroutine closing its substream
+  `Add`s to the stream's wait group with its slot's token (the slot then holds the stream's
+  running token) and refills the slot at its inner `go` statement with the fresh token, at the
+  fork itself (`wp_fork_tok_upd`, below), so the local `Add`'s bound counts the borrowed slots
+  against the stream's deposited tokens. The waiters' authority of the stream's wait group is
+  shared through an invariant with counted tokens (`wgsWgShared`).
+- *Two more gaps in Perennial, worked around locally:* `wp_fork_tok`'s premise is a plain wand,
+  so a ghost update cannot happen at the fork step (and `Fork` may stutter, so it is not atomic
+  and no invariant can be opened around it): `wp_fork_tok_upd` is a local copy whose premise is an
+  update with a later credit; its join idiom (`sync.join`) bounds the `Add`s since the last
+  `Wait` rather than the goroutines running: `wcjAdder` backs the counter with thread tokens (as
+  `InvWatchWg.lean` and `cacheWgInv` do). The general versions are to be proposed to Perennial.

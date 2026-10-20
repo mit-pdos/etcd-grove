@@ -331,6 +331,11 @@ def WPh.id : WPh → w64
   | .reg X => X
   | _ => W64 (-1)
 
+/-- An orphan (its create refused; D24: its goroutine's lifetime may be of an earlier generation). -/
+def WPh.isOrphan : WPh → Bool
+  | .orphan => true
+  | _ => false
+
 /-- The id a substream's phase has in `run`'s maps, ghost ones included: a `closedRun` one's in
 `CI` (its `id` field is `-1`: `run` resets it when the server cancels it, D24's fix F1). -/
 def WPh.cid : WPh → w64

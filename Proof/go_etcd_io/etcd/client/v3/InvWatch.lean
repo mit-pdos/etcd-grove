@@ -490,12 +490,12 @@ structure RegB where
   hb : w64
 
 /-- **A registration's base the contract allows** (pure; D24): at or above the watch's start
-(unless that is "now"), non-negative, above the cursor (unless no event yet), start-read and
-non-zero when the watch promises completeness. -/
+(unless that is "now"), above the cursor (unless no event yet), start-read and positive when the
+watch promises completeness. -/
 def regBOk (P : WsPrm GF) (B : RegB) : Prop :=
-  (P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z B.rr) ∧ 0 ≤ sint.Z B.rr ∧
+  (P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z B.rr) ∧
     (sint.Z B.hb < sint.Z B.rr ∨ sint.Z B.hb < 0) ∧
-    (P.γ.cpl = true → B.srr = true ∧ B.rr ≠ W64 0)
+    (P.γ.cpl = true → B.srr = true ∧ 1 ≤ sint.Z B.rr)
 
 /-- The first create's base. -/
 abbrev regB0 (P : WsPrm GF) : RegB := ⟨P.rev, P.sr, P.rev - W64 1⟩
@@ -503,7 +503,7 @@ abbrev regB0 (P : WsPrm GF) : RegB := ⟨P.rev, P.sr, P.rev - W64 1⟩
 theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.γ.cpl = cplOf P) :
     regBOk P (regB0 P) := by
   obtain ⟨-, -, h0, -⟩ := hok
-  refine ⟨Or.inr (Int.le_refl _), h0, ?_, fun hcpl => ?_⟩
+  refine ⟨Or.inr (Int.le_refl _), ?_, fun hcpl => ?_⟩
   · show sint.Z (P.rev - W64 1) < sint.Z P.rev ∨ sint.Z (P.rev - W64 1) < 0
     by_cases hz : P.rev = W64 0
     · right; rw [hz]; decide
@@ -514,7 +514,10 @@ theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.�
   · rw [hc] at hcpl
     unfold cplOf cplCond at hcpl
     simp only [Bool.and_eq_true, decide_eq_true_eq] at hcpl
-    exact ⟨hcpl.1, hcpl.2.2.2.2⟩
+    refine ⟨hcpl.1, ?_⟩
+    have : sint.Z P.rev ≠ 0 := fun h => hcpl.2.2.2.2 (by word)
+    show 1 ≤ sint.Z P.rev
+    omega
 
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
@@ -707,14 +710,16 @@ instance reqP_persistent (V : WEnv GF) (v : GoInterface) : Persistent (reqP V v)
 /-- **What a goroutine stopping for good leaves** (D24: in its lifetime's invariant, `lifeSt`):
 the `outc` field and the producer's side of `outc` (or the field `nil`, the channel closed by
 `waitCancelSubstreams` once the watch's context was done), its `retc` field (with the caller's
-resources if it never sent its channel), its part of the request's `rev` field, its half of the
-`donec` field. -/
+resources if it never sent its channel), its part of the request's `rev` field with the facts of
+its value as a resume revision (a reconnection re-creates the stopped substream from it), its half
+of the `donec` field. -/
 def stopBody (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(∃ (rc : Loc) (q : Qp) (nr : w64) (dc : Loc),
     (wsF P.ws go!"outc" ↦ P.outc ∗ outcProd P ∨
       wsF P.ws go!"outc" ↦ null ∗ context.ContextClosed P.cs.Done_gn) ∗
     wsReqF P.ws go!"retc" ↦ rc ∗ (⌜rc = null⌝ ∨ ⌜rc = P.retc⌝ ∗ retcRes P) ∗
-    wsReqF P.ws go!"rev" ↦{DFrac.own q} nr ∗ wsF P.ws go!"donec" ↦{DFrac.own (1 : Qp).half} dc)
+    wsReqF P.ws go!"rev" ↦{DFrac.own q} nr ∗ (∃ hl c2 : w64, resumeOk V P nr hl c2) ∗
+    wsF P.ws go!"donec" ↦{DFrac.own (1 : Qp).half} dc)
 
 /-- **A substream that stopped** (not to resume), with what its goroutine left (`stopBody`;
 `closeSubstream`'s precondition). -/
@@ -996,10 +1001,23 @@ def wsRun (V : WEnv GF) (P : WsPrm GF) (k0 : Nat) (rv0 : w64) (rcv : List Loc) (
 `γx` (`false`), its membership token (whole). -/
 def resumeBody (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) : IProp GF :=
   iprop(∃ (k0 : Nat) (rv0 : w64) (rcv : List Loc) (nr : w64) (bl dc : Loc),
-    wsRun V P k0 rv0 rcv nr ∗ wsF P.ws go!"closing" ↦ false ∗
+    wsRun V P k0 rv0 rcv nr ∗ lifeStart P k0 ∗ wsF P.ws go!"closing" ↦ false ∗
     wsF P.ws go!"bufLogger" ↦ bl ∗ bufLogOk P.ws bl ∗ wsF P.ws go!"outc" ↦ P.outc ∗
     wsF P.ws go!"donec" ↦{DFrac.own (1 : Qp).half} dc ∗
     dghostVar P.γx (DFrac.own 1) false ∗ ghostMapElem G.γws P.ws (DFrac.own 1) ())
+
+/-- **What `waitCancelSubstreams` lends a resuming substream's goroutine** (D24): its values and what
+the substream's last goroutine left on `resumec` (`resumeBody`: the goroutine may close the
+substream if its watch's context is done), or what a goroutine stopped for good left
+(`stopBody`, whose `outc` the goroutine closes if the context is done). -/
+def wcIn (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) : IProp GF :=
+  iprop(wsIs V P ∗ (resumeBody V G P ∨ (wsStopped P ∗ stopBody V P)))
+
+/-- **What a resuming substream's goroutine of `waitCancelSubstreams` gives back**: the resumed
+state unchanged (`stopc` closed first), or the substream stopped for good (closed by the goroutine
+once the watch's context is done, its membership token posted on `closingc`, or stopped before). -/
+def wcOut (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) : IProp GF :=
+  iprop(resumeBody V G P ∨ (wsStopped P ∗ stopBody V P))
 
 /-- The namespace of the lifetimes' invariants. -/
 abbrev lifeN : Namespace := nroot.@"wsLife"

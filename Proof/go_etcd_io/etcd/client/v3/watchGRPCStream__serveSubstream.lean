@@ -340,11 +340,11 @@ lifetime's invariant (`stopBody`), post the whole membership token on `closingc`
 wait group. -/
 local macro "ss_return" : tactic => `(tactic| (
   wp_for_post
-  ihave Hrv : iprop(∃ (q : Qp) (rv : w64), wsReqF P.ws go!"rev" ↦{DFrac.own q} rv) $$ [Hrev]
-  · icases Hrev with (⟨-, Hrev⟩ | ⟨-, Hrev⟩)
-    · iexists _, _; iexact Hrev
-    · iexists 1, _; iexact Hrev
-  icases Hrv with ⟨%q, %rv, Hrv⟩
+  ihave Hrv : iprop(∃ (q : Qp), wsReqF P.ws go!"rev" ↦{DFrac.own q} nr) $$ [Hrev]
+  · icases Hrev with (⟨%Hkr, Hrev⟩ | ⟨-, Hrev⟩)
+    · iexists _; rw [Hkr.2]; iexact Hrev
+    · iexists 1; iexact Hrev
+  icases Hrv with ⟨%q, Hrv⟩
   wp_apply +noauto wp_recordBufWait $$ [Hbl Hbwt Hrv Hbuf] as ⟨Hbl, Hla, %t'', Hbwt⟩
   · iframe Flg Hbl Hblok Hbwt
     unfold wsLogA
@@ -378,8 +378,12 @@ local macro "ss_return" : tactic => `(tactic| (
     · unfold wsStopped; iframe #
     ileft
     unfold stopBody outcProd
-    iexists rcf, q, rv, L.dc
-    iframe Hretc Hrv Hdnf
+    iexists rcf, q, nr, L.dc
+    ihave #Hrs' : iprop(∃ hl c2 : w64, resumeOk V P nr hl c2) $$ []
+    · icases Hrsm with ⟨%hl, %c2, -, -, #Hrs⟩
+      iexists hl, c2
+      iexact Hrs
+    iframe Hretc Hrv Hdnf Hrs'
     isplitl [Houtcf Hprod Hauth Hc2]
     · ileft
       iframe Houtcf
@@ -1166,7 +1170,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       ileft
       unfold resumeBody
       iexists k0, rv0, rcv, nr, bl, L.dc
-      iframe Hclosing Hbl Hblok Houtcf Hdnf Hx Hwstok
+      iframe Hclosing Hbl Hblok Houtcf Hdnf Hx Hwstok Hls0
       unfold wsRun
       iexists sent, C, bq, b, rcf, _, cl, p0
       iframe Hcons Hprod Hauth Hc2 Hbuf Hbe Hrev Hretc Hrr Hbwt Hcur Hrsm

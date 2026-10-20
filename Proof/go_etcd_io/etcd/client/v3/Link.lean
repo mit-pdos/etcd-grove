@@ -901,17 +901,9 @@ theorem v3.watchGRPCStream.wp_serveWatchClient [go_etcd_io.etcd.server.v3.etcdse
     EtcdGrove.watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchGRPCStream.serveWatchClient.wp_proof
 
-theorem v3.watchGRPCStream.wp_newWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
-    EtcdGrove.watchGRPCStream.newWatchClient.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchGRPCStream.newWatchClient.wp_proof v3.watchGRPCStream.wp_joinSubstreams v3.watchGRPCStream.wp_waitCancelSubstreams v3.watchGRPCStream.wp_openWatchClient v3.watchGRPCStream.wp_serveWatchClient rpctypes.wp_Error
-
-theorem v3.watchGRPCStream.wp_newWatcherStreamBufLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
-    EtcdGrove.watchGRPCStream.newWatcherStreamBufLogger.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchGRPCStream.newWatcherStreamBufLogger.wp_proof v3.wp_newBlockLogger zap.wp_String zap.wp_Int64 zap.wp_Int' zap.wp_Duration zap.Logger.wp_Info
-
-theorem v3.watchGRPCStream.wp_nextResume [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
-    EtcdGrove.watchGRPCStream.nextResume.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchGRPCStream.nextResume.wp_proof
+theorem v3.watchGRPCStream.wp_startBufWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.startBufWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.startBufWait.wp_proof time.Time.wp_IsZero
 
 theorem v3.watcherStream.wp_resetBufWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watcherStream.resetBufWait.spec (GF := GF) (hG := hG) :=
@@ -921,13 +913,21 @@ theorem v3.watchGRPCStream.wp_recordBufWait [go_etcd_io.etcd.server.v3.etcdserve
     EtcdGrove.watchGRPCStream.recordBufWait.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchGRPCStream.recordBufWait.wp_proof time.Time.wp_IsZero v3.blockLogger.wp_recordWait v3.watcherStream.wp_resetBufWait
 
-theorem v3.watchGRPCStream.wp_startBufWait [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
-    EtcdGrove.watchGRPCStream.startBufWait.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchGRPCStream.startBufWait.wp_proof time.Time.wp_IsZero
-
 theorem v3.watchGRPCStream.wp_serveSubstream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watchGRPCStream.serveSubstream.spec (GF := GF) (hG := hG) :=
   EtcdGrove.watchGRPCStream.serveSubstream.wp_proof v3.watchGRPCStream.wp_startBufWait v3.watchGRPCStream.wp_recordBufWait v3.watcherStream.wp_resetBufWait v3.WatchResponse.wp_Err
+
+theorem v3.watchGRPCStream.wp_newWatchClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.newWatchClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.newWatchClient.wp_proof v3.watchGRPCStream.wp_joinSubstreams v3.watchGRPCStream.wp_waitCancelSubstreams v3.watchGRPCStream.wp_openWatchClient v3.watchGRPCStream.wp_serveWatchClient rpctypes.wp_Error v3.watchGRPCStream.wp_serveSubstream
+
+theorem v3.watchGRPCStream.wp_newWatcherStreamBufLogger [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.newWatcherStreamBufLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.newWatcherStreamBufLogger.wp_proof v3.wp_newBlockLogger zap.wp_String zap.wp_Int64 zap.wp_Int' zap.wp_Duration zap.Logger.wp_Info
+
+theorem v3.watchGRPCStream.wp_nextResume [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
+    EtcdGrove.watchGRPCStream.nextResume.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.watchGRPCStream.nextResume.wp_proof
 
 theorem v3.watchRequest.wp_toPB [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watchRequest.toPB.spec (GF := GF) (hG := hG) :=
