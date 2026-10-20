@@ -477,7 +477,6 @@ instance WitnessStore_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) v.mu' dq ∗
-    "version" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"version" l) v.version' dq ∗
     "state" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"state" l) v.state' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -501,22 +500,6 @@ instance WitnessStore_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_gr
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) mu' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance WitnessStore_access_load_version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"version" l) v.version' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"version" l) v.version' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance WitnessStore_access_store_version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (version' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"version" l) v.version' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"version" l) version' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := version' } : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -551,7 +534,6 @@ instance witnessRead_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.witnessRead where
   typedPointstoDef l v dq := iprop(
     "s" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) v.s' dq ∗
-    "version" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"version" l) v.version' dq ∗
     "state" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"state" l) v.state' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -575,22 +557,6 @@ instance witnessRead_access_store_s (l : Loc) (v : github_com.mit_pdos.etcd_grov
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) v.s' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) s' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance witnessRead_access_load_version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"version" l) v.version' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"version" l) v.version' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance witnessRead_access_store_version (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (version' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"version" l) v.version' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"version" l) version' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := version' } : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
