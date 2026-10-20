@@ -166,6 +166,28 @@ theorem kvOpStep_txnOf_eq (cs : List (linkv.MCmp GoString GoString))
   simp only [opIn, linkv.opOf, kvOpStep]
   rw [if_pos (by rw [linkv.txnOf_branch]; exact linkv.pathsIgnOk_tOpOf σ.kvs _)]
 
+/-- What a transaction's input decodes. -/
+theorem decIn_txn (x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input)
+    (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
+    (h : decIn x = some (.txn cs t e)) :
+    0 ≤ sint.Z x.NCmps' ∧ decAll decCmp (cmpsOfL x) = some cs ∧
+      decAll decTOp (thenOfL x) = some t ∧ decAll decTOp (elseOfL x) = some e := by
+  rcases decIn_cases x _ h with ⟨-, h'⟩ | ⟨-, h'⟩ | ⟨-, h'⟩ | ⟨-, h'⟩ |
+    ⟨-, cs', t', e', h', h1, h2, h3⟩
+  all_goals try (cases h')
+  refine ⟨?_, h1, h2, h3⟩
+  unfold decIn at h
+  repeat (split at h; · simp at h)
+  split at h
+  · rename_i hk; exact hk.2.1
+  · cases h
+
+theorem txnOf_branch' (cs : List (linkv.MCmp GoString GoString))
+    (t e : List (linkv.MOp GoString GoString)) (b : Bool) :
+    (linkv.txnOf cs t e).branch b = (if b then t else e).map linkv.tOpOf := by
+  unfold linkv.txnOf TxnModel.branch
+  cases b <;> rfl
+
 end pure
 
 /-! ## The updates -/
