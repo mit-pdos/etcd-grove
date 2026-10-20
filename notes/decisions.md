@@ -11875,3 +11875,28 @@ Rejected: fixing the registry name at boot (`wait.New` taking a pre-allocated na
 example's `Main` replaces `ρ.wait`), and per-claim registration cells in the claims' facts (needs
 the registry name in `Φs`, fixed before the registry exists). The fallback (no gets in writing
 transactions) was the plan's alternative.
+
+## linkv-txn E: the model's inputs and outputs as plain values, and what `ioOk` carries (2026-10-20)
+
+porcupine's model receives an operation as boxed Go values (`OpV`), and `ModelSpec.M` must decode
+it purely (`decOp`, from the values alone). A struct holding slices (stage D's `Input.Cmps`,
+`Output.Res`) is a value holding pointers whose contents are in the heap, so no pure function of
+it is the model's input. Hence `Input`/`Output` were made plain values with bounded, unrolled
+fields (at most one comparison, three then- and one else-operation, three results and three
+key-values, each with a count), which is all `Gen` produces and all the workload's replies carry
+(three keys); robustness's model is no wider on these histories (`TestDifferential` unchanged).
+Rejected: decoding through a ghost table of the slices' contents (the model would no longer be a
+function of porcupine's operations).
+
+The decoder reads an output by its input's kind (`decOut`), so `outEqual` was narrowed to compare
+only those fields (`resEqual`): otherwise a reply equal to the model's answer but differing in an
+unread field (a put result's `R`) would be rejected by `Step` and allowed by `pM`, and `Step`
+would not refine the model.
+
+`ioOk` carries `ValidIn x` (the input decodes, its keys the workload's): `Step` runs `mstep` on any
+input, while `pM` has no step for one that does not decode; `Apply` delivers `ioOk` and knows its
+input is `Gen`'s. The configurations' invariant `Bounded n` (`Steps.lean`) carries the pending
+inputs' validity for the same reason (a pending write takes effect through `mstep`), and the
+revision plus the pending count, so that `mstep`'s revision stays far from overflow: each step
+adds at most one to that sum, a pending write taking effect nothing, and porcupine's index stays
+below `2^60`.
