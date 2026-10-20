@@ -705,6 +705,9 @@ theorem NewServer.wp_proof
   -- the blank fields' leftovers (`"_" ∷ True`, anonymous) cleared, so `wp_for` can name the context
   rw [named_blank_clear (iprop(True) : IProp GF)]
   iNamed
+  -- the loop gets what it reads only (`wp_for` generalizes the whole context into its invariant,
+  -- and `wp_for_post` reframes it at every iteration); the rest waits after it
+  wp_join at (App (App (App (Val doFor) _) _) _) with [b Hb nodeID tr Htlive IH]
   wp_for IH
   wp_if_destruct
   · obtain ⟨mx, Hmx⟩ : ∃ mx, rms[(sint.Z n).toNat]? = some mx :=
@@ -735,6 +738,12 @@ theorem NewServer.wp_proof
       iexists n + W64 1, _
       iframe
       ipureintro; constructor <;> word
+  · wp_join_done
+    iframe b Hb nodeID tr Htlive
+    iexists n, mm
+    iframe i m
+    ipureintro; exact Hn
+  iNamed IH
   -- `for _, m := range b.cluster.cl.Members() { … tr.AddPeer(…) }`: (D21 M2) the members'
   -- records, each naming its member's own URLs (`bootOk`'s `Hmembers`, the directory `dir`)
   wp_apply Hmembers as %msl %mps Hmsl Hmso
@@ -750,6 +759,7 @@ theorem NewServer.wp_proof
     · have := Hmsll.2; word
   -- the result's ghost state is allocated at the end (`wp_fupd`)
   iapply wp_fupd
+  wp_join at (App (App (App (Val doFor) _) _) _) with [b Hb nodeID tr Htlive Hmsl Hmso IH2]
   wp_for IH2
   wp_if_destruct
   · obtain ⟨px, Hpx⟩ : ∃ px, mps[(sint.Z n).toNat]? = some px :=
@@ -801,6 +811,12 @@ theorem NewServer.wp_proof
       iexists n + W64 1, _
       iframe
       ipureintro; constructor <;> word
+  · wp_join_done
+    iframe b Hb nodeID tr Htlive Hmsl Hmso
+    iexists n, mm
+    iframe i m
+    ipureintro; exact Hn
+  iNamed IH2
   -- `srv.r.transport = tr`; the result
   have hU64 : ∀ u : Loc, u ↦ (zero_val Perennial.sync.atomic.Uint64) ⊢
       sync.atomic.ownUint64 (GF := GF) u (DFrac.own 1) (W64 0) := by
