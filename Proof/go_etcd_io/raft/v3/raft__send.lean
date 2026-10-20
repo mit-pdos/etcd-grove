@@ -64,9 +64,9 @@ local macro "tyd" : tactic => `(tactic| simp [sentTypes, MsgReadIndex, MsgProp, 
 
 set_option hygiene false in
 /-- (2026-10-19, D21 M2r) The queued message's modes' facts (`XfOk`'s): a type the model describes
-(but in case (c)), and in the no-snapshot and (D22 S-a) no-transfer modes `SentMsgOk` -- its
-fields from the case's facts `args`, the node's id nonzero (`Hidnz`), its term past `0` in the
-no-snapshot mode (`Hxfs`). -/
+(but in case (c)), and past term `0` for good (`NGhost.bt`; D22 S-a to S-c: the no-snapshot mode)
+with transfer off `SentMsgOk` -- its fields from the case's facts `args`, the node's id nonzero
+(`Hidnz`), its term past `0` (`Hxfs`). -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
   refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_⟩⟩
@@ -256,9 +256,9 @@ theorem raft.send.wp_proof
     · ipureintro
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; intro h; rw [HnsF] at h; cases h
-    · ipureintro
-      refine ⟨fun _ => by simp only [Hty1, HSnap]; nofun, fun h => ?_⟩
-      rw [HnsF] at h; cases h
+    -- (2026-10-20, D22 S-c) `SentMsgOk` past term `0` for good with transfer off, outside the
+    -- no-snapshot mode too: a leader's snapshot, stamped, to another node
+    · sent_tac [HSnap] (fun h => Hself h.symm)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of

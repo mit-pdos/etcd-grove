@@ -238,8 +238,10 @@ the leader's rejection handling reads of the messages (`isMessage`'s clause of a
 `appResp`), and what the messages a `Ready` hands out say (`isRaftMsg`). Set with the node
 (`Bootstrap`), kept by every step. (2026-10-19, D21 M2r) And leader transfer is off
 (`NGhost.xf`) exactly in the cluster's no-transfer mode (2026-10-19, D22 S-a:
-`RaftNames.reNoXfer`, its own flag; until then the no-snapshot mode's). -/
-def NsLink (γ : RaftNames) (s : NState) : Prop := s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoXfer
+`RaftNames.reNoXfer`, its own flag; until then the no-snapshot mode's). (2026-10-20, D22 S-c) And
+the node is past term `0` for good (`NGhost.bt`) exactly in that mode too, its bootstrap log's. -/
+def NsLink (γ : RaftNames) (s : NState) : Prop :=
+  s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoXfer ∧ s.gh.bt = γ.reNoXfer
 
 theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns = true) :
     γ.reBoot ≠ [] :=
@@ -449,9 +451,10 @@ theorem rOf_congr {s s' : NState} (g : RGh) (hp : toPState s' = toPState s)
 theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s' : NState}
     (hp : toPState s' = toPState s) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
-    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl) :
+    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl)
+    (hbt : s'.gh.bt = s.gh.bt := by rfl) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
-  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
+  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx, hbt]
   cases md with
   | static =>
     simp only [ownStepGhost, ghostRest, ghostRestM]; rw [hp, hn]
@@ -469,9 +472,10 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hc : (toPState s').commit = (toPState s).commit) (ht : (toPState s').term = (toPState s).term)
     (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
-    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl) :
+    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl)
+    (hbt : s'.gh.bt = s.gh.bt := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
-  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
+  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx, hbt]
   cases md with
   | static => simp only [ghostRest, ghostRestM]; rw [hn]
   | dyn dec c0 h0 g =>

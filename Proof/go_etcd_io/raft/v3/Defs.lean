@@ -1017,8 +1017,16 @@ structure NGhost where
   leaves the cluster's no-transfer mode (`RestartNode`, `Bootstrap` outside it), so that a node
   is in it exactly when in the cluster's mode (`NsLink`; 2026-10-19, D22 S-a:
   `RaftNames.reNoXfer`, independent of the no-snapshot mode, which until then implied it). With
-  the no-snapshot mode it makes the queued messages `SentMsgOk` (`XfOk`). -/
+  the no-snapshot mode it makes the queued messages `SentMsgOk` (`XfOk`). (D22 S-c) With the
+  boot flag `bt` instead: the no-snapshot mode no longer enters. -/
   xf : Bool := true
+  /-- (2026-10-20, D22 S-c) **Past term `0` for good**: the node's term is not `0` (`ownRaftPhys`'s
+  `Hxf`, `XfOk`), which `SentMsgOk`'s stamped terms need. Off when the struct is built (`newRaft`,
+  at term `0`), set with leader transfer's flag when the node's construction is of a cluster with
+  a bootstrap log (`Bootstrap`, at term `1`; `ownRaftPhys_set_ns`), at the cluster's no-transfer
+  mode (`NsLink`: `RaftNames.reNoXfer`, which needs a bootstrap log, `reNoXfer_ok`). Until D22
+  S-c the no-snapshot mode (`ns`) gave the term, so that `SentMsgOk` was of both modes. -/
+  bt : Bool := false
 deriving DecidableEq
 
 

@@ -150,7 +150,7 @@ theorem RawNode.ReadIndex.wp_proof
     rw [Int.max_eq_left h0] at Ht3
     word
   have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
-  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
   ihave #Hpost : iprop(∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr) $$ []
   · iexists Lc
     iframe Hrq Hrd

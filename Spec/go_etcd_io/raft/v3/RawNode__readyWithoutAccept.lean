@@ -63,6 +63,8 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
   rs.unpersisted = [] →
+  -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`; S-d hands one out)
+  rs.psnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))

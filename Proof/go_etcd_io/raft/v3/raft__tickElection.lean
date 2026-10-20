@@ -128,7 +128,7 @@ theorem raft.tickElection.wp_proof
     imodintro
     iintro %Hc
     simp [MsgSnap] at Hc
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, %Htm, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, %Htm, -, -, Herr⟩
   have Hcm := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hc' (by msg_ne); subst c'

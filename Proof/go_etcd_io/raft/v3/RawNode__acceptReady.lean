@@ -66,7 +66,7 @@ in progress and the handed-out ones the application's to persist (`logAcceptUnst
 def readyNstate (s : NState) (ce : List EntryM) (sz : w64) : NState :=
   { s with outbox := [],
            logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz,
-           gh := { tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf },
+           gh := { tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf, bt := s.gh.bt },
            rd := { s.rd with states := [] } }
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
@@ -547,11 +547,11 @@ theorem RawNode.acceptReady.wp_proof
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
-    (fun h => (Hxf.2 (Hnl.1.trans h.2)).2 (Hnl.2.trans h.1)) $$ Hout Hself
+    (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hself
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
-    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf } : NGhost)
+    %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf, bt := s.gh.bt } : NGhost)
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
@@ -645,6 +645,7 @@ theorem RawNode.acceptReady.wp_proof
   ihave #Hstrecs' := storedRecs_eq γ _ (readyNstate s ce sz).logst.prev _
     (readyNstate s ce sz).logst.stored (by rw [Hlogst, Hlf.2.2.2.2.1]; rfl)
     (by rw [Hlogst, Hlf.2.2.2.2.2]; rfl) $$ Hlr
+  ihave #Hstrecs' := storedRecsP_intro γ rs.psnap _ _ $$ Hstrecs'
   -- the queue: the self-addressed responses, then the acknowledgements
   ihave Hpend : pendList γ id ((selfmsgs id ms2).map QMsg.loc ++ acks1 ++ acks2)
       (readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
@@ -689,7 +690,7 @@ theorem RawNode.acceptReady.wp_proof
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v hph _
     Hwf Hin Hal Hasync Hdlen'
-    (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
+    (by rw [Hlogst, Hlf.2.2.1]; rfl) (fun _ => by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
     (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
     (by rw [Hlogst, Hlf.1]; exact Hrs_clb) HrnflN
     $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs'

@@ -43,11 +43,11 @@ theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs Hsteps0 Hunp0 Hps
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
+  wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 Hps $$ [$Hrn]
     as %rd %ce %es %ms %sts %h H
   iNamed H
   imod ownRawNodeReady_handout γ rn id rs rd ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, -⟩

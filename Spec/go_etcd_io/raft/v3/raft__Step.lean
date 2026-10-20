@@ -292,6 +292,34 @@ theorem RespStep.of_fresh [FfiSyntax] {m : MessageM} {s s' : NState}
     RespStep m s s' :=
   ⟨fun _ hlt => absurd hlt (Int.not_lt.2 hge), fun h => absurd h h3⟩
 
+/-- (2026-10-20, D22 S-c) What a `MsgSnap`'s step leaves of the state beyond the protocol, and how
+it moves the term: as `NetFrame`, but for the log's boundary and its pending snapshot, which a
+restore sets (`logRestore`: the snapshot's id, and the snapshot pending), and with `applied` kept;
+the term as `TermStep`'s, but for `offsetInProgress`, which a restore moves to the snapshot's index
+plus one (back, when the snapshot is below the log's last index). The role is a follower's after
+a snapshot of the current or a later term, and unchanged after a stale one (`PreCandStep`). What
+the `RawNode` predicate needs to survive a `MsgSnap` (`RawNode.Step`). -/
+def SnapStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+  s'.logst.applying = s.logst.applying ∧
+  s'.logst.unpersisted = s.logst.unpersisted ∧
+  s'.logst.stored = s.logst.stored ∧
+  s'.logst.storage = s.logst.storage ∧
+  s'.prevote = s.prevote ∧
+  s'.gh = s.gh ∧
+  s'.logst.fl = s.logst.fl ∧ s'.logst.applied = s.logst.applied ∧
+  uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') ∧
+  PreCandStep m s s'
+
+/-- A dropped snapshot's step. -/
+theorem SnapStep.refl [FfiSyntax] (m : MessageM) (s : NState) : SnapStep m s s :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
+    fun h => ⟨rfl, .inl h⟩⟩
+
+/-- (2026-10-20, D22 S-c) The configuration after a `MsgSnap` holding the snapshot `sn`: `c`, or the
+one the snapshot's `ConfState` denotes (`snapCfg`), after a restore. -/
+def SnapCfgOut [FfiSyntax] (sn : Option SnapshotM) (c c' : CfgM) : Prop :=
+  c' = c ∨ ∃ sv, sn = some sv ∧ c' = snapCfg sv sv.Metadata'.ConfState'.lists
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -549,6 +577,9 @@ abbrev raft.Step.spec : Prop :=
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
+      -- (2026-10-20, D22 S-c) for a snapshot, what is kept of the state and how the term moves
+      -- (`SnapStep`), and the configuration afterwards (`SnapCfgOut`)
+      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut sn c c'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

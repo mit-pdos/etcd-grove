@@ -114,10 +114,12 @@ theorem node.run.wp_proof
       icases headRest_nil γ nv rs rc rdv Hadv_nn $$ Hrest with
         ⟨#Hlb, %Hrs, Hdlv, Hrof, Hcfg, Hrc⟩
       obtain ⟨Hst, Hsteps, Hunp⟩ := Hrs
-      wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
+      -- (2026-10-20, D22 S-c) no snapshot pending
+      icases runCfg_psnap γ rs $$ Hcfg with ⟨%Hps, Hcfg⟩
+      wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs Hps $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp Hps $$ [$Hrn]
           as %rd' %ce %es %ms %sts %hrd H
         iNamed H
         wp_join_done
@@ -375,7 +377,7 @@ theorem node.run.wp_proof
       icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id { rs with tc := tb } r ml st Hok
         (by simp only; omega)
-        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb.1 Hflw Hpvb.2
+        (fun h => by simp only; rw [ite_eq_left h] at Htb; omega) Hpvb.1 Hflw Hpvb.2.1 Hpvb.2.2
         $$ [Hrn Hm Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hm Hrnraft Hmsg Hcred Hlc1
       ihave Hrest := headRest_term γ nv rs ac rc' rdv' t tb $$ Hrest Hlbtb
@@ -888,7 +890,8 @@ theorem node.run.wp_proof
     -- (2026-10-15, stage N) A1, from the driver's
     icases runCfg_a1 γ { rs1 with flw := false } ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
     · ipureintro; exact HA
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1
+    icases runCfg_psnap γ { rs1 with flw := false } $$ Hcfg with ⟨%Hps1, Hcfg⟩
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1 Hps1
       $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
     ihave Hcfg := runCfg_advance γ { rs1 with flw := false }
       { rs1 with steps := [], term := t, capplied := ca, flw := false }

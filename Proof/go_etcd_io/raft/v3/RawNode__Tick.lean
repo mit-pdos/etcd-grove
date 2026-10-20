@@ -49,7 +49,7 @@ theorem RawNode.Tick.wp_proof
         $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
   all_goals (
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, -, Htpc⟩ := Htk
-    ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+    ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
     iapply HΦ $$ %s'.term
     isplitl
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps

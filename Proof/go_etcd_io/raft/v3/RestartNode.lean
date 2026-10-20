@@ -62,6 +62,20 @@ theorem RestartNode.wp_proof
       icases Hg with ⟨Hg, -⟩
       icases ownRaftGhost_noSnap_of_commit γ cv.ID' _ rfl $$ Hg with ⟨%H, -⟩
       ipureintro; exact H
+  -- (2026-10-20, D22 S-c) nor in the no-transfer mode (`RaftNames.reNoXfer_ok`)
+  ihave %Hnx0 : ⌜γ.reNoXfer = false⌝ $$ [Hghost]
+  · cases md with
+    | static =>
+      iunfold rnInit at Hghost
+      icases ownRaftGhost_noXfer_of_commit γ cv.ID' initPState rfl $$ Hghost with ⟨%H, -⟩
+      ipureintro; exact H
+    | dyn dec c0 h0 h1 =>
+      iunfold rnInit at Hghost
+      icases Hghost with ⟨-, Hg⟩
+      iunfold ownRaftGhostR at Hg
+      icases Hg with ⟨Hg, -⟩
+      icases ownRaftGhost_noXfer_of_commit γ cv.ID' _ rfl $$ Hg with ⟨%H, -⟩
+      ipureintro; exact H
   wp_auto
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
@@ -119,15 +133,15 @@ theorem RestartNode.wp_proof
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s initPState rnv sv hprev [] rfl Hrel
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
-          Hdlen0 (by rw [Hun]) Hsn trivial
+          Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
-          (by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩)
+          (by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
-      · rw [Hsd]; iapply storedRecs_nil
+      · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
     | dyn dec c0 h0 h1 =>
       iunfold rnInit at Hghost
       icases Hghost with ⟨%HD, Hgr⟩
@@ -157,19 +171,19 @@ theorem RestartNode.wp_proof
         rw [Hro]
         iframe Hgr
         ipureintro
-        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩⟩
+        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩⟩
         rw [Hdiff]; rfl
       iapply ownRawNode_intro γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
             storage := interface.ok si, mode := .dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
           s _ [] rnv sv hprev [] Hrel.2 (fun h => by cases h) rfl Hasync
-          Hdlen0 (by rw [Hun]) Hsn trivial
+          Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
-      · rw [Hsd]; iapply storedRecs_nil
+      · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   ipersist n
@@ -235,7 +249,7 @@ theorem RestartNode.wp_proof
       unfold runCfg
       iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl⟩
+      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl, rfl⟩
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩

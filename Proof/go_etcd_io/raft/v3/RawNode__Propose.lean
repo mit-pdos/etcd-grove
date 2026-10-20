@@ -146,7 +146,7 @@ theorem RawNode.Propose.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [MsgProp]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hc' (by msg_ne); subst c'
@@ -155,7 +155,7 @@ theorem RawNode.Propose.wp_proof
   -- back (`Step.commit_mono`)
   obtain ⟨Hfr, Hap, -⟩ := Hloc (.inl rfl)
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
-  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
+  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
     Hfr.2.2.2.2.2.1 $$ Hstrecs
   iapply HΦ
   simp only [named]

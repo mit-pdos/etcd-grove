@@ -531,9 +531,9 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
     -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
     (Hns : γ.reNoSnap = true → ∀ x ∈ o, x.ty ≠ .snap)
-    -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in it (`XfOk`; D22 S-a: in it and the
-    -- no-transfer mode)
-    (Hsent : γ.reNoXfer = true ∧ γ.reNoSnap = true → SentMsgOk q.st) :
+    -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in the no-transfer mode (`XfOk`; D22
+    -- S-a to S-c: in it and the no-snapshot mode)
+    (Hsent : γ.reNoXfer = true → SentMsgOk q.st) :
     ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ isRaftMsg γ q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
@@ -1012,7 +1012,8 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
+                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf,
+                      bt := s.gh.bt }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
@@ -1040,8 +1041,9 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
               clb := s.logst.committed }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ c id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
+  ihave #Hstrecs := storedRecsP_intro γ rs.psnap _ _ $$ Hstrecs
   iapply ownRawNode_intro γ rn id rs' s' c fp rnv sv hprev [] Hwf Hin Hal Hasync Hdlen
-    (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
+    (Hunp0.trans Hunp.symm) (fun _ => Hsnap) (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
@@ -1273,7 +1275,9 @@ theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : R
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
   iintro H
   iNamed H
-  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
+  ihave #Hstrecs := storedRecsP_intro γ rs.psnap _ _ $$ Hstrecs
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
+    (fun _ => Hsnap)
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 

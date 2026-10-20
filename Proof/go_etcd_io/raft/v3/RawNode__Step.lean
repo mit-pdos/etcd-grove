@@ -1,6 +1,10 @@
-/- Lean-first (no Rocq counterpart). 
+/- Lean-first (no Rocq counterpart).
 raft v3.7 (2026-10-16, stage R5): the message is a pointer, its type and sender read by the getters
 (`Message.GetType`/`GetFrom` on `msgIn`), and passed to `raft.Step` for good.
+
+(2026-10-20, D22 S-c) A `MsgSnap` too: `raft.Step`'s snapshot clause (`SnapStep`, `SnapCfgOut`)
+rebuilds the node at the configuration the restore installs (static: the ghost state's voters, not
+joint, `GMode.SnapOk`), with the pending snapshot recorded in `RNState.psnap`.
 -/
 module
 
@@ -33,14 +37,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 set_option hygiene false in
 /-- A message `RawNode.Step` does not step: load the error it returns and refold
-`ownRawNode` unchanged. -/
+`ownRawNode` unchanged (but for the pending-snapshot flag the postcondition raises for a
+`MsgSnap`, `Hps'`, `Hstrecs'`). -/
 local macro "early_return" e:term : tactic => `(tactic| (
   try wp_auto
   iapply HΦ $$ %$e %rs.term
   isplitl
-  · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv hprev steps Hwf Hin
-      Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+  · iapply ownRawNode_intro γ rn id
+      { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s cf fp rnv sv
+      hprev steps Hwf Hin Hal Hasync Hdlen Hunp (fun h => Hsnap (h.imp_left Hps')) Hstok Htrm Hstor Hpvoff
+      Hrs_out Hrs_unst Hrs_clb Hrnfl
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs'
   ipureintro
   refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
   split <;> omega))
@@ -58,7 +65,7 @@ local macro "not_net" : tactic => `(tactic| (intro h; first
   MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty))))
 
 /-- The two guards, each an early return or on (`all_goals` over the paths that go on),
-then `raft.Step`. -/
+then `raft.Step`; after it, a snapshot's step (`SnapStep`) or any other's (`NetFrame`). -/
 theorem RawNode.Step.wp_proof
     (wp_IsResponseMsg : IsResponseMsg.spec (GF := GF) (hG := hG))
     (wp_IsLocalMsg : IsLocalMsg.spec (GF := GF) (hG := hG))
@@ -67,15 +74,24 @@ theorem RawNode.Step.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs ml st Hok _Hdns Hmtc Htn Hpvb Hflw Hxt
+  intro γ rn id rs ml st Hok Hdns Hmtc Htn Hpvb Hflw Hxt Hsnp
   rcases st with ⟨m, ents, sn, ctx, rsp⟩
-  simp only at Hok _Hdns Hmtc Htn Hpvb Hxt ⊢
+  simp only at Hok Hdns Hmtc Htn Hpvb Hxt Hsnp ⊢
   have Hok0 := Hok
   obtain ⟨Hty, -⟩ := Hok0
   have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
+  -- (2026-10-20, D22 S-c) a snapshot comes in the static mode only
+  have Hstat : m.Type' = MsgSnap → rs.mode = .static := by
+    intro h
+    cases hm : rs.mode with
+    | static => rfl
+    | dyn _ _ _ _ => exact absurd h (Hdns (by rw [hm]; rfl))
+  have Hps' : (rs.psnap || decide (m.Type' = MsgSnap)) = false → rs.psnap = false :=
+    fun h => (Bool.or_eq_false_iff.1 h).1
   wp_start as H
   iNamed H
   iNamed Hrn
+  ihave #Hstrecs' := storedRecsP_mono γ Hps' _ _ $$ Hstrecs
   ihave #HI := isInitialized_access $$ Hpkg
   iNamed HI
   wp_auto_lc 1
@@ -109,9 +125,9 @@ theorem RawNode.Step.wp_proof
       icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
       have HnP : m.Type' ≠ MsgProp := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
-      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (fun h => Hnl.2.trans (Hxt h)) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
+      wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (fun h => Hnl.2.1.trans (Hxt h)) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
           Hwf
-        (GMode.Pre.of_facts Hpf (by not_net) (by not_net)) (fun h => absurd h (by not_net))
+        (RNMode.pre_net Hpf (by not_net)) (fun h => Hnl.1.trans (Hsnp h).1)
         $$ [$Hphys $Hghost $Hlc1 Hm Hcred]
       · simp only [HnP, ↓reduceIte, named]
         isplitl [Hm]
@@ -124,32 +140,82 @@ theorem RawNode.Step.wp_proof
           isplitr
           · ipureintro; not_net
           imodintro
-          iintro %ty %Hty' _
-          iapply Hmsg $$ %ty %Hty'
+          iintro %ty %Hty' %Hne
+          iapply Hmsg $$ %ty %Hty' %Hne
         isplitl [Hcred]
         · iexact Hcred
+        -- (2026-10-20, D22 S-c) a snapshot's facts, at the static mode
         imodintro
         iintro %h
-        exfalso
-        revert h
-        not_net
+        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hso0, #Hm0⟩
+        iexists sv0, scfg0
+        rw [Hstat h]
+        simp only [RNMode.toG]
+        iframe Hso0 Hm0
+        ipureintro; exact Hp0
       simp only [HnP]
-      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, -⟩
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, %Hsfr, -⟩
       have Hc := Href.commit_mono
-      have e1 := Href.keep (by not_net) (by not_net); subst e1
-      have e2 := Hcc (by not_net); subst c'
-      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by not_net) (by not_net)
-      obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm (by not_net)
+      -- (2026-10-17) the term within the ceiling: the message's, a transfer's campaign's, or a
+      -- pre-candidate's won pre-vote's
+      have Hmtc' : uint.Z m.Term' ≤ uint.Z s.gh.tc := by rw [← Hpvoff.2.1]; exact Hmtc
+      have Htc0 := Hpvoff.2.2.1
+      by_cases Hs : m.Type' = MsgSnap
+      · -- (2026-10-20, D22 S-c) a snapshot: the static mode, no queue, the restore's configuration
+        obtain ⟨-, Hst0⟩ := Hsnp Hs
+        have Hst := Hstat Hs
+        obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hco⟩ := Hsfr Hs
+        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, Hso0, -⟩
+        iunfold GMode.SnapOk at Hso0
+        icases Hso0 with %Hso0
+        obtain ⟨Hsn0, Hcl0, -⟩ := Hp0
+        have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
+          rw [Hst] at Href ⊢; exact Href.1
+        have Hal' : c'.autoLeave = false := by
+          rcases Hco with rfl | ⟨sv1, Hsv1, rfl⟩
+          · exact Hal
+          · rw [Hsn0] at Hsv1
+            cases Hsv1
+            rw [← Hcl0]
+            simp [snapCfg, csCfgM, Hso0.2.1]
+        ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c' id s' $$ [Hghost]
+        · rw [← Hmd]; iexact Hghost
+        have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]
+        have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
+            (if m.Type' = MsgTimeoutNow then 1 else 0) := by
+          intro _; rw [ite_eq_right HnT]; omega
+        have Hle : uint.Z s'.term ≤ uint.Z s.gh.tc := by
+          have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
+        ihave #Hstr' : storedRecsP γ (rs.psnap || decide (m.Type' = MsgSnap)) s'.logst.prev
+            s'.logst.stored $$ []
+        · rw [show (rs.psnap || decide (m.Type' = MsgSnap)) = true by simp [Hs]]
+          iapply storedRecsP_true
+        wp_auto
+        iapply HΦ $$ %err %s'.term
+        isplitl
+        · iapply ownRawNode_intro γ rn id
+              { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' c' fp
+              rnv sv hprev steps Hwf' Hin Hal'
+              Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
+              (fun h => by rcases h with h | h <;> simp [Hs, Hst, RNMode.isDyn] at h)
+              (by show StepsOk s' rs.steps; rw [Hst0]; trivial) rfl (by rw [Hsg]; exact Hstor)
+              (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
+              (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+              (RNFl.keep Hrnfl Hfl' (by rw [Hap']; exact Int.le_refl _) Ha)
+              $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+        ipureintro
+        rw [Htrm]
+        exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
+      have e1 := Href.keep (by not_net) Hs; subst e1
+      have e2 := Hcc Hs; subst c'
+      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hs (by not_net)
+      obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm Hs
       have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
           (if m.Type' = MsgTimeoutNow then 1 else 0) := by
         intro hpr
         by_cases h : m.Type' = MsgTimeoutNow
         · rw [ite_eq_left h]; exact Ht5 h
         · rw [ite_eq_right h]; have := Ht3 (by not_net) hpr h; omega
-      -- (2026-10-17) the term within the ceiling: the message's, a transfer's campaign's, or a
-      -- pre-candidate's won pre-vote's
-      have Hmtc' : uint.Z m.Term' ≤ uint.Z s.gh.tc := by rw [← Hpvoff.2.1]; exact Hmtc
-      have Htc0 := Hpvoff.2.2.1
       have Hle : uint.Z s'.term ≤ uint.Z s.gh.tc := by
         by_cases hpr : m.Type' = MsgPreVoteResp
         · rcases (Hresp.2 hpr).1 with h | ⟨hp, h⟩
@@ -164,18 +230,20 @@ theorem RawNode.Step.wp_proof
       -- the queue survives any step, a truncating `MsgApp`'s too: what it needs of the log
       -- is `prev` and `stored`, which no network step changes (`NetFrame`)
       have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
-      ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+      ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs'
       wp_auto
       iapply HΦ $$ %err %s'.term
       isplitl
-      · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf' Hin
-          Hal
-          Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
-          Hstok' rfl (by rw [Hsg]; exact Hstor)
-          (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
-          (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-          (RNFl.keep Hrnfl Hfl' Hap' Ha)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+      · iapply ownRawNode_intro γ rn id
+            { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
+            rnv sv hprev steps Hwf' Hin Hal
+            Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
+            (fun h => by rw [Hsn]; exact Hsnap (h.imp_left Hps'))
+            Hstok' rfl (by rw [Hsg]; exact Hstor)
+            (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
+            (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+            (RNFl.keep Hrnfl Hfl' Hap' Ha)
+            $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)
