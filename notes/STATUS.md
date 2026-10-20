@@ -48,6 +48,14 @@ module system").
 
 
 
+## Plan: linkv over Delete and Txn (2026-10-20, not started)
+
+`notes/linkv-txn-plan.md`: widen linkv's workload and model from Put/Get to the KV API etcd's
+robustness tester drives (Delete, multi-op and compare-and-set Txn, List, revisions in every
+reply), without leases, compaction or stale reads. Gaps on the way: at-most-once firing for Delete
+and Txn (D21 M6 covers Put only), a writing Txn's range results (`skip`), read-only Txn without a
+read update at the client.
+
 ## watchkv: `watch_safe`, the watch example's closed theorem (2026-10-20, branch `watchkv`)
 
 Goal: `watch_safe`, a closed theorem (as `putget_safe`/`linkv_safe`) for a Go program that
