@@ -134,7 +134,8 @@ ls, os, lns, c.autoLeave⟩ true`), with the same permutation facts on its lists
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-  -- STAGED (2026-10-20): with a witness, `maybeStartNewSubterm(false, true)` (not proved yet)
+  -- (2026-10-20, witness support) **`NoWitReconf`** (`raft.applyConfChange`'s): with a witness,
+  -- `maybeStartNewSubterm(false, true)`, with the CC model's witness changes (not yet)
   c.wit = W64 0 →
   (s.role = .leader →
     (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ (id ∉ c.voters ∧ s.sdr = true)) →

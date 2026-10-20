@@ -45,14 +45,14 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand Hli2
+  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand Hli2 Hw0
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
   -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
-  -- STAGED: no witness yet (`ownRaftPhysC_wit0`); the new configuration has none either
-  icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hw, Hphys⟩
+  -- (2026-10-20) at a configuration without a witness (`NoWitReconf`); the new one has none either
+  have hw := Hw0
   have hw' : c'.cfg.wit = W64 0 := ccApplyM_wit0 (s := cfgStateC c) hw Happ0
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
       (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) (by rw [hw, hw']) $$ Hphys

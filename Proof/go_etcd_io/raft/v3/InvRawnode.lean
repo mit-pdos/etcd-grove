@@ -600,7 +600,10 @@ def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : 
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
   NoConfIn D ca k ∧ dec (D.take k) e = some op ∧
-  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
+  ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false ∧
+  -- (2026-10-20, witness support) **`NoWitReconf`**: at a configuration without a witness
+  -- (`raft.applyConfChange`'s premise: `confchange`'s model has none of Go's witness changes yet)
+  cfg.cfg.wit = W64 0
 
 /-- The dynamic mode's premises of `ApplyConfChange` (2026-10-14, stage B7 part 2), at the change
 `o` the application passes: it is the decoded change (`dec`, from the entry and the log before

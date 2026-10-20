@@ -905,7 +905,7 @@ theorem wp_applyConf_dyn
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
-  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal'⟩ := Hpre
+  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal', Hw0r⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
     #Hstrecs, Hch, Hlc⟩ HΦ
   let g : RGh := ⟨rs.capplied, rs.cfg, fp⟩
@@ -913,14 +913,15 @@ theorem wp_applyConf_dyn
   · rw [show (GMode.dyn dec c0 h0 g) = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ by rw [hm]; rfl]
     iexact Hghost
   icases ownRaftPhysC_logwf cf rnv.raft' id s $$ Hphys with ⟨%Hlw, Hphys⟩
-  -- STAGED: no witness yet (`ownRaftPhysC_wit0`): a plain `applyConf` (`StepR.applyConf`)
-  icases ownRaftPhysC_wit0 cf rnv.raft' id s $$ Hphys with ⟨%hwcf, Hphys⟩
   icases ownStepGhost_deliv γ dec c0 h0 g cf id s rs.delivered
     (by rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega) $$ Hdeliv Hghost
     with ⟨%Hdp, Hghost⟩
   icases ownStepGhost_ns_last γ _ cf id s $$ Hghost with ⟨%Hli2, Hghost⟩
   icases (ownStepGhost_dyn γ dec c0 h0 g cf id s).1 $$ Hghost with ⟨%HDc, Hgr⟩
   obtain ⟨HD, Hgc, Hnl, Hps⟩ := HDc
+  -- (2026-10-20) at a configuration without a witness (`NoWitReconf`): a plain `applyConf`
+  -- (`StepR.applyConf`)
+  have hwcf : cf.wit = W64 0 := by rw [← Hgc]; exact Hw0r
   iunfold ownRaftGhostR at Hgr
   icases Hgr with ⟨Hg, %HI, #Hfr, #Hwr, #Hcamp⟩
   icases (entails_wand (persistent_entails_left (wand_entails
@@ -961,7 +962,7 @@ theorem wp_applyConf_dyn
       (fun h => by
         rcases h with h | h
         · exact absurd h Hnc
-        · exact absurd h (Hpf.1 (by rw [hm]; rfl))) Hli2
+        · exact absurd h (Hpf.1 (by rw [hm]; rfl))) Hli2 hwcf
     $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp⟩

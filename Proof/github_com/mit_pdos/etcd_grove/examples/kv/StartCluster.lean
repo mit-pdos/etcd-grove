@@ -222,7 +222,7 @@ theorem kvCC_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkR)
     (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good)
     (Hns : γn.raft.reNoSnap = false) : KVCC γn opR c0R c1R :=
   ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl,
-    Hns⟩
+    Hns, rfl, rfl⟩
 
 /-- `RemoveMember(3)`'s change is one the cluster admits. -/
 theorem rm3_allowed (γ : RaftNames) (Hok : γ.reCCOk = ccOkR) : CCAllowed γ (.v1 (rmCC (W64 3))) := by

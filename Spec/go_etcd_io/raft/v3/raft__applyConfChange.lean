@@ -285,6 +285,10 @@ abbrev raft.applyConfChange.spec : Prop :=
   -- entry after the bootstrap log), so a peer it starts tracking probes at `Next ≥ 2` (`PrLo`)
   (s.gh.ns = true → s.role = .leader →
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  -- (2026-10-20, witness support) **`NoWitReconf`**: a change only at a configuration without a
+  -- witness: `confchange`'s model has none of Go's witness changes yet (`AddWitness`, removing,
+  -- converting; notes/raft-witness-reconfig.md, "The CC model with Go's witness changes")
+  c.wit = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -337,7 +341,7 @@ theorem raft.applyConfChange.spec_simple
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
       (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
-      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) Hli2
+      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) Hli2 rfl
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩

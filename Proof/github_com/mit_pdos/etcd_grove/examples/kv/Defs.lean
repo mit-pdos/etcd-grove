@@ -508,7 +508,9 @@ def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
   ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
   -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (a cluster without a bootstrap log), in
   -- which leader transfer is on (`node.TransferLeadership`'s premise)
-  γn.raft.reNoSnap = false
+  γn.raft.reNoSnap = false ∧
+  -- (2026-10-20, witness support) no witness (raft's `NoWitReconf`)
+  c0.cfg.wit = W64 0 ∧ c1.cfg.wit = W64 0
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

@@ -228,14 +228,18 @@ theorem KV.run.wp_proof
             DynCCPreOp dec (ds ++ ce) ca' cfg' (ccV2Of (.v1 m))
               (ds ++ ce.take (sint.nat k)).length en c1 := by
           intro dec c0' h0' h1' hm'
-          obtain ⟨⟨h0, h1, hm⟩, -, Hs0, Hs1, Hal, -⟩ := Hcc
+          obtain ⟨⟨h0, h1, hm⟩, -, Hs0, Hs1, Hal, -, Hw0, Hw1⟩ := Hcc
           rw [hm] at hm'
           cases hm'
-          refine ⟨Hrc.1, Hlen, Hpos, .inl Hty1, Hrc.2.1, ?_, ?_, Hal⟩
+          refine ⟨Hrc.1, Hlen, Hpos, .inl Hty1, Hrc.2.1, ?_, ?_, Hal, ?_⟩
           · show some op = some (ccV2Of (.v1 m)); rw [Hop]
           · rw [Hop]; rcases Hrc.2.2 with rfl | rfl
             · exact Hs0
             · exact Hs1
+          · -- (2026-10-20) the cluster has no witness (`NoWitReconf`)
+            rcases Hrc.2.2 with rfl | rfl
+            · exact Hw0
+            · exact Hw1
         have Hnst : γp.node.mode ≠ .static := by
           obtain ⟨⟨h0, h1, hm⟩, -⟩ := Hcc; rw [hm]; intro h; cases h
         ihave Hcci : ownCCI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr)
