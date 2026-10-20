@@ -715,6 +715,26 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       ihave %Hsl := ownSlice_len $$ Hls
       rw [Hcreated]
       wp_auto
+      -- F3: the resume revision moves only forward (`issues/etcd-watch-resume-below-start-revision.md`)
+      wp_bind (If _ _ _)
+      iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗ (∃ nr' : w64, nextRev_ptr ↦ nr') ∗
+          wr_ptr ↦ wr ∗
+          structFieldRef etcdserverpb.ResponseHeader go!"Revision" v.Header' ↦{dq} r.hdrRev)))
+      isplitl [nextRev wr Hhf]
+      · wp_if_destruct
+        · (try wp_auto)
+          isplitr
+          · first | itrivial | (ipureintro; rfl)
+          iframe
+          try (iexists _; iframe)
+        · (try wp_auto)
+          isplitr
+          · first | itrivial | (ipureintro; rfl)
+          iframe
+          try (iexists _; iframe)
+      iintro %x ⟨%Hx, ⟨%nr0, nextRev⟩, wr, Hhf⟩
+      subst Hx
+      wp_auto
       wp_bind (If (Val #(decide (sint.Z (W64 0) < sint.Z v.Events'.len))) _ _)
       iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗ ∃ nr' : w64,
           nextRev_ptr ↦ nr' ∗ wr_ptr ↦ wr)))

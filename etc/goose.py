@@ -145,14 +145,15 @@ PROJECTS = [
         # and (D24, the watch client's reconnection) branch `watch-resume-fixes` on it: a
         # server-canceled substream's id reset (04375baaa,
         # issues/etcd-watch-resume-stale-canceled-id.md) and no nil channel on `retc`
-        # (a8a459955, issues/etcd-watch-resume-nil-watch-chan.md). `goose-lean` (c15c7dda8) is
-        # the collaborator's three D22 server commits (de825d8c6..) with these two fixes
-        # cherry-picked on top: a later bump to `goose-lean` brings both.
+        # (a8a459955, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
+        # moving forward (16f73d6eb, issues/etcd-watch-resume-below-start-revision.md).
+        # `goose-lean` (2e2dc077c) is the collaborator's three D22 server commits (de825d8c6..)
+        # with these three fixes cherry-picked on top: a later bump to `goose-lean` brings both.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="a8a45995563aeacc2207889cccd507f7ece2e900",
+        rev="16f73d6eb2c1d64504adcbb29fd46f5471955557",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

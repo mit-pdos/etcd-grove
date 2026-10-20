@@ -7865,9 +7865,12 @@ noncomputable def watchGRPCStream.serveSubstream.impl [FfiSyntax] [GoGlobalConte
   (App (App (Val (chan.send (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty))) (Var "$chan")) (Var "$v"))))))
   (App (Val doExecute)
   (Val #())))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))))) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "nextRev")))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef WatchResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WatchResponse.ty)))) (Var "wr")))))) (Val #(W64 1))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "nextRev") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doReturn)
   (Val #()))
@@ -7971,7 +7974,7 @@ noncomputable def watchGRPCStream.serveSubstream.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: watch.go:906:27 -/
+/-- go: watch.go:908:27 -/
 noncomputable def watchGRPCStream.startBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -7991,7 +7994,7 @@ noncomputable def watchGRPCStream.startBufWait.impl [FfiSyntax] [GoGlobalContext
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: watch.go:913:27 -/
+/-- go: watch.go:915:27 -/
 noncomputable def watchGRPCStream.recordBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -8015,7 +8018,7 @@ noncomputable def watchGRPCStream.recordBufWait.impl [FfiSyntax] [GoGlobalContex
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: watch.go:921:26 -/
+/-- go: watch.go:923:26 -/
 noncomputable def watcherStream.resetBufWait.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
@@ -8028,7 +8031,7 @@ noncomputable def watcherStream.resetBufWait.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef watcherStream.ty go!"bufWaitStartTime"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watcherStream.ty)))) (Var "ws"))) (Var "$r0"))))))))))
 
-/-- go: watch.go:925:27 -/
+/-- go: watch.go:927:27 -/
 noncomputable def watchGRPCStream.newWatcherStreamBufLogger.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
@@ -8079,7 +8082,7 @@ noncomputable def watchGRPCStream.newWatcherStreamBufLogger.impl [FfiSyntax] [Go
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))) (Var "$a0")) (Var "$a1")))))))))))))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve newBlockLogger []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))))))
 
-/-- go: watch.go:940:27 -/
+/-- go: watch.go:942:27 -/
 noncomputable def watchGRPCStream.newWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -8226,7 +8229,7 @@ noncomputable def watchGRPCStream.newWatchClient.impl [FfiSyntax] [GoGlobalConte
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef watchGRPCStream.ty go!"resumec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchGRPCStream.ty)))) (Var "w"))))
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
 
-/-- go: watch.go:986:27 -/
+/-- go: watch.go:988:27 -/
 noncomputable def watchGRPCStream.waitCancelSubstreams.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "stopc"
@@ -8355,7 +8358,7 @@ noncomputable def watchGRPCStream.waitCancelSubstreams.impl [FfiSyntax] [GoGloba
 
 /-- joinSubstreams waits for all substream goroutines to complete.
 
-    go: watch.go:1023:27 -/
+    go: watch.go:1025:27 -/
 noncomputable def watchGRPCStream.joinSubstreams.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -8395,7 +8398,7 @@ noncomputable def watchGRPCStream.joinSubstreams.impl [FfiSyntax] [GoGlobalConte
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcherStream.ty)))) (Pair (Var "ws") (Var "$value"))))))))))))))))
 
-/-- go: watch.go:1036:27 -/
+/-- go: watch.go:1038:27 -/
 noncomputable def watchGRPCStream.backoffIfUnavailable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "backoff"
@@ -8434,7 +8437,7 @@ noncomputable def watchGRPCStream.backoffIfUnavailable.impl [FfiSyntax] [GoGloba
     manually retry in case "ws==nil && err==nil"
     TODO: remove FailFast=false
 
-    go: watch.go:1054:27 -/
+    go: watch.go:1056:27 -/
 noncomputable def watchGRPCStream.openWatchClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -8501,7 +8504,7 @@ noncomputable def watchGRPCStream.openWatchClient.impl [FfiSyntax] [GoGlobalCont
 
 /-- toPB converts an internal watch request structure to its protobuf WatchRequest structure.
 
-    go: watch.go:1077:25 -/
+    go: watch.go:1079:25 -/
 noncomputable def watchRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wr"
   (Lam BAnon
@@ -8531,7 +8534,7 @@ noncomputable def watchRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- toPB converts an internal progress request structure to its protobuf WatchRequest structure.
 
-    go: watch.go:1092:28 -/
+    go: watch.go:1094:28 -/
 noncomputable def progressRequest.toPB.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
