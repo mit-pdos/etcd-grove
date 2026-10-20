@@ -324,7 +324,7 @@ theorem raft.maybeSendAppend.wp_proof
   rw [Hlk]
   dsimp only [Option.getD_some]
   -- `pr.IsPaused()` and `prevIndex := pr.Next - 1`, on `pr` borrowed
-  icases ownRaftPhysC_nowit c r id s $$ Hphys with ⟨%Hnwit, Hphys⟩
+  icases ownRaftPhysC_witP c r id s $$ Hphys with ⟨%Hnwit, Hphys⟩
   icases ownRaftPhysC_pr c r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_IsPaused $$ [$Hpa] as Hpa
   cases Hpaused : progressIsPaused p
@@ -346,11 +346,23 @@ theorem raft.maybeSendAppend.wp_proof
   -- `pr.Next`, read off the value: the record's `next`
   iNamed Hpa
   obtain ⟨-, Hst, -, Hnx, -⟩ := (progressAbs_Some _ _ _).1 Habs
-  -- (2026-10-19, witness support) `|| pr.IsWitness`: not the witness (`NoWitP`)
-  have Hw : pv.IsWitness' = false :=
-    ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnwit to p Hpvs).1
+  -- (2026-10-19, witness support) `|| pr.IsWitness`: to the witness nothing is sent either
+  have Hw : pv.IsWitness' = p.witness := ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2
   wp_auto
   rw [Hw]
+  cases Hpw : p.witness
+  case true =>
+    wp_auto
+    ihave Hphys := Hpback $$ [Hpv Hinfl]
+    · iapply ownProgress_intro $$ Hpv Hinfl
+      ipureintro; exact Habs
+    ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
+    iapply HΦ $$ %false %([] : List Msg) %s.prvals
+    isplitl
+    · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+      cases s; rfl
+    ipureintro
+    exact ⟨fun _ h => (nomatch h), rfl⟩
   wp_auto
   rw [Hnx]
   ihave Hphys := Hpback $$ [Hpv Hinfl]

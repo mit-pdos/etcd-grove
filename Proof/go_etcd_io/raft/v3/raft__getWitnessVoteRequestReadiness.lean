@@ -47,8 +47,11 @@ theorem raft.getWitnessVoteRequestReadiness.wp_proof :
     raft.getWitnessVoteRequestReadiness.spec (GF := GF) (hG := hG) := by
   intro c V r id s d v1 v2 Hd
   wp_start as Hphys
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+  icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hw, Hphys⟩
   icases ownRaftPhysC_tracker_same (c := c) (V := V) r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTrackerC_witnesses $$ Htrk with ⟨%Hwit, Htrk⟩
+  rw [hw] at Hwit
   wp_auto
   -- `v1 := votesToWin[0]; v2 := votesToWin[1]`
   icases array_acc_same _ (sint.Z (W64 0)) _ _ _ v1 (by decide) (by rw [Hd]; rfl)

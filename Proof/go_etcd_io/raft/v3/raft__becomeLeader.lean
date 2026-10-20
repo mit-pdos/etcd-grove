@@ -138,14 +138,20 @@ theorem raft.becomeLeader.wp_proof
   -- empty entry there (`raft__maybeStartNewSubterm.lean`); on a witness-free configuration it
   -- resets the replication set to a witness-free epoch and appends the entry as before
   wp_apply wp_raft_maybeStartNewSubterm c r id _ true (fun _ => by subst hs1; exact Hnz)
-    $$ [$Hphys] as Hphys
-  -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
+    $$ [$Hphys] as %ch Hphys
+  simp only [↓reduceIte]
+  icases Hphys with ⟨-, Hphys⟩
+  -- `appendEntry` appended the stamped empty entry, at subterm 0: that is `becomeLeader`
+  -- (`Defs.lean`), at the reset epoch
   ihave Hphys : ownRaftPhysCV c c.voters r id
       { becomeLeader id s with
-        prvals := <[id := progressBecomeReplicate p0]> pvs }
+        prvals := <[id := progressBecomeReplicate p0]> pvs,
+        ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) }
       $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     subst hs1
+    unfold subtermStart
+    simp only [resetEpoch_sub, stampS_zero_fun]
     rfl
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys

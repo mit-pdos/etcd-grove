@@ -51,14 +51,18 @@ theorem raft.applyConfChange.wp_proof
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
   -- (stage R8a) the leader's progress bound of the old values, for the new ones (`PrKept`)
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`); the new configuration has none either
+  icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hw, Hphys⟩
+  have hw' : c'.cfg.wit = W64 0 := ccApplyM_wit0 (s := cfgStateC c) hw Happ0
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
-      (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) $$ Hphys
+      (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) (by rw [hw, hw']) $$ Hphys
     with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
   -- (2026-10-19, witness support) no peer is the witness, none is `0`
-  icases ownTrackerC_nowit $$ Htrk with ⟨%Hnw, Htrk⟩
+  icases ownTrackerC_nowit c hw _ _ $$ Htrk with ⟨%Hnw, Htrk⟩
   icases ownTrackerC_no0 $$ Htrk with ⟨%H0, Htrk⟩
-  icases ownTrackerC_epoch $$ Htrk with ⟨#Hepoch, Htrk⟩
-  icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ $$ Htrk
+  icases ownTrackerC_epochOk c _ _ $$ Htrk with ⟨#Hepoch, Htrk⟩
+  ihave #Hepoch := ownEpochOk_nw' hw $$ Hepoch
+  icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ hw $$ Htrk
     with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hg⟩
   obtain ⟨Hgood, -, -, -⟩ := Hg
   have Hst : ({ cfg := c, prs := flagsOf pvs } : CCState) = cfgStateC c := by
@@ -104,7 +108,7 @@ theorem raft.applyConfChange.wp_proof
     icases Hres with ⟨%Herr, Hc, Hw⟩
     subst Herr
     imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
-        s.prvals cfgv trk Hsz Hnw H0' $$ [$Hc $Hw $HR]
+        s.prvals cfgv trk Hsz Hnw H0' hw' $$ [$Hc $Hw $HR]
       with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
     wp_auto
     -- `r.switchToConfig(cfg, trk)`
@@ -115,10 +119,10 @@ theorem raft.applyConfChange.wp_proof
           { s with progress := prs'', prvals := pvs'' })
         $$ [Hback Hlf Hlog]
     · iintro %tv' %prs'' %pvs'' Hf Ht %Hok
-      ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+      ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.ep %s.logst Hlf Hf Ht Hlog %Hgh
         %(Hok.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' hw'
         (fun hl => by
           by_cases hin : id ∈ c'.cfg.voters
           · exact .inl ⟨hin, Hmk⟩
@@ -169,7 +173,7 @@ theorem raft.applyConfChange.wp_proof
         icases Hres with ⟨%Herr, Hc, Hw⟩
         subst Herr
         imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
-            s.prvals cfgv trk Hsz Hnw H0' $$ [$Hc $Hw $HR]
+            s.prvals cfgv trk Hsz Hnw H0' hw' $$ [$Hc $Hw $HR]
           with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
@@ -180,10 +184,10 @@ theorem raft.applyConfChange.wp_proof
               { s with progress := prs'', prvals := pvs'' })
             $$ [Hback Hlf Hlog]
         · iintro %tv' %prs'' %pvs'' Hf Ht %Hok
-          ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+          ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.ep %s.logst Hlf Hf Ht Hlog %Hgh
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' hw'
             (fun hl => by
               by_cases hin : id ∈ c'.cfg.voters
               · exact .inl ⟨hin, Hmk⟩
@@ -221,7 +225,7 @@ theorem raft.applyConfChange.wp_proof
         icases Hres with ⟨%Herr, Hc, Hw⟩
         subst Herr
         imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
-            s.prvals cfgv trk Hsz Hnw H0' $$ [$Hc $Hw $HR]
+            s.prvals cfgv trk Hsz Hnw H0' hw' $$ [$Hc $Hw $HR]
           with ⟨%prs', %pvs', Hnew, %Hmk, %Hpk, %Hpd⟩
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
@@ -232,10 +236,10 @@ theorem raft.applyConfChange.wp_proof
               { s with progress := prs'', prvals := pvs'' })
             $$ [Hback Hlf Hlog]
         · iintro %tv' %prs'' %pvs'' Hf Ht %Hok
-          ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+          ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.ep %s.logst Hlf Hf Ht Hlog %Hgh
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' hw'
             (fun hl => by
               by_cases hin : id ∈ c'.cfg.voters
               · exact .inl ⟨hin, Hmk⟩

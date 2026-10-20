@@ -65,6 +65,60 @@ def ccApplyM (t : raftpb.ConfChangeTransition) (ccs : List ConfChangeSingleM)
     | some (_, false) => simpleM ccs s
     | none => none
 
+/-! `confchange` and the witness (2026-10-20). One change keeps the configuration's witness;
+`LeaveJoint`'s transition (`leaveJointState`) builds a configuration without one -- a gap of the
+model for a witness across reconfiguration (Go keeps `Witnesses[0]`), recorded in
+`notes/raft-witness.md` ("W3b-A") -- so what is shown here is that a witness-free configuration
+stays witness-free, which is all the witness-free (staged) proof needs. -/
+
+theorem applyOne_wit {cc : ConfChangeSingleM} {s s' : CCState} (h : applyOne cc s = some s') :
+    s'.cfg.wit = s.cfg.wit := by
+  unfold applyOne at h
+  repeat' split at h
+  all_goals first
+    | (simp only [reduceCtorEq] at h; done)
+    | (simp only [Option.some.injEq] at h; subst h
+       first
+        | rfl
+        | (unfold makeVoterM initProgressM; repeat' split) <;> rfl
+        | (unfold makeLearnerM initProgressM removeCfg; repeat' split) <;> rfl
+        | (unfold removeM removeCfg; repeat' split) <;> rfl)
+
+theorem applyAll_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyAll ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
+  induction ccs generalizing s with
+  | nil => simp only [applyAll, Option.some.injEq] at h; subst h; rfl
+  | cons cc ccs ih =>
+    simp only [applyAll] at h
+    cases h1 : applyOne cc s with
+    | none => rw [h1] at h; cases h
+    | some s1 => rw [h1] at h; exact (ih h).trans (applyOne_wit h1)
+
+theorem applyM_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyM ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
+  unfold applyM at h
+  cases h1 : applyAll ccs s with
+  | none => rw [h1] at h; cases h
+  | some s1 =>
+    rw [h1] at h
+    simp only [Option.bind_some] at h
+    split at h
+    · cases h
+    · simp only [Option.some.injEq] at h; subst h; exact applyAll_wit h1
+
+/-- A witness-free configuration stays witness-free. -/
+theorem ccApplyM_wit0 {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSingleM}
+    {s s' : CCState} (h0 : s.cfg.wit = W64 0) (h : ccApplyM t ccs s = some s') :
+    s'.cfg.wit = W64 0 := by
+  unfold ccApplyM leaveJointM enterJointM simpleM at h
+  repeat' split at h
+  all_goals first
+    | (simp only [reduceCtorEq] at h; done)
+    | (rw [(checkedM_some h).1]; rfl)
+    | (rw [(checkedM_some h).1]; have hs := applyM_wit ‹applyM _ _ = some _›; rw [hs]; exact h0)
+    | (rw [(checkedM_some h).1]; have hs := applyM_wit ‹applyM _ _ = some _›; simp only at hs ⊢
+       rw [hs]; exact h0)
+
 /-- A change that leaves every configuration with the voters `cfg` as it is, whatever its
 learners (2026-10-13): the scope of `RawNode.ApplyConfChange`, whose state does not say
 which learners the node tracks. -/

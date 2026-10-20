@@ -43,6 +43,8 @@ voters and staged learners -- only the lengths, all any caller needs) was
 `tracker.ProgressTracker.ConfState.spec_simple`; it had no caller and is gone (2026-10-17). -/
 abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
   ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  -- (2026-10-20) staged: with a witness `cs.Witness` is set, which `ConfStateM` does not model yet
+  c.wit = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
       ownTrackerC c tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))

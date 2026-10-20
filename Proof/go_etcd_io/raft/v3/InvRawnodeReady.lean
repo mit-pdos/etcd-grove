@@ -503,7 +503,7 @@ theorem msgQs_split (l : List QMsg) (as_ : List (Option Msg)) :
 
 /-- `outboxRel` is its pure part and the messages owned (2026-10-16, stage R5). -/
 theorem outboxRel_split (o : List Msg) (ms1 ms2 : List QMsg) :
-    outboxRel (GF := GF) o ms1 ms2 ⊢
+    outboxRel (GF := GF) o ms1 ms2 [] ⊢
       ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn q) ∗ [∗list] q ∈ ms2, qOwn q := by
   iintro H
   unfold outboxRel
@@ -511,17 +511,17 @@ theorem outboxRel_split (o : List Msg) (ms1 ms2 : List QMsg) :
   icases (msgQs_split ms1 as1).1 $$ H1 with ⟨%Hf1, H1⟩
   icases (msgQs_split ms2 as2).1 $$ H2 with ⟨%Hf2, H2⟩
   iframe H1 H2
-  ipureintro; exact ⟨as1, as2, Ho, Hf1, Hf2⟩
+  ipureintro; exact ⟨as1, as2, by simpa using Ho, Hf1, Hf2⟩
 
 theorem outboxRel_join (o : List Msg) (ms1 ms2 : List QMsg) :
     ⌜outboxRelP o ms1 ms2⌝ ∗ ([∗list] q ∈ ms1, qOwn (GF := GF) q) ∗ ([∗list] q ∈ ms2, qOwn q) ⊢
-      outboxRel o ms1 ms2 := by
+      outboxRel o ms1 ms2 [] := by
   iintro ⟨%Hp, H1, H2⟩
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   unfold outboxRel
   iexists as1, as2
   isplitr
-  · ipureintro; exact Ho
+  · ipureintro; simpa using Ho
   isplitl [H1]
   · iapply (msgQs_split ms1 as1).2; iframe H1; ipureintro; exact Hf1
   · iapply (msgQs_split ms2 as2).2; iframe H2; ipureintro; exact Hf2
@@ -659,7 +659,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ownSliceCap Loc sl1' (DFrac.own 1) -∗
         r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
         ownSliceCap Loc sl2' (DFrac.own 1) -∗
-        outboxRel o ms1' ms2' -∗
+        outboxRel o ms1' ms2' [] -∗
         ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
         ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
@@ -1331,7 +1331,9 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     rw [Hsteps0] at Hlen; exact List.eq_nil_of_length_eq_zero Hlen
   subst Hsteps_nil
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
-  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+  icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+  icases ownRaftPhysC_view cf rnv.raft' id s hw $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   ihave #Hout : ([∗list] x ∈ s.outbox, isMessage (GF := GF) γ x) $$ [Hghost]

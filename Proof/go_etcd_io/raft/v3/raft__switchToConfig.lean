@@ -63,7 +63,7 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_Epoch_HasWitness : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
+  intro c r id s tv0 cfgv prsm prs pvs hw Hlead Hcand Hpok
   wp_start as H
   iNamed H
   wp_auto
@@ -77,7 +77,7 @@ theorem raft.switchToConfig.wp_proof
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi $$ Hvotes Hnew Hepoch
+  ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi hw $$ Hvotes Hnew Hepoch
   ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk %Hpok
   -- from here on the state is `s0`, and `s1` once `r.isLearner` is stored
   generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
@@ -94,19 +94,19 @@ theorem raft.switchToConfig.wp_proof
       wp_auto
       icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tvw, Htrkf, Htrk, Hback⟩
       icases ownTrackerC_witnesses $$ Htrk with ⟨%Hwit, Htrk⟩
-      icases ownTrackerC_epoch $$ Htrk with ⟨#Hepw, Htrk⟩
+      icases ownTrackerC_epoch c hw _ _ $$ Htrk with ⟨#Hepw, Htrk⟩
       icases (Access.access
           (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config,
             go!"Witnesses"] ↦ tvw.Config'.Witnesses')
           (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config,
             go!"Witnesses"] ↦ tvw.Config'.Witnesses')
           (P := r.[raft, go!"trk"] ↦ tvw)) $$ Htrkf with ⟨Hwf, Htrkback⟩
-      icases array_acc_same _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+      icases array_acc_same _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit, hw]; rfl)
         $$ Hwf with ⟨Hw0, Hw0back⟩
       wp_pures
       wp_auto
       ihave Hwf := Hw0back $$ Hw0
-      icases array_acc_same _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+      icases array_acc_same _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit, hw]; rfl)
         $$ Hwf with ⟨Hw1, Hw1back⟩
       wp_auto
       ihave Hwf := Hw1back $$ Hw1
@@ -128,7 +128,7 @@ theorem raft.switchToConfig.wp_proof
   wp_raft_logC
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
-  wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]
+  wp_apply wp_ProgressTracker_ConfState _ _ _ _ hw $$ [$Htrkf $Htrk]
     as %cs %xs %os %ls %lns ⟨Htrkf, Htrk, Hcs, %Hcs0⟩
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`

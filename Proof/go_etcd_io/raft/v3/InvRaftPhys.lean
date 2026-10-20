@@ -539,7 +539,10 @@ theorem raftOwn_logger (l : Loc) (v : raft) :
 nothing queued. (The epoch is the tracker's: `Trk.ep`, `NState.ep`.) -/
 def witOwn (W : w64) (wsl : GoSlice) (asked : Loc) (wq : List Msg) : IProp GF :=
   iprop(∃ (μs : List WMsg), ⌜wq = μs.map wAbs⌝ ∗ ownWQueue wsl μs ∗ ownAsked asked ∗
-    ⌜W = W64 0 → wsl = slice.nil ∧ asked = map.nil ∧ wq = []⌝)
+    ⌜W = W64 0 → wsl = slice.nil ∧ asked = map.nil ∧ wq = []⌝ ∗
+    -- STAGED (2026-10-20): no witness yet. The witness branches not yet proved read this out
+    -- (`ownRaftPhysC_wit0`); it goes once they are (notes/raft-witness.md, "W3b-A").
+    ⌜W = W64 0⌝)
 
 set_option hygiene false in
 /-- Take field `f` out of `raftOwn` and put back any value: a load or a store. -/
@@ -2046,6 +2049,48 @@ theorem ownRaftPhysC_nowit (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : N
   isplitr; · ipureintro; exact Hnw
   iapply Hback $$ %tv %s.votes Hf Htrk
 
+/-- The node's epoch is one of its configuration (2026-10-20, `EpochOkC`): without a witness,
+the bare one at subterm 0. -/
+theorem ownRaftPhysC_epOk (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜EpochOkC c.incoming c.outgoing c.wit s.ep⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_epochOk c tv _ $$ Htrk with ⟨#He, Htrk⟩
+  iunfold ownEpochOk at He
+  icases He with ⟨-, %Hok⟩
+  isplitr; · ipureintro; exact Hok
+  iapply Hback $$ %tv %s.votes Hf Htrk
+
+theorem EpochOkC.nw {V0 V1 : GSet w64} {em : EpochM} (H : EpochOkC V0 V1 (W64 0) em) :
+    em = EpochM.bare (W64 0) := by
+  unfold EpochOkC at H; simpa using H
+
+/-- STAGED (2026-10-20): no witness yet (`witOwn`'s last conjunct), for the witness branches
+not proved yet. -/
+theorem ownRaftPhysC_wit0 (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜c.wit = W64 0⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  iunfold witOwn at Hwit
+  icases Hwit with ⟨%μs, %Hwq, Hwq, Hask, %Hw0, %Hwz⟩
+  isplitr; · ipureintro; exact Hwz
+  ihave Hwit : witOwn (GF := GF) c.wit wsl asked wq $$ [Hwq Hask]
+  · unfold witOwn
+    iexists μs
+    iframe Hwq Hask
+    ipureintro; exact ⟨Hwq, Hw0, Hwz⟩
+  resealC c s
+
+/-- The configuration's witness alone is a witness's `Progress` (2026-10-20, `WitP`). -/
+theorem ownRaftPhysC_witP (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜WitP c.wit s.prvals⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_wit c tv _ $$ Htrk with ⟨%Hnw, Htrk⟩
+  isplitr; · ipureintro; exact Hnw
+  iapply Hback $$ %tv %s.votes Hf Htrk
+
 /-- No tracked id is `0` (2026-10-19, witness support: `ownTrackerC_no0`). -/
 theorem ownRaftPhysC_no0 (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜W64 0 ∉ c.ids⌝ ∗ ownRaftPhysCV c V r id s := by
@@ -2693,14 +2738,15 @@ theorem raft.wp_store_witnessVoteAsked_nilC (r : Loc) (id : w64) (s : NState) :
     (raftOwn_access_store_witnessVoteAsked_nil _ _) $$ Hr as Hr
   -- the asked set's map, if any, is dropped
   iunfold witOwn at Hwit
-  icases Hwit with ⟨%μs, %Hwq, Hwq, -, %Hw0⟩
+  icases Hwit with ⟨%μs, %Hwq, Hwq, -, %Hw0, %Hwz⟩
   ihave Hwit : witOwn (GF := GF) c.wit wsl map.nil wq $$ [Hwq]
   · unfold witOwn
     iexists μs
     iframe Hwq
     isplitr; · ipureintro; exact Hwq
     isplitr; · iapply ownAsked_nil
-    ipureintro; exact fun h => ⟨(Hw0 h).1, rfl, (Hw0 h).2.2⟩
+    isplitr; · ipureintro; exact fun h => ⟨(Hw0 h).1, rfl, (Hw0 h).2.2⟩
+    ipureintro; exact Hwz
   have Hwf : ({ rv with witnessVoteAsked' := map.nil } : raft).witnessMsgs' = wsl ∧
       ({ rv with witnessVoteAsked' := map.nil } : raft).witnessVoteAsked' = map.nil := ⟨Hwf.1, rfl⟩
   iapply HΦ; resealC c s
@@ -3259,7 +3305,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) (hw : c.wit = W64 0)
   ihave %Hrl := readStatesPts_len _ _ $$ HreadStates
   -- (2026-10-20) without a witness, the witness fields are nil and nothing is queued
   iunfold witOwn at Hwit
-  icases Hwit with ⟨%μs, %Hwq, Hwq, Hask, %Hw0⟩
+  icases Hwit with ⟨%μs, %Hwq, Hwq, Hask, %Hw0, %Hwz⟩
   obtain ⟨Hwsl, Hask0, Hwq0⟩ := Hw0 hw
   subst Hwq0
   icases raft_split_view r rv $$ Hr with
@@ -3329,7 +3375,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) (hw : c.wit = W64 0)
   · unfold witOwn
     iexists μs
     iframe Hwq Hask
-    ipureintro; exact ⟨Hwq, fun _ => ⟨Hwsl, Hask0, rfl⟩⟩
+    ipureintro; exact ⟨Hwq, fun _ => ⟨Hwsl, Hask0, rfl⟩, Hwz⟩
   iapply ownRaftPhysCV_intro c _ _ _ { s with outbox := o, logst := ls', gh := g, rd := rd' }
       { rv with msgs' := sl1', msgsAfterAppend' := sl2', readStates' := rs' } ms1' ms2' lok []
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
@@ -3346,14 +3392,14 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64)
         ownTrackerC c0 tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ ∗
         r.[raft, go!"raftLog"] ↦ s.log ∗
         ownRaftLog s.log s.logst ∗
-        (∀ tv' votes' prs' pvs' ls',
+        (∀ tv' votes' prs' pvs' ep' ls',
            r.[raft, go!"raftLog"] ↦ s.log -∗
            r.[raft, go!"trk"] ↦ tv' -∗
-           ownTrackerC c tv' ⟨votes', prs', pvs', s.ep⟩ -∗
+           ownTrackerC c tv' ⟨votes', prs', pvs', ep'⟩ -∗
            ownRaftLog s.log ls' -∗ ⌜LogGhOk s ls'⌝ -∗
-           ⌜PrvalsOk { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }⌝ -∗
+           ⌜PrvalsOk { s with votes := votes', progress := prs', prvals := pvs', ep := ep', logst := ls' }⌝ -∗
            ownRaftPhysCV c V' r id
-             { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }) := by
+             { s with votes := votes', progress := prs', prvals := pvs', ep := ep', logst := ls' }) := by
   iintro H
   iNamed_physC H
   icases raft_split_raftLog_trk r rv $$ Hr with ⟨Hlf, Hf, Hback⟩
@@ -3364,9 +3410,9 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64)
   ihave Hlog : ownRaftLog (GF := GF) s.log s.logst $$ [Hlog]
   · rw [← Hlogp]; iexact Hlog
   iframe Hlf Hlog
-  iintro %tv' %votes' %prs' %pvs' %ls' Hlf Hf Htrk Hlog %Hgh_unst' %Hok
+  iintro %tv' %votes' %prs' %pvs' %ep' %ls' Hlf Hf Htrk Hlog %Hgh_unst' %Hok
   ihave #Hnscap := NsCap.of_keep Hgh_unst'.2 $$ Hnscap
-  have Hnsl : LogNsOk { s with votes := votes', progress := prs', prvals := pvs', logst := ls' } :=
+  have Hnsl : LogNsOk { s with votes := votes', progress := prs', prvals := pvs', ep := ep', logst := ls' } :=
     LogNsOk.of_ghOk' Hnsl Hgh_unst'.2 rfl rfl (fun _ h => h)
   have Hgh_unst' := Hgh_unst'.1
   ihave Hlf : r.[raft, go!"raftLog"] ↦ rv.raftLog' $$ [Hlf]
@@ -3377,7 +3423,7 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64)
   ihave Hwit : witOwn (GF := GF) c.wit wsl asked wq $$ [Hwit]
   · rw [← Hwc]; iexact Hwit
   iapply ownRaftPhysCV_intro c V' r id
-      { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }
+      { s with votes := votes', progress := prs', prvals := pvs', ep := ep', logst := ls' }
       { rv with trk' := tv' } msgs msgsAA lok wq
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
     HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out

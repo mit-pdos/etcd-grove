@@ -1347,7 +1347,9 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
   icases Hghost with ⟨Hghost, %Hnl, %HC⟩
-  icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+  icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+  icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 hw $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
   isplitr

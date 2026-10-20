@@ -93,8 +93,20 @@ theorem wp_stepLeader_checkQuorum
     · -- (2026-10-19, witness support) `r.maybeStartNewSubterm(false, false)`: no excluded voter
       -- to swap in, nothing changes
       wp_auto
-      wp_apply wp_maybeStartNewSubterm c r id s false (fun h => by cases h) $$ [$Hphys] as Hphys
-      try simp only [Bool.false_eq_true, ↓reduceIte]
+      -- STAGED: no witness yet (`ownRaftPhysC_wit0`), so the epoch is bare and has none
+      icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hw, Hphys⟩
+      icases ownRaftPhysC_epOk c r id s $$ Hphys with ⟨%Hepok, Hphys⟩
+      have Hhw : s.ep.hasWit = false := by
+        rw [hw] at Hepok; rw [EpochOkC.nw Hepok]; exact EpochM.bare_hasWit _
+      wp_apply wp_maybeStartNewSubterm c r id s false
+          (fun h => by rcases h with h | h <;> simp_all) $$ [$Hphys] as %ch Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      cases ch
+      case true =>
+        simp only [↓reduceIte]
+        icases Hphys with ⟨%em', %Hc, -⟩
+        exact absurd Hc.1 (by rw [Hhw]; decide)
+      simp only [Bool.false_eq_true, ↓reduceIte]
       try wp_auto
       wp_join_done
       iexists s

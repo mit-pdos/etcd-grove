@@ -134,6 +134,19 @@ def wErrOk : IProp GF :=
 instance wErrOk_persistent : Persistent (wErrOk (GF := GF)) := by
   unfold wErrOk; infer_instance
 
+/-- raft's initialization gives `wErrOk` (its `#ErrWitnessStateModified`, 2026-10-20). -/
+theorem wErrOk_of_init [go_etcd_io.raft.v3.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ⊢ wErrOk := by
+  iintro #Hpkg
+  ihave #Hi := isInitialized_access $$ Hpkg
+  unfold isInitialized
+  iNamed Hi
+  icases ErrWitnessStateModified with ⟨%ew, #Hg, %Hne⟩
+  unfold wErrOk
+  iexists ew
+  iframe Hg
+  ipureintro; exact Hne.1
+
 /-- The store at `s`, the ghost counterpart of its state `P`. -/
 def isWStore (s : Loc) (P : WHS → IProp GF) : IProp GF :=
   iprop(sync.isMutex (s.[RWStore, go!"mu"]) (wStoreLock s P) ∗ wErrOk)

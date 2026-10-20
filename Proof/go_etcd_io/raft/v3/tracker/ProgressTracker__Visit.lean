@@ -204,7 +204,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (ys.length : Int)⌝ ∗
       "Htrk" ∷ trk ↦ tvc ∗
       "HI" ∷ I (GMap.listToSet (ys.take (sint.Z j).toNat)) pvsc ∗
-      "Hown" ∷ ownTrackerC c tvc ⟨votes, prs, pvsc⟩ ∗
+      "Hown" ∷ ownTrackerC c tvc ⟨votes, prs, pvsc, ep⟩ ∗
       "Hsl" ∷ sl ↦* ys) $$ [i id Htrk HI Hown Hsl]
   · iexists W64 0, zero_val w64, tv, pvs
     simp only [named]
@@ -230,7 +230,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     rw [Hprc, Option.getD_some]
     icases ownTrackerC_pure c tvc _ $$ Hown with ⟨%Hpc, Hown⟩
     have HmaxIc := Hpc.2.2.2.2
-    icases ownTrackerC_lookup c tvc ⟨votes, prs, pvsc⟩ y prc Hprc $$ Hown
+    icases ownTrackerC_lookup c tvc ⟨votes, prs, pvsc, ep⟩ y prc Hprc $$ Hown
       with ⟨%p, %Hpv, Hpr, Hback⟩
     iunfold visitClosureC at Hf
     wp_apply Hf $$ %y %prc %tvc %pvsc %p %(GMap.listToSet (ys.take (sint.Z j).toNat))

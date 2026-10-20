@@ -138,9 +138,11 @@ theorem stepCandidate.wp_proof
     -- (2026-10-19, witness support) `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`:
     -- no witness, the plain log line
     try wp_auto
-    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+    -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+    icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) hw $$ Hphys as Hphys
     try wp_auto
-    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) hw $$ Hphys as Hphys
     try wp_auto
     -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -364,9 +366,11 @@ theorem stepCandidate.wp_proof
       -- (2026-10-19, witness support) `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`:
       -- no witness, the plain log line
       try wp_auto
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+      -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+      icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) hw $$ Hphys as Hphys
       try wp_auto
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) hw $$ Hphys as Hphys
       try wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
       wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm

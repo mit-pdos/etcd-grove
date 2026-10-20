@@ -724,10 +724,11 @@ theorem ownTrackerC_votes (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
 /-- The new tracker: the old tally and bound, the new configuration and `Progress` objects. -/
 theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) (hw : c.wit = W64 0) :
-    ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗ ownConfigC c cfgv prsm prs pvs -∗ ownEpochNW tv.Epoch' -∗
-      ownTrackerC c { tv with Config' := cfgv, Progress' := prsm }
-        ⟨votes, prs, pvs, EpochM.bare (W64 0)⟩ := by
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) (hw : c.wit = W64 0)
+    {ep : EpochM} :
+    ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗ ownConfigC c cfgv prsm prs pvs -∗
+      ownEpochNWm tv.Epoch' ep -∗
+      ownTrackerC c { tv with Config' := cfgv, Progress' := prsm } ⟨votes, prs, pvs, ep⟩ := by
   iintro Hvotes Hnew #Hepoch
   iunfold ownConfigC at Hnew
   iNamed Hnew
@@ -735,8 +736,7 @@ theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : 
   · rw [hw]; iexact Hcfg
   iapply ownTrackerC_intro c { tv with Config' := cfgv, Progress' := prsm } votes prs pvs
     Hinv Hdom Hflags Hsize Hmi Hnw $$ Hvotes Hprsm Hprogs Hcfg [Hepoch]
-  iapply ownEpochNWm_ok
-  iapply ownEpochNW_m $$ Hepoch
+  iapply ownEpochNWm_ok $$ Hepoch
 
 /-- `ownConfigV` is `ownConfigC` at its simple configuration (the learners the tracked ids
 outside the voters). -/

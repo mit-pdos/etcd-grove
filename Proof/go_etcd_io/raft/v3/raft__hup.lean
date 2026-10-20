@@ -78,7 +78,7 @@ theorem raft.hup.wp_proof
     cases b with
     | true =>
       -- a voter, so it may campaign
-      obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
+      obtain ⟨Hin, -, Hsn⟩ := of_decide_eq_true Hb.symm
       wp_auto
       wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn Hfla $$ [$Hphys] as %hc ⟨Hphys, %Hhc⟩
       cases hc with

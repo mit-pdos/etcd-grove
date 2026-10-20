@@ -100,8 +100,10 @@ theorem raft.maybeCommit.wp_proof
   iNamed H
   wp_apply wp_with_defer as %defer defer
   -- (2026-10-19, witness support) no witness: the map is `nil`, the range does nothing
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+  icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTrackerC_epoch $$ Htrk with ⟨#Hep, Htrk⟩
+  icases ownTrackerC_epoch c hw _ _ $$ Htrk with ⟨#Hep, Htrk⟩
   wp_apply (tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_nw
     wp_ProgressTracker_OneLessThanQuorumInReplicationSet _ _ _) $$ [$Htrkf $Hep] as Htrkf
   ihave Hphys := Hback $$ %tv Htrkf Htrk

@@ -119,7 +119,7 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
     (Hdom : domSet prs = domSet (cfgStateC c).prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62)
     (P : w64 → Progress → Prop)
     (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner ∧ p.witness = false)
-    (H0 : W64 0 ∉ domSet prs) :
+    (H0 : W64 0 ∉ domSet prs) (hw : c.wit = W64 0) :
     ⊢ ownCfgCC (GF := GF) cfgv (DFrac.own 1) c -∗ prsm ↦$□ prs -∗
       ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜P k p⌝) -∗
       ∃ pvs, ownConfigC c cfgv prsm prs pvs := by
@@ -165,7 +165,9 @@ private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm :
   ipureintro
   refine ⟨?_, ?_, ?_, Hsz, ?Hw⟩
   case Hw =>
-    -- no witness (2026-10-19)
+    -- no witness (2026-10-19; a snapshot's configuration is witness-free in the model)
+    rw [hw]
+    apply WitP.zero.2
     intro k p hp
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
       ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
@@ -525,9 +527,11 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
+    -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+    icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
         (c := CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)) _ _ _
-        (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
+        (by intro h; exact absurd Hrole h) (by rw [hw]; rfl) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
     icases ownTrackerC_maxinflight $$ Htrk with ⟨%Hmi, -⟩
     wp_auto
     wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, #Hep0, Hv0, Hvotes0, Hprs0⟩
@@ -570,23 +574,24 @@ theorem raft.restore.wp_proof
       (csCfgM sv.Metadata'.ConfState'.VotersOutgoing' sv.Metadata'.ConfState'.Voters' sv.Metadata'.ConfState'.Learners' sv.Metadata'.ConfState'.LearnersNext' sv.Metadata'.ConfState'.AutoLeave')
       (snapCfg sv sv.Metadata'.ConfState'.lists) rfl $$ Hcfg
     icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h)
-      (restore_prs_no0 _ Hwf prs _ Hprs) $$ Hcfg Hprsm Hprogs
+      (restore_prs_no0 _ Hwf prs _ Hprs) rfl $$ Hcfg Hprsm Hprogs
       with ⟨%pvs, Hnew⟩
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 Htv0wit
       $$ Hv0 Hvotes0 Hprs0 Hep0
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
-    ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
+    ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %(EpochM.bare (W64 0)) %_ Hlf Htrkf Htrk0 Hlog
       %(LogGhOk.of_snap (by simp [logRestore]) Hns)
       %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))
-    generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
+    generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, ep := EpochM.bare (W64 0), logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
     icases ownRaftPhysCV_reconfig _ (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
-        (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
+        (fun h => absurd Hrole1 h) rfl $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
     icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1, #Hep1⟩
-    wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs
+    ihave #Hep1 := ownEpochOk_nw' rfl $$ Hep1
+    wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs rfl
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
         (fun h => absurd (Hrole1.symm.trans h) (by decide))

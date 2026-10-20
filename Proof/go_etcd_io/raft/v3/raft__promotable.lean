@@ -59,7 +59,7 @@ theorem raft.promotable.wp_proof
       id _ $$ Hprs with -
     rw [Hlk]
     simp only [Option.getD_some]
-    icases ownTrackerC_nowit c tv _ $$ Htrk with ⟨%Hnw, Htrk⟩
+    icases ownTrackerC_wit c tv _ $$ Htrk with ⟨%Hnw, Htrk⟩
     icases ownTrackerC_lookup c tv _ id pr Hlk $$ Htrk with ⟨%p, %Hpv, Hpr, Hprback⟩
     iNamed Hpr
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
@@ -67,9 +67,15 @@ theorem raft.promotable.wp_proof
     wp_auto
     have Hl : pv.IsLearner' = decide (id ∈ c.learners) := by
       rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
-    -- (2026-10-19, witness support) not the witness (`NoWitP`)
-    have Hw : pv.IsWitness' = false :=
-      ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw id p Hpv).1
+    -- (2026-10-19, witness support) `!pr.IsWitness`: the flag is the configuration's witness's
+    -- (`WitP`; `id` is tracked, so not `0`)
+    have Hw : pv.IsWitness' = decide (id = c.wit) := by
+      rw [((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2, (Hnw id p Hpv).1]
+      have h0 := (Hnw id p Hpv).2
+      by_cases h : id = c.wit
+      · have hc : c.wit ≠ W64 0 := h ▸ h0
+        simp [h, hc]
+      · simp [h]
     have Htr : id ∈ c.ids := by
       rw [← Hdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
     by_cases Hin : id ∈ c.voters
@@ -84,6 +90,19 @@ theorem raft.promotable.wp_proof
       rw [Hl, decide_eq_false Hnl]
       wp_auto
       rw [Hw]
+      by_cases Hiw : id = c.wit
+      · -- the witness itself: `false`
+        rw [decide_eq_true Hiw]
+        wp_auto
+        ihave Htrk := Hprback $$ %p [Hpv Hinfl] %(And.intro rfl rfl)
+        · iapply ownProgress_intro $$ Hpv Hinfl %Habs
+        simp only [GMap.insert_id s.prvals id p Hpv]
+        ihave Hphys := Hback $$ Htrkf Htrk
+        iapply HΦ
+        iframe Hphys
+        ipureintro
+        simp [Hiw]
+      rw [decide_eq_false Hiw]
       wp_auto
       ihave Htrk := Hprback $$ %p [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
@@ -97,7 +116,7 @@ theorem raft.promotable.wp_proof
       iapply HΦ
       iframe Hphys
       ipureintro
-      cases s.logst.snap <;> simp [Hin]
+      cases s.logst.snap <;> simp [Hin, Hiw]
     · -- a learner (2026-10-13): `!pr.IsLearner` short-circuits to false
       have Hlr : id ∈ c.learners := by
         unfold CfgM.ids at Htr

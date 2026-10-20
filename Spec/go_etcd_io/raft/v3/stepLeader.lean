@@ -128,12 +128,12 @@ def ReleaseHbs (id : w64) (s : NState) (hb : List Msg) : Prop :=
       m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))
 
 /-- The state `appendEntry` leaves when it accepts the batch `ents`: the log grows by
-the stamped batch (`stamp`, the term and the indices after the last), and the
+the stamped batch (`stampS`, the term, the node's subterm and the indices after the last), and the
 self-acknowledgement at the new last index is queued -- `Step.propose`'s state, under
 `NStateRel`. -/
 def proposed (id : w64) (s : NState) (ents : List EntryM) : NState :=
   let s1 :=
-    { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+    { s with logst := logAppend s.logst (ents.mapIdx (stampS s.term s.ep.sub (logLast s.logst))) }
   sendMsgs s1 [selfAck id s1]
 
 /-- `stepLeader`'s conf-change loop at `s` (2026-10-13): the batch it leaves and

@@ -45,7 +45,7 @@ the two halves of `p.Voters` through the array field, then `p.Learners` and
 theorem tracker.ProgressTracker.ConfState.wp_proof
     (wp_MajorityConfig_Slice : quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) := by
-  intro c trk tv t
+  intro c trk tv t hw
   obtain ⟨votes, prs, pvs, ep⟩ := t
   wp_start as ⟨Htrk, Hown⟩
   iapply wp_fupd
@@ -136,11 +136,11 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
       (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
         tv.Config'.Witnesses')
       (P := trk ↦ tv)) $$ Htrk with ⟨HW, Htrkback⟩
-  icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+  icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit, hw]; rfl)
     $$ HW with ⟨Hw0, Hwback⟩
   wp_auto
   ihave HW := Hwback $$ Hw0
-  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit]; rfl)
+  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit, hw]; rfl)
     $$ HW with ⟨Hw1, Hwback⟩
   wp_auto
   ihave HW := Hwback $$ Hw1

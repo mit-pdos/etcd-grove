@@ -289,6 +289,7 @@ public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
 public import Proof.go_etcd_io.raft.v3.stepLeader
+public import Proof.strconv.FormatUint
 public import Proof.strings.Join
 public import Proof.go_etcd_io.raft.v3.traceBecomeCandidate
 public import Proof.go_etcd_io.raft.v3.traceBecomeFollower
@@ -338,6 +339,7 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNonWitnessVoterSlice
+public import Proof.go_etcd_io.raft.v3.tracker.ReplicationSet__String
 public import Proof.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
 public import Proof.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
 public import Proof.go_etcd_io.raft.v3.unstable__acceptInProgress
@@ -1087,6 +1089,14 @@ theorem tracker.ProgressTracker.wp_ChangeReplicationSet :
     tracker.ProgressTracker.ChangeReplicationSet.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.ChangeReplicationSet.wp_proof tracker.Epoch.wp_HasWitness
 
+theorem strconv.wp_FormatUint :
+    strconv.FormatUint.spec (GF := GF) (hG := hG) :=
+  strconv.FormatUint.wp_proof
+
+theorem tracker.ReplicationSet.wp_String :
+    tracker.ReplicationSet.String.spec (GF := GF) (hG := hG) :=
+  tracker.ReplicationSet.String.wp_proof slices.wp_Sort strconv.wp_FormatUint strings.wp_Join fmt.wp_Sprintf
+
 theorem raft.wp_increaseUncommittedSize [StorageModel GF] :
     raft.increaseUncommittedSize.spec (GF := GF) (hG := hG) :=
   raft.increaseUncommittedSize.wp_proof wp_payloadsSize
@@ -1113,7 +1123,7 @@ theorem raft.wp_appendEntry [StorageModel GF] :
 
 theorem raft.wp_maybeStartNewSubterm [StorageModel GF] :
     raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG) :=
-  raft.maybeStartNewSubterm.wp_proof tracker.ProgressTracker.wp_ResetReplicationSet tracker.ProgressTracker.wp_ChangeReplicationSet tracker.Epoch.wp_HasWitness raft.wp_appendEntry
+  raft.maybeStartNewSubterm.wp_proof tracker.ProgressTracker.wp_ResetReplicationSet tracker.ProgressTracker.wp_ChangeReplicationSet tracker.Epoch.wp_HasWitness tracker.ReplicationSet.wp_String raft.wp_appendEntry
 
 theorem tracker.Progress.wp_BecomeReplicate :
     tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG) :=

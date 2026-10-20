@@ -147,7 +147,8 @@ def RestoreResult (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool) (s' : 
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧
-   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs,
+   -- (2026-10-20) the fresh tracker's bare epoch (`MakeProgressTracker`)
+   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs, ep := EpochM.bare (W64 0),
                                logst := logRestore ls (snapTrip sv cl), isLearner := il })
 
 /-- The configuration the node is at after `restore` (2026-10-14, reconfiguration stage A3; the

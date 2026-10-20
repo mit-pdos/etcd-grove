@@ -122,9 +122,11 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       rw [decide_eq_false Hii]
       wp_auto
       -- (2026-10-19, witness support) `pr.IsWitness`: no peer is the witness (`NoWitP`)
+      -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+      icases ownRaftPhysC_wit0 c r id _ $$ Hphys with ⟨%hw, Hphys⟩
       icases ownRaftPhysC_tracker c r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback1⟩
-      icases ownTrackerC_nowit c tv1 _ $$ Htrk with ⟨%Hnw, Htrk⟩
-      icases ownTrackerC_lookup c tv1 ⟨_, _, _⟩ i pr (by exact Hpri) $$ Htrk with ⟨%p1, %Hp1, Hpr, Hprback⟩
+      icases ownTrackerC_nowit c hw tv1 _ $$ Htrk with ⟨%Hnw, Htrk⟩
+      icases ownTrackerC_lookup c tv1 ⟨_, _, _, _⟩ i pr (by exact Hpri) $$ Htrk with ⟨%p1, %Hp1, Hpr, Hprback⟩
       iNamed Hpr
       wp_auto
       have Hw : pv.IsWitness' = false :=

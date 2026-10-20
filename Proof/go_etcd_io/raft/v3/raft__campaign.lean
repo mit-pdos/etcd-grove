@@ -389,10 +389,12 @@ theorem raft.campaign.wp_proof
           exact List.mem_of_getElem? Hy
         rw [← h]
         exact (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ (hV ▸ hyc)
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+      -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+      icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) hw $$ Hphys as Hphys
       try rw [decide_eq_false Hy0]
       try wp_auto
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) hw $$ Hphys as Hphys
       try rw [decide_eq_false Hy0]
       try wp_auto
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys

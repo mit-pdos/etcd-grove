@@ -60,7 +60,7 @@ abbrev raft.promotable.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"promotable")) (Val #()))
   {{ (b : Bool), RET #b;
       ownRaftPhysCV c c.voters r id s ∗
-      ⌜b = decide (id ∈ c.voters ∧ s.logst.snap = none)⌝ }}
+      ⌜b = decide (id ∈ c.voters ∧ id ≠ c.wit ∧ s.logst.snap = none)⌝ }}
 
 end spec
 

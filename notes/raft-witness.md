@@ -282,6 +282,36 @@ witness branch proved (`appendEntry` with the epoch's subterm, `maybeCommit` →
 asked set, `newRaft`'s tracker at the bare epoch), and the Ready path (`InvRawnode*`,
 `RawNode.*`, `node.*`) `outboxRel`'s new argument and the witness queue.
 
+Proved at any configuration (2026-10-20, commits `32e2981a18`, `2ee6eed844` and after):
+- `appendEntry` stamps the epoch's subterm (`stampS s.term s.ep.sub`; the `Subterm != 0` branch
+  allocates the cell, the other stores `nil`); `proposed` (stepLeader's `MsgProp` state) the same;
+- `maybeStartNewSubterm` (`subtermStart`): with `newTerm` the reset epoch at subterm 0
+  (`ResetReplicationSet.spec_c`, `EpochOkC_reset`); without, `ChangeReplicationSet.spec_c` -- nothing,
+  or the next subterm's epoch (`ChangeEpochOk`) and the empty entry at it; the `HasWitness` log
+  lines (`ReplicationSet.String`, proved: at most `2^62` ids, `RSM.strLen`, from the tracker's
+  size bound, `ownRaftPhysC_strLen`; it rests on `strconv.FormatUint`'s trust-boundary axiom,
+  which raft's results did not use before);
+- `maybeSendAppend` (nothing to the witness, as when paused), `promotable` (`false` at the
+  witness: the spec says `id ≠ c.wit`).
+
+**Staged (2026-10-20): no witness yet.** To get the tree building before every witness branch is
+proved, `witOwn` carries `⌜W = W64 0⌝` (marked `STAGED` in `InvRaftPhys.lean`), read out by
+`ownRaftPhysC_wit0` at each witness site not proved yet: `maybeCommit` (`sendAppendToWitness`),
+`bcastHeartbeatWithCtx` (`sendHeartbeatToWitness`), `campaign`/`stepCandidate` (the witness's vote
+and pre-vote, `getWitnessVoteRequestReadiness`), `stepLeader`'s check-quorum and other `NoWitP`
+uses, `applyConfChange`/`restore` (a witness-free configuration stays one: `ccApplyM_wit0`), the
+Ready views (`ownRaftPhysC_view`, `ownRaftPhysC_toPhys`), `MsgProp` (`StepR.propose`, the dynamic
+model, stamps subterm 0). `ProgressTracker.ConfState` and `switchToConfig` take `c.wit = 0` as a
+premise (with a witness `cs.Witness` is set, which `ConfStateM` does not model, and
+`switchToConfig` calls `maybeStartNewSubterm(false, true)`). Every result still holds; they are
+about witness-free configurations, as the `RawNode` layer (`ownRaftPhys`, `CfgM.simple`) already
+is. Grep `STAGED`/`ownRaftPhysC_wit0` for what is left; the conjunct goes when the last is proved.
+
+Gaps of the model found on the way: `leaveJointState` (`InvConfchange.lean`) builds a configuration
+without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`); `ConfStateM` has no witness fields
+(Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a snapshot's configuration loses the
+witness in the model.
+
 ## W3b: `Process`, its instance at W2's ghost state, the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
 
 - `ErrWitnessStateModified` is among the raft package's facts (`isInitialized`, `Base.lean`;

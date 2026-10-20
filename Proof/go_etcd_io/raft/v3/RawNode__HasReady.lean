@@ -106,7 +106,9 @@ set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
 shared by the two ways of falling through. -/
 local macro "rest" : tactic => `(tactic| (
-  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+  icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+  icases ownRaftPhysC_view cf rnv.raft' id s hw $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   try wp_auto

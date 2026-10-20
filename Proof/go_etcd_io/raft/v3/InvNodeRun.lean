@@ -102,7 +102,9 @@ theorem ownRaftPhys_lead (c : CfgM) (r : Loc) (id : w64) (s : NState) :
       (r.[raft, go!"lead"] ↦ s.lead -∗ r.[raft, go!"Term"] ↦ s.term -∗
         ownRaftPhysCV c c.voters r id s) := by
   iintro H
-  icases ownRaftPhysC_view c r id s $$ H with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+  icases ownRaftPhysC_wit0 c _ _ _ $$ H with ⟨%hw, H⟩
+  icases ownRaftPhysC_view c r id s hw $$ H with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   isplitl [Hf_lead]
   · iexact Hf_lead

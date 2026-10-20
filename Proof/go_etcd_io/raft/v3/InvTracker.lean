@@ -625,6 +625,13 @@ theorem ownEpochNWm_ok (V0 V1 : GSet w64) (w : w64) (e : Loc) (em : EpochM) :
   ipureintro; exact EpochOkC.bare _ _ _
 
 /-- Without a witness, the epoch at the index is the bare one. -/
+theorem ownEpochOk_nw' {V0 V1 : GSet w64} {w : w64} {e : Loc} {em : EpochM} (hw : w = W64 0) :
+    ownEpochOk (GF := GF) V0 V1 w e em ⊢ ownEpochNWm e em := by
+  unfold ownEpochNWm ownEpochOk
+  iintro ⟨#He, %Hok⟩
+  iframe He
+  ipureintro; subst hw; unfold EpochOkC at Hok; simpa using Hok
+
 theorem ownEpochOk_nw (V0 V1 : GSet w64) (e : Loc) (em : EpochM) :
     ownEpochOk (GF := GF) V0 V1 (W64 0) e em ⊢ ownEpochNWm e em := by
   unfold ownEpochNWm ownEpochOk

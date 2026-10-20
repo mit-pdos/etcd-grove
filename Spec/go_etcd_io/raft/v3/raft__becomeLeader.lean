@@ -40,7 +40,11 @@ abbrev raft.becomeLeader.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysCV c c.voters r id { becomeLeader id s with prvals := pvs } ∗
+      -- (2026-10-20, witness support) at the reset epoch (`maybeStartNewSubterm`: subterm 0,
+      -- the witness excluded)
+      ownRaftPhysCV c c.voters r id
+        { becomeLeader id s with prvals := pvs,
+                                 ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) } ∗
       -- `Match` is what `reset` left: `BecomeReplicate` and the `RecentActive` store do
       -- not move it, and `appendEntry` does not touch a `Progress`
       ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}

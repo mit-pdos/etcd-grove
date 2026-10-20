@@ -128,6 +128,12 @@ theorem resetEpoch_sub (V0 V1 : GSet w64) (w0 w1 sub' : w64) :
     (resetEpoch V0 V1 w0 w1 sub').sub = sub' := by
   unfold resetEpoch; split <;> rfl
 
+/-- The reset epoch excludes the witness: no other voter is out (`epochRsx`). -/
+theorem epochRsx_reset (V0 V1 : GSet w64) (w0 w1 sub' : w64) :
+    epochRsx (resetEpoch V0 V1 w0 w1 sub') = W64 0 := by
+  unfold epochRsx resetEpoch
+  split <;> simp [EpochM.bare, RSM.bare, rsReset]
+
 /-- With no witness, the reset epoch is bare. -/
 theorem resetEpoch_nw (V0 V1 : GSet w64) (sub' : w64) :
     resetEpoch V0 V1 (W64 0) (W64 0) sub' = EpochM.bare sub' := by
