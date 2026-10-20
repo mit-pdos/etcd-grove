@@ -40,9 +40,18 @@ abbrev tracker.ProgressTracker.ResetReplicationSet.spec : Prop :=
       trk ↦ { tv with Epoch' := e } ∗ ownIdsetQ vin dqv V0 ∗ ownIdsetQ vout dqv V1 ∗
       ownEpoch e (resetEpoch V0 V1 w0 w1 (if b then W64 0 else sub + W64 1)) }}
 
-/-- With `true` at a witness-free tracker (the statement this spec had until the epoch model):
-the tracker the same but for its epoch, witness-free again. -/
-theorem tracker.ProgressTracker.ResetReplicationSet.spec_nw
+/-- `EpochOkC` of the reset epoch at subterm 0 (2026-10-20). -/
+theorem EpochOkC_reset (V0 V1 : GSet w64) (w : w64) (H0 : W64 0 ∉ V0) (H1 : W64 0 ∉ V1) :
+    EpochOkC V0 V1 w (resetEpoch V0 V1 w (W64 0) (W64 0)) := by
+  unfold EpochOkC
+  split
+  · rename_i hw; subst hw; exact resetEpoch_nw _ _ _
+  · exact Or.inr (resetEpoch_wf V0 V1 _ _ _ H0 H1)
+
+/-- With `true` at a tracker of the configuration `c` (2026-10-20, witness support; until then
+`spec_nw`, witness-free): the tracker the same but for its epoch, the reset one at subterm 0 --
+the witness excluded, the bare one without a witness. -/
+theorem tracker.ProgressTracker.ResetReplicationSet.spec_c
     (H : tracker.ProgressTracker.ResetReplicationSet.spec (GF := GF) (hG := hG))
     (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
@@ -50,8 +59,13 @@ theorem tracker.ProgressTracker.ResetReplicationSet.spec_nw
       (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty
         @!! go!"ResetReplicationSet")) (Val #true))
     {{ (e : Loc), RET #();
-        trk ↦ { tv with Epoch' := e } ∗ ownTrackerC c { tv with Epoch' := e } t }} := by
+        trk ↦ { tv with Epoch' := e } ∗
+        ownTrackerC c { tv with Epoch' := e }
+          { t with ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) } }} := by
   iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  icases ownTrackerC_no0 c tv t $$ Hown with ⟨%H0, Hown⟩
+  have H0i : W64 0 ∉ c.incoming := fun h => H0 ((GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ ((GMap.elem_of_subseteq _ _).1 (incoming_sub_voters c) _ h))
+  have H0o : W64 0 ∉ c.outgoing := fun h => H0 ((GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ ((GMap.elem_of_subseteq _ _).1 (outgoing_sub_voters c) _ h))
   iunfold ownTrackerC at Hown
   iNamed Hown
   icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
@@ -62,9 +76,8 @@ theorem tracker.ProgressTracker.ResetReplicationSet.spec_nw
     icases Hout with (%H | ⟨-, %H⟩)
     · ipureintro; exact Or.inl H
     · ipureintro; exact Or.inr H
-  have HspecE := H trk tv true vin vout (DFrac.own 1) c.incoming c.outgoing (W64 0) (W64 0) (W64 0)
+  have HspecE := H trk tv true vin vout (DFrac.own 1) c.incoming c.outgoing c.wit (W64 0) (W64 0)
     Harr Hwit
-  rw [resetEpoch_nw] at HspecE
   simp only [↓reduceIte] at HspecE
   iapply HspecE $$ [Htrk Hin Hout]
   · iframe Hpkg Htrk
@@ -93,7 +106,9 @@ theorem tracker.ProgressTracker.ResetReplicationSet.spec_nw
   iapply ownTrackerC_intro c { tv with Epoch' := e } t.votes t.prs t.peers Hinv Hdom Hflags
     Hsize HmaxInfl Hnw $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln] [He]
   · iapply ownCfgCC_intro _ _ c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
-  · iunfold ownEpochNW; iexact He
+  · unfold ownEpochOk
+    iframe He
+    ipureintro; exact EpochOkC_reset _ _ _ H0i H0o
 
 end spec
 

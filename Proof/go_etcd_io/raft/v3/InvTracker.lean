@@ -561,6 +561,26 @@ def EpochOkC (V0 V1 : GSet w64) (w : w64) (em : EpochM) : Prop :=
 theorem EpochOkC.bare (V0 V1 : GSet w64) (w : w64) : EpochOkC V0 V1 w (EpochM.bare (W64 0)) := by
   unfold EpochOkC; split <;> simp
 
+theorem EpochM.bare_hasWit (sb : w64) : (EpochM.bare sb).hasWit = false := by
+  simp [EpochM.hasWit, EpochM.bare, RSM.bare]
+
+/-- An epoch of a configuration with a witness in it: the configuration has a witness, and the
+epoch is well formed. -/
+theorem EpochOkC.wf {V0 V1 : GSet w64} {w : w64} {em : EpochM} (H : EpochOkC V0 V1 w em)
+    (Hw : em.hasWit = true) : w ≠ W64 0 ∧ EpochWF V0 V1 w (W64 0) em := by
+  unfold EpochOkC at H
+  split at H
+  · subst H; rw [EpochM.bare_hasWit] at Hw; cases Hw
+  · rename_i hw
+    rcases H with H | H
+    · subst H; rw [EpochM.bare_hasWit] at Hw; cases Hw
+    · exact ⟨hw, H⟩
+
+/-- A well-formed epoch of a configuration with a witness is one of it. -/
+theorem EpochOkC.of_wf {V0 V1 : GSet w64} {w : w64} {em : EpochM} (hw : w ≠ W64 0)
+    (H : EpochWF V0 V1 w (W64 0) em) : EpochOkC V0 V1 w em := by
+  unfold EpochOkC; rw [if_neg hw]; exact Or.inr H
+
 /-- The tracker's epoch at a configuration, at the tracker's index `em` (`EpochOkC`). -/
 def ownEpochOk (V0 V1 : GSet w64) (w : w64) (e : Loc) (em : EpochM) : IProp GF :=
   iprop(ownEpoch e em ∗ ⌜EpochOkC V0 V1 w em⌝)

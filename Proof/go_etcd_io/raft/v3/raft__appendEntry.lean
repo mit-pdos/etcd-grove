@@ -86,14 +86,14 @@ private theorem lookup_take_drop {A : Type _} (l1 l2 : List A) (k : Nat) (hk : k
 
 /-- One iteration of the loop, on the list: the prefix already stamped grows
 by one. -/
-private theorem stamp_step (tm li : w64) (ents : List EntryM) (n : Nat) (e : EntryM)
+private theorem stamp_step (tm sb li : w64) (ents : List EntryM) (n : Nat) (e : EntryM)
     (He : ents[n]? = some e) :
-    ((ents.mapIdx (stamp tm li)).take n ++ ents.drop n).set n
-        { e with Term' := tm, Index' := li + W64 1 + W64 n, Subterm' := W64 0 }
-      = (ents.mapIdx (stamp tm li)).take (n+1) ++ ents.drop (n+1) := by
+    ((ents.mapIdx (stampS tm sb li)).take n ++ ents.drop n).set n
+        { e with Term' := tm, Index' := li + W64 1 + W64 n, Subterm' := sb }
+      = (ents.mapIdx (stampS tm sb li)).take (n+1) ++ ents.drop (n+1) := by
   have Hlt : n < ents.length := by
     rcases (List.getElem?_eq_some_iff.1 He) with ⟨h, _⟩; exact h
-  have Hl : ((ents.mapIdx (stamp tm li)).take n).length = n := by
+  have Hl : ((ents.mapIdx (stampS tm sb li)).take n).length = n := by
     simp only [List.length_take, List.length_mapIdx]; omega
   rw [List.set_append_right _ _ (by omega), Hl, Nat.sub_self]
   rw [List.take_add_one, List.getElem?_mapIdx, He]
@@ -104,19 +104,19 @@ private theorem stamp_step (tm li : w64) (ents : List EntryM) (n : Nat) (e : Ent
 
 /-- Stamping touches only `Term` and `Index`: a property of the other fields carries
 over to the stamped batch (Rocq `stamped_empty`, `stamped_normal`). -/
-private theorem stamped_mem (tm li : w64) (ents : List EntryM) (P : EntryM → Prop)
-    (HP : ∀ e ∈ ents, P e) (Hst : ∀ k e, P e → P (stamp tm li k e)) :
-    ∀ e ∈ ents.mapIdx (stamp tm li), P e := by
+private theorem stamped_mem (tm sb li : w64) (ents : List EntryM) (P : EntryM → Prop)
+    (HP : ∀ e ∈ ents, P e) (Hst : ∀ k e, P e → P (stampS tm sb li k e)) :
+    ∀ e ∈ ents.mapIdx (stampS tm sb li), P e := by
   intro e He
   obtain ⟨i, hi, rfl⟩ := List.mem_mapIdx.1 He
   exact Hst _ _ (HP _ (List.getElem_mem hi))
 
 /-- The stamped batch continues the log's index sequence. -/
-private theorem stamped_indices (tm li : w64) (prev : entryID) (pre ents : List EntryM)
+private theorem stamped_indices (tm sb li : w64) (prev : entryID) (pre ents : List EntryM)
     (Hpre : LogIndicesOk prev pre)
     (Hli : uint.Z li = uint.Z prev.index' + (pre.length : Int))
     (Hnw : uint.Z li + (ents.length : Int) + 1 < 2^64) :
-    LogIndicesOk prev (pre ++ ents.mapIdx (stamp tm li)) := by
+    LogIndicesOk prev (pre ++ ents.mapIdx (stampS tm sb li)) := by
   intro k e Hk
   by_cases hk : k < pre.length
   · rw [List.getElem?_append_left hk] at Hk; exact Hpre k e Hk
@@ -132,7 +132,7 @@ private theorem stamped_indices (tm li : w64) (prev : entryID) (pre ents : List 
       subst Hk2
       have Hlt : k - pre.length < ents.length := by
         rcases (List.getElem?_eq_some_iff.1 He') with ⟨h, _⟩; exact h
-      unfold stamp
+      unfold stampS
       simp only
       word
 
@@ -161,10 +161,12 @@ theorem raft.appendEntry.wp_proof
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
   wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   ihave Hphys := Hlogback $$ Hlog
-  -- (2026-10-19, witness support) `epoch := r.trk.Epoch`, witness-free: its subterm is `0`
+  -- (2026-10-19, witness support) `epoch := r.trk.Epoch`, the node's: its subterm `s.ep.sub`
   try wp_auto
-  wp_apply raft.wp_load_trk_EpochC c r id s $$ Hphys as %ep ⟨Hphys, #Hep⟩
-  icases ownEpochNW_fields ep $$ Hep with ⟨#Hsub, -, -, -, -⟩
+  wp_apply raft.wp_load_trk_EpochC' c r id s $$ Hphys as %ep ⟨Hphys, #Hep⟩
+  iunfold ownEpochOk at Hep
+  icases Hep with ⟨#Hep, -⟩
+  icases ownEpoch_fields ep _ $$ Hep with ⟨#Hsub, -, -⟩
   iunfold entsPts at Hes
   icases Hes with ⟨%lsE, Hes, #Hents⟩
   ihave %Hlen := ownSlice_len $$ Hes
@@ -180,7 +182,7 @@ theorem raft.appendEntry.wp_proof
       "Hj" ∷ i_ptr ↦ n ∗
       "Hiraft" ∷ iraft ↦ k ∗
       "Hcl" ∷ cl ↦* (lc ++ List.replicate (ents.length - sint.nat n) (zero_val Loc)) ∗
-      "#Hcls" ∷ ([∗list] l;e ∈ lc;(ents.mapIdx (stamp s.term li)).take (sint.nat n), entRO l e) ∗
+      "#Hcls" ∷ ([∗list] l;e ∈ lc;(ents.mapIdx (stampS s.term s.ep.sub li)).take (sint.nat n), entRO l e) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int) ∧ lc.length = sint.nat n⌝ ∗
       -- (2026-10-18, D19b stage 5) one receipt raised per entry cloned
       "#Hrc" ∷ ⧖ (m + sint.nat n))
@@ -256,8 +258,11 @@ theorem raft.appendEntry.wp_proof
     wp_pures
     wp_store
     ihave Hl' := HIback $$ %_ %_ HI cI
-    -- `epoch.Subterm` is `0`: `cloned[i].Subterm = nil`
+    -- `cloned[i].Subterm`: `new(epoch.Subterm)`, or `nil` at subterm `0`
     wp_auto
+    wp_if_destruct
+    -- `Subterm == 0`: `nil`
+    try wp_auto
     simp only [Hbndc, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index cl (sint.Z n) _ _ l' Hn.1 $$ [Hcl] as Hcl
     · iframe; ipureintro
@@ -266,40 +271,57 @@ theorem raft.appendEntry.wp_proof
     icases entOwn_store_Subterm _ _ $$ Hl' with ⟨%pS, HS, HSback⟩
     wp_pures
     wp_store
-    ihave Hl' := HSback $$ %null %(zero_val w64) HS []
-    · iapply cellRO_null
+    ihave Hl' := HSback $$ %null %s.ep.sub HS []
+    · rw [show s.ep.sub = zero_val w64 from Hif]
+      iapply cellRO_null
     imod entOwn_freeze $$ Hl' with #Hl'
     wp_auto
-    wp_for_post
-    iframe
-    iexists n + W64 1, n, lc ++ [l']
-    have Hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
-    rw [Hn1]
-    simp only [named]
-    iframe
-    have Htk : (ents.mapIdx (stamp s.term li)).take (sint.nat n + 1)
-        = (ents.mapIdx (stamp s.term li)).take (sint.nat n) ++
-          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := e.Type', Data' := e.Data',
-             Subterm' := zero_val w64 }] := by
-      rw [List.take_add_one, List.getElem?_mapIdx, He]
-      simp only [Option.map_some, Option.toList_some, stamp]
-      rw [show (W64 (sint.nat n : Int) : w64) = n by word]
-      rfl
-    rw [Htk]
-    isplitr
-    · iapply BigSepL2.bigSepL2_snoc.2
-      iframe Hcls Hl'
-    isplitr
-    · ipureintro
-      refine ⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩
-    iexact Hrc
+    rotate_left
+    -- `Subterm != 0`: `new(epoch.Subterm)`
+    try wp_auto
+    imod cellRO_alloc $$ «$r0» with #cS
+    try wp_auto
+    simp only [Hbndc, _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index cl (sint.Z n) _ _ l' Hn.1 $$ [Hcl] as Hcl
+    · iframe; ipureintro
+      rw [show (sint.Z n).toNat = lc.length by omega, List.append_assoc]
+      simp
+    icases entOwn_store_Subterm _ _ $$ Hl' with ⟨%pS, HS, HSback⟩
+    wp_pures
+    wp_store
+    ihave Hl' := HSback $$ %_ %s.ep.sub HS cS
+    imod entOwn_freeze $$ Hl' with #Hl'
+    wp_auto
+    all_goals
+      wp_for_post
+      iframe
+      iexists n + W64 1, n, lc ++ [l']
+      have Hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+      rw [Hn1]
+      simp only [named]
+      iframe
+      have Htk : (ents.mapIdx (stampS s.term s.ep.sub li)).take (sint.nat n + 1)
+          = (ents.mapIdx (stampS s.term s.ep.sub li)).take (sint.nat n) ++
+            [{ Term' := s.term, Index' := li + W64 1 + n, Type' := e.Type', Data' := e.Data',
+               Subterm' := s.ep.sub }] := by
+        rw [List.take_add_one, List.getElem?_mapIdx, He]
+        simp only [Option.map_some, Option.toList_some, stampS]
+        rw [show (W64 (sint.nat n : Int) : w64) = n by word]
+      rw [Htk]
+      isplitr
+      · iapply BigSepL2.bigSepL2_snoc.2
+        iframe Hcls Hl'
+      isplitr
+      · ipureintro
+        refine ⟨by word, by word, by simp only [List.length_append, List.length_singleton]; omega⟩
+      iexact Hrc
   · -- the loop is done: every entry is cloned and stamped
     have Hnn : (sint.nat n : Int) = sint.Z n := Int.toNat_of_nonneg Hn.1
     have Hesn : (sint.nat es.len : Int) = sint.Z es.len := Int.toNat_of_nonneg Hlen.2
     have Hfull : sint.nat n = ents.length := by omega
     rw [Hfull, Nat.sub_self, List.replicate_zero, List.append_nil,
       List.take_of_length_le (by simp only [List.length_mapIdx]; omega)] at *
-    ihave Hcl : entsPts cl (DFrac.own 1) (ents.mapIdx (stamp s.term li)) $$ [Hcl]
+    ihave Hcl : entsPts cl (DFrac.own 1) (ents.mapIdx (stampS s.term s.ep.sub li)) $$ [Hcl]
     · iunfold entsPts; iexists lc; iframe Hcl Hcls
     ihave Hes : entsPts es dq ents $$ [Hes]
     · iunfold entsPts; iexists lsE; iframe Hes Hents
@@ -308,7 +330,7 @@ theorem raft.appendEntry.wp_proof
     -- acceptance is pinned only for an all-empty batch; stamping does
     -- not touch `Data`, so the implication transfers to `ents`
     have Hacc : (∀ e ∈ ents, e.Data' = []) → ok = true := fun Hz =>
-      Hok (stamped_mem _ _ _ _ Hz (fun _ _ h => h))
+      Hok (stamped_mem _ _ _ _ _ Hz (fun _ _ h => h))
     -- `li` is `logLast` of the log it was read from: `lastIndex()`
     -- cannot wrap (`Hbnd`)
     have Hlast : logLast s.logst = li := by
@@ -328,10 +350,10 @@ theorem raft.appendEntry.wp_proof
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev
-        ((s.logst.sents ++ s.logst.uents) ++ ents.mapIdx (stamp s.term li)) :=
-      stamped_indices _ _ _ _ _ Hidx (by rw [List.length_append]; push_cast; omega)
+        ((s.logst.sents ++ s.logst.uents) ++ ents.mapIdx (stampS s.term s.ep.sub li)) :=
+      stamped_indices _ _ _ _ _ _ Hidx (by rw [List.length_append]; push_cast; omega)
         (by omega)
-    have Hk2 : ∀ (k2 : Nat) e, (ents.mapIdx (stamp s.term li))[k2]? = some e →
+    have Hk2 : ∀ (k2 : Nat) e, (ents.mapIdx (stampS s.term s.ep.sub li))[k2]? = some e →
         uint.Z e.Index' = uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
           + (s.logst.uents.length : Int) + 1 + (k2 : Int) := by
       intro k2 e Hk
@@ -340,16 +362,16 @@ theorem raft.appendEntry.wp_proof
         simp only [List.length_append, Nat.add_sub_cancel_left]; exact Hk)
       rw [H]; push_cast; omega
     icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
-    obtain ⟨Htac, Hado⟩ := logTruncateAppend_cont s.logst (ents.mapIdx (stamp s.term li))
+    obtain ⟨Htac, Hado⟩ := logTruncateAppend_cont s.logst (ents.mapIdx (stampS s.term s.ep.sub li))
       (fun e0 He0 => by have := Hk2 0 e0 He0; push_cast at this; omega)
     icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
-    have Hpre : ∀ e0, (ents.mapIdx (stamp s.term li))[0]? = some e0 →
+    have Hpre : ∀ e0, (ents.mapIdx (stampS s.term s.ep.sub li))[0]? = some e0 →
         (uint.Z s.logst.committed < uint.Z e0.Index' ∧
           uint.Z e0.Index' ≤ uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
             + (s.logst.uents.length : Int) + 1) ∧
-        (∀ (k : Nat) e, (ents.mapIdx (stamp s.term li))[k]? = some e →
+        (∀ (k : Nat) e, (ents.mapIdx (stampS s.term s.ep.sub li))[k]? = some e →
           uint.Z e.Index' = uint.Z e0.Index' + (k : Int)) ∧
-        uint.Z e0.Index' + ((ents.mapIdx (stamp s.term li)).length : Int) < 2^64 := by
+        uint.Z e0.Index' + ((ents.mapIdx (stampS s.term s.ep.sub li)).length : Int) < 2^64 := by
       intro e0 He0
       have H0 := Hk2 0 e0 He0
       push_cast at H0
@@ -360,7 +382,7 @@ theorem raft.appendEntry.wp_proof
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
     rw [Hado, Htac] at *
     simp only [Bool.false_eq_true, ↓reduceIte]
-    have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
+    have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stampS s.term s.ep.sub li))) = li2 := by
       unfold logLast
       unfold logAppend at Hli2 ⊢
       simp only [List.length_append, List.length_mapIdx] at Hli2 ⊢
@@ -368,7 +390,7 @@ theorem raft.appendEntry.wp_proof
       word
     -- (stage R8a) a leader's log only grows: the last index is not lower
     have Hle2 : s.role = .leader → uint.Z (logLast s.logst) ≤
-        uint.Z (logLast (logAppend s.logst (ents.mapIdx (stamp s.term li)))) := by
+        uint.Z (logLast (logAppend s.logst (ents.mapIdx (stampS s.term s.ep.sub li)))) := by
       intro _
       rw [Hlast2, Hlast]
       unfold logAppend at Hli2
@@ -394,7 +416,7 @@ theorem raft.appendEntry.wp_proof
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
       msg_nulls
-    let s' : NState := { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term li)) }
+    let s' : NState := { s with logst := logAppend s.logst (ents.mapIdx (stampS s.term s.ep.sub li)) }
     wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hr] as Hphys
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))

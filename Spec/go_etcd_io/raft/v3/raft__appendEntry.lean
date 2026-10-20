@@ -188,10 +188,10 @@ abbrev raft.appendEntry.spec : Prop :=
         ownRaftPhysCV c c.voters r id
           (sendMsgs
             { s with logst :=
-                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+                logAppend s.logst (ents.mapIdx (stampS s.term s.ep.sub (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppend s.logst (ents.mapIdx (stampS s.term s.ep.sub (logLast s.logst))) }])
       else
         -- dropped: `Warningf` and `return false`, nothing written
         ownRaftPhysCV c c.voters r id s }}

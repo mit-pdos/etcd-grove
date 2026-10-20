@@ -1991,6 +1991,24 @@ theorem ownRaftPhysC_tracker (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with votes := votes' }
 
+/-- The tracker given back at another epoch (2026-10-20, witness support): the epoch is the
+tracker's (`Trk.ep`), which nothing else of the node's physical state constrains. -/
+theorem ownRaftPhysC_tracker_ep (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
+        ownTrackerC c tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ ∗
+        (∀ tv' ep', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTrackerC c tv' ⟨s.votes, s.progress, s.prvals, ep'⟩ -∗
+           ownRaftPhysCV c V r id { s with ep := ep' }) := by
+  iintro H
+  iNamed_physC H
+  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
+  iexists rv.trk'
+  iframe Hf Htrk
+  iintro %tv' %ep' Hf Htrk
+  ihave Hr := Hback $$ %tv' Hf
+  resealC c { s with ep := ep' }
+
 /-- No peer is the witness (2026-10-19, witness support): `NoWitP` of the `Progress` records. -/
 theorem ownRaftPhysC_nowit (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
     (hw : c.wit = W64 0) :
