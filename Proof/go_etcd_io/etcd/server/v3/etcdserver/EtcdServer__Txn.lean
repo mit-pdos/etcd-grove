@@ -102,25 +102,33 @@ local macro "txn_defer_lg" : tactic => `(tactic| (
   (try wp_auto)))
 
 set_option hygiene false in
-/-- The deferred `WarnOfExpensiveReadOnlyTxnRequest` without a response (`Hnull`). -/
-local macro "txn_warn_null" : tactic => `(tactic| (
-  wp_apply (hWarn _ _ _ r t _ _ iprop(True)) $$ []
-  · isplitr; · ipureintro; exact Hlgn
-    isplitr; · iexact Hrt
-    isplitr; · itrivial
-    ileft; ipureintro; first | rfl | exact Hnull))
+/-- A return of the read-only transaction (a case of the join in `txn_tail`) without a response
+(`Hnull`): nothing lent to the deferred `WarnOfExpensiveReadOnlyTxnRequest`. -/
+local macro "txn_ret_null" : tactic => `(tactic| (
+  imodintro
+  iexists _, _, _, _, iprop(True)
+  isplitr
+  · ipureintro; rfl
+  iframe resp err Hlr Hown
+  try (isplitr; itrivial)
+  isplitr
+  · imodintro; ileft; ipureintro; first | rfl | exact Hnull
+  iintro - Hlr))
 
 set_option hygiene false in
-/-- The deferred `WarnOfExpensiveReadOnlyTxnRequest` with the response `respv` (`Hrd`, read-only),
-its header's id fields (`Hh`) lent. -/
-local macro "txn_warn_rd" : tactic => `(tactic| (
+/-- A return of the read-only transaction (a case of the join in `txn_tail`) with the response
+`respv` (`Hrd`, read-only): its header's id fields (`Hh`) lent to the deferred
+`WarnOfExpensiveReadOnlyTxnRequest`, given back. -/
+local macro "txn_ret_rd" : tactic => `(tactic| (
   ihave ⟨#Hshw, #Hszw⟩ := txnResp_warn hSize respv $$ Hrd
-  wp_apply (hWarn _ _ _ r t respv _
-    (txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) $$ [Hh] as Hh
-  · isplitr; · ipureintro; exact Hlgn
-    isplitr; · iexact Hrt
-    iframe Hh
-    iright; iframe Hshw Hszw))
+  imodintro
+  iexists _, _, _, _, (txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))
+  isplitr
+  · ipureintro; rfl
+  iframe resp err Hlr Hown Hh
+  isplitr
+  · imodintro; iright; iframe Hshw Hszw
+  iintro Hh Hlr))
 
 set_option hygiene false in
 /-- The read-only transaction's deferred closure after `WarnOfExpensiveReadOnlyTxnRequest`
@@ -254,124 +262,128 @@ local macro "txn_tail" : tactic => `(tactic| (
         · iexact Hown
         iright; iright; iframe He Hrd Hh
     iframe
-  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
-    ⟨%Hs0, #HsE, Hg⟩)⟩
-  · subst Hs0
-    wp_auto_lc 3
-    rcases errv with ei | _
-    · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
-      · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
-        · iapply checkErrIs_applyErrIs $$ Hvars Hce
-        replace Hnull := Hnull.1
-        txn_defer_lg
-        txn_warn_null
-        txn_defer
-        txn_close_err
-      · cases Hn
-      · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
-        · iapply applyErrIs_errorf _ Hleaf $$ He
-        txn_defer_lg
-        txn_warn_rd
-        txn_defer
-        txn_close_err
-    · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
-      · exact absurd rfl Hn.2
-      rotate_left
-      · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
-        exact absurd rfl Hne
-      ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
-      -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
-      ihave HQf : iprop(|={⊤}=> (if txn.txnSerializable t then iprop(True) else
-          ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Qr L)) $$
-          [Hlc1 Hlc2 Hlc3]
-      · cases hso : txn.txnSerializable t
-        · simp only [hso, Bool.false_eq_true, ↓reduceIte]
-          icases HwO with ⟨%g', #Hw'⟩
-          ihave #Hw'' := readWitAt_mono γr Qr g' logR log Hlog.1 $$ Hw'
-          iapply readWit_fire s E γr Qr g' log $$ Hainv Hkvi Hw'' Hcok
-          iapply (lc_split (n := 2) (m := 1)).2
-          iframe Hlc3
-          iapply (lc_split (n := 1) (m := 1)).2
-          iframe Hlc1 Hlc2
-        · simp only [hso, ↓reduceIte]
-          imodintro; itrivial
-      imod HQf with #HQf
-      txn_defer_lg
-      txn_warn_rd
-      txn_defer
-      ihave %Hrn' : ⌜respv ≠ null⌝ $$ []
-      · ihave #Hr' := Hr
-        iunfold txn.txnResponseIs at Hr'
-        icases Hr' with ⟨%Hn, -⟩
-        ipureintro; exact Hn
-      iapply HΦ
-      iframe Hlt
-      isplitl [Hsr Hlr Hrr Hard]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
-      (try rw [hro]); (try simp only [↓reduceIte])
-      iframe Hcred
-      ileft
-      isplitr
-      · ipureintro; exact ⟨by first | rfl | trivial, Hrn'⟩
-      iunfold txnReadOk
-      iexists log
-      iframe Hcert Hcok Hh
-      isplitr
-      · ipureintro
-        have := Hlog.1.length_le
-        exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
-      isplitr
-      · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
-      isplitr
-      · iexact HQf
-      simp only [txn.srvRunTxn]
-      iexact Hr
-  · cases serr with
-    | nil => exact absurd rfl Hs0
-    | ok sei =>
-      ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
-      · iexact HsE
-      icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
-      · wp_auto
-        ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
-        · iexists false; iexact Hown0
-        txn_defer_lg
-        txn_warn_null
-        txn_defer
-        txn_close_err
-      · wp_auto
-        rcases errv with ei | _
-        · icases Hres with (⟨%Hnull, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨-, #Hrd, Hh⟩)
-          · replace Hnull := Hnull.1
-            txn_defer_lg
-            txn_warn_null
-            txn_defer
-            txn_close_err
-          · ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
-            txn_defer_lg
-            txn_warn_rd
-            txn_defer
-            txn_close_err
-          · txn_defer_lg
-            txn_warn_rd
-            txn_defer
-            txn_close_err
-        · icases Hres with (⟨%Hnull, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨-, #Hrd, Hh⟩)
-          · replace Hnull := Hnull.1
-            txn_defer_lg
-            txn_warn_null
-            txn_defer
-            txn_close_err
-          · ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
-            txn_defer_lg
-            txn_warn_rd
-            txn_defer
-            txn_close_err
-          · txn_defer_lg
-            txn_warn_rd
-            txn_defer
-            txn_close_err))
+  -- the return, joined (`wp_join`): every case gives the returned pair, the response and error
+  -- cells as the deferred closure reads them, what `WarnOfExpensiveReadOnlyTxnRequest` needs of
+  -- the response, and the postcondition once the closure is done; the closure is verified once
+  wp_join (Q := fun v => iprop(|={⊤}=> ∃ (rr : Loc) (re : GoInterface) (respv : Loc)
+      (errv : GoInterface) (P : IProp GF), ⌜v = PairV #rr #re⌝ ∗
+      resp_ptr ↦ respv ∗ err_ptr ↦ errv ∗ srvLgReader s ∗ (∃ te, traceutil.ownTrace trc te) ∗ P ∗
+      □ (⌜respv = null⌝ ∨ txn.txnRespShow respv ∗
+        txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #respv) P) ∗
+      (P -∗ srvLgReader s -∗ Φ v))) at (exceptionDo _) with [-defer trace]
+  · icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
+      ⟨%Hs0, #HsE, Hg⟩)⟩
+    · subst Hs0
+      wp_auto_lc 3
+      rcases errv with ei | _
+      · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
+        · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
+          · iapply checkErrIs_applyErrIs $$ Hvars Hce
+          replace Hnull := Hnull.1
+          txn_ret_null
+          txn_close_err
+        · cases Hn
+        · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
+          · iapply applyErrIs_errorf _ Hleaf $$ He
+          txn_ret_rd
+          txn_close_err
+      · icases Hres with (⟨%Hn, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨#He, -⟩)
+        · exact absurd rfl Hn.2
+        rotate_left
+        · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
+          exact absurd rfl Hne
+        ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
+        -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
+        ihave HQf : iprop(|={⊤}=> (if txn.txnSerializable t then iprop(True) else
+            ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Qr L)) $$
+            [Hlc1 Hlc2 Hlc3]
+        · cases hso : txn.txnSerializable t
+          · simp only [hso, Bool.false_eq_true, ↓reduceIte]
+            icases HwO with ⟨%g', #Hw'⟩
+            ihave #Hw'' := readWitAt_mono γr Qr g' logR log Hlog.1 $$ Hw'
+            iapply readWit_fire s E γr Qr g' log $$ Hainv Hkvi Hw'' Hcok
+            iapply (lc_split (n := 2) (m := 1)).2
+            iframe Hlc3
+            iapply (lc_split (n := 1) (m := 1)).2
+            iframe Hlc1 Hlc2
+          · simp only [hso, ↓reduceIte]
+            imodintro; itrivial
+        imod HQf with #HQf
+        txn_ret_rd
+        ihave %Hrn' : ⌜respv ≠ null⌝ $$ []
+        · ihave #Hr' := Hr
+          iunfold txn.txnResponseIs at Hr'
+          icases Hr' with ⟨%Hn, -⟩
+          ipureintro; exact Hn
+        iapply HΦ
+        iframe Hlt
+        isplitl [Hsr Hlr Hrr Hard]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+        (try rw [hro]); (try simp only [↓reduceIte])
+        iframe Hcred
+        ileft
+        isplitr
+        · ipureintro; exact ⟨by first | rfl | trivial, Hrn'⟩
+        iunfold txnReadOk
+        iexists log
+        iframe Hcert Hcok Hh
+        isplitr
+        · ipureintro
+          have := Hlog.1.length_le
+          exact ⟨by omega, by omega, HFR.trans Hlog.1⟩
+        isplitr
+        · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
+        isplitr
+        · iexact HQf
+        simp only [txn.srvRunTxn]
+        iexact Hr
+    · cases serr with
+      | nil => exact absurd rfl Hs0
+      | ok sei =>
+        ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
+        · iexact HsE
+        icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
+          ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hres, Hown⟩)
+        · wp_auto
+          ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
+          · iexists false; iexact Hown0
+          txn_ret_null
+          txn_close_err
+        · wp_auto
+          rcases errv with ei | _
+          · icases Hres with (⟨%Hnull, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨-, #Hrd, Hh⟩)
+            · replace Hnull := Hnull.1
+              txn_ret_null
+              txn_close_err
+            · ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
+              txn_ret_rd
+              txn_close_err
+            · txn_ret_rd
+              txn_close_err
+          · icases Hres with (⟨%Hnull, -⟩ | ⟨-, #Hr, Hh⟩ | ⟨-, #Hrd, Hh⟩)
+            · replace Hnull := Hnull.1
+              txn_ret_null
+              txn_close_err
+            · ihave #Hrd := txn.roTxnRespRd_of _ _ _ t _ _ hro $$ Hr
+              txn_ret_rd
+              txn_close_err
+            · txn_ret_rd
+              txn_close_err
+  iintro Hj
+  imod Hj with ⟨%rr, %re, %respv, %errv, %P, %Hv, resp, err, Hlr, Hown, HP, #Hw, Hfin⟩
+  subst Hv
+  txn_defer_lg
+  -- `WarnOfExpensiveReadOnlyTxnRequest`, lent `P`
+  wp_bind (App (App (App (App (App (App (Val
+    (@! go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest)) _) _) _) _) _) _)
+  iapply (hWarn _ _ _ r t respv _ P) $$ [HP]
+  · isplitr; · iexact Ptxn
+    isplitr; · ipureintro; exact Hlgn
+    isplitr; · iexact Hrt
+    iframe HP Hw
+  iintro !> HP
+  -- `success := err == nil`
+  rcases errv with ei | _ <;> (txn_defer; iapply Hfin $$ HP Hlr)))
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 8000000 in
@@ -679,61 +691,93 @@ theorem EtcdServer.Txn.wp_proof
     (try wp_auto)
     wp_apply hSer r t $$ []
     · iframe #
-    cases hs : txn.txnSerializable t
-    · (try wp_auto)
-      iunfold srvReadReader at Hrr
-      icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
-      icombine Hread Hrd0 gives %Hrdeq
-      subst Hrdeq
-      imod saved_pred_alloc Qr DFrac.discard trivial with ⟨%g, #Hg⟩
-      ihave #Hdep : kvDep (GF := GF) γr.kv Qr $$ [Hnp]
-      · simp only [hro, ↓reduceIte]; iexact Hnp
-      wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
-        as %rerr ⟨Hrr, #HrE, Hri⟩
-      · iframe #; iframe Hrr
-      ihave Hrr : srvReadReader s γr $$ [Hrr]
-      · iunfold srvReadReader; iexists _; iframe Hread Hrr
-      (try wp_auto)
-      wp_apply hStep trc false _ slice.nil $$ [$Hown0] as Hown0
-      · iapply traceutil.ownFields_nil
-      (try wp_auto)
-      cases rerr with
-      | ok rei =>
-        wp_auto
-        wp_apply HEnd
+    -- `if !IsTxnSerializable(r)`, joined (`wp_join`): the read index (or its error's return), or
+    -- nothing; the rest, from the deferred closure on (`txn_tail`), is verified once
+    wp_join (Q := fun v => iprop(trace_ptr ↦ trc ∗ srvReadReader s γr ∗
+        traceutil.ownTrace trc false ∗
+        ((⌜v = executeVal⌝ ∗ ∃ logR : mvcc.Log, ⌜2 ≤ logR.length ∧ F <+: logR⌝ ∗
+            □ mvcc.idxCert E.γ.idx logR ∗
+            □ (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) ∗
+            □ (if txn.txnSerializable t then iprop(True) else
+              ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF)) ∨
+         (∃ rei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok rei))⌝ ∗
+            applyErrIs (GoInterface.ok rei)))))
+      at (if: _ then _ else _) with [trace Hrr Hown0 Hnp]
+    · cases hs : txn.txnSerializable t
+      · (try wp_auto)
+        iunfold srvReadReader at Hrr
+        icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
+        icombine Hread Hrd0 gives %Hrdeq
+        subst Hrdeq
+        imod saved_pred_alloc Qr DFrac.discard trivial with ⟨%g, #Hg⟩
+        ihave #Hdep : kvDep (GF := GF) γr.kv Qr $$ [Hnp]
+        · simp only [hro, ↓reduceIte]; iexact Hnp
+        wp_apply HisRead' $$ %ctx2 %_ %c %g %Qr [Hrr]
+          as %rerr ⟨Hrr, #HrE, Hri⟩
+        · iframe #; iframe Hrr
+        ihave Hrr : srvReadReader s γr $$ [Hrr]
+        · iunfold srvReadReader; iexists _; iframe Hread Hrr
         (try wp_auto)
-        iapply HΦ
-        iframe Hlt
-        isplitl [Hsr Hlr Hrr Hard]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
-        (try rw [hro]); (try simp only [↓reduceIte])
-        iframe Hcred
-        iright
-        iframe HrE
-        ipureintro; intro h; cases h
-      | nil =>
-        ihave #Hri' := Hri $$ %rfl
-        icases Hri' with ⟨-, #Hsv⟩
-        imod readServed_logR s E γr c g Qr log₀ $$ Hainv Hsv Hg Hc0
-          with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
-        ihave #HwO : (if txn.txnSerializable t then iprop(True) else
-            ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF) $$ []
-        · rw [hs]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
-        have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
-        have HFR : F <+: logR := HL0.2.trans HpR
-        ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
-        · rw [hs]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
-        wp_auto
-        txn_tail
-    · (try wp_auto)
-      have HFR : F <+: log₀ := HL0.2
-      generalize log₀ = logR at Hl0 HFR ⊢
-      ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
-      · rw [hs]; simp only [↓reduceIte]; itrivial
-      ihave #HwO : (if txn.txnSerializable t then iprop(True) else
-          ∃ g' : GName, readWitAt γr Qr g' logR : IProp GF) $$ []
-      · rw [hs]; simp only [↓reduceIte]; itrivial
+        wp_apply hStep trc false _ slice.nil $$ [$Hown0] as Hown0
+        · iapply traceutil.ownFields_nil
+        (try wp_auto)
+        cases rerr with
+        | ok rei =>
+          wp_auto
+          iframe trace Hrr Hown0
+          iright
+          iexists rei
+          iframe HrE
+          ipureintro; rfl
+        | nil =>
+          ihave #Hri' := Hri $$ %rfl
+          icases Hri' with ⟨-, #Hsv⟩
+          imod readServed_logR s E γr c g Qr log₀ $$ Hainv Hsv Hg Hc0
+            with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
+          wp_auto
+          iframe trace Hrr Hown0
+          ileft
+          isplitr
+          · ipureintro; rfl
+          iexists logR
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          isplitr
+          · ipureintro; exact ⟨Nat.le_trans Hl0 HpR.length_le, HL0.2.trans HpR⟩
+          isplitr
+          · iexact HcR
+          isplitr
+          · imodintro; iexact HrlR
+          imodintro; iexists g; iexact HwR
+      · (try wp_auto)
+        iframe trace Hrr Hown0
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists log₀
+        simp only [↓reduceIte]
+        isplitr
+        · ipureintro; exact ⟨Hl0, HL0.2⟩
+        isplitr
+        · iexact Hc0
+        isplitr <;> imodintro <;> itrivial
+    iintro ⟨trace, Hrr, Hown0, (⟨%Hv, %logR, ⟨%HlR, %HFR⟩, #HcR, #HriO, #HwO⟩ | ⟨%rei, %Hv, #HrE⟩)⟩
+    · subst Hv
+      wp_auto
       txn_tail
+    · -- the read index's error: returned
+      subst Hv
+      wp_auto
+      wp_apply HEnd
+      (try wp_auto)
+      iapply HΦ
+      iframe Hlt
+      isplitl [Hsr Hlr Hrr Hard]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+      (try rw [hro]); (try simp only [↓reduceIte])
+      iframe Hcred
+      iright
+      iframe HrE
+      ipureintro; intro h; cases h
 
 end proof
 
