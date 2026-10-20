@@ -77,6 +77,7 @@ theorem NewRawNode.wp_proof
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
           Hsn, Hsg⟩
         Hgh Hpv Hsdr' Hdom
+        (by simp only [hardstateVal, nodeHardstate, hsZero]; rw [Ht, HT, Hv, HV, Hcm0])
       $$ «$r0» Hphys ss Hhp [] []
     all_goals first
       | iapply ownSlice_nil

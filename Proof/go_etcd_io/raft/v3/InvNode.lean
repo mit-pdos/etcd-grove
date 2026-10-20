@@ -542,7 +542,7 @@ state `hsOpt` (`nil`, or `hardState()`'s fresh one the application may persist);
 `nil`.) (2026-10-16, stage R7a, D10: the soft state `softStateRO`, `nil` or its `Lead`/`RaftState`
 read-only, which the server reads.) -/
 def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
-    (ms : List QMsg) : IProp GF :=
+    (ms : List QMsg) (p p' : HardStateM) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
     entsRO rd.Entries' es ∗ appendRight γ.stor es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
@@ -554,8 +554,11 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     -- (D22 S-b) with its witness: a non-`nil` one is the node's hard state at the `Ready`, its
-    -- term and commit index (`commitWit`), the commit index bounding the committed log handed out
-    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ hsWit γ.raft h (d ++ ce).length) ∗
+    -- term and commit index (`commitWit`), the commit index bounding the committed log handed out;
+    -- (D22l) the witness of `prevHardSt` after the `Ready`, `p'` (`phsNext p h`, `p` the last
+    -- non-empty one handed out, `RNState.phs`): a `nil` or empty one leaves it `p`
+    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
+    hsWit γ.raft p' (d ++ ce).length ∗
     -- (2026-10-16, stage R7a, D10) the soft state: `nil`, or `Lead`/`RaftState` read-only
     softStateRO rd.SoftState' ∗
     ⌜rd.Snapshot' = null⌝ ∗
@@ -565,18 +568,18 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. -/
 def readyP (γ : NodeNames) (rd : Ready) : IProp GF :=
-  iprop(∃ (d ce es : List EntryM) (ms : List QMsg),
-    dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ readyData γ rd d ce es ms ∗
+  iprop(∃ (d ce es : List EntryM) (ms : List QMsg) (p p' : HardStateM),
+    dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p') ∗ readyData γ rd d ce es ms p p' ∗
     -- (2026-10-15, stage N) the committed log handed out, a lower bound
     monoListLbOwn γ.dlm (d ++ ce))
 
 /-- An `Advance` on `advancec`: a `dlv` half after the last `Ready`, `run`'s record back,
 and the receipt of the append of the `Ready`'s entries. -/
 def advanceP (γ : NodeNames) (_ : Unit) : IProp GF :=
-  iprop(∃ (d ce es : List EntryM),
-    dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d ++ ce) ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ appendReceipt γ.stor es ∗
+  iprop(∃ (d ce es : List EntryM) (p' : HardStateM),
+    dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d ++ ce, p') ∗
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p') ∗ appendReceipt γ.stor es ∗
     -- (2026-10-15, stage N) **A1**, in the dynamic mode: no conf entry of the committed log
     -- handed out past the driver's configuration index `ca` (a lower bound of `run`'s)
     ∃ ca : Nat, monoNatLbOwn γ.cam ca ∗
@@ -647,7 +650,7 @@ taken back by a `select` that fires another case. -/
 def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted) ∗
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs) ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
 
 /-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
@@ -655,8 +658,8 @@ def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
 def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (ca_d : Nat), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ { rs with flw := false } ∗
-    dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗
-    (∃ x : List EntryM × List EntryM × List EntryM,
+    dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗
+    (∃ x : List EntryM × List EntryM × List EntryM × HardStateM,
       dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x) ∗
     monoNatLbOwn γ.cam ca_d ∗
     ⌜rs.storage = γ.stor ∧ rs.unst = false ∧ rs.unpersisted = [] ∧ rs.flw = true ∧
@@ -757,21 +760,24 @@ instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
     Persistent (isNode (GF := GF) γ id n) := by
   unfold isNode; infer_instance
 
-/-- The driver's token: the committed log it was handed so far is `ds`. -/
-def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) : IProp GF :=
-  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) ds ∗ dlvLb γ ds ∗
+/-- The driver's token: the committed log it was handed so far is `ds`; (D22l) the hard state of
+the last `Ready` it was handed with a non-empty one is `p` (`RNState.phs`; zero at the start). -/
+def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
+    IProp GF :=
+  iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) (ds, p) ∗ dlvLb γ ds ∗
     -- (D19i part 1) the request on `advancec` (`advInv`)
     ∃ k : Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) k ∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) k)
 
 /-- The driver with a `Ready` in hand: it was handed the committed log `ds` (the last
-`Ready`'s included) and must append `es` (the last `Ready`'s entries) before `Advance`. -/
-def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
-    IProp GF :=
+`Ready`'s included) and must append `es` (the last `Ready`'s entries) before `Advance`; (D22l)
+`p'` is `prevHardSt` after the `Ready` (`readyData`'s). -/
+def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p' : HardStateM) : IProp GF :=
   iprop(isNode γ id n ∗ dlvLb γ ds ∗
-    ∃ (d ce : List EntryM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
-      dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
-      dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ ⌜ds = d ++ ce⌝ ∗
+    ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
+      dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
+      dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p') ∗ ⌜ds = d ++ ce⌝ ∗
     ∃ k : Nat, dghostVar γ.req (DFrac.own (1 : Qp).half) k ∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) k)
 
@@ -786,12 +792,13 @@ instance isReadyChan_persistent (γ : NodeNames) (ch : Loc) :
 /-- **Receiving a `Ready`** (the driver's loop, `for rd := range node.Ready()`): with the
 driver's token, the `Ready`'s data for the committed log handed out so far, and the token
 busy with it. The channel is never closed. -/
-theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM) :
-    {{ isReadyChan γ ch ∗ nodeDriver (GF := GF) γ id n ds }}
+theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
+    (p : HardStateM) :
+    {{ isReadyChan γ ch ∗ nodeDriver (GF := GF) γ id n ds p }}
       (App (Val (chan.receive Ready.ty)) (Val #ch))
     {{ (rd : Ready), RET (PairV #rd #true);
-        ∃ (ce es : List EntryM) (ms : List QMsg),
-          readyData γ rd ds ce es ms ∗ nodeDriverBusy γ id n (ds ++ ce) es }} := by
+        ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM),
+          readyData γ rd ds ce es ms p p' ∗ nodeDriverBusy γ id n (ds ++ ce) es p' }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriver
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
@@ -801,29 +808,30 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, Hd, Hrof, Hdata, #Hlb⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', Hd, Hrof, Hdata, #Hlb⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
-  subst Heq
+  cases Heq
   iapply HΦ
-  iexists ce, es, ms
+  iexists ce, es, ms, p'
   iframe Hdata
   unfold nodeDriverBusy
   iframe Hnode
   isplitr
   · unfold dlvLb; iexact Hlb
-  iexists d, ce
+  iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
 
 /-- The committed log the driver was handed is a lower bound of `run`'s (2026-10-15). -/
-theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) :
-    ⊢ nodeDriver (GF := GF) γ id n ds -∗ dlvLb γ ds := by
+theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
+    ⊢ nodeDriver (GF := GF) γ id n ds p -∗ dlvLb γ ds := by
   iintro H
   unfold nodeDriver
   icases H with ⟨-, -, $, -⟩
 
-theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
-    ⊢ nodeDriverBusy (GF := GF) γ id n ds es -∗ dlvLb γ ds := by
+theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+    (p' : HardStateM) :
+    ⊢ nodeDriverBusy (GF := GF) γ id n ds es p' -∗ dlvLb γ ds := by
   iintro H
   unfold nodeDriverBusy
   icases H with ⟨-, $, -⟩

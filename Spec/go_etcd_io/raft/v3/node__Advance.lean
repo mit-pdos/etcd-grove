@@ -33,15 +33,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.Advance.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) (ca : Nat)
-    (cfg : CCState),
+    (cfg : CCState) (p : HardStateM),
   -- (2026-10-15, stage N) **A1**, in the dynamic mode: every conf entry of the committed log
   -- handed out has been applied (`node.ApplyConfChange`): none past the driver's configuration
   -- index (`issues/raft-advance-before-applyconfchange.md`)
   (γ.mode.isDyn = true → NoConfIn ds ca ds.length) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      nodeDriverBusy γ id n ds es ∗ appendReceipt γ.stor es ∗ nodeCfg γ ca cfg }}
+      nodeDriverBusy γ id n ds es p ∗ appendReceipt γ.stor es ∗ nodeCfg γ ca cfg }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); nodeDriver γ id n ds ∗ nodeCfg γ ca cfg ∗
+  {{ RET #(); nodeDriver γ id n ds p ∗ nodeCfg γ ca cfg ∗
       ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ }}
 
 end spec

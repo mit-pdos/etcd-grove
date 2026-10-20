@@ -12572,3 +12572,59 @@ snapshot premises; `maybeSendSnapshot`, `raft.send`; `InvStorage.lean` (`isStora
 `NewRawNode`/`StartNode`/`RestartNode`/`Bootstrap` (the instantiation); the examples' and the
 server's storage allocations (`C` at the empty snapshot). Trust base unchanged (raft stages add no
 axiom).
+
+## D22 D22l carried out: the term witness over later batches (2026-10-20)
+
+D22l (A) of "D22 S-b carried out", with one simplification: no stale-`Ready` lower bounds. Raft
+files and the server's raft-loop files only (`InvRaftNode.lean`, `NodeBridge.lean`,
+`NodeStart.lean`, `raftNode__start.lean`, `bootstrappedRaft__newRaftNode`'s spec); the kv example's
+driver (`KV__run`, `New`, `StartCluster`) follows the driver's new index. Trust base unchanged (531
+axioms, 2 sorries); every collection's `--check` passes unchanged.
+
+**Raft.**
+- `RNState.phs : HardStateM` (default the zero record, `hsZero`): `prevHardSt`'s value. Only
+  `acceptReady` moves it, to `phsNext rs.phs h` (`Protocol/CommitWit.lean`: `h` unless empty, Go's
+  `if !IsEmptyHardState(rd.HardState)`; `phsNext_empty`/`_ne`/`_zero`).
+- `ownRawNode`/`ownRawNodeReady`/`ownRawNodeIdle` keep `prevHardSt` as `prevHS γ p hprev rs.phs`
+  (`InvRawnode.lean`: `hsRO p hprev ∗ ⌜hprev = rs.phs⌝ ∗ phsWit γ hprev`, `phsWit γ h := h = 0 ∨
+  commitWit γ h.Term' h.Commit'`) in place of `hsRO`: one conjunct changed, so the 43
+  `ownRawNode_intro`-style calls are unchanged (they thread `Hhard`; `{rs with …}.phs` reduces).
+  `rawNodeFresh` records `hprev = hsZero` (`NewRawNode` on an empty storage; `prevHS_of_zero`
+  closes it at `RestartNode`/`Bootstrap`). `ownRawNodeReady`'s `Hrdhard` carries `phsWit` of the
+  `Ready`'s hard state (`ownRawNodeIdle_ready` takes it).
+- `readyWithoutAccept`/`Ready` hand out `hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length`:
+  the witness of `prevHardSt` *after* the `Ready`. Non-empty `h`: the node's hard state, as S-b. A
+  `nil` `HardState` (`isHardStateEqual` true): the node's hard state is `hprev = rs.phs`, so the
+  committed log handed out is within `rs.phs.Commit'`, whose witness is `ownRawNode`'s `phsWit`.
+  An empty non-`nil` one (the node at the zero hard state): the log handed out is empty.
+  `acceptReady` takes `hsOpt rd.HardState' h` (caller-named, `hsOpt_agree`) and returns `phs :=
+  phsNext rs.phs h`.
+- **No stale-`Ready` lower bounds are needed** (the plan's "show a stale non-`nil` `HardState`
+  impossible"): the witness a `Ready` hands out is a persistent fact of the hard state *at its
+  computation*, and `rs.phs` does not move between its computation and its acceptance (only
+  `acceptReady` moves it), so an abandoned `Ready` re-sent later carries a witness that is still
+  right (`staleOk`/`freshOk` keep `hsWit γ (phsNext rs.phs hrd) …`); its `acceptReady` stores its
+  own hard state, whose `phsWit` it carries.
+- `node.go`: `dlv` is at `(delivered, phs)`, `rof` at `(d, ce, es, phs')`. `readyData γ rd d ce
+  es ms p p'` has `(∃ h, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗ hsWit γ.raft p' (d ++
+  ce).length`; `readyP` carries `p` (with `dlv`) and `p'` (with `rof`); `advanceP` the `dlv` half at
+  `(d ++ ce, p')`. `nodeDriver γ id n ds p`, `nodeDriverBusy γ id n ds es p'`, `node_ready_receive`
+  (`p` to `p'`), `node.Advance` (`p` kept); `StartNode`/`RestartNode` hand out `nodeDriver … []
+  hsZero`. `advDep`/`advRet`/`headRest`/`runMid`/`runPre` over the pairs.
+
+**Server.** `rnDrv γ L p`, `rnBusy γ d ce es p`, `rnReadyData E γ rd d ce es p p'` (raft's
+`p'`/`hsWit`), `isRaftNodeIfc`'s `Advance` for every `p`, `rn_ready_recv` (`p` to `p'`);
+`rnLoopTokP γ L p` and `rnLoopTok γ L := ∃ p, rnLoopTokP γ L p` (the callers' `rnLoopTok γn []`
+unchanged). `raftNode.start`'s loop invariant: `uint.Z rt = 0 ∨ rt = p.Term'` with
+`rnLoopTokP γ L' p` (was `rnRtOk γ rt`). After the `IsEmptyHardState` branch, `rt' = 0 ∨ rt' =
+p'.Term'` (`phsNext_toM_empty`/`_ne`), and `rnRtOk_of_hsWit` turns `hsWit γ p' n` into the batch's
+`rnRtOk`.
+
+**The final form (what S-h consumes).**
+`rnRtOk γ t n := ⌜uint.Z t = 0⌝ ∨ ∃ c, commitWit γ.node.raft t c ∗ ⌜n ≤ uint.Z c⌝`; `rnApP E γ i
+ap` carries `rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length`, `F ++ ce` the batch's log
+(`cum[i + 1]`, from the start log `γ.pre`); `rnApP_rtOk` gives `∃ F ce, monoListIdxOwn γ.cum (i +
+1) (F ++ ce) ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length`. So for a batch with `raftTerm =
+T ≠ 0`: `commitWit γ T c` with `c ≥ |γ.pre ++ F ++ ce|`, raft's index of the batch's last entry;
+`applyAll`'s `ep.appliedi` after the batch is that index (S-h must state it of `applyAll`'s
+`ep`, through `cum`), so `c ≥ ep.appliedi` -- `isMessage_snap_recontent`'s `ai ≤ c`.

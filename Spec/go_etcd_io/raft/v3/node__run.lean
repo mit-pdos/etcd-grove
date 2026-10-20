@@ -30,10 +30,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- What `run` starts with (see the file header). -/
 def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
   iprop(∃ (nv : node) (rs : RNState) (x : List EntryM × List EntryM ×
-      List EntryM),
+      List EntryM × HardStateM),
     n ↦□ nv ∗ ownRawNode γ.raft nv.rn' id rs ∗
     ⌜rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.storage = γ.stor⌝ ∗
-    dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗
+    dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗
     -- (2026-10-17; until then at the term) the term ceiling within the budget
     termLB γ.bud rs.tc ∗

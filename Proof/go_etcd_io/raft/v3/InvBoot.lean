@@ -74,7 +74,9 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
     "%Hgh" ∷ ⌜s.gh = { xf := xf }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
-    "%Hdom" ∷ ⌜domSet s.progress = V⌝)
+    "%Hdom" ∷ ⌜domSet s.progress = V⌝ ∗
+    -- (D22l) `prevHardSt` the zero record (`r.hardState()` at term `0`, nothing committed)
+    "%Hhz" ∷ ⌜hprev = hsZero⌝)
 
 /-- Closing `rawNodeFresh`: the pure facts first, the resources in the order of the definition. -/
 theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
@@ -87,7 +89,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si)
     (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
-    (Hdom : domSet s.progress = V) :
+    (Hdom : domSet s.progress = V) (Hhz : hprev = hsZero) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
@@ -99,7 +101,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
-  exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom⟩
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom, Hhz⟩
 
 /-- (2026-10-19, D21 M2r) Leader transfer turned on in a fresh node (a ghost step,
 `ownRaftPhys_xf_off`): `RestartNode`'s, out of the no-snapshot mode. (2026-10-19, D22 S-a) Set to
@@ -122,7 +124,7 @@ theorem rawNodeFresh_set_xf (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet
     simp only [named]
     iframe Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap
     ipureintro
-    exact ⟨Hasync, Hrel, Hterm0, Hlog, by show { s.gh with xf := false } = _; rw [Hgh], Hpvoff, Hsdr, Hdom⟩
+    exact ⟨Hasync, Hrel, Hterm0, Hlog, by show { s.gh with xf := false } = _; rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz⟩
 
 /-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`. -/
 def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=

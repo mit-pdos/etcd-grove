@@ -250,7 +250,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
       ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms -∗
       ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
       (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
-      (∃ hrd : HardStateM, hsOpt rd.HardState' hrd) ∗
+      (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd) ∗
       ∃ (n : Nat) (u : Bool) (c : w64),
         ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
          (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
@@ -894,7 +894,7 @@ theorem wp_applyConf_dyn
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         rawNodeOwn rn rnv ∗ ownRaftPhysCV cf cf.voters rnv.raft' id s ∗
         ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id s ∗
-        sdrOk rnv.raft' rs.mode ∗ rnv.prevSoftSt' ↦□ sv ∗ hsRO rnv.prevHardSt' hprev ∗
+        sdrOk rnv.raft' rs.mode ∗ rnv.prevSoftSt' ↦□ sv ∗ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
         rnv.stepsOnAdvance' ↦* steps ∗
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         pendList γ id steps rs.steps ∗
@@ -1071,7 +1071,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hnl : NsLink γ s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
       sdrOk rnv.raft' rs.mode -∗
-      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
@@ -1250,7 +1250,7 @@ def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
     (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
     hsOpt rd.HardState' hrd ∗
     -- (D22 S-b) its witness, as `readyWithoutAccept` computed it
-    hsWit γ.raft hrd (rs.delivered ++ ce).length ∗
+    hsWit γ.raft (phsNext rs.phs hrd) (rs.delivered ++ ce).length ∗
     entsRO rd.CommittedEntries' ce ∗ ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
     isCommitted γ.raft (rs.delivered ++ ce) ∗ entsRO rd.Entries' es ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
@@ -1273,13 +1273,13 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     -- (D22 S-b) with its witness (`hsWit`)
-    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ hsWit γ.raft hrd (rs.delivered ++ ce).length) ∗
+    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ hsWit γ.raft (phsNext rs.phs hrd) (rs.delivered ++ ce).length) ∗
     ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧
      rd.Snapshot' = null⌝)
 
 /-- Both halves of `rof`: no `Ready` handed out. -/
 def rofFull (γ : NodeNames) : IProp GF :=
-  iprop(∃ x : List EntryM × List EntryM × List EntryM,
+  iprop(∃ x : List EntryM × List EntryM × List EntryM × HardStateM,
     dghostVar γ.rof (DFrac.own (1 : Qp).half) x ∗ dghostVar γ.rof (DFrac.own (1 : Qp).half) x)
 
 /-- `run`'s state besides the node, at the loop's head (`ac`: `advancec`, `rc`: `readyc`,
@@ -1289,11 +1289,11 @@ def headRest (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan) (rd : 
     IProp GF :=
   iprop(termLB γ.bud rs.tc ∗ ⌜rs.storage = γ.stor⌝ ∗ runCfg γ rs ∗
     ((⌜ac = chan.nil ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
-        dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗
+        dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗
         (⌜rc = chan.nil⌝ ∨ (⌜rc = nv.readyc'⌝ ∗ staleOk γ rd rs)))
      ∨ (⌜ac = nv.advancec' ∧ rc = chan.nil ∧ rs.unst = false⌝ ∗
         ∃ d ce : List EntryM, ⌜rs.delivered = d ++ ce⌝ ∗
-          dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted))))
+          dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs))))
 
 /-- `run`'s loop invariant, but for its local variables. -/
 def runHead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready) : IProp GF :=
@@ -1305,7 +1305,7 @@ def runMid (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready)
   iprop((⌜ac = nv.advancec'⌝ ∗ runHead γ id nv ac rc rd) ∨
     (⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.tc ∗
       ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
-      dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
+      dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗ runCfg γ rs ∗
       ((⌜rc = chan.nil⌝ ∗ ownRawNode γ.raft nv.rn' id rs) ∨
        (⌜rc = nv.readyc'⌝ ∗ ∃ (ce es : List EntryM) (ms : List QMsg),
           ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false ∗ freshOk γ rd rs ce es ms) ∨
@@ -1356,7 +1356,7 @@ theorem headRest_nil (γ : NodeNames) (nv : node) (rs : RNState) (rc : GoChan) (
     (Hnn : nv.advancec' ≠ chan.nil) :
     ⊢ headRest (GF := GF) γ nv rs chan.nil rc rd -∗
       termLB γ.bud rs.tc ∗ ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
-      dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
+      dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗ runCfg γ rs ∗
       (⌜rc = chan.nil⌝ ∨ (⌜rc = nv.readyc'⌝ ∗ staleOk γ rd rs)) := by
   iintro H
   unfold headRest
@@ -1499,7 +1499,7 @@ theorem runMid_ready (γ : NodeNames) (id : w64) (nv : node) (ac : GoChan) (rd :
     ⊢ runMid (GF := GF) γ id nv ac nv.readyc' rd -∗
       ⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.tc ∗
         ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
-        dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
+        dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗ rofFull γ ∗ runCfg γ rs ∗
         ((∃ (ce es : List EntryM) (ms : List QMsg),
             ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false ∗ freshOk γ rd rs ce es ms) ∨
          (ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs)) := by
@@ -1530,7 +1530,7 @@ theorem runMid_busy (γ : NodeNames) (id : w64) (nv : node) (rc : GoChan) (rd : 
       ∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft nv.rn' id rs ∗
         termLB γ.bud rs.tc ∗ runCfg γ rs ∗
         ⌜rs.storage = γ.stor ∧ rc = chan.nil ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝ ∗
-        dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted) := by
+        dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs) := by
   iintro H
   unfold runMid
   icases H with (⟨-, H⟩ | ⟨%Hac, -⟩)

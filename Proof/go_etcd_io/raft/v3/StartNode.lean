@@ -45,10 +45,10 @@ theorem StartNode.wp_proof
   ipersist Hn
   try wp_auto
   -- the node's ghost state
-  imod dghostVar_alloc ([] : List EntryM) with ⟨%γdlv, Hdlv⟩
+  imod dghostVar_alloc ((([] : List EntryM), hsZero) : List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
   icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
-  imod dghostVar_alloc (([], [], []) : List EntryM × List EntryM ×
-    List EntryM) with ⟨%γrof, Hrof⟩
+  imod dghostVar_alloc (([], [], [], hsZero) : List EntryM × List EntryM ×
+    List EntryM × HardStateM) with ⟨%γrof, Hrof⟩
   icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
   -- the configuration shared with the driver: the peers'
   imod mono_list_own_alloc ([] : List EntryM) with ⟨%γdlm, Hdlm, #Hdlb⟩
@@ -97,7 +97,7 @@ theorem StartNode.wp_proof
   · wp_apply wp_node_run γn cv.ID' np $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
     · iframe Hnode
       unfold runPre
-      iexists nv, _, (([], [], []) : List EntryM × List EntryM × List EntryM)
+      iexists nv, _, (([], [], [], hsZero) : List EntryM × List EntryM × List EntryM × HardStateM)
       rw [Hnvrn]
       iframe Hn Hrn Hrof1 Hrof2
       isplitr

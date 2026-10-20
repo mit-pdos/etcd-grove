@@ -923,7 +923,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
-  "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+  "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
@@ -943,7 +943,8 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
     uint.Z s.logst.applying ≤ uint.Z s.logst.applied⌝ ∗
   -- the `Ready`, as `acceptReady` reads it
   "#Hrdsoft" ∷ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
-  "#Hrdhard" ∷ (∃ hrd : HardStateM, hsOpt rd.HardState' hrd) ∗
+  -- (D22l) with its witness (`phsWit`), for `prevHardSt`'s
+  "#Hrdhard" ∷ (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd) ∗
   "%Hrdz" ∷ ⌜rd.Snapshot' = null⌝ ∗
   "#Hrdrs" ∷ (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
     ⌜sts = [] → s.rd.states = []⌝) ∗
@@ -1219,7 +1220,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hal" ∷ ⌜cf.autoLeave = false⌝ ∗
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
-  "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+  "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   "Hpend" ∷ pendList γ id steps rs.steps ∗
@@ -1256,7 +1257,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
-      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
@@ -1320,12 +1321,14 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int)) :
     ⊢ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) -∗
       hsOpt rd.HardState' hrd -∗
+      -- (D22l) its witness (as `readyWithoutAccept` computed it)
+      phsWit γ hrd -∗
       entsRO rd.CommittedEntries' ce -∗
       ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) -∗
       entsRO rd.Entries' [] -∗
       isCommitted γ (rs.delivered ++ ce) -∗ readStatesPts rd.ReadStates' sts -∗
       ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] false := by
-  iintro #Hrdsoft #Hrdh #Hce Hce_cap #Hents #Hcommitted #Hrsts H
+  iintro #Hrdsoft #Hrdh #Hrdw #Hce Hce_cap #Hents #Hcommitted #Hrsts H
   iNamed H
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hpend
   have Hsteps_nil : steps = [] := by
@@ -1348,8 +1351,8 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Hob, Hown1, Hown2⟩
   icases (qOwns_self_split id ms2).1 $$ Hown2 with ⟨Hself, Hoth⟩
   icases (qOwns_other_halves id ms2).2 $$ Hoth with ⟨Hhalf, Hother⟩
-  ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd) $$ []
-  · iexists hrd; iexact Hrdh
+  ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd) $$ []
+  · iexists hrd; iframe Hrdh Hrdw
   iunfold ownRawNodeReady
   iexists s, cf, fp, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]

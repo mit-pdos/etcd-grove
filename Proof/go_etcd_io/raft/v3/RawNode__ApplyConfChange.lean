@@ -185,7 +185,8 @@ theorem RawNode.ApplyConfChange.wp_proof
       ihave Hpown := pendList_forget γ id steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
       · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps Hasync
-          $$ Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap Hpown
+          $$ Hrn Hphys Hsoft [Hhard] Hsteps Hsteps_cap Hpown
+        · iapply prevHS_hsRO $$ Hhard
       ipureintro
       exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
   · -- a `ConfChangeV2`: `AsV2` is itself
@@ -271,7 +272,8 @@ theorem RawNode.ApplyConfChange.wp_proof
       ihave Hpown := pendList_forget γ id steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
       · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps Hasync
-          $$ Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap Hpown
+          $$ Hrn Hphys Hsoft [Hhard] Hsteps Hsteps_cap Hpown
+        · iapply prevHS_hsRO $$ Hhard
       ipureintro
       exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
 
