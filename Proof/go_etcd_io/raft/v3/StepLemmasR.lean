@@ -38,6 +38,7 @@ module
 public import Proof.go_etcd_io.raft.v3.StepLemmasC
 public import Proof.go_etcd_io.raft.v3.Protocol.StepR
 public import Proof.go_etcd_io.raft.v3.SpecResults
+public import Proof.go_etcd_io.raft.v3.WAppSentStep
 
 @[expose] public section
 
@@ -274,6 +275,21 @@ inductive StepCF : PState → List Msg → PState → Prop where
       m.ty = .wprevote →
       m.src = id →
       StepCF s [] (psendMsgs s [m])
+  /-- (2026-10-20, witness support) `StepC.sendWApp` (`StepR.sendWApp`'s premises: the witness an
+  incoming voter too): `maybeCommit`'s request to the witness moves no extra field. -/
+  | sendWApp (s : PState) (i : w64) (e : EntryM) (vs : List w64) :
+      s.role = .leader →
+      c.wit ≠ W64 0 →
+      c.wit ∈ c.incoming →
+      exclOf c s ≠ c.wit →
+      exclOf c s ∈ c.incoming →
+      plogEntryAt s.base s.log i = some e →
+      e.Term' = s.term →
+      e.Subterm' = s.sub →
+      size c.incoming / 2 ≤ size (ackedBy s i ∩ rsVoters c s) →
+      vs ≡ₚ elements (rsVoters c s) →
+      StepCF s []
+        (psendMsgs s [Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []])
 
 end frame
 
@@ -324,6 +340,7 @@ theorem StepCF.toC {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PSta
     | (apply StepC.reMatch <;> assumption)
     | (apply StepC.askWitness <;> assumption)
     | (apply StepC.sendWPre <;> assumption)
+    | (apply StepC.sendWApp <;> assumption)
 
 /-- No `StepCF` rule makes a leader: one at the end was one at the start. -/
 theorem StepCF.leader_back {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PState}
@@ -359,6 +376,29 @@ theorem StepR.pci_keep {Adm : List EntryM → CCState → Prop} {dec : CCDec} {i
     (hz : r.p.role ≠ .leader → r.pci = W64 0) :
     StepR Adm dec id B r ms { r with p := p', pci := pciKeep p' r.pci } := by
   rw [RState.with_p_pci r p' h1 h2 hz]; exact h
+
+/-- (2026-10-20, witness support) `maybeCommit`'s requests to the witness, one after the other:
+frame steps (each `StepCF.sendWApp`, its premises kept by the earlier sends). -/
+theorem SendWAppOk.stepCF_list {c : CfgM} {id : w64} {p : PState} {ws : List Msg}
+    (Hr : p.role = .leader) (H : ∀ m ∈ ws, SendWAppOk c id p m) :
+    StepCF c id p [] (psendMsgs p ws) := by
+  induction ws generalizing p with
+  | nil => simp only [psendMsgs, List.append_nil]; exact .refl _
+  | cons m ws ih =>
+    have Hm := H m (List.mem_cons_self ..)
+    obtain ⟨Hw, Hwin, Hx, Hxin, i, e, vs, He, Het, Hes, Hsz, Hvs, rfl⟩ := Hm
+    have H1 : StepCF c id p []
+        (psendMsgs p [Msg.mkV .wapp id c.wit p.term false i p.term p.sub (W64 0) [] vs []]) :=
+      .sendWApp p i e vs Hr Hw Hwin Hx Hxin He Het Hes Hsz Hvs
+    have H2 := ih (p := psendMsgs p
+        [Msg.mkV .wapp id c.wit p.term false i p.term p.sub (W64 0) [] vs []]) Hr
+      (fun m' hm' => SendWAppOk.congr rfl rfl rfl rfl rfl rfl (H m' (List.mem_cons_of_mem _ hm')))
+    have e : psendMsgs (psendMsgs p
+        [Msg.mkV .wapp id c.wit p.term false i p.term p.sub (W64 0) [] vs []]) ws =
+        psendMsgs p (Msg.mkV .wapp id c.wit p.term false i p.term p.sub (W64 0) [] vs [] :: ws) := by
+      simp [psendMsgs]
+    rw [← e]
+    exact .trans _ _ _ _ _ H1 H2
 
 /-- A `StepCF` derivation is a `StepR` one, at any `RState` over its start whose non-leader
 `pci` is `0`: the configuration is `c`; the extra fields are kept, but `pci`, kept at a leader
@@ -495,6 +535,10 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
   | sendWPre s m h1 h2 h3 =>
     intro r hp hc hz; subst hp; subst hc
     exact StepR.pci_keep (.sendWPre r m h1 h2 h3) (fun h => h) (fun h => h) hz
+  | sendWApp s i e vs h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
+    intro r hp hc hz; subst hp; subst hc
+    exact StepR.pci_keep (.sendWApp r i e vs h1 h2 h3 h4 h5 h6 h7 h8 h9 h10) (fun h => h)
+      (fun h => h) hz
   | zeroAck s dst =>
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.zeroAck r dst) (fun h => h) (fun h => h) hz

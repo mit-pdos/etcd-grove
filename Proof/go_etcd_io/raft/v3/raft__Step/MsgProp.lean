@@ -50,17 +50,22 @@ batch stamped at the leader's term and the indices after the last one, and the
 self-acknowledgement at the new last index is queued. (Checked 2026-10-02: the physical
 definition and the rule agree; nothing needed changing.) -/
 private theorem toPState_proposed (id : w64) (s : NState) (ents : List EntryM)
-    (Hsub : s.ep.sub = W64 0) :
+    (Hr : s.role = .leader) :
     toPState (proposed id s ents) =
     psendMsgs
-      (pappend (toPState s) (ents.mapIdx (stamp s.term (plastIndex (toPState s)))))
+      (pappend (toPState s)
+        (ents.mapIdx (stampS s.term (toPState s).sub (plastIndex (toPState s)))))
       [pselfAck id
-         (pappend (toPState s) (ents.mapIdx (stamp s.term (plastIndex (toPState s)))))] := by
+         (pappend (toPState s)
+           (ents.mapIdx (stampS s.term (toPState s).sub (plastIndex (toPState s)))))] := by
   have Hli : ∀ s : NState, plastIndex (toPState s) = logLast s.logst := by
     intro s
     simp only [plastIndex, plogLastIndexZ, logLast, toPState, List.length_append]
     congr 1; push_cast; omega
-  simp only [proposed, Hsub, stampS_zero_fun, sendMsgs, toPState, psendMsgs, pappend, pselfAck,
+  -- (2026-10-20, witness support) the entries are stamped with the leader's subterm
+  have Hsub : (toPState s).sub = s.ep.sub := by simp [toPState, Hr]
+  rw [Hsub]
+  simp only [proposed, sendMsgs, toPState, psendMsgs, pappend, pselfAck,
     selfAck, logAppend, List.append_assoc]
   rw [← Hli s]
   simp only [toPState]
@@ -291,10 +296,6 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
     icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
-    -- STAGED: no witness yet (`ownRaftPhysC_wit0`), so subterm 0 (`StepR.propose` stamps it)
-    icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hw, Hphys⟩
-    icases ownRaftPhysC_epOk c r id s $$ Hphys with ⟨%Hepok, Hphys⟩
-    have Hsub0 : s.ep.sub = W64 0 := by rw [hw] at Hepok; rw [EpochOkC.nw Hepok]; rfl
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs k0 (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
@@ -367,38 +368,35 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         rw [← Hspv] at Hpvs
         have Hsps : toPState sp = toPState s := by rw [← Hsp]; rfl
         have Hspt : sp.term = s.term := by rw [← Hsp]
-        have Hsps0 : sp.ep.sub = W64 0 := by rw [← Hsp]; exact Hsub0
+        have Hspr : sp.role = .leader := by rw [← Hsp]; exact Hrole
         have Hspp : sp.progress = s.progress := by rw [← Hsp]
         have HP : toPState { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms with
               prvals := pvs } =
             psendMsgs (psendMsgs
               (pappend (toPState s)
                 ((leaderPropConf s ents cs' c.joint).1.mapIdx
-                  (stamp (toPState s).term (plastIndex (toPState s)))))
+                  (stampS (toPState s).term (toPState s).sub (plastIndex (toPState s)))))
               [pselfAck id (pappend (toPState s)
                 ((leaderPropConf s ents cs' c.joint).1.mapIdx
-                  (stamp (toPState s).term (plastIndex (toPState s)))))]) ms := by
+                  (stampS (toPState s).term (toPState s).sub (plastIndex (toPState s)))))]) ms := by
           rw [toPState_prvals (sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms) pvs
-            (fun _ => Hpvs), toPState_sendMsgs, toPState_proposed _ _ _ Hsps0, Hsps, Hspt]
+            (fun _ => Hpvs), toPState_sendMsgs, toPState_proposed _ _ _ Hspr, Hsps, Hspt]
           rfl
         unfold ReplSends at Hms
-        rw [toPState_proposed _ _ _ Hsps0, Hsps, Hspt] at Hms
+        rw [toPState_proposed _ _ _ Hspr, Hsps, Hspt] at Hms
         have Hrl2 : (psendMsgs (pappend (toPState s)
               ((leaderPropConf s ents cs' c.joint).1.mapIdx
-                (stamp (toPState s).term (plastIndex (toPState s)))))
+                (stampS (toPState s).term (toPState s).sub (plastIndex (toPState s)))))
             [pselfAck id (pappend (toPState s)
               ((leaderPropConf s ents cs' c.joint).1.mapIdx
-                (stamp (toPState s).term (plastIndex (toPState s)))))]).role = .leader := by
+                (stampS (toPState s).term (toPState s).sub (plastIndex (toPState s)))))]).role = .leader := by
           simp [psendMsgs, pappend, toPState, Hrole, proleRole]
         refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
         · -- `StepC.propose` of the loop's batch, then the broadcast
           rw [HP]
-          -- staged: subterm 0 (`Hsub0`), so `propose`'s `stampS` is `stamp`
-          have Hpsub : (toPState s).sub = W64 0 := by simp [toPState, Hrole, Hsub0]
           have Hpr := StepC.propose (c := c) (id := id)
             (B := plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int)) (absMsg .propose m ents ctx) (toPState s)
             (leaderPropConf s ents cs' c.joint).1 rfl Hrepl Hrl (by have := Hrepl.length; omega)
-          rw [Hpsub, stampS_zero_fun] at Hpr
           exact .trans _ _ _ _ _ Hpr
             (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1)
               (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
@@ -427,12 +425,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             unfold rOf pciR
             simp [proposed, sendMsgs, logAppend, Hrole]
           rw [Hr, HP]
-          -- staged: subterm 0 (`Hsub0`), so `StepR.propose`'s `stampS` is `stamp`
-          have Hpsub' : (rOf s g).p.sub = W64 0 := by
-            show (toPState s).sub = W64 0; simp [toPState, Hrole, Hsub0]
           have HprR : StepR Adm dec id _ (rOf s g) [absMsg .propose m ents ctx] _ :=
             StepR.propose (absMsg .propose m ents ctx) (rOf s g) cs' rfl Hrl Hct (Int.le_refl _)
-          rw [Hpsub', stampS_zero_fun] at HprR
           refine .trans _ _ _ _ _ HprR ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)

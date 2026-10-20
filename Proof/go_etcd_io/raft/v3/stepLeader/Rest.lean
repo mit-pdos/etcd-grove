@@ -1252,8 +1252,8 @@ theorem wp_stepLeader_appresp
       iframe Hphys
       ipureintro
       refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inr ⟨Hfdom, Hrej,
-        p.matched, pvs2, s.logst.committed, [], [], Hx, Hmm2, Or.inl rfl,
-        fun _ h => absurd h List.not_mem_nil, ?_⟩)⟩))))⟩
+        p.matched, pvs2, s.logst.committed, [], [], [], Hx, Hmm2, Or.inl rfl,
+        fun _ h => absurd h List.not_mem_nil, fun _ h => absurd h List.not_mem_nil, ?_⟩)⟩))))⟩
       simp only [↓reduceIte, _root_.true_and]
       cases s; simp [sendMsgs]
     wp_auto
@@ -1360,34 +1360,45 @@ theorem wp_stepLeader_appresp
     --   r.id != m.From && pr.CanBumpCommit(r.raftLog.committed) { r.sendAppend(m.From) }`,
     -- joined: `s2` is the state the release leaves (the committed one, if nothing is
     -- committed), `hb` its heartbeats
-    wp_join iprop(∃ (n : w64) (s2 : NState) (hb ms : List Msg) (pvs4 : GMap w64 Progress),
+    wp_join iprop(∃ (n : w64) (s2 : NState) (hb ms ws : List Msg) (pvs4 : GMap w64 Progress),
         "Hphys" ∷ ownRaftPhysCV c c.voters r id { sendMsgs (sendMsgs s2 hb) ms with prvals := pvs4 } ∗
         "%Hn" ∷ ⌜n = s.logst.committed ∨ CommitOkC c (toPState { s with prvals := pvs3 }) n⌝ ∗
+        -- (2026-10-20, witness support) `maybeCommit`'s requests to the witness
+        "%Hws" ∷ ⌜∀ m ∈ ws, SendWAppOk c id (toPState { s with prvals := pvs3 }) m⌝ ∗
         "%Hs2" ∷ ⌜if n = s.logst.committed then
-                    hb = [] ∧ s2 = { s with logst := { s.logst with committed := n } }
+                    hb = [] ∧ s2 = { sendMsgs s ws with logst := { s.logst with committed := n } }
                   else
                     (¬ CfgSingle c id ∧
-                     ReleaseHbs id { s with logst := { s.logst with committed := n },
-                                            prvals := pvs3 } hb ∧
-                     s2 = releasedState id { s with logst := { s.logst with committed := n } }) ∨
+                     ReleaseHbs id { sendMsgs s ws with logst := { s.logst with committed := n }, prvals := pvs3 } hb ∧
+                     s2 = releasedState id { sendMsgs s ws with logst := { s.logst with committed := n } }) ∨
                     (CfgSingle c id ∧ hb = [] ∧
                      s2 = readRespondAll id
-                       { s with logst := { s.logst with committed := n },
-                                rd := { s.rd with pend := [] } }
-                       (pendReqs { s with logst := { s.logst with committed := n } }))⌝ ∗
-        "%Hms" ∷ ⌜ReplSends id { s with logst := { s.logst with committed := n } } ms⌝ ∗
+                       { sendMsgs s ws with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } }
+                       (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n } }))⌝ ∗
+        "%Hms" ∷ ⌜ReplSends id { sendMsgs s ws with logst := { s.logst with committed := n } } ms⌝ ∗
         "%Hmm4" ∷ ⌜prvalsMatch pvs4 = prvalsMatch pvs3⌝ ∗
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
       with [Hphys m Hm r pr] as HJ
-    · icases ownRaftPhysC_wit0 c r id _ $$ Hphys with ⟨%hwmc, Hphys⟩
+    · -- the facts `maybeCommit`'s requests to the witness are judged by (`WAppSent.ok`)
+      icases ownRaftPhysC_witSimple c r id _ $$ Hphys with ⟨%Hwsim, Hphys⟩
+      icases ownRaftPhysC_epOk c r id _ $$ Hphys with ⟨%Hepok, Hphys⟩
+      icases ownRaftPhysC_no0 c r id _ $$ Hphys with ⟨%H0ids, Hphys⟩
       wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } Hlead $$ [$Hphys]
         as %b %N %ws ⟨Hphys, %HN⟩
-      -- STAGED: no witness yet (`ownRaftPhysC_wit0`), so no request to the witness
-      have Hws : ws = [] := HN.2.1 hwmc
-      subst Hws
+      -- (2026-10-20, witness support) each request to the witness is `StepC.sendWApp`'s
+      have Hws : ∀ m ∈ ws, SendWAppOk c id (toPState { s with prvals := pvs3 }) m := by
+        intro m' hm'
+        by_cases hw0 : c.wit = W64 0
+        · rw [HN.2.1 hw0] at hm'; exact absurd hm' List.not_mem_nil
+        exact WAppSent.ok _ (Hwsim hw0) Hepok
+          (fun h => H0ids (by
+            unfold CfgM.ids CfgM.voters
+            rw [GMap.elem_of_union, GMap.elem_of_union]; exact Or.inl (Or.inl h)))
+          rfl rfl rfl (by simp [toPState, Hlead]) (by simp [toPState, Hlead])
+          (by simp [toPState, Hlead]) (HN.1 m' hm')
       replace HN := HN.2.2
       ihave Hphys : ownRaftPhysCV c c.voters r id
-          (if b then { { s with prvals := pvs3 } with logst := { ({ s with prvals := pvs3 }).logst with committed := N } } else { s with prvals := pvs3 }) $$ [Hphys]
+          (if b then { { sendMsgs s ws with prvals := pvs3 } with logst := { ({ s with prvals := pvs3 }).logst with committed := N } } else { sendMsgs s ws with prvals := pvs3 }) $$ [Hphys]
       · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases b <;> simp [sendMsgs]
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
@@ -1400,14 +1411,14 @@ theorem wp_stepLeader_appresp
           simp only [eq_true Hsame, _root_.decide_true]
           wp_auto
           wp_join_done
-          iexists s.logst.committed, { s with logst := { s.logst with committed := s.logst.committed } },
-            [], [], pvs3
+          iexists s.logst.committed, { sendMsgs s ws with logst := { s.logst with committed := s.logst.committed } },
+            [], [], ws, pvs3
           ihave Hphys := ownRaftPhysC_eq c r id _
-            { sendMsgs (sendMsgs { s with logst := { s.logst with committed := s.logst.committed } }
+            { sendMsgs (sendMsgs { sendMsgs s ws with logst := { s.logst with committed := s.logst.committed } }
                 [] ) [] with prvals := pvs3 } (by simp [sendMsgs]) $$ Hphys
           iframe
           ipureintro
-          exact ⟨Or.inl rfl, by simp, fun _ h => absurd h List.not_mem_nil, rfl⟩
+          exact ⟨Or.inl rfl, Hws, by simp, fun _ h => absurd h List.not_mem_nil, rfl⟩
         · simp only [Hsame, decide_false, Bool.not_false]
           wp_auto
           wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -1416,37 +1427,40 @@ theorem wp_stepLeader_appresp
           wp_auto
           ihave Hlog := Hlb $$ Hl
           ihave Hphys := Hlogback $$ Hlog
-          icases ownRaftPhys_pr_at c r id s pvs3 m.From' pr p3 $$ Hphys %Hlk %Hpvs3'
+          ihave Hphys := ownRaftPhysC_eq c r id _ { sendMsgs s ws with prvals := pvs3 }
+            (by first | rfl | simp [sendMsgs]) $$ Hphys
+          icases ownRaftPhys_pr_at c r id (sendMsgs s ws) pvs3 m.From' pr p3 $$ Hphys
+            %(show (sendMsgs s ws).progress !! m.From' = some pr from Hlk) %Hpvs3'
             with ⟨%Hok, %Hnw, Hpa, Hpback⟩
           wp_apply wp_Progress_CanBumpCommit $$ [$Hpa] as Hpa
           ihave Hphys := Hpback $$ %p3 Hpa %(by first | rfl | simp) %(by prok)
-          ihave Hphys := ownRaftPhys_ins_id c r id s pvs3 m.From' p3 Hpvs3' $$ Hphys
+          ihave Hphys := ownRaftPhys_ins_id c r id (sendMsgs s ws) pvs3 m.From' p3 Hpvs3' $$ Hphys
           cases Hcb : progressCanBumpCommit p3 lv.committed'
           · wp_auto
             wp_join_done
             iexists s.logst.committed,
-              { s with logst := { s.logst with committed := s.logst.committed } }, [], [], pvs3
+              { sendMsgs s ws with logst := { s.logst with committed := s.logst.committed } }, [], [], ws, pvs3
             ihave Hphys := ownRaftPhysC_eq c r id _
-              { sendMsgs (sendMsgs { s with logst := { s.logst with committed := s.logst.committed } }
+              { sendMsgs (sendMsgs { sendMsgs s ws with logst := { s.logst with committed := s.logst.committed } }
                   []) [] with prvals := pvs3 } (by simp [sendMsgs]) $$ Hphys
             iframe
             ipureintro
-            exact ⟨Or.inl rfl, by simp, fun _ h => absurd h List.not_mem_nil, rfl⟩
+            exact ⟨Or.inl rfl, Hws, by simp, fun _ h => absurd h List.not_mem_nil, rfl⟩
           · wp_auto
             wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
             wp_apply wp_raft_sendAppend c r id _ m.From' (Ne.symm Hsame) (by exact Hfcfg)
               (by exact Hlead) $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
             wp_join_done
             iexists s.logst.committed,
-              { s with logst := { s.logst with committed := s.logst.committed } }, [], ms, pvs4
+              { sendMsgs s ws with logst := { s.logst with committed := s.logst.committed } }, [], ms, ws, pvs4
             ihave Hphys := ownRaftPhysC_eq c r id _
-              { sendMsgs (sendMsgs { s with logst := { s.logst with committed := s.logst.committed } }
+              { sendMsgs (sendMsgs { sendMsgs s ws with logst := { s.logst with committed := s.logst.committed } }
                   []) ms with prvals := pvs4 } (by simp [sendMsgs]) $$ Hphys
             iframe
             ipureintro
-            refine ⟨Or.inl rfl, by simp, ?_, Hmm4⟩
-            have := (replSends_prvals id s pvs3 ms).1 Hms
-            simpa using this
+            refine ⟨Or.inl rfl, Hws, by simp, ?_, Hmm4⟩
+            have := (replSends_prvals id (sendMsgs s ws) pvs3 ms).1 Hms
+            simpa [sendMsgs] using this
       · -- committed (an entry of the leader's term): the pending read-index requests are
         -- released, then `bcastAppend`
         have HcN := HN rfl
@@ -1454,38 +1468,38 @@ theorem wp_stepLeader_appresp
           intro h; have := HcN.1; rw [h] at this; simp [toPState] at this
         wp_auto
         wp_apply wp_releasePendingReadIndexMessages c r id
-            { s with prvals := pvs3, logst := { s.logst with committed := N } } Hlead Hnz
+            { sendMsgs s ws with prvals := pvs3, logst := { s.logst with committed := N } } Hlead Hnz
             (fun _ => HcN.2.2.1) Hrdp $$ [$Hphys]
           as %sR ⟨Hphys, %HR⟩
         rcases HR with ⟨Hsg, rfl⟩ | ⟨Hns, hb, pvsR, rfl, Hhb, HmmR⟩
         · -- (2026-10-14) the leader is the single voter: each answered at once
           have Hf := readRespondAll_fields id
-            { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
-            (pendReqs { s with logst := { s.logst with committed := N } })
+            { sendMsgs s ws with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+            (pendReqs { sendMsgs s ws with logst := { s.logst with committed := N } })
           have Hpv := readRespondAll_prvals id
-            { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
-            pvs3 (pendReqs { s with logst := { s.logst with committed := N } })
+            { sendMsgs s ws with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+            pvs3 (pendReqs { sendMsgs s ws with logst := { s.logst with committed := N } })
           ihave Hphys := ownRaftPhysC_eq c r id _
             { readRespondAll id
-                { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
-                (pendReqs { s with logst := { s.logst with committed := N } }) with
+                { sendMsgs s ws with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+                (pendReqs { sendMsgs s ws with logst := { s.logst with committed := N } }) with
               prvals := pvs3 }
             (by rw [← Hpv]; rfl) $$ Hphys
           wp_apply wp_raft_bcastAppend c r id _ (by exact Hf.2.1.trans Hlead) $$ [$Hphys]
             as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
           wp_join_done
           iexists N, readRespondAll id
-            { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
-            (pendReqs { s with logst := { s.logst with committed := N } }), [], ms, pvs4
+            { sendMsgs s ws with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+            (pendReqs { sendMsgs s ws with logst := { s.logst with committed := N } }), [], ms, ws, pvs4
           ihave Hphys := ownRaftPhysC_eq c r id _
             { sendMsgs (sendMsgs (readRespondAll id
-                { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
-                (pendReqs { s with logst := { s.logst with committed := N } })) []) ms with
+                { sendMsgs s ws with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+                (pendReqs { sendMsgs s ws with logst := { s.logst with committed := N } })) []) ms with
               prvals := pvs4 }
             (by simp [sendMsgs]) $$ Hphys
           iframe
           ipureintro
-          refine ⟨Or.inr HcN, ?_, fun m' hm => replACS_proper _ _ _ _ ?_ ?_ ?_ ?_ ?_ (Hms m' hm) ?_,
+          refine ⟨Or.inr HcN, Hws, ?_, fun m' hm => replACS_proper _ _ _ _ ?_ ?_ ?_ ?_ ?_ (Hms m' hm) ?_,
             Hmm4⟩
           · simp only [HNne, ↓reduceIte]
             first
@@ -1496,15 +1510,15 @@ theorem wp_stepLeader_appresp
         wp_apply wp_raft_bcastAppend c r id _ (by exact Hlead) $$ [$Hphys]
           as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
         wp_join_done
-        iexists N, releasedState id { s with logst := { s.logst with committed := N } }, hb, ms,
+        iexists N, releasedState id { sendMsgs s ws with logst := { s.logst with committed := N } }, hb, ms, ws,
           pvs4
         ihave Hphys := ownRaftPhysC_eq c r id _
-          { sendMsgs (sendMsgs (releasedState id { s with logst := { s.logst with committed := N } })
+          { sendMsgs (sendMsgs (releasedState id { sendMsgs s ws with logst := { s.logst with committed := N } })
               hb) ms with prvals := pvs4 }
           (by simp [sendMsgs, releasedState]) $$ Hphys
         iframe
         ipureintro
-        refine ⟨Or.inr HcN, ?_, fun m' hm => replACS_proper _ _ _ _ rfl rfl rfl rfl rfl (Hms m' hm) rfl,
+        refine ⟨Or.inr HcN, Hws, ?_, fun m' hm => replACS_proper _ _ _ _ rfl rfl rfl rfl rfl (Hms m' hm) rfl,
           Hmm4.trans HmmR⟩
         simp only [HNne, ↓reduceIte]
         first
@@ -1518,12 +1532,12 @@ theorem wp_stepLeader_appresp
       · rcases Hs2 with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩
         · exact ⟨rfl, rfl, rfl, rfl, rfl⟩
         · obtain ⟨o, rd', h⟩ := readRespondAll_eq id
-            ({ s with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } } : NState)
-            (pendReqs { s with logst := { s.logst with committed := n } })
+            ({ sendMsgs s ws with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } } : NState)
+            (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n } })
           rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
     have Hs2p : s2.progress = s.progress := Hs2f.1
     have Hs2r : s2.role = s.role := Hs2f.2.2.2.1
-    generalize Hsc : ({ s with logst := { s.logst with committed := n } } : NState) = sc at *
+    generalize Hsc : ({ sendMsgs s ws with logst := { s.logst with committed := n } } : NState) = sc at *
     have Hs2l : s2.term = sc.term ∧ s2.logst = sc.logst := by
       rw [← Hsc]; exact ⟨Hs2f.2.1, Hs2f.2.2.1⟩
     wp_auto
@@ -1646,9 +1660,10 @@ theorem wp_stepLeader_appresp
       simp only [toPState, Hmm5, Hmm4]
     subst Hsc
     refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr (Or.inr ⟨Hfdom, Hrej,
-      p.matched, pvs5, n, hb, ms ++ ms', Hx, ?_, ?_, ?_, ?_⟩)⟩))))⟩
+      p.matched, pvs5, n, hb, ms ++ ms', ws, Hx, ?_, ?_, ?_, ?_, ?_⟩)⟩))))⟩
     · rw [Hmm5, Hmm4, Hmm3, Hmm2]
     · rw [Hts]; exact Hn
+    · rw [Hts]; exact Hws
     · exact replSends_app _ _ _ _ Hms Hms'
     · by_cases Hceq : n = s.logst.committed
       · simp only [Hceq, ↓reduceIte] at Hs2 ⊢
@@ -1657,8 +1672,8 @@ theorem wp_stepLeader_appresp
       · simp only [Hceq, ↓reduceIte] at Hs2 ⊢
         rcases Hs2 with ⟨Hns, Hhb, rfl⟩ | ⟨Hsg, rfl, rfl⟩
         · refine Or.inl ⟨Hns, fun m' hm => ⟨?_, (Hhb m' hm).2⟩, rfl⟩
-          have Hts' : toPState { s with logst := { s.logst with committed := n }, prvals := pvs5 } =
-              toPState { s with logst := { s.logst with committed := n }, prvals := pvs3 } := by
+          have Hts' : toPState { sendMsgs s ws with logst := { s.logst with committed := n }, prvals := pvs5 } =
+              toPState { sendMsgs s ws with logst := { s.logst with committed := n }, prvals := pvs3 } := by
             simp only [toPState, Hmm5, Hmm4]
           rw [Hts']; exact (Hhb m' hm).1
         · refine Or.inr ⟨Hsg, rfl, ?_⟩

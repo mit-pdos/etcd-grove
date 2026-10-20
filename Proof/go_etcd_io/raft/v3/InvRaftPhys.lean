@@ -2103,6 +2103,19 @@ theorem ownRaftPhysC_wit0 (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NS
     ipureintro; exact ⟨Hwq, Hw0, Hwz⟩
   resealC c s
 
+/-- At a configuration with a witness the configuration is not joint (2026-10-20, W3b-C; moved here from `LemmasWitnessR.lean`): the
+static mode, where a configuration change leaves no witness (`ccApplyM_wit0`). STAGED: read out
+of `witOwn`'s no-witness conjunct (`ownRaftPhysC_wit0`); the static-mode invariant that replaces
+it must keep this. -/
+theorem ownRaftPhysC_witSimple (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜c.wit ≠ W64 0 → c.outgoing = ∅⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_wit0 c _ _ _ $$ H with ⟨%hw, H⟩
+  iframe H
+  ipureintro
+  exact fun h => absurd hw h
+
 /-- The witness queue `r.witnessMsgs` (2026-10-20, witness support): the slice and the requests
 it holds, given back with one more request `μ` queued, whose protocol reading `wAbs μ` is then on
 the outbox (`sendMsgs`). Only at a configuration with a witness. STAGED: while `witOwn` says there

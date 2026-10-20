@@ -202,7 +202,7 @@ theorem LeaderStepResultC.not_precand {c : CfgM} {id : w64} {s : NState} {m : Me
       | simp_all [sendMsgs, readRespondAll_role, readRespond_role, arriveState, subtermStart]
       | skip
     -- the accepted `MsgAppResp`
-    obtain ⟨x, pvs, n, hb, ms, -, -, -, -, H⟩ := H
+    obtain ⟨x, pvs, n, hb, ms, ws, -, -, -, -, -, H⟩ := H
     split at H
     · obtain ⟨-, rfl⟩ := H; simp_all [sendMsgs]
     · rcases H with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩ <;>
@@ -341,7 +341,12 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok.replOk Hok.commitEq (Hok.snapTo Hpc)
   · -- accepted
-    obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
+    obtain ⟨x, pvs, n0, hb, ms, ws, Hx, Hpvs, Hc, Hws, Hms, Hrel⟩ := Hacc
+    -- (2026-10-20, witness support) `maybeCommit`'s requests to the witness, after the commit:
+    -- frame steps (`StepCF.sendWApp`)
+    have Hwr : ∀ n : w64, StepCF c id { toPState { s with prvals := pvs } with commit := n } []
+        (psendMsgs { toPState { s with prvals := pvs } with commit := n } ws) := fun n =>
+      SendWAppOk.stepCF_list Hpr (fun m' hm' => SendWAppOk.congr rfl rfl rfl rfl rfl rfl (Hws m' hm'))
     by_cases Hcc : n0 ≠ s.logst.committed
     · -- a commit, which releases the pending read-index requests (2026-10-13)
       rw [ite_eq_right Hcc] at Hrel
@@ -359,7 +364,9 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
         have H2 : StepCF c id (toPState { s with prvals := pvs }) []
             { toPState { s with prvals := pvs } with commit := n0 } :=
           .commit _ n0 Hpr1 Hlt Hle Hterm Hq
-        let ps2 : PState := { toPState { s with prvals := pvs } with commit := n0 }
+        let ps2 : PState := psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ws
+        have H2 : StepCF c id (toPState { s with prvals := pvs }) [] ps2 :=
+          .trans _ _ _ _ _ H2 (Hwr n0)
         have H3 : StepCF c id ps2 []
             (preadRespondAll id { ps2 with rd := { ps2.rd with pend := [] } }
               (ps2.rd.pend.map (fun p => ⟨ps2.commit, p.1.From', p.2⟩))) :=
@@ -375,30 +382,30 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
             replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
             (fun m' Hm' h => (Hms m' Hm').2.1 h) (Hms.snapTo Hpc)
         have Hrr := readRespondAll_eq id
-          ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
-          (pendReqs { s with logst := { s.logst with committed := n0 } })
+          ({ sendMsgs s ws with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+          (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n0 } })
         obtain ⟨o4, rd4, H4e⟩ := Hrr
         refine ⟨?_, ⟨[absMsg .appResp m ents] ++ ([] ++ ([] ++ [])), ?_,
           StepCD.frame ?_ ?_⟩, ?_⟩
         · rw [H4e]; exact Hwf
         · intro m' Hin; simpa using Hin
         · have He : toPState { sendMsgs (readRespondAll id
-                { s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } }
-                (pendReqs { s with logst := { s.logst with committed := n0 } })) ms with
+                { sendMsgs s ws with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } }
+                (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n0 } })) ms with
                 prvals := pvs } =
               psendMsgs { ({ ps2 with rd := { ps2.rd with pend := [] } }) with
                 outbox := o3, rd := rd3 } ms := by
             rw [← H3e]
             have Hpv := readRespondAll_prvals id
-              ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
-              pvs (pendReqs { s with logst := { s.logst with committed := n0 } })
+              ({ sendMsgs s ws with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+              pvs (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n0 } })
             have e1 : ({ sendMsgs (readRespondAll id
-                ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
-                (pendReqs { s with logst := { s.logst with committed := n0 } })) ms with
+                ({ sendMsgs s ws with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+                (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n0 } })) ms with
                 prvals := pvs } : NState) =
                 sendMsgs ({ readRespondAll id
-                ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
-                (pendReqs { s with logst := { s.logst with committed := n0 } }) with prvals := pvs }) ms :=
+                ({ sendMsgs s ws with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+                (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n0 } }) with prvals := pvs }) ms :=
               rfl
             rw [e1, ← Hpv, toPState_sendMsgs, toPState_readRespondAll id _ (by exact Hr)]
             simp [ps2, pendReqs, toPState, Hr]
@@ -416,7 +423,9 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
       have H2 : StepCF c id (toPState { s with prvals := pvs }) []
           { toPState { s with prvals := pvs } with commit := n0 } :=
         .commit _ n0 Hpr1 Hlt Hle Hterm Hq
-      let ps2 : PState := { toPState { s with prvals := pvs } with commit := n0 }
+      let ps2 : PState := psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ws
+      have H2 : StepCF c id (toPState { s with prvals := pvs }) [] ps2 :=
+        .trans _ _ _ _ _ H2 (Hwr n0)
       have H3 : StepCF c id ps2 []
           { ps2 with rd := { ps2.rd with
               pend := []
@@ -446,7 +455,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
       refine ⟨[absMsg .appResp m ents] ++ ([] ++ ([] ++ ([] ++ []))), ?_, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩⟩
       · intro m' Hin; simpa using Hin
       · have He : toPState { sendMsgs (sendMsgs (releasedState id
-              { s with logst := { s.logst with committed := n0 } }) hb) ms with prvals := pvs } =
+              { sendMsgs s ws with logst := { s.logst with committed := n0 } }) hb) ms with prvals := pvs } =
             psendMsgs (psendMsgs ps3 hb) ms := by
           simp [ps3, ps2, toPState, sendMsgs, psendMsgs, releasedState, Hr]
         rw [He]
@@ -468,16 +477,19 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
           pstate_commit_same (toPState { s with prvals := pvs })]
         exact .refl _
       · exact .commit _ n0 Hpr1 Hlt Hle Hterm Hq
-    have H3 : StepCF c id { toPState { s with prvals := pvs } with commit := n0 } []
-        (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ms) :=
+    have H2 : StepCF c id (toPState { s with prvals := pvs }) []
+        (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ws) :=
+      .trans _ _ _ _ _ H2 (Hwr n0)
+    have H3 : StepCF c id (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ws) []
+        (psendMsgs (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ws) ms) :=
       .sendApps _ ms Hpr1 (fun m' Hm' =>
         replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
         (fun m' Hm' h => (Hms m' Hm').2.1 h) (Hms.snapTo Hpc)
     refine ⟨[absMsg .appResp m ents] ++ ([] ++ []), ?_, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩⟩
     · intro m' Hin; simpa using Hin
-    · have He : toPState { sendMsgs { s with logst := { s.logst with committed := n0 } } ms with
+    · have He : toPState { sendMsgs { sendMsgs s ws with logst := { s.logst with committed := n0 } } ms with
             prvals := pvs } =
-          psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ms := by
+          psendMsgs (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ws) ms := by
         simp [toPState, sendMsgs, psendMsgs, Hr]
       rw [He]
       exact .trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3)

@@ -102,6 +102,7 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import Proof.go_etcd_io.raft.v3.WAppSentStep
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
@@ -189,25 +190,27 @@ fix) at a configuration whose only voter is the leader itself, each answered at 
 commit index. (Until 2026-10-14 also `AppRespAccepted`, at a simple configuration.) -/
 def AppRespAcceptedC (c : CfgM) (id : w64) (s : NState) (src index : w64)
     (s' : NState) : Prop :=
-  ∃ (x : w64) (pvs : GMap w64 Progress) (n : w64) (hb ms : List Msg),
+  ∃ (x : w64) (pvs : GMap w64 Progress) (n : w64) (hb ms ws : List Msg),
     prvalsMatch s.prvals !! src = some x ∧
     prvalsMatch pvs =
       <[src := if uint.Z x < uint.Z index then index else x]> (prvalsMatch s.prvals) ∧
     (n = s.logst.committed ∨
      CommitOkC c (toPState { s with prvals := pvs }) n) ∧
-    ReplSends id { s with logst := { s.logst with committed := n } } ms ∧
+    -- (2026-10-20, witness support) `maybeCommit`'s requests to the witness (`SendWAppOk`)
+    (∀ m ∈ ws, SendWAppOk c id (toPState { s with prvals := pvs }) m) ∧
+    ReplSends id { sendMsgs s ws with logst := { s.logst with committed := n } } ms ∧
     (if n = s.logst.committed then hb = [] ∧
-       s' = { sendMsgs { s with logst := { s.logst with committed := n } } ms with
+       s' = { sendMsgs { sendMsgs s ws with logst := { s.logst with committed := n } } ms with
                 prvals := pvs }
      else (¬ CfgSingle c id ∧
-        ReleaseHbs id { s with logst := { s.logst with committed := n }, prvals := pvs } hb ∧
+        ReleaseHbs id { sendMsgs s ws with logst := { s.logst with committed := n }, prvals := pvs } hb ∧
         s' = { sendMsgs (sendMsgs (releasedState id
-                 { s with logst := { s.logst with committed := n } }) hb) ms with
+                 { sendMsgs s ws with logst := { s.logst with committed := n } }) hb) ms with
                  prvals := pvs }) ∨
        (CfgSingle c id ∧ hb = [] ∧
         s' = { sendMsgs (readRespondAll id
-                 { s with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } }
-                 (pendReqs { s with logst := { s.logst with committed := n } })) ms with
+                 { sendMsgs s ws with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } }
+                 (pendReqs { sendMsgs s ws with logst := { s.logst with committed := n } })) ms with
                  prvals := pvs }))
 
 /-- The read path of a `MsgHeartbeatResp` with a context (2026-10-12): the sender's
