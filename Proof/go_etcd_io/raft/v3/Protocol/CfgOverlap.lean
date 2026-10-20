@@ -293,6 +293,52 @@ theorem ccApplyM_shape {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeS
     · exact simpleM_shape h hs hb
     · cases h
 
+/-! ### The witness of a change (2026-10-20, witness support in the dynamic mode)
+
+A change keeps the configuration's witness (`CfgM.wit`), except leaving a joint configuration,
+which clears it (`leaveJointState`). -/
+
+theorem applyOne_wit {cc : ConfChangeSingleM} {s s' : CCState} (h : applyOne cc s = some s') :
+    s'.cfg.wit = s.cfg.wit := by
+  unfold applyOne at h
+  split at h
+  · cases h; rfl
+  split at h
+  · cases h; unfold makeVoterM initProgressM; split <;> rfl
+  split at h
+  · cases h; unfold makeLearnerM initProgressM removeCfg; split
+    · rfl
+    · rfl
+    · split <;> rfl
+  split at h
+  · cases h; unfold removeM removeCfg; split <;> rfl
+  split at h
+  · cases h; rfl
+  · cases h
+
+theorem applyAll_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyAll ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
+  induction ccs generalizing s with
+  | nil => cases h; rfl
+  | cons cc ccs ih =>
+    simp only [applyAll] at h
+    cases h1 : applyOne cc s with
+    | none => rw [h1] at h; cases h
+    | some s1 =>
+      rw [h1, Option.bind_some] at h
+      rw [ih h, applyOne_wit h1]
+
+theorem applyM_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : applyM ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
+  unfold applyM at h
+  cases h1 : applyAll ccs s with
+  | none => rw [h1] at h; cases h
+  | some s1 =>
+    rw [h1, Option.bind_some] at h
+    split at h
+    · cases h
+    · cases h; exact applyAll_wit h1
+
 /-! ### The configuration of a log prefix -/
 
 /-- A conf change as `raft.applyConfChange` takes it: `AsV2`'s transition and changes. -/
@@ -301,6 +347,52 @@ abbrev CCOp := raftpb.ConfChangeTransition × List ConfChangeSingleM
 /-- One conf change applied, within the size bound of `CfgOk`. -/
 def ccStepB (op : CCOp) (s : CCState) : Option CCState :=
   (ccApplyM op.1 op.2 s).bind fun s' => if GMap.size s'.cfg.ids < 2 ^ 62 then some s' else none
+
+theorem ccStepB_wit {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
+    s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
+  unfold ccStepB at h
+  cases ha : ccApplyM op.1 op.2 s with
+  | none => rw [ha] at h; cases h
+  | some s1 =>
+    rw [ha, Option.bind_some] at h
+    split at h
+    · cases h
+      unfold ccApplyM at ha
+      split at ha
+      · unfold leaveJointM at ha
+        split at ha
+        · cases ha
+        split at ha
+        · cases ha
+        obtain ⟨rfl, -⟩ := checkedM_some ha
+        right; rfl
+      · split at ha
+        · unfold enterJointM at ha
+          split at ha
+          · cases ha
+          split at ha
+          · cases ha
+          split at ha
+          · cases ha
+          split at ha
+          · cases ha
+          rename_i s2 hs2
+          obtain ⟨rfl, -⟩ := checkedM_some ha
+          left; have h := applyM_wit hs2; exact h
+        · unfold simpleM at ha
+          split at ha
+          · cases ha
+          split at ha
+          · cases ha
+          split at ha
+          · cases ha
+          rename_i s2 hs2
+          split at ha
+          · cases ha
+          obtain ⟨rfl, -⟩ := checkedM_some ha
+          left; have h := applyM_wit hs2; exact h
+        · cases ha
+    · cases h
 
 /-- A decoder (2026-10-14, reconfiguration stage B3): the change a conf-change entry makes,
 given the log prefix before it. The prefix is there because etcd's application may change what

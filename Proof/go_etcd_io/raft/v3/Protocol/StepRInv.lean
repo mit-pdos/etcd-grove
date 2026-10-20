@@ -118,6 +118,22 @@ theorem NoConfIn.confCount {l : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi
       exact h _ e (by omega) (by omega) hk
     · cases hk
 
+theorem NoConfIn_append_left {l m : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi)
+    (hhi : hi ≤ l.length) : NoConfIn (l ++ m) lo hi :=
+  fun k e h1 h2 he => h k e h1 h2 (by rw [List.getElem?_append_left (by omega)] at he; exact he)
+
+/-- (2026-10-20) No conf entry between `p0` and `c`, nor in `[c, a)`: none between `p0` and
+`max c a`. -/
+theorem NoConfIn_minmax_extend {l : List EntryM} {p0 c a : Nat}
+    (h1 : NoConfIn l (min p0 c) (max p0 c)) (h2 : NoConfIn l c a) :
+    NoConfIn l (min p0 (max c a)) (max p0 (max c a)) := by
+  intro k e hk1 hk2 he
+  by_cases hc : k < c
+  · exact h1 k e (by omega) (by omega) he
+  · by_cases ha : k < a
+    · exact h2 k e (by omega) ha he
+    · exact h1 k e (by omega) (by omega) he
+
 /-- With no conf entry in `[lo, hi)`, the fold up to `hi` is the fold up to `lo`. -/
 theorem cfgFold_noConf (dec : CCDec) (c0 : CCState) {l : List EntryM} {lo hi : Nat}
     {cs : CCState} (h : NoConfIn l lo hi) (hlh : lo ≤ hi) (hf : cfgFold dec c0 (l.take lo) = some cs) :
@@ -179,6 +195,17 @@ theorem ConfI1.confCount_drop {l : List EntryM} {a c : Nat} (h : ConfI1 l c)
 
 /-! ### The invariant -/
 
+/-- (2026-10-20, witness support in the dynamic mode) (Cfg) at a leader past its first subterm:
+its subterm's configuration prefix (`PState.scp`) is a committed prefix of its full log, and when
+the node's configuration or the prefix's has a witness, no conf entry lies between it and the
+configuration index (so the configuration is the prefix's: a leader with a witness starts a new
+subterm when it applies a change, `StepR.applyConfWit`). -/
+def LfOk (dec : CCDec) (c0 : CCState) (r : RState) : Prop :=
+  r.p.role = .leader → r.p.sub ≠ W64 0 →
+    ∃ p0, p0 ≤ uint.nat r.p.commit ∧ r.p.scp = r.full.take p0 ∧
+      ((r.cfg.cfg.wit ≠ W64 0 ∨ ∃ s, cfgFold dec c0 (r.full.take p0) = some s ∧ s.cfg.wit ≠ W64 0) →
+        NoConfIn r.full (min p0 r.cidx) (max p0 r.cidx))
+
 /-- The pure invariant of a node (see the file header). -/
 structure RInv (dec : CCDec) (c0 : CCState) (r : RState) : Prop where
   full : FullOk r.p.base r.fp
@@ -194,6 +221,41 @@ structure RInv (dec : CCDec) (c0 : CCState) (r : RState) : Prop where
   i3 : r.p.role = .leader → ConfI3 r.full (uint.nat r.pci) (uint.nat r.applied)
   cand : r.p.role = .candidate →
     r.snap = false ∧ NoConfIn r.full (uint.nat r.applied) (uint.nat r.p.commit)
+  lf : LfOk dec c0 r
+
+/-- The invariant at the first subterm (where `LfOk` is vacuous). -/
+theorem RInv.sub0 {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r) :
+    RInv dec c0 { r with p := { r.p with sub := W64 0 } } :=
+  ⟨H.full, H.base_commit, H.commit_last, H.applied_cidx, H.cidx_commit, H.snap_base,
+    H.base_applied, H.lead_snap, H.cfg, H.i1, H.i3, H.cand, fun _ h => absurd rfl h⟩
+
+/-- A change applied at a leader whose configuration has no witness (`StepR.applyConf`): its
+subterm's prefix has no witness either, nor has the new configuration (`ccStepB_wit`). -/
+theorem LfOk_applyConf {dec : CCDec} {c0 : CCState} {r : RState} {k : Nat} {op : CCOp}
+    {cs' : CCState} (H : RInv dec c0 r) (hst : ccStepB op r.cfg = some cs')
+    (hw : r.p.role = .leader → r.cfg.cfg.wit = W64 0) :
+    LfOk dec c0 { r with cidx := k + 1, cfg := cs' } := by
+  intro hl h0
+  obtain ⟨p0, hp0, hsp, himp⟩ := H.lf hl h0
+  refine ⟨p0, hp0, hsp, fun hc => ?_⟩
+  exfalso
+  have hw0 := hw hl
+  rcases hc with hc | ⟨s, hs, hsw⟩
+  · rcases ccStepB_wit hst with h | h
+    · exact hc (h.trans hw0)
+    · exact hc h
+  · have hs : cfgFold dec c0 (r.full.take p0) = some s := hs
+    have hn := himp (Or.inr ⟨s, hs, hsw⟩)
+    have hfs : cfgFold dec c0 (r.full.take r.cidx) = some s := by
+      rcases Nat.le_total p0 r.cidx with hle | hle
+      · rw [Nat.min_eq_left hle, Nat.max_eq_right hle] at hn
+        exact cfgFold_noConf dec c0 hn hle hs
+      · rw [Nat.min_eq_right hle, Nat.max_eq_left hle] at hn
+        have := cfgFold_noConf dec c0 hn hle H.cfg
+        rw [hs] at this; rw [H.cfg]; exact this.symm
+    rw [H.cfg] at hfs
+    cases hfs
+    exact hsw hw0
 
 theorem RInv.full_length {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r) :
     (r.full.length : Int) = plogLastIndexZ r.p.base r.p.log := by
@@ -216,10 +278,11 @@ theorem RInv.frame {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec c0
     (hfp : r'.fp = r.fp) (hb : r'.p.base = r.p.base) (hl : r'.p.log = r.p.log)
     (hc : r'.p.commit = r.p.commit) (ha : r'.applied = r.applied) (hs : r'.snap = r.snap)
     (hci : r'.cidx = r.cidx) (hcf : r'.cfg = r.cfg)
-    (hrole : r'.p.role = .follower ∨ (r'.p.role = r.p.role ∧ r'.pci = r.pci)) :
+    (hrole : r'.p.role = .follower ∨
+      (r'.p.role = r.p.role ∧ r'.pci = r.pci ∧ r'.p.sub = r.p.sub ∧ r'.p.scp = r.p.scp)) :
     RInv dec c0 r' := by
   have hfull : r'.full = r.full := by unfold RState.full; rw [hfp, hl]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hb, hfp]; exact H.full
   · rw [hb, hc]; exact H.base_commit
   · rw [hb, hl, hc]; exact H.commit_last
@@ -234,13 +297,20 @@ theorem RInv.frame {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec c0
   · rw [hfull, hci, hcf]; exact H.cfg
   · rw [hfull, hc]; exact H.i1
   · intro h
-    rcases hrole with hf | ⟨hr, hp⟩
+    rcases hrole with hf | ⟨hr, hp, -⟩
     · rw [hf] at h; cases h
     · rw [hfull, hp, ha]; exact H.i3 (hr ▸ h)
   · intro h
-    rcases hrole with hf | ⟨hr, _⟩
+    rcases hrole with hf | ⟨hr, -⟩
     · rw [hf] at h; cases h
     · rw [hfull, hs, ha, hc]; exact H.cand (hr ▸ h)
+  · intro h h0
+    rcases hrole with hf | ⟨hr, -, hsb, hsc⟩
+    · rw [hf] at h; cases h
+    · rw [hsb] at h0
+      obtain ⟨p0, hp0, hsp, himp⟩ := H.lf (hr ▸ h) h0
+      refine ⟨p0, by rw [hc]; exact hp0, by rw [hsc, hfull]; exact hsp, ?_⟩
+      rw [hfull, hcf, hci]; exact himp
 
 /-- A rule that only raises the commit index (within the log), keeping a leader's role and
 `pci` or making a follower. -/
@@ -251,11 +321,12 @@ theorem RInv.commitUp {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec
     (ha : r'.applied = r.applied) (hs : r'.snap = r.snap)
     (hci : r'.cidx = r.cidx) (hcf : r'.cfg = r.cfg)
     (hrole : r'.p.role = .follower ∨
-      (r'.p.role = .leader ∧ r.p.role = .leader ∧ r'.pci = r.pci)) :
+      (r'.p.role = .leader ∧ r.p.role = .leader ∧ r'.pci = r.pci ∧ r'.p.sub = r.p.sub ∧
+        r'.p.scp = r.p.scp)) :
     RInv dec c0 r' := by
   have hfull : r'.full = r.full := by unfold RState.full; rw [hfp, hl]
   have hcn := rUnat_le hc
-  refine ⟨?_, ?_, hcl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, hcl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hb, hfp]; exact H.full
   · rw [hb]; exact Int.le_trans H.base_commit hc
   · rw [ha, hci]; exact H.applied_cidx
@@ -263,19 +334,26 @@ theorem RInv.commitUp {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec
   · rw [hs, hci, hb]; exact H.snap_base
   · rw [hs, hb, ha]; exact H.base_applied
   · intro h
-    rcases hrole with hf | ⟨_, hr, _⟩
+    rcases hrole with hf | ⟨_, hr, -⟩
     · rw [hf] at h; cases h
     · rw [hs]; exact H.lead_snap hr
   · rw [hfull, hci, hcf]; exact H.cfg
   · rw [hfull]; exact H.i1.mono hcn
   · intro h
-    rcases hrole with hf | ⟨_, hr, hp⟩
+    rcases hrole with hf | ⟨_, hr, hp, -⟩
     · rw [hf] at h; cases h
     · rw [hfull, hp, ha]; exact H.i3 hr
   · intro h
     rcases hrole with hf | ⟨hl', _, _⟩
     · rw [hf] at h; cases h
     · rw [hl'] at h; cases h
+  · intro h h0
+    rcases hrole with hf | ⟨_, hr, -, hsb, hsc⟩
+    · rw [hf] at h; cases h
+    · rw [hsb] at h0
+      obtain ⟨p0, hp0, hsp, himp⟩ := H.lf hr h0
+      refine ⟨p0, Nat.le_trans hp0 hcn, by rw [hsc, hfull]; exact hsp, ?_⟩
+      rw [hfull, hcf, hci]; exact himp
 
 /-- A node starting from `c0` with the committed and applied log `L` (see the file header). -/
 theorem RInv_init (dec : CCDec) (c0 : CCState) (r : RState) (L : List EntryM)
@@ -287,7 +365,7 @@ theorem RInv_init (dec : CCDec) (c0 : CCState) (r : RState) (L : List EntryM)
   have hfull : r.full = L := by unfold RState.full; rw [hfp, hl, List.nil_append]
   have hcn : uint.nat r.p.commit = L.length := by have := rUnat_eq r.p.commit; omega
   have h0 := base0_index
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rw [hb, hfp]; exact FullOk_base0
   · rw [hb, h0, hc]; omega
   · rw [hb, hl, hc]; unfold plogLastIndexZ; rw [h0]; omega
@@ -303,6 +381,7 @@ theorem RInv_init (dec : CCDec) (c0 : CCState) (r : RState) (L : List EntryM)
     omega
   · rw [hrole]; intro h; cases h
   · rw [hrole]; intro h; cases h
+  · intro h; rw [hrole] at h; cases h
 
 /-! ### `stepLeader`'s conf-change loop -/
 
@@ -428,20 +507,24 @@ variable {dec : CCDec} {c0 : CCState}
 log, base, commit index and role (or a new follower), and every new field, unchanged. -/
 theorem RInv_keep {r : RState} (p' : PState) (H : RInv dec c0 r) (hb : p'.base = r.p.base)
     (hl : p'.log = r.p.log) (hc : p'.commit = r.p.commit)
-    (hrole : p'.role = .follower ∨ p'.role = r.p.role) : RInv dec c0 { r with p := p' } :=
-  H.frame rfl hb hl hc rfl rfl rfl rfl (hrole.imp id fun h => ⟨h, rfl⟩)
+    (hrole : p'.role = .follower ∨ (p'.role = r.p.role ∧ p'.sub = r.p.sub ∧ p'.scp = r.p.scp)) :
+    RInv dec c0 { r with p := p' } :=
+  H.frame rfl hb hl hc rfl rfl rfl rfl (hrole.imp id fun h => ⟨h.1, rfl, h.2.1, h.2.2⟩)
 
 theorem preadRespondAll_fields (id : w64) (s : PState) (qs : List ReadReq) :
     (preadRespondAll id s qs).base = s.base ∧ (preadRespondAll id s qs).log = s.log ∧
-    (preadRespondAll id s qs).commit = s.commit ∧ (preadRespondAll id s qs).role = s.role := by
+    (preadRespondAll id s qs).commit = s.commit ∧
+    ((preadRespondAll id s qs).role = s.role ∧ (preadRespondAll id s qs).sub = s.sub ∧
+      (preadRespondAll id s qs).scp = s.scp) := by
   obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
-  rw [h]; exact ⟨rfl, rfl, rfl, rfl⟩
+  rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem RInv_campaign {r : RState} (id : w64) (ms : List Msg) (H : RInv dec c0 r)
     (hs : r.snap = false) (hg : NoConfIn r.full (uint.nat r.applied) (uint.nat r.p.commit)) :
     RInv dec c0 { r with p := psendMsgs (pbecomeCandidate id r.p) ms, pci := W64 0 } :=
   ⟨H.full, H.base_commit, H.commit_last, H.applied_cidx, H.cidx_commit, H.snap_base,
-    H.base_applied, (fun h => by cases h), H.cfg, H.i1, (fun h => by cases h), (fun _ => ⟨hs, hg⟩)⟩
+    H.base_applied, (fun h => by cases h), H.cfg, H.i1, (fun h => by cases h), (fun _ => ⟨hs, hg⟩),
+    (fun h => by cases h)⟩
 
 /-- A new leader: `pci` at the last index before its empty entry; I3 from the campaign guard
 (still holding at a candidate, `RInv.cand`) and I1. -/
@@ -464,7 +547,7 @@ theorem RInv_win {r : RState} (id : w64) (mt : GMap w64 w64) (ms : List Msg)
     omega
   have ⟨hsn, hg⟩ := H.cand hrole
   refine ⟨H.full, H.base_commit, ?_, H.applied_cidx, H.cidx_commit, H.snap_base, H.base_applied,
-    (fun _ => hsn), ?_, ?_, ?_, (fun h => by cases h)⟩
+    (fun _ => hsn), ?_, ?_, ?_, (fun h => by cases h), (fun _ h => absurd rfl h)⟩
   · show uint.Z r.p.commit ≤ plogLastIndexZ r.p.base (r.p.log ++ [pleaderEntry r.p])
     unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append, List.length_singleton]
     push_cast; omega
@@ -550,7 +633,16 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
   refine ⟨H.full, H.base_commit, ?_, H.applied_cidx, H.cidx_commit, H.snap_base, H.base_applied,
     (fun _ => H.lead_snap hrole), ?_, ?_, ?_, (fun h => by
       have h' : r.p.role = .candidate := h
-      rw [hrole] at h'; cases h')⟩
+      rw [hrole] at h'; cases h'), ?_⟩
+  rotate_right
+  · intro _ h0
+    obtain ⟨p0, hp0, hsp, himp⟩ := H.lf hrole h0
+    have hpl : p0 ≤ r.full.length := by have := H.cidx_commit; omega
+    refine ⟨p0, hp0, ?_, ?_⟩
+    · rw [hfull, List.take_append_of_le_length hpl]; exact hsp
+    · rw [hfull, List.take_append_of_le_length hpl]
+      intro hc
+      exact NoConfIn_append_left (himp hc) (Nat.max_le.2 ⟨hpl, hcidx⟩)
   · show uint.Z r.p.commit ≤
       plogLastIndexZ r.p.base (r.p.log ++ pb.1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p)))
     unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append]; push_cast; omega
@@ -575,7 +667,7 @@ theorem RInv_propDrop {r : RState} (m : Msg) (cs : List (Option CCMsg))
     (propConf_inv (CfgM.joint r.cfg.cfg) (pci := r.pci) hcs hal (by rw [hli]; omega)).1
   have hpn := rUnat_le p1
   refine ⟨H.full, H.base_commit, H.commit_last, H.applied_cidx, H.cidx_commit, H.snap_base,
-    H.base_applied, H.lead_snap, H.cfg, H.i1, ?_, H.cand⟩
+    H.base_applied, H.lead_snap, H.cfg, H.i1, ?_, H.cand, H.lf⟩
   intro hl
   exact ⟨fun k e he hce => Nat.lt_of_lt_of_le ((H.i3 hl).1 k e he hce) hpn, (H.i3 hl).2⟩
 
@@ -583,7 +675,7 @@ theorem RInv_commit {r : RState} (n : w64) (H : RInv dec c0 r) (hrole : r.p.role
     (hc : uint.Z r.p.commit < uint.Z n) (hn : uint.Z n ≤ plogLastIndexZ r.p.base r.p.log) :
     RInv dec c0 { r with p := { r.p with commit := n } } :=
   H.commitUp rfl rfl rfl (show uint.Z r.p.commit ≤ uint.Z n by omega) hn rfl rfl rfl rfl
-    (Or.inr ⟨hrole, hrole, rfl⟩)
+    (Or.inr ⟨hrole, hrole, rfl, rfl, rfl⟩)
 
 theorem RInv_heartbeat {r : RState} (src cm : w64) (ms : List Msg) (H : RInv dec c0 r)
     (hm : uint.Z cm ≤ plogLastIndexZ r.p.base r.p.log) :
@@ -623,7 +715,7 @@ theorem RInv_snapRestore {r : RState} (m : Msg) (fp' : List EntryM) (cs' : CCSta
   have hac : uint.nat r.applied ≤ uint.nat m.index := by
     have := H.applied_cidx; have := H.cidx_commit; have := rUnat_le (Int.le_of_lt hc); omega
   refine ⟨hfull, Int.le_refl _, ?_, hac, Nat.le_refl _, (fun _ => rfl), (fun h => by cases h),
-    (fun h => by cases h), ?_, ?_, (fun h => by cases h), (fun h => by cases h)⟩
+    (fun h => by cases h), ?_, ?_, (fun h => by cases h), (fun h => by cases h), (fun h => by cases h)⟩
   · show uint.Z m.index ≤ plogLastIndexZ (entryID.mk m.logterm m.index) []
     unfold plogLastIndexZ; simp
   · show cfgFold dec c0 ((fp' ++ []).take (uint.nat m.index)) = some cs'
@@ -641,7 +733,7 @@ theorem RInv_advance {r : RState} (a : w64) (H : RInv dec c0 r) (hs : r.snap = f
   have h2n := rUnat_le h2
   refine ⟨H.full, H.base_commit, H.commit_last, Nat.le_max_right _ _,
     Nat.max_le.2 ⟨H.cidx_commit, h2n⟩, ?_,
-    (fun _ => Int.le_trans (H.base_applied hs) h1), H.lead_snap, ?_, H.i1, ?_, ?_⟩
+    (fun _ => Int.le_trans (H.base_applied hs) h1), H.lead_snap, ?_, H.i1, ?_, ?_, ?_⟩
   · intro h
     have h' : r.snap = true := h
     rw [hs] at h'; cases h'
@@ -654,36 +746,50 @@ theorem RInv_advance {r : RState} (a : w64) (H : RInv dec c0 r) (hs : r.snap = f
     exact ⟨(H.i3 hl).1, Nat.le_trans (confCount_drop_le _ h1n) (H.i3 hl).2⟩
   · intro hc
     exact ⟨hs, (H.cand hc).2.mono h1n (Nat.le_refl _)⟩
+  · intro hl h0
+    obtain ⟨p0, hp0, hsp, himp⟩ := H.lf hl h0
+    exact ⟨p0, hp0, hsp, fun hc => NoConfIn_minmax_extend (himp hc) hn⟩
 
 theorem RInv_applySnap {r : RState} (H : RInv dec c0 r) (hs : r.snap = true) :
     RInv dec c0 { r with applied := r.p.base.index', snap := false } := by
   have hbn : uint.nat r.p.base.index' = r.cidx := (H.snap_base hs).symm
   refine ⟨H.full, H.base_commit, H.commit_last, Nat.le_of_eq hbn, H.cidx_commit,
-    (fun h => by cases h), (fun _ => Int.le_refl _), (fun _ => rfl), H.cfg, H.i1, ?_, ?_⟩
+    (fun h => by cases h), (fun _ => Int.le_refl _), (fun _ => rfl), H.cfg, H.i1, ?_, ?_, ?_⟩
   · intro hl; have := H.lead_snap hl; rw [hs] at this; cases this
   · intro hc; have := (H.cand hc).1; rw [hs] at this; cases this
+  · intro hl; have := H.lead_snap hl; rw [hs] at this; cases this
 
 /-- (2026-10-20, witness support) A new subterm: one empty entry, not a conf entry; `pci` kept. -/
-theorem RInv_newSub {r : RState} (id x : w64) (H : RInv dec c0 r) (hrole : r.p.role = .leader)
-    (hlast : plogLastIndexZ r.p.base r.p.log + 1 < 2 ^ 64) :
-    RInv dec c0 { r with p := pnewSub id r.p x } := by
-  have hlen := H.full_length
-  have hcl := H.commit_last
+theorem RInv_newSub {r : RState} (id x : w64)
+    (H : RInv dec c0 { r with p := { r.p with sub := W64 0 } }) (hrole : r.p.role = .leader)
+    (hlast : plogLastIndexZ r.p.base r.p.log + 1 < 2 ^ 64) (hsub : uint.Z r.p.sub + 1 < 2 ^ 64) :
+    RInv dec c0 { r with p := pnewSub id r.p x (r.full.take r.cidx) } := by
+  have hlen : (r.full.length : Int) = plogLastIndexZ r.p.base r.p.log := H.full_length
+  have hcl : uint.Z r.p.commit ≤ plogLastIndexZ r.p.base r.p.log := H.commit_last
+  have hcc : r.cidx ≤ uint.nat r.p.commit := H.cidx_commit
+  have hac : uint.nat r.applied ≤ r.cidx := H.applied_cidx
   have hcidx : r.cidx ≤ r.full.length := by
-    have := H.cidx_commit; have := rUnat_eq r.p.commit; omega
+    have := rUnat_eq r.p.commit; omega
   obtain ⟨e, he⟩ : ∃ e, stampS r.p.term (r.p.sub + W64 1) (plastIndex r.p) 0 (zero_val EntryM) = e :=
     ⟨_, rfl⟩
   have hx : ¬ IsConfEnt e := by rw [← he]; exact not_isConfEnt_zero
-  have hlogE : (pnewSub id r.p x).log = r.p.log ++ [e] := by rw [← he]; rfl
-  have hfull : RState.full { r with p := pnewSub id r.p x } = r.full ++ [e] := by
-    show r.fp ++ (pnewSub id r.p x).log = _
+  have hlogE : (pnewSub id r.p x (r.full.take r.cidx)).log = r.p.log ++ [e] := by rw [← he]; rfl
+  have hfull : RState.full { r with p := pnewSub id r.p x (r.full.take r.cidx) } = r.full ++ [e] := by
+    show r.fp ++ (pnewSub id r.p x (r.full.take r.cidx)).log = _
     rw [hlogE]; unfold RState.full; simp only [List.append_assoc]
   have hI3 := H.i3 hrole
+  have hfull0 : RState.full { r with p := { r.p with sub := W64 0 } } = r.full := rfl
+  rw [hfull0] at hI3
   refine ⟨H.full, H.base_commit, ?_, H.applied_cidx, H.cidx_commit, H.snap_base, H.base_applied,
     (fun _ => H.lead_snap hrole), ?_, ?_, ?_, (fun h => by
       have h' : r.p.role = .candidate := h
-      rw [hrole] at h'; cases h')⟩
-  · show uint.Z r.p.commit ≤ plogLastIndexZ r.p.base (pnewSub id r.p x).log
+      rw [hrole] at h'; cases h'), ?_⟩
+  rotate_right
+  · intro _ _
+    refine ⟨r.cidx, hcc, ?_, fun _ => ?_⟩
+    · rw [hfull, List.take_append_of_le_length hcidx]; rfl
+    · intro k e' h1 h2; rw [Nat.min_self] at h1; rw [Nat.max_self] at h2; omega
+  · show uint.Z r.p.commit ≤ plogLastIndexZ r.p.base (pnewSub id r.p x (r.full.take r.cidx)).log
     rw [hlogE]
     unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append, List.length_singleton]
     push_cast; omega
@@ -700,8 +806,7 @@ theorem RInv_newSub {r : RState} (id x : w64) (H : RInv dec c0 r) (hrole : r.p.r
         simp at this
         rw [show k - r.full.length = 0 by omega] at he'
         simp at he'; subst he'; exact absurd hce hx
-    · have ha : uint.nat r.applied ≤ r.full.length := by
-        have := H.applied_cidx; omega
+    · have ha : uint.nat r.applied ≤ r.full.length := by omega
       have hx0 : confCount [e] = 0 := by rw [confCount_cons, ite_eq_right hx]; rfl
       rw [List.drop_append_of_le_length ha, confCount_append, hx0, Nat.add_zero]
       exact hI3.2
@@ -710,11 +815,12 @@ theorem RInv_newSub {r : RState} (id x : w64) (H : RInv dec c0 r) (hrole : r.p.r
 theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState)
     (H : RInv dec c0 r) (hs : r.snap = false) (hk : r.cidx ≤ k) (hkc : k < uint.nat r.p.commit)
     (he : r.full[k]? = some e) (hc : IsConfEnt e) (hn : NoConfIn r.full r.cidx k)
-    (hd : dec (r.full.take k) e = some op) (hst : ccStepB op r.cfg = some cs') :
+    (hd : dec (r.full.take k) e = some op) (hst : ccStepB op r.cfg = some cs')
+    (hlf : LfOk dec c0 { r with cidx := k + 1, cfg := cs' }) :
     RInv dec c0 { r with cidx := k + 1, cfg := cs' } := by
   refine ⟨H.full, H.base_commit, H.commit_last,
     (show uint.nat r.applied ≤ k + 1 by have := H.applied_cidx; omega), hkc, ?_,
-    H.base_applied, H.lead_snap, ?_, H.i1, H.i3, H.cand⟩
+    H.base_applied, H.lead_snap, ?_, H.i1, H.i3, H.cand, hlf⟩
   · intro h
     have h' : r.snap = true := h
     rw [hs] at h'; cases h'
@@ -908,7 +1014,7 @@ theorem RInv_appAccept {r : RState} (m : Msg) (lastnewi : w64) (es' : List Entry
       push_cast at hei; omega
     refine ⟨H.full, Int.le_trans hbc hc1, ?_, H.applied_cidx,
       Nat.le_trans H.cidx_commit (rUnat_le hc1), H.snap_base, H.base_applied,
-      (fun h => by cases h), ?_, ?_, (fun h => by cases h), (fun h => by cases h)⟩
+      (fun h => by cases h), ?_, ?_, (fun h => by cases h), (fun h => by cases h), (fun h => by cases h)⟩
     · show uint.Z (plogCommitTo r.p.commit X)
           ≤ plogLastIndexZ r.p.base
             (r.p.log.take (uint.Z e.Index' - uint.Z r.p.base.index' - 1).toNat ++ m.entries.drop d)
@@ -994,15 +1100,16 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
     exact RInv_keep _ H this.1 this.2.1 this.2.2.1 (Or.inr this.2.2.2)
   | advance r a h1 h2 h3 h4 => exact RInv_advance a H h1 h2 h3 h4
   | applySnap r h1 => exact RInv_applySnap H h1
-  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 _ _ =>
-    exact RInv_applyConf k e op cs' H h1 h2 h3 h4 h5 h6 h7 h8
-  | applyConfWit r k e op cs' x h1 h2 h3 h4 h5 h6 h7 h8 _ h10 _ _ h13 =>
+  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 _ h10 =>
+    exact RInv_applyConf k e op cs' H h1 h2 h3 h4 h5 h6 h7 h8 (LfOk_applyConf H h8 h10)
+  | applyConfWit r k e op cs' x h1 h2 h3 h4 h5 h6 h7 h8 _ h10 _ h12 h13 =>
     exact RInv_newSub (r := { r with cidx := k + 1, cfg := cs' }) id x
-      (RInv_applyConf k e op cs' H h1 h2 h3 h4 h5 h6 h7 h8) h10 (by simp only; omega)
-  | newSub r x h1 _ _ _ h5 => exact RInv_newSub id x H h1 (by omega)
+      (RInv_applyConf (r := { r with p := { r.p with sub := W64 0 } }) k e op cs' H.sub0
+        h1 h2 h3 h4 h5 h6 h7 h8 (fun _ h => absurd rfl h)) h10 (by simp only; omega) h12
+  | newSub r x h1 _ _ h4 h5 => exact RInv_newSub id x H.sub0 h1 (by omega) h4
   | _ =>
     first
-    | exact RInv_keep _ H rfl rfl rfl (Or.inr rfl)
+    | exact RInv_keep _ H rfl rfl rfl (Or.inr ⟨rfl, rfl, rfl⟩)
     | exact RInv_keep _ H rfl rfl rfl (Or.inl rfl)
     | exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
 

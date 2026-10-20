@@ -106,12 +106,13 @@ def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
   propConf r.applied (plastIndex r.p) r.pci ents cs (CfgM.joint r.cfg.cfg)
 
 /-- (2026-10-20, witness support) `maybeStartNewSubterm` at a leader: the next subterm, its
-replication set excluding `x` (`0` for the witness), with an empty entry of it and its
-self-acknowledgement (`StepC.newSub`'s effect). -/
-def pnewSub (id : w64) (p : PState) (x : w64) : PState :=
-  psendMsgs (pappend { p with sub := p.sub + W64 1, rsx := x }
+replication set excluding `x` (`0` for the witness), of the configuration of the prefix `P`
+(ghost, `PState.scp`), with an empty entry of it and its self-acknowledgement (`StepC.newSub`'s
+effect). -/
+def pnewSub (id : w64) (p : PState) (x : w64) (P : List EntryM) : PState :=
+  psendMsgs (pappend { p with sub := p.sub + W64 1, rsx := x, scp := P }
       [stampS p.term (p.sub + W64 1) (plastIndex p) 0 (zero_val EntryM)])
-    [pselfAck id (pappend { p with sub := p.sub + W64 1, rsx := x }
+    [pselfAck id (pappend { p with sub := p.sub + W64 1, rsx := x, scp := P }
       [stampS p.term (p.sub + W64 1) (plastIndex p) 0 (zero_val EntryM)])]
 
 /-- The dynamic model's configurations: the fold of the prefix from `c0` (A3). -/
@@ -445,7 +446,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       (x = W64 0 ∨ (x ∈ cs'.cfg.incoming ∧ x ≠ cs'.cfg.wit)) →
       uint.Z r.p.sub + 1 < 2 ^ 64 →
       plogLastIndexZ r.p.base r.p.log + 1 ≤ B →
-      StepR r [] { r with cidx := k + 1, cfg := cs', p := pnewSub id r.p x }
+      StepR r [] { r with cidx := k + 1, cfg := cs', p := pnewSub id r.p x (r.full.take (k + 1)) }
   /-- (2026-10-20, witness support) `StepC.newSub` at the configuration. -/
   | newSub (r : RState) (x : w64) :
       r.p.role = .leader →
@@ -453,7 +454,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       (x = W64 0 ∨ (x ∈ r.cfg.cfg.incoming ∧ x ≠ r.cfg.cfg.wit)) →
       uint.Z r.p.sub + 1 < 2 ^ 64 →
       plogLastIndexZ r.p.base r.p.log + 1 ≤ B →
-      StepR r [] { r with p := pnewSub id r.p x }
+      StepR r [] { r with p := pnewSub id r.p x (r.full.take r.cidx) }
   /-- (2026-10-20) `StepC.sendWApp` at the configuration, whose witness is an incoming voter. -/
   | sendWApp (r : RState) (i : w64) (e : EntryM) (vs : List w64) :
       r.p.role = .leader →
