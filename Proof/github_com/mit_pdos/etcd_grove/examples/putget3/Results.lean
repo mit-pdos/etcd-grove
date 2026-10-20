@@ -60,7 +60,7 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : putget3.BootFacts id₁ id₂ id₃ bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     (n : Nat)
@@ -77,7 +77,7 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq HNs HAs n Hprem HEof HCc σ g
+  putget3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hdbo HNs HAs n Hprem HEof HCc σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

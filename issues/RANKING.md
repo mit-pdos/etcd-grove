@@ -132,7 +132,14 @@ log resend or snapshot to a caught-up follower after a delayed stale-term messag
 their low 16 bits),
 [etcd-lease-close-require-leader-ctx-misaligned](etcd-lease-close-require-leader-ctx-misaligned.md)
 (a canceled `KeepAlive` closes another caller's channel after an `ErrNoLeader` stream end; test and
-one-token fix).
+one-token fix),
+[etcd-alarm-store-snapshot-race](etcd-alarm-store-snapshot-race.md) (2026-10-20: `restoreAlarms`
+replaces `s.alarmStore` unsynchronized while `Status`/`/health` read it; the race detector reports
+it in 4 of 5 runs of an integration test; effect a stale alarm list for a moment; an
+`atomic.Pointer` fixes it),
+[etcd-release-snapdb-before-open](etcd-release-snapdb-before-open.md) (2026-10-20, code reading,
+not reproduced: a second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` has
+not opened yet, a follower panic; needs two snapshots in quick succession).
 
 ## Already in maintainers' hands
 

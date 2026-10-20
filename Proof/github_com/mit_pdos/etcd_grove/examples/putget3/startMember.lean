@@ -50,7 +50,7 @@ theorem startMember.wp_proof
     (wp_Serve : net.http.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀ Φs γn
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq
+    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, Hslot⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
@@ -119,9 +119,10 @@ theorem startMember.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, -, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, #Hnm⟩)
   · -- `NewServer` failed: the error returned
     cases err with
