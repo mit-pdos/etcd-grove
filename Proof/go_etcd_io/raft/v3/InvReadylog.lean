@@ -52,7 +52,9 @@ end), and the ones just handed out are now the application's to persist
 2026-10-10). -/
 def logAcceptUnstable (ls : LogState) : LogState :=
   { ls with inprogress := logEnd ls, unpersisted := nextUnstable ls,
-            stored := ls.sents ++ ls.uents }
+            stored := ls.sents ++ ls.uents,
+            -- (D22 S-d1) a pending snapshot is in progress
+            sip := ls.sip || ls.snap.isSome }
 
 /-- The committed entries not yet handed out for applying: `(applying, committed]` --
 what `nextCommittedEnts(true)` slices, before `maxSize` cuts it short. -/
@@ -395,7 +397,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
   isplitr [Happ]
   · iapply ownRaftLog_intro (K := ls.ksn) l lv lv.storage' { σ with pend := nextUnstable ls } ls.snap ls.uents
       (logHanded ls) rfl Hcm Hap Hidx Hnowrap Hstore' Hoffset Happlied Hpapplied
-      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN HflN Hsksn
+      Hcommitted Hssnap' Hapg Hip Hipb HpersistN Happlying Hpaused Hasz Hamx Hstor HpendN HflN Hsksn Hsip Hsipn
       rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
   rw [← Hstor]; iexact Happ
 

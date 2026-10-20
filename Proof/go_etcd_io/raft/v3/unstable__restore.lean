@@ -60,7 +60,7 @@ theorem unstable.restore.wp_proof
     ipureintro
     exact ⟨by cases Hsid; rfl, List.mem_append_right _ (List.mem_singleton_self _)⟩
   · iexact Hlogger
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
 
 end proof
 

@@ -50,7 +50,8 @@ abbrev unstable.restore.spec : Prop :=
       ownUnstable u { ents := [], offset := sv.Metadata'.Index' + W64 1,
                       inprogress := sv.Metadata'.Index' + W64 1,
                       snap := some (snapId sv),
-                      ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists] } }}
+                      ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
+                      sip := false } }}
 
 end spec
 

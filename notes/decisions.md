@@ -13259,3 +13259,83 @@ dynamically, `GMode.SnapOk` are left as premises.
 - No server/kv change: their `"#Hsnap"` uses are at `reNoSnap = true` (no `MsgSnap` stepped) or
   through `raft.Step`'s weaker premise. Trust base unchanged (538 axioms, 2 sorries); every
   collection passes `--check`.
+
+## D22 S-d1 part 1 carried out: `snapshotInProgress` tracked; the rest of S-d redesigned (2026-10-20)
+
+Stage S-d1 ("D22 S-d designed", the log layer), its first part; the rest is not carried out: a
+closer read found that the design's window between the application's return of the lent storage
+and `stableSnapTo` needs more than a pure premise, and the precise design for it is below.
+
+**1. Carried out (builds, trust base unchanged: 538 axioms, 2 sorries).**
+- `UnstableSt.sip`, `LogState.sip : Bool := false` (`snapshotInProgress`); `ownUnstable`'s
+  `"%Hsip"` (`uv.snapshotInProgress' = us.sip`; `ownUnstable_open` puts it in the struct like the
+  offsets, `ownUnstable_intro`/`_reopen`/`_return` and the `close_unstable`/`lend_unstable`/
+  `reopen_unstable` macros carry it); `ownRaftLog`'s `"%Hsip"` (the field is `ls.sip`) and
+  `"%Hsipn"` (`snap = none → sip = false`), two new premises of `ownRaftLog_intro` after `Hsksn`.
+- Specs: `unstable.restore` (`sip := false`; `logRestore` too), `unstable.acceptInProgress`
+  (`sip := sip || snap.isSome`; `logAcceptUnstable` too), `unstable.nextSnapshot` exact (`p = null
+  ↔ snap = none ∨ sip`, the returned clone's case with `sip = false`),
+  `raftLog.hasNextUnstableSnapshot` exact (`(snap = none ∨ sip) ↔ b = false`); new
+  `unstable.stableSnapTo` (`Spec`/`Proof` `unstable__stableSnapTo.lean`: `snapHit snap i`, the
+  record `unstableSnapTo us i`, in `InvRaftlog.lean`), linked (`etc/link-lean-first-raft.txt`)
+  and in `Results.lean`. No caller changes beyond `readyWithoutAccept`'s `Hbsn.1 (.inl Hsnap)`.
+
+**2. What the design missed: the stable part while a snapshot is pending.** `raft.Step`'s
+`MsgStorageAppendResp` arm runs `stableTo(Index, LogTerm)` before `appliedSnap(Snapshot)`, and
+the acknowledgement of a `Ready` that handed out a snapshot `s1` and the entries `es` after it
+carries `Index` = `es`'s last: `stableTo` hits and moves entries stable **while `unstable.snapshot`
+is still set**. Every `ownRaftLog` read proof (`term`, `slice`: `maybeTerm` misses inside
+`(sid, offset)` and asks the storage) and `LogStoreOk (some sid)` assume the stable part is empty
+then. So a log state "snapshot pending, the storage holding it, a stable part after it" exists
+(between the two calls) that the design's pure `StableOk`/`stableSnapTo` premise ("the storage is
+back at the snapshot", stated on `ls`) does not describe: it needs a ghost record of the storage's
+being at the snapshot, and the persistence facts (`Hpersist`'s prefix relation) must hold across
+the pending snapshot from the `Ready` on (a `MsgApp` between `Ready` and `Advance` truncates and
+appends; today `Hpersist` is only kept with `snap = none`).
+
+**3. The second restore needs Log Matching, not a vacuous premise.** With `s2` restored between
+`Ready(s1, es)` and `Advance`, the acknowledgement's `stableTo(id)` (`id` = `es`'s last) must
+*miss*: were `id`'s term the new log's, Log Matching would make `es` agree with the leader's log
+up to `id`, hence at `s2.index` -- but `restore` ran past its `matchTerm(s2)` exit, so the log
+(holding `es` there, unless a conflicting `MsgApp` truncated it below `s2.index`, which Log
+Matching excludes likewise) disagreed at `s2.index`. Had it hit, `unstable` would keep `s2`
+pending with a stable part the storage holds only after `s1`, and the next `Ready`'s
+`ApplySnapshot(s2)` then `Append(entries after id)` would panic in `MemoryStorage.Append`
+("missing log entry"). So the `RawNode` discharges `StableOk` in this case by proving the miss
+(`stored_agree`-style, `InvRawnode.lean`), and no state "stable part over a shadowed storage" is
+needed. (Not a Go bug: unreachable by the argument above.)
+
+**4. The precise design for the rest of S-d1 (S-d1b) and its order.**
+- `LogState.lent : Bool := false` (the storage handed to the application: `"HStorage" ∷ if
+  ls.lent then True else ownStorage lv.storage' σ` -- 18 files name `HStorage`; each storage read
+  is under `snap = none`, so it takes `lent = false` from `⌜lent → snap ≠ none⌝` and rewrites) and
+  `LogState.sapp : Bool := false` (the storage at the pending snapshot: set only by the
+  absorption of the application's `snapReceipt`, cleared by `restore` and by `stableSnapTo`'s
+  hit). `LogStoreOk` takes `sapp`: `some sid` is `prev = sid ∧ bounds ∧ (if sapp then σ.prev = sid ∧
+  σ.ss = sid ∧ sents <+: σ.ents ∧ (uents = [] → sents = σ.ents) else sents = [])`, and the
+  `snap = none →` conjuncts that `stableSnapTo` must re-establish (`Hpersist`, `Hssnap`,
+  `PendLogOk.2`, `FlOk`'s third) become `snap = none ∨ sapp →`. To keep the read proofs as they
+  are, `sapp = true` is confined to the arm: every spec but `raftLog.stableTo`,
+  `raftLog.stableSnapTo`, `raftLog.appliedTo` (and `raft.appliedTo`/`appliedSnap`) takes
+  `ls.sapp = false` -- discharged in `raft.Step` by `ownRaftPhys` holding `sapp = false`, and in
+  the arm by the order (absorb, `stableTo`, `stableSnapTo`).
+- `Hpersist`'s σ-free part across a snapshot in progress: `LogPersistRel sents uents ipo stored
+  := (sents ++ uents.take ipo) <+: stored ∧ (ipo = |uents| → sents ++ uents = stored)`, kept
+  under `snap = none ∨ sip` (`append_persistOk` already proves it for an append; `restore`
+  makes it vacuous by `sip := false`; `acceptUnstable` with a snapshot sets `stored := sents ++
+  uents`, so it holds). The absorption lemma `ownRaftLog_absorb_snap` (receipt: `ownStorage st
+  σ'` with `σ'.prev = σ'.ss = sid`, `σ'.ents = stored`, `σ'.pend = []`, `σ'.fl = ls.fl`) needs it,
+  sets `lent := false`, `sapp := true` when the receipt's snapshot is the pending one, and
+  otherwise (a second restore) `lent := false`, `sapp := false` (the storage shadowed again).
+- `aps : Bool := false` and `Hpapplied` as `snap = none → aps = false → prev.index ≤ applied`;
+  `raftLog.stableSnapTo` (`logStableSnap ls i`: on `snapHit`, `snap := none, sip := false,
+  sapp := false, aps := true`; premise `snapHit → sapp`), `logAppliedTo` clearing `aps` at
+  `index ≥ prev.index`; `StableOk`'s hit: `(snap = none ∨ sapp) ∧ unpersisted = [] ∧ stored
+  take`.
+- Then S-d2 (`raft.appliedSnap`, both `MsgStorageAppendResp` arms, `raft.Step`'s premise `sn =
+  none ∨ the receipt absorbed`), S-d3 (the `RawNode`: the receipt travels in the queued
+  acknowledgement `Pending.appendAck t last (some i)` from `Advance`'s `appended` to its step;
+  the delivered jump; `acceptReady` lending the storage) and S-d4 as designed. Estimate for
+  S-d1b alone: about S-c's size (the `lent` rewrite in 18 files, `LogStoreOk`/`Hpersist` in every
+  log-changing proof: `append`, `stableTo`, `restore`, `absorb`, `handout`, `raise_floor`,
+  `acceptUnstable`, `newLogWithSize`, `Bootstrap`).

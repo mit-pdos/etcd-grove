@@ -58,12 +58,12 @@ theorem raftLog.restore.wp_proof
   wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   try wp_auto
-  icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip
+  icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip Hsip
     $$ Hl Huents_cap Huents Husnap Hpksn Hu_logger with ⟨Hun, Hlback⟩
   wp_apply wp_unstable_restore _ _ sp dq sv $$ [$Hun $Hback] as ⟨Hsnap, Hun⟩
   iclear Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip'⟩
+    with ⟨%uv', Hl, Hents_cap, Hents, #Hsn, #Hpk, #Hu_logger, %Hoff', %Hoip', %Hsip'⟩
   iapply HΦ
   iframe Hsnap
   rw [← Hlg]
@@ -78,7 +78,7 @@ theorem raftLog.restore.wp_proof
       rfl rfl Hap ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ Hapg ?_ ?_ ?_ ?_ Hpaused Hasz Hamx Hstor
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
       ⟨Hfl.1, Hfl.2.1, fun h => by simp [logRestore] at h, Hfl.2.2.2⟩
-      (fun h => List.mem_append_left _ (Hsksn h)) ?_ ?_ ?_
+      (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h) ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hkcert' Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,
     Int.natCast_zero, Int.add_zero]

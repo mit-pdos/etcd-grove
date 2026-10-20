@@ -61,6 +61,10 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     isplitr
     · ipureintro; rfl
     isplitr
+    · ipureintro; intro _; first | rfl | trivial
+    isplitr
+    · ipureintro; rfl
+    isplitr
     · ipureintro; rfl
     isplitr
     · ipureintro; exact Hidx
