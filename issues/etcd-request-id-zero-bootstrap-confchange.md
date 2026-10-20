@@ -1,6 +1,6 @@
 ---
-upstream: unchecked
-checked: 2026-10-18
+upstream: none
+checked: 2026-10-20
 links:
   - etcd-io/etcd#20729 pr merged: related, not this bug (the 2^48 event window comment in idutil)
 ---

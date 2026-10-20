@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-16
+checked: 2026-10-20
 links:
   - etcd-io/etcd#21986 issue open: same bug (merge's no-overlap fast path skips dedupe; a single-key read returns the older value)
   - etcd-io/etcd#21987 pr open: fix for #21986 (dedupe intra-batch duplicates in writeback before merge)

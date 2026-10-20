@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-17
+upstream: none
+checked: 2026-10-20
 links:
+  - etcd-io/etcd#13084 pr merged: same crash (ACTIVATE with no alarm type: empty key, unsafePut's Fatal in AlarmStore.Activate, found by fuzzing the gateway), fixed only in the caller (the applier's AlarmType_NONE skip this finding cites); Activate itself still unguarded and undocumented
 ---
 
 # `AlarmStore.Activate(0, AlarmType_NONE)` makes the backend exit the process

@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-18
+checked: 2026-10-20
 links:
   - etcd-io/etcd#9079 issue closed: the same panic ("unexpected error getting unapplied entries (requested index is unavailable due to compaction)", etcd 3.1.9, from tickElection), but after raft restored a leader snapshot (an unstable snapshot above applied), not etcd's compaction; closed as stale; raft v3.7.0's promotable() now refuses to campaign while a snapshot is pending (checked by a raft test, 2026-10-18)
   - etcd-io/etcd#12134 pr merged: made MsgTimeoutNow go through the unapplied conf-change scan before campaigning (the scan that panics here); related, not this bug

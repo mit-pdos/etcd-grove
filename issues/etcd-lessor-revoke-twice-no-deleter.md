@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-17
-links: []
+upstream: none
+checked: 2026-10-20
+links:
+  - etcd-io/etcd#10710 pr merged: related, not this bug (the lease benchmark's Revoke left leases in leaseMap until the PR set a fake range deleter; a reviewer noted it, the lessor was not changed)
 ---
 
 # server/lease: without a range deleter, `Revoke` keeps the lease and a second `Revoke` panics

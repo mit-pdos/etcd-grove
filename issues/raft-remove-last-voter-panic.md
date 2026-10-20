@@ -1,8 +1,8 @@
 ---
-upstream: unchecked
-checked:
+upstream: none
+checked: 2026-10-20
 links:
-  - etcd-io/etcd#13848 issue closed: the same raft panic ("removed all voters"), reached through `--force-new-cluster` on a removed member, not through a proposal
+  - etcd-io/etcd#13848 issue closed: the same raft panic ("removed all voters"), reached through `--force-new-cluster` on a removed member (or a replayed self-removal), not through a proposal; retitled a feature request, closed not planned (stale)
 ---
 
 # raft: a conf change removing the last voter is committed, then panics every node that applies it

@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-19
+checked: 2026-10-20
 links:
   - etcd-io/bbolt#447 issue closed: "Remove panics in the library code", lists the inode-overflow panic, not its trigger
 ---

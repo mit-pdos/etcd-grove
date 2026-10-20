@@ -1,15 +1,18 @@
 ---
-upstream: unchecked
-checked: 2026-10-18
+upstream: none
+checked: 2026-10-20
 links:
-candidate: issues/upstream/raft-readindex-removed-leader/
+  - etcd-io/raft#536 pr merged: related, not this bug: the removed-leader fix; its first version (`IsSingleton(id)`, via `VoteResult`) also fixed this, the merged form (`IsVoter(r.id) && IsSingleton()`, after review) does not, so `{1}&&{1}` still waits
+  - etcd-io/raft#535 pr merged: related, not this bug: moved the single-voter shortcut into `sendMsgReadIndexResponse` (the singleton-stale fix), still `IsSingleton()`
 ---
 
 # raft: a read at a leader that alone is a quorum of a joint configuration waits for heartbeat responses
 
 - **Status**: bug (liveness: a read index request is not answered although the leader's own acknowledgement is
   a quorum); found by the code review of the `raft-readindex-singleton-stale` fix (2026-10-18) and reproduced by a
-  temporary test; fixed by the `IsSingleton(id)` change, in the `raft-readindex-removed-leader` candidate since the split (2026-10-18).
+  temporary test. Not fixed upstream: the `IsSingleton(id)` change of the `raft-readindex-removed-leader` candidate
+  fixed it, but the fix merged as etcd-io/raft#536 is the reviewer's `IsVoter(r.id) && IsSingleton()`, which leaves
+  `{1}&&{1}` waiting (2026-10-19).
 - **Where** (etcd-io/raft `main` 638f42739): `stepLeader`'s single-voter shortcut (`raft.go:1355-1361`) uses
   `IsSingleton()`, false for a joint configuration; the `ReadOnlySafe` path of `sendMsgReadIndexResponse`
   (`raft.go:2146-2162`) records the leader's own acknowledgement but decides only in the `MsgHeartbeatResp` handler.
@@ -19,6 +22,6 @@ candidate: issues/upstream/raft-readindex-removed-leader/
   configuration leaves the joint state).
 - **Expected**: answered at once (after the leader's first commit in its term), as at the single voter `{1}`.
 - **How the proof handles it**: liveness; the proofs state safety only.
-- **Possible fixes**: the candidate's guard, `IsSingleton(r.id)` (id is the only voter, via `Voters.VoteResult`); more
+- **Possible fixes**: the candidate's first guard, `IsSingleton(r.id)` (id is the only voter, via `Voters.VoteResult`); more
   generally, decide right after `recvAck(r.id, ...)` in the `ReadOnlySafe` path.
 - **Found**: 2026-10-18, the code review of `fix/raft-readindex-singleton-stale`.
