@@ -137,6 +137,20 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
       simp [becomeFollower] at h
     · exact ⟨.inl (Int.le_max_left _ _), fun _ => ⟨Hp, rfl⟩⟩
 
+/-- A pre-candidate's queued pre-vote request to the witness (2026-10-20, W3b-C) is
+`StepC.sendWPre`. -/
+theorem stepC_sendWPre_wv (c : CfgM) (id : w64) (T : PState) (term : w64) (b : entryID)
+    (es : List EntryM) (ls : w64) (votes : GMap w64 Bool) (Hw : c.wit ≠ W64 0) :
+    StepC c id B T [] (psendMsgs T [wAbs (wVoteM id c.wit MsgPreVote term b es ls votes)]) := by
+  have He : wAbs (wVoteM id c.wit MsgPreVote term b es ls votes) =
+      Msg.mkV .wprevote id c.wit term false (plogLast b es).index' (plogLast b es).term' ls (W64 0)
+        [] [] [] := by
+    simp only [wAbs, wVoteM]
+    rw [ite_eq_right (by w32_ne), ite_eq_right (by w32_ne)]
+    simp only [↓reduceIte]
+  rw [He]
+  exact StepC.sendWPre _ _ Hw rfl rfl
+
 /-- `stepCandidate` on a `MsgPreVoteResp`: nothing at a candidate; at a pre-candidate,
 the tally and then win / lose / wait, which is `stepC_prevoteRespResult`. -/
 theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
@@ -160,12 +174,18 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} 
   refine ⟨rfl, ?_⟩
   by_cases Hp : s.role = .preCandidate
   · simp only [Hp, ↓reduceIte] at Hres
-    obtain ⟨won, lost, peers, pvs, Hw, -, rfl⟩ := Hres
-    refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
-      prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
+    obtain ⟨won, lost, peers, pvs, wq, Hw, -, -, HwqF, rfl⟩ := Hres
+    refine ⟨nstateWf_sendMsgs _ _ (nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf)),
+      ?_, prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
       prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
-    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
-      (fun Hwon => (Hw Hwon).2)) (.inr Hp)
+    have H0 := stepC_prevoteRespResult (B := B) c id s m.From' m.Reject' won lost peers pvs Hp Hin (Hnw Hp)
+      (fun Hwon => (Hw Hwon).2)
+    -- (2026-10-20, W3b-C) and the pre-vote request to the witness, if one was queued
+    rcases HwqF with rfl | ⟨ls, Hwt, -, -, -, rfl⟩
+    · rw [sendMsgs_nil]; exact StepCD.of_excluded H0 (.inr Hp)
+    · refine StepCD.of_excluded ?_ (.inr Hp)
+      rw [toPState_sendMsgs]
+      exact StepC.trans _ [] _ [] _ H0 (stepC_sendWPre_wv c id _ _ _ _ _ _ Hwt)
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres
     exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), RespStep.refl _ _,
