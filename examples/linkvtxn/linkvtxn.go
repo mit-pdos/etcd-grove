@@ -72,14 +72,88 @@ type TOp struct {
 }
 
 // An Input is an operation: a get of Key, a list of the keys, a put of Key with Val, a delete of
-// Key, or a transaction (If(Cmps).Then(Then).Else(Else)).
+// Key, or a transaction (If(Cmps).Then(Then).Else(Else): its comparisons, then- and
+// else-operations the first NCmps, NThen and NElse of Cmp0, Then0..Then2 and Else0). An Input is
+// a plain value (no slice: porcupine's model decodes it purely, Proof/.../linkvtxn).
 type Input struct {
-	Kind int
-	Key  string
-	Val  string
-	Cmps []Cmp
-	Then []TOp
-	Else []TOp
+	Kind  int
+	Key   string
+	Val   string
+	NCmps int
+	Cmp0  Cmp
+	NThen int
+	Then0 TOp
+	Then1 TOp
+	Then2 TOp
+	NElse int
+	Else0 TOp
+}
+
+// The most comparisons, then- and else-operations a transaction has (Input's fields).
+const (
+	MaxCmps = 1
+	MaxThen = 3
+	MaxElse = 1
+)
+
+// cmpsOf is a transaction's comparisons (a new slice).
+func cmpsOf(in Input) []Cmp {
+	out := []Cmp{}
+	if in.NCmps > 0 {
+		out = append(out, in.Cmp0)
+	}
+	return out
+}
+
+// thenOf is a transaction's then-operations (a new slice).
+func thenOf(in Input) []TOp {
+	out := []TOp{}
+	if in.NThen > 0 {
+		out = append(out, in.Then0)
+	}
+	if in.NThen > 1 {
+		out = append(out, in.Then1)
+	}
+	if in.NThen > 2 {
+		out = append(out, in.Then2)
+	}
+	return out
+}
+
+// elseOf is a transaction's else-operations (a new slice).
+func elseOf(in Input) []TOp {
+	out := []TOp{}
+	if in.NElse > 0 {
+		out = append(out, in.Else0)
+	}
+	return out
+}
+
+// mkTxn is the transaction of at most MaxCmps comparisons, MaxThen then- and MaxElse
+// else-operations (any beyond are dropped).
+func mkTxn(cmps []Cmp, then []TOp, els []TOp) Input {
+	in := Input{Kind: KTxn}
+	if len(cmps) > 0 {
+		in.NCmps = 1
+		in.Cmp0 = cmps[0]
+	}
+	if len(then) > 0 {
+		in.Then0 = then[0]
+		in.NThen = 1
+	}
+	if len(then) > 1 {
+		in.Then1 = then[1]
+		in.NThen = 2
+	}
+	if len(then) > 2 {
+		in.Then2 = then[2]
+		in.NThen = 3
+	}
+	if len(els) > 0 {
+		in.Else0 = els[0]
+		in.NElse = 1
+	}
+	return in
 }
 
 // A VR is a key's value, mod revision and version.
@@ -104,8 +178,10 @@ type TRes struct {
 }
 
 // An Output is an operation's result: Err if the call returned an error; otherwise the reply's
-// revision and, by the input's kind, a get's (Found, R), a list's KVs, a delete's count N, a
-// transaction's verdict Ok and its operations' results Res.
+// revision and, by the input's kind, a get's (Found, R), a list's key-values (the first NKVs of
+// KV0..KV2), a delete's count N, a transaction's verdict Ok and its operations' results (the first
+// NRes of Res0..Res2). More results than the fields hold leave the count above them, which the
+// model rejects. A plain value, as Input.
 type Output struct {
 	Err   bool
 	Rev   int64
@@ -113,8 +189,74 @@ type Output struct {
 	R     VR
 	N     int64
 	Ok    bool
-	Res   []TRes
-	KVs   []KV
+	NRes  int
+	Res0  TRes
+	Res1  TRes
+	Res2  TRes
+	NKVs  int
+	KV0   KV
+	KV1   KV
+	KV2   KV
+}
+
+// resOf is a transaction output's results (a new slice; at most 3).
+func resOf(o Output) []TRes {
+	out := []TRes{}
+	if o.NRes > 0 {
+		out = append(out, o.Res0)
+	}
+	if o.NRes > 1 {
+		out = append(out, o.Res1)
+	}
+	if o.NRes > 2 {
+		out = append(out, o.Res2)
+	}
+	return out
+}
+
+// kvsOf is a list output's key-values (a new slice; at most 3).
+func kvsOf(o Output) []KV {
+	out := []KV{}
+	if o.NKVs > 0 {
+		out = append(out, o.KV0)
+	}
+	if o.NKVs > 1 {
+		out = append(out, o.KV1)
+	}
+	if o.NKVs > 2 {
+		out = append(out, o.KV2)
+	}
+	return out
+}
+
+// withRes is o with the results rs (their count; the first 3).
+func withRes(o Output, rs []TRes) Output {
+	o.NRes = len(rs)
+	if len(rs) > 0 {
+		o.Res0 = rs[0]
+	}
+	if len(rs) > 1 {
+		o.Res1 = rs[1]
+	}
+	if len(rs) > 2 {
+		o.Res2 = rs[2]
+	}
+	return o
+}
+
+// withKVs is o with the key-values kvs (their count; the first 3).
+func withKVs(o Output, kvs []KV) Output {
+	o.NKVs = len(kvs)
+	if len(kvs) > 0 {
+		o.KV0 = kvs[0]
+	}
+	if len(kvs) > 1 {
+		o.KV1 = kvs[1]
+	}
+	if len(kvs) > 2 {
+		o.KV2 = kvs[2]
+	}
+	return o
 }
 
 // The workload's keys, in order, and what List lists: the range [listFrom, listTo), which holds
@@ -252,7 +394,7 @@ func mstep(in Input, st store) (store, Output) {
 		for _, e := range st.kvs {
 			kvs = append(kvs, KV{Key: e.key, R: e.r})
 		}
-		return st, Output{Rev: st.rev, KVs: kvs}
+		return st, withKVs(Output{Rev: st.rev}, kvs)
 	}
 	if in.Kind == KPut {
 		r := st.rev + 1
@@ -267,21 +409,21 @@ func mstep(in Input, st store) (store, Output) {
 		return st, Output{Rev: st.rev, N: 0}
 	}
 	ok := true
-	for _, c := range in.Cmps {
+	for _, c := range cmpsOf(in) {
 		if !holds(st.kvs, c) {
 			ok = false
 		}
 	}
-	ops := in.Else
+	ops := elseOf(in)
 	if ok {
-		ops = in.Then
+		ops = thenOf(in)
 	}
 	kvs, res, changed := runOps(st.kvs, st.rev+1, ops)
 	rev := st.rev
 	if changed {
 		rev = st.rev + 1
 	}
-	return store{kvs: kvs, rev: rev}, Output{Rev: rev, Ok: ok, Res: res}
+	return store{kvs: kvs, rev: rev}, withRes(Output{Rev: rev, Ok: ok}, res)
 }
 
 // isWrite reports whether an operation may write (a failed one may take effect later).
@@ -292,12 +434,12 @@ func isWrite(in Input) bool {
 	if in.Kind != KTxn {
 		return false
 	}
-	for _, op := range in.Then {
+	for _, op := range thenOf(in) {
 		if op.Kind != TGet {
 			return true
 		}
 	}
-	for _, op := range in.Else {
+	for _, op := range elseOf(in) {
 		if op.Kind != TGet {
 			return true
 		}
@@ -319,11 +461,13 @@ func outEqual(kind int, a, b Output) bool {
 		return a.Found == b.Found && (!a.Found || vrEqual(a.R, b.R))
 	}
 	if kind == KList {
-		if len(a.KVs) != len(b.KVs) {
+		if a.NKVs != b.NKVs || a.NKVs > 3 {
 			return false
 		}
-		for i := range a.KVs {
-			if a.KVs[i].Key != b.KVs[i].Key || !vrEqual(a.KVs[i].R, b.KVs[i].R) {
+		ak := kvsOf(a)
+		bk := kvsOf(b)
+		for i := range ak {
+			if ak[i].Key != bk[i].Key || !vrEqual(ak[i].R, bk[i].R) {
 				return false
 			}
 		}
@@ -335,12 +479,14 @@ func outEqual(kind int, a, b Output) bool {
 	if kind == KDel {
 		return a.N == b.N
 	}
-	if a.Ok != b.Ok || len(a.Res) != len(b.Res) {
+	if a.Ok != b.Ok || a.NRes != b.NRes || a.NRes > 3 {
 		return false
 	}
-	for i := range a.Res {
-		x := a.Res[i]
-		y := b.Res[i]
+	ar := resOf(a)
+	br := resOf(b)
+	for i := range ar {
+		x := ar[i]
+		y := br[i]
 		if x.Kind != y.Kind || x.N != y.N || x.Found != y.Found || (x.Found && !vrEqual(x.R, y.R)) {
 			return false
 		}
@@ -348,28 +494,8 @@ func outEqual(kind int, a, b Output) bool {
 	return true
 }
 
-func topsEqual(a, b []TOp) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func inputEqual(a, b Input) bool {
-	if a.Kind != b.Kind || a.Key != b.Key || a.Val != b.Val || len(a.Cmps) != len(b.Cmps) {
-		return false
-	}
-	for i := range a.Cmps {
-		if a.Cmps[i] != b.Cmps[i] {
-			return false
-		}
-	}
-	return topsEqual(a.Then, b.Then) && topsEqual(a.Else, b.Else)
+	return a == b
 }
 
 func storeEqual(a, b store) bool {
@@ -528,14 +654,13 @@ func genFrom(n uint64) Input {
 			key := keys[(ki+j)%uint64(len(keys))]
 			ops = append(ops, TOp{Kind: int(kind), Key: key, Val: v})
 		}
-		return Input{Kind: KTxn, Then: ops}
+		return mkTxn(nil, ops, nil)
 	}
 	ck, n4 := pick(n, 3)
 	guess, _ := pick(n4, 4)
 	cmp := Cmp{Kind: int(ck), Key: k, Val: v, Num: int64(guess)}
 	nv := vals[(vi+1)%uint64(len(vals))]
-	return Input{Kind: KTxn, Cmps: []Cmp{cmp}, Then: []TOp{{Kind: TPut, Key: k, Val: nv}},
-		Else: []TOp{{Kind: TGet, Key: k}}}
+	return mkTxn([]Cmp{cmp}, []TOp{{Kind: TPut, Key: k, Val: nv}}, []TOp{{Kind: TGet, Key: k}})
 }
 
 // Gen picks an operation at random (genFrom of a random number).
@@ -604,7 +729,7 @@ func call(cli *clientv3.Client, in Input) Output {
 		for _, kv := range resp.Kvs {
 			kvs = append(kvs, KV{Key: string(kv.Key), R: vrOf(kv.Value, kv.ModRevision, kv.Version)})
 		}
-		return Output{Rev: resp.Header.Revision, KVs: kvs}
+		return withKVs(Output{Rev: resp.Header.Revision}, kvs)
 	}
 	if in.Kind == KPut {
 		resp, err := cli.Put(ctx, in.Key, in.Val)
@@ -620,17 +745,17 @@ func call(cli *clientv3.Client, in Input) Output {
 		}
 		return Output{Rev: resp.Header.Revision, N: resp.Deleted}
 	}
-	cmps := make([]clientv3.Cmp, 0, len(in.Cmps))
-	for _, c := range in.Cmps {
+	cmps := make([]clientv3.Cmp, 0, in.NCmps)
+	for _, c := range cmpsOf(in) {
 		cmps = append(cmps, cmpOf(c))
 	}
-	resp, err := cli.Txn(ctx).If(cmps...).Then(opsOf(in.Then)...).Else(opsOf(in.Else)...).Commit()
+	resp, err := cli.Txn(ctx).If(cmps...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
 	if err != nil {
 		return Output{Err: true}
 	}
-	ops := in.Else
+	ops := elseOf(in)
 	if resp.Succeeded {
-		ops = in.Then
+		ops = thenOf(in)
 	}
 	res := make([]TRes, 0, len(resp.Responses))
 	for i, r := range resp.Responses {
@@ -657,7 +782,7 @@ func call(cli *clientv3.Client, in Input) Output {
 			res = append(res, t)
 		}
 	}
-	return Output{Rev: resp.Header.Revision, Ok: resp.Succeeded, Res: res}
+	return withRes(Output{Rev: resp.Header.Revision, Ok: resp.Succeeded}, res)
 }
 
 // Apply runs one operation through the client cli, resolving a prophecy with its outcome and,

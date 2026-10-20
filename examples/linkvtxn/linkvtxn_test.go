@@ -96,31 +96,31 @@ func TestModel(t *testing.T) {
 		putI("k0", "b"), Output{Rev: 4},
 		get("k0"), found(4, "b", 4, 1)))
 	cas := func(v string) Input {
-		return Input{Kind: KTxn, Cmps: []Cmp{{Kind: CValue, Key: "k0", Val: v}},
-			Then: []TOp{{Kind: TPut, Key: "k0", Val: "z"}}, Else: []TOp{{Kind: TGet, Key: "k0"}}}
+		return mkTxn([]Cmp{{Kind: CValue, Key: "k0", Val: v}},
+			[]TOp{{Kind: TPut, Key: "k0", Val: "z"}}, []TOp{{Kind: TGet, Key: "k0"}})
 	}
 	accepts(t, "a compare-and-set that matches", seq(
 		putI("k0", "a"), Output{Rev: 2},
-		cas("a"), Output{Rev: 3, Ok: true, Res: []TRes{{Kind: TPut}}},
+		cas("a"), withRes(Output{Rev: 3, Ok: true}, []TRes{{Kind: TPut}}),
 		get("k0"), found(3, "z", 3, 2)))
 	accepts(t, "a compare-and-set that does not match", seq(
 		putI("k0", "a"), Output{Rev: 2},
-		cas("b"), Output{Rev: 2, Ok: false, Res: []TRes{{Kind: TGet, Found: true, R: VR{"a", 2, 1}}}}))
+		cas("b"), withRes(Output{Rev: 2, Ok: false}, []TRes{{Kind: TGet, Found: true, R: VR{"a", 2, 1}}})))
 	rejects(t, "a transaction run in the wrong branch", seq(
 		putI("k0", "a"), Output{Rev: 2},
-		cas("b"), Output{Rev: 3, Ok: true, Res: []TRes{{Kind: TPut}}}))
-	multi := Input{Kind: KTxn, Then: []TOp{{Kind: TPut, Key: "k0", Val: "a"}, {Kind: TGet, Key: "k0"},
-		{Kind: TDel, Key: "k1"}}}
+		cas("b"), withRes(Output{Rev: 3, Ok: true}, []TRes{{Kind: TPut}})))
+	multi := mkTxn(nil, []TOp{{Kind: TPut, Key: "k0", Val: "a"}, {Kind: TGet, Key: "k0"},
+		{Kind: TDel, Key: "k1"}}, nil)
 	accepts(t, "a transaction's get sees its own put, one revision", seq(
-		multi, Output{Rev: 2, Ok: true, Res: []TRes{{Kind: TPut},
-			{Kind: TGet, Found: true, R: VR{"a", 2, 1}}, {Kind: TDel, N: 0}}}))
+		multi, withRes(Output{Rev: 2, Ok: true}, []TRes{{Kind: TPut},
+			{Kind: TGet, Found: true, R: VR{"a", 2, 1}}, {Kind: TDel, N: 0}})))
 	rejects(t, "a transaction's get missing its own put", seq(
-		multi, Output{Rev: 2, Ok: true, Res: []TRes{{Kind: TPut},
-			{Kind: TGet, Found: false}, {Kind: TDel, N: 0}}}))
+		multi, withRes(Output{Rev: 2, Ok: true}, []TRes{{Kind: TPut},
+			{Kind: TGet, Found: false}, {Kind: TDel, N: 0}})))
 	accepts(t, "a list", seq(
 		putI("k1", "b"), Output{Rev: 2},
 		putI("k0", "a"), Output{Rev: 3},
-		Input{Kind: KList}, Output{Rev: 3, KVs: []KV{{"k0", VR{"a", 3, 1}}, {"k1", VR{"b", 2, 1}}}}))
+		Input{Kind: KList}, withKVs(Output{Rev: 3}, []KV{{"k0", VR{"a", 3, 1}}, {"k1", VR{"b", 2, 1}}})))
 	// failed writes
 	accepts(t, "a failed put taking effect late", []porcupine.Operation{
 		op(0, 0, 1, putI("k0", "a"), Output{Err: true}),

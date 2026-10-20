@@ -209,9 +209,14 @@ instance Input_typed_pointsto :
     "Kind" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Kind" l) v.Kind' dq ∗
     "Key" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Key" l) v.Key' dq ∗
     "Val" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Val" l) v.Val' dq ∗
-    "Cmps" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmps" l) v.Cmps' dq ∗
-    "Then" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then" l) v.Then' dq ∗
-    "Else" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else" l) v.Else' dq ∗
+    "NCmps" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NCmps" l) v.NCmps' dq ∗
+    "Cmp0" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmp0" l) v.Cmp0' dq ∗
+    "NThen" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NThen" l) v.NThen' dq ∗
+    "Then0" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then0" l) v.Then0' dq ∗
+    "Then1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then1" l) v.Then1' dq ∗
+    "Then2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then2" l) v.Then2' dq ∗
+    "NElse" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NElse" l) v.NElse' dq ∗
+    "Else0" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else0" l) v.Else0' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -269,51 +274,131 @@ instance Input_access_store_Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Input_access_load_Cmps (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+instance Input_access_load_NCmps (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmps" l) v.Cmps' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmps" l) v.Cmps' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NCmps" l) v.NCmps' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NCmps" l) v.NCmps' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Cmps (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Cmps' : GoSlice) :
+instance Input_access_store_NCmps (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (NCmps' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmps" l) v.Cmps' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmps" l) Cmps' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cmps' := Cmps' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NCmps" l) v.NCmps' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NCmps" l) NCmps' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NCmps' := NCmps' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-instance Input_access_load_Then (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+instance Input_access_load_Cmp0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then" l) v.Then' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then" l) v.Then' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmp0" l) v.Cmp0' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmp0" l) v.Cmp0' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Then (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Then' : GoSlice) :
+instance Input_access_store_Cmp0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Cmp0' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Cmp) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then" l) v.Then' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then" l) Then' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Then' := Then' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmp0" l) v.Cmp0' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Cmp0" l) Cmp0' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cmp0' := Cmp0' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-instance Input_access_load_Else (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+instance Input_access_load_NThen (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else" l) v.Else' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else" l) v.Else' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NThen" l) v.NThen' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NThen" l) v.NThen' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance Input_access_store_Else (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Else' : GoSlice) :
+instance Input_access_store_NThen (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (NThen' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else" l) v.Else' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else" l) Else' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Else' := Else' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NThen" l) v.NThen' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NThen" l) NThen' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NThen' := NThen' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_load_Then0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then0" l) v.Then0' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then0" l) v.Then0' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_store_Then0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Then0' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TOp) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then0" l) v.Then0' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then0" l) Then0' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Then0' := Then0' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_load_Then1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then1" l) v.Then1' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then1" l) v.Then1' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_store_Then1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Then1' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TOp) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then1" l) v.Then1' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then1" l) Then1' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Then1' := Then1' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_load_Then2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then2" l) v.Then2' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then2" l) v.Then2' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_store_Then2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Then2' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TOp) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then2" l) v.Then2' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Then2" l) Then2' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Then2' := Then2' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_load_NElse (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NElse" l) v.NElse' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NElse" l) v.NElse' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_store_NElse (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (NElse' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NElse" l) v.NElse' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"NElse" l) NElse' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NElse' := NElse' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_load_Else0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else0" l) v.Else0' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else0" l) v.Else0' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Input_access_store_Else0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (Else0' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TOp) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else0" l) v.Else0' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input go!"Else0" l) Else0' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Else0' := Else0' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -559,8 +644,14 @@ instance Output_typed_pointsto :
     "R" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"R" l) v.R' dq ∗
     "N" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"N" l) v.N' dq ∗
     "Ok" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Ok" l) v.Ok' dq ∗
-    "Res" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res" l) v.Res' dq ∗
-    "KVs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KVs" l) v.KVs' dq ∗
+    "NRes" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NRes" l) v.NRes' dq ∗
+    "Res0" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res0" l) v.Res0' dq ∗
+    "Res1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res1" l) v.Res1' dq ∗
+    "Res2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res2" l) v.Res2' dq ∗
+    "NKVs" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NKVs" l) v.NKVs' dq ∗
+    "KV0" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV0" l) v.KV0' dq ∗
+    "KV1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV1" l) v.KV1' dq ∗
+    "KV2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV2" l) v.KV2' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -666,35 +757,131 @@ instance Output_access_store_Ok (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
  by
   solve_pointsto_access_struct
 
-instance Output_access_load_Res (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+instance Output_access_load_NRes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res" l) v.Res' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res" l) v.Res' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NRes" l) v.NRes' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NRes" l) v.NRes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance Output_access_store_Res (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (Res' : GoSlice) :
+instance Output_access_store_NRes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (NRes' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res" l) v.Res' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res" l) Res' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Res' := Res' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NRes" l) v.NRes' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NRes" l) NRes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NRes' := NRes' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-instance Output_access_load_KVs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+instance Output_access_load_Res0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KVs" l) v.KVs' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KVs" l) v.KVs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res0" l) v.Res0' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res0" l) v.Res0' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance Output_access_store_KVs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (KVs' : GoSlice) :
+instance Output_access_store_Res0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (Res0' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TRes) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KVs" l) v.KVs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KVs" l) KVs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KVs' := KVs' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res0" l) v.Res0' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res0" l) Res0' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Res0' := Res0' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_load_Res1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res1" l) v.Res1' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res1" l) v.Res1' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_store_Res1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (Res1' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TRes) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res1" l) v.Res1' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res1" l) Res1' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Res1' := Res1' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_load_Res2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res2" l) v.Res2' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res2" l) v.Res2' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_store_Res2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (Res2' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.TRes) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res2" l) v.Res2' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"Res2" l) Res2' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Res2' := Res2' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_load_NKVs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NKVs" l) v.NKVs' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NKVs" l) v.NKVs' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_store_NKVs (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (NKVs' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NKVs" l) v.NKVs' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"NKVs" l) NKVs' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NKVs' := NKVs' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_load_KV0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV0" l) v.KV0' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV0" l) v.KV0' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_store_KV0 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (KV0' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.KV) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV0" l) v.KV0' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV0" l) KV0' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV0' := KV0' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_load_KV1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV1" l) v.KV1' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV1" l) v.KV1' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_store_KV1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (KV1' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.KV) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV1" l) v.KV1' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV1" l) KV1' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV1' := KV1' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_load_KV2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV2" l) v.KV2' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV2" l) v.KV2' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Output_access_store_KV2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (KV2' : github_com.mit_pdos.etcd_grove.examples.linkvtxn.KV) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV2" l) v.KV2' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output go!"KV2" l) KV2' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV2' := KV2' } : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
