@@ -151,7 +151,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₁
-  icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, #Hnm₁, #HPut₁, #HRange₁⟩
+  icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁,
+    #Hnm₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
@@ -170,7 +171,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₂
-  icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, #Hnm₂, #HPut₂, #HRange₂⟩
+  icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂,
+    #Hnm₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
@@ -189,7 +191,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₃
-  icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, #Hnm₃, #HPut₃, #HRange₃⟩
+  icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃,
+    #Hnm₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm

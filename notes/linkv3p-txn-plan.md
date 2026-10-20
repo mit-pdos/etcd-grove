@@ -1,6 +1,7 @@
 # Plan: the partitioned three-member cluster over the KV workload (`examples/linkv3p` × linkvtxn)
 
-Status: proposed (2026-10-20).
+Status: in progress (2026-10-20): P0 and P1 done (branch `linkv3p-txn`, worktree
+`/shared/etcd-grove-lt`); `Apply`, `Check` and `Main` do not build until P3/P4.
 
 ## Goal
 
@@ -87,6 +88,11 @@ Re-translate (`etc/goose.py --project linkv3p`; its `Project` comment names link
   members' results follow.
 - `clientOk` becomes linkvtxn's `Apply.spec` premises: the four registrations and
   `linkvtxn.linkvInv γ γr.kv` (`γ : linkvtxn.LinkvNames`).
+
+Done (2026-10-20). Two things moved here: `Base.lean` imports linkvtxn's `Base` (P0 missed it: the
+package table's `isPkgInit` of linkvtxn needs it), and `linkvInv_congr` (P2's first bullet) is
+ported now, since `startMember` imports `Alloc`. `Defs`, `Alloc`, `startMember` and `PkgTable`
+build.
 
 ### P2. The invariant at the cluster's start
 

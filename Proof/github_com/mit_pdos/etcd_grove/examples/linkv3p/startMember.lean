@@ -6,7 +6,8 @@ storage registry, `NewServer`, `net.Listen` at the peer address, `s.RaftHandler(
 `go http.Serve(l, h)`, then `net.Listen` at the client address, `s.Start()`; then the serving
 steps of linkv3's `Main` (`Proof/.../linkv3/Main.lean`), for this member: `v3rpc.Server(s, nil,
 nil)` (its configuration from `NewServer`'s and `Start`'s, `grpcCfgOk_of_started'`), the ghost
-step `etcd_kv_started` (etcd's `Put` and `Range` registered at the client address), `go
+step `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client
+address), `go
 gs.Serve(l)`. Every step's error returns it, with the thread token.
 -/
 module
@@ -267,7 +268,7 @@ theorem startMember.wp_proof
   rw [HC.1]
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
-    $$ [Hgsn Hclis Hslots] with ⟨Hserv, -, #HPut, #HRange, -, -⟩
+    $$ [Hgsn Hclis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn⟩
   · iframe Hgsn Hclis Hslots
     iframe Pv3 Psrv Hreq Hrd Hkva Hq Hil Him Hiu
     iintro !>
@@ -284,7 +285,7 @@ theorem startMember.wp_proof
   isplitr; · ipureintro; rfl
   iunfold memberServed
   iexists E, γw, cid, mid
-  iframe Hgo2 HPut HRange
+  iframe Hgo2 HPut HRange HDel HTxn
   iframe #
   ipureintro
   exact ⟨HEa, HEo⟩

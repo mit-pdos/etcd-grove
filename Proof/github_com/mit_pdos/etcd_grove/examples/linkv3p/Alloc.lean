@@ -152,10 +152,10 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
 variable (through `etcdKV`) and workload only, which a cluster's members share (D21 M4;
 `cluster3_alloc`'s equalities), so the invariant allocated at one member's names
 (`linkvInv_alloc_boot`) is every member's. -/
-theorem linkvInv_congr (γ : linkv.LinkvNames) (γk γk' : KVNames) (hst : γk.st = γk'.st)
+theorem linkvInv_congr (γ : linkvtxn.LinkvNames) (γk γk' : KVNames) (hst : γk.st = γk'.st)
     (hwl : γk.wl = γk'.wl) :
-    linkv.linkvInv (GF := GF) γ γk = linkv.linkvInv γ γk' := by
-  unfold linkv.linkvInv
+    linkvtxn.linkvInv (GF := GF) γ γk = linkvtxn.linkvInv γ γk' := by
+  unfold linkvtxn.linkvInv linkvtxn.linkvInvBody
   rw [hwl]
   simp only [etcdKV_congr γk γk' hst]
 

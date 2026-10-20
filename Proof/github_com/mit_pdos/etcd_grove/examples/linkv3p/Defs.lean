@@ -23,7 +23,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Inv
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Inv
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 
@@ -128,20 +128,23 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
     Persistent (premises (GF := GF) N id₁ id₂ id₃ bootLog) := by
   unfold premises; infer_instance
 
-/-- **What `Apply` and `Check` take of one client** (persistent): linkv's `Apply.spec`'s premises
-for a client `cl` of some member -- `New`'s one-attempt client (`isNewClient`, `clientKVOnce`),
-etcd's `Put` and `Range` registered at its endpoint with that member's apply environment, read
-names and ids, and the instance's invariant at the member's KV names (the cluster's state, D21 M4:
-`linkvInv_congr`, `Alloc.lean`). A list of clients is a `[∗list]` of these. -/
-def clientOk (γ : linkv.LinkvNames) (cl : Loc) : IProp GF :=
+/-- **What `Apply` and `Check` take of one client** (persistent): linkvtxn's `Apply.spec`'s
+premises for a client `cl` of some member -- `New`'s one-attempt client (`isNewClient`,
+`clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its endpoint with that
+member's apply environment, read names and ids, and the instance's invariant at the member's KV
+names (the cluster's state, D21 M4: `linkvInv_congr`, `Alloc.lean`). A list of clients is a
+`[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and `Range`, linkv's invariant.) -/
+def clientOk (γ : linkvtxn.LinkvNames) (cl : Loc) : IProp GF :=
   iprop(∃ (ep : GoString) (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
       (cid mid : w64),
     isNewClient cl ep V ∗ clientKVOnce cl ep ∗
     isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
     isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
-    linkv.linkvInv γ γr.kv)
+    isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗
+    isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γr γr cid mid) ∗
+    linkvtxn.linkvInv γ γr.kv)
 
-instance clientOk_persistent (γ : linkv.LinkvNames) (cl : Loc) :
+instance clientOk_persistent (γ : linkvtxn.LinkvNames) (cl : Loc) :
     Persistent (clientOk (GF := GF) γ cl) := by
   unfold clientOk; infer_instance
 
@@ -149,8 +152,8 @@ instance clientOk_persistent (γ : linkv.LinkvNames) (cl : Loc) :
 to what `Main` needs of it -- the server's request and read views (at its apply environment `E`,
 agreeing with the stand-in `E₀`, auth off), the `GoAttach` resources with the thread token
 (`srvGoRes`), the member's place in the network (`srvNetMember`: what the partitioner's
-`CutPeer`/`MendPeer` take), and etcd's `Put` and `Range` registered at its client address
-(`etcd_kv_started`), what its client's `Apply` takes. -/
+`CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
+client address (`etcd_kv_started`), what its client's `Apply` takes. -/
 def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (client : GoString) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (γw : GName) (cid mid : w64),
@@ -158,7 +161,10 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     isServerReq s E { ρ with wait := γw } ∗ isServerRead s E ρ.rd ∗ srvGoRes s ∗
     srvNetMember γn s id ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
-    isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid))
+    isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
+    isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
+      (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
+    isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid))
 
 end defs
 
