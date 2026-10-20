@@ -21,10 +21,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `r.getWitnessVoteRequestReadiness(votesToWin)` on a witness-free configuration
-(`ownRaftPhysC`'s tracker, `Witnesses = [0, 0]`): no witness to ask, `nil` (with both halves
-past one vote to win the first `return nil`, else the second). `stepCandidate`'s
-`VotePending` arm then ranges over nothing. -/
+/-- `r.getWitnessVoteRequestReadiness(votesToWin)` (2026-10-20, at any configuration; until then
+witness-free only): the configuration's witnesses are `[c.wit, 0]` (`ownTrackerC`), so
+
+    if v1 > 1 && v2 > 1 { return nil }
+    if w1 == 0 && w2 == 0 { return nil }
+    w := map[uint64]bool{}; ...; if w1 > 0 { w[w1] = v1 == 1 }; return w
+
+is `nil` without a witness or with both halves more than one vote short, else the map
+`{c.wit ↦ (v1 = 1)}`: the witness is to be asked when the incoming half is one vote short.
+`stepCandidate`'s `VotePending` arm ranges over it. -/
 abbrev raft.getWitnessVoteRequestReadiness.spec : Prop :=
   ∀ (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (d : GoArray w64 2)
     (v1 v2 : w64),
@@ -32,7 +38,10 @@ abbrev raft.getWitnessVoteRequestReadiness.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"getWitnessVoteRequestReadiness"))
       (Val #d))
-  {{ RET #map.nil; ownRaftPhysCV c V r id s }}
+  {{ (m : Loc), RET #m; ownRaftPhysCV c V r id s ∗
+      (⌜m = map.nil ∧ (c.wit = W64 0 ∨ (1 < sint.Z v1 ∧ 1 < sint.Z v2))⌝ ∨
+       ∃ ready : Bool, m ↦$ (<[c.wit := ready]> ∅ : GMap w64 Bool) ∗
+         ⌜c.wit ≠ W64 0 ∧ (ready = true ↔ v1 = W64 1)⌝) }}
 
 end spec
 

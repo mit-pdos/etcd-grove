@@ -43,11 +43,56 @@ theorem stepC_send_frees (id : w64) (ps : PState) (ms : List Msg)
       (IH (psendMsgs ps [m]) (fun m' h => Hms m' (List.mem_cons_of_mem _ h)))
     simpa using this
 
+omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+/-- The voters a campaign asks (2026-10-20, witness support, W3b-C): every other voter of either
+half but the configuration's witness, which `campaign` skips (it is asked by
+`sendRequestVoteToWitness` once the candidate is a vote short). Without a witness, every other
+voter (`campSet_nw`). -/
+def campSet (c : CfgM) (id : w64) : GSet w64 :=
+  if c.wit = W64 0 then c.voters \ {[id]} else (c.voters \ {[id]}) \ {[c.wit]}
+
+omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+theorem campSet_nw (c : CfgM) (id : w64) (h : c.wit = W64 0) :
+    campSet c id = c.voters \ {[id]} := by
+  unfold campSet; exact if_pos h
+
+omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+theorem campSet_ne {c : CfgM} {id z : w64} (h : z ∈ campSet c id) : z ≠ id := by
+  unfold campSet at h
+  split at h <;> simp_all [GMap.elem_of_difference, GMap.elem_of_singleton]
+
+omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+/-- `campSet` lists as the other voters but the witness, in any order. -/
+theorem campSet_perm_filter (c : CfgM) (id : w64) :
+    elements (campSet c id) ≡ₚ (elements (c.voters \ {[id]})).filter
+      (fun y => decide (c.wit = W64 0 ∨ y ≠ c.wit)) := by
+  refine (List.perm_ext_iff_of_nodup (GMap.NoDup_elements _)
+    ((GMap.NoDup_elements _).filter _)).2 ?_
+  intro z
+  rw [List.mem_filter, GMap.elem_of_elements, GMap.elem_of_elements]
+  unfold campSet
+  by_cases hw : c.wit = W64 0
+  · rw [ite_eq_left hw]; simp [hw]
+  · rw [ite_eq_right hw]; simp only [hw, GMap.elem_of_difference, GMap.elem_of_singleton, false_or,
+      decide_eq_true_eq]
+
+omit [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] in
+/-- What a campaign sends `campSet`, a sub-permutation of what it would send every other voter. -/
+theorem campSet_subperm {β : Type _} (c : CfgM) (id : w64) (f : w64 → β) (peers : List w64)
+    (h : peers ≡ₚ elements (campSet c id)) :
+    (peers.map f).Subperm ((elements (c.voters \ {[id]})).map f) :=
+  by
+  have hs : ((elements (c.voters \ {[id]})).filter
+      (fun y => decide (c.wit = W64 0 ∨ y ≠ c.wit))).Sublist (elements (c.voters \ {[id]})) := by
+    apply List.filter_sublist
+  exact ((h.trans (campSet_perm_filter c id)).map f).subperm.trans (hs.map f).subperm
+
 /-- `step_campaignState` at `c`: a campaign by a voter of either half, asking every other
-voter of either half. -/
+voter of either half (2026-10-20: but the witness, `campSet`; the protocol's `campaign` asks
+every one, then the witness's request is dropped, `drain`). -/
 theorem stepC_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
     (pvs : GMap w64 Progress) (Hnl : s.role ≠ .leader) (Hin : id ∈ c.voters)
-    (Hnw : uint.Z s.term + 1 < 2 ^ 64) (Hperm : peers ≡ₚ elements (c.voters \ {[id]}))
+    (Hnw : uint.Z s.term + 1 < 2 ^ 64) (Hperm : peers ≡ₚ elements (campSet c id))
     (cl : List w8 := []) :
     StepC c id B (toPState s) [] (toPState { campaignState id s pre peers cl with prvals := pvs }) := by
   have Hrole : (campaignState id s pre peers cl).role ≠ .leader := by
@@ -56,8 +101,11 @@ theorem stepC_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w
   cases pre
   · show StepC c id B (toPState s) [] (toPState (sendMsgs (becomeCandidate id s) _))
     rw [toPState_sendMsgs, toPState_becomeCandidate]
-    exact StepC.campaign (toPState s) peers cl (by rw [toPState_role]; exact proleRole_not_leader _ Hnl)
-      Hin Hnw Hperm
+    exact StepC.trans _ [] _ [] _
+      (StepC.campaign (toPState s) (elements (c.voters \ {[id]})) cl
+        (by rw [toPState_role]; exact proleRole_not_leader _ Hnl) Hin Hnw (List.Perm.refl _))
+      (StepC.drain _ _ ((List.subperm_append_left _).2
+        ((List.subperm_append_left _).2 (campSet_subperm c id _ peers Hperm))))
   · show StepC c id B (toPState s) [] (toPState (sendMsgs (becomePrecandidate s) _))
     rw [toPState_sendMsgs, toPState_becomePrecandidate]
     refine StepC.trans _ [] _ [] _
@@ -75,7 +123,7 @@ theorem stepC_campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w
 theorem stepC_prevoteRespResult (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
     (peers : List w64) (pvs : GMap w64 Progress) (Hpre : s.role = .preCandidate)
     (Hin : id ∈ c.voters) (Hnw : uint.Z s.term + 1 < 2 ^ 64)
-    (Hperm : won = true → peers ≡ₚ elements (c.voters \ {[id]})) :
+    (Hperm : won = true → peers ≡ₚ elements (campSet c id)) :
     StepC c id B (toPState s) []
       (toPState { prevoteRespResult id s src reject won lost peers with prvals := pvs }) := by
   have Hs1 : toPState { s with votes := recordVote s.votes src (!reject) } = toPState s :=

@@ -19,6 +19,7 @@ self-addressed response, `msgOwn_lit` with the `Context` bytes for a request; it
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.LemmasWitnessR
 public import Spec.go_etcd_io.raft.v3.raft__campaign
 public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
 public import Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
@@ -99,6 +100,10 @@ theorem perm_id_cons (cfg : GSet w64) (id : w64) (xs : List w64) (Hid : id ∈ c
 omit [GoGlobalContext] [GoSemanticsFunctions] in
 private theorem ite_of_true {α : Sort _} {c : Prop} [Decidable c] (h : c) (a b : α) :
     (if c then a else b) = a := by simp [h]
+
+/-- Whether `campaign` sends voter `y` a message (2026-10-20, witness support): the node itself
+its response, any other voter but the witness `w` a request. -/
+def campSent (w id y : w64) : Bool := decide (y = id ∨ w = W64 0 ∨ y ≠ w)
 
 /-- Two sends in a row grow the outbox by the concatenation. -/
 theorem sendMsgs_app (s0 : NState) (ms1 ms2 : List Msg) :
@@ -291,7 +296,8 @@ theorem raft.campaign.wp_proof
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (xs.length : Int)⌝ ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id
         (sendMsgs { campRoleState id s pre with prvals := pvs }
-          ((xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
+          (((xs.take (sint.Z n).toNat).filter (campSent c.wit id)).map (campMsg pre id
+            (s.term + W64 1)
             (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))) $$ [i id Hphys]
   · iexists W64 0, zero_val w64
     iframe
@@ -363,9 +369,11 @@ theorem raft.campaign.wp_proof
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r y
           (sendMsgs { campRoleState y s pre with prvals := pvs }
-            ((xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre y (s.term + W64 1)
+            (((xs.take (sint.Z (n + W64 1)).toNat).filter (campSent c.wit y)).map (campMsg pre y
+              (s.term + W64 1)
               (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
-      · rw [Hgrow, List.map_append, ← sendMsgs_app]
+      · rw [Hgrow, List.filter_append, List.filter_cons_of_pos (by simp [campSent]),
+          List.filter_nil, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, ↓reduceIte]
         iexact Hphys
       wp_auto
@@ -389,13 +397,29 @@ theorem raft.campaign.wp_proof
           exact List.mem_of_getElem? Hy
         rw [← h]
         exact (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ (hV ▸ hyc)
-      -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-      icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) hw $$ Hphys as Hphys
-      try rw [decide_eq_false Hy0]
+      -- (2026-10-20) the configuration's witnesses are `[c.wit, 0]`: `y` is skipped when it is
+      -- `c.wit` (`campSent`), and is never `0`
+      wp_apply raft.wp_load_trk_witnessC' c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+      rw [witOf_zero]
+      by_cases Hyw : y = c.wit
+      · -- the witness: `continue`
+        rw [decide_eq_true Hyw]
+        wp_auto
+        wp_for_post
+        iframe
+        iexists _, _
+        iframe
+        isplitr
+        · ipureintro; word
+        rw [Hgrow, List.filter_append, List.filter_cons_of_neg (by
+            simp only [campSent, decide_eq_true_eq, not_or, ne_eq, Decidable.not_not]
+            exact ⟨Hyid, fun h => Hy0 (Hyw.trans h), Hyw⟩),
+          List.filter_nil, List.append_nil]
+        iexact Hphys
+      rw [decide_eq_false Hyw]
       try wp_auto
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) hw $$ Hphys as Hphys
-      try rw [decide_eq_false Hy0]
+      wp_apply raft.wp_load_trk_witnessC' c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      rw [witOf_one, decide_eq_false Hy0]
       try wp_auto
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
@@ -456,9 +480,11 @@ theorem raft.campaign.wp_proof
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r id
           (sendMsgs { campRoleState id s pre with prvals := pvs }
-            ((xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre id (s.term + W64 1)
+            (((xs.take (sint.Z (n + W64 1)).toNat).filter (campSent c.wit id)).map (campMsg pre id
+              (s.term + W64 1)
               (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
-      · rw [Hgrow, List.map_append, ← sendMsgs_app]
+      · rw [Hgrow, List.filter_append, List.filter_cons_of_pos (by simp [campSent, Hyw]),
+          List.filter_nil, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, Hyid, ↓reduceIte, ← HlastID]
         iexact Hphys
       wp_auto
@@ -471,33 +497,44 @@ theorem raft.campaign.wp_proof
   · -- every voter has been notified
     have Hfull : (sint.Z n).toNat = xs.length := by word
     rw [Hfull, List.take_length]
-    iapply HΦ $$ %(elements (cfg \ {[id]})) %pvs
+    iapply HΦ $$ %(elements (campSet c id)) %pvs
     isplitr
-    · ipureintro; rw [hV]
+    · ipureintro; rfl
     have Hmem : ∀ z, z ∈ xs ↔ z ∈ cfg := by
       intro z
       rw [← Hxs.mem_iff, Hkeys_perm.mem_iff, GMap.elem_of_elements]
     have Hsplit := perm_id_cons cfg id xs (hV ▸ Hid_cfg) Hnodupxs Hmem
-    -- `campMsg` turns `id` into the self-addressed response and every other voter
-    -- into one request each
-    have Hmap : xs.map (campMsg pre id (s.term + W64 1)
-          (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) ≡ₚ
-        [Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
-          (elements (cfg \ {[id]})).map (fun d => campReq pre id d (s.term + W64 1)
-            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) := by
-      refine (Hsplit.map _).trans ?_
-      rw [List.map_cons]
-      simp only [campMsg, ↓reduceIte, List.singleton_append]
-      refine List.Perm.cons _ (List.Perm.of_eq (List.map_congr_left ?_))
+    -- (2026-10-20) the voters sent to: the node, and `campSet`
+    have Hxf : xs.filter (campSent c.wit id) ≡ₚ id :: elements (campSet c id) := by
+      refine (Hsplit.filter _).trans ?_
+      rw [List.filter_cons_of_pos (by simp [campSent])]
+      refine List.Perm.cons _ ?_
+      have HE := (campSet_perm_filter c id).symm
+      rw [hV] at HE
+      refine List.Perm.trans (List.Perm.of_eq (List.filter_congr ?_)) HE
       intro z hz
       have : z ≠ id := by
         rw [GMap.elem_of_elements, GMap.elem_of_difference, GMap.elem_of_singleton] at hz
         exact hz.2
+      simp [campSent, this]
+    -- `campMsg` turns `id` into the self-addressed response and every other voter
+    -- into one request each
+    have Hmap : (xs.filter (campSent c.wit id)).map (campMsg pre id (s.term + W64 1)
+          (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) ≡ₚ
+        [Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
+          (elements (campSet c id)).map (fun d => campReq pre id d (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) := by
+      refine (Hxf.map _).trans ?_
+      rw [List.map_cons]
+      simp only [campMsg, ↓reduceIte, List.singleton_append]
+      refine List.Perm.cons _ (List.Perm.of_eq (List.map_congr_left ?_))
+      intro z hz
+      have : z ≠ id := campSet_ne ((GMap.elem_of_elements _ _).1 hz)
       simp [campMsg, this]
     ihave Hphys := ownRaftPhysC_outbox c r id _
       ((campRoleState id s pre).outbox ++
         ([Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
-          (elements (cfg \ {[id]})).map (fun d => campReq pre id d (s.term + W64 1)
+          (elements (campSet c id)).map (fun d => campReq pre id d (s.term + W64 1)
             (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))
       (List.Perm.append_left _ Hmap.symm) $$ Hphys
     iapply ownRaftPhysC_eq $$ Hphys

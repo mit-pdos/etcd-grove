@@ -65,13 +65,14 @@ def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
 /-- What `hup` checked before it campaigned (2026-10-14, reconfiguration stage B7: the dynamic
 model's `StepR.campaign` guard): nothing done, or a campaign (`campaignState`) by a non-leader
 voter of either half, with no snapshot pending (`promotable`) and no conf-change entry committed
-but not applied (`hasUnappliedConfChanges`), asking every other voter. -/
+but not applied (`hasUnappliedConfChanges`), asking every other voter (2026-10-20: but the
+witness, `campSet`). -/
 def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
   s' = s ∨
   (s.role ≠ .leader ∧ id ∈ c.voters ∧ s.logst.snap = none ∧
    (¬ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e) ∧
    ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8),
-     peers ≡ₚ elements (c.voters \ {[id]}) ∧
+     peers ≡ₚ elements (campSet c id) ∧
      s' = { campaignState id s pre peers cl with prvals := pvs })
 
 /-- `HupOk` at a joint configuration (2026-10-13, reconfiguration stage A2): the step is

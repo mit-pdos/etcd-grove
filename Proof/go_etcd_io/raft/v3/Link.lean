@@ -208,6 +208,7 @@ public import Proof.go_etcd_io.raft.v3.raft__sendAppend
 public import Proof.go_etcd_io.raft.v3.raft__sendAppendToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeat
 public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
+public import Proof.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Proof.go_etcd_io.raft.v3.raft__softState
 public import Proof.go_etcd_io.raft.v3.raft__switchToConfig
@@ -1092,6 +1093,10 @@ theorem raft.wp_getWitnessVoteRequestReadiness [StorageModel GF] :
     raft.getWitnessVoteRequestReadiness.spec (GF := GF) (hG := hG) :=
   raft.getWitnessVoteRequestReadiness.wp_proof
 
+theorem raft.wp_sendRequestVoteToWitness [StorageModel GF] :
+    raft.sendRequestVoteToWitness.spec (GF := GF) (hG := hG) :=
+  raft.sendRequestVoteToWitness.wp_proof raftLog.wp_lastEntryID raftLog.wp_subterm
+
 theorem wp_traceBecomeLeader [StorageModel GF] :
     traceBecomeLeader.spec (GF := GF) (hG := hG) :=
   traceBecomeLeader.wp_proof
@@ -1226,7 +1231,7 @@ theorem raftpb.Message.wp_GetReject :
 
 theorem wp_stepCandidate [StorageModel GF] :
     stepCandidate.spec (GF := GF) (hG := hG) :=
-  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_getWitnessVoteRequestReadiness raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
+  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_getWitnessVoteRequestReadiness raft.wp_sendRequestVoteToWitness raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
 
 theorem wp_stepFollower [StorageModel GF] :
     stepFollower.spec (GF := GF) (hG := hG) :=

@@ -1616,6 +1616,12 @@ private theorem raft_split_witnessMsgs (l : Loc) (rv : raft) :
   try iframe #
   try (ipureintro; simp_all)
 
+private theorem raft_split_witnessVoteAsked (l : Loc) (rv : raft) :
+    ⊢ raftOwn (GF := GF) l rv -∗
+      l.[raft, go!"witnessVoteAsked"] ↦ rv.witnessVoteAsked' ∗
+      (∀ x, l.[raft, go!"witnessVoteAsked"] ↦ x -∗ raftOwn l { rv with witnessVoteAsked' := x }) := by
+  split_field_proof H_witnessVoteAsked
+
 private theorem raft_split_msgsAA (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
       l.[raft, go!"msgsAfterAppend"] ↦ rv.msgsAfterAppend' ∗
@@ -2121,6 +2127,27 @@ theorem ownRaftPhysC_witQ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NS
   · rw [← Hterm]; iexact HT
   iframe HT Hf Hq
   iintro %wsl' %μ %Hne
+  -- STAGED: no witness yet
+  exact absurd Hwz Hne
+
+/-- The witnesses a campaign asked, `r.witnessVoteAsked` (2026-10-20, witness support, W3b-C):
+the field and its map, given back at any map, at a configuration with a witness. STAGED, as
+`ownRaftPhysC_witQ`: while `witOwn` says there is no witness the re-seal is vacuous. -/
+theorem ownRaftPhysC_asked (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ∃ (asked : Loc), r.[raft, go!"witnessVoteAsked"] ↦ asked ∗ ownAsked asked ∗
+        (∀ (asked' : Loc), ⌜c.wit ≠ W64 0⌝ -∗ r.[raft, go!"witnessVoteAsked"] ↦ asked' -∗
+          ownAsked asked' -∗ ownRaftPhysCV c V r id s) := by
+  iintro H
+  iNamed_physC H
+  icases raft_split_witnessVoteAsked r rv $$ Hr with ⟨Hf, -⟩
+  iunfold witOwn at Hwit
+  icases Hwit with ⟨%μs, -, -, Ha, -, %Hwz⟩
+  iexists asked
+  ihave Hf : r.[raft, go!"witnessVoteAsked"] ↦ asked $$ [Hf]
+  · rw [← Hwf.2]; iexact Hf
+  iframe Hf Ha
+  iintro %asked' %Hne
   -- STAGED: no witness yet
   exact absurd Hwz Hne
 

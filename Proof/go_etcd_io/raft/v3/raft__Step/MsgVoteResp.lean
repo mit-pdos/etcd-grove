@@ -77,6 +77,27 @@ private theorem voteRespResult_frame (id : w64) (s : NState) (src : w64)
     · exact keep_frame rfl rfl rfl rfl rfl
 
 set_option maxHeartbeats 2000000 in
+/-- A candidate's queued vote request to the witness (2026-10-20, W3b-C) is `StepCF.askWitness`:
+`wAbs` reads `wVoteM`'s tally as its responders. -/
+theorem stepCF_askWitness_wv (c : CfgM) (id : w64) (T : PState) (term : w64) (b : entryID)
+    (es : List EntryM) (ls : w64) (votes : GMap w64 Bool)
+    (Hrole : T.role = .candidate) (Hw : c.wit ≠ W64 0) (Hout : c.outgoing = ∅)
+    (Hq : GMap.size c.incoming / 2 ≤ GMap.size (granted votes ∩ c.incoming))
+    (Hls : ls = W64 0 ∨ ls = plogLastSub es)
+    (hb : T.base = b) (hl : T.log = es) (ht : T.term = term) (hv : T.votes = votes) :
+    StepCF c id T [] (psendMsgs T [wAbs (wVoteM id c.wit MsgVote term b es ls votes)]) := by
+  subst hb hl ht hv
+  have He : wAbs (wVoteM id c.wit MsgVote T.term T.base T.log ls T.votes) =
+      Msg.mkV .wvote id c.wit T.term false (plogLast T.base T.log).index'
+        (plogLast T.base T.log).term' ls (W64 0) [] (elements (domSet T.votes)) [] := by
+    simp only [wAbs, wVoteM]
+    rw [ite_eq_right (by w32_ne)]
+    simp only [↓reduceIte]
+  rw [He]
+  exact StepCF.askWitness T _ ls Hrole Hw Hq (fun h => absurd Hout h) (List.Perm.refl _) Hls
+
+-- (2026-10-20) the witness branch makes `CandidateStepResultC` larger: `wp_gets` unfolds it
+set_option maxHeartbeats 4000000 in
 /-- `MsgVoteResp`: the term preamble, then `r.step(m)`.
 
 The one branch where all three `stepX` can run, so it is also the one that needs the
@@ -318,7 +339,43 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         subst Hc1
         wp_gets
         rw [ite_pos Hty, ite_neg (by rw [Hrole]; decide)] at Hres
-        obtain ⟨rfl, won, lost, ms, pvs, Hwon, Hlost, rfl⟩ := Hres
+        obtain ⟨rfl, won, lost, ms, pvs, wq, Hwon, Hlost, Hwql, HwqF, rfl⟩ := Hres
+        -- (2026-10-20, W3b-C) a request to the witness queued: still pending, a frame step
+        rcases HwqF with rfl | ⟨ls, Hw, Hout, Hq1, Hls, rfl⟩
+        rotate_left
+        · obtain ⟨rfl, rfl⟩ := Hwql (List.cons_ne_nil _ _)
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Herrn with %Herrn
+          subst Herrn
+          wp_auto
+          have Hnw1 : plogLastIndexZ (toPState s).base (toPState s).log + 1 < 2 ^ 64 := by
+            simp only [plogLastIndexZ, toPState, List.length_append]
+            push_cast
+            omega
+          iapply HΦ $$ %_ %_ %(plogLastIndexZ (toPState s).base (toPState s).log + 1)
+          iframe Hphys
+          isplitr
+          · ipureintro; exact ⟨by omega, Int.le_refl _, Hnw1⟩
+          isplitr
+          · iexact Hrc
+          ipureintro
+          refine ⟨nstateWf_sendMsgs _ _
+              (nstateWf_prvals_ep _ pvs s.ep (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf)), ?_, rfl,
+            RespStep.of_fresh Hnpv (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)),
+            voteRespResult_frame (sem := sem) (package_sem := package_sem) id s m.From' m.Reject' false false [] pvs m s.ep⟩
+          refine ⟨[absMsg .voteResp m ents], by simp, ?_⟩
+          have Hnp : s.role ≠ .preCandidate := by rw [Hrole]; decide
+          have Hvotes : (toPState s).votes = s.votes := toPState_votes_nonpre _ Hnp
+          have Hpr : (toPState s).role = .candidate := by rw [toPState_role, Hrole]; rfl
+          refine StepCD.frame ?_ ⟨rfl, rfl, fun h => by simp [sendMsgs, voteRespResult, Hrole] at h⟩
+          rw [toPState_sendMsgs, toPState_voteRespResult _ _ _ _ _ _ _ pvs Hrole _ (fun h => by cases h)]
+          unfold pvoteRespResult
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          refine StepCF.trans _ _ _ _ _ (StepCF.recordVote (c := c) (id := id)
+            (absMsg .voteResp m ents) (toPState s) rfl Hto Hteq Hpr) ?_
+          exact stepCF_askWitness_wv c id _ _ _ _ _ _ Hpr Hw Hout Hq1 Hls
+            rfl rfl rfl (by rw [Hvotes]; rfl)
+        rw [sendMsgs_nil]
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn
         subst Herrn

@@ -5096,16 +5096,17 @@ campaign (its full log), and its granted votes of the configuration, on its gran
 2026-10-20 at the step's environment (`dynEnv`): the campaign prefix's configuration is the step's,
 and in the dynamic mode the campaign's dynamic facts and its log's subterm prefixes (`dynWit`). -/
 theorem ownRaftGhost_wvote (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
-    (vs : List w64) :
+    (vs : List w64) (ls : w64) :
     s.role = .candidate →
     size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
     (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
     vs ≡ₚ elements (domSet s.votes) →
+    (ls = W64 0 ∨ ls = plogLastSub s.log) →
     ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md -∗
       isMessage γ (Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
-        (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []) ∗
+        (plogLast s.base s.log).term' ls (W64 0) [] vs []) ∗
       ownRaftGhost γ id s md := by
-  intro Hr Hsz Hszo Hvs
+  intro Hr Hsz Hszo Hvs Hls
   iintro #Henv Hown
   by_cases Hw : c.wit = γ.reWit ∧ γ.reWit ≠ W64 0
   rotate_left
@@ -5155,7 +5156,10 @@ theorem ownRaftGhost_wvote (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
     isplitr
     · ipureintro
       refine ⟨by rw [full_last _ _ _ Hfp], ?_, HKcfg, fun g hg => ?_, Hsz, Hszo⟩
-      · unfold plogLastSub
+      · rcases Hls with Hls | Hls
+        · exact Or.inl Hls
+        subst Hls
+        unfold plogLastSub
         cases h : s.log.getLast? with
         | none => exact Or.inl rfl
         | some e => exact Or.inr ⟨e, by simp [List.getLast?_append, h], rfl⟩
@@ -5342,14 +5346,14 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
       (Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []) (Or.inl rfl)
       $$ Hm Hrecv Hcr Hown with Hown
     imodintro; iframe Hregs Hown
-  | askWitness s vs Hr _ Hsz Hszo Hvs =>
+  | askWitness s vs ls Hr _ Hsz Hszo Hvs Hls =>
     iintro #Hrc Hregs Hrecv Hcr - Hown
     ihave #Henv : dynEnv γ id c s $$ []
     · iapply dynEnv_static γ id c s HC
-    icases ownRaftGhost_wvote γ c id s vs Hr Hsz Hszo Hvs $$ Henv Hown with ⟨#Hm, Hown⟩
+    icases ownRaftGhost_wvote γ c id s vs ls Hr Hsz Hszo Hvs Hls $$ Henv Hown with ⟨#Hm, Hown⟩
     imod ownRaftGhost_step_sendW γ id s
       (Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
-        (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []) (Or.inr (Or.inl rfl))
+        (plogLast s.base s.log).term' ls (W64 0) [] vs []) (Or.inr (Or.inl rfl))
       $$ Hm Hrecv Hcr Hown with Hown
     imodintro; iframe Hregs Hown
   | sendWPre s m _ Hty _ =>

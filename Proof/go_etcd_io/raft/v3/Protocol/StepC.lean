@@ -756,17 +756,19 @@ inductive StepC : PState → List Msg → PState → Prop where
   /-- (2026-10-19) `stepCandidate`'s `sendRequestVoteToWitness`: a candidate one vote short
   (`getWitnessVoteRequestReadiness`: at least `quorum - 1` granted votes of each half of the
   configuration, 2026-10-20; `votesToWin = 1` in one half, at most one in the other) asks the
-  witness, with its last entry, its subterm (`plogLastSub`) and every voter that has answered so
-  far (`trk.Votes`'s keys). -/
-  | askWitness (s : PState) (vs : List w64) :
+  witness, with its last entry, its subterm (`plogLastSub`, or `0` when `raftLog.subterm` cannot
+  read the last entry: compacted out of the storage, 2026-10-20) and every voter that has
+  answered so far (`trk.Votes`'s keys). -/
+  | askWitness (s : PState) (vs : List w64) (ls : w64) :
       s.role = .candidate →
       c.wit ≠ W64 0 →
       size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
       (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
       vs ≡ₚ elements (domSet s.votes) →
+      (ls = W64 0 ∨ ls = plogLastSub s.log) →
       StepC s []
         (psendMsgs s [Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
-          (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []])
+          (plogLast s.base s.log).term' ls (W64 0) [] vs []])
   /-- (2026-10-19) a pre-candidate's pre-vote request to the witness: it carries nothing. -/
   | sendWPre (s : PState) (m : Msg) :
       c.wit ≠ W64 0 →
@@ -788,7 +790,7 @@ theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) 
   induction h with
   | newSub _ _ _ h2 => exact absurd hw h2
   | sendWApp _ _ _ _ _ h2 => exact absurd hw h2
-  | askWitness _ _ _ h2 => exact absurd hw h2
+  | askWitness _ _ _ _ h2 => exact absurd hw h2
   | sendWPre _ _ h1 => exact absurd hw h1
   | refl s => exact .refl s
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2

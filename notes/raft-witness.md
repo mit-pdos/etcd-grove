@@ -325,16 +325,78 @@ heartbeats, stepLeader, reconfiguration, restore, MsgProp, InvNodeRun):
   `HeartbeatOk` like the others: the spec is unchanged and the branch is no longer staged;
 - `stepLeader`'s `MsgTransferLeader` ignores the witness, as a learner.
 
-Open for check-quorum's new subterm (`ChangeReplicationSet` true, `StepC.newSub`): the step needs
-`uint.Z s.sub + 1 < 2^64`, which nothing bounds yet. Each new subterm appends an entry at it, so
-a leader's subterm is at most the entries it appended in its term; the physical invariant
-"a leader's `ep.sub` is at most its log's last index" (kept by `appendEntry`, set at
-`becomeLeader`) would give it from the log bound.
+Check-quorum's new subterm (`ChangeReplicationSet` true, `StepC.newSub`):
+- the bound `uint.Z s.sub + 1 < 2^64`: `PSubOk` (`PSubOk.lean`), a leader's subterm below its
+  log's last index. It is true at step boundaries only (inside `becomeLeader` and
+  `maybeStartNewSubterm` the subterm moves before its entry is appended), so it is a protocol
+  fact, kept by every step (`StepC.psubOk`, `StepR.psubOk`), carried in `ghostRest`;
+- `stepLeader`'s check-quorum gives `CQNewSub` (the next epoch by `ChangeEpochOk`, the entry
+  appended by `subtermStart`), and its receipt wand covers it (`k0 + 1`, `maybeStartNewSubterm`
+  threads the receipt); at the Step level the bound is `B = last + 1` (`finish_branch0B`) and the
+  static model's step is `StepC.newSub` with `x = epochRsx em'` (`epochRsx_wf`: the witness, or an
+  incoming voter that is not it). Proved (commit `6fe4d51aa8`); the dynamic model's is the next item.
+
+**`PState.scp` is ghost-only (design, 2026-10-20).** The dynamic model's new subterm
+(`StepR.newSub`, `StepR.applyConfWit`) records the configuration prefix of the subterm
+(`scp := r.full.take r.cidx`), which `dynWit`/`LfOk` read (`CfgAt γ s.scp c` at a witness leader
+past subterm 0). Until now `toPState` set no `scp` (always `[]`), so the physical reading could not
+match that step but at `cidx = 0`. The code has no such value: the prefix is a fact about the
+ghost log (`RGh.fp`, `cidx`), not about the struct. So it becomes a ghost field of `NState`
+(`NState.scp`, which `ownRaftPhys` does not constrain: a ghost step sets it freely), and
+`toPState` reads it only at a leader past subterm 0 (`if leader ∧ ep.sub ≠ 0 then s.scp else []`).
+The mask at subterm 0 is what keeps every other step unchanged: `becomeLeader` resets the epoch to
+subterm 0, where the protocol's `pwinState` has `scp = []`, so a stale value left by an earlier
+term is invisible; `become{Follower,Candidate}` are not leaders; every step that keeps a leader's
+role and subterm keeps the field. Since the right prefix depends on the dynamic mode's ghost part
+(`g`), which `StepCD`'s dynamic clause quantifies over, the field is set at `Step`'s dispatch, where
+the mode is known, and the ghost update takes the step for that mode only (`StepCM`); the static
+model ignores the prefix (`CfgAt` is `CfgStatic` there), so `StepC.newSub` takes it free (`P`),
+and one physical state serves both models. (Option rejected: the prefix in `RGh`, read by `rOf`:
+`StepCD`'s dynamic clause would move another ghost component at every branch, and the ghost
+state's index `toPState s` would become mode-dependent.)
 
 Gaps of the model found on the way: `leaveJointState` (`InvConfchange.lean`) builds a configuration
 without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`); `ConfStateM` has no witness fields
 (Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a snapshot's configuration loses the
 witness in the model.
+
+## W3b-C: the candidate's witness paths (2026-10-20, branch `raft-witness-w3c`)
+
+Proved with their witness branches (no `ownRaftPhysC_wit0` left at these sites):
+- `campaign` skips the witness (`id == r.trk.Witnesses[0] || ...`): its peers are `campSet c id`
+  (`StepLemmasC.lean`; every other voter but `c.wit`, at a witness-free configuration every other
+  voter, `campSet_nw`), justified by the protocol's `campaign` (every other voter) followed by
+  `drain` (`stepC_campaignState`, `stepCD_hup`); `HupGuard`, `PrecandVoteRespResultC` follow;
+- `getWitnessVoteRequestReadiness` at any configuration (`{c.wit ↦ v1 = 1}` or nil), the witness
+  ids `r.trk.Witnesses[i]` at any configuration (`LemmasWitnessR.lean`: `wp_load_trk_witnessC'`,
+  `witOf`), `sendRequestVoteToWitness` (the request `wVoteM` queued on the outbox, its subterm
+  `raftLog.subterm`'s or `0`: W3b-A's `raftLog.subterm` spec, `plogEntryAt`);
+- `stepCandidate`'s `VotePending` arm (`wvp_loop`): the one-key range, `witnessVoteAsked`
+  (`ownRaftPhysC_asked`, its re-seal STAGED as `witQ`'s), the request; `CandVoteRespResultC` /
+  `PrecandVoteRespResultC` carry the queued requests `wq` (`WitAsk`: none, or the one request at a
+  configuration with a witness, one vote short in the incoming half), witness-free corollaries
+  unchanged (`WitAsk.nw`); `raft.Step`'s `MsgVoteResp`/`MsgPreVoteResp` take
+  `StepCF.askWitness` / `StepC.sendWPre` after the tally (`StepCF` has both rules now, frame steps);
+- protocol: `StepC.askWitness`/`StepR.askWitness` take the reported subterm `ls`, `0` or
+  `plogLastSub` (the last entry compacted out of the storage: `raftLog.subterm` fails).
+
+The joint-configuration gap: `askWitness` needs `quorum - 1` granted votes in the outgoing half too,
+but Go's readiness with `Witnesses = [c.wit, 0]` checks only the incoming half (`w[w1] = v1 == 1`).
+In the static mode a configuration with a witness is never joint (a configuration change leaves no
+witness, `ccApplyM_wit0`), recorded as `ownRaftPhysC_witSimple` (`LemmasWitnessR.lean`), which is
+read out of the STAGED conjunct today: **the static-mode invariant that replaces STAGED must keep
+`c.wit ≠ 0 → c.outgoing = ∅`.** With a witness across reconfiguration (W5), either Go asks only at
+`v1 == 1 && v2 <= 1` when `w2 == 0` (a behaviour change, proposed, not made), or `askWitness`'s
+outgoing premise is dropped when the outgoing half has no witness (the witness's vote does not
+count there).
+
+Not done: the Ready path (`ownRaftPhysC_view` with the witness queue, `readyWithoutAccept`'s
+`rd.WitnessMessages` with each request's `isMessage`, `acceptReady`'s `r.witnessMsgs = nil`,
+`HasReady`'s `len(r.witnessMsgs) > 0`, `node.go`'s `Ready`), which goes through W3b-A's view
+accessor and `InvNodeRun`.
+
+`MsgVoteResp.lean`'s `wp_Step_MsgVoteResp` takes `maxHeartbeats 4000000` (the larger
+`CandidateStepResultC` unfolded by `wp_gets`; the file's time is unchanged, about 220 s).
 
 ## W3b: `Process`, its instance at W2's ghost state, the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
 
