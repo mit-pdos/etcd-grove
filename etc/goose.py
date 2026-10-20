@@ -430,6 +430,24 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3")],
     ),
     Project(
+        name="linkv3p",
+        # linkv3 under network partitions (notes/partition-plan.md): three members started
+        # in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
+        # goroutine cutting and mending links on `Main`'s schedule (etcd's `CutPeer`/`MendPeer`),
+        # and linkv's workload (`Gen`, `Apply`, `Model`, imported; its own `Apply` picks the
+        # member). A Go module of this repository, with putget's replaces (keep them in step);
+        # its imports are the etcd, linkv, lintest and porcupine projects' translations (names
+        # reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "linkv3p"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3p")],
+    ),
+    Project(
         name="watchkv",
         # The watch example: one member started in-process, as in putget, a prefix watch from
         # revision 1, writer goroutines putting random keys under the prefix, and a check of the

@@ -464,6 +464,13 @@ EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__Mem
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
+# (notes/partition-plan.md, S1/S2, 2026-10-20) etcd's partition hooks: `CutPeer`/`MendPeer` with
+# their bodies (the type assertion on `s.r.transport`), over rafthttp's `CutPeer`/`MendPeer`, two
+# trust-boundary axioms (they only pause and resume a peer, which the network model allows)
+rafthttp_Transport__CutPeer:
+rafthttp_Transport__MendPeer:
+EtcdServer__CutPeer: rafthttp_Transport__CutPeer
+EtcdServer__MendPeer: rafthttp_Transport__MendPeer
 node__Ready: @
 node__Advance: @
 node__Tick: @

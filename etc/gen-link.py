@@ -288,6 +288,18 @@ LEAN_FIRST = {
                    "github_com.anishathalye.porcupine",
                    "github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions",
                    "The KV-workload linearizability instance's proofs (`examples/linkvtxn`)", [""]),
+    # the three-member instance under network partitions (examples/linkv3p, notes/partition-plan.md):
+    # its `startMember` (linkv3's plus the member's gRPC server, over the server's, v3rpc's and
+    # grpc's, `@`), `newClient` (over the client's `New`, `@`), `partitioner` (over the server's
+    # `MemberID`/`CutPeer`/`MendPeer`, `@`), `Apply` (over linkv's `Apply`, `@`), `Check` (over the
+    # driver's and linkv's, `@`) and `Main`
+    "--linkv3p": ("link-lean-first-linkv3p.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.linkv3p "
+                  "github_com.mit_pdos.etcd_grove.examples.linkv "
+                  "github_com.mit_pdos.etcd_grove.examples.lintest "
+                  "github_com.anishathalye.porcupine",
+                  "github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions",
+                  "The partitioned three-member instance's proofs (`examples/linkv3p`)", [""]),
     # the watch example (examples/watchkv, D23): its functions, the watch's options, and `Main`
     # (over the server's, v3rpc's, the client's and `context`'s, `@`)
     "--watchkv": ("link-lean-first-watchkv.txt",
@@ -304,7 +316,7 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -320,7 +332,7 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3"}
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3", "--linkv3p"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
