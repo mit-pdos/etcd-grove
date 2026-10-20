@@ -1093,7 +1093,7 @@ theorem strconv.wp_FormatUint :
     strconv.FormatUint.spec (GF := GF) (hG := hG) :=
   strconv.FormatUint.wp_proof
 
-theorem tracker.ReplicationSet.wp_String :
+theorem tracker.ReplicationSet.wp_String [StorageModel GF] :
     tracker.ReplicationSet.String.spec (GF := GF) (hG := hG) :=
   tracker.ReplicationSet.String.wp_proof slices.wp_Sort strconv.wp_FormatUint strings.wp_Join fmt.wp_Sprintf
 

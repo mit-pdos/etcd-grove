@@ -74,7 +74,7 @@ theorem raft.promotable.wp_proof
       have h0 := (Hnw id p Hpv).2
       by_cases h : id = c.wit
       · have hc : c.wit ≠ W64 0 := h ▸ h0
-        simp [h, hc]
+        rw [decide_eq_true (⟨h, hc⟩ : id = c.wit ∧ c.wit ≠ W64 0), decide_eq_true h]
       · simp [h]
     have Htr : id ∈ c.ids := by
       rw [← Hdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩

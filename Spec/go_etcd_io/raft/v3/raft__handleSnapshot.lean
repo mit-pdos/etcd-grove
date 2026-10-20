@@ -63,7 +63,7 @@ def HandleSnapResult (id : w64) (s : NState) (m : MessageM)
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧
    ∃ prs pvs il,
-     s' = sendMsgs { s with progress := prs, prvals := pvs,
+     s' = sendMsgs { s with progress := prs, prvals := pvs, ep := EpochM.bare (W64 0),
                             logst := logRestore ls (snapTrip sv cl), isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
 

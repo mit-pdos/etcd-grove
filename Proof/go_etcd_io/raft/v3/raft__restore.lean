@@ -587,10 +587,11 @@ theorem raft.restore.wp_proof
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
-    icases ownRaftPhysCV_reconfig _ (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
-        (fun h => absurd Hrole1 h) rfl $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
+    icases ownRaftPhysCV_reconfig (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)) (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
+        (fun h => absurd Hrole1 h) rfl $$ Hphys
+        with ⟨%tv1, Htrkf, Hold, Hback2⟩
     icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1, #Hep1⟩
-    ihave #Hep1 := ownEpochOk_nw' rfl $$ Hep1
+    ihave #Hep1 := ownEpochOk_nw' (CfgM.simple_wit _ _) $$ Hep1
     wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs rfl
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)

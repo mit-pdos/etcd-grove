@@ -213,7 +213,7 @@ theorem newRaft.wp_proof
   ihave Hcap1 := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave Hcap2 := ownSliceCap_nil (V := Loc) (GF := GF)
   ihave Hob := outboxRel_nil (GF := GF)
-  imod raftOwn_of_pts «$r0_ptr» _ ⟨rfl, rfl⟩ $$ «$r0» with «$r0»
+  imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   -- (D21 M3) not in the no-snapshot mode (set later, by the node's construction)
   ihave #Hns0 := NsCap.off (GF := GF) s0.logst.storage
   -- the struct, left open at its tracker (`ownRaftPhys_intro_trk`, 2026-10-16, stage R8b: the

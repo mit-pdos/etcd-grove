@@ -1621,6 +1621,9 @@ role are untouched. -/
 theorem nstateWf_prvals (s : NState) (pvs : GMap w64 Progress) (H : NStateWf s) :
     NStateWf { s with prvals := pvs } := H
 
+theorem nstateWf_prvals_ep (s : NState) (pvs : GMap w64 Progress) (em : EpochM)
+    (H : NStateWf s) : NStateWf { s with prvals := pvs, ep := em } := H
+
 /-- New `Progress` values are invisible to the protocol unless the node is leader and
 `Match` moved. -/
 theorem toPState_prvals (s : NState) (pvs : GMap w64 Progress)

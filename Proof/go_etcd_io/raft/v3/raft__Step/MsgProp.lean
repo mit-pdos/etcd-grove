@@ -389,9 +389,13 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
         · -- `StepC.propose` of the loop's batch, then the broadcast
           rw [HP]
-          exact .trans _ _ _ _ _
-            (.propose (absMsg .propose m ents ctx) _ (leaderPropConf s ents cs' c.joint).1 rfl Hrepl
-              Hrl (by have := Hrepl.length; omega))
+          -- staged: subterm 0 (`Hsub0`), so `propose`'s `stampS` is `stamp`
+          have Hpsub : (toPState s).sub = W64 0 := by simp [toPState, Hrole, Hsub0]
+          have Hpr := StepC.propose (c := c) (id := id)
+            (B := plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int)) (absMsg .propose m ents ctx) (toPState s)
+            (leaderPropConf s ents cs' c.joint).1 rfl Hrepl Hrl (by have := Hrepl.length; omega)
+          rw [Hpsub, stampS_zero_fun] at Hpr
+          exact .trans _ _ _ _ _ Hpr
             (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1)
               (fun m hm h => (GMap.elem_of_subseteq _ _).1 Hpc _ (by
                 have := (Hms m hm).2.2.1 h

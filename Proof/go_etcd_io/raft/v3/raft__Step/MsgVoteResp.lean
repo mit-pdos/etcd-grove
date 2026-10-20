@@ -65,9 +65,10 @@ private theorem ite_neg {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : �
 /-- A candidate's tally keeps the term and `NetFrame`'s fields: a win's `becomeLeader`
 appends to the unstable entries only. -/
 private theorem voteRespResult_frame (id : w64) (s : NState) (src : w64)
-    (reject won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress) (m : MessageM) :
-    NetFrame s { voteRespResult id s src reject won lost ms with prvals := pvs } ∧
-    TermStep m s { voteRespResult id s src reject won lost ms with prvals := pvs } := by
+    (reject won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress) (m : MessageM)
+    (em : EpochM) :
+    NetFrame s { voteRespResult id s src reject won lost ms with prvals := pvs, ep := em } ∧
+    TermStep m s { voteRespResult id s src reject won lost ms with prvals := pvs, ep := em } := by
   unfold voteRespResult
   split
   · exact keep_frame rfl rfl rfl rfl rfl
@@ -334,9 +335,9 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · iexact Hrc
         ipureintro
-        refine ⟨nstateWf_prvals _ _ (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf), ?_, rfl,
+        refine ⟨nstateWf_prvals_ep _ _ _ (nstateWf_voteRespResult _ _ _ _ _ _ _ Hwf), ?_, rfl,
           RespStep.of_fresh Hnpv (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)),
-          voteRespResult_frame _ _ _ _ _ _ _ _ _⟩
+          voteRespResult_frame _ _ _ _ _ _ _ _ _ _⟩
         refine ⟨[absMsg .voteResp m ents], by simp, ?_⟩
         have Hnp : s.role ≠ .preCandidate := by rw [Hrole]; decide
         have Hvotes : (toPState s).votes = s.votes := toPState_votes_nonpre _ Hnp
@@ -344,7 +345,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         cases won
         · -- pending or lost: a frame step
           refine StepCD.frame ?_ ?_
-          · rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
+          · rw [toPState_voteRespResult _ _ _ _ _ _ _ pvs Hrole _ (fun h => by cases h)]
             unfold pvoteRespResult
             cases lost
             · simp only [Bool.false_eq_true, ↓reduceIte]
@@ -370,6 +371,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           have Hbl := toPState_becomeLeader id
             { s with votes := recordVote s.votes m.From' (!m.Reject') }
             (becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }).prvals
+            (resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0)) (resetEpoch_sub _ _ _ _ _)
+            (epochRsx_reset _ _ _ _ _)
           have Hms' : ∀ m' ∈ ms, ReplOk id (pwinState id { toPState s with
               votes := recordVote (toPState s).votes m.From' (!m.Reject') } (prvalsMatch pvs)) m' := by
             -- the broadcast was judged at `becomeLeader`'s state, which is
@@ -394,22 +397,28 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             push_cast
             omega
           refine ⟨?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
-          · rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
+          · rw [if_pos (rfl : true = true), toPState_voteRespResult _ _ _ _ _ _ _ pvs Hrole _
+              (fun _ => ⟨resetEpoch_sub _ _ _ _ _, epochRsx_reset _ _ _ _ _⟩)]
             unfold pvoteRespResult
             simp only [↓reduceIte]
             exact stepC_record_then_win c id (toPState s) (absMsg .voteResp m ents)
               (prvalsMatch pvs) ms rfl Hto Hteq Hpr Hmt' Hms' Hq (Int.le_refl _) Hsn
-          · change StepR Adm dec id _ (rOf s g) ([absMsg .voteResp m ents] ++ [])
-              (rOf { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } g)
-            have Hr : rOf { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } g =
+          · rw [if_pos (rfl : true = true)]
+            change StepR Adm dec id _ (rOf s g) ([absMsg .voteResp m ents] ++ [])
+              (rOf { voteRespResult id s m.From' m.Reject' true lost ms with
+                       prvals := pvs, ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) } g)
+            have Hr : rOf { voteRespResult id s m.From' m.Reject' true lost ms with
+                              prvals := pvs, ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) } g =
                 { rOf s g with
-                  p := toPState { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs },
+                  p := toPState { voteRespResult id s m.From' m.Reject' true lost ms with
+                                    prvals := pvs, ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) },
                   pci := plastIndex (toPState s) } := by
               unfold rOf pciR
               simp [voteRespResult, becomeLeader, becomeLeaderLog, becomeLeaderPre, sendMsgs,
                 resetTo, resetTo0, plastIndex_toPState]
             wp_gets
-            rw [Hr, toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
+            rw [Hr, toPState_voteRespResult _ _ _ _ _ _ _ pvs Hrole _
+              (fun _ => ⟨resetEpoch_sub _ _ _ _ _, epochRsx_reset _ _ _ _ _⟩)]
             unfold pvoteRespResult
             simp only [↓reduceIte]
             have Hrp : (rOf s g).p = toPState s := rfl

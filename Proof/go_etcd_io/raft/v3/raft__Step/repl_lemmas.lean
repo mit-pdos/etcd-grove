@@ -361,7 +361,7 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
       (StepC.snapRestore (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hlt Hnm) ?_
     rw [toPState_sendMsgs']
     have Hs : toPState
-        { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapTrip sv voters),
+        { t with progress := prs, prvals := pvs, ep := EpochM.bare (W64 0), logst := logRestore t.logst (snapTrip sv voters),
                  isLearner := il } =
         { toPState t with
             base := snapId sv
@@ -461,7 +461,7 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : Mess
     · exact absurd Hm Hr.2
     refine ⟨⟨uint.nat (snapId sv).index', cs', fp'⟩, hcs, ?_⟩
     rw [Hc] at Hlt; rw [Hb, Hl] at Hnm
-    have Hp : toPState (sendMsgs { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapTrip sv voters), isLearner := il }
+    have Hp : toPState (sendMsgs { t with progress := prs, prvals := pvs, ep := EpochM.bare (W64 0), logst := logRestore t.logst (snapTrip sv voters), isLearner := il }
         [appResp id t m.From' false (snapId sv).index' (W64 0) (W64 0)]) =
         psendMsgs
           { padoptLeader (toPState s) (absSnap m sv voters).src with
@@ -471,7 +471,7 @@ theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : Mess
             (absSnap m sv voters).index (W64 0) (W64 0) (W64 0) []] := by
       rw [toPState_sendMsgs']
       have Hs : toPState
-          { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapTrip sv voters),
+          { t with progress := prs, prvals := pvs, ep := EpochM.bare (W64 0), logst := logRestore t.logst (snapTrip sv voters),
                    isLearner := il } =
           { toPState t with
               base := snapId sv

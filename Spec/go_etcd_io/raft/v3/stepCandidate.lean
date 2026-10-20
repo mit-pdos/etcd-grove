@@ -77,8 +77,8 @@ def CandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : MessageM)
        prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
     (lost = true → ¬ IsQuorum cfg (cfg \ rejected votes')) ∧
     -- (2026-10-20) a new leader's epoch is the reset one, bare without a witness
-    s' = { voteRespResult id s m.From' m.Reject' won lost ms with prvals := pvs,
-           ep := (if won then EpochM.bare (W64 0) else s.ep) }
+    s' = { voteRespResult id s m.From' m.Reject' won lost ms with
+             prvals := pvs, ep := (if won then EpochM.bare (W64 0) else s.ep) }
 
 /-- The `MsgPreVoteResp` case at a pre-candidate (2026-10-04), `prevoteRespResult`
 (`StepLemmas.lean`): `poll`'s facts as for `CandVoteRespResult`, and on a win the peers
@@ -142,8 +142,8 @@ def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
        prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
     (lost = true → JLost c votes') ∧
     -- (2026-10-20, witness support) a new leader's epoch is the reset one (`becomeLeader`)
-    s' = { voteRespResult id s m.From' m.Reject' won lost ms with prvals := pvs,
-           ep := (if won then resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) else s.ep) }
+    s' = { voteRespResult id s m.From' m.Reject' won lost ms with
+             prvals := pvs, ep := (if won then resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) else s.ep) }
 
 /-- `PrecandVoteRespResult` at the configuration `c`: the joint facts, and on a win the peers
 `campaign` asked, the other voters of either half. -/
