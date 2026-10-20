@@ -1776,9 +1776,10 @@ instance wJust_timeless (γ : RaftNames) (t σ idx x : w64) (H : GSet w64) :
 /-- The witness's state's justification: its last entry is a leader's witness request's, with
 the replication set's voters; none at the start. -/
 def wStJust (γ : RaftNames) (st : WState) : IProp GF :=
-  if st.lt = W64 0 then iprop(⌜st.ls = W64 0⌝)
+  if st.lt = W64 0 then iprop(⌜st.ls = W64 0 ∧ st.rs = []⌝)
   else iprop(∃ (x : w64) (H : GSet w64),
-    ⌜∀ v, v ∈ st.rs ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})⌝ ∗ wJust γ st.lt st.ls st.li x H)
+    ⌜(∀ v, v ∈ st.rs ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})) ∧ st.rs.Nodup⌝ ∗
+    wJust γ st.lt st.ls st.li x H)
 
 instance wStJust_persistent (γ : RaftNames) (st : WState) :
     Persistent (wStJust (GF := GF) γ st) := by

@@ -249,7 +249,7 @@ theorem wSt_app_noupd (γ : RaftNames) (st : WState) (m r : Msg) :
   simp only [isMessage, Hty]
   rw [if_pos ⟨Hd, Hwnz⟩]
   iintro #Hst ⟨%x, %H, %Hm, #Hj⟩
-  obtain ⟨Hlt, -⟩ := Hm
+  obtain ⟨Hlt, -, -⟩ := Hm
   ihave %Hle := wSt_lt_le γ st $$ Hst
   unfold wAppNoUpd at Hr
   by_cases He : m.logterm = st.lt ∧ m.sub = st.ls
@@ -292,7 +292,7 @@ theorem wSt_app_noupd (γ : RaftNames) (st : WState) (m r : Msg) :
       by_cases H0 : st.lt = W64 0
       · rw [if_pos H0]
         icases Hsj with %Hs0
-        iexfalso; ipureintro; rw [Hs0] at Hls; have := uint_Z_nonneg m.sub
+        iexfalso; ipureintro; rw [Hs0.1] at Hls; have := uint_Z_nonneg m.sub
         simp at Hls
       rw [if_neg H0]
       icases Hsj with ⟨%x', %H', -, #Hj'⟩
@@ -319,12 +319,13 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
       isMessage γ (Msg.mk .appResp γ.reWit m.src m.term false m.index (W64 0) (W64 0) (W64 0) []) := by
   intro Hty Hd Hwnz Ht Hnl
   have Hm' : isMessage (GF := GF) γ m = iprop(∃ (x : w64) (H : GSet w64),
-      ⌜m.logterm = m.term ∧ ∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})⌝ ∗
+      ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})) ∧
+        m.voters.Nodup⌝ ∗
       wJust γ m.term m.sub m.index x H) := by
     simp only [isMessage, Hty]; rw [if_pos ⟨Hd, Hwnz⟩]
   rw [Hm']
   iintro ⟨%x, %H, %Hm, #Hj⟩ Hg
-  obtain ⟨Hlt, Hvs⟩ := Hm
+  obtain ⟨Hlt, Hvs, Hnd⟩ := Hm
   ihave %Htnz : ⌜m.term ≠ W64 0⌝ $$ []
   · unfold wJust; icases Hj with ⟨-, ⟨%ldr, #Hl, -⟩, -⟩; iapply isLeader_term_nz $$ Hl
   ihave #Hj' : wStJust (GF := GF) γ (wAppWrite st m) $$ []
@@ -332,7 +333,7 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
     rw [if_neg (show (wAppWrite st m).lt ≠ W64 0 from by
       show m.logterm ≠ W64 0; rw [Hlt]; exact Htnz)]
     iexists x, H
-    isplitr; · ipureintro; exact Hvs
+    isplitr; · ipureintro; exact ⟨Hvs, Hnd⟩
     rw [show (wAppWrite st m).lt = m.term from Hlt, show (wAppWrite st m).ls = m.sub from rfl,
       show (wAppWrite st m).li = m.index from rfl]
     iexact Hj
@@ -356,11 +357,12 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
   ipureintro; exact Hp
 
 /-- `handleVote`'s grant at the stored state's term: the vote, in the vote map and the votes
-table, justified by the state it was granted from (`wVoteJust`). -/
-theorem wGhost_vote (γ : RaftNames) (st : WState) (m : Msg) :
+table, justified by the state it was granted from (`wVoteJust`), at any mask where the log half
+of the commit invariant can be opened (the storage's invariant's, 2026-10-20). -/
+theorem wGhost_vote (γ : RaftNames) (E : CoPset) (HE : (↑raftLogN : CoPset) ⊆ E) (st : WState) (m : Msg) :
     m.ty = .wvote → m.dst = γ.reWit → γ.reWit ≠ W64 0 → m.term = st.term → m.src ≠ W64 0 →
     (st.vote = m.src ∨ st.vote = W64 0) → WGrantOk st m.logterm m.sub m.voters →
-    ⊢ raftCommitInv (GF := GF) γ -∗ isMessage γ m -∗ wGhost γ st ={⊤ \ ↑raftRegN}=∗
+    ⊢ raftCommitInv (GF := GF) γ -∗ isMessage γ m -∗ wGhost γ st ={E}=∗
       wGhost γ { st with vote := m.src } ∗ isVote γ γ.reWit m.term m.src := by
   intro Hty Hd Hwnz Ht Hsrc Hcv Hok
   have Hm' : isMessage (GF := GF) γ m = wVoteReq γ m.src m.term m.logterm m.index m.sub m.voters := by
@@ -403,7 +405,7 @@ theorem wGhost_vote (γ : RaftNames) (st : WState) (m : Msg) :
       iexists st, m.logterm, m.index, m.sub, m.voters
       iframe Hst Hreq
       ipureintro; exact ⟨Ht.symm, Hok⟩
-    imod vote_insert γ γ.reWit γv voted m.term m.src Hγv Hnone $$ Hinv Hvj Hva with ⟨Hva, #Hfr⟩
+    imod vote_insertE γ E HE γ.reWit γv voted m.term m.src Hγv Hnone $$ Hinv Hvj Hva with ⟨Hva, #Hfr⟩
     imodintro
     isplitl [Ha Hva]
     · iexists L ++ [{ st with vote := m.src }], γv, (<[m.term := m.src]> voted)

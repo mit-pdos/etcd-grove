@@ -1604,7 +1604,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     · simp at hx; subst hx; exact Int.le_refl _
   isplitr
   · iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => wStJust (GF := GF) γ0 x)).2
-    unfold wStJust; rw [if_pos (show wInit.lt = W64 0 from rfl)]; ipureintro; rfl
+    unfold wStJust; rw [if_pos (show wInit.lt = W64 0 from rfl)]; ipureintro; exact ⟨rfl, rfl⟩
   isplitr
   · ipureintro
     refine ⟨by rw [eW, e1, GMap.lookup_insert], fun t ht => by simp at ht, by simp [wInit]⟩

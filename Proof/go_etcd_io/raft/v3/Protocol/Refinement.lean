@@ -4936,7 +4936,7 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id 
     iexists x, ackedBy s i ∩ (γ.reCfg \ ({[γ.reWit]} ∪ {[x]}))
     isplitr
     · ipureintro
-      refine ⟨trivial, fun v => ?_⟩
+      refine ⟨trivial, fun v => ?_, Hvs.nodup_iff.mpr (GMap.NoDup_elements _)⟩
       rw [Hvs.mem_iff, GMap.elem_of_elements]
     unfold wJust
     isplitr

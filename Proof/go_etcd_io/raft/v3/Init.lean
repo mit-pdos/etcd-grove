@@ -496,8 +496,9 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  -- (2026-10-19, witness support) `ErrWitnessStateModified`, which no proof reads
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrWitnessStateModified go.error as _
+  -- (2026-10-19, witness support) `ErrWitnessStateModified`, which `witness.Process` compares
+  -- the storage's error against (2026-10-20)
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrWitnessStateModified go.error as HEWSM
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isResponseMsg _ as HisResp
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isLocalMsg _ as HisLocal
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapshotTemporarilyUnavailable go.error as HESU
@@ -575,6 +576,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist HESP
   ipersist HESL
   ipersist HEB
+  ipersist HEWSM
   ipersist HisLocal
   ipersist HisResp
   iframe Hown
@@ -592,6 +594,12 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     iframe HEB
     ipureintro
     exact ⟨nofun, ⟨_, _, rfl⟩⟩
+  ihave #HEWSM' : iprop(∃ ew : GoInterface, (globalAddr ErrWitnessStateModified ↦□ ew : IProp GF) ∗
+      ⌜ew ≠ interface.nil ∧ IsNewError ew⌝) $$ [HEWSM]
+  · iexists _
+    iframe HEWSM
+    ipureintro
+    exact ⟨nofun, ⟨_, _, rfl⟩⟩
   -- (raft v3.7, stage R4) `emptyState = &pb.HardState{}`: a pointer to a fresh zero struct,
   -- as `hsRO es ⟨0, 0, 0⟩` unfolded (phase 3)
   ihave #HEmpty' : iprop(∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
@@ -606,7 +614,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   · iexists _
     iframe HEmpty HeT HeV HeC HesPb
     ipureintro; exact HesNN
-  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
+  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HEWSM'
   simp only [named, EtcdGrove.errorsNewVar]
   iframe #
   ipureintro
