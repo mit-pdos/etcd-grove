@@ -21,8 +21,8 @@ It follows, as watchkv's (`Proof/.../watchkv/Adequacy.lean`), from
 `etc/gen-init.py`) and `cachekv.wp_Main` (`Link.lean`).
 
 **Its hypotheses** are watchkv's (`watch_adequate`) at cachekv's configuration
-(`cachekv.premises`: putget's and the watch stream's transport premise `noRetryableStreamErr`;
-the address `127.0.0.1:23851`): the cache adds none.
+(`cachekv.premises`: putget's, until 2026-10-20 also the watch stream's transport premise
+`noRetryableStreamErr`, gone with D24; the address `127.0.0.1:23851`): the cache adds none.
 -/
 module
 

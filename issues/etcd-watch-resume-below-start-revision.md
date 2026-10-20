@@ -38,9 +38,10 @@ links: []
 - **Expected**: a watch from revision `r` never delivers an event below `r` (`WithRev`'s
   documentation, `client/v3/op.go`: "the start revision of 'Watch' request").
 - **How the proof handles it**: the client's watch was verified under `noRetryableStreamErr` (no
-  reconnection: `notes/STATUS.md`, "W-C"). Its contract (`rangeWatchEvOk`: every event at or above
-  the watch's start revision) holds across a reconnect only over the fixed code: the resume
-  revision must stay above the contract's position (`notes/decisions.md`, D24).
+  reconnection) until 2026-10-20. Its contract (`rangeWatchEvOk`: every event at or above the
+  watch's start revision) holds across a reconnect only over the fixed code: the resume revision
+  stays above the contract's position (`notes/decisions.md`, D24), which the reconnection's proof
+  now shows; the premise is gone.
 - **Possible fixes**: move the resume revision only forward (the fork's fix: `else if
   wr.Header.Revision+1 > nextRev`); or keep `max(nextRev, initReq's original rev)` at the resumed
   create.

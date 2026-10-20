@@ -56,8 +56,8 @@ links:
 - **Expected**: a watch's teardown removes only that watch; a reconnect keeps every watch still
   served.
 - **How the proof handles it**: the client's watch was verified under `noRetryableStreamErr` (no
-  reconnection: `notes/STATUS.md`, "W-C"), which excludes step 3. The reconnection's verification
-  (`notes/decisions.md`, D24) is to be over the fixed code.
+  reconnection), which excluded step 3, until 2026-10-20. The reconnection is now verified over
+  the fixed code (`notes/decisions.md`, D24), and the premise is gone.
 - **Possible fixes**: in `run`'s `Canceled` case, reset the substream's id to `InvalidWatchID`
   after dropping it from `substreams` (the fork's fix: the server has forgotten the id;
   `closeSubstream` then finds the substream in neither `substreams` nor `resuming`, and `run`

@@ -5,8 +5,9 @@
   whose header explains each premise) at watchkv's names and ports: `cfgOk` (member and token
   `watchkv`, data directory `watchkv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23841`, client
   URL `http://127.0.0.1:23831`), the peer directory `wkDir`, and `premises`: putget's at these,
-  with the transport premise `client.noRetryableStreamErr` (the user's decision: the transport
-  never fails a watch stream with a retryable code, `issues/etcd-watch-resume-closing-substream.md`).
+  (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, that the transport
+  never fails a watch stream with a retryable code; gone with D24: the client watcher's
+  reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s), `pairOf` (a `kv`'s key and value),
   `CheckOk` (what `check` needs not to panic).
 * `revAt E r k v`: revision `r` of a sealed log of the server's store is the put of `k ↦ v` (no
@@ -100,8 +101,7 @@ def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 
 /-- **`Main`'s named premises** (persistent): putget's (`putget.premises`) at `watchkv`'s
-configuration, URLs and peer directory, and the watch stream's transport premise
-`client.noRetryableStreamErr`. -/
+configuration, URLs and peer directory. -/
 def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
   iprop(
     (□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
@@ -112,8 +112,7 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     rnStopOkStarted ∗
-    v3rpc.runsNoRequireLeader ∗
-    client.noRetryableStreamErr)
+    v3rpc.runsNoRequireLeader)
 
 instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
     Persistent (premises (GF := GF) N id bootLog) := by

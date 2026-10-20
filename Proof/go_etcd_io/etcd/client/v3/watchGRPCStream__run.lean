@@ -92,7 +92,7 @@ theorem watchGRPCStream.run.wp_proof
   iunfold watchSrvFacts at Hsf'
   icases Hsf' with ⟨#Hstub, #Hconn⟩
   iunfold watchConnFacts at Hconn
-  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #HnoRetry, #Hsmall, #HnoDup,
+  icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #Hsmall, #HnoDup,
     #Heof, #HerrNew, #Hcea, #Hvars, %Hpre⟩
   -- S2 and S3, facts of the verified server (unit W-M2)
   ihave #HS2 := srvProgressAllAnswers_holds V.R

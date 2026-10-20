@@ -47,9 +47,10 @@ links: []
 - **Expected**: `Watch` returns a channel that is closed when the watch's context is canceled; never
   a nil one.
 - **How the proof handles it**: the client's watch was verified under `noRetryableStreamErr` (no
-  reconnection, so `waitCancelSubstreams` never sees a substream: `notes/STATUS.md`, "W-C"). The
-  contract `isEtcdRangeWatcher` returns an SPSC channel (`isSpsc`), which a nil channel is not: the
-  verification of the reconnection (`notes/decisions.md`, D24) is to be over the fixed code.
+  reconnection, so `waitCancelSubstreams` never saw a substream) until 2026-10-20. The contract
+  `isEtcdRangeWatcher` returns an SPSC channel (`isSpsc`), which a nil channel is not: the
+  reconnection is now verified over the fixed code (`notes/decisions.md`, D24;
+  `closeSubstream`'s nil-`outc` case), and the premise is gone.
 - **Possible fixes**: in `closeSubstream`, send `outc` on `retc` only when it is not nil (the
   fork's fix: a nil `outc` means the context is done, which `Watch` reports with its own closed
   channel); or have `waitCancelSubstreams` keep `outc` and let `closeSubstream` close it.

@@ -30,12 +30,10 @@ consumer's resources, `retcP`).
 * the watch-token pool (`mvcc.watchTokPool`, 2026-10-18: a create, and so every `Watch`, spends
   a token, which `run` takes from the pool for a time receipt of its own Go step: D19b's
   method, in place of the unbounded supply `watchTokSupply`);
-* `noRetryableStreamErr`: no stream error has the status code `Unavailable` or `Internal`, the
-  codes `isHaltErr` lets `run` retry on. Under it `run` stops at the first receive error, and
-  the reconnection (`newWatchClient` after `errc`, the resume queue, `waitCancelSubstreams`) is
-  dead code in the verified behaviour, verified at its first call only. The premise is there
-  because the reconnection can make `run` send on a closed channel
-  (`issues/etcd-watch-resume-closing-substream.md`).
+* (no longer a premise, D24, 2026-10-20) `noRetryableStreamErr`, that no stream error has the
+  status code `Unavailable` or `Internal`, the codes `isHaltErr` lets `run` retry on: the
+  reconnection (`newWatchClient` after `errc`, the resume queue, `waitCancelSubstreams`) is
+  verified at every call.
 * (no longer a premise, unit W-M3) S4: a watch event's revision is reached (`rangeWatchEvOk`'s
   `etcdReached e.rev`). A watcher's deliveries are the watch events of a *watched* log
   (`watchRecvOk` carries `mvcc.evLog`: sealed, so the clients' model's `etcdState`/`EtcdStep` of
@@ -164,17 +162,6 @@ abbrev WEnv.EM (V : WEnv GF) : EtcdModel GF := v3rpc.etcdModelOfServer V.R.E
 
 /-! ## The premises about the server and the transport -/
 
-/-- **No stream error is one `run` retries on** (a premise, persistent; see the file header): no
-error of a client stream (nor `io.EOF`) has the gRPC status code `Unavailable` (`14`) or
-`Internal` (`13`), the codes `isHaltErr` does not halt on. It excludes the reconnection, which
-can make `run` panic (`issues/etcd-watch-resume-closing-substream.md`). -/
-def noRetryableStreamErr : IProp GF :=
-  iprop(□ ∀ err : GoInterface, (cliStreamErr err ∨ eofIs err) -∗
-    ⌜statusCode err ≠ W32 14 ∧ statusCode err ≠ W32 13⌝)
-
-instance noRetryableStreamErr_persistent : Persistent (noRetryableStreamErr (GF := GF)) := by
-  unfold noRetryableStreamErr; infer_instance
-
 /-- **(S2) A response of watch id `-1` answers a progress request** (persistent; a premise until
 unit W-M2, now a theorem: `srvProgressAllAnswers_holds`). -/
 def srvProgressAllAnswers (R : v3rpc.WSrv GF) : IProp GF :=
@@ -296,7 +283,7 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
   iprop(grpcConn V.conn V.addr V.ics [] ∗
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
-    v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗ noRetryableStreamErr ∗
+    v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 

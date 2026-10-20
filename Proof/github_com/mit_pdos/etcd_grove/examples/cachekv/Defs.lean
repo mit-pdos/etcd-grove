@@ -6,9 +6,9 @@ watchkv's (`Proof/.../watchkv/Defs.lean`) at cachekv's names, ports and prefix:
 * The configuration `Main` starts its member with, as putget's (`Proof/.../putget/Defs.lean`,
   whose header explains each premise) at cachekv's names and ports: `cfgOk` (member and token
   `cachekv`, data directory `cachekv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23861`, client
-  URL `http://127.0.0.1:23851`), the peer directory `ckDir`, and `premises`: putget's at these,
-  with the transport premise `client.noRetryableStreamErr` (as cachekv's: the cache's watch loop
-  watches through the client's watcher).
+  URL `http://127.0.0.1:23851`), the peer directory `ckDir`, and `premises`: putget's at these
+  (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, gone with D24: the
+  client watcher's reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s, under the prefix `ck/`), `pairOf` (a `kv`'s
   key and value), `CheckOk` (what `check` needs not to panic).
 * The workload (`watchkv.workload`), its logs (`watchkv.WkLog`) and `watchkv.revAt` are watchkv's.
@@ -101,8 +101,7 @@ def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 
 /-- **`Main`'s named premises** (persistent): putget's (`putget.premises`) at `cachekv`'s
-configuration, URLs and peer directory, and the watch stream's transport premise
-`client.noRetryableStreamErr`. -/
+configuration, URLs and peer directory. -/
 def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
   iprop(
     (□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
@@ -113,8 +112,7 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
     rnLoggerZapOk ∗ rnSetLoggerOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
     (□ ∀ E : RNEnv GF, ⌜E.T = iprop(True)⌝ -∗ rnTickerOk E) ∗
     rnStopOkStarted ∗
-    v3rpc.runsNoRequireLeader ∗
-    client.noRetryableStreamErr)
+    v3rpc.runsNoRequireLeader)
 
 instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
     Persistent (premises (GF := GF) N id bootLog) := by

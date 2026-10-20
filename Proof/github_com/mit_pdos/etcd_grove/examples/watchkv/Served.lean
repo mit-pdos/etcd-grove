@@ -81,14 +81,13 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
-        client.noRetryableStreamErr ∗
         client.srvNoDupKeys V.R ∗ client.eofOk ⊢
       |={⊤}=> grpcServeTok gs lis ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
         watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hnr, #Hnd, #Heof⟩
+    #Hws, #Hims, #His, Hwslots, #Hnd, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
     hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, -, -⟩
   · iframe; iframe #

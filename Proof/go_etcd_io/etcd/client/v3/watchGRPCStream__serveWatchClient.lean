@@ -38,7 +38,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   iunfold watchSrvFacts at Hfacts
   icases Hfacts with ⟨-, #Hfacts⟩
   iunfold watchConnFacts at Hfacts
-  icases Hfacts with ⟨-, -, -, -, -, -, -, #Heof, -⟩
+  icases Hfacts with ⟨-, -, -, -, -, -, #Heof, -⟩
   iunfold v3rpc.cliWatchStreamIs at Hcs
   iunfold cliBidiStreamIs at Hcs
   icases Hcs with ⟨%ci, %Hci, -, #HRecv, -⟩

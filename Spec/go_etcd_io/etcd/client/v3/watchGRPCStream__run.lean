@@ -34,8 +34,10 @@ its wait group at `0`): opens the gRPC stream (`newWatchClient`), serves the `Wa
 time: a create sent only for the head of `resuming`; D24: each goroutine a lifetime of its
 substream, with its own `donec` and invariant, `LifePrm`), dispatches the stream's responses
 (`respc`) to the substreams with the contract's facts, closes the substreams that stop
-(`closingc`) and those the server cancels; stops when the stream's context is done, the gRPC
-stream fails (a halting error: `noRetryableStreamErr`) or no substream is left, shutting the
+(`closingc`) and those the server cancels; on a stream error `isHaltErr` retries on (D24),
+reconnects (`newWatchClient`, a new epoch at `respc`'s position, the head of `resuming` created on
+the new stream); stops when the stream's context is done, the gRPC stream fails with a halting
+error or `ErrNoLeader`, or no substream is left, shutting the
 substreams down and closing `donec` with its close error (`closeStream`). Its thread token
 (`threadTok`) is deposited at each `Add(1)` and replaced by the fresh one of each `go`
 (`wgAdder`). -/

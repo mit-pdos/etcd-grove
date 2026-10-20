@@ -12119,3 +12119,11 @@ branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
   update with a later credit; its join idiom (`sync.join`) bounds the `Add`s since the last
   `Wait` rather than the goroutines running: `wcjAdder` backs the counter with thread tokens (as
   `InvWatchWg.lean` and `cacheWgInv` do). The general versions are to be proposed to Perennial.
+- *`run`'s `errc` case (R4c).* The handed-back producer's count equals `run`'s consumer position
+  (`sspsc_sync`), so the old epoch ends where the new one starts (`epochSt_close`: the handed-back
+  count authority is the current epoch's, an earlier one's being `run`'s); `run`'s loop invariant
+  quantifies over the stream, its epoch's first position, the generation and `cancelSet`'s map.
+  `ErrNoLeader` (`ContextError` then `errors.Is`) uses the existing trust-boundary axiom
+  `errors.IsStatusErr.wp_proof`, as the lessor does.
+- *S1e.* With every call of the reconnection verified, `noRetryableStreamErr` is no longer used and
+  is deleted: the closed theorems lose one hypothesis.
