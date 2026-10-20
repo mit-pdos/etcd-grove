@@ -89,28 +89,15 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_true Hgt]
   wp_auto
   rcases Hty with ⟨Hty, -⟩ | ⟨Hty, -⟩
+  -- (2026-10-20) the reads by `wp_drive` (`ReplLemmas.lean`), which applies the step the next
+  -- redex asks for instead of trying each getter and load in turn
   all_goals
-    repeat (first
-      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
-      | (wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm; try wp_auto)
-      | (wp_apply _Q.GetFrom.1 $$ [$Hm] as Hm; try wp_auto))
-  all_goals
-    repeat (first
-      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
-      | (wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm; try wp_auto)
-      | (wp_apply _Q.GetFrom.1 $$ [$Hm] as Hm; try wp_auto)
-      | (wp_apply raft.wp_load_idC $$ Hphys as Hphys; try wp_auto)
-      | (wp_apply raft.wp_load_TermC $$ Hphys as Hphys; try wp_auto))
+    wp_drive _Q
     wp_raft_logC
-    repeat (first
-      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
-      | (wp_apply _Q.GetTerm.1 $$ [$Hm] as Hm; try wp_auto)
-      | (wp_apply _Q.GetFrom.1 $$ [$Hm] as Hm; try wp_auto))
+    wp_drive _Q
     wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
     try wp_auto
-    repeat (first
-      | (wp_apply _Q.GetType.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)
-      | (rw [Hty]; wp_auto))
+    wp_drive _Q
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
     rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
       stepFuncOf .follower from rfl]

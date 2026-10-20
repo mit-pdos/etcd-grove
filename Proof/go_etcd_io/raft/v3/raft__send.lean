@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
+public import Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
 
 @[expose] public section
 
@@ -81,28 +82,90 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     all_goals exact $ft))
 
 set_option hygiene false in
-/-- Run the body through its getter calls (`GetType`, `GetTerm`, `GetTo` on the message `Hm`),
-rewriting each result by the case's facts so that `wp_auto` decides the tests. -/
-local macro "getters" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+/-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
+local macro "getter_simp" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic|
+  all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+
+set_option hygiene false in
+/-- `getters`' steps: a getter call (`GetType`, `GetTerm`, `GetTo` on the message `Hm`), or a load
+of `r.id` or of `r.Term` (stored into the message as `m.Term = new(r.Term)`), each followed by
+`getter_simp`. -/
+local macro "get_type" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  wp_apply wp_GetType.1 $$ [Hm] as Hm
+  (· iexact Hm)
+  getter_simp [$args,*]))
+
+set_option hygiene false in
+local macro "get_term" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  wp_apply wp_GetTerm.1 $$ [Hm] as Hm
+  (· iexact Hm)
+  getter_simp [$args,*]))
+
+set_option hygiene false in
+local macro "get_to" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  wp_apply wp_GetTo.1 $$ [Hm] as Hm
+  (· iexact Hm)
+  getter_simp [$args,*]))
+
+set_option hygiene false in
+local macro "load_id" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  getter_simp [$args,*]))
+
+set_option hygiene false in
+local macro "load_term" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  imod cellRO_alloc $$ «$r0» with #cTe
+  icases msgPtsC_store_Term _ _ _ _ $$ Hm with ⟨%pte, HTe, HbackT⟩
+  wp_auto
+  ihave Hm := HbackT $$ %_ %s.term HTe cTe
+  getter_simp [$args,*]))
+
+/-- `getters`' search: every step in turn (`wp_auto` last), as long as one applies. -/
+local macro "getters_any" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => `(tactic| (
   repeat (first
-    | (wp_apply wp_GetType.1 $$ [Hm] as Hm
-       (· iexact Hm)
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
-    | (wp_apply wp_GetTerm.1 $$ [Hm] as Hm
-       (· iexact Hm)
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
-    | (wp_apply wp_GetTo.1 $$ [Hm] as Hm
-       (· iexact Hm)
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
-    | (wp_apply raft.wp_load_idC $$ Hphys as Hphys
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
-    | (wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-       imod cellRO_alloc $$ «$r0» with #cTe
-       icases msgPtsC_store_Term _ _ _ _ $$ Hm with ⟨%pte, HTe, HbackT⟩
-       wp_auto
-       ihave Hm := HbackT $$ %_ %s.term HTe cTe
-       all_goals try simp +decide only [Hty1, Hte1, Hto1, _root_.decide_false, _root_.decide_true, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp, $args,*])
+    | get_type [$args,*]
+    | get_term [$args,*]
+    | get_to [$args,*]
+    | load_id [$args,*]
+    | load_term [$args,*]
     | wp_auto)))
+
+open Lean Elab Tactic in
+/-- Run the body through its getter calls and the loads of `r.id`/`r.Term`, rewriting each result
+by the case's facts so that `wp_auto` decides the tests. (2026-10-20) Each step is the one the
+next redex asks for (`Dispatch.lean`: the getter it calls, the field it loads, else `wp_auto`):
+trying each step in turn (`getters_any`) cost about half a second per step that does not fit.
+Where a dispatched step fails, `getters_any` takes over from there; the run stops where
+`wp_auto` does nothing. -/
+local elab "getters" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => do
+  let mut fuel := 1000
+  while fuel > 0 do
+    fuel := fuel - 1
+    let step? : Option (TSyntax `tactic) ← do
+      match ← StepProof.nextMethod? with
+      | some "GetType" => pure (some (← `(tactic| get_type [$args,*])))
+      | some "GetTerm" => pure (some (← `(tactic| get_term [$args,*])))
+      | some "GetTo" => pure (some (← `(tactic| get_to [$args,*])))
+      | some _ => pure none
+      | none =>
+        match ← StepProof.nextField? with
+        | some "id" => pure (some (← `(tactic| load_id [$args,*])))
+        | some "Term" => pure (some (← `(tactic| load_term [$args,*])))
+        | _ => pure none
+    let saved ← saveState
+    match step? with
+    | some t =>
+      try evalTactic t
+      catch _ =>
+        saved.restore
+        evalTactic (← `(tactic| getters_any [$args,*]))
+        return
+    | none =>
+      try evalTactic (← `(tactic| wp_auto))
+      catch _ =>
+        saved.restore
+        return
 
 set_option hygiene false in
 /-- The common tail once the routing decision has been made: take the queue out of
@@ -230,18 +293,26 @@ theorem raft.send.wp_proof
     subst Hs
     have Hns : ty ≠ .snap := by
       rintro rfl; rcases Hlty with h | h | h | h <;> rw [h] at Hty <;> exact absurd Hty (by decide)
-    rcases Hlty with Hvt | Hvt | Hvt | Hvt <;>
-    · getters [Hvt, Hmterm, Hself]
-      send_tail ownRaftPhysC_msgs
-      ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] [] []
-      · ipureintro
+    -- (2026-10-20) the body once for the four types, its tests decided by the types it tests
+    -- for (as in (c)); the split only for the pure facts at the end
+    obtain ⟨HnProp, HnAR, HnV, HnVR, HnRI, HnPV, HnPVR⟩ : m.Type' ≠ MsgProp ∧
+        m.Type' ≠ MsgAppResp ∧ m.Type' ≠ MsgVote ∧ m.Type' ≠ MsgVoteResp ∧
+        m.Type' ≠ MsgReadIndex ∧ m.Type' ≠ MsgPreVote ∧ m.Type' ≠ MsgPreVoteResp := by
+      rcases Hlty with h | h | h | h <;> rw [h] <;>
+        exact ⟨by tyne, by tyne, by tyne, by tyne, by tyne, by tyne, by tyne⟩
+    simp only [MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndex, MsgReadIndexResp, MsgSnap, MsgProp] at HnProp HnAR HnV HnVR HnRI HnPV HnPVR
+    getters [Hmterm, Hself, HnProp, HnAR, HnV, HnVR, HnRI, HnPV, HnPVR]
+    send_tail ownRaftPhysC_msgs
+    ihave Hphys := Hback $$ %q' %ml %_ %_ Hf Hq Hq_cap Hm [] [] [] []
+    · ipureintro
+      rcases Hlty with Hvt | Hvt | Hvt | Hvt <;>
         exact Or.inr (Or.inl ⟨ty, by tyfact Hvt, Hns, rfl⟩)
-      · ipureintro
-        exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
-      · ipureintro; exact fun _ => absMsg_noSnap Hns _ _ _
-      · sent_tac [Hvt] (fun h => Hself h.symm)
-      iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
-      subst Hm1; rfl
+    · ipureintro
+      exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
+    · ipureintro; exact fun _ => absMsg_noSnap Hns _ _ _
+    · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> sent_tac [Hvt] (fun h => Hself h.symm)
+    iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
+    subst Hm1; rfl
   · -- (c') `MsgSnap`: (b)'s path through the body; the abstract message is the
     -- snapshot's, `absSnapFrom`, at the message's snapshot `sv`.
     have Hs := Hsrc (by rw [HSnap]; tyne) (by rw [HSnap]; tyne)
