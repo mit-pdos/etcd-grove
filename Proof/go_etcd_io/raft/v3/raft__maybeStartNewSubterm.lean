@@ -47,7 +47,8 @@ theorem raft.maybeStartNewSubterm.wp_proof
     -- `ChangeReplicationSet`: no excluded voter, `false`, return `false`
     icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     icases ownTrackerC_epoch $$ Htrk with ⟨#Hep, Htrk⟩
-    wp_apply wp_ProgressTracker_ChangeReplicationSet $$ [$Htrkf $Hep] as Htrkf
+    wp_apply (tracker.ProgressTracker.ChangeReplicationSet.spec_nw
+      wp_ProgressTracker_ChangeReplicationSet _ _ tv) $$ [$Htrkf $Hep] as Htrkf
     ihave Hphys := Hback $$ %tv Htrkf Htrk
     iapply HΦ
     simp only [Bool.false_eq_true, ↓reduceIte]

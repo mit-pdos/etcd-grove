@@ -122,6 +122,146 @@ theorem resetEpoch_nw (V0 V1 : GSet w64) (sub' : w64) :
     resetEpoch V0 V1 (W64 0) (W64 0) sub' = EpochM.bare sub' := by
   unfold resetEpoch; simp
 
+/-- `ChangeReplicationSet`'s new half when it swaps the excluded voter for `x` (an inactive
+member of the replication set, or the witness): the old one's regular voters but `x`, and the
+old excluded voter back unless it is `x` or the witness. -/
+def rsChanged (m : RSM) (x : w64) : RSM :=
+  ⟨m.wit, x, (m.nwv \ {[x]}) ∪ (if m.excl ≠ x ∧ m.excl ≠ m.wit then {[m.excl]} else ∅)⟩
+
+/-- A half with an excluded voter has a witness. -/
+theorem RSWF.wit_nz {V : GSet w64} {w : w64} {m : RSM} (H : RSWF V w m) (Hx : m.excl ≠ W64 0) :
+    m.wit ≠ W64 0 := by
+  rcases H.2.1 with h | h
+  · rw [← h]; exact Hx
+  · exact h.2.2
+
+/-- ... which is a voter of the half, as is its excluded voter. -/
+theorem RSWF.mem {V : GSet w64} {w : w64} {m : RSM} (H : RSWF V w m) (Hx : m.excl ≠ W64 0) :
+    m.wit ∈ V ∧ m.excl ∈ V := by
+  have Hw := H.wit_nz Hx
+  have HwV : m.wit ∈ V := by
+    have h1 := H.1
+    by_cases hw : w ∈ V
+    · rw [if_pos hw] at h1; rw [h1]; exact hw
+    · rw [if_neg hw] at h1; exact absurd h1 Hw
+  refine ⟨HwV, ?_⟩
+  rcases H.2.1 with h | h
+  · rw [h]; exact HwV
+  · exact h.1
+
+theorem rsChanged_wf {V : GSet w64} {w : w64} {m : RSM} (x : w64) (H : RSWF V w m)
+    (Hw : m.wit ≠ W64 0) (Hx : x = m.wit ∨ x ∈ m.nwv) : RSWF V w (rsChanged m x) := by
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨H1, ?_, ?_⟩
+  · simp only [rsChanged]
+    rcases Hx with h | h
+    · exact Or.inl h
+    · rw [H3, elem_of_difference, elem_of_union, elem_of_singleton, elem_of_singleton] at h
+      exact Or.inr ⟨h.1, fun e => h.2 (Or.inl e), Hw⟩
+  · simp only [rsChanged]
+    apply set_eq; intro k
+    rw [H3]
+    simp only [elem_of_union, elem_of_difference, elem_of_singleton]
+    by_cases hc : m.excl ≠ x ∧ m.excl ≠ m.wit
+    · rw [if_pos hc, elem_of_singleton]
+      constructor
+      · rintro (⟨⟨hk, hn⟩, hx⟩ | rfl)
+        · exact ⟨hk, fun e => e.elim (fun e => hn (Or.inl e)) hx⟩
+        · refine ⟨?_, fun e => e.elim hc.2 hc.1⟩
+          rcases H2 with h | h
+          · exact absurd h hc.2
+          · exact h.1
+      · rintro ⟨hk, hn⟩
+        by_cases he : k = m.excl
+        · exact Or.inr he
+        · exact Or.inl ⟨⟨hk, fun e => e.elim (fun e => hn (Or.inl e)) he⟩,
+            fun e => hn (Or.inr e)⟩
+    · rw [if_neg hc]
+      constructor
+      · rintro (⟨⟨hk, hn⟩, hx⟩ | h)
+        · exact ⟨hk, fun e => e.elim (fun e => hn (Or.inl e)) hx⟩
+        · exact absurd h (not_elem_of_empty k)
+      · rintro ⟨hk, hn⟩
+        refine Or.inl ⟨⟨hk, fun e => e.elim (fun e => hn (Or.inl e)) (fun e => ?_)⟩,
+          fun e => hn (Or.inr e)⟩
+        -- `k` is the old excluded voter: it is `x` or the witness
+        subst e
+        have : m.excl = x ∨ m.excl = m.wit := by
+          by_cases h1 : m.excl = x
+          · exact Or.inl h1
+          · exact Or.inr (Classical.byContradiction fun h2 => hc ⟨h1, h2⟩)
+        exact hn (this.elim Or.inr Or.inl)
+
+theorem take_succ_of (keys : List w64) (i : Int) (key : w64) (Hi : 0 ≤ i)
+    (Hkey : keys[i.toNat]? = some key) :
+    keys.take (i + 1).toNat = keys.take i.toNat ++ [key] := by
+  rw [show (i + 1).toNat = i.toNat + 1 by omega]
+  rw [List.take_add_one, Hkey]; rfl
+
+/-- The voter loop's result: the witness if the half has it, and the voter map the half's
+voters but it. -/
+theorem reset_done (V : GSet w64) (w : w64) (keys : List w64) (mv : GMap w64 Unit)
+    (Hkset : ∀ k, k ∈ keys ↔ (V !! k).isSome)
+    (Hmv : ∀ k, k ∈ domSet mv ↔ k ∈ keys ∧ k ≠ w) :
+    domSet mv = V \ {[w]} ∧ (w ∈ keys ↔ w ∈ V) := by
+  refine ⟨set_eq fun k => ?_, Hkset w⟩
+  rw [Hmv, elem_of_difference, elem_of_singleton, Hkset]
+  rfl
+
+/-- One step of the voter loop at a voter `key`. -/
+theorem reset_step (keys : List w64) (i : Int) (key w : w64) (mv : GMap w64 Unit)
+    (Hi : 0 ≤ i) (Hkey : keys[i.toNat]? = some key)
+    (Hmv : ∀ k, k ∈ domSet mv ↔ k ∈ keys.take i.toNat ∧ k ≠ w) :
+    (key = w → (∀ k, k ∈ domSet mv ↔ k ∈ keys.take (i + 1).toNat ∧ k ≠ w) ∧
+      w ∈ keys.take (i + 1).toNat) ∧
+    (key ≠ w → (∀ k, k ∈ domSet (<[key := ()]> mv) ↔ k ∈ keys.take (i + 1).toNat ∧ k ≠ w) ∧
+      (w ∈ keys.take (i + 1).toNat ↔ w ∈ keys.take i.toNat)) := by
+  rw [take_succ_of keys i key Hi Hkey]
+  refine ⟨fun h => ⟨fun k => ?_, ?_⟩, fun h => ⟨fun k => ?_, ?_⟩⟩
+  · rw [Hmv, List.mem_append, List.mem_singleton]
+    constructor
+    · rintro ⟨h1, h2⟩; exact ⟨Or.inl h1, h2⟩
+    · rintro ⟨h1 | h1, h2⟩
+      · exact ⟨h1, h2⟩
+      · exact absurd (h1.trans h) h2
+  · rw [List.mem_append, List.mem_singleton]; exact Or.inr h.symm
+  · rw [GMap.dom_insert, GMap.elem_of_union, GMap.elem_of_singleton, Hmv, List.mem_append,
+      List.mem_singleton]
+    constructor
+    · rintro (h1 | ⟨h1, h2⟩)
+      · subst h1; exact ⟨Or.inr rfl, h⟩
+      · exact ⟨Or.inl h1, h2⟩
+    · rintro ⟨h1 | h1, h2⟩
+      · exact Or.inr ⟨h1, h2⟩
+      · exact Or.inl h1
+  · rw [List.mem_append, List.mem_singleton]
+    constructor
+    · rintro (h1 | h1)
+      · exact h1
+      · exact absurd h1.symm h
+    · exact Or.inl
+
+/-- `ChangeReplicationSet`'s rebuilt voter map: the old one's ids but `x` (`mv`), and the old
+excluded voter back unless it is `x` or the witness. -/
+theorem chg_dom (m : RSM) (x : w64) (ids mv : GMap w64 Unit) (Hmv : domSet mv = ids \ {[x]})
+    (Hd : domSet ids = m.nwv) :
+    domSet (if m.excl ≠ x ∧ m.excl ≠ m.wit then <[m.excl := ()]> mv else mv) =
+      (rsChanged m x).nwv := by
+  have hm : ∀ k, k ∈ domSet mv ↔ k ∈ m.nwv ∧ k ≠ x := by
+    intro k; rw [Hmv, elem_of_difference, elem_of_singleton, ← Hd, elem_of_dom']
+  simp only [rsChanged]
+  apply set_eq; intro k
+  by_cases hc : m.excl ≠ x ∧ m.excl ≠ m.wit
+  · rw [if_pos hc, if_pos hc, dom_insert, elem_of_union, elem_of_singleton, hm, elem_of_union,
+      elem_of_difference, elem_of_singleton, elem_of_singleton]
+    exact Or.comm
+  · rw [if_neg hc, if_neg hc, hm, elem_of_union, elem_of_difference, elem_of_singleton]
+    constructor
+    · intro h; exact Or.inl h
+    · rintro (h | h)
+      · exact h
+      · exact absurd h (not_elem_of_empty k)
+
 section own
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -247,6 +387,46 @@ theorem ownEpoch_fields (e : Loc) (em : EpochM) :
   isplitl
   · iexists r0; iframe Hr0 H0
   · iexists r1; iframe Hr1 H1
+
+/-- An epoch's two fields, out of its struct. -/
+theorem epoch_split (l : Loc) (ev : tracker.Epoch) :
+    (l ↦ ev : IProp GF) ⊢ ⌜l ≠ null⌝ ∗ l.[tracker.Epoch, go!"Subterm"] ↦ ev.Subterm' ∗
+      l.[tracker.Epoch, go!"ReplicationSet"] ↦ ev.ReplicationSet' := by
+  iintro H
+  icases typedPointsto_not_null_dup _ _ _ $$ H with ⟨H, %Hnn⟩
+  icases typedPointsto_split _ _ _ $$ H with H
+  simp only [TypedPointsto.typedPointstoDef]
+  icases H with ⟨H1, H2, -⟩
+  iframe H1 H2
+  ipureintro; exact Hnn
+
+/-- ... and back. -/
+theorem epoch_combine (l : Loc) (s : w64) (a : GoArray tracker.ReplicationSet 2) (Hnn : l ≠ null) :
+    (l.[tracker.Epoch, go!"Subterm"] ↦ s ∗ l.[tracker.Epoch, go!"ReplicationSet"] ↦ a : IProp GF) ⊢
+      l ↦ tracker.Epoch.mk s a := by
+  iintro ⟨H1, H2⟩
+  iapply typedPointsto_combine _ _ _ Hnn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe H1 H2
+
+/-- A half `ResetReplicationSet` has built, its voter map still owned. -/
+def ownRSb (r : tracker.ReplicationSet) (m : RSM) : IProp GF :=
+  iprop(⌜r.Witness' = m.wit ∧ r.Excluded' = m.excl⌝ ∗
+    ∃ ids : GMap w64 Unit, ⌜domSet ids = m.nwv⌝ ∗ r.NonWitnessVoters' ↦$ ids)
+
+theorem ownRSb_persist (r : tracker.ReplicationSet) (m : RSM) :
+    ownRSb (GF := GF) r m ⊢ |==> ownRS r m := by
+  unfold ownRSb
+  iintro ⟨%Hwe, %ids, %Hd, Hm⟩
+  imod ownMap_persist _ _ _ $$ Hm with #Hm
+  imodintro
+  unfold ownRS ownScope
+  isplitr
+  · ipureintro; exact Hwe
+  iright
+  iexists ids
+  iframe Hm
+  ipureintro; exact Hd
 
 /-- A half's witness and excluded voter, persistent. -/
 theorem ownEpoch_we (e : Loc) (em : EpochM) :
