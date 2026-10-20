@@ -184,8 +184,6 @@ abbrev NewServer.spec : Prop :=
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
-      -- (D19l (v), 2026-10-18) the backend records no compaction (`mvcc.store.restore`'s premise)
-      "%Hnocmp" ∷ ⌜mvcc.backendNoCompaction⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗
@@ -200,6 +198,8 @@ abbrev NewServer.spec : Prop :=
         ∃ (γA : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
           (γrn : RNNames) (b : GoInterface),
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
+          -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
+          srvKVCloser srv E ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token

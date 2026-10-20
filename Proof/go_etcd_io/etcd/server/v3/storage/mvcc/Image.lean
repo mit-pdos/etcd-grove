@@ -43,6 +43,15 @@ def keyImage (log : Log) (D : Data) : Prop :=
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
   dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
 
+/-- **`D` records no compaction**: its `Meta` bucket holds neither compaction key (what a backend
+opened over `D` gives as `bkNoCmp`, `storage.OpenBackend`'s axiom; D22 S-g). -/
+def noCmpData (D : Data) : Prop :=
+  dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
+  dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
+
+/-- A key image records no compaction. -/
+theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2
+
 /-- The readers' view of a backend opened over a key image, under the bridge's parameters, is
 its log's bucket (what `newPost`'s `bView` and the store's `restore` read). -/
 theorem keyView_of_dget {P : BParams} (hP : bridgeParams P) {m : Bucket} {D : Data}

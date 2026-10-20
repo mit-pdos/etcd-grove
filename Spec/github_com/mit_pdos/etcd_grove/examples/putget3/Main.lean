@@ -40,8 +40,7 @@ abbrev Main.spec : Prop :=
   BootFacts id₁ id₂ id₃ bootLog →
   EofFromIoInit (GF := GF) → ClosedchanFromContextInit (GF := GF) →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 ∗
       netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗

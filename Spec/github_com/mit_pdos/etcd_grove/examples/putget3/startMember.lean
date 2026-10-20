@@ -74,7 +74,7 @@ abbrev startMember.spec : Prop :=
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ bud → γn.dir = dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → mvcc.backendNoCompaction →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 ∗
       netAddrFree (GF := GF) peerAddr ∗ threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗

@@ -43,13 +43,13 @@ theorem mvcc.New.wp_proof
     (hSWL : mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG))
     (hSVL : mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG)) :
     mvcc.New.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f γi γok Hcfg0 Hrb0 Hnc
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
+  intro lg b le cfg kb γb γl P f γi γok Hcfg0 Hrb0
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply (hNew _ _ _ _ _ _ _ _ f γi γok Hcfg0 Hrb0 Hnc)
-    $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0]
+  wp_apply (hNew _ _ _ _ _ _ _ _ f γi γok Hcfg0 Hrb0)
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0]
     as %s ⟨%st, %γ, %Hγ, #Hws, #Hhook, Hww, Htw, Hok, Hreaders,
     ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hwg⟩
   (try wp_auto)

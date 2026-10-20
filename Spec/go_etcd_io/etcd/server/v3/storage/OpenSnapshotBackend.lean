@@ -9,7 +9,8 @@ The pre: the snapshotter (`isSnapshotter`), the snapshot's `Metadata` field and 
 `md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`fileHolds`, D22 S-i's
 snapshot directory gives it, with `D`'s certificate `dbImage`), the backend's path the program's
 (`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`) for the hooks `hooks` as a
-`backend.Hooks`. The post: on success the backend over `D` (`newPost`, as `OpenBackend`'s) and the
+`backend.Hooks`. The post: on success the backend over `D` (`newPost`, and its no-compaction token
+if `D` records none, as `OpenBackend`'s; D22 S-g) and the
 snapshot's entry the program's; on an error (the file not found, the rename failed), with `nil`
 for the backend, the file and the path back.
 -/
@@ -17,6 +18,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.raft.v3.InvPb
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
 
@@ -50,7 +52,8 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (b : Loc) (γ : BNames),
           ⌜be = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
-          newPost γ P W Pk b D ∗ pathOwn (snap.snapDBPath ss md.Index')) ∨
+          newPost γ P W Pk b D ∗ (⌜mvcc.noCmpData D⌝ -∗ mvcc.bkNoCmp γ) ∗
+          pathOwn (snap.snapDBPath ss md.Index')) ∨
        (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil⌝ ∗
           fileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir'))) }}
 

@@ -63,8 +63,8 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   2026-10-18: until then `NewStore` gave the stop token up for good, `isStore` holding
   `schedLive`, and `Close`'s contract was false). The caller that will not close the store gives
   the token up for the compaction right (`compactRight_of_closer`).
-* The backend records no compaction (`backendNoCompaction`, a named premise: `restore`'s, D19l
-  (v), 2026-10-18), so `restore` schedules none.
+* The backend records no compaction (`kbNoCmp`, consumed by `restore`: D19l (v) (A), D22 S-g,
+  2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
   compaction right's half of that revision's authority is returned (`crevUB γ.idx ½ (-1)`; with
   the closer's queue and the stop token given up it is the compaction right `compactRight γ (-1)`
@@ -74,10 +74,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
-  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → mvcc.backendNoCompaction →
+  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
-      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}

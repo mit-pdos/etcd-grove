@@ -17,7 +17,7 @@ package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
 **Its hypotheses** (D19a; putget's, `notes/decisions.md`, D19r and "D21 M5"):
 * pure facts of the program and its environment: `BootFacts id₁ id₂ id₃ bootLog` (the member ids
   and the bootstrap log Go computes, the ids' 16 low bits distinct and not `0`), `ckptEffectsOk`,
-  `authRecordsFit`, `apply.backendUnderQuota`, `mvcc.backendNoCompaction`,
+  `authRecordsFit`, `apply.backendUnderQuota`,
   `namesUnclaimed`/`addrsUnclaimed` (D19d), and the execution's length (`n + 2 ≤ 2 ^ 31`;
   `n + 7 ≤ backend.wbInit`);
 * the semantics, as putget's;
@@ -121,7 +121,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : putget3.BootFacts id₁ id₂ id₃ bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     (n : Nat)
@@ -184,7 +184,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf HEof0 HCc0 (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hms hAs
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Htok]
   · iframe; iframe #
   ipureintro
