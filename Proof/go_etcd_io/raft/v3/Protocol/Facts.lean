@@ -1197,7 +1197,6 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM
   isplitr; · ipureintro; exact Hγwg
   isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
   isplitr; · ipureintro; intro t Ht; simp at Ht
-  isplitr; · ipureintro; intro _; rfl
   unfold wRole; rw [Hrole]; iempintro
 
 private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : List EntryM)
