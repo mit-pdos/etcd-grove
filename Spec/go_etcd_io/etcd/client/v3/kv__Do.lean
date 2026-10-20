@@ -37,8 +37,9 @@ def doRunOk (api : Loc) (addr : GoString) (o : OpFull) (Sp : GrpcSpec (GF := GF)
     -- (2026-10-19, D21 M6) a put's precondition ordinary on a client configured for one attempt
     (⌜o.t = W64 2⌝ ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" Sp ∗
       kvReqPre api addr (Sp (putWireOf o) Qp)) ∨
+    -- (2026-10-20, linkv-txn stage A) a delete's too
     (⌜o.t = W64 3⌝ ∗ isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
-      □ ▷ Sd (deleteWireOf o) Qd))
+      kvReqPre api addr (Sd (deleteWireOf o) Qd)))
 
 /-- **What `kv.Do` returns** for the `Op` `o`: a range's answer in the `get` field (an invalid
 sort option is a client error, `rpctypes.ErrInvalidSortOption`), a put's in the `put` field, a

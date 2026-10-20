@@ -30,19 +30,19 @@ theorem kv.Delete.wp_proof
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Delete.spec (GF := GF) (hG := hG) := by
   intro api addr ci cd key sl gs Spec Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, #Hrun⟩
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, Hrun⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpDelete key sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
   wp_apply wp_Do api addr ci cd opv (opDeleteModel key gs) (fun _ _ => iprop(True))
-      (fun _ => iprop(True)) (fun _ _ => iprop(True)) (fun _ => iprop(True)) Spec Q $$ []
+      (fun _ => iprop(True)) (fun _ _ => iprop(True)) (fun _ => iprop(True)) Spec Q $$ [Hrun]
     as %r %err Hout
   · iframe #
     unfold doRunOk
     iright
     iright
-    iframe #
+    iframe # Hrun
     ipureintro; exact Ht
   ihave Hout' : deleteCallOut Q r.del' err $$ [Hout]
   · have Heq : doOut (opDeleteModel key gs) (fun _ => iprop(True)) (fun _ => iprop(True)) Q r err =

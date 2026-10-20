@@ -48,7 +48,7 @@ theorem kv.Do.wp_proof
   wp_auto
   rw [ht]
   iunfold doRunOk at Hrun
-  icases Hrun with (⟨%Ht, #Hsn, #Hrpc, #Hrun⟩ | ⟨%Hp, #Hrpc, Hrun⟩ | ⟨%Hd, #Hrpc, #Hrun⟩)
+  icases Hrun with (⟨%Ht, #Hsn, #Hrpc, #Hrun⟩ | ⟨%Hp, #Hrpc, Hrun⟩ | ⟨%Hd, #Hrpc, Hrun⟩)
   · -- a range
     rw [Ht]
     wp_auto
@@ -178,16 +178,18 @@ theorem kv.Do.wp_proof
     icases Hat0 with ⟨%Hf, #Hend⟩
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
-    ihave #Hrun' : □ ▷ Sd (deleteReqOp
+    ihave Hrun' : reqPre conn addr (Sd (deleteReqOp
         { state' := zeroValDef, Key' := opv.key', RangeEnd' := opv.end', PrevKv' := opv.prevKV',
           unknownFields' := slice.nil, sizeCache' := 0 }
-        o.key o.base.rangeEnd) Qd $$ []
+        o.key o.base.rangeEnd) Qd) $$ [Hrun]
     · simp only [deleteReqOp, deleteWireOf, hpk]
-      iexact Hrun
-    wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci cd _ _ o.key o.base.rangeEnd sl vs $$ [«$r0»]
-      as %resp %err ⟨-, Hres⟩
+      iapply kvReqPre_conn api rkv conn addr $$ [Hrun]
+      iframe Hremote Hrkv Hrun
+    wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci cd _ _ o.key o.base.rangeEnd sl vs
+      $$ [«$r0» Hrun'] as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
+      try (simp only []; iframe #)
     iunfold deleteCallOut at Hres
     icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
     · subst Herr
