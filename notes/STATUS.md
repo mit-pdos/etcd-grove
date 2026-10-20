@@ -48,6 +48,16 @@ module system").
 
 
 
+## Witness support, W2: the protocol with a witness (2026-10-20, branch `raft-witness-w2`)
+
+The protocol model has the witness rules (subterms, `newSub`, `sendWApp`, `askWitness`), and the
+ghost state its records (each node's subterm and granted lists, `wOwn`; the witness's storage,
+`wGhost`, `Protocol/Witness.lean`; `isAcked`'s and `voteJust`'s witness disjuncts). Every
+`StepC` rule's ghost step and Leader Completeness's witness case are proved (static mode, one
+witness), so `leader_completeness`/`state_machine_safety`/election safety hold of a cluster with
+a witness; one lemma per `witness.go` path. No new axiom or `sorry`. Next: W3, the code's
+witness paths and `witness.go` against those lemmas. Details: `notes/raft-witness.md`, "W2".
+
 ## Witness support, W1: the build green on witness-free configurations (2026-10-20, branch `raft-witness`)
 
 raft is translated at the fork's witness branch (raft#168 rebased, with fixes:
