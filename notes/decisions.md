@@ -12756,3 +12756,67 @@ Estimate: larger than S-c and D22l together; trust base unchanged (raft stages a
 **Order with S-b′:** S-b′'s certificate predicate on the storage contract (`isStorageWith`'s
 `C`) is what the lent storage's `ApplySnapshot` must preserve (the snapshot's certificate), so
 S-b′ before S-d is the cheaper order (S-d's `snapReceipt` then states `C` of the new snapshot).
+
+## D22 S-b′ part 1 carried out, the rest designed: the message's lists; the certificate's link to γ (2026-10-20)
+
+Stage S-b′ (D22b), after D22l and S-d's design (S-b′ before S-d is the cheaper order: "D22 S-d
+designed", item 4). **Part 1 carried out** (no statement elsewhere changed; trust base unchanged,
+531 axioms, 2 sorries; every collection unchanged):
+- `Msg`'s `voters : List w64` is `cl : CSLists` and `al : Bool` (a `snap`'s four `ConfState`
+  lists and `AutoLeave`; empty/`false` otherwise), the constructor `Msg.mkS`; `Msg.mkV` (the
+  twelve-field one, voters only) and `Msg.mk` are `@[reducible]` defs of it, so the 26 `Msg.mkV`
+  sites and every `simp [Msg.mkV]` are unchanged. `CSLists` moved from `Defs.lean` to
+  `Protocol/Model.lean` (with `DecidableEq`, for `Msg`'s). `absSnapFrom` carries the snapshot's
+  lists and `AutoLeave`; `msgSnapTrip m := ⟨⟨m.logterm, m.index⟩, m.cl, m.al⟩` (`Defs.lean`).
+
+**What "D22 S-b′ designed" left open, now settled: how a certificate the application makes
+reaches raft's γ.** Its item 4 had raft "instantiate `C := raftSnapCert γ` where the storage meets
+the ghost", but the storage is read under `ownRaftLog`/`ownRaftPhys`, which are γ-free (their
+storage clause is `isStorage lv.storage'`), so a γ-dependent `C` would have to become a parameter
+of `ownRaftLog`, `ownRaftPhys` and every spec over them. Instead a γ-free certificate and one
+γ-aware link:
+1. **`StorageModel.storCert : Storage → SnapTrip → IProp GF`** (persistent field). `HSnapshot`'s
+   success post adds `storCert st (snapTrip sv lists)`; `raftLog.snapshot`'s application
+   disjunct (`index ≤ fl`) carries it.
+2. **`MemoryStorage`**: `MemStorNames.cert : GName`, a mono list of trips (`memStorCert γs k`
+   its persistent lower bound holding `k`); the lock invariant keeps `memStorCert` of the current
+   non-empty snapshot; `CreateSnapshot`/`ApplySnapshot` take `memStorCert γs` of the new
+   snapshot's trip; `NewMemoryStorage` hands out the authority (`memCertAuth γs`, the
+   application's: it alone registers); the instance (`MemstorageInstance.lean`) has `storCert
+   (memStorIface ms) k := ∃ γs, memStorReg ms γs ∗ memStorCert γs k`; kv's
+   `KVStorageInstance.lean` the same through its `MemoryStorage`.
+3. **The link** `storCertOk γ st := □ ∀ k, storCert st k ={↑certN}=∗ raftSnapCert γ k`, from
+   an invariant the application allocates knowing γ: `inv certN (∃ L, monoListAuthOwn γs.cert ½
+   L ∗ [∗list] k ∈ L, raftSnapCert γ k)`, the other half its `memCertAuth`, registration
+   (`memCert_register : … -∗ raftSnapCert γ k ={↑certN}=∗ memStorCert γs k`) needing the
+   certificate. `rawNodeFresh`/`RestartNode`/`StartNode` take `storCertOk γ st` with the storage.
+4. **Raft.** `ownRaftPhys` (γ-free) gains of its outbox: every `snap` message's trip is in
+   `ls.ksn` or `storCert ls.storage` of it; only `raft.send`'s `MsgSnap` case adds one, with
+   `raftLog.snapshot`'s result as `maybeSendSnapshot`'s premise to it. `ghostRest` (γ-aware)
+   gains `[∗list] k ∈ s.logst.ksn, raftSnapCert γ k` and `storCertOk γ s.logst.storage`
+   (`ghostRest_keep` gains `ksn`/`storage` premises, `rfl` by default; a restore appends the
+   received message's trip with its certificate). The ghost steps that mint the outbox's
+   `isMessage` (`ghost_stepCD*`, `StepGhostMode.lean`, into `snapOk_message`) take, for each new
+   `snap` message, `raftSnapCert γ (msgSnapTrip m)`, from those two (opening `certN`).
+5. **The message**: `isMessage`'s `.snap` clause gains `raftSnapCert γ (msgSnapTrip m)` with
+   `raftSnapCert` restated as in "D22 S-b′ designed", item 3 (every list fact under `cl.Has x`,
+   the tracked bound; `raftSnapCert_empty`, `raftSnapCert_static`). The receiver: `raft.Step`'s
+   and `RawNode.Step`'s `"#Hsnap"` keep `sn = some sv ∧ scfg = lists`, `isMessage (absSnap m sv
+   scfg)` and `Index < 2^61`; `SnapScope`'s list part and `md.SnapOk` come from
+   `isMessage_snap_cert` under `scfg.Has id` in `dispatch_Snap`'s restore exit (`ghost_stepCDSM`
+   takes `md.SnapOk` under `cl.Has id`). `isMessage_snap_recontent` takes the new content's
+   certificate (S-h mints it from `epConfState ∈ {empty, static}`, `raftSnapCert_empty`/`_static`).
+6. **What the server's callers must supply** (S-h/S-j; nothing forced now): `EtcdServer.snapshot`
+   (an axiom; its body calls `CreateSnapshot`) must register its snapshot's trip (`ep.appliedi`,
+   `ep.appliedt`, `ep.confState`'s lists) with `memCert_register` and the certificate, which S-h
+   mints (`raftSnapCert_empty` for etcd's empty `ConfState`, `raftSnapCert_static` for the static
+   one); `raftNode.start`'s `ApplySnapshot` (dead at `rd.Snapshot = nil` until S-j) takes the
+   received snapshot's `memStorCert`, which S-d's lent storage hands out with the snapshot `Ready`
+   (registered by raft's `ghostRest` from the message's certificate). The server's
+   `NewMemoryStorage` (`NewServerAlloc.lean`) allocates the certificate invariant at its raft γ.
+
+**Staging of the rest.** S-b′2: items 1-3 (the storage contract, `MemoryStorage`, kv's instance;
+no raft use; `InvMemstorage.lean`'s lock and snapshot invariants, `MemoryStorage__{CreateSnapshot,
+ApplySnapshot,Snapshot}`, `NewMemoryStorage`); S-b′3: items 4-5's sender half (`ownRaftPhys`'s
+outbox, `ghostRest`, the ghost steps, `isMessage`); S-b′4: the receiver's premises shrink. Each
+builds on its own; trust base unchanged.

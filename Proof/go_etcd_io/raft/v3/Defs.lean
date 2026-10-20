@@ -204,17 +204,7 @@ def absMsg (ty : MsgType) (m : MessageM) (ents : List EntryM)
     (ctx : List w8 := []) : Msg :=
   absMsgFrom ty m m.From' m.Term' ents ctx
 
-/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
-`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
-`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). -/
-structure CSLists where
-  voters : List w64
-  learners : List w64
-  outgoing : List w64
-  learnersNext : List w64
-
-/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
-instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+-- (D22 S-b′, 2026-10-20) `CSLists` is `Protocol/Model.lean`'s (a `Msg` field)
 
 /-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
 `ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
@@ -224,18 +214,23 @@ structure SnapTrip [FfiSyntax] where
   cl : CSLists
   al : Bool
 
+/-- A `snap` message's snapshot, as raft records it (`SnapTrip`): its id, lists and
+`AutoLeave` (D22 S-b′, 2026-10-20). -/
+def msgSnapTrip (m : Msg) : SnapTrip := ⟨⟨m.logterm, m.index⟩, m.cl, m.al⟩
+
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to (since the raft v3.7
 retarget, stage R1, its record `SnapshotM`), and `voters`
 the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
-the abstract message keeps the incoming voters). `index`/`logterm` are the
+the abstract message kept the incoming voters until D22 S-b′, 2026-10-20: now all four and the
+`AutoLeave`, which the message's certificate is about). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
 def absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM)
     (voters : CSLists) : Msg :=
-  Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
-    m.Commit' m.RejectHint' [] voters.voters []
+  Msg.mkS .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
+    m.Commit' m.RejectHint' [] voters sv.Metadata'.ConfState'.AutoLeave' []
 
 def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
