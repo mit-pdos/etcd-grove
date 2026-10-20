@@ -75,7 +75,7 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
       netSnapBundle (srvNet γ bud) ml rc := by
   iintro #Hinv #Hrm #Htlb #Hbnd #HA #Hml Hrs #Himg
   iunfold isRaftMsg at Hrm
-  icases Hrm with ⟨%Hns, -, %a, %Habs, #Hmsgs⟩
+  icases Hrm with ⟨%Hns, %Hsent, %a, %Habs, #Hmsgs⟩
   -- the abstraction of raft's `MsgSnap`
   have Ha : a = some (absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists) := by
     rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, Hsv, rfl⟩
@@ -110,9 +110,10 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
       isplitr
       · ipureintro; exact Hns
       isplitr
-      · ipureintro
-        rintro ⟨-, h⟩
-        exact absurd Hty (Hns h)
+      · -- `SentMsgOk` reads only the message, which the merge keeps (D22 S-c: under the
+        -- no-transfer mode alone, `MsgSnap` included)
+        ipureintro
+        exact Hsent
       iexists some (absSnap st.msg (SnapshotM.mk [] (SnapshotMetadataM.mk c ai at_))
         (ConfStateM.lists c))
       isplitr

@@ -12701,3 +12701,24 @@ saving ci (`store.Commit` is names-only: `srvKVCommitOk` abstracts it).
 method (`methods ki.ty "Commit" ki.v`) ended the tactic block silently (an `unsolved goals` at
 `by`, no error at the call); `wp_bind (App (Val #(methods …)) (Val #())); iapply H $$ …; inext;
 iintro …` works (as `EtcdServer.start`'s `ClusterVersion`).
+
+## D22's environment assumptions approved (2026-10-20 · the user)
+
+Of the premises the closed theorems will take once S-j and S-l wire the receiver in (D19a's
+first kind, a named premise about the program's environment):
+1. **`dbOpensOk`** (`storage/InvOpen.lean`): bbolt's `Open` succeeds on the database files the
+   server opens after its start (no other process holds the file's lock, no I/O error); needed by
+   `OpenBackend`'s axiom, whose goroutine panics on a failed `Open`. Approved for now.
+2. **`pathOwn (backendPathOf DataDir)`** in `bootOk`: the server owns its backend file's path
+   (nothing else creates, renames or deletes a file there); needed by `OpenSnapshotBackend`'s
+   `os.Rename`. Approved for now.
+3. **The image's other buckets for a workload without leases or auth** (`bkRestAt`'s lease and
+   auth clauses at the boot state; S-l's determinism axiom with a sole-writer boot token): kept as
+   stated. It can be lifted later per bucket, without touching the rest of the snapshot proof (raft,
+   the key bucket and consistent index, the sender, the transport, the swap): `bkRestAt`'s clause
+   for the bucket becomes its model of the committed entries, with the determinism axiom and the
+   matching `Recover` axiom restated over it and the theorems' workload hypothesis relaxed. Leases
+   need the members to agree on `ElectionTicks`/`TickMs`/`checkpointPersist` (S-0's exceptions
+   4-5); auth's legacy plaintext passwords are hashed per member (exception 6), so its clause is
+   "equal up to password hashes". Useful once leases or auth are otherwise in the verified
+   workload (`noGrant`, auth off today, for reasons beyond snapshots).
