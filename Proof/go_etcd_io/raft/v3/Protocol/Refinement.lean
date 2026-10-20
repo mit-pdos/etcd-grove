@@ -1117,7 +1117,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     iframe Hesa
     ipureintro
     refine ⟨by rw [psendMsgs_term, Hs2term]; exact Htm, by simpa using SubSorted_single _,
-      fun it hit => ?_⟩
+      fun it hit => ?_, fun _ => by show s2.rsx = _; exact Hs2rsx⟩
     simp only [List.nil_append, List.mem_singleton] at hit
     subst hit
     refine ⟨?_, by show _ ≤ uint.Z s2.sub; rw [Hs2sub]; exact Int.le_refl _,
@@ -4790,7 +4790,7 @@ theorem wOwn_item (γ : RaftNames) (id : w64) (s : PState) (i σ x : w64) (P : L
   rw [HN] at HN'; cases HN'
   rw [wRole_leader s tm Hr]
   icases Hw with ⟨%γes', %γg', %Les, %Pc, %HL', Hauth⟩
-  obtain ⟨Htm, -, Hitems⟩ := HL'
+  obtain ⟨Htm, -, Hitems, -⟩ := HL'
   icases ghost_map_lookup $$ Ha Hfr with %Htm'
   have Heq : (γes', γg') = (γes, γg) := by
     have h1 : tm !! s.term = some (γes, γg) := Htm'
@@ -4897,6 +4897,10 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id 
   icases isLeader_unique γ id ldr s.term $$ Hl Hl' with %Hid
   subst Hid
   icases wOwn_item γ id s e.Index' e.Subterm' x P Hr Hes $$ Hwg Hsub with %Hx
+  -- (2026-10-20) not of the first subterm, which excludes the witness itself
+  icases wOwn_sub0 γ id s Hr $$ Hwg with %Hs0
+  have Hσ0 : s.sub ≠ W64 0 := fun h => by
+    have := Hs0 h; unfold exclOf at Hxw; rw [if_pos this] at Hxw; exact Hxw rfl
   have Hex : exclOf c s = s.rsx := by
     unfold exclOf at Hxw ⊢
     by_cases h0 : s.rsx = W64 0
@@ -4951,6 +4955,7 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id 
         · exact h
       · rw [HC.1, GMap.elem_of_subseteq]; intro v hv
         rw [GMap.elem_of_intersection] at hv; exact hv.2
+      refine ⟨?_, Hσ0⟩
       show 1 ≤ uint.Z i
       have := uint_Z_nonneg s.base.index'; omega
     isplitr

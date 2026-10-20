@@ -1794,7 +1794,8 @@ def wJust (γ : RaftNames) (t σ idx x : w64) (P : List EntryM) (c : CfgM) (H : 
     IProp GF :=
   iprop(⌜γ.reWit ≠ W64 0 ∧ CfgAt γ P c ∧ c.wit = γ.reWit ∧ γ.reWit ∈ c.incoming ∧
       x ∈ c.incoming ∧ x ≠ γ.reWit ∧
-      H ⊆ c.incoming \ ({[γ.reWit]} ∪ {[x]}) ∧ size c.incoming / 2 ≤ size H ∧ 1 ≤ uint.Z idx⌝ ∗
+      H ⊆ c.incoming \ ({[γ.reWit]} ∪ {[x]}) ∧ size c.incoming / 2 ≤ size H ∧ 1 ≤ uint.Z idx ∧
+      σ ≠ W64 0⌝ ∗
     (∃ ldr, isLeader γ ldr t ∗ subRec γ ldr t idx σ x P) ∗ ackIn γ t idx ∗
     [∗map] h ↦ _u ∈ toMap H, ∃ i', ⌜uint.Z idx ≤ uint.Z i'⌝ ∗ ackReg γ h t i')
 

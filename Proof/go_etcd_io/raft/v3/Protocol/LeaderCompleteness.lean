@@ -585,7 +585,7 @@ theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
   obtain ⟨Hiidx, Hstt, Hstlt, Hstls⟩ := Hst
   iunfold wJust at Hj
   icases Hj with ⟨%Hjp, ⟨%ldr, #Hl, #Hsr⟩, -, #HHacks⟩
-  obtain ⟨-, HcA, -, HwA, Hxcfg, Hxw, HHsub, HHsize, Hidx1⟩ := Hjp
+  obtain ⟨-, HcA, -, HwA, Hxcfg, Hxw, HHsub, HHsize, Hidx1, Hσ0⟩ := Hjp
   -- the witness's vote, for `T`'s winner
   ihave #Hvotes := isWin_votes γ c T V $$ Hwin
   ihave #Hvw := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T c)

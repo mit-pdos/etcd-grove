@@ -2137,7 +2137,8 @@ def RoleOk (id : w64) (s : PState) : Prop :=
 list (the votes it recorded, as `s.votes` grants them) with an empty subterm list; as leader the
 subterm list (an item per entry it appended, within its log, of a subterm at most its current one,
 the current one's with its current excluded voter and one configuration prefix `Pc`, a ghost
-value chosen when the subterm starts, 2026-10-20). -/
+value chosen when the subterm starts, 2026-10-20; the first subterm excludes the witness
+itself, so the witness is sent no entry of it). -/
 def wRole (s : PState) (tm : GMap w64 (GName × GName)) : IProp GF :=
   match s.role with
   | .candidate => iprop(∃ (γes γg : GName) (Lg : List (Option w64)),
@@ -2145,8 +2146,9 @@ def wRole (s : PState) (tm : GMap w64 (GName × GName)) : IProp GF :=
       monoListAuthOwn γg 1 Lg ∗ monoListAuthOwn γes 1 ([] : List SubItem))
   | .leader => iprop(∃ (γes γg : GName) (Les : List SubItem) (Pc : List EntryM),
       ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
-        ∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
-          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))⌝ ∗
+        (∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))) ∧
+        (s.sub = W64 0 → s.rsx = W64 0)⌝ ∗
       monoListAuthOwn γes 1 Les)
   | .follower => iprop(True)
 
@@ -2168,8 +2170,9 @@ theorem wRole_cand (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .
 theorem wRole_leader (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .leader) :
     wRole (GF := GF) s tm = iprop(∃ (γes γg : GName) (Les : List SubItem) (Pc : List EntryM),
       ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
-        ∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
-          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))⌝ ∗
+        (∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))) ∧
+        (s.sub = W64 0 → s.rsx = W64 0)⌝ ∗
       monoListAuthOwn γes 1 Les) := by
   unfold wRole; rw [h]
 
@@ -2207,8 +2210,8 @@ theorem wOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
       iexists γes, γg, Les, Pc
       iframe Hauth
       ipureintro
-      obtain ⟨H1, H2, H3⟩ := HL
-      refine ⟨by rw [Ht]; exact H1, H2, fun it hit => ?_⟩
+      obtain ⟨H1, H2, H3, H4⟩ := HL
+      refine ⟨by rw [Ht]; exact H1, H2, fun it hit => ?_, fun h => by rw [Hrx]; rw [Hsb] at h; exact H4 h⟩
       obtain ⟨a, b, c⟩ := H3 it hit
       exact ⟨by omega, by rw [Hsb]; exact b, fun h => by rw [Hrx]; exact c (by rw [h, Hsb])⟩
   unfold wOwn
@@ -2560,7 +2563,7 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
   iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, %Hd, Hw⟩
   rw [wRole_leader s tm Hr]
   icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
-  obtain ⟨Htm, Hsort, Hitems⟩ := HL
+  obtain ⟨Htm, Hsort, Hitems, Hsr0⟩ := HL
   ihave #Hfrag := BigSepM.bigSepM_lookup (Φ := fun t (p : GName × GName) => iprop(t ↪[γN]□ p))
     Htm $$ Hf
   let M : List SubItem := es.map (fun e => (e.Index', e.Subterm', (s.rsx, Pc)))
@@ -2603,7 +2606,7 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
     iexists γes, γg, (Les ++ M), Pc
     iframe Hauth
     ipureintro
-    refine ⟨Htm, Hsort', fun it hit => ?_⟩
+    refine ⟨Htm, Hsort', fun it hit => ?_, Hsr0⟩
     have HlenZ : plogLastIndexZ (pappend s es).base (pappend s es).log =
         plogLastIndexZ s.base s.log + es.length := by
       unfold plogLastIndexZ pappend; simp only [List.length_append]; push_cast; omega
@@ -2629,6 +2632,15 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
     simp only [M, List.mem_map]
     exact ⟨e, List.mem_of_getElem? Hk, rfl⟩
 
+/-- A leader's first subterm excludes the witness itself (`rsx = 0`). -/
+theorem wOwn_sub0 (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
+    wOwn (GF := GF) γ id s ⊢ ⌜s.sub = W64 0 → s.rsx = W64 0⌝ := by
+  unfold wOwn
+  iintro ⟨%γN, %tm, -, -, -, -, -, Hw⟩
+  rw [wRole_leader s tm Hr]
+  icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, -⟩
+  ipureintro; exact HL.2.2.2
+
 /-- A leader starts a later subterm (`Step.newSub`), with a configuration prefix `p`: every item
 of its list is of an earlier one. -/
 theorem wOwn_newSub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) (p : List EntryM) :
@@ -2653,8 +2665,10 @@ theorem wOwn_newSub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) (p : Li
     iexists γes, γg, Les, p
     iframe Hauth
     ipureintro
-    obtain ⟨Htm, Hsort, Hitems⟩ := HL
-    refine ⟨Htm, Hsort, fun it hit => ?_⟩
+    obtain ⟨Htm, Hsort, Hitems, -⟩ := HL
+    refine ⟨Htm, Hsort, fun it hit => ?_, fun h => ?_⟩
+    rotate_left
+    · exfalso; simp only at h; subst h; revert Ha; word
     obtain ⟨h1, h2, -⟩ := Hitems it hit
     refine ⟨h1, by simp only; omega, fun h => ?_⟩
     simp only at h
