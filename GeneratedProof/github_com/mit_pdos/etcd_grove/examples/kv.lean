@@ -211,6 +211,7 @@ instance Storage_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "MemoryStorage" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"MemoryStorage" l) v.MemoryStorage' dq ∗
     "voters" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"voters" l) v.voters' dq ∗
+    "witness" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"witness" l) v.witness' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -252,6 +253,22 @@ instance Storage_access_store_voters (l : Loc) (v : github_com.mit_pdos.etcd_gro
  by
   solve_pointsto_access_struct
 
+instance Storage_access_load_witness (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"witness" l) v.witness' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"witness" l) v.witness' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Storage_access_store_witness (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (witness' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"witness" l) v.witness' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.Storage go!"witness" l) witness' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with witness' := witness' } : github_com.mit_pdos.etcd_grove.examples.kv.Storage) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
 end def_
 end Storage
 
@@ -269,6 +286,7 @@ instance KV_typed_pointsto :
     "id" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"id" l) v.id' dq ∗
     "node" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"node" l) v.node' dq ∗
     "storage" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) v.storage' dq ∗
+    "witness" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"witness" l) v.witness' dq ∗
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"mu" l) v.mu' dq ∗
     "kv" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"kv" l) v.kv' dq ∗
     "nextSeq" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"nextSeq" l) v.nextSeq' dq ∗
@@ -329,6 +347,22 @@ instance KV_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) v.storage' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"storage" l) storage' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := storage' } : github_com.mit_pdos.etcd_grove.examples.kv.KV) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance KV_access_load_witness (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"witness" l) v.witness' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"witness" l) v.witness' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance KV_access_store_witness (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.KV) (witness' : go_etcd_io.raft.v3.Witness) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"witness" l) v.witness' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.KV go!"witness" l) witness' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with witness' := witness' } : github_com.mit_pdos.etcd_grove.examples.kv.KV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -430,6 +464,120 @@ instance KV_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.exa
 
 end def_
 end KV
+
+namespace WitnessStore
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+
+instance WitnessStore_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) v.mu' dq ∗
+    "state" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"state" l) v.state' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance WitnessStore_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore.underlying := by
+  solve_into_val_typed_struct
+
+instance WitnessStore_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessStore_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessStore_access_load_state (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WitnessStore_access_store_state (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (state' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end WitnessStore
+
+namespace witnessRead
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+
+instance witnessRead_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.witnessRead where
+  typedPointstoDef l v dq := iprop(
+    "s" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) v.s' dq ∗
+    "state" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"state" l) v.state' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance witnessRead_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.kv.witnessRead github_com.mit_pdos.etcd_grove.examples.kv.witnessRead.underlying := by
+  solve_into_val_typed_struct
+
+instance witnessRead_access_load_s (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) v.s' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance witnessRead_access_store_s (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (s' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance witnessRead_access_load_state (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance witnessRead_access_store_state (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (state' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.kv.witnessRead go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : github_com.mit_pdos.etcd_grove.examples.kv.witnessRead) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end witnessRead
 
 end github_com.mit_pdos.etcd_grove.examples.kv
 end

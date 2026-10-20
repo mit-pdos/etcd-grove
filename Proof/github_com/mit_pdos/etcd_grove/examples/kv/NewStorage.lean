@@ -36,10 +36,13 @@ theorem NewStorage.wp_proof
   iStructNamed Hs
   imod kvStor_register s ms γs ⊤ CoPset.subseteq_top $$ Hreg MemoryStorage with #Hrec
   ipersist voters
+  ipersist witness
   wp_auto
   iapply HΦ
   iexists ms, γs
   iframe Hrec voters Hown
+  iExactEq witness
+  rfl
 
 end proof
 

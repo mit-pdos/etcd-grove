@@ -49,8 +49,15 @@ KV__Read: encode node__ReadIndex
 KV__TransferLeadership: node__TransferLeadership
 KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
-KV__run: fits KV__apply KV__answer node__Ready node__Advance MemoryStorage__Append proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
-kv_New: KV__run
+KV__witnessDeliver:
+NewWitnessStore:
+WitnessStore__GetWitnessState:
+WitnessStore__Close:
+witnessRead__GetState:
+witnessRead__Update:
+KV__run: fits KV__apply KV__answer node__Ready node__Advance MemoryStorage__Append proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData KV__witnessDeliver
+kv_newKV: KV__run
+kv_New: kv_newKV
 # the cluster driver (examples/kv/cluster.go)
 kv_quietLogger__Debugf:
 kv_quietLogger__Errorf:

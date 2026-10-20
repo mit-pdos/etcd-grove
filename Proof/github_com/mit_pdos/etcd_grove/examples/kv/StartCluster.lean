@@ -373,14 +373,14 @@ theorem StartCluster.wp_proof
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z k) _ DFrac.discard id0 Hk.1 $$ [Hvsl] as -
     · iframe Hvsl; ipureintro; exact Hid0
-    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem⟩
+    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, #Hwit, Hmem⟩
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨Hghost, Hseq⟩, Htodo⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave #Hstor := kvStorage_isStorage wp_Snapshot st ms γs $$ Hpkg Hrec
     ihave #Hinit := kvStorage_initialState wp_InitialState st _ clusterIds memStorEmpty
-      $$ Hpkg Hvoters Hvsl
+      $$ Hpkg Hvoters Hvsl Hwit
     have Hiface : kvStorIface st = GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩ := rfl
     rw [Hiface]
     ihave Hown : kvOwnStorage (interface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩) memStorEmpty
