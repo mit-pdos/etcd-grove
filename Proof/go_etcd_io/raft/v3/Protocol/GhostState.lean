@@ -165,13 +165,116 @@ instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List EntryM) :
     Timeless (campDyn (GF := GF) γ c T F) := by
   unfold campDyn; infer_instance
 
+/-! ### Subterm prefixes in a log (2026-10-20, witness support in the dynamic mode)
+
+(Cfg) of `notes/raft-witness-reconfig.md`: an entry of a subterm whose configuration has a witness
+lies past the subterm's prefix `P` (the committed prefix whose configuration the subterm's
+replication set is of), at most one conf entry past it, and a log holding the entry has
+committed `P` (`WitPfx`). `entWit γ F k`, of every entry of a log `F` with commit index `k`, is
+what a node keeps of its log (`ownRaftGhostR`, `dynEnv`), what a `MsgApp` carries of its sender's
+(`isMessage`), and what a candidate's witness vote request carries of its campaign
+(`wVoteReq`). -/
+
+/-- The entry at position `j` of `F` (commit index `k`), of a subterm with prefix `P`. -/
+def WitPfx (γ : RaftNames) (P F : List EntryM) (j : Nat) (k : w64) : Prop :=
+  (∃ c, CfgAt γ P c ∧ c.wit ≠ W64 0) →
+    P <+: F.take j ∧ P.length ≤ (uint.Z k).toNat ∧ confCount (F.take (j + 1)) ≤ confCount P + 1
+
+/-- The entry `e` at position `j` of `F`: a bootstrap entry, or one of a leader's subterm list
+whose prefix has `WitPfx` past the first subterm (whose replication set excludes the witness,
+so the witness acknowledges none of its entries: `wJust`). -/
+def entWitAt (γ : RaftNames) (F : List EntryM) (k : w64) (j : Nat) (e : EntryM) : IProp GF :=
+  iprop(⌜γ.reBoot ≠ [] ∧ uint.Z e.Term' < 2⌝ ∨
+    ∃ (ldr x : w64) (P : List EntryM), isLeader γ ldr e.Term' ∗
+      subRec γ ldr e.Term' e.Index' e.Subterm' x P ∗ ⌜e.Subterm' ≠ W64 0 → WitPfx γ P F j k⌝)
+
+instance entWitAt_persistent (γ : RaftNames) (F : List EntryM) (k : w64) (j : Nat) (e : EntryM) :
+    Persistent (entWitAt (GF := GF) γ F k j e) := by
+  unfold entWitAt; infer_instance
+instance entWitAt_timeless (γ : RaftNames) (F : List EntryM) (k : w64) (j : Nat) (e : EntryM) :
+    Timeless (entWitAt (GF := GF) γ F k j e) := by
+  unfold entWitAt; infer_instance
+
+/-- Every entry of `F`. -/
+def entWit (γ : RaftNames) (F : List EntryM) (k : w64) : IProp GF :=
+  iprop([∗list] j ↦ e ∈ F, entWitAt γ F k j e)
+
+instance entWit_persistent (γ : RaftNames) (F : List EntryM) (k : w64) :
+    Persistent (entWit (GF := GF) γ F k) := by
+  unfold entWit; infer_instance
+instance entWit_timeless (γ : RaftNames) (F : List EntryM) (k : w64) :
+    Timeless (entWit (GF := GF) γ F k) := by
+  unfold entWit; infer_instance
+
+/-- `WitPfx` reads the log up to the entry, and the commit index up to the entry's position. -/
+theorem WitPfx_transfer {γ : RaftNames} {P F F' : List EntryM} {j : Nat} {k k' : w64}
+    (hF : F.take (j + 1) = F'.take (j + 1))
+    (hk : ∀ n : Nat, n ≤ (uint.Z k).toNat → n ≤ j → n ≤ (uint.Z k').toNat)
+    (H : WitPfx γ P F j k) : WitPfx γ P F' j k' := by
+  intro hc
+  obtain ⟨h1, h2, h3⟩ := H hc
+  have hj : F.take j = F'.take j := by
+    have := congrArg (List.take j) hF
+    simpa [List.take_take, Nat.min_eq_left (Nat.le_succ j)] using this
+  have hl : P.length ≤ j := by
+    have := h1.length_le; have := List.length_take_le j F; omega
+  exact ⟨hj ▸ h1, hk _ h2 hl, hF ▸ h3⟩
+
+theorem entWitAt_transfer (γ : RaftNames) (F F' : List EntryM) (k k' : w64) (j : Nat)
+    (e : EntryM) (hF : F.take (j + 1) = F'.take (j + 1))
+    (hk : ∀ n : Nat, n ≤ (uint.Z k).toNat → n ≤ j → n ≤ (uint.Z k').toNat) :
+    entWitAt (GF := GF) γ F k j e ⊢ entWitAt γ F' k' j e := by
+  unfold entWitAt
+  iintro (%h | ⟨%ldr, %x, %P, #Hl, #Hs, %Hw⟩)
+  · ileft; ipureintro; exact h
+  · iright; iexists ldr, x, P; iframe Hl Hs; ipureintro
+    exact fun h => WitPfx_transfer hF hk (Hw h)
+
+theorem entWit_lookup (γ : RaftNames) (F : List EntryM) (k : w64) (j : Nat) (e : EntryM)
+    (h : F[j]? = some e) : entWit (GF := GF) γ F k ⊢ entWitAt γ F k j e := by
+  unfold entWit
+  iintro #H
+  iapply BigSepL.bigSepL_lookup (Φ := fun j e => entWitAt (GF := GF) γ F k j e) h $$ H
+
+theorem entWit_intro (γ : RaftNames) (F : List EntryM) (k : w64) :
+    ⊢ (□ ∀ (j : Nat) (e : EntryM), ⌜F[j]? = some e⌝ -∗ entWitAt (GF := GF) γ F k j e) -∗
+      entWit γ F k := by
+  iintro #H
+  unfold entWit
+  iapply BigSepL.bigSepL_forall_elim
+  iintro %j %e %Hj
+  iapply H $$ %j %e %Hj
+
+/-- The commit index grows. -/
+theorem entWit_mono (γ : RaftNames) (F : List EntryM) (k k' : w64)
+    (hk : uint.Z k ≤ uint.Z k') : entWit (GF := GF) γ F k ⊢ entWit γ F k' := by
+  iintro #H
+  iapply entWit_intro
+  imodintro
+  iintro %j %e %Hj
+  iapply entWitAt_transfer γ F F k k' j e rfl (fun n h1 _ => by omega)
+  iapply entWit_lookup γ F k j e Hj $$ H
+
+/-- (2026-10-20, witness support in the dynamic mode) What the witness's rules need of a node in
+the dynamic mode, of its full log `F` (prefix `fpR`): the subterm prefixes of its entries
+(`entWit`, at its commit index), a candidate's campaign's dynamic facts, and a leader's current
+subterm's prefix (`PState.scp`), whose configuration is the step's when that has a witness. -/
+def dynWit (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (fpR : List EntryM) : IProp GF :=
+  iprop(entWit γ (fpR ++ s.log) s.commit ∗
+    (∀ (_ : s.role = .candidate), campDyn γ id s.term (fpR ++ s.log)) ∗
+    ⌜s.role = .leader → s.sub ≠ W64 0 → c.wit ≠ W64 0 → CfgAt γ s.scp c⌝)
+
+instance dynWit_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState)
+    (fpR : List EntryM) : Persistent (dynWit (GF := GF) γ id c s fpR) := by
+  unfold dynWit; infer_instance
+
 /-- What the rules that read the configuration need of the node's reconfiguration state
 (2026-10-14, stage B5), at the configuration `c` of the step: static, `c` is the ghost state's;
 dynamic, the full log's prefix `fpR` (with records, so the ghost state's), I1 of the full log at the
 commit index, a configuration index `a ≤ commit` whose prefix's configuration is `c` (`CfgAt`), at
 a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the commit index (I2)
-and its campaign record is of its full log at the commit index. The dynamic refinement
-(`RefinementDyn.lean`) supplies it from `RInv`. -/
+and its campaign record is of its full log at the commit index; and (2026-10-20) `dynWit`. The
+dynamic refinement (`RefinementDyn.lean`) supplies it from `RInv`. -/
 def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
   iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List EntryM) (a : w64),
     ⌜FullOk s.base fpR ∧ ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
@@ -179,7 +282,8 @@ def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
       (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
       (s.role = .candidate → a = s.commit)⌝ ∗
     logRecs γ base0 fpR ∗
-    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit)))
+    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit) ∗
+    dynWit γ id c s fpR))
 
 instance dynEnv_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) :
     Persistent (dynEnv (GF := GF) γ id c s) := by
@@ -197,7 +301,8 @@ that entry's subterm (`ls`; `0` when the log's last entry is a snapshot's), and 
 of the campaign so far, each a responder (`resp`: `trk.Votes`'s keys), on the campaign's granted
 list: `quorum - 1` of each half of the campaign's configuration `K` (the configuration of the
 committed prefix `F0.take k`, 2026-10-20; `getWitnessVoteRequestReadiness`: one vote short in a
-half, at most one in the other, with the witness in both). -/
+half, at most one in the other, with the witness in both); in the dynamic mode (2026-10-20) the
+campaign's dynamic facts and the subterm prefixes of its log (`entWit`). -/
 def wVoteReq (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) : IProp GF :=
   iprop(∃ (F0 : List EntryM) (k : w64) (K : CfgM) (G : GSet w64),
     isCampK γ c T F0 k ∗ logRecs γ base0 F0 ∗
@@ -206,7 +311,8 @@ def wVoteReq (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) : IProp GF 
       CfgAt γ (F0.take (uint.Z k).toNat) K ∧ (∀ g, g ∈ G → g ∈ resp) ∧
       size K.incoming / 2 ≤ size (G ∩ K.incoming) ∧
       (K.outgoing ≠ ∅ → size K.outgoing / 2 ≤ size (G ∩ K.outgoing))⌝ ∗
-    grantLb γ c T G ∗ [∗map] g ↦ _u ∈ toMap G, isVote γ g T c)
+    grantLb γ c T G ∗ ([∗map] g ↦ _u ∈ toMap G, isVote γ g T c) ∗
+    dynOn γ iprop(campDyn γ c T F0 ∗ entWit γ F0 k))
 
 instance wVoteReq_persistent (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) :
     Persistent (wVoteReq (GF := GF) γ c T lt li ls resp) := by
@@ -262,7 +368,8 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          isCommitted γ ((fp ++ l).take (uint.Z m.commit).toNat) ∗
          -- (2026-10-14, stage B5) I1 of the leader's log at `Commit` (`RInv`'s, with
          -- `AppCommitEq`): what the receiver's I1 needs (`AppKnow`)
-         dynOn γ iprop(⌜ConfI1 (fp ++ l) (uint.Z m.commit).toNat⌝)) ∗
+         dynOn γ iprop(⌜ConfI1 (fp ++ l) (uint.Z m.commit).toNat⌝ ∗
+           entWit γ (fp ++ l) m.commit)) ∗
       ⌜m.src ≠ W64 0⌝)
   | .appResp =>
       -- an acceptance: the acknowledgement, and (2026-10-16, stage R8a, D11) its index within
@@ -2136,18 +2243,18 @@ def RoleOk (id : w64) (s : PState) : Prop :=
 /-- (2026-10-19, witness support) A node's lists of its current term: as candidate the granted
 list (the votes it recorded, as `s.votes` grants them) with an empty subterm list; as leader the
 subterm list (an item per entry it appended, within its log, of a subterm at most its current one,
-the current one's with its current excluded voter and one configuration prefix `Pc`, a ghost
-value chosen when the subterm starts, 2026-10-20; the first subterm excludes the witness
+the current one's with its current excluded voter and configuration prefix `PState.scp`,
+2026-10-20; the first subterm excludes the witness
 itself, so the witness is sent no entry of it). -/
 def wRole (s : PState) (tm : GMap w64 (GName × GName)) : IProp GF :=
   match s.role with
   | .candidate => iprop(∃ (γes γg : GName) (Lg : List (Option w64)),
       ⌜tm !! s.term = some (γes, γg) ∧ none ∉ Lg ∧ ∀ v, v ∈ granted s.votes ↔ some v ∈ Lg⌝ ∗
       monoListAuthOwn γg 1 Lg ∗ monoListAuthOwn γes 1 ([] : List SubItem))
-  | .leader => iprop(∃ (γes γg : GName) (Les : List SubItem) (Pc : List EntryM),
+  | .leader => iprop(∃ (γes γg : GName) (Les : List SubItem),
       ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
         (∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
-          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))) ∧
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, s.scp))) ∧
         (s.sub = W64 0 → s.rsx = W64 0)⌝ ∗
       monoListAuthOwn γes 1 Les)
   | .follower => iprop(True)
@@ -2157,9 +2264,7 @@ it has reached, and its current term's (`wRole`). -/
 def wOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ (γN : GName) (tm : GMap w64 (GName × GName)), ⌜γ.reWG !! id = some γN⌝ ∗
     ghostMapAuth γN 1 tm ∗ ([∗map] t ↦ p ∈ tm, t ↪[γN]□ p) ∗
-    ⌜∀ t, (tm !! t).isSome → uint.Z t ≤ uint.Z s.term⌝ ∗
-    -- the dynamic mode has no witness, so no subterm but the first
-    ⌜γ.reDyn ≠ none → s.sub = W64 0⌝ ∗ wRole s tm)
+    ⌜∀ t, (tm !! t).isSome → uint.Z t ≤ uint.Z s.term⌝ ∗ wRole s tm)
 
 theorem wRole_cand (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .candidate) :
     wRole (GF := GF) s tm = iprop(∃ (γes γg : GName) (Lg : List (Option w64)),
@@ -2168,10 +2273,10 @@ theorem wRole_cand (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .
   unfold wRole; rw [h]
 
 theorem wRole_leader (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .leader) :
-    wRole (GF := GF) s tm = iprop(∃ (γes γg : GName) (Les : List SubItem) (Pc : List EntryM),
+    wRole (GF := GF) s tm = iprop(∃ (γes γg : GName) (Les : List SubItem),
       ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
         (∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
-          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))) ∧
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, s.scp))) ∧
         (s.sub = W64 0 → s.rsx = W64 0)⌝ ∗
       monoListAuthOwn γes 1 Les) := by
   unfold wRole; rw [h]
@@ -2193,7 +2298,7 @@ theorem wOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     uint.Z s.term ≤ uint.Z s'.term →
     (s'.role = .candidate → s.role = .candidate ∧ s'.term = s.term ∧ s'.votes = s.votes) →
     (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.sub = s.sub ∧ s'.rsx = s.rsx ∧
-      plogLastIndexZ s.base s.log ≤ plogLastIndexZ s'.base s'.log) →
+      s'.scp = s.scp ∧ plogLastIndexZ s.base s.log ≤ plogLastIndexZ s'.base s'.log) →
     wOwn (GF := GF) γ id s ⊢ wOwn γ id s' := by
   intro Hsb Hle Hc Hl
   have Hrole : ∀ tm : GMap w64 (GName × GName), wRole (GF := GF) s tm ⊢ wRole s' tm := by
@@ -2204,26 +2309,22 @@ theorem wOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
       obtain ⟨Hrc, Ht, Hv⟩ := Hc Hr'
       unfold wRole; rw [Hr', Ht, Hv, Hrc]
     | leader =>
-      obtain ⟨Hrl, Ht, Hsb, Hrx, Hli⟩ := Hl Hr'
+      obtain ⟨Hrl, Ht, Hsb, Hrx, Hsc, Hli⟩ := Hl Hr'
       unfold wRole; rw [Hr', Hrl]
-      iintro ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
-      iexists γes, γg, Les, Pc
+      iintro ⟨%γes, %γg, %Les, %HL, Hauth⟩
+      iexists γes, γg, Les
       iframe Hauth
       ipureintro
       obtain ⟨H1, H2, H3, H4⟩ := HL
       refine ⟨by rw [Ht]; exact H1, H2, fun it hit => ?_, fun h => by rw [Hrx]; rw [Hsb] at h; exact H4 h⟩
       obtain ⟨a, b, c⟩ := H3 it hit
-      exact ⟨by omega, by rw [Hsb]; exact b, fun h => by rw [Hrx]; exact c (by rw [h, Hsb])⟩
+      exact ⟨by omega, by rw [Hsb]; exact b, fun h => by rw [Hrx, Hsc]; exact c (by rw [h, Hsb])⟩
   unfold wOwn
-  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, %Hd, Hr⟩
+  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, Hr⟩
   iexists γN, tm
   iframe Ha Hf
   isplitr; · ipureintro; exact HN
   isplitr; · ipureintro; intro t ht; have := Hk t ht; omega
-  isplitr
-  · ipureintro; intro h; rcases Hsb with e | e
-    · rw [e]; exact Hd h
-    · exact e
   iapply Hrole tm $$ Hr
 
 def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) : IProp GF :=
@@ -2309,15 +2410,6 @@ theorem ownRaftGhost_not_wit (γ : RaftNames) (id : w64) (s : PState) {md : Bool
   rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
   · exact Hne h
   · rw [h] at Haname; cases Haname
-
-/-- (2026-10-19) In the dynamic mode a node's subterm is `0` (no witness). -/
-theorem ownRaftGhost_sub_dyn (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
-    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜γ.reDyn ≠ none → s.sub = W64 0⌝ := by
-  unfold ownRaftGhost wOwn
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  icases Hwg with ⟨%γN, %tm, -, -, -, -, %Hd, -⟩
-  ipureintro; exact Hd
 
 /-- The mode of a node's ghost state. -/
 theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :
@@ -2443,7 +2535,7 @@ theorem wOwn_campaign (γ : RaftNames) (id : w64) (s s' : PState) :
     ⊢ wOwn (GF := GF) γ id s ==∗ wOwn γ id s' := by
   intro Hr Hlt Hv Hsb
   unfold wOwn
-  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, -, -⟩
+  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, -⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (Option w64)) with ⟨%γg, Hga, -⟩
   imod mono_list_own_alloc (GF := GF) ([] : List SubItem) with ⟨%γes, Hesa, -⟩
   have Hfree : tm !! s'.term = none := by
@@ -2463,7 +2555,6 @@ theorem wOwn_campaign (γ : RaftNames) (id : w64) (s s' : PState) :
     by_cases hte : t = s'.term
     · rw [hte]; exact Int.le_refl _
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hte)] at ht; have := Hk t ht; omega
-  isplitr; · ipureintro; intro _; exact Hsb
   rw [wRole_cand s' _ Hr]
   iexists γes, γg, []
   iframe Hga Hesa
@@ -2479,7 +2570,7 @@ theorem wOwn_recordVote (γ : RaftNames) (id : w64) (s : PState) (src : w64) (b 
     ⊢ wOwn (GF := GF) γ id s ==∗ wOwn γ id { s with votes := recordVote s.votes src b } := by
   intro Hr
   unfold wOwn
-  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, %Hd, Hw⟩
+  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, Hw⟩
   rw [wRole_cand s tm Hr]
   icases Hw with ⟨%γes, %γg, %Lg, %Hg, Hga, Hesa⟩
   obtain ⟨Htm, Hn, Hset⟩ := Hg
@@ -2490,7 +2581,6 @@ theorem wOwn_recordVote (γ : RaftNames) (id : w64) (s : PState) (src : w64) (b 
     iframe Ha Hf
     isplitr; · ipureintro; exact HN
     isplitr; · ipureintro; exact Hk
-    isplitr; · ipureintro; exact Hd
     rw [wRole_cand { s with votes := recordVote s.votes src b } tm Hr]
     iexists γes, γg, (Lg ++ [some src])
     iframe Hga Hesa
@@ -2510,7 +2600,6 @@ theorem wOwn_recordVote (γ : RaftNames) (id : w64) (s : PState) (src : w64) (b 
     iframe Ha Hf
     isplitr; · ipureintro; exact HN
     isplitr; · ipureintro; exact Hk
-    isplitr; · ipureintro; exact Hd
     rw [wRole_cand { s with votes := recordVote s.votes src b } tm Hr]
     iexists γes, γg, Lg
     iframe Hga Hesa
@@ -2560,13 +2649,13 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
       [∗list] e ∈ es, ∃ x P, subRec γ id s.term e.Index' e.Subterm' x P := by
   intro Hr Hes
   unfold wOwn
-  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, %Hd, Hw⟩
+  iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, Hw⟩
   rw [wRole_leader s tm Hr]
-  icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
+  icases Hw with ⟨%γes, %γg, %Les, %HL, Hauth⟩
   obtain ⟨Htm, Hsort, Hitems, Hsr0⟩ := HL
   ihave #Hfrag := BigSepM.bigSepM_lookup (Φ := fun t (p : GName × GName) => iprop(t ↪[γN]□ p))
     Htm $$ Hf
-  let M : List SubItem := es.map (fun e => (e.Index', e.Subterm', (s.rsx, Pc)))
+  let M : List SubItem := es.map (fun e => (e.Index', e.Subterm', (s.rsx, s.scp)))
   have HM : SubSorted M := by
     intro a b x y hab ha hb
     simp only [M, List.getElem?_map] at ha hb
@@ -2601,9 +2690,8 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
     iframe Ha Hf
     isplitr; · ipureintro; exact HN
     isplitr; · ipureintro; exact Hk
-    isplitr; · ipureintro; exact Hd
     rw [wRole_leader (pappend s es) tm Hr]
-    iexists γes, γg, (Les ++ M), Pc
+    iexists γes, γg, (Les ++ M)
     iframe Hauth
     ipureintro
     refine ⟨Htm, Hsort', fun it hit => ?_, Hsr0⟩
@@ -2622,7 +2710,7 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
       refine ⟨by simp only; omega, by simp only; rw [h5]; exact Int.le_refl _, fun _ => rfl⟩
   · iapply BigSepL.bigSepL_forall_elim
     iintro %k %e %Hk
-    iexists s.rsx, Pc
+    iexists s.rsx, s.scp
     unfold subRec
     iexists γN, γes, γg, (Les ++ M)
     iframe Hfrag Hlb
@@ -2636,33 +2724,32 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
 theorem wOwn_sub0 (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
     wOwn (GF := GF) γ id s ⊢ ⌜s.sub = W64 0 → s.rsx = W64 0⌝ := by
   unfold wOwn
-  iintro ⟨%γN, %tm, -, -, -, -, -, Hw⟩
+  iintro ⟨%γN, %tm, -, -, -, -, Hw⟩
   rw [wRole_leader s tm Hr]
-  icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, -⟩
+  icases Hw with ⟨%γes, %γg, %Les, %HL, -⟩
   ipureintro; exact HL.2.2.2
 
 /-- A leader starts a later subterm (`Step.newSub`), with a configuration prefix `p`: every item
 of its list is of an earlier one. -/
 theorem wOwn_newSub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) (p : List EntryM) :
-    γ.reDyn = none → uint.Z s.sub < uint.Z a →
-    wOwn (GF := GF) γ id s ⊢ wOwn γ id { s with sub := a, rsx := b } := by
-  intro Hst Ha
+    uint.Z s.sub < uint.Z a →
+    wOwn (GF := GF) γ id s ⊢ wOwn γ id { s with sub := a, rsx := b, scp := p } := by
+  intro Ha
   unfold wOwn
-  iintro ⟨%γN, %tm, %HN, Hau, #Hf, %Hk, -, Hw⟩
+  iintro ⟨%γN, %tm, %HN, Hau, #Hf, %Hk, Hw⟩
   iexists γN, tm
   iframe Hau Hf
   isplitr; · ipureintro; exact HN
   isplitr; · ipureintro; exact Hk
-  isplitr; · ipureintro; intro h; exact absurd Hst h
   have hcases : s.role = .follower ∨ s.role = .candidate ∨ s.role = .leader := by
     cases s.role <;> simp
   rcases hcases with Hr | Hr | Hr
-  · iapply wRole_follower { s with sub := a, rsx := b } tm Hr
-  · rw [wRole_cand s tm Hr, wRole_cand { s with sub := a, rsx := b } tm Hr]
+  · iapply wRole_follower { s with sub := a, rsx := b, scp := p } tm Hr
+  · rw [wRole_cand s tm Hr, wRole_cand { s with sub := a, rsx := b, scp := p } tm Hr]
     iexact Hw
-  · rw [wRole_leader s tm Hr, wRole_leader { s with sub := a, rsx := b } tm Hr]
-    icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
-    iexists γes, γg, Les, p
+  · rw [wRole_leader s tm Hr, wRole_leader { s with sub := a, rsx := b, scp := p } tm Hr]
+    icases Hw with ⟨%γes, %γg, %Les, %HL, Hauth⟩
+    iexists γes, γg, Les
     iframe Hauth
     ipureintro
     obtain ⟨Htm, Hsort, Hitems, -⟩ := HL

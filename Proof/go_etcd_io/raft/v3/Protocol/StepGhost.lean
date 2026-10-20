@@ -1202,7 +1202,10 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (γ.reDyn ≠ none → m.ty = .app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) →
     -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
     (m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
-    ⊢ isLeader (GF := GF) γ id s.term -∗
+    -- (2026-10-20, witness support) in the dynamic mode, an `MsgApp`'s `Commit` is the leader's
+    (γ.reDyn ≠ none → m.ty = .app → m.commit = s.commit) →
+    ⊢ dynOn γ (entWit (GF := GF) γ (fp ++ s.log) s.commit) -∗
+      isLeader γ id s.term -∗
       leadPrefix γ id s.term s.base s.log -∗
       lpfull γ id s.term s.base s.log fp -∗
       logRecs γ s.base s.log -∗
@@ -1210,8 +1213,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       isMessage γ m := by
-  intro Hr Hok Hid Hi1 Htr
-  iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
+  intro Hr Hok Hid Hi1 Htr Hce
+  iintro #Hew #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
   icases Hlf2 with ⟨%F0, -, #Hfr, %Hfull⟩
@@ -1236,7 +1239,12 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       unfold dynOn
       by_cases hD : γ.reDyn = none
       · ileft; ipureintro; exact hD
-      · iright; ipureintro; exact Hi1 hD Hty
+      · iright
+        isplitr; · ipureintro; exact Hi1 hD Hty
+        rw [Hce hD Hty]
+        icases Hew with (%h | #Hew')
+        · exact absurd h hD
+        · iexact Hew'
     · ipureintro; exact Hid
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩

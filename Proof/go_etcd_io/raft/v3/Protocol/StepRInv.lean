@@ -71,30 +71,6 @@ def ConfI3 (l : List EntryM) (pci a : Nat) : Prop :=
   (∀ (k : Nat) (e : EntryM), l[k]? = some e → IsConfEnt e → k < pci) ∧
   confCount (l.drop a) ≤ 1
 
-theorem confCount_eq_zero {l : List EntryM}
-    (h : ∀ (k : Nat) (e : EntryM), l[k]? = some e → ¬ IsConfEnt e) : confCount l = 0 := by
-  unfold confCount
-  rw [List.countP_eq_zero]
-  intro a ha
-  obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 ha
-  simpa using h k a hk
-
-theorem confCount_le_one {l : List EntryM}
-    (h : ∀ (k1 k2 : Nat) (e1 e2 : EntryM), k1 < k2 → l[k1]? = some e1 →
-      l[k2]? = some e2 → IsConfEnt e1 → IsConfEnt e2 → False) : confCount l ≤ 1 := by
-  induction l with
-  | nil => simp [confCount]
-  | cons e l ih =>
-    rw [confCount_cons]
-    by_cases hc : IsConfEnt e
-    · rw [ite_eq_left hc]
-      have : confCount l = 0 := confCount_eq_zero (fun k e' hk hc' =>
-        h 0 (k + 1) e e' (by omega) rfl (by simpa using hk) hc hc')
-      omega
-    · rw [ite_eq_right hc]
-      have := ih (fun k1 k2 e1 e2 hlt h1 h2 c1 c2 =>
-        h (k1 + 1) (k2 + 1) e1 e2 (by omega) (by simpa using h1) (by simpa using h2) c1 c2)
-      omega
 
 /-- Dropping more entries leaves no more conf entries. -/
 theorem confCount_drop_le (l : List EntryM) {a b : Nat} (h : a ≤ b) :
@@ -520,7 +496,8 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
     (hnw : plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) < 2 ^ 64) :
     RInv dec c0 { r with
       p := psendMsgs
-        (pappend r.p ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p)))) ms
+        (pappend r.p ((propBatch r m.entries cs).1.mapIdx
+          (stampS r.p.term r.p.sub (plastIndex r.p)))) ms
       pci := (propBatch r m.entries cs).2 } := by
   have hlen := H.full_length
   have hcl := H.commit_last
@@ -538,15 +515,15 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
     propConf_inv (CfgM.joint r.cfg.cfg) hcs hal (by rw [hli]; omega)
   generalize propBatch r m.entries cs = pb at hpc hlenb ⊢
   obtain ⟨p1, p2, p3, _, p5⟩ := hpc
-  have hcB : confCount (pb.1.mapIdx (stamp r.p.term (plastIndex r.p))) = confCount pb.1 :=
+  have hcB : confCount (pb.1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p))) = confCount pb.1 :=
     confCount_mapIdx (fun _ _ => rfl)
   have hfull : RState.full { r with
-      p := psendMsgs (pappend r.p (pb.1.mapIdx (stamp r.p.term (plastIndex r.p)))) ms, pci := pb.2 }
-      = r.full ++ pb.1.mapIdx (stamp r.p.term (plastIndex r.p)) := by
+      p := psendMsgs (pappend r.p (pb.1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p)))) ms, pci := pb.2 }
+      = r.full ++ pb.1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p)) := by
     unfold RState.full; simp only [psendMsgs, pappend, List.append_assoc]
   have hI3 := H.i3 hrole
   have hpn := rUnat_le p1
-  have i3' : ConfI3 (r.full ++ pb.1.mapIdx (stamp r.p.term (plastIndex r.p))) (uint.nat pb.2)
+  have i3' : ConfI3 (r.full ++ pb.1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p))) (uint.nat pb.2)
       (uint.nat r.applied) := by
     refine ⟨?_, ?_⟩
     · intro k e he hce
@@ -558,7 +535,7 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
         | none => rw [hb] at he; cases he
         | some e0 =>
           rw [hb] at he; simp only [Option.map_some, Option.some.injEq] at he; subst he
-          have := p2 _ e0 hb ((isConfEnt_stamp _ _ _ _).1 hce)
+          have := p2 _ e0 hb hce
           have := rUnat_eq pb.2
           omega
     · have ha : uint.nat r.applied ≤ r.full.length := by have := H.applied_cidx; omega
@@ -575,7 +552,7 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
       have h' : r.p.role = .candidate := h
       rw [hrole] at h'; cases h')⟩
   · show uint.Z r.p.commit ≤
-      plogLastIndexZ r.p.base (r.p.log ++ pb.1.mapIdx (stamp r.p.term (plastIndex r.p)))
+      plogLastIndexZ r.p.base (r.p.log ++ pb.1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p)))
     unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append]; push_cast; omega
   · rw [hfull, List.take_append_of_le_length hcidx]; exact H.cfg
   · rw [hfull]
@@ -685,6 +662,49 @@ theorem RInv_applySnap {r : RState} (H : RInv dec c0 r) (hs : r.snap = true) :
     (fun h => by cases h), (fun _ => Int.le_refl _), (fun _ => rfl), H.cfg, H.i1, ?_, ?_⟩
   · intro hl; have := H.lead_snap hl; rw [hs] at this; cases this
   · intro hc; have := (H.cand hc).1; rw [hs] at this; cases this
+
+/-- (2026-10-20, witness support) A new subterm: one empty entry, not a conf entry; `pci` kept. -/
+theorem RInv_newSub {r : RState} (id x : w64) (H : RInv dec c0 r) (hrole : r.p.role = .leader)
+    (hlast : plogLastIndexZ r.p.base r.p.log + 1 < 2 ^ 64) :
+    RInv dec c0 { r with p := pnewSub id r.p x } := by
+  have hlen := H.full_length
+  have hcl := H.commit_last
+  have hcidx : r.cidx ≤ r.full.length := by
+    have := H.cidx_commit; have := rUnat_eq r.p.commit; omega
+  obtain ⟨e, he⟩ : ∃ e, stampS r.p.term (r.p.sub + W64 1) (plastIndex r.p) 0 (zero_val EntryM) = e :=
+    ⟨_, rfl⟩
+  have hx : ¬ IsConfEnt e := by rw [← he]; exact not_isConfEnt_zero
+  have hlogE : (pnewSub id r.p x).log = r.p.log ++ [e] := by rw [← he]; rfl
+  have hfull : RState.full { r with p := pnewSub id r.p x } = r.full ++ [e] := by
+    show r.fp ++ (pnewSub id r.p x).log = _
+    rw [hlogE]; unfold RState.full; simp only [List.append_assoc]
+  have hI3 := H.i3 hrole
+  refine ⟨H.full, H.base_commit, ?_, H.applied_cidx, H.cidx_commit, H.snap_base, H.base_applied,
+    (fun _ => H.lead_snap hrole), ?_, ?_, ?_, (fun h => by
+      have h' : r.p.role = .candidate := h
+      rw [hrole] at h'; cases h')⟩
+  · show uint.Z r.p.commit ≤ plogLastIndexZ r.p.base (pnewSub id r.p x).log
+    rw [hlogE]
+    unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append, List.length_singleton]
+    push_cast; omega
+  · rw [hfull, List.take_append_of_le_length hcidx]; exact H.cfg
+  · rw [hfull]; exact H.i1.append_nonconf (by simpa using hx)
+  · intro _
+    rw [hfull]
+    refine ⟨?_, ?_⟩
+    · intro k e' he' hce
+      by_cases hk : k < r.full.length
+      · rw [List.getElem?_append_left hk] at he'; exact hI3.1 k e' he' hce
+      · rw [List.getElem?_append_right (by omega)] at he'
+        have := (List.getElem?_eq_some_iff.mp he').1
+        simp at this
+        rw [show k - r.full.length = 0 by omega] at he'
+        simp at he'; subst he'; exact absurd hce hx
+    · have ha : uint.nat r.applied ≤ r.full.length := by
+        have := H.applied_cidx; omega
+      have hx0 : confCount [e] = 0 := by rw [confCount_cons, ite_eq_right hx]; rfl
+      rw [List.drop_append_of_le_length ha, confCount_append, hx0, Nat.add_zero]
+      exact hI3.2
 
 /-- The configuration takes the next conf entry: the fold one entry further. -/
 theorem RInv_applyConf {r : RState} (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState)
@@ -974,8 +994,12 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
     exact RInv_keep _ H this.1 this.2.1 this.2.2.1 (Or.inr this.2.2.2)
   | advance r a h1 h2 h3 h4 => exact RInv_advance a H h1 h2 h3 h4
   | applySnap r h1 => exact RInv_applySnap H h1
-  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 _ =>
+  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 _ _ =>
     exact RInv_applyConf k e op cs' H h1 h2 h3 h4 h5 h6 h7 h8
+  | applyConfWit r k e op cs' x h1 h2 h3 h4 h5 h6 h7 h8 _ h10 _ _ h13 =>
+    exact RInv_newSub (r := { r with cidx := k + 1, cfg := cs' }) id x
+      (RInv_applyConf k e op cs' H h1 h2 h3 h4 h5 h6 h7 h8) h10 (by simp only; omega)
+  | newSub r x h1 _ _ _ h5 => exact RInv_newSub id x H h1 (by omega)
   | _ =>
     first
     | exact RInv_keep _ H rfl rfl rfl (Or.inr rfl)
