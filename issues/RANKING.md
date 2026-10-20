@@ -16,7 +16,10 @@ are to act. Criteria, roughly in this order:
 4. **Fix size**: a small local fix with a test is far likelier to be merged than a redesign.
 
 The upstream state of each file is its front matter (`etc/issues-status.py`); this ranking
-goes stale as it changes. Re-rank when a finding is added or its upstream state moves.
+goes stale as it changes. Re-rank when a finding is added or its upstream state moves. The findings
+we have already filed ourselves (issues and PRs by `upamanyus` or `upamanyus-agent`) are out of
+the tiers, in "Filed by us" below, whatever their severity: what remains to do for them is to see
+the filing through, not to decide whether to bring it.
 
 ## Report privately first
 
@@ -50,12 +53,9 @@ before any public issue.
    a sibling resigned), so two campaigners both lead: the leader-election API's one guarantee.
    Integration test on the fork branch; fix small (the key check `Mutex.Lock` already does).
    Users reported it twice (etcd-io/etcd#11051, #11777), both closed by the stale bot, not by a
-   maintainer. File together with
-   **[mutex-lock-recreated](mutex-lock-recreated.md)** (`Mutex.Lock` succeeds while another
-   session holds the lock; narrower, two `Mutex` values on one session, but the v3lock service
-   reaches it when a client retries a `Lock`). `mutex-lock-recreated` is reported
-   (etcd-io/etcd#22613, fix PR #22617, both open, 2026-10-19); `election-campaign-key-check` is not
-   yet filed.
+   maintainer. Not yet filed; file it next to
+   [mutex-lock-recreated](mutex-lock-recreated.md), its sibling in `Mutex.Lock` that we have
+   already reported ("Filed by us" below), since one key check fixes both.
 5. **[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)**: a progress
    notification can reach a new watch before its catch-up events, so clients that trust progress
    (Kubernetes' watch cache, etcd's `cache`) skip events. Deterministic integration test on the
@@ -91,19 +91,7 @@ before any public issue.
    `RawNode`; etcd's path is unconfirmed (concurrent membership changes, a slow apply loop, a
    partition). The documentation fix and etcd's five-line change are easy to argue for; claiming
    etcd is affected needs more evidence.
-10. (Was [raft-readindex-singleton-stale](raft-readindex-singleton-stale.md): fixed upstream, see
-   "Fixed upstream" below.)
-11. **[cache-ready-after-retry](cache-ready-after-retry.md)**: after one watch retry the new
-    `cache` package never becomes ready again. Deterministic test, fix one line; an actively
-    developed package, the likeliest to be merged quickly. Reported: etcd-io/etcd#22614 (open,
-    2026-10-19). Also small:
-    **[etcd-range-sort-none-limit](etcd-range-sort-none-limit.md)** (`etcdctl get
-    --sort-by=VERSION --limit=1` returns the wrong key): reported, etcd-io/etcd#22612 with our fix
-    #22616, and someone else's fix #22615 an hour earlier, all open; #22615 would also fix
-    [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md) (the same `IsDefaultOrdering`
-    cause).
-
-12. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
+10. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
     (2026-10-19): the gRPC quota check keeps the backend it saw at startup, so after a member
     installs a leader's snapshot it judges writes by its old, closed backend; if that one was over
     the quota, every write through the member re-raises NOSPACE for the whole cluster, through
@@ -142,16 +130,41 @@ their low 16 bits),
 (a canceled `KeepAlive` closes another caller's channel after an `ErrNoLeader` stream end; test and
 one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, marked stale).
 
-## Fixed upstream
+## Filed by us
 
-[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md) (etcd-io/raft#535, merged
-2026-10-19, closing #533; the maintainer sees no need to backport) and
-[raft-readindex-removed-leader](raft-readindex-removed-leader.md) (etcd-io/raft#536, merged
-2026-10-19). For #536 the maintainer reopened #534 to track backports and asked us to cherry-pick
-it by hand to raft's release-3.7 and release-3.6 and to etcd's release-3.5 (`raft/`), the bot's
-cherry-picks having conflicts: the open action. #536 merged in the reviewer's form, which leaves
-[raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (a liveness bug, a read at a
-`{1}&&{1}` leader waits) unfixed, not reported.
+Issues and PRs by `upamanyus` (or `upamanyus-agent`), checked against GitHub 2026-10-20. Ranked by
+what is left to do:
+
+1. **[raft-readindex-removed-leader](raft-readindex-removed-leader.md)**: fixed, etcd-io/raft#536
+   (merged 2026-10-19 in the reviewer's form, `IsVoter && IsSingleton`). The maintainer reopened our
+   issue #534 to track backports and asked us to cherry-pick by hand to raft's release-3.7 and
+   release-3.6 and to etcd's release-3.5 (`raft/`), the bot's cherry-picks having conflicts: the
+   open action. The reviewer's form leaves
+   [raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (a liveness bug, a read at a
+   `{1}&&{1}` leader waits) unfixed, not reported.
+2. **[mutex-lock-recreated](mutex-lock-recreated.md)**: reported, etcd-io/etcd#22613 with fix PR
+   #22617 (both open, 2026-10-19). `Mutex.Lock` succeeds while another session holds the lock; the
+   v3lock service reaches it when a client retries a `Lock`. Its sibling
+   `election-campaign-key-check` (top tier, item 4) is the one still to file.
+3. **[etcd-range-sort-none-limit](etcd-range-sort-none-limit.md)**: reported, etcd-io/etcd#22612
+   with our fix #22616; someone else's fix #22615 was opened an hour earlier, all open. #22615
+   changes `IsDefaultOrdering` itself and so would also fix
+   [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md); if the maintainers prefer it, ours
+   closes.
+4. **[cache-ready-after-retry](cache-ready-after-retry.md)**: reported, etcd-io/etcd#22614 (open,
+   2026-10-19), no fix PR yet; a one-line fix with a deterministic test in an actively developed
+   package, the likeliest quick merge once a PR is up.
+5. **[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md)**: fixed, etcd-io/raft#535
+   (merged 2026-10-19, closing our #533); the maintainer sees no need to backport. Nothing left.
+6. **[leasing-update-stale](leasing-update-stale.md)**: reported in part, etcd-io/etcd#20704
+   (2025-09-23, its bugs 1 and 3 are this finding's cases 3 and 4; cases 1 and 2 are not in it),
+   closed by the stale bot, unfixed. Reviving it belongs with the leasing umbrella below.
+
+Earlier filings of ours that the files link as related but not the finding: etcd-io/etcd#19091 and
+its fix #19092 (2024-12, the leasing session-expiry stale read, closed unmerged; linked from
+`leasing-stale-entry-after-reset`), #21536 (2026-03, the cache's `Get(WithRev)` revision gaps, fixed
+by #21540), #20729 (2025-09, merged: the 2^48 event window comment in `idutil`), and
+etcd-io/raft#392, #397, #398 (2026-02, `ReadIndex` retries with a reused `rctx`, closed).
 
 ## Already in maintainers' hands
 
@@ -161,20 +174,22 @@ v3.7.4; a maintainer is discussing the fix's design) and
 (etcd-io/etcd#21986, fix PRs open; an etcd caller reaches it: `monitorStorageVersion`'s
 v3.5→v3.7 migration writes `meta/storageVersion` three times in one session, and `StorageVersion()`
 reads the old value until the next commit, at most about 100 ms; reproduced at the fork pin, our
-fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.md)
+fork carries #21987). [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md) is fixed by
+someone else's open etcd-io/etcd#22615 without saying so (the `IsDefaultOrdering` change, above).
+Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.md)
 (the `ReportSnapshot` comment: etcd-io/raft#243, open, fixes it as part of a breaking v4 change).
 
 ## Probably not worth their time now
 
-- **Leasing** ([leasing-update-stale](leasing-update-stale.md),
-  [leasing-evictrange-key](leasing-evictrange-key.md),
+- **Leasing** ([leasing-evictrange-key](leasing-evictrange-key.md),
   [leasing-wait-rescind-no-delete](leasing-wait-rescind-no-delete.md),
   [leasing-stale-entry-after-reset](leasing-stale-entry-after-reset.md),
   [leasing-get-failed-acquire-options](leasing-get-failed-acquire-options.md),
-  [leasing-evalcmp-missing-key](leasing-evalcmp-missing-key.md)): real, but the package is
-  lightly maintained, etcd-io/etcd#20704 was closed by the stale bot, and #21869 (the same fix as
-  `leasing-evictrange-key`) was closed under the AI-contribution policy. If filed, one umbrella
-  issue with small PRs rather than six issues.
+  [leasing-evalcmp-missing-key](leasing-evalcmp-missing-key.md), and
+  [leasing-update-stale](leasing-update-stale.md) from "Filed by us"): real, but the package is
+  lightly maintained, our etcd-io/etcd#20704 was closed by the stale bot, and someone else's #21869
+  (the same fix as `leasing-evictrange-key`) was closed under the AI-contribution policy. If
+  filed again, one umbrella issue with small PRs rather than six issues.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-newauthstore-nil-tp](etcd-auth-newauthstore-nil-tp.md),
