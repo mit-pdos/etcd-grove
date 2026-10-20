@@ -46,8 +46,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 set_option hygiene false in
 /-- Rocq's local `close_view`: close the raft struct unchanged (`Hphys`). -/
 local macro "close_view" : tactic => `(tactic| (
-  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Hf_Term Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
+  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd %wsl %μs Hf_Term Hf_Vote
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
     HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog))
 
 set_option hygiene false in
@@ -79,6 +79,8 @@ still to be handed out and (2026-10-13) no `ReadState` is queued, so the node is
 local macro "finish_false" : tactic => `(tactic| (
   ihave %Hl1 := ownSlice_len _ _ _ $$ Hmsgs
   ihave %Hl2 := ownSlice_len _ _ _ $$ HmsgsAA
+  -- (2026-10-20, witness support) and no request to the witness queued
+  icases ownWQueue_len _ _ $$ Hwq with ⟨%Hl3, Hwq⟩
   have Hnu : nextUnstable s.logst = [] := by
     by_cases h : nextUnstable s.logst = []
     · exact h
@@ -106,10 +108,8 @@ set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
 shared by the two ways of falling through. -/
 local macro "rest" : tactic => `(tactic| (
-  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-  icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
-  icases ownRaftPhysC_view cf rnv.raft' id s hw $$ Hphys with
-    ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
+    ⟨%rss, %sl1, %sl2, %ms1, %ms2, %wsl, %μs, Hv⟩
   iNamed Hv
   try wp_auto
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hsn⟩
@@ -118,6 +118,9 @@ local macro "rest" : tactic => `(tactic| (
   · wp_auto
     wp_if_destruct
     · finish
+    wp_if_destruct
+    · finish
+    -- (2026-10-20, witness support) `len(r.witnessMsgs) > 0`
     wp_if_destruct
     · finish
     wp_apply wp_raftLog_hasNextUnstableEnts $$ [Hlog] as %bue ⟨Hlog, %Hue⟩

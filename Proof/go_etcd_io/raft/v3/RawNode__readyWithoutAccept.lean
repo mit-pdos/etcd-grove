@@ -53,8 +53,8 @@ variable [FfiSyntax]
 
 /-- The `Ready` `readyWithoutAccept` builds, field by field (`Snapshot` stays `nil`: no
 snapshot is pending). -/
-abbrev readyVal (sp hp : Loc) (rs ents ce msgs : GoSlice) (ms : Bool) : Ready :=
-  Ready.mk sp hp rs ents null ce msgs ms slice.nil
+abbrev readyVal (wms : GoSlice) (sp hp : Loc) (rs ents ce msgs : GoSlice) (ms : Bool) : Ready :=
+  Ready.mk sp hp rs ents null ce msgs ms wms
 
 end helpers
 
@@ -126,11 +126,10 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
   icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
-  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-  icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
-  icases ownRaftPhysC_view cf rnv.raft' id s hw $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
+    ⟨%rss, %sl1, %sl2, %ms1, %ms2, %wsl, %μs, Hv⟩
   iNamed Hv
-  icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
+  icases outboxRel_split _ _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
@@ -159,7 +158,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_call
   wp_auto
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, -⟩
-  wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp null slice.nil sents sce sl1 false ∗
+  wp_join iprop(∃ sp, rd_ptr ↦ readyVal wsl sp null slice.nil sents sce sl1 false ∗
       (if nodeSoftstate s = soft0 then iprop(⌜sp = null⌝)
        else sp ↦ softstateVal (nodeSoftstate s)))
     with [rd softSt] as ⟨%sp, rd, Hsoftp⟩
@@ -205,7 +204,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       rw [H1, H2, H3]; rfl
     · intro H
       rw [H]; exact ⟨rfl, rfl, rfl⟩
-  wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = hsAbs hprev then null else hp)
+  wp_join iprop(rd_ptr ↦ readyVal wsl sp (if nodeHardstate s = hsAbs hprev then null else hp)
       slice.nil sents sce sl1 false) with [rd hardSt] as rd
   · rw [ite_pos' (Hhs_iff.1 Hif)]
     iexact rd
@@ -224,7 +223,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_auto
   ihave %Hel := entsPts_len _ _ _ $$ Hents
   -- `if len(r.readStates) != 0 { rd.ReadStates = r.readStates }`
-  wp_join iprop(rd_ptr ↦ readyVal sp HP (if s.rd.states = [] then slice.nil else rss)
+  wp_join iprop(rd_ptr ↦ readyVal wsl sp HP (if s.rd.states = [] then slice.nil else rss)
       sents sce sl1 false ∗ r_ptr ↦ rnv.raft' ∗
       rnv.raft'.[raft, go!"readStates"] ↦ rss)
     with [rd r Hf_readStates] as ⟨rd, r, Hf_readStates⟩
@@ -288,7 +287,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- messages' ownership stays in `Hown2` (each one's `GetTo` reads it).
   ihave IH : iprop(∃ (n : w64) (msl : GoSlice) (mv : Loc),
       "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗
-      "rd" ∷ rd_ptr ↦ readyVal sp HP RS sents sce msl MS ∗
+      "rd" ∷ rd_ptr ↦ readyVal wsl sp HP RS sents sce msl MS ∗
       "Hmsgs" ∷ msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))).map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc msl (DFrac.own 1) ∗
       "Hundo" ∷ (msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))).map QMsg.loc -∗
@@ -384,16 +383,20 @@ theorem RawNode.readyWithoutAccept.wp_proof
     isplitl [Ho1 H1h]
     · iapply qOwns_unready ms1; iframe Ho1 H1h
     · iapply readyDq_halves _ (fun q hq => Hresp2 q (List.mem_filter.1 hq).1) $$ Ho2
-  ihave Hphys : ownRaftPhysReady cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
-    [Hf_Term Hf_Vote Hf_readStates HreadStates_cap Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hf_msgs
-     Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose]
+  -- (2026-10-20, witness support) the witness queue handed out whole: the `Ready` gives it back
+  ihave Hwundo : (ownWQueue wsl μs -∗ ownWQueue wsl μs : IProp GF) $$ []
+  · iintro H; iexact H
+  ihave Hphys : ownRaftPhysReady cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false wsl μs $$
+    [Hf_Term Hf_Vote Hf_readStates HreadStates_cap Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwundo
+     Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
-    iexists rss, sl1, sl2, ms1, ms2
+    iexists rss, sl1, sl2, ms1, ms2, wsl, μs
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_witnessMsgs Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
+      Hf_lead Hf_witnessMsgs Hwundo Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog
+      Hclose
     ipureintro
-    refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
+    refine ⟨Hwnil, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]
     have := List.length_filter_le (fun q => !isSelfQ id q) ms2
     simp only [nonself]
@@ -450,8 +453,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
       (fun h => (Hxf.2 (Hnl.1.trans h)).2.2) $$ Hout
-  iapply HΦ $$ %(readyVal sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
-    %(ms1 ++ nonself id ms2) %s.rd.states %hrd
+  ihave #Hwms_ok := outboxRelP_wq_isMessage γ (toPState s).outbox ms1 ms2 μs Houtbox $$ Hout
+  iapply HΦ $$ %(readyVal wsl sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
+    %(ms1 ++ nonself id ms2) %μs %s.rd.states %hrd
   simp only [named]
   isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap]
   · unfold ownRawNodeReady
@@ -485,10 +489,14 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexact Hmsgs_ok
   isplitr
   · ipureintro; exact Hmsgs_term
+  isplitl [Hwq]
+  · iexact Hwq
   isplitr
-  · iintro H1 H2 H3 H4
-    iapply ownRawNodeReady_abandon γ rn id rs (readyVal sp HP RS sents sce msl MS) ce
-      (nextUnstable s.logst) (ms1 ++ nonself id ms2) Hsteps0 Hunp0 $$ H1 H2 H3 H4
+  · iexact Hwms_ok
+  isplitr
+  · iintro H1 H2 H3 H4 H5
+    iapply ownRawNodeReady_abandon γ rn id rs (readyVal wsl sp HP RS sents sce msl MS) ce
+      (nextUnstable s.logst) (ms1 ++ nonself id ms2) μs Hsteps0 Hunp0 $$ H1 H2 H3 H4 H5
   isplitr
   · ipureintro; first | rfl | trivial
   isplitr

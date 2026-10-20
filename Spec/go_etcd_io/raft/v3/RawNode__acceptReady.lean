@@ -42,9 +42,9 @@ messages (`newStorageAppendRespMsg`, `newStorageApplyRespMsg`), the apply acknow
 `Entries` the committed entries' slice.) -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg),
+    (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true }}
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true μh }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending), RET #();
       "Hrn" ∷ ownRawNode γ rn id

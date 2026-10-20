@@ -84,6 +84,32 @@ theorem ownSlice_of_shape (s : GoSlice) (dq : DFrac) (h : SliceShape s 0) :
     rw [show sint.Z s.len = 0 by omega] at *
     iapply array_empty _ _ Hnn
 
+/-- (2026-10-20, witness support) A `Ready` whose witness slice is empty hands out no request to
+the witness. -/
+theorem readyWit_empty (γ : NodeNames) (rd : Ready) (h : SliceShape rd.WitnessMessages' 0) :
+    ⊢ readyWit (GF := GF) γ rd := by
+  iunfold readyWit
+  iexists [], []
+  isplitl []
+  · iapply ownSlice_of_shape (V := WitnessMessage) rd.WitnessMessages' (DFrac.own 1) h
+  isplitl []
+  · iapply BigSepL2.bigSepL2_nil.2; iempintro
+  · iapply BigSepL.bigSepL_nil.2; iempintro
+
+/-- (2026-10-20, witness support) A witness queue's slice has the shape of its requests. -/
+theorem ownWQueue_shape (sl : GoSlice) (μs : List WMsg) :
+    ownWQueue (GF := GF) sl μs ⊢ ⌜SliceShape sl μs.length⌝ ∗ ownWQueue sl μs := by
+  iintro H
+  iunfold ownWQueue at H
+  icases H with ⟨%wms, Hsl, Hcap, Hb⟩
+  ihave %Hsh := ownSlice_shape _ _ _ $$ Hsl
+  ihave %Hlen := BigSepL2.bigSepL2_length $$ Hb
+  isplitr
+  · ipureintro; rw [← Hlen]; exact Hsh
+  iunfold ownWQueue
+  iexists wms
+  iframe Hsl Hcap Hb
+
 end slices
 
 section lemmas
@@ -102,17 +128,15 @@ theorem ownRaftPhys_lead (c : CfgM) (r : Loc) (id : w64) (s : NState) :
       (r.[raft, go!"lead"] ↦ s.lead -∗ r.[raft, go!"Term"] ↦ s.term -∗
         ownRaftPhysCV c c.voters r id s) := by
   iintro H
-  -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-  icases ownRaftPhysC_wit0 c _ _ _ $$ H with ⟨%hw, H⟩
-  icases ownRaftPhysC_view c r id s hw $$ H with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  icases ownRaftPhysC_view c r id s $$ H with ⟨%rss, %sl1, %sl2, %ms1, %ms2, %wsl, %μs, Hv⟩
   iNamed Hv
   isplitl [Hf_lead]
   · iexact Hf_lead
   isplitl [Hf_Term]
   · iexact Hf_Term
   iintro Hl Ht
-  ihave H := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Ht Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_witnessMsgs Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
+  ihave H := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd %wsl %μs Ht Hf_Vote
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
     %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ H
 
@@ -201,9 +225,9 @@ theorem ownRawNodeIdle_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
   iapply Hclose $$ Hl Ht
 
 theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg) (h : Bool) (r : Loc) :
-    ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h -∗ rn.[RawNode, go!"raft"] ↦□ r -∗
-      leadFields r (ownRawNodeReady γ rn id rs rd ce es ms h) := by
+    (ce es : List EntryM) (ms : List QMsg) (h : Bool) (r : Loc) (μh : List WMsg := []) :
+    ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h μh -∗ rn.[RawNode, go!"raft"] ↦□ r -∗
+      leadFields r (ownRawNodeReady γ rn id rs rd ce es ms h μh) := by
   iintro H #Hr
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
@@ -212,7 +236,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icombine Hr Hr' gives %Heq
   subst Heq
   iunfold ownRaftPhysReady at Hphys
-  icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
+  icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, %wsl0, %μs, Hphys⟩
   iNamed Hphys
   unfold leadFields
   iexists s.lead, s.term
@@ -228,12 +252,13 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     Hrdrs Hce Hce_cap Hents
   isplitl
   · iunfold ownRaftPhysReady
-    iexists rsl, sl1, sl2, ms1, ms2
+    iexists rsl, sl1, sl2, ms1, ms2, wsl0, μs
     simp only [named]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_witnessMsgs Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo Hclose
+      Hf_lead Hf_witnessMsgs Hwundo Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo
+      Hclose
     ipureintro
-    exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
+    exact ⟨Hwnil, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
     Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
@@ -245,20 +270,22 @@ takes should `run` send it after all: its committed entries' capacity and its so
 state. (2026-10-16, stage R5: and its hard state; the messages handed out come back at
 `readyDq` with `rd.Messages`' slice and capacity.) -/
 theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg)
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = []) :
     ⊢ rd.Messages' ↦* ms.map QMsg.loc -∗ ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
       ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
-      ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms -∗
+      -- (2026-10-20, witness support) and the witness requests handed out
+      ownWQueue rd.WitnessMessages' μh -∗
+      ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false μh -∗
       ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
       (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
       (∃ hrd : HardStateM, hsOpt rd.HardState' hrd) ∗
       ∃ (n : Nat) (u : Bool) (c : w64),
-        ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
+        ⌜ms.length + μh.length ≤ n ∧ (es ≠ [] → u = true) ∧
          (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
            uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
         ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c } := by
-  iintro Hmsgs Hmsgs_cap Hown H
+  iintro Hmsgs Hmsgs_cap Hown Hwh H
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
   iNamed H
@@ -269,21 +296,22 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
   isplitr
   · iexact Hrdhard
   iunfold ownRaftPhysReady at Hphys
-  icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
+  icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, %wsl0, %μs, Hphys⟩
   iNamed Hphys
   icases Hundo $$ Hmsgs Hmsgs_cap Hown with ⟨Hm1, Hc1, Hown1, Hhalf⟩
+  ihave Hwq := Hwundo $$ Hwh
   ihave Hoth := (qOwns_other_halves id ms2).1 $$ [Hhalf Hother]
   · iframe Hhalf Hother
   ihave Hown2 := (qOwns_self_split id ms2).2 $$ [Hself Hoth]
   · iframe Hself Hoth
-  ihave Hob := outboxRel_join s.outbox ms1 ms2 $$ [Hown1 Hown2]
+  ihave Hob := outboxRel_join s.outbox ms1 ms2 (μs.map wAbs) $$ [Hown1 Hown2]
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
-  let g : NGhost := { outlb := ms1.length + ms2.length,
+  let g : NGhost := { outlb := ms1.length + ms2.length + μs.length,
                       unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
-  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
-    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
+  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd %wsl0 %μs Hf_Term
+    Hf_Vote Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
+    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
@@ -294,7 +322,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
       $$ Hcommitted
   ihave Hpend : pendList γ id ([] : List Loc) rs.steps $$ []
   · rw [Hsteps0]; iapply pendList_nil
-  iexists ms1.length + ms2.length, decide (nextUnstable s.logst ≠ []), s.logst.committed
+  iexists ms1.length + ms2.length + μs.length, decide (nextUnstable s.logst ≠ []), s.logst.committed
   isplitr
   · ipureintro
     refine ⟨Hmslen, fun h => by rw [Hes] at h; exact decide_eq_true h, fun e He => ?_⟩
@@ -304,7 +332,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
     have := uint_Z_nonneg s.logst.applying
     omega
   let rs' : RNState :=
-    { rs with outlb := ms1.length + ms2.length, unst := decide (nextUnstable s.logst ≠ []),
+    { rs with outlb := ms1.length + ms2.length + μs.length, unst := decide (nextUnstable s.logst ≠ []),
               clb := s.logst.committed }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
@@ -1247,7 +1275,7 @@ node is idle; and its read states with their facts (2026-10-13, persistent: from
 `readyWithoutAccept`). (2026-10-16, stage R5: its hard state `hsOpt`, its entries `entsRO`,
 its read states `readStatesPts`, no snapshot `nil`.) -/
 def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
-  iprop(∃ (ce es : List EntryM) (k : Nat) (hrd : HardStateM),
+  iprop(∃ (ce es : List EntryM) (k : Nat) (hrd : HardStateM) (kw : Nat),
     (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
     hsOpt rd.HardState' hrd ∗
     entsRO rd.CommittedEntries' ce ∗ ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
@@ -1255,20 +1283,24 @@ def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     ⌜rd.Snapshot' = null ∧
-      (es ≠ [] → rs.unst = true) ∧ SliceShape rd.Messages' k ∧ k ≤ rs.outlb ∧
+      (es ≠ [] → rs.unst = true) ∧ SliceShape rd.Messages' k ∧ k + kw ≤ rs.outlb ∧
       (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z rs.clb ∧
-        uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝)
+        uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int)) ∧
+      -- (2026-10-20, witness support) and the witness requests it held (`rd.WitnessMessages`)
+      SliceShape rd.WitnessMessages' kw⌝)
 
 /-- A `Ready` `readyWithoutAccept` just computed: its outputs. (2026-10-16, stage R5: the
 messages handed out (D8), owned at `readyDq`, with `rd.Messages`' slice and capacity; the
 entries `entsRO`; the read states `readStatesPts`; the hard state `hsOpt`.) -/
 def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
-    (ms : List QMsg) : IProp GF :=
+    (ms : List QMsg) (μh : List WMsg) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
     ([∗list] q ∈ ms, isRaftMsg γ.raft q.st) ∗
+    -- (2026-10-20, witness support) the requests to the witness, each legitimately sent
+    ownWQueue rd.WitnessMessages' μh ∗ ([∗list] μ ∈ μh, isMessage γ.raft (wAbs μ)) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     (∃ hrd : HardStateM, hsOpt rd.HardState' hrd) ∗
@@ -1305,8 +1337,8 @@ def runMid (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready)
       ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
       ((⌜rc = chan.nil⌝ ∗ ownRawNode γ.raft nv.rn' id rs) ∨
-       (⌜rc = nv.readyc'⌝ ∗ ∃ (ce es : List EntryM) (ms : List QMsg),
-          ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false ∗ freshOk γ rd rs ce es ms) ∨
+       (⌜rc = nv.readyc'⌝ ∗ ∃ (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg),
+          ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false μh ∗ freshOk γ rd rs ce es ms μh) ∨
        (⌜rc = nv.readyc'⌝ ∗ ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs))))
 
 theorem headRest_termLB (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan)
@@ -1395,7 +1427,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
   · iexact H
   obtain ⟨Hst, Hsteps, Hunp⟩ := Hrs
   unfold runHead
-  icases H with (⟨%Hrc, Hrn⟩ | ⟨%Hrc, %ce, %es, %ms, Hrn, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
+  icases H with (⟨%Hrc, Hrn⟩ | ⟨%Hrc, %ce, %es, %ms, %μh, Hrn, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
   · iexists rs
     iframe Hrn
     unfold headRest
@@ -1408,11 +1440,12 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact ⟨Hac, Hsteps, Hunp⟩
     ileft; ipureintro; exact Hrc
   · unfold freshOk
-    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hmsgs_ok, #Hrsts, -,
-      %Hfacts⟩
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hmsgs_ok, Hwq, -, #Hrsts,
+      -, %Hfacts⟩
     ihave %Hshape := ownSlice_shape _ _ _ $$ Hmsgs
-    icases ownRawNodeReady_abandon_keep γ.raft nv.rn' id rs rd ce es ms Hsteps Hunp
-      $$ Hmsgs Hmsgs_cap Hown Hrn with ⟨Hce_cap, #Hrdsoft, ⟨%hrd, #Hrdh⟩, %n, %u, %c, %Hnuc, Hrn⟩
+    icases ownWQueue_shape _ _ $$ Hwq with ⟨%Hwshape, Hwq⟩
+    icases ownRawNodeReady_abandon_keep γ.raft nv.rn' id rs rd ce es ms μh Hsteps Hunp
+      $$ Hmsgs Hmsgs_cap Hown Hwq Hrn with ⟨Hce_cap, #Hrdsoft, ⟨%hrd, #Hrdh⟩, %n, %u, %c, %Hnuc, Hrn⟩
     iexists { rs with outlb := n, unst := u, clb := c }
     iframe Hrn
     unfold headRest
@@ -1429,10 +1462,10 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hrc
     unfold staleOk
-    iexists ce, es, ms.length, hrd
+    iexists ce, es, ms.length, hrd, μh.length
     iframe Hrdsoft Hrdh Hce Hce_cap Hcommitted Hents Hrsts
     ipureintro
-    exact ⟨Hfacts.2, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2⟩
+    exact ⟨Hfacts.2, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2, Hwshape⟩
   · iexists rs
     ihave Hrn := ownRawNodeIdle_ownRawNode γ.raft nv.rn' id rs $$ Hrn
     iframe Hrn
@@ -1498,8 +1531,9 @@ theorem runMid_ready (γ : NodeNames) (id : w64) (nv : node) (ac : GoChan) (rd :
       ⌜ac = chan.nil⌝ ∗ ∃ rs : RNState, termLB γ.bud rs.tc ∗
         ⌜rs.storage = γ.stor ∧ rs.steps = [] ∧ rs.unpersisted = []⌝ ∗
         dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
-        ((∃ (ce es : List EntryM) (ms : List QMsg),
-            ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false ∗ freshOk γ rd rs ce es ms) ∨
+        ((∃ (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg),
+            ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false μh ∗
+              freshOk γ rd rs ce es ms μh) ∨
          (ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs)) := by
   iintro H
   unfold runMid
@@ -1565,7 +1599,7 @@ theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     iexists rs
     iframe Hrest
     iapply Hback $$ Hl Ht
-  icases H with (⟨%Hrc, Hrn⟩ | ⟨%Hrc, %ce, %es, %ms, Hrn, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
+  icases H with (⟨%Hrc, Hrn⟩ | ⟨%Hrc, %ce, %es, %ms, %μh, Hrn, Hf⟩ | ⟨%Hrc, Hrn, Hstale⟩)
   · ihave Hlf := ownRawNode_lead γ.raft nv.rn' id rs r $$ Hrn Hr
     iunfold leadFields at Hlf
     icases Hlf with ⟨%ld, %t, Hl, Ht, Hback⟩
@@ -1584,7 +1618,7 @@ theorem runMid_lead (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hrc
     iapply Hback $$ Hl Ht
-  · ihave Hlf := ownRawNodeReady_lead γ.raft nv.rn' id rs rd ce es ms false r $$ Hrn Hr
+  · ihave Hlf := ownRawNodeReady_lead γ.raft nv.rn' id rs rd ce es ms false r μh $$ Hrn Hr
     iunfold leadFields at Hlf
     icases Hlf with ⟨%ld, %t, Hl, Ht, Hback⟩
     unfold leadFields

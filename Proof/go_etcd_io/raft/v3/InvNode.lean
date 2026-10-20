@@ -521,6 +521,24 @@ channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/
 def stepP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
   iprop(netP γ id ml ∨ fwdP γ ml)
 
+/-- (2026-10-20, witness support) The requests to the witness a `Ready` hands out
+(`rd.WitnessMessages`): the slice's cells (not its capacity: a stale `Ready`'s slice is empty),
+each request owned (`ownWMsg`) and legitimately sent (`isMessage`), for the application to deliver
+to its `Witness`. -/
+def readyWit (γ : NodeNames) (rd : Ready) : IProp GF :=
+  iprop(∃ (wms : List WitnessMessage) (μh : List WMsg), rd.WitnessMessages' ↦* wms ∗
+    ([∗list] _k ↦ wm;μ ∈ wms;μh, ownWMsg wm μ) ∗ [∗list] μ ∈ μh, isMessage γ.raft (wAbs μ))
+
+theorem readyWit_of_queue (γ : NodeNames) (rd : Ready) (μh : List WMsg) :
+    ⊢ ownWQueue (GF := GF) rd.WitnessMessages' μh -∗
+      ([∗list] μ ∈ μh, isMessage γ.raft (wAbs μ)) -∗ readyWit γ rd := by
+  iintro Hq #Hok
+  iunfold ownWQueue at Hq
+  icases Hq with ⟨%wms, Hsl, -, Hb⟩
+  iunfold readyWit
+  iexists wms, μh
+  iframe Hsl Hb Hok
+
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`isCommitted` of `d ++ ce`), the entries `es` to
 append with the right to (`appendRight`), the messages to send (each legitimately sent,
@@ -551,7 +569,9 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     softStateRO rd.SoftState' ∗
     ⌜rd.Snapshot' = null⌝ ∗
     -- (2026-10-18, D19b stage 5) the indices handed out are within the log (`readyIdx`)
-    readyIdx γ.raft d ce es)
+    readyIdx γ.raft d ce es ∗
+    -- (2026-10-20, witness support) the requests to the witness
+    readyWit γ rd)
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. -/

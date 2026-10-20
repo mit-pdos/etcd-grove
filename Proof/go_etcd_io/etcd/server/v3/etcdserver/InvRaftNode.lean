@@ -515,7 +515,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   icases Hfits with %Hrb
   iunfold readyData at Hdata
   icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, Hmt, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
-    #Hss, %Hsnap, #Hri⟩
+    #Hss, %Hsnap, #Hri, -⟩
   -- (2026-10-18, D19b stage 5) the indices handed out, bounded by the receipt of the log's last
   iunfold readyIdx at Hri
   icases Hri with ⟨%Lx, #Hlr, %Hix⟩

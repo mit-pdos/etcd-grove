@@ -80,7 +80,7 @@ abbrev RawNode.Ready.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
-  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg)
       (sts : List ReadStateM) (h : HardStateM) (steps : List Pending), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
@@ -99,6 +99,9 @@ abbrev RawNode.Ready.spec : Prop :=
       -- every message is of a term at most the node's at the call (2026-10-10)
       -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
+      -- (2026-10-20, witness support) the requests to the witness, each legitimately sent
+      "Hwms" ∷ ownWQueue rd.WitnessMessages' μh ∗
+      "#Hwms_ok" ∷ ([∗list] μ ∈ μh, isMessage γ (wAbs μ)) ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = null⌝ ∗
       -- the read states (2026-10-13)
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗

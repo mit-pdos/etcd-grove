@@ -184,12 +184,12 @@ theorem RawNode.acceptReady.wp_proof
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC))
     (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd ce es ms
+  intro γ rn id rs rd ce es ms μh
   wp_start as H
   iNamed H
   iNamed Hrn
   iunfold ownRaftPhysReady at Hphys
-  icases Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  icases Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, %wsl0, %μs, Hv⟩
   iNamed Hv
   ihave Hlog : ownRaftLog s.log (logHanded s.logst) $$ [Hlog]
   · iExactEq Hlog
@@ -552,15 +552,18 @@ theorem RawNode.acceptReady.wp_proof
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
     %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf } : NGhost)
-    %rs' %({ s.rd with states := [] } : RdState)
+    %rs' %({ s.rd with states := [] } : RdState) %slice.nil %([] : List WMsg)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
-    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hf_msgs [] [] Hf_msgsAA [] []
+    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs [] [] Hf_msgs [] [] Hf_msgsAA [] []
     [] [] [] [] [] [] [] [] Hlog
+  · -- (2026-10-20, witness support) `rn.raft.witnessMsgs = nil`: the queue handed out
+    iapply ownWQueue_nil
+  · ipureintro; intro _; exact ⟨rfl, rfl⟩
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
-  · iapply outboxRel_nil
+  · rw [List.map_nil]; iapply outboxRel_nil
   · ipureintro; intro _ h; cases h
   · ipureintro; intro _ h; cases h
   · ipureintro; exact Nat.zero_le _
@@ -678,7 +681,7 @@ theorem RawNode.acceptReady.wp_proof
         simp only [readyNstate, logAcceptApplying, logAcceptUnstable, hce]
       have Hne : ce ≠ [] := by intro h; subst h; simp at hce
       refine ⟨ce, e, ?_, hce, by rw [hap]; exact Int.le_refl _⟩
-      simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, or_true]
+      simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, _root_.or_true]
   iapply HΦ $$ %(readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
   simp only [named]
   iapply ownRawNode_intro γ rn id

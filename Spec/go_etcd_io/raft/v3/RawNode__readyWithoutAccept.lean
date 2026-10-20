@@ -65,9 +65,9 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
-  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+  {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg)
       (sts : List ReadStateM) (h : HardStateM), RET #rd;
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms ∗
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms false μh ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗
@@ -78,12 +78,17 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ q.st) ∗
       -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
+      -- (2026-10-20, witness support) the requests to the witness handed out
+      -- (`rd.WitnessMessages`, the queue `r.witnessMsgs`), each legitimately sent
+      "Hwms" ∷ ownWQueue rd.WitnessMessages' μh ∗
+      "#Hwms_ok" ∷ ([∗list] μ ∈ μh, isMessage γ (wAbs μ)) ∗
       "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗
                     ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
                     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
-                    ownRawNodeReady γ rn id rs rd ce es ms -∗
+                    ownWQueue rd.WitnessMessages' μh -∗
+                    ownRawNodeReady γ rn id rs rd ce es ms false μh -∗
                     ∃ (n : Nat) (u : Bool) (c : w64),
-                      ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
+                      ⌜ms.length + μh.length ≤ n ∧ (es ≠ [] → u = true) ∧
                        (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
                          uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
                       ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c }) ∗
