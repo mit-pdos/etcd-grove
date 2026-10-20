@@ -22,32 +22,6 @@ namespace linkvtxn
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.linkvtxn
 
-/-- Decoding every element: the elements' decodings, index by index. -/
-theorem decAll_getElem {α β : Type} (f : α → Option β) :
-    ∀ (l : List α) (l' : List β), decAll f l = some l' →
-      ∀ (k : Nat) (a : α), l[k]? = some a → ∃ b, f a = some b ∧ l'[k]? = some b
-  | [], l', _, k, a, h => by simp at h
-  | x :: l, l', h, k, a, hk => by
-    simp only [decAll] at h
-    cases hf : f x with
-    | none => rw [hf] at h; cases h
-    | some b =>
-      rw [hf] at h
-      cases hr : decAll f l with
-      | none => rw [hr] at h; cases h
-      | some r =>
-        rw [hr] at h
-        simp only [Option.bind_some, Option.map_some, Option.some.injEq] at h
-        subst h
-        cases k with
-        | zero =>
-          simp only [List.getElem?_cons_zero, Option.some.injEq] at hk
-          subst hk
-          exact ⟨b, hf, rfl⟩
-        | succ k =>
-          simp only [List.getElem?_cons_succ] at hk ⊢
-          exact decAll_getElem f l r hr k a hk
-
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

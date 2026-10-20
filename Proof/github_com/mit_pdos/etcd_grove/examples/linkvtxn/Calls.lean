@@ -596,6 +596,48 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ep : Go
     · iright
       ipureintro; exact Herr
 
+/-- `opRespsMsg` element by element. -/
+theorem opRespsMsg_getElem (ps : List Loc) (ms : List OpRespM) :
+    opRespsMsg (GF := GF) ps ms ⊢
+      ⌜ps.length = ms.length⌝ ∗ □ ∀ (k : Nat) (p : Loc) (m : OpRespM), ⌜ps[k]? = some p⌝ -∗
+        ⌜ms[k]? = some m⌝ -∗ opRespMsg p m := by
+  induction ps generalizing ms with
+  | nil =>
+    cases ms with
+    | nil =>
+      iintro -
+      isplitr
+      · ipureintro; rfl
+      imodintro
+      iintro %k %p %m %Hp
+      simp at Hp
+    | cons m ms =>
+      unfold opRespsMsg
+      iintro %H
+      exact H.elim
+  | cons p ps ih =>
+    cases ms with
+    | nil =>
+      unfold opRespsMsg
+      iintro %H
+      exact H.elim
+    | cons m ms =>
+      show opRespMsg p m ∗ opRespsMsg ps ms ⊢ _
+      iintro ⟨#Hp, Hr⟩
+      ihave ⟨%Hl, #Hall⟩ := ih ms $$ Hr
+      isplitr
+      · ipureintro; simp [Hl]
+      imodintro
+      iintro %k %p' %m' %Hp' %Hm'
+      cases k with
+      | zero =>
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at Hp' Hm'
+        subst Hp' Hm'
+        iexact Hp
+      | succ k =>
+        simp only [List.getElem?_cons_succ] at Hp' Hm'
+        iapply Hall $$ %k %p' %m' %Hp' %Hm'
+
 end proofs
 
 end linkvtxn

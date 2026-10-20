@@ -208,6 +208,52 @@ theorem txnOut_eq (σ : KVState) (h : GoodKV σ) (cs : List (linkv.MCmp GoString
   · exact tresOf_zip eops e he _ ms hrel
   · exact tresOf_zip tops t ht _ ms hrel
 
+/-- `opRespsRel` element by element. -/
+theorem opRespsRel_getElem (skip : Bool) :
+    ∀ (ops : List TxnOp) (rs : List TxnOpResult) (ms : List OpRespM),
+      client.opRespsRel skip ops rs ms →
+      ops.length = ms.length ∧ ∀ (k : Nat) (op : TxnOp) (m : OpRespM), ops[k]? = some op →
+        ms[k]? = some m → ∃ r, rs[k]? = some r ∧ client.opRespRel skip op r m
+  | [], [], [], _ => ⟨rfl, fun k op m h => by simp at h⟩
+  | [], _ :: _, _, h => by simp [client.opRespsRel] at h
+  | [], [], _ :: _, h => by simp [client.opRespsRel] at h
+  | _ :: _, [], _, h => by simp [client.opRespsRel] at h
+  | _ :: _, _ :: _, [], h => by simp [client.opRespsRel] at h
+  | op :: ops, r :: rs, m :: ms, h => by
+    simp only [client.opRespsRel] at h
+    obtain ⟨ih1, ih2⟩ := opRespsRel_getElem skip ops rs ms h.2
+    refine ⟨by simp [ih1], fun k op' m' hop hm => ?_⟩
+    cases k with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hop hm
+      subst hop hm
+      exact ⟨r, rfl, h.1⟩
+    | succ k =>
+      simp only [List.getElem?_cons_succ] at hop hm ⊢
+      exact ih2 k op' m' hop hm
+
+/-- A transaction's output before its results: the header revision and the verdict. -/
+def txnBase (r : Nat) (ok : Bool) : Output := { zOut with Rev' := W64 (r : Int), Ok' := ok }
+
+/-- **A transaction's output**, against the model's (`linkv.mStep_txn_out`): the revision of the
+state after the run, the run's verdict and its results. -/
+theorem txnResOut_eq (σ : KVState) (h : GoodKV σ) (cs : List (linkv.MCmp GoString GoString))
+    (t e : List (linkv.MOp GoString GoString)) :
+    withResL (txnBase (kvOpStep (opIn (.txn cs t e)) σ).rev
+        (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).1)
+      (((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).2.2.map
+        linkv.resOf).map encRes) = outAt (.txn cs t e) σ := by
+  unfold outAt
+  rw [linkv.mStep_txn_out wks listFrom listTo σ h.1 cs t e]
+  rfl
+
+/-- A read's step keeps the state's revision. -/
+theorem kvOpStep_read_rev (σ : KVState) (h : GoodKV σ) (i : MI) (hw : i.isWrite = false) :
+    (kvOpStep (opIn i) σ).rev = σ.rev := by
+  have := congrArg linkv.MSt.rev (absSt_step σ h i)
+  rw [linkv.mStep_read wks i _ hw] at this
+  exact this
+
 end reply
 
 end linkvtxn
