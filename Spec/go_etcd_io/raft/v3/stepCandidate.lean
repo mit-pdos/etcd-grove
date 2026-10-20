@@ -43,6 +43,7 @@ public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
 public import Proof.go_etcd_io.raft.v3.StepLemmas
+public import Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
 
 @[expose] public section
 
@@ -130,30 +131,46 @@ def CandidateStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState
       m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
   else False
 
+/-- The vote request a (pre-)candidate still waiting queues for the witness (2026-10-20, witness
+support, W3b-C): none, or, at a configuration with a witness (not joint: the static mode,
+`ownRaftPhysC_witSimple`) once the tally `votes` is one vote short in the incoming half
+(`getWitnessVoteRequestReadiness`'s `votesToWin = 1`), the request `wVoteM` of type `vt` and term
+`term` at the log of `s`, with the reported subterm `ls` (`sendRequestVoteToWitness`). -/
+def WitAsk (c : CfgM) (id : w64) (vt : raftpb.MessageType) (term : w64) (s : NState)
+    (votes : GMap w64 Bool) (wq : List Msg) : Prop :=
+  wq = [] ∨ ∃ ls, c.wit ≠ W64 0 ∧ c.outgoing = ∅ ∧
+    GMap.size c.incoming / 2 ≤ GMap.size (granted votes ∩ c.incoming) ∧
+    (ls = W64 0 ∨ ls = plogLastSub (s.logst.sents ++ s.logst.uents)) ∧
+    wq = [wAbs (wVoteM id c.wit vt term s.logst.prev (s.logst.sents ++ s.logst.uents) ls votes)]
+
 /-- `CandVoteRespResult` at the configuration `c` (2026-10-13, reconfiguration stage A2): `poll`'s
-facts are joint (`JQuorum`, `JLost`). -/
+facts are joint (`JQuorum`, `JLost`); (2026-10-20, W3b-C) still pending, the request to the
+witness `wq` (`WitAsk`). -/
 def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (s' : NState) : Prop :=
-  ∃ (won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress),
+  ∃ (won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress) (wq : List Msg),
     let votes' := recordVote s.votes m.From' (!m.Reject')
     (won = true →
        JQuorum c (granted votes') ∧
        ReplSends id (becomeLeader id { s with votes := votes' }) ms ∧
        prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
     (lost = true → JLost c votes') ∧
+    (wq ≠ [] → won = false ∧ lost = false) ∧ WitAsk c id MsgVote s.term s votes' wq ∧
     -- (2026-10-20, witness support) a new leader's epoch is the reset one (`becomeLeader`)
-    s' = { voteRespResult id s m.From' m.Reject' won lost ms with
-             prvals := pvs, ep := (if won then resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) else s.ep) }
+    s' = sendMsgs { voteRespResult id s m.From' m.Reject' won lost ms with
+             prvals := pvs, ep := (if won then resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) else s.ep) } wq
 
 /-- `PrecandVoteRespResult` at the configuration `c`: the joint facts, and on a win the peers
 `campaign` asked, the other voters of either half (2026-10-20: but the witness, `campSet`). -/
 def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (s' : NState) : Prop :=
-  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
+  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress) (wq : List Msg),
     let votes' := recordVote s.votes m.From' (!m.Reject')
     (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (campSet c id)) ∧
     (lost = true → JLost c votes') ∧
-    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
+    (wq ≠ [] → won = false ∧ lost = false) ∧
+    WitAsk c id MsgPreVote (s.term + W64 1) s votes' wq ∧
+    s' = sendMsgs { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } wq
 
 /-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
 configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap` that
@@ -193,11 +210,25 @@ def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m 
          m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
      else False)
 
+omit [GoGlobalContext] [GoSemanticsFunctions] in
+/-- Without a witness, nothing is queued for it. -/
+theorem WitAsk.nw {c : CfgM} {id : w64} {vt : raftpb.MessageType} {term : w64} {s : NState}
+    {votes : GMap w64 Bool} {wq : List Msg} (h : WitAsk c id vt term s votes wq)
+    (hw : c.wit = W64 0) : wq = [] := by
+  rcases h with h | ⟨_, h, -⟩
+  · exact h
+  · exact absurd hw h
+
+omit [GoGlobalContext] [GoSemanticsFunctions] in
+theorem sendMsgs_nil (s : NState) : sendMsgs s [] = s := by
+  simp [sendMsgs]
+
 theorem CandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : MessageM}
     {s' : NState} (hne : cfg ≠ ∅) (h : CandVoteRespResultC (CfgM.simple cfg L) id s m s') :
     CandVoteRespResult cfg id s m s' := by
-  obtain ⟨won, lost, ms, pvs, h1, h2, h3⟩ := h
+  obtain ⟨won, lost, ms, pvs, wq, h1, h2, -, hq, h3⟩ := h
   rw [CfgM.simple_wit, resetEpoch_nw] at h3
+  rw [WitAsk.nw hq rfl, sendMsgs_nil] at h3
   refine ⟨won, lost, ms, pvs, fun hw => ?_, fun hl => ?_, h3⟩
   · obtain ⟨a, b, c⟩ := h1 hw
     exact ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, b, c⟩
@@ -206,7 +237,8 @@ theorem CandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m
 theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : MessageM}
     {s' : NState} (hne : cfg ≠ ∅) (h : PrecandVoteRespResultC (CfgM.simple cfg L) id s m s') :
     PrecandVoteRespResult cfg id s m s' := by
-  obtain ⟨won, lost, peers, pvs, h1, h2, h3⟩ := h
+  obtain ⟨won, lost, peers, pvs, wq, h1, h2, -, hq, h3⟩ := h
+  rw [WitAsk.nw hq rfl, sendMsgs_nil] at h3
   refine ⟨won, lost, peers, pvs, fun hw => ?_, fun hl => ?_, h3⟩
   · obtain ⟨a, b⟩ := h1 hw
     refine ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, ?_⟩

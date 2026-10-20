@@ -6,6 +6,8 @@ module
 public import Spec.go_etcd_io.raft.v3.stepCandidate
 public import Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
 public import Spec.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
+public import Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
+public import Proof.go_etcd_io.raft.v3.LemmasWitnessR
 public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
@@ -33,6 +35,229 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+omit [FfiSyntax] ffi [FfiInterp ffi] [FfiSemantics ext ffi] [GoGlobalContext] in
+/-- One vote short (`votesToWin = 1`): `quorum - 1` granted votes. -/
+theorem votesToWin_one {S : GSet w64} {votes : GMap w64 Bool}
+    (h : W64 (votesToWin S votes : Int) = W64 1) (hs : (GMap.size S : Int) ≤ 2 ^ 62) :
+    GMap.size S / 2 ≤ GMap.size (granted votes ∩ S) := by
+  have hle : votesToWin S votes ≤ GMap.size S / 2 + 1 := by
+    unfold votesToWin; split <;> omega
+  have h1 : (votesToWin S votes : Int) = 1 := by
+    have := congrArg (fun x : w64 => uint.Z x) h
+    try simp only at this
+    rw [uint_Z_W64 _ (by omega) (by omega)] at this
+    exact this
+  unfold votesToWin at h1
+  split at h1 <;> omega
+
+
+set_option hygiene false in
+/-- The request itself, at the struct re-sealed: the type and term by `r.state`, then
+`sendRequestVoteToWitness`; the body ends with it queued. -/
+local macro "wvp_pure" : tactic => `(tactic| (
+  first
+  | trivial
+  | exact ⟨by omega, fun _ => rfl, Or.inl rfl⟩
+  | exact ⟨fun _ => rfl, Or.inl rfl⟩
+  | exact ⟨by omega, Or.inl rfl⟩
+  | exact Or.inl rfl
+  | (refine ⟨?_, ?_, ?_⟩ <;> first | trivial | omega | exact fun _ => rfl | exact Or.inl rfl)))
+
+set_option hygiene false in
+local macro "wvp_send" : tactic => `(tactic| (
+  wp_apply raft.wp_load_stateC $$ Hphys as Hphys
+  first
+  | (rw [decide_eq_true (by simp only [Hrole]; decide)])
+  | (rw [decide_eq_false (by simp only [Hrole]; decide)])
+  try rw [show raftpb.MsgVote = #MsgVote from rfl]
+  try rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
+  try wp_auto
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  try wp_auto
+  wp_apply wp_raft_sendRequestVoteToWitness c _ r id _ c.wit _ _ Hw $$ [Hphys]
+    as %ls ⟨Hphys, %Hls⟩
+  · iframe
+  unfold forMapPostcondition
+  iright; ileft
+  isplitr
+  · ipureintro; first | rfl | trivial
+  iexists _, _, _
+  simp only [named]
+  iframe
+  ipureintro
+  exact ⟨by omega, fun h => absurd h (by omega),
+    Or.inr ⟨ls, Hw, Hout, votesToWin_one (Hrdy.2.1 rfl) Hinsz, Hls, rfl⟩⟩))
+
+set_option hygiene false in
+/-- After `poll` (2026-10-20, W3b-C): `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`, the
+witnesses `[c.wit, 0]`, then one of two log lines, which read `r.id`, the message type and the
+logger; joined. -/
+local macro "wvp_logline" : tactic => `(tactic| (
+  wp_join at next with [Hphys Hm r m gr rj rv]
+  · wp_apply raft.wp_load_trk_witnessC' c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+    rw [witOf_zero]
+    by_cases Hwl : c.wit = W64 0
+    · rw [Hwl]
+      try wp_auto
+      wp_apply raft.wp_load_trk_witnessC' c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      rw [witOf_one]
+      try wp_auto
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply wp_GetType.1 ml _ _ _ _ $$ [Hm] as Hm
+      · iframe
+      wp_raft_logC
+      wp_join_done
+    · try wp_auto
+      first
+      | rw [decide_eq_false Hwl]
+      | simp only [decide_eq_false Hwl]
+      try wp_auto
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply wp_GetType.1 ml _ _ _ _ $$ [Hm] as Hm
+      · iframe
+      wp_raft_logC
+      wp_join_done))
+
+set_option hygiene false in
+/-- `quorum.VotePending` (2026-10-20, witness support, W3b-C): the witnesses ready to vote
+(`getWitnessVoteRequestReadiness`: none, or `{c.wit ↦ ready}`), and for one that is and has not
+been asked (`r.witnessVoteAsked`), the request (`sendRequestVoteToWitness`) of type `vt` and term
+`tm`. Leaves the pure goal of `HΦ` with the queued requests `wq` and their `WitAsk` fact `HwqF`. -/
+local macro "wvp_loop " vt:term:max tm:term:max : tactic => `(tactic| (
+  icases ownRaftPhysC_witSimple c r id _ $$ Hphys with ⟨%Hsimple, Hphys⟩
+  icases ownRaftPhysC_incoming_size c r id _ $$ Hphys with ⟨%Hinsz, Hphys⟩
+  wp_apply wp_raft_getWitnessVoteRequestReadiness c _ r id _ d _ _ Hd $$ [Hphys]
+    as %mref ⟨Hphys, Hrd⟩
+  · iframe
+  icases Hrd with (⟨%Hnil, -⟩ | ⟨%ready, Hm, %Hrdy⟩)
+  focus (
+    -- no witness ready: nothing to range over
+    subst Hnil
+    wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
+    wp_pures; (try wp_auto)
+    iapply HΦ $$ %GoInterface.nil %_ %false %c
+    rw [← sendMsgs_nil { s with votes := recordVote s.votes m.From' (!m.Reject') }]
+    iframe Hphys
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ipureintro
+    refine ⟨?_, trivial⟩
+    have HwqF : WitAsk c id $vt $tm s (recordVote s.votes m.From' (!m.Reject')) [] := Or.inl rfl
+    generalize ([] : List Msg) = wq at HwqF ⊢
+    )
+  rotate_left
+  focus (
+    -- the witness, ready or not
+    have Hw : c.wit ≠ W64 0 := Hrdy.1
+    have Hout : c.outgoing = ∅ := Hsimple Hw
+    try wp_auto
+    wp_func_lits
+    wp_bind (App (App (Val (map.forRange _ _)) _) _)
+    iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (x : Bool) (y : w64)
+        (wq : List Msg),
+        "%Hi" ∷ ⌜0 ≤ i⌝ ∗
+        "%Hwq" ∷ ⌜(i = 0 → wq = []) ∧
+          WitAsk c id $vt $tm s (recordVote s.votes m.From' (!m.Reject')) wq⌝ ∗
+        "ready" ∷ ready_ptr ↦ x ∗ "witnessID" ∷ witnessID_ptr ↦ y ∗ "r" ∷ r_ptr ↦ r ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id
+          (sendMsgs { s with votes := recordVote s.votes m.From' (!m.Reject') } wq))) $$ Hm
+    iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
+    isplitl [ready witnessID r Hphys]
+    · iexists _, _, []
+      simp only [named]
+      rw [sendMsgs_nil]
+      iframe
+      ipureintro
+      wvp_pure
+    isplitr
+    · imodintro
+      iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
+      iNamed HP
+      rw [GMap.lookup_insert_eq_iff] at Hvv
+      have Hkw : key = c.wit ∧ vv = ready := by
+        by_cases h : c.wit = key
+        · rw [if_pos h] at Hvv; cases Hvv; exact ⟨h.symm, rfl⟩
+        · rw [if_neg h] at Hvv; simp at Hvv
+      obtain ⟨rfl, rfl⟩ := Hkw
+      rw [GMap.insert_empty, GMap.map_size_singleton] at Hklen
+      have Hi0 : i = 0 := by
+        have := (List.getElem?_eq_some_iff.1 Hkey).1
+        omega
+      obtain rfl := Hwq.1 Hi0
+      subst Hi0
+      rw [sendMsgs_nil]
+      wp_auto
+      cases vv
+      · -- not ready: skipped
+        wp_auto
+        unfold forMapPostcondition
+        iright; ileft
+        isplitr
+        · ipureintro; first | rfl | trivial
+        iexists _, _, []
+        simp only [named]
+        rw [sendMsgs_nil]
+        iframe
+        ipureintro
+        wvp_pure
+      -- ready: asked before?
+      icases ownRaftPhysC_asked c r id _ $$ Hphys with ⟨%asked, Haf, Hask, Hreseal⟩
+      wp_auto
+      iunfold ownAsked at Hask
+      icases Hask with (%Hn | ⟨%a, Ha⟩)
+      · -- never: `r.witnessVoteAsked` is nil, made now
+        subst Hn
+        try wp_auto
+        rw [show (zero_val Bool : Bool) = false from rfl]
+        try wp_auto
+        wp_apply (wp_map_make1 (K := w64) (V := Bool)) as %am Ham
+        try wp_auto
+        wp_apply wp_mapInsert $$ Ham as Ham
+        ihave Hask : ownAsked (GF := GF) am $$ [Ham]
+        · iunfold ownAsked; iright; iexists _; iexact Ham
+        ihave Hphys := Hreseal $$ %am %Hw Haf Hask
+        wvp_send
+      · ihave %Hann := ownMap_not_nil _ _ _ $$ Ha
+        wp_apply (wp_map_lookup1 go.uint64 go.bool asked a c.wit) $$ Ha as Ha
+        rw [show (zero_val Bool : Bool) = false from rfl]
+        cases Hac : (a !! c.wit).getD false
+        · -- not yet
+          simp only [Bool.not_false]
+          wp_auto
+          rw [decide_eq_false Hann]
+          wp_auto
+          wp_apply wp_mapInsert $$ Ha as Ha
+          ihave Hask : ownAsked (GF := GF) asked $$ [Ha]
+          · iunfold ownAsked; iright; iexists _; iexact Ha
+          ihave Hphys := Hreseal $$ %asked %Hw Haf Hask
+          wvp_send
+        · -- asked already: skipped
+          simp only [Bool.not_true]
+          wp_auto
+          ihave Hask : ownAsked (GF := GF) asked $$ [Ha]
+          · iunfold ownAsked; iright; iexists _; iexact Ha
+          ihave Hphys := Hreseal $$ %asked %Hw Haf Hask
+          unfold forMapPostcondition
+          iright; ileft
+          isplitr
+          · ipureintro; first | rfl | trivial
+          iexists _, _, []
+          simp only [named]
+          rw [sendMsgs_nil]
+          iframe
+          ipureintro
+          wvp_pure
+    iintro HP Hm
+    iNamed HP
+    wp_pures; (try wp_auto)
+    iapply HΦ $$ %GoInterface.nil %_ %false %c
+    iframe Hphys
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ipureintro
+    refine ⟨?_, trivial⟩
+    have HwqF := Hwq.2)))
+
+set_option maxHeartbeats 1000000 in
 /-- By type. `MsgProp`: `Infof`, then `return ErrProposalDropped` (the global's
 points-to from `isInitialized_access`). `MsgApp`: `becomeFollower(m.Term, m.From)` with
 `m.Term = s.term`, then `handleAppendEntries` at the follower state. `MsgHeartbeat`: the
@@ -58,6 +283,8 @@ theorem stepCandidate.wp_proof
     (wp_raft_poll : raft.pollAndReportDiff.spec (GF := GF) (hG := hG))
     (wp_raft_getWitnessVoteRequestReadiness :
       raft.getWitnessVoteRequestReadiness.spec (GF := GF) (hG := hG))
+    (wp_raft_sendRequestVoteToWitness :
+      raft.sendRequestVoteToWitness.spec (GF := GF) (hG := hG))
     (wp_raft_becomeLeader : raft.becomeLeader.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
@@ -136,18 +363,9 @@ theorem stepCandidate.wp_proof
     wp_apply wp_raft_poll _ _ _ _ _ _ _ $$ [$Hphys]
       as %g %rj0 %res %d ⟨Hphys, %Hres, %Hwon, %Hlost, %Hd⟩
     -- (2026-10-19, witness support) `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`:
-    -- no witness, the plain log line
+    -- (2026-10-20) `[c.wit, 0]`; either log line
     try wp_auto
-    -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-    icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
-    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) hw $$ Hphys as Hphys
-    try wp_auto
-    wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) hw $$ Hphys as Hphys
-    try wp_auto
-    -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
-    wp_raft_logC
+    wvp_logline
     rcases Hres with rfl | rfl | rfl
     · -- `quorum.VoteWon`: become leader and broadcast. `poll` does not touch the role,
       -- so we are still a candidate: not a pre-candidate, so this is `becomeLeader` and
@@ -174,10 +392,11 @@ theorem stepCandidate.wp_proof
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
       simp only [Hnp, ↓reduceIte]
-      refine ⟨true, false, ms, pvs, fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide), ?_⟩
+      refine ⟨true, false, ms, pvs, [], fun _ => ⟨Hwon.1 rfl, ?_, ?_⟩, fun h => absurd h (by decide),
+        fun h => absurd rfl h, Or.inl rfl, ?_⟩
       · exact (replSends_prvals _ _ pvs1 ms).1 Hms
       · rw [Hmm]; exact Hmb
-      · cases s; rfl
+      · rw [sendMsgs_nil]; cases s; rfl
     · -- `quorum.VoteLost`: step down at the unchanged term
       simp only [VoteLost]
       wp_auto
@@ -195,30 +414,25 @@ theorem stepCandidate.wp_proof
       refine ⟨trivial, ?_⟩
       have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
       simp only [Hnp, ↓reduceIte]
-      refine ⟨false, true, [], pvs, fun h => absurd h (by decide), fun _ => Hlost.1 rfl, ?_⟩
-      cases s; rfl
+      refine ⟨false, true, [], pvs, [], fun h => absurd h (by decide), fun _ => Hlost.1 rfl,
+        fun h => absurd rfl h, Or.inl rfl, ?_⟩
+      rw [sendMsgs_nil]; cases s; rfl
     · -- `quorum.VotePending`: neither switch arm fires; keep waiting. (2026-10-19, witness
       -- support) No witness to ask: `getWitnessVoteRequestReadiness` is `nil`
       simp only [VotePending]
       wp_auto
-      wp_apply wp_raft_getWitnessVoteRequestReadiness c _ r id _ d _ _ Hd $$ [$Hphys] as Hphys
-      wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
-      wp_pures; (try wp_auto)
-      iapply HΦ $$ %GoInterface.nil %_ %false %c
-      iframe Hphys
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      ipureintro
-      refine ⟨?_, trivial⟩
-      unfold CandidateStepResultC
-      refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
-      simp only [Hty, Hrole, ↓reduceIte]
-      refine ⟨trivial, ?_⟩
-      have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
-      simp only [Hnp, ↓reduceIte]
-      -- nothing wrote a `Progress`: the values are `s1`'s own
-      refine ⟨false, false, [], s.prvals, fun h => absurd h (by decide),
-        fun h => absurd h (by decide), ?_⟩
-      cases s; simp only at Hrole; subst Hrole; rfl
+      wvp_loop MsgVote s.term
+      all_goals
+        unfold CandidateStepResultC
+        refine ⟨by simp [Hty, MsgVoteResp, MsgSnap], ?_⟩
+        simp only [Hty, Hrole, ↓reduceIte]
+        refine ⟨trivial, ?_⟩
+        have Hnp : ¬ (PRole.candidate = PRole.preCandidate) := by decide
+        simp only [Hnp, ↓reduceIte]
+        -- nothing wrote a `Progress`: the values are `s1`'s own
+        refine ⟨false, false, [], s.prvals, wq, fun h => absurd h (by decide),
+          fun h => absurd h (by decide), fun _ => ⟨rfl, rfl⟩, HwqF, ?_⟩
+        cases s; simp only at Hrole; subst Hrole; rfl
   · -- `MsgProp`: no leader to forward to; dropped
     simp only [Hty, MsgProp]
     wp_auto
@@ -364,32 +578,29 @@ theorem stepCandidate.wp_proof
       wp_apply wp_raft_poll _ _ _ _ _ _ _ $$ [$Hphys]
         as %g %rj0 %res %d ⟨Hphys, %Hres, %Hwon, %Hlost, %Hd⟩
       -- (2026-10-19, witness support) `if r.trk.Witnesses[0] != 0 || r.trk.Witnesses[1] != 0`:
-      -- no witness, the plain log line
+      -- (2026-10-20) `[c.wit, 0]`; either log line
       try wp_auto
-      -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-      icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 0) (by decide) hw $$ Hphys as Hphys
-      try wp_auto
-      wp_apply raft.wp_load_trk_witnessC c r id _ (W64 1) (by decide) hw $$ Hphys as Hphys
-      try wp_auto
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_raft_logC
+      wvp_logline
       have Hres_pv : ∀ (s' : NState) (won lost : Bool) (peers : List w64)
-          (pvs : GMap w64 Progress),
+          (pvs : GMap w64 Progress) (wq : List Msg),
           (won = true → JQuorum c (granted (recordVote s.votes m.From' (!m.Reject'))) ∧
-            peers ≡ₚ elements (c.voters \ {[id]})) →
+            peers ≡ₚ elements (campSet c id)) →
           (lost = true →
             JLost c (recordVote s.votes m.From' (!m.Reject'))) →
-          s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } →
+          (wq ≠ [] → won = false ∧ lost = false) →
+          WitAsk c id MsgPreVote (s.term + W64 1) s (recordVote s.votes m.From' (!m.Reject')) wq →
+          s' = sendMsgs { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
+            wq →
           CandidateStepResultC c scfg id s m ents sv false s' c cl := by
-        intro s' won lost peers pvs Hw Hl Hs'
+        intro s' won lost peers pvs wq Hw Hl Hq Hwq Hs'
+        have HP : PrecandVoteRespResultC c id s m s' := ⟨won, lost, peers, pvs, wq, Hw, Hl, Hq, Hwq, Hs'⟩
         unfold CandidateStepResultC
         refine ⟨by simp [Hty, MsgSnap, MsgPreVoteResp], ?_⟩
+        generalize PrecandVoteRespResultC c id s m s' = P at HP
         simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
           MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgCheckQuorum, MsgSnap, MsgPreVoteResp, Hrole]
         simp
-        exact ⟨won, lost, peers, pvs, Hw, Hl, Hs'⟩
+        exact HP
       rcases Hres with rfl | rfl | rfl
       · -- `quorum.VoteWon`: the real election, `campaign(campaignElection)`
         simp only [VoteWon]
@@ -412,8 +623,9 @@ theorem stepCandidate.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
-          (fun h => absurd h (by decide)) ?_
+        refine Hres_pv _ true false peers pvs [] (fun _ => ⟨Hwon.1 rfl, Hpeers⟩)
+          (fun h => absurd h (by decide)) (fun h => absurd rfl h) (Or.inl rfl) ?_
+        rw [sendMsgs_nil]
         have Htc : transferCtx campaignElection = [] := by
           simp (config := {decide := true}) [transferCtx, campaignElection, campaignTransfer]
         rw [Htc]
@@ -429,21 +641,16 @@ theorem stepCandidate.wp_proof
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
-        exact Hres_pv _ false true [] pvs (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl) rfl
+        exact Hres_pv _ false true [] pvs [] (fun h => absurd h (by decide)) (fun _ => Hlost.1 rfl)
+          (fun h => absurd rfl h) (Or.inl rfl) (sendMsgs_nil _).symm
       · -- `quorum.VotePending`: keep waiting; no witness to ask
         simp only [VotePending]
         wp_auto
-        wp_apply wp_raft_getWitnessVoteRequestReadiness c _ r id _ d _ _ Hd $$ [$Hphys] as Hphys
-        wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
-        wp_pures; (try wp_auto)
-        iapply HΦ $$ %GoInterface.nil %_ %false %c
-        iframe Hphys
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro
-        refine ⟨?_, trivial⟩
-        refine Hres_pv _ false false [] s.prvals (fun h => absurd h (by decide))
-          (fun h => absurd h (by decide)) ?_
-        cases s; rfl
+        wvp_loop MsgPreVote (s.term + W64 1)
+        all_goals
+          refine Hres_pv _ false false [] s.prvals wq (fun h => absurd h (by decide))
+            (fun h => absurd h (by decide)) (fun _ => ⟨rfl, rfl⟩) HwqF ?_
+          cases s; rfl
 
   · -- `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12), and (2026-10-13) `MsgForgetLeader`,
     -- `MsgTransferLeader` and the local reports: no arm; `MsgTimeoutNow`: logged. In each case

@@ -60,6 +60,31 @@ theorem witOf_zero (c : CfgM) : witOf c (W64 0) = c.wit := by
 theorem witOf_one (c : CfgM) : witOf c (W64 1) = W64 0 := by
   unfold witOf; simp
 
+/-- At a configuration with a witness the configuration is not joint (2026-10-20, W3b-C): the
+static mode, where a configuration change leaves no witness (`ccApplyM_wit0`). STAGED: read out
+of `witOwn`'s no-witness conjunct (`ownRaftPhysC_wit0`); the static-mode invariant that replaces
+it must keep this. -/
+theorem ownRaftPhysC_witSimple (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜c.wit ≠ W64 0 → c.outgoing = ∅⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_wit0 c _ _ _ $$ H with ⟨%hw, H⟩
+  iframe H
+  ipureintro
+  exact fun h => absurd hw h
+
+/-- The incoming half fits the tracker's bound. -/
+theorem ownRaftPhysC_incoming_size (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜(GMap.size c.incoming : Int) ≤ 2 ^ 62⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_tracker c r id s $$ H with ⟨%tv, Hf, Htrk, Hback⟩
+  icases ownTrackerC_voters_size c tv _ $$ Htrk with ⟨%Hsz, Htrk⟩
+  ihave H := Hback $$ %tv %s.votes Hf Htrk
+  iframe H
+  ipureintro
+  exact Hsz.2.1
+
 end lemmas
 
 end EtcdGrove
