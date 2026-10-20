@@ -110,7 +110,7 @@ theorem raft.maybeSendSnapshot.wp_proof
   iNamed Hinit
   -- `pr.RecentActive`: borrow `pr` for the load, and give it back
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTrackerC_lookup_same c tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hprto $$ Htrk
+  icases ownTrackerC_lookup_same c tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ to pr Hprto $$ Htrk
     with ⟨%pp, %Hpl, Hpr, Htrkback⟩
   iunfold ownProgress at Hpr
   iNamed Hpr

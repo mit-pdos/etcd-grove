@@ -144,7 +144,7 @@ abbrev raft.switchToConfig.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTrackerC c tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ownTrackerC c tv' ⟨s.votes, prs', pvs', s.ep⟩ -∗
            ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhysCV c (c.voters ∪ {[id]}) r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
@@ -174,7 +174,7 @@ abbrev raft.switchToConfig.specS : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
       "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ownTracker cfg tv' ⟨s.votes, prs', pvs', s.ep⟩ -∗
            ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
       "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
@@ -250,7 +250,7 @@ theorem raft.switchToConfig.spec_nonleader_open
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         r.[raft, go!"trk"] ↦ tv ∗
         (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ownTracker cfg tv' ⟨s.votes, prs', pvs', s.ep⟩ -∗
            ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
         tv.Votes' ↦$ s.votes ∗ ownEpochNW tv.Epoch' ∗

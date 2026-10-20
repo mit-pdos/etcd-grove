@@ -72,6 +72,10 @@ def CfgM.voters (c : CfgM) : GSet w64 := c.incoming ∪ c.outgoing
 def CfgM.simple (cfg lrn : GSet w64) : CfgM :=
   { incoming := cfg, outgoing := ∅, learners := lrn, learnersNext := ∅, autoLeave := false }
 
+/-- A simple configuration has no witness (2026-10-20). -/
+theorem CfgM.simple_wit (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).wit = W64 0 := rfl
+
+
 /-- `q` is a majority of `s`, by Go's convention for an empty `MajorityConfig`: every set is
 a majority of the empty one. -/
 def MajQ (s q : GSet w64) : Prop := s = ∅ ∨ IsQuorum s q

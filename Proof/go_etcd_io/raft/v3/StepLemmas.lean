@@ -68,8 +68,9 @@ def pvoteRespResult (id : w64) (ps : PState) (src : w64) (reject won lost : Bool
 /-- A candidate's outcome, with whatever `Progress` values the code left: `Match` is
 visible only if it won. -/
 theorem toPState_voteRespResult (id : w64) (s : NState) (src : w64) (reject won lost : Bool)
-    (ms : List Msg) (pvs : GMap w64 Progress) (Hrc : s.role = .candidate) :
-    toPState { voteRespResult id s src reject won lost ms with prvals := pvs } =
+    (ms : List Msg) (pvs : GMap w64 Progress) (Hrc : s.role = .candidate) (em : EpochM)
+    (Hem : won = true → em.sub = W64 0 ∧ epochRsx em = W64 0) :
+    toPState { voteRespResult id s src reject won lost ms with prvals := pvs, ep := em } =
       pvoteRespResult id (toPState s) src reject won lost (prvalsMatch pvs) ms := by
   have Hr : s.role ≠ .leader := by rw [Hrc]; decide
   have Hnp : s.role ≠ .preCandidate := by rw [Hrc]; decide
@@ -77,14 +78,19 @@ theorem toPState_voteRespResult (id : w64) (s : NState) (src : w64) (reject won 
       { toPState s with votes := recordVote (toPState s).votes src (!reject) } := by
     rw [toPState_votes _ _ Hnp, toPState_votes_nonpre _ Hnp]
   cases won <;> cases lost
-  · exact (toPState_prvals_nl { s with votes := recordVote s.votes src (!reject) } pvs Hr).trans Hps1
-  · exact ((toPState_prvals_nl (becomeFollower _ _ (W64 0)) pvs (by simp [becomeFollower])).trans
-      (toPState_becomeFollower _ _ _)).trans (by rw [Hps1]; rfl)
+  · exact ((toPState_ep_nl { s with votes := recordVote s.votes src (!reject), prvals := pvs } em
+      Hr).trans (toPState_prvals_nl { s with votes := recordVote s.votes src (!reject) } pvs Hr)).trans
+      Hps1
+  · exact ((toPState_ep_nl { becomeFollower _ _ (W64 0) with prvals := pvs } em
+      (by simp [becomeFollower])).trans
+      ((toPState_prvals_nl (becomeFollower _ _ (W64 0)) pvs (by simp [becomeFollower])).trans
+      (toPState_becomeFollower _ _ _))).trans (by rw [Hps1]; rfl)
   all_goals
+    obtain ⟨Hs0, Hx0⟩ := Hem rfl
     calc _ = psendMsgs (toPState { becomeLeader id { s with votes := recordVote s.votes src (!reject) }
-            with prvals := pvs }) ms := rfl
+            with prvals := pvs, ep := em }) ms := rfl
       _ = _ := by
-        rw [toPState_becomeLeader, Hps1]
+        rw [toPState_becomeLeader _ _ _ em Hs0 Hx0, Hps1]
         simp [pvoteRespResult, psendMsgs, List.append_assoc]
 
 /-- `voteRespResult` keeps `NStateWf`: every outcome is a `becomeX` or leaves `r.step`

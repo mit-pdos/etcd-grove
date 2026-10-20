@@ -232,14 +232,14 @@ theorem raft.switchToConfig.wp_proof
               = s1 := by cases s1; rfl
           icases ownRaftPhysC_prvals_ok c r id s1 $$ Hphys with ⟨%Hok0, -, Hphys⟩
           icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
-          wp_apply wp_ProgressTracker_Visit c _ tv ⟨s1.votes, s1.progress, s1.prvals⟩ _
+          wp_apply wp_ProgressTracker_Visit c _ tv ⟨s1.votes, s1.progress, s1.prvals, s1.ep⟩ _
               (fun _ pvsx => iprop(∃ (ms : List Msg),
                 "rp" ∷ r_ptr ↦ r ∗
                 "%Hms" ∷ ⌜ReplSends id s1 ms⌝ ∗
                 "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s1.prvals⌝ ∗
                 "%Hok" ∷ ⌜PrvalsOk { sendMsgs s1 ms with prvals := pvsx }⌝ ∗
                 "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
-                    ownTrackerC c tvx ⟨s1.votes, s1.progress, pvsx'⟩ -∗
+                    ownTrackerC c tvx ⟨s1.votes, s1.progress, pvsx', s1.ep⟩ -∗
                     ⌜PrvalsOk { sendMsgs s1 ms with prvals := pvsx' }⌝ -∗
                     ownRaftPhysCV c c.voters r id { sendMsgs s1 ms with prvals := pvsx' })))
             $$ [$Htrkf $Htrk r Hrest]
@@ -271,7 +271,7 @@ theorem raft.switchToConfig.wp_proof
               rw [decide_eq_true Hii]
               wp_auto
               icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1', Htrkf, Htrk, Hrest⟩
-              ihave Htrk := ownTrackerC_cast c tv1' _ ⟨s1.votes, s1.progress, <[i := p0]> pvs0⟩ ?_
+              ihave Htrk := ownTrackerC_cast c tv1' _ ⟨s1.votes, s1.progress, <[i := p0]> pvs0, s1.ep⟩ ?_
                 $$ Htrk
               · rfl
               iapply HΦ
@@ -288,7 +288,7 @@ theorem raft.switchToConfig.wp_proof
               · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hok
               iintro %tvx %pvsx Hf Ht %Hok'
               ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %Hok'
-              · iapply ownTrackerC_cast c tvx ⟨s1.votes, s1.progress, pvsx⟩ _ ?_ $$ Ht
+              · iapply ownTrackerC_cast c tvx ⟨s1.votes, s1.progress, pvsx, s1.ep⟩ _ ?_ $$ Ht
                 rfl
               iapply ownRaftPhysC_eq c r id _ _ (by cases s1; rfl) $$ Hphys
             · -- a peer: `maybeSendAppend(id, false)`
@@ -300,7 +300,7 @@ theorem raft.switchToConfig.wp_proof
               try wp_auto
               icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
               icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1', Htrkf, Htrk, Hrest⟩
-              ihave Htrk := ownTrackerC_cast c tv1' _ ⟨s1.votes, s1.progress, pvs'⟩ ?_ $$ Htrk
+              ihave Htrk := ownTrackerC_cast c tv1' _ ⟨s1.votes, s1.progress, pvs', s1.ep⟩ ?_ $$ Htrk
               · rfl
               iapply HΦ
               iexists tv1', _
@@ -317,7 +317,7 @@ theorem raft.switchToConfig.wp_proof
               · ipureintro; exact Hok'.of_fields rfl rfl rfl
               iintro %tvx %pvsx Hf Ht %Hok''
               ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
-              · iapply ownTrackerC_cast c tvx ⟨s1.votes, s1.progress, pvsx⟩ _ ?_ $$ Ht
+              · iapply ownTrackerC_cast c tvx ⟨s1.votes, s1.progress, pvsx, s1.ep⟩ _ ?_ $$ Ht
                 rfl
               iapply ownRaftPhysC_eq c r id _ _
                 (by cases s1; simp [sendMsgs, List.append_assoc]) $$ Hphys

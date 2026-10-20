@@ -58,7 +58,7 @@ theorem raft.applyConfChange.wp_proof
   icases ownTrackerC_nowit $$ Htrk with ⟨%Hnw, Htrk⟩
   icases ownTrackerC_no0 $$ Htrk with ⟨%H0, Htrk⟩
   icases ownTrackerC_epoch $$ Htrk with ⟨#Hepoch, Htrk⟩
-  icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals⟩ $$ Htrk
+  icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals, s.ep⟩ $$ Htrk
     with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hg⟩
   obtain ⟨Hgood, -, -, -⟩ := Hg
   have Hst : ({ cfg := c, prs := flagsOf pvs } : CCState) = cfgStateC c := by
@@ -109,7 +109,7 @@ theorem raft.applyConfChange.wp_proof
     wp_auto
     -- `r.switchToConfig(cfg, trk)`
     ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
-        ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+        ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs'', s.ep⟩ -∗
         ⌜PrvalsOk { s with progress := prs'', prvals := pvs'' }⌝ -∗
         ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
           { s with progress := prs'', prvals := pvs'' })
@@ -174,7 +174,7 @@ theorem raft.applyConfChange.wp_proof
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
         ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
-            ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+            ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs'', s.ep⟩ -∗
             ⌜PrvalsOk { s with progress := prs'', prvals := pvs'' }⌝ -∗
             ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
               { s with progress := prs'', prvals := pvs'' })
@@ -226,7 +226,7 @@ theorem raft.applyConfChange.wp_proof
         wp_auto
         -- `r.switchToConfig(cfg, trk)`
         ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
-            ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+            ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs'', s.ep⟩ -∗
             ⌜PrvalsOk { s with progress := prs'', prvals := pvs'' }⌝ -∗
             ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
               { s with progress := prs'', prvals := pvs'' })

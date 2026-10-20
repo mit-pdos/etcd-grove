@@ -106,7 +106,7 @@ theorem wp_stepLeader_checkQuorum
   -- `r.trk.Visit(...)`: the closure clears `RecentActive`, which no record holds
   icases ownRaftPhysC_shared c r id s1 $$ Hphys with ⟨%lok, #Hfid, -, -, Hphys⟩
   icases ownRaftPhysC_tracker_same c r id s1 $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback⟩
-  wp_apply wp_Visit c _ tv1 ⟨s1.votes, s1.progress, s1.prvals⟩ _
+  wp_apply wp_Visit c _ tv1 ⟨s1.votes, s1.progress, s1.prvals, s1.ep⟩ _
       (fun _ pvsx => iprop(r_ptr ↦ r ∗ ⌜pvsx = s1.prvals⌝))
     $$ [$Htrkf $Htrk $r]
     as ⟨%tvfin, %pvsfin, Htrkf, Htrk, r, %Hpvs⟩

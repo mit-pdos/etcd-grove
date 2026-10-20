@@ -27,33 +27,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode GMap go_etcd_io.raft.v3
 
-/-- One half's replication set (`tracker.ReplicationSet`). -/
-structure RSM where
-  /-- `Witness`: the half's witness, `0` if none -/
-  wit : w64
-  /-- `Excluded`: the voter outside the replication set (`0` with no witness) -/
-  excl : w64
-  /-- `NonWitnessVoters` -/
-  nwv : GSet w64
-
-/-- The epoch (`tracker.Epoch`): the subterm and the two halves' replication sets. -/
-structure EpochM where
-  sub : w64
-  rs0 : RSM
-  rs1 : RSM
-
-/-- A half with no witness, as a zero `ReplicationSet` holds it (nil voter map). -/
-def RSM.bare : RSM := ⟨W64 0, W64 0, ∅⟩
-
-/-- The epoch of a configuration without a witness at subterm `sub`. -/
-def EpochM.bare (sub : w64) : EpochM := ⟨sub, RSM.bare, RSM.bare⟩
-
-/-- `Epoch.HasWitness`. -/
-def EpochM.hasWit (em : EpochM) : Bool :=
-  decide (em.rs0.wit ≠ W64 0 ∨ em.rs1.wit ≠ W64 0)
-
-/-- `ReplicateToWitness`'s per-half answer: the half has a witness, in its replication set. -/
-def RSM.rep (r : RSM) : Bool := decide (r.wit ≠ W64 0 ∧ r.excl ≠ r.wit)
+-- (`RSM`, `EpochM`, `RSM.bare`, `EpochM.bare`, `EpochM.hasWit`, `RSM.rep` are in `Defs.lean`,
+-- for `NState.ep`.)
 
 /-- A half's replication set, for the half's voters `V` and the configuration's witness `w` of
 that half (`Config.Witnesses[i]`): the witness if it is a voter of the half, the excluded voter

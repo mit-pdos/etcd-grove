@@ -394,6 +394,37 @@ structure Progress where
   /-- `IsWitness` (2026-10-19, witness support): the peer is the witness -/
   witness : Bool
 
+/-! ### The tracker's epoch (2026-10-20, witness support; the representation and the epoch
+functions' model are in `InvEpoch.lean`) -/
+
+/-- One half's replication set (`tracker.ReplicationSet`). -/
+structure RSM where
+  /-- `Witness`: the half's witness, `0` if none -/
+  wit : w64
+  /-- `Excluded`: the voter outside the replication set (`0` with no witness) -/
+  excl : w64
+  /-- `NonWitnessVoters` -/
+  nwv : GSet w64
+
+/-- The epoch (`tracker.Epoch`): the subterm and the two halves' replication sets. -/
+structure EpochM where
+  sub : w64
+  rs0 : RSM
+  rs1 : RSM
+
+/-- A half with no witness, as a zero `ReplicationSet` holds it (nil voter map). -/
+def RSM.bare : RSM := ⟨W64 0, W64 0, ∅⟩
+
+/-- The epoch of a configuration without a witness at subterm `sub`. -/
+def EpochM.bare (sub : w64) : EpochM := ⟨sub, RSM.bare, RSM.bare⟩
+
+/-- `Epoch.HasWitness`. -/
+def EpochM.hasWit (em : EpochM) : Bool :=
+  decide (em.rs0.wit ≠ W64 0 ∨ em.rs1.wit ≠ W64 0)
+
+/-- `ReplicateToWitness`'s per-half answer: the half has a witness, in its replication set. -/
+def RSM.rep (r : RSM) : Bool := decide (r.wit ≠ W64 0 ∧ r.excl ≠ r.wit)
+
 /-- The tracker, as `ownTracker` is indexed by it: the vote tally, the progress map (id
 to `*Progress` -- physical state, like `NState.log`, because callers hold a raw
 `*Progress` across calls) and each peer's `Progress`. (`tracker` is the Goose module's
@@ -402,6 +433,9 @@ structure Trk where
   votes : GMap w64 Bool
   prs : GMap w64 Loc
   peers : GMap w64 Progress
+  /-- `Epoch` (2026-10-20, witness support): what the tracker's epoch pointer holds
+  (`ownEpoch`, `InvEpoch.lean`) -/
+  ep : EpochM
 
 /-! ### Abstraction functions -/
 
@@ -1092,6 +1126,11 @@ structure NState [FfiSyntax] where
   answers a stale leader's `MsgApp`/`MsgHeartbeat` with an empty `MsgAppResp`. Never written
   after `newRaft` (`Config.CheckQuorum`). Invisible to the protocol (`toPState`). -/
   cq : Bool := false
+  /-- `r.trk.Epoch` (2026-10-20, witness support, `InvEpoch.lean`): the leader's subterm and
+  replication sets, the bare epoch of subterm 0 in a cluster without a witness. A leader's
+  subterm and excluded voter are the protocol's (`toPState`); a non-leader's are what its last
+  leadership left. -/
+  ep : EpochM := EpochM.bare (W64 0)
 
 /-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
 node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`
@@ -1393,6 +1432,10 @@ theorem resetMatched_leader_ok (id : w64) (s : NState) (Hid : id ∈ domSet s.pr
     | none => simp
     | some _ => simp [Hne]; exact fun h => h.symm
 
+/-- The protocol's `rsx` of an epoch: half 0's excluded voter, `0` when it is the witness
+(`exclOf`'s convention). -/
+def epochRsx (em : EpochM) : w64 := if em.rs0.excl = em.rs0.wit then W64 0 else em.rs0.excl
+
 /-- `matched` is `Match` for a leader and `∅` otherwise (`PState`): a non-leader's
 `Progress` values are whatever its last `reset` left, and no rule reads them. This is
 what lets every non-leader spec leave the `Progress` values unconstrained.
@@ -1415,6 +1458,10 @@ def toPState (s : NState) : PState where
   matched := if s.role = .leader then prvalsMatch s.prvals else ∅
   -- (2026-10-12) a non-leader's read-only object is the fresh one `reset` installed
   rd := if s.role = .leader then s.rd else rdNL s.rd
+  -- (2026-10-20, witness support) a leader's subterm and the voter its replication set
+  -- excludes (`0` for the witness: `exclOf`), from its epoch; a non-leader's are `0`
+  sub := if s.role = .leader then s.ep.sub else W64 0
+  rsx := if s.role = .leader then epochRsx s.ep else W64 0
 
 /-- A physical state that can take a protocol step: `r.step` agrees with the role, and
 `r.tick` is set (2026-10-09).
@@ -1488,20 +1535,32 @@ theorem plastIndex_toPState (s : NState) : plastIndex (toPState s) = logLast s.l
 theorem leaderEntry_toPState (s : NState) : leaderEntry s = pleaderEntry (toPState s) := by
   rw [leaderEntry, pleaderEntry, plastIndex_toPState]; rfl
 
+/-- A non-leader's epoch is invisible to the protocol (2026-10-20, witness support). -/
+theorem toPState_ep_nl (s : NState) (em : EpochM) (Hr : s.role ≠ .leader) :
+    toPState { s with ep := em } = toPState s := by
+  simp only [toPState, Hr, ite_false]
+
+/-- A leader's epoch is read only for its subterm and excluded voter. -/
+theorem toPState_ep_same (s : NState) (em : EpochM) (Hs : em.sub = s.ep.sub)
+    (Hx : epochRsx em = epochRsx s.ep) : toPState { s with ep := em } = toPState s := by
+  simp only [toPState, Hs, Hx]
+
 /-- `becomeLeader`, with the `Progress` values `reset` left: the protocol's win, up to
-its broadcast. -/
-theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) :
-    toPState { becomeLeader id s with prvals := pvs } =
+its broadcast; at an epoch of subterm 0 excluding the witness (2026-10-20). -/
+theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) (em : EpochM)
+    (Hsub : em.sub = W64 0) (Hrsx : epochRsx em = W64 0) :
+    toPState { becomeLeader id s with prvals := pvs, ep := em } =
       psendMsgs (pwinState id (toPState s) (prvalsMatch pvs))
         [pselfAck id (pwinState id (toPState s) (prvalsMatch pvs))] := by
-  have Hw : toPState { becomeLeaderLog id s with prvals := pvs } =
+  have Hw : toPState { becomeLeaderLog id s with prvals := pvs, ep := em } =
       pwinState id (toPState s) (prvalsMatch pvs) := by
     simp only [becomeLeaderLog, becomeLeaderPre, resetTo, resetTo0, toPState, pwinState, pappend,
-      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true, rdNL_ite]
+      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true, rdNL_ite,
+      Hsub, Hrsx]
     rfl
   rw [← Hw]
   simp only [becomeLeader, pselfAck, sendMsgs, psendMsgs]
-  have Hl := plastIndex_toPState { becomeLeaderLog id s with prvals := pvs }
+  have Hl := plastIndex_toPState { becomeLeaderLog id s with prvals := pvs, ep := em }
   rw [Hl]
   rfl
 

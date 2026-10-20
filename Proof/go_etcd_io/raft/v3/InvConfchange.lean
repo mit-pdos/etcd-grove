@@ -323,15 +323,15 @@ def ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
     "Hl" ∷ ownIdsetC cfg.Learners' dq c.learners ∗
     "Hln" ∷ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
     "%Hal" ∷ ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗
-    -- no witness (raft#168, `notes/pr-verify/raft-168.md`): these specs are of witness-free
-    -- configurations
-    "%Hwit" ∷ ⌜cfg.Witnesses'.arr = [W64 0, W64 0]⌝)
+    -- the witness (raft#168): the configuration's `wit` in the incoming half, none in the
+    -- outgoing one (2026-10-20, witness support; until then `[0, 0]`, witness-free only)
+    "%Hwit" ∷ ⌜cfg.Witnesses'.arr = [c.wit, W64 0]⌝)
 
 theorem ownCfgCC_elim (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
     ownCfgCC (GF := GF) cfg dq c ⊢ ∃ (vin vout : Loc),
       ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗ vin ↦${dq} c.incoming ∗ ownIdsetC vout dq c.outgoing ∗
       ownIdsetC cfg.Learners' dq c.learners ∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
-      ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗ ⌜cfg.Witnesses'.arr = [W64 0, W64 0]⌝ := by
+      ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗ ⌜cfg.Witnesses'.arr = [c.wit, W64 0]⌝ := by
   unfold ownCfgCC
   iintro H
   iNamed H
@@ -341,7 +341,7 @@ theorem ownCfgCC_elim (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
 
 theorem ownCfgCC_intro (cfg : tracker.Config) (dq : DFrac) (c : CfgM) (vin vout : Loc)
     (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
-    (Hwit : cfg.Witnesses'.arr = [W64 0, W64 0]) :
+    (Hwit : cfg.Witnesses'.arr = [c.wit, W64 0]) :
     ⊢ (vin ↦${dq} c.incoming : IProp GF) -∗ ownIdsetC vout dq c.outgoing -∗
       ownIdsetC cfg.Learners' dq c.learners -∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext -∗
       ownCfgCC cfg dq c := by

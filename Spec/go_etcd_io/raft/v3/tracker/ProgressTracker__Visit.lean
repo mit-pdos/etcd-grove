@@ -125,7 +125,7 @@ abbrev tracker.ProgressTracker.Visit.spec : Prop :=
       □ visitClosureC c trk t.votes t.prs f I }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
       (Val #f))
-  {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTrackerC c tv' ⟨t.votes, t.prs, pvs'⟩ ∗
+  {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTrackerC c tv' ⟨t.votes, t.prs, pvs', t.ep⟩ ∗
       I (domSet t.prs) pvs' }}
 
 end spec
