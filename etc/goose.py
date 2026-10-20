@@ -7,7 +7,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, kv, putget, putget3, linkv, porcupine or lintest;
+  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine or lintest;
                repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -394,6 +394,24 @@ PROJECTS = [
                     "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
+    ),
+    Project(
+        name="linkvtxn",
+        # The lintest driver over etcd's KV API as its robustness tester drives it
+        # (notes/linkv-txn-plan.md, stage D): linkv's member and client, and lintest.Run's
+        # clients doing gets, lists, puts, deletes and transactions, checked by porcupine against
+        # the robustness model's Go form (Model, the Lean TxnModel's). A Go module of this
+        # repository, with putget's replaces (keep them in step; its tests' robustness model is
+        # etcd's tests/v3, test-only); its imports are the etcd, lintest and porcupine projects'
+        # translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "linkvtxn"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
+                    "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkvtxn")],
     ),
     Project(
         name="linkv3",

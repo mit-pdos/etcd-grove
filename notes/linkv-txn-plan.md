@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stages A, B and C done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C"); D next.
+Status: stages A to D done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D"); E next.
 
 ## Goal
 
@@ -144,6 +144,9 @@ keys; the old model stays until F.
   `getRange` on `newState`); `txn.txnOk` of the three compare kinds.
 
 ### D. The Go program (`examples/linkv/linkv.go`)
+
+**Done** (2026-10-20) as a new module `examples/linkvtxn` (STATUS "linkv-txn stage D"), linkv
+unchanged.
 
 - `Input`/`Output` widened (an op kind, a key, a value, cmps and ops for a txn; the response
   fields above). Keep plain structs with slices of small structs: Goose-friendly, and

@@ -101,6 +101,41 @@ etcd's cache. Done: closed, with watchkv's four checks unweakened.
   error may still apply), so the program would read the watch up to the `Get`'s revision, and the
   proof needs a lemma relating `stateAt` of a watchkv log to the puts' `revAt`s (none exists).
 
+## linkv-txn stage D: the Go program `examples/linkvtxn` (2026-10-20, branch `linkv-txn-d`)
+
+A new Go module and Goose project (`linkvtxn`), not `examples/linkv` changed in place: replacing
+linkv's `Input`/`Output`/`Model` would break `linkv_safe`'s and `linkv3_safe`'s proofs until
+stage F; stage G decides whether linkv retires.
+- **`linkvtxn.go`**: linkv's member and client (ports `23796`/`23806`), lintest's `Check`, and
+  - `Input` (`Kind`: get, list, put, delete, txn; a txn's `Cmps []Cmp` and `Then`/`Else []TOp`),
+    `Output` (the reply's revision; a get's `(Found, R)`, a list's `KVs`, a delete's `N`, a txn's
+    `Ok` and `Res []TRes`; `Err`), `VR` (value, mod revision, version: `int64`s);
+  - `Model()`: `TxnModel.lean`'s `mStep` (`mstep`, `runOps`, `holds`) over configurations with
+    pending failed writes (`step`, `closure`, as linkv's), the store a sorted entry slice;
+  - `Gen` (`genFrom` of a random number): robustness's `EtcdPutDeleteLease` weights without leases
+    and stale reads (get 15, list 8, put 20, delete 5, multi-op txn 10, compare-and-set 5), keys
+    `k0`..`k2`, values `a`..`d`; a list is `[k, l)`; a compare-and-set compares the value,
+    version or mod revision and else-gets the key;
+  - `Apply`: the call through the client (`Get`, `Get(WithRange)`, `Put`, `Delete`,
+    `Txn().If().Then().Else().Commit()`, the responses' `GetResponseRange`/
+    `GetResponseDeleteRange`), the ok prophecy, and the read revision's for reads (get, list, a
+    txn with no write).
+- **Tests** (`go test -race` passes): `TestModel` (17 histories: revisions and versions, a
+  delete of a missing key, a lost delete, a deleted key's version restarting, compare-and-set
+  either way, a txn in the wrong branch, a txn's get seeing its own put, a list, late, absent and
+  doubled failed puts, failed reads); `TestMainRun` (8 clients of 100 operations against a real
+  member: `Ok`); **`TestDifferential`**: 20000 random concurrent histories (true runs of the model
+  with failures and one corruption half the time) checked by `Model()` and by etcd's robustness
+  `NonDeterministicModel` (`go.etcd.io/etcd/tests/v3` at the fork's pin, test-only; failed calls'
+  returns at infinity, as its `validate.go`): the verdicts agree (17258 legal, 2742 illegal).
+  Value comparisons are not translated (robustness has none); `TestModel` covers them.
+- **Translated** (`etc/goose.py --project linkvtxn`; `--check` passes for every project); its
+  `Code`/`GeneratedProof` build. The client calls `Apply` makes have specs but the responses'
+  getters (`ResponseOp.GetResponseRange`, `GetResponseDeleteRange`), which stage F adds.
+
+Next: stage E (specs and proofs of the Go model's functions, `Model`'s `isModel` against
+`PendModel`'s `pM` of `txnSpec`).
+
 ## linkv-txn stage C: the robustness model and its relation to etcd's state (2026-10-20, branch `linkv-txn-c`)
 
 Pure Lean, new files next to the current instance's model (which still builds and is still
