@@ -16,6 +16,8 @@ github.com/upamanyus/etcd/v3 v3.0.0-20261019203636-eebbe9e9087d h1:u331tkZIDMK0O
 github.com/upamanyus/etcd/v3 v3.0.0-20261019203636-eebbe9e9087d/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
 github.com/upamanyus/etcd/v3 v3.0.0-20261019222812-edd87c4895c8 h1:9QADKSPLHcjjBiIDJ56IfHRvQDSJ4tj9L9Q4JGX9iAI=
 github.com/upamanyus/etcd/v3 v3.0.0-20261019222812-edd87c4895c8/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
+github.com/upamanyus/etcd/v3 v3.0.0-20261020021956-9ed005d46117 h1:iiCTmUMzPo3uqGLjPHxqcl/uQr5kxE9WuW/CiyItc6U=
+github.com/upamanyus/etcd/v3 v3.0.0-20261020021956-9ed005d46117/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
