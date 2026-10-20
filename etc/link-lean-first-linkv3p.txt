@@ -1,0 +1,35 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --linkv3p`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `linkv3p`. Perennial's standard-library results (`time.Sleep`, `primitive.RandomUint64`) are
+# used directly by the proofs, not linked here.
+#
+# `startMember`: linkv3's start of one member plus its gRPC server (the server's, v3rpc's and the
+# client's results, linked in their `Link.lean`s; the feature gate's, `net.Listen`'s,
+# `RaftHandler`'s, `http.Serve`'s and grpc's `Serve`'s trust-boundary axioms)
+etcdserver_NewServer: @
+EtcdServer__Start: @
+v3rpc_Server: @
+features_NewDefaultServerFeatureGate:
+net_Listen:
+EtcdServer__RaftHandler:
+http_Serve:
+grpc_Server__Serve:
+linkv3p_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start net_Listen EtcdServer__RaftHandler http_Serve v3rpc_Server grpc_Server__Serve
+# `newClient`: the client's `New` (linked in the client's `Link.lean`)
+client_v3_New: @
+linkv3p_newClient: client_v3_New
+# `partitioner`: etcd's partition hooks and the member id (linked in the server's `Link.lean`)
+EtcdServer__MemberID: @
+EtcdServer__CutPeer: @
+EtcdServer__MendPeer: @
+linkv3p_partitioner: EtcdServer__MemberID EtcdServer__CutPeer EtcdServer__MendPeer
+# `Apply` over linkv's; `Check` over the driver's `Run` and `CounterClock`, linkv's `Model` and
+# `Gen` (all linked in their `Link.lean`s)
+linkv_Apply: @
+linkv3p_Apply: linkv_Apply
+Run: @
+CounterClock: @
+linkv_Model: @
+linkv_Gen: @
+linkv3p_Check: Run CounterClock linkv_Model linkv_Gen linkv3p_Apply

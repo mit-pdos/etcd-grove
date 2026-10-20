@@ -1,12 +1,13 @@
 # Plan: the three-member cluster under network partitions (`examples/linkv3p`)
 
-Status: S0, S1, S2 done (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grove-pt`; STATUS
-"Partitions, S0" and "Partitions, S1/S2"): the Go program, its test and the translations; the two
-transport axioms and the server's `CutPeer`/`MendPeer` proved. S1 needed a change of design
-(D24 in decisions.md): a second `CutPeer` of a *remote* panics
+Status: S0, S1, S2, S3a done (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grove-pt`;
+STATUS "Partitions, S0", "S1/S2", "S3a"): the Go program, its test and the translations; the two
+transport axioms and the server's `CutPeer`/`MendPeer` proved; the example's `startMember`,
+`newClient`, `partitioner`, `Apply`, `Check` specified, proved and linked. S1 needed a change of
+design (D24 in decisions.md): a second `CutPeer` of a *remote* panics
 (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), so the transport's ghost state now tracks
 its remotes and the axioms take `id ∉ rs`; a new cluster's member has none (`bootOk`). Stages
-S0–S4 below; S3a (the example's Lean skeleton) is next, then S3b.
+S0–S4 below; S3b (`Main`, the closed theorem, the collection) is next.
 
 ## Goal
 
@@ -154,7 +155,15 @@ restated. Linked in `etc/link-lean-first-server.txt` (axioms, as `Transport__Sta
 `NewServer.spec` gives it (D21 M5) and putget3's `startMember` proof drops it after `RaftHandler`,
 so linkv3p's `startMember` returns it beside `memberUp` (S3a). Linked (`etc/gen-link.py --server`).
 
-### S3a. The example's Lean skeleton (parallel with S1/S2)
+### S3a. The example's Lean skeleton -- done
+
+As planned below, with these particulars: `newClient` (the Go program's helper) has its own spec
+and proof; `startMember`'s success is `memberServed` (the member's views, its thread token in
+`srvGoRes`, `srvNetMember`, etcd's `Put`/`Range` at its client address), not putget3's `memberUp`;
+the per-client premises are bundled as `clientOk`; `cluster3_alloc` gives the `etcdKV` at the
+*first* member's names (the names' order is `bootstrap`'s for linkv3p) and the other two members'
+state variable and workload equal to the first's, for `linkvInv_congr`; `partitioner`'s spec takes
+any list of servers, each with `∃ id, srvNetMember`, and any list of steps.
 
 `Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/`: `Defs` (names, six addresses, `cfgOk`
 at the token, `BootFacts` in `bootstrap`'s order from `TestMemberIDs`, `premises`), `Alloc`
