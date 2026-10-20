@@ -208,6 +208,10 @@ def callUpd (γk : KVNames) (i : MI) (Q : KVState → IProp GF) : IProp GF :=
 def callRes (i : MI) (Q : KVState → IProp GF) (σ : KVState) : IProp GF :=
   if i.isWrite then Q σ else iprop(□ Q σ)
 
+/-- **`Apply`'s input** (`lintest`'s `inOk`): a boxed `Input` `Gen` may return (`GenIn`). -/
+abbrev linkvInOk (i : GoInterface) : IProp GF :=
+  iprop(⌜∃ x : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Input, i = boxIn x ∧ GenIn x⌝)
+
 end defs
 
 /-! ## The calls -/

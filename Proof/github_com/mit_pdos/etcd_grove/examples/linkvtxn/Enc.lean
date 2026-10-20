@@ -239,6 +239,12 @@ theorem decOut_outOf (x : Input) (i : MI) (hx : decIn x = some i) (s : MS)
     intro r hr
     exact decRes_encRes r (hsm.2 r hr)
 
+/-- `outOf`'s header revision is the answer's. -/
+theorem outOf_rev (o : MO) : (outOf o).Rev' = W64 (o.rev : Int) := by
+  cases o with
+  | get r v => cases v <;> rfl
+  | _ => rfl
+
 /-- A failed call's output decodes to the error. -/
 theorem decOut_errOut (k : w64) : decOut k errOut = .err := rfl
 
