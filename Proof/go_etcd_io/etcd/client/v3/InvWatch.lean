@@ -481,6 +481,41 @@ instance resumeOk_persistent (V : WEnv GF) (P : WsPrm GF) (rv hl c2 : w64) :
     Persistent (resumeOk V P rv hl c2) := by
   unfold resumeOk; infer_instance
 
+/-- **A registration's base** (D24): the create's start revision `rr` and start-read flag `srr`,
+and the dispatch cursor's position `hb` when the create was sent (the first create's: the watch's
+start, its flag, `rev - 1`; a resumed create's: the resume revision, `cplOf`, the cursor then). -/
+structure RegB where
+  rr : w64
+  srr : Bool
+  hb : w64
+
+/-- **A registration's base the contract allows** (pure; D24): at or above the watch's start
+(unless that is "now"), non-negative, above the cursor (unless no event yet), start-read and
+non-zero when the watch promises completeness. -/
+def regBOk (P : WsPrm GF) (B : RegB) : Prop :=
+  (P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z B.rr) ∧ 0 ≤ sint.Z B.rr ∧
+    (sint.Z B.hb < sint.Z B.rr ∨ sint.Z B.hb < 0) ∧
+    (P.γ.cpl = true → B.srr = true ∧ B.rr ≠ W64 0)
+
+/-- The first create's base. -/
+abbrev regB0 (P : WsPrm GF) : RegB := ⟨P.rev, P.sr, P.rev - W64 1⟩
+
+theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.γ.cpl = cplOf P) :
+    regBOk P (regB0 P) := by
+  obtain ⟨-, -, h0, -⟩ := hok
+  refine ⟨Or.inr (Int.le_refl _), h0, ?_, fun hcpl => ?_⟩
+  · show sint.Z (P.rev - W64 1) < sint.Z P.rev ∨ sint.Z (P.rev - W64 1) < 0
+    by_cases hz : P.rev = W64 0
+    · right; rw [hz]; decide
+    · left
+      have : sint.Z P.rev ≠ 0 := fun h => hz (by word)
+      have : sint.Z (P.rev - W64 1) = sint.Z P.rev - 1 := by word
+      omega
+  · rw [hc] at hcpl
+    unfold cplOf cplCond at hcpl
+    simp only [Bool.and_eq_true, decide_eq_true_eq] at hcpl
+    exact ⟨hcpl.1, hcpl.2.2.2.2⟩
+
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
 `Revision` owned for a response with events; no close error, no compaction, not canceled),

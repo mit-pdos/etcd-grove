@@ -445,24 +445,24 @@ theorem progAt_mono (γs : StreamNames) {Dm Dm' : List v3rpc.WatchRespM} (X c2 :
 range `rg`, first revision `lo`, id `X`, the responses `Dm` received): the events so far are the
 watch events `[lo, q + 1)` of a watched log (`c2 = q`; `q + 1` within it, or `lo`), and `c2` is
 the watch's start, the last event's revision, or a progress notification's (`progAt`). -/
-def cur2Ok (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM) (X : w64)
+def cur2Ok (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.WatchRespM) (X : w64)
     (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) : IProp GF :=
   iprop((∃ (L : mvcc.Log) (q : Nat), mvcc.evLog V.R.γ.st L ∗
       ⌜c2 = W64 (q : Int) ∧ evsOf Dm w = mvcc.watchEvents L rg lo (q + 1) ∧ lo ≤ q + 1 ∧
         (q + 1 ≤ L.length ∨ q + 1 = lo) ∧ q + 1 < 2 ^ 63⌝) ∗
-    (⌜c2 = P.rev - W64 1⌝ ∨ ⌜∃ e, (evsOf Dm w).getLast? = some e ∧ c2 = e.kv.modRev⌝ ∨
+    (⌜c2 = rr - W64 1⌝ ∨ ⌜∃ e, (evsOf Dm w).getLast? = some e ∧ c2 = e.kv.modRev⌝ ∨
       progAt γs Dm X c2))
 
-instance cur2Ok_persistent (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF)
+instance cur2Ok_persistent (V : WEnv GF) (γs : StreamNames) (rr : w64)
     (Dm : List v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) :
-    Persistent (cur2Ok V γs P Dm X w rg lo c2) := by
+    Persistent (cur2Ok V γs rr Dm X w rg lo c2) := by
   unfold cur2Ok; infer_instance
 
 /-- `cur2Ok` over more responses, none of the watcher's events. -/
-theorem cur2Ok_mono (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) {Dm Dm' : List v3rpc.WatchRespM}
+theorem cur2Ok_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) {Dm Dm' : List v3rpc.WatchRespM}
     (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) (h : evsOf Dm' w = evsOf Dm w)
     (hp : Dm <+: Dm') :
-    cur2Ok (GF := GF) V γs P Dm X w rg lo c2 ⊢ cur2Ok V γs P Dm' X w rg lo c2 := by
+    cur2Ok (GF := GF) V γs rr Dm X w rg lo c2 ⊢ cur2Ok V γs rr Dm' X w rg lo c2 := by
   unfold cur2Ok
   rw [h]
   iintro ⟨#H1, (#H2 | #H2 | #H2)⟩
@@ -472,18 +472,18 @@ theorem cur2Ok_mono (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) {Dm Dm' : L
 
 /-- **The second cursor at the watch's start** `rev - 1` (`rev ≥ 1`, the first revision `lo`
 the start revision), no events yet. -/
-theorem cur2Ok_init (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
-    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (hrev : 1 ≤ sint.Z P.rev)
-    (hlo : lo = (sint.Z P.rev).toNat) (hE : evsOf Dm w = []) :
-    ⊢ |==> cur2Ok (GF := GF) V γs P Dm X w rg lo (P.rev - W64 1) := by
+theorem cur2Ok_init (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.WatchRespM)
+    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (hrev : 1 ≤ sint.Z rr)
+    (hlo : lo = (sint.Z rr).toNat) (hE : evsOf Dm w = []) :
+    ⊢ |==> cur2Ok (GF := GF) V γs rr Dm X w rg lo (rr - W64 1) := by
   imod mvcc.evLog_nil V.R.γ.st with #Hn
   imodintro
   unfold cur2Ok
   isplitr
-  · iexists [], (sint.Z P.rev).toNat - 1
+  · iexists [], (sint.Z rr).toNat - 1
     iframe Hn
     ipureintro
-    have h1 : ((sint.Z P.rev).toNat - 1 : Nat) + 1 = (sint.Z P.rev).toNat := by omega
+    have h1 : ((sint.Z rr).toNat - 1 : Nat) + 1 = (sint.Z rr).toNat := by omega
     refine ⟨by word, ?_, by omega, Or.inr (by omega), by word⟩
     rw [hE, h1, ← hlo, mvcc.watchEvents_empty _ _ (Nat.le_refl _)]
   ileft; ipureintro; rfl
@@ -492,7 +492,7 @@ theorem cur2Ok_init (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List 
 then `evs` are the watch events `[lo, d)` of a watched log `L2`; their key-values read-only at
 `kvs`): the cache's contract from `c2` (events, `watchChain`), and the cursor at the last one's
 revision. -/
-theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.WatchRespM)
     (m : v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64)
     (pfx : GoString) (hcov : ∀ k, rg.covers k = true ↔ pfx <+: k) (hst : V.R.γ.st = V.R.E.γ)
     (L2 : mvcc.Log) (d : Nat) (evs : List mvcc.EvM) (kvs : List Loc) (hkl : kvs.length = evs.length)
@@ -500,11 +500,11 @@ theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List 
     (h2 : evsOf Dm w ++ evs = mvcc.watchEvents L2 rg lo d) (hd : d ≤ L2.length ∨ d ≤ lo)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel)
     (hr : r.events = List.zipWith evModelOf evs kvs) (hv : ¬ watchErr v) :
-    cur2Ok V γs P Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗
+    cur2Ok V γs rr Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗
       □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
         mvcc.kvPtrFixed kv ev.kv) ⊢
       ∃ c2' : w64, watchRespOk (EM := V.EM) pfx c2 c2' v r ∗
-        cur2Ok V γs P (Dm ++ [m]) X w rg lo c2' := by
+        cur2Ok V γs rr (Dm ++ [m]) X w rg lo c2' := by
   iintro ⟨#Hc, #HL2, #Hsm, #Hkv⟩
   unfold cur2Ok
   icases Hc with ⟨⟨%L, %q, #HL, %Hq⟩, -⟩
@@ -572,28 +572,28 @@ channel; `q ≤ p` the cursor): the events so far are the watch events `[lo, dd)
 delivered, `dd ≤ lo`), and the watch's start is at most `p + 1`. The cache's contract (a progress
 notification, or, at revision `0`, a response without events that is not one) and the cursor at
 `p`. -/
-theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.WatchRespM)
     (m : v3rpc.WatchRespM) (x : mvcc.RespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat)
     (c2 : w64) (pfx : GoString) (hcov : ∀ k, rg.covers k = true ↔ pfx <+: k)
     (hst : V.R.γ.st = V.R.E.γ) (Lc : mvcc.Log) (dd p q : Nat) (hpx : x.rev = W64 (p : Int))
     (hp63 : p < 2 ^ 63) (hqc : c2 = W64 (q : Int)) (hqp : q ≤ p)
     (hE : evsOf Dm w = mvcc.watchEvents Lc rg lo dd) (hd1 : p + 1 ≤ dd)
     (hd2 : dd ≤ p + 1 ∨ dd ≤ lo) (hd3 : dd ≤ Lc.length ∨ dd ≤ lo) (hlop : lo ≤ p + 1)
-    (hlo : lo = (sint.Z P.rev).toNat) (hrev : 1 ≤ sint.Z P.rev)
+    (hlo : lo = (sint.Z rr).toNat) (hrev : 1 ≤ sint.Z rr)
     (hsnoc : evsOf (Dm ++ [m]) w = evsOf Dm w) (hmx : m.src = some x) (hxe : x.evs = [])
     (hlive : v3rpc.idLive Dm X)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hv : ¬ watchErr v)
     (hr : r.events = [] ∧ r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0 ∧
       r.hdrRev = x.rev) :
-    cur2Ok V γs P Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st Lc ∗ srvLogsSmall V.R ∗
-      etcdReached (EM := V.EM) (P.rev - W64 1) ∗ chanPos γs x ⊢
+    cur2Ok V γs rr Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st Lc ∗ srvLogsSmall V.R ∗
+      etcdReached (EM := V.EM) (rr - W64 1) ∗ chanPos γs x ⊢
       ∃ c2' : w64, watchRespOk (EM := V.EM) pfx c2 c2' v r ∗
-        cur2Ok V γs P (Dm ++ [m]) X w rg lo c2' := by
+        cur2Ok V γs rr (Dm ++ [m]) X w rg lo c2' := by
   iintro ⟨#Hc, #HLc, #Hsm, #Hr0, #Hpos⟩
   obtain ⟨hre, hrc, hrca, hrcomp, hrh⟩ := hr
   have hdd : dd = p + 1 := by omega
   subst hdd
-  ihave #Hcm := cur2Ok_mono V γs P X w rg lo c2 hsnoc (List.prefix_append Dm [m]) $$ Hc
+  ihave #Hcm := cur2Ok_mono V γs rr X w rg lo c2 hsnoc (List.prefix_append Dm [m]) $$ Hc
   ihave #Hc' := Hc
   iunfold cur2Ok at Hc'
   icases Hc' with ⟨⟨%L, %q', #HL, %Hq⟩, -⟩
@@ -625,8 +625,8 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     · ihave #Hok := mvcc.evLog_certOk _ _ $$ HLc
       irevert Hok; rw [hst]; iintro #Hok
       iapply v3rpc.etcdReached_of_certOk V.R.E Lc (W64 (p : Int)) (by word) $$ Hok
-    · have : W64 (p : Int) = P.rev - W64 1 := by
-        have : (p : Int) = sint.Z P.rev - 1 := by omega
+    · have : W64 (p : Int) = rr - W64 1 := by
+        have : (p : Int) = sint.Z rr - 1 := by omega
         word
       rw [this]; iexact Hr0
   by_cases hq : q = p
@@ -712,15 +712,15 @@ response `x` sent down after `Dm`, of `r`'s own id `X` or `-1`, at its place on 
 `pre` before it; the events so far within `[lo, p + 1)`; the watch's start at most `p + 1`): the
 start, a last event (before `p + 1`), or an earlier progress notification (sent before `x` while
 `X` was live, so on the channel before it: `respRev`). -/
-theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.WatchRespM)
     (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (c2 : w64) (x : mvcc.RespM)
     (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName)
     (Lc : mvcc.Log) (p : Nat) (hγ : γo.sentl = γc.sentl) (hidx : x.idx = pre.length)
     (hfi : v3rpc.fwdIdx Dm x) (hxid : x.id = W64 (-1) ∨ x.id = X) (hxe : x.evs = [])
     (hEc : evsOf Dm w = mvcc.watchEvents Lc rg lo (p + 1)) (hlop : lo ≤ p + 1)
-    (hlo : lo = (sint.Z P.rev).toNat) (hrev : 1 ≤ sint.Z P.rev) (hpx : x.rev = W64 (p : Int))
+    (hlo : lo = (sint.Z rr).toNat) (hrev : 1 ≤ sint.Z rr) (hpx : x.rev = W64 (p : Int))
     (hp63 : p < 2 ^ 63) :
-    cur2Ok V γs P Dm X w rg lo c2 ∗ streamAuxIs γs (v3rpc.auxOf γo γa) ∗
+    cur2Ok V γs rr Dm X w rg lo c2 ∗ streamAuxIs γs (v3rpc.auxOf γo γa) ∗
       mvcc.chanSentLb γc (pre ++ [x]) ∗ mvcc.respRev V.R.γ pre x ⊢
       ⌜∃ q : Nat, c2 = W64 (q : Int) ∧ q ≤ p⌝ := by
   iintro ⟨#Hc, #Hax, #Hlb, #Hrr⟩
@@ -729,7 +729,7 @@ theorem cmpl_mono (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
   · ipureintro
     refine ⟨q, Hq.1, ?_⟩
     have h1 := Hq.1; rw [H] at h1
-    have : (q : Int) = sint.Z P.rev - 1 := by
+    have : (q : Int) = sint.Z rr - 1 := by
       have h2 : sint.Z (W64 (q : Int)) = q := by have := Hq.2.2.2.2; word
       rw [← h1] at h2; rw [← h2]; word
     omega

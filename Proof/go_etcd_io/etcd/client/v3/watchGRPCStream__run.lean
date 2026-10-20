@@ -74,6 +74,9 @@ instance respInfo_persistent (m : v3rpc.WatchRespM) : Persistent (respInfo (GF :
 /-- The create request of a watch. -/
 abbrev createOfP (P : WsPrm GF) : v3rpc.CreateReqM := createOf P.key P.ed P.rev P.pn P.sr
 
+/-- (D24) The create request of a registration's base. -/
+abbrev createOfB (P : WsPrm GF) (B : RegB) : v3rpc.CreateReqM := createOf P.key P.ed B.rr P.pn B.srr
+
 /-- **A registered substream's place on the channel** (persistent; K2e-7d): a snapshot `l` of the
 stream's channel's sent list from its created response (taken after the registration, at an index
 `n` at most its length), whose responses of id `-1` were all sent down before the created one
@@ -92,23 +95,23 @@ instance regSnap_persistent (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (w 
 /-- **A registered substream's watcher** (persistent): the mvcc watcher `w` the server registered
 for its create at the id `X` (range `rg`, no filters, first revision `lo`; K2e-7d: registered
 with the create's start-read flag, its place on the channel), the id assigned to it. -/
-def regFacts (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) (X : w64)
-    (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
-  iprop(⌜v3rpc.createRangeOk (createOfP P) X rg⌝ ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
+def regFacts (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) (B : RegB)
+    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
+  iprop(⌜v3rpc.createRangeOk (createOfB P B) X rg⌝ ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
     fcs ↦*□ ([] : List GoFunc) ∗
-    (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = P.sr⌝) ∗ regSnap γs Dm w ∗
+    (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = B.srr⌝) ∗ regSnap γs Dm w ∗
     ∃ (γo : mvcc.WsStreamNames) (γa : GName), streamAuxIs γs (v3rpc.auxOf γo γa) ∗
       mvcc.idAssigned γo X w)
 
 instance regFacts_persistent (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
-    (P : WsPrm GF) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) :
-    Persistent (regFacts V γs Dm P X w rg fcs lo) := by
+    (P : WsPrm GF) (B : RegB) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) :
+    Persistent (regFacts V γs Dm P B X w rg fcs lo) := by
   unfold regFacts; infer_instance
 
 /-- `regFacts` over more responses. -/
 theorem regFacts_mono (V : WEnv GF) (γs : StreamNames) {Dm Dm' : List v3rpc.WatchRespM}
-    (P : WsPrm GF) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
-    (hp : Dm <+: Dm') : regFacts V γs Dm P X w rg fcs lo ⊢ regFacts V γs Dm' P X w rg fcs lo := by
+    (P : WsPrm GF) (B : RegB) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
+    (hp : Dm <+: Dm') : regFacts V γs Dm P B X w rg fcs lo ⊢ regFacts V γs Dm' P B X w rg fcs lo := by
   unfold regFacts regSnap
   iintro ⟨%H1, #H2, #H3, #H4, ⟨%γo, %γa, %l, %L, %n, #Ha, #Hl, #Hn, %Hp⟩, #H6⟩
   iframe H2 H3 H4 H6
@@ -125,32 +128,32 @@ abbrev evsSoFar (Dm : List v3rpc.WatchRespM) (w : Loc) : List mvcc.EvM :=
 /-- **The dispatch cursor** `hi` of a registered substream (persistent): the last event's revision
 dispatched so far (`rev - 1` if none), the events so far a cut of the watcher's events of a
 sealed log. -/
-def cursorOk (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM) (w : Loc)
+def cursorOk (V : WEnv GF) (P : WsPrm GF) (B : RegB) (Dm : List v3rpc.WatchRespM) (w : Loc)
     (rg : mvcc.WatchRange) (lo : Nat) (hi : w64) : IProp GF :=
-  iprop(⌜(evsSoFar Dm w = [] ∧ hi = P.rev - W64 1) ∨
+  iprop(⌜(evsSoFar Dm w = [] ∧ hi = B.hb) ∨
       (∃ e, (evsSoFar Dm w).getLast? = some e ∧ hi = e.kv.modRev)⌝ ∗
     (⌜evsSoFar Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
       ⌜evsSoFar Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝))
 
-instance cursorOk_persistent (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM) (w : Loc)
-    (rg : mvcc.WatchRange) (lo : Nat) (hi : w64) : Persistent (cursorOk V P Dm w rg lo hi) := by
+instance cursorOk_persistent (V : WEnv GF) (P : WsPrm GF) (B : RegB) (Dm : List v3rpc.WatchRespM) (w : Loc)
+    (rg : mvcc.WatchRange) (lo : Nat) (hi : w64) : Persistent (cursorOk V P B Dm w rg lo hi) := by
   unfold cursorOk; infer_instance
 
 /-- **The second dispatch cursor of a registered substream** (K2e-7d; `sent` the responses
 dispatched): `γh2`'s positions `C2`, and, unless the watch promises no completeness or the
 substream stopped, one more than the responses, the last the cursor (`cur2Ok`). -/
-def cur2St (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) (X : w64)
-    (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) : IProp GF :=
+def cur2St (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) (B : RegB)
+    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) : IProp GF :=
   iprop(∃ C2 : List w64, monoListAuthOwn P.γh2 1 C2 ∗
     (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨
       ⌜C2.length = sent.length + 1⌝ ∗ ∃ c2 : w64, ⌜C2.getLast? = some c2⌝ ∗
-        cur2Ok V γs P Dm X w rg lo c2))
+        cur2Ok V γs B.rr Dm X w rg lo c2))
 
 /-- `cur2St` over more responses, none of the watcher's events. -/
 theorem cur2St_mono (V : WEnv GF) (γs : StreamNames) {Dm Dm' : List v3rpc.WatchRespM}
-    (P : WsPrm GF) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc)
+    (P : WsPrm GF) (B : RegB) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc)
     (h : evsOf Dm' w = evsOf Dm w) (hp : Dm <+: Dm') :
-    cur2St V γs Dm P X w rg lo sent ⊢ cur2St V γs Dm' P X w rg lo sent := by
+    cur2St V γs Dm P B X w rg lo sent ⊢ cur2St V γs Dm' P B X w rg lo sent := by
   unfold cur2St
   iintro ⟨%C2, Ha, (%H | #H | ⟨%H, %c2, %Hl, #Hc⟩)⟩
   · iexists C2; iframe Ha; ileft; ipureintro; exact H
@@ -161,7 +164,7 @@ theorem cur2St_mono (V : WEnv GF) (γs : StreamNames) {Dm Dm' : List v3rpc.Watch
     iexists c2
     isplitr
     · ipureintro; exact Hl
-    iapply cur2Ok_mono V γs P X w rg lo c2 h hp $$ Hc
+    iapply cur2Ok_mono V γs B.rr X w rg lo c2 h hp $$ Hc
 
 /-- **What `run` holds of a substream in its phase** (but its id field). -/
 def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) :
@@ -172,13 +175,14 @@ def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : W
       (match si with
        | some i => v3rpc.upAtW γs i (.create (createOfP P))
        | none => iprop(True)))
-  | .reg X => iprop(∃ (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
+  | .reg X => iprop(∃ (B : RegB) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
       (sent : List Loc) (C : List w64),
-      regFacts V γs Dm P X w rg fcs lo ∗ sspscProducer P.γr sent ∗ monoListAuthOwn P.γhi 1 C ∗
+      ⌜regBOk P B⌝ ∗ startOk V B.srr B.rr ∗
+      regFacts V γs Dm P B X w rg fcs lo ∗ sspscProducer P.γr sent ∗ monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C.length = sent.length + 1 ∧ sent ≠ []⌝ ∗ (∃ hi : w64, ⌜C.getLast? = some hi⌝ ∗
-          cursorOk V P Dm w rg lo hi) ∗ psAt P sent.length) ∗
-      cur2St V γs Dm P X w rg lo sent)
+          cursorOk V P B Dm w rg lo hi) ∗ psAt P sent.length) ∗
+      cur2St V γs Dm P B X w rg lo sent)
   | _ => iprop(True)
 
 /-- **A registered substream's id was never cancelled, unless it stopped** (persistent; unit W-K):
@@ -386,15 +390,18 @@ theorem wsRest_snoc_ctrl (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.Watc
   cases ph with
   | reg X =>
     simp only [wsRest]
-    iintro ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrf, Hprod, Hauth, Hst, Hc2⟩
-    ihave #Hrf' := regFacts_mono V γs P X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
-    iexists w, rg, fcs, lo, sent, C
+    iintro ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrf, Hprod, Hauth, Hst, Hc2⟩
+    ihave #Hrf' := regFacts_mono V γs P B X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
+    iexists B, w, rg, fcs, lo, sent, C
+    isplitr
+    · ipureintro; exact HB
+    iframe HsoB
     iframe Hrf' Hprod Hauth
     isplitl [Hst]
     · unfold cursorOk
       rw [evsSoFar_snoc_ctrl Dm m w h]
       iexact Hst
-    iapply cur2St_mono V γs P X w rg lo sent (evsSoFar_snoc_ctrl Dm m w h)
+    iapply cur2St_mono V γs P B X w rg lo sent (evsSoFar_snoc_ctrl Dm m w h)
       (List.prefix_append Dm [m]) $$ Hc2
   | queued si => simp only [wsRest]; iintro H; iexact H
   | closedRun X => simp only [wsRest]; iintro H; iexact H
@@ -470,7 +477,7 @@ theorem wsRest_snoc_other (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.Wat
     mvcc.respOk ρ ∗ wsRest V γs Dm P (.reg X) ⊢ wsRest V γs (Dm ++ [m]) P (.reg X) := by
   iintro ⟨#Hr, H⟩
   simp only [wsRest]
-  icases H with ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrf, Hprod, Hauth, Hrest, Hc2⟩
+  icases H with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrf, Hprod, Hauth, Hrest, Hc2⟩
   ihave %Hne : ⌜ρ.w ≠ w ∨ ρ.evs = []⌝ $$ []
   · unfold mvcc.respOk
     icases Hr with ⟨-, %rr, %fcs', #Hf, %Hid⟩
@@ -495,14 +502,17 @@ theorem wsRest_snoc_other (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.Wat
     rcases Hne with h | h
     · simp [h]
     · simp [h]
-  ihave #Hrf' := regFacts_mono V γs P X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
-  iexists w, rg, fcs, lo, sent, C
+  ihave #Hrf' := regFacts_mono V γs P B X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
+  iexists B, w, rg, fcs, lo, sent, C
+  isplitr
+  · ipureintro; exact HB
+  iframe HsoB
   iframe Hrf' Hprod Hauth
   isplitl [Hrest]
   · unfold cursorOk
     rw [hev]
     iexact Hrest
-  iapply cur2St_mono V γs P X w rg lo sent hev (List.prefix_append Dm [m]) $$ Hc2
+  iapply cur2St_mono V γs P B X w rg lo sent hev (List.prefix_append Dm [m]) $$ Hc2
 
 /-- **A substream another response's id does not name** keeps its element across the response. -/
 theorem wsElem_recv_other (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
@@ -559,20 +569,22 @@ theorem recvElem_of (V : WEnv GF) (P : WsPrm GF) (k : Nat) (hk : k ≠ 0) (m : v
 
 /-- **What a promised completeness says of a watch** (pure; K2e-7d): its start revision was read,
 non-zero, and its registered range covers exactly the keys under its key. -/
-theorem cpl_facts (V : WEnv GF) (P : WsPrm GF) (X : w64) (rg : mvcc.WatchRange)
-    (hok : wsReqOk V.pfx P) (hc : P.γ.cpl = cplOf P) (hcpl : P.γ.cpl = true)
-    (hcr : v3rpc.createRangeOk (createOfP P) X rg) :
-    P.sr = true ∧ 1 ≤ sint.Z P.rev ∧ (∀ k, rg.covers k = true ↔ P.o.key <+: k) ∧
-      rg.startRev = P.rev ∧ rg.id = X := by
+theorem cpl_facts (V : WEnv GF) (P : WsPrm GF) (B : RegB) (X : w64) (rg : mvcc.WatchRange)
+    (hok : wsReqOk V.pfx P) (hc : P.γ.cpl = cplOf P) (hcpl : P.γ.cpl = true) (hB : regBOk P B)
+    (hcr : v3rpc.createRangeOk (createOfB P B) X rg) :
+    B.srr = true ∧ 1 ≤ sint.Z B.rr ∧ (∀ k, rg.covers k = true ↔ P.o.key <+: k) ∧
+      rg.startRev = B.rr ∧ rg.id = X := by
+  obtain ⟨hsr, hr0⟩ := hB.2.2.2 hcpl
+  have h0 := hB.2.1
   rw [hc] at hcpl
   unfold cplOf cplCond at hcpl
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hcpl
-  obtain ⟨hsr, hk, he, hff, hr0⟩ := hcpl
-  obtain ⟨-, -, h0, -, hkey, hed, -, -⟩ := hok
+  obtain ⟨-, hk, he, hff, -⟩ := hcpl
+  obtain ⟨-, -, -, -, hkey, hed, -, -⟩ := hok
   refine ⟨hsr, ?_, ?_, hcr.2.1, hcr.2.2.1⟩
-  · have : sint.Z P.rev ≠ 0 := fun h => hr0 (by word)
+  · have : sint.Z B.rr ≠ 0 := fun h => hr0 (by word)
     omega
-  · have := covers_prefix (createOfP P) X rg hcr (by show P.key ≠ []; rw [hkey]; exact hk)
+  · have := covers_prefix (createOfB P B) X rg hcr (by show P.key ≠ []; rw [hkey]; exact hk)
       (by show P.ed = prefixRangeEnd P.key; rw [hkey, hed]; exact he)
       (by show prefixRangeEnd P.key ≠ [W8 0]; rw [hkey]; exact hff)
     intro k; rw [this k]; show P.key <+: k ↔ _; rw [hkey]
@@ -590,7 +602,7 @@ theorem cpl_lo (V : WEnv GF) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (l
 /-- **The second cursor over an event-less mvcc response** `x` (the `j`th sent down, the
 substream's own id `X` or `-1`, covering its watcher `w`): the cache's contract from the cursor
 and the cursor after it (`cmpl_cov`, `cmpl_mono`, `cmpl_prog`). -/
-theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB : regBOk P B) (Dm : List v3rpc.WatchRespM)
     (j : Nat) (m : v3rpc.WatchRespM) (x : mvcc.RespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange)
     (fcs : GoSlice) (lo : Nat) (c2 : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) (hj : Dm.length = j) (hsrc : m.src = some x) (hxe : x.evs = [])
@@ -599,10 +611,10 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     (hst : V.R.γ.st = V.R.E.γ) (hv : ¬ watchErr v)
     (hr : r.events = [] ∧ r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0 ∧
       r.hdrRev = m.hdr.revision) (hwc : w ∈ x.cov) :
-    cur2Ok V γs P Dm X w rg lo c2 ∗ v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗
-      regFacts V γs Dm P X w rg fcs lo ∗ startOk V P.sr P.rev ∗ srvLogsSmall V.R ⊢
+    cur2Ok V γs B.rr Dm X w rg lo c2 ∗ v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗
+      regFacts V γs Dm P B X w rg fcs lo ∗ startOk V B.srr B.rr ∗ srvLogsSmall V.R ⊢
       ∃ c2' : w64, watchRespOk (EM := V.EM) P.o.key c2 c2' v r ∗
-        cur2Ok V γs P (Dm ++ [m]) X w rg lo c2' := by
+        cur2Ok V γs B.rr (Dm ++ [m]) X w rg lo c2' := by
   iintro ⟨#Hc, #Hmv, #Hdn, #Hrf, #Hso, #Hsm⟩
   iunfold v3rpc.mvccOk at Hmv
   icases Hmv with ⟨%x', %rs, %L, %Hm, #HL, -, -, -, #Hcov, %Hfr⟩
@@ -627,8 +639,8 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
   ihave #Hcfw := Hcf $$ %w %hwc
   iunfold regFacts at Hrf
   icases Hrf with ⟨%Hcr, #Hwi, #Hfcs, ⟨%γw, #Hmw, %Hsr⟩, -, -⟩
-  obtain ⟨hsr, hrev1, hcov, hstart, hid⟩ := cpl_facts V P X rg hok hcplP hcpl Hcr
-  ihave %Hlo := cpl_lo V w rg fcs lo P.rev hstart hrev1 $$ Hwi
+  obtain ⟨hsr, hrev1, hcov, hstart, hid⟩ := cpl_facts V P B X rg hok hcplP hcpl hB Hcr
+  ihave %Hlo := cpl_lo V w rg fcs lo B.rr hstart hrev1 $$ Hwi
   ihave #Hwi' := Hwi
   iunfold mvcc.watcherIs at Hwi'
   icases Hwi' with ⟨%γw0, %C0, -, #Hwfix, -, -, -⟩
@@ -640,7 +652,7 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
   obtain ⟨hpx, hp63, hE, hd1, hd2, hd3, hlop⟩ := Hcc
   have hdd : dd = p + 1 := by omega
   subst hdd
-  ihave %Hq := cmpl_mono V γs P L X w rg lo c2 x γc pre γo γa Lc p Hγ.2.2.1 Hγ.2.2.2 Hfr.2
+  ihave %Hq := cmpl_mono V γs B.rr L X w rg lo c2 x γc pre γo γa Lc p Hγ.2.2.1 Hγ.2.2.2 Hfr.2
     (hxid.symm.imp (fun h => h) (fun h => h)) hxe hE hlop Hlo hrev1 hpx hp63 $$ [Hc Hax Hsl0 Hrr]
   · iframe Hc Hax Hsl0 Hrr
   obtain ⟨q, hqc, hqp⟩ := Hq
@@ -656,7 +668,7 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     unfold evsOf
     rw [sentEvsOf_snoc, hsrc]
     simp [hxe]
-  iapply cmpl_prog V γs P L m x X w rg lo c2 P.o.key hcov hst Lc (p + 1) p q hpx hp63 hqc hqp hE
+  iapply cmpl_prog V γs B.rr L m x X w rg lo c2 P.o.key hcov hst Lc (p + 1) p q hpx hp63 hqc hqp hE
     (Nat.le_refl _) (Or.inl (Nat.le_refl _)) hd3 hlop Hlo hrev1 hsnoc hsrc hxe hlive v r hv
     ⟨hr.1, hr.2.1, hr.2.2.1, hr.2.2.2.1, hr.2.2.2.2.trans Hm.2.1⟩
   iframe Hc HLc Hsm Hr0 Hpos
@@ -664,26 +676,27 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
 /-- **The second cursor, pending the dispatch's outcome** (K2e-7d): `γh2`'s positions, two more
 than the responses dispatched before (the new one's), the last the cursor after the response. -/
 def cur2Pend (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF)
-    (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) (C2 : List w64) :
+    (B : RegB) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc)
+    (C2 : List w64) :
     IProp GF :=
   iprop(monoListAuthOwn P.γh2 1 C2 ∗
     (⌜P.γ.cpl = false⌝ ∨ dghostVar P.γx DFrac.discard true ∨
       ⌜C2.length = sent.length + 2⌝ ∗ ∃ c2 : w64, ⌜C2.getLast? = some c2⌝ ∗
-        cur2Ok V γs P Dm X w rg lo c2))
+        cur2Ok V γs B.rr Dm X w rg lo c2))
 
 /-- **A dispatch's step of the second cursor** (K2e-7d): from a step of the cursor over the
 response (`hstep`, with the persistent facts `Q`, when the watch promises completeness), the
 cursor's pending state and the response's completeness part (`recvCmpl`), or the substream had
 stopped. -/
 theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
-    (m : v3rpc.WatchRespM) (P : WsPrm GF) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat)
+    (m : v3rpc.WatchRespM) (P : WsPrm GF) (B : RegB) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (lo : Nat)
     (sent : List Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel)
     (Q : IProp GF) [Persistent Q]
-    (hstep : P.γ.cpl = true → ∀ c2 : w64, cur2Ok V γs P Dm X w rg lo c2 ∗ Q ⊢
+    (hstep : P.γ.cpl = true → ∀ c2 : w64, cur2Ok V γs B.rr Dm X w rg lo c2 ∗ Q ⊢
       ∃ c2' : w64, watchRespOk (EM := V.EM) P.o.key c2 c2' v r ∗
-        cur2Ok V γs P (Dm ++ [m]) X w rg lo c2') :
-    cur2St V γs Dm P X w rg lo sent ∗ Q ⊢
-    |==> ∃ C2 : List w64, cur2Pend V γs (Dm ++ [m]) P X w rg lo sent C2 ∗
+        cur2Ok V γs B.rr (Dm ++ [m]) X w rg lo c2') :
+    cur2St V γs Dm P B X w rg lo sent ∗ Q ⊢
+    |==> ∃ C2 : List w64, cur2Pend V γs (Dm ++ [m]) P B X w rg lo sent C2 ∗
       (dghostVar P.γx DFrac.discard true ∨ recvCmpl V P (sent.length : Int) v r) := by
   iintro ⟨Hc, #HQ⟩
   unfold cur2St
@@ -742,11 +755,11 @@ theorem cmpl_step (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM)
 /-- **An event-less response of a substream's own id covers its watcher** (K2e-7d): the id is
 assigned to the response's watcher (`mvccExtra`), the substream's (`idAssigned`), and an event-less
 response covers its watcher (`respCov`). -/
-theorem own_cov (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem own_cov (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (Dm : List v3rpc.WatchRespM)
     (j : Nat) (m : v3rpc.WatchRespM)
     (x : mvcc.RespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
     (hsrc : m.src = some x) (hxe : x.evs = []) (hid : x.id = X) (hX1 : X ≠ W64 (-1)) :
-    v3rpc.mvccOk γs V.R.γ j m ∗ regFacts V γs Dm P X w rg fcs lo ⊢ ⌜w ∈ x.cov⌝ := by
+    v3rpc.mvccOk γs V.R.γ j m ∗ regFacts V γs Dm P B X w rg fcs lo ⊢ ⌜w ∈ x.cov⌝ := by
   iintro ⟨#Hmv, #Hrf⟩
   iunfold v3rpc.mvccOk at Hmv
   icases Hmv with ⟨%x', %rs, %L, %Hm, -, -, -, #Hx, #Hcov, -⟩
@@ -783,7 +796,7 @@ theorem own_cov (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
 the content of the response for the substream (`recvElem`), the cursors extended by the new one
 and the substream's state after it (the stop flag, or the cursor of the events received with this
 response). -/
-theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB : regBOk P B) (Dm : List v3rpc.WatchRespM)
     (j : Nat) (m : v3rpc.WatchRespM) (ρ : mvcc.RespM) (rs : List mvcc.RespM) (w : Loc)
     (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (sent : List Loc) (C : List w64)
     (h : Loc) (sl : GoSlice) (ps : List Loc) (kvs : List Loc)
@@ -795,23 +808,23 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
     (hj : Dm.length = j) (hcplP : P.γ.cpl = cplOf P) (hlive : v3rpc.idLive Dm ρ.id)
     (hX1 : ρ.id ≠ W64 (-1)) :
     srvEventIdsAssigned V.R ∗ srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
-      startOk V P.sr P.rev ∗ v3rpc.downLbW γs Dm ∗ cur2St V γs Dm P ρ.id w rg lo sent ∗
+      startOk V B.srr B.rr ∗ v3rpc.downLbW γs Dm ∗ cur2St V γs Dm P B ρ.id w rg lo sent ∗
       v3rpc.mvccOk γs V.R.γ j m ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
-      regFacts V γs Dm P ρ.id w rg fcs lo ∗ sl ↦*□ ps ∗
+      regFacts V γs Dm P B ρ.id w rg fcs lo ∗ sl ↦*□ ps ∗
       ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ∗
       eventsAt sl (List.zipWith evModelOf ρ.evs kvs) ∗
       monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C.length = sent.length + 1 ∧ sent ≠ []⌝ ∗ (∃ hi : w64, ⌜C.getLast? = some hi⌝ ∗
-          cursorOk V P Dm w rg lo hi) ∗ psAt P sent.length) ∗
+          cursorOk V P B Dm w rg lo hi) ∗ psAt P sent.length) ∗
       structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ m.hdr.revision ⊢
     |={⊤}=> ∃ (es : List EvModel) (C' C2 : List w64), eventsAt sl es ∗ ⌜es.length = m.evs.length⌝ ∗
       (⌜m.evs = []⌝ -∗ hdrAt h m.hdr.revision) ∗ monoListAuthOwn P.γhi 1 C' ∗
       (∀ wr : Loc, wr ↦□ wrOf m h sl -∗ recvElem V P sent.length wr) ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C'.length = sent.length + 2⌝ ∗ (∃ hi : w64, ⌜C'.getLast? = some hi⌝ ∗
-          cursorOk V P (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
-      cur2Pend V γs (Dm ++ [m]) P ρ.id w rg lo sent C2 := by
+          cursorOk V P B (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
+      cur2Pend V γs (Dm ++ [m]) P B ρ.id w rg lo sent C2 := by
   iintro ⟨#HS3, #Hsm, #Hnd, #Hso, #Hdn, Hc2, #Hmv, #Hrecv, #Hrf, #Hsl, #Hevs, #Hea, Hauth, Hst, Hrev⟩
   ihave #Hrf0 := Hrf
   ihave Hhdr : iprop(|==> ((⌜m.evs = []⌝ ∗ hdrAt h m.hdr.revision) ∨
@@ -874,8 +887,9 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
   icases Hcur with ⟨%Hhi, #Hcut⟩
   have hfilt' : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm w ++ [ρ] =
       rs.filter (fun x => decide (x.evs ≠ [])) := fun hne => by rw [← hρw hne]; exact hfilt hne
-  ihave Hdc := dispatch_content V P Dm m
-      ρ rs ρ.id w rg fcs lo hi sl ps m.hdr.revision hsrc hρw hfilt' hps hok hpfx hst Hcr Hhi $$ []
+  ihave Hdc := dispatch_content V P B.rr B.srr B.hb Dm m
+      ρ rs ρ.id w rg fcs lo hi sl ps m.hdr.revision hsrc hρw hfilt' hps hok hpfx hst Hcr hB.1 hB.2.1
+      hB.2.2.1 Hhi $$ []
   · iframe #
   imod Hdc with ⟨%es, #Hes, %Hesl, #Hrok, %Hhi', #Hcut', %kvs', %Hkvs, #Hkv⟩
   -- (D24) the position marked, the resume fact's server side
@@ -903,21 +917,21 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
       iframe #
   have hv : ¬ watchErr (wrOf m h sl) := by
     unfold watchErr wrOf; simp [hfl.1, hfl.2.1]
-  ihave Hcmp : iprop(|==> ∃ C2 : List w64, cur2Pend V γs (Dm ++ [m]) P ρ.id w rg lo sent C2 ∗
+  ihave Hcmp : iprop(|==> ∃ C2 : List w64, cur2Pend V γs (Dm ++ [m]) P B ρ.id w rg lo sent C2 ∗
       (dghostVar P.γx DFrac.discard true ∨ recvCmpl V P (sent.length : Int) (wrOf m h sl)
         ⟨es, W64 0, false, false, m.hdr.revision⟩)) $$ [Hc2]
   · by_cases hne : ρ.evs = []
     · -- an event-less response of the substream's own id: a progress notification
       have hes0 : es = [] := by
         rw [← List.length_eq_zero_iff, Hesl, hne]; rfl
-      ihave %Hwc := own_cov V γs P Dm j m ρ ρ.id w rg fcs lo hsrc hne rfl hX1 $$ [Hmv Hrf0]
+      ihave %Hwc := own_cov V γs P B Dm j m ρ ρ.id w rg fcs lo hsrc hne rfl hX1 $$ [Hmv Hrf0]
       · iframe #
-      iapply cmpl_step V γs Dm m P ρ.id w rg lo sent (wrOf m h sl) _
+      iapply cmpl_step V γs Dm m P B ρ.id w rg lo sent (wrOf m h sl) _
         iprop(v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗
-          regFacts V γs Dm P ρ.id w rg fcs lo ∗ startOk V P.sr P.rev ∗ srvLogsSmall V.R)
+          regFacts V γs Dm P B ρ.id w rg fcs lo ∗ startOk V B.srr B.rr ∗ srvLogsSmall V.R)
         (fun hc c2 => by
           iintro ⟨#Hc, #Hq1, #Hq2, #Hq3, #Hq4, #Hq5⟩
-          iapply prog_cmpl V γs P Dm j m ρ ρ.id w rg fcs lo c2 (wrOf m h sl) _ hj hsrc hne hlive
+          iapply prog_cmpl V γs P B hB Dm j m ρ ρ.id w rg fcs lo c2 (wrOf m h sl) _ hj hsrc hne hlive
             hX1 (Or.inl rfl) hok hcplP hc hst hv ⟨hes0, rfl, rfl, rfl, rfl⟩ Hwc
           iframe #)
       iframe Hc2
@@ -934,14 +948,14 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
         unfold evsOf
         rw [sentEvsOf_snoc, hsrc]
         simp [hw, hne]
-      iapply cmpl_step V γs Dm m P ρ.id w rg lo sent (wrOf m h sl) _
+      iapply cmpl_step V γs Dm m P B ρ.id w rg lo sent (wrOf m h sl) _
         iprop(mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗
           □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜ρ.evs[k]? = some ev⌝ → ⌜kvs'[k]? = some kv⌝ →
             mvcc.kvPtrFixed kv ev.kv))
         (fun hc c2 => by
           iintro ⟨#Hc, #Hq1, #Hq2, #Hq3⟩
-          obtain ⟨-, -, hcov, -, -⟩ := cpl_facts V P ρ.id rg hok hcplP hc Hcr
-          iapply cmpl_events V γs P Dm m ρ.id w rg lo c2 P.o.key hcov hst L2 d ρ.evs kvs' Hkvs.2 hne
+          obtain ⟨-, -, hcov, -, -⟩ := cpl_facts V P B ρ.id rg hok hcplP hc hB Hcr
+          iapply cmpl_events V γs B.rr Dm m ρ.id w rg lo c2 P.o.key hcov hst L2 d ρ.evs kvs' Hkvs.2 hne
             hsnoc h2 HL2d.2 (wrOf m h sl) _ Hkvs.1 hv
           iframe #)
       iframe Hc2
@@ -1009,27 +1023,31 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
 
 /-- **After dispatching to a registered substream**: its state over the new response, whether
 the send succeeded or failed. -/
-theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB : regBOk P B) (Dm : List v3rpc.WatchRespM)
     (m : v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
     (sent : List Loc) (C' C2 : List w64) (b : Bool) (wr : Loc) (d : DnInfo GF) (γend : GName)
     (n : Nat) :
-    regFacts V γs Dm P X w rg fcs lo ∗ monoListAuthOwn P.γhi 1 C' ∗
+    regFacts V γs Dm P B X w rg fcs lo ∗ startOk V B.srr B.rr ∗ monoListAuthOwn P.γhi 1 C' ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C'.length = sent.length + 2⌝ ∗ (∃ hi : w64, ⌜C'.getLast? = some hi⌝ ∗
-          cursorOk V P (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
-      cur2Pend V γs (Dm ++ [m]) P X w rg lo sent C2 ∗
+          cursorOk V P B (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
+      cur2Pend V γs (Dm ++ [m]) P B X w rg lo sent C2 ∗
       ((⌜b = true⌝ ∗ sendDone P sent wr d γend n) ∨ (⌜b = false⌝ ∗ sendFail V P sent wr d γend n)) ⊢
     wsRest V γs (Dm ++ [m]) P (.reg X) ∗ dnCap P d γend n := by
-  iintro ⟨#Hrf, Hauth, Hst, Hpend, Hs⟩
+  iintro ⟨#Hrf, #HsoB, Hauth, Hst, Hpend, Hs⟩
+  have HB := hB
   simp only [wsRest]
   unfold cur2Pend
   icases Hpend with ⟨Ha2, Hp2⟩
-  ihave #Hrf' := regFacts_mono V γs P X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
+  ihave #Hrf' := regFacts_mono V γs P B X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
   icases Hs with (⟨%-, Hd⟩ | ⟨%-, Hf⟩)
   · iunfold sendDone at Hd
     icases Hd with ⟨Hd, Hdc⟩
     iframe Hdc
-    iexists w, rg, fcs, lo, sent ++ [wr], C'
+    iexists B, w, rg, fcs, lo, sent ++ [wr], C'
+    isplitr
+    · ipureintro; exact HB
+    iframe HsoB
     iframe Hrf' Hd Hauth
     isplitl [Hst]
     · icases Hst with (#Hx | ⟨%Hlen, ⟨%hi, %Hl, #Hc⟩, Hps⟩)
@@ -1058,7 +1076,10 @@ theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3r
   · iunfold sendFail at Hf
     icases Hf with ⟨Hp, -, #Hx, Hdc⟩
     iframe Hdc
-    iexists w, rg, fcs, lo, sent, C'
+    iexists B, w, rg, fcs, lo, sent, C'
+    isplitr
+    · ipureintro; exact HB
+    iframe HsoB
     iframe Hrf' Hp Hauth
     isplitr
     · ileft; iexact Hx
@@ -1070,7 +1091,7 @@ theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3r
 /-- **Before broadcasting a progress response to a registered substream** (unit W-K): the
 response (no events) for the substream (`recvElem`, the cursor as it was), the cursors extended
 by the same one, and the substream's state after it. -/
-theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB : regBOk P B) (Dm : List v3rpc.WatchRespM)
     (j : Nat) (m : v3rpc.WatchRespM) (ρ : mvcc.RespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange)
     (fcs : GoSlice) (lo : Nat) (sent : List Loc) (C : List w64)
     (h : Loc) (sl : GoSlice) (hsrc : m.src = some ρ) (hev : ρ.evs = [])
@@ -1081,16 +1102,16 @@ theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     hdrAt h m.hdr.revision ∗ eventsAt sl [] ∗ monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C.length = sent.length + 1 ∧ sent ≠ []⌝ ∗ (∃ hi : w64, ⌜C.getLast? = some hi⌝ ∗
-          cursorOk V P Dm w rg lo hi) ∗ psAt P sent.length) ∗
-      cur2St V γs Dm P X w rg lo sent ∗ (⌜w ∈ ρ.cov⌝ ∨ dghostVar P.γx DFrac.discard true) ∗
-      v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗ regFacts V γs Dm P X w rg fcs lo ∗
-      startOk V P.sr P.rev ∗ srvLogsSmall V.R ⊢
+          cursorOk V P B Dm w rg lo hi) ∗ psAt P sent.length) ∗
+      cur2St V γs Dm P B X w rg lo sent ∗ (⌜w ∈ ρ.cov⌝ ∨ dghostVar P.γx DFrac.discard true) ∗
+      v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗ regFacts V γs Dm P B X w rg fcs lo ∗
+      startOk V B.srr B.rr ∗ srvLogsSmall V.R ⊢
     |={⊤}=> ∃ C' C2 : List w64, monoListAuthOwn P.γhi 1 C' ∗
       (∀ wr : Loc, wr ↦□ wrOf m h sl -∗ recvElem V P sent.length wr) ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C'.length = sent.length + 2⌝ ∗ (∃ hi : w64, ⌜C'.getLast? = some hi⌝ ∗
-          cursorOk V P (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
-      cur2Pend V γs (Dm ++ [m]) P X w rg lo sent C2 := by
+          cursorOk V P B (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
+      cur2Pend V γs (Dm ++ [m]) P B X w rg lo sent C2 := by
   iintro ⟨#Hha, #Hea, Hauth, Hst, Hc2, #Hmem, #Hmv, #Hdn, #Hrf, #Hso, #Hsm⟩
   icases Hst with (#Hx | ⟨⟨%Hlen, %Hsne⟩, ⟨%hi, %Hlast, #Hcur⟩, Hps⟩)
   · unfold cur2St
@@ -1107,16 +1128,16 @@ theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
     unfold cur2Pend; iframe Ha2; iright; ileft; iexact Hx
   have hv : ¬ watchErr (wrOf m h sl) := by
     unfold watchErr wrOf; simp [hfl.1, hfl.2.1]
-  ihave Hcmp : iprop(|==> ∃ C2 : List w64, cur2Pend V γs (Dm ++ [m]) P X w rg lo sent C2 ∗
+  ihave Hcmp : iprop(|==> ∃ C2 : List w64, cur2Pend V γs (Dm ++ [m]) P B X w rg lo sent C2 ∗
       (dghostVar P.γx DFrac.discard true ∨ recvCmpl V P (sent.length : Int) (wrOf m h sl)
         ⟨[], W64 0, false, false, m.hdr.revision⟩)) $$ [Hc2]
   · icases Hmem with (%Hwc | #Hx2)
-    · iapply cmpl_step V γs Dm m P X w rg lo sent (wrOf m h sl) _
+    · iapply cmpl_step V γs Dm m P B X w rg lo sent (wrOf m h sl) _
         iprop(v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs Dm ∗
-          regFacts V γs Dm P X w rg fcs lo ∗ startOk V P.sr P.rev ∗ srvLogsSmall V.R)
+          regFacts V γs Dm P B X w rg fcs lo ∗ startOk V B.srr B.rr ∗ srvLogsSmall V.R)
         (fun hc c2 => by
           iintro ⟨#Hc, #Hq1, #Hq2, #Hq3, #Hq4, #Hq5⟩
-          iapply prog_cmpl V γs P Dm j m ρ X w rg fcs lo c2 (wrOf m h sl) _ hj hsrc hev hlive
+          iapply prog_cmpl V γs P B hB Dm j m ρ X w rg fcs lo c2 (wrOf m h sl) _ hj hsrc hev hlive
             hX1 (Or.inr hid) hok hcplP hc hst hv ⟨rfl, rfl, rfl, rfl, rfl⟩ Hwc
           iframe #)
       iframe Hc2
@@ -1186,8 +1207,8 @@ theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3
 K2e-7d): for the substream `ws` at the id `X`, whatever its values. -/
 def bcastCov (V : WEnv GF) (γs : StreamNames) (S : RunSt) (ρ : mvcc.RespM) (X : w64) (ws : Loc) :
     IProp GF :=
-  iprop(□ ∀ (P : WsPrm GF) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
-    ⌜P.ws = ws⌝ -∗ regFacts V γs S.Dm P X w rg fcs lo -∗ noCancelOk S P (.reg X) -∗
+  iprop(□ ∀ (P : WsPrm GF) (B : RegB) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
+    ⌜P.ws = ws⌝ -∗ regFacts V γs S.Dm P B X w rg fcs lo -∗ noCancelOk S P (.reg X) -∗
       (⌜w ∈ ρ.cov⌝ ∨ dghostVar P.γx DFrac.discard true))
 
 instance bcastCov_persistent (V : WEnv GF) (γs : StreamNames) (S : RunSt) (ρ : mvcc.RespM)
@@ -1221,7 +1242,7 @@ theorem bcast_regPair (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
     | reg Y => rw [hinj Y X ws Hph.1 hM]
   subst hph0
   iunfold wsRest at Hrest
-  icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrg, Hprod, Hauth, Hst, Hc2⟩
+  icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrg, Hprod, Hauth, Hst, Hc2⟩
   ihave #Hrg' := Hrg
   iunfold regFacts at Hrg'
   icases Hrg' with ⟨-, -, -, -, #Hsnap, %γo1, %γa1, #Hax1, #Hia⟩
@@ -1260,7 +1281,10 @@ theorem bcast_regPair (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
     isplitr
     · ipureintro; exact ⟨HPws, Hph⟩
     simp only [wsRest]
-    iexists w, rg, fcs, lo, sent, C
+    iexists B, w, rg, fcs, lo, sent, C
+    isplitr
+    · ipureintro; exact HB
+    iframe HsoB
     iframe Hrg Hprod Hauth Hst Hc2
   iintro !>
   iexists w, n
@@ -1430,7 +1454,7 @@ theorem bcast_covAll (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames)
   iframe Ht Hm
   iintro !> %X %ws %hX
   unfold bcastCov
-  iintro !> %P %w %rg %fcs %lo %HPws #Hrf #Hnc
+  iintro !> %P %B %w %rg %fcs %lo %HPws #Hrf #Hnc
   iunfold regFacts at Hrf
   icases Hrf with ⟨%Hcr, #Hwi, -, -, -, %γo1, %γa1, #Hax1, #Hia⟩
   ihave %He : iprop(⌜v3rpc.auxOf γo γa = v3rpc.auxOf γo1 γa1⌝) $$ []
@@ -1483,15 +1507,15 @@ theorem bcast_elem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {
     | reg Y => rw [hinj Y X ws Hph.1 hM]
   subst hph0
   iunfold wsRest at Hrest
-  icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrg, Hprod, Hauth, Hst, Hc2⟩
+  icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrg, Hprod, Hauth, Hst, Hc2⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
   icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso⟩
   iunfold bcastCov at Hbc
-  ihave #Hmem := Hbc $$ %P %w %rg %fcs %lo %HPws Hrg Hnc
-  imod bcast_pre V γs P S.Dm j m ρ X w rg fcs lo sent C h sl hsrc hev hfl hhn hj HPpure.2.1
+  ihave #Hmem := Hbc $$ %P %B %w %rg %fcs %lo %HPws Hrg Hnc
+  imod bcast_pre V γs P B HB S.Dm j m ρ X w rg fcs lo sent C h sl hsrc hev hfl hhn hj HPpure.2.1
       HPpure.2.2 Hph.2.2.2.2.2.2.2 Hph.2.2.2.2.1 hid hst
-      $$ [$Hha $Hea $Hauth $Hst $Hc2 $Hmem $Hmv $Hdn $Hrg $Hso $Hsm]
+      $$ [$Hha $Hea $Hauth $Hst $Hc2 $Hmem $Hmv $Hdn $Hrg $HsoB $Hsm]
     with ⟨%C', %C2, Hauth, Hrecv, Hst, Hpend⟩
   imodintro
   ihave #Href := lifeQ_cur V G P L n HLg
@@ -1510,11 +1534,11 @@ theorem bcast_elem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {
   ihave ⟨Hrest, Hdc⟩ : iprop(wsRest V γs (S.Dm ++ [m]) P (.reg X) ∗
       dnCap P (lifeDn V G P L) G.γend n) $$ [Hs Hauth Hst Hpend]
   · icases Hs with (Hd | Hf)
-    · iapply reg_post V γs P S.Dm m X w rg fcs lo sent C' C2 true wr (lifeDn V G P L) G.γend n
-      iframe Hrg Hauth Hst Hpend
+    · iapply reg_post V γs P B HB S.Dm m X w rg fcs lo sent C' C2 true wr (lifeDn V G P L) G.γend n
+      iframe Hrg HsoB Hauth Hst Hpend
       ileft; iframe Hd; ipureintro; rfl
-    · iapply reg_post V γs P S.Dm m X w rg fcs lo sent C' C2 false wr (lifeDn V G P L) G.γend n
-      iframe Hrg Hauth Hst Hpend
+    · iapply reg_post V γs P B HB S.Dm m X w rg fcs lo sent C' C2 false wr (lifeDn V G P L) G.γend n
+      iframe Hrg HsoB Hauth Hst Hpend
       iright; iframe Hf; ipureintro; rfl
   iunfold dnCap at Hdc
   icases Hdc with ⟨Hdc, -⟩
@@ -1709,7 +1733,7 @@ theorem wsElem_split (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames)
       ipureintro; rfl
     | reg X =>
       unfold wsRest closerRes recvcCloser
-      icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, -, Hprod, -⟩
+      icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, -, -, -, Hprod, -⟩
       iexists P, sent
       iframe HP Hprod
       ipureintro; rfl
@@ -2851,7 +2875,7 @@ theorem watchGRPCStream.run.wp_proof
                 iframe Hax' Hl Hrn
                 ipureintro
                 exact ⟨Nat.le_trans Hn Hpp.1.length_le, by rw [hLD]; exact List.prefix_refl _, Hpp.2.2⟩
-              ihave #Hrg : iprop(client.regFacts V γs S.Dm P m.watchId w rg fcs lo) $$ []
+              ihave #Hrg : iprop(client.regFacts V γs S.Dm P (regB0 P) m.watchId w rg fcs lo) $$ []
               · unfold client.regFacts
                 iframe Hwi Hfcs Hsnap
                 isplitr
@@ -2861,17 +2885,18 @@ theorem watchGRPCStream.run.wp_proof
                   iexists γw'; iframe Hm'; ipureintro; exact Hsr'
                 iexists γo', γa'
                 iframe Hax' Hias
-              ihave Hpend : iprop(|==> client.cur2Pend V γs (S.Dm ++ [m]) P m.watchId w rg lo []
+              ihave Hpend : iprop(|==> client.cur2Pend V γs (S.Dm ++ [m]) P (regB0 P) m.watchId w rg lo []
                   ([P.rev - W64 1] ++ [P.rev - W64 1])) $$ [Hauth2]
               · unfold client.cur2Pend
                 cases hcp : P.γ.cpl
                 · imodintro; iframe Hauth2; ileft; ipureintro; rfl
-                obtain ⟨-, hrev1, -, hstart, -⟩ := client.cpl_facts V P m.watchId rg HPq.1 HPq.2 hcp Hcrg
+                obtain ⟨-, hrev1, -, hstart, -⟩ := client.cpl_facts V P (regB0 P) m.watchId rg HPq.1 HPq.2
+                  hcp (regB0_ok V.pfx P HPq.1 HPq.2) Hcrg
                 ihave %Hlo := client.cpl_lo V w rg fcs lo P.rev hstart hrev1 $$ Hwi
                 have hE : client.evsOf (S.Dm ++ [m]) w = [] := by
                   have := client.evsSoFar_snoc_ctrl S.Dm m w hs0
                   rw [Hfresh] at this; exact this
-                imod client.cur2Ok_init V γs P (S.Dm ++ [m]) m.watchId w rg lo hrev1 Hlo hE with #Hc0
+                imod client.cur2Ok_init V γs P.rev (S.Dm ++ [m]) m.watchId w rg lo hrev1 Hlo hE with #Hc0
                 imodintro
                 iframe Hauth2
                 iright; iright
@@ -2881,7 +2906,12 @@ theorem watchGRPCStream.run.wp_proof
                 iframe Hc0
                 ipureintro; rfl
               imod Hpend with Hpend
-              icases client.reg_post V γs P S.Dm m m.watchId w rg fcs lo []
+              ihave #HsoP : iprop(startOk V P.sr P.rev) $$ []
+              · ihave #HP'' := HP
+                iunfold wsIs at HP''
+                icases HP'' with ⟨-, -, -, -, -, -, -, #H⟩
+                iexact H
+              icases client.reg_post V γs P (regB0 P) (regB0_ok V.pfx P HPq.1 HPq.2) S.Dm m m.watchId w rg fcs lo []
                 ([P.rev - W64 1] ++ [P.rev - W64 1]) ([P.rev - W64 1] ++ [P.rev - W64 1]) b wr
                 (lifeDn V G P L) G.γend 1 $$ [Hauth Hpost Hpend Hpsq] with ⟨Hrest, Hdc⟩
               · iframe Hauth Hpost Hpend
@@ -3282,7 +3312,7 @@ theorem watchGRPCStream.run.wp_proof
             subst hreg
             have Hph2 := Hnew P.ws (.reg X) rfl Hph
             simp only [client.wsRest, client.noCancelOk]
-            icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, -, Hprod, -, -⟩
+            icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, -, -, -, Hprod, -, -⟩
             ihave #HP' := HP
             iunfold wsIs at HP'
             icases HP' with ⟨-, #Frecvc, -, #Hrecvc, -⟩
@@ -3742,7 +3772,7 @@ theorem watchGRPCStream.run.wp_proof
             rw [hX]
         subst hph
         iunfold client.wsRest at Hrest
-        icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrg, Hprod, Hauth, Hst, Hc2⟩
+        icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, #Hrg, Hprod, Hauth, Hst, Hc2⟩
         ihave #HP' := HP
         iunfold wsIs at HP'
         icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso⟩
@@ -3750,7 +3780,7 @@ theorem watchGRPCStream.run.wp_proof
         · unfold v3rpc.downLbW; iexact HDlb
         ihave #Hevs' : iprop([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs x.1 x.2) $$ []
         · rw [← hev0]; iexact Hevs
-        ihave Hpre := client.reg_pre V γs P S.Dm S.Dm.length m ρ rs w rg fcs lo sent C h sl ps kvs
+        ihave Hpre := client.reg_pre V γs P B HB S.Dm S.Dm.length m ρ rs w rg fcs lo sent C h sl ps kvs
             hsrc hev0 ⟨hcomp0, hca0, hcr0⟩ Hfilt (by rw [← hev0]; exact Hpslen) Hkvl HPpure.2.1 Hpre.2
             Hpre.1 Hhn rfl HPpure.2.2 hlive hid $$ [Hauth Hst Hhrev Hc2]
         · iframe; iframe #
@@ -3775,7 +3805,7 @@ theorem watchGRPCStream.run.wp_proof
         rw [if_neg (by simpa using hnb), hid0, hMX]
         iintro ⟨%wr, Hpost⟩
         icases client.post_gx V P sent wr b (lifeDn V G P L) G.γend 1 $$ Hpost with ⟨Hpost, #Hxb⟩
-        icases client.reg_post V γs P S.Dm m ρ.id w rg fcs lo sent C' C2 b wr (lifeDn V G P L) G.γend 1
+        icases client.reg_post V γs P B HB S.Dm m ρ.id w rg fcs lo sent C' C2 b wr (lifeDn V G P L) G.γend 1
           $$ [Hauth Hst Hpend Hpost] with ⟨Hrest, Hdc⟩
         · iframe; iframe #
         ihave HlifeR : iprop(client.wsLife V G 1 P) $$ [Hdc Htk]
