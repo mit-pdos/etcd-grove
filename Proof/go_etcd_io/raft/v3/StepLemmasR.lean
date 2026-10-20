@@ -809,8 +809,12 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
       { rOf s g with p := toPState (sendMsgs (becomeCandidate id s) _), pci := W64 0 }
     rw [toPState_sendMsgs, toPState_becomeCandidate]
     have Hgc : (rOf s g).cfg.cfg = c := hc
-    refine StepR.campaign (rOf s g) peers cl Hnl' (by rw [Hgc]; exact Hin)
-      (by simp [rOf, Hsn]) ?_ Hnw (by rw [Hgc]; exact Hperm)
+    -- (2026-10-20) the campaign asks every other voter, then the witness's request is dropped
+    refine StepR.trans _ [] _ [] _
+      (StepR.campaign (rOf s g) (elements (c.voters \ {[id]})) cl Hnl' (by rw [Hgc]; exact Hin)
+        (by simp [rOf, Hsn]) ?_ Hnw (by rw [Hgc]))
+      (StepR.drain _ _ ((List.subperm_append_left _).2
+        ((List.subperm_append_left _).2 (campSet_subperm c id _ peers Hperm))))
     exact noConfIn_of_unapplied s.logst g.fp hd.2.2.1.1 (Hlog.1 Hsn) Hlog.2.1 Hlog.2.2 Hno
   · -- a pre-election: `abandon`, then the free sends
     show StepR Adm dec id B (rOf s g) []

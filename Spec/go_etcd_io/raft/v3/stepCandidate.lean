@@ -146,12 +146,12 @@ def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
              prvals := pvs, ep := (if won then resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) else s.ep) }
 
 /-- `PrecandVoteRespResult` at the configuration `c`: the joint facts, and on a win the peers
-`campaign` asked, the other voters of either half. -/
+`campaign` asked, the other voters of either half (2026-10-20: but the witness, `campSet`). -/
 def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
     (s' : NState) : Prop :=
   ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
     let votes' := recordVote s.votes m.From' (!m.Reject')
-    (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (c.voters \ {[id]})) ∧
+    (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (campSet c id)) ∧
     (lost = true → JLost c votes') ∧
     s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
 
@@ -210,7 +210,7 @@ theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState}
   refine ⟨won, lost, peers, pvs, fun hw => ?_, fun hl => ?_, h3⟩
   · obtain ⟨a, b⟩ := h1 hw
     refine ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, ?_⟩
-    rw [CfgM.voters_simple] at b; exact b
+    rw [campSet_nw _ _ (CfgM.simple_wit _ _), CfgM.voters_simple] at b; exact b
   · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
 
 theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}

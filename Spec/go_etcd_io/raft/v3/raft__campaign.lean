@@ -9,6 +9,7 @@ Lean notes: the type of Rocq's untyped binder `pvs` is written out
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.StepLemmasC
 
 @[expose] public section
 
@@ -62,7 +63,9 @@ abbrev raft.campaign.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
   {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
-      ⌜peers ≡ₚ elements (c.voters \ {[id]})⌝ ∗
+      -- (2026-10-20, witness support) every other voter but the witness (`campSet`): it votes only
+      -- when asked, once the candidate is a vote short (`stepCandidate`)
+      ⌜peers ≡ₚ elements (campSet c id)⌝ ∗
       -- each request carries the `lastEntryID()` read just before it was built
       -- (`Index: last.index, LogTerm: last.term`) -- the log's last entry id, the same
       -- for every peer: nothing in the loop changes the log -- and (2026-10-13) for a
