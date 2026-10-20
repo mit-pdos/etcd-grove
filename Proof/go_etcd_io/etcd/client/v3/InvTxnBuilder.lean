@@ -59,6 +59,37 @@ def txnObjAt (tp : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.Con
       ownSliceCap Loc fsl (DFrac.own 1) ∗ reqOpsAt fps (b.model.elseOps.map opWire) ∗
     structFieldRef go_etcd_io.etcd.client.v3.txn go!"callOpts" tp ↦□ cosl ∗ callOptsAt cosl)
 
+/-- **The `*txn` `tp` was made from the `*kv` `api`** (persistent; 2026-10-20, linkv-txn stage
+A): its `kv` field, which `kv.Txn` returns, so that a caller knows the builder's connection. -/
+def txnKvIs (tp api : Loc) : IProp GF :=
+  iprop(structFieldRef go_etcd_io.etcd.client.v3.txn go!"kv" tp ↦□ api)
+
+instance txnKvIs_persistent (tp api : Loc) : Persistent (txnKvIs (GF := GF) tp api) := by
+  unfold txnKvIs; infer_instance
+
+/-- **A transaction's precondition on a `*txn`** (2026-10-20, linkv-txn stage A; `kvReqPre`'s,
+D21 M6): persistent, or ordinary on a builder made from a `*kv` over a connection configured for
+one attempt (`kvOnce`). -/
+def txnReqPre (tp : Loc) (addr : GoString) (P : IProp GF) : IProp GF :=
+  iprop(□ ▷ P ∨ ((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addr) ∗ ▷ P))
+
+theorem txnReqPre_box (tp : Loc) (addr : GoString) (P : IProp GF) :
+    (□ ▷ P : IProp GF) ⊢ txnReqPre tp addr P := by
+  unfold txnReqPre; iintro #H; ileft; iexact H
+
+/-- A `*txn`'s precondition is its `*kv`'s (the `kv` fields' points-to agree). -/
+theorem txnReqPre_kv (tp api : Loc) (addr : GoString) (P : IProp GF) :
+    txnKvIs tp api ∗ txnReqPre tp addr P ⊢ kvReqPre api addr P := by
+  iintro ⟨#Hk, H⟩
+  unfold txnReqPre kvReqPre
+  icases H with (#H | ⟨⟨%api', #Hk', #Ho⟩, H⟩)
+  · ileft; iexact H
+  · iright
+    iunfold txnKvIs at Hk Hk'
+    icombine Hk Hk' gives %Heq
+    subst Heq
+    iframe Ho H
+
 theorem comparesAt_nil : ⊢ comparesAt (GF := GF) [] [] := by
   unfold comparesAt
   iintro

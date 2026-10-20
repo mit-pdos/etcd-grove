@@ -538,18 +538,21 @@ theorem kv_delete_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
   · iframe #
     isplitl []
     · ipureintro; exact ⟨hpan, ht⟩
+    -- (2026-10-20, linkv-txn stage A) a persistent update, its result persistent
+    iapply kvReqPre_box
     imodintro
     inext
     unfold etcdDeleteSpec
     iexists F
     iframe HF
-    iexists (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝))
+    iexists (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
     isplitr
     · ipureintro; simpa [deleteWireOf, txn.deleteOpOf] using hz
     isplitr
-    · iexact Hau
+    · iapply kvOpAu_one $$ Hau
     iintro %m Hm
-    iexact Hm
+    iapply deleteReplied_mono E γw F _ (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
+      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid m (fun _ => intuitionistically_elim) $$ Hm
   inext
   iintro %resp %err Hout
   iapply HΦ

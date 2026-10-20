@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem retryKVClient.DeleteRange.wp_proof (wp_kVClient_DeleteRange : kVClient.DeleteRange.spec (GF := GF) (hG := hG)) :
     retryKVClient.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro rkv conn addr Spec Q ctx cd inp req k e opts vs
-  wp_start as ⟨#Hrkv, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok⟩
+  wp_start as ⟨#Hrkv, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok⟩
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto
-  wp_apply wp_kVClient_DeleteRange kc conn addr Spec Q ctx cd inp req k e opts vs $$ [Hin] as %resp %err Hres
+  wp_apply wp_kVClient_DeleteRange kc conn addr Spec Q ctx cd inp req k e opts vs $$ [Hin Hpre] as %resp %err Hres
   · iframe #
     iframe
   iapply HΦ

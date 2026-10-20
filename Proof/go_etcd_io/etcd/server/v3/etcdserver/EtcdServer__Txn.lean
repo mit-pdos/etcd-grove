@@ -596,13 +596,15 @@ theorem EtcdServer.Txn.wp_proof
       repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
       iexists _; iframe #; try (ipureintro; simp)
     (try wp_auto)
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L))))
+    -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
+    imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L)))
         F rfl
         $$ [Hlt Hard Hcred Header Hnp] as %resp %err ⟨Hlt, Hard, Hres⟩
     · iframe # Hlt Hard Hcred
       isplitl [Hnp]
       · (try isimp only [hro, Bool.false_eq_true, ↓reduceIte] at Hnp)
-        iapply txnPermit_reqPropOk $$ Hnp
+        iapply txnPermit_reqPropOk ρ.kv t Q γc $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -630,6 +632,9 @@ theorem EtcdServer.Txn.wp_proof
         iunfold txn.txnResponseIs at Hr
         icases Hr with ⟨%Hn, -⟩
         ipureintro; exact Hn
+      wp_auto_lc 1
+      -- the transaction's result, with its token
+      imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQq Htok Hlc1 with HQ
       (try wp_auto)
       wp_apply HEnd
       (try wp_auto)
@@ -646,7 +651,7 @@ theorem EtcdServer.Txn.wp_proof
       iframe Hhdr Hcert Hpo HMint Hwit Hcok
       isplitr
       rotate_left
-      · rw [Hxlb, ← HLlb]; iexact HQq
+      · rw [Hxlb, ← HLlb]; iexact HQ
       ipureintro
       refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl⟩
       have := Hwire.2.2.2 hz

@@ -237,14 +237,15 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
   · refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
 
 /-- **A delete's permission is its proposal's** (2026-10-15, unit T2). -/
-theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF)
+    (γc : GName) :
     deletePermit (GF := GF) γk op Q ⊢
-      reqPropOk γk (irrDeleteRange op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+      reqPropOk γk (irrDeleteRange op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold deletePermit reqPropOk
-  iintro ⟨%Hz, #Hau⟩
-  ihave ⟨%Hwr, -⟩ := kvOpAu_writes γk (.deleteRange op) Q $$ Hau
-  iright; ileft
-  iexists .deleteRange op, Q
+  iintro ⟨%Hz, Hau⟩
+  icases kvOpAu1_writes γk (.deleteRange op) Q $$ Hau with ⟨%Hwr, Hau⟩
+  iright; iright
+  iexists .deleteRange op, Q, γc
   iframe Hau
   ipureintro
   have hk : apply.dispatchKind (irrDeleteRange op) = .deleteRange := by
@@ -263,14 +264,15 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
 
 /-- **A writing transaction's permission is its proposal's** (2026-10-15, unit T2). -/
-theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) :
+theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF)
+    (γc : GName) :
     txnPermit (GF := GF) γk t Q ⊢
-      reqPropOk γk (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+      reqPropOk γk (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold txnPermit reqPropOk
-  iintro ⟨%Ht, #Hau⟩
-  ihave ⟨%Hwr, -⟩ := kvOpAu_writes γk (.txn t) Q $$ Hau
-  iright; ileft
-  iexists .txn t, Q
+  iintro ⟨%Ht, Hau⟩
+  icases kvOpAu1_writes γk (.txn t) Q $$ Hau with ⟨%Hwr, Hau⟩
+  iright; iright
+  iexists .txn t, Q, γc
   iframe Hau
   ipureintro
   have hk : apply.dispatchKind (irrTxn t) = .txn := by

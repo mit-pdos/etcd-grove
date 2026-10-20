@@ -27,7 +27,9 @@ whole state, `deletePermit`: its range end not `[0]`, the client's `kvOpAu (.del
 success gives `□ Q` of the state it linearized at): success, the apply package's answer to the delete
 (`deleteOutcomeIs`, no error: applied; the response header's id fields owned, `appliedHdr`) of the request the proposed data decode to (`rq'`, whose delete is
 `op'`: `op` itself unless the range end is `[0]`, the model's ambiguity, `irrWireOf`), at the log
-the entry met, with mvcc's certificate of the log after. -/
+the entry met, with mvcc's certificate of the log after. 2026-10-20 (linkv-txn stage A, as
+`Put` since D21 M6): the update is fired at most once (`kvOpAu1`), a success giving `Q` of the
+state it fired at; on a failure it fired once or not at all. -/
 abbrev EtcdServer.DeleteRange.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull) (Q : KVState → IProp GF)
@@ -47,7 +49,7 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
           apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
           mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log)) ∨
+          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log)) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' F err) ∨

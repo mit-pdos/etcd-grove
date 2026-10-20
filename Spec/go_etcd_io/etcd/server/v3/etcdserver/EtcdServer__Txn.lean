@@ -32,7 +32,8 @@ response with `executeTxn`'s error). A writing `t`: as `Put` (`txnAppliedOk`: th
 thread's application of the request the proposed data decode to; `txnErrOk`: the apply's error
 or the proposal's, which may still be applied). 2026-10-15 (unit T2): a writing transaction's
 update is over the whole state (`txnPermit`: plain, no range end `[0]`, the client's
-`kvOpAu (.txn t)`), a success giving `□ Q` of the state it linearized at. Unit W-M3: a read-only
+`kvOpAu (.txn t)`), a success giving `□ Q` of the state it linearized at; since 2026-10-20
+(linkv-txn stage A, as `Put`) fired at most once (`kvOpAu1`), a success giving `Q`. Unit W-M3: a read-only
 `t` takes a read deposit as `Range` (`kvDep γr.kv Qr`: a client's read update, or nothing), a
 linearizable success reading the KV model of a committed raft log `L` at which the deposit gave
 `□ Qr L` (`txnReadOk`), the state of the log written for a writing `t` (`txnAppliedOk`). -/
