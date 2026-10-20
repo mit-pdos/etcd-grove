@@ -12427,3 +12427,132 @@ contradictory. S-j states them over what the apply thread owns at the swap (the 
 `srvKVCloser`) and a fresh abstraction of the restored store (new names, its own predicate), and
 says which facts of the old store's users (readers holding the old `γ`) it does not give; if no
 true and usable form exists short of the epochs, S-j stops and reports.
+
+## D22 S-h carried out: the sender proved over its callees' contracts; the branch a lemma for S-l (2026-10-20)
+
+Stage S-h of T-S (the plan's S-h, S-0's amendments, D22a, S-b's, S-f's and S-i's lists for it).
+Server and storage/backend files, two `io` axiom files, snap axioms; no raft or bbolt file.
+
+**Translated** (`etcdserver.toml`, imports gain `io`): `createMergedSnapshotMessage`,
+`newSnapshotReaderCloser`, `sendMergedSnap`, `releaseDelayAfterSnapshot`. `backend.toml` imports
+`io` too, so the backend's `Snapshot` *interface* is translated (it was an axiomatized type, whose
+values could not be the `*snapshot` interface `backend.Snapshot.spec` returns: the server's
+`dbsnap` local is of it); its two `sorry -- axiomatized type` instances are gone.
+`snap.toml` imports `io` and raftpb, so `snap.Message` is a translated struct (its `TotalSize`
+field is read by `sendMergedSnap`; reading a field of the axiomatized type reached its two
+`sorry -- axiomatized type` instances, now gone; `Snapshotter` stays axiomatized). `etc/gen-init.py`
+rewrote the server's, backend's and snap's `Init.lean` (the `io` and raftpb inits). The server's
+link names raftpb's getter `raftpb_Message__GetTo` (snap's `Message__GetTo` shares the stem).
+
+**Proved** (server's Link):
+- `newSnapshotReaderCloser`: from half of an open snapshot, a reader whose complete streams are
+  bbolt images of its data (`readerStreams rc (boltImage · D)`), given for the other half (the
+  pipe's hand-over, below). The goroutine never panics: `WriteTo`, then `CloseWithError(err)` (a
+  nil `err` carries `boltImage bs D`, `WriteTo`'s post), then `Close` of the whole snapshot, which
+  returns nil, so `lg.Panic` is not reached.
+- `createMergedSnapshotMessage`: over `Logger`, `KV`, `newSnapshotReaderCloser`,
+  `proto.Clone` of a conf state (raft's axiom), the snapshot's `Size`, `snap.NewMessage`, and two
+  *contracts* in its precondition for its interface calls, `srvKVCommitOk kv RC RC'`
+  (`s.KV().Commit()`: `store.Commit` is names-only) and `srvBeSnapOk be RS RS' Qd`
+  (`s.be.Snapshot()`, with the caller's observation `Qd` of the snapshot's data;
+  `srvBeSnapOk_of_backend` derives it from `backend.Snapshot.spec` for the real backend). Post: the
+  merged message (`mergedMsg`: `msgIs`, `TotalSize` read-only, `closeC` a bag carrying nothing),
+  the raft message read-only with its snapshot replaced by `(c, snapi, snapt)` (`mergedSt`), `c`
+  the content of `ep.confState` (`csOpt`, cloned), the reader's streams of `D` with `Qd D`. It needs
+  the raft message **owned** (`msgOwn m (DFrac.own 1) st`: it writes `m.Snapshot`).
+- `sendMergedSnap`: `inflightSnapshots.Add(1)` (the count in an invariant, `srvInflight`, from
+  `NewServer`'s zero field), the log fields (`MemberID`, `GetTo`, `TotalSize`), `SendSnapshot`
+  through the started transport (`netTransport`'s, which takes `msgIs` and `netSnapBundle`), and
+  the `GoAttach` goroutine: `CloseNotify()`'s bag or `s.stopping`; on `ok`, `time.After(30s)` or
+  the stop; `Add(-1)`; the closing log line (`append` of the read-only fields with their capacity,
+  the goroutine's). The stop branch returns without releasing (as Go).
+- `compactRaftLog` (an axiom) restated: its pre gains `srvInflight s` (the body loads the atomic
+  and skips the compaction when it is not `0`; the contract had no permission for that load). The
+  post already allowed both outcomes; the cap is kept (S-l lifts it). `isServerApplyAll` and
+  `srvApplyAllBuilt` carry `srvInflight s`; `NewServer` allocates it.
+
+**The pipe's hand-over (why the snapshot is fractional).** In Go, `dbsnap.Size()` (the merged
+message's size, read by `createMergedSnapshotMessage` *after* `newSnapshotReaderCloser` started its
+goroutine) races with the goroutine's `snapshot.Close()`, and bbolt's `Tx.Size()` dereferences the
+transaction's `meta`, nil after `Rollback`. It is safe only because the goroutine's first action,
+`WriteTo`'s first meta-page `Write` (the transaction's `WriteFlag` is `0`: etcd never sets it),
+blocks on the unbuffered pipe until the transport reads, which is after `SendSnapshot`, after
+`Size`. The proof follows that order: `snapOpen` is now fractional (`snapOpenQ sp D γ q`, the
+persistent opaque `snapRO sp D γ` with a `ghostVar γ q ()` share: no ghost axiom), `WriteTo` and
+`Size` take any share, `Close` the whole; `io.Pipe` takes a hand-over `T` (the sender's half) and
+gives the reader's `readerStreams` only for it (a wand), and `CloseWithError` hands `T` to the
+writer once a `Write` has returned (`pipeW`'s flag, which `WriteTo`'s restated post sets: it calls
+`Write` at least once). Not a Go bug (no reachable panic at the pin; it would be if `WriteTo` could
+fail before its first `Write`, e.g. with a `WriteFlag` reopen failing).
+
+**The new trust-boundary axioms** (+7: 531 -> 538; 2 sorries unchanged), each with what would
+discharge it in its docstring:
+1. `io.Pipe` (`Spec/io/Pipe.lean`): the two ends, `writerOk` over `pipeW pw Φ T`, `T -∗
+   readerStreams pr Φ`.
+2. `io.PipeWriter.CloseWithError`: from `pipeW pw Φ T c bs` and `err = nil → Φ bs`, returns nil and
+   `T` if `c`.
+3. `snap.NewMessage`: `msgIs`, `TotalSize ↦□`, `closeC` a fresh bag at `True`.
+4. `snap.Message.CloseNotify`: `closeC`.
+5. `snap.Message.GetTo` (promoted, `snap.Message` axiomatized): some id.
+6. `backend.snapshot.Size` (bbolt's `Tx.Size`, promoted): a share given back.
+7. `backend.snapshot.Close` (translated, over the opaque `snapRO`): the whole, returns nil.
+Restated, no new declaration: `backend.snapshot.WriteTo` (a share; at least one `Write`;
+`writerOk`'s client predicate gains the flag), `compactRaftLog` (`srvInflight`).
+**Not added: the D22c determinism axiom** (a snapshot of a member's backend at the applied prefix
+`A` has `bkRestAt` and no compaction key). A true statement needs a witness tying the snapshot's
+`D` to *the server's* backend and its applied log: `snapRO`/`backend.Snapshot.spec` name no
+backend (`snapOpen` is per snapshot), and the boot contract's `bkFresh` tokens are consumed by the
+constructors; for any other backend the claim is false. Design for S-l/S-j: `backend.Snapshot`'s
+post gains a persistent `snapOf γB D` (D was a committed state of backend `γB`), the boot contract
+(`bootOk`, a premise) gives a persistent `srvRestSole γB` ("only this server's apply path writes
+`γB`'s rest buckets, under the plain workload"), and the axiom is `snapOf γB D ∗ srvRestSole γB ∗
+srvRLogLb γ A ∗ ⌜D's stored index = ai0 + |A|⌝ ⊢ ⌜bkRestAt (pre ++ A) D ∧ no compaction key⌝`; a
+received image's backend (S-j) gets its `srvRestSole` from the certificate.
+Why `io.Pipe` is an axiom: Perennial's `io` is names-only for `Pipe` (`Code/io.toml` translates
+`Reader`, `Writer` and the errors only).
+
+**`applyAll`'s `msgSnapC` branch: a lemma, not live.** `srvMergedBundle` (`SnapSendBundle.lean`):
+from raft's `MsgSnap` (`isRaftMsg`, `termLB`), `raftCommitInv`, `rnRtBound γ T ai` (a commit
+witness of the message's term with `c ≥ ai`: D22l's, an explicit premise), the applied committed
+prefix `A` (`|A| = ai`, last term `at`), `srvImage γ ai D` and the reader's streams, the merged
+message is `netSnapBundle (srvNet γ bud) ml rc`: raft's `isMessage_snap_recontent`, then
+`isMessage_snap_voters` (the `.snap` clause does not read `voters`, so the merged `ConfState` --
+`ep.confState`'s, empty or the static one -- needs no certificate today; S-b′'s certificate will),
+the read credit `0`, no tickets, no `SentMsgOk` (outside the no-snapshot mode: `isRaftMsg`'s first
+clause gives `reNoSnap = false`). `snapBranch_send` (`SnapSendBranch.lean`) composes it with the
+two specs: `{{ … }} s.sendMergedSnap(s.createMergedSnapshotMessage(m, at, ai, cs)) {{ … }}`. The
+branch in `applyAll`'s proof stays dead (`Hnosnap`): making it live needs D22l and the items
+below.
+
+**S-0's amendments.** Done: `applyEntries`' and `applyAll`'s posts and `applyRes` keep the
+applied term (`at'` the last applied entry's, or unchanged with no entry; `applyRes`: `A = [] ∨`
+`A`'s last term). Not done, as the sender does not need them yet: `uint.Z ciEff = max c₀ ai`
+(useful only with the observation below), `epConfState`'s content `∈ {empty, cfg}` and
+`applyConfChange.spec`'s post (the `.snap` clause ignores `voters`; S-b′ needs them), `store.Commit`
+saving ci (`store.Commit` is names-only: `srvKVCommitOk` abstracts it).
+
+**For S-l (making the branch live).**
+- The bag: `isRNMsgSnapC`'s predicate must carry the `MsgSnap` *owned* with its `srvMsgNet` facts
+  (`msgOwn m (DFrac.own 1) st ∗ isRaftMsg γ st ∗ termLB …`): raft's `Ready` already hands a
+  `MsgSnap` out at `DFrac.own 1` (`readyDq`), but `rnReadyData`'s conversion (`InvRaftNode.lean`,
+  `msgOwn_persist_fupd`) persists every message, and `processMessages` sends `rnMsgOk` (`msgAt`,
+  read-only) to `msgSnapC`. A server-only change.
+- `m.index ≤ ep.appliedi` (`sn0`'s index: raft's storage snapshot, made by `EtcdServer.snapshot`
+  at an applied index), `rnRtBound` (D22l), `isCommitted γ A` with `A`'s last term `ep.appliedt`
+  (`kvApplied`'s `srvRLogLb` and the kept term; `pre = []`, `ai0 = 0` for a fresh member).
+- The two contracts and their resources: `srvKVCommitOk` (translate `store.Commit`, its session
+  token `WT` and read token `RT`, `isKeyBackendG`'s `ForceCommit`), `srvBeSnapOk` from
+  `srvBeSnapOk_of_backend` with `bOpen`, a `wbTok` (two write-backs per merged snapshot from
+  `srvWTPool`, with D22h's per-backend pool) and the observation `R` (S-f's: the apply thread's
+  share of the store's `clog` and of the stored index, stored `= ai` at every commit of the
+  window: `consInv`'s `mi ≤ k` strengthened), then `imageAt_of_snap` and the determinism axiom
+  above for `□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)`.
+- `sendMergedSnap`'s: `netTransport γn tr` of `s.r.transport` with `γn.N = srvNet γ bud` (from
+  `transportStarted`, kept by `NewServer`), `srvInflight`, `s.stopping`, `GoAttach`'s resources.
+- **For S-j**: the receiver's stream is the pipe's, whose complete streams are images of `D`
+  (`readerStreams`, as S-i's `netSnapBundle` states).
+
+**Gotcha.** `wp_apply H` with `H` a local hypothesis holding a Hoare triple of an interface
+method (`methods ki.ty "Commit" ki.v`) ended the tactic block silently (an `unsolved goals` at
+`by`, no error at the call); `wp_bind (App (Val #(methods …)) (Val #())); iapply H $$ …; inext;
+iintro …` works (as `EtcdServer.start`'s `ClusterVersion`).

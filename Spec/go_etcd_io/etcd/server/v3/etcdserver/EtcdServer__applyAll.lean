@@ -40,7 +40,11 @@ ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV
 write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the
 store per entry above `ai`, from the budget `srvWTPool E.γ` (D19b, 2026-10-18; until then
 `txn.storeWTs E.γ (unapplied ai ms).length`, handed in). **The KV model**
-(2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). -/
+(2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). (D22 S-h, 2026-10-20, S-0's
+amendment) The applied term: `ep.appliedt` the last applied entry's term, unchanged with none
+(`termAfter`), which the merged snapshot's metadata carries. (D22 S-h) The `msgSnapC` branch stays
+dead (`isServerApplyAll`'s bag carries nothing); `SnapSendBranch.lean`'s `snapBranch_send` is its
+two calls, proved for S-l. -/
 abbrev EtcdServer.applyAll.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (b : GoInterface) (ep ap : Loc) (es : GoSlice)
@@ -77,7 +81,9 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         ⌜loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ st'.k = ciEff γ st.k ∨
-            uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai'))⌝ }}
+            uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
+          -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
+          termAfter at0 (unapplied ai ms) at'⌝ }}
 
 end spec
 

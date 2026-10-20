@@ -72,7 +72,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   icases HR with ⟨%st, %ai, %at', %a, %t, %cs, %x, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, #HWA, %Hpure⟩
   rw [hw]
-  obtain ⟨Hloop, Hai0, HJ, Hstep, Hcap⟩ := Hpure
+  obtain ⟨Hloop, Hai0, HJ, Hstep, Hcap, Hlt⟩ := Hpure
   iunfold schedule.schedRunning at Hrun
   icases Hrun with ⟨Hrt, Htok⟩
   have habove := srvIdxOk_batch_above C.ai₀ ai A ce hidx Hai0
@@ -127,7 +127,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   inext
   iintro ⟨%st', %ai', %at'', %a', %t', %cs', Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
-  obtain ⟨hloop', hai', hci'⟩ := Hpost
+  obtain ⟨hloop', hai', hci', hat'⟩ := Hpost
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
   iapply HΦ
@@ -149,9 +149,10 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   ipureintro
   rw [hun] at Hx'
   have hlast := srvIdxOk_batch_last C.ai₀ ai A ce hidx Hai0
-  refine ⟨hloop', by rw [hai', hlast], ?_, ?_, Hcap⟩
+  refine ⟨hloop', by rw [hai', hlast], ?_, ?_, Hcap, ?_⟩
   · apply ciJ_step _ _ _ ai ai' HJ (by rw [hai']; omega) hci'
   · exact entriesStep_append' C.c₀ A ce C.x₀ x x' Hstep (entriesStep_congr _ _ ce hcong x x' Hx')
+  · rw [hun] at hat'; exact lastTermIs_append Hlt hat'
 
 set_option hygiene false in
 /-- `updateLeadership`'s last step: the stats (`BecomeLeader` unless nil), and the return. -/
@@ -484,7 +485,7 @@ theorem EtcdServer.run.wp_proof
     isplitr
     · iexact HWA0
     ipureintro
-    refine ⟨Hloop0, by simp, Or.inl Hc0.symm, rfl, Hcap0⟩
+    refine ⟨Hloop0, by simp, Or.inl Hc0.symm, rfl, Hcap0, Or.inl rfl⟩
   -- the loop: the log `A` received, the scheduler's queue ending with the name of `Q`, the last
   -- tracked job's `Post` (the initial `True` before the first job) and the resource `R` the next
   -- job gets from `run` (`applyRes []` before the first job), together `applyRes A`

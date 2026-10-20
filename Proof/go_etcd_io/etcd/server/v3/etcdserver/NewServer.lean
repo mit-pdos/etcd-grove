@@ -937,6 +937,20 @@ theorem NewServer.wp_proof
   ipersist compactor
   ipersist MaxRequestBytesS
   ipersist ClientCertAuthEnabledS
+  -- (D22 S-h) `s.inflightSnapshots`'s invariant, from the field's zero value
+  ihave Hinfl0 : sync.atomic.ownInt64 (GF := GF) (srvInflightAddr s) (DFrac.own 1) (W64 0)
+    $$ [inflightSnapshots]
+  · rw [sync.atomic.ownInt64_unseal]
+    unfold sync.atomic.ownInt64Def
+    rw [show ({ _0' := zero_val _, _1' := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
+      zero_val _ from rfl]
+    iexact inflightSnapshots
+  imod inv_alloc srvInflightN ⊤
+    iprop(∃ n : w64, sync.atomic.ownInt64 (GF := GF) (srvInflightAddr s) (DFrac.own 1) n)
+    $$ [Hinfl0] with #HinflI
+  · inext; iexists _; iexact Hinfl0
+  ihave #Hinfl : srvInflight s $$ []
+  · iunfold srvInflight; iexact HinflI
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr5, Hlgrs⟩
   icases replicate_take1 _ _ hM1 $$ Hfcnr with ⟨Hfcr, -⟩
   -- the watch-token pool (D19b's method), from `mvcc.New`'s tokens
@@ -1072,6 +1086,7 @@ theorem NewServer.wp_proof
     iframe NHmsc
     iunfold isRNMsgSnapC at NHmsci
     icases NHmsci with ⟨%γmc, #Hmcb⟩
+    iframe Hinfl
     iexists γmc, _
     iframe Hmcb
     iintro !> %mm Hmm
