@@ -395,13 +395,29 @@ theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cfg
     · ipureintro; exact ⟨HD, hc, HI⟩
     iintro %hcand; iapply Hc; exact hcand
 
+/-- (2026-10-20, witness support) A step in the mode `md`'s model: `StepC` statically, and at the
+mode's own ghost part (its configuration the step's, the invariant at it) a `StepR` one. Unlike
+`StepCD`, the end state may depend on the mode: `Step` sets the ghost prefix of a new subterm
+(`NState.scp`) to the dynamic mode's (`notes/raft-witness.md`, "`PState.scp` is ghost-only"). -/
+def StepCDm (md : GMode) (c : CfgM) (id : w64) (B : Int) (m : MessageM) (s : NState)
+    (recv : List Msg) (s' : NState) : Prop :=
+  StepC c id B (toPState s) recv (toPState s') ∧
+  ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
+    g.cfg.cfg = c → RInv dec c0 (rOf s g) → ∃ cidx', CidxMove m s' g cidx' ∧
+      StepR (AdmS dec c0 (fun _ => False)) dec id B (rOf s g) recv (rOf s' { g with cidx := cidx' })
+
+/-- A `StepCD` step, with the dynamic premises, is one in every mode. -/
+theorem StepCD.toM {md : GMode} {c : CfgM} {id : w64} {B : Int} {m : MessageM} {s : NState}
+    {recv : List Msg} {s' : NState} (Hstep : StepCD c id B m s recv s')
+    (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
+      RInv dec c0 (rOf s g) → DynHyp m s s' g) : StepCDm md c id B m s recv s' :=
+  ⟨Hstep.1, fun dec c0 h0 g hmd hc HI => Hstep.2 _ dec g hc (Hdh dec c0 h0 g hmd HI)⟩
+
 /-- A branch's step updates the mode's ghost state: statically `ownRaftGhost_stepC`,
 dynamically `ownRaftGhostR_stepR` (the premises `DynHyp` from `Hdh`, given the invariant). -/
 theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (B : Int) (HB : B < 2 ^ 64)
-    (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
-    (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
-      RInv dec c0 (rOf s g) → DynHyp m s s' g) :
+    (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCDm md c id B m s recv s') :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
@@ -423,8 +439,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     simp only [ghostRestM, GMode.isDyn]
     iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #Hfr, #Hw, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
-    obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
-      (Hdh dec c0 h0 g rfl HI)
+    obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 dec c0 h0 g rfl hc HI
     ihave Hown : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
       iframe Hg Hfr Hw
@@ -455,11 +470,9 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
 
 
 /-- `ghost_stepCDM` with (D21 M3) `NsLink` kept: the step keeps the mode (`NGhost.ns`). -/
-theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+theorem ghost_stepCDm (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (B : Int) (HB : B < 2 ^ 64)
-    (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
-    (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
-      RInv dec c0 (rOf s g) → DynHyp m s s' g)
+    (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCDm md c id B m s recv s')
     (Hng : s'.gh = s.gh) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
@@ -468,7 +481,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   iintro #Hrc Hrecv Hcr Htk Hlc Hg Hrest
   iunfold ghostRest at Hrest
   icases Hrest with ⟨%Hnl, %Hps, Hrest⟩
-  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Htk Hlc Hg Hrest
+  imod ghost_stepCDM γ md c id m B HB s recv s' Hstep $$ Hrc Hrecv Hcr Htk Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
   iexists md'
@@ -480,6 +493,19 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   isplitr
   · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
   ipureintro; exact Hout.psubOk Hps
+
+/-- `ghost_stepCDm` at a step of every mode (`StepCD`). -/
+theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
+    (B : Int) (HB : B < 2 ^ 64)
+    (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
+    (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
+      RInv dec c0 (rOf s g) → DynHyp m s s' g)
+    (Hng : s'.gh = s.gh) :
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
+        ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' :=
+  ghost_stepCDm γ md c id m B HB s recv s' (StepCD.toM Hstep Hdh) Hng
 
 /-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
 same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/

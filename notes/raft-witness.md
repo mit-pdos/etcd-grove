@@ -334,7 +334,12 @@ Check-quorum's new subterm (`ChangeReplicationSet` true, `StepC.newSub`):
   appended by `subtermStart`), and its receipt wand covers it (`k0 + 1`, `maybeStartNewSubterm`
   threads the receipt); at the Step level the bound is `B = last + 1` (`finish_branch0B`) and the
   static model's step is `StepC.newSub` with `x = epochRsx em'` (`epochRsx_wf`: the witness, or an
-  incoming voter that is not it). Proved (commit `6fe4d51aa8`); the dynamic model's is the next item.
+  incoming voter that is not it). Proved (commit `6fe4d51aa8`);
+- the dynamic model's (`StepR.newSub`), with the ghost prefix below: `leader_checkQuorum_step`
+  gives `StepCD` or `CQNewSubOk` (the static step at any prefix, the dynamic one at the prefix
+  of the configuration index), and `Step`'s dispatch sets the prefix to the mode's
+  (`ownRaftPhysC_scp`) and updates the ghost state at that mode only (`StepCDm`,
+  `ghost_stepCDm`, `finish_branch0M`). Check-quorum no longer reads the staged conjunct.
 
 **`PState.scp` is ghost-only (design, 2026-10-20).** The dynamic model's new subterm
 (`StepR.newSub`, `StepR.applyConfWit`) records the configuration prefix of the subterm

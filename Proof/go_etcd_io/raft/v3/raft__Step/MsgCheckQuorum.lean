@@ -43,24 +43,30 @@ theorem epochRsx_wf {V0 V1 : GSet w64} {w : w64} {em : EpochM} (Hw : w ≠ W64 0
         · rw [if_pos hwV] at hw; rw [← hw]; exact hne
         · rw [if_neg hwV] at hw; exact absurd hw hnz
 
+/-- (2026-10-20, witness support) The check-quorum's new subterm in both models: statically
+`StepC.newSub` at any ghost prefix of the subterm (`NState.scp`), dynamically `StepR.newSub` at
+the prefix of the configuration index, which `Step` then sets (`ownRaftPhysC_scp`). -/
+def CQNewSubOk (c : CfgM) (id : w64) (B : Int) (s s' : NState) : Prop :=
+  (∀ P, StepC c id B (toPState s) [] (toPState { s' with scp := P })) ∧
+  ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
+    StepR Adm dec id B (rOf s g) []
+      (rOf { s' with scp := (rOf s g).full.take (rOf s g).cidx } g)
+
 /-- `stepLeader` on `MsgCheckQuorum` (2026-10-17, `CheckQuorum` on): the leader stays
 (`StepC.refl`, its `Match` values unchanged) or steps down at its term (`StepC.stepDown`, and
 `StepR.stepDown` in the dynamic model: `reset` clears `pendingConfIndex`); or (2026-10-20,
 witness support), the quorum active at a configuration with a witness, starts a new subterm
 (`StepC.newSub`, its entry appended up to `B`; the leader's subterm below its last index,
-`PSubOk`, so the next one does not wrap). The term, the pre-vote setting and the ghost bounds are
-kept, and the log but for the new subterm's entry. -/
+`PSubOk`, so the next one does not wrap; `CQNewSubOk`). The term, the pre-vote setting and the
+ghost bounds are kept, and the log but for the new subterm's entry. -/
 theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgCheckQuorum) (Hwf : NStateWf s)
     (Hps : PSubOk (toPState s))
     (HB : CQNewSub c id s s' → plogLastIndexZ (toPState s).base (toPState s).log + 1 ≤ B)
     (HB64 : B < 2 ^ 64)
-    -- STAGED (2026-10-20): the dynamic model's new subterm records its configuration's prefix
-    -- (`PState.scp`), which the physical reading does not carry yet; until then no witness
-    (hw : c.wit = W64 0)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
-    dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
+    dropped = false ∧ NStateWf s' ∧ (StepCD c id B m s [] s' ∨ CQNewSubOk c id B s s') ∧
       (∃ es, s'.logst = logAppend s.logst es) ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧
       s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
@@ -75,13 +81,14 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
     ⟨-, ⟨pvs, ⟨Hpm, rfl⟩ | rfl⟩ | Hcq⟩
   rotate_right 3
   · -- the leader stays
-    refine ⟨?_, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, ⟨[], Hl0.symm⟩, rfl, rfl, rfl⟩
+    refine ⟨?_, .inl (StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩), ⟨[], Hl0.symm⟩, rfl, rfl,
+      rfl⟩
     · exact Hwf
     · rw [toPState_prvals s pvs (fun _ => Hpm)]
       exact .refl _
   · -- the step-down
-    refine ⟨⟨rfl, rfl⟩, ⟨?_, fun Adm dec g _ _ => ⟨g.cidx, .inl rfl, ?_⟩⟩, ⟨[], Hl0.symm⟩, rfl,
-      rfl, rfl⟩
+    refine ⟨⟨rfl, rfl⟩, .inl ⟨?_, fun Adm dec g _ _ => ⟨g.cidx, .inl rfl, ?_⟩⟩, ⟨[], Hl0.symm⟩,
+      rfl, rfl, rfl⟩
     · rw [toPState_prvals_nl _ pvs (by simp [becomeFollower]), toPState_becomeFollower]
       exact .stepDown _ Hpr
     · have Hrl : (rOf s g).p.role = .leader := by simp [rOf, toPState, Hr, proleRole]
@@ -103,14 +110,14 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
     obtain ⟨pvs, em', Hcw, -, Hchg, Hpm, rfl⟩ := Hcq
     have Hsub : em'.sub = s.ep.sub + W64 1 := Hchg.1
     have Hsub0 : (toPState s).sub = s.ep.sub := by simp [toPState, Hr]
-    refine ⟨⟨Hwf.1.trans (by simp [subtermStart, sendMsgs, Hr]), Hwf.2⟩, ⟨?_, ?_⟩,
+    have Hnw : uint.Z (toPState s).sub + 1 < 2 ^ 64 := by have := Hps Hpr; word
+    have Hne : s.ep.sub + W64 1 ≠ W64 0 := by rw [Hsub0] at Hnw; intro h; word
+    refine ⟨⟨Hwf.1.trans (by simp [subtermStart, sendMsgs, Hr]), Hwf.2⟩, .inr ⟨?_, ?_⟩,
       ⟨[stampS s.term em'.sub (logLast s.logst) 0 (zero_val EntryM)],
         by simp [subtermStart, sendMsgs, logAppend]⟩, rfl, rfl, rfl⟩
-    · -- `StepC.newSub`, excluding the new epoch's voter: its state is the code's
-      have Hnw : uint.Z (toPState s).sub + 1 < 2 ^ 64 := by have := Hps Hpr; word
-      have Hne : s.ep.sub + W64 1 ≠ W64 0 := by rw [Hsub0] at Hnw; intro h; word
-      -- the subterm's prefix, ghost: the code's state keeps it (`NState.scp`)
-      have HC := StepC.newSub (c := c) (id := id) (B := B) (toPState s) (epochRsx em') s.scp Hpr
+    · -- `StepC.newSub`, excluding the new epoch's voter, at the subterm's ghost prefix
+      intro P
+      have HC := StepC.newSub (c := c) (id := id) (B := B) (toPState s) (epochRsx em') P Hpr
         Hcw (epochRsx_wf Hcw Hchg.2.1) Hnw HBn
       refine cast ?_ HC
       congr 1
@@ -120,8 +127,21 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
         List.mapIdx_cons, List.mapIdx_nil, List.length_append, List.append_assoc,
         List.length_cons, List.length_nil, Int.natCast_add]
       simp [Int.add_assoc]
-    · -- STAGED: no witness in the dynamic model yet
-      exact fun _ _ _ _ _ => absurd hw Hcw
+    · -- `StepR.newSub`, at the prefix of the configuration index
+      intro Adm dec g hc
+      have Hrl : (rOf s g).p.role = .leader := by simp [rOf, toPState, Hr, proleRole]
+      have Hrx := epochRsx_wf Hcw Hchg.2.1
+      rw [← hc] at Hcw Hrx
+      have HR := StepR.newSub (Adm := Adm) (dec := dec) (id := id) (B := B) (rOf s g) (epochRsx em')
+        Hrl Hcw Hrx Hnw HBn
+      refine cast ?_ HR
+      congr 1
+      simp only [rOf, pciR, toPState, subtermStart, sendMsgs, selfAck, psendMsgs, pappend,
+        pselfAck, plastIndex, plogLastIndexZ, logLast, Hr, reduceCtorEq, ↓reduceIte, Hsub, Hpm,
+        logAppend, Hne, ne_eq, not_false_eq_true, and_self,
+        List.mapIdx_cons, List.mapIdx_nil, List.length_append, List.append_assoc,
+        List.length_cons, List.length_nil, Int.natCast_add]
+      simp [Int.add_assoc]
   all_goals
     exfalso; rw [Hty] at Hc; revert Hc
     simp only [MsgCheckQuorum, MsgVoteResp, MsgApp, MsgHeartbeat, MsgPreVoteResp,
@@ -162,7 +182,8 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           B ≤ plogLastIndexZ (toPState s).base (toPState s).log + 1 ∧ B < 2 ^ 64⌝ ∗
         "Hrcb" ∷ (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗ ⧖ (k0 + 1)) ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜StepCD c id B m s [] s'⌝ ∗
+        -- (2026-10-20) or a new subterm, whose ghost prefix `Step` sets (`CQNewSubOk`)
+        "%Hrefines" ∷ ⌜StepCD c id B m s [] s' ∨ CQNewSubOk c id B s s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -214,7 +235,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     isplitr
     · iintro %h; exact absurd h (Int.lt_irrefl _)
     ipureintro
-    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, .inl (StepCD.frame (.refl _) (RFrame.refl _)), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgCheckQuorum` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
@@ -242,11 +263,9 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     isplitr
     · iintro %h; exact absurd h (Int.lt_irrefl _)
     ipureintro
-    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, .inl (StepCD.frame (.refl _) (RFrame.refl _)), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the quorum check, perhaps a step-down at its term
     simp only [stepFuncOf]
-    -- STAGED: no witness yet (`ownRaftPhysC_wit0`), for the dynamic model's new subterm
-    icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hwcq, Hphys⟩
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs k0 (by simp [Hty]) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
@@ -289,8 +308,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · simp only [B, h, ↓reduceIte]; have := HL1 h; omega
       · simp only [B, h, ↓reduceIte]; omega
     obtain ⟨rfl, Hwf', Hstep, ⟨es, Hl⟩, Ht, Hpv, Hg⟩ :=
-      leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf Hps HBn HBb.2.2
-        hwcq Hres
+      leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf Hps HBn HBb.2.2 Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -339,7 +357,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     isplitr
     · iintro %h; exact absurd h (Int.lt_irrefl _)
     ipureintro
-    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, .inl (StepCD.frame (.refl _) (RFrame.refl _)), rfl, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

@@ -513,6 +513,42 @@ theorem finish_branch0B (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
   ipureintro
   exact ⟨Hwf', Hout, fun _ => rfl, Hfr, Htm, Hresp⟩
 
+/-- (2026-10-20, witness support) The same, at a step of the mode's model only (`StepCDm`): the
+end state may depend on the mode (a new subterm's ghost prefix, `NState.scp`). -/
+theorem finish_branch0M (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
+    (s s' : NState) (m : MessageM) (err : GoInterface) (Φ : val → IProp GF)
+    (B : Int) (HB : B < 2 ^ 64) (Hwf' : NStateWf s')
+    (Hstep : StepCDm md c id B m s [] s')
+    (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh) :
+    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
+      ownRaftPhysCV c c.voters r id s' -∗
+      (⌜err = interface.nil⌝ ∨
+        (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
+      stepPost γ md c r id s m Φ -∗
+      |={⊤}=> Φ #err := by
+  iintro #Hrc Hghost Hrest Hphys Herr HΦ
+  unfold stepPost
+  icases HΦ with ⟨Hlc, HΦ⟩
+  imod rdCred_zero (GF := GF) γ with Hcr
+  imod ghost_stepCDm γ md c id m B HB s [] s' Hstep Hng $$ Hrc [] [Hcr] [] Hlc Hghost Hrest
+    with ⟨%md', %Hout, Hghost, Hrest⟩
+  · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iempintro
+  · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
+  · iapply msgsTks_nil
+  ihave Hghost : ownStepGhost γ md' c id s' $$ [Hghost Hrest]
+  · unfold ownStepGhost
+    isplitl [Hghost]
+    · iexact Hghost
+    · iexact Hrest
+  imodintro
+  iapply HΦ $$ %err %s' %c %md'
+  iframe Hphys Hghost Herr
+  ipureintro
+  exact ⟨Hwf', Hout, fun _ => rfl, Hfr, Htm, Hresp⟩
+
 end StepProof
 
 end base

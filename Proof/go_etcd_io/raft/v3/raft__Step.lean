@@ -420,8 +420,22 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
     · iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
         (plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length by omega))
       iexact Hrc0
-  iapply finish_branch0B γ md c r id s s' m err Φ B HBb.2.2 (Hdh s') Hwf' Hst (fun _ => Hfr)
-      (fun _ => Htm) (by resp_other) Hfr.ns $$ HrcB Hghost Hrest Hphys [] HΦ
+  rcases Hst with Hst | ⟨Hsc, Hdc⟩
+  · iapply finish_branch0B γ md c r id s s' m err Φ B HBb.2.2 (Hdh s') Hwf' Hst (fun _ => Hfr)
+        (fun _ => Htm) (by resp_other) Hfr.ns $$ HrcB Hghost Hrest Hphys [] HΦ
+    ileft; ipureintro; exact Herr
+  -- (2026-10-20, witness support) a new subterm: its ghost prefix, the dynamic mode's
+  -- configuration index's (`ownRaftPhysC_scp`)
+  let P : List EntryM := match md with
+    | .dyn _ _ _ g => (rOf s g).full.take (rOf s g).cidx
+    | .static => s'.scp
+  ihave Hphys := ownRaftPhysC_scp c r id s' P $$ Hphys
+  have Hstm : StepCDm md c id B m s [] { s' with scp := P } := by
+    refine ⟨Hsc P, fun dec c0 h0 g hmd hc _ => ⟨g.cidx, .inl rfl, ?_⟩⟩
+    subst hmd
+    exact Hdc _ dec g hc
+  iapply finish_branch0M γ md c r id s { s' with scp := P } m err Φ B HBb.2.2 Hwf' Hstm
+      (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.ns $$ HrcB Hghost Hrest Hphys [] HΦ
   ileft; ipureintro; exact Herr
 
 /-- `MsgSnap` (2026-10-02): the snapshot and its `ConfState` come from `"Hsnap"`. At the
