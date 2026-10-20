@@ -42,8 +42,7 @@ namespace EtcdGrove
 namespace linkv3
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises memberBoot memberUp id_ne EofFromIoInit
-  ClosedchanFromContextInit)
+open putget3 (httpURL ccOk commonPremises memberBoot memberUp id_ne)
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -80,7 +79,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Check : linkv.Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ bootLog clients ops Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -88,14 +87,12 @@ theorem Main.wp_proof
   ihave #Hcom' := Hcom
   iunfold commonPremises at Hcom'
   icases Hcom' with ⟨-, -, -, -, -, -, #Hnrl⟩
-  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts (the named Props)
+  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
-  · unfold EofFromIoInit at HEof
-    iapply HEof
+  · iapply v3rpc.eofVar_of_init
     iPkgInit
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
-  · unfold ClosedchanFromContextInit at HCc
-    iapply HCc
+  · iapply context.isClosedchanInit_of_init
     iPkgInit
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []

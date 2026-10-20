@@ -21,11 +21,11 @@ invariants at slot 11 for porcupine's checker, as the counter's `counterGF`), fr
 `etc/gen-init.py`) and `linkv.wp_Main` (`Link.lean`).
 
 **Its hypotheses** are putget's (`putget_adequate`; D19a, `notes/decisions.md`, D19r) at linkv's
-configuration (`linkv.premises`, the address `127.0.0.1:23791`), among them the two marked ones,
-false under the current Perennial pin: `EofFromIoInit` and `ClosedchanFromContextInit` (`io.EOF`
-and `context`'s `closedchan` from their packages' facts; linkv's initialization is of the ordinary
-form, at a table of its closure's `isPkgInit`s, so it does not return `isClosedchanInit` as the
-counter's does: `etc/gen-init.py`, `CLOSEDCHAN`); and `Run`'s bounds on `clients` and `ops`
+configuration (`linkv.premises`, the address `127.0.0.1:23791`; until 2026-10-20 also the two
+marked ones, `EofFromIoInit` and `ClosedchanFromContextInit`, now theorems of `io`'s and
+`context`'s package facts: linkv's initialization is of the ordinary form, at a table of its
+closure's `isPkgInit`s, and `context`'s now holds `isClosedchanInit`); and `Run`'s bounds on
+`clients` and `ops`
 (`0 ≤ clients < 2^31`, `0 ≤ ops`, `clients * ops < 2^60`).
 -/
 module
@@ -132,10 +132,6 @@ theorem linkv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC linkvGF,
-      putget.EofFromIoInit (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC linkvGF,
-      putget.ClosedchanFromContextInit (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -159,8 +155,6 @@ theorem linkv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hprem0 := Hprem hG
-  have HEof0 := HEof hG
-  have HCc0 := HCc hG
   have Hctx0 := Hctx hG
   obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
   subst Hlctx
@@ -191,7 +185,7 @@ theorem linkv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe Hown
     iunfold read.readRegPerm
     iframe
-  have hM := linkv.wp_Main (GF := linkvGF) n id bootLog clients ops Hbf HEof0 HCc0
+  have hM := linkv.wp_Main (GF := linkvGF) n id bootLog clients ops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]

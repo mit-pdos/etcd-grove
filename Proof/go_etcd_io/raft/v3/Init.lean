@@ -449,7 +449,7 @@ theorem os_isPkgInit_Stderr :
 theorem io_isPkgInit_Discard :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢
       ∃ w : GoInterface, typedPointsto (globalAddr io.Discard) w DFrac.discard := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.io
+  with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.io).trans sep_elim_left
 
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 get_is_pkg_init) :

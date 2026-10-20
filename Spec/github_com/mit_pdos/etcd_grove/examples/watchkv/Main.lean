@@ -12,8 +12,7 @@ if the watch did not report exactly the writes).
 putget's at `watchkv`'s configuration and the watch stream's transport premise), `Main(nw, nops)`
 does not panic and returns `Ok` (`0`: the check ran and passed), `Failed` (`1`: a step of the start
 failed) or `WatchEnded` (`2`: the watch ended before it reported every successful Put). The pure
-premises are putget's (`putget.Main.spec`), `io.EOF` as the watch client takes it
-(`EofOkFromIoInit`, marked as putget's `EofFromIoInit`), the thread bound below the watchable
+premises are putget's (`putget.Main.spec`), the thread bound below the watchable
 store's lock's reader limit (`2 ^ 29`), and the bounds on `nw` and `nops`; the class premises are
 the client watcher's (`isNewClient_watcher`'s).
 -/
@@ -43,12 +42,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumpti
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [ErrorStringLeaf] [ErrorStringNoGRPCStatus] [context.ErrorStringIsError]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (bootLog : List EntryM) (nw nops : w64),
   putget.BootFacts id bootLog →
-  putget.EofFromIoInit (GF := GF) → putget.ClosedchanFromContextInit (GF := GF) →
-  EofOkFromIoInit (GF := GF) →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   mvcc.backendNoCompaction → v3rpc.ServerMethodSets →

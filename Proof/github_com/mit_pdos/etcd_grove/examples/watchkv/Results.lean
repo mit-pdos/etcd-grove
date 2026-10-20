@@ -76,12 +76,6 @@ theorem watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ watchkv.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC putgetGF,
-      putget.EofFromIoInit (GF := putgetGF) (hG := heapAt hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC putgetGF,
-      putget.ClosedchanFromContextInit (GF := putgetGF) (hG := heapAt hG lctx))
-    (HEo : ∀ hG : HeapGS .hasLC putgetGF,
-      watchkv.EofOkFromIoInit (GF := putgetGF) (hG := heapAt hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -91,7 +85,7 @@ theorem watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   watch_adequate Hctx Hcec Hms hAs id bootLog Hbf Hck Haf Hbuq Hnoc nw nops H0 H31 Hops Hmul
-    HNs HAs n Hprem HEof HCc HEo σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+    HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy
 

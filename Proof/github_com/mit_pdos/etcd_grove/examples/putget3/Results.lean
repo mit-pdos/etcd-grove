@@ -8,8 +8,8 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   client, a `Put` of `k` with value `v`, a `Get` of `k`, and a panic unless the `Get` returned `v`
   -- returns: it does not panic (`Spec/github_com/mit_pdos/etcd_grove/examples/putget3/Main.lean`).
 * **`putget3_safe`** (`Adequacy.lean`'s `putget3_adequate`): the closed theorem, putget's for the
-  three-member program, under hypotheses of D19a's kinds and the two marked ones (`EofFromIoInit`,
-  `ClosedchanFromContextInit`: false under the current Perennial pin).
+  three-member program, under hypotheses of D19a's kinds (without the two marked ones it took
+  until 2026-10-20, `EofFromIoInit` and `ClosedchanFromContextInit`: now theorems).
 -/
 module
 
@@ -66,9 +66,6 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC putget3GF, putget3.EofFromIoInit (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC putget3GF,
-      putget3.ClosedchanFromContextInit (GF := putget3GF) (hG := heapAt3 hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -77,7 +74,7 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hnoc HNs HAs n Hprem HEof HCc σ g
+  putget3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hnoc HNs HAs n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

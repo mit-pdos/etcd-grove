@@ -38,10 +38,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptio
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+    (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (clients ops : w64),
   BootFacts id₁ id₂ id₃ bootLog →
-  putget3.EofFromIoInit (GF := GF) → putget3.ClosedchanFromContextInit (GF := GF) →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   mvcc.backendNoCompaction → v3rpc.ServerMethodSets →

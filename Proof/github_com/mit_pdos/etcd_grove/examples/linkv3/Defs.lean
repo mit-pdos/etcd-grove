@@ -6,9 +6,7 @@ putget3's (`putget3/Defs.lean`, whose header explains each) at linkv3's configur
 names `linkv3-1`, `-2`, `-3`, the cluster token `linkv3`, the peer addresses
 `127.0.0.1:2382{1,2,3}` and the client addresses `127.0.0.1:2381{1,2,3}` (the first served). The
 conf-change policy (`putget3.ccOk`), the URL builder (`putget3.httpURL`), the premises shared by
-the members (`putget3.commonPremises`) and the two named package-fact Props
-(`putget3.EofFromIoInit`, `putget3.ClosedchanFromContextInit`) are putget3's, which name no
-configuration.
+the members (`putget3.commonPremises`) are putget3's, which name no configuration.
 
 **The member ids' order** (`BootFacts`): `id₁ id₂ id₃` are the ids of `linkv3-1`, `-2`, `-3`.
 `bootstrap` sorts the members by id, and for linkv3's names and token the order is

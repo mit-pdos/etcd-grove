@@ -13,8 +13,8 @@ between `10` and `2 ^ 62` nanoseconds: `intervalP`), and the contract of mvcc's 
 `ReportEventReceived` (it returns). Assumptions about package initialization, as `v3rpcInit`.
 (D19j, 2026-10-18: all but `io.EOF` are now `v3rpc`'s package facts, `watchPkgVars`,
 `BaseWatch.lean` and `Base.lean`; `ReportEventReceived` is a callee of `sendLoop` with a
-trust-boundary spec, `0 ≤ n`; `io.EOF` (`eofVar`) stays a premise: Perennial's `io` fact does not
-keep it.)
+trust-boundary spec, `0 ≤ n`; `io.EOF` (`eofVar`) stayed a premise until Perennial's `io` fact
+kept it, 2026-10-20: `eofVar_of_init`.)
 
 **The server's contract** (`watchSrvOk s E γ wsl`, persistent): the server's KV is the watchable
 store `wsl` (`mvcc.isWatchableStore wsl E.s γ`, its names over the apply thread's store names
@@ -37,6 +37,8 @@ progress request (`progQ`).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatchStream
+public import Perennial.Proof.io.Base
+public import Proof.errors.NewVar
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
@@ -99,6 +101,25 @@ def eofVar : IProp GF :=
 
 instance eofVar_persistent : Persistent (eofVar (GF := GF)) := by
   unfold eofVar errMsgOk; infer_instance
+
+/-- **`io.EOF` from `io`'s package fact**: `io.isInit` keeps `EOF`'s value, an `errors.New("EOF")`
+error (a fixed `*errorString` whose `Error()` returns, `io.eof_of_init`); the method-set facts of
+`*errorString` (`ErrorStringLeaf`, `context.ErrorStringIsError`) make it `eofVar`'s. -/
+theorem eofVar_of_init [_root_.Perennial.io.Assumptions] [ErrorStringLeaf]
+    [hErr : _root_.Perennial.context.ErrorStringIsError] :
+    isPkgInit (PROP := IProp GF) pkg_id.io ⊢ eofVar := by
+  iintro #Hpkg
+  ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hpkg
+  iunfold _root_.Perennial.errors.newVar at Hv
+  icases Hv with ⟨%x, #Hpt, #Hmsg⟩
+  iunfold eofVar
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  iframe Hpt
+  isplitr
+  · ipureintro
+    exact ⟨errorString_leaf x, hErr.is_error⟩
+  iunfold errMsgOk
+  iapply (errorMsg_triple (GF := GF)) $$ Hmsg
 
 /-- **The package facts `watch.go` reads** (persistent; see the file header): `io.EOF`
 (`eofVar`) and `v3rpc`'s package facts' part (`watchPkgVars`, D19j: `watchVars_of_init`). -/

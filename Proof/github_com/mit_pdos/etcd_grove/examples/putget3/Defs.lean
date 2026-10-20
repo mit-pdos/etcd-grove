@@ -155,16 +155,6 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
     Persistent (premises (GF := GF) N id₁ id₂ id₃ bootLog) := by
   unfold premises; infer_instance
 
-/-- **`io.EOF` from `io`'s package fact** (putget's named hypothesis, D19r; **false under the
-current Perennial pin**). -/
-def EofFromIoInit : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.io ⊢ v3rpc.eofVar
-
-/-- **`context`'s closed channel from its package fact** (putget's named hypothesis, D19r (E);
-**false under the current Perennial pin**). -/
-def ClosedchanFromContextInit : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.context ⊢ context.isClosedchanInit
-
 end defs
 
 end putget3

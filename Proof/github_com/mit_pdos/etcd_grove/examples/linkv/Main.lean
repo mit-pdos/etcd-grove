@@ -83,19 +83,17 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id bootLog clients ops Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
-  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts (the named Props)
+  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
-  · unfold putget.EofFromIoInit at HEof
-    iapply HEof
+  · iapply v3rpc.eofVar_of_init
     iPkgInit
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
-  · unfold putget.ClosedchanFromContextInit at HCc
-    iapply HCc
+  · iapply context.isClosedchanInit_of_init
     iPkgInit
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []

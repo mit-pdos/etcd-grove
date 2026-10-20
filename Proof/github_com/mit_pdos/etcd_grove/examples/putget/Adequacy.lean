@@ -32,9 +32,9 @@ FFI (the proofs are generic over the FFI) and a ghost-state bundle `putgetGF`, f
 * triples of functions the program calls, with fresh resources (`putget.premises`: `bootstrap`'s
   contract, the raft wrapper's names-only contracts, `Stop` of a started node,
   `runsNoRequireLeader`), at every ghost-state instance;
-* **the two marked hypotheses**, false under the current Perennial pin: `EofFromIoInit` and
-  `ClosedchanFromContextInit` (`io.EOF` and `context`'s `closedchan` from their packages' facts);
-  the proposed Perennial changes make them theorems.
+* (until 2026-10-20 also two marked hypotheses, false under the then Perennial pin,
+  `EofFromIoInit` and `ClosedchanFromContextInit`: `io.EOF` and `context`'s `closedchan` now come
+  from their packages' facts, `v3rpc.eofVar_of_init` and `context.isClosedchanInit_of_init`).
 -/
 module
 
@@ -132,9 +132,6 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC putgetGF, putget.EofFromIoInit (GF := putgetGF) (hG := heapAt hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC putgetGF,
-      putget.ClosedchanFromContextInit (GF := putgetGF) (hG := heapAt hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -156,8 +153,6 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hprem0 := Hprem hG
-  have HEof0 := HEof hG
-  have HCc0 := HCc hG
   have Hctx0 := Hctx hG
   obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
   subst Hlctx
@@ -188,7 +183,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe Hown
     iunfold read.readRegPerm
     iframe
-  have hM := putget.wp_Main (GF := putgetGF) n id bootLog Hbf HEof0 HCc0 (by rw [HT]; omega)
+  have hM := putget.wp_Main (GF := putgetGF) n id bootLog Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

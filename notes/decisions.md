@@ -11827,3 +11827,29 @@ moves `os`'s fact out of raft's `Base.lean`: deferred (2026-10-20, the user's ch
 it rebuilds everything and touches a file every raft proof imports. The other packages'
 `opaqueInitsOk` (etcd's server, its dependencies; putget's and linkv's trust bases) can follow
 the same scheme package by package.
+
+## D19r (E) discharged: `io`'s and `context`'s facts keep `EOF` and `closedchan` (2026-10-20)
+
+The closed theorems took three marked hypotheses, false under the Perennial pin `e81f4a6ce`
+(D19r, (E)): `EofFromIoInit` (`isPkgInit io ⊢ v3rpc.eofVar`), `ClosedchanFromContextInit`
+(`isPkgInit context ⊢ context.isClosedchanInit`) and watchkv's `EofOkFromIoInit`
+(`isPkgInit io ⊢ client.eofOk`). The Perennial change, general and proposed on its own (branch
+`init-facts`: `io.isInit` keeps its nine `errors.New` variables as `errors.newVar X msg`, a
+persistent points-to of a fixed `*errorString` whose `Error()` returns `msg`; `context.isInit`
+keeps `isClosedchanInit`, allocated by the initializer once it closes the channel), makes them
+theorems, and they are deleted rather than kept as proved Props:
+
+- `context.isClosedchanInit_of_init` (Perennial's) holds outright, so `Main.spec` loses the
+  premise.
+- `io.eof_of_init` gives `EOF`'s value with its message, not the method-set facts `eofVar` and
+  `eofOk` state (leaf, no `Is`, no `GRPCStatus`, in `error`'s type set): those are about method
+  sets, which the semantics leaves uninterpreted, so they stay the classes they already were
+  (`ErrorStringLeaf`, `ErrorStringNoGRPCStatus`, `context.ErrorStringIsError`), hypotheses of every
+  closed theorem already. `v3rpc.eofVar_of_init` and `client.eofOk_of_init` derive the facts
+  from `io`'s package fact under those classes, and each `Main.spec` takes the classes in place of
+  the Prop. A Prop premise in `Main.spec` would be more general (it is implied by the classes),
+  but nothing is gained by it: the only caller is the closed theorem, which has the classes.
+- The `isClosedchanInit` variant of `etc/gen-init.py` (D20, `CLOSEDCHAN`) is kept, with its
+  `context` re-proof completed by the new conjunct; it is now redundant (the clean fix it waited
+  for is in), and removing it is a separate simplification (`notes/STATUS.md`).
+

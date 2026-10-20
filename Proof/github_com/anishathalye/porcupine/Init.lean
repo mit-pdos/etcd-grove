@@ -3,24 +3,25 @@
 # Porcupine's package initialization, with `context`'s `isClosedchanInit` (2026-10-19)
 
 Porcupine's specs (`CheckOperations*`) take `context.isClosedchanInit` (`closedchan` is
-closed, an invariant: `WithCancel(Background())` needs it), which `context`'s `isPkgInit` does
-not give and Perennial's `context.wp_initialize'` does not return: its proof closes
-`closedchan` and drops the channel's state. A closed program built on porcupine must get it
-from its initialization, so this file proves the initialization again with it:
+closed, an invariant: `WithCancel(Background())` needs it), which `context`'s `isPkgInit` did
+not give until Perennial `init-facts` (2026-10-20: now its conjunct `"#Hcci"`,
+`context.isClosedchanInit_of_init`). This file was written before, and proves the
+initialization again with it:
 
 - `context_wp_initialize'_closedchan`: `context`'s initialization (the proof of Perennial's
   `context.initialize'.wp_proof`, plus the invariant `inv closedchanN (ownChan γ (Closed []))`
-  allocated once `init` has closed the channel) at a `get_is_pkg_init` whose entry for
-  `context` is `isPkgInit context ∗ isClosedchanInit`; it returns both.
+  allocated once `init` has closed the channel, which `isPkgInit context` now holds too) at a
+  `get_is_pkg_init` whose entry for `context` is `isPkgInit context ∗ isClosedchanInit`; it
+  returns both.
 - `wp_initialize'`: porcupine's (which runs `context`'s first), at a table
   (`PorcupineInitTable`) whose entries for `context` and porcupine carry `isClosedchanInit`
   (so a second initialization, from the map, gives it too) and whose entries for the other
   packages it reaches (`errors`, `sync`, `sync/atomic`, `time`, `sort`, `fmt`, `strings`,
   which do not import `context`) are their `isPkgInit` (`GetIsPkgInitProp`).
 
-The clean fix is in Perennial: `context`'s `isPkgInit` could include `isClosedchanInit`
-(its `isInit` is stated at any `HasLC`, `isClosedchanInit` at `HasLC.hasLC`), and then no
-spec would take it as a premise.
+Now that `context`'s `isPkgInit` includes `isClosedchanInit`, this variant is redundant: the
+packages of `CLOSEDCHAN` could be proved in the ordinary form, and their specs could get
+`isClosedchanInit` from `isPkgInit context` (`notes/STATUS.md`).
 -/
 module
 
@@ -135,6 +136,10 @@ theorem context_wp_initialize'_closedchan [hErr : ErrorStringIsError]
       iframe HDE
       ipureintro
       exact hDE.is_error
+    isplitr
+    · unfold isClosedchanInit
+      iexists ch, γ
+      iframe #
     itrivial
   · unfold isClosedchanInit
     iexists ch, γ

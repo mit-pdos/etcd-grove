@@ -8,8 +8,8 @@ imports (`proto`, `encoding/binary`, `raftpb`, raft, `time`, `sync`, `context`, 
 variable), and gives its `isPkgInit` with `context`'s `isClosedchanInit`, which `Main.spec`
 takes.
 
-`isClosedchanInit` (`closedchan` closed, an invariant) is not part of `context`'s `isPkgInit`
-and Perennial's `context.wp_initialize'` drops it, so it must come from `context`'s first
+`isClosedchanInit` (`closedchan` closed, an invariant) was not part of `context`'s `isPkgInit`
+before Perennial `init-facts` (2026-10-20), so it had to come from `context`'s first
 initialization, `context_wp_initialize'_closedchan` (`Proof/github_com/anishathalye/porcupine/
 Init.lean`), at a table whose entry for `context` carries it. Here the first package to
 initialize `context` is raft (the store's initializer runs `proto`'s, `binary`'s, `raftpb`'s,
@@ -18,8 +18,8 @@ then raft's, which imports `context`), and raft's `wp_initialize'`
 is its bare `isPkgInit`. So this file proves raft's initialization again,
 `go_etcd_io.raft.v3.wp_initialize'_closedchan`: the same proof, at a table (`CCInitTable`)
 whose entry for `context` carries `isClosedchanInit`, running `context_wp_initialize'_closedchan`
-in place of Perennial's. (The clean fix is Perennial's, as porcupine's `Init.lean` says:
-`context`'s `isPkgInit` including `isClosedchanInit`.)
+in place of Perennial's. (Perennial `init-facts` made the clean fix, `context`'s `isPkgInit` including
+`isClosedchanInit`, so this re-proof is now redundant: `notes/STATUS.md`.)
 
 The store's table (`KVInitTable`): the entries of the store, lintest, porcupine and `context`
 (the packages that import `context`, but raft) carry `isClosedchanInit`; raft's and every other

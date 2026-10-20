@@ -11,7 +11,7 @@ putget's at `linkv`'s configuration, `Proof/.../linkv/MainDefs.lean`), `Main(cli
 not panic and returns `Ok` (the check ran: the history is linearizable) or `Unknown` (a step
 before the check failed). The pure premises are putget's (`putget.Main.spec`: the member id and
 bootstrap log, the thread and time-receipt bounds, the server's workload and effect premises,
-gRPC's method sets, `errors.As`'s target, the two named package-fact Props) and `Run`'s bounds on
+gRPC's method sets, `errors.As`'s target, the method-set classes of `*errorString`) and `Run`'s bounds on
 `clients` and `ops`. Stated under the cache package's assumptions, as putget's.
 -/
 module
@@ -38,10 +38,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumption
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (id : w64) (bootLog : List EntryM)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+    (N : Nat) (id : w64) (bootLog : List EntryM)
     (clients ops : w64),
   putget.BootFacts id bootLog →
-  putget.EofFromIoInit (GF := GF) → putget.ClosedchanFromContextInit (GF := GF) →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   mvcc.backendNoCompaction → v3rpc.ServerMethodSets →

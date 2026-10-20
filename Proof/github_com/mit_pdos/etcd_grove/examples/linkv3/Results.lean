@@ -13,9 +13,8 @@ Rocq counterpart).
   of `n` steps of `linkv3`'s initialization followed by `Main(clients, ops)`, from a fresh state with
   one thread, has no stuck thread, no thread ended in a panic (so never "linkv3: porcupine found
   the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
-  under putget3's hypotheses (`putget3_safe`) at linkv3's configuration, among them the two marked
-  ones (`EofFromIoInit`, `ClosedchanFromContextInit`: false under the current Perennial pin), and
-  `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s).
+  under putget3's hypotheses (`putget3_safe`) at linkv3's configuration and `Run`'s bounds on
+  `clients` and `ops` (`linkv_safe`'s).
 -/
 module
 
@@ -77,10 +76,6 @@ theorem linkv3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC linkvGF,
-      putget3.EofFromIoInit (GF := linkvGF) (hG := linkvHeapAt hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC linkvGF,
-      putget3.ClosedchanFromContextInit (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -90,7 +85,7 @@ theorem linkv3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   linkv3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hnoc clients ops Hc0 Hc31 Hops Hmul
-    HNs HAs n Hprem HEof HCc σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+    HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy
 

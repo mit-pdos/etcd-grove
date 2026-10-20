@@ -7,9 +7,6 @@
   URL `http://127.0.0.1:23831`), the peer directory `wkDir`, and `premises`: putget's at these,
   with the transport premise `client.noRetryableStreamErr` (the user's decision: the transport
   never fails a watch stream with a retryable code, `issues/etcd-watch-resume-closing-substream.md`).
-* `EofOkFromIoInit`: `io.EOF` as the watch client takes it (`client.eofOk`) from `io`'s fact, a
-  named Prop as putget's `EofFromIoInit` (false under the current Perennial pin, whose `io` fact
-  does not keep `EOF`).
 * The program's values: `genKeys`/`genVals` (`Gen`'s), `pairOf` (a `kv`'s key and value),
   `CheckOk` (what `check` needs not to panic).
 * `revAt E r k v`: revision `r` of a sealed log of the server's store is the put of `k ↦ v` (no
@@ -121,12 +118,6 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
 instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
     Persistent (premises (GF := GF) N id bootLog) := by
   unfold premises; infer_instance
-
-/-- **`io.EOF` as the watch client takes it, from `io`'s package fact** (a named hypothesis, as
-putget's `EofFromIoInit`; **false under the current Perennial pin**, whose `io` fact does not keep
-`EOF`'s value; a Perennial change of `io`'s fact makes it a theorem for every closed theorem). -/
-def EofOkFromIoInit : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.io ⊢ client.eofOk
 
 end defs
 

@@ -24,8 +24,8 @@ package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
 * triples of functions the program calls, with fresh resources (`putget3.premises`: `bootstrap`'s
   contract for each member, the raft wrapper's names-only contracts, `Stop` of a started node,
   `runsNoRequireLeader`), at every ghost-state instance;
-* **the two marked hypotheses**, false under the current Perennial pin: `EofFromIoInit` and
-  `ClosedchanFromContextInit`.
+* (until 2026-10-20 also putget's two marked hypotheses, `EofFromIoInit` and
+  `ClosedchanFromContextInit`, now theorems of `io`'s and `context`'s package facts).
 -/
 module
 
@@ -127,9 +127,6 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC putget3GF, putget3.EofFromIoInit (GF := putget3GF) (hG := heapAt3 hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC putget3GF,
-      putget3.ClosedchanFromContextInit (GF := putget3GF) (hG := heapAt3 hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -151,8 +148,6 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   have Hprem0 := Hprem hG
-  have HEof0 := HEof hG
-  have HCc0 := HCc hG
   have Hctx0 := Hctx hG
   obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
   subst Hlctx
@@ -183,7 +178,7 @@ theorem putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe Hown
     iunfold read.readRegPerm
     iframe
-  have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf HEof0 HCc0 (by rw [HT]; omega)
+  have hM := putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ bootLog Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Htok]
   · iframe; iframe #
