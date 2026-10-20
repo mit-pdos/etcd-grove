@@ -100,6 +100,15 @@ raftpb_HardState__GetTerm:
 raftpb_HardState__GetVote:
 raftpb_MarshalConfChange: raftpb_ConfChange__AsV1 raftpb_ConfChangeV2__AsV1 raftpb_ConfChangeV2__AsV2 proto_MarshalConfChange proto_MarshalConfChangeV2
 raftpb_MessageType__Enum:
+# the witness's state (witness.go, 2026-10-20)
+raftpb_WitnessHardState__GetState:
+raftpb_WitnessHardState__GetLastLogIndex:
+raftpb_WitnessHardState__GetLastLogTerm:
+raftpb_WitnessHardState__GetLastLogSubterm:
+raftpb_WitnessHardState__GetLead:
+raftpb_WitnessHardState__GetReplicationSet:
+raftpb_WitnessHardState__GetReplicationSetOutgoing:
+witness__handleHeartbeat: raftpb_MessageType__Enum
 raftpb_Message__GetCommit:
 raftpb_Message__GetContext:
 raftpb_Message__GetEntries:

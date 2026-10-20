@@ -268,6 +268,13 @@ public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 public import Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetData
 public import Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogIndex
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogSubterm
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogTerm
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLead
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSet
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
+public import Proof.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetState
 public import Proof.crypto.rand.Int
 public import Proof.go_etcd_io.raft.v3.readOnly__AckedIndex
 public import Proof.go_etcd_io.raft.v3.readOnly__addRequest
@@ -345,6 +352,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Proof.go_etcd_io.raft.v3.witness__handleHeartbeat
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -1520,6 +1528,34 @@ theorem raftpb.Snapshot.wp_GetData :
     raftpb.Snapshot.GetData.spec (GF := GF) (hG := hG) :=
   raftpb.Snapshot.GetData.wp_proof
 
+theorem raftpb.WitnessHardState.wp_GetLastLogIndex :
+    raftpb.WitnessHardState.GetLastLogIndex.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetLastLogIndex.wp_proof
+
+theorem raftpb.WitnessHardState.wp_GetLastLogSubterm :
+    raftpb.WitnessHardState.GetLastLogSubterm.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetLastLogSubterm.wp_proof
+
+theorem raftpb.WitnessHardState.wp_GetLastLogTerm :
+    raftpb.WitnessHardState.GetLastLogTerm.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetLastLogTerm.wp_proof
+
+theorem raftpb.WitnessHardState.wp_GetLead :
+    raftpb.WitnessHardState.GetLead.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetLead.wp_proof
+
+theorem raftpb.WitnessHardState.wp_GetReplicationSet :
+    raftpb.WitnessHardState.GetReplicationSet.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetReplicationSet.wp_proof
+
+theorem raftpb.WitnessHardState.wp_GetReplicationSetOutgoing :
+    raftpb.WitnessHardState.GetReplicationSetOutgoing.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetReplicationSetOutgoing.wp_proof
+
+theorem raftpb.WitnessHardState.wp_GetState :
+    raftpb.WitnessHardState.GetState.spec (GF := GF) (hG := hG) :=
+  raftpb.WitnessHardState.GetState.wp_proof
+
 theorem tracker.Inflights.wp_Clone :
     tracker.Inflights.Clone.spec (GF := GF) (hG := hG) :=
   tracker.Inflights.Clone.wp_proof
@@ -1539,6 +1575,10 @@ theorem tracker.ProgressTracker.wp_TallyVotes :
 theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
     tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
   tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
+
+theorem witness.wp_handleHeartbeat :
+    witness.handleHeartbeat.spec (GF := GF) (hG := hG) :=
+  witness.handleHeartbeat.wp_proof raftpb.MessageType.wp_Enum
 
 end links
 

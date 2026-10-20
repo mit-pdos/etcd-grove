@@ -115,7 +115,7 @@ PROJECTS = [
         # notes/raft-witness-vs-pr168.md (notes/raft-witness.md, "The Go code").
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="edd87c4895c8ba2a3c69ba743af2feb406378d81",
+        rev="9ed005d46117e4d05967c2b28e99e39ca0403302",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],

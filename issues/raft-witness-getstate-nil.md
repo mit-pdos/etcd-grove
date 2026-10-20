@@ -5,7 +5,9 @@ upstream: unchecked
 # `witness.Process` panics when the storage's `WitnessState.GetState()` returns nil
 
 **Status**: an unstated precondition of the `WitnessStorage` API (raft#168's witness, as rebased
-on the fork's `raft-witness-goose-lean`, commit `edd87c48`).
+on the fork's `raft-witness-goose-lean`, commit `edd87c48`). **Fixed in the fork**, commit
+`9ed005d46` (`cloneState` reads through the nil-safe getters; test `TestWitnessNilStoredState`);
+row 14 of `notes/raft-witness-vs-pr168.md`.
 
 **Where**: `witness.go`, `Process` (`w.state = state.GetState()`, then `w.cloneState()`) and
 `cloneState` (`len(w.state.ReplicationSet)`, `copy(st.ReplicationSet, w.state.ReplicationSet)`).
@@ -23,9 +25,9 @@ request, panic in `cloneState`.
 `&raftpb.WitnessHardState{}`), or `cloneState` reads through `GetReplicationSet()` /
 `GetReplicationSetOutgoing()`, which are nil-safe.
 
-**How the proof handles it**: the storage contract (`isWState`, `InvWitness.lean`) gives the
-state `GetState` returns as `whsRO` (non-nil); the cache before the first read is `whsOpt` (nil
-allowed), and `cloneState`'s spec requires `whsRO`.
+**How the proof handles it**: the proof is of the fixed code: the storage contract (`isWState`,
+`InvWitnessStorage.lean`) lets `GetState` return nil (`whsOpt`, the zero state), and
+`cloneState`'s spec takes `whsOpt`. (Before the fix, the spec required `whsRO`, non-nil.)
 
 **Possible fixes**: `make([]uint64, len(w.state.GetReplicationSet()))` and `copy(st.ReplicationSet,
 w.state.GetReplicationSet())` (and the same for the outgoing set), or document the precondition

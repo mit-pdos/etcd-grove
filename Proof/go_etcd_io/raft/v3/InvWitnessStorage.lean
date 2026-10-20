@@ -14,7 +14,8 @@ shift of the caller's on `P` at its linearization point (an atomic update reduce
 - `GetWitnessState()`: a `WitnessState` of the state `σ` stored when it ran the caller's
   `P σ ={⊤ ∖ N}=∗ P σ ∗ Ψ σ` (a lower bound of the history, say: `wGhost_read`), or an error,
   the shift unrun;
-- `ws.GetState()`: that state, read-only (not nil: `issues/raft-witness-getstate-nil.md`);
+- `ws.GetState()`: that state, read-only, or nil for the zero state (`whsOpt`; fork `9ed005d46`
+  reads a nil state as the zero state, `issues/raft-witness-getstate-nil.md`);
 - `ws.Update(q)`: if the stored state is still `σ`, it is now `q`'s (`σ'`), the caller's
   `P σ ={⊤ ∖ N}=∗ P σ' ∗ Ψ` run (`wGhost_push`, `_write`, `_vote`, `_raise`); else an error
   (`ErrWitnessStateModified`, or another), the shift handed back.
@@ -45,7 +46,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def isWState (sv : GoInterface) (N : Namespace) (P : WHS → IProp GF) (σ : WHS) : IProp GF :=
   iprop(∃ (j : GoInterfaceOk) (p : Loc),
     "%Hsv" ∷ ⌜sv = interface.ok j⌝ ∗
-    "#Hp" ∷ whsRO p σ ∗
+    "#Hp" ∷ whsOpt p σ ∗
     "#HGetState" ∷ □ ({{ True }}
         (App (Val #(methods j.ty go!"GetState" j.v)) (Val #()))
       {{ RET #p; True }}) ∗

@@ -179,6 +179,55 @@ theorem whsRest_nn (p : Loc) (dq : DFrac) (σ : WHS) :
   · ipureintro; exact Hnn
   iframe HLi cLi HLt cLt HLs cLs HLd cLd HRs Hrs HRo Hro Hpb
 
+/-- A freshly allocated `*pb.WitnessHardState` and `*pb.HardState` (hidden fields zero) whose
+cells hold `σ`'s: an owned witness state (`cloneState`'s). -/
+theorem whsOwn_of_struct (p : Loc) (v : raftpb.WitnessHardState) (hv : raftpb.HardState)
+    (σ : WHS) (E : CoPset) (Hu : v.unknownFields' = slice.nil)
+    (Hhu : hv.unknownFields' = slice.nil) :
+    (p ↦ v ∗ v.State' ↦ hv ∗ cellRO hv.Term' σ.term ∗ cellRO hv.Vote' σ.vote ∗
+      cellRO hv.Commit' σ.commit ∗ cellRO v.LastLogIndex' σ.li ∗ cellRO v.LastLogTerm' σ.lt ∗
+      cellRO v.LastLogSubterm' σ.ls ∗ cellRO v.Lead' σ.lead ∗
+      v.ReplicationSet' ↦*□ σ.rs ∗ v.ReplicationSetOutgoing' ↦*□ σ.rsOut : IProp GF) ⊢
+      |={E}=> whsOwn p σ := by
+  iintro ⟨Hp, Hh, #cT, #cV, #cC, #cLi, #cLt, #cLs, #cLd, #Hrs, #Hro⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  ihave %Hhn := typedPointsto_not_null $$ Hh
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, State, LastLogIndex, LastLogTerm, LastLogSubterm, Lead, ReplicationSet,
+    ReplicationSetOutgoing, unknownFields, sizeCache, -⟩
+  icases typedPointsto_split _ _ _ $$ Hh with Hh
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hh with ⟨hstate, Term, Vote, Commit, hunknownFields, hsizeCache, -⟩
+  rw [Hu, Hhu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  ihave Hnil' : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.WitnessHardState p v.state' v.sizeCache' slice.nil [] E
+    $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imod pbMsg_alloc raftpb.HardState v.State' hv.state' hv.sizeCache' slice.nil [] E
+    $$ [hstate hsizeCache hunknownFields Hnil'] with #Hpbs
+  · iframe
+  imodintro
+  unfold whsOwn
+  iexists v.State'
+  iframe State
+  isplitl [Term Vote Commit]
+  · unfold hsF
+    iexists hv.Term', hv.Vote', hv.Commit', []
+    isplitr
+    · ipureintro; exact Hhn
+    iframe Term cT Vote cV Commit cC Hpbs
+  unfold whsRest
+  iexists v.LastLogIndex', v.LastLogTerm', v.LastLogSubterm', v.Lead', v.ReplicationSet',
+    v.ReplicationSetOutgoing', []
+  isplitr
+  · ipureintro; exact Hnn
+  iframe LastLogIndex cLi LastLogTerm cLt LastLogSubterm cLs Lead cLd ReplicationSet Hrs
+    ReplicationSetOutgoing Hro Hpb
+
 /-- A handler's answer at `ml`: nil for none, else a fresh message holding it. -/
 def respOpt (ml : Loc) : Option WResp → IProp GF
   | none => iprop(⌜ml = null⌝)

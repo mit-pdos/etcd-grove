@@ -15,6 +15,8 @@ public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogSubterm
 public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLead
+public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSet
+public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
 
 @[expose] public section
 
@@ -332,6 +334,96 @@ theorem wp_whsOpt_GetLead (wp_GetLead : raftpb.WitnessHardState.GetLead.spec (GF
     iintro -
     iapply HΦ; itrivial
 
+
+/-- `GetReplicationSet` of a witness state: its read-only slice. -/
+theorem wp_whsRest_GetReplicationSet (wp_GetReplicationSet : raftpb.WitnessHardState.GetReplicationSet.spec (GF := GF) (hG := hG))
+    (p : Loc) (dq : DFrac) (σ : WHS) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ whsRest p dq σ }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.WitnessHardState.ty @!! go!"GetReplicationSet"))
+        (Val #()))
+    {{ (s : GoSlice), RET #s; s ↦*□ σ.rs ∗ whsRest p dq σ }} := by
+  iintro %Φ ⟨#Hi, H⟩ HΦ
+  iNamed H
+  iapply wp_GetReplicationSet.1 p dq _ $$ [$Hi $HRs]
+  · ipureintro; exact Hnn
+  inext
+  iintro HRs
+  iapply HΦ
+  iframe Hrs
+  unfold whsRest
+  iexists pli, plt, pls, pld, srs, sro, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HLi cLi HLt cLt HLs cLs HLd cLd HRs Hrs HRo Hro Hpb
+
+theorem wp_whsOpt_GetReplicationSet (wp_GetReplicationSet : raftpb.WitnessHardState.GetReplicationSet.spec (GF := GF) (hG := hG))
+    (p : Loc) (σ : WHS) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ whsOpt p σ }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.WitnessHardState.ty @!! go!"GetReplicationSet"))
+        (Val #()))
+    {{ (s : GoSlice), RET #s; s ↦*□ σ.rs }} := by
+  iintro %Φ ⟨#Hi, #H⟩ HΦ
+  iunfold whsOpt at H
+  icases H with (⟨%Hp, %Hs⟩ | #H)
+  · subst Hp Hs
+    iapply wp_GetReplicationSet.2 $$ Hi
+    inext
+    iintro -
+    iapply HΦ
+    simp only [WHS.zero]
+    iapply ownSlice_nil
+  · iunfold whsRO at H
+    iunfold whsF at H
+    iNamed H
+    iapply wp_whsRest_GetReplicationSet wp_GetReplicationSet p DFrac.discard σ $$ [$Hi $Hr]
+    inext
+    iintro %s ⟨#Hs, -⟩
+    iapply HΦ $$ Hs
+
+/-- `GetReplicationSetOutgoing` of a witness state: its read-only slice. -/
+theorem wp_whsRest_GetReplicationSetOutgoing (wp_GetReplicationSetOutgoing : raftpb.WitnessHardState.GetReplicationSetOutgoing.spec (GF := GF) (hG := hG))
+    (p : Loc) (dq : DFrac) (σ : WHS) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ whsRest p dq σ }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.WitnessHardState.ty @!! go!"GetReplicationSetOutgoing"))
+        (Val #()))
+    {{ (s : GoSlice), RET #s; s ↦*□ σ.rsOut ∗ whsRest p dq σ }} := by
+  iintro %Φ ⟨#Hi, H⟩ HΦ
+  iNamed H
+  iapply wp_GetReplicationSetOutgoing.1 p dq _ $$ [$Hi $HRo]
+  · ipureintro; exact Hnn
+  inext
+  iintro HRo
+  iapply HΦ
+  iframe Hro
+  unfold whsRest
+  iexists pli, plt, pls, pld, srs, sro, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HLi cLi HLt cLt HLs cLs HLd cLd HRs Hrs HRo Hro Hpb
+
+theorem wp_whsOpt_GetReplicationSetOutgoing (wp_GetReplicationSetOutgoing : raftpb.WitnessHardState.GetReplicationSetOutgoing.spec (GF := GF) (hG := hG))
+    (p : Loc) (σ : WHS) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ whsOpt p σ }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.WitnessHardState.ty @!! go!"GetReplicationSetOutgoing"))
+        (Val #()))
+    {{ (s : GoSlice), RET #s; s ↦*□ σ.rsOut }} := by
+  iintro %Φ ⟨#Hi, #H⟩ HΦ
+  iunfold whsOpt at H
+  icases H with (⟨%Hp, %Hs⟩ | #H)
+  · subst Hp Hs
+    iapply wp_GetReplicationSetOutgoing.2 $$ Hi
+    inext
+    iintro -
+    iapply HΦ
+    simp only [WHS.zero]
+    iapply ownSlice_nil
+  · iunfold whsRO at H
+    iunfold whsF at H
+    iNamed H
+    iapply wp_whsRest_GetReplicationSetOutgoing wp_GetReplicationSetOutgoing p DFrac.discard σ $$ [$Hi $Hr]
+    inext
+    iintro %s ⟨#Hs, -⟩
+    iapply HΦ $$ Hs
 
 end lemmas
 

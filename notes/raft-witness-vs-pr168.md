@@ -7,7 +7,7 @@ the pinned raft v3.7 (`c8217eb9`, protobuf-go v2) as one commit, with the fixes 
 row is a defect of #168, how it shows, and what the fork does instead; the tests are in the fork
 (`witness_test.go`, `confchange/witness_restore_test.go`, `quorum/witness_olq_test.go`). Rows 1-4
 and 7 were found by `pr-verify/raft-168` (`notes/pr-verify/raft-168.md`, on that branch), rows 5, 6,
-8 by this work.
+8, 13 and 14 by this work (0 by the W2 proof design, 13 and 14 by W3a's specs).
 
 | # | defect in #168 | effect | here | test |
 |---|---|---|---|---|
@@ -20,6 +20,8 @@ and 7 were found by `pr-verify/raft-168` (`notes/pr-verify/raft-168.md`, on that
 | 6 | `witness.handleAppend`'s acknowledgement after a write that raised the witness's term carries the witness's **old** term | the leader drops the ack as stale and must retry (liveness) | the ack carries the new term | `TestWitnessAppendNewerTermResponse` |
 | 7 | `witness.processMessageWithOlderTerm` answers a stale leader with a `MsgAppResp` without `Term`/`From` | raft drops it (a local message from node 0): the stale leader is never told of the newer term | the answer carries the witness's term and id | `TestWitnessOlderTermResponse` |
 | 8 | the witness cache (`w.state`) is not updated after a successful write | the next request reloads the storage once (a read, no write) before the cache answers: one extra storage access per write (efficiency only) | the cache is the written state after a successful CAS | `TestWitnessClusterCommitAndSafety` (no storage write for entries after the first of a subterm) |
+| 13 | `Process` answers a heartbeat of a newer term, after raising the state being written to it, with `handleHeartbeat`'s term of the state read *before* the raise (`w.state`), the pattern of row 6 | the leader drops the answer as stale: one heartbeat round lost under check-quorum (liveness) | `handleHeartbeat(m, term)` takes the term: the stored state's on the early path, the raised state's on the newer-term path (fork `9ed005d46`); found writing `handleHeartbeat`'s spec (W3a, `issues/raft-witness-heartbeat-stale-term.md`) | `TestWitnessHeartbeatNewerTermResponse` |
+| 14 | `cloneState` reads `w.state.ReplicationSet` directly, while every other read of the state goes through the nil-safe getters; `WitnessState.GetState` does not say it is never nil | a storage that hands out a nil state for "nothing stored yet" makes the first request not answered from the cache (a vote request, say) panic | `cloneState` reads through `GetReplicationSet()`/`GetReplicationSetOutgoing()`: a nil state is the zero state (fork `9ed005d46`); found writing `cloneState`'s spec (W3a, `issues/raft-witness-getstate-nil.md`) | `TestWitnessNilStoredState` |
 
 Behaviour changes of #168 for clusters **without** a witness, reverted here (so that such a
 cluster behaves exactly as v3.7 and the existing proof carries over):

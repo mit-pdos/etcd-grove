@@ -90,9 +90,10 @@ def wNewer (st : WHS) (m : WMsg) : WHS :=
     { st with term := m.term, vote := W64 0, lead := m.frm }
   else { st with term := m.term, vote := W64 0, lead := W64 0 }
 
-/-- `handleHeartbeat`, answering with the term of `σ` (`w.state`). -/
-def wHeartbeat (id : w64) (σ : WHS) (m : WMsg) : WResp :=
-  (respM MsgHeartbeatResp m.frm id σ.term (W64 0) false, m.ctx)
+/-- `handleHeartbeat(m, term)`: answered at the witness's term `term` (the stored state's, or
+the one a newer-term heartbeat raised the state being built to: fork `9ed005d46`). -/
+def wHeartbeat (id : w64) (term : w64) (m : WMsg) : WResp :=
+  (respM MsgHeartbeatResp m.frm id term (W64 0) false, m.ctx)
 
 /-- `handleAppendNoUpdate` against `σ` (`w.state`): the request's entry of the stored
 `(term, subterm)` is acknowledged at its own index; one below the stored pair, at the stored
@@ -151,15 +152,15 @@ def wNoUpdate (id : w64) (cq pv healthy : Bool) (σ : WHS) (m : WMsg) : Option (
   else none
 
 /-- One round of `Process`'s loop on the state `σ` just read: a heartbeat of `σ`'s term is
-answered without a write (`none` for the state); a request `wNoUpdate` handles likewise; else the
+answered at it without a write (`none` for the state); a request `wNoUpdate` handles likewise; else the
 new state (`wNewer` for a newer term, then the handler) to be written, with the answer. -/
 def wStep (id : w64) (cq pv : Bool) (σ : WHS) (m : WMsg) : Option WHS × Option WResp :=
-  if m.ty = MsgHeartbeat ∧ m.term = σ.term then (none, some (wHeartbeat id σ m))
+  if m.ty = MsgHeartbeat ∧ m.term = σ.term then (none, some (wHeartbeat id σ.term m))
   else match wNoUpdate id cq pv true σ m with
   | some r => (none, r)
   | none =>
     let st := if uint.Z σ.term < uint.Z m.term then wNewer σ m else σ
-    if m.ty = MsgHeartbeat then (some st, some (wHeartbeat id σ m))
+    if m.ty = MsgHeartbeat then (some st, some (wHeartbeat id st.term m))
     else if m.ty = MsgApp then
       let r := wAppend id σ st m
       (some r.1, some r.2)
