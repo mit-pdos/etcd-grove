@@ -712,11 +712,11 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
   have Heterm : e.Term' = s.term := by rw [← He]; rfl
   have Hesub : e.Subterm' = W64 0 := by rw [← He]; rfl
   -- (2026-10-19) the leader's subterm list: the entry's item, subterm `0`, the witness excluded
-  imod monoListAuthOwn_update_app [((e.Index', W64 0, W64 0) : SubItem)] $$ Hesa with
+  imod monoListAuthOwn_update_app [((e.Index', W64 0, (W64 0, ([] : List EntryM))) : SubItem)] $$ Hesa with
     ⟨Hesa, #Heslb⟩
-  ihave #Hsr : subRec γ id s.term e.Index' (W64 0) (W64 0) $$ []
+  ihave #Hsr : subRec γ id s.term e.Index' (W64 0) (W64 0) [] $$ []
   · unfold subRec
-    iexists γN, γes, γg, ([] ++ [((e.Index', W64 0, W64 0) : SubItem)])
+    iexists γN, γes, γg, ([] ++ [((e.Index', W64 0, (W64 0, ([] : List EntryM))) : SubItem)])
     iframe Hfragw Heslb
     ipureintro; exact ⟨HγN, by simp, by simpa using SubSorted_single _⟩
   generalize Hpt : (plogLast s.base s.log).term' = pt0 at Hpt0
@@ -754,7 +754,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     · iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
         omega))
       iexact Hrcpt
-    iexists (W64 0); rw [Hesub]; iexact Hsr
+    iexists (W64 0), ([] : List EntryM); rw [Hesub]; iexact Hsr
   have Hwl2 : PlogWf s.base s2.log := by
     rw [Hs2log]
     refine (PlogWf_app _ _ _).mpr ⟨Hwl, fun k x Hk => ?_⟩
@@ -1113,7 +1113,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     isplitr; · ipureintro; intro t ht; rw [psendMsgs_term, Hs2term]; exact Htmk t ht
     isplitr; · ipureintro; intro _; show s2.sub = _; exact Hs2sub
     rw [wRole_leader _ tm (by rw [psendMsgs_role]; exact Hs2role)]
-    iexists γes, γg, ([] ++ [((e.Index', W64 0, W64 0) : SubItem)])
+    iexists γes, γg, ([] ++ [((e.Index', W64 0, (W64 0, ([] : List EntryM))) : SubItem)]), []
     iframe Hesa
     ipureintro
     refine ⟨by rw [psendMsgs_term, Hs2term]; exact Htm, by simpa using SubSorted_single _,
@@ -1121,7 +1121,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     simp only [List.nil_append, List.mem_singleton] at hit
     subst hit
     refine ⟨?_, by show _ ≤ uint.Z s2.sub; rw [Hs2sub]; exact Int.le_refl _,
-      fun _ => by show _ = s2.rsx; rw [Hs2rsx]⟩
+      fun _ => by show _ = (s2.rsx, _); rw [Hs2rsx]⟩
     show uint.Z e.Index' ≤ plogLastIndexZ s2.base s2.log
     rw [Hs2base, Hs2log, Heidx]
     unfold plogLastIndexZ; rw [List.length_append]; push_cast
@@ -2658,7 +2658,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
           iexact Hrcpt
         -- (2026-10-19) its item of the subterm list
         iapply BigSepL.bigSepL_lookup
-          (Φ := fun _ (e : EntryM) => iprop(∃ x, subRec (GF := GF) γ id s.term e.Index' e.Subterm' x))
+          (Φ := fun _ (e : EntryM) => iprop(∃ x P, subRec (GF := GF) γ id s.term e.Index' e.Subterm' x P))
           Hk $$ Hsubs
   ihave #Hlf' : leadFrags γt l0 (s.log ++ nw) $$ []
   · unfold leadFrags
@@ -4473,7 +4473,7 @@ theorem ownRaftGhost_sub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) :
   · ipureintro; exact Hrole_ok
   · lcm_mono
   · rd_mono
-  · iapply wOwn_newSub γ id s a b Hst Ha $$ Hwg
+  · iapply wOwn_newSub γ id s a b [] Hst Ha $$ Hwg
 
 theorem ownRaftGhost_step_abandon (γ : RaftNames) (id : w64) (s : PState) (Hrole : s.role ≠ .leader) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
@@ -4781,15 +4781,15 @@ theorem ownLogGhost_wfacts (γ : RaftNames) (id : w64) (s : PState) (kl : Option
   iframe % # ∗
 
 /-- A leader's item of its current subterm has its current excluded voter. -/
-theorem wOwn_item (γ : RaftNames) (id : w64) (s : PState) (i σ x : w64) :
+theorem wOwn_item (γ : RaftNames) (id : w64) (s : PState) (i σ x : w64) (P : List EntryM) :
     s.role = .leader → σ = s.sub →
-    ⊢ wOwn (GF := GF) γ id s -∗ subRec γ id s.term i σ x -∗ ⌜x = s.rsx⌝ := by
+    ⊢ wOwn (GF := GF) γ id s -∗ subRec γ id s.term i σ x P -∗ ⌜x = s.rsx⌝ := by
   intro Hr Hσ
   unfold wOwn subRec
   iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, %Hd, Hw⟩ ⟨%γN', %γes, %γg, %L, %HN', #Hfr, #Hlb, %HL⟩
   rw [HN] at HN'; cases HN'
   rw [wRole_leader s tm Hr]
-  icases Hw with ⟨%γes', %γg', %Les, %HL', Hauth⟩
+  icases Hw with ⟨%γes', %γg', %Les, %Pc, %HL', Hauth⟩
   obtain ⟨Htm, -, Hitems⟩ := HL'
   icases ghost_map_lookup $$ Ha Hfr with %Htm'
   have Heq : (γes', γg') = (γes, γg) := by
@@ -4798,7 +4798,8 @@ theorem wOwn_item (γ : RaftNames) (id : w64) (s : PState) (i σ x : w64) :
   cases Heq
   icases mono_list_auth_lb_valid $$ Hauth Hlb with %Hpre
   ipureintro
-  exact (Hitems _ (Hpre.2.subset HL.1)).2.2 Hσ
+  have := (Hitems _ (Hpre.2.subset HL.1)).2.2 Hσ
+  simp only [Prod.mk.injEq] at this; exact this.1
 
 /-- A candidate's granted list holds its granted votes. -/
 theorem wOwn_grantLb (γ : RaftNames) (id : w64) (s : PState) (G : GSet w64) :
@@ -4833,13 +4834,13 @@ with the entry's item on its subterm list. -/
 theorem isEntryR_sub (γ : RaftNames) (e : EntryM) (pt t : w64) :
     e.Term' = t → (γ.reBoot = [] ∨ 2 ≤ uint.Z t) →
     ⊢ isEntryR (GF := GF) γ e pt -∗
-      ∃ ldr x, isLeader γ ldr t ∗ subRec γ ldr t e.Index' e.Subterm' x := by
+      ∃ ldr x P, isLeader γ ldr t ∗ subRec γ ldr t e.Index' e.Subterm' x P := by
   intro Ht Hb
   subst Ht
   unfold isEntryR
   iintro H
-  icases H with (⟨%ldr, %γt, %b, %l0, %F0, #Hl, -, -, -, -, -, -, %x, #Hs⟩ | ⟨%Hbr, -⟩)
-  · iexists ldr, x; iframe Hl Hs
+  icases H with (⟨%ldr, %γt, %b, %l0, %F0, #Hl, -, -, -, -, -, -, %x, %P, #Hs⟩ | ⟨%Hbr, -⟩)
+  · iexists ldr, x, P; iframe Hl Hs
   · iexfalso; ipureintro
     obtain ⟨-, h2, h3, -⟩ := Hbr
     rcases Hb with h | h
@@ -4892,10 +4893,10 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id 
     by_cases h : γ.reBoot = []
     · exact Or.inl h
     · exact Or.inr (Hbt h)
-  icases isEntryR_sub γ e pt s.term Het Hb $$ Hre with ⟨%ldr, %x, #Hl', #Hsub⟩
+  icases isEntryR_sub γ e pt s.term Het Hb $$ Hre with ⟨%ldr, %x, %P, #Hl', #Hsub⟩
   icases isLeader_unique γ id ldr s.term $$ Hl Hl' with %Hid
   subst Hid
-  icases wOwn_item γ id s e.Index' e.Subterm' x Hr Hes $$ Hwg Hsub with %Hx
+  icases wOwn_item γ id s e.Index' e.Subterm' x P Hr Hes $$ Hwg Hsub with %Hx
   have Hex : exclOf c s = s.rsx := by
     unfold exclOf at Hxw ⊢
     by_cases h0 : s.rsx = W64 0
@@ -4933,16 +4934,22 @@ theorem ownRaftGhost_wapp (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id 
   isplitr
   · unfold isMessage
     simp only [Hcw, Hwnz, ne_eq, not_false_eq_true, _root_.and_self, ↓reduceIte]
-    iexists x, ackedBy s i ∩ (γ.reCfg \ ({[γ.reWit]} ∪ {[x]}))
+    -- (2026-10-20) at the step's configuration, of the entry's item's prefix
+    iexists x, P, c, ackedBy s i ∩ (γ.reCfg \ ({[γ.reWit]} ∪ {[x]}))
     isplitr
     · ipureintro
       refine ⟨trivial, fun v => ?_, Hvs.nodup_iff.mpr (GMap.NoDup_elements _)⟩
-      rw [Hvs.mem_iff, GMap.elem_of_elements]
+      rw [Hvs.mem_iff, GMap.elem_of_elements, HC.1]
     unfold wJust
     isplitr
     · ipureintro
-      refine ⟨Hwnz, Hxin, Hxw, ?_, Hsz, ?_⟩
-      · rw [GMap.elem_of_subseteq]; intro v hv
+      refine ⟨Hwnz, CfgAt.of_static _ HC, Hcw, ?_, by rw [HC.1]; exact Hxin, Hxw, ?_,
+        by rw [HC.1]; exact Hsz, ?_⟩
+      · rw [HC.1]
+        rcases γ.reWit_ok with h | ⟨h, -⟩
+        · exact absurd h Hwnz
+        · exact h
+      · rw [HC.1, GMap.elem_of_subseteq]; intro v hv
         rw [GMap.elem_of_intersection] at hv; exact hv.2
       show 1 ≤ uint.Z i
       have := uint_Z_nonneg s.base.index'; omega
@@ -4964,13 +4971,14 @@ campaign (its full log), and its granted votes of the configuration, on its gran
 theorem ownRaftGhost_wvote (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64) (s : PState)
     (vs : List w64) :
     s.role = .candidate →
-    size (granted s.votes ∩ c.incoming) = size c.incoming / 2 →
+    size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
+    (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
     vs ≡ₚ elements (domSet s.votes) →
     ⊢ ownRaftGhost (GF := GF) γ id s md -∗
       isMessage γ (Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
         (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []) ∗
       ownRaftGhost γ id s md := by
-  intro Hr Hsz Hvs
+  intro Hr Hsz Hszo Hvs
   iintro Hown
   by_cases Hw : c.wit = γ.reWit ∧ γ.reWit ≠ W64 0
   rotate_left
@@ -4978,38 +4986,37 @@ theorem ownRaftGhost_wvote (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     · unfold isMessage; simp only [Hw, ↓reduceIte]; itrivial
     · iexact Hown
   obtain ⟨Hcw, Hwnz⟩ := Hw
-  rw [HC.1] at Hsz
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   icases ownLogGhost_wfacts γ id s kl $$ Hlg with
     ⟨⟨%Hlok, #Hrecs, -, %fp, %Hfp, #Hfrecs, #Hcown⟩, Hlg⟩
   rw [campOwn_cand γ id s _ Hr]
-  have HG : ∀ g, g ∈ granted s.votes ∩ γ.reCfg → g ∈ granted s.votes := by
-    intro g hg; rw [GMap.elem_of_intersection] at hg; exact hg.1
-  icases wOwn_grantLb γ id s (granted s.votes ∩ γ.reCfg) Hr HG $$ Hwg with ⟨#Hglb, Hwg⟩
+  have HG : ∀ g, g ∈ granted s.votes → g ∈ granted s.votes := fun _ h => h
+  icases wOwn_grantLb γ id s (granted s.votes) Hr HG $$ Hwg with ⟨#Hglb, Hwg⟩
   isplitr
   · unfold isMessage
     simp only [Hcw, Hwnz, ne_eq, not_false_eq_true, _root_.and_self, ↓reduceIte]
     unfold wVoteReq
-    iexists (fp ++ s.log), granted s.votes ∩ γ.reCfg
-    iframe Hcown Hglb
+    iunfold isCamp at Hcown
+    icases Hcown with ⟨%k, #HcK⟩
+    -- (2026-10-20) the step's configuration, of the campaign's committed prefix
+    iexists (fp ++ s.log), k, c, granted s.votes
+    iframe HcK Hglb
     isplitr
     · iapply logRecs_full γ s.base fp s.log Hfp $$ Hfrecs Hrecs
     isplitr
     · ipureintro
-      refine ⟨by rw [full_last _ _ _ Hfp], ?_, ?_, fun g hg => ?_, by omega⟩
+      refine ⟨by rw [full_last _ _ _ Hfp], ?_, CfgAt.of_static _ HC, fun g hg => ?_, Hsz, Hszo⟩
       · unfold plogLastSub
         cases h : s.log.getLast? with
         | none => exact Or.inl rfl
         | some e => exact Or.inr ⟨e, by simp [List.getLast?_append, h], rfl⟩
-      · rw [GMap.elem_of_subseteq]; intro g hg
-        rw [GMap.elem_of_intersection] at hg; exact hg.2
       · rw [Hvs.mem_iff, GMap.elem_of_elements, GMap.elem_of_dom]
-        exact ⟨true, (elem_of_granted _ _).mp (HG g hg)⟩
+        exact ⟨true, (elem_of_granted _ _).mp hg⟩
     · iapply BigSepM.bigSepM_forall_elim
       iintro %g %u %Hg
-      have Hg' : g ∈ granted s.votes := HG g ((GMap.elem_of_gset _ _).mpr (by cases u; exact Hg))
+      have Hg' : g ∈ granted s.votes := (GMap.elem_of_gset _ _).mpr (by cases u; exact Hg)
       iapply BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v s.term id)
         ((GMap.elem_of_gset _ _).mp Hg') $$ Htally
   iapply ownRaftGhost_intro γ id s γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally
@@ -5186,9 +5193,9 @@ theorem ownRaftGhost_stepC_in (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
       (Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []) (Or.inl rfl)
       $$ Hm Hrecv Hcr Hown with Hown
     imodintro; iframe Hregs Hown
-  | askWitness s vs Hr _ Hsz Hvs =>
+  | askWitness s vs Hr _ Hsz Hszo Hvs =>
     iintro #Hrc Hregs Hrecv Hcr - Hown
-    icases ownRaftGhost_wvote γ c HC id s vs Hr Hsz Hvs $$ Hown with ⟨#Hm, Hown⟩
+    icases ownRaftGhost_wvote γ c HC id s vs Hr Hsz Hszo Hvs $$ Hown with ⟨#Hm, Hown⟩
     imod ownRaftGhost_step_sendW γ id s
       (Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
         (plogLast s.base s.log).term' (plogLastSub s.log) (W64 0) [] vs []) (Or.inr (Or.inl rfl))

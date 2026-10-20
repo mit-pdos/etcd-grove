@@ -544,7 +544,7 @@ had `(t, σ)` as last entry; its vote, that its state then -- of term `T`, so la
   `|voters| - 2` members: they meet in a node (`gset_meet`), which voted in the winning quorum
   (`grantLb_win`) and acknowledged `idx`: `lc_adj`. -/
 theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
-    (F0 G : List EntryM) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
+    (F0 G : List EntryM) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) (Hst : γ.reDyn = none) :
     uint.Z t < uint.Z T →
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0)) = some (plogLast base0 F0).term' →
@@ -581,11 +581,11 @@ theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
   · icases ackReg_not_wit γ _ _ _ $$ Hreg with %Hnw
     exact absurd ⟨rfl, Hwne⟩ Hnw
   iunfold wAck at Hwa
-  icases Hwa with ⟨%σs, %idx, %x, %H, %st, %Hst, #Hj, #Hstw⟩
+  icases Hwa with ⟨%σs, %idx, %x, %P, %cA, %H, %st, %Hst, #Hj, #Hstw⟩
   obtain ⟨Hiidx, Hstt, Hstlt, Hstls⟩ := Hst
   iunfold wJust at Hj
   icases Hj with ⟨%Hjp, ⟨%ldr, #Hl, #Hsr⟩, -, #HHacks⟩
-  obtain ⟨-, Hxcfg, Hxw, HHsub, HHsize, Hidx1⟩ := Hjp
+  obtain ⟨-, HcA, -, HwA, Hxcfg, Hxw, HHsub, HHsize, Hidx1⟩ := Hjp
   -- the witness's vote, for `T`'s winner
   ihave #Hvotes := isWin_votes γ c T V $$ Hwin
   ihave #Hvw := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T c)
@@ -604,10 +604,11 @@ theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
   icases Hwv with ⟨%stv, %lt, %li, %ls, %resp, %Hg, #Hstv, #Hreq⟩
   obtain ⟨Hstvt, Hgrant⟩ := Hg
   iunfold wVoteReq at Hreq
-  icases Hreq with ⟨%F0', %G', #Hc', #HrF0, %Hrq, #Hglb, -⟩
+  icases Hreq with ⟨%F0', %kv, %K, %G', #HcK', #HrF0, %Hrq, #Hglb, -⟩
+  ihave #Hc' := isCampK_camp γ c T F0' kv $$ HcK'
   icases isCamp_agree γ c T F0 F0' $$ Hc Hc' with %HF0
   subst HF0
-  obtain ⟨Hlast, Hls, HG'cfg, HG'resp, HG'size⟩ := Hrq
+  obtain ⟨Hlast, Hls, HKcfg, HG'resp, HGin, -⟩ := Hrq
   icases isCamp_ok γ c T F0 $$ Hc with %Hcok
   -- the witness's state at the vote is at least the acknowledged one; the request's last entry
   -- at least that state's
@@ -673,11 +674,11 @@ theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
       simp only [entId, entryID.mk.injEq] at Hlast; exact Hlast.1
     icases logRecs_lookup γ F0 _ e HeF (by omega) $$ HrF0 with ⟨%pt, -, #Her⟩
     iunfold isEntryR at Her
-    icases Her with (⟨%ldr', %γt', %b', %l0', %F0c', #Hl', -, -, -, -, -, -, %xe, #Hsre⟩ | ⟨%Hb, -⟩)
+    icases Her with (⟨%ldr', %γt', %b', %l0', %F0c', #Hl', -, -, -, -, -, -, %xe, %Pe, #Hsre⟩ | ⟨%Hb, -⟩)
     · rw [show e.Term' = t from Het.trans HB1]
       icases isLeader_unique γ ldr' ldr t $$ Hl' Hl with %Hll
       subst Hll
-      icases subRec_order γ ldr' t idx σs x e.Index' e.Subterm' xe $$ Hsr Hsre with %Hso
+      icases subRec_order γ ldr' t idx σs x e.Index' e.Subterm' xe P Pe $$ Hsr Hsre with %Hso
       rw [Hes] at Hso
       have Hlt' := Hso.1 HB2
       iapply lc_same_term γ t n _ F G HwG (by rw [← HB1]; exact HGl)
@@ -698,27 +699,35 @@ theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
     have Hlt0 : stv.lt ≠ W64 0 := by
       intro h; rw [HC3] at h; rw [h] at Ht0; simp at Ht0
     rw [if_neg Hlt0]
-    icases Hsj with ⟨%xv, %Hv, %Hrs0, #Hjv⟩
+    icases Hsj with ⟨%xv, %Pv, %cv, %Hv, %Hrs0, #Hjv⟩
     have Hrs := Hrs0.1
     iunfold wJust at Hjv
-    icases Hjv with ⟨-, ⟨%ldrv, #Hlv, #Hsrv⟩, -, -⟩
+    icases Hjv with ⟨%Hjpv, ⟨%ldrv, #Hlv, #Hsrv⟩, -, -⟩
     rw [HC3, HC4]
     icases isLeader_unique γ ldrv ldr t $$ Hlv Hl with %Hll
     subst Hll
-    icases subRec_order γ ldrv t idx σs x stv.li σs xv $$ Hsr Hsrv with %Hso
-    have Hxv : x = xv := Hso.2 rfl
-    subst Hxv
-    -- the request's granted votes and `H`, in the replication set without the witness
-    have Hwcfg : γ.reWit ∈ γ.reCfg := by
-      rcases γ.reWit_ok with h | ⟨h, -⟩
-      · exact absurd h Hwne
-      · exact h
-    have HG'S : G' ⊆ γ.reCfg \ ({[γ.reWit]} ∪ {[x]}) := by
+    icases subRec_order γ ldrv t idx σs x stv.li σs xv P Pv $$ Hsr Hsrv with %Hso
+    obtain ⟨Hxv, HPv⟩ := Hso.2 rfl
+    subst Hxv HPv
+    -- (2026-10-20) the stored replication set is of the acknowledged entry's configuration
+    have Hcv : cv.incoming = cA.incoming := CfgAt.incoming_eq Hjpv.2.1 HcA
+    -- the request's granted votes of the campaign configuration's incoming half, and `H`, in
+    -- the replication set without the witness
+    have HKin : K.incoming = cA.incoming :=
+      (CfgAt.static Hst HKcfg).1.trans (CfgAt.static Hst HcA).1.symm
+    let S := cA.incoming \ ({[γ.reWit]} ∪ {[x]})
+    let Gh := G' ∩ K.incoming
+    have HGhS : Gh ⊆ S := by
       rw [GMap.elem_of_subseteq]
       intro g hg
-      exact (Hrs g).1 (Hresp g (HG'resp g hg))
-    have Hsz := gset_size_minus2 γ.reCfg γ.reWit x Hwcfg Hxcfg Hxw
-    obtain ⟨h, hG', hH⟩ := gset_meet _ G' H HG'S HHsub (by omega)
+      rw [GMap.elem_of_intersection] at hg
+      have := (Hrs g).1 (Hresp g (HG'resp g hg.1))
+      rw [Hcv] at this; exact this
+    have Hsz := gset_size_minus2 cA.incoming γ.reWit x HwA Hxcfg Hxw
+    obtain ⟨h, hH, hGh⟩ := wit_count_meet S H Gh (size cA.incoming) (size K.incoming)
+      Hsz HHsub HGhS HHsize HGin (by rw [HKin]; omega)
+    have hG' : h ∈ G' := by
+      have := hGh; rw [GMap.elem_of_intersection] at this; exact this.1
     ihave #Hwg := isWin_grant γ c T V $$ Hwin
     icases grantLb_win γ c T G' V $$ Hglb Hwg with %HG'V
     have hV : h ∈ V := (GMap.elem_of_subseteq _ _).1 HG'V h hG'
@@ -961,7 +970,8 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     -- (2026-10-19, witness support) the quorums meet at a node, or only at the witness
     by_cases Hvw : v = γ.reWit ∧ γ.reWit ≠ W64 0
     · obtain ⟨rfl, Hne⟩ := Hvw
-      iapply lc_wit γ T t n F c F0 G q V IH HtT HwG HGl Hvq HvV Hne $$ HS Hcq Hacks Hwin Hc HrG
+      iapply lc_wit γ T t n F c F0 G q V IH (RaftNames.dyn_eq_none.1 HD) HtT HwG HGl Hvq HvV Hne
+        $$ HS Hcq Hacks Hwin Hc HrG
     · iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl ⟨v, Hvq, HvV, Hvw⟩ $$ HS Hcq Hacks Hwin Hc HrG
   | some D =>
   have Hdyn : γ.reDyn ≠ none := fun h => by rw [RaftNames.dyn_none h] at HD; cases HD

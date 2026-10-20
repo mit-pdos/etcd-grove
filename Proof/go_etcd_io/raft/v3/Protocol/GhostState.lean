@@ -192,14 +192,20 @@ theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : 
 /-! ### The witness's votes (2026-10-19, witness support, `notes/raft-witness.md`) -/
 
 /-- What a candidate's witness vote request carries (`sendRequestVoteToWitness`): its campaign
-record, whose last entry it reports (`(lt, li)`), with that entry's subterm (`ls`; `0` when the
-log's last entry is a snapshot's), and `quorum - 1` granted votes `G` of the campaign so far, each
-a responder (`resp`: `trk.Votes`'s keys), on the campaign's granted list. -/
+record (with the commit index `k` at the campaign), whose last entry it reports (`(lt, li)`), with
+that entry's subterm (`ls`; `0` when the log's last entry is a snapshot's), and granted votes `G`
+of the campaign so far, each a responder (`resp`: `trk.Votes`'s keys), on the campaign's granted
+list: `quorum - 1` of each half of the campaign's configuration `K` (the configuration of the
+committed prefix `F0.take k`, 2026-10-20; `getWitnessVoteRequestReadiness`: one vote short in a
+half, at most one in the other, with the witness in both). -/
 def wVoteReq (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) : IProp GF :=
-  iprop(∃ (F0 : List EntryM) (G : GSet w64), isCamp γ c T F0 ∗ logRecs γ base0 F0 ∗
+  iprop(∃ (F0 : List EntryM) (k : w64) (K : CfgM) (G : GSet w64),
+    isCampK γ c T F0 k ∗ logRecs γ base0 F0 ∗
     ⌜plogLast base0 F0 = entryID.mk lt li ∧
       (ls = W64 0 ∨ ∃ e, F0.getLast? = some e ∧ e.Subterm' = ls) ∧
-      G ⊆ γ.reCfg ∧ (∀ g, g ∈ G → g ∈ resp) ∧ size γ.reCfg / 2 ≤ size G⌝ ∗
+      CfgAt γ (F0.take (uint.Z k).toNat) K ∧ (∀ g, g ∈ G → g ∈ resp) ∧
+      size K.incoming / 2 ≤ size (G ∩ K.incoming) ∧
+      (K.outgoing ≠ ∅ → size K.outgoing / 2 ≤ size (G ∩ K.outgoing))⌝ ∗
     grantLb γ c T G ∗ [∗map] g ↦ _u ∈ toMap G, isVote γ g T c)
 
 instance wVoteReq_persistent (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) :
@@ -316,10 +322,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       if m.dst = γ.reWit ∧ γ.reWit ≠ W64 0 then
         -- (2026-10-20) the voters without repetition (`GetNonWitnessVoterSlice`, a map's
         -- keys): `handleVote` counts the responders over them
-        iprop(∃ (x : w64) (H : GSet w64),
-          ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})) ∧
+        iprop(∃ (x : w64) (P : List EntryM) (c : CfgM) (H : GSet w64),
+          ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[x]})) ∧
             m.voters.Nodup⌝ ∗
-          wJust γ m.term m.sub m.index x H)
+          wJust γ m.term m.sub m.index x P c H)
       else iprop(True)
   -- a candidate's vote request to the witness
   | .wvote =>
@@ -2130,16 +2136,17 @@ def RoleOk (id : w64) (s : PState) : Prop :=
 /-- (2026-10-19, witness support) A node's lists of its current term: as candidate the granted
 list (the votes it recorded, as `s.votes` grants them) with an empty subterm list; as leader the
 subterm list (an item per entry it appended, within its log, of a subterm at most its current one,
-the current one's with its current excluded voter). -/
+the current one's with its current excluded voter and one configuration prefix `Pc`, a ghost
+value chosen when the subterm starts, 2026-10-20). -/
 def wRole (s : PState) (tm : GMap w64 (GName × GName)) : IProp GF :=
   match s.role with
   | .candidate => iprop(∃ (γes γg : GName) (Lg : List (Option w64)),
       ⌜tm !! s.term = some (γes, γg) ∧ none ∉ Lg ∧ ∀ v, v ∈ granted s.votes ↔ some v ∈ Lg⌝ ∗
       monoListAuthOwn γg 1 Lg ∗ monoListAuthOwn γes 1 ([] : List SubItem))
-  | .leader => iprop(∃ (γes γg : GName) (Les : List SubItem),
+  | .leader => iprop(∃ (γes γg : GName) (Les : List SubItem) (Pc : List EntryM),
       ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
         ∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
-          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = s.rsx)⌝ ∗
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))⌝ ∗
       monoListAuthOwn γes 1 Les)
   | .follower => iprop(True)
 
@@ -2159,14 +2166,13 @@ theorem wRole_cand (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .
   unfold wRole; rw [h]
 
 theorem wRole_leader (s : PState) (tm : GMap w64 (GName × GName)) (h : s.role = .leader) :
-    wRole (GF := GF) s tm = iprop(∃ (γes γg : GName) (Les : List SubItem),
+    wRole (GF := GF) s tm = iprop(∃ (γes γg : GName) (Les : List SubItem) (Pc : List EntryM),
       ⌜tm !! s.term = some (γes, γg) ∧ SubSorted Les ∧
         ∀ it, it ∈ Les → uint.Z it.1 ≤ plogLastIndexZ s.base s.log ∧
-          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = s.rsx)⌝ ∗
+          uint.Z it.2.1 ≤ uint.Z s.sub ∧ (it.2.1 = s.sub → it.2.2 = (s.rsx, Pc))⌝ ∗
       monoListAuthOwn γes 1 Les) := by
   unfold wRole; rw [h]
 
-omit [FfiSyntax] in
 theorem SubSorted_single (x : SubItem) : SubSorted [x] := by
   intro a b y z hab ha hb
   have h1 := (List.getElem?_eq_some_iff.mp ha).1
@@ -2197,8 +2203,8 @@ theorem wOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     | leader =>
       obtain ⟨Hrl, Ht, Hsb, Hrx, Hli⟩ := Hl Hr'
       unfold wRole; rw [Hr', Hrl]
-      iintro ⟨%γes, %γg, %Les, %HL, Hauth⟩
-      iexists γes, γg, Les
+      iintro ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
+      iexists γes, γg, Les, Pc
       iframe Hauth
       ipureintro
       obtain ⟨H1, H2, H3⟩ := HL
@@ -2524,7 +2530,6 @@ theorem wOwn_recordVote (γ : RaftNames) (id : w64) (s : PState) (src : w64) (b 
       · subst hv; rw [GMap.lookup_insert_eq, Hf0]; simp
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm hv)]
 
-omit [FfiSyntax] in
 /-- Appending to a sorted subterm list items past it. -/
 theorem SubSorted_app (L M : List SubItem) (HL : SubSorted L) (HM : SubSorted M)
     (Hx : ∀ x ∈ L, ∀ y ∈ M, uint.Z x.1 < uint.Z y.1 ∧ uint.Z x.2.1 ≤ uint.Z y.2.1 ∧
@@ -2549,16 +2554,16 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
     (∀ (k : Nat) (e : EntryM), es[k]? = some e →
       uint.Z e.Index' = plogLastIndexZ s.base s.log + 1 + k ∧ e.Subterm' = s.sub) →
     ⊢ wOwn (GF := GF) γ id s ==∗ wOwn γ id (pappend s es) ∗
-      [∗list] e ∈ es, ∃ x, subRec γ id s.term e.Index' e.Subterm' x := by
+      [∗list] e ∈ es, ∃ x P, subRec γ id s.term e.Index' e.Subterm' x P := by
   intro Hr Hes
   unfold wOwn
   iintro ⟨%γN, %tm, %HN, Ha, #Hf, %Hk, %Hd, Hw⟩
   rw [wRole_leader s tm Hr]
-  icases Hw with ⟨%γes, %γg, %Les, %HL, Hauth⟩
+  icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
   obtain ⟨Htm, Hsort, Hitems⟩ := HL
   ihave #Hfrag := BigSepM.bigSepM_lookup (Φ := fun t (p : GName × GName) => iprop(t ↪[γN]□ p))
     Htm $$ Hf
-  let M : List SubItem := es.map (fun e => (e.Index', e.Subterm', s.rsx))
+  let M : List SubItem := es.map (fun e => (e.Index', e.Subterm', (s.rsx, Pc)))
   have HM : SubSorted M := by
     intro a b x y hab ha hb
     simp only [M, List.getElem?_map] at ha hb
@@ -2595,7 +2600,7 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
     isplitr; · ipureintro; exact Hk
     isplitr; · ipureintro; exact Hd
     rw [wRole_leader (pappend s es) tm Hr]
-    iexists γes, γg, (Les ++ M)
+    iexists γes, γg, (Les ++ M), Pc
     iframe Hauth
     ipureintro
     refine ⟨Htm, Hsort', fun it hit => ?_⟩
@@ -2614,7 +2619,7 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
       refine ⟨by simp only; omega, by simp only; rw [h5]; exact Int.le_refl _, fun _ => rfl⟩
   · iapply BigSepL.bigSepL_forall_elim
     iintro %k %e %Hk
-    iexists s.rsx
+    iexists s.rsx, Pc
     unfold subRec
     iexists γN, γes, γg, (Les ++ M)
     iframe Hfrag Hlb
@@ -2624,8 +2629,9 @@ theorem wOwn_append (γ : RaftNames) (id : w64) (s : PState) (es : List EntryM) 
     simp only [M, List.mem_map]
     exact ⟨e, List.mem_of_getElem? Hk, rfl⟩
 
-/-- A leader starts a later subterm (`Step.newSub`): every item of its list is of an earlier one. -/
-theorem wOwn_newSub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) :
+/-- A leader starts a later subterm (`Step.newSub`), with a configuration prefix `p`: every item
+of its list is of an earlier one. -/
+theorem wOwn_newSub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) (p : List EntryM) :
     γ.reDyn = none → uint.Z s.sub < uint.Z a →
     wOwn (GF := GF) γ id s ⊢ wOwn γ id { s with sub := a, rsx := b } := by
   intro Hst Ha
@@ -2643,8 +2649,8 @@ theorem wOwn_newSub (γ : RaftNames) (id : w64) (s : PState) (a b : w64) :
   · rw [wRole_cand s tm Hr, wRole_cand { s with sub := a, rsx := b } tm Hr]
     iexact Hw
   · rw [wRole_leader s tm Hr, wRole_leader { s with sub := a, rsx := b } tm Hr]
-    icases Hw with ⟨%γes, %γg, %Les, %HL, Hauth⟩
-    iexists γes, γg, Les
+    icases Hw with ⟨%γes, %γg, %Les, %Pc, %HL, Hauth⟩
+    iexists γes, γg, Les, p
     iframe Hauth
     ipureintro
     obtain ⟨Htm, Hsort, Hitems⟩ := HL

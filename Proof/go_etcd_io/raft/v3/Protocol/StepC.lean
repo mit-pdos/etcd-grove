@@ -700,13 +700,15 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s []
         (psendMsgs s [Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []])
   /-- (2026-10-19) `stepCandidate`'s `sendRequestVoteToWitness`: a candidate one vote short
-  (`votesToWin = 1`: `quorum - 1` granted votes of the configuration) asks the witness, with its
-  last entry, its subterm (`plogLastSub`) and every voter that has answered so far
-  (`trk.Votes`'s keys). -/
+  (`getWitnessVoteRequestReadiness`: at least `quorum - 1` granted votes of each half of the
+  configuration, 2026-10-20; `votesToWin = 1` in one half, at most one in the other) asks the
+  witness, with its last entry, its subterm (`plogLastSub`) and every voter that has answered so
+  far (`trk.Votes`'s keys). -/
   | askWitness (s : PState) (vs : List w64) :
       s.role = .candidate →
       c.wit ≠ W64 0 →
-      size (granted s.votes ∩ c.incoming) = size c.incoming / 2 →
+      size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
+      (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
       vs ≡ₚ elements (domSet s.votes) →
       StepC s []
         (psendMsgs s [Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'
