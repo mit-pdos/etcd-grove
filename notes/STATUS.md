@@ -101,6 +101,33 @@ etcd's cache. Done: closed, with watchkv's four checks unweakened.
   error may still apply), so the program would read the watch up to the `Get`'s revision, and the
   proof needs a lemma relating `stateAt` of a watchkv log to the puts' `revAt`s (none exists).
 
+## linkv-txn stage C: the robustness model and its relation to etcd's state (2026-10-20, branch `linkv-txn-c`)
+
+Pure Lean, new files next to the current instance's model (which still builds and is still
+`linkv_safe`'s: stages D-F switch over). No `sorry`, no axiom.
+- **`linkv/PendModel.lean`**: `KVModel.lean`'s construction made generic (`PendSpec`: a
+  deterministic step `I → St → St × O` and which inputs are writes): pending failed writes,
+  `PSilent`/`PReach`/`PStep`, the powerset model `pSeq`/`pM`, and its lemmas (`pSeq_ok`,
+  `pSeq_errW_applied`/`_pending`, `pSeq_errR`, `PSet.Closed.apply`/`.perm`).
+- **`linkv/TxnModel.lean`**: robustness's `EtcdState` as `MSt` (every key's value, mod revision
+  and version as words, `VR`; the revision, initially `1`), the inputs `MIn` (get, list of the
+  workload's keys `ks`, put, delete, flat txn of value/version/mod-revision equality comparisons
+  and get/put/delete operations), the answers `MOut` with their revisions, `mStep`, `txnSpec`.
+  Sanity examples: put-then-get, compare-and-set either way, a delete of a missing key.
+- **`linkv/TxnModelKV.lean`**: the exact abstraction `absSt` of `KVState`, the client's requests
+  `opOf`/`txnOf`/`cmpOf`/`tOpOf`, and on a sorted state: `absSt_kvOpStep` (the server's step is
+  the model's, transactions through the server's own run `srvOps`, `srvOps_tOpOf`), the answers
+  (`mStep_put_out`, `_get_out`, `_del_out`, `_txn_out`, `_list_out`, in the terms of
+  `client/v3/ReplyValues.lean`), `kvOpStep_sorted`, `kvOpStep_keysIn`, `absSt_init`,
+  `txnPlain_txnOf`, `opsFlat_tOpOf`.
+- Design choices against the plan: versions and mod revisions are words (the abstraction is then
+  exact, no overflow bounds; the Go model's `int64`s in stage D); `list` lists the workload's keys
+  (`ks`, strictly sorted, holding every key a state has: `KeysIn`); distinct keys in a
+  transaction are not needed for the model's agreement (only for the server to accept it).
+
+Next: stage D (the Go program: `Input`/`Output`, `Gen`, `Apply`, `Model()` mirroring `mStep`,
+the differential test against robustness's model).
+
 ## linkv-txn stage B1: a delivered writing Txn ran its ranges (2026-10-20, branch `linkv-txn-b`)
 
 `txnReplied`'s writing case (and `txnAppliedOk`, `txnAppliedAns`, `appliedOk`) now carry

@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stages A and B done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3"); C next.
+Status: stages A, B and C done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C"); D next.
 
 ## Goal
 
@@ -114,6 +114,10 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
   `σ` that `Q` is at, which is what stage F's commit needs.
 
 ### C. The Lean model (`linkv/KVModel.lean`, `ModelKV.lean`; pure)
+
+**Done** (2026-10-20) in new files `PendModel.lean`, `TxnModel.lean`, `TxnModelKV.lean` (STATUS
+"linkv-txn stage C"), with versions and mod revisions as words and `list` over the workload's
+keys; the old model stays until F.
 
 - **State**, as robustness's `EtcdState`: `rev : Nat` and per key `ValRev := (val, modRev,
   version)` (no create revision, no lease, as robustness). Init: revision 1, empty store (what
