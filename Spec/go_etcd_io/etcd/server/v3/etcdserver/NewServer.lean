@@ -65,6 +65,11 @@
   `Process`, `IsIDRemoved`, the two reports) and `2 ^ 29` of `lgMu`'s reader slots. Until then the
   named premise `transportEffectsOk`, opaque.
 
+* (D22 S-j2, 2026-10-20; approved by the user, `notes/decisions.md`, "D22's environment assumptions
+  approved") `storage.dbOpensOk`: bbolt's `Open` succeeds on the files the server opens after its
+  start, which the snapshot path's `OpenBackend` needs; and, in `bootstrap`'s contract (`bootOk`'s
+  `Hpath`), the backend file's directory entry, which `NewServer` returns for that path.
+
 **The postcondition** (D13d): an error, the server `nil`; or the built part `srvBuilt`
 (`InvBuild.lean`) at the server's raft environment `srvEr ρ E₀ …`, for an apply environment `E`
 agreeing with `E₀`, auth disabled (the client's `etcdKV` at the bootstrap log's model comes from
@@ -184,6 +189,11 @@ abbrev NewServer.spec : Prop :=
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
       "%Hbuq" ∷ ⌜apply.backendUnderQuota⌝ ∗
+      -- (D22 S-j2, 2026-10-20; an environment assumption the user approved) bbolt's `Open`
+      -- succeeds on the database files the server opens after its start (`storage.OpenBackend`'s
+      -- axiom: its goroutine panics otherwise), for `applySnapshot`'s snapshot backend; kept by
+      -- the server's snapshot path once S-j wires it in (today nothing opens one)
+      "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) ∗
@@ -200,6 +210,9 @@ abbrev NewServer.spec : Prop :=
           ⌜envAgree E E₀ ∧ E.authOn = false⌝ ∗ srvWatchBuilt srv E ∗
           -- (D22 S-g, D22d (A)) the KV's closer, kept for the snapshot path's `Restore`
           srvKVCloser srv E ∗
+          -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
+          -- `applySnapshot`'s `OpenSnapshotBackend`
+          backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
           srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token

@@ -12722,3 +12722,165 @@ first kind, a named premise about the program's environment):
    4-5); auth's legacy plaintext passwords are hashed per member (exception 6), so its clause is
    "equal up to password hashes". Useful once leases or auth are otherwise in the verified
    workload (`noGrant`, auth off today, for reasons beyond snapshots).
+
+## D22 S-j2 carried out: stopped at the store's epochs; the environment premises threaded; two Go findings (2026-10-20)
+
+Stage S-j2 of T-S (`applySnapshot`, `server.go:1011-1159` at the pin `de825d8c6`, with D22k's
+reorder: `go oldbe.Close()` after `cluster.SetBackend`). Deliverables 1-3 (the non-empty spec, the
+backend swap, the callees) **stopped at a design**, under D22m's own stop condition; deliverable 4
+done; two Go findings filed. Trust base unchanged (538 axioms, 2 sorries); no raft, bbolt or
+`raftNode__start` file touched.
+
+**Why it stops: no true and usable `kv.Restore`, and the same for `applySnapshot`'s own writes.**
+- A Hoare triple `{P} e {Q}` is a claim about every state in which `P` holds, with any frame. The
+  server's invariants hold `isStore E.s E.γ` persistently (`srvWatchBuilt`'s `isWatchableStore`,
+  its `#Hst` and the inner store; the request path's `txn.isKV`), and `isStore` holds `s.b`,
+  `s.kvindex`, `s.fifoSched`, `s.stopc` as `↦□` (`storage/mvcc/InvStore.lean:2104-2123`).
+  `store.Restore` stores new values to all four (`kvstore.go:292-311`). A store to a location with
+  a discarded points-to anywhere has no `wp` (the heap's authoritative state cannot move at that
+  location while the fragment exists), so by the frame rule a triple for `kv.Restore` whose `P` can
+  hold beside `isStore` -- whatever `P` says, including D22m's "the kept `srvKVCloser` and a fresh
+  abstraction" -- is **false** in the model, and an axiom of it would assert `wp`s the semantics
+  refutes. A `P` that excludes `isStore` (the four fields owned) is true and unusable: no one holds
+  them. So D22m's condition is met: no true and usable form exists short of the epochs (D22m (A),
+  S-g2).
+- The same holds of three server fields `applySnapshot` writes itself, all held `↦□` for good
+  today: `s.be` (`server.go:1093`; half `↦□` since D19i part 2, `NewServer.lean:867-873`,
+  `srvSVRes`, `createMergedSnapshotMessage.spec`), `s.uberApply` (`:1163`; `srvFieldsAt`'s and
+  `srvApplyKV`'s `srvUberApplyAddr s ↦□`, `InvApplier.lean:485,533`, `InvBuild.lean:336`,
+  `InvStart.lean:73,200`) and `s.alarmStore` (`:2414` from `:1102`; `InvApplier.lean:489`,
+  `InvBuild.lean:243`, `InvStart.lean:77`). And every persistent predicate the apply thread shares
+  with the request path and the monitors is over one `(γA, ci, TM, E)` (`isServer`; `srvFieldsAt`'s
+  `⌜E.P = batchLockInv γ TM⌝`; `hookSpec γ ci TM`; `applyBackend γ ci b`; `srvWTPool E.γ`;
+  `srvSVRes s E.γ`; `isServerReq`'s `txn.isKV v.kv E.s E.γ`, `apply.isApplyLessor … E.γ E.P E.f`,
+  `apply.isAuthStore … E.γ E.P E.f …`), while after the swap the batch lock's invariant
+  (`batchLockInv γA' (metaTM d'.γB d'.P)` with `γA'.m0 = (i, t)`, `imageAt_metaIs`), the store's
+  per-epoch names (`kb = some d'`) and the write-back tokens are the new backend's. So even with
+  `kv.Restore` as a contract in `applySnapshot`'s precondition (S-h's `srvKVCommitOk` style) the
+  body's own stores are unprovable and the post cannot be stated over the fixed `E`. Considered and
+  not taken: that contract form (its instance is false today, and its proof would be redone over
+  the epochs).
+
+**The design for the rest** (S-g2 extended to the server, then S-j2), in order:
+1. *The store's epochs* (D22m (A), unchanged). `store.Restore`/`watchableStore.Restore` then take
+   the closer (`srvKVCloser`: `stopc`'s close, `schedStopTok`, `compactQueue`), the whole epoch
+   share (no transaction open: `Restore` holds `s.mu` and the watchable store's `s.mu`), the new
+   backend's key contract over `keyImage (kvModel γk A)` and its `bkNoCmp`; they give the new
+   epoch (`restoreIdxPost` at the image's log with its receipts, a fresh revision budget, the new
+   closer and compaction right) and the old backend's per-epoch tokens back. As axioms (D22m
+   decided) once true.
+2. *The server's epoch.* A record `SrvEpoch`: the backend `d : KBReal` with its `Pk`, the apply
+   protocol's names `γA` (`m0` the image's `(i, t)`, at boot `(0, 0)`), `TM`, the store epoch
+   (`kb = some d`), `E.P = batchLockInv γA (metaTM d.γB d.P)` and `E.f`, the write pool's counter,
+   the alarm store `a`, the uber-applier `ua`. A server ghost variable `γep` names the current one:
+   half in `bemuP`, which becomes `∃ e, srvBeAddr s ↦{q/2} srvBeIface e.d.be ∗ ghostVar γep (q/2) e
+   ∗ □ epochRO e` (`epochRO`: the epoch's persistent contracts, `isBackend`, `keySized`, the hook's
+   `plHookRO`), half the apply thread's with the other half of `s.be`'s points-to (`NewServer` stops
+   persisting it). The apply thread, `s.be`'s only writer, reads it without `bemu`, as Go does.
+   `isServer s γA ci TM E` splits into the object part (persistent: `lg`, `w`, `lessor`,
+   `firstCommit`, `cluster`, `quota`, `lgMu`, `memberID`, the atomics, the generator, raft's node)
+   and `srvEpochAt s e`, the apply thread's (not persistent): `srvUberApplyAddr s ↦ e.ua` with
+   `applierFor e.ua E(e)`, `srvAlarmStoreAddr s ↦ e.a` with `isAlarmStore`, `hookSpec e.γA ci e.TM`.
+   The request path keeps the object part and, per call, what it reads under a lock (`bemu`'s epoch
+   for `Backend()` and the quota; the store's epoch under `s.mu`, item 1).
+3. *The readers of `s.be`* (S-0 (5)). `Backend()` (`EtcdServer__Backend.lean`) returns some epoch's
+   backend with its `epochRO`, nothing about which epoch is current after `RUnlock`. The quota
+   (`v3rpc/InvQuota.lean`, D22g) already reads `s.Backend()` per check; `NewBackendQuota`'s axiom
+   must then speak of a backend of any epoch, possibly closed by the time `Size()` runs (a closed
+   backend's `Size()` returns its last value: no panic). The storage-version monitor
+   (`monitorStorageVersion`'s contract, `InvStorageVersion.lean`): `srvSVRes s` over the current
+   epoch, its per-epoch tokens (`bkRTx e.d` with the open share, one `wbTok` per session from the
+   epoch's pool) in an invariant `srvMonPool γep` keyed by the ghost variable: in its read-locked
+   session it holds a fraction of `γep` and takes them out; the swap (bemu's write side: both halves
+   of `γep`) exchanges the old epoch's pool for the new one's and gives the old tokens to the old
+   backend's closer. `applyAll`'s `VerifyBackendConsistency(s.Backend(), …)` (`server.go:981`):
+   the apply thread's epoch.
+4. *`srvWTPool` per epoch* (D22h): allocated at the swap over the new backend's `wbInit`
+   write-backs (`newPost`'s, through `OpenSnapshotBackend`), less the restore's own (the `Recover`s,
+   `restoreAlarms`, `SetTxPostLockInsideApplyHook`, as `bootOk`'s seven), under `receiptBound ≤ N' +
+   1` for the new budget `N'`: the closed theorems' `n + 7 ≤ wbInit` holds for every backend, since
+   `wbInit` is a constant. `srvWTAt` and the counter go with M3's cap (S-l), as D22h said.
+5. *The callees' axioms* (+6 to +8, each over the epoch and true of the Go code):
+   `lessor.Recover(b, rd)` over `lessorInv` (`le.b`, `le.rd` and the maps are under `le.mu`, owned
+   there: true as stated) with the new backend's `bkFresh "lease"` (`bkRestAt`'s lease clause: the
+   plain workload grants none) and `rd` the closure over the store's new epoch;
+   `authStore.Recover(be)` under `as.beMu`'s write side (D22k's lock), `beP`'s `R` re-made per epoch
+   (D22g/D22k: one `R` today for every backend), `bkFresh "auth"` from `bkRestAt`'s `authBoot`;
+   `RaftCluster.SetBackend` (`c.be` is not in `rcLockInv`; Go writes it without a lock and only the
+   apply goroutine reads it: it becomes the apply thread's field) and `RaftCluster.Recover`
+   (`UnsafeLoad` under the cluster's lock: `rcLockInv` re-established with the removed map empty and
+   `rcLocalIn`, from `clusterBktOf n L`, which must then say "the static members, the local one among
+   them, none removed"; opaque today); `Transport.RemoveAllPeers` (the started transport's peer set
+   emptied; the existing `AddPeer` axiom re-adds each member of `s.cluster.Members()` but this one).
+   Proved callees and what they need: `OpenSnapshotBackend` (S-f) `isSnapshotter` (`bootOk`'s
+   `Hss`, kept as `s.snapshotter ↦□`), the file and certificate (item 6), `pathOwn` (deliverable 4),
+   `openPre`; `consistIndex.SetBackend` moves `ciOwner` to the new backend; `restoreAlarms` needs the
+   new backend's `bkFresh "alarm"`; `NewUberApplier` over the new epoch; `oldbe.Close()` on its
+   goroutine: `backend.Close`'s spec with the old epoch's whole (the readers' tickets back from item
+   1's `Restore`, the monitor's from item 3's swap; a merged snapshot in flight holds its own
+   `snapOpenQ`, which bbolt's `Close` waits for: liveness only). S-h's deferred determinism axiom
+   (`snapOf γB D ∗ srvRestSole γB ∗ …`) gives the image's `bkRestAt`, from which a restated
+   `OpenSnapshotBackend` post mints the new backend's `bkFresh` tokens beside `bkNoCmp`.
+6. *`applySnapshot`'s spec for a non-empty snapshot* (deliverable 1's statement, for when the above
+   exist). **Pre:** `taSnapshotAddr ap ↦□ sp`, `sp ≠ null`, the snapshot's metadata read-only with
+   index `i`, term `t` and `ConfState` pointer `cs` (`csPts cs DFrac.discard c false`: the batch's
+   snapshot is a `proto.Clone`, `raft.go:229-231`); `ep` at `(a0, t0, cs0)` with `uint.Z a0 <
+   uint.Z i` (else `lg.Panic`, `server.go:1039-1047`); `taNotifycAddr ap ↦□ nc` whose first receive
+   gives `snapSaved γd i` and the content certificate S-d's `readyData` hands out with `rd.Snapshot
+   ≠ null` (a committed prefix `A`, `|A| = i`, its last term `t`); `inv snapDirN (snapDirInv ss γd
+   srvImg Rm)` with an `Rm` that `applySnapshot` can refute at `i` (below: not possible at the pin);
+   then `fileHolds (snapDBPath ss i) D` and `srvImage γ i D`, `dbImage_of_srvImage` at the member's
+   KV names; `pathOwn`, `⌜dbOpensOk⌝`, `srvKVCloser`, the apply thread's epoch `e` (item 2) and
+   `srvApplyRes`/`srvApplyKV`/`kvApplied` at `a0`. **Post:** `ep` at `(i, t, cs)` with `epCsOk cs`,
+   both snapshot indices `i`; a new epoch `e'` (the ghost variable moved under `bemu`'s write side)
+   with `srvApplyRes s ep e'.γA ci (srvBeIface e'.d.be) γr ⟨i, t, i, false⟩ i t cs i t` (`loopOk` at
+   `i`: `m0 = (i, t)`, `ciEff = i`), `srvApplyKV s E(e') γw x'` with `x'.log = kvModel γk A` (the
+   store restored at the image, `imageAt_keyView`), `kvApplied γ γk A x'` (the KV ghost `hi` moved to
+   `|kvModel A|` through `kvInv`, a certificate of the committed prefix minted there),
+   `appliedLogAt γr i (kvModel A)`, `srvAppliedOwn γr i`, the old backend's closer spent by the
+   goroutine, `pathOwn` back (the snapshot path's `pathOwn` dropped, S-i), the new `srvWTPool e'`.
+
+**Deliverable 4, done.** `storage.dbOpensOk` (approved, "D22's environment assumptions approved"
+(1)) is a premise of `NewServer.spec` (`"%Hdbo" ∷ ⌜storage.dbOpensOk⌝`; nothing consumes it until
+the snapshot path is wired in), so of `putget.Main.spec`, `putget3.Main.spec` and
+`putget3.startMember.spec` (`… → apply.backendUnderQuota → storage.dbOpensOk → …`), and of the
+closed theorems: `putget_adequate`/`putget_safe` and `putget3_adequate`/`putget3_safe` gain
+`(Hdbo : storage.dbOpensOk)` right after `(Hbuq : apply.backendUnderQuota)`. `bootOk` (approved
+(2)) gains `"Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir')`; it sits inside the
+closed theorems' `premises` (the bootstrap contract), so their statements' text is otherwise
+unchanged. `NewServer.spec`'s post returns it beside `srvKVCloser`; the examples drop both.
+Threading them (and `srvKVCloser`) through `Start` → `start` → `run` → `applyAll` →
+`applySnapshot` is left to S-j2 proper, whose apply-thread state changes shape with item 2.
+
+**Two Go findings.**
+- `issues/etcd-alarm-store-snapshot-race.md` (reproduced): `restoreAlarms` (`server.go:2414`, from
+  `applySnapshot`) assigns `s.alarmStore` unsynchronized while `Alarms()` (`:2441`) reads it from
+  the maintenance `Status` RPC and the `/health`, `/livez`, `/readyz` checks; the race detector
+  reports it in 4 of 5 runs of the issue's integration test at the pin; the effect is a stale or
+  empty alarm list for a moment. For the proof: once the field is the apply thread's (item 2), no
+  verified concurrent `Alarms()` is possible (a racy load is undefined in Perennial's semantics);
+  a fork fix (`atomic.Pointer`, or the swap under `bemu` with `Alarms()` under `RLock`) is needed
+  only if `Alarms` is verified.
+- `issues/etcd-release-snapdb-before-open.md` (code reading, not reproduced): the raft goroutine
+  sends `notifyc` before `raftStorage.ApplySnapshot` and `storage.Release` (`raft.go:279-286`), the
+  run loop schedules `applyAll` without holding the raft goroutine (`server.go:839-841`), so a
+  second snapshot `i' > i` handed out right after can `Release(i')` -- `ReleaseSnapDBs` removes every
+  `.snap.db` below `i'` -- before `applySnapshot(i)` has renamed `<i>.snap.db`: `DBFilePath` fails
+  and the member panics. **This decides `snapDirInv`'s `Rm`**: the removers of `i` are
+  `applySnapshot(i)` itself and `Release(i')` for `i' > i`, and at the pin nothing orders the second
+  before the first, so no `Rm` that `Release` can establish is refutable by `applySnapshot(i)`;
+  `Rm i := appliedAtLeast γr i` (refuted by `srvAppliedOwn γr a0`, `a0 < i`) is what the proof
+  wants, but `Release(i')` cannot show it for `i < j < i'`. *(A)* a fork fix (release the snapshot
+  files only up to the applied index: the apply goroutine calls `ReleaseSnapDBs` after
+  `applySnapshot`, or the raft goroutine waits for a second signal after the open); *(B)* keep the
+  code and make the case a premise (not of D19a's kinds: it is the program's own scheduling).
+  *Recommendation:* (A), asked of the user with S-j1.
+
+**For S-j1** (`raftNode.start`'s snapshot branch): `notifyc` is sent twice for a snapshot batch
+(after `Sync`, `raft.go:279`, then after the messages, `:309`/`:334`), cap 1, so `rnApP`'s
+`isUnitBag ap.notifyc'` must carry, for a non-empty snapshot, the first token's `snapSaved γd i`
+with S-d's content certificate (item 6's pre) and the second the existing one; `rnApP`'s
+`⌜ap.snapshot' = null⌝` becomes the disjunction; `raftStorage.ApplySnapshot` and `Release` run
+after the first send, concurrently with `applySnapshot`, and `Release`'s axiom and `Rm` wait on the
+`Release` decision above. **For S-l**: the closed theorems' new hypothesis is `storage.dbOpensOk`;
+`bootOk`'s `Hpath` is the bootstrap contract's; nothing else of S-l moved.

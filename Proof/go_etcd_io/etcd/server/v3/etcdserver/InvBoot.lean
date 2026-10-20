@@ -45,6 +45,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 
 @[expose] public section
 
@@ -236,6 +237,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
     -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s)
     "Hncmp" ∷ mvcc.bkNoCmp d.γB ∗
+    -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
+    -- assumptions approved") the backend file's directory entry is the server's: nothing else
+    -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
+    -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
+    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
     -- the error paths' close
     "#Hclose" ∷ □ ({{ True }}
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))

@@ -1033,6 +1033,8 @@ theorem NewServer.wp_proof
     iexists ws
     iframe #
     iexact Hwcl
+  -- (D22 S-j2) the backend file's directory entry, `bootOk`'s, kept
+  iframe Hpath
   unfold srvBuilt
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr
