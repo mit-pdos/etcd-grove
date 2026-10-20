@@ -154,7 +154,17 @@ delayed append to the witness is covered by the argument: a write needs a strict
 ## The Lean proof (W5, 2026-10-20, branch `raft-witness-w5`)
 
 Done, in the protocol layer (`Proof/go_etcd_io/raft/v3/Protocol/`), with no new axiom or
-`sorry`. The pieces, as the argument above uses them:
+`sorry`.
+
+**Scope (2026-10-20, W3b-A; until the CC model covers Go's witness changes).** The dynamic
+mode's configurations are `ccApplyM`'s (`InvConfchange.lean`), which does not model Go's witness
+changes: `applyOne` rejects `ConfChangeAddWitness`, `removeM` keeps `cfg.wit` on a removed witness
+(Go's `remove` clears `Witnesses[0]`), `makeVoterM`/`makeLearnerM` convert the witness (Go refuses),
+and `CfgInv` lacks "the witness is a voter of its half". So these results hold for **a cluster that
+starts with its witness and never adds, removes or converts it: reconfiguration of the regular
+voters only**. Not a Go bug (Go is the stricter); being fixed in the model (W3b-A).
+
+The pieces, as the argument above uses them:
 
 - **The rules** (`StepR`): the witness rules at the node's configuration (`newSub`, `sendWApp`
   with the witness one of its incoming voters, `askWitness` with `quorum - 1` granted votes of

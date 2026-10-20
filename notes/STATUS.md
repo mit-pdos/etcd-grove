@@ -73,6 +73,14 @@ Leader Completeness with a witness holds in the dynamic mode (protocol layer, no
 `sorry`; `notes/raft-witness-reconfig.md`, "The Lean proof"). Found on the way, the joint
 configuration bug `issues/raft-witness-joint-oltq.md` (fixed in the fork at `99cb9e2d9`).
 
+**Scope (2026-10-20, W3b-A; until the CC model covers Go's witness changes).** The dynamic
+mode's configurations are `ccApplyM`'s (`InvConfchange.lean`), which does not model Go's witness
+changes: `applyOne` rejects `ConfChangeAddWitness`, `removeM` keeps `cfg.wit` on a removed witness
+(Go's `remove` clears `Witnesses[0]`), `makeVoterM`/`makeLearnerM` convert the witness (Go refuses),
+and `CfgInv` lacks "the witness is a voter of its half". So these results hold for **a cluster that
+starts with its witness and never adds, removes or converts it: reconfiguration of the regular
+voters only**. Not a Go bug (Go is the stricter); being fixed in the model (W3b-A).
+
 - `StepR` has the witness rules (`newSub`, `sendWApp`, `askWitness`, `sendWPre`) and
   `applyConfWit` (a leader applies a change and starts a new subterm, `switchToConfig`); a plain
   `applyConf` at a leader needs a witness-free configuration; `propose` stamps the leader's
