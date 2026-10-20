@@ -11756,3 +11756,44 @@ round trip, `newBackend`'s premise); closing the old backend while its read tran
 *Asked of the user:* D22a-i (recommendations: (A) each; D22b (A) reverses the 2026-10-15
 preference for the local route, for the reason given; D22g (A) adds a fork commit), and whether
 S-r (D22e (A)) is wanted before the server stages finish.
+
+## D23: watchkv's watch path: the workload record, the watch run slots, the plan fixed at start (2026-10-20)
+
+**Problem.** `watch_safe` (the closed theorem of `examples/watchkv`: a prefix watch from revision
+1 over one member, writer goroutines, a check that the watched events are exactly the writes)
+stopped on three findings (STATUS, "watchkv"): (1) nothing produced the watch service's run slot
+(`v3rpc.watchRunSlot`: two watchable-store readers, an auth reader, a reader slot of v3rpc's
+`progressReportIntervalMu`); (2) `srvNoDupKeys` (no key twice in a revision of a sealed log) was
+not derivable from anything a program can choose; (3) the checks "every event a put", "gap-free
+from 2" and "each event a Put some writer tried" need every revision of the log to be one of the
+writers' Puts. The user chose (ii): fix 1, add a workload record for 2, keep all four checks.
+
+**Options.** (1) The interval mutex's reader slots: (a) passed from v3rpc's initializer to the
+program's `Main` (every program's generated `Init.lean`/`PkgTable.lean` would change, as would
+the initializers' output shape); (b) pooled in v3rpc's package fact, borrowed by a thread for the
+length of one `GetProgressReportInterval` call against its thread token. (2) The record: (a) a
+server-side log of which client operation each committed entry carries (new ghost state in the
+apply path); (b) a predicate on operations in the server's workload (`SrvWorkload`, D19q), which
+every client deposit must satisfy and which the KV invariant's committed log then obeys. (3) The
+"tried" check: (a) the writers' Puts recorded as they go (the plan then grows during the run, not
+known to the workload at allocation); (b) all the Puts picked before the member starts.
+
+**Choice.** (1b): `v3rpc.intervalPool` (`v3rpc/BaseWatch.lean`): `k` reader slots, `d` loaned
+against `threadToks d` (`ownTokAuth`), `k + d = actualMaxReaders`; the generated v3rpc
+`Init.lean` allocates it (`etc/gen-init.py`'s v3rpc entry, its only regenerated file);
+`GetProgressReportInterval.spec` takes and returns the caller's `threadTok` and needs
+`threadBound ≤ actualMaxReaders` (`2 ^ 30 - 1`): so `watch_safe`'s execution bound is `2 ^ 29`.
+`NewServer.spec` exports 64 watch readers (`srvWatchReaders`). (2b): `SrvWorkload.writes : KVOp →
+Prop` with `admits_write` (a write request is admitted when its op satisfies `writes`; `admits_kv`
+removed); `kvOpAu`/`kvOpAu1` carry `⌜writes op⌝`; `putgetWorkload.writes := True` (every existing
+instance's behaviour unchanged, every closed theorem's statement unchanged); the clients' model's
+`srvStep` is certified (`certOk`), and `srvNoDupKeys` is stated over certified sealed logs (a
+fupd), which `srvNoDupKeys_wk` derives for watchkv's workload (`workload P`: puts of a pair of `P`,
+no lease, no flags) through `wk_log` (`kv_cert_read`: a certified log is the KV model of a
+committed prefix, whose entries the workload restricts). (3b): `genAll` picks every Put before the
+member starts, so `P = tried.map pairOf` is known when the cluster's ghost state is allocated
+(`watchkv_alloc`). The Go program calls `cli.Watcher.Watch` (the method `cli.Watch` promotes,
+through the embedded field: no client translation change) in a `WithCancel(Background())` context
+(cancelled after `collect`): `isEtcdWatcher` needs `isContext`, which `Background()`'s value has
+no lemma for. Premises kept explicit: `noRetryableStreamErr` (in `watchkv.premises`) and
+`EofOkFromIoInit` (marked as putget's `EofFromIoInit`).

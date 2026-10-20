@@ -38,6 +38,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
        etc/gen-link.py --linkv > Proof/github_com/mit_pdos/etcd_grove/examples/linkv/Link.lean
        etc/gen-link.py --linkv3 > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Link.lean
+       etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -278,11 +279,17 @@ LEAN_FIRST = {
                  "github_com.anishathalye.porcupine",
                  "github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptions",
                  "The three-member linearizability instance's proofs (`examples/linkv3`)", [""]),
+    # the watch example (examples/watchkv, D23): its functions, the watch's options, and `Main`
+    # (over the server's, v3rpc's, the client's and `context`'s, `@`)
+    "--watchkv": ("link-lean-first-watchkv.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.watchkv",
+                  "github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions",
+                  "The watch example's proofs (`examples/watchkv`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--watchkv": "watchkv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

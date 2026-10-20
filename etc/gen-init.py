@@ -40,7 +40,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.serv
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          'github_com.mit_pdos.etcd_grove.examples.linkv',
-         'github_com.mit_pdos.etcd_grove.examples.linkv3']
+         'github_com.mit_pdos.etcd_grove.examples.linkv3',
+         'github_com.mit_pdos.etcd_grove.examples.watchkv']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -1758,7 +1759,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'github_com.mit_pdos.etcd_grove.examples.linkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/linkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.watchkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
