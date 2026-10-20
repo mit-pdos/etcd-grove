@@ -190,3 +190,14 @@ Done, in the protocol layer (`Proof/go_etcd_io/raft/v3/Protocol/`), with no new 
 Not covered: crashes and restarts (the "at least" half of (Cfg) needs the restarted commit
 index to cover the entries' prefixes; out of the faithful mode, as above), and two witness
 identities (one `reWit`).
+
+Not covered either (2026-10-20, found by W3b-A at the code level; a gap of the Lean model, not a Go
+bug): **a joint configuration whose witness is in the outgoing half only** (`Witnesses = [0, W]`,
+reached by a joint change that removes the witness from the incoming half). The model's `CfgM` has
+only the incoming witness (`Witnesses[1]` is read as `c.wit` when `c.wit ∈ c.outgoing`, else `0`),
+and the rules send to and ask only the incoming witness, while Go also asks `W` (`v2 == 1`) and
+sends it entries with `ReplicationSet[1]`. The code-level proof states it as the premise
+`NoOutWit` of the dynamic mode (`notes/raft-witness.md`, "Limitation: no outgoing-only
+witness"). The model checker above covers the transition (`joint wops`); the Lean proof does not.
+Covering it: `CfgM.witOut`, rules for an outgoing-only witness, and its Leader Completeness case,
+a task of W5's size (deferred).

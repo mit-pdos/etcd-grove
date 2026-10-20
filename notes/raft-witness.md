@@ -360,10 +360,27 @@ and one physical state serves both models. (Option rejected: the prefix in `RGh`
 `StepCD`'s dynamic clause would move another ghost component at every branch, and the ghost
 state's index `toPState s` would become mode-dependent.)
 
-Gaps of the model found on the way: `leaveJointState` (`InvConfchange.lean`) builds a configuration
-without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`); `ConfStateM` has no witness fields
-(Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a snapshot's configuration loses the
-witness in the model.
+Gaps of the model found on the way: `leaveJointState` (`InvConfchange.lean`) built a configuration
+without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`; fixed 2026-10-20, `wit := s.cfg.wit`);
+`ConfStateM` has no witness fields (Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a
+snapshot's configuration loses the witness in the model.
+
+**Limitation: no outgoing-only witness (2026-10-20, a gap of our model, not a Go bug).** `CfgM`
+has one witness, the incoming half's (`Witnesses[0]`); `Witnesses[1]` is represented as
+`if c.wit ∈ c.outgoing then c.wit else 0`. That is exact with one witness identity (`γ.reWit`) as
+long as the incoming half keeps the witness: `EnterJoint` copies `Witnesses[0]` to `[1]`, a voter's
+`Progress.IsWitness` never changes (`makeWitness`/`makeVoter`/`makeLearner` refuse), so an incoming
+witness-flagged voter is `Witnesses[0]`. It is not exact for the configuration a joint change
+reaches when it removes the witness from the incoming half (`remove` clears `Witnesses[0]`; the
+outgoing half keeps it: `Witnesses = [0, W]`), in which Go still treats `W` as a witness
+(`getWitnessVoteRequestReadiness`'s `w[w2] = v2 == 1`; `maybeCommit` sends it entries with
+`ReplicationSet[1]`) and the protocol has no rule for it (`sendWApp`, `askWitness` are at the
+incoming witness). The dynamic mode's `applyConfChange`/`Step` therefore carry an explicit premise,
+**`NoOutWit`**: no outgoing-only witness. Removing the witness by a joint change is the transition it
+excludes; removing it by a simple change, or leaving the joint configuration first, is covered.
+Full coverage (deferred, not planned now): `CfgM.witOut`, the protocol rules for an outgoing-only
+witness (its appends with `RS[1]`, its vote at `v2 == 1`), and the Leader Completeness case for it:
+a W5-sized protocol task.
 
 ## W3b-C: the candidate's witness paths (2026-10-20, branch `raft-witness-w3c`)
 

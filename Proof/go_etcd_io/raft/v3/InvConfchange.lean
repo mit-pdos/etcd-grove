@@ -199,7 +199,8 @@ config and `LearnersNext` are emptied, `AutoLeave` is off. -/
 def leaveJointState (s : CCState) : CCState :=
   { cfg := { incoming := s.cfg.incoming, outgoing := ∅,
              learners := s.cfg.learners ∪ s.cfg.learnersNext, learnersNext := ∅,
-             autoLeave := false },
+             -- (2026-10-20, witness support) `Witnesses[0]` is kept (until then dropped)
+             autoLeave := false, wit := s.cfg.wit },
     prs := GMap.filter (fun k _ => decide (k ∈ s.cfg.incoming ∨
               k ∈ s.cfg.learners ∪ s.cfg.learnersNext ∨ k ∉ s.cfg.outgoing))
             (GMap.fmap (fun _ => true)

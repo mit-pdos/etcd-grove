@@ -115,6 +115,7 @@ theorem ccApplyM_wit0 {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSi
   all_goals first
     | (simp only [reduceCtorEq] at h; done)
     | (rw [(checkedM_some h).1]; rfl)
+    | (rw [(checkedM_some h).1]; simp only [leaveJointState, clearAutoLeave]; exact h0)
     | (rw [(checkedM_some h).1]; have hs := applyM_wit ‹applyM _ _ = some _›; rw [hs]; exact h0)
     | (rw [(checkedM_some h).1]; have hs := applyM_wit ‹applyM _ _ = some _›; simp only at hs ⊢
        rw [hs]; exact h0)

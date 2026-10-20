@@ -324,7 +324,7 @@ theorem ccStepB_wit {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
         split at ha
         · cases ha
         obtain ⟨rfl, -⟩ := checkedM_some ha
-        right; rfl
+        left; rfl
       · split at ha
         · unfold enterJointM at ha
           split at ha
