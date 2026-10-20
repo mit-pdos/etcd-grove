@@ -225,7 +225,7 @@ local macro "piro_tail" : tactic => `(tactic| (
       wp_apply HInc
       (try wp_auto)
       wp_apply HTrig $$ %_ %_ [Hcons]
-      · ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
+      · iright; ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
       (try wp_auto)
       wp_apply Hcancel
       run_metrics
@@ -327,7 +327,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         wp_apply HInc
         (try wp_auto)
         wp_apply HTrig $$ %_ %_ [Hcons]
-        · ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
+        · iright; ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
         (try wp_auto)
         wp_apply hED cctx _ $$ [HCC] as %cerr ⟨%Hcerr, #Hcerrv⟩
         · iframe #

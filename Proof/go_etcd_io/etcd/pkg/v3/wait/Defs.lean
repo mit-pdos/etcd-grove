@@ -14,7 +14,8 @@ expectation → IProp` (persistent):
   closed, `cache/v3/Handoff.lean`), and the persistent record that `id` was registered with that
   channel's consumer token (`waitRegd γw id γh.takenName`, a ghost map of every id ever
   registered);
-* `Trigger(id, x)` takes, from anyone, `Ψ x` for every `Ψ` `R` allows under `id` (`waitTrig`), or,
+* `Trigger(id, x)` takes, from anyone, `Ψ x` for every `Ψ` `R` allows under `id` (`waitTrig`), or
+  (linkv-txn stage B1, 2026-10-20) that `id`'s registration is gone (`waitGone`: nothing is sent), or,
   from the registering proposer giving up (`x = nil`), its consumer token with the record (which
   identifies the channel `id` is registered with, if it still is: the token goes into the channel
   with the `nil`, so the proposer, having given it up, can never receive);
@@ -133,7 +134,8 @@ def isWait (w : GoInterface) (γi : IdNames) (γw : GName)
         (App (Val #(methods wi.ty go!"Register" wi.v)) (Val #id))
       {{ (ch : Loc), RET #ch; ∃ γh, waitRecv γh ch Ψ ∗ waitRegd γw id γh.takenName }}) ∗
     □ (∀ (id : w64) (x : GoInterface),
-      {{ (∃ γh : HandoffNames, ⌜x = GoInterface.nil⌝ ∗ handoffConsumer γh false ∗
+      {{ (∃ t : GName, waitGone γw id t) ∨
+          (∃ γh : HandoffNames, ⌜x = GoInterface.nil⌝ ∗ handoffConsumer γh false ∗
             waitRegd γw id γh.takenName) ∨ waitTrig R id x }}
         (App (App (Val #(methods wi.ty go!"Trigger" wi.v)) (Val #id)) (Val #x))
       {{ RET #(); True }}) ∗

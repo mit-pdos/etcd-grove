@@ -157,7 +157,7 @@ set_option hygiene false in
 /-- `Trigger(id, ar)`'s premise: every expectation registered under the entry's id is the
 proposer's `resultΨ` of the entry's request (the claims agree), which the result meets. -/
 local macro "trig" : tactic => `(tactic| (
-  iright
+  iright; iright
   iunfold waitTrig
   iintro %Ψ HR
   iunfold reqWaitR at HR

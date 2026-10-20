@@ -288,6 +288,37 @@ theorem waitShard_dup (γi : IdNames) (R : w64 → (GoInterface → IProp GF) �
   iexfalso
   iapply waitSlot_absurd γi id $$ Hs Hs'
 
+/-- **A gone registration is not live** (linkv-txn stage B1, 2026-10-20; `waitShard_gone`'s
+converse): an id whose record in the shard is `(t, g)` with the flag `g` discarded is not in the
+live map (a live id's flag is exclusive). -/
+theorem waitShard_gone_absent (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γs γr : GName) (id : w64) (M : GMap w64 Loc) (t g : GName) :
+    ⊢ inv waitShardN (waitShardInv γi R γs γr) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M -∗
+      id ↪[γr]□ (t, g) -∗ dghostVar g DFrac.discard () ={⊤}=∗
+      ghostMapAuth γs (1 : Qp).half M ∗ ⌜M !! id = none⌝ := by
+  iintro #Hinv Hlc Hg #Hr #Hd
+  cases h : M !! id with
+  | none => iframe Hg; imodintro; ipureintro; rfl
+  | some ch =>
+    iinv Hinv with Hi Hclose
+    imod lc_fupd_elim_later (E := ⊤ \ ↑waitShardN) $$ Hlc Hi with Hi
+    iunfold waitShardInv at Hi
+    icases Hi with ⟨%M', %G, Hg', Hm, Hgr, Hregs⟩
+    ihave %Heq := ghostMapAuth_agree γs _ _ M M' $$ Hg Hg'
+    subst Heq
+    ihave %HG := ghost_map_lookup $$ Hgr Hr
+    iunfold waitRegs at Hregs
+    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
+      (Φ := fun id (tg : GName × GName) => iprop(idSlot (GF := GF) γi id ∗
+        waitRegStateO (GF := GF) (M !! id) tg.2)) (m := G) HG).1 $$ Hregs with ⟨⟨-, Hst⟩, -⟩
+    rw [h, waitRegStateO_some]
+    ihave %Hv := dghostVar_valid_2 g () (DFrac.own 1) () DFrac.discard $$ Hst Hd
+    exfalso
+    have h1 : (1 : Qp).val = 1 := rfl
+    have := DFrac.valid_own_op_discard.mp Hv.1
+    rw [h1] at this
+    simp at this
+
 /-- **Registering** `id` (not live in its shard; its slot) with the channel `ch`'s handoff: the
 id's live entry and its registration record, with a fresh flag (live). -/
 theorem waitShard_register (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)

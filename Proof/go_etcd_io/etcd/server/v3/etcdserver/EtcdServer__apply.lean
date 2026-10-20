@@ -106,7 +106,7 @@ local macro "cc_respond" : tactic => `(tactic| (
     simp only [hw]
     (try wp_auto)
     wp_apply Htrig
-    · iright
+    · iright; iright
       iunfold waitTrig
       iintro %Ψ HR
       iexfalso
