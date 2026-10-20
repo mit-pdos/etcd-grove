@@ -307,6 +307,11 @@ premise (with a witness `cs.Witness` is set, which `ConfStateM` does not model, 
 about witness-free configurations, as the `RawNode` layer (`ownRaftPhys`, `CfgM.simple`) already
 is. Grep `STAGED`/`ownRaftPhysC_wit0` for what is left; the conjunct goes when the last is proved.
 
+Retranslated at the fork's `99cb9e2d9` (2026-10-20): `OneLessThanQuorumInReplicationSet` returns `nil`
+also for a witness both halves share when only one replicates to it (`OltqNone`; the spec now gives
+`oltqRes` back in every case). Static mode is unaffected (one half). kv's `wErrOk` records
+`IsNewError` (W3b-B's storage contract) and follows from raft's initialization (`wErrOk_of_init`).
+
 Gaps of the model found on the way: `leaveJointState` (`InvConfchange.lean`) builds a configuration
 without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`); `ConfStateM` has no witness fields
 (Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a snapshot's configuration loses the

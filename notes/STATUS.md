@@ -48,6 +48,25 @@ module system").
 
 
 
+## Witness support, W3b-A: the raft predicates with a witness (2026-10-20, branch `raft-witness`, in progress)
+
+raft is translated at the fork's `99cb9e2d9` (`OneLessThanQuorumInReplicationSet`: a witness both
+halves share is sent an entry only if both replicate to it, `OltqNone`; found by W5,
+`notes/raft-witness-reconfig.md`). W3b-B and the kv branch are merged in. The whole tree builds and
+the trust base is unchanged. The raft predicates carry a witness: the epoch is the tracker's
+(`Trk.ep`, `NState.ep`, read by `toPState` at a leader), `ownTrackerC` holds the configuration's
+witness (`WitP`, `ownCfgCCw`) and an epoch of the configuration (`EpochOkC`), and the raft struct
+owns the witness queue (`witOwn`, on the outbox). Proved at any configuration: `appendEntry`
+(it stamps the epoch's subterm), `maybeStartNewSubterm` (reset, the next subterm's epoch, the log
+lines; `ReplicationSet.String` proved, which brings `strconv.FormatUint`'s trust-boundary axiom
+into raft's results), `maybeSendAppend`, `promotable`, `becomeLeader` (at the reset epoch).
+**Staged:** the witness branches not proved yet read `c.wit = 0` out of the struct
+(`ownRaftPhysC_wit0`, a temporary conjunct of `witOwn` marked `STAGED`), so every result is still
+about witness-free configurations: `maybeCommit`, `bcastHeartbeatWithCtx`,
+`campaign`/`stepCandidate`, the Ready view, `switchToConfig`/`ConfState`. Model gaps found:
+`leaveJointState` drops the witness, `ConfStateM` has no witness fields. Details:
+`notes/raft-witness.md`, "W3b-A".
+
 ## Witness support, W3b: `Process`, at W2's ghost state, and the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
 
 `witness.Process` is specified against the storage's contract (any reading of its states) and
