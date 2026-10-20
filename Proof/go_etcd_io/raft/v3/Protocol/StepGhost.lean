@@ -1262,8 +1262,17 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       isplitr; · ipureintro; exact Hidx
       isplitr; · iexact Hlf
       isplitr; · iapply commitIn_le γ _ s.commit m.index s.term HwF Hle $$ HrF Hc
-      iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.index).toNat) (cprefix fp s)
-        (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
+      isplitr
+      · iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.index).toNat) (cprefix fp s)
+          (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
+      -- (2026-10-20, witness support) the snapshot prefix's subterm prefixes
+      unfold dynOn
+      by_cases hD : γ.reDyn = none
+      · ileft; ipureintro; exact hD
+      · iright
+        icases Hew with (%h | #Hew')
+        · exact absurd h hD
+        · iapply entWit_take γ _ s.commit m.index _ (Nat.le_refl _) $$ Hew'
     isplitr
     · ipureintro; exact Hid
     ipureintro; exact ⟨Hdst, Htr'⟩

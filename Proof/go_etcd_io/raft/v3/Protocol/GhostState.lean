@@ -245,6 +245,21 @@ theorem entWit_intro (γ : RaftNames) (F : List EntryM) (k : w64) :
   iintro %j %e %Hj
   iapply H $$ %j %e %Hj
 
+/-- A prefix of the log at a commit index at least its length (every subterm prefix of its
+entries is shorter than the entry's position). -/
+theorem entWit_take (γ : RaftNames) (F : List EntryM) (k k' : w64) (n : Nat)
+    (hn : n ≤ (uint.Z k').toNat) : entWit (GF := GF) γ F k ⊢ entWit γ (F.take n) k' := by
+  iintro #H
+  iapply entWit_intro
+  imodintro
+  iintro %j %e %Hj
+  have hj : j < n := by
+    have := (List.getElem?_eq_some_iff.mp Hj).1; simp at this; omega
+  rw [List.getElem?_take, if_pos hj] at Hj
+  iapply entWitAt_transfer γ F (F.take n) k k' j e
+    (by rw [List.take_take, Nat.min_eq_left (by omega)]) (fun m _ h2 => by omega)
+  iapply entWit_lookup γ F k j e Hj $$ H
+
 /-- The commit index grows. -/
 theorem entWit_mono (γ : RaftNames) (F : List EntryM) (k k' : w64)
     (hk : uint.Z k ≤ uint.Z k') : entWit (GF := GF) γ F k ⊢ entWit γ F k' := by
@@ -401,7 +416,9 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          lpfull γ m.src m.term bL l fp ∗
          commitIn γ (fp ++ l) m.index m.term ∗
          -- the committed prefix the snapshot covers (2026-10-05)
-         isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
+         isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat) ∗
+         -- (2026-10-20, witness support) its subterm prefixes, in the dynamic mode
+         dynOn γ (entWit γ ((fp ++ l).take (uint.Z m.index).toNat) m.index)) ∗
       ⌜m.src ≠ W64 0⌝ ∗
       -- (D19p, 2026-10-18) to another node, both ids within the tracked bound (`reTracked`):
       -- a leader sends a snapshot only to a peer its tracker holds (`maybeSendSnapshot`)

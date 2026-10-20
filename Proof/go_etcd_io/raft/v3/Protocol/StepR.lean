@@ -109,7 +109,7 @@ def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
 replication set excluding `x` (`0` for the witness), of the configuration of the prefix `P`
 (ghost, `PState.scp`), with an empty entry of it and its self-acknowledgement (`StepC.newSub`'s
 effect). -/
-def pnewSub (id : w64) (p : PState) (x : w64) (P : List EntryM) : PState :=
+abbrev pnewSub (id : w64) (p : PState) (x : w64) (P : List EntryM) : PState :=
   psendMsgs (pappend { p with sub := p.sub + W64 1, rsx := x, scp := P }
       [stampS p.term (p.sub + W64 1) (plastIndex p) 0 (zero_val EntryM)])
     [pselfAck id (pappend { p with sub := p.sub + W64 1, rsx := x, scp := P }

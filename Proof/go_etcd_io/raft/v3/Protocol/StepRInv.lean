@@ -519,6 +519,11 @@ theorem preadRespondAll_fields (id : w64) (s : PState) (qs : List ReadReq) :
   obtain ⟨o, rd, h⟩ := preadRespondAll_eq id s qs
   rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
+theorem preadRespondAll_log (id : w64) (s : PState) (qs : List ReadReq) :
+    (preadRespondAll id s qs).log = s.log := (preadRespondAll_fields id s qs).2.1
+theorem preadRespondAll_commit (id : w64) (s : PState) (qs : List ReadReq) :
+    (preadRespondAll id s qs).commit = s.commit := (preadRespondAll_fields id s qs).2.2.1
+
 theorem RInv_campaign {r : RState} (id : w64) (ms : List Msg) (H : RInv dec c0 r)
     (hs : r.snap = false) (hg : NoConfIn r.full (uint.nat r.applied) (uint.nat r.p.commit)) :
     RInv dec c0 { r with p := psendMsgs (pbecomeCandidate id r.p) ms, pci := W64 0 } :=
@@ -915,6 +920,86 @@ theorem full_entry_of_term (F : List EntryM) (j t : w64)
 
 section rules
 variable {dec : CCDec} {c0 : CCState}
+
+/-- (2026-10-20, witness support) The receiver's new full log: its old one (no conflict), or the
+sender's log `G` the message shows (a conflict above the commit index), ending at `lastnewi`. -/
+theorem appAccept_full {r : RState} (m : Msg) (lastnewi : w64) (es' : List EntryM)
+    (H : RInv dec c0 r)
+    (hma : plogMaybeAppend r.p.base r.p.log (entryID.mk m.logterm m.index) m.entries
+      = some (lastnewi, es'))
+    (hcf : plogFindConflict r.p.base r.p.log m.entries = W64 0 ∨
+      uint.Z r.p.commit < uint.Z (plogFindConflict r.p.base r.p.log m.entries))
+    (hpay : AppPayloadOk m) (G : List EntryM)
+    (hGl : G.length = uint.nat m.index + m.entries.length)
+    (hGd : G.drop (uint.nat m.index) = m.entries)
+    (hGp : 0 < uint.nat m.index → ∃ e, G[uint.nat m.index - 1]? = some e ∧ e.Term' = m.logterm)
+    (hLM : LogMatchL r.full G) :
+    r.fp ++ es' = r.full ∨ (r.fp ++ es' = G ∧ uint.Z lastnewi = (G.length : Int)) := by
+  obtain ⟨hwf, hnw⟩ := hpay
+  have hlast := plogMaybeAppend_last _ _ _ _ _ _ hwf hnw hma
+  obtain ⟨hm, hln, hcase⟩ := plogMaybeAppend_inv _ _ _ _ _ _ hwf hnw hma
+  have ⟨hbm, _⟩ := plogTermAt_some_range _ _ _ _ hm
+  simp only at hnw hln hbm
+  have hcl := H.commit_last
+  rcases hcase with ⟨rfl, _⟩ | ⟨d, e, hd, hnm, hbef, hei, hend, rfl⟩
+  · left; rfl
+  right
+  · simp only at hei hend
+    -- the conflict is the first unmatched entry, above the commit index
+    have hfc := plogFindConflict_first _ _ _ d e hd hnm hbef
+    have hce : uint.Z r.p.commit < uint.Z e.Index' := by
+      rcases hcf with h0 | h
+      · rw [hfc] at h0; exact absurd h0 (batch_index_nz _ _ hwf d e hd)
+      · rwa [hfc] at h
+    have hbc := H.base_commit
+    have hlen := H.full_length
+    have hfl : (r.fp.length : Int) = uint.Z r.p.base.index' := H.full.1
+    have hdlt := (List.getElem?_eq_some_iff.mp hd).1
+    have hin := rUnat_eq m.index
+    have hcn := rUnat_eq r.p.commit
+    -- the new full log: the old one below the conflict, then the batch from it
+    have hP : r.fp ++ (r.p.log.take (uint.Z e.Index' - uint.Z r.p.base.index' - 1).toNat ++
+        m.entries.drop d) = r.full.take (uint.nat m.index + d) ++ m.entries.drop d := by
+      have hk : uint.nat m.index + d =
+          r.fp.length + (uint.Z e.Index' - uint.Z r.p.base.index' - 1).toNat := by omega
+      unfold RState.full
+      rw [hk, List.take_length_add_append, List.append_assoc]
+    -- below the conflict the old full log is the sender's
+    have hagree : r.full.take (uint.nat m.index + d) = G.take (uint.nat m.index + d) := by
+      cases d with
+      | zero =>
+        by_cases h0 : uint.nat m.index = 0
+        · rw [Nat.add_zero, h0]; rfl
+        · obtain ⟨e1, he1, ht1⟩ := full_entry_of_term r.full m.index m.logterm
+            (by unfold RState.full; rw [full_term_at _ _ _ _ H.full hbm]; exact hm) (by omega)
+          obtain ⟨e2, he2, ht2⟩ := hGp (by omega)
+          have := hLM _ e1 e2 he1 he2 (by rw [ht1, ht2])
+          rwa [Nat.sub_add_cancel (by omega)] at this
+      | succ d' =>
+        obtain ⟨x, hx'⟩ : ∃ x, m.entries[d']? = some x :=
+          ⟨m.entries[d'], List.getElem?_eq_getElem (by omega)⟩
+        have hmx := hbef d' x (by omega) hx'
+        have hxi := hwf d' x hx'
+        unfold PlogMatches entId at hmx
+        obtain ⟨hxb, _⟩ := plogTermAt_some_range _ _ _ _ hmx
+        obtain ⟨e1, he1, ht1⟩ := full_entry_of_term r.full x.Index' x.Term'
+          (by unfold RState.full; rw [full_term_at _ _ _ _ H.full hxb]; exact hmx)
+            (by push_cast at hxi; have := uint_Z_nonneg m.index; omega)
+        have hxn := rUnat_eq x.Index'
+        have hG : G[uint.nat m.index + d']? = some x := by
+          rw [← List.getElem?_drop, hGd]; exact hx'
+        have hpos : uint.nat x.Index' - 1 = uint.nat m.index + d' := by
+          push_cast at hxi; omega
+        rw [hpos] at he1
+        have := hLM _ e1 x he1 hG ht1
+        rwa [show uint.nat m.index + d' + 1 = uint.nat m.index + (d' + 1) by omega] at this
+    have hnewG : r.fp ++ (r.p.log.take (uint.Z e.Index' - uint.Z r.p.base.index' - 1).toNat ++
+        m.entries.drop d) = G := by
+      rw [hP, hagree, List.take_add, hGd, List.append_assoc, List.take_append_drop,
+        ← hGd, List.take_append_drop]
+    have hlastZ : uint.Z lastnewi = (G.length : Int) := by
+      rw [hln, hGl]; push_cast; omega
+    exact ⟨hnewG, hlastZ⟩
 
 /-- An accepted `MsgApp`. With no conflict the log is unchanged and the commit index rises
 within it. With a conflict (above the commit index), the new full log is the sender's `G`

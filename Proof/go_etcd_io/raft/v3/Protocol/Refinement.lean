@@ -301,7 +301,8 @@ private theorem isMessage_snap_inv (γ : RaftNames) (m : Msg) :
          ⌜plogTermAt bL l m.index = some m.logterm⌝ ∗
          lpfull γ m.src m.term bL l fp ∗
          commitIn γ (fp ++ l) m.index m.term ∗
-         isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
+         isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat) ∗
+         dynOn γ (entWit γ ((fp ++ l).take (uint.Z m.index).toNat) m.index)) ∗
       ⌜m.src ≠ W64 0⌝ := by
   intro Hty
   unfold isMessage; rw [Hty]
@@ -2974,7 +2975,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   icases isMessage_snap_inv γ m Hty $$ Hm with
-    ⟨#Hl, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', #Hmc, #Hmcm⟩, %Hfnz⟩
+    ⟨#Hl, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', #Hmc, #Hmcm, -⟩, %Hfnz⟩
   rw [Hterm]
   iunfold isLeader at Hl
   icases Hl with ⟨%q, #Hwin⟩
@@ -3070,6 +3071,28 @@ theorem isMessage_snap_prefix (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
   · ipureintro; exact FullOk_take _ _ _ HwLf.1 HLidx
   iapply logRecs_take $$ HrLf
 
+/-- (2026-10-20, witness support) The snapshot's prefix, with its subterm prefixes at the
+snapshot's index (in the dynamic mode). -/
+theorem isMessage_snap_entWit (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
+    ⊢ isMessage (GF := GF) γ m -∗
+      ∃ fp, ⌜FullOk (entryID.mk m.logterm m.index) fp⌝ ∗ logRecs γ base0 fp ∗
+        dynOn γ (entWit γ fp m.index) := by
+  iintro #Hm
+  icases isMessage_snap_inv γ m Hty $$ Hm with
+    ⟨-, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', -, -, #Hew⟩, -⟩
+  ihave #HLf := leadFull_intro $$ Hp' Hpf'
+  icases leadFull_wf γ m.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
+  icases lpfull_fp $$ Hpf' with ⟨-, %HfL⟩
+  have HbL := (plogTermAt_some_range _ _ _ _ Hidx').1
+  have HLidx : plogTermAt base0 (fpL ++ l') m.index = some m.logterm := by
+    rw [full_term_at bL fpL l' m.index HfL.1 HbL]; exact Hidx'
+  iexists (fpL ++ l').take (uint.Z m.index).toNat
+  isplitr
+  · ipureintro; exact FullOk_take _ _ _ HwLf.1 HLidx
+  isplitr
+  · iapply logRecs_take $$ HrLf
+  iexact Hew
+
 /-- `Step.snapRestore`: the log is replaced by the snapshot -- no entries after the new
 base, so no records to keep; the compacted prefix is the leader's full log up to the
 snapshot -- and the commit index becomes the snapshot's, which the message carries the
@@ -3102,7 +3125,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   icases isMessage_snap_inv γ m Hty $$ Hm with
-    ⟨#Hl, #Hmeta, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', #Hmc, #Hmcm⟩, %Hfnz⟩
+    ⟨#Hl, #Hmeta, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', #Hmc, #Hmcm, -⟩, %Hfnz⟩
   rw [Hterm]
   ihave #HLf := leadFull_intro $$ Hp' Hpf'
   icases leadFull_wf γ s.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
@@ -4594,7 +4617,9 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
            peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term
                                    (plogLast s.base s.log) cl))) md ∗
       (∃ fp, ⌜FullOk s.base fp⌝ ∗ logRecs γ base0 fp ∗
-        isCampK γ id (s.term + W64 1) (fp ++ s.log) s.commit) := by
+        isCampK γ id (s.term + W64 1) (fp ++ s.log) s.commit ∗
+        -- (2026-10-20, witness support) the campaign's dynamic facts, for its witness request
+        dynOn γ (campDyn γ id (s.term + W64 1) (fp ++ s.log))) := by
   have Hcnt : rdCount ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
       List.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term (plogLast s.base s.log) cl)
         peers) = 0 := by
@@ -4652,7 +4677,7 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
   · iexists fp0
     iframe Hfr0
     rw [← HF0.2]
-    iframe HcK
+    iframe HcK Hcd
     ipureintro; exact HF0.1
   iapply ownRaftGhost_intro γ id _ γv (<[s.term + W64 1 := id]> voted) none Hname Hidnz Hmode $$
     Hvoted [] [] [] [] [] [Hlg] [] [] [] [] [Hlcm] [Hrd] [Hwg]
@@ -4855,6 +4880,33 @@ theorem wOwn_item (γ : RaftNames) (id : w64) (s : PState) (i σ x : w64) (P : L
   ipureintro
   have := (Hitems _ (Hpre.2.subset HL.1)).2.2 Hσ
   simp only [Prod.mk.injEq] at this; exact this
+
+/-- (2026-10-20) `wOwn_item` at a node's ghost state. -/
+theorem ownRaftGhost_item (γ : RaftNames) (id : w64) (s : PState) (i σ x : w64) (P : List EntryM)
+    {md : Bool} (Hr : s.role = .leader) (Hσ : σ = s.sub) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ subRec γ id s.term i σ x P -∗ ⌜x = s.rsx ∧ P = s.scp⌝ := by
+  iintro Hown #Hs
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  iapply wOwn_item γ id s i σ x P Hr Hσ $$ Hwg Hs
+
+/-- (2026-10-20) `ownRaftGhost_isLeader`, keeping the ghost state. -/
+theorem ownRaftGhost_isLeader_dup (γ : RaftNames) (id : w64) (s : PState) {md : Bool}
+    (Hr : s.role = .leader) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ isLeader γ id s.term ∗ ownRaftGhost γ id s md := by
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  isplitr
+  · rw [← leaderWit_leader γ id s Hr]; iexact Hlead
+  iapply ownRaftGhost_intro γ id s γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags Hout Htally
+    Hlead Hlg [] [] Hvrecs [] Hlcm Hrd Hwg
+  · ipureintro; exact Hhist
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
 
 /-- A candidate's granted list holds its granted votes. -/
 theorem wOwn_grantLb (γ : RaftNames) (id : w64) (s : PState) (G : GSet w64) :
