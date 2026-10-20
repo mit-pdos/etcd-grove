@@ -40,7 +40,9 @@ abbrev kvConfState (voters : List w64) : ConfStateM := ConfStateM.mk voters [] [
 abbrev Storage.InitialState.spec : Prop :=
   ∀ (s : Loc) (vsl : GoSlice) (voters : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
-      s.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ voters }}
+      s.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ voters ∗
+      -- (2026-10-20, witness support) a storage of a cluster without a witness
+      s.[RStorage, go!"witness"] ↦□ W64 0 }}
     (App (Val (s @!! go.GoType.PointerType rStorageTy @!! go!"InitialState")) (Val #()))
   {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
       hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗

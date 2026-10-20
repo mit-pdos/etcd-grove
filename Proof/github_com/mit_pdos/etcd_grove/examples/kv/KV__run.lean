@@ -9,6 +9,7 @@ states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its har
 -/
 module
 
+public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__witnessDeliver
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
@@ -52,7 +53,8 @@ theorem KV.run.wp_proof
     (wp_proto_UnmarshalConfChange : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
     (wp_node_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
-    (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
+    (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
+    (wp_witnessDeliver : kv.KV.witnessDeliver.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
   intro γr γp r id n st send op c0 c1
   wp_start as ⟨#Hrep, %Hcc, Hncfg, Hdrv, Hrun, #Hsend⟩
@@ -144,6 +146,10 @@ theorem KV.run.wp_proof
   · iframe
   iintro !> -
   wp_auto
+  -- (2026-10-20, witness support) `r.witnessDeliver(rd.WitnessMessages)`: no witness, nothing
+  ihave #Hwit : r.[RKV, go!"witness"] ↦□ (interface.nil : GoInterface) $$ []
+  · iNamed Hrep; iexact Hwit
+  wp_apply wp_witnessDeliver r _ $$ [$Hwit]
   -- the read states, noted (`rsOk` of each value)
   ihave Hvs := readStatesPts_rsOk γp.node.raft rdv'.ReadStates' sts $$ [Hsts Hstsok]
   · iframe Hsts Hstsok

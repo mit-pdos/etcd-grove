@@ -18,6 +18,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__do
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__witnessDeliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.NewStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
@@ -35,6 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.deliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.hashMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.hashString
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.newKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Debugf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Errorf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Infof
@@ -122,9 +124,13 @@ theorem kv.wp_fits [KVStor GF] :
     kv.fits.spec (GF := GF) (hG := hG) :=
   kv.fits.wp_proof raftpb.Entry.wp_GetIndex
 
+theorem kv.KV.wp_witnessDeliver :
+    kv.KV.witnessDeliver.spec (GF := GF) (hG := hG) :=
+  kv.KV.witnessDeliver.wp_proof
+
 theorem kv.KV.wp_run [KVStor GF] :
     kv.KV.run.spec (GF := GF) (hG := hG) :=
-  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer node.wp_Ready node.wp_Advance MemoryStorage.wp_Append proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
+  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer node.wp_Ready node.wp_Advance MemoryStorage.wp_Append proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData kv.KV.wp_witnessDeliver
 
 theorem kv.wp_NewStorage [KVStor GF] :
     kv.NewStorage.spec (GF := GF) (hG := hG) :=
@@ -166,9 +172,13 @@ theorem kv.wp_Check [KVStor GF] :
     kv.Check.spec (GF := GF) (hG := hG) :=
   kv.Check.wp_proof lintest.wp_Run kv.wp_Model kv.wp_Gen kv.KV.wp_Get kv.KV.wp_Put kv.KV.wp_Append
 
+theorem kv.wp_newKV [KVStor GF] :
+    kv.newKV.spec (GF := GF) (hG := hG) :=
+  kv.newKV.wp_proof kv.KV.wp_run
+
 theorem kv.wp_New [KVStor GF] :
     kv.New.spec (GF := GF) (hG := hG) :=
-  kv.New.wp_proof kv.KV.wp_run
+  kv.New.wp_proof kv.wp_newKV
 
 theorem kv.wp_deliverable :
     kv.deliverable.spec (GF := GF) (hG := hG) :=

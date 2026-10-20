@@ -118,11 +118,13 @@ theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) :
   kvStorage_isStorage kv.Storage.wp_Snapshot s ms γs
 
 /-- ... and its `InitialState` is a fresh empty hard state and the voters' conf state, read-only
-for good, as `RestartNode` asks of its storage (raft v3.7: `RestartNode.spec`'s premise). -/
+for good, as `RestartNode` asks of its storage (raft v3.7: `RestartNode.spec`'s premise), for a
+storage of a cluster without a witness (`NewStorage`'s). -/
 theorem kv_storage_initialState (s : Loc) (vsl : GoSlice) (voters : List w64)
     (σ : StorState) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
+      s.[RStorage, go!"witness"] ↦□ W64 0 -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (kvStorIface s) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (kvStorIface s) { σ with ss := ss' } -∗

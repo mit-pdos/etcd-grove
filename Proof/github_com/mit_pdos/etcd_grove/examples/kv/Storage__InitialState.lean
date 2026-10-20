@@ -31,7 +31,7 @@ variable [KVStor GF]
 
 theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG := hG) := by
   intro s vsl voters
-  wp_start as ⟨#Hv, #Hvs⟩
+  wp_start as ⟨#Hv, #Hvs, #Hw⟩
   wp_auto
   wp_alloc hp as Hhp
   -- `&pb.HardState{}`: every cell `nil`, the zero record, frozen
@@ -40,15 +40,13 @@ theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG
   · iframe Hhp
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
-  wp_auto
-  wp_alloc cs as Hcs
-  -- `&pb.ConfState{Voters: s.voters}`: the voters read-only, the other slices `nil`, `AutoLeave`
-  -- `nil`, frozen
-  imod csPts_of_struct_ro cs
+  -- `&pb.ConfState{Voters: s.voters}`, and no witness (`s.witness` is `0`, 2026-10-20): the
+  -- voters read-only, the other slices `nil`, `AutoLeave` and the witness cells `nil`, frozen
+  imod csPts_of_struct_ro «$r0_ptr»
       (⟨zero_val _, vsl, slice.nil, slice.nil, slice.nil, null, null, null, slice.nil, 0⟩ :
         raftpb.ConfState)
-      (kvConfState voters) ⊤ rfl $$ [Hcs] with #Hcs
-  · iframe Hcs
+      (kvConfState voters) ⊤ rfl $$ [«$r0»] with #Hcs
+  · iframe «$r0»
     simp only [kvConfState]
     iframe Hvs
     repeat (isplitr; · iapply ownSlice_nil)

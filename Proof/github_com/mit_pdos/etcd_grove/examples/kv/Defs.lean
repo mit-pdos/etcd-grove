@@ -408,6 +408,8 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#Hid" ∷ r.[RKV, go!"id"] ↦□ id ∗
     "#Hnode" ∷ r.[RKV, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
     "#Hst" ∷ r.[RKV, go!"storage"] ↦□ st ∗
+    -- (2026-10-20, witness support) a replica of a cluster without a witness: no access to one
+    "#Hwit" ∷ r.[RKV, go!"witness"] ↦□ (interface.nil : GoInterface) ∗
     "#Hsrec" ∷ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗

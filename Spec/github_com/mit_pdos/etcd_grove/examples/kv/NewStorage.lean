@@ -32,6 +32,8 @@ abbrev NewStorage.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.NewStorage)) (Val #vsl))
   {{ (s : Loc), RET #s; ∃ (ms : Loc) (γs : MemStorNames),
       kvStorRec s ms γs ∗ s.[RStorage, go!"voters"] ↦□ vsl ∗
+      -- (2026-10-20, witness support) a storage of a cluster without a witness
+      s.[RStorage, go!"witness"] ↦□ W64 0 ∗
       ownMemoryStorage ms γs memStorEmpty }}
 
 end spec
