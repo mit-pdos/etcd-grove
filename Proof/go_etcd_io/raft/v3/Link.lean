@@ -164,6 +164,7 @@ public import Proof.go_etcd_io.raft.v3.raftLog__scan
 public import Proof.go_etcd_io.raft.v3.raftLog__slice
 public import Proof.go_etcd_io.raft.v3.raftLog__snapshot
 public import Proof.go_etcd_io.raft.v3.raftLog__stableTo
+public import Proof.go_etcd_io.raft.v3.raftLog__subterm
 public import Proof.go_etcd_io.raft.v3.raftLog__term
 public import Proof.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
 public import Proof.go_etcd_io.raft.v3.raft__Step
@@ -204,6 +205,7 @@ public import Proof.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 public import Proof.go_etcd_io.raft.v3.raft__restore
 public import Proof.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.raft__sendAppend
+public import Proof.go_etcd_io.raft.v3.raft__sendAppendToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeat
 public import Proof.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Proof.go_etcd_io.raft.v3.raft__softState
@@ -1509,6 +1511,18 @@ theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
 
+theorem raftLog.wp_subterm [StorageModel GF] :
+    raftLog.subterm.spec (GF := GF) (hG := hG) :=
+  raftLog.subterm.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex raftLog.wp_slice raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetSubterm
+
+theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
+    tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
+  tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
+
+theorem raft.wp_sendAppendToWitness [StorageModel GF] :
+    raft.sendAppendToWitness.spec (GF := GF) (hG := hG) :=
+  raft.sendAppendToWitness.wp_proof tracker.ReplicationSet.wp_GetNonWitnessVoterSlice
+
 theorem raftpb.ConfChangeTransition.wp_Enum :
     raftpb.ConfChangeTransition.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeTransition.Enum.wp_proof
@@ -1596,10 +1610,6 @@ theorem tracker.ProgressTracker.wp_LearnerNodes :
 theorem tracker.ProgressTracker.wp_TallyVotes :
     tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.TallyVotes.wp_proof quorum.JointConfig.wp_VoteResult
-
-theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
-    tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
-  tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
 
 theorem witness.wp_Close :
     witness.Close.spec (GF := GF) (hG := hG) :=
