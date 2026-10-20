@@ -83,15 +83,15 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     (HN : γn.N = srvNet γ.node.raft γ.node.bud) (hns : γ.node.raft.reNoSnap = true)
     (hboot : γ.node.raft.reBoot ≠ [])
     -- (2026-10-19, D22 S-a) `SentMsgOk` is of both modes
-    (hnx : γ.node.raft.reNoXfer = true) (ml : Loc) :
-    netRecv (GF := GF) γn γ.id ml ⊢ |==> stepP γ.node γ.id ml := by
+    (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
+    netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by
   obtain ⟨N, g, dir⟩ := γn
   simp only at HN
   subst HN
   iintro Hr
   iunfold netRecv at Hr
   simp only [srvNet]
-  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩⟩
+  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩, -⟩
   obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto⟩ := Hw
   icases HP with ⟨#Hrm, #Htl⟩
   ihave %Hns := isRaftMsg_not_snap γ.node.raft hns st $$ Hrm

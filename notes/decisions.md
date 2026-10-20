@@ -12057,3 +12057,98 @@ lease/auth/alarm buckets) — a sole-writer token per bucket of the new backend,
 boot, would be minted by them or by `OpenSnapshotBackend`'s post (not stated yet). `go oldbe.Close()`
 waits for the old backend's open snapshots (bbolt's `Close` takes the mmap lock): liveness only.
 `etc/tcb-collections/snapshot.txt` tracks the path (26 axioms, 0 sorries).
+
+## D22 S-i carried out: the snapshot stream in the network contract (2026-10-20)
+
+Stage S-i of T-S (D21b's contract extended; S-f's vocabulary). `rafthttp` and `snap` stay
+names-only; `rafthttp.Transport.Start` is **restated** (no new declaration) and its started
+transport (`netTransport`, `api/rafthttp/Net.lean`) gains `SendSnapshot`. Trust base unchanged (531
+axioms, 2 sorries).
+
+**The sender** (`SendSnapshot`, `transport.go:409-418`): `{{ snap.msgIs m ml rc ∗ netSnapBundle
+γn.N ml rc }} SendSnapshot(m) {{ True }}`.
+- `snap.msgIs m ml rc` (`snap/Defs.lean`, persistent, opaque `msgRO`): `m` is a `*snap.Message` of
+  `NewMessage(ml, rc, size)`, its fields read-only for good (`snap.Message` is an axiomatized type).
+  S-h's `NewMessage` axiom makes it; `GetTo`, `TotalSize` and `CloseNotify` (read by
+  `sendMergedSnap`, the last after `SendSnapshot`) read it. The transport sends at most once on
+  `closeC`, carrying nothing (`CloseWithError`, at once with `errMemberNotFound` for a missing
+  peer): S-h's `CloseNotify` axiom can state the channel at a `True` protocol.
+- `netSnapBundle N ml rc`: the raft message `msgOwn ml □ st` with its bundle (`□ N.P st ∗ N.O st`;
+  for the server `isRaftMsg`, so the `.snap` clause of `isMessage` once S-b/S-c give it outside the
+  no-snapshot mode), `st.msg.Type' = MsgSnap`, `st.snap = some sn`, and
+  `backend.readerStreams rc (boltImage · D) ∗ □ N.img sn.Metadata'.Index' D`.
+- `readerStreams r Φ` (`backend/InvSnapshot.lean`, opaque, exclusive): the right to read `r`, whose
+  complete streams (the bytes until `io.EOF`, no error before) satisfy `Φ`; the reader's half of
+  S-f's `writerOk`. S-h's `io.Pipe` axiom makes it: the pipe's reader returns `io.EOF` only after
+  the writer's `CloseWithError(nil)`, which `newSnapshotReaderCloser` calls only after `WriteTo`
+  succeeded (`boltImage bs D`): `Φ := boltImage · D` is the writer's close obligation.
+- `NetPayload` gains `img : w64 → Data → IProp` (persistent). The server's (`srvNet`) is
+  `srvImage γ i D` (`InvImage.lean`): `dbImage ⟨γ, [], 0⟩ γk i D` for some `γk` with
+  `NewServer.spec`'s start values (`c0 = 0`, `ch0 = alarmChain false false false`,
+  `log0 = [[], []]`). The KV names are per member (their ghost names) but `dbImage` reads only the
+  start values (`dbImage_kv_congr`), so `srvImage_of_dbImage`/`dbImage_of_srvImage` move between a
+  member's certificate and the network's, and `srvNet`'s signature (and the closed theorems'
+  allocations) did not change.
+- **`Send` takes no `MsgSnap`** (`netBundle` gains `Type' ≠ MsgSnap`): rafthttp routes a `MsgSnap`
+  given to `Send` to the pipeline (`peer.go:339-342`), which posts it to the *message* handler, so
+  `Process` would see a `MsgSnap` with no file saved and the receiver's promise below would be
+  false. The server's messages to `Send` are not snapshots (`srvEr`'s `srvMsgNoSnap`: the fork's
+  `processMessages` diverts each `MsgSnap` to `msgSnapC`); `srvMsgNet_bundle` now takes that
+  conjunct too (with the existing `msgOwn_type_agree`, moved up in `InvBuild.lean`).
+
+**The receiver: a member's snapshot directory** (`Net.lean`), an invariant the receiver allocates
+(`snapDir_alloc`, empty: a fresh data directory) and gives `Start`:
+`snapDirInv ss γd img Rm := ∃ M E, ghostMapAuth γd 1 E ∗ ⌜dom M ⊆ dom E⌝ ∗ ([∗map] i ↦ D ∈ M,
+fileHolds (snapDBPath ss i) D ∗ □ img i D) ∗ □ (∀ i ∈ E, snapSaved γd i) ∗ □ (∀ i ∈ E \ dom M,
+Rm i)`: `M` the `.snap.db` files present, `E` the indices ever saved (persistent elements
+`snapSaved γd i`), `Rm` the receiver's removal fact.
+- Why a map, not `fileHolds` handed to `Process`: `SaveDBFrom` **keeps an existing file** of the
+  index (`db.go:57-66`), so a second `MsgSnap` at the index brings no new file while the first
+  file's `fileHolds` (exclusive) is already the receiver's; and a file can be re-created after the
+  receiver renamed it away (a `MsgSnap` resent after `ReportSnapshot(Failure)`), so the per-index
+  fact cannot be a persistent `i ↦ D` either.
+- What `Process` gets (`netRecv γn id γd ml` gains `netSnapRecv γd st`): for a `MsgSnap`, `st.snap
+  = some sn` and `snapSaved γd sn.Metadata'.Index'`. Then the file is in `M` still, or the
+  receiver removed it (`Rm i`). S-j chooses `Rm` to exclude raft taking the snapshot, e.g.
+  "raft's committed index `≥ i`": a removal is of the snapshot being applied or of
+  `ReleaseSnapDBs`'s indices below a released one, and raft's `restore` drops a snapshot at or below
+  its committed index.
+- **What keeps the file**: only the receiver removes entries from `M`, each removal a ghost step
+  with `Rm i`: `OpenSnapshotBackend`'s rename (S-j opens the invariant and takes `fileHolds` and
+  the certificate out, `i` staying in `E`) and `ReleaseSnapDBs` (`snap/snapshotter.go:45-70`, from
+  `storage.Release`: only files of index *below* the released one; S-j's `Release` axiom removes
+  those from `M`). The transport only adds (at its rename, at an index absent from `M`) or does
+  nothing (a kept file: the index is in `E`). `SaveSnap`'s `.snap` files have other names.
+- `pathOwn` of a snapshot path: the transport creates `.snap.db` files, so S-j must not keep the
+  `pathOwn (snapDBPath …)` that `OpenSnapshotBackend` returns (dropped: the program renames nothing
+  onto a `.snap.db` path).
+- `netRaftOk γn id γd R r` and `EtcdServer.Process.spec` take `γd`; `stepP_of_recv` ignores the new
+  conjunct (the no-snapshot mode excludes `MsgSnap`); `srv_netRaftOk` holds at any `γd`.
+
+**`Start`, restated** (`Spec/.../rafthttp/Transport__Start.lean`): `∀ … γd Rm`; the pre gains
+`snap.isSnapshotter tv.Snapshotter' ∗ inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm)`,
+and `netRaftOk γn tv.ID' γd R tv.Raft'`. Its docstring says why the snapshot half is true of
+rafthttp (`snapshot_sender.go:66-199`, `http.go:208-330`, `db.go:37-90`): the envelope and the
+reader's bytes posted once in a chunked body, the exact-size reader erroring on a short or long
+stream, so a saved file is a complete stream of the sender's reader; `Process` called only after
+`SaveDBFrom` succeeded; the reports before the close.
+
+**`ReportSnapshot` at any time**: already in `netRaftOk` (from `True`, an `R` borrowed), proved by
+`srv_netRaftOk` from `EtcdServer.ReportSnapshot.spec`; `snapshotSender` calls it on the *sender's*
+`Raft`, the one given to its own `Start`: composes unchanged.
+
+**`Snapshotter` at `bootstrap`**: `bootOk` gains `"#Hss" ∷ snap.isSnapshotter bs.ss'`
+(`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`); `bootstrap` is a premise (its contract),
+so no constructor axiom (+0, not the plan's +1). `NewServer` allocates the directory at
+`Rm := True` (no removal yet) and passes `Hss` and the invariant to `Start`.
+
+**For S-h**: `SendSnapshot` through `s.r.transport` (the wrapper's `isRNTransport` has only
+`Send`/`Stop`: derive it from `transportStarted`'s `netTransport`, as `isRNTransport_of_net`);
+axioms `snap.NewMessage` (giving `snap.msgIs` and `closeC`'s protocol), `CloseNotify`, the
+promoted `GetTo`/`TotalSize`, `io.Pipe` (giving `writerOk pw Wr` with the close obligation and
+`readerStreams pr Φ`); the bundle's `□ srvImage γ i D` from `dbImage` by `srvImage_of_dbImage`.
+**For S-j**: `NewServer` must keep `inv snapDirN (snapDirInv bs.ss' γd …)` (allocated there, not yet
+stored) with a real `Rm`; at `applySnapshot` of index `i`, open the invariant, exclude `Rm i` from
+raft's having taken the snapshot, take `fileHolds (snapDBPath ss i) D` and `□ srvImage γ i D`
+(`dbImage_of_srvImage` at the member's KV names) out for `OpenSnapshotBackend`; `storage.Release`'s
+axiom removes the files below its index from `M`.

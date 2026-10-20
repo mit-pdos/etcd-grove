@@ -9,7 +9,7 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   (`CheckQuorum: true` and `PreVote` as `cfg` sets it, both covered by the raft start result since
   2026-10-17; until then `NewServer.spec` required `cfg.PreVote` off). On success the bootstrapped record carries `bootOk`:
   - the records `NewServer` reads (`b`, `b.storage`, `b.storage.backend`, `b.storage.wal`,
-    `b.cluster`, `b.raft`);
+    `b.cluster`, `b.raft`) and (D22 S-i) the snapshotter `b.ss` (`snap.isSnapshotter`);
   - `b.raft` with `NodeStartSpec`'s premises on it (the raft config valid, `CheckQuorum`/
     `PreVote` either way, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
     `InitialState` closure, `Marshal` at the peers' conf changes) and the cluster's
@@ -134,6 +134,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
     "Hbw" ∷ sto.wal' ↦ bw ∗ "Hbc" ∷ bs.cluster' ↦ bc ∗ "Hbv" ∷ bs.raft' ↦ bv ∗
+    -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
+    -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
+    "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
@@ -357,7 +360,7 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
     ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ isRNTransport E tr := by
   iintro #HM #Htr
   iunfold netTransport at Htr
-  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop⟩
+  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, -⟩
   iunfold isRNTransport
   iexists ti
   isplitr

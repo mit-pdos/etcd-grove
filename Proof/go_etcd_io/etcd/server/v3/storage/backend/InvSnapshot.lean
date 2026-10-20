@@ -25,6 +25,8 @@ axioms of etcd's backend (`backend.Snapshot`, `snapshot.WriteTo`) and of the fil
 * `writerOk w Wr`: the `io.Writer` `w`'s contract, by its client's predicate `Wr bs` of the bytes
   written so far: `Write(p)` appends some prefix of `p`'s bytes, returns their number, and all of
   them unless it returns an error (`io.Writer`'s documentation).
+* `readerStreams r Φ` (D22 S-i): the right to read the `io.Reader` `r`, whose complete streams
+  satisfy `Φ`: the reader's half of a byte stream, as `writerOk` is the writer's.
 * `viewAt γ vd`: the batch lock's quarter of the readers' view (`batchGhostAt`'s), the witness the
   snapshot's axiom hands its caller's observation (`backend.Snapshot.spec`): it agrees with the
   clients' shares (`bView`, of which the server's batch-lock resource holds one).
@@ -75,6 +77,16 @@ def writerOk (w : GoInterfaceOk) (Wr : List w8 → IProp GF) : IProp GF :=
 instance writerOk_persistent (w : GoInterfaceOk) (Wr : List w8 → IProp GF) :
     Persistent (writerOk w Wr) := by
   unfold writerOk; infer_instance
+
+/-- **The right to read the stream of the `io.ReadCloser` `r`, whose complete streams satisfy
+`Φ`** (opaque, exclusive; D22 S-i, 2026-10-19): `r` is read by one reader, and any byte string it
+yields in full -- every byte its `Read`s return until one returns `io.EOF`, with no other error
+before -- satisfies `Φ`; a reader may also stop early or see an error (then nothing is
+promised). Its meaning is what the axioms that make and take it say: the merged snapshot's pipe
+(`io.Pipe`, whose reader returns `io.EOF` only after its writer's `Close`, i.e. `CloseWithError(nil)`,
+which `newSnapshotReaderCloser` calls only when `WriteTo` succeeded: S-h) makes it, with
+`Φ bs := boltImage bs D`; the transport's `SendSnapshot` takes it (`netSnapBundle`). -/
+opaque readerStreams (r : GoInterface) (Φ : List w8 → Prop) : IProp GF
 
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
