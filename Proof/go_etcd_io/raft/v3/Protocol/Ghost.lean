@@ -318,6 +318,20 @@ structure RaftNames where
   a bootstrap log (`ownRaftGhost_alloc_boot`), whose log past it is the leaders'. -/
   reNoSnap : Bool
   reNoSnap_ok : reNoSnap = true → reBootRaw ≠ []
+  /-- (2026-10-19, witness support, `notes/raft-witness.md`) The witness, `0` for none: a voter
+  of `reCfg` that is not a raft node (a storage object answers the leaders' and the candidates'
+  witness messages, `witness.go`). Its acknowledgements and votes are justified by its own ghost
+  state (`wAck`, `wVoteJust`), not by a node's: it has no acknowledgement map, vote-time logs or
+  event history (`reWit_ok`). Static mode only. -/
+  reWit : w64
+  /-- The witness's state history: a `mono_list` of `WState`s, term-sorted and monotone in the
+  last entry's `(term, subterm)` (`wHistOk`), whose authority the witness's ghost state holds. -/
+  reWHist : GName
+  /-- `reWG !! id`: node `id`'s map `term ↦ (γes, γg)` (persistent elements): the subterm list of
+  the term it led (`subRec`) and the granted votes of its campaign of the term (`grantLb`). -/
+  reWG : GMap w64 GName
+  reWit_ok : reWit = W64 0 ∨
+    (reWit ∈ reCfg ∧ reDyn = none ∧ reAcks !! reWit = none ∧ reVlogs !! reWit = none)
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -349,7 +363,7 @@ theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
 theorem CfgStatic.toStep [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64) (B : Int)
     (s : PState) (ms : List Msg) (s' : PState) :
     StepC (CfgM.simple γ.reCfg lrn) id B s ms s' → Step γ.reCfg id B s ms s' :=
-  step_of_stepC (CfgM.simple γ.reCfg lrn) id B γ.reCfg_ne rfl
+  step_of_stepC (CfgM.simple γ.reCfg lrn) id B γ.reCfg_ne rfl rfl
 
 /-- **The node `id` at the configuration `c` within the ghost state's tracked bound** (D19p,
 2026-10-18): what the node's static ghost state keeps (`ghostRest`), with `c` its tracker's
@@ -759,18 +773,163 @@ theorem isCampK_committed (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w6
   iintro ⟨%_, -, -, #H⟩
   iexact H
 
+/-! ### The witness's records (2026-10-19, witness support, `notes/raft-witness.md`)
+
+A leader's **subterm list** of its term: an item `(index, subterm, excluded voter)` for every
+entry it appends, in order (`SubSorted`: indices increasing, subterms nondecreasing, one
+excluded voter per subterm). An entry's record carries a lower bound with its item
+(`isEntryR`), the witness's acknowledgements one with the acknowledged entry's (`wJust`): two
+entries of one term compare by subterm through the list (`subRec_order`).
+
+A candidate's **granted list** of its campaign: the votes it recorded, in order, ended by `none`
+when it won (`isWinCore`'s `winGrant`); a witness vote request carries a lower bound without
+`none` (`grantLb`), so the votes it reports are in the winning quorum (`grantLb_win`). -/
+
+/-- An item of a subterm list: `(index, subterm, excluded voter)`. -/
+abbrev SubItem := w64 × w64 × w64
+
+def SubSorted (L : List SubItem) : Prop :=
+  ∀ (a b : Nat) (x y : SubItem), a < b → L[a]? = some x → L[b]? = some y →
+    uint.Z x.1 < uint.Z y.1 ∧ uint.Z x.2.1 ≤ uint.Z y.2.1 ∧ (x.2.1 = y.2.1 → x.2.2 = y.2.2)
+
+/-- `ldr`'s subterm list of term `t` has the item `(i, σ, x)`. -/
+def subRec (γ : RaftNames) (ldr t i σ x : w64) : IProp GF :=
+  iprop(∃ (γN γes γg : GName) (L : List SubItem), ⌜γ.reWG !! ldr = some γN⌝ ∗
+    t ↪[γN]□ ((γes, γg) : GName × GName) ∗ monoListLbOwn γes L ∗ ⌜(i, σ, x) ∈ L ∧ SubSorted L⌝)
+
+instance subRec_persistent (γ : RaftNames) (ldr t i σ x : w64) :
+    Persistent (subRec (GF := GF) γ ldr t i σ x) := by
+  unfold subRec; infer_instance
+instance subRec_timeless (γ : RaftNames) (ldr t i σ x : w64) :
+    Timeless (subRec (GF := GF) γ ldr t i σ x) := by
+  unfold subRec; infer_instance
+
+/-- `c`'s granted list of its campaign of `T` reached the votes `G`, before it won. -/
+def grantLb (γ : RaftNames) (c T : w64) (G : GSet w64) : IProp GF :=
+  iprop(∃ (γN γes γg : GName) (L : List (Option w64)), ⌜γ.reWG !! c = some γN⌝ ∗
+    T ↪[γN]□ ((γes, γg) : GName × GName) ∗ monoListLbOwn γg L ∗
+    ⌜none ∉ L ∧ ∀ g, g ∈ G → some g ∈ L⌝)
+
+instance grantLb_persistent (γ : RaftNames) (c T : w64) (G : GSet w64) :
+    Persistent (grantLb (GF := GF) γ c T G) := by
+  unfold grantLb; infer_instance
+instance grantLb_timeless (γ : RaftNames) (c T : w64) (G : GSet w64) :
+    Timeless (grantLb (GF := GF) γ c T G) := by
+  unfold grantLb; infer_instance
+
+/-- `c` won `T` with the votes `q`: its granted list of the campaign is closed by `none`. -/
+def winGrant (γ : RaftNames) (c T : w64) (q : GSet w64) : IProp GF :=
+  iprop(∃ (γN γes γg : GName) (L : List (Option w64)), ⌜γ.reWG !! c = some γN⌝ ∗
+    T ↪[γN]□ ((γes, γg) : GName × GName) ∗ monoListLbOwn γg (L ++ [none]) ∗
+    ⌜none ∉ L ∧ ∀ g, g ∈ q ↔ some g ∈ L⌝)
+
+instance winGrant_persistent (γ : RaftNames) (c T : w64) (q : GSet w64) :
+    Persistent (winGrant (GF := GF) γ c T q) := by
+  unfold winGrant; infer_instance
+instance winGrant_timeless (γ : RaftNames) (c T : w64) (q : GSet w64) :
+    Timeless (winGrant (GF := GF) γ c T q) := by
+  unfold winGrant; infer_instance
+
+/-- The votes a witness request reported are in the winning quorum: the granted list before the
+win is a prefix of the closed one. -/
+theorem grantLb_win (γ : RaftNames) (c T : w64) (G q : GSet w64) :
+    ⊢ grantLb (GF := GF) γ c T G -∗ winGrant γ c T q -∗ ⌜G ⊆ q⌝ := by
+  unfold grantLb winGrant
+  iintro ⟨%γN, %γes, %γg, %L1, %H1, #Hf1, #Hl1, %Hp1⟩ ⟨%γN', %γes', %γg', %L2, %H2, #Hf2, #Hl2, %Hp2⟩
+  rw [H1] at H2; cases H2
+  icases ghostMapElem_agree $$ Hf1 Hf2 with %H
+  simp only [Prod.mk.injEq] at H
+  obtain ⟨rfl, rfl⟩ := H
+  icases mono_list_lb_valid _ _ _ $$ Hl1 Hl2 with %Hpre
+  ipureintro
+  rw [GMap.elem_of_subseteq]
+  intro g hg
+  have h1 := Hp1.2 g hg
+  rcases Hpre with Hpre | Hpre
+  · have h2 := Hpre.subset h1
+    rcases List.mem_append.mp h2 with h | h
+    · exact (Hp2.2 g).2 h
+    · simp at h
+  · exfalso
+    obtain ⟨R, hR⟩ := Hpre
+    have : (none : Option w64) ∈ L1 := by rw [← hR]; simp
+    exact Hp1.1 this
+
+/-- Two items of one leader's subterm list of one term: a smaller subterm is at a smaller index,
+and one subterm has one excluded voter. -/
+theorem subRec_order (γ : RaftNames) (ldr t i1 σ1 x1 i2 σ2 x2 : w64) :
+    ⊢ subRec (GF := GF) γ ldr t i1 σ1 x1 -∗ subRec γ ldr t i2 σ2 x2 -∗
+      ⌜(uint.Z σ1 < uint.Z σ2 → uint.Z i1 < uint.Z i2) ∧ (σ1 = σ2 → x1 = x2)⌝ := by
+  unfold subRec
+  iintro ⟨%γN, %γes, %γg, %L1, %H1, #Hf1, #Hl1, %Hm1, %Hs1⟩
+    ⟨%γN', %γes', %γg', %L2, %H2, #Hf2, #Hl2, %Hm2, %Hs2⟩
+  rw [H1] at H2; cases H2
+  icases ghostMapElem_agree $$ Hf1 Hf2 with %H
+  simp only [Prod.mk.injEq] at H
+  obtain ⟨rfl, rfl⟩ := H
+  icases mono_list_lb_valid _ _ _ $$ Hl1 Hl2 with %Hpre
+  ipureintro
+  -- both items are in the longer list, which is sorted
+  obtain ⟨L, HL, Hin1, Hin2⟩ : ∃ L, SubSorted L ∧ (i1, σ1, x1) ∈ L ∧ (i2, σ2, x2) ∈ L := by
+    rcases Hpre with Hpre | Hpre
+    · exact ⟨L2, Hs2, Hpre.subset Hm1, Hm2⟩
+    · exact ⟨L1, Hs1, Hm1, Hpre.subset Hm2⟩
+  obtain ⟨a, Ha⟩ := List.mem_iff_getElem?.mp Hin1
+  obtain ⟨b, Hb⟩ := List.mem_iff_getElem?.mp Hin2
+  refine ⟨fun Hlt => ?_, fun Heq => ?_⟩
+  · rcases Nat.lt_trichotomy a b with h | h | h
+    · exact (HL a b _ _ h Ha Hb).1
+    · subst h; rw [Ha] at Hb; cases Hb; omega
+    · have := (HL b a _ _ h Hb Ha).2.1; simp only at this; omega
+  · subst Heq
+    rcases Nat.lt_trichotomy a b with h | h | h
+    · exact (HL a b _ _ h Ha Hb).2.2 rfl
+    · subst h; rw [Ha] at Hb; cases Hb; rfl
+    · exact ((HL b a _ _ h Hb Ha).2.2 rfl).symm
+
+/-- The witness's state (`raftpb.WitnessHardState`, without `Lead`/`Commit`, which no safety
+argument reads): its term and vote, and the last entry it was told of, `(lt, ls)` at index `li`,
+with the replication set's voters `rs` (the witness excluded). -/
+structure WState where
+  term : w64
+  vote : w64
+  lt : w64
+  ls : w64
+  li : w64
+  rs : List w64
+
+instance WState_countable : Pos.Countable WState :=
+  .ofInjective (fun σ => Pos.Countable.encode (σ.term, σ.vote, σ.lt, σ.ls, σ.li, σ.rs))
+    (by
+      rintro ⟨_, _, _, _, _, _⟩ ⟨_, _, _, _, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+      subst h1 h2 h3 h4 h5 h6; rfl)
+
+/-- `(t1, s1) ≤ (t2, s2)` lexicographically. -/
+def LexLe (t1 s1 t2 s2 : w64) : Prop :=
+  uint.Z t1 < uint.Z t2 ∨ (t1 = t2 ∧ uint.Z s1 ≤ uint.Z s2)
+
+/-- The witness's history: terms nondecreasing, the last entry's `(term, subterm)` too, and its
+term at least the last entry's. -/
+def wHistOk (L : List WState) : Prop :=
+  (∀ (a b : Nat) (x y : WState), a < b → L[a]? = some x → L[b]? = some y →
+    uint.Z x.term ≤ uint.Z y.term ∧ LexLe x.lt x.ls y.lt y.ls) ∧
+  ∀ x ∈ L, uint.Z x.lt ≤ uint.Z x.term
+
 /-! ### Leadership -/
 
 /-- A configuration is countable data (the winners table stores one per term). -/
 instance CfgM_countable : Pos.Countable CfgM :=
   .ofInjective (fun c => Pos.Countable.encode
-      (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave))
+      (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave, c.wit))
     (by
-      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
+      rintro ⟨_, _, _, _, _, _⟩ ⟨_, _, _, _, _, _⟩ h
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5⟩ := h
-      subst h1 h2 h3 h4 h5; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
+      subst h1 h2 h3 h4 h5 h6; rfl)
 
 /-- A winners-table entry: `((winner, configuration), quorum)`. -/
 abbrev WinRec := (w64 × CfgM) × GSet w64
@@ -786,7 +945,9 @@ def isWinCore (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet w64) : IProp
   iprop(∃ γw F0 k, ⌜γ.reWins !! id = some γw ∧ JQuorum c q ∧
       CfgAt γ (F0.take (uint.Z k).toNat) c⌝ ∗
     isCampK γ id term F0 k ∗ term ↪[γw]□ q ∗
-    [∗map] v ↦ _u ∈ toMap q, isVote γ v term id)
+    ([∗map] v ↦ _u ∈ toMap q, isVote γ v term id) ∗
+    -- (2026-10-19, witness support) the closed granted list: the votes of the quorum
+    winGrant γ id term q)
 
 instance isWinCore_persistent (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet w64) :
     Persistent (isWinCore (GF := GF) γ id term c q) := by
@@ -828,8 +989,15 @@ theorem isWin_agree (γ : RaftNames) (id term : w64) (q1 q2 : GSet w64) :
 theorem isWin_votes (γ : RaftNames) (id term : w64) (q : GSet w64) :
     ⊢ isWin (GF := GF) γ id term q -∗ [∗map] v ↦ _u ∈ toMap q, isVote γ v term id := by
   unfold isWin isWinCore
-  iintro ⟨%c, ⟨%γw, %F0, %k, -, -, -, #Hv⟩, -⟩
+  iintro ⟨%c, ⟨%γw, %F0, %k, -, -, -, #Hv, -⟩, -⟩
   iexact Hv
+
+/-- A winner's closed granted list (2026-10-19, witness support). -/
+theorem isWin_grant (γ : RaftNames) (id term : w64) (q : GSet w64) :
+    ⊢ isWin (GF := GF) γ id term q -∗ winGrant γ id term q := by
+  unfold isWin isWinCore
+  iintro ⟨%c, ⟨%γw, %F0, %k, -, -, -, -, #Hg⟩, -⟩
+  iexact Hg
 
 /-- A winner's record. -/
 theorem isWin_core (γ : RaftNames) (id term : w64) (q : GSet w64) :
@@ -1373,7 +1541,9 @@ def isEntryR (γ : RaftNames) (e : EntryM) (pt : w64) : IProp GF :=
                  entData γ e ∗
                  -- (2026-10-18, D19b stage 5) its index past the bootstrap log is covered by
                  -- a persistent time receipt, taken by `appendEntry` when it was created
-                 ⧖ ((uint.Z e.Index').toNat - γ.reBoot.length)) ∨
+                 ⧖ ((uint.Z e.Index').toNat - γ.reBoot.length) ∗
+                 -- (2026-10-19, witness support) its item of the leader's subterm list
+                 (∃ x, subRec γ ldr e.Term' e.Index' e.Subterm' x)) ∨
     (⌜BootRec γ.reBoot e pt⌝ ∗ entData γ e))
 
 def isEntry (γ : RaftNames) (e : EntryM) : IProp GF :=
@@ -1384,10 +1554,6 @@ def isEntry (γ : RaftNames) (e : EntryM) : IProp GF :=
 def ackEv (γ : RaftNames) (v t i : w64) : IProp GF :=
   iprop(∃ γe L, ⌜γ.reEvs !! v = some γe ∧ Aev.ack t i ∈ L ∧ EvSorted L⌝ ∗
           monoListLbOwn γe L)
-
-def isAcked (γ : RaftNames) (v t i : w64) : IProp GF :=
-  iprop(⌜uint.Z i = 0⌝ ∨
-    (∃ γa, ⌜γ.reAcks !! v = some γa⌝ ∗ (t, i) ↪[γa]□ ()) ∗ ackEv γ v t i)
 
 instance isTermLog_persistent (γ : RaftNames) (v t : w64) (γt : GName) (b : entryID)
     (l0 : List EntryM) : Persistent (isTermLog (GF := GF) γ v t γt b l0) := by
@@ -1413,12 +1579,6 @@ instance ackEv_persistent (γ : RaftNames) (v t i : w64) :
 instance ackEv_timeless (γ : RaftNames) (v t i : w64) :
     Timeless (ackEv (GF := GF) γ v t i) := by
   unfold ackEv; infer_instance
-instance isAcked_persistent (γ : RaftNames) (v t i : w64) :
-    Persistent (isAcked (GF := GF) γ v t i) := by
-  unfold isAcked; infer_instance
-instance isAcked_timeless (γ : RaftNames) (v t i : w64) :
-    Timeless (isAcked (GF := GF) γ v t i) := by
-  unfold isAcked; infer_instance
 
 /-- Log matching at one index: two entries with the same term and index are the same
 entry. -/
@@ -1583,6 +1743,123 @@ instance ackIn_persistent (γ : RaftNames) (t i : w64) : Persistent (ackIn (GF :
   unfold ackIn; infer_instance
 instance ackIn_timeless (γ : RaftNames) (t i : w64) : Timeless (ackIn (GF := GF) γ t i) := by
   unfold ackIn; infer_instance
+
+/-- A node's acknowledgement `(t, i)`: in its acknowledgement map, and in its event history. -/
+def ackReg (γ : RaftNames) (v t i : w64) : IProp GF :=
+  iprop((∃ γa, ⌜γ.reAcks !! v = some γa⌝ ∗ (t, i) ↪[γa]□ ()) ∗ ackEv γ v t i)
+
+instance ackReg_persistent (γ : RaftNames) (v t i : w64) :
+    Persistent (ackReg (GF := GF) γ v t i) := by
+  unfold ackReg; infer_instance
+instance ackReg_timeless (γ : RaftNames) (v t i : w64) :
+    Timeless (ackReg (GF := GF) γ v t i) := by
+  unfold ackReg; infer_instance
+
+/-- (2026-10-19, witness support) What a leader's witness request carries
+(`sendAppendToWitness`), of the entry `idx` of its term `t`'s log: its item `(idx, σ, x)` of the
+leader's subterm list (subterm `σ`, whose replication set excludes the voter `x`, not the
+witness), the entry within the leader's log (`ackIn`), and the replication set's voters `H`,
+`quorum - 1` of them, that acknowledged it in `t`. -/
+def wJust (γ : RaftNames) (t σ idx x : w64) (H : GSet w64) : IProp GF :=
+  iprop(⌜γ.reWit ≠ W64 0 ∧ x ∈ γ.reCfg ∧ x ≠ γ.reWit ∧
+      H ⊆ γ.reCfg \ ({[γ.reWit]} ∪ {[x]}) ∧ size γ.reCfg / 2 ≤ size H ∧ 1 ≤ uint.Z idx⌝ ∗
+    (∃ ldr, isLeader γ ldr t ∗ subRec γ ldr t idx σ x) ∗ ackIn γ t idx ∗
+    [∗map] h ↦ _u ∈ toMap H, ∃ i', ⌜uint.Z idx ≤ uint.Z i'⌝ ∗ ackReg γ h t i')
+
+instance wJust_persistent (γ : RaftNames) (t σ idx x : w64) (H : GSet w64) :
+    Persistent (wJust (GF := GF) γ t σ idx x H) := by
+  unfold wJust; infer_instance
+instance wJust_timeless (γ : RaftNames) (t σ idx x : w64) (H : GSet w64) :
+    Timeless (wJust (GF := GF) γ t σ idx x H) := by
+  unfold wJust; infer_instance
+
+/-- The witness's state's justification: its last entry is a leader's witness request's, with
+the replication set's voters; none at the start. -/
+def wStJust (γ : RaftNames) (st : WState) : IProp GF :=
+  if st.lt = W64 0 then iprop(⌜st.ls = W64 0⌝)
+  else iprop(∃ (x : w64) (H : GSet w64),
+    ⌜∀ v, v ∈ st.rs ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})⌝ ∗ wJust γ st.lt st.ls st.li x H)
+
+instance wStJust_persistent (γ : RaftNames) (st : WState) :
+    Persistent (wStJust (GF := GF) γ st) := by
+  unfold wStJust; split <;> infer_instance
+instance wStJust_timeless (γ : RaftNames) (st : WState) :
+    Timeless (wStJust (GF := GF) γ st) := by
+  unfold wStJust; split <;> infer_instance
+
+/-- The witness's state was `σ` (with others before it, each justified). -/
+def wSt (γ : RaftNames) (σ : WState) : IProp GF :=
+  iprop(∃ (L : List WState), monoListLbOwn γ.reWHist L ∗ ⌜σ ∈ L ∧ wHistOk L⌝ ∗
+    [∗list] x ∈ L, wStJust γ x)
+
+instance wSt_persistent (γ : RaftNames) (σ : WState) : Persistent (wSt (GF := GF) γ σ) := by
+  unfold wSt; infer_instance
+instance wSt_timeless (γ : RaftNames) (σ : WState) : Timeless (wSt (GF := GF) γ σ) := by
+  unfold wSt; infer_instance
+
+theorem wSt_just (γ : RaftNames) (σ : WState) : ⊢ wSt (GF := GF) γ σ -∗ wStJust γ σ := by
+  unfold wSt
+  iintro ⟨%L, -, %Hp, #Hj⟩
+  obtain ⟨k, Hk⟩ := List.mem_iff_getElem?.mp Hp.1
+  iapply BigSepL.bigSepL_lookup (Φ := fun _ x => wStJust (GF := GF) γ x) Hk $$ Hj
+
+/-- Two states of the witness: the one of a lower term was first, so its last entry is at most
+the other's. -/
+theorem wSt_order (γ : RaftNames) (σ1 σ2 : WState) :
+    uint.Z σ1.term < uint.Z σ2.term →
+    ⊢ wSt (GF := GF) γ σ1 -∗ wSt γ σ2 -∗ ⌜LexLe σ1.lt σ1.ls σ2.lt σ2.ls⌝ := by
+  intro Hlt
+  unfold wSt
+  iintro ⟨%L1, #H1, %Hp1, -⟩ ⟨%L2, #H2, %Hp2, -⟩
+  obtain ⟨Hm1, Hk1⟩ := Hp1
+  obtain ⟨Hm2, Hk2⟩ := Hp2
+  icases mono_list_lb_valid _ _ _ $$ H1 H2 with %Hpre
+  ipureintro
+  obtain ⟨L, HL, Hin1, Hin2⟩ : ∃ L, wHistOk L ∧ σ1 ∈ L ∧ σ2 ∈ L := by
+    rcases Hpre with Hpre | Hpre
+    · exact ⟨L2, Hk2, Hpre.subset Hm1, Hm2⟩
+    · exact ⟨L1, Hk1, Hm1, Hpre.subset Hm2⟩
+  obtain ⟨a, Ha⟩ := List.mem_iff_getElem?.mp Hin1
+  obtain ⟨b, Hb⟩ := List.mem_iff_getElem?.mp Hin2
+  rcases Nat.lt_trichotomy a b with h | h | h
+  · exact (HL.1 a b _ _ h Ha Hb).2
+  · subst h; rw [Ha] at Hb; cases Hb; omega
+  · have := (HL.1 b a _ _ h Hb Ha).1; omega
+
+/-- The witness's acknowledgement of `i` in `t`: a witness request of `t`, of an entry `idx ≥ i`
+of subterm `σ`, and the witness's state was of term `t` with that entry's `(t, σ)` as its last
+entry (it stored it, or answered from a cache of a state that had it). -/
+def wAck (γ : RaftNames) (t i : w64) : IProp GF :=
+  iprop(∃ (σ idx x : w64) (H : GSet w64) (st : WState), ⌜uint.Z i ≤ uint.Z idx ∧ st.term = t ∧ st.lt = t ∧ st.ls = σ⌝ ∗
+    wJust γ t σ idx x H ∗ wSt γ st)
+
+instance wAck_persistent (γ : RaftNames) (t i : w64) : Persistent (wAck (GF := GF) γ t i) := by
+  unfold wAck; infer_instance
+instance wAck_timeless (γ : RaftNames) (t i : w64) : Timeless (wAck (GF := GF) γ t i) := by
+  unfold wAck; infer_instance
+
+/-- `v`'s acknowledgement of the leader of `t` up to `i`: free at `0`; a node's (`ackReg`); since
+2026-10-19 the witness's (`wAck`). -/
+def isAcked (γ : RaftNames) (v t i : w64) : IProp GF :=
+  iprop(⌜uint.Z i = 0⌝ ∨ ackReg γ v t i ∨ (⌜v = γ.reWit ∧ γ.reWit ≠ W64 0⌝ ∗ wAck γ t i))
+
+instance isAcked_persistent (γ : RaftNames) (v t i : w64) :
+    Persistent (isAcked (GF := GF) γ v t i) := by
+  unfold isAcked; infer_instance
+instance isAcked_timeless (γ : RaftNames) (v t i : w64) :
+    Timeless (isAcked (GF := GF) γ v t i) := by
+  unfold isAcked; infer_instance
+
+/-- A node's acknowledgement is not the witness's: the witness has no acknowledgement map. -/
+theorem ackReg_not_wit (γ : RaftNames) (v t i : w64) :
+    ⊢ ackReg (GF := GF) γ v t i -∗ ⌜¬ (v = γ.reWit ∧ γ.reWit ≠ W64 0)⌝ := by
+  unfold ackReg
+  iintro ⟨⟨%γa, %Ha, -⟩, -⟩
+  ipureintro
+  rintro ⟨rfl, Hne⟩
+  rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+  · exact Hne h
+  · rw [h] at Ha; cases Ha
 
 theorem ackIn_zero (γ : RaftNames) (t i : w64) (h : uint.Z i = 0) : ⊢ ackIn (GF := GF) γ t i := by
   unfold ackIn; ileft; ipureintro; exact h
@@ -1805,7 +2082,7 @@ stage 5): a leader's entry carries it, a boot entry is within the bootstrap log.
 theorem isEntryR_receipt (γ : RaftNames) (e : EntryM) (pt : w64) :
     ⊢ isEntryR (GF := GF) γ e pt ==∗ ⧖ ((uint.Z e.Index').toNat - γ.reBoot.length) := by
   unfold isEntryR
-  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, -, #Hr⟩ | ⟨%Hb, -⟩)
+  iintro (⟨%_, %_, %_, %_, %_, -, -, -, -, -, -, #Hr, -⟩ | ⟨%Hb, -⟩)
   · imodintro; iexact Hr
   · obtain ⟨H1, H2, -, -⟩ := Hb
     have Hlt := (List.getElem?_eq_some_iff.mp H2).1

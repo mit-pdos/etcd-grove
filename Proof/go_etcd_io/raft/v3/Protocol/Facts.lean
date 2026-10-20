@@ -25,6 +25,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
+public import Proof.go_etcd_io.raft.v3.Protocol.Witness
 
 @[expose] public section
 
@@ -72,15 +73,22 @@ theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : 
       ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
   intro Hty Hto Hle Hrole
   simp only [isMessage, Hty]
-  unfold ownRaftGhost ownLogGhost isAcked
+  unfold ownRaftGhost ownLogGhost isAcked ackReg
   iintro ⟨%γv, %voted, %kl, H⟩ ⟨-, -, ⟨%i, %Hci, Hack⟩, -⟩
   iNamed H
   icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
   iNamed H
   obtain ⟨-, -, Hcl⟩ := Hlog_ok
   have := plogLastIndexZ_nonneg ps.base ps.log
-  icases Hack with (%H0 | ⟨⟨%γa', %Hγa', Hfrag⟩, -⟩)
+  icases Hack with (%H0 | ⟨⟨%γa', %Hγa', Hfrag⟩, -⟩ | ⟨%Hw, -⟩)
   · ipureintro; omega
+  rotate_left
+  · -- (2026-10-19) the receiver is a node, not the witness
+    iexfalso; ipureintro
+    obtain ⟨Hd, Hnz⟩ := Hw
+    rcases γ.reWit_ok with h | ⟨-, -, Hn, -⟩
+    · exact Hnz h
+    · rw [← Hd, Hto, Haname] at Hn; cases Hn
   rw [Hto, Haname] at Hγa'
   cases Hγa'
   icases ghost_map_lookup $$ Hacks Hfrag with %Hk
@@ -1110,11 +1118,12 @@ private theorem tbl_of_ids (nv : GMap w64 GName) (P : w64 → GName → IProp GF
 
 /-- A node's ghost state in the initial state, from its fresh resources. -/
 private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM)
-    (γv γm γa γc γl γw γe γlc γrq : GName) {md : Bool} (Hmode : γ.reDyn.isSome = md) :
+    (γv γm γa γc γl γw γe γlc γrq γwg : GName) {md : Bool} (Hmode : γ.reDyn.isSome = md) :
     id ≠ W64 0 →
     γ.reVotes !! id = some γv → γ.reTerms !! id = some γm → γ.reAcks !! id = some γa →
     γ.reCamp !! id = some γc → γ.reVlogs !! id = some γl → γ.reWins !! id = some γw →
     γ.reEvs !! id = some γe → γ.reLcm !! id = some γlc → γ.reRdq !! id = some γrq →
+    γ.reWG !! id = some γwg →
     γ.reBoot = L → PlogWf base0 L → (L.length : Int) < 2 ^ 64 →
     (∀ e ∈ L, e.Term' = W64 1) → (L ≠ [] → 1 ≤ uint.Z t) → (γ.reDyn = none ∨ L = []) →
     ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ L -∗ logRecs γ base0 L -∗
@@ -1128,9 +1137,10 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
       ghostMapAuth γlc 1 (∅ : GMap w64 GName) -∗
+      ghostMapAuth γwg 1 (∅ : GMap w64 (GName × GName)) -∗
       ownRaftGhost γ id (initPStateAt t L) md := by
-  intro Hnz Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq HL HwfL Hlen Hones Ht Hdyn
-  iintro #Hinv #Hc0 #HrL #Hcinv Hcr0 Hrq Hv Hm Ha Hc Hl Hw He Hlc
+  intro Hnz Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq Hγwg HL HwfL Hlen Hones Ht Hdyn
+  iintro #Hinv #Hc0 #HrL #Hcinv Hcr0 Hrq Hv Hm Ha Hc Hl Hw He Hlc Hwg
   ihave Hlg := ownLogGhost_init γ id t L γm γa γc γl γw γe Hγm Hγa Hγc Hγl Hγw Hγe
     HL HwfL Hlen Hones Ht Hdyn $$ Hinv Hc0 HrL Hm Ha Hc Hl Hw He
   have Hrole : (initPStateAt t L).role = .follower := rfl
@@ -1179,7 +1189,16 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id t : w64) (L : List EntryM
     · rw [show (initPStateAt t L).rd.pend.length + rdCount (initPStateAt t L).outbox = 0 from rfl]; iexact Hcr0
     iframe Hcinv
     rw [show (initPStateAt t L).outbox = [] from rfl]; iapply msgsTks_nil
-  ipureintro; exact Hmode
+  isplitr; · ipureintro; exact Hmode
+  -- (2026-10-19) no lists yet
+  unfold wOwn
+  iexists γwg, ∅
+  iframe Hwg
+  isplitr; · ipureintro; exact Hγwg
+  isplitr; · iapply (BigSepM.bigSepM_empty).2; iempintro
+  isplitr; · ipureintro; intro t Ht; simp at Ht
+  isplitr; · ipureintro; intro _; rfl
+  unfold wRole; rw [Hrole]; iempintro
 
 private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : List EntryM)
     {md : Bool} (Hmode : γ.reDyn.isSome = md) :
@@ -1205,12 +1224,14 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
         ghostMapAuth γx 1 (∅ : GMap w64 GName)) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reRdq !! x = some γx⌝ ∗
         ghostMapAuth γx 1 (∅ : GMap w64 GName)) -∗
+      ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reWG !! x = some γx⌝ ∗
+        ghostMapAuth γx 1 (∅ : GMap w64 (GName × GName))) -∗
       rdCredInv γ -∗ rdCred γ 0 -∗
       [∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) md := by
   induction ids using GMap.map_ind with
   | h0 =>
     intro _ _ _ _ _ _ _
-    iintro - - - - - - - - - - - - - -
+    iintro - - - - - - - - - - - - - - -
     iapply (BigSepM.bigSepM_empty).2
     iempintro
   | hins x u ids Hx IH =>
@@ -1223,8 +1244,9 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
       by_cases Hxy : x = y
       · subst Hxy; rw [Hx] at Hy; cases Hy
       · rw [GMap.lookup_insert_ne _ _ Hxy]; exact Hy
-    iintro #Hinv #Hc0 #HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq #Hcinv Hcr0
+    iintro #Hinv #Hc0 #HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq Hwg #Hcinv Hcr0
     icases (rdCred_split γ 0 0).1 $$ Hcr0 with ⟨Hcr1, Hcr0⟩
+    icases (BigSepM.bigSepM_insert Hx).1 $$ Hwg with ⟨⟨%γwg, %Hγwg, Hwg1⟩, Hwg⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hrq with ⟨⟨%γrq, %Hγrq, Hrq1⟩, Hrq⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hlc with ⟨⟨%γlc, %Hγlc, Hlc1⟩, Hlc⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hv with ⟨⟨%γv, %Hγv, Hv1⟩, Hv⟩
@@ -1235,12 +1257,12 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
     icases (BigSepM.bigSepM_insert Hx).1 $$ Hw with ⟨⟨%γw, %Hγw, Hw1⟩, Hw⟩
     icases (BigSepM.bigSepM_insert Hx).1 $$ He with ⟨⟨%γe, %Hγe, He1⟩, He⟩
     iapply (BigSepM.bigSepM_insert Hx).2
-    isplitl [Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1 Hrq1 Hcr1]
-    · iapply ownRaftGhost_init γ x t L γv γm γa γc γl γw γe γlc γrq Hmode
-        (fun h => Hnz (h ▸ Hxm)) Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq HL HwfL Hlen Hones Ht Hdyn
-        $$ Hinv Hc0 HrL Hcinv Hcr1 Hrq1 Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1
+    isplitl [Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1 Hrq1 Hcr1 Hwg1]
+    · iapply ownRaftGhost_init γ x t L γv γm γa γc γl γw γe γlc γrq γwg Hmode
+        (fun h => Hnz (h ▸ Hxm)) Hγv Hγm Hγa Hγc Hγl Hγw Hγe Hγlc Hγrq Hγwg HL HwfL Hlen Hones Ht
+        Hdyn $$ Hinv Hc0 HrL Hcinv Hcr1 Hrq1 Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1 Hwg1
     · iapply IH (fun h => Hnz (Hsub _ h)) HL HwfL Hlen Hones Ht Hdyn
-        $$ Hinv Hc0 HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq Hcinv Hcr0
+        $$ Hinv Hc0 HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq Hwg Hcinv Hcr0
 
 /-- What the client of a new ghost state is handed before the commit invariant exists
 (2026-10-14, stage R): its half of the full committed log, the authorities of the fresh-data
@@ -1332,6 +1354,24 @@ theorem entsData_none (γ : RaftNames) (L : List EntryM) :
       · unfold entData; iexists none; iexact He
       · iexact Hl
 
+/-- (2026-10-19) Names of `ids` keep their lookups past an insertion at an id not among them. -/
+private theorem names_insert (ids : GSet w64) (nv : GMap w64 GName) (w : w64) (γw : GName)
+    (P : GName → IProp GF) :
+    w ∉ ids →
+    ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜nv !! x = some γx⌝ ∗ P γx) ⊢
+      [∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜(<[w := γw]> nv) !! x = some γx⌝ ∗ P γx := by
+  intro Hw
+  iintro H
+  iapply BigSepM.bigSepM_impl $$ H
+  imodintro
+  iintro %x %u %Hx ⟨%γx, %Hl, HP⟩
+  iexists γx
+  iframe HP
+  ipureintro
+  have Hxw : w ≠ x := by
+    rintro rfl; exact Hw ((GMap.elem_of_gset _ _).mpr (by cases u; exact Hx))
+  rw [GMap.lookup_insert_ne _ _ Hxw]; exact Hl
+
 /-- **The allocation's core** (2026-10-16, stage R8b, D12): a fresh ghost state for the nodes
 `ids`, each at `initPStateAt t L` -- the log `L` the cluster starts with, committed from the
 start (`γ.reBoot = L`, `BootWf`: the bootstrap log, or `[]`), in either mode (`dyn`, static
@@ -1347,7 +1387,10 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (D19p, 2026-10-18) the tracked bound, if any: the voters' superset, the static mode's
     (trk : Option (GSet w64)) (Htrk : ∀ T, trk = some T → cfg ⊆ T ∧ dyn = none)
     -- (2026-10-19, D21 M3) the no-snapshot mode, only with a bootstrap log
-    (ns : Bool) (Hns : ns = true → L ≠ []) :
+    (ns : Bool) (Hns : ns = true → L ≠ [])
+    -- (2026-10-19, witness support) the witness, `0` for none: not a node, a voter of a static
+    -- configuration
+    (wit : w64) (Hwit : wit ∉ ids ∧ (wit = W64 0 ∨ (wit ∈ cfg ∧ dyn = none))) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1360,7 +1403,9 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
         C γ ∗
         -- (2026-10-13) every read credit
-        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) ∗
+        -- (2026-10-19) the witness's storage's ghost state, at its first state
+        (⌜γ.reWit = wit⌝ ∗ wGhost γ wInit) := by
   intro Hcne Hnz HLok Ht Hdyn
   have HwfL := HLok.wf
   have Hones := HLok.terms
@@ -1368,14 +1413,28 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
   imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
-  imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
+  imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, %Hna, Ha⟩
   imod alloc_maps (GF := GF) (K := w64) (V := List EntryM × w64) ids with ⟨%nc, -, Hc⟩
   imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List EntryM) ids
-    with ⟨%nl, -, Hl⟩
+    with ⟨%nl, %Hnl, Hl⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
   imod alloc_evs (GF := GF) ids with ⟨%ne, He⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nlc, -, Hlc⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GName) ids with ⟨%nrq, -, Hrq⟩
+  -- (2026-10-19, witness support) each node's subterm and granted lists, none yet
+  imod alloc_maps (GF := GF) (K := w64) (V := GName × GName) ids with ⟨%nwg, -, Hwg⟩
+  -- (2026-10-19) the witness's vote map (in `reVotes` at `wit` even without a witness: no node
+  -- has the id) and its state history
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := w64) with ⟨%γwv, Hwv⟩
+  imod mono_list_own_alloc (GF := GF) [wInit] with ⟨%γwh, Hwh, -⟩
+  have Hnot : ∀ (n : GMap w64 GName), domSet n = ids → n !! wit = none := by
+    intro n Hn
+    cases h : n !! wit with
+    | none => rfl
+    | some _ =>
+      exact absurd (by rw [← Hn]; exact (GMap.elem_of_dom _ _).mpr ⟨_, h⟩) Hwit.1
+  ihave Hv := names_insert ids nv wit γwv
+    (fun γx => ghostMapAuth (GF := GF) γx 1 (∅ : GMap w64 w64)) Hwit.1 $$ Hv
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × List EntryM)
     with ⟨%γrd, Hrda⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrf, Hrfa⟩
@@ -1392,11 +1451,16 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl0
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
+      γ0 = ⟨cfg, <[wit := γwv]> nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
-        fun h he => Hns h (List.map_eq_nil_iff.1 he)⟩ :=
+        fun h he => Hns h (List.map_eq_nil_iff.1 he),
+        -- (2026-10-19) the witness
+        wit, γwh, nwg, by
+          rcases Hwit.2 with h | ⟨h1, h2⟩
+          · exact Or.inl h
+          · exact Or.inr ⟨h1, h2, Hnot na Hna, Hnot nl Hnl⟩⟩ :=
     ⟨_, rfl⟩
-  have e1 : γ0.reVotes = nv := by rw [Hγ0]
+  have e1 : γ0.reVotes = <[wit := γwv]> nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
   have e3 : γ0.reAcks = na := by rw [Hγ0]
   have e4 : γ0.reCamp = nc := by rw [Hγ0]
@@ -1414,12 +1478,15 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   have e15' : γ0.reRdFresh = γrf := by rw [Hγ0]
   have e16 : γ0.reRdCred = γrc := by rw [Hγ0]
   have e17 : γ0.reTbl = γtb := by rw [Hγ0]
+  have e18 : γ0.reWG = nwg := by rw [Hγ0]
+  have eW : γ0.reWit = wit := by rw [Hγ0]
+  have eWH : γ0.reWHist = γwh := by rw [Hγ0]
   have eB : γ0.reBoot = L := by
     unfold RaftNames.reBoot; rw [Hγ0]; exact BootEntry.map_toEntry_ofEntry L
   have eD : γ0.reDyn = dyn := by rw [Hγ0]
   have eCC : γ0.reCCOk = ccOk := by rw [Hγ0]
   rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e11, ← e12, ← e13, ← e14,
-    ← e15, ← e15', ← e16, ← e17]
+    ← e15, ← e15', ← e16, ← e17, ← e18]
   ihave #Hc0 : isCommitted (GF := GF) γ0 L $$ []
   · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
   -- the entries' data (the bootstrap log's: conf changes the policy admits), and the records
@@ -1463,12 +1530,22 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       · iexact Ha2
   rw [BigSepM.bigSepM_sep_eq]
   icases Hv2 with ⟨Hv, Hvt⟩
-  ihave Htbl : votesTbl (GF := GF) γ0 $$ [Hvt]
+  icases (ghostMapAuth_halves (GF := GF) γwv (∅ : GMap w64 w64)).1 $$ Hwv with ⟨Hwv1, Hwv2⟩
+  ihave Htbl : votesTbl (GF := GF) γ0 $$ [Hvt Hwv2]
   · unfold votesTbl
     rw [← Hnv, e1]
-    ihave Ht' := tbl_of_ids nv
+    iapply (BigSepM.bigSepM_insert (Φ := fun v γv => iprop(∃ voted : GMap w64 w64,
+      ghostMapAuth (GF := GF) γv (1 : Qp).half voted ∗ [∗map] T ↦ c ∈ voted, voteJust γ0 v T c))
+      (Hnot nv Hnv)).2
+    isplitl [Hwv2]
+    · iexists ∅
+      iframe Hwv2
+      iapply (BigSepM.bigSepM_empty).2; iempintro
+    ihave Ht' := tbl_of_ids (<[wit := γwv]> nv)
       (fun _ γv => ghostMapAuth (GF := GF) γv (1 : Qp).half (∅ : GMap w64 w64))
-      nv (fun _ _ h => h) $$ Hvt
+      nv (fun k v h => by
+        have hk : wit ≠ k := by rintro rfl; rw [Hnot nv Hnv] at h; cases h
+        rw [GMap.lookup_insert_ne _ _ hk]; exact h) $$ Hvt
     iapply BigSepM.bigSepM_impl $$ Ht'
     imodintro
     iintro %v %γv %_ Hav
@@ -1510,10 +1587,28 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
-  isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
+  isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hwg Hcr0]
   · iapply alloc_nodes γ0 ids t L (by rw [Hγ0]) Hnz eB HwfL Hlen Hones Ht
-      (by rw [eD]; exact Hdyn) $$ Hinv' Hc0 HrL Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcinv' Hcr0
+      (by rw [eD]; exact Hdyn) $$ Hinv' Hc0 HrL Hv Ht Ha Hc Hl Hw He Hlc Hrq Hwg Hcinv' Hcr0
   iframe HCl Hcr Hcinv'
+  -- the witness's storage: its first state, no vote
+  isplitr; · ipureintro; exact eW
+  unfold wGhost
+  iexists [wInit], γwv, ∅
+  rw [eWH]
+  iframe Hwh Hwv1
+  isplitr
+  · ipureintro
+    refine ⟨rfl, fun a b x y hab ha hb => ?_, fun x hx => ?_⟩
+    · have : b < 1 := (List.getElem?_eq_some_iff.mp hb).1; omega
+    · simp at hx; subst hx; exact Int.le_refl _
+  isplitr
+  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => wStJust (GF := GF) γ0 x)).2
+    unfold wStJust; rw [if_pos (show wInit.lt = W64 0 from rfl)]; ipureintro; rfl
+  isplitr
+  · ipureintro
+    refine ⟨by rw [eW, e1, GMap.lookup_insert], fun t ht => by simp at ht, by simp [wInit]⟩
+  iapply (BigSepM.bigSepM_empty).2; iempintro
 
 
 /-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,
@@ -1539,13 +1634,13 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) Hcne Hnz (BootWf_nil _)
-    (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, H⟩
+    false (fun h => by cases h) (W64 0) ⟨Hnz, Or.inl rfl⟩ Hcne Hnz (BootWf_nil _)
+    (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, Hi, Hc, Hn, HC, Hr, -⟩
   imodintro
   iexists γ
   isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
   rw [initPState_eq]
-  iexact H
+  iframe Hi Hc Hn HC Hr
 
 theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) (C : RaftNames → IProp GF) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
@@ -1650,15 +1745,16 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
-    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) Hcne Hnz Hok.wf
+    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne)
+    (W64 0) ⟨Hnz, Or.inl rfl⟩ Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _) (Or.inl rfl)
-    $$ Hcl' with ⟨%γ, %Hγ, H⟩
+    $$ Hcl' with ⟨%γ, %Hγ, Hi, Hc, Hn, HC, Hr, -⟩
   imodintro
   iexists γ
   isplitr; · ipureintro; exact Hγ
   rw [bootPState_eq]
   simp only [Option.isSome_none]
-  iexact H
+  iframe Hi Hc Hn HC Hr
 
 end ghost
 

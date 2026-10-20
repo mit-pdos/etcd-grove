@@ -634,8 +634,8 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
   isplitl
   · iexists γm, terms, γa, (<[(s.term, i) := ()]> acks), fp, γc, camps, γl, vlogs, γw, wins
     iframe % # ∗
-  · unfold isAcked
-    iright
+  · unfold isAcked ackReg
+    iright; ileft
     isplitr
     · iexists γa
       isplitr; · ipureintro; exact Haname
@@ -1350,8 +1350,8 @@ theorem ownLogGhost_ack_agree (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
     ⊢ ownLogGhost (GF := GF) γ id s kl -∗ isAcked γ id s.term i -∗
       ∀ (_ : s.role ≠ .leader ∧ uint.Z s.commit < uint.Z i),
         ackAgree γ s.base s.log s.term i := by
-  unfold isAcked
-  iintro H (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩)
+  unfold isAcked ackReg
+  iintro H (%H0 | ⟨⟨%γa', %Hγa', #Hfrag⟩, -⟩ | ⟨%Hw, -⟩)
   · iintro %Hr
     have := Hr.2
     exact absurd H0 (by have := uint_Z_nonneg s.commit; omega)
@@ -1366,6 +1366,15 @@ theorem ownLogGhost_ack_agree (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
       Hk $$ Hacks_ok
     unfold ackOk
     iapply Hk' $$ %(⟨rfl, Hr.2⟩ : (s.term, i).1 = s.term ∧ uint.Z s.commit < uint.Z (s.term, i).2)
+  · -- (2026-10-19) not the witness's: the node has an acknowledgement map
+    unfold ownLogGhost
+    icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+    iNamed H
+    exfalso
+    obtain ⟨rfl, Hne⟩ := Hw
+    rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+    · exact Hne h
+    · rw [h] at Haname; cases Haname
 
 /-- Histories across a log change that keeps the log below `c`, puts a leader's log `Y`
 (of a term in range) on `[c, L]`, and drops what is past `L` -- where the old log

@@ -103,8 +103,8 @@ Stages:
 - W0 (done): Go implementation and tests; translation.
 - W1 (done 2026-10-19, "W1" below): the build back to green on witness-free configurations
   (the `ownRaftPhys` facts: no witness in the tracker, `witnessMsgs = []`, subterm 0).
-- W2: the protocol model and ghost extension (static mode), Leader Completeness and Election
-  Safety with a witness.
+- W2 (done 2026-10-20, "W2" below): the protocol model and ghost extension (static mode),
+  Leader Completeness and Election Safety with a witness.
 - W3: the raft functions' witness paths (`maybeCommit`, `stepCandidate`, `maybeStartNewSubterm`,
   `sendAppendToWitness`, `sendRequestVoteToWitness`) and `witness.go`.
 - W4: `examples/kv` with a witness (user request, 2026-10-19), its closed theorem re-proved.
@@ -146,3 +146,48 @@ Specs that changed, and why (the new code forced each):
   `Changer.Simple`/`EnterJoint`'s and `LeaveJoint`'s new premises in `applyConfChange`.
 - The server's `EntryModel` has a `subterm` field, so that `toM`/`ofM` stay inverse; no server
   spec constrains it.
+
+## W2: the protocol with a witness (2026-10-19/20, branch `raft-witness-w2`)
+
+Static mode only (`γ.reDyn = none`; `wOwn` says a dynamic node's subterm is 0); one witness
+`γ.reWit` (`0` for none), a voter of `reCfg` that is not a node (`reWit_ok`: no acknowledgement
+map, no vote-time logs).
+
+The model (`Model.lean`, `StepC.lean`):
+- messages `wapp`/`wvote`/`wprevote` (the subterm in `Commit`: `Msg.sub`); `PState.sub`/`rsx`
+  (the subterm and the excluded voter, `exclOf`: the witness when `rsx = 0`); `CfgM.wit`;
+- `propose` stamps the leader's current subterm (`stampS`); `newSub` starts a subterm with an
+  empty entry; `sendWApp` sends the witness an entry of the current term and subterm that
+  `quorum − 1` voters of the replication set (`rsVoters`) acknowledged; `askWitness` asks the
+  witness one vote short, with every responder; `sendWPre` (pre-votes carry nothing).
+
+The ghost state:
+- each node's lists (`wOwn`, `reWG`): per term it led, its subterm list (an item
+  `(index, subterm, excluded voter)` per entry it appended, `SubSorted`), whose item an entry's
+  record carries (`isEntryR`'s `subRec`), and per campaign its granted list, closed by `none` at
+  the win (`winGrant` in `isWinCore`), whose lower bound a witness vote request carries
+  (`grantLb`), so that the votes it reports are in the winning quorum (`grantLb_win`);
+- the witness's storage (`Witness.lean`, `wGhost`): the authority of the state history
+  `reWHist` (term and last `(term, subterm)` nondecreasing, `wHistOk`; each state's last entry
+  justified by its witness request, `wStJust`) and its half of its vote map;
+- `isAcked`'s witness disjunct (`wAck`: a witness request `wJust` — the leader's item, the
+  entry in its log, `quorum − 1` acknowledgements of the replication set — and a state of the
+  history with that entry's `(term, subterm)`, a cache or the stored state); `voteJust`'s
+  (`wVoteJust`: the state the vote was granted from and the request's `wVoteReq`).
+
+Proved (no `sorry`, no axiom): every `StepC` rule's ghost step (`Refinement.lean`; the witness
+rules' messages carry `wJust`/`wVoteReq`: `ownRaftGhost_wapp`/`_wvote`); Leader Completeness's
+witness case (`lc_wit`, `LeaderCompleteness.lean`: newer term by induction, a later subterm by
+the subterm list's order, the same `(term, subterm)` by `G ∩ H ≠ ∅` among the regular voters,
+`|rs ∖ {w}| = n − 2`); so `leader_completeness`, `state_machine_safety` and election safety
+(`isLeader_unique`) hold of a cluster with a witness, whose allocation (`ownRaftGhost_alloc_core`,
+parameter `wit`) gives the storage's `wGhost γ wInit`; one lemma per `witness.go` path
+(`Witness.lean`): storage read, `handleAppendNoUpdate` from a cache or the stored state, term
+raise, `handleAppend`'s write, `handleVote`'s grant (in the votes table), `handleHeartbeat` at
+the stored state's term (the read-index acknowledgement holds since the witness acknowledged
+nothing above it; answered from the cache it would not: the bug fixed in `edd87c489`). Lease
+reads stay outside the proof (ReadOnlySafe only), and are not supported with a witness.
+
+Not yet (W3): the code's witness paths and `witness.go` against these lemmas (a
+`WitnessStorage` trust-boundary spec whose CAS owns `wGhost`); the code-level allocation passes
+`wit = 0`.

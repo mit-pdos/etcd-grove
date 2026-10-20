@@ -127,7 +127,7 @@ theorem confchange.Changer.makeLearner.wp_proof
         iframe Hp
         have Hst : makeLearnerM id s =
             ⟨⟨GMap.delete id s.cfg.incoming, s.cfg.outgoing, GMap.delete id s.cfg.learners,
-              <[id := ()]> (GMap.delete id s.cfg.learnersNext), s.cfg.autoLeave⟩, s.prs⟩ := by
+              <[id := ()]> (GMap.delete id s.cfg.learnersNext), s.cfg.autoLeave, s.cfg.wit⟩, s.prs⟩ := by
           simp [makeLearnerM, Hsl, hl, Hon, removeCfg]
         iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs pvs
           (by rw [Hst]; exact Hflags) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
@@ -159,7 +159,7 @@ theorem confchange.Changer.makeLearner.wp_proof
         have Hst : makeLearnerM id s =
             ⟨⟨GMap.delete id s.cfg.incoming, s.cfg.outgoing,
               <[id := ()]> (GMap.delete id s.cfg.learners), GMap.delete id s.cfg.learnersNext,
-              s.cfg.autoLeave⟩, <[id := true]> s.prs⟩ := by
+              s.cfg.autoLeave, s.cfg.wit⟩, <[id := true]> s.prs⟩ := by
           simp [makeLearnerM, Hsl, hl, Hon, removeCfg]
         iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs _
           (by rw [Hst]; simp only [flagsOf_insert, Hflags]) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew

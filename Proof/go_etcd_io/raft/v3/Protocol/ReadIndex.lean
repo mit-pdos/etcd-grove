@@ -698,11 +698,13 @@ theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqR
     icases Hr with ⟨%n, %G, %a, %c, %q', %Hpq, -, #HU, -⟩
     by_cases hv : v ∈ q
     · ihave ⟨%t'', %i'', %Hti, #Ha⟩ := HU $$ %v %hv
-      unfold isAcked
-      icases Ha with (%H0 | ⟨-, #Hev⟩)
+      unfold isAcked ackReg
+      icases Ha with (%H0 | ⟨-, #Hev⟩ | ⟨%Hw, -⟩)
       · exfalso; have := Hti.2; omega
       · ihave %Hle := ownRaftGhost_ack_le γ v s t'' i'' $$ Hown Hev
         exfalso; have := Hti.1; omega
+      · ihave %Hnw := ownRaftGhost_not_wit γ v s $$ Hown
+        exact absurd Hw Hnw
     · ipureintro
       intro t'' q' hh
       cases hh

@@ -118,8 +118,8 @@ instance ready_countable : Pos.Countable Ready :=
 driver (`NodeNames.cap`). -/
 instance cfgM_countable : Pos.Countable CfgM :=
   countableOfLeftInverse
-    (fun c : CfgM => (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
+    (fun c : CfgM => (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave, c.wit))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
 
 instance ccState_countable : Pos.Countable CCState :=
   countableOfLeftInverse (fun c : CCState => (c.cfg, c.prs)) (fun p => ⟨p.1, p.2⟩)

@@ -874,9 +874,16 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     iunfold msgTks at Htk
     rw [if_pos h1]
     ihave Htk' := entTk_propRepl γ _ _ hrep $$ Htk
-    imod ownRaftGhost_step_propose γ id r.p (propBatch r m.entries cs).1
-      (B.toNat - γ.reBoot.length) h2 (by rw [hrep.length]; omega) (by rw [hrep.length]; omega)
-      $$ Hrc Hed' Htk' Hg with Hg
+    -- the dynamic mode has no witness: the entries are of subterm `0`
+    ihave %Hsb0 := ownRaftGhost_sub_dyn γ id r.p $$ Hg
+    ihave %Hmd := ownRaftGhost_mode γ id r.p $$ Hg
+    have Hsb : W64 0 = r.p.sub := by
+      refine (Hsb0 ?_).symm; intro h; rw [h] at Hmd; cases Hmd
+    have Hp := ownRaftGhost_step_propose (GF := GF) (md := true) γ id r.p (propBatch r m.entries cs).1
+      (B.toNat - γ.reBoot.length) (W64 0) h2 Hsb (by rw [hrep.length]; omega)
+      (by rw [hrep.length]; omega)
+    rw [stampS_zero_fun] at Hp
+    imod Hp $$ Hrc Hed' Htk' Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr

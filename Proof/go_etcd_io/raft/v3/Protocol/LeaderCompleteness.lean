@@ -52,6 +52,58 @@ theorem quorums_intersect_cfg (cfg q1 q2 : GSet w64) :
     (by unfold IsQuorum at *; rw [E1]; exact Hq1) (by unfold IsQuorum at *; rw [E2]; exact Hq2)
   exact ⟨x, by set_solver, by set_solver, by set_solver⟩
 
+/-- (2026-10-19, witness support) In the dynamic mode there is no witness. -/
+theorem RaftNames.wit_dyn {γ : RaftNames} (h : γ.reDyn ≠ none) : γ.reWit = W64 0 := by
+  rcases γ.reWit_ok with h' | ⟨-, h', -⟩
+  · exact h'
+  · exact absurd h' h
+
+/-- Without a witness, a voter in both quorums is not the witness. -/
+theorem meet_nowit {γ : RaftNames} {q V : GSet w64} (h : γ.reWit = W64 0) :
+    (∃ v, v ∈ q ∧ v ∈ V) → ∃ v, v ∈ q ∧ v ∈ V ∧ ¬ (v = γ.reWit ∧ γ.reWit ≠ W64 0) :=
+  fun ⟨v, h1, h2⟩ => ⟨v, h1, h2, fun hw => hw.2 h⟩
+
+omit [FfiSyntax] in
+/-- Two subsets of `S` with more members than `S` meet. -/
+theorem gset_meet (S A B : GSet w64) (hA : A ⊆ S) (hB : B ⊆ S)
+    (h : size S < size A + size B) : ∃ x, x ∈ A ∧ x ∈ B := by
+  by_cases hex : ∃ x, x ∈ A ∧ x ∈ B
+  · exact hex
+  exfalso
+  have hne' : ∀ x, x ∈ A → x ∉ B := fun x ha hb => hex ⟨x, ha, hb⟩
+  have hBA : B \ A = B := GMap.set_eq (fun k => by
+    rw [GMap.elem_of_difference]
+    exact ⟨fun h => h.1, fun hk => ⟨hk, fun ha => hne' k ha hk⟩⟩)
+  have hU : A ∪ B ⊆ S := by
+    rw [GMap.elem_of_subseteq] at hA hB ⊢
+    intro x hx
+    rcases (GMap.elem_of_union _ _ _).1 hx with h | h
+    · exact hA x h
+    · exact hB x h
+  have := GMap.subseteq_size hU
+  rw [GMap.size_union_alt, hBA] at this
+  omega
+
+omit [FfiSyntax] in
+/-- A set without two of its members has two members fewer. -/
+theorem gset_size_minus2 (S : GSet w64) (w x : w64) (hw : w ∈ S) (hx : x ∈ S) (hne : x ≠ w) :
+    size (S \ ({[w]} ∪ {[x]})) + 2 = size S := by
+  have hsub : ({[w]} ∪ {[x]} : GSet w64) ⊆ S := by
+    rw [GMap.elem_of_subseteq]
+    intro y hy
+    rcases (GMap.elem_of_union _ _ _).1 hy with h | h
+    · rw [GMap.elem_of_singleton] at h; rw [h]; exact hw
+    · rw [GMap.elem_of_singleton] at h; rw [h]; exact hx
+  have h2 : size ({[w]} ∪ {[x]} : GSet w64) = 2 := by
+    rw [GMap.size_union_alt, GMap.size_singleton]
+    have : ({[x]} \ {[w]} : GSet w64) = {[x]} := GMap.set_eq (fun k => by
+      rw [GMap.elem_of_difference, GMap.elem_of_singleton, GMap.elem_of_singleton]
+      exact ⟨fun h => h.1, fun h => ⟨h, by rw [h]; exact hne⟩⟩)
+    rw [this, GMap.size_singleton]
+  have := GMap.size_difference hsub
+  have := GMap.subseteq_size hsub
+  omega
+
 /-- A campaign log ends at its last entry. -/
 theorem camp_last (T : w64) (F0 : List EntryM) :
     CampOk T F0 →
@@ -70,20 +122,24 @@ its log when it voted, at least as up to date as the candidate's campaign log, a
 acknowledgement's history then (`ev_pair`). Since 2026-10-05; before, the voter's own
 ghost state (`own_raft_ghost_voter`, `cluster_voter`). -/
 theorem tbl_voter (γ : RaftNames) (v T c t i : w64) :
-    uint.Z t < uint.Z T → 0 < uint.Z i →
+    uint.Z t < uint.Z T → 0 < uint.Z i → ¬ (v = γ.reWit ∧ γ.reWit ≠ W64 0) →
     ⊢ votesTbl (GF := GF) γ -∗ isVote γ v T c -∗ isAcked γ v t i -∗
       ∃ d Fv Fc, isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
         ⌜PlogWf base0 Fv ∧ plogUpToDate base0 Fv (plogLast base0 Fc) = true⌝ ∗
         hist γ Fv t i (vbnd T d) ∗
         (if d then iprop(∃ ldr q, isWin γ ldr T q ∗ ⌜v ∉ q⌝) else iprop(True)) := by
-  intro Ht Hi
+  intro Ht Hi Hnw
   iintro Htbl #Hvote Hack
-  unfold isAcked
-  icases Hack with (%H0 | ⟨-, #Hev⟩)
+  unfold isAcked ackReg
+  icases Hack with (%H0 | ⟨-, #Hev⟩ | ⟨%Hw, -⟩)
   · exact False.elim (by omega)
+  rotate_left
+  · exact absurd Hw Hnw
   ihave Hj := votesTbl_just γ v T c $$ Htbl Hvote
   unfold voteJust
-  icases Hj with ⟨%k, %d, %Fv, %Fc, -, #Hcamp, #HrFv, %Hpure, #Hd, #Hvev, -⟩
+  icases Hj with (⟨%k, %d, %Fv, %Fc, -, #Hcamp, #HrFv, %Hpure, #Hd, #Hvev, -⟩ | ⟨%Hw, -⟩)
+  rotate_left
+  · exact absurd Hw Hnw
   iexists d, Fv, Fc
   iframe Hcamp HrFv Hd
   isplitr
@@ -99,6 +155,77 @@ def LcIH (γ : RaftNames) (T : w64) : Prop :=
       = some (plogLast base0 F0').term' →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t' n' F' -∗ isLeader γ c' T' -∗ isCamp γ c' T' F0' -∗
       logRecs γ base0 G' -∗ ⌜plogTermAt base0 G' n' = some t'⌝
+
+/-- (2026-10-19, witness support) A log with records with an entry of the commit fact's term
+at or past its index has that term at the index: the entry is the leader's, which had the commit
+fact's entry below it. -/
+theorem lc_same_term (γ : RaftNames) (t n j : w64) (F G : List EntryM) :
+    PlogWf base0 G → plogTermAt base0 G j = some t → 0 < uint.Z j → uint.Z n ≤ uint.Z j →
+    ⊢ cq (GF := GF) γ t n F -∗ logRecs γ base0 G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
+  intro HwG HGj Hj0 Hnj
+  iintro #Hcq #HrG
+  icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
+  icases cq_base γ _ _ _ $$ Hcq with ⟨%HFn, #HFl⟩
+  icases leadFull_camp γ t F $$ HFl with ⟨%ldr, %F0c, #Hl, #Hc, %Hpre⟩
+  icases isCamp_ok γ ldr t F0c $$ Hc with %Hcok
+  icases recs_chain γ G ldr t F0c HwG $$ Hl Hc HrG with %Hch
+  obtain ⟨Hlt, -, Hall⟩ := Hch j Hj0 HGj
+  -- the commit fact's index is past the campaign log, whose terms are below `t`
+  have HnF0 : plogLastIndexZ base0 F0c < uint.Z n := by
+    by_cases Hlt' : plogLastIndexZ base0 F0c < uint.Z n
+    · exact Hlt'
+    exfalso
+    have Hle' : uint.Z n ≤ plogLastIndexZ base0 F0c := by omega
+    have Hs : (plogTermAt base0 F0c n).isSome := by
+      unfold plogTermAt; rw [base0_index]
+      by_cases Hn0 : uint.Z n = 0
+      · simp [Hn0]
+      · have := uint_Z_nonneg n
+        unfold plogLastIndexZ at Hle'; rw [base0_index] at Hle'
+        simp only [Hn0, ↓reduceIte, show ¬ uint.Z n < 0 by omega]
+        rw [List.getElem?_eq_getElem (by omega)]; rfl
+    obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
+    have HxF := plogTermAt_prefix base0 F0c F n Hpre (by rw [Hx]; rfl)
+    rw [Hx, HFn] at HxF
+    cases HxF
+    have := Hcok.2 n t Hx
+    omega
+  ipureintro
+  exact Hall n ⟨HnF0, Hnj⟩
+
+/-- (2026-10-19, witness support) The newer-term case of `lc_adj_gen` (its branch "a later last
+term"): a log with records with an entry of a term `tc` in `(t, T)` has the commit fact's term at
+its index, by the induction hypothesis at `tc`. -/
+theorem lc_newer (γ : RaftNames) (T t n j tc : w64) (F G : List EntryM) (IH : LcIH (GF := GF) γ T) :
+    uint.Z t < uint.Z tc → uint.Z tc < uint.Z T →
+    PlogWf base0 G → plogTermAt base0 G j = some tc → 0 < uint.Z j →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ logRecs γ base0 G -∗
+      ⌜plogTermAt base0 G n = some t⌝ := by
+  intro Htc HtcT HwG HGj Hj0
+  iintro HS #Hcq #HrG
+  have HGjr := (plogTermAt_some_range _ _ _ _ HGj).2
+  have HGlen : plogLastIndexZ base0 G = G.length := by
+    unfold plogLastIndexZ; rw [base0_index]; omega
+  have Hrng := uint_Z_lt j
+  obtain ⟨x, Hx⟩ : ∃ x, G[(uint.Z j - 1).toNat]? = some x :=
+    ⟨_, List.getElem?_eq_getElem (by omega)⟩
+  icases logRecs_lookup γ G _ x Hx (by omega) $$ HrG with ⟨%pt, -, #Hxr⟩
+  have Hjw : W64 ((((uint.Z j - 1).toNat : Nat) : Int) + 1) = j := by
+    apply uint_Z_inj.mp; rw [uint_Z_W64 _ (by omega) (by omega)]; omega
+  have Hxt : x.Term' = tc := by
+    rw [plogTermAt_lookup base0 G _ _ x Hx (by rw [base0_index]; omega)] at HGj
+    exact Option.some.inj HGj
+  unfold isEntryR
+  icases Hxr with (⟨%ldr, %γt, %b, %l0, %F0c, #Hlc, -, #Hcc, -, -⟩ | ⟨%Hb, -⟩)
+  · rw [Hxt]
+    icases recs_chain γ G ldr _ F0c HwG $$ Hlc Hcc HrG with %Hch
+    obtain ⟨-, HGlc, -⟩ := Hch _ Hj0 HGj
+    iapply IH _ t n F ldr F0c G HtcT Htc HwG HGlc $$ HS Hcq Hlc Hcc HrG
+  · -- a boot entry, of term `1`: below every commit fact's term
+    icases cq_boot γ t n F $$ Hcq with %Hbf
+    have H2 := Hbf.2 (BootRec_ne _ _ _ Hb)
+    have Hx1 : uint.Z tc = 1 := by rw [← Hxt, Hb.2.2.1]; rfl
+    ipureintro; exfalso; omega
 
 /-- A full log extends the campaign log of its leader, so it reaches that log's last
 entry. -/
@@ -202,7 +329,7 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
       = some (plogLast base0 F0).term' →
-    (∃ v, v ∈ q ∧ v ∈ V) →
+    (∃ v, v ∈ q ∧ v ∈ V ∧ ¬ (v = γ.reWit ∧ γ.reWit ≠ W64 0)) →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗
       ([∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i') -∗
       ([∗map] v ↦ _u ∈ toMap V, isVote γ v T c) -∗
@@ -223,14 +350,14 @@ theorem lc_adj_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
     rw [key] at HFn
     ipureintro; rw [key]; exact HFn
   -- the voter in both quorums
-  obtain ⟨v, Hvq, HvV⟩ := Hmeet
+  obtain ⟨v, Hvq, HvV, Hvw⟩ := Hmeet
   ihave Hackv0 := BigSepM.bigSepM_lookup
     (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t i'))
     ((GMap.elem_of_gset _ _).mp Hvq) $$ Hacks
   icases Hackv0 with ⟨%iv, %Hiv, #Hackv⟩
   ihave #Hvotev := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T c)
     ((GMap.elem_of_gset _ _).mp HvV) $$ Hvotes
-  icases tbl_voter γ v T c t iv HtT (by have := uint_Z_nonneg n; omega) $$ HS Hvotev Hackv
+  icases tbl_voter γ v T c t iv HtT (by have := uint_Z_nonneg n; omega) Hvw $$ HS Hvotev Hackv
     with ⟨%d, %Fv, %Fc, #Hcv, #HrFv, %HFv, #Hh0, #Hd⟩
   obtain ⟨HwFv, Hutd⟩ := HFv
   icases isCamp_agree γ c T F0 Fc $$ Hc Hcv with %HF0
@@ -369,7 +496,7 @@ theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
       = some (plogLast base0 F0).term' →
-    (∃ v, v ∈ q ∧ v ∈ V) →
+    (∃ v, v ∈ q ∧ v ∈ V ∧ ¬ (v = γ.reWit ∧ γ.reWit ≠ W64 0)) →
     ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗
       ([∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i') -∗
       isWin γ c T V -∗ isCamp γ c T F0 -∗
@@ -385,6 +512,213 @@ theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
   obtain ⟨v, h1, h2⟩ := Hex
   exact absurd h1 h2
 
+/-- **The case of Leader Completeness the witness adds** (2026-10-19, witness support,
+`notes/raft-witness.md`, "Why it is safe"): the commit quorum of `t` and the winning quorum of `T`
+meet only at the witness. Its acknowledgement says that `quorum - 1` voters `H` of the
+replication set of a subterm `σ` of `t` acknowledged an entry `idx ≥ n` of it, and that its state
+had `(t, σ)` as last entry; its vote, that its state then -- of term `T`, so later, so at least
+`(t, σ)` -- granted the request of `T`'s winner, whose campaign log ends at `(lt, ls)`:
+- `lt > t`: the induction hypothesis at `lt` (`lc_newer`);
+- `lt = t`, `ls > σ`: the campaign log's last entry is the leader of `t`'s, of a later subterm, so
+  past `idx` (`subRec_order`): `lc_same_term`;
+- `(lt, ls) = (t, σ)`: the witness's state is `(t, σ)` too, whose replication set is `H`'s (one
+  excluded voter per subterm), and every responder of the request is in it. The request's
+  `quorum - 1` granted votes and `H` are in the replication set without the witness, of
+  `|voters| - 2` members: they meet in a node (`gset_meet`), which voted in the winning quorum
+  (`grantLb_win`) and acknowledged `idx`: `lc_adj`. -/
+theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
+    (F0 G : List EntryM) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
+    uint.Z t < uint.Z T →
+    PlogWf base0 G →
+    plogTermAt base0 G (W64 (plogLastIndexZ base0 F0)) = some (plogLast base0 F0).term' →
+    γ.reWit ∈ q → γ.reWit ∈ V → γ.reWit ≠ W64 0 →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗
+      ([∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i') -∗
+      isWin γ c T V -∗ isCamp γ c T F0 -∗
+      logRecs γ base0 G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
+  intro HtT HwG HGl Hwq HwV Hwne
+  iintro HS #Hcq #Hacks #Hwin #Hc #HrG
+  icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
+  icases cq_base γ _ _ _ $$ Hcq with ⟨%HFn, #HFl⟩
+  -- index 0
+  by_cases Hn0 : uint.Z n = 0
+  · have key : ∀ L : List EntryM, plogTermAt base0 L n = some base0.term' := by
+      intro L; unfold plogTermAt; rw [base0_index]; simp [Hn0]
+    rw [key] at HFn
+    ipureintro; rw [key]; exact HFn
+  -- `t > 0`: the leader of `t` campaigned with a log of lower terms
+  icases leadFull_camp γ t F $$ HFl with ⟨%ldrF, %F0F, -, #HcF, -⟩
+  icases isCamp_ok γ ldrF t F0F $$ HcF with %HcokF
+  have Ht0 : 0 < uint.Z t := by
+    have := HcokF.2 _ _ (camp_last t F0F HcokF)
+    have := uint_Z_nonneg (plogLast base0 F0F).term'
+    omega
+  -- the witness's acknowledgement
+  ihave Hack0 := BigSepM.bigSepM_lookup
+    (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t i'))
+    ((GMap.elem_of_gset _ _).mp Hwq) $$ Hacks
+  icases Hack0 with ⟨%iw, %Hiw, #Hackw⟩
+  iunfold isAcked at Hackw
+  icases Hackw with (%H0 | #Hreg | ⟨-, #Hwa⟩)
+  · exfalso; have := uint_Z_nonneg n; omega
+  · icases ackReg_not_wit γ _ _ _ $$ Hreg with %Hnw
+    exact absurd ⟨rfl, Hwne⟩ Hnw
+  iunfold wAck at Hwa
+  icases Hwa with ⟨%σs, %idx, %x, %H, %st, %Hst, #Hj, #Hstw⟩
+  obtain ⟨Hiidx, Hstt, Hstlt, Hstls⟩ := Hst
+  iunfold wJust at Hj
+  icases Hj with ⟨%Hjp, ⟨%ldr, #Hl, #Hsr⟩, -, #HHacks⟩
+  obtain ⟨-, Hxcfg, Hxw, HHsub, HHsize, Hidx1⟩ := Hjp
+  -- the witness's vote, for `T`'s winner
+  ihave #Hvotes := isWin_votes γ c T V $$ Hwin
+  ihave #Hvw := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T c)
+    ((GMap.elem_of_gset _ _).mp HwV) $$ Hvotes
+  ihave #Hjust := votesTbl_just γ γ.reWit T c $$ HS Hvw
+  iunfold voteJust at Hjust
+  icases Hjust with (⟨%k, %d, %Fv, %Fc, #Hvl, -⟩ | ⟨-, #Hwv⟩)
+  · -- the witness has no vote-time logs
+    iunfold isVlog at Hvl
+    icases Hvl with ⟨%γl, %Hγl, -⟩
+    exfalso
+    rcases γ.reWit_ok with h | ⟨-, -, -, h⟩
+    · exact Hwne h
+    · rw [h] at Hγl; cases Hγl
+  iunfold wVoteJust at Hwv
+  icases Hwv with ⟨%stv, %lt, %li, %ls, %resp, %Hg, #Hstv, #Hreq⟩
+  obtain ⟨Hstvt, Hgrant⟩ := Hg
+  iunfold wVoteReq at Hreq
+  icases Hreq with ⟨%F0', %G', #Hc', #HrF0, %Hrq, #Hglb, -⟩
+  icases isCamp_agree γ c T F0 F0' $$ Hc Hc' with %HF0
+  subst HF0
+  obtain ⟨Hlast, Hls, HG'cfg, HG'resp, HG'size⟩ := Hrq
+  icases isCamp_ok γ c T F0 $$ Hc with %Hcok
+  -- the witness's state at the vote is at least the acknowledged one; the request's last entry
+  -- at least that state's
+  icases wSt_order γ st stv (by rw [Hstt, Hstvt]; exact HtT) $$ Hstw Hstv with %Hord
+  rw [Hstlt, Hstls] at Hord
+  have Hlt : (plogLast base0 F0).term' = lt := by rw [Hlast]
+  have Hcl := camp_last T F0 Hcok
+  have HltT : uint.Z lt < uint.Z T := by rw [← Hlt]; exact Hcok.2 _ _ Hcl
+  rw [Hlt] at HGl
+  have HwF0 := Hcok.1
+  have HL0 := plogLastIndexZ_nonneg base0 F0
+  have Hrng0 := PlogWf_range _ _ HwF0
+  have HjZ : uint.Z (W64 (plogLastIndexZ base0 F0)) = plogLastIndexZ base0 F0 :=
+    uint_Z_W64 _ HL0 Hrng0
+  have Hcases : uint.Z t < uint.Z lt ∨ (lt = t ∧ uint.Z σs < uint.Z ls) ∨
+      (lt = t ∧ ls = σs ∧ stv.lt = t ∧ stv.ls = σs) := by
+    have Hcand : LexLe stv.lt stv.ls lt ls := by
+      rcases Hgrant with ⟨h, -⟩ | ⟨h1, h2, -⟩
+      · exact h
+      · right; exact ⟨h1, by rw [h2]; exact Int.le_refl _⟩
+    unfold LexLe at Hord Hcand
+    rcases Hord with Hord | ⟨Hord1, Hord2⟩ <;> rcases Hcand with Hcand | ⟨Hcand1, Hcand2⟩
+    · left; omega
+    · left; rw [← Hcand1]; exact Hord
+    · left; rw [Hord1]; exact Hcand
+    · by_cases hs : uint.Z σs < uint.Z ls
+      · right; left; exact ⟨Hcand1.symm.trans Hord1.symm, hs⟩
+      · right; right
+        refine ⟨Hcand1.symm.trans Hord1.symm, ?_, Hord1.symm, ?_⟩
+        · apply uint_Z_inj.mp; omega
+        · apply uint_Z_inj.mp; omega
+  rcases Hcases with HA | ⟨HB1, HB2⟩ | ⟨HC1, HC2, HC3, HC4⟩
+  · -- a newer last term: the induction hypothesis
+    have Hj0 : 0 < uint.Z (W64 (plogLastIndexZ base0 F0)) := by
+      by_cases H0 : uint.Z (W64 (plogLastIndexZ base0 F0)) = 0
+      · exfalso
+        unfold plogTermAt at HGl
+        rw [base0_index] at HGl
+        simp only [H0, Int.lt_irrefl, ↓reduceIte, Option.some.injEq] at HGl
+        have : uint.Z lt = 0 := by rw [← HGl]; rfl
+        omega
+      · have := uint_Z_nonneg (W64 (plogLastIndexZ base0 F0)); omega
+    iapply lc_newer γ T t n _ lt F G IH HA HltT HwG HGl Hj0 $$ HS Hcq HrG
+  · -- the same term, a later subterm: the campaign log's last entry is past `idx`
+    have Hls0 : ls ≠ W64 0 := by
+      intro h; rw [h] at HB2; have := uint_Z_nonneg σs; simp at HB2
+    obtain ⟨e, He, Hes⟩ : ∃ e, F0.getLast? = some e ∧ e.Subterm' = ls := by
+      rcases Hls with h | h
+      · exact absurd h Hls0
+      · exact h
+    have Hlen : 0 < F0.length := by
+      cases hF : F0 with
+      | nil => rw [hF] at He; simp at He
+      | cons _ _ => simp
+    have HeF : F0[F0.length - 1]? = some e := by
+      rw [List.getLast?_eq_getElem?] at He; exact He
+    have Hidx := HwF0 _ _ HeF
+    rw [base0_index] at Hidx
+    have HlenZ : plogLastIndexZ base0 F0 = F0.length := by
+      unfold plogLastIndexZ; rw [base0_index]; omega
+    have Het : e.Term' = lt := by
+      unfold plogLast at Hlast; rw [He] at Hlast
+      simp only [entId, entryID.mk.injEq] at Hlast; exact Hlast.1
+    icases logRecs_lookup γ F0 _ e HeF (by omega) $$ HrF0 with ⟨%pt, -, #Her⟩
+    iunfold isEntryR at Her
+    icases Her with (⟨%ldr', %γt', %b', %l0', %F0c', #Hl', -, -, -, -, -, -, %xe, #Hsre⟩ | ⟨%Hb, -⟩)
+    · rw [show e.Term' = t from Het.trans HB1]
+      icases isLeader_unique γ ldr' ldr t $$ Hl' Hl with %Hll
+      subst Hll
+      icases subRec_order γ ldr' t idx σs x e.Index' e.Subterm' xe $$ Hsr Hsre with %Hso
+      rw [Hes] at Hso
+      have Hlt' := Hso.1 HB2
+      iapply lc_same_term γ t n _ F G HwG (by rw [← HB1]; exact HGl)
+        (by rw [HjZ]; omega) (by rw [HjZ]; omega) $$ Hcq HrG
+    · -- a boot entry, of term `1`: below every commit fact's term
+      icases cq_boot γ t n F $$ Hcq with %Hbf
+      have H2 := Hbf.2 (BootRec_ne _ _ _ Hb)
+      have : uint.Z e.Term' = 1 := by rw [Hb.2.2.1]; rfl
+      rw [Het, HB1] at this
+      exfalso; omega
+  · -- the same `(term, subterm)`: the witness's state's replication set is `H`'s
+    have Hresp : ∀ v, v ∈ resp → v ∈ stv.rs := by
+      rcases Hgrant with ⟨-, hne⟩ | ⟨-, -, h⟩
+      · exact absurd ⟨by rw [HC3, HC1], by rw [HC4, HC2]⟩ hne
+      · exact h
+    ihave #Hsj := wSt_just γ stv $$ Hstv
+    iunfold wStJust at Hsj
+    have Hlt0 : stv.lt ≠ W64 0 := by
+      intro h; rw [HC3] at h; rw [h] at Ht0; simp at Ht0
+    rw [if_neg Hlt0]
+    icases Hsj with ⟨%xv, %Hv, %Hrs, #Hjv⟩
+    iunfold wJust at Hjv
+    icases Hjv with ⟨-, ⟨%ldrv, #Hlv, #Hsrv⟩, -, -⟩
+    rw [HC3, HC4]
+    icases isLeader_unique γ ldrv ldr t $$ Hlv Hl with %Hll
+    subst Hll
+    icases subRec_order γ ldrv t idx σs x stv.li σs xv $$ Hsr Hsrv with %Hso
+    have Hxv : x = xv := Hso.2 rfl
+    subst Hxv
+    -- the request's granted votes and `H`, in the replication set without the witness
+    have Hwcfg : γ.reWit ∈ γ.reCfg := by
+      rcases γ.reWit_ok with h | ⟨h, -⟩
+      · exact absurd h Hwne
+      · exact h
+    have HG'S : G' ⊆ γ.reCfg \ ({[γ.reWit]} ∪ {[x]}) := by
+      rw [GMap.elem_of_subseteq]
+      intro g hg
+      exact (Hrs g).1 (Hresp g (HG'resp g hg))
+    have Hsz := gset_size_minus2 γ.reCfg γ.reWit x Hwcfg Hxcfg Hxw
+    obtain ⟨h, hG', hH⟩ := gset_meet _ G' H HG'S HHsub (by omega)
+    ihave #Hwg := isWin_grant γ c T V $$ Hwin
+    icases grantLb_win γ c T G' V $$ Hglb Hwg with %HG'V
+    have hV : h ∈ V := (GMap.elem_of_subseteq _ _).1 HG'V h hG'
+    have hnw : ¬ (h = γ.reWit ∧ γ.reWit ≠ W64 0) := by
+      intro hw
+      have := (GMap.elem_of_subseteq _ _).1 HHsub h hH
+      rw [GMap.elem_of_difference, GMap.elem_of_union, GMap.elem_of_singleton] at this
+      exact this.2 (Or.inl hw.1)
+    iapply lc_adj γ T t n F c F0 G H V IH HtT HwG (by rw [Hlt]; exact HGl) ⟨h, hH, hV, hnw⟩
+      $$ HS Hcq [] Hwin Hc HrG
+    iapply BigSepM.bigSepM_impl $$ HHacks
+    imodintro
+    iintro %v %u %Hv ⟨%i', %Hi', #Ha⟩
+    iexists i'
+    isplitr; · ipureintro; omega
+    iunfold isAcked
+    iright; ileft; iexact Ha
+
 /-- A winner's campaign's dynamic facts, from a vote of its quorum (2026-10-14, stage B5). -/
 theorem winner_campDyn (γ : RaftNames) (c T : w64) (V : GSet w64) (F0 : List EntryM)
     (k : w64) (Hdyn : γ.reDyn ≠ none) (Hne : ∃ v, v ∈ V) :
@@ -398,7 +732,9 @@ theorem winner_campDyn (γ : RaftNames) (c T : w64) (V : GSet w64) (F0 : List En
     ((GMap.elem_of_gset _ _).mp Hv0) $$ Hvs
   ihave #Hj := votesTbl_just γ v0 T c $$ HS Hv0v
   iunfold voteJust at Hj
-  icases Hj with ⟨%kj, %dj, %Fvj, %Fcj, -, -, -, -, -, -, #Hcdj⟩
+  icases Hj with (⟨%kj, %dj, %Fvj, %Fcj, -, -, -, -, -, -, #Hcdj⟩ | ⟨%Hwj, -⟩)
+  rotate_left
+  · exact absurd (RaftNames.wit_dyn Hdyn) Hwj.2
   ihave #Hcd := dynOn_elim γ _ Hdyn $$ Hcdj
   iunfold campDyn at Hcd
   icases Hcd with ⟨%kc, %tmc, %Hcp, #HcKc, #HrF0c, #HcmF0⟩
@@ -525,7 +861,7 @@ adjacent case (`lc_adj`) puts its log, up to the entry, into the campaign log: t
 past the campaign's commit index, against I1 at the campaign. -/
 theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List EntryM) (a : w64)
     (c : w64) (F0 : List EntryM) (kw : w64) (cW : CfgM) (V : GSet w64)
-    (IH : LcIH (GF := GF) γ T) :
+    (IH : LcIH (GF := GF) γ T) (Hdyn : γ.reDyn ≠ none) :
     uint.Z t < uint.Z T → CampOk T F0 →
     ConfI1 F0 (uint.Z kw).toNat →
     CfgAt γ (F0.take (uint.Z kw).toNat) cW → JQuorum cW V →
@@ -547,7 +883,7 @@ theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List EntryM) (a : w64)
   have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0.take (uint.Z kw).toNat) + 1 := by
     rw [Hcw, hc2]
   have Hov := CfgAt.overlap_adj Hpre (by omega) (by omega) Hpw.2.2.1 HcfgW
-  have Hmeet := Hov qw V Hpw.2.2.2 HjW
+  have Hmeet := meet_nowit (RaftNames.wit_dyn Hdyn) (Hov qw V Hpw.2.2.2 HjW)
   ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
   icases lc_adj γ T tw nw Gw c F0 F0 qw V IH (by omega) HwF0 (camp_last T F0 Hcok) Hmeet
     $$ HS Hcqw' Hackw Hwin Hc HrF0 with %HF0nw
@@ -597,13 +933,18 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   icases Hl with ⟨%V, #Hwin⟩
   icases isWin_core γ c T V $$ Hwin with ⟨%cW, #Hcore⟩
   iunfold isWinCore at Hcore
-  icases Hcore with ⟨%γw, %F0w, %kw, %Hw, #HcK, -, #Hvs⟩
+  icases Hcore with ⟨%γw, %F0w, %kw, %Hw, #HcK, -, #Hvs, -⟩
   -- Static, the two recorded configurations overlap. Dynamic (2026-10-14, stage B5), the case
   -- split on their configuration indices (`notes/reconfiguration-safety.md`, section 7).
   cases HD : γ.dyn with
   | none =>
     have Hmeet := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
-    iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
+    obtain ⟨v, Hvq, HvV⟩ := Hmeet
+    -- (2026-10-19, witness support) the quorums meet at a node, or only at the witness
+    by_cases Hvw : v = γ.reWit ∧ γ.reWit ≠ W64 0
+    · obtain ⟨rfl, Hne⟩ := Hvw
+      iapply lc_wit γ T t n F c F0 G q V IH HtT HwG HGl Hvq HvV Hne $$ HS Hcq Hacks Hwin Hc HrG
+    · iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl ⟨v, Hvq, HvV, Hvw⟩ $$ HS Hcq Hacks Hwin Hc HrG
   | some D =>
   have Hdyn : γ.reDyn ≠ none := fun h => by rw [RaftNames.dyn_none h] at HD; cases HD
   icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨-, -, #HcF, -, #HdF⟩
@@ -617,7 +958,9 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     ((GMap.elem_of_gset _ _).mp Hv0) $$ Hvs
   ihave #Hj := votesTbl_just γ v0 T c $$ HS Hv0v
   iunfold voteJust at Hj
-  icases Hj with ⟨%kj, %dj, %Fvj, %Fcj, -, -, -, -, -, -, #Hcdj⟩
+  icases Hj with (⟨%kj, %dj, %Fvj, %Fcj, -, -, -, -, -, -, #Hcdj⟩ | ⟨%Hwj, -⟩)
+  rotate_left
+  · exact absurd (RaftNames.wit_dyn Hdyn) Hwj.2
   ihave #Hcd := dynOn_elim γ _ Hdyn $$ Hcdj
   iunfold campDyn at Hcd
   icases Hcd with ⟨%kc, %tmc, %Hcp, #HcKc, #HrF0c, #HcmF0⟩
@@ -632,14 +975,15 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   icases isCommitted_agree γ _ _ $$ HcF HcF0 with %Hpre
   by_cases Hadj : confCount (F.take (uint.Z a).toNat) ≤ confCount (F0.take (uint.Z kw).toNat) + 1 ∧
       confCount (F0.take (uint.Z kw).toNat) ≤ confCount (F.take (uint.Z a).toNat) + 1
-  · have Hmeet := CfgAt.overlap_adj Hpre Hadj.2 Hadj.1 Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
+  · have Hmeet := meet_nowit (RaftNames.wit_dyn Hdyn)
+      (CfgAt.overlap_adj Hpre Hadj.2 Hadj.1 Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1)
     iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
   · rcases (by omega : confCount (F.take (uint.Z a).toNat) + 2 ≤ confCount (F0.take (uint.Z kw).toNat) ∨
         confCount (F0.take (uint.Z kw).toNat) + 2 ≤ confCount (F.take (uint.Z a).toNat))
       with Hfar | Hfar
     · iapply lc_far_newer γ T t n F a F0 G kw tmc IH HtT Hcp.1 HwG HGl Hcok Hkle HI1F Hfar
         $$ HS Hcq HrF0c HcmF0 HrG
-    · icases lc_far_older γ T t F a c F0 kw cW V IH HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar
+    · icases lc_far_older γ T t F a c F0 kw cW V IH Hdyn HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar
         $$ HS HdF' Hwin Hc HrF0c HcF0 with %Hf
       exact Hf.elim
 
@@ -1199,8 +1543,8 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
   ihave #Hl' : isLeader γ id' T $$ []
   · unfold isLeader; iexists q'; iexact Hwin'
   iunfold isWinCore at H H'
-  icases H with ⟨%γw, %F0, %k, %Hw, #HcK, -, #Hvs⟩
-  icases H' with ⟨%γw', %F0', %k', %Hw', #HcK', -, #Hvs'⟩
+  icases H with ⟨%γw, %F0, %k, %Hw, #HcK, -, #Hvs, -⟩
+  icases H' with ⟨%γw', %F0', %k', %Hw', #HcK', -, #Hvs', -⟩
   cases HD : γ.dyn with
   | none =>
     ipureintro
@@ -1242,8 +1586,8 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
     obtain ⟨Htw, Hnw, Haw, Hag, Hcw⟩ := Hwo
     have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0'.take (uint.Z k').toNat) + 1 := by
       rw [Hcw, hc2]
-    have Hmeet := CfgAt.overlap_adj Hpre2 (by omega) (by omega) Hpw.2.2.1 Hw'.2.2 qw q'
-      Hpw.2.2.2 Hw'.2.1
+    have Hmeet := meet_nowit (RaftNames.wit_dyn Hdyn) (CfgAt.overlap_adj Hpre2 (by omega) (by omega)
+      Hpw.2.2.1 Hw'.2.2 qw q' Hpw.2.2.2 Hw'.2.1)
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases lc_adj γ T tw nw Gw id' F0' F0' qw q' IH (by omega) Hcok'.1 (camp_last T F0' Hcok') Hmeet
       $$ HS Hcqw' Hackw Hwin' Hc' HrF0' with %HF0nw
@@ -1269,8 +1613,8 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
     obtain ⟨Htw, Hnw, Haw, Hag, Hcw⟩ := Hwo
     have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0.take (uint.Z k).toNat) + 1 := by
       rw [Hcw, hc2]
-    have Hmeet := CfgAt.overlap_adj Hpre2 (by omega) (by omega) Hpw.2.2.1 Hw.2.2 qw V
-      Hpw.2.2.2 Hw.2.1
+    have Hmeet := meet_nowit (RaftNames.wit_dyn Hdyn) (CfgAt.overlap_adj Hpre2 (by omega) (by omega)
+      Hpw.2.2.1 Hw.2.2 qw V Hpw.2.2.2 Hw.2.1)
     ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
     icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
     icases lc_adj_gen γ T tw nw Gw id F0 F0 qw V IH (by omega) Hcok.1 (camp_last T F0 Hcok) Hmeet
@@ -1330,11 +1674,11 @@ theorem winTbl_insert (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
     -- the voter voted once in `T`: the entry's winner is `id`
     ihave #Hvotes : iprop([∗map] v ↦ _u ∈ toMap V, isVote (GF := GF) γ v T id) $$ []
     · iunfold isWinCore at Hw
-      icases Hw with ⟨%γw, %F0, %k, -, -, -, #Hv⟩
+      icases Hw with ⟨%γw, %F0, %k, -, -, -, #Hv, -⟩
       iexact Hv
     ihave #Hvotes' : iprop([∗map] v ↦ _u ∈ toMap q', isVote (GF := GF) γ v T id') $$ []
     · iunfold isWinCore at Hr
-      icases Hr with ⟨%γw, %F0, %k, -, -, -, #Hv⟩
+      icases Hr with ⟨%γw, %F0, %k, -, -, -, #Hv, -⟩
       iexact Hv
     ihave #Hvs := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T id)
       ((GMap.elem_of_gset _ _).mp HvV) $$ Hvotes
