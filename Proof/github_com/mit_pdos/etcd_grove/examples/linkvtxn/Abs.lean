@@ -834,6 +834,172 @@ theorem mstepL_abs (x : Input) (i : linkv.MIn GoString GoString) (hx : decIn x =
       · rfl
       · simp only [ite_true]; rw [h1]
 
+/-! ## Writes, and comparing outputs -/
+
+theorem decAll_any {α β : Type} (f : α → Option β) (p : α → Bool) (q : β → Bool)
+    (hpq : ∀ a b, f a = some b → p a = q b) :
+    ∀ (l : List α) (l' : List β), decAll f l = some l' → l.any p = l'.any q
+  | [], l', h => by simp only [decAll, Option.some.injEq] at h; subst h; rfl
+  | a :: l, l', h => by
+    simp only [decAll] at h
+    cases ha : f a with
+    | none => rw [ha] at h; cases h
+    | some b =>
+      rw [ha] at h
+      cases hl : decAll f l with
+      | none => rw [hl] at h; cases h
+      | some r =>
+        rw [hl] at h
+        simp only [Option.bind_some, Option.map_some, Option.some.injEq] at h
+        subst h
+        simp only [List.any_cons, hpq a b ha, decAll_any f p q hpq l r hl]
+
+/-- **A write is the model's write.** -/
+theorem isWriteL_dec (x : Input) (i : linkv.MIn GoString GoString) (h : decIn x = some i) :
+    isWriteL x = i.isWrite := by
+  have hop : ∀ (o : TOp) (o' : linkv.MOp GoString GoString), decTOp o = some o' →
+      decide (o.Kind' ≠ W64 0) = o'.isWrite := by
+    intro o o' ho
+    unfold decTOp at ho
+    by_cases a : o.Kind' = W64 0
+    · rw [if_pos a, Option.some.injEq] at ho; subst ho; simp [a, linkv.MOp.isWrite]
+    · rw [if_neg a] at ho
+      by_cases b : o.Kind' = W64 1
+      · rw [if_pos b, Option.some.injEq] at ho; subst ho; simp [linkv.MOp.isWrite]; exact a
+      · rw [if_neg b] at ho
+        by_cases c : o.Kind' = W64 2
+        · rw [if_pos c, Option.some.injEq] at ho; subst ho; simp [linkv.MOp.isWrite]; exact a
+        · rw [if_neg c] at ho; cases ho
+  rcases decIn_cases x i h with ⟨hk, rfl⟩ | ⟨hk, rfl⟩ | ⟨hk, rfl⟩ | ⟨hk, rfl⟩ |
+    ⟨hk, cs, t, e, rfl, -, ht, he⟩
+  · simp [isWriteL, hk, linkv.MIn.isWrite]
+  · simp [isWriteL, hk, linkv.MIn.isWrite]
+  · simp [isWriteL, hk, linkv.MIn.isWrite]
+  · simp [isWriteL, hk, linkv.MIn.isWrite]
+  · have h1 : ¬ (W64 4 : w64) = W64 2 ∨ (W64 4 : w64) = W64 3 → True := fun _ => trivial
+    unfold isWriteL linkv.MIn.isWrite
+    rw [if_neg (by rw [hk]; decide), if_neg (by rw [hk]; decide),
+      decAll_any decTOp _ _ hop _ _ ht, decAll_any decTOp _ _ hop _ _ he]
+
+theorem absVR_inj {a b : VR} (h : absVR a = absVR b) : a = b := by
+  cases a; cases b
+  simp only [absVR, linkv.VR.mk.injEq] at h
+  obtain ⟨rfl, rfl, rfl⟩ := h
+  rfl
+
+theorem uint_nat_inj {a b : w64} (h : uint.nat a = uint.nat b) : a = b := by
+  unfold uint.nat at h; word
+
+theorem decVR_eq (f g : Bool) (a b : VR) :
+    decVR f a = decVR g b ↔ f = g ∧ (f = true → a = b) := by
+  unfold decVR
+  cases f <;> cases g
+  · exact ⟨fun _ => ⟨rfl, fun h => by cases h⟩, fun _ => rfl⟩
+  · exact ⟨fun h => (by cases h), fun h => (by cases h.1)⟩
+  · exact ⟨fun h => (by cases h), fun h => (by cases h.1)⟩
+  · simp only [ite_true, Option.some.injEq, true_and, forall_const]
+    exact ⟨fun h => absVR_inj h, fun h => by rw [h]⟩
+
+theorem decRes_ne_of (x : TRes) (r : linkv.MRes GoString)
+    (h1 : x.Kind' = W64 1 → .put ≠ r) (h2 : x.Kind' = W64 2 → .del (uint.nat x.N') ≠ r)
+    (h3 : .del (uint.nat x.N' + 2) ≠ r) (a : ¬ x.Kind' = W64 0) : decRes x ≠ r := by
+  unfold decRes
+  rw [if_neg a]
+  by_cases b : x.Kind' = W64 1
+  · rw [if_pos b]; exact h1 b
+  · rw [if_neg b]
+    by_cases c : x.Kind' = W64 2
+    · rw [if_pos c]; exact h2 c
+    · rw [if_neg c]; exact h3
+
+theorem decRes_get_iff (x : TRes) (v : Option (linkv.VR GoString)) :
+    decRes x = .get v ↔ x.Kind' = W64 0 ∧ decVR x.Found' x.R' = v := by
+  by_cases a : x.Kind' = W64 0
+  · unfold decRes; rw [if_pos a]
+    exact ⟨fun h => ⟨a, linkv.MRes.get.inj h⟩, fun h => by rw [h.2]⟩
+  · have hne := decRes_ne_of x (.get v) (fun _ h => by cases h) (fun _ h => by cases h)
+      (fun h => (by cases h)) a
+    exact ⟨fun h => absurd h hne, fun h => absurd h.1 a⟩
+
+theorem decRes_put_iff (x : TRes) : decRes x = .put ↔ x.Kind' = W64 1 := by
+  by_cases a : x.Kind' = W64 0
+  · unfold decRes; rw [if_pos a]
+    exact ⟨fun h => (by cases h), fun h => absurd (h.symm.trans a) (by decide)⟩
+  · unfold decRes; rw [if_neg a]
+    by_cases b : x.Kind' = W64 1
+    · rw [if_pos b]; exact ⟨fun _ => b, fun _ => rfl⟩
+    · rw [if_neg b]
+      by_cases c : x.Kind' = W64 2
+      · rw [if_pos c]; exact ⟨fun h => (by cases h), fun h => absurd h b⟩
+      · rw [if_neg c]; exact ⟨fun h => (by cases h), fun h => absurd h b⟩
+
+theorem decRes_del_lt2 (x : TRes) (k : Nat) (hk : k < 2) :
+    decRes x = .del k ↔ x.Kind' = W64 2 ∧ uint.nat x.N' = k := by
+  by_cases a : x.Kind' = W64 0
+  · unfold decRes; rw [if_pos a]
+    exact ⟨fun h => (by cases h), fun h => absurd (h.1.symm.trans a) (by decide)⟩
+  · unfold decRes; rw [if_neg a]
+    by_cases b : x.Kind' = W64 1
+    · rw [if_pos b]; exact ⟨fun h => (by cases h), fun h => absurd (h.1.symm.trans b) (by decide)⟩
+    · rw [if_neg b]
+      by_cases c : x.Kind' = W64 2
+      · rw [if_pos c]; exact ⟨fun h => ⟨c, linkv.MRes.del.inj h⟩, fun h => by rw [h.2]⟩
+      · rw [if_neg c]
+        exact ⟨fun h => by have := linkv.MRes.del.inj h; omega, fun h => absurd h.1 c⟩
+
+/-- A get's result compared with the model's. -/
+theorem resEqualL_get (x : TRes) (p : VR × Bool) :
+    resEqualL x (getRes p) = true ↔ decRes x = decRes (getRes p) := by
+  rw [decRes_getRes, decRes_get_iff, decVR_eq]
+  unfold resEqualL
+  have hk : (getRes p).Kind' = W64 0 := rfl
+  rw [hk]
+  by_cases a : x.Kind' = W64 0
+  · rw [if_neg (by rw [a]; exact not_not.mpr rfl), if_pos a]
+    have hf : (getRes p).Found' = p.2 := rfl
+    have hr : (getRes p).R' = p.1 := rfl
+    rw [hf, hr]
+    simp only [Bool.and_eq_true, decide_eq_true_eq, Bool.or_eq_true, Bool.not_eq_true', a, true_and]
+    constructor
+    · rintro ⟨hf', hr'⟩
+      refine ⟨hf', fun hft => ?_⟩
+      rcases hr' with hr' | hr'
+      · rw [hft] at hr'; cases hr'
+      · exact hr'
+    · rintro ⟨hf', hr'⟩
+      refine ⟨hf', ?_⟩
+      cases hx : x.Found'
+      · exact Or.inl rfl
+      · exact Or.inr (hr' hx)
+  · rw [if_pos a]
+    exact ⟨fun h => (by cases h), fun h => absurd h.1 a⟩
+
+theorem resEqualL_put (x : TRes) : resEqualL x putRes = true ↔ decRes x = decRes putRes := by
+  rw [decRes_putRes, decRes_put_iff]
+  unfold resEqualL
+  have hk : putRes.Kind' = W64 1 := rfl
+  rw [hk]
+  by_cases a : x.Kind' = W64 1
+  · rw [if_neg (by rw [a]; exact not_not.mpr rfl), if_neg (by rw [a]; decide),
+      if_neg (by rw [a]; decide)]
+    exact ⟨fun _ => a, fun _ => rfl⟩
+  · rw [if_pos a]
+    exact ⟨fun h => (by cases h), fun h => absurd h a⟩
+
+theorem resEqualL_del (x : TRes) (n : w64) (hn : uint.nat n < 2) :
+    resEqualL x (delRes n) = true ↔ decRes x = decRes (delRes n) := by
+  rw [decRes_delRes, decRes_del_lt2 x _ hn]
+  unfold resEqualL
+  have hk : (delRes n).Kind' = W64 2 := rfl
+  have hn' : (delRes n).N' = n := rfl
+  rw [hk, hn']
+  by_cases a : x.Kind' = W64 2
+  · rw [if_neg (by rw [a]; exact not_not.mpr rfl), if_neg (by rw [a]; decide), if_pos a]
+    simp only [decide_eq_true_eq]
+    exact ⟨fun h => ⟨a, by rw [h]⟩, fun h => uint_nat_inj h.2⟩
+  · rw [if_pos a]
+    exact ⟨fun h => (by cases h), fun h => absurd h.1 a⟩
+
 end go
 
 end linkvtxn
