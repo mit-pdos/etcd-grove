@@ -161,6 +161,11 @@ fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnap
 
 ## Probably not worth their time now
 
+- **[etcd-watch-resume-below-start-revision](etcd-watch-resume-below-start-revision.md)**: a watch
+  from a future revision with progress notifications can, after a reconnect, deliver events below
+  its start revision. Needs a future start revision, progress, and a transient stream failure.
+  One-line fix with a test.
+
 - **[etcd-watch-resume-nil-watch-chan](etcd-watch-resume-nil-watch-chan.md)**: a watch canceled
   while the client reconnects can be handed a nil `WatchChan` (a receive blocks forever); needs
   the caller's goroutine to be late by a whole reconnect. Small fix with a test.

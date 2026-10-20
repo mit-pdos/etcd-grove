@@ -3200,7 +3200,7 @@ theorem watchGRPCStream.run.wp_proof
       -- what the dispatch reads
       ihave #Hrok : mvcc.respOk ρ $$ []
       · iunfold mvcc.watchRecvOk at Hrecv
-        icases Hrecv with ⟨%γw, %rr, %fcs, %Lr, %D, %d, -, -, -, -, -, -, #Hrs⟩
+        icases Hrecv with ⟨%γw, %rr, %fcs, %Lr, %D, %d, -, -, -, -, -, -, -, #Hrs⟩
         iapply Hrs $$ %ρ %(List.mem_of_getLast? Hlast)
       ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := client.evs_eventsAt sl ps ρ.evs (by rw [← hev0]; exact Hpslen)
         $$ [Hps Hevs]

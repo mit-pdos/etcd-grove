@@ -54,7 +54,7 @@ theorem startRead_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E
   iunfold v3rpc.srvReadAt at H
   icases H with ⟨%log, #Hc, %hl⟩
   iunfold mvcc.startRead
-  iright
+  iright; ileft
   iexists log
   rw [hst]
   iframe Hc

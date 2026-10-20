@@ -86,7 +86,7 @@ registration); and what each response says (`respOk`). -/
 def watchRecvOk (γ : WsNames) (w : Loc) (rs : List RespM) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (L : Log) (D : List Deliv) (d : Nat),
     watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜startLo r γw.lo⌝ ∗
-    evLog γ.st L ∗
+    evLog γ.st L ∗ relLb γ L.length ∗
     ⌜rs.map RespM.evs = (D.filter Deliv.sent).map Prod.snd ∧
       (D.map Prod.fst).flatten = watchEvents L r γw.lo d ∧ (d ≤ L.length ∨ d ≤ γw.lo) ∧
       ∀ x ∈ rs, x.w = w⌝ ∗
@@ -114,7 +114,7 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
   iunfold delivsCut at HDc2
   icases HDc2 $$ %k %hk with ⟨%d', #Hwf'⟩
   iunfold evsWf at Hwf'
-  icases Hwf' with ⟨%L, #Hlb, %HL⟩
+  icases Hwf' with ⟨%L, #Hlb, #Hrl, %HL⟩
   isplitl [Ha Hlc]
   · iunfold chanWatcher
     iexists γw, r, fcs, evsw, D, d
@@ -122,7 +122,7 @@ theorem chanWatcher_recvOk (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
     ipureintro; exact ⟨Hwc, Hslo, HD⟩
   iunfold watchRecvOk
   iexists γw, r, fcs, L, D.take k, d'
-  iframe Hm Hf Hlb
+  iframe Hm Hf Hlb Hrl
   isplitr
   · ipureintro; exact Hslo
   isplitr
@@ -482,7 +482,7 @@ theorem watchRecvOk_cert (γ : WsNames) (w : Loc) (rs : List RespM) (log' : Log)
         ⌜startLo r γw.lo⌝ := by
   iintro ⟨Hok, #Hc⟩
   iunfold watchRecvOk at Hok
-  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, #Hm, #Hf, %Hslo, #Hlb, %HL, #HD, -⟩
+  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, #Hm, #Hf, %Hslo, #Hlb, -, %HL, #HD, -⟩
   ihave #Hs := idxCert_sealed _ _ $$ Hc
   ihave #Hlb' := evLog_sealed _ _ $$ Hlb
   ihave %hcmp := idxSealed_cmp _ _ _ $$ Hlb' Hs
@@ -548,7 +548,7 @@ theorem watchRecvOk_revs (γ : WsNames) (w : Loc) (rs : List RespM) :
           (x.evs ≠ [] → x.id = r.id)⌝ := by
   iintro #Hok
   iunfold watchRecvOk at Hok
-  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, -, #Hf, -, -, %HL, -, #Hrs⟩
+  icases Hok with ⟨%γw, %r, %fcs, %L, %D, %d, -, #Hf, -, -, -, %HL, -, #Hrs⟩
   iexists r, fcs
   iframe Hf
   iintro %x %hx
@@ -572,7 +572,7 @@ theorem watchRecvOk_startRev (γ : WsNames) (w : Loc) (rs : List RespM) (r : Wat
         ⌜startLo r γw.lo ∧ ∀ x ∈ rs, ∀ ev ∈ x.evs, ∃ j, γw.lo ≤ j ∧ ev.kv.modRev = W64 j⌝ := by
   iintro ⟨#Hok, #Hf⟩
   iunfold watchRecvOk at Hok
-  icases Hok with ⟨%γw, %r', %fcs', %L, %D, %d, #Hm, #Hf', %Hslo, -, %HL, #HD, -⟩
+  icases Hok with ⟨%γw, %r', %fcs', %L, %D, %d, #Hm, #Hf', %Hslo, -, -, %HL, #HD, -⟩
   ihave %Hag := watcherFixed_agree w r r' fcs fcs' $$ [$Hf $Hf']
   obtain ⟨rfl, rfl⟩ := Hag
   ihave %Hkept : ⌜∀ dl ∈ D, ∀ ev ∈ dl.2, ev ∈ dl.1⌝ $$ []

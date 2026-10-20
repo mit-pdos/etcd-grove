@@ -527,7 +527,7 @@ theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg
         ⌜(rs.map mvcc.RespM.evs).flatten = mvcc.watchEvents L rg lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝ := by
   iintro ⟨#Hc, #Hw, #Hfcs⟩
   unfold mvcc.watchRecvOk
-  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, %HD, #HDf, -⟩
+  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, -, %HD, #HDf, -⟩
   unfold mvcc.watcherIs
   icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, -, %Hlo⟩
   ihave %Hag : iprop(⌜rg = r ∧ fcs = fcs'⌝) $$ []
