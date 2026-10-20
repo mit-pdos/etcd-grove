@@ -242,3 +242,38 @@ Not yet: `Process` (its spec against the contract, `wStep` per round with the re
 `wStep` case to W2's lemma (the model's `WMsg`/`WResp` to W2's `Msg`); and the raft functions'
 witness paths (`maybeCommit`, `stepCandidate`, `maybeStartNewSubterm`,
 `sendAppendToWitness`, `sendRequestVoteToWitness`) with a witness.
+
+## W3b: `Process`, its instance at W2's ghost state, the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
+
+- `ErrWitnessStateModified` is among the raft package's facts (`isInitialized`, `Base.lean`;
+  `Init.lean`): a non-nil pointer error (`IsNewError`). The storage contract's `Update` gives
+  back a pointer error (`IsNewError`) on failure, so `Process`'s `err == ErrWitnessStateModified`
+  is decided (interface equality of two pointer errors).
+- `witness.Process` (`Spec/.../witness__Process.lean`, proved): for any reading `P`/`Lb`/`Φr`
+  of the storage's states the caller picks, the cache's `wNoUpdate` answer is `Φr`'s
+  (`Hcache`), at each read the caller gives `Lb` and the round's obligation `wObl` (`wStep`: an
+  answer without a write, or the write's shift run at the compare-and-swap), for a request of
+  the four types the witness answers. A failed compare-and-swap is retried; `Process` is
+  partially correct (the loop need not end). `NewWitness` (`ownWitness … WHS.zero true`) and
+  `Close` specified and proved.
+- The instance (`InvWitnessGhost.lean`): `P σ := wGhost γ σ.ws`, `Lb σ := wSt γ σ.ws`,
+  `Φr := wRespOk γ` (an answer's protocol reading, `absMsg`, carries `isMessage`), a request
+  read as W2's `Msg` (`wAbsReq`). Each `wStep` case is one of W2's lemmas: the heartbeat at the
+  stored term `wGhost_heartbeat`; the cache's answers `wSt_app_noupd` (and nothing for an older
+  term's or a pre-vote's); at the CAS a newer term `wGhost_raise`, an append `wGhost_write`
+  (after the raise), a vote `wGhost_vote`, a pre-vote the state written back unchanged.
+  `witness.Process.ghost` (`InvWitnessIface.lean`) is the spec at W2's ghost state: a request
+  whose reading is legitimate is answered, if at all, legitimately, the cache a state of the
+  history.
+- `ownWitnessI γ N wi` (the `*witness` `NewWitness` returns, as a `Witness`) and
+  `Witness.wp_Process'`/`Witness.wp_Close'`: the methods through the interface, what raft and
+  the kv example call. `WHS.zero.ws = wInit`: a fresh witness's cache is W2's initial state.
+- Two adjustments of W2, both minimal: the vote rule counts the responders over the stored
+  replication set (`votesInSet`), which needs it without repetition, so `isMessage .wapp` and
+  `wStJust` carry `Nodup` (proved at `sendWApp` from `vs ≡ₚ elements …`); and `vote_insert`
+  is at any mask containing `raftLogN` (`vote_insertE`), so the storage's namespace `N` need
+  only be disjoint from the log invariant's (`↑raftLogN ⊆ ⊤ ∖ ↑N`), not inside `raftRegN`.
+- Premises of the instance: the witness's id is `γ.reWit ≠ 0`, the request is to it
+  (`μ.to = γ.reWit`) from a node (`μ.frm ≠ 0`), and `raftCommitInv γ`.
+
+No new axiom or `sorry`.
