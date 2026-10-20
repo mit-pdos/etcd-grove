@@ -1,0 +1,52 @@
+finished depth 0 states 1 seen 5
+finished depth 1 states 5 seen 43
+finished depth 2 states 43 seen 221
+finished depth 3 states 221 seen 949
+finished depth 4 states 949 seen 3795
+finished depth 5 states 3795 seen 13497
+finished depth 6 states 13497 seen 45137
+finished depth 7 states 45137 seen 144063
+finished depth 8 states 144063 seen 427387
+finished depth 9 states 427387 seen 1167565
+finished depth 10 states 1167565 seen 2925113
+finished depth 11 states 2925113 seen 6686635
+finished depth 12 states 6686635 seen 13906113
+Traceback (most recent call last):
+  File "/home/ubuntu/etcd-grove/.claude/worktrees/raft-witness/issues/raft-witness-reconfig-model/model.py", line 380, in <module>
+  File "/home/ubuntu/etcd-grove/.claude/worktrees/raft-witness/issues/raft-witness-reconfig-model/model.py", line 342, in bfs
+object address  : 0x74a3c166dea0
+object refcount : 4
+object type     : 0xa99aa0
+object type name: MemoryError
+object repr     : MemoryError()
+lost sys.stderr
+Error in sys.excepthook:
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/apport_python_hook.py", line 238, in partial_apport_excepthook
+  File "/usr/lib/python3/dist-packages/apport_python_hook.py", line 70, in apport_excepthook
+  File "/usr/lib/python3.14/traceback.py", line 12, in <module>
+  File "/usr/lib/python3.14/_colorize.py", line 5, in <module>
+  File "/usr/lib/python3.14/dataclasses.py", line 5, in <module>
+  File "<frozen importlib._bootstrap>", line 1371, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1342, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 938, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 755, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 851, in get_code
+  File "<frozen importlib._bootstrap_external>", line 951, in get_data
+object address  : 0x74a3c166df00
+object refcount : 1
+object type     : 0xa99aa0
+object type name: MemoryError
+object repr     : MemoryError()
+lost sys.stderr
+
+Original exception was:
+Traceback (most recent call last):
+  File "/home/ubuntu/etcd-grove/.claude/worktrees/raft-witness/issues/raft-witness-reconfig-model/model.py", line 380, in <module>
+  File "/home/ubuntu/etcd-grove/.claude/worktrees/raft-witness/issues/raft-witness-reconfig-model/model.py", line 342, in bfs
+object address  : 0x74a3c166dea0
+object refcount : 5
+object type     : 0xa99aa0
+object type name: MemoryError
+object repr     : MemoryError()
+lost sys.stderr

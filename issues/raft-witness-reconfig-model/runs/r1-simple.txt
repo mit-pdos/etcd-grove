@@ -1,0 +1,22 @@
+finished depth 0 states 1 seen 5
+finished depth 1 states 5 seen 27
+finished depth 2 states 27 seen 117
+finished depth 3 states 117 seen 485
+finished depth 4 states 485 seen 1915
+finished depth 5 states 1915 seen 6905
+finished depth 6 states 6905 seen 23313
+finished depth 7 states 23313 seen 74371
+finished depth 8 states 74371 seen 219789
+finished depth 9 states 219789 seen 598073
+finished depth 10 states 598073 seen 1494426
+finished depth 11 states 1494426 seen 3417775
+finished depth 12 states 3417775 seen 7137329
+finished depth 13 states 7137329 seen 13636982
+Traceback (most recent call last):
+  File "/home/ubuntu/etcd-grove/.claude/worktrees/raft-witness/issues/raft-witness-reconfig-model/model.py", line 380, in <module>
+    import random
+             ^^^^
+  File "/home/ubuntu/etcd-grove/.claude/worktrees/raft-witness/issues/raft-witness-reconfig-model/model.py", line 345, in bfs
+    if ns not in parent: parent[ns] = (s, a)
+                         ~~~~~~^^^^
+MemoryError
