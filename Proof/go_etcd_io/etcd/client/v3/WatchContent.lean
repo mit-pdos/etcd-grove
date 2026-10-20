@@ -523,11 +523,11 @@ events of revisions `[lo, d)` of a watched log (`mvcc.evLog`). -/
 theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg : mvcc.WatchRange)
     (fcs : GoSlice) (lo : Nat) :
     mvcc.watchRecvOk (GF := GF) γ w rs ∗ mvcc.watcherIs γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ⊢
-      ∃ (L : mvcc.Log) (d : Nat), mvcc.evLog γ.st L ∗
+      ∃ (L : mvcc.Log) (d : Nat), mvcc.evLog γ.st L ∗ mvcc.relLb γ L.length ∗
         ⌜(rs.map mvcc.RespM.evs).flatten = mvcc.watchEvents L rg lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝ := by
   iintro ⟨#Hc, #Hw, #Hfcs⟩
   unfold mvcc.watchRecvOk
-  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, -, %HD, #HDf, -⟩
+  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, #Hrl, %HD, #HDf, -⟩
   unfold mvcc.watcherIs
   icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, -, %Hlo⟩
   ihave %Hag : iprop(⌜rg = r ∧ fcs = fcs'⌝) $$ []
@@ -554,7 +554,7 @@ theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg
     unfold mvcc.filtered
     simp
   iexists L, d
-  iframe HL
+  iframe HL Hrl
   ipureintro
   obtain ⟨h1, h2, h3, -⟩ := HD
   rw [← Hlo.1]
@@ -660,7 +660,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   irevert Hrecv
   rw [hw]
   iintro #Hrecv
-  ihave ⟨%L, %d, #HLe, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hrecv Hwi Hfcs]
+  ihave ⟨%L, %d, #HLe, -, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hrecv Hwi Hfcs]
   · iframe #
   ihave #HL := mvcc.evLog_sealed _ _ $$ HLe
   obtain ⟨hflat, hdL⟩ := HLd

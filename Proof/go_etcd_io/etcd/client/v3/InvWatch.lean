@@ -367,6 +367,10 @@ structure WsPrm (GF : BundledGFunctors) where
   /-- (K2e-6) the watch's start revision was read from the server's store (`mvcc.startRead`):
   its create request says so (`CreateReqM.sr`) -/
   sr : Bool
+  /-- (D24) the status of `recvc`'s positions: a ghost map from a position to whether a goroutine
+  of the substream started there (`true`, `lifeStart`) or `run` sent a response there that is not
+  a created one (`false`, `notStart`): a goroutine's first response is its create's -/
+  γps : GName
 
 /-- **The watch promises completeness** (K2e-7d): its start revision was read from the server's
 store (`sr`), a non-zero one, and it is a prefix watch of a non-empty key not all `0xff` (its range
@@ -428,12 +432,63 @@ instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
     Persistent (recvCmpl V P k v r) := by
   unfold recvCmpl; infer_instance
 
+/-- **A goroutine of the substream started at `recvc`'s position `k`** (persistent; D24): its
+first response is a created one, with `run`'s half of the request's `rev` field. -/
+def lifeStart (P : WsPrm GF) (k : Nat) : IProp GF := ghostMapElem P.γps k DFrac.discard true
+
+/-- **`run` sent a response at `recvc`'s position `k` that is not a created one** (persistent;
+D24): no goroutine of the substream started there. -/
+def notStart (P : WsPrm GF) (k : Nat) : IProp GF := ghostMapElem P.γps k DFrac.discard false
+
+instance lifeStart_persistent (P : WsPrm GF) (k : Nat) : Persistent (lifeStart (GF := GF) P k) := by
+  unfold lifeStart; infer_instance
+
+instance notStart_persistent (P : WsPrm GF) (k : Nat) : Persistent (notStart (GF := GF) P k) := by
+  unfold notStart; infer_instance
+
+theorem lifeStart_notStart (P : WsPrm GF) (k : Nat) :
+    lifeStart (GF := GF) P k ∗ notStart P k ⊢ False := by
+  unfold lifeStart notStart
+  iintro ⟨H1, H2⟩
+  ihave %H := ghostMapElem_agree _ _ _ _ _ _ $$ H1 H2
+  cases H
+
+/-- The position a substream's resume revision follows after a response `r`: its last event's
+revision, or its header's revision. -/
+abbrev resumePos (r : RespModel) : w64 := (r.events.getLast?.map EvModel.rev).getD r.hdrRev
+
+/-- **A response's resume fact** (persistent; D24): unless the watch promises no completeness, a
+create from just after the response's position (`resumePos`) is a start-read one
+(`startOk ... true`: the server will deliver every event from it on). -/
+def resumeF (V : WEnv GF) (P : WsPrm GF) (r : RespModel) : IProp GF :=
+  iprop(⌜P.γ.cpl = false⌝ ∨ startOk V true (resumePos r + W64 1))
+
+instance resumeF_persistent (V : WEnv GF) (P : WsPrm GF) (r : RespModel) :
+    Persistent (resumeF V P r) := by
+  unfold resumeF; infer_instance
+
+/-- **A substream's resume revision** (persistent; D24): the request's `rev` field `rv` the
+substream would be re-created from after a reconnect, at the dispatch cursor's position `hl` and
+the second cursor's `c2`: at or above the watch's start (unless that is "now", `0`), above the
+dispatch cursor (unless that is below `0`: no event yet of a watch from "now"), just past the
+second cursor (when the watch promises completeness), and a create from it is one the server
+accepts (`startOk`, start-read when the watch promises completeness). -/
+def resumeOk (V : WEnv GF) (P : WsPrm GF) (rv hl c2 : w64) : IProp GF :=
+  iprop(⌜(P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rv) ∧ (sint.Z hl < sint.Z rv ∨ sint.Z hl < 0) ∧
+      (P.γ.cpl = true → c2 = rv - W64 1)⌝ ∗ startOk V (cplOf P) rv)
+
+instance resumeOk_persistent (V : WEnv GF) (P : WsPrm GF) (rv hl c2 : w64) :
+    Persistent (resumeOk V P rv hl c2) := by
+  unfold resumeOk; infer_instance
+
 /-- **The `k`th response `run` sends a substream** (`recvc`'s element) at `wr` (read-only): a
 `WatchResponse` modelled by `r` (its events read-only, its header non-nil, `watchHdrOwn`: the
 `Revision` owned for a response with events; no close error, no compaction, not canceled),
 satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γhi`, a mono list
-`run` extends); the first (`k = 0`) is the created response, with `run`'s half of the request's
-`rev` field (the substream writes it from then on), with no events; no other is created. Or the
+`run` extends); a created response has no events and `run`'s half of
+the request's `rev` field (the substream writes it from then on); another is at no goroutine's
+start (`notStart`, D24: a goroutine's first response is its create's) and gives its resume fact
+(`resumeF`). Or the
 substream's goroutine has stopped for good (`γx` set: what its `donec` publishes): `run`'s dispatch
 to it after a failed one (the select took `donec`), which the stopped goroutine never receives. -/
 def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
@@ -445,10 +500,10 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
-    (if k = 0 then
-      iprop(⌜r.created = true ∧ r.events = []⌝ ∗
+    (if r.created then
+      iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(⌜r.created = false⌝))) ∨
+    else iprop(notStart P k.toNat ∗ resumeF V P r))) ∨
     dghostVar P.γx DFrac.discard true)
 
 /-- **A substream** `ws` of the watch `P` (persistent): its request's read-only fields

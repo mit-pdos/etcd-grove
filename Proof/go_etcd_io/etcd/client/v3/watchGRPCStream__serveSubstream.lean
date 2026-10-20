@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__startBufWait
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__recordBufWait
 public import Spec.go_etcd_io.etcd.client.v3.watcherStream__resetBufWait
 public import Spec.go_etcd_io.etcd.client.v3.WatchResponse__Err
+public import Proof.go_etcd_io.etcd.client.v3.WatchResume
 
 @[expose] public section
 
@@ -160,10 +161,10 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
     rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
-    (if k = 0 then
-      iprop(⌜r.created = true ∧ r.events = []⌝ ∗
+    (if r.created then
+      iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
-    else iprop(⌜r.created = false⌝)))
+    else iprop(notStart P k.toNat ∗ resumeF V P r)))
 
 /-- **A response received while the substream runs is live**: `recvElem`'s other disjunct says
 the substream has exited (its exit flag `γx` set, read-only), which its goroutine (holding the
@@ -268,9 +269,9 @@ invariant): the deferred functions record the buffer's wait, mark the substream 
 local macro "ss_return" : tactic => `(tactic| (
   wp_for_post
   ihave Hrv : iprop(∃ (q : Qp) (rv : w64), wsReqF P.ws go!"rev" ↦{DFrac.own q} rv) $$ [Hrev]
-  · icases Hrev with (⟨-, Hrev⟩ | ⟨-, %rv, Hrev⟩)
+  · icases Hrev with (⟨-, Hrev⟩ | ⟨-, Hrev⟩)
     · iexists _, _; iexact Hrev
-    · iexists 1, rv; iexact Hrev
+    · iexists 1, _; iexact Hrev
   icases Hrv with ⟨%q, %rv, Hrv⟩
   wp_apply wp_recordBufWait $$ [Hbl Hbwt Hrv Hbuf] as ⟨Hbl, Hla, %t'', Hbwt⟩
   · iframe Flg Hbl Hblok Hbwt
@@ -312,7 +313,10 @@ local macro "c2_fin" : tactic => `(tactic| (
   iexists _, _, _
   iframe
   ipureintro
-  first | exact ⟨HC.1, HC.2.2⟩ | simp [HC.1]))
+  refine ⟨?_, ?_, ?_⟩
+  · first | exact HC.1 | simp [HC.1]
+  · first | exact HC.2.2 | simp
+  · first | exact Or.inl Hnr0.2 | exact Or.inr ⟨Hif, rfl⟩ | (right; exact ⟨by simpa using Hif, rfl⟩)))
 
 set_option maxRecDepth 10000 in
 set_option maxHeartbeats 4000000 in
@@ -324,11 +328,12 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     watchGRPCStream.serveSubstream.spec (GF := GF) (hG := hG) := by
   intro V G callSl P b0 bl t0 rc γrc
   wp_start as ⟨#HG, #HP, Hclosing, Hbuf, Hb0, Hbl, #Hblok, Hbwt, Hrev, Hretc, Hres, Hprod, Hauth,
-    Hcons, #Hhi0, Hc20, #Hrc, Hdn, Hx, Hwg, Hwstok⟩
+    Hcons, #Hhi0, Hc20, #Hh20, #Hls0, #Hrc, Hdn, Hx, Hwg, Hwstok⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
   icases HP' with ⟨#Hro, #Hfoutc, #Hfrecvc, #Hfdonec, #Houtc, #Hrecvc, #Hdonec, #Hctx, #Hretcb,
-    %HPws, -⟩
+    %HPws, #Hsok⟩
+  ihave #Hrs0 := resumeOk_init V P HPws.2.1 HPws.2.2 $$ Hsok
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
@@ -360,8 +365,10 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       "Hc2" ∷ cur2Pos P sent.length (rcv.length - bufl.length) ∗
       "Hbuf" ∷ wsF P.ws go!"buf" ↦ b ∗ "Hb" ∷ sliceOwn b bufl ∗
       "Hbe" ∷ bufElems V P (rcv.length - bufl.length) bufl ∗
-      "Hrev" ∷ (⌜rcv = []⌝ ∗ wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∨
-        ⌜rcv ≠ []⌝ ∗ ∃ rv : w64, wsReqF P.ws go!"rev" ↦ rv) ∗
+      "Hrev" ∷ (⌜rcv = [] ∧ nr = P.rev⌝ ∗ wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∨
+        ⌜rcv ≠ []⌝ ∗ wsReqF P.ws go!"rev" ↦ nr) ∗
+      "#Hrsm" ∷ (∃ hl c2 : w64, monoListIdxOwn P.γhi rcv.length hl ∗
+        (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 rcv.length c2) ∗ resumeOk V P nr hl c2) ∗
       "Hretc" ∷ wsReqF P.ws go!"retc" ↦ rcf ∗
       "Hrr" ∷ ((⌜rcv = [] ∧ rcf = P.retc⌝ ∗ retcRes P) ∨ ⌜rcv ≠ [] ∧ rcf = null⌝) ∗
       "Hbwt" ∷ wsF P.ws go!"bufWaitStartTime" ↦ t ∗
@@ -376,8 +383,10 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     isplitr
     · iapply bufElems_nil
     isplitl [Hrev]
-    · ileft; iframe Hrev; try (ipureintro; rfl)
-    ileft; iframe Hres; try (ipureintro; simp)
+    · ileft; iframe Hrev; first | (ipureintro; exact ⟨trivial, trivial⟩) | (ipureintro; exact ⟨rfl, rfl⟩) | skip
+    isplitr
+    · first | (iexists (P.rev - W64 1), (P.rev - W64 1); iframe Hhi0 Hh20 Hrs0) | iframe Hh20 Hrs0
+    ileft; iframe Hres; first | (ipureintro; exact ⟨trivial, trivial⟩) | (ipureintro; simp) | skip
   wp_for IH
   iunfold sliceOwn at Hb
   icases Hb with ⟨Hb, Hbcap⟩
@@ -478,13 +487,13 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     wp_auto
     ihave ⟨%q, %rv, Hrv, Hrevb⟩ : iprop(∃ (q : Qp) (rv : w64), wsReqF P.ws go!"rev" ↦{DFrac.own q} rv ∗
         (wsReqF P.ws go!"rev" ↦{DFrac.own q} rv -∗
-          (⌜rcv = []⌝ ∗ wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∨
-            ⌜rcv ≠ []⌝ ∗ ∃ rv : w64, wsReqF P.ws go!"rev" ↦ rv))) $$ [Hrev]
-    · icases Hrev with (⟨%Hc, Hrev⟩ | ⟨%Hc, %rv, Hrev⟩)
+          (⌜rcv = [] ∧ nr = P.rev⌝ ∗ wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∨
+            ⌜rcv ≠ []⌝ ∗ wsReqF P.ws go!"rev" ↦ nr))) $$ [Hrev]
+    · icases Hrev with (⟨%Hc, Hrev⟩ | ⟨%Hc, Hrev⟩)
       · iexists _, _; iframe Hrev; iintro Hrev; ileft; iframe Hrev; ipureintro; exact Hc
-      · iexists 1, rv; iframe Hrev; iintro Hrev; iright; isplitr
+      · iexists 1, nr; iframe Hrev; iintro Hrev; iright; isplitr
         · ipureintro; exact Hc
-        iexists rv; iexact Hrev
+        iexact Hrev
     wp_apply wp_recordBufWait $$ [Hbl Hbwt Hrv Hbuf] as ⟨Hbl, Hla, %t'', Hbwt⟩
     · iframe Flg Hbl Hblok Hbwt
       unfold wsLogA
@@ -540,7 +549,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         rw [← Hblen.1, h1]; simp [subslice]
       simp only [hsub]
       iexact Hb
-    iexact Hrev
+    iframe Hrev Hrsm
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -571,17 +580,31 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     ihave #Hwr' := Hwr
     iStructNamed Hwr'
     wp_auto
+    icases Hrsm with ⟨%hl0, %c20, #Hhl0, #Hc20', #Hrs⟩
     by_cases hk : rcv = []
     · subst hk
-      simp only [List.length_nil, Int.natCast_zero, Int.toNat_zero, ↓reduceIte]
-      icases Hk with ⟨%Hcr, %rv, Hrv2⟩
+      simp only [List.length_nil, Int.natCast_zero, Int.toNat_zero]
+      cases hcrr : r.created
+      · -- (D24) not a created response: none comes first
+        irevert Hk
+        simp only [hcrr, Bool.false_eq_true, ↓reduceIte]
+        iintro ⟨#Hns, -⟩
+        iexfalso
+        iapply lifeStart_notStart P 0
+        isplit
+        · iexact Hls0
+        · iexact Hns
+      irevert Hk
+      simp only [hcrr, ↓reduceIte]
+      iintro ⟨%Hcr0, %rv, Hrv2⟩
+      have Hcr : r.created = true ∧ r.events = [] := ⟨hcrr, Hcr0⟩
       have Hcreated : v.Created' = true := Hv.2.2.2.2.1.trans Hcr.1
       rw [Hcreated]
       icases Hrr with (⟨%Hrr, Hres⟩ | %Hrr)
       rotate_left
       · exact absurd rfl Hrr.1
       obtain ⟨-, rfl⟩ := Hrr
-      icases Hrev with (⟨-, Hrev⟩ | ⟨%Hne, -⟩)
+      icases Hrev with (⟨%Hnr0, Hrev⟩ | ⟨%Hne, -⟩)
       rotate_left
       · exact absurd rfl Hne
       icombine Hrev Hrv2 gives %Hrveq
@@ -608,7 +631,8 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗
           ∃ (sent' : List go_etcd_io.etcd.client.v3.WatchResponse) (C' : List w64) (nr' : w64),
           spscProducer P.γ.spsc sent' ∗ monoListAuthOwn P.γ.cur 1 C' ∗
-          ⌜C'.length = sent'.length + 1 ∧ C'.getLast? = some hiA⌝ ∗ cur2Pos P sent'.length 1 ∗
+          ⌜C'.length = sent'.length + 1 ∧ C'.getLast? = some hiA ∧
+            (nr' = P.rev ∨ (P.rev = W64 0 ∧ nr' = r.hdrRev))⌝ ∗ cur2Pos P sent'.length 1 ∗
           wsReqF P.ws go!"retc" ↦ (null : Loc) ∗ nextRev_ptr ↦ nr' ∗
           wsReqF P.ws go!"rev" ↦ P.rev ∗ wr_ptr ↦ wr)))
       isplitl [Hprod Hauth Hretc nextRev Hres Hrev wr Hc2]
@@ -621,7 +645,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
           iexists sent, C, nr
           rw [Hif]
           iframe
-          ipureintro; exact ⟨HC.1, HC.2.2⟩
+          ipureintro; exact ⟨HC.1, HC.2.2, Or.inl Hnr0.2⟩
         · iunfold retcRes at Hres
           wp_apply wp_bag_send $$ [Hres]
           · iframe Hretcb
@@ -654,6 +678,33 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iintro %x ⟨%Hx, %sent', %C', %nr', Hprod, Hauth, %HC', Hc2, Hretc, nextRev, Hrev, wr⟩
       subst Hx
       wp_auto
+      ihave %Hhl0e := mono_list_idx_agree P.γhi 0 _ _ $$ HiB Hhl0
+      subst Hhl0e
+      ihave ⟨%h2A, #Hh2A, #Hw2⟩ := recvCmpl_at V P 0 v r c20 $$ [Hcm Hc20']
+      · iframe Hcm; simp only [Int.toNat_zero]; iexact Hc20'
+      ihave %Hh2e : ⌜P.γ.cpl = true → h2A = c20⌝ $$ []
+      · icases Hw2 with (%Hcf | #Hw2)
+        · ipureintro; intro h; rw [Hcf] at h; cases h
+        ihave %H := watchRespOk_created V P.o.key c20 h2A v r Hcr.1 Hcr.2 $$ Hw2
+        ipureintro; intro _; exact H
+      ihave %Hhi0e := mono_list_idx_agree P.γhi 0 _ _ $$ HiB Hhi0
+      have hl0 : nr' = P.rev ∨ sint.Z hiA < 0 := by
+        rcases HC'.2.2 with h | ⟨h0, -⟩
+        · exact Or.inl h
+        · right; rw [Hhi0e, h0]; decide
+      ihave #Hrs' := resumeOk_created V P r.hdrRev nr' hiA c20 HPws.2.2 HC'.2.2 hl0 $$ [Hrs]
+      · rw [← Hnr0.2]; iexact Hrs
+      ihave #Hrsm' : iprop(∃ hl c2 : w64, monoListIdxOwn P.γhi 1 hl ∗
+          (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 1 c2) ∗ resumeOk V P nr' hl c2) $$ []
+      · iexists hiA, c20
+        iframe Hrs'
+        isplitr
+        · simp only [Int.toNat_zero, Nat.zero_add] at *; iexact HiA
+        icases Hh2A with (%Hcf | #Hh2A)
+        · ileft; ipureintro; exact Hcf
+        · cases hcp : P.γ.cpl
+          · ileft; ipureintro; rfl
+          · iright; rw [← Hh2e hcp]; simp only [Int.toNat_zero, Nat.zero_add] at *; iexact Hh2A
       ihave #Hev' := Hev
       iunfold eventsAt at Hev'
       icases Hev' with ⟨%ls, #Hls, %Hlslen, -⟩
@@ -667,26 +718,39 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       iexists [wr], sent', C', [], b, (null : Loc), nr', t', hiA
       simp only [named, List.nil_append, List.length_singleton, List.length_nil, Nat.sub_zero,
         Nat.zero_add]
+      iframe Hrsm'
       iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc HiA Hc2
       unfold sliceOwn
       iframe Hb Hbcap
       isplitr
-      · ipureintro; exact ⟨HC'.1, by simp, HC'.2⟩
+      · ipureintro; exact ⟨HC'.1, by simp, HC'.2.1⟩
       isplitr
       · iapply bufElems_nil
       isplitl [Hrev]
       · iright
         isplitr
         · ipureintro; simp
-        iexists _; iexact Hrev
+        iexact Hrev
       iright; ipureintro; simp
     · have hk' : ((rcv.length : Nat) : Int) ≠ 0 := by
         intro h; apply hk; exact List.eq_nil_of_length_eq_zero (by omega)
-      simp only [hk', ↓reduceIte]
-      icases Hk with %Hcr
+      cases hcrr : r.created
+      rotate_left
+      · -- (D24) a created response after the first: `run`'s half of `rev` with the whole
+        irevert Hk
+        simp only [hcrr, ↓reduceIte]
+        iintro ⟨-, %rv, Hrv2⟩
+        icases Hrev with (⟨%Hc, -⟩ | ⟨-, Hrev⟩)
+        · exact absurd Hc.1 hk
+        iexfalso
+        iapply w64_ptsto_excl $$ [$Hrev $Hrv2]
+      irevert Hk
+      simp only [hcrr, Bool.false_eq_true, ↓reduceIte]
+      iintro ⟨#Hns, #Hrf⟩
+      have Hcr : r.created = false := hcrr
       have Hcreated : v.Created' = false := Hv.2.2.2.2.1.trans Hcr
-      icases Hrev with (⟨%Hc, -⟩ | ⟨-, %rv, Hrev⟩)
-      · exact absurd Hc hk
+      icases Hrev with (⟨%Hc, -⟩ | ⟨-, Hrev⟩)
+      · exact absurd Hc.1 hk
       ihave ⟨%dq, Hhf, Hback⟩ : iprop(∃ dq : DFrac,
           structFieldRef etcdserverpb.ResponseHeader go!"Revision" v.Header' ↦{dq} r.hdrRev ∗
           (structFieldRef etcdserverpb.ResponseHeader go!"Revision" v.Header' ↦{dq} r.hdrRev -∗
@@ -717,7 +781,9 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       wp_auto
       -- F3: the resume revision moves only forward (`issues/etcd-watch-resume-below-start-revision.md`)
       wp_bind (If _ _ _)
-      iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗ (∃ nr' : w64, nextRev_ptr ↦ nr') ∗
+      iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗ (∃ nr' : w64, nextRev_ptr ↦ nr' ∗
+          ⌜(sint.Z nr < sint.Z (r.hdrRev + W64 1) ∧ nr' = r.hdrRev + W64 1) ∨
+            (¬ sint.Z nr < sint.Z (r.hdrRev + W64 1) ∧ nr' = nr)⌝) ∗
           wr_ptr ↦ wr ∗
           structFieldRef etcdserverpb.ResponseHeader go!"Revision" v.Header' ↦{dq} r.hdrRev)))
       isplitl [nextRev wr Hhf]
@@ -726,18 +792,21 @@ theorem watchGRPCStream.serveSubstream.wp_proof
           isplitr
           · first | itrivial | (ipureintro; rfl)
           iframe
-          try (iexists _; iframe)
+          first | (iexists _; iframe) | skip
+          ipureintro; left; exact ⟨by simpa using Hif, rfl⟩
         · (try wp_auto)
           isplitr
           · first | itrivial | (ipureintro; rfl)
           iframe
-          try (iexists _; iframe)
-      iintro %x ⟨%Hx, ⟨%nr0, nextRev⟩, wr, Hhf⟩
+          first | (iexists _; iframe) | skip
+          ipureintro; right; exact ⟨by simpa using Hif, rfl⟩
+      iintro %x ⟨%Hx, ⟨%nr0, nextRev, %Hnr0⟩, wr, Hhf⟩
       subst Hx
       wp_auto
       wp_bind (If (Val #(decide (sint.Z (W64 0) < sint.Z v.Events'.len))) _ _)
       iapply (wp_wand_r (Φ := fun x => iprop(⌜x = executeVal⌝ ∗ ∃ nr' : w64,
-          nextRev_ptr ↦ nr' ∗ wr_ptr ↦ wr)))
+          nextRev_ptr ↦ nr' ∗ wr_ptr ↦ wr ∗
+          ⌜(r.events = [] ∧ nr' = nr0) ∨ (∃ e, r.events.getLast? = some e ∧ nr' = e.rev + W64 1)⌝)))
       isplitl [nextRev wr]
       · wp_if_destruct
         · have Hlt : sint.nat (v.Events'.len - W64 1) < ls.length := by word
@@ -758,16 +827,42 @@ theorem watchGRPCStream.serveSubstream.wp_proof
           · first | itrivial | (ipureintro; rfl)
           iexists _
           iframe
+          ipureintro; right; refine ⟨e, ?_, rfl⟩
+          rw [List.getLast?_eq_getElem?, ← He]
+          congr 1
+          rw [← Hlslen]; have h := Hsl.1; word
         · (try wp_auto)
           isplitr
           · first | itrivial | (ipureintro; rfl)
           iexists _
           iframe
-      iintro %x ⟨%Hx, %nr', nextRev, wr⟩
+          ipureintro; left; refine ⟨?_, rfl⟩
+          rw [← List.length_eq_zero_iff, ← Hlslen]
+          have : ¬ (0 < sint.Z v.Events'.len) := by simpa using Hif
+          have h2 := Hsl.1; word
+      iintro %x ⟨%Hx, %nr', nextRev, wr, %Hnr'⟩
       subst Hx
       wp_auto
       icases Hrr with (⟨%Hr, -⟩ | %Hr)
       · exact absurd Hr.1 hk
+      -- (D24) the resume revision after the response
+      simp only [Int.toNat_natCast]
+      ihave %Hhl0e := mono_list_idx_agree P.γhi _ _ _ $$ HiB Hhl0
+      subst Hhl0e
+      ihave ⟨%h2A, #Hh2A, #Hw2⟩ := recvCmpl_at V P _ v r c20 $$ [Hcm Hc20']
+      · iframe Hcm; simp only [Int.toNat_natCast]; iexact Hc20'
+      ihave #Hrs' := resumeOk_step V P nr hiB c20 hiA h2A nr0 nr' r v HPws.2.1 HPws.2.2
+          ⟨Hcr, Hv.2.2.2.2.2.2, Hv.2.2.2.2.2.1⟩ ⟨Hv.2.1, Hv.2.2.1, Hv.2.2.2.1⟩ Hnr0 Hnr' $$
+          [Hrs Hok Hw2 Hrf]
+      · iframe #
+      ihave #Hrsm' : iprop(∃ hl c2 : w64, monoListIdxOwn P.γhi (rcv.length + 1) hl ∗
+          (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 (rcv.length + 1) c2) ∗
+          resumeOk V P nr' hl c2) $$ []
+      · iexists hiA, h2A
+        iframe Hrs'
+        isplitr
+        · simp only [Int.toNat_natCast] at *; iexact HiA
+        simp only [Int.toNat_natCast] at *; iexact Hh2A
       wp_apply wp_slice_literal (V := Loc) [wr]
       isplitr
       · ipureintro; rfl
@@ -782,6 +877,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       have hidx : rcv.length + 1 - (bufl.length + 1) = rcv.length - bufl.length := by omega
       simp only [named, List.length_append, List.length_singleton]
       (try rw [hidx])
+      iframe Hrsm'
       iframe Hcons Hprod Hauth Hbuf Hbwt nextRev Hretc Hcur Hc2
       unfold sliceOwn
       iframe Hb Hbcap
@@ -794,18 +890,19 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         rw [hk2]
         unfold recvLive
         iexists v, r, hiB, hiA
+        simp only [Int.toNat_natCast]
         iframe Hwr Hev HiB HiA Hok Hcm
         isplitr
         · ipureintro; exact Hv
         isplitl [Hhf Hback]
         · iapply Hback; iexact Hhf
-        simp only [hk', ↓reduceIte]
-        ipureintro; exact Hcr
+        simp only [hcrr, Bool.false_eq_true, ↓reduceIte]
+        iframe Hns Hrf
       isplitl [Hrev]
       · iright
         isplitr
         · ipureintro; simp
-        iexists _; iexact Hrev
+        iexact Hrev
       iright; ipureintro; exact ⟨by simp, Hr.2⟩
   iapply BigAndL.bigAndL_cons.2
   isplit

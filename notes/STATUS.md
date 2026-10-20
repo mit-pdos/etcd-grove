@@ -85,6 +85,18 @@ fix is needed, below).
   its proof takes both branches of the new test (the resume revision is still unconstrained in
   its spec until S1d). Gates: build 5765 jobs; links; trust base and collections unchanged;
   translations and `gen-init` up to date.
+- **S1c-R1 (the resume revision tracked; done).** `serveSubstream` keeps the request's `rev` field the
+  substream's resume revision (`resumeOk`, `WatchResume.lean`: at or above the watch's start unless
+  "now", above the dispatch cursor unless no event yet, just past the second cursor when the watch
+  promises completeness, a start-read create's facts), moved by each response (`resumeOk_created`,
+  `resumeOk_step` over F3). `recvElem` changed form: a created response at any position carries
+  `run`'s half of `rev`; another is at no goroutine's start (`notStart`, a ghost map of `recvc`'s
+  positions, `WsPrm.γps`, `lifeStart` for the goroutine's first) and carries its resume fact
+  (`resumeF`: a create from just past it is start-read, from mvcc's released length or an
+  event-less response's notified log: `WatchResumeSrv.lean`); `run` marks the positions
+  (`psAt`, `psQ` in `wsRest`). `recv_unfiltered` also gives the delivered log's `relLb`. Only
+  internal statements changed; gates: build 5767 jobs; links; trust base and collections
+  unchanged; translations and `gen-init` up to date.
 - **For the user** (done, kept for the record): F1 and F2 are pushed (`watch-resume-fixes` = `a8a459955`, the pin; on
   `goose-lean` as `c15c7dda8`, on the collaborator's D22 commits). Push F3: `watch-resume-fixes`
   at `16f73d6eb` (in `/shared/etcd-goose-lean-wr`), and cherry-pick it onto `goose-lean`; S1c then

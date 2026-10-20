@@ -29,7 +29,9 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- **`w.serveSubstream(ws, resumec)`**, the goroutine of the watch `P` (its substream `ws`, fresh:
 not closing, an empty buffer, a buffer logger or none, half the request's `rev` field and its
 `retc` field with the caller's resources): receives `run`'s responses on `recvc` (the consumer's
-side; the dispatch cursor's first position `rev - 1`), sends its channel on `retc` at the created
+side; the dispatch cursor's first position `rev - 1`; D24: its goroutine starts at `recvc`'s
+position `0`, `lifeStart`, and it keeps the request's `rev` field the resume revision of its
+responses, `resumeOk`), sends its channel on `retc` at the created
 response (and publishes it if asked), buffers the others and publishes them on `outc` (the
 producer's side, the cursor `γ.cur` from `rev - 1`, the second one `γ.cur2` as the dispatch's
 second cursor `γh2`, `cur2Pos`) in order, each with the contract's facts
@@ -49,7 +51,8 @@ abbrev watchGRPCStream.serveSubstream.spec : Prop :=
       spscProducer P.γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListAuthOwn P.γ.cur 1 [P.rev - W64 1] ∗
       spscConsumer P.γr ([] : List Loc) ∗ monoListIdxOwn P.γhi 0 (P.rev - W64 1) ∗
-      cur2Pos P 0 0 ∗ ownBroadcastChan rc γrc iprop(False) .Unknown ∗
+      cur2Pos P 0 0 ∗ (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 0 (P.rev - W64 1)) ∗
+      lifeStart P 0 ∗ ownBroadcastChan rc γrc iprop(False) .Unknown ∗
       ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Pending ∗
       dghostVar P.γx (DFrac.own 1) false ∗ wgDone G.wgs ∗
       ghostMapElem G.γws P.ws (DFrac.own 1) () }}
