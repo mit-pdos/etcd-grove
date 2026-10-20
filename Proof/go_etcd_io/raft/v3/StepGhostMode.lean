@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.raft.v3.StepLemmasR
 public import Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 public import Proof.go_etcd_io.raft.v3.SnapConf
+public import Proof.go_etcd_io.raft.v3.PSubOk
 
 @[expose] public section
 
@@ -153,6 +154,18 @@ theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : Messag
     obtain ⟨g', -, -, B, recv, H⟩ := H
     exact StepR.commit_mono H
 
+/-- (2026-10-20, witness support) A step keeps `PSubOk` (`StepC.psubOk`, `StepR.psubOk`). -/
+theorem GMode.StepOut.psubOk {md : GMode} {c : CfgM} {id : w64} {m : MessageM} {s s' : NState}
+    {md' : GMode} (H : md.StepOut c id m s s' md') : PSubOk (toPState s) → PSubOk (toPState s') := by
+  cases md with
+  | static =>
+    obtain ⟨-, B, recv, h⟩ := H
+    exact StepC.psubOk h
+  | dyn dec c0 h0 g =>
+    obtain ⟨g', -, -, B, recv, h⟩ := H
+    intro hp
+    exact StepR.psubOk h hp
+
 /-- A step of any message but a `MsgStorageApplyResp` keeps the mode (the configuration index
 does not move, `CidxMove`). -/
 theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
@@ -248,14 +261,27 @@ theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns
 
 /-- What the mode keeps beyond `ownRaftGhost` (`ghostRestM`), and (D21 M3) `NsLink`. -/
 def ghostRest (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
-  iprop(⌜NsLink γ s⌝ ∗ ghostRestM γ md c id s)
+  iprop(⌜NsLink γ s⌝ ∗ ⌜PSubOk (toPState s)⌝ ∗ ghostRestM γ md c id s)
 
 theorem ghostRest_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ghostRest (GF := GF) γ md c id s ⊢ ⌜NsLink γ s⌝ ∗ ghostRest γ md c id s := by
   unfold ghostRest
-  iintro ⟨%Hn, H⟩
+  iintro ⟨%Hn, %Hps, H⟩
   iframe H
-  isplitr <;> ipureintro <;> exact Hn
+  isplitr; · ipureintro; exact Hn
+  isplitr; · ipureintro; exact Hn
+  ipureintro; exact Hps
+
+/-- (2026-10-20, witness support) A leader's subterm is below its log's last index (`PSubOk`),
+at every step boundary. -/
+theorem ghostRest_psub (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ghostRest (GF := GF) γ md c id s ⊢ ⌜PSubOk (toPState s)⌝ ∗ ghostRest γ md c id s := by
+  unfold ghostRest
+  iintro ⟨%Hn, %Hps, H⟩
+  iframe H
+  isplitr; · ipureintro; exact Hps
+  isplitr; · ipureintro; exact Hn
+  ipureintro; exact Hps
 
 /-- The ghost state `raft.Step` keeps (see the file header). -/
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
@@ -274,6 +300,17 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   iframe Hg Hr
 
 /-- The commit invariant, from the ghost state in either mode (2026-10-14, stage R). -/
+theorem ownStepGhost_psub (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ ⌜PSubOk (toPState s)⌝ ∗ ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  icases ghostRest_psub γ md c id s $$ Hr with ⟨%Hps, Hr⟩
+  isplitr
+  · ipureintro; exact Hps
+  iunfold ownStepGhost
+  iframe Hg Hr
+
 theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢ raftCommitInv γ := by
   unfold ownStepGhost
@@ -333,24 +370,27 @@ theorem ownStepGhost_ns_last (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64)
 theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh)
     (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ (.dyn dec c0 h0 g) c id s ⊣⊢
-      ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ NsLink γ s⌝ ∗
+      ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ NsLink γ s ∧
+        PSubOk (toPState s)⌝ ∗
         ownRaftGhostR γ dec c0 id (rOf s g) := by
   simp only [ownStepGhost, ghostRest, ghostRestM, GMode.isDyn, ownRaftGhostR, rOf.proj_p,
     rOf.proj_fp]
   constructor
-  · iintro ⟨Hg, %Hnl, %Hdc, #Hfr, #Hw, #Hc⟩
+  · iintro ⟨Hg, %Hnl, %Hps, %Hdc, #Hfr, #Hw, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     isplitr
-    · ipureintro; exact ⟨HD, hc, Hnl⟩
+    · ipureintro; exact ⟨HD, hc, Hnl, Hps⟩
     iframe Hg Hfr Hw
     isplitr
     · ipureintro; exact HI
     iintro %hcand; iapply Hc; exact hcand
   · iintro ⟨%Hdc, Hg, %HI, #Hfr, #Hw, #Hc⟩
-    obtain ⟨HD, hc, Hnl⟩ := Hdc
+    obtain ⟨HD, hc, Hnl, Hps⟩ := Hdc
     iframe Hg Hfr Hw
     isplitr
     · ipureintro; exact Hnl
+    isplitr
+    · ipureintro; exact Hps
     isplitr
     · ipureintro; exact ⟨HD, hc, HI⟩
     iintro %hcand; iapply Hc; exact hcand
@@ -427,7 +467,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
   iintro #Hrc Hrecv Hcr Htk Hlc Hg Hrest
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnl, Hrest⟩
+  icases Hrest with ⟨%Hnl, %Hps, Hrest⟩
   imod ghost_stepCDM γ md c id m B HB s recv s' Hstep Hdh $$ Hrc Hrecv Hcr Htk Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
@@ -437,8 +477,9 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   · ipureintro; exact Hout
   iunfold ghostRest
   iframe Hrest
-  ipureintro
-  unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
+  isplitr
+  · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
+  ipureintro; exact Hout.psubOk Hps
 
 /-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
 same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/
@@ -474,14 +515,17 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hsb : (toPState s').sub = (toPState s).sub := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
+  have hps : PSubOk (toPState s') = PSubOk (toPState s) := by unfold PSubOk; rw [hr, hsb, hb, hl]
   cases md with
-  | static => simp only [ghostRest, ghostRestM]; rw [hn]
+  | static => simp only [ghostRest, ghostRestM]; rw [hn, hps]
   | dyn dec c0 h0 g =>
     simp only [ghostRest, ghostRestM]
-    rw [hn]
-    iintro ⟨%Hnl, %H, #Hfr, #Hw, #Hc⟩
+    rw [hn, hps]
+    iintro ⟨%Hnl, %Hps, %H, #Hfr, #Hw, #Hc⟩
     isplitr
     · ipureintro; exact Hnl
+    isplitr
+    · ipureintro; exact Hps
     obtain ⟨HD, hc', HI⟩ := H
     have hfull : (rOf s' g).full = (rOf s g).full := by
       simp only [RState.full, rOf.proj_fp, rOf.proj_p]; rw [hl]
@@ -613,7 +657,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
   iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg Hrest
   iunfold ghostRest at Hrest
-  icases Hrest with ⟨%Hnl, Hrest⟩
+  icases Hrest with ⟨%Hnl, %Hps, Hrest⟩
   imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hid Hc' $$ Hrc Hm Hrecv
     Hcr Htk Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
@@ -623,8 +667,9 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   · ipureintro; exact Hout
   iunfold ghostRest
   iframe Hrest
-  ipureintro
-  unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
+  isplitr
+  · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng]; exact Hnl
+  ipureintro; exact Hout.psubOk Hps
 
 end ghost
 

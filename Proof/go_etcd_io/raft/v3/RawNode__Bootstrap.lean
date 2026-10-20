@@ -509,7 +509,7 @@ theorem RawNode.Bootstrap.wp_proof
           fun h => by simp only at h; rw [HNr] at h; cases h⟩
         (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
         (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
-        Hnl0
+        Hnl0 (by unfold PSubOk; intro h; exfalso; simp [toPState, HNr, proleRole] at h)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hes Hsteps Hsteps_cap [] Hcomm0 []
     · iapply pendList_nil
     · rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil

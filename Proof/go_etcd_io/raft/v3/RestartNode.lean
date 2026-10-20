@@ -124,6 +124,7 @@ theorem RestartNode.wp_proof
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           (by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩)
+          (by rw [Hrel.1]; unfold PSubOk; intro h; exfalso; simp [initPState, proleRole] at h)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
       · iapply pendList_nil
       · rw [Hsd]; iapply storedRecs_nil
@@ -156,7 +157,8 @@ theorem RestartNode.wp_proof
         rw [Hro]
         iframe Hgr
         ipureintro
-        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩⟩
+        refine ⟨HD, ?_, by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩,
+          by rw [Hrel.1]; unfold PSubOk; intro h; exfalso; simp [initPState, proleRole] at h⟩
         rw [Hdiff]; rfl
       iapply ownRawNode_intro γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,

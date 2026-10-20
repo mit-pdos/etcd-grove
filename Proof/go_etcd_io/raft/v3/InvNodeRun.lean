@@ -920,7 +920,7 @@ theorem wp_applyConf_dyn
     with ⟨%Hdp, Hghost⟩
   icases ownStepGhost_ns_last γ _ cf id s $$ Hghost with ⟨%Hli2, Hghost⟩
   icases (ownStepGhost_dyn γ dec c0 h0 g cf id s).1 $$ Hghost with ⟨%HDc, Hgr⟩
-  obtain ⟨HD, Hgc, Hnl⟩ := HDc
+  obtain ⟨HD, Hgc, Hnl, Hps⟩ := HDc
   iunfold ownRaftGhostR at Hgr
   icases Hgr with ⟨Hg, %HI, #Hfr, #Hwr, #Hcamp⟩
   icases (entails_wand (persistent_entails_left (wand_entails
@@ -1008,7 +1008,7 @@ theorem wp_applyConf_dyn
   ihave Hghost : ownStepGhost γ (.dyn dec c0 h0 g') cs'.cfg id s' $$ [Hgr]
   · iapply (ownStepGhost_dyn γ dec c0 h0 g' cs'.cfg id s').2
     iframe Hgr
-    ipureintro; exact ⟨HD, rfl, by unfold NsLink; rw [Hok.gh]; exact Hnl⟩
+    ipureintro; exact ⟨HD, rfl, by unfold NsLink; rw [Hok.gh]; exact Hnl, StepR.psubOk HR Hps⟩
   ihave Hghost : ownStepGhost γ (({ rs with cfg := cs', capplied := k + 1 } : RNState).mode.toG
       ⟨({ rs with cfg := cs', capplied := k + 1 } : RNState).capplied,
        ({ rs with cfg := cs', capplied := k + 1 } : RNState).cfg, fp⟩) cs'.cfg id s' $$ [Hghost]
@@ -1067,7 +1067,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (Hok : ApplyCCOk γ.reCfg id s s')
     -- (D19p, 2026-10-18) the new tracker within the tracked bound
     (Htrk' : TrackedOk γ (CfgM.simple γ.reCfg (domSet s'.progress \ γ.reCfg)) id)
-    (Hnl : NsLink γ s) :
+    (Hnl : NsLink γ s) (Hps : PSubOk (toPState s)) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1100,6 +1100,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
     (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keep rfl rfl Hpv Hgh Htm Hro)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
     (by unfold RNFl; rw [Hls]; exact Hrnfl) Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl)
+    (StepC.psubOk Hst (by rw [Hrel.1]; exact Hps))
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr'
 
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
@@ -1125,7 +1126,7 @@ theorem wp_rn_raft_applyConfChange
   icombine Hr Hr' gives %Heq
   subst Heq
   icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
-    ⟨Hphys, Hghost, %Htrk, %Hnl⟩
+    ⟨Hphys, Hghost, %Htrk, %Hnl, %Hps⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   iapply wp_fupd
@@ -1138,7 +1139,7 @@ theorem wp_rn_raft_applyConfChange
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
-    (trackedOk_shrink Htrk Hlp Hdom') Hnl
+    (trackedOk_shrink Htrk Hlp Hdom') Hnl Hps
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc with Hrn
   try wp_auto
   imodintro
@@ -1159,7 +1160,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have Hm : rs.mode = .static := Hmd.2 Hst
   iNamed H
   icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
-    ⟨Hphys, Hghost, %Htrk, %Hnl⟩
+    ⟨Hphys, Hghost, %Htrk, %Hnl, %Hps⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
@@ -1172,7 +1173,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   · iexact Hphys
   iintro Hphys
   iapply ownRawNode_intro_static γ rn id rs s _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Htrk Hnl
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Htrk Hnl Hps
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
 
 /-- `r.applyConfChange(cc)` on the node's raft struct in the dynamic mode (2026-10-15, stage N;
