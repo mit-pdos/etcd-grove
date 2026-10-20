@@ -12415,3 +12415,15 @@ gives it to `kv.Restore` and gets the new epoch's back. (4) The restored store's
 writer at the image's log with its receipts (item 4), a fresh revision budget, the sole writer
 (`soleLog` from `restoreLogOk_len`), the new epoch's reader pool and compaction right (D22m (A)), and
 `srvWTPool` re-allocated over the new backend.
+
+## D22m decided: `Restore` axiomatized for now; the store's epochs after D22 (2026-10-20 · the user)
+
+The user: `store.Restore` and `watchableStore.Restore` are trust-boundary axioms for now (stated in
+S-j, where `applySnapshot` calls `kv.Restore`), and S-g2 (D22m (A), the store's epochs) is a future
+item, after track T-S is done. The axioms must be true of the Go code: `isStore` holds `b`,
+`kvindex`, `fifoSched` and `stopc` as `↦□`, which `Restore` writes, so a postcondition that keeps
+`isStore s γ` with the old fields, or that states new `↦□` facts of the same fields, is false or
+contradictory. S-j states them over what the apply thread owns at the swap (the kept
+`srvKVCloser`) and a fresh abstraction of the restored store (new names, its own predicate), and
+says which facts of the old store's users (readers holding the old `γ`) it does not give; if no
+true and usable form exists short of the epochs, S-j stops and reports.
