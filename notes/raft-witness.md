@@ -427,7 +427,10 @@ premise), `Config.Clone`, `checkInvariants`; `EnterJoint`/`LeaveJoint` take `c.w
 identity), `raft.applyConfChange` and the static `ApplyConfChange` (`RawNode`, `node`: with
 `γ.reWit = 0`) take it; `ccApplyM_wit`/`ccApplyM_wit0` without an `AddWitness`.
 
-**WIP (committed after CC1, raft `Link` builds; the full build was running at handoff):**
+**WIP (committed after CC1, `de432ffe86`; raft `Link` builds, the full build does not yet: two
+callers of the new premises, `examples/kv/StartCluster.lean` (~line 420: the node constructors'
+`csm.Witness' = 0`, kv's `kvConfState` has witness `0`; and the `MemoryStorage` premises) and
+`etcdserver/bootstrappedRaft__newRaftNode.lean` (~line 76: `StartNode`'s new last premise)):**
 `ConfStateM.Witness'` (the field; `csPts` reads it; every `ConfStateM.mk` gained a 6th argument
 `(W64 0)`), `GetWitness` at any witness, `ConfState.Equivalent`/`assertConfStatesEquivalent`
 compare it (new premise `c1.Witness' = c2.Witness'`), `toConfChangeSingle` emits `AddWitness` for
