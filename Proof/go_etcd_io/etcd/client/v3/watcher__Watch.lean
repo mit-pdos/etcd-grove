@@ -81,7 +81,7 @@ theorem watcher.Watch.wp_proof
   ipersist filters
   ipersist prevKV
   ipersist retc
-  let P0 : WsPrm GF := ⟨opWatchModel key gs, rev, ctx, cs, (opWatchModel key gs).key, (opWatchModel key gs).base.rangeEnd, op.createdNotify', op.progressNotify', op.watchBufLogEnabled', zero_val GoSlice, retc, γret, null, ⟨⟨γret, 0, 0⟩, 0, 0, false⟩, null, null, ⟨γret, 0, 0⟩, 0, 0, null, γret, 0, sr, 0⟩
+  let P0 : WsPrm GF := ⟨opWatchModel key gs, rev, ctx, cs, (opWatchModel key gs).key, (opWatchModel key gs).base.rangeEnd, op.createdNotify', op.progressNotify', op.watchBufLogEnabled', zero_val GoSlice, retc, γret, null, ⟨⟨γret, 0, 0⟩, 0, 0, false⟩, null, null, ⟨γret, 0, 0⟩, 0, 0, 0, sr, 0⟩
   have HrevEq : op.rev' = rev := Hfrev.trans Hrv
   rw [HrevEq] at *
   rw [Hffr, Hfr] at *

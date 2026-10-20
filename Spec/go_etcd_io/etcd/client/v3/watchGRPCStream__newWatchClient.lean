@@ -28,7 +28,8 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`w.newWatchClient()` at its first call** (no substream yet: `substreams` empty, `resuming`
 empty; under `noRetryableStreamErr` it is called only once, by `run` at its start): closes the
-current `resumec` (no substream listens) and makes a new one that is never closed (`False`), makes
+current `resumec` (no substream listens; D24: its generation `n` ends, `γend`) and makes a new one
+of the next generation, makes
 a new empty `substreams` and `resuming`, opens a gRPC watch stream (`openWatchClient`) and, on
 success, starts `serveWatchClient` on it as `run`'s next epoch (D24: appended to `G.γep`, from
 `respc`'s position `sent.length`, with `respc`'s producer side), returning the stream's client end,
@@ -36,20 +37,23 @@ its sender's token and its specification; on failure `respc`'s producer side bac
 grpc's `status` accepts. -/
 abbrev watchGRPCStream.newWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (m0 : Loc) (s0 : GoSlice) (rc : Loc)
-    (γrc : ChanNames) (sent : List Loc) (eps : List EpInfo),
+    (γrc : ChanNames) (n : Nat) (sent : List Loc) (eps : List EpInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isWGS V G callSl ∗
       wgsF G.wgs go!"substreams" ↦ m0 ∗ ownMap m0 (DFrac.own 1) (∅ : GMap w64 Loc) ∗
       wgsF G.wgs go!"resuming" ↦ s0 ∗ sliceOwn s0 [] ∗
-      wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
+      wgsF G.wgs go!"resumec" ↦ rc ∗
+      ownBroadcastChan rc γrc (monoNatLbOwn G.γend (n + 1)) .Pending ∗ monoNatAuthOwn G.γend 1 n ∗
       sspscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"newWatchClient")) (Val #()))
   {{ (wc err : GoInterface), RET (PairV #wc #err);
       ∃ (m' : Loc) (s' : GoSlice) (rc' : Loc) (γrc' : ChanNames),
       wgsF G.wgs go!"substreams" ↦ m' ∗ ownMap m' (DFrac.own 1) (∅ : GMap w64 Loc) ∗
       wgsF G.wgs go!"resuming" ↦ s' ∗ sliceOwn s' [] ∗
-      wgsF G.wgs go!"resumec" ↦ rc' ∗ ownBroadcastChan rc' γrc' iprop(False) .Pending ∗
+      wgsF G.wgs go!"resumec" ↦ rc' ∗
+      ownBroadcastChan rc' γrc' (monoNatLbOwn G.γend (n + 2)) .Pending ∗
+      monoNatAuthOwn G.γend 1 (n + 1) ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (γs : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
           (cd' : context.ContextDesc (IProp GF)) (γc : GName),
         v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp V.R.γ) Dn cd' ∗

@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem watchGRPCStream.unicastResponse.wp_proof :
     watchGRPCStream.unicastResponse.spec (GF := GF) (hG := hG) := by
-  intro V wgs wr watchID m M dq1 dq2 Pf Sf
-  wp_start as ⟨Hsub, Hmap, Hcap⟩
+  intro V wgs wr watchID m M dq1 dq2 Pf Sf Df γend n
+  wp_start as ⟨Hsub, Hmap, Hauth, Hcap⟩
   (try wp_auto)
   wp_apply wp_map_lookup2 $$ [$Hmap] as Hmap
   (try wp_auto)
@@ -45,13 +45,18 @@ theorem watchGRPCStream.unicastResponse.wp_proof :
     (try wp_auto)
     icases Hcap with ⟨%HPws, Hcap⟩
     iunfold sendCap1 at Hcap
-    icases Hcap with ⟨#Hws, Hprod, Hel⟩
+    icases Hcap with ⟨#Hws, Hprod, Hel, Hdc⟩
     generalize Pf ws = P at HPws ⊢
     generalize Sf ws = sent
+    generalize Df ws = d
     subst HPws
     ihave #Hws' := Hws
     iunfold wsIs at Hws'
-    icases Hws' with ⟨-, -, #Hrecvc, #Hdonec, -, #Hspsc, #Hdn, -⟩
+    icases Hws' with ⟨-, #Hrecvc, -, #Hspsc, -⟩
+    iunfold dnCap at Hdc
+    icases Hdc with ⟨Hdc, #Href⟩
+    iunfold donecAt at Hdc
+    icases Hdc with ⟨Hdonec, #Hdn⟩
     simp only [Option.isSome_some, decide_true, Bool.not_true, Option.getD_some]
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking
@@ -77,17 +82,23 @@ theorem watchGRPCStream.unicastResponse.wp_proof :
       isplitr
       · ipureintro; rfl
       iunfold sendDone
-      iexact Hprod
+      iframe Hprod
+      iunfold dnCap
+      iframe Href
+      iunfold donecAt
+      iframe
+      try iexact Hdn
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
-      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, P.donec, P.γdn
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, d.dc, d.γ
       isplit
       · ipureintro; rfl
       isplit
       · iapply ownBroadcastChan_is_chan $$ Hdn
       iapply broadcast_chan_receive $$ Hdn
-      iintro ⟨#HdnD, -⟩
+      iintro ⟨#HdnQ, -⟩
+      ihave #HdnD := Href $$ HdnQ Hauth
       (try wp_auto)
       iapply HΦ
       iframe
@@ -96,6 +107,11 @@ theorem watchGRPCStream.unicastResponse.wp_proof :
       · ipureintro; rfl
       iunfold sendFail
       iframe Hprod Hel HdnD
+      iunfold dnCap
+      iframe Href
+      iunfold donecAt
+      iframe
+      try iexact Hdn
     iapply BigAndL.bigAndL_nil.2
     itrivial
 

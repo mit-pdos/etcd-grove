@@ -225,30 +225,39 @@ theorem create_or {L L' : List v3rpc.WatchReqM} (h : L' = L ∨ ∃ c, L' = L ++
   · exact hi
   · exact cancels_of_snoc (.create c) X (by intro e; cases e) (Or.inr rfl) i hi
 
+/-- **The current lifetime of a substream's goroutine, as `run` holds it** (D24): of the current
+generation `n` of `resumec`, `run`'s half of its `donec` field (the channel publishing `lifeQ`),
+its invariant, `run`'s token for taking what the goroutine leaves in it. -/
+def wsLife (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (P : WsPrm GF) : IProp GF :=
+  iprop(∃ L : LifePrm, ⌜L.gen = n⌝ ∗ donecAt P.ws (lifeDn V G P L) ∗ lifeInvIs V G P L ∗
+    ownTok L.γk)
+
 /-- **A substream `run` made and has not seen stop**: its values, its phase (agreeing with the
-maps, `phOk`), its id field, what `run` holds of it, and (unit W-K) its id never cancelled unless
-it stopped (`noCancelOk`). -/
-def wsElem (V : WEnv GF) (γs : StreamNames) (S : RunSt) (ws : Loc) : IProp GF :=
+maps, `phOk`), its id field, what `run` holds of it, (unit W-K) its id never cancelled unless
+it stopped (`noCancelOk`), and (D24) its goroutine's current lifetime (`wsLife`). -/
+def wsElem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (ws : Loc) :
+    IProp GF :=
   iprop(∃ (P : WsPrm GF) (ph : WPh), ⌜P.ws = ws ∧ phOk S ws ph⌝ ∗ wsIs V P ∗
-    wsF ws go!"id" ↦ ph.id ∗ wsRest V γs S.Dm P ph ∗ noCancelOk S P ph)
+    wsF ws go!"id" ↦ ph.id ∗ wsRest V γs S.Dm P ph ∗ noCancelOk S P ph ∗ wsLife V G n P)
 
 /-- **`run`'s state at a `return`** (the deferred teardown's precondition; the local `closeErr` at
 `cep`, the `closing` map at `clm`): the close error, the maps, the substreams, the wait group's
 adder, `run`'s thread token, `donec` not yet closed. -/
 def runExit (V : WEnv GF) (G : WgsPrm GF) (cep clm : Loc) : IProp GF :=
   iprop(∃ (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) (ce e : GoInterface) (mref : Loc)
-      (s : GoSlice),
+      (s : GoSlice) (n : Nat),
     cep ↦ ce ∗ statusErrOk ce ∗ ownMap clm (DFrac.own 1) S.CL ∗
     wgsF G.wgs go!"substreams" ↦ mref ∗ ownMap mref (DFrac.own 1) S.M ∗
     wgsF G.wgs go!"resuming" ↦ s ∗ sliceOwn s S.l ∗
     wgsF G.wgs go!"closeErr" ↦ e ∗ statusErrOk e ∗ ⌜gOk S U⌝ ∗
-    ghostMapAuth G.γws 1 U ∗ ([∗map] ws ↦ _u ∈ U, wsElem V γs S ws) ∗
-    wgAdder G.wgs ∗ threadTok ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending)
+    ghostMapAuth G.γws 1 U ∗ ([∗map] ws ↦ _u ∈ U, wsElem V G n γs S ws) ∗
+    wgAdder G.wgs ∗ threadTok ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗
+    monoNatAuthOwn G.γend 1 n)
 
 /-- **`run`'s state at the head of its loop** (but its local variables): the maps, the gRPC
 stream's sender token and `respc`'s consumer side, what it knows (`S`, `gOk`), the server's tokens
 it holds, the substreams it made (`U`), the wait group's adder, its thread token, `donec`. -/
-def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b : Nat) (clm csm : Loc) :
+def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n : Nat) (clm csm : Loc) :
     IProp GF :=
   iprop(∃ (S : RunSt) (U : GMap Loc Unit) (rcv : List Loc) (mref : Loc) (s : GoSlice)
       (e : GoInterface),
@@ -260,34 +269,36 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b : Nat) (clm csm
     ⌜rcv.length = b + S.Dm.length⌝ ∗ epochSt G γs b ∗ v3rpc.downLbW γs S.Dm ∗ ⌜gOk S U⌝ ∗
     ([∗list] i ∈ S.ansd, ansH γs i) ∗ ([∗list] X ∈ S.regs, idH γs X) ∗
     (□ [∗list] m ∈ S.Dm, respInfo m) ∗
-    ghostMapAuth G.γws 1 U ∗ ([∗map] ws ↦ _u ∈ U, wsElem V γs S ws) ∗
-    wgAdder G.wgs ∗ threadTok ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending)
+    ghostMapAuth G.γws 1 U ∗ ([∗map] ws ↦ _u ∈ U, wsElem V G n γs S ws) ∗
+    wgAdder G.wgs ∗ threadTok ∗ ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗
+    monoNatAuthOwn G.γend 1 n)
 
-theorem runExit_of_core (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b : Nat)
+theorem runExit_of_core (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b n : Nat)
     (clm csm cep : Loc) (ce : GoInterface) :
-    runCore V G γs b clm csm ∗ cep ↦ ce ∗ statusErrOk ce ⊢ runExit V G cep clm := by
+    runCore V G γs b n clm csm ∗ cep ↦ ce ∗ statusErrOk ce ⊢ runExit V G cep clm := by
   iintro ⟨Hc, Hcep, #Hce⟩
   unfold runCore
   icases Hc with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, -, Hsub, Hm, Hres, Hs, HcF, #He, -, -, -,
-    -, -, %HgOk, -, -, -, Hwsa, Hels, Had, Htt, Hdn⟩
+    -, -, %HgOk, -, -, -, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
   unfold runExit
-  iexists γs, S, U, ce, e, mref, s
+  iexists γs, S, U, ce, e, mref, s, n
   iframe
   iframe #
   ipureintro; exact HgOk
 
-theorem wsElem_mono (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
+theorem wsElem_mono (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
     (hD : S'.Dm = S.Dm) (h : ∀ ph, phOk S ws ph → phOk S' ws ph)
     (hL : ∀ X, phOk S ws (.reg X) → ∀ i : Nat, S'.L[i]? = some (v3rpc.WatchReqM.cancel X) →
       S.L[i]? = some (v3rpc.WatchReqM.cancel X)) :
-    wsElem V γs S ws ⊢ wsElem V γs S' ws := by
+    wsElem V G n γs S ws ⊢ wsElem V G n γs S' ws := by
   unfold wsElem
-  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   iexists P, ph
   rw [hD]
   iframe HP Hid Hrest
   isplitr
   · ipureintro; exact ⟨HPws, h ph Hph⟩
+  iframe Hlife
   iapply noCancelOk_mono P ph (fun X e => by subst e; exact hL X Hph) $$ Hnc
 
 /-- **A cancel request `run` builds** (`&pb.WatchRequest{RequestUnion:
@@ -332,11 +343,20 @@ theorem ptsto_split_half (l : Loc) (v : w64) :
   rw [Qp.half_add_half] at h
   exact h.1
 
+theorem ptsto_split_half_loc (l : Loc) (v : Loc) :
+    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
+      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
+        typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) := by
+  have h := ((fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
+    (1 : Qp).half (1 : Qp).half)
+  rw [Qp.half_add_half] at h
+  exact h.1
+
 /-- A fresh substream (its id field owned) is none of those `run` made. -/
-theorem wsElems_fresh (V : WEnv GF) (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) (ws : Loc)
+theorem wsElems_fresh (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) (ws : Loc)
     (v : w64) :
-    ([∗map] w ↦ _u ∈ U, wsElem V γs S w) ∗ wsF ws go!"id" ↦ v ⊢
-      ⌜U !! ws = none⌝ ∗ ([∗map] w ↦ _u ∈ U, wsElem V γs S w) ∗ wsF ws go!"id" ↦ v := by
+    ([∗map] w ↦ _u ∈ U, wsElem V G n γs S w) ∗ wsF ws go!"id" ↦ v ⊢
+      ⌜U !! ws = none⌝ ∗ ([∗map] w ↦ _u ∈ U, wsElem V G n γs S w) ∗ wsF ws go!"id" ↦ v := by
   iintro ⟨Hm, Hid⟩
   cases h : U !! ws with
   | none => iframe; ipureintro; rfl
@@ -380,17 +400,18 @@ theorem wsRest_snoc_ctrl (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.Watc
   | closedRun X => simp only [wsRest]; iintro H; iexact H
   | orphan => simp only [wsRest]; iintro H; iexact H
 
-theorem wsElem_mono' (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
+theorem wsElem_mono' (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
     (hD : ∀ P ph, phOk S ws ph → wsRest V γs S.Dm P ph ⊢ wsRest V γs S'.Dm P ph)
     (h : ∀ ph, phOk S ws ph → phOk S' ws ph) (hLe : S'.L = S.L) :
-    wsElem V γs S ws ⊢ wsElem V γs S' ws := by
+    wsElem V G n γs S ws ⊢ wsElem V G n γs S' ws := by
   unfold wsElem
-  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   iexists P, ph
   ihave Hrest := hD P ph Hph $$ Hrest
   iframe HP Hid Hrest
   isplitr
   · ipureintro; exact ⟨HPws, h ph Hph⟩
+  iframe Hlife
   iapply noCancelOk_mono P ph (fun X _ i hi => by rw [hLe] at hi; exact hi) $$ Hnc
 
 theorem sendTok_lookup (γs : StreamNames) (L : List v3rpc.WatchReqM) (i : Nat) (r : v3rpc.WatchReqM) :
@@ -484,14 +505,14 @@ theorem wsRest_snoc_other (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.Wat
   iapply cur2St_mono V γs P X w rg lo sent hev (List.prefix_append Dm [m]) $$ Hc2
 
 /-- **A substream another response's id does not name** keeps its element across the response. -/
-theorem wsElem_recv_other (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
+theorem wsElem_recv_other (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S S' : RunSt} (ws : Loc)
     (m : v3rpc.WatchRespM) (ρ : mvcc.RespM) (hsrc : m.src = some ρ) (hD : S'.Dm = S.Dm ++ [m])
     (hX : ∀ X, phOk S ws (.reg X) → ρ.id ≠ X) (h : ∀ ph, phOk S ws ph → phOk S' ws ph)
     (hLe : S'.L = S.L) :
-    mvcc.respOk ρ ∗ wsElem V γs S ws ⊢ wsElem V γs S' ws := by
+    mvcc.respOk ρ ∗ wsElem V G n γs S ws ⊢ wsElem V G n γs S' ws := by
   iintro ⟨#Hr, Hw⟩
   unfold wsElem
-  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   iexists P, ph
   rw [hD]
   iframe HP Hid
@@ -505,6 +526,7 @@ theorem wsElem_recv_other (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (ws :
     | queued si => iunfold wsRest at Hrest; simp only [wsRest]; iexact Hrest
     | closedRun X => simp only [wsRest]; itrivial
     | orphan => simp only [wsRest]; itrivial
+  iframe Hlife
   iapply noCancelOk_mono P ph (fun X _ i hi => by rw [hLe] at hi; exact hi) $$ Hnc
 
 /-- **The `k`-th response to a substream** (`k ≠ 0`, not its creation's): an mvcc response's
@@ -989,14 +1011,15 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rp
 the send succeeded or failed. -/
 theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
     (m : v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
-    (sent : List Loc) (C' C2 : List w64) (b : Bool) (wr : Loc) :
+    (sent : List Loc) (C' C2 : List w64) (b : Bool) (wr : Loc) (d : DnInfo GF) (γend : GName)
+    (n : Nat) :
     regFacts V γs Dm P X w rg fcs lo ∗ monoListAuthOwn P.γhi 1 C' ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C'.length = sent.length + 2⌝ ∗ (∃ hi : w64, ⌜C'.getLast? = some hi⌝ ∗
           cursorOk V P (Dm ++ [m]) w rg lo hi) ∗ psAt P (sent.length + 1)) ∗
       cur2Pend V γs (Dm ++ [m]) P X w rg lo sent C2 ∗
-      ((⌜b = true⌝ ∗ sendDone P sent wr) ∨ (⌜b = false⌝ ∗ sendFail V P sent wr)) ⊢
-    wsRest V γs (Dm ++ [m]) P (.reg X) := by
+      ((⌜b = true⌝ ∗ sendDone P sent wr d γend n) ∨ (⌜b = false⌝ ∗ sendFail V P sent wr d γend n)) ⊢
+    wsRest V γs (Dm ++ [m]) P (.reg X) ∗ dnCap P d γend n := by
   iintro ⟨#Hrf, Hauth, Hst, Hpend, Hs⟩
   simp only [wsRest]
   unfold cur2Pend
@@ -1004,6 +1027,8 @@ theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3r
   ihave #Hrf' := regFacts_mono V γs P X w rg fcs lo (List.prefix_append Dm [m]) $$ Hrf
   icases Hs with (⟨%-, Hd⟩ | ⟨%-, Hf⟩)
   · iunfold sendDone at Hd
+    icases Hd with ⟨Hd, Hdc⟩
+    iframe Hdc
     iexists w, rg, fcs, lo, sent ++ [wr], C'
     iframe Hrf' Hd Hauth
     isplitl [Hst]
@@ -1031,7 +1056,8 @@ theorem reg_post (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (Dm : List v3r
       iframe Hc2
       ipureintro; exact Hl2
   · iunfold sendFail at Hf
-    icases Hf with ⟨Hp, -, #Hx⟩
+    icases Hf with ⟨Hp, -, #Hx, Hdc⟩
+    iframe Hdc
     iexists w, rg, fcs, lo, sent, C'
     iframe Hrf' Hp Hauth
     isplitr
@@ -1175,18 +1201,18 @@ instance cancelQ_timeless (γs : StreamNames) (id : w64) : Timeless (v3rpc.cance
 (K2e-7d): at an index at most the broadcast's position `pre`'s length; the broadcast `x`, sent after
 the substream's created response (not among the responses received, `hfresh`), is not in the
 created response's snapshot, whose `-1` responses were all sent before it. -/
-theorem bcast_regPair (V : WEnv GF) (γs : StreamNames) {S : RunSt} (X : w64) (ws : Loc)
+theorem bcast_regPair (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S : RunSt} (X : w64) (ws : Loc)
     (x : mvcc.RespM) (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames)
     (γa : GName) (hM : S.M !! X = some ws)
     (hinj : ∀ X Y ws, S.M !! X = some ws → S.M !! Y = some ws → X = Y)
     (hregi : γo.regi = γc.regi) (hsentl : γo.sentl = γc.sentl)
     (hfresh : ∀ m' ∈ S.Dm, m'.src ≠ some x) (hid : x.id = W64 (-1)) :
-    streamAuxIs γs (v3rpc.auxOf γo γa) ∗ mvcc.chanSentLb γc (pre ++ [x]) ∗ wsElem V γs S ws ⊢
-      wsElem V γs S ws ∗ □ (∃ (w : Loc) (n : Nat), mvcc.idAssigned γo X w ∗ mvcc.chanRegAt γc w n ∗
+    streamAuxIs γs (v3rpc.auxOf γo γa) ∗ mvcc.chanSentLb γc (pre ++ [x]) ∗ wsElem V G n γs S ws ⊢
+      wsElem V G n γs S ws ∗ □ (∃ (w : Loc) (n : Nat), mvcc.idAssigned γo X w ∗ mvcc.chanRegAt γc w n ∗
         ⌜n ≤ pre.length⌝) := by
   iintro ⟨#Hax, #Hlb, Hw⟩
   unfold wsElem
-  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   have hph0 : ph = WPh.reg X := by
     cases ph with
     | queued si => exact absurd hM (Hph.1 X)
@@ -1228,9 +1254,9 @@ theorem bcast_regPair (V : WEnv GF) (γs : StreamNames) {S : RunSt} (X : w64) (w
         have := congrArg List.length ht
         simp at this; omega
     · exact absurd (h.subset (List.mem_append_right _ (List.mem_singleton_self x))) hxl
-  isplitl [Hid Hprod Hauth Hst Hc2]
+  isplitl [Hid Hprod Hauth Hst Hc2 Hlife]
   · iexists P, .reg X
-    iframe HP Hid Hnc
+    iframe HP Hid Hnc Hlife
     isplitr
     · ipureintro; exact ⟨HPws, Hph⟩
     simp only [wsRest]
@@ -1367,7 +1393,7 @@ theorem cov_cancel (γs : StreamNames) (γc : mvcc.WatchChanNames) (L : List v3r
 
 /-- **A broadcast covers every registered substream's watcher, unless it stopped** (K2e-7d):
 (a), (b), (c) above, for the substreams of `substreams` (`S.M`), with one later credit. -/
-theorem bcast_covAll (V : WEnv GF) (γs : StreamNames) {S : RunSt} (x : mvcc.RespM)
+theorem bcast_covAll (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S : RunSt} (x : mvcc.RespM)
     (γc : mvcc.WatchChanNames) (pre : List mvcc.RespM) (γo : mvcc.WsStreamNames) (γa : GName)
     (hinj : ∀ X Y ws, S.M !! X = some ws → S.M !! Y = some ws → X = Y)
     (hregi : γo.regi = γc.regi) (hrsn : γo.rsn = γc.rsn) (hsentl : γo.sentl = γc.sentl)
@@ -1375,16 +1401,16 @@ theorem bcast_covAll (V : WEnv GF) (γs : StreamNames) {S : RunSt} (x : mvcc.Res
     streamAuxIs γs (v3rpc.auxOf γo γa) ∗ mvcc.chanSentLb γc (pre ++ [x]) ∗
       mvcc.regsAt γc pre.length x ∗ mvcc.respCompl γc x ∗
       savedPredOwn γo.rsn DFrac.discard (v3rpc.cancelQ γs) ∗ £ 1 ∗
-      cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ ([∗map] _X ↦ ws ∈ S.M, wsElem V γs S ws) ⊢
+      cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ ([∗map] _X ↦ ws ∈ S.M, wsElem V G n γs S ws) ⊢
       |={⊤}=> cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗
-        ([∗map] _X ↦ ws ∈ S.M, wsElem V γs S ws) ∗
+        ([∗map] _X ↦ ws ∈ S.M, wsElem V G n γs S ws) ∗
         □ (∀ (X : w64) (ws : Loc), ⌜S.M !! X = some ws⌝ -∗ bcastCov V γs S x X ws) := by
   iintro ⟨#Hax, #Hlb, #Hra, #Hcmp, #Hcq, Hlc, Ht, Hm⟩
-  ihave Hm2 := BigSepM.bigSepM_impl (Ψ := fun X ws => iprop(wsElem V γs S ws ∗
+  ihave Hm2 := BigSepM.bigSepM_impl (Ψ := fun X ws => iprop(wsElem V G n γs S ws ∗
       □ (∃ (w : Loc) (n : Nat), mvcc.idAssigned γo X w ∗ mvcc.chanRegAt γc w n ∗ ⌜n ≤ pre.length⌝)))
       $$ Hm []
   · iintro !> %X %ws %hX Hw
-    iapply bcast_regPair V γs X ws x γc pre γo γa hX hinj hregi hsentl hfresh hid
+    iapply bcast_regPair V G n γs X ws x γc pre γo γa hX hinj hregi hsentl hfresh hid
     iframe Hax Hlb Hw
   rw [BigSepM.bigSepM_sep_eq]
   icases Hm2 with ⟨Hm, #Hps⟩
@@ -1429,7 +1455,7 @@ theorem bcast_covAll (V : WEnv GF) (γs : StreamNames) {S : RunSt} (x : mvcc.Res
 response (`sendCap`, its values and `recvc` history), and its element after the send, whether it
 succeeded or failed; (K2e-7d) the second cursor over the response, with its coverage
 (`bcastCov`) and what the server says of it. -/
-theorem bcast_elem (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (X : w64) (ws : Loc)
+theorem bcast_elem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S S' : RunSt} (X : w64) (ws : Loc)
     (j : Nat) (m : v3rpc.WatchRespM) (ρ : mvcc.RespM) (h : Loc) (sl : GoSlice)
     (hsrc : m.src = some ρ)
     (hev : ρ.evs = []) (hfl : m.compactRev = W64 0 ∧ m.canceled = false ∧ m.created = false)
@@ -1439,13 +1465,16 @@ theorem bcast_elem (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (X : w64) (w
     (hj : S.Dm.length = j) (hid : ρ.id = W64 (-1)) (hst : V.R.γ.st = V.R.E.γ) :
     hdrAt h m.hdr.revision ∗ eventsAt sl [] ∗ bcastCov V γs S ρ X ws ∗
       v3rpc.mvccOk γs V.R.γ j m ∗ v3rpc.downLbW γs S.Dm ∗ srvLogsSmall V.R ∗
-      wsElem V γs S ws ⊢
-    |={⊤}=> ∃ a : WsPrm GF × List Loc, ⌜a.1.ws = ws⌝ ∗
-      sendCap V a.1 a.2 (fun wr => iprop(wr ↦□ wrOf m h sl)) ∗
-      (∀ wr : Loc, (sendDone a.1 a.2 wr ∨ sendFail V a.1 a.2 wr) -∗ wsElem V γs S' ws) := by
+      wsElem V G n γs S ws ⊢
+    |={⊤}=> ∃ a : WsPrm GF × List Loc × DnInfo GF, ⌜a.1.ws = ws⌝ ∗
+      sendCap V a.1 a.2.1 (fun wr => iprop(wr ↦□ wrOf m h sl)) a.2.2 G.γend n ∗
+      (∀ wr : Loc, (sendDone a.1 a.2.1 wr a.2.2 G.γend n ∨ sendFail V a.1 a.2.1 wr a.2.2 G.γend n) -∗
+        wsElem V G n γs S' ws) := by
   iintro ⟨#Hha, #Hea, #Hbc, #Hmv, #Hdn, #Hsm, Hw⟩
   unfold wsElem
-  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+  iunfold wsLife at Hlife
+  icases Hlife with ⟨%L, %HLg, Hdc, #Hli, Htk⟩
   have hph0 : ph = WPh.reg X := by
     cases ph with
     | queued si => exact absurd hM (Hph.1 X)
@@ -1457,7 +1486,7 @@ theorem bcast_elem (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (X : w64) (w
   icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrg, Hprod, Hauth, Hst, Hc2⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
-  icases HP' with ⟨-, -, -, -, -, -, -, -, -, %HPpure, #Hso⟩
+  icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso⟩
   iunfold bcastCov at Hbc
   ihave #Hmem := Hbc $$ %P %w %rg %fcs %lo %HPws Hrg Hnc
   imod bcast_pre V γs P S.Dm j m ρ X w rg fcs lo sent C h sl hsrc hev hfl hhn hj HPpure.2.1
@@ -1465,57 +1494,72 @@ theorem bcast_elem (V : WEnv GF) (γs : StreamNames) {S S' : RunSt} (X : w64) (w
       $$ [$Hha $Hea $Hauth $Hst $Hc2 $Hmem $Hmv $Hdn $Hrg $Hso $Hsm]
     with ⟨%C', %C2, Hauth, Hrecv, Hst, Hpend⟩
   imodintro
-  iexists (P, sent)
+  ihave #Href := lifeQ_cur V G P L n HLg
+  iexists (P, sent, lifeDn V G P L)
   isplitr
   · ipureintro; exact HPws
-  isplitl [Hprod Hrecv]
+  isplitl [Hprod Hrecv Hdc]
   · unfold sendCap
     iframe HP Hprod
-    iintro %wr Hwr
-    iapply Hrecv $$ Hwr
+    isplitl [Hrecv]
+    · iintro %wr Hwr
+      iapply Hrecv $$ Hwr
+    unfold dnCap
+    iframe Hdc Href
   iintro %wr Hs
+  ihave ⟨Hrest, Hdc⟩ : iprop(wsRest V γs (S.Dm ++ [m]) P (.reg X) ∗
+      dnCap P (lifeDn V G P L) G.γend n) $$ [Hs Hauth Hst Hpend]
+  · icases Hs with (Hd | Hf)
+    · iapply reg_post V γs P S.Dm m X w rg fcs lo sent C' C2 true wr (lifeDn V G P L) G.γend n
+      iframe Hrg Hauth Hst Hpend
+      ileft; iframe Hd; ipureintro; rfl
+    · iapply reg_post V γs P S.Dm m X w rg fcs lo sent C' C2 false wr (lifeDn V G P L) G.γend n
+      iframe Hrg Hauth Hst Hpend
+      iright; iframe Hf; ipureintro; rfl
+  iunfold dnCap at Hdc
+  icases Hdc with ⟨Hdc, -⟩
   iexists P, .reg X
   isplitr
   · ipureintro; exact ⟨HPws, hph _ Hph⟩
   iframe HP Hid
   rw [hD]
-  isplitl [Hs Hauth Hst Hpend]
-  · icases Hs with (Hd | Hf)
-    · iapply reg_post V γs P S.Dm m X w rg fcs lo sent C' C2 true wr
-      iframe Hrg Hauth Hst Hpend
-      ileft; iframe Hd; ipureintro; rfl
-    · iapply reg_post V γs P S.Dm m X w rg fcs lo sent C' C2 false wr
-      iframe Hrg Hauth Hst Hpend
-      iright; iframe Hf; ipureintro; rfl
-  iapply noCancelOk_mono P (.reg X) (fun X _ i hi => by rw [hLe] at hi; exact hi) $$ Hnc
+  iframe Hrest
+  isplitr
+  · iapply noCancelOk_mono P (.reg X) (fun X _ i hi => by rw [hLe] at hi; exact hi) $$ Hnc
+  unfold wsLife
+  iexists L
+  iframe Hdc Hli Htk
+  ipureintro; exact HLg
 
 /-- A failed dispatch publishes the substream's stop (`sendFail`'s `γx`), kept. -/
-theorem post_gx (V : WEnv GF) (P : WsPrm GF) (sent : List Loc) (wr : Loc) (b : Bool) :
-    ((⌜b = true⌝ ∗ sendDone P sent wr) ∨ (⌜b = false⌝ ∗ sendFail V P sent wr)) ⊢
-      ((⌜b = true⌝ ∗ sendDone P sent wr) ∨ (⌜b = false⌝ ∗ sendFail V P sent wr)) ∗
+theorem post_gx (V : WEnv GF) (P : WsPrm GF) (sent : List Loc) (wr : Loc) (b : Bool)
+    (d : DnInfo GF) (γend : GName) (n : Nat) :
+    ((⌜b = true⌝ ∗ sendDone P sent wr d γend n) ∨ (⌜b = false⌝ ∗ sendFail V P sent wr d γend n)) ⊢
+      ((⌜b = true⌝ ∗ sendDone P sent wr d γend n) ∨
+        (⌜b = false⌝ ∗ sendFail V P sent wr d γend n)) ∗
         (⌜b = true⌝ ∨ dghostVar P.γx DFrac.discard true) := by
   iintro (⟨%hb, Hd⟩ | ⟨%hb, Hf⟩)
   · isplitl
     · ileft; iframe Hd; ipureintro; exact hb
     ileft; ipureintro; exact hb
   · iunfold sendFail at Hf
-    icases Hf with ⟨Hp, Hr, #Hx⟩
+    icases Hf with ⟨Hp, Hr, #Hx, Hdc⟩
     isplitl
     · iright; isplitr
       · ipureintro; exact hb
-      iunfold sendFail; iframe Hp Hr Hx
+      iunfold sendFail; iframe Hp Hr Hx Hdc
     iright; iexact Hx
 
 /-- **An id in `substreams`** is registered and not `-1` (its substream's phase says so). -/
-theorem M_entry_facts (V : WEnv GF) (γs : StreamNames) {S : RunSt} {U : GMap Loc Unit} {X : w64}
+theorem M_entry_facts (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) {S : RunSt} {U : GMap Loc Unit} {X : w64}
     {ws : Loc} (hg : gOk S U) (hM : S.M !! X = some ws) :
-    ([∗map] ws' ↦ _u ∈ U, wsElem V γs S ws') ⊢
-      ⌜X ∈ S.regs ∧ X ≠ W64 (-1)⌝ ∗ ([∗map] ws' ↦ _u ∈ U, wsElem V γs S ws') := by
+    ([∗map] ws' ↦ _u ∈ U, wsElem V G n γs S ws') ⊢
+      ⌜X ∈ S.regs ∧ X ≠ W64 (-1)⌝ ∗ ([∗map] ws' ↦ _u ∈ U, wsElem V G n γs S ws') := by
   iintro Hels
   have hU : U !! ws = some () := hg.1 X ws hM
   icases (BigSepM.bigSepM_delete hU).1 $$ Hels with ⟨Hw, Hels⟩
   iunfold wsElem at Hw
-  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   have Hf : X ∈ S.regs ∧ X ≠ W64 (-1) := by
     cases ph with
     | queued si => exact absurd hM (Hph.1 X)
@@ -1529,7 +1573,7 @@ theorem M_entry_facts (V : WEnv GF) (γs : StreamNames) {S : RunSt} {U : GMap Lo
   iframe Hels
   unfold wsElem
   iexists P, ph
-  iframe HP Hid Hrest Hnc
+  iframe HP Hid Hrest Hnc Hlife
   ipureintro; exact ⟨HPws, Hph⟩
 
 /-- **A new watcher's events so far are none**: an mvcc response with events of the watcher `w`
@@ -1619,7 +1663,10 @@ theorem regs_join (γs : StreamNames) (b : Bool) (regs : List w64) (X : w64) :
 def dummyWsPrm (G : WgsPrm GF) (γr : SpscNames) : WsPrm GF :=
   WsPrm.mk (OpFull.mk OpModel.zero (W64 0) [] false false false (W64 0) [] false (W64 0) (W64 0)
     false false) (W64 0) G.ctx G.cd [] [] false false false slice.nil null G.γreq null
-    (EtcdWatchNames.mk γr G.γws G.γws false) null null γr G.γws G.γws null G.γreq G.γws false G.γws
+    (EtcdWatchNames.mk γr G.γws G.γws false) null null γr G.γws G.γws G.γws false G.γws
+
+/-- Some `donec` (for a dispatch with no target). -/
+def dummyDn (G : WgsPrm GF) : DnInfo GF := ⟨null, G.γreq, iprop(True)⟩
 
 /-- A substream's id field, any value (`closeSubstream`'s). -/
 def idE (ws : Loc) : IProp GF := iprop(∃ id : w64, wsF ws go!"id" ↦ id)
@@ -1634,14 +1681,18 @@ def closerRes (V : WEnv GF) (ws : Loc) : WPh → IProp GF
 def closerE (V : WEnv GF) (S : RunSt) (ws : Loc) : IProp GF :=
   iprop(∃ ph : WPh, ⌜phOk S ws ph⌝ ∗ closerRes V ws ph)
 
-theorem wsElem_split (V : WEnv GF) (γs : StreamNames) (S : RunSt) (ws : Loc) :
-    wsElem V γs S ws ⊢ idE ws ∗ closerE V S ws ∗ donecOf ws := by
+/-- **What the teardown needs of a substream's current lifetime** (D24): its values
+(`closeSubstream`'s), the lifetime (its `donec`, to wait for, its invariant and `run`'s token, to
+take what the goroutine leaves). -/
+def lifeE (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (ws : Loc) : IProp GF :=
+  iprop(∃ (P : WsPrm GF) (L : LifePrm), ⌜P.ws = ws ∧ L.gen = n⌝ ∗ wsIs V P ∗
+    donecAt ws (lifeDn V G P L) ∗ lifeInvIs V G P L ∗ ownTok L.γk)
+
+theorem wsElem_split (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (ws : Loc) :
+    wsElem V G n γs S ws ⊢ idE ws ∗ closerE V S ws ∗ lifeE V G n ws := by
   unfold wsElem
-  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+  iintro ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
   subst HPws
-  ihave #HP' := HP
-  iunfold wsIs at HP'
-  icases HP' with ⟨-, -, -, #Hdc, -, -, #Hdb, -⟩
   isplitl [Hid]
   · unfold idE; iexists _; iexact Hid
   isplitl [Hrest]
@@ -1664,21 +1715,48 @@ theorem wsElem_split (V : WEnv GF) (γs : StreamNames) (S : RunSt) (ws : Loc) :
       ipureintro; rfl
     | closedRun X => unfold closerRes; itrivial
     | orphan => unfold closerRes; itrivial
-  unfold donecOf
-  iexists P.donec, P.γdn, _
-  iframe Hdc Hdb
+  iunfold wsLife at Hlife
+  icases Hlife with ⟨%L, %HLg, Hdc, #Hli, Htk⟩
+  unfold lifeE
+  iexists P, L
+  iframe HP Hdc Hli Htk
+  ipureintro; exact ⟨rfl, HLg⟩
 
-theorem wsElems_split (V : WEnv GF) (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) :
-    ([∗map] ws ↦ _u ∈ U, wsElem V γs S ws) ⊢
+theorem wsElems_split (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (U : GMap Loc Unit) :
+    ([∗map] ws ↦ _u ∈ U, wsElem V G n γs S ws) ⊢
       ([∗map] ws ↦ _u ∈ U, idE ws) ∗ ([∗map] ws ↦ _u ∈ U, closerE V S ws) ∗
-      □ (∀ ws, ⌜U !! ws = some ()⌝ → donecOf ws) := by
-  refine (BigSepM.bigSepM_mono_of_forall (fun {_ _} => wsElem_split V γs S _)).trans ?_
+      ([∗map] ws ↦ _u ∈ U, lifeE V G n ws) := by
+  refine (BigSepM.bigSepM_mono_of_forall (fun {_ _} => wsElem_split V G n γs S _)).trans ?_
   rw [BigSepM.bigSepM_sep_eq, BigSepM.bigSepM_sep_eq]
-  iintro ⟨Hid, Hcl, #Hdc⟩
-  iframe Hid Hcl
-  imodintro
-  iintro %ws %Hws
-  iapply (BigSepM.bigSepM_lookup (Φ := fun ws (_ : Unit) => donecOf (GF := GF) ws) Hws) $$ Hdc
+
+/-- **Taking what a goroutine stopped for good left** (D24): its whole membership token (posted on
+`closingc`) says its lifetime is no longer running, `run`'s token that the deposit is still there,
+`run`'s generation authority that the lifetime (of that generation) was not resumed. -/
+theorem take_stop (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (P : WsPrm GF) (L : LifePrm) (ws : Loc)
+    (hws : P.ws = ws) (hg : L.gen = n) :
+    £ 1 ∗ lifeInvIs V G P L ∗ ownTok L.γk ∗ ghostMapElem G.γws ws (DFrac.own 1) () ∗
+      monoNatAuthOwn G.γend 1 n ⊢
+    |={⊤}=> stopBody V P ∗ ghostMapElem G.γws ws (DFrac.own 1) () ∗ monoNatAuthOwn G.γend 1 n := by
+  subst hws
+  iintro ⟨Hlc, #Hli, Htk, Hel, Ha⟩
+  iinv Hli with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑lifeN) $$ Hlc Hi with Hi
+  iunfold lifeSt at Hi
+  icases Hi with (⟨-, Hmh⟩ | ⟨#Ht, (⟨#Hstp, (Hsb | Htk2)⟩ | ⟨#Hlb, -⟩)⟩)
+  · icombine Hmh Hel gives %Hv
+    exfalso
+    obtain ⟨Hv, _⟩ := Hv
+    revert Hv
+    simp only [CMRA.Valid, DFrac.op_own]
+    intro h
+    have : (1 / 2 : Rat) + 1 ≤ 1 := h
+    grind
+  · imod Hclose $$ [Htk] with -
+    · inext; iunfold lifeSt; iright; iframe Ht; ileft; iframe Hstp; iright; iexact Htk
+    imodintro; iframe
+  · iexfalso; iapply ownTok_excl; iframe
+  · ihave %Hv := monoNatLbOwn_valid _ _ _ _ $$ Ha Hlb
+    exfalso; omega
 
 /-- The teardown's closing loops' facts: the substreams still to close (`U1`), those of `U` the
 closing map (`CL'`) does not hold, the original closing map within it. -/
@@ -1735,8 +1813,8 @@ theorem watchGRPCStream.run.wp_proof
     (wp_zapInt64 : zap.Int64.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.run.spec (GF := GF) (hG := hG) := by
   intro V G callSl m0 s0 rc γrc
-  wp_start as ⟨#HW, #HG, #Hco, Hsub, Hm0, Hres, Hs0, HcE, Hrc, Hrcb, Hrcons, Hprod0, Hep0, Hdn, Had,
-    Htt, Hwsa⟩
+  wp_start as ⟨#HW, #HG, #Hco, Hsub, Hm0, Hres, Hs0, HcE, Hrc, Hrcb, Hgen, Hrcons, Hprod0, Hep0, Hdn,
+    Had, Htt, Hwsa⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
@@ -1760,9 +1838,9 @@ theorem watchGRPCStream.run.wp_proof
   ipersist closing
   wp_bind (exceptionDo _)
   iapply (wp_wand_r (Φ := fun v => iprop(⌜v = #()⌝ ∗ client.runExit V G closeErr_ptr clm)))
-  isplitl [Hsub Hm0 Hres Hs0 HcE Hrc Hrcb Hrcons Hprod0 Hep0 Hdn Had Htt Hwsa wc closeErr Hclm]
-  · wp_apply wp_newWC V G callSl m0 s0 rc γrc [] [] $$ [Hsub Hm0 Hres Hs0 Hrc Hrcb Hprod0 Hep0]
-      as %wcv %err ⟨%m1, %s1, %rc1, %γrc1, Hsub, Hm1, Hres, Hs1, Hrc, Hrcb, Hcase⟩
+  isplitl [Hsub Hm0 Hres Hs0 HcE Hrc Hrcb Hgen Hrcons Hprod0 Hep0 Hdn Had Htt Hwsa wc closeErr Hclm]
+  · wp_apply wp_newWC V G callSl m0 s0 rc γrc 0 [] [] $$ [Hsub Hm0 Hres Hs0 Hrc Hrcb Hgen Hprod0 Hep0]
+      as %wcv %err ⟨%m1, %s1, %rc1, %γrc1, Hsub, Hm1, Hres, Hs1, Hrc, Hrcb, Hgen, Hcase⟩
     · iframe #; iframe
     icases Hcase with (⟨%Herr, %γs, %Dn, %cd', %γc0, #Hcws, Hstok, #Hspec, Hep⟩ |
       ⟨⟨%Hwcn, %Herr⟩, #Hse, -, -⟩)
@@ -1775,7 +1853,7 @@ theorem watchGRPCStream.run.wp_proof
       · ipureintro; rfl
       unfold client.runExit
       iexists (StreamNames.mk G.γws G.γws G.γws G.γws G.γws G.γws G.γws), client.RunSt.init, ∅,
-        GoInterface.ok ei, GoInterface.nil, m1, s1
+        GoInterface.ok ei, GoInterface.nil, m1, s1, 1
       simp only [client.RunSt.init]
       iframe
       iframe Hse
@@ -1800,10 +1878,10 @@ theorem watchGRPCStream.run.wp_proof
     ihave #Hrcu := ownBroadcastChan_Unknown $$ Hrcb
     imod monoListLbOwn_nil (GF := GF) (A := v3rpc.WatchRespM) γs.down with #Hlb0
     ihave Hepst := client.epochSt_first G γs γc0 $$ Hep
-    ihave IH : iprop(∃ bo : w64, "Hcore" ∷ client.runCore V G γs 0 clm csm ∗
+    ihave IH : iprop(∃ bo : w64, "Hcore" ∷ client.runCore V G γs 0 1 clm csm ∗
         "closeErr" ∷ closeErr_ptr ↦ GoInterface.nil ∗ "cur" ∷ cur_ptr ↦ (null : Loc) ∗
         "backoff" ∷ backoff_ptr ↦ bo) $$ [Hclm Hcsm Hsub Hm1 Hres Hs1 HcE Hstok Hrcons Hepst Hwsa Had
-        Htt Hdn closeErr cur backoff]
+        Htt Hdn Hgen closeErr cur backoff]
     · iexists _
       simp only [named]
       iframe
@@ -1854,7 +1932,7 @@ theorem watchGRPCStream.run.wp_proof
         subst Hrv
         iunfold client.runCore at Hcore
         icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
-          Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn⟩
+          Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
         wp_auto
         wp_apply wp_ptoPB pr as %preq Hpsend
         wp_apply HSend $$ %S.L %preq %(.progress) [Hstok Hpsend] as %err ⟨-, Hres'⟩
@@ -1869,13 +1947,13 @@ theorem watchGRPCStream.run.wp_proof
           · iexists L'; iframe; ipureintro; exact HL'
         obtain ⟨Hg2, Hph2⟩ := client.progress_ok (S := S) (U := U) HgOk HL'
         ihave Hels := BigSepM.bigSepM_impl
-            (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.sentProgress L') ws) $$ Hels []
+            (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.sentProgress L') ws) $$ Hels []
         · iintro !> %ws' %u %Hws' Hw'
-          iapply (client.wsElem_mono V γs (S := S) (S' := S.sentProgress L') ws' rfl
+          iapply (client.wsElem_mono V G 1 γs (S := S) (S' := S.sentProgress L') ws' rfl
             (fun ph' h => Hph2 ws' ph' h)
             (fun X _ => client.cancels_of_snoc .progress X (by intro e; cases e) HL')) $$ Hw'
-        ihave Hfin : iprop(▷ client.runCore V G γs 0 clm csm) $$
-            [Hclm Hcsm Hsub Hm Hres Hs HcF Hstok Hrcons Hepst Hans Hids Hwsa Hels Had Htt Hdn]
+        ihave Hfin : iprop(▷ client.runCore V G γs 0 1 clm csm) $$
+            [Hclm Hcsm Hsub Hm Hres Hs HcF Hstok Hrcons Hepst Hans Hids Hwsa Hels Had Htt Hdn Hgen]
         · inext
           unfold client.runCore
           iexists S.sentProgress L', U, rcv, mref, s, e
@@ -1919,7 +1997,7 @@ theorem watchGRPCStream.run.wp_proof
       subst Hrv
       iunfold client.runCore at Hcore
       icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
-        Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn⟩
+        Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
       wp_auto
       wp_apply (chan.wp_make2 (V := go_etcd_io.etcd.client.v3.WatchResponse) (W64 1)) as
         %outc %γo ⟨#Houtc, %Hγo, Houto⟩
@@ -1938,7 +2016,7 @@ theorem watchGRPCStream.run.wp_proof
       iStructNamed initReq
       ipersist ctx; ipersist key; ipersist end'; ipersist createdNotify; ipersist progressNotify
       ipersist fragment; ipersist watchBufLogEnabled; ipersist filters; ipersist prevKV
-      ipersist outc; ipersist recvc
+      ipersist recvc
       icases client.ptsto_split_half _ _ $$ rev with ⟨Hrev1, Hrev2⟩
       wp_bind (If _ _ _)
       iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ws_ptr ↦ «$r0_ptr» ∗ ∃ bl : Loc,
@@ -1966,11 +2044,13 @@ theorem watchGRPCStream.run.wp_proof
       subst Hv
       wp_auto
       wp_apply (chan.wp_make1 (V := Unit)) as %dnc %γdn ⟨#Hdnc, %-, Hdno⟩
-      ipersist donec
+      icases client.ptsto_split_half_loc _ _ $$ donec with ⟨Hdnf1, Hdnf2⟩
       imod dghostVar_alloc false with ⟨%γx, Hx⟩
-      imod alloc_broadcast_chan (E := ⊤) (dghostVar γx DFrac.discard true) γdn dnc $$ Hdnc Hdno
-        with Hdnb
-      icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hdnb with ⟨Hdnb, #Hdnu⟩
+      -- (D24) the goroutine's first lifetime: its deposit's flag, `run`'s token
+      imod dghostVar_alloc false with ⟨%γt, Hγt⟩
+      icases dghostVar_halves _ _ $$ Hγt with ⟨Hγt1, Hγt2⟩
+      imod dghostVar_alloc () with ⟨%γk, Htk⟩
+      let L : LifePrm := ⟨dnc, γdn, γt, γk, 1⟩
       imod mono_list_own_alloc (GF := GF) [P0.rev - W64 1] with ⟨%γhi, Hhia, #Hhilb⟩
       imod mono_list_own_alloc (GF := GF) [P0.rev - W64 1] with ⟨%γcur, Hcura, #Hcurlb⟩
       ihave #Hhi0 := monoListIdxOwn_get (GF := GF) 0 (P0.rev - W64 1) rfl $$ Hhilb
@@ -1985,7 +2065,7 @@ theorem watchGRPCStream.run.wp_proof
       imod ghost_map_insert_persist (γ := γps) 0 true (GMap.lookup_empty 0) $$ Hpsa with
         ⟨Hpsa, #Hps0⟩
       let Ppre : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
-        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk G.γr γcur γcur2 (cplOf P0)) outc recvc G.γr γhi γh2 dnc γdn γx
+        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk G.γr γcur γcur2 (cplOf P0)) outc recvc G.γr γhi γh2 γx
         P0.sr γps
       imod start_spsc (V := go_etcd_io.etcd.client.v3.WatchResponse) outc
         (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev) (fun _ => iprop(True)) γo
@@ -1994,7 +2074,7 @@ theorem watchGRPCStream.run.wp_proof
       imod start_sspsc (V := Loc) recvc (client.recvElem V Ppre) (fun _ => iprop(True)) γrc2
         $$ Hrecvc Hrecvo with ⟨%γrr, #Hrsp, Hrprod, Hrcons2⟩
       let P : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
-        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur2 (cplOf P0)) outc recvc γrr γhi γh2 dnc γdn γx
+        P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur2 (cplOf P0)) outc recvc γrr γhi γh2 γx
         P0.sr γps
       have eq1 : (isSpsc γsp outc (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev)
           (fun _ => iprop(True)) : IProp GF) =
@@ -2005,6 +2085,9 @@ theorem watchGRPCStream.run.wp_proof
       irevert Hosp Hrsp
       rw [eq1, eq2]
       iintro #Hosp #Hrsp
+      -- (D24) the lifetime's `donec`
+      imod alloc_broadcast_chan (E := ⊤) (lifeQ V G P L) γdn dnc $$ Hdnc Hdno with Hdnb
+      icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hdnb with ⟨Hdnb, #Hdnu⟩
       ihave #HP : iprop(wsIs V P) $$ []
       · iunfold wrRO at Hro
         icases Hro with ⟨-, -, -, -, -, -, -, -, #Rflts, -⟩
@@ -2013,17 +2096,11 @@ theorem watchGRPCStream.run.wp_proof
         · unfold wrRO
           iframe #
         isplitr
-        · iexact outc
-        isplitr
         · iexact recvc
-        isplitr
-        · iexact donec
         isplitr
         · iexact Hosp
         isplitr
         · iexact Hrsp
-        isplitr
-        · iexact Hdnu
         isplitr
         · iexact Hctx
         isplitr
@@ -2048,9 +2125,24 @@ theorem watchGRPCStream.run.wp_proof
       iunfold wgAdder at Had
       wp_apply wp_wgsWg_Add $$ [Had Htt] as ⟨Had, Hwd⟩
       · iframe
-      icases client.wsElems_fresh V γs S U «$r0_ptr» _ $$ [Hels id] with ⟨%HUf, Hels, id⟩
+      icases client.wsElems_fresh V G 1 γs S U «$r0_ptr» _ $$ [Hels id] with ⟨%HUf, Hels, id⟩
       · iframe
       imod ghost_map_insert «$r0_ptr» () HUf $$ Hwsa with ⟨Hwsa, Hwsel⟩
+      icases (ghostMapElem_halves G.γws «$r0_ptr» ()).1 $$ Hwsel with ⟨Hwsel1, Hwsel2⟩
+      -- (D24) the lifetime's invariant, running
+      imod inv_alloc lifeN ⊤ (lifeSt V G P L) $$ [Hγt2 Hwsel2] with #Hli
+      · inext
+        iunfold lifeSt
+        ileft
+        iframe
+      ihave HlifeN : iprop(client.wsLife V G 1 P) $$ [Hdnf2 Htk]
+      · unfold client.wsLife
+        iexists L
+        isplitr
+        · ipureintro; rfl
+        unfold donecAt
+        iframe Hdnf2 Hdnu Hli
+        unfold ownTok; iexact Htk
       ihave Hc2p : cur2Pos P 0 0 $$ [Hcur2a]
       · unfold cur2Pos
         cases hc : cplOf P0
@@ -2059,29 +2151,34 @@ theorem watchGRPCStream.run.wp_proof
           iexists [P0.rev - W64 1], P0.rev - W64 1
           iframe Hcur2a Hh20
           ipureintro; simp
-      wp_apply wp_fork_tok_self $$ [closing buf bufWaitStartTime retc HbL Hrev1 Hocons Hoprod Hcura
-          Hrcons2 Hdnb Hx Hwd Hwsel Hc2p] as Htt
-      · wp_apply wp_serveSub V G callSl P slice.nil bl _ rc1 γrc1
-          $$ [closing buf bufWaitStartTime retc HbL Hrev1 Hocons Hoprod Hcura Hrcons2 Hdnb Hx Hwd Hwsel
-            Hc2p]
+      ihave Hst0 : iprop(wsRun V P 0 P.rev [] P.rev) $$ [buf bufWaitStartTime retc Hrev1 Hocons
+          Hoprod Hcura Hrcons2 Hc2p]
+      · iapply client.wsRun_init V P slice.nil _
+        iframe HP Hhi0 Hh20d
+        (try rw [show P.γ.spsc = γsp from rfl])
+        (try rw [show P.γ.cur = γcur from rfl])
+        (try rw [show P.γr = γrr from rfl])
+        (try rw [show P.rev = P0.rev from rfl])
+        (try rw [show P.ws = «$r0_ptr» from rfl])
+        (try rw [show P.retc = P0.retc from rfl])
+        iframe
+        isplitr
+        · unfold sliceOwn
+          isplitr
+          · iapply ownSlice_nil
+          iapply (ownSliceCap_nil (V := Loc))
+        unfold retcRes
+        (try rw [show P.γ.cur2 = γcur2 from rfl])
+        iframe
+        iframe #
+      wp_apply wp_fork_tok_self $$ [closing HbL outc Hdnf1 Hdnb Hγt1 Hst0 Hx Hwd Hwsel1] as Htt
+      · wp_apply wp_serveSub V G callSl P L 0 P.rev [] bl rc1 γrc1
+          $$ [closing HbL outc Hdnf1 Hdnb Hγt1 Hst0 Hx Hwd Hwsel1]
           as Htok
         · unfold wgDone
-          rw [show P.γ.spsc = γsp from rfl, show P.γ.cur = γcur from rfl, show P.γr = γrr from rfl,
-            show P.γhi = γhi from rfl, show P.rev = P0.rev from rfl, show P.ws = «$r0_ptr» from rfl,
-            show P.donec = dnc from rfl, show P.γdn = γdn from rfl, show P.γx = γx from rfl,
-            show P.retc = P0.retc from rfl]
           iframe #
           iframe
-          isplitr
-          · unfold sliceOwn
-            isplitr
-            · iapply ownSlice_nil
-            iapply (ownSliceCap_nil (V := Loc))
-          unfold retcRes
-          rw [show P.γ.spsc = γsp from rfl, show P.γ.cur = γcur from rfl, show P.rev = P0.rev from rfl,
-            show P.γ.cur2 = γcur2 from rfl]
-          iframe
-          iframe #
+          ipureintro; rfl
         first | iexact Htok | (iframe Htok; ipureintro; simp) | (iframe Htok; ipureintro; decide)
       wp_apply wp_slice_literal (V := Loc) [«$r0_ptr»]
       isplitr
@@ -2161,12 +2258,12 @@ theorem watchGRPCStream.run.wp_proof
           obtain ⟨Hg2, Hold2, Hnew2⟩ := client.addWs_ok (S := S) (U := U) (ws := «$r0_ptr»)
             (L' := L') (pend' := si) (si := si) HgOk Hwsn HUf Hcase
           ihave Hels := BigSepM.bigSepM_impl
-              (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
+              (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
           · iintro !> %ws' %u %Hws' Hw'
             have Hws'' : U !! ws' = some u := Hws'
             have hne : ws' ≠ «$r0_ptr» := by
               intro e; subst e; rw [HUf] at Hws''; cases Hws''
-            iapply (client.wsElem_mono V γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
+            iapply (client.wsElem_mono V G 1 γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
               (fun ph' h => Hold2 ws' ph' hne h)
               (fun X _ => client.create_or (by
                 rcases Hcase with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩
@@ -2174,7 +2271,7 @@ theorem watchGRPCStream.run.wp_proof
                 · exact Or.inl h
                 · exact Or.inr h) X)) $$ Hw'
           ihave Hels := (BigSepM.bigSepM_insert (Φ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hpsq Hupi]
+              client.wsElem V G 1 γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hpsq Hupi HlifeN]
           · iframe Hels
             unfold client.wsElem
             iexists P, .queued si
@@ -2222,12 +2319,12 @@ theorem watchGRPCStream.run.wp_proof
           obtain ⟨Hg2, Hold2, Hnew2⟩ := client.addWs_ok (S := S) (U := U) (ws := «$r0_ptr»)
             (L' := L') (pend' := si) (si := si) HgOk Hwsn HUf Hcase
           ihave Hels := BigSepM.bigSepM_impl
-              (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
+              (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
           · iintro !> %ws' %u %Hws' Hw'
             have Hws'' : U !! ws' = some u := Hws'
             have hne : ws' ≠ «$r0_ptr» := by
               intro e; subst e; rw [HUf] at Hws''; cases Hws''
-            iapply (client.wsElem_mono V γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
+            iapply (client.wsElem_mono V G 1 γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
               (fun ph' h => Hold2 ws' ph' hne h)
               (fun X _ => client.create_or (by
                 rcases Hcase with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩
@@ -2235,7 +2332,7 @@ theorem watchGRPCStream.run.wp_proof
                 · exact Or.inl h
                 · exact Or.inr h) X)) $$ Hw'
           ihave Hels := (BigSepM.bigSepM_insert (Φ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hpsq Hupi]
+              client.wsElem V G 1 γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hpsq Hupi HlifeN]
           · iframe Hels
             unfold client.wsElem
             iexists P, .queued si
@@ -2280,15 +2377,15 @@ theorem watchGRPCStream.run.wp_proof
         obtain ⟨Hg2, Hold2, Hnew2⟩ := client.addWs_ok (S := S) (U := U) (ws := «$r0_ptr»)
           (L' := S.L) (pend' := S.pend) (si := none) HgOk Hwsn HUf (Or.inl ⟨hl, rfl, rfl, rfl⟩)
         ihave Hels := BigSepM.bigSepM_impl
-            (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.addWs «$r0_ptr» S.L S.pend) ws) $$ Hels []
+            (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.addWs «$r0_ptr» S.L S.pend) ws) $$ Hels []
         · iintro !> %ws' %u %Hws' Hw'
           have Hws'' : U !! ws' = some u := Hws'
           have hne : ws' ≠ «$r0_ptr» := by
             intro e; subst e; rw [HUf] at Hws''; cases Hws''
-          iapply (client.wsElem_mono V γs (S := S) (S' := S.addWs «$r0_ptr» S.L S.pend) ws' rfl
+          iapply (client.wsElem_mono V G 1 γs (S := S) (S' := S.addWs «$r0_ptr» S.L S.pend) ws' rfl
             (fun ph' h => Hold2 ws' ph' hne h) (fun _ _ _ hi => hi)) $$ Hw'
         ihave Hels := (BigSepM.bigSepM_insert (Φ := fun ws (_ : Unit) =>
-            client.wsElem V γs (S.addWs «$r0_ptr» S.L S.pend) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hpsq]
+            client.wsElem V G 1 γs (S.addWs «$r0_ptr» S.L S.pend) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hpsq HlifeN]
         · iframe Hels
           unfold client.wsElem
           iexists P, .queued none
@@ -2331,7 +2428,7 @@ theorem watchGRPCStream.run.wp_proof
         icases H with ⟨$, -⟩
       iunfold client.runCore at Hcore
       icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
-        Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn⟩
+        Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
       iapply sspsc_rcv_au G.γr G.respc _ _ rcv _ $$ Hrspsc [$Hlc1 $Hlc2] Hrcons
       inext
       iintro %p %ok Hrecv
@@ -2443,11 +2540,11 @@ theorem watchGRPCStream.run.wp_proof
           icases Hsf2 with ⟨-, #Hcf⟩
           ihave ⟨%hMf, Hels⟩ : iprop(⌜S.M !! m.watchId = none ∨
               (m.watchId ∈ S.regs ∧ m.watchId ≠ W64 (-1))⌝ ∗
-              [∗map] ws ↦ _u ∈ U, client.wsElem V γs S ws) $$ [Hels]
+              [∗map] ws ↦ _u ∈ U, client.wsElem V G 1 γs S ws) $$ [Hels]
           · cases hMX : S.M !! m.watchId with
             | none => iframe; ipureintro; left; rfl
             | some ws1 =>
-              icases client.M_entry_facts V γs HgOk hMX $$ Hels with ⟨%Hf, Hels⟩
+              icases client.M_entry_facts V G 1 γs HgOk hMX $$ Hels with ⟨%Hf, Hels⟩
               iframe; ipureintro; right; exact Hf
           rw [hcr0]
           wp_auto
@@ -2468,8 +2565,9 @@ theorem watchGRPCStream.run.wp_proof
               wgsF G.wgs go!"resuming" ↦ s ∗ s ↦* S1.l ∗ ownSliceCap Loc s (DFrac.own 1) ∗
               wgsF G.wgs go!"closeErr" ↦ e' ∗ statusErrOk e' ∗
               ([∗list] j ∈ S1.ansd, client.ansH γs j) ∗ ([∗list] X ∈ S1.regs, client.idH γs X) ∗
-              ([∗map] ws ↦ _u ∈ U, client.wsElem V γs S1 ws))))
-          isplitl [pbresp Hsub Hm Hres Hs Hscap HcF Hans Hids Hidn Hels Hat Hwid Hca Hcrs Hhdr Hcr Hcomp Hfr Hev]
+              ([∗map] ws ↦ _u ∈ U, client.wsElem V G 1 γs S1 ws) ∗ monoNatAuthOwn G.γend 1 1)))
+          isplitl [pbresp Hsub Hm Hres Hs Hscap HcF Hans Hids Hidn Hels Hat Hwid Hca Hcrs Hhdr Hcr Hcomp Hfr Hev
+            Hgen]
           · have hpos : 0 < sint.Z s.len := by
               have h1 := Hsll.1; have h2 : 0 < S.l.length := Nat.pos_of_ne_zero hlen0; word
             have hlen : s.len ≠ W64 0 := by intro e0; rw [e0] at hpos; simp at hpos
@@ -2506,13 +2604,13 @@ theorem watchGRPCStream.run.wp_proof
               isplitl [Hids Hidn]
               · iapply client.regs_join; iframe
               ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
-                  client.wsElem V γs (S.answer m i m.watchId null false) ws) $$ Hels []
+                  client.wsElem V G 1 γs (S.answer m i m.watchId null false) ws) $$ Hels []
               · iintro !> %ws' %u %Hws' Hw'
                 have Hws'' : U !! ws' = some u := Hws'
                 cases u
                 have hne : ws' ≠ null := fun e => by
                   subst e; rw [HgOk.2.2.2.2.2.1] at Hws''; cases Hws''
-                iapply (client.wsElem_mono' V γs (S := S) (S' := S.answer m i m.watchId null false) ws'
+                iapply (client.wsElem_mono' V G 1 γs (S := S) (S' := S.answer m i m.watchId null false) ws'
                   (fun P ph _ => client.wsRest_snoc_ctrl V γs S.Dm m P ph hs0)
                   (fun ph h => Hold1 ws' ph hne Hws'' h) rfl) $$ Hw'
               iexact Hels
@@ -2522,11 +2620,11 @@ theorem watchGRPCStream.run.wp_proof
             have hU0 : U !! h0 = some () := HgOk.2.2.1 h0 hmem0 hn0
             icases (BigSepM.bigSepM_delete hU0).1 $$ Hels with ⟨Hw, Hels⟩
             iunfold client.wsElem at Hw
-            icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+            icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
             ihave %HPq : ⌜wsReqOk V.pfx P ∧ P.γ.cpl = cplOf P⌝ $$ []
             · ihave #HP' := HP
               iunfold wsIs at HP'
-              icases HP' with ⟨-, -, -, -, -, -, -, -, -, %Hq, -⟩
+              icases HP' with ⟨-, -, -, -, -, -, %Hq, -⟩
               ipureintro; exact ⟨Hq.2.1, Hq.2.2⟩
             subst HPws
             obtain ⟨si, rfl, hsi⟩ : ∃ si, ph = .queued si ∧ si = some i := by
@@ -2578,7 +2676,8 @@ theorem watchGRPCStream.run.wp_proof
                 obtain ⟨-, -, h3, -⟩ := h; rw [hcr0] at h3; cases h3
               wp_apply wp_dispatch V G.wgs p (DFrac.own 1) m h sl [] mref S.M (DFrac.own 1)
                 (DFrac.own 1) (fun _ => client.dummyWsPrm G G.γr) (fun _ => [])
-                $$ [Hrf Hsub Hm] as %b ⟨Hrf, Hsub, Hm, Hpost⟩
+                (fun _ => client.dummyDn G) G.γend 1
+                $$ [Hrf Hsub Hm Hgen] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
               · iframe
                 iframe #
                 isplitr
@@ -2614,18 +2713,18 @@ theorem watchGRPCStream.run.wp_proof
               isplitl [Hids Hidn]
               · iapply client.regs_join; iframe
               ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
-                  client.wsElem V γs (S.answer m i m.watchId P.ws false) ws) $$ Hels []
+                  client.wsElem V G 1 γs (S.answer m i m.watchId P.ws false) ws) $$ Hels []
               · iintro !> %ws' %u %Hws' Hw'
                 have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
                 have hne : ws' ≠ P.ws := by
                   intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
                 rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at Hws''
                 cases u
-                iapply (client.wsElem_mono' V γs (S := S) (S' := S.answer m i m.watchId P.ws false) ws'
+                iapply (client.wsElem_mono' V G 1 γs (S := S) (S' := S.answer m i m.watchId P.ws false) ws'
                   (fun P ph _ => client.wsRest_snoc_ctrl V γs S.Dm m P ph hs0)
                   (fun ph h => Hold1 ws' ph hne Hws'' h) rfl) $$ Hw'
               iapply (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                client.wsElem V γs (S.answer m i m.watchId P.ws false) ws) (m := U) (i := P.ws) (x := ()) hU0).2
+                client.wsElem V G 1 γs (S.answer m i m.watchId P.ws false) ws) (m := U) (i := P.ws) (x := ()) hU0).2
               iframe Hels
               unfold client.wsElem
               iexists P, .orphan
@@ -2633,7 +2732,7 @@ theorem watchGRPCStream.run.wp_proof
               · ipureintro; exact ⟨rfl, by simpa using Hnew1 hn0⟩
               iframe HP
               simp only [WPh.id, client.wsRest, client.noCancelOk]
-              iframe Hid
+              iframe Hid Hlife
               try itrivial
             · have hca : m.canceled = false := by
                 cases hcan : m.canceled
@@ -2694,9 +2793,12 @@ theorem watchGRPCStream.run.wp_proof
                 ipureintro; exact Hhn
               have hnb : ¬ client.isBroadcast m := fun h => by
                 obtain ⟨-, -, h3, -⟩ := h; rw [hcr0] at h3; cases h3
+              iunfold client.wsLife at Hlife
+              icases Hlife with ⟨%L, %HLg, Hdc, #Hli, Htk⟩
+              ihave #Href := lifeQ_cur V G P L 1 HLg
               wp_apply wp_dispatch V G.wgs p (DFrac.own 1) m h sl [] mref (GMap.insert m.watchId P.ws S.M)
-                (DFrac.own 1) (DFrac.own 1) (fun _ => P) (fun _ => [])
-                $$ [Hrf Hsub Hm Hprod Hrv] as %b ⟨Hrf, Hsub, Hm, Hpost⟩
+                (DFrac.own 1) (DFrac.own 1) (fun _ => P) (fun _ => []) (fun _ => lifeDn V G P L) G.γend 1
+                $$ [Hrf Hsub Hm Hgen Hprod Hrv Hdc] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
               · iframe
                 iframe #
                 isplitr
@@ -2706,7 +2808,7 @@ theorem watchGRPCStream.run.wp_proof
                 rw [if_neg (by simpa using hnb), GMap.lookup_insert]
                 isplitr
                 · ipureintro; rfl
-                unfold sendCap
+                unfold sendCap dnCap
                 iframe
                 iframe #
                 iintro %wr #Hwr
@@ -2779,9 +2881,9 @@ theorem watchGRPCStream.run.wp_proof
                 iframe Hc0
                 ipureintro; rfl
               imod Hpend with Hpend
-              ihave Hrest := client.reg_post V γs P S.Dm m m.watchId w rg fcs lo []
+              icases client.reg_post V γs P S.Dm m m.watchId w rg fcs lo []
                 ([P.rev - W64 1] ++ [P.rev - W64 1]) ([P.rev - W64 1] ++ [P.rev - W64 1]) b wr
-                $$ [Hauth Hpost Hpend Hpsq]
+                (lifeDn V G P L) G.γend 1 $$ [Hauth Hpost Hpend Hpsq] with ⟨Hrest, Hdc⟩
               · iframe Hauth Hpost Hpend
                 iframe #
                 iright
@@ -2825,18 +2927,18 @@ theorem watchGRPCStream.run.wp_proof
               isplitl [Hids Hidn]
               · iapply client.regs_join; iframe
               ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
-                  client.wsElem V γs (S.answer m i m.watchId P.ws true) ws) $$ Hels []
+                  client.wsElem V G 1 γs (S.answer m i m.watchId P.ws true) ws) $$ Hels []
               · iintro !> %ws' %u %Hws' Hw'
                 have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
                 have hne : ws' ≠ P.ws := by
                   intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
                 rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at Hws''
                 cases u
-                iapply (client.wsElem_mono' V γs (S := S) (S' := S.answer m i m.watchId P.ws true) ws'
+                iapply (client.wsElem_mono' V G 1 γs (S := S) (S' := S.answer m i m.watchId P.ws true) ws'
                   (fun P ph _ => client.wsRest_snoc_ctrl V γs S.Dm m P ph hs0)
                   (fun ph h => Hold1 ws' ph hne Hws'' h) rfl) $$ Hw'
               iapply (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                client.wsElem V γs (S.answer m i m.watchId P.ws true) ws) (m := U) (i := P.ws) (x := ()) hU0).2
+                client.wsElem V G 1 γs (S.answer m i m.watchId P.ws true) ws) (m := U) (i := P.ws) (x := ()) hU0).2
               iframe Hels
               unfold client.wsElem
               iexists P, .reg m.watchId
@@ -2848,12 +2950,19 @@ theorem watchGRPCStream.run.wp_proof
               rw [show (S.answer m i m.watchId P.ws true).Dm = S.Dm ++ [m] from rfl]
               iframe Hrest
               -- a fresh id: no cancel request for it was sent (a cancel's id is registered)
-              unfold client.noCancelOk
-              ileft; ipureintro
-              intro j hj
-              exact hXr (HgOk.2.2.2.2.2.2.2.2.1 j m.watchId hj)
+              isplitr
+              · unfold client.noCancelOk
+                ileft; ipureintro
+                intro j hj
+                exact hXr (HgOk.2.2.2.2.2.2.2.2.1 j m.watchId hj)
+              unfold client.wsLife
+              iexists L
+              iunfold dnCap at Hdc
+              icases Hdc with ⟨Hdc, -⟩
+              iframe Hdc Hli Htk
+              ipureintro; exact HLg
           iintro %v ⟨%Hv, %S1, %e1, ⟨%Hg1, %Hp1, %HL1, %HD1, %HCL1, %HCS1⟩, Hsub, Hm, Hres, Hs, Hscap,
-            HcF, #He1, Hans, Hids, Hels⟩
+            HcF, #He1, Hans, Hids, Hels, Hgen⟩
           subst Hv
           wp_auto
           wp_apply wp_nextResume G.wgs s S1.l $$ [Hres Hs Hscap] as %ws2 ⟨%s2, Hres, Hs, %Hws2⟩
@@ -2870,11 +2979,11 @@ theorem watchGRPCStream.run.wp_proof
             obtain ⟨Hg2, Hold2, -⟩ := client.resume_ok (si := none) (U := U) Hg1 Hp1
               (Or.inl ⟨rfl, rfl, rfl⟩)
             ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
-                client.wsElem V γs (S1.resume S1.L none) ws) $$ Hels []
+                client.wsElem V G 1 γs (S1.resume S1.L none) ws) $$ Hels []
             · iintro !> %ws' %u %Hws' Hw'
               have Hws'' : U !! ws' = some u := Hws'
               cases u
-              iapply (client.wsElem_mono V γs (S := S1) (S' := S1.resume S1.L none) ws' rfl
+              iapply (client.wsElem_mono V G 1 γs (S := S1) (S' := S1.resume S1.L none) ws' rfl
                 (fun ph h => Hold2 ws' ph Hws'' (by rw [hhd]; simp) h) (fun _ _ _ hi => hi)) $$ Hw'
             wp_auto
             wp_for_post
@@ -2915,7 +3024,7 @@ theorem watchGRPCStream.run.wp_proof
           have hU2 : U !! ws2 = some () := Hg1.2.2.1 ws2 hmem2 hn2
           icases (BigSepM.bigSepM_delete hU2).1 $$ Hels with ⟨Hw, Hels⟩
           iunfold client.wsElem at Hw
-          icases Hw with ⟨%P2, %ph2, ⟨%HPws2, %Hph2⟩, #HP2, Hid2, Hrest2, #Hnc2⟩
+          icases Hw with ⟨%P2, %ph2, ⟨%HPws2, %Hph2⟩, #HP2, Hid2, Hrest2, #Hnc2, Hlife2⟩
           subst HPws2
           obtain ⟨si2, rfl⟩ : ∃ si2, ph2 = .queued si2 := by
             cases ph2 with
@@ -2945,7 +3054,7 @@ theorem watchGRPCStream.run.wp_proof
             dsimp only; iframe
             ihave #HP2s := HP2
             iunfold wsIs at HP2s
-            icases HP2s with ⟨-, -, -, -, -, -, -, -, -, -, #Hsrd2⟩
+            icases HP2s with ⟨-, -, -, -, -, -, -, #Hsrd2⟩
             simp only [createOf]; iapply client.startOk_read $$ Hsrd2
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
               cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗
@@ -2994,14 +3103,14 @@ theorem watchGRPCStream.run.wp_proof
           obtain ⟨Hg2, Hold2, Hnew2⟩ := client.resume_ok (U := U) (L' := L') (pend' := si) (si := si)
             Hg1 Hp1 Hcase
           ihave Hels := BigSepM.bigSepM_impl (Ψ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S1.resume L' si) ws) $$ Hels []
+              client.wsElem V G 1 γs (S1.resume L' si) ws) $$ Hels []
           · iintro !> %ws' %u %Hws' Hw'
             have Hws'' : (GMap.delete P2.ws U) !! ws' = some u := Hws'
             have hne : ws' ≠ P2.ws := by
               intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
             rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at Hws''
             cases u
-            iapply (client.wsElem_mono V γs (S := S1) (S' := S1.resume L' si) ws' rfl
+            iapply (client.wsElem_mono V G 1 γs (S := S1) (S' := S1.resume L' si) ws' rfl
               (fun ph h => Hold2 ws' ph Hws'' (by rw [hhd]; intro e; exact hne (Option.some.inj e).symm) h)
               (fun X _ => client.create_or (by
                 rcases Hcase with ⟨h, -⟩ | ⟨h, -⟩
@@ -3009,8 +3118,8 @@ theorem watchGRPCStream.run.wp_proof
                 · exact Or.inr h) X))
               $$ Hw'
           ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S1.resume L' si) ws) (m := U) (i := P2.ws) (x := ()) hU2).2
-              $$ [Hels Hid2 Hprod2 Hauth2 Hh2a2 Hrv2 Hpsq2 Hupi]
+              client.wsElem V G 1 γs (S1.resume L' si) ws) (m := U) (i := P2.ws) (x := ()) hU2).2
+              $$ [Hels Hid2 Hprod2 Hauth2 Hh2a2 Hrv2 Hpsq2 Hupi Hlife2]
           · iframe Hels
             unfold client.wsElem
             iexists P2, .queued si
@@ -3116,11 +3225,11 @@ theorem watchGRPCStream.run.wp_proof
             simp only [hMX, Option.isSome_none, Bool.false_eq_true, decide_false]
             wp_auto
             ihave Hels := BigSepM.bigSepM_impl
-                (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.cancelAns m i X none) ws) $$ Hels []
+                (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.cancelAns m i X none) ws) $$ Hels []
             · iintro !> %ws' %u %Hws' Hw'
               have Hws'' : U !! ws' = some u := Hws'
               cases u
-              iapply (client.wsElem_mono' V γs (S := S) (S' := S.cancelAns m i X none) ws'
+              iapply (client.wsElem_mono' V G 1 γs (S := S) (S' := S.cancelAns m i X none) ws'
                 (fun P ph _ => client.wsRest_snoc_ctrl V γs S.Dm m P ph hs0)
                 (fun ph h => Hold ws' ph Hws'' (by simp) h) rfl) $$ Hw'
             wp_for_post
@@ -3160,7 +3269,7 @@ theorem watchGRPCStream.run.wp_proof
             have hUx : U !! wsx = some () := HgOk.1 X wsx hMX
             icases (BigSepM.bigSepM_delete hUx).1 $$ Hels with ⟨Hx, Hels⟩
             iunfold client.wsElem at Hx
-            icases Hx with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+            icases Hx with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
             subst HPws
             have hreg : ph = .reg X := by
               cases ph with
@@ -3176,7 +3285,7 @@ theorem watchGRPCStream.run.wp_proof
             icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, -, Hprod, -, -⟩
             ihave #HP' := HP
             iunfold wsIs at HP'
-            icases HP' with ⟨-, -, #Frecvc, -, -, #Hrecvc, -⟩
+            icases HP' with ⟨-, #Frecvc, -, #Hrecvc, -⟩
             simp only [hMX, Option.isSome_some, _root_.decide_true, Option.getD_some]
             wp_auto
             wp_apply wp_sspsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
@@ -3186,7 +3295,7 @@ theorem watchGRPCStream.run.wp_proof
             wp_apply wp_mapInsert $$ Hclm as Hclm
             wp_apply wp_mapDelete $$ Hm as Hm
             ihave Hels := BigSepM.bigSepM_impl
-                (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.cancelAns m i X (some P.ws)) ws)
+                (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.cancelAns m i X (some P.ws)) ws)
                 $$ Hels []
             · iintro !> %ws' %u %Hws' Hw'
               have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
@@ -3194,12 +3303,12 @@ theorem watchGRPCStream.run.wp_proof
                 intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
               rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at Hws''
               cases u
-              iapply (client.wsElem_mono' V γs (S := S) (S' := S.cancelAns m i X (some P.ws)) ws'
+              iapply (client.wsElem_mono' V G 1 γs (S := S) (S' := S.cancelAns m i X (some P.ws)) ws'
                 (fun P ph _ => client.wsRest_snoc_ctrl V γs S.Dm m P ph hs0)
                 (fun ph h => Hold ws' ph Hws'' (fun e => hne (Option.some.inj e).symm) h) rfl) $$ Hw'
             ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                client.wsElem V γs (S.cancelAns m i X (some P.ws)) ws) (m := U) (i := P.ws) (x := ())
-                hUx).2 $$ [Hels Hid]
+                client.wsElem V G 1 γs (S.cancelAns m i X (some P.ws)) ws) (m := U) (i := P.ws) (x := ())
+                hUx).2 $$ [Hels Hid Hlife]
             · iframe Hels
               unfold client.wsElem
               iexists P, .closedRun X
@@ -3207,7 +3316,7 @@ theorem watchGRPCStream.run.wp_proof
               · ipureintro; exact ⟨rfl, Hph2⟩
               iframe HP
               simp only [WPh.id, client.wsRest, client.noCancelOk]
-              iframe Hid
+              iframe Hid Hlife
               try itrivial
             wp_for_post
             iframe Hrcb
@@ -3306,46 +3415,51 @@ theorem watchGRPCStream.run.wp_proof
         have hkv0 : List.zipWith client.evModelOf ρ.evs kvs = [] := by rw [hevn]; rfl
         irevert Hea; rw [hkv0]; iintro #Hea
         -- the registered substreams (`substreams`'s) and the others
-        icases client.bigSepM_split_inj (fun ws => client.wsElem V γs S ws) U S.M hU hinj $$ Hels
+        icases client.bigSepM_split_inj (fun ws => client.wsElem V G 1 γs S ws) U S.M hU hinj $$ Hels
           with ⟨HelM, HelR⟩
         -- (K2e-7d) the broadcast covers every registered substream's watcher, unless it stopped
-        imod client.bcast_covAll V γs ρ γc pre γo γa hinj Hγ.1 Hγ.2.1 Hγ.2.2.1 Hfr2.1 hid
+        imod client.bcast_covAll V G 1 γs ρ γc pre γo γa hinj Hγ.1 Hγ.2.1 Hγ.2.2.1 Hfr2.1 hid
           $$ [Hax Hsl0 Hra Hcmp0 Hcq Hlc3 Hstok HelM] with ⟨Hstok, HelM, #Hcall⟩
         · iframe Hlc3 Hstok HelM; iframe #
         ihave #HDw : v3rpc.downLbW γs S.Dm $$ []
         · unfold v3rpc.downLbW; iexact HDlb
         ihave HelR := BigSepM.bigSepM_impl
             (Ψ := fun ws (_ : Unit) => iprop(⌜∃ X, S.M !! X = some ws⌝ ∨
-              client.wsElem V γs (S.recvMvcc m) ws)) $$ HelR []
+              client.wsElem V G 1 γs (S.recvMvcc m) ws)) $$ HelR []
         · iintro !> %ws' %u %Hws' Hw'
           icases Hw' with (%Hin | Hw')
           · ileft; ipureintro; exact Hin
           iright
-          iapply (client.wsElem_recv_other V γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
+          iapply (client.wsElem_recv_other V G 1 γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
             (fun X h e => by rw [hid] at e; exact h.2.2.2.2.1 e.symm)
             (fun ph h => Hph1 ws' ph h) rfl) $$ [Hw']
           iframe; iframe #
         ihave HelM := BigSepM.bigSepM_impl
-            (Ψ := fun (_X : w64) ws => iprop(|={⊤}=> ∃ a : client.WsPrm GF × List Loc,
-              ⌜a.1.ws = ws⌝ ∗ client.sendCap V a.1 a.2 (fun wr => iprop(wr ↦□ client.wrOf m h sl)) ∗
-              (∀ wr : Loc, (client.sendDone a.1 a.2 wr ∨ client.sendFail V a.1 a.2 wr) -∗
-                client.wsElem V γs (S.recvMvcc m) ws))) $$ HelM []
+            (Ψ := fun (_X : w64) ws => iprop(|={⊤}=> ∃ a : client.WsPrm GF × List Loc × DnInfo GF,
+              ⌜a.1.ws = ws⌝ ∗
+              client.sendCap V a.1 a.2.1 (fun wr => iprop(wr ↦□ client.wrOf m h sl)) a.2.2 G.γend 1 ∗
+              (∀ wr : Loc, (client.sendDone a.1 a.2.1 wr a.2.2 G.γend 1 ∨
+                client.sendFail V a.1 a.2.1 wr a.2.2 G.γend 1) -∗
+                client.wsElem V G 1 γs (S.recvMvcc m) ws))) $$ HelM []
         · iintro !> %X %ws' %HX Hw'
-          iapply (client.bcast_elem V γs (S := S) (S' := S.recvMvcc m) X ws' S.Dm.length m ρ h sl hsrc
+          iapply (client.bcast_elem V G 1 γs (S := S) (S' := S.recvMvcc m) X ws' S.Dm.length m ρ h sl hsrc
             hevn ⟨hcomp0, hca0, hcr0⟩ Hhn HX hinj rfl (fun ph h => Hph1 ws' ph h) rfl rfl hid
             Hpre.1)
           iframe Hha Hea Hw' Hmvcc HDw Hsmall
           iapply Hcall $$ %X %ws' %HX
         imod (BigSepM.bigSepM_fupd ⊤ _ _) $$ HelM with HelM
-        icases client.bigSepM_choice_inj (client.dummyWsPrm G G.γr, ([] : List Loc))
+        icases client.bigSepM_choice_inj (client.dummyWsPrm G G.γr, ([] : List Loc), client.dummyDn G)
             (fun ws a => iprop(⌜a.1.ws = ws⌝ ∗
-              client.sendCap V a.1 a.2 (fun wr => iprop(wr ↦□ client.wrOf m h sl)) ∗
-              (∀ wr : Loc, (client.sendDone a.1 a.2 wr ∨ client.sendFail V a.1 a.2 wr) -∗
-                client.wsElem V γs (S.recvMvcc m) ws))) S.M hinj $$ HelM with ⟨%f, HelM⟩
+              client.sendCap V a.1 a.2.1 (fun wr => iprop(wr ↦□ client.wrOf m h sl)) a.2.2 G.γend 1 ∗
+              (∀ wr : Loc, (client.sendDone a.1 a.2.1 wr a.2.2 G.γend 1 ∨
+                client.sendFail V a.1 a.2.1 wr a.2.2 G.γend 1) -∗
+                client.wsElem V G 1 γs (S.recvMvcc m) ws))) S.M hinj $$ HelM with ⟨%f, HelM⟩
         ihave HelM : iprop([∗map] _X ↦ ws ∈ S.M, iprop((⌜(f ws).1.ws = ws⌝ ∗
-              client.sendCap V (f ws).1 (f ws).2 (fun wr => iprop(wr ↦□ client.wrOf m h sl))) ∗
-              (∀ wr : Loc, (client.sendDone (f ws).1 (f ws).2 wr ∨
-                client.sendFail V (f ws).1 (f ws).2 wr) -∗ client.wsElem V γs (S.recvMvcc m) ws)))
+              client.sendCap V (f ws).1 (f ws).2.1 (fun wr => iprop(wr ↦□ client.wrOf m h sl))
+                (f ws).2.2 G.γend 1) ∗
+              (∀ wr : Loc, (client.sendDone (f ws).1 (f ws).2.1 wr (f ws).2.2 G.γend 1 ∨
+                client.sendFail V (f ws).1 (f ws).2.1 wr (f ws).2.2 G.γend 1) -∗
+                client.wsElem V G 1 γs (S.recvMvcc m) ws)))
             $$ [HelM]
         · iapply (BigSepM.bigSepM_mono (fun {_ _} _ => by
             iintro ⟨Hp, Hc, Hw⟩
@@ -3357,8 +3471,8 @@ theorem watchGRPCStream.run.wp_proof
         ihave Hhw : iprop(⌜m.evs = []⌝ -∗ hdrAt h m.hdr.revision) $$ []
         · iintro %-; iexact Hha
         wp_apply wp_dispatch V G.wgs p (DFrac.own 1) m h sl [] mref S.M (DFrac.own 1) (DFrac.own 1)
-          (fun ws => (f ws).1) (fun ws => (f ws).2)
-          $$ [Hrf Hhw Hsub Hm HcapM] as %b ⟨Hrf, Hsub, Hm, Hpost⟩
+          (fun ws => (f ws).1) (fun ws => (f ws).2.1) (fun ws => (f ws).2.2) G.γend 1
+          $$ [Hrf Hhw Hsub Hm Hgen HcapM] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
         · rw [if_pos (decide_eq_true hb)]
           iframe
           iframe #
@@ -3367,12 +3481,12 @@ theorem watchGRPCStream.run.wp_proof
         rw [if_pos (decide_eq_true hb)]
         iintro ⟨%Hbt, %wr, Hpost⟩
         subst Hbt
-        ihave HelM : iprop([∗map] _X ↦ ws ∈ S.M, client.wsElem V γs (S.recvMvcc m) ws) $$ [Hpost HwM]
+        ihave HelM : iprop([∗map] _X ↦ ws ∈ S.M, client.wsElem V G 1 γs (S.recvMvcc m) ws) $$ [Hpost HwM]
         · iapply BigSepM.bigSepM_wand $$ Hpost
           iapply BigSepM.bigSepM_impl $$ HwM
           iintro !> %X %ws' %HX Hw' Hs
           iapply Hw' $$ %wr Hs
-        ihave Hels := client.bigSepM_join_inj (fun ws => client.wsElem V γs (S.recvMvcc m) ws) U S.M
+        ihave Hels := client.bigSepM_join_inj (fun ws => client.wsElem V G 1 γs (S.recvMvcc m) ws) U S.M
           hU hinj $$ [HelM HelR]
         · iframe
         iunfold respFields at Hrf
@@ -3422,7 +3536,8 @@ theorem watchGRPCStream.run.wp_proof
         imod Hhw
         wp_apply wp_dispatch V G.wgs p (DFrac.own 1) m h sl (List.zipWith client.evModelOf ρ.evs kvs)
           mref S.M (DFrac.own 1) (DFrac.own 1) (fun _ => client.dummyWsPrm G G.γr) (fun _ => [])
-          $$ [Hrf Hhw Hsub Hm] as %b ⟨Hrf, Hsub, Hm, Hpost⟩
+          (fun _ => client.dummyDn G) G.γend 1
+          $$ [Hrf Hhw Hsub Hm Hgen] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
         · iframe
           iframe #
           isplitr
@@ -3444,9 +3559,9 @@ theorem watchGRPCStream.run.wp_proof
           rw [← hw]; exact HgOk.2.2.2.2.2.2.2.2.2.2.2.2 mc hmc hs hc hca
         obtain ⟨Hg1, Hph1⟩ := client.recvMvcc_ok HgOk hsrc (fun _ => hlive)
         ihave Hels := BigSepM.bigSepM_impl
-            (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.recvMvcc m) ws) $$ Hels []
+            (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.recvMvcc m) ws) $$ Hels []
         · iintro !> %ws' %u %Hws' Hw'
-          iapply (client.wsElem_recv_other V γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
+          iapply (client.wsElem_recv_other V G 1 γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
             (fun X h e => by subst e; have h1 := h.1; rw [hMX] at h1; cases h1)
             (fun ph h => Hph1 ws' ph h) rfl) $$ [Hw']
           iframe; iframe #
@@ -3518,9 +3633,9 @@ theorem watchGRPCStream.run.wp_proof
             iframe closeErr cur backoff
             obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
             ihave Hels := BigSepM.bigSepM_impl
-                (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
+                (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
             · iintro !> %ws' %u %Hws' Hw'
-              iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
+              iapply (client.wsElem_mono V G 1 γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
                 (fun ph' h => Hph2 ws' ph' h
                   (fun X' e => by
                     subst e; intro eX; subst eX
@@ -3571,9 +3686,9 @@ theorem watchGRPCStream.run.wp_proof
             iframe closeErr cur backoff
             obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
             ihave Hels := BigSepM.bigSepM_impl
-                (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
+                (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
             · iintro !> %ws' %u %Hws' Hw'
-              iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
+              iapply (client.wsElem_mono V G 1 γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
                 (fun ph' h => Hph2 ws' ph' h
                   (fun X' e => by
                     subst e; intro eX; subst eX
@@ -3612,7 +3727,7 @@ theorem watchGRPCStream.run.wp_proof
         have hU : U !! wsx = some () := HgOk.1 ρ.id wsx hMX
         icases (BigSepM.bigSepM_delete hU).1 $$ Hels with ⟨Hw, Hels⟩
         iunfold client.wsElem at Hw
-        icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+        icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
         subst HPws
         have hlive' : v3rpc.idLive (S.Dm ++ [m]) ρ.id := by
           rw [client.idLive_snoc, if_neg (fun h => by rw [hsrc] at h; cases h.1)]; exact hlive
@@ -3630,7 +3745,7 @@ theorem watchGRPCStream.run.wp_proof
         icases Hrest with ⟨%w, %rg, %fcs, %lo, %sent, %C, #Hrg, Hprod, Hauth, Hst, Hc2⟩
         ihave #HP' := HP
         iunfold wsIs at HP'
-        icases HP' with ⟨-, -, -, -, -, -, -, -, -, %HPpure, #Hso⟩
+        icases HP' with ⟨-, -, -, -, -, -, %HPpure, #Hso⟩
         ihave #HDw : v3rpc.downLbW γs S.Dm $$ []
         · unfold v3rpc.downLbW; iexact HDlb
         ihave #Hevs' : iprop([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs x.1 x.2) $$ []
@@ -3640,9 +3755,12 @@ theorem watchGRPCStream.run.wp_proof
             Hpre.1 Hhn rfl HPpure.2.2 hlive hid $$ [Hauth Hst Hhrev Hc2]
         · iframe; iframe #
         imod Hpre with ⟨%es, %C', %C2, #Hes, %Hesl, Hhw, Hauth, Hcap, Hst, Hpend⟩
+        iunfold client.wsLife at Hlife
+        icases Hlife with ⟨%L, %HLg, Hdc, #Hli, Htk⟩
+        ihave #Href := lifeQ_cur V G P L 1 HLg
         wp_apply wp_dispatch V G.wgs p (DFrac.own 1) m h sl es mref S.M (DFrac.own 1) (DFrac.own 1)
-          (fun _ => P) (fun _ => sent)
-          $$ [Hrf Hhw Hsub Hm Hprod Hcap] as %b ⟨Hrf, Hsub, Hm, Hpost⟩
+          (fun _ => P) (fun _ => sent) (fun _ => lifeDn V G P L) G.γend 1
+          $$ [Hrf Hhw Hsub Hm Hgen Hprod Hcap Hdc] as %b ⟨Hrf, Hsub, Hm, Hgen, Hpost⟩
         · iframe
           iframe #
           isplitr
@@ -3650,24 +3768,31 @@ theorem watchGRPCStream.run.wp_proof
           rw [if_neg (by simpa using hnb), hid0, hMX]
           isplitr
           · ipureintro; rfl
-          unfold sendCap
+          unfold sendCap dnCap
           iframe
           iframe #
         irevert Hpost
         rw [if_neg (by simpa using hnb), hid0, hMX]
         iintro ⟨%wr, Hpost⟩
-        icases client.post_gx V P sent wr b $$ Hpost with ⟨Hpost, #Hxb⟩
-        ihave Hrest := client.reg_post V γs P S.Dm m ρ.id w rg fcs lo sent C' C2 b wr
-          $$ [Hauth Hst Hpend Hpost]
+        icases client.post_gx V P sent wr b (lifeDn V G P L) G.γend 1 $$ Hpost with ⟨Hpost, #Hxb⟩
+        icases client.reg_post V γs P S.Dm m ρ.id w rg fcs lo sent C' C2 b wr (lifeDn V G P L) G.γend 1
+          $$ [Hauth Hst Hpend Hpost] with ⟨Hrest, Hdc⟩
         · iframe; iframe #
+        ihave HlifeR : iprop(client.wsLife V G 1 P) $$ [Hdc Htk]
+        · unfold client.wsLife
+          iexists L
+          iunfold dnCap at Hdc
+          icases Hdc with ⟨Hdc, -⟩
+          iframe Hdc Hli Htk
+          ipureintro; exact HLg
         obtain ⟨Hg1, Hph1⟩ := client.recvMvcc_ok HgOk hsrc (fun _ => hlive)
         ihave Hels := BigSepM.bigSepM_impl
-            (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.recvMvcc m) ws) $$ Hels []
+            (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.recvMvcc m) ws) $$ Hels []
         · iintro !> %ws' %u %Hws' Hw'
           have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
           have hne : ws' ≠ P.ws := by
             intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
-          iapply (client.wsElem_recv_other V γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
+          iapply (client.wsElem_recv_other V G 1 γs (S := S) (S' := S.recvMvcc m) ws' m ρ hsrc rfl
             (fun X h e => by
               subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1
               exact hne (Option.some.inj h1).symm)
@@ -3678,7 +3803,7 @@ theorem watchGRPCStream.run.wp_proof
         cases b with
         | true =>
           ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S.recvMvcc m) ws) (m := U) (i := P.ws) (x := ()) hU).2 $$ [Hels Hid Hrest]
+              client.wsElem V G 1 γs (S.recvMvcc m) ws) (m := U) (i := P.ws) (x := ()) hU).2 $$ [Hels Hid Hrest HlifeR]
           · iframe Hels
             unfold client.wsElem
             iexists P, .reg ρ.id
@@ -3733,8 +3858,8 @@ theorem watchGRPCStream.run.wp_proof
             simp only [named]
             iframe closeErr cur backoff
             ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                client.wsElem V γs (S.recvMvcc m) ws) (m := U) (i := P.ws) (x := ()) hU).2
-                $$ [Hels Hid Hrest]
+                client.wsElem V G 1 γs (S.recvMvcc m) ws) (m := U) (i := P.ws) (x := ()) hU).2
+                $$ [Hels Hid Hrest HlifeR]
             · iframe Hels
               unfold client.wsElem
               iexists P, .reg ρ.id
@@ -3802,12 +3927,12 @@ theorem watchGRPCStream.run.wp_proof
               iframe closeErr cur backoff
               obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
               ihave Hels := BigSepM.bigSepM_impl
-                  (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
+                  (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
               · iintro !> %ws' %u %Hws' Hw'
                 have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
                 have hne : ws' ≠ P.ws := by
                   intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
-                iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
+                iapply (client.wsElem_mono V G 1 γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
                   (fun ph' h => Hph2 ws' ph' h
                     (fun X' e => by
                       subst e; intro eX; subst eX; exact h.2.2.2.2.2.1 hlive')
@@ -3818,8 +3943,8 @@ theorem watchGRPCStream.run.wp_proof
                     rw [hMX] at h1; cases h1
                     exact absurd rfl hne) HL')) $$ Hw'
               ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                  client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
-                  (x := ()) hU).2 $$ [Hels Hid Hrest]
+                  client.wsElem V G 1 γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
+                  (x := ()) hU).2 $$ [Hels Hid Hrest HlifeR]
               · iframe Hels
                 unfold client.wsElem
                 iexists P, .reg ρ.id
@@ -3869,12 +3994,12 @@ theorem watchGRPCStream.run.wp_proof
               iframe closeErr cur backoff
               obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
               ihave Hels := BigSepM.bigSepM_impl
-                  (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
+                  (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
               · iintro !> %ws' %u %Hws' Hw'
                 have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
                 have hne : ws' ≠ P.ws := by
                   intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
-                iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
+                iapply (client.wsElem_mono V G 1 γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
                   (fun ph' h => Hph2 ws' ph' h
                     (fun X' e => by
                       subst e; intro eX; subst eX; exact h.2.2.2.2.2.1 hlive')
@@ -3885,8 +4010,8 @@ theorem watchGRPCStream.run.wp_proof
                     rw [hMX] at h1; cases h1
                     exact absurd rfl hne) HL')) $$ Hw'
               ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                  client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
-                  (x := ()) hU).2 $$ [Hels Hid Hrest]
+                  client.wsElem V G 1 γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
+                  (x := ()) hU).2 $$ [Hels Hid Hrest HlifeR]
               · iframe Hels
                 unfold client.wsElem
                 iexists P, .reg ρ.id
@@ -3948,7 +4073,7 @@ theorem watchGRPCStream.run.wp_proof
       wp_for_post
       isplitr
       · ipureintro; rfl
-      iapply client.runExit_of_core V G γs 0 clm csm closeErr_ptr err
+      iapply client.runExit_of_core V G γs 0 1 clm csm closeErr_ptr err
       iframe
       iframe #
     -- ctx.Done
@@ -3967,7 +4092,7 @@ theorem watchGRPCStream.run.wp_proof
       isplitr
       · ipureintro; rfl
       ihave #Hnil := statusErrOk_nil (GF := GF)
-      iapply client.runExit_of_core V G γs 0 clm csm closeErr_ptr GoInterface.nil
+      iapply client.runExit_of_core V G γs 0 1 clm csm closeErr_ptr GoInterface.nil
       iframe
       iframe #
     -- closingc
@@ -3982,28 +4107,36 @@ theorem watchGRPCStream.run.wp_proof
       · iapply is_bag_is_chan $$ Hclb
       iapply bag_recv_au G.γclosing G.closingc (closingP V G) _ $$ [$Hlc1 $Hlc2] Hclb
       inext
-      iintro %wsr Hcp
-      iunfold closingP at Hcp
-      icases Hcp with ⟨Hbody, Hel⟩
+      iintro %wsr Hel
+      iunfold closingP at Hel
       iunfold client.runCore at Hcore
       icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
-        Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn⟩
+        Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
       ihave %HU := ghost_map_lookup $$ Hwsa Hel
       icases (BigSepM.bigSepM_delete HU).1 $$ Hels with ⟨Hw, Hels⟩
       iunfold client.wsElem at Hw
-      icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc⟩
+      icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
+      -- (D24) what the goroutine left in its lifetime's invariant
+      iunfold client.wsLife at Hlife
+      icases Hlife with ⟨%L, %HLg, -, #Hli, Htk⟩
+      iapply fupd_wp
+      imod client.take_stop V G 1 P L wsr HPws HLg $$ [Hlc3 Htk Hel Hgen] with ⟨Hsb, Hel, Hgen⟩
+      · iframe; iframe #
+      ihave Hbody : iprop(closingBody V wsr) $$ [Hsb]
+      · unfold closingBody; iexists P; iframe HP Hsb; ipureintro; exact HPws
       imod ghost_map_delete $$ Hwsa Hel with Hwsa
+      imodintro
       subst HPws
       obtain ⟨Hg', Hph'⟩ := client.closeWs_ok HgOk HU Hph
       ihave Hels := BigSepM.bigSepM_impl
-          (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.closeWs P.ws ph) ws) $$ Hels []
+          (Ψ := fun ws (_ : Unit) => client.wsElem V G 1 γs (S.closeWs P.ws ph) ws) $$ Hels []
       · iintro !> %ws' %u %Hws' Hw'
         have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
         have hne : ws' ≠ P.ws := by
           intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
         have hU' : U !! ws' = some () := by
           rw [GMap.lookup_delete_ne _ (Ne.symm hne)] at Hws''; exact Hws''
-        iapply (client.wsElem_mono V γs (S := S) (S' := S.closeWs P.ws ph) ws' rfl
+        iapply (client.wsElem_mono V G 1 γs (S := S) (S' := S.closeWs P.ws ph) ws' rfl
           (fun ph' h => Hph' ws' ph' hne hU' h) (fun _ _ _ hi => hi)) $$ Hw'
       iunfold sliceOwn at Hs
       icases Hs with ⟨Hs, Hscap⟩
@@ -4030,7 +4163,7 @@ theorem watchGRPCStream.run.wp_proof
         isplitr
         · ipureintro; rfl
         ihave #Hnil := statusErrOk_nil (GF := GF)
-        iapply client.runExit_of_core V G γs 0 clm csm closeErr_ptr GoInterface.nil
+        iapply client.runExit_of_core V G γs 0 1 clm csm closeErr_ptr GoInterface.nil
         iframe closeErr Hnil
         unfold client.runCore
         iexists S.closeWs P.ws ph, GMap.delete P.ws U, rcv, mref, s, e
@@ -4116,9 +4249,9 @@ theorem watchGRPCStream.run.wp_proof
           Hg' hXr HL'
         ihave Hels := BigSepM.bigSepM_impl
             (Ψ := fun ws (_ : Unit) =>
-              client.wsElem V γs ((S.closeWs P.ws ph).sentCancel ph.id L') ws) $$ Hels []
+              client.wsElem V G 1 γs ((S.closeWs P.ws ph).sentCancel ph.id L') ws) $$ Hels []
         · iintro !> %ws' %u %Hws' Hw'
-          iapply (client.wsElem_mono V γs (S := S.closeWs P.ws ph)
+          iapply (client.wsElem_mono V G 1 γs (S := S.closeWs P.ws ph)
             (S' := (S.closeWs P.ws ph).sentCancel ph.id L') ws' rfl
             (fun ph' h => Hph2 ws' ph' h
               (fun X' e => by
@@ -4174,9 +4307,9 @@ theorem watchGRPCStream.run.wp_proof
           Hg' hXr HL'
         ihave Hels := BigSepM.bigSepM_impl
             (Ψ := fun ws (_ : Unit) =>
-              client.wsElem V γs ((S.closeWs P.ws ph).sentCancel ph.id L') ws) $$ Hels []
+              client.wsElem V G 1 γs ((S.closeWs P.ws ph).sentCancel ph.id L') ws) $$ Hels []
         · iintro !> %ws' %u %Hws' Hw'
-          iapply (client.wsElem_mono V γs (S := S.closeWs P.ws ph)
+          iapply (client.wsElem_mono V G 1 γs (S := S.closeWs P.ws ph)
             (S' := (S.closeWs P.ws ph).sentCancel ph.id L') ws' rfl
             (fun ph' h => Hph2 ws' ph' h
               (fun X' e => by
@@ -4203,11 +4336,27 @@ theorem watchGRPCStream.run.wp_proof
   iintro %v ⟨%Hv, Hexit⟩
   subst Hv
   iunfold client.runExit at Hexit
-  icases Hexit with ⟨%γs, %S, %U, %ce, %e, %mref, %s, HcE, #Hce, Hclm, Hsub, Hm, Hres, Hs, HcF, #He,
-    %HgOk, Hwsa, Hels, Had, Htt, Hdn⟩
+  icases Hexit with ⟨%γs, %S, %U, %ce, %e, %mref, %s, %ng, HcE, #Hce, Hclm, Hsub, Hm, Hres, Hs, HcF,
+    #He, %HgOk, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
   wp_auto
   ipersist HcF
-  ihave ⟨Hids, Hcls, #Hdcs⟩ := client.wsElems_split V γs S U $$ Hels
+  ihave ⟨Hids, Hcls, Hlfs⟩ := client.wsElems_split V G ng γs S U $$ Hels
+  -- (D24) the substreams' current lifetimes
+  ihave Hlfs : iprop([∗map] ws ↦ _u ∈ U, ∃ a : WsPrm GF × LifePrm,
+      (⌜a.1.ws = ws ∧ a.2.gen = ng⌝ ∗ wsIs V a.1 ∗ lifeInvIs V G a.1 a.2 ∗ ownTok a.2.γk) ∗
+      donecAt ws (lifeDn V G a.1 a.2)) $$ [Hlfs]
+  · iapply BigSepM.bigSepM_mono ?_ $$ Hlfs
+    intro k x _
+    unfold client.lifeE
+    iintro ⟨%P, %L, %H, #HP, Hdc, #Hli, Htk⟩
+    iexists (P, L)
+    iframe HP Hdc Hli Htk
+    ipureintro; exact H
+  icases client.bigSepM_choice_keys (client.dummyWsPrm G G.γr, (⟨null, G.γreq, G.γws, G.γws, 0⟩ : LifePrm))
+    (fun ws a => iprop((⌜a.1.ws = ws ∧ a.2.gen = ng⌝ ∗ wsIs V a.1 ∗ lifeInvIs V G a.1 a.2 ∗
+      ownTok a.2.γk) ∗ donecAt ws (lifeDn V G a.1 a.2))) U $$ Hlfs with ⟨%f, Hlfs⟩
+  rw [BigSepM.bigSepM_sep_eq]
+  icases Hlfs with ⟨Hlts, Hdcs⟩
   -- the substreams' loop: close the `recvc` of each not yet closing
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -4255,7 +4404,7 @@ theorem watchGRPCStream.run.wp_proof
       subst HPws
       ihave #HP' := HP
       iunfold wsIs at HP'
-      icases HP' with ⟨-, -, #Frecvc, -, -, #Hrecvc, -⟩
+      icases HP' with ⟨-, #Frecvc, -, #Hrecvc, -⟩
       wp_pures
       wp_auto
       wp_apply wp_sspsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
@@ -4351,7 +4500,7 @@ theorem watchGRPCStream.run.wp_proof
       subst HPws
       ihave #HP' := HP
       iunfold wsIs at HP'
-      icases HP' with ⟨-, -, #Frecvc, -, -, #Hrecvc, -⟩
+      icases HP' with ⟨-, #Frecvc, -, #Hrecvc, -⟩
       wp_pures
       wp_auto
       wp_apply wp_sspsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
@@ -4373,43 +4522,48 @@ theorem watchGRPCStream.run.wp_proof
   (try rw [if_pos (by simp)])
   (try wp_auto)
   -- the loop's end: join, then wait for the closing substreams
-  ihave HdM : iprop([∗map] _k ↦ ws ∈ S.M, donecOf ws) $$ []
-  · iapply (BigSepM.bigSepM_intro (P := iprop(□ ∀ ws, ⌜U !! ws = some ()⌝ → donecOf (GF := GF) ws))
-      (fun {X ws} hX => by iintro #H; iapply H $$ %ws %(HgOk.1 X ws hX))) $$ Hdcs
-  ihave HdL : iprop([∗list] ws ∈ S.l, ⌜ws = null⌝ ∨ donecOf ws) $$ []
-  · iapply (BigSepL.bigSepL_intro (P := iprop(□ ∀ ws, ⌜U !! ws = some ()⌝ → donecOf (GF := GF) ws))
-      (fun {k ws} hk => by
-        iintro #H
-        by_cases hn : ws = null
-        · ileft; ipureintro; exact hn
-        · iright
-          iapply H $$ %ws %(HgOk.2.2.1 ws (List.mem_of_getElem? hk) hn))) $$ Hdcs
   wp_apply wp_join G.wgs mref S.M s S.l (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    $$ [Hsub Hm Hres Hs HdM HdL] as ⟨Hsub, Hm, Hres, Hs⟩
+    U (fun ws => lifeDn V G (f ws).1 (f ws).2) $$ [Hsub Hm Hres Hs Hdcs] as
+    ⟨Hsub, Hm, Hres, Hs, -, -, -⟩
   · iframe
+    ipureintro; exact ⟨HgOk.1, fun ws h hn => HgOk.2.2.1 ws h hn⟩
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (_ : List Loc) (_ : Int) => iprop(∃ (M' : GMap w64 Loc)
       (l' : List Loc) (U' : GMap Loc Unit),
       ownMap mref (DFrac.own 1) M' ∗ s ↦* l' ∗ ghostMapAuth G.γws 1 U' ∗
       ([∗map] ws ↦ _u ∈ U', client.idE ws) ∗ wgsF G.wgs go!"substreams" ↦ mref ∗
-      wgsF G.wgs go!"resuming" ↦ s)) $$ Hclm
+      wgsF G.wgs go!"resuming" ↦ s ∗ monoNatAuthOwn G.γend 1 ng ∗
+      ([∗map] ws ↦ _u ∈ U', ⌜(f ws).1.ws = ws ∧ (f ws).2.gen = ng⌝ ∗ wsIs V (f ws).1 ∗
+        lifeInvIs V G (f ws).1 (f ws).2 ∗ ownTok (f ws).2.γk))) $$ Hclm
   iintro %keys ⟨%Hk1, %Hk2, %Hk3⟩
-  isplitl [Hm Hs Hwsa Hids Hsub Hres]
+  isplitl [Hm Hs Hwsa Hids Hsub Hres Hgen Hlts]
   · iexists _, _, _
     iframe
   isplitr
   · imodintro
-    iintro %ik %wk %u ⟨%Hkw, %Hu⟩ ⟨%M', %l', %U', Hm, Hs, Hwsa, Hids, Hsub, Hres⟩
+    iintro %ik %wk %u ⟨%Hkw, %Hu⟩ ⟨%M', %l', %U', Hm, Hs, Hwsa, Hids, Hsub, Hres, Hgen, Hlts⟩
     wp_auto
-    wp_apply wp_bag_receive G.γclosing G.closingc (closingP V G) $$ Hclb as %wsr Hcp
-    iunfold closingP at Hcp
-    icases Hcp with ⟨Hbody, Hel⟩
+    wp_apply +noauto wp_bag_receive G.γclosing G.closingc (closingP V G) $$ Hclb as %wsr Hel
+    iunfold closingP at Hel
     ihave %HU' := ghost_map_lookup $$ Hwsa Hel
     icases (BigSepM.bigSepM_delete HU').1 $$ Hids with ⟨Hid, Hids⟩
+    icases (BigSepM.bigSepM_delete HU').1 $$ Hlts with ⟨⟨%Hfw, #HPf, #Hli, Htk⟩, Hlts⟩
     iunfold client.idE at Hid
     icases Hid with ⟨%idv, Hid⟩
+    wp_auto_lc 1
+    -- (D24) what the goroutine left
+    iapply fupd_wp
+    imod client.take_stop V G ng (f wsr).1 (f wsr).2 wsr Hfw.1 Hfw.2 $$ [Hlc1 Htk Hel Hgen]
+      with ⟨Hsb, Hel, Hgen⟩
+    · iframe; iframe #
+    ihave Hbody : iprop(closingBody V wsr) $$ [Hsb]
+    · unfold closingBody
+      iexists (f wsr).1
+      iframe HPf Hsb
+      ipureintro; exact Hfw.1
     imod ghost_map_delete $$ Hwsa Hel with Hwsa
+    imodintro
     wp_apply wp_closeSub V G.wgs wsr idv ce DFrac.discard (DFrac.own 1) (DFrac.own 1) mref M' s l'
       $$ [Hbody Hid Hsub Hm Hres Hs] as ⟨Hid, -, Hsub, Hres, Hrest⟩
     · iframe; iframe #
@@ -4428,7 +4582,7 @@ theorem watchGRPCStream.run.wp_proof
       iintro ⟨Hm, Hs⟩
       iexists _, _, _
       iframe
-  iintro ⟨%M', %l', %U', Hm, Hs, Hwsa, Hids, Hsub, Hres⟩ Hclm
+  iintro ⟨%M', %l', %U', Hm, Hs, Hwsa, Hids, Hsub, Hres, Hgen, Hlts⟩ Hclm
   wp_auto
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

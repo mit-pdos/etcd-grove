@@ -40,25 +40,30 @@ theorem watchGRPCStream.newWatchClient.wp_proof
     (wp_serve : watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG))
     (wp_Error : rpctypes.Error.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.newWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V G callSl m0 s0 rc γrc sent eps
-  wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, Hprod, Hep⟩
+  intro V G callSl m0 s0 rc γrc n sent eps
+  wp_start as ⟨#HG, Hsub, Hm0, Hres, Hs0, Hrc, Hrcb, Hgen, Hprod, Hep⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgsnn, ⟨%vs, #Hvs, #Hcoo⟩, #Hsf, %Hlg, #Fowner, #Fremote, #Fcall, #Fctx, #Fckey,
     #Fcancel, #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg, #Hctx, #Hcancel, #Hreq, #Herr,
     #Hclosing, #Hdone, #Hrespsc⟩
   wp_auto
-  wp_apply wp_broadcast_chan_close rc γrc iprop(True) $$ [$Hrcb] as -
-  · imodintro; itrivial
+  -- (D24) the generation `n` ends
+  imod mono_nat_own_update (n + 1) (Nat.le_succ _) $$ Hgen with ⟨Hgen, #Hglb⟩
+  wp_apply wp_broadcast_chan_close rc γrc (monoNatLbOwn G.γend (n + 1)) $$ [$Hrcb] as -
+  · imodintro; iexact Hglb
   wp_apply chan.wp_make1 (V := Unit) as %rc' %γrc' ⟨#Hrc'c, %-, Hrc'o⟩
-  imod alloc_broadcast_chan (E := ⊤) iprop(False) γrc' rc' $$ Hrc'c Hrc'o with Hrc'b
+  imod alloc_broadcast_chan (E := ⊤) (monoNatLbOwn G.γend (n + 2)) γrc' rc' $$ Hrc'c Hrc'o
+    with Hrc'b
   iunfold sliceOwn at Hs0
   icases Hs0 with ⟨Hs0, Hs0c⟩
   wp_apply wp_join G.wgs m0 ∅ s0 [] (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    $$ [$Hsub $Hm0 $Hres $Hs0] as ⟨Hsub, Hm0, Hres, Hs0⟩
+    (∅ : GMap Loc Unit) (fun _ => ⟨null, γrc, iprop(True)⟩) $$ [$Hsub $Hm0 $Hres $Hs0]
+    as ⟨Hsub, Hm0, Hres, Hs0, -, -, -⟩
   · isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
-    · iapply BigSepL.bigSepL_nil.2; itrivial
+    · ipureintro
+      exact ⟨fun X ws h => by simp [GMap.lookup_empty] at h, fun ws h => by simp at h⟩
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (_ : List w64) (_ : Int) => iprop(True)) $$ Hm0

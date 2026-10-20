@@ -198,8 +198,8 @@ local macro "close_rest" : tactic => `(tactic| (
       | nil =>
         (try wp_auto)
         icases typedPointsto_not_null_dup _ _ _ $$ «$v0» with ⟨Hh0, %Hhnn⟩
-        wp_apply wp_fork $$ [Hprod Hh0 «$a1»]
-        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$(frameH `Hws) $(frameH `Hprod) $(frameH `«$a1») $(frameH `Hh0)]
+        wp_apply wp_fork $$ [Hprod Houtcf Hh0 «$a1»]
+        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$(frameH `Hws) $(frameH `Hprod) $(frameH `Houtcf) $(frameH `«$a1») $(frameH `Hh0)]
           · iframe Hse
             ipureintro
             exact ⟨Hhnn, rfl, rfl, rfl, rfl⟩
@@ -415,11 +415,13 @@ theorem watchGRPCStream.closeSubstream.wp_proof
   intro V wgs ws id e dq1 dq2 dq3 m M s l
   wp_start as ⟨Hcl, Hid, Hce, #Hse, Hsub, Hmap, Hres, Hs⟩
   iunfold closingBody at Hcl
-  icases Hcl with ⟨%P, %rc, %HPws, #Hws, Hprod, Hrc, Hret, Hclosing⟩
+  icases Hcl with ⟨%P, %HPws, #Hws, Hsb⟩
+  iunfold stopBody at Hsb
+  icases Hsb with ⟨%rc, %q, %nr, %dc, Houtcf, Hprod, Hrc, Hret, -, -⟩
   subst HPws
   ihave #Hws' := Hws
   iunfold wsIs at Hws'
-  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, #Hbag, %Hok, -⟩
+  icases Hws' with ⟨#Hro, -, #Hspsc, -, #Hctx, #Hbag, %Hok, -⟩
   iunfold wrRO at Hro
   icases Hro with ⟨#Hctxf, -⟩
   ihave #Hctx1 := Hctx

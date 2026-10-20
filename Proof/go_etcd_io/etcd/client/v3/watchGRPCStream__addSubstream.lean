@@ -44,7 +44,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     icases Hcl with ⟨%P, %sent, %HPws, #Hws, Hprod⟩
     subst HPws
     iunfold wsIs at Hws
-    icases Hws with ⟨-, -, #Hrecvc, -, -, #Hspsc, -⟩
+    icases Hws with ⟨-, #Hrecvc, -, #Hspsc, -⟩
     (try wp_auto)
     wp_bind (App (Val #(functions _root_.Perennial.errors.New [])) (Val #rs))
     iapply HeN
@@ -76,7 +76,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     icases Hcl with ⟨%P, %sent, %HPws, #Hws, Hprod⟩
     subst HPws
     iunfold wsIs at Hws
-    icases Hws with ⟨-, -, #Hrecvc, -, -, #Hspsc, -⟩
+    icases Hws with ⟨-, #Hrecvc, -, #Hspsc, -⟩
     (try wp_auto)
     wp_bind (App (Val #(functions _root_.Perennial.errors.New [])) (Val #rs))
     iapply HeN

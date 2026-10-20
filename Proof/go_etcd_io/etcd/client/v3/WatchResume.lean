@@ -285,6 +285,75 @@ theorem psQ_psAt (P : WsPrm GF) : psQ (GF := GF) P ⊢ psAt P 1 := by
   iframe Ha
   ipureintro; exact HM.2
 
+/-- A position's cursors, unchanged to itself. -/
+theorem chainE_refl (P : WsPrm GF) (a : Nat) (hi : w64) :
+    monoListIdxOwn (GF := GF) P.γhi a hi ∗
+      (⌜P.γ.cpl = false⌝ ∨ ∃ c : w64, monoListIdxOwn P.γh2 a c) ⊢ chainE P a a := by
+  iintro ⟨#Hhi, #Hh2⟩
+  unfold chainE
+  isplitr
+  · ipureintro; exact Nat.le_refl a
+  isplitr
+  · iexists hi; iframe Hhi
+  icases Hh2 with (%H | ⟨%c, #Hc⟩)
+  · ileft; ipureintro; exact H
+  · iright; iexists c; iframe Hc
+
+/-- **A first lifetime's start** (`run`'s, at a `Watch`): nothing received, the cursors at the
+watch's start `rev - 1`, the caller's resources. -/
+theorem wsRun_init (V : WEnv GF) (P : WsPrm GF) (b0 : GoSlice) (t0 : _root_.Perennial.time.Time) :
+    wsIs (GF := GF) V P ∗ sspscConsumer P.γr ([] : List Loc) ∗
+      spscProducer P.γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+      monoListAuthOwn P.γ.cur 1 [P.rev - W64 1] ∗ monoListIdxOwn P.γhi 0 (P.rev - W64 1) ∗
+      cur2Pos P 0 0 ∗ (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 0 (P.rev - W64 1)) ∗
+      wsF P.ws go!"buf" ↦ b0 ∗ sliceOwn b0 [] ∗
+      wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∗ wsReqF P.ws go!"retc" ↦ P.retc ∗
+      retcRes P ∗ wsF P.ws go!"bufWaitStartTime" ↦ t0 ⊢
+    wsRun V P 0 P.rev [] P.rev := by
+  iintro ⟨#HP, Hcons, Hprod, Hauth, #Hhi0, Hc2, #Hh20, Hbuf, Hb, Hrev, Hretc, Hres, Hbwt⟩
+  ihave #HP' := HP
+  iunfold wsIs at HP'
+  icases HP' with ⟨-, -, -, -, -, -, %HPws, #Hsok⟩
+  ihave #Hrs0 := resumeOk_init V P HPws.2.1 HPws.2.2 $$ Hsok
+  unfold wsRun
+  iexists [], [P.rev - W64 1], [], b0, P.retc, t0, (P.rev - W64 1), 0
+  isplitl [Hcons]
+  · iexact Hcons
+  isplitr
+  · ipureintro; exact Nat.le_refl 0
+  isplitl [Hprod]
+  · iexact Hprod
+  isplitl [Hauth]
+  · iexact Hauth
+  isplitr
+  · ipureintro; simp
+  isplitr
+  · iexact Hhi0
+  isplitl [Hc2]
+  · iexact Hc2
+  isplitl [Hbuf]
+  · iexact Hbuf
+  isplitl [Hb]
+  · simp only [List.map_nil]; iexact Hb
+  isplitr
+  · simp only [bufE, List.length_nil]
+    iapply chainE_refl P 0 (P.rev - W64 1)
+    iframe Hhi0
+    icases Hh20 with (%H | #H)
+    · ileft; ipureintro; exact H
+    · iright; iexists _; iexact H
+  isplitl [Hrev]
+  · ileft; iframe Hrev; ipureintro; simp
+  isplitr
+  · iexists (P.rev - W64 1), (P.rev - W64 1)
+    simp only [List.length_nil]
+    iframe Hhi0 Hh20 Hrs0
+  isplitl [Hretc]
+  · iexact Hretc
+  isplitl [Hres]
+  · ileft; iframe Hres Hhi0; ipureintro; exact ⟨rfl, rfl, rfl⟩
+  iexact Hbwt
+
 end lemmas
 
 end client

@@ -146,6 +146,29 @@ theorem bigSepM_choice_inj {A : Type} (d : A) (Φ : Loc → A → IProp GF) :
       simp only [hne, ↓reduceIte]
       exact .rfl)) $$ HM
 
+/-- **A witness per key**: from a witness for each key of `U`, a function of the keys. -/
+theorem bigSepM_choice_keys {A : Type} (d : A) (Φ : Loc → A → IProp GF) :
+    ∀ U : GMap Loc Unit,
+    ([∗map] ws ↦ _u ∈ U, ∃ a, Φ ws a) ⊢ ∃ f : Loc → A, [∗map] ws ↦ _u ∈ U, Φ ws (f ws) := by
+  intro U
+  induction U using LawfulFiniteMap.induction_on with
+  | hemp =>
+    iintro -
+    iexists fun _ => d
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  | hins ws0 u0 U' h ih =>
+    iintro H
+    icases (BigSepM.bigSepM_insert h).1 $$ H with ⟨⟨%a, H0⟩, HU⟩
+    icases ih $$ HU with ⟨%f, HU⟩
+    iexists fun l => if l = ws0 then a else f l
+    iapply (BigSepM.bigSepM_insert h).2
+    simp only [↓reduceIte]
+    iframe H0
+    iapply (BigSepM.bigSepM_mono (fun {k x} hk => by
+      have hne : k ≠ ws0 := fun e => by subst e; rw [h] at hk; cases hk
+      simp only [hne, ↓reduceIte]
+      exact .rfl)) $$ HU
+
 end client
 end EtcdGrove
 end Perennial
