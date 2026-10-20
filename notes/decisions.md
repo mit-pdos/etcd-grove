@@ -11756,3 +11756,33 @@ round trip, `newBackend`'s premise); closing the old backend while its read tran
 *Asked of the user:* D22a-i (recommendations: (A) each; D22b (A) reverses the 2026-10-15
 preference for the local route, for the reason given; D22g (A) adds a fork commit), and whether
 S-r (D22e (A)) is wanted before the server stages finish.
+
+## Trusted initializers: `TrustedCode/`, no-op models for untranslated variable initializers (2026-10-20)
+
+*The decision.* An untranslated package-variable initializer or `func init()` whose readers are
+all untranslated is a goose `trusted` declaration with a hand-written model in
+`TrustedCode/<pkg>.lean` (as Perennial's `Perennial/TrustedCode`, `948699d06`: a trusted
+variable's `X.init` is its whole initialization, allocation included, and a trusted function's
+`X.impl` unfolds through the package's `Assumptions`), not an axiom of the translation with a
+trust-boundary axiom (`opaqueInitsOk`, `initFuncsOk`) saying it returns. The model does nothing
+when Perennial's criterion holds (`errors.errorType`, `log.std`): Go's initializer cannot panic,
+no translated code reads the variable, and a translated reader could not load it (no fact gives
+a points-to for it). Where goose can translate the real initializer cheaply, it is translated
+instead (raftpb's `file_raft_proto_goTypes`, `_depIdxs`), the trust ladder's higher rung.
+
+*Why.* The axioms said only "this returns", about uninterpreted constants; the model says what
+the code does as far as any proof can observe, it is reviewable (each docstring quotes the Go
+and says why the no-op is faithful), and `etc/gen-init.py` steps through it (`wp_call`), so a
+package's init proof rests on no axiom of its own. A no-op is less faithful than translating
+when a translated reader exists; then the rung is translating (or a model that allocates and
+the fact gives the cell, as `os.Stderr_init` states today).
+
+*Where.* Done for raftpb and protobuf-go's `proto`, `protoreflect` and `internal/impl` (the six
+init axioms of the kv adequacy theorem on this repository's translations). `os` and `strconv`
+are Perennial's names-only translations: their four axioms (`os.opaqueInitsOk`,
+`os.initFuncsOk`, `os.Stderr_init`, `strconv.opaqueInitsOk`) go by a Perennial change
+(translating `strconv`'s tables and errors, trusted models for `os` with `Stderr`'s), which also
+moves `os`'s fact out of raft's `Base.lean`: deferred (2026-10-20, the user's choice) because
+it rebuilds everything and touches a file every raft proof imports. The other packages'
+`opaqueInitsOk` (etcd's server, its dependencies; putget's and linkv's trust bases) can follow
+the same scheme package by package.

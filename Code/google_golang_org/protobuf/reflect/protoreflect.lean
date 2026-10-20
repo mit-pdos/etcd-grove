@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.google_golang_org.protobuf.reflect.protoreflect
 
 @[expose] public section
 
@@ -420,57 +421,35 @@ axiom GroupKind [FfiSyntax] [GoGlobalContext] : val
 noncomputable def nilType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.nilType"
 
-axiom nilType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def boolType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.boolType"
-
-axiom boolType.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def int32Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.int32Type"
 
-axiom int32Type.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def int64Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.int64Type"
-
-axiom int64Type.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def uint32Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.uint32Type"
 
-axiom uint32Type.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def uint64Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.uint64Type"
-
-axiom uint64Type.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def float32Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.float32Type"
 
-axiom float32Type.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def float64Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.float64Type"
-
-axiom float64Type.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def stringType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.stringType"
 
-axiom stringType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def bytesType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.bytesType"
 
-axiom bytesType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def enumType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.enumType"
-
-axiom enumType.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def consumeIdent [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.consumeIdent"

@@ -9,6 +9,7 @@ public import Perennial.Code.slices
 public import Code.google_golang_org.protobuf.reflect.protoreflect
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.raft.v3.raftpb
 
 @[expose] public section
 
@@ -342,22 +343,14 @@ noncomputable def file_raft_proto_rawDescData [FfiSyntax] [GoGlobalContext] : Go
 noncomputable def file_raft_proto_enumTypes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_enumTypes"
 
-axiom file_raft_proto_enumTypes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def file_raft_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_msgTypes"
-
-axiom file_raft_proto_msgTypes.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def file_raft_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_goTypes"
 
-axiom file_raft_proto_goTypes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def file_raft_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_depIdxs"
-
-axiom file_raft_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def MarshalConfChange [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.MarshalConfChange"
@@ -1706,6 +1699,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$k0" (Val #(W32 0))
   (Let "$v1" (Val #(go!"EntryNormal"))
   (Let "$k2" (Val #(W32 1))
@@ -1860,14 +1855,45 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(W32 0))
+  (Let "$v1" (Val #(W32 0))
+  (Let "$v2" (Val #(W32 0))
+  (Let "$v3" (Val #(W32 0))
+  (Let "$v4" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Entry.ty)))) (Val UntypedNil))
+  (Let "$v5" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType SnapshotMetadata.ty)))) (Val UntypedNil))
+  (Let "$v6" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Snapshot.ty)))) (Val UntypedNil))
+  (Let "$v7" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Message.ty)))) (Val UntypedNil))
+  (Let "$v8" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType HardState.ty)))) (Val UntypedNil))
+  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConfState.ty)))) (Val UntypedNil))
+  (Let "$v10" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConfChange.ty)))) (Val UntypedNil))
+  (Let "$v11" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConfChangeSingle.ty)))) (Val UntypedNil))
+  (Let "$v12" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConfChangeV2.ty)))) (Val UntypedNil))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression EntryType.ty (Var "$v0"))), (KeyedElement none (ElementExpression MessageType.ty (Var "$v1"))), (KeyedElement none (ElementExpression ConfChangeTransition.ty (Var "$v2"))), (KeyedElement none (ElementExpression ConfChangeType.ty (Var "$v3"))), (KeyedElement none (ElementExpression (go.GoType.PointerType Entry.ty) (Var "$v4"))), (KeyedElement none (ElementExpression (go.GoType.PointerType SnapshotMetadata.ty) (Var "$v5"))), (KeyedElement none (ElementExpression (go.GoType.PointerType Snapshot.ty) (Var "$v6"))), (KeyedElement none (ElementExpression (go.GoType.PointerType Message.ty) (Var "$v7"))), (KeyedElement none (ElementExpression (go.GoType.PointerType HardState.ty) (Var "$v8"))), (KeyedElement none (ElementExpression (go.GoType.PointerType ConfState.ty) (Var "$v9"))), (KeyedElement none (ElementExpression (go.GoType.PointerType ConfChange.ty) (Var "$v10"))), (KeyedElement none (ElementExpression (go.GoType.PointerType ConfChangeSingle.ty) (Var "$v11"))), (KeyedElement none (ElementExpression (go.GoType.PointerType ConfChangeV2.ty) (Var "$v12")))])))))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(W32 0))
+  (Let "$v1" (Val #(W32 9))
+  (Let "$v2" (Val #(W32 5))
+  (Let "$v3" (Val #(W32 1))
+  (Let "$v4" (Val #(W32 4))
+  (Let "$v5" (Val #(W32 6))
+  (Let "$v6" (Val #(W32 7))
+  (Let "$v7" (Val #(W32 3))
+  (Let "$v8" (Val #(W32 3))
+  (Let "$v9" (Val #(W32 2))
+  (Let "$v10" (Val #(W32 11))
+  (Let "$v11" (Val #(W32 11))
+  (Let "$v12" (Val #(W32 11))
+  (Let "$v13" (Val #(W32 11))
+  (Let "$v14" (Val #(W32 11))
+  (Let "$v15" (Val #(W32 0))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.int32)))) (LiteralValue [(KeyedElement none (ElementExpression go.int32 (Var "$v0"))), (KeyedElement none (ElementExpression go.int32 (Var "$v1"))), (KeyedElement none (ElementExpression go.int32 (Var "$v2"))), (KeyedElement none (ElementExpression go.int32 (Var "$v3"))), (KeyedElement none (ElementExpression go.int32 (Var "$v4"))), (KeyedElement none (ElementExpression go.int32 (Var "$v5"))), (KeyedElement none (ElementExpression go.int32 (Var "$v6"))), (KeyedElement none (ElementExpression go.int32 (Var "$v7"))), (KeyedElement none (ElementExpression go.int32 (Var "$v8"))), (KeyedElement none (ElementExpression go.int32 (Var "$v9"))), (KeyedElement none (ElementExpression go.int32 (Var "$v10"))), (KeyedElement none (ElementExpression go.int32 (Var "$v11"))), (KeyedElement none (ElementExpression go.int32 (Var "$v12"))), (KeyedElement none (ElementExpression go.int32 (Var "$v13"))), (KeyedElement none (ElementExpression go.int32 (Var "$v14"))), (KeyedElement none (ElementExpression go.int32 (Var "$v15")))]))))))))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val file_raft_proto_depIdxs.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.int32)))) (Pair (App (Val (GoInstruction (GlobalVarAddr file_raft_proto_depIdxs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val file_raft_proto_goTypes.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.any)))) (Pair (App (Val (GoInstruction (GlobalVarAddr file_raft_proto_goTypes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val file_raft_proto_msgTypes.init) (Val #()))))))
   (App (Val doExecute)
@@ -1917,7 +1943,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ConfChangeType_name (go.GoType.MapType go.int32 go.string))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ConfChangeType_value (go.GoType.MapType go.string go.int32))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ConfChangeType_value (go.GoType.MapType go.string go.int32))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc file_raft_proto_goTypes (go.GoType.SliceType go.any))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc file_raft_proto_depIdxs (go.GoType.SliceType go.int32))) (Val #()))))))))
 
 abbrev ConfChangeI [FfiSyntax] : Type := GoInterface
 
@@ -2746,6 +2776,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MarshalConfChange_unfold : FuncUnfold MarshalConfChange [] MarshalConfChange.impl
   ConfChangesFromString_unfold : FuncUnfold ConfChangesFromString [] ConfChangesFromString.impl
   ConfChangesToString_unfold : FuncUnfold ConfChangesToString [] ConfChangesToString.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   EnsureConfState_unfold : FuncUnfold EnsureConfState [] EnsureConfState.impl
   EnsureSnapshotMetadata_unfold : FuncUnfold EnsureSnapshotMetadata [] EnsureSnapshotMetadata.impl
   EnsureSnapshot_unfold : FuncUnfold EnsureSnapshot [] EnsureSnapshot.impl
@@ -2774,6 +2805,7 @@ attribute [instance] Assumptions.ConfChangeI_instance
   Assumptions.MarshalConfChange_unfold
   Assumptions.ConfChangesFromString_unfold
   Assumptions.ConfChangesToString_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.EnsureConfState_unfold
   Assumptions.EnsureSnapshotMetadata_unfold
   Assumptions.EnsureSnapshot_unfold

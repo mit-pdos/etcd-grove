@@ -2,6 +2,9 @@
 # Message, an alias of protoreflect.ProtoMessage (the type of apply.Result's Resp).
 translate = ["!*", "Message"]
 imports = ["!*", "google.golang.org/protobuf/reflect/protoreflect"]
+# The variables' initializers and `init` have trusted no-op models
+# (TrustedCode/google_golang_org/protobuf/proto.lean): their readers are not translated.
+trusted = ["wireTypes", "errUnknown", "errDecode", "errRecursionDepth", "init.0"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

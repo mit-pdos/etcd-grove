@@ -1060,7 +1060,8 @@ def pkginfo_imports(p):
     return [x.strip()[len('pkg_id.'):] for x in m.group(1).split(',')]
 
 def exec_order(p):
-    """The initializer's statements in execution order: ('import', q) / ('opaque', X)."""
+    """The initializer's statements in execution order: ('import', q) / ('opaque', X) /
+    ('trusted', X) / ...."""
     d = inv[p]
     t = open(d['file']).read()
     i = t.find("noncomputable def initialize'")
@@ -1071,14 +1072,16 @@ def exec_order(p):
         if m.group(1):
             items.append(('import', m.group(1)))
         elif m.group(2):
-            items.append(('opaque', m.group(2)))
+            # an axiom of the translation, or a trusted variable's model (in `TrustedCode/`)
+            kind = 'opaque' if f'axiom {m.group(2)}.init ' in t else 'trusted'
+            items.append((kind, m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))
         elif m.group(4):
             items.append(('store', m.group(4)))
         else:
-            # a `func init()`, `init.<k>` (as gc names them): translated if it has a body
-            kind = 'initfn' if f'noncomputable def {m.group(5)}.impl ' in t else 'opaqueinitfn'
+            # a `func init()`, `init.<k>` (as gc names them): unfolded if translated or trusted
+            kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t else 'opaqueinitfn'
             items.append((kind, m.group(5)))
     items.reverse()
     return items
@@ -1098,6 +1101,7 @@ def gen(p, cfg=None, lb_only=False):
     items = exec_order(p)
     opq = [x for (kind, x) in items if kind == 'opaque' and x not in newvars and x not in custom]
     opqf = [x for (kind, x) in items if kind == 'opaqueinitfn']
+    trs = [x for (kind, x) in items if kind == 'trusted']
     imps = [x for (kind, x) in items if kind == 'import']
     assert sorted(imps) == sorted(pk), (p, imps, pk)
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg.get('imports', [])
@@ -1111,6 +1115,9 @@ def gen(p, cfg=None, lb_only=False):
     A('')
     if 'doc' in cfg:
         A(cfg['doc'])
+    elif trs and not opq and not opqf:
+        A('Its fact is `True`. Its initializer initializes its imports and runs the trusted')
+        A('initializers of its variables (`X.init`, models in `TrustedCode/` that do nothing).')
     elif opq and opqf:
         A('Its fact is `True`. Its initializer initializes its imports, runs the untranslated')
         A('initializers of its variables (`X.init`, axioms of the translation), which the')
@@ -1285,6 +1292,8 @@ def gen(p, cfg=None, lb_only=False):
             A(f'  wp_apply {x}_init as {custom[x]["pat"].replace("@", x)}')
         elif kind == 'opaque':
             A(f'  wp_apply (opaqueInitsOk {x}.init (by mem_tac))')
+        elif kind == 'trusted':
+            A(f'  wp_call  -- {x}: its trusted initializer does nothing')
         elif kind == 'opaqueinitfn':
             A(f'  wp_apply (initFuncsOk {x} (by mem_tac))')
         elif kind == 'initfn':
