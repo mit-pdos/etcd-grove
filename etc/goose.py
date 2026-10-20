@@ -434,10 +434,11 @@ PROJECTS = [
         # linkv3 under network partitions (notes/partition-plan.md): three members started
         # in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
         # goroutine cutting and mending links on `Main`'s schedule (etcd's `CutPeer`/`MendPeer`),
-        # and linkv's workload (`Gen`, `Apply`, `Model`, imported; its own `Apply` picks the
-        # member). A Go module of this repository, with putget's replaces (keep them in step);
-        # its imports are the etcd, linkv, lintest and porcupine projects' translations (names
-        # reached through the empty root).
+        # and linkvtxn's workload (`Gen`, `Apply`, `Model`, imported; its own `Apply` picks the
+        # member; linkv's until 2026-10-20, notes/linkv3p-txn-plan.md). A Go module of this
+        # repository, with putget's replaces (keep them in step); its imports are the etcd,
+        # linkvtxn, lintest and porcupine projects' translations (names reached through the empty
+        # root).
         repo=None,
         rev=None,
         local=os.path.join("examples", "linkv3p"),

@@ -13,7 +13,7 @@ public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Code.go_etcd_io.etcd.server.v3.features
-public import Code.github_com.mit_pdos.etcd_grove.examples.linkv
+public import Code.github_com.mit_pdos.etcd_grove.examples.linkvtxn
 public import Code.github_com.mit_pdos.etcd_grove.examples.lintest
 public import Perennial.Golang.Defn
 
@@ -81,7 +81,7 @@ noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
     raft handler served on a listener at peerAddr, the server started, and its gRPC server served
     on a listener at client.
 
-    go: linkv3p.go:67:6 -/
+    go: linkv3p.go:69:6 -/
 noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -212,7 +212,7 @@ noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
     cuts or mends the link between its two members in both directions (etcd's CutPeer/MendPeer,
     as its integration tests' InjectPartition/RecoverPartition).
 
-    go: linkv3p.go:115:6 -/
+    go: linkv3p.go:117:6 -/
 noncomputable def partitioner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "sched"
@@ -270,9 +270,9 @@ noncomputable def partitioner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Step.ty))) (Pair (Var "st") (Var "$value"))))))))))))))))
 
-/-- Apply runs one operation through a client of clis picked at random (linkv.Apply).
+/-- Apply runs one operation through a client of clis picked at random (linkvtxn.Apply).
 
-    go: linkv3p.go:134:6 -/
+    go: linkv3p.go:136:6 -/
 noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "input"
@@ -286,15 +286,15 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))))) (Var "clis")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "i"))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "input"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkv.Apply []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Apply []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0"))))))))))))
 
 /-- Check runs lintest.Run of clients concurrent clients, each running ops operations through the
     clients clis (one per member, each operation's picked at random), and returns porcupine's
-    verdict against linkv's model.
+    verdict against linkvtxn's model.
 
-    go: linkv3p.go:142:6 -/
+    go: linkv3p.go:144:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "clients"
@@ -315,9 +315,9 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkv.Model []))) (Val #())) (Val #()))
+  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Model []))) (Val #())) (Val #()))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
-  (Let "$a2" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkv.Gen []))) (Val #()))
+  (Let "$a2" (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Gen []))) (Val #()))
   (Let "$a3" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock []))) (Val #())) (Val #()))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
   (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
@@ -326,10 +326,10 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))))))
 
-/-- newClient connects a one-attempt client to the member at addr: a Put is sent at most once, so
+/-- newClient connects a one-attempt client to the member at addr: a write is sent at most once, so
     the cluster applies it at most once (decision D21i).
 
-    go: linkv3p.go:149:6 -/
+    go: linkv3p.go:152:6 -/
 noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -351,7 +351,7 @@ noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
     partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
     error from a step before Check ends Main without a check (the specs allow every step to fail).
 
-    go: linkv3p.go:160:6 -/
+    go: linkv3p.go:163:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -573,7 +573,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))))
 
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -617,7 +617,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkv.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.initialize') (Val #()))))))))
 
@@ -690,7 +690,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
   import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
   import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
-  import_linkv_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions
+  import_linkvtxn_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions
 
 attribute [instance] Assumptions.Step_instance
@@ -712,7 +712,7 @@ attribute [instance] Assumptions.Step_instance
   Assumptions.import_etcdserver_Assumption
   Assumptions.import_v3rpc_Assumption
   Assumptions.import_features_Assumption
-  Assumptions.import_linkv_Assumption
+  Assumptions.import_linkvtxn_Assumption
   Assumptions.import_lintest_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.linkv3p
