@@ -11,6 +11,7 @@ module
 public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
 public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
 
 @[expose] public section
 
@@ -48,7 +49,8 @@ accumulates. The difference is the fact accumulated: each heartbeat is `Heartbea
 values are `s`'s (the invariant's `Hmm`), so its bounds are bounds at `s`. -/
 theorem raft.bcastHeartbeatWithCtx.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
-    (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
+    (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG))
+    (wp_raft_sendHeartbeatToWitness : raft.sendHeartbeatToWitness.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) := by
   intro c r id s ctx cl Hlead
   wp_start as Hphys
@@ -121,21 +123,61 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      -- (2026-10-19, witness support) `pr.IsWitness`: no peer is the witness (`NoWitP`)
-      -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-      icases ownRaftPhysC_wit0 c r id _ $$ Hphys with ⟨%hw, Hphys⟩
+      -- (2026-10-19, witness support) `pr.IsWitness`: the configuration's witness (`WitP`)
       icases ownRaftPhysC_tracker c r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback1⟩
-      icases ownTrackerC_nowit c hw tv1 _ $$ Htrk with ⟨%Hnw, Htrk⟩
+      icases ownTrackerC_wit c tv1 _ $$ Htrk with ⟨%Hnw, Htrk⟩
       icases ownTrackerC_lookup c tv1 ⟨_, _, _, _⟩ i pr (by exact Hpri) $$ Htrk with ⟨%p1, %Hp1, Hpr, Hprback⟩
       iNamed Hpr
       wp_auto
-      have Hw : pv.IsWitness' = false :=
-        ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.trans (Hnw i p1 Hp1).1
+      have Hw : pv.IsWitness' = decide (i = c.wit) := by
+        rw [((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2, (Hnw i p1 Hp1).1]
+        have h0 := (Hnw i p1 Hp1).2
+        by_cases h : i = c.wit
+        · have hc : c.wit ≠ W64 0 := h ▸ h0
+          rw [decide_eq_true (⟨h, hc⟩ : i = c.wit ∧ c.wit ≠ W64 0), decide_eq_true h]
+        · simp [h]
       rw [Hw]
       ihave Htrk := Hprback $$ %p1 [Hpv Hinfl] %(And.intro rfl rfl)
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
       simp only [GMap.insert_id _ _ _ Hp1]
       ihave Hphys := Hback1 $$ %tv1 %_ Htrkf Htrk
+      by_cases Hiw : i = c.wit
+      · -- the witness: `r.sendHeartbeatToWitness(id, ctx)`
+        rw [decide_eq_true Hiw]
+        wp_auto
+        have Hcw : c.wit ≠ W64 0 := Hiw ▸ (Hnw i p1 Hp1).2
+        wp_apply wp_raft_sendHeartbeatToWitness c r id _ i ctx cl Hcw $$ [$Hphys $Hctx] as Hphys
+        try wp_auto
+        icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
+        icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
+        ihave Htrk := ownTrackerC_cast c tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0, s.ep⟩ ?_ $$ Htrk
+        · rfl
+        iapply HΦ
+        iexists tv1, _
+        iframe Htrkf Htrk
+        iexists ms ++ [wAbs (whbMsg id i s.term cl)]
+        simp only [named]
+        iframe rp cp
+        isplitr
+        · ipureintro
+          intro m Hm
+          rcases List.mem_append.1 Hm with Hm | Hm
+          · exact Hms m Hm
+          · rw [List.mem_singleton] at Hm
+            subst Hm
+            unfold HeartbeatOk wAbs whbMsg
+            simp [MsgHeartbeat, MsgApp, MsgVote, MsgPreVote, Hii, toPState, Hlead, Msg.plain, Msg.mk,
+              Msg.mkV]
+        isplitr
+        · ipureintro; exact Hmi
+        isplitr
+        · ipureintro; exact Hok'.of_fields rfl rfl rfl
+        iintro %tvx %pvsx Hf Ht %Hok''
+        ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht] %(Hok''.of_fields rfl rfl rfl)
+        · iapply ownTrackerC_cast c tvx ⟨s.votes, s.progress, pvsx, s.ep⟩ _ ?_ $$ Ht
+          rfl
+        iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
+      rw [decide_eq_false Hiw]
       wp_auto
       wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
         as %cm %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩

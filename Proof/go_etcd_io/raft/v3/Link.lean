@@ -207,6 +207,7 @@ public import Proof.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.raft__sendAppend
 public import Proof.go_etcd_io.raft.v3.raft__sendAppendToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Proof.go_etcd_io.raft.v3.raft__softState
 public import Proof.go_etcd_io.raft.v3.raft__switchToConfig
@@ -1239,9 +1240,13 @@ theorem raft.wp_sendHeartbeat [StorageModel GF] :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) :=
   raft.sendHeartbeat.wp_proof raft.wp_send tracker.Progress.wp_SentCommit raftpb.MessageType.wp_Enum
 
+theorem raft.wp_sendHeartbeatToWitness [StorageModel GF] :
+    raft.sendHeartbeatToWitness.spec (GF := GF) (hG := hG) :=
+  raft.sendHeartbeatToWitness.wp_proof
+
 theorem raft.wp_bcastHeartbeatWithCtx [StorageModel GF] :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) :=
-  raft.bcastHeartbeatWithCtx.wp_proof tracker.ProgressTracker.wp_Visit raft.wp_sendHeartbeat
+  raft.bcastHeartbeatWithCtx.wp_proof tracker.ProgressTracker.wp_Visit raft.wp_sendHeartbeat raft.wp_sendHeartbeatToWitness
 
 theorem raft.wp_bcastHeartbeat [StorageModel GF] :
     raft.bcastHeartbeat.spec (GF := GF) (hG := hG) :=
