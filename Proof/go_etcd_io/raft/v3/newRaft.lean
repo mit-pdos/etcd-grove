@@ -135,7 +135,7 @@ theorem newRaft.wp_proof
   intro c cv lok si σ hs csm R
     Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal Hfl0
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
-  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
+  wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #Hic, HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
@@ -154,7 +154,7 @@ theorem newRaft.wp_proof
     · rename_i Hz
       have : uint.Z cv.MaxCommittedSizePerReady' ≠ 0 := fun H0 => Hz (by word)
       word
-  wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hss Hpe rfl Hmcs' Hfl0 $$ [$HisSto $HSto $Hlg0]
+  wp_apply wp_newLogWithSize _ _ _ _ lok Hidx Hss Hpe rfl Hmcs' Hfl0 $$ [$HisSto $HSto $Hlg0 $Hic]
     as %l %ip ⟨%Hip0, HSto, HLback⟩
   rw [HpSt, Hsto]
   wp_apply HInit $$ [$HSto] as %hp %cs %al HSto HR #Hhsp #Hcs
@@ -215,6 +215,8 @@ theorem newRaft.wp_proof
   -- the struct, left open at its tracker (`ownRaftPhys_intro_trk`, 2026-10-16, stage R8b: the
   -- empty tracker's own maps may be what `switchToConfig` installs, so they cannot also seal the
   -- struct first); `switchToConfig` installs the configuration and seals it
+  ihave #Hsc0 : qSrcs (GF := GF) s0.logst.storage ([] ++ []) $$ []
+  · rw [List.append_nil]; iapply qSrcs_nil
   icases ownRaftPhys_intro_trk (GMap.listToSet csm.Voters') «$r0_ptr» cv.ID' s0 _ [] [] lok
     HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s0]; decide)⟩ (by rw [HpDPF, Hdpf]) (by rw [HpDCC, Hdccv]) (by first | exact HpCQ | exact HpCQ.symm | rw [HpCQ]) rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
@@ -223,7 +225,7 @@ theorem newRaft.wp_proof
     (fun h => absurd rfl h) (LogNsOk.off rfl)
     -- (2026-10-19, D21 M2r) leader transfer off (the default), the queues empty
     (XfOk.nil (fun _ => rfl) (fun h => absurd h (by simp only [s0]; decide)))
-    $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 with ⟨Htrkf, Hback⟩
+    $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 Hsc0 with ⟨Htrkf, Hback⟩
   wp_apply (raft.switchToConfig.spec_nonleader_open wp_raft_switchToConfig) _ _ _ s0 tv0 cfgv prsm prs
     (by simp only [s0]) Hprs' Hmi $$ [$Htrkf $Hback $Hvotes $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2⟩

@@ -69,7 +69,9 @@ abbrev newLogWithSize.spec : Prop :=
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStorage st ∗
-      ownStorage st σ ∗ isLogger lok }}
+      ownStorage st σ ∗ isLogger lok ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's snapshot, if any, certified in its registry
+      initKsnCert st σ }}
     (App (App (App (Val #(functions newLogWithSize [])) (Val #st)) (Val #lg))
       (Val #maxSize))
   {{ (l : Loc) (ip : w64), RET #l;

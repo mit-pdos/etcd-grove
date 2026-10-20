@@ -307,8 +307,17 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
+    ihave #Hcs : storCert (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage
+        (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+    · iunfold tsSrc at Hcert
+      icases Hcert with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
+      · exact (Hn rfl).elim
+      · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'
+        rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage =
+          s.logst.storage by simp [becomeFollower, resetTo, resetTo0]]
+        iexact Hc
     wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-        ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm]
+        ml m ents sn cl rs sv scfg rfl rfl Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm $Hcs]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe Hphys

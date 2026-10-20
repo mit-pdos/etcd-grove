@@ -206,17 +206,7 @@ def absMsg (ty : MsgType) (m : MessageM) (ents : List EntryM)
 
 -- (D22 S-b′, 2026-10-20) `CSLists` is `Protocol/Model.lean`'s (a `Msg` field)
 
-/-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
-`ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
-(`LogState.ksn`) and what the application certifies (`raftSnapCert`, `SnapConf.lean`). -/
-structure SnapTrip [FfiSyntax] where
-  sid : entryID
-  cl : CSLists
-  al : Bool
-
-/-- A `snap` message's snapshot, as raft records it (`SnapTrip`): its id, lists and
-`AutoLeave` (D22 S-b′, 2026-10-20). -/
-def msgSnapTrip (m : Msg) : SnapTrip := ⟨⟨m.logterm, m.index⟩, m.cl, m.al⟩
+-- (D22 S-b′3, 2026-10-20) `SnapTrip` and `msgSnapTrip` are `Protocol/Model.lean`'s
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to (since the raft v3.7
@@ -924,6 +914,10 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
 `ConfState` and its `AutoLeave`. -/
 def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
   ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
+
+/-- (D22 S-b′3) A `MsgSnap`'s abstraction carries its snapshot's trip. -/
+theorem msgSnapTrip_absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM) (cl : CSLists) :
+    msgSnapTrip (absSnapFrom m src term sv cl) = snapTrip sv cl := rfl
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/

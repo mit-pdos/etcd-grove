@@ -91,7 +91,10 @@ abbrev raft.restore.spec : Prop :=
   s.gh.ns = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv }}
+      "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv ∗
+      -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry (it joins the
+      -- log's `ksn`, `raftLog.restore`)
+      "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sp))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhysCV (restoreCfg c sv cl b) (restoreCfg c sv cl b).voters r id s' ∗

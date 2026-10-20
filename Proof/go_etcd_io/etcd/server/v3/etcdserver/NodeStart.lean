@@ -280,6 +280,9 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
+        -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in raft's
+        -- no-snapshot mode, the servers')
+        "#Hclk" ∷ certLink γ (memStorIface bv.storage') ∗
         -- trust boundary: raft's `Ready`s fit (D10), `Stop` returns
         "#Hfits" ∷ (∀ γw : RNNames,
           ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧

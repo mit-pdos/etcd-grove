@@ -517,7 +517,7 @@ theorem raft.restore.wp_proof
       iframe HrA
       iunfold csOptA; iright; iright; iexact Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) $$ [$Hlog $HsA] as ⟨HsA, Hlog⟩
+        (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)

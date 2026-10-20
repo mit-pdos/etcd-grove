@@ -524,9 +524,84 @@ theorem outboxRel_join (o : List Msg) (ms1 ms2 : List QMsg) :
   · iapply (msgQs_split ms1 as1).2; iframe H1; ipureintro; exact Hf1
   · iapply (msgQs_split ms2 as2).2; iframe H2; ipureintro; exact Hf2
 
+omit [StorageModel GF] in
+theorem mtypeOf_snap_eq (t : w32) (h : mtypeOf t = some .snap) : t = MsgSnap := by
+  have h7 : uint.Z t = 7 := by
+    unfold mtypeOf at h
+    split at h <;> first | (cases h; done) | assumption | (simp at h)
+  show t = W32 7
+  word
+
+/-- (D22 S-b′3, 2026-10-20) A queued message's certificate: none but a `MsgSnap`'s, whose
+snapshot is certified (`raftSnapCert`); vacuous in the no-snapshot mode. What a `Ready` gets from
+the storage's registry (`qSrc`) through the certificate link (`qCert_of_src`). -/
+def qCert (γ : RaftNames) (q : QMsg) : IProp GF :=
+  iprop(⌜γ.reNoSnap = true⌝ ∨ ⌜q.st.msg.Type' ≠ MsgSnap⌝ ∨ ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗
+    raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists))
+
+instance qCert_pers (γ : RaftNames) (q : QMsg) : Persistent (qCert (GF := GF) γ q) := by
+  unfold qCert; infer_instance
+
+/-- The queues' (`ownRaftPhys`'s `Hscert`, through the link). -/
+def qCerts (γ : RaftNames) (l : List QMsg) : IProp GF := iprop([∗list] q ∈ l, qCert γ q)
+
+instance qCerts_pers (γ : RaftNames) (l : List QMsg) : Persistent (qCerts (GF := GF) γ l) := by
+  unfold qCerts; infer_instance
+
+theorem qCerts_mem (γ : RaftNames) (l : List QMsg) (q : QMsg) (h : q ∈ l) :
+    qCerts (GF := GF) γ l ⊢ qCert γ q := by
+  unfold qCerts
+  iintro #H
+  ihave ⟨#Hq, -⟩ := BigSepL.bigSepL_mem_acc h $$ H
+  iexact Hq
+
+theorem qCerts_nil (γ : RaftNames) : ⊢ qCerts (GF := GF) γ [] := by
+  unfold qCerts; iapply (BigSepL.bigSepL_nil (Φ := fun _ q => qCert (GF := GF) γ q)).2; iempintro
+
+/-- A queued message's certificate's source, through the certificate link. -/
+theorem qCert_of_src (γ : RaftNames) (st : Storage) (q : QMsg)
+    (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    ⊢ certLink (GF := GF) γ st -∗ qSrc st q ={E}=∗ qCert γ q := by
+  iintro #Hl #Hs
+  unfold qCert
+  iunfold certLink at Hl
+  icases Hl with (%Hns | #Hok)
+  · imodintro; ileft; ipureintro; exact Hns
+  iunfold qSrc at Hs
+  iunfold tsSrc at Hs
+  icases Hs with (%Hn | ⟨%sv, %Hsv, #Hc⟩)
+  · imodintro; iright; ileft; ipureintro; exact Hn
+  iunfold storCertOk at Hok
+  icases Hok with ⟨#Hrd, -⟩
+  imod Hrd $$ %_ %E %hE Hc with #Hc'
+  imodintro
+  iright; iright
+  iexists sv
+  iframe Hc'
+  ipureintro; exact Hsv
+
+theorem qCerts_of_srcs (γ : RaftNames) (st : Storage) (l : List QMsg)
+    (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    ⊢ certLink (GF := GF) γ st -∗ qSrcs st l ={E}=∗ qCerts γ l := by
+  induction l with
+  | nil => iintro _ _; imodintro; iapply qCerts_nil
+  | cons q l ih =>
+    iintro #Hl #Hs
+    iunfold qSrcs at Hs
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨#Hq, #Hs⟩
+    imod qCert_of_src γ st q E hE $$ Hl Hq with #Hq'
+    imod ih $$ Hl [Hs] with #Hl'
+    · unfold qSrcs; iexact Hs
+    imodintro
+    unfold qCerts
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hq'
+    iexact Hl'
+
 /-- A queued message's contribution is in the outbox, so it was legitimately sent
 (`isRaftMsg`, 2026-10-16): what `readyWithoutAccept` says of the messages it hands out, and
-`acceptReady` of the self-addressed responses it queues. -/
+`acceptReady` of the self-addressed responses it queues. (D22 S-b′3) With its certificate
+(`qCert`). -/
 theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMsg) (q : QMsg)
     (Hp : outboxRelP o ms1 ms2) (Hq : q ∈ ms1 ++ ms2)
     -- (2026-10-19, D21 M3) no snapshot in the outbox in the no-snapshot mode (`LogNsOk`)
@@ -534,7 +609,7 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     -- (2026-10-19, D21 M2r) and the message `SentMsgOk` in the no-transfer mode (`XfOk`; D22
     -- S-a to S-c: in it and the no-snapshot mode)
     (Hsent : γ.reNoXfer = true → SentMsgOk q.st) :
-    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ isRaftMsg γ q.st := by
+    ([∗list] x ∈ o, isMessage (GF := GF) γ x) ⊢ qCert γ q -∗ isRaftMsg γ q.st := by
   obtain ⟨as1, as2, Ho, Hf1, Hf2⟩ := Hp
   have Hex : ∃ a, msgAbs q.st a ∧ ∀ x ∈ a.toList, x ∈ o := by
     have hsub : ∀ (l : List QMsg) (as_ : List (Option Msg)),
@@ -561,7 +636,7 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     · obtain ⟨a, h1, h2⟩ := hsub ms2 as2 Hf2 hm
       exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_right _ (h2 x hx))⟩
   obtain ⟨a, Ha, Hin⟩ := Hex
-  iintro #Ho
+  iintro #Ho #Hqc
   unfold isRaftMsg
   isplitr
   · ipureintro
@@ -580,8 +655,28 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
   | some x =>
     simp only [Option.toList_some]
     iapply BigSepL.bigSepL_singleton.2
-    iapply (BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
+    ihave #Hx := (BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
       (Hin x (by simp))) $$ Ho
+    iapply isMessageC_intro $$ Hx
+    -- (D22 S-b′3) the certificate: none but a snapshot's, the queue's
+    unfold qCert
+    icases Hqc with (%Hns' | %Hne | ⟨%sv, %Hsv, #Hc⟩)
+    · iapply msgCert_of_ne
+      exact Hns Hns' x (Hin x (by simp))
+    · iapply msgCert_of_ne
+      rcases Ha with ⟨-, h⟩ | ⟨ty', -, Hne', h⟩ | ⟨sv', Hty', -, -⟩
+      · cases h
+      · cases h; simp [absMsg, absMsgFrom, Hne']
+      · exact absurd (mtypeOf_snap_eq _ Hty') Hne
+    · rcases Ha with ⟨-, h⟩ | ⟨ty', -, Hne', h⟩ | ⟨sv', -, Hs', h⟩
+      · cases h
+      · iapply msgCert_of_ne; cases h; simp [absMsg, absMsgFrom, Hne']
+      · cases h
+        rw [Hsv] at Hs'; obtain rfl := Option.some.inj Hs'
+        unfold msgCert; iright
+        rw [show msgSnapTrip (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) =
+          snapTrip sv sv.Metadata'.ConfState'.lists from rfl]
+        iexact Hc
 
 /-- The abstraction of a message `isRaftMsg` covers, for a type the model describes but a
 snapshot (2026-10-16): what `raft.Step`'s `Hmsg` asks of it. -/
@@ -595,7 +690,8 @@ theorem isRaftMsg_isMessage (γ : RaftNames) (st : MsgSt) (ty : MsgType)
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
     simp only [Option.toList_some]
-    iapply BigSepL.bigSepL_singleton.1 $$ H
+    ihave #H := BigSepL.bigSepL_singleton.1 $$ H
+    iapply isMessageC_isMessage $$ H
   · rw [Hty] at Hs; cases Hs; exact absurd rfl Hns
 
 /-- The raft struct at `s`, open as `ownRaftPhysC_view` opens it, with the messages of the
@@ -633,6 +729,8 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
     -- (2026-10-19, D21 M2r) the modes' facts of the queues
     "%Hxf" ∷ ⌜XfOk s (ms1 ++ ms2)⌝ ∗
+    -- (D22 S-b′3) the queues' certificates' source (`ownRaftPhys`'s `Hscert`)
+    "#Hscert" ∷ qSrcs s.logst.storage (ms1 ++ ms2) ∗
     "%Hmslen" ∷ ⌜ms.length ≤ ms1.length + ms2.length⌝ ∗
     "Hundo" ∷ (msl ↦* ms.map QMsg.loc -∗ ownSliceCap Loc msl (DFrac.own 1) -∗
                ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
@@ -664,6 +762,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
         ⌜XfOk { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
+        qSrcs ls'.storage (ms1' ++ ms2') -∗
         ownRaftLog s.log ls' -∗
         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
 
@@ -1022,7 +1121,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
-    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl rfl) Hlog
+    %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl rfl) Hscert Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
@@ -1172,7 +1271,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       iexists rsl, sl1, sl2, ms1, ms2
       simp only [named, ↓reduceIte]
       iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog
-        Hf_state Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
+        Hf_state Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
       ipureintro
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
@@ -1377,14 +1476,16 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     isplitr
     · ipureintro; exact Hxf
     isplitr
+    · iexact Hscert
+    isplitr
     · ipureintro; simp
     isplitl [Hmsgs Hmsgs_cap Hown1 Hhalf]
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
-      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
+      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 #Hsc' Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hl
+      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hsc' Hl
   ipureintro
   refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by

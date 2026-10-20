@@ -577,6 +577,31 @@ theorem EvSorted_snoc (L : List Aev) (e : Aev) :
 
 end aev
 
+section snapcert_pure
+variable [FfiSyntax]
+
+/-- The configuration a `ConfState`'s lists denote; `AutoLeave` only when joint (what
+`Restore` keeps of it). -/
+def csCfgM (vo v l ln : List w64) (al : Bool) : CfgM :=
+  { incoming := GMap.listToSet v, outgoing := GMap.listToSet vo,
+    learners := GMap.listToSet l, learnersNext := GMap.listToSet ln,
+    autoLeave := if vo = [] then false else al }
+
+/-- `SnapScope`'s facts of a snapshot's lists and index. -/
+def SnapListsOk (k : SnapTrip) : Prop :=
+  CSWf k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext ∧
+  k.cl.voters.Nodup ∧ k.cl.learners.Nodup ∧ k.cl.outgoing.Nodup ∧ k.cl.learnersNext.Nodup ∧
+  (k.cl.voters.length + k.cl.learners.length + k.cl.outgoing.length +
+    k.cl.learnersNext.length : Int) ≤ 2 ^ 62 ∧
+  (k.cl.outgoing = [] → k.al = false) ∧
+  uint.Z k.sid.index' < 2 ^ 61
+
+/-- The configuration a snapshot's lists denote. -/
+def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
+  csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
+
+end snapcert_pure
+
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
@@ -1564,6 +1589,54 @@ instance logRecs_persistent (γ : RaftNames) (b : entryID) (es : List EntryM) :
 instance logRecs_timeless (γ : RaftNames) (b : entryID) (es : List EntryM) :
     Timeless (logRecs (GF := GF) γ b es) := by
   unfold logRecs; infer_instance
+
+/-- The application's certificate of the snapshot `k` (2026-10-15, stage S; moved here from
+`SnapConf.lean` and restated, D22 S-b′3, 2026-10-20): what a receiver of a `MsgSnap` needs of the
+snapshot -- `SnapScope`'s facts (`SnapListsOk`), and what the mode asks (`GMode.SnapOk`):
+statically the ghost state's voters, not joint, (D19p) its ids within the tracked bound;
+dynamically A3 for any recorded full-log prefix ending at the snapshot's id. **Every part under
+`k.cl.Has x`**: a receiver reads the lists only once `restore` found itself in them (the
+`!found` exit comes first, D22j), and etcd's empty `ConfState` names no node, so the certificate
+holds of it in either mode (`raftSnapCert_empty`). Persistent; it names no node, so whoever holds
+it may hand it along; the `.snap` message carries it (`isMessage`). -/
+def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(⌜∀ x, k.cl.Has x → SnapListsOk k⌝ ∗
+    ⌜γ.reDyn = none → ∀ x, k.cl.Has x → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
+      ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T⌝ ∗
+    □ (∀ (x : w64), ⌜k.cl.Has x⌝ -∗ ∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List EntryM),
+        logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
+
+instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
+
+instance raftSnapCert_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
+
+/-- (D22 S-b′3) A snapshot whose `ConfState` names no node (etcd's empty one) is certified, in
+either mode. -/
+theorem raftSnapCert_empty (γ : RaftNames) (k : SnapTrip) (h : ∀ x, ¬ k.cl.Has x) :
+    ⊢ raftSnapCert (GF := GF) γ k := by
+  unfold raftSnapCert
+  isplitr; · ipureintro; intro x hx; exact absurd hx (h x)
+  isplitr; · ipureintro; intro _ x hx; exact absurd hx (h x)
+  imodintro
+  iintro %x %hx
+  exact absurd hx (h x)
+
+/-- (D22 S-b′3) A static cluster's snapshot with the static configuration's lists. -/
+theorem raftSnapCert_static (γ : RaftNames) (k : SnapTrip) (hd : γ.dyn = none)
+    (hl : SnapListsOk k)
+    (hs : γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
+      ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T) :
+    ⊢ raftSnapCert (GF := GF) γ k := by
+  unfold raftSnapCert
+  isplitr; · ipureintro; intro _ _; exact hl
+  isplitr; · ipureintro; intro h _ _; exact hs h
+  imodintro
+  iintro %x %_ %D %hD
+  rw [hd] at hD; cases hD
 
 def leadFrags (γt : GName) (l0 l : List EntryM) : IProp GF :=
   iprop([∗list] k ↦ e ∈ l,

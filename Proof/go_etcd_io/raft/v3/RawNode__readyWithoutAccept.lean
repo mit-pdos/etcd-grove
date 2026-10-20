@@ -126,6 +126,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
   icases ghostRest_nsLink γ _ cf id s $$ Hrest with ⟨%Hnl, Hrest⟩
+  -- (D22 S-b′3) the storage's certificate link, for the messages handed out
+  icases ghostRest_certLink γ _ cf id s $$ Hrest with ⟨#Hlink, Hrest⟩
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
   icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
@@ -133,6 +135,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hcw := ownRaftGhost_commitWit _ _ _ $$ Hghost
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
+  -- (D22 S-b′3) the queued messages' certificates, through the storage's link
+  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
   icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -441,7 +445,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
     ipureintro
     refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]
@@ -500,7 +504,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexists hrd; iframe HHP; iapply phsWit_of_hsWit_next γ rs.phs hrd _ $$ Hhsw
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
-      (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout
+      (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hqc
   iapply HΦ $$ %(readyVal sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd
   simp only [named]

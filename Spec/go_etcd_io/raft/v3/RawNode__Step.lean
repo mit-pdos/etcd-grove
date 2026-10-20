@@ -127,7 +127,8 @@ abbrev RawNode.Step.spec : Prop :=
          ∃ (sv : SnapshotM) (scfg : CSLists),
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧ SnapScope sv scfg⌝ ∗
            GMode.SnapOk γ .static sv scfg ∗
-           isMessage γ (absSnap st.msg sv scfg)) ∗
+           -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`, `raft.Step`'s)
+           isMessageC γ (absSnap st.msg sv scfg)) ∗
       -- (2026-10-13) a read-index request's read credit
       "Hcred" ∷ rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))

@@ -48,7 +48,7 @@ set_option hygiene false in
 local macro "close_view" : tactic => `(tactic| (
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hf_lead Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
-    HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog))
+    HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2.1, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hscert Hlog))
 
 set_option hygiene false in
 /-- Refold `ownRawNode` unchanged, return (the struct closed). -/

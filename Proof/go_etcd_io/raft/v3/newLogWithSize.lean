@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
   intro st lg maxSize σ lok Hidx Hss Hpe Hlg Hmax Hfl0
   subst Hlg
-  wp_start as ⟨#Hsto, HStorage, #Hlg⟩
+  wp_start as ⟨#Hsto, HStorage, #Hlg, #Hic⟩
   ihave #Hsto2 : isStorage st $$ [Hsto]
   · iexact Hsto
   iNamed Hsto
@@ -74,6 +74,8 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; exact initKsn_mem σ
     isplitr
     · iapply pendKsn_none
+    isplitr
+    · iunfold initKsnCert at Hic; iexact Hic
     isplitr
     · ipureintro; word
     isplitr

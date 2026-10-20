@@ -375,7 +375,11 @@ theorem StartCluster.wp_proof
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z k) _ DFrac.discard id0 Hk.1 $$ [Hvsl] as -
     · iframe Hvsl; ipureintro; exact Hid0
-    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem⟩
+    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca⟩
+    -- (D22 S-b′3) the storage's certificate registry tied to raft's names
+    imod memCertInv_alloc γr.raft γs ⊤ $$ Hca with #Hci
+    ihave #Hcl : certLink (GF := GF) γr.raft (kvStorIface st) $$ []
+    · iunfold certLink; iright; iapply kvStorCertOk_intro γr.raft st ms γs $$ Hci Hrec
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨Hghost, Hseq⟩, Htodo⟩
@@ -414,7 +418,7 @@ theorem StartCluster.wp_proof
       rfl (fun _ => rfl) rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
       (fun _ => rfl) rfl)
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
+      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hcl]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0

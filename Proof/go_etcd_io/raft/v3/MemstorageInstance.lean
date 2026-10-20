@@ -50,6 +50,7 @@ own premise: the batch's last index at most `2^61`.
 module
 
 public import Proof.go_etcd_io.raft.v3.Link
+public import Proof.go_etcd_io.raft.v3.MemCertLink
 
 @[expose] public section
 
@@ -718,140 +719,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [MemStorReg GF]
-
-/-! ### The certificate registry's link to raft's names (D22 S-b′2, 2026-10-20)
-
-The application, knowing raft's names `γ`, puts the registry's authority (`memCertAuth`,
-`NewMemoryStorage`'s) in an invariant whose entries carry raft's certificates (`memCertInv`):
-then a registered snapshot is certified for raft (`memCert_read`) and a certified one can be
-registered (`memCert_register`; at any term, `memCert_registerAny`, for `CreateSnapshot`), and
-the storage meets `storCertOk γ` (`memStorCertOk_intro`). -/
-
-/-- What a registry entry carries: raft's certificate of its snapshot, at every term for an
-any-term entry. -/
-def certElemOk (γ : RaftNames) (e : CertKey) : IProp GF :=
-  if e.2 then iprop(∀ t : w64, raftSnapCert γ ⟨⟨t, e.1.sid.index'⟩, e.1.cl, e.1.al⟩)
-  else raftSnapCert γ e.1
-
-omit [MemStorReg GF] in
-theorem certElemOk_covers (γ : RaftNames) (e : CertKey) (k : SnapTrip) (h : certCovers e k) :
-    certElemOk (GF := GF) γ e ⊢ raftSnapCert γ k := by
-  unfold certElemOk
-  unfold certCovers at h
-  split
-  · rename_i he
-    rw [if_pos he] at h
-    obtain ⟨h1, h2, h3⟩ := h
-    iintro H
-    ihave H := H $$ %k.sid.term'
-    have : (⟨⟨k.sid.term', e.1.sid.index'⟩, e.1.cl, e.1.al⟩ : SnapTrip) = k := by
-      cases k with | mk sid cl al => cases sid; simp only at h1 h2 h3; subst h1 h2 h3; rfl
-    rw [this]; iexact H
-  · rename_i he
-    rw [if_neg he] at h
-    subst h
-    exact .rfl
-
-instance certElemOk_persistent (γ : RaftNames) (e : CertKey) :
-    Persistent (certElemOk (GF := GF) γ e) := by
-  unfold certElemOk; split <;> infer_instance
-
-instance certElemOk_timeless (γ : RaftNames) (e : CertKey) :
-    Timeless (certElemOk (GF := GF) γ e) := by
-  unfold certElemOk; split <;> infer_instance
-
-/-- The registry's invariant, at raft's names `γ`. -/
-def memCertInv (γ : RaftNames) (γs : MemStorNames) : IProp GF :=
-  inv raftCertN iprop(∃ L : List CertKey, monoListAuthOwn γs.cert 1 L ∗ [∗list] e ∈ L, certElemOk γ e)
-
-instance memCertInv_persistent (γ : RaftNames) (γs : MemStorNames) :
-    Persistent (memCertInv (GF := GF) γ γs) := by
-  unfold memCertInv; infer_instance
-
-omit [MemStorReg GF] in
-/-- The application allocates it from the empty registry's authority. -/
-theorem memCertInv_alloc (γ : RaftNames) (γs : MemStorNames) (E : CoPset) :
-    ⊢ memCertAuth (GF := GF) γs ={E}=∗ memCertInv γ γs := by
-  iintro Ha
-  unfold memCertInv
-  iapply inv_alloc
-  inext
-  iexists ([] : List CertKey)
-  iunfold memCertAuth at Ha
-  isplitl [Ha]
-  · iexact Ha
-  iapply (BigSepL.bigSepL_nil (Φ := fun _ e => certElemOk (GF := GF) γ e)).2
-  iempintro
-
-omit [MemStorReg GF] in
-/-- A registered snapshot is certified for raft. -/
-theorem memCert_read (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
-    (hE : ↑raftCertN ⊆ E) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ memStorCert γs k ={E}=∗ raftSnapCert γ k := by
-  iintro #Hinv #Hc
-  iunfold memStorCert at Hc
-  icases Hc with ⟨%L0, #Hlb, %Hin⟩
-  obtain ⟨e, he, hc⟩ := Hin
-  unfold memCertInv
-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  icases mono_list_auth_lb_valid _ _ _ _ $$ Ha Hlb with %Hv
-  obtain ⟨-, Hpre⟩ := Hv
-  have he' : e ∈ L := Hpre.subset he
-  ihave ⟨#He, -⟩ := BigSepL.bigSepL_mem_acc he' $$ Hall
-  ihave #Hk := certElemOk_covers γ e k hc $$ He
-  imod Hclose $$ [Ha] with -
-  · inext
-    iexists L
-    iframe Ha Hall
-  imodintro
-  iexact Hk
-
-omit [MemStorReg GF] in
-/-- A certified snapshot can be registered (by anyone holding raft's certificate). -/
-theorem memCert_register (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
-    (hE : ↑raftCertN ⊆ E) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ raftSnapCert γ k ={E}=∗ memStorCert γs k := by
-  iintro #Hinv #Hk
-  unfold memCertInv
-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  imod monoListAuthOwn_update_app [((k, false) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
-  ihave #He : certElemOk (GF := GF) γ ((k, false) : CertKey) $$ []
-  · simp only [certElemOk, Bool.false_eq_true, ↓reduceIte]
-    iexact Hk
-  imod Hclose $$ [Ha] with -
-  · inext
-    iexists L ++ [((k, false) : CertKey)]
-    iframe Ha
-    iapply BigSepL.bigSepL_snoc.2
-    iframe Hall He
-  imodintro
-  iapply memStorCert_of_lb γs (L ++ [((k, false) : CertKey)]) (k, false) k (by simp)
-    (by simp [certCovers]) $$ Hlb
-
-omit [MemStorReg GF] in
-/-- ... at any term (an any-term entry): what `CreateSnapshot`'s premise asks. -/
-theorem memCert_registerAny (γ : RaftNames) (γs : MemStorNames) (i : w64) (cl : CSLists)
-    (al : Bool) (E : CoPset) (hE : ↑raftCertN ⊆ E) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ (□ ∀ t : w64, raftSnapCert γ ⟨⟨t, i⟩, cl, al⟩) ={E}=∗
-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al⟩ := by
-  iintro #Hinv #Hk
-  unfold memCertInv
-  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  imod monoListAuthOwn_update_app [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
-  ihave #He : certElemOk (GF := GF) γ ((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey) $$ []
-  · simp only [certElemOk, ↓reduceIte]
-    iexact Hk
-  imod Hclose $$ [Ha] with -
-  · inext
-    iexists L ++ [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)]
-    iframe Ha
-    iapply BigSepL.bigSepL_snoc.2
-    iframe Hall He
-  imodintro
-  imodintro
-  iintro %t
-  iapply memStorCert_of_lb γs (L ++ [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)])
-    (⟨⟨W64 0, i⟩, cl, al⟩, true) ⟨⟨t, i⟩, cl, al⟩ (by simp) (by simp [certCovers]) $$ Hlb
 
 /-- A registered `MemoryStorage` whose registry is tied to `γ` meets `storCertOk γ`. -/
 theorem memStorCertOk_intro (γ : RaftNames) (ms : Loc) (γs : MemStorNames) :

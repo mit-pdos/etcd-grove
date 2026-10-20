@@ -186,6 +186,15 @@ theorem NetFrame.ns [FfiSyntax] {s s' : NState} (H : NetFrame s s') : s'.gh = s.
 theorem LocalFrame.ns [FfiSyntax] {s s' : NState} (H : LocalFrame s s') : s'.gh = s.gh :=
   H.2.2.2.2.2.2.2.2.1
 
+/-- (D22 S-b′3) ... and the storage (`ghostRest`'s certificate link is of it). -/
+theorem NetFrame.nsst [FfiSyntax] {s s' : NState} (H : NetFrame s s') :
+    s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage :=
+  ⟨H.ns, H.2.2.2.2.2.1⟩
+
+theorem LocalFrame.nsst [FfiSyntax] {s s' : NState} (H : LocalFrame s s') :
+    s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage :=
+  ⟨H.ns, H.2.2.2.2.2.2.1⟩
+
 theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
 
@@ -556,7 +565,9 @@ abbrev raft.Step.spec : Prop :=
            ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
              SnapScope sv scfg⌝ ∗
            md.SnapOk γ sv scfg ∗
-           isMessage γ (absSnap m sv scfg)) }}
+           -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`): its snapshot's configuration
+           -- certificate, which the step registers in the storage (`certLink`) before the restore
+           isMessageC γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗

@@ -55,6 +55,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
   wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   iapply HΦ
   iexact Hphys
 
@@ -158,7 +159,7 @@ theorem raft.handleAppendEntries.wp_proof
         exact ⟨hp, hsn, hst, by rw [hcm]; exact plogCommitTo_ge _ _⟩
     ihave Hphys := Hlogback $$ %ls' Hlog
       %(⟨fun h => (Hgh0.1 h).elim (fun h1 => .inl (Hmagh.2 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)),
-         fun _ => Hkeep⟩)
+         fun _ => Hkeep, Hkeep.2.2.1⟩)
       %(fun h => absurd h Hnl)
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') ents with

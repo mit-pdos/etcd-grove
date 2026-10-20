@@ -163,6 +163,8 @@ abbrev newRaft.spec : Prop :=
   σ.fl = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      -- (D22 S-b′3, 2026-10-20) its snapshot, if any, certified in its registry
+      initKsnCert (interface.ok si) σ ∗
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
             R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗

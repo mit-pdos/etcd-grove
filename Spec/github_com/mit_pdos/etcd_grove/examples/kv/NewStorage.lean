@@ -32,7 +32,9 @@ abbrev NewStorage.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.NewStorage)) (Val #vsl))
   {{ (s : Loc), RET #s; ∃ (ms : Loc) (γs : MemStorNames),
       kvStorRec s ms γs ∗ s.[RStorage, go!"voters"] ↦□ vsl ∗
-      ownMemoryStorage ms γs memStorEmpty }}
+      ownMemoryStorage ms γs memStorEmpty ∗
+      -- (D22 S-b′3, 2026-10-20) the certificate registry's authority (`NewMemoryStorage`'s)
+      memCertAuth γs }}
 
 end spec
 

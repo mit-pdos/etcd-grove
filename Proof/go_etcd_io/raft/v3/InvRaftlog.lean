@@ -286,6 +286,24 @@ theorem initKsn_zero (σ : StorState) (h : uint.Z σ.ss.index' = 0) : initKsn σ
   have : σ.ss.index' = W64 0 := by word
   simp [initKsn, this]
 
+/-- (D22 S-b′3, 2026-10-20) The storage's initial snapshot, if any, is certified in its registry:
+what `newLogWithSize` (and so `newRaft`, `NewRawNode`, `RestartNode`, `StartNode`) asks of the
+storage it is given, for `ownRaftLog`'s `Hkcert` at `initKsn σ`. -/
+def initKsnCert (st : Storage) (σ : StorState) : IProp GF :=
+  iprop([∗list] k ∈ initKsn σ, storCert st k)
+
+instance initKsnCert_pers (st : Storage) (σ : StorState) :
+    Persistent (initKsnCert (GF := GF) st σ) := by
+  unfold initKsnCert; infer_instance
+
+/-- A storage without a snapshot needs no certificate. -/
+theorem initKsnCert_zero (st : Storage) (σ : StorState) (h : σ.ss.index' = W64 0) :
+    ⊢ initKsnCert (GF := GF) st σ := by
+  unfold initKsnCert initKsn
+  rw [if_pos h]
+  iapply (BigSepL.bigSepL_nil (Φ := fun _ k => storCert (GF := GF) st k)).2
+  iempintro
+
 /-- The snapshots the node may send (2026-10-15, stage S): the pending snapshot, if any, is one
 of them (`K`, the log's `ksn`) -- what `raftLog.snapshot` returns of it, the snapshot `p`
 points to with the lists behind its `ConfState`, is in `K`. -/
@@ -596,6 +614,10 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   -- send (`ksn`): the storage's, once it is not the empty one, and the pending one
   "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn⌝ ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
+  -- (D22 S-b′3, 2026-10-20) and each is certified in the storage's registry (`storCert`): the
+  -- storage's from its own registry (`newRaft`'s premise), a restored one registered from its
+  -- message's certificate (`raft.Step`)
+  "#Hkcert" ∷ ([∗list] k ∈ ls.ksn, storCert lv.storage' k) ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
   "Huents" ∷ entsRO lv.unstable'.entries' ls.uents ∗
@@ -677,6 +699,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       ownStorage st σ -∗
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
+      ([∗list] k ∈ K, storCert st k) -∗
       entsRO lv.unstable'.entries' uents -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
@@ -686,11 +709,11 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsnap
     Huents HK
   subst Hst Hsnap Huents HK
-  iintro Hl #HisStorage HStorage #Husnap #Hpksn #Huents Huents_cap #Hl_logger #Hu_logger
+  iintro Hl #HisStorage HStorage #Husnap #Hpksn #Hkcert #Huents Huents_cap #Hl_logger #Hu_logger
   unfold ownRaftLog
   iexists lv, σ
   simp only [named]
-  iframe Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+  iframe Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
   ipureintro
   exact ⟨Hcm, Hap, Hapg, Hip, Hasz, Hamx, Hidx, Hnowrap, Hstore, Hsksn, Hoffset, Happlied, Hpapplied, Hcommitted, Hssnap, Hipb, Hpersist, Happlying, Hpaused, Hstor, Hpend, Hfl⟩
 
@@ -710,7 +733,7 @@ theorem ownRaftLog_struct (l : Loc) (ls : LogState) :
   · iintro Hl
     iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- Read a pure fact of `ownRaftLog` out of it, without consuming it, from the facts
@@ -739,7 +762,7 @@ theorem ownRaftLog_pure (l : Loc) (ls : LogState) (φ : Prop)
       Hipb Happlying
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger
       Hu_logger
 
 /-- The `Ready`-side facts, read out without consuming the log: `inprogress` between
@@ -812,7 +835,7 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
   iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with unpersisted := [] } rfl Hcm Hap Hidx
     Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
     Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
-    Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+    Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
 
 /-- (D19i part 1) **Raising the floor** to `x`, between the floor and `applying`, with nothing
 unpersisted and no snapshot pending: the storage's floor law (`isStorageWith`'s `Hfloor`) gives the
@@ -861,7 +884,7 @@ theorem ownRaftLog_raise_floor (l : Loc) (ls : LogState) (x : w64)
     iapply ownRaftLog_intro l lv lv.storage' _ _ _ { ls with fl := x } rfl Hcm Hap Hidx
       Hnowrap Hstore' Hoffset Happlied Hpapplied Hcommitted Hssnap' Hapg Hip Hipb
       Hpersist' Happlying Hpaused Hasz Hamx Hstor Hpend' Hfl' Hsksn rfl rfl rfl $$ Hl HisStorage HStorage
-      Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger
+      Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
   rw [← Hstor]
   iexact Hfw
 
@@ -881,7 +904,7 @@ theorem ownRaftLog_fl (l : Loc) (ls : LogState) :
     exact ⟨Hfl.2.1, Happlying.2, Hcommitted, fun h => Int.lt_of_le_of_lt Hfl.2.1 (Hfl.2.2.1 h)⟩
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
 /-- `Hnowrap`, read out without consuming the log. Needed to know `lastIndex() + 1`
@@ -1176,7 +1199,7 @@ set_option hygiene false in
 (Rocq `try done`; a plain `assumption` runs out of recursion depth on the `2^64`
 bounds), or, after `reopen_unstable`, by the same once rewritten with `Huoff`. -/
 macro "reseal_raftLog" : tactic =>
-  `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Huents Huents_cap Hl_logger Hu_logger) <;>
+  `(tactic| (iapply Perennial.EtcdGrove.ownRaftLog_intro _ _ _ _ _ _ _ $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger) <;>
     try (first | with_reducible rfl | with_reducible assumption
                | ((rewrite [Huoff]); with_reducible assumption)
                -- the storage and its pending batch (2026-10-10), for a state that

@@ -60,7 +60,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
+        "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -103,6 +105,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
+  ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage m.Type' sn $$ []
+  · rw [Hsn, show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage = s.logst.storage by simp [becomeFollower, resetTo, resetTo0]]
+    iapply tsSrc_snap; iexact Hcert
   wp_apply _P.stepFollower c scfg r id
       ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs sv ctx
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
@@ -112,7 +117,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hfid, Hnsf⟩)
-    $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+    $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]

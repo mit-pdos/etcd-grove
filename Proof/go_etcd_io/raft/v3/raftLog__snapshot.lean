@@ -59,6 +59,10 @@ theorem raftLog.snapshot.wp_proof
     · ipureintro; rfl
     iexists sv
     iframe Hc
+    isplitr
+    rotate_left
+    · ihave ⟨#Hkc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkcert
+      rw [← Hstor]; iexact Hkc
     ipureintro
     obtain ⟨Hp, -, Hsid0⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     subst Hp
@@ -96,7 +100,7 @@ theorem raftLog.snapshot.wp_proof
     icases Herr with (%Herr | ⟨%Herr, Hv⟩)
     · ileft; ipureintro; exact Herr
     iright
-    icases Hv with ⟨%sv, Hv, %Hsv, -⟩
+    icases Hv with ⟨%sv, Hv, %Hsv, Hvc⟩
     obtain ⟨Hnz', Hwhich⟩ := Hsv
     obtain ⟨Hp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     -- (stage R8a) the storage is compacted -- its boundary is the log's, or (D19i part 1) the
@@ -110,6 +114,11 @@ theorem raftLog.snapshot.wp_proof
     · ipureintro; exact Herr
     iexists sv
     iframe Hv
+    isplitr
+    rotate_left
+    · icases Hvc with (%Hz | #Hvc)
+      · exact absurd Hz Hnz
+      · rw [← Hstor]; iexact Hvc
     ipureintro
     rcases Hwhich with ⟨Hid, Hal, Hcs⟩ | ⟨Hgt, Hge, Hle, Ht⟩
     · have Hss : σ.ss.index' ≠ W64 0 := by

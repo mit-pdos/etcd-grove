@@ -689,7 +689,7 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
 /-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
@@ -967,11 +967,13 @@ nonzero sender other than its destination, its term stamped (no `MsgTimeoutNow`,
 mode (`RaftNames.reNoXfer`) and the no-snapshot one, which until then were one; (2026-10-20, D22
 S-c) in the no-transfer mode alone: its types exclude the transfer messages (admitting a leader's
 `MsgSnap`), and its stamped terms are past `0`, which the mode's bootstrap log gives
-(`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). -/
+(`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). (2026-10-20, D22 S-b′3) Certified
+(`isMessageC`): a `MsgSnap` carries its snapshot's configuration certificate (`raftSnapCert`),
+which the `Ready` took from the storage's registry (`qSrc`, `certLink`). -/
 def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
   iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
     ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
-    ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessage γ x)
+    ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x)
 
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
@@ -1209,14 +1211,14 @@ theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List EntryM) (c 
   cases hm : rs.mode with
   | static =>
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC⟩
-    iframe Hg
+    icases H with ⟨Hg, %Hnl, %HC, #Hcl⟩
+    iframe Hg Hcl
     ipureintro
     exact ⟨⟨HC.1.1, HC.1.2.1⟩, Hnl, HC⟩
   | dyn dec c0 h0 _ =>
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC, Hr⟩
-    iframe Hg Hr
+    icases H with ⟨Hg, %Hnl, ⟨%HC, Hr⟩, #Hcl⟩
+    iframe Hg Hr Hcl
     isplitr
     · ipureintro
       have hc := HC.2.1
@@ -1251,7 +1253,7 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
     with ⟨Hg, %fp', %Hf', #Hfr', #Hc⟩
   iunfold ghostRest at Hr
   iunfold ghostRestM at Hr
-  icases Hr with ⟨%Hnl, %HC, #Hfr, Hcamp⟩
+  icases Hr with ⟨%Hnl, ⟨%HC, #Hfr, Hcamp⟩, #Hcl⟩
   icases FullOk_unique γ (toPState s).base fp' g.fp Hf' HC.2.2.full $$ Hfr' Hfr with %He
   icases isCommitted_agree γ _ _ $$ HD Hc with %Hag
   isplitr
@@ -1281,11 +1283,13 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   iunfold ghostRestM
   isplitr
   · ipureintro; exact Hnl
-  isplitr
-  · ipureintro; exact HC
-  isplitr
-  · iexact Hfr
-  iexact Hcamp
+  isplitl [Hcamp]
+  · isplitr
+    · ipureintro; exact HC
+    isplitr
+    · iexact Hfr
+    iexact Hcamp
+  iexact Hcl
 
 /-! ## The one predicate for a `RawNode` -/
 
@@ -1452,11 +1456,13 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       -- (D19p, 2026-10-18) the tracker within the tracked bound
       ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ ∗
       -- (2026-10-19, D21 M3)
-      ⌜NsLink γ s⌝ := by
+      ⌜NsLink γ s⌝ ∗
+      -- (D22 S-b′3) the storage's certificate link
+      certLink γ s.logst.storage := by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %Hnl, %HC⟩
+  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
@@ -1464,6 +1470,7 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
   · ipureintro
     exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
       (by rw [Hlrn]; rfl) HC.2
+  iframe Hcl
   ipureintro; exact Hnl
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
@@ -1490,8 +1497,10 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       pendList γ id steps rs.steps -∗
       isCommitted γ rs.delivered -∗
       storedRecsP γ rs.psnap s.logst.prev s.logst.stored -∗
+      -- (D22 S-b′3) the storage's certificate link
+      certLink γ s.logst.storage -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hcl
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -1499,7 +1508,7 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id s $$ [Hghost]
   · rw [Hm]
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-    iframe Hghost
+    iframe Hghost Hcl
     isplitr
     · ipureintro; exact Hnl
     ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩

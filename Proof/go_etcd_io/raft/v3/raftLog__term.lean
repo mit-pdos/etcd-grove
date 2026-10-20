@@ -209,7 +209,7 @@ theorem raftLog.term.wp_proof
       Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
       Hl_logger
-      Hu_logger Husnap Hpksn Hcut Hfloor
+      Hu_logger Husnap Hpksn Hkcert Hcut Hfloor
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto

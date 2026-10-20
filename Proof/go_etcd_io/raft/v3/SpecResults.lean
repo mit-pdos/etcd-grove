@@ -122,12 +122,6 @@ def SnapScope (sv : SnapshotM) (cl : CSLists) : Prop :=
   (cl.outgoing = [] → cs.AutoLeave' = false) ∧
   uint.Z sv.Metadata'.Index' < 2^61
 
-/-- `id` is in one of the sets `restore`'s `found` search reads: an incoming voter, a learner or
-an outgoing voter (2026-10-14, reconfiguration stage B8; a staged learner is an outgoing voter,
-`CSWf`). -/
-def CSLists.Has (cl : CSLists) (id : w64) : Prop :=
-  id ∈ cl.voters ∨ id ∈ cl.learners ∨ id ∈ cl.outgoing
-
 /-- The configuration a snapshot's `ConfState` denotes (2026-10-14, reconfiguration stage B8). -/
 abbrev snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
   csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'

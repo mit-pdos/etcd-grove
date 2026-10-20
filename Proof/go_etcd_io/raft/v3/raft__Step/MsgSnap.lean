@@ -76,7 +76,9 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
+        "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -95,7 +97,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
       Hwf Hscope Hsn Hscl Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_start_folded as ⟨Hphys, Hm⟩
+    · wp_start_folded as ⟨Hphys, Hm, -⟩
       iapply wp_Step_MsgSnap_lt _P _Q c r id s ml m sn ctx rs ents sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys $Hm]
       inext
       iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hng, %Hsf⟩

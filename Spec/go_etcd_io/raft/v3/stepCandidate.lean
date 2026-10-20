@@ -317,7 +317,10 @@ abbrev stepCandidate.spec : Prop :=
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the
       -- response to a heartbeat carries)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-               ⟨m, ents, sn, cl, rs⟩ }}
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
+      -- (`handleSnapshot`'s; `tsSrc_ne` for any other type)
+      "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
