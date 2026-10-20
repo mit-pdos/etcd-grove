@@ -12628,3 +12628,131 @@ ap` carries `rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length`, `F ++ ce` th
 T ≠ 0`: `commitWit γ T c` with `c ≥ |γ.pre ++ F ++ ce|`, raft's index of the batch's last entry;
 `applyAll`'s `ep.appliedi` after the batch is that index (S-h must state it of `applyAll`'s
 `ep`, through `cum`), so `c ≥ ep.appliedi` -- `isMessage_snap_recontent`'s `ai ≤ c`.
+
+## D22 S-d designed: a pending snapshot through `Ready`/`Advance`; stopped before the code (2026-10-20)
+
+Stage S-d (the plan's S-d with S-0's and S-c's amendments), after D22l. **Not carried out**: a
+read of the Go code at the pin found three facts the plan did not count, each a layer of its own
+below the `RawNode`, so the stage is several times the planned size. No Lean change; the design,
+precise enough for an agent, and a staging into four sub-stages that each build.
+
+**1. What the plan did not count.**
+- *`unstable.snapshotInProgress` is not modelled.* `UnstableSt`/`LogState` have the pending
+  snapshot (`snap`) but no in-progress flag; `nextSnapshot` (`log_unstable.go:110`) returns `nil`
+  once it is set, `acceptInProgress` (`:122`) sets it, `restore` (`:192`) and `stableSnapTo`
+  (`:185`) clear it; `readyWithoutAccept`'s `hasNextUnstableSnapshot`/`nextUnstableSnapshot` and
+  `HasReady` read it. Every `unstable`/`raftLog` spec that frames the struct must carry it.
+- *One acknowledgement does both `stableTo` and `appliedSnap`, in that order, with the snapshot
+  still pending.* A `Ready` hands out the snapshot **and** the entries a `MsgApp` appended after it
+  (between the restore and the `Ready`), so `newStorageAppendRespMsg` (`rawnode.go:266`) sets both
+  `Index`/`LogTerm` and `Snapshot`, and `Step`'s arm (`raft.go:1194-1201`) runs `stableTo` first:
+  the entries move stable while `unstable.snapshot` is still set. `StableOk` (`InvReadylog.lean`)
+  asks `snap = none` on a hit, and `LogStoreOk (some sid)` asks `sents = []`; both are false in
+  that window. The lower-term arm (`:1170-1180`) skips `stableTo` but not `appliedSnap`.
+- *`appliedSnap` is `stableSnapTo` then `appliedTo` (`raft.go:766-770`)*: between the two the log
+  has no pending snapshot (`stableSnapTo` cleared it) and `applied < prev.index`, so `ownRaftLog`'s
+  `Hpapplied` (`snap = none → prev.index ≤ applied`) is false at `raftLog.stableSnapTo`'s return.
+  (No Go bug: `hup` tests `promotable`, which reads `hasNextOrInProgressSnapshot`, before
+  `hasUnappliedConfChanges`, whose `scan` from `applied + 1` would otherwise hit `ErrCompacted`
+  and `Panicf`; checked at `raft.go:973-1019`, `1938-1941`.)
+
+**2. A simplification: lend the storage instead of a new hand-out law.** While `unstable.snapshot`
+is set, raft never calls the `Storage` (the existing shadowing argument, `LogStoreOk`'s doc:
+`firstIndex`/`lastIndex`/`term`/`slice`/`snapshot` all answer from `unstable`, `hasNextCommittedEnts`
+and `nextCommittedEnts` return early on `hasNextOrInProgressSnapshot`, `promotable` blocks a
+campaign), and the snapshot stays set from the restore through the `Ready` until the
+acknowledgement's `stableSnapTo`. So a `Ready` with `rd.Snapshot ≠ nil` can hand the application
+**the storage itself** (`ownStorage st σ`, `σ.pend = []`) instead of `appendRight`; the
+application runs `ApplySnapshot` (`MemoryStorage`: `memOwnStorage_at` gives `ownMemoryStorage`,
+its `memSnapTok` the application's) and its own hand-out/`Append`/absorb for `rd.Entries`, and
+returns `snapReceipt st sv es σ'`: `ownStorage st σ'` with `σ'.prev = σ'.ss = snapId sv`, `σ'.ents
+= es`, `σ'.scs`/`σ'.sal` the snapshot's lists, `σ'.pend = []`, `σ'.fl = σ.fl` (no new
+`StorageModel` field, no new law, `isStorageWith` unchanged; the plan's "hand-out protocol for
+`ApplySnapshot` beside `Hhandout`/`Habsorb`" is not needed). `MemoryStorage.ApplySnapshot`'s
+premises are met: `fl ≤ applying < committed < sid.index` (the restore's `!obsolete`), the
+application's snapshots at or below the floor (so no `ErrSnapOutOfDate`), and `sid.index ≤
+γs.cap` -- **the cap**: outside the no-snapshot mode a storage must be made with `cap = 2^64`
+(or the snapshot's index bounded by it: `LogStoreOk`'s `sid.index < 2^61` gives it with `cap ≥
+2^61`); in the mode no `MsgSnap` is stepped, so `cap = 1` users are unaffected.
+
+**3. The design, by layer** (paths under `Proof/go_etcd_io/raft/v3/` unless said otherwise).
+
+*S-d1, the log layer* (`InvRaftlog.lean`, `InvReadylog.lean`, the `unstable`/`raftLog` specs):
+- `UnstableSt.sip`, `LogState.sip : Bool := false` (`snapshotInProgress`), `ownUnstable`'s
+  `⌜uv.snapshotInProgress' = us.sip⌝`, `ownRaftLog`'s same and `⌜snap = none → sip = false⌝`;
+  `LogState.lent : Bool := false` (ghost: the storage is lent, `⌜lent → snap ≠ none ∧ sip⌝`;
+  `"HStorage" ∷ if lent then True else ownStorage …`, so the storage-reading proofs --
+  `raftLog__{term,slice,firstIndex,lastIndex,snapshot,hasNextCommittedEnts,nextCommittedEnts,
+  append,acceptApplying,findConflict,restore}`, `raft__{loadState,appendEntry}`, `newLogWithSize`
+  -- take `ownStorage` out where `snap = none`, hence `lent = false`); `LogState.aps : Bool :=
+  false` (ghost: `appliedSnap` between its two calls), `Hpapplied` as `snap = none → aps = false
+  → prev.index ≤ applied`, `ownRawNode` asking `aps = false` (every `RawNode` method returns
+  with it; only `raft.appliedSnap`'s proof sees it set).
+- Specs: `unstable.restore`/`raftLog.restore` set `sip := false`; `unstable.acceptInProgress`
+  `sip := sip || snap ≠ none`; `unstable.nextSnapshot` (`p ≠ nil ↔ snap ≠ none ∧ sip = false`, the
+  clone owned, with its `ksn` membership as now); `raftLog.hasNextUnstableSnapshot` exact
+  (`b = decide (snap ≠ none ∧ sip = false)`); `raftLog.acceptUnstable` without `snap = none`;
+  new `unstable.stableSnapTo`/`raftLog.stableSnapTo` (`logStableSnap ls i`: on `snap = some sid
+  ∧ sid.index = i`, `snap := none, sip := false, aps := true`, under the premise that the storage
+  is back at the snapshot, `lent = false ∧ σ.prev = σ.ss = sid`, which `ownRaftLog` records as a
+  pure fact of the state: `LogStoreOk (some sid)` gains a third case "applied": `σ.prev = sid ∧
+  sents <+: σ.ents ∧ (uents = [] → sents = σ.ents)`, the `none` case's shape at `sid`);
+  `logAppliedTo` clears `aps` when `index ≥ prev.index`. `StableOk` on a hit: `snap = none ∨
+  (snap = some sid ∧ applied-in-storage)`, plus `unpersisted = []` and the `stored` take as now.
+- `stored` with a snapshot: `logAcceptUnstable` sets it to the log after the snapshot (`sents ++
+  uents`, `prev = sid`), so `Hpersist`/`Hssnap` re-hold at `stableSnapTo` with `σ'` (`σ'.ss = sid
+  ≤ committed`, `plogTermAt sid _ sid.index = sid.term`).
+
+*S-d2, `raft`* : `raft.appliedSnap` (new spec and proof: `stableSnapTo`, then `appliedTo(i, 0)`,
+`applied := i`, `applying := max`), `raft.Step`'s `MsgStorageAppendResp` premise `sn = none`
+replaced by `sn = none ∨ (sn = some sv ∧ snapId sv = sid-or-older ∧ sv.index ≤ committed ∧
+storage applied)` for **both** arms (`raft__Step/MsgStorageAppendResp.lean`, the lower-term arm in
+`raft__Step/Resp_lt.lean`-style file), `InvRawnode.lean`'s `NetMsgOk.raftStep` (~792) relaxed for
+both; `SnapStep`/`LocalFrame` for the jump of `applied`.
+
+*S-d3, the `RawNode`* (`InvRawnode*.lean`, the `RawNode__*` specs):
+- `Pending.appendAck t last (si : Option w64)` (the snapshot's index the acknowledgement
+  carries), `appendAckM` with `Snapshot` (`pendSt`'s record gains the snapshot), `PendingOk`'s
+  `si ≤ committed`.
+- **The delivered jump.** At a `Ready` with a snapshot, `ce = []` (`nextCommittedEnts` returns
+  `nil`) and the committed prefix of length `sid.index = committed` is the ghost's (`cprefix`,
+  `ownRaftGhost_cmt`: no certificate needs storing): `readyWithoutAccept` hands out `A`,
+  `isCommitted γ A`, `|A| = sid.index`, `rs.delivered <+: A` (`isCommitted_agree`), and
+  `acceptReady` sets `delivered := A`. `Hdlen` becomes `|delivered| = applying ∨ ∃ i, appendAck _
+  _ (some i) ∈ steps ∧ |delivered| = i ∧ applying ≤ i` (restored by `Advance`'s `appliedTo`);
+  `RNFl` and `FlOk` allow the floor up to the acknowledged snapshot's index (`fl ≤ applying ∨
+  (snap ack pending ∧ fl ≤ i)`), so that node.go's raise at `advancec` (to `|delivered|`) stays
+  as stated (`advance_complete`'s `|ds| ≤ x`).
+- `ownRawNodeReady`/`ownRawNodeIdle`: `Hsnap` as `ownRawNode`'s, `storedRecsP` for the stored
+  records (`storedRecs γ sid es` after a snapshot `Ready`: the log's records after the base).
+- `readyWithoutAccept`/`Ready` drop `rs.psnap = false`; `rd.Snapshot' = null ∨ (rs.psnap = true ∧
+  ∃ sv, ownSnapM rd.Snapshot' 1 sv ∗ ⌜sip-free pending sid = snapId sv⌝ ∗ the content `A`)`;
+  `acceptReady` with a snapshot in progress (`sip := true`, the queued ack with `some sid.index`,
+  the storage lent: `lent := true`, the hand-out `ownStorage st σ` in place of `appendRight`);
+  `HasReady` exact on `hasNextUnstableSnapshot`; `Advance` without `psnap = false` (the ack's
+  `appliedSnap`); `ownRawNode_appended` takes `snapReceipt` when `lent`; `ownRawNode_raise_floor`
+  without `psnap = false`. **A second restore between `Ready` and `Advance`** (`node.run` steps
+  `recvc` while `advancec` is armed): `RawNode.Step` drops `rs.steps = []` for `MsgSnap`; the
+  queued ack's `PendingOk` must survive a restore: its `last`/`stored` comparison is vacuous with
+  the storage lent (`lent → …`), and its `si` stays `≤ committed` (the restore raises
+  `committed`); the application keeps `s1`'s hand-out; the ack's `stableSnapTo(s1.index)` misses
+  (`s2.index ≠ s1.index`) and `appliedTo(s1.index)` moves `applied` only; `s2` goes out with the
+  next `Ready`. `psnap` is then "a snapshot may be pending or in progress", cleared by `Advance`
+  when the ack's `stableSnapTo` hits.
+
+*S-d4, `node.go` and the callers*: `readyData` with `rd.Snapshot' = null ∨ (γ.raft.reNoSnap = false
+∗ the hand-out)` (so the server and putget/putget3, at `reNoSnap = true`, keep `rd.Snapshot' =
+null` exactly), `advanceP`'s `appendReceipt` or `snapReceipt`, `netP` without `Type ≠ MsgSnap`,
+`runCfg` without `psnap = false`, `dlv`/`dlm` over the jump (`A` extends `delivered`); the kv
+example (at `reNoSnap = false`) must then take a `Ready` with a snapshot, which its Go code ignores
+today: either S-r (its Go change) first, or its delivery (`deliver`) keeps passing no `MsgSnap`
+(`netP`'s conjunct moved to the example's own network invariant); the server untouched (its
+`raftNode.start` snapshot branch is S-j's, `reNoSnap = true` until S-l).
+
+**4. Staging and size.** S-d1 (the log layer: ~25 files, every `ownRaftLog` reseal), S-d2
+(`raft.appliedSnap`, the two arms), S-d3 (the `RawNode`: ~15 files, the jump), S-d4 (node.go and
+the callers). Each builds on its own (the `RawNode` specs keep `psnap = false` until S-d3).
+Estimate: larger than S-c and D22l together; trust base unchanged (raft stages add no axiom).
+**Order with S-b′:** S-b′'s certificate predicate on the storage contract (`isStorageWith`'s
+`C`) is what the lent storage's `ApplySnapshot` must preserve (the snapshot's certificate), so
+S-b′ before S-d is the cheaper order (S-d's `snapReceipt` then states `C` of the new snapshot).
