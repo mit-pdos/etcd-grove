@@ -242,3 +242,42 @@ Not yet: `Process` (its spec against the contract, `wStep` per round with the re
 `wStep` case to W2's lemma (the model's `WMsg`/`WResp` to W2's `Msg`); and the raft functions'
 witness paths (`maybeCommit`, `stepCandidate`, `maybeStartNewSubterm`,
 `sendAppendToWitness`, `sendRequestVoteToWitness`) with a witness.
+
+## W3b-A: the raft predicates with a witness (2026-10-20, branch `raft-witness`, in progress)
+
+The representation, generalized from W1's witness-free facts (commits `c5ca6b38ad`, `020525d6f6`,
+`59ebeaee75`):
+- the epoch is the tracker's state: `Trk.ep` (`NState.ep`, default the bare epoch of subterm 0);
+  `ownTrackerC` holds `ownEpochOk c.incoming c.outgoing c.wit tv.Epoch' t.ep` (`EpochOkC`: bare
+  without a witness; bare or well formed, `EpochWF`, with one -- a follower's stays bare until it
+  leads), `ownTracker` (witness-free) `ownEpochNWm` (bare); the epoch structures moved to
+  `Defs.lean`. `toPState` reads a leader's `sub` and `rsx` from it (`epochRsx`: half 0's excluded
+  voter, `0` for the witness), a non-leader's are `0` (`toPState_ep_nl`); `toPState_becomeLeader`
+  and `toPState_voteRespResult` take the installed epoch (subterm 0, the witness excluded);
+- `ownTrackerC`: `WitP c.wit` (the configuration's witness alone has a witness's `Progress`, no
+  peer is `0`; `WitP.zero`: it is `NoWitP` at `0`), the configuration `ownCfgCCw c.wit`
+  (`Witnesses = [c.wit, 0]`); `confchange`'s specs stay witness-free (`ownCfgCC = ownCfgCCw 0`),
+  and the conversions to and from them take `c.wit = 0` (`ownTrackerC_toCC`, `ownResult_transfer`,
+  `ownTrackerC_reconfig`, `ownTrackerC_toSimple`): a configuration change with a witness is out
+  of the static mode;
+- `ownRaftPhysG`'s witness id `W` (`0` for `ownRaftPhys cfg`, `c.wit` for `ownRaftPhysCV c`);
+  the queue `r.witnessMsgs` and the asked set (`witOwn W wsl asked wq`, `InvWitnessOut.lean`:
+  `ownWQueue`, each request an `ownWMsg` whose protocol reading `wAbs` -- `wapp`, `wvote`,
+  `wprevote`, a heartbeat -- is on the outbox: `outboxRel`'s fourth argument `wq`; `ownAsked`;
+  without a witness both nil and nothing queued), the field values `wsl asked` with a pure
+  equation `Hwf` (so that a struct update elsewhere re-seals by `assumption`, like the other
+  fields);
+- witness-free accessors, for now, take `c.wit = 0`: `ownRaftPhysC_toPhys`, `ownRaftPhysC_nowit`,
+  `raft.wp_load_trk_EpochC` (general: `raft.wp_load_trk_EpochC'`, `ownEpochOk ... e s.ep`),
+  `raft.wp_load_trk_witnessC`, `ownRaftPhysC_view` (the Ready view: handing out witness
+  messages is not done); `ownRaftPhysC_retrack`/`ownRaftPhysCV_reconfig` take the witness
+  unchanged.
+
+State: `InvTracker`, `InvTrackerC`, `InvRaftPhys`, `InvApplyConfC`, `confchange`, the tracker's
+specs build; the raft function proofs that use the changed predicates do not yet (see the last
+build's list in the W3b-A report): each needs either `c.wit = 0` (witness-free callers) or its
+witness branch proved (`appendEntry` with the epoch's subterm, `maybeCommit` →
+`sendAppendToWitness`, `stepCandidate`/`campaign` → the witness's vote, `maybeStartNewSubterm`,
+`bcastHeartbeatWithCtx` → `sendHeartbeatToWitness`, `maybeSendAppend`, `promotable`, `reset`'s
+asked set, `newRaft`'s tracker at the bare epoch), and the Ready path (`InvRawnode*`,
+`RawNode.*`, `node.*`) `outboxRel`'s new argument and the witness queue.
