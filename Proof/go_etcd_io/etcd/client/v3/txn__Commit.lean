@@ -28,7 +28,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     txn.Commit.spec (GF := GF) (hG := hG) := by
   intro tp addr ci cd b Spec Q
-  wp_start as ⟨Htx, #Hrpc, #Hrun⟩
+  wp_start as ⟨Htx, #Hrpc, Hrun⟩
   iunfold txnObjAt at Htx
   icases Htx with ⟨%Htpn, %api, %cosl, %csl, %ssl, %fsl, %cps, %sps, %fps, %iw, #Hkvf, #Hkv, #Hctxf,
     #Hctx, #Hce, #Hmu, Hcif, Hcthen, Hcelse, Hiw, Hcmps, Hcsl, Hccap, #Hcpa, Hsus, Hssl, Hscap,
@@ -43,7 +43,13 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   · iPkgInit
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
-  wp_apply wp_retry_Txn rkv conn addr Spec Q ci cd _ _ (txnWireOf b.model) cosl vs $$ [«$r0»]
+  ihave Hrun' : reqPre conn addr (Spec (txnWireOf b.model) Q) $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn addr $$ [Hrun]
+    iframe Hremote Hrkv
+    iapply txnReqPre_kv tp api addr $$ [Hrun]
+    iframe Hrun
+    unfold txnKvIs; iexact Hkvf
+  wp_apply wp_retry_Txn rkv conn addr Spec Q ci cd _ _ (txnWireOf b.model) cosl vs $$ [«$r0» Hrun']
     as %resp %err ⟨-, Hres⟩
   · iframe #
     iframe

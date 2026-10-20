@@ -41,6 +41,9 @@ theorem kv.Txn.wp_proof : kv.Txn.spec (GF := GF) (hG := hG) := by
   iexists tp
   isplitl []
   · ipureintro; rfl
+  isplitr []
+  rotate_left
+  · unfold txnKvIs; iexact kv
   unfold txnObjAt
   isplitl []
   · ipureintro; exact Htpn

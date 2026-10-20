@@ -35,7 +35,8 @@ abbrev kv.Delete.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3⌝ ∗
       isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
-      □ ▷ Spec (deleteWireOf (opDeleteModel key gs)) Q }}
+      -- (2026-10-20, linkv-txn stage A) ordinary on a client configured for one attempt
+      kvReqPre api addr (Spec (deleteWireOf (opDeleteModel key gs)) Q) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); deleteCallOut Q resp err }}

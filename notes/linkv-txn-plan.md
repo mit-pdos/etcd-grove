@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: plan only (2026-10-20); nothing carried out. Owner line: none yet.
+Status: stage A done (2026-10-20, branch `linkv-txn`; STATUS "linkv-txn stage A"); B next.
 
 ## Goal
 
@@ -67,8 +67,8 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
 - `kvDepPre`: `.deleteRange` and the writing `.txn` accept `.op1` (keep `.op` for the
   persistent callers or move them over with `_of_box`); `kvDeleteOk_of_server`,
   `kvTxnOk_of_server`, `deletePermit_of_dep`, `txnPermit_of_dep`.
-- Client: `client_delete_end_to_end` takes `putAuOk … (.deleteRange …) Q` (rename to
-  `writeAuOk`); `client_txn_end_to_end`'s writing case too. `txnObjAt` has no `kvOnce` today
+- Client: `client_delete_end_to_end` takes `putAuOk … (.deleteRange …) Q` (not renamed);
+  `client_txn_end_to_end`'s writing case `txnAuOk` (on the `*txn`). `txnObjAt` has no `kvOnce` today
   (`InvTxnBuilder.lean`): thread it from `NewKV` through `Txn()` to `Commit`.
 - `deleteReplied`/`txnReplied` lose `□` on `Q`; `_mono` lemmas.
 - Callers (putget, putget3, recipes, concurrency, leasing, cache, watchkv) pass `□ Q` via

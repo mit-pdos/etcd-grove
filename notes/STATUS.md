@@ -48,7 +48,34 @@ module system").
 
 
 
-## Plan: linkv over Delete and Txn (2026-10-20, not started)
+## linkv-txn stage A: at-most-once Delete and Txn (2026-10-20, branch `linkv-txn`)
+
+Stage A of `notes/linkv-txn-plan.md`: D21 M6's at-most-once firing, which covered Put only,
+extended to `DeleteRange` and writing `Txn`, server to client.
+- **Server**: `deletePermit`, `txnPermit` take `kvOpAu1`; `deletePermit_reqPropOk`,
+  `txnPermit_reqPropOk` take the result token `γc` (`reqPropOk`'s third case);
+  `EtcdServer.DeleteRange.spec` and `EtcdServer.Txn.spec` (writing case, `txnAppliedOk`) return
+  `Q`, not `□ Q`, through `kvRes`/`kvRes_take`, as `EtcdServer.Put`.
+- **gRPC layer** (`v3rpc/ServerKV.lean`): `kvDepPre`'s delete and writing-txn cases take `.op1`;
+  `deleteApplied`, `txnAppliedAns` carry `Q`.
+- **Client**: the request precondition `reqPre` (persistent, or ordinary on `isEtcdConn1`) through
+  `kVClient.DeleteRange`/`Txn` and `retryKVClient.DeleteRange`/`Txn`; `kvReqPre` in `kv.Delete`
+  and `kv.Do`'s delete case; `txn.Commit` takes `txnReqPre tp addr P` (new, `InvTxnBuilder.lean`:
+  persistent, or ordinary on a builder whose `*kv` is `kvOnce`, `txnKvIs tp api`), and `kv.Txn`
+  returns `txnKvIs tp api`. `etcdDeleteSpec` and `etcdTxnSpec` (writing) deposit `kvOpAu1`;
+  `deleteReplied` and `txnReplied` (writing) carry `Q` (`deleteReplied_mono` new).
+  `client_delete_end_to_end` takes `putAuOk`, `client_txn_end_to_end` the new `txnAuOk`
+  (`txnAuOk_of_box`); the recipes' `kv_delete_result`, `kv_txn_commit` pass persistent updates
+  (`kvOpAu_one`, `kvReqPre_box`, `txnReqPre_box`).
+- **Gates**: full `lake build` green; every `gen-link.py` mode unchanged; `tcb-report.py --check`
+  (519 axioms, 2 sorries) and every collection unchanged. No axiom added: the one-attempt
+  connection's ordinary precondition is D21j's `grpcInvokerOk`.
+
+Next: stage B (`notes/linkv-txn-plan.md`). Note for B1: `txnAppliedOk`'s doc says a known
+registration's `request_delivered` already excludes `skip` unless the registration is gone; check
+that first.
+
+## Plan: linkv over Delete and Txn (2026-10-20, stage A done, see above)
 
 `notes/linkv-txn-plan.md`: widen linkv's workload and model from Put/Get to the KV API etcd's
 robustness tester drives (Delete, multi-op and compare-and-set Txn, List, revisions in every

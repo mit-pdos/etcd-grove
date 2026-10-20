@@ -230,8 +230,9 @@ loops call `IsRegistered` knowing nothing of the id's registration, so the model
 known registration `request_delivered` excludes it unless the registration is gone), the response the
 transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`appliedHdr`), mvcc's
 certificate of the log after; and (unit V2) `x.log` extends the floor `F`; and (unit W-M3) the
-caller's certificate of the log after (`certOk`) and `□ Q` of the state of the log the entry met
-(the transaction's update fired there). -/
+caller's certificate of the log after (`certOk`) and `Q` of the state of the log the entry met
+(the transaction's update fired there, at most once: not persistent since 2026-10-20, linkv-txn
+stage A). -/
 def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (resp : Loc) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
@@ -242,7 +243,7 @@ def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnMo
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied). -/

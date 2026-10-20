@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 theorem retryKVClient.Txn.wp_proof (wp_kVClient_Txn : kVClient.Txn.spec (GF := GF) (hG := hG)) :
     retryKVClient.Txn.spec (GF := GF) (hG := hG) := by
   intro rkv conn addr Spec Q ctx cd inp req t opts vs
-  wp_start as ⟨#Hrkv, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok⟩
+  wp_start as ⟨#Hrkv, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok⟩
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto
-  wp_apply wp_kVClient_Txn kc conn addr Spec Q ctx cd inp req t opts vs $$ [Hin] as %resp %err Hres
+  wp_apply wp_kVClient_Txn kc conn addr Spec Q ctx cd inp req t opts vs $$ [Hin Hpre] as %resp %err Hres
   · iframe #
     iframe
   iapply HΦ
