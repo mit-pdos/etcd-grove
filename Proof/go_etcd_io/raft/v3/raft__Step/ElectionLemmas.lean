@@ -144,55 +144,68 @@ or not, is `Hforce`'s):
     inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout
     if !force && inLease { r.logger.Infof(...); return nil }
 
-Split on `r.checkQuorum` (`Hcq`), the leader and the election timer, then on `force`. Where the
-message is ignored (`checkQuorum` on, a leader known, within the timeout, not forced) the step is
-`StepC.refl`, closed here; every other goal is left at the code after the check, `inLease`
-having been false or the request forced. -/
+Split on `r.checkQuorum` (`Hcq`), the leader and the election timer, then on `force`. The
+statement is joined (`wp_join`): every case ends with the cells `r`, `m`, `Hphys` at `s` and
+`Hm` unchanged, falling through or returning `nil` (ignored: `checkQuorum` on, a leader known,
+within the timeout, not forced), so the rest of `Step` is verified once, not once per case
+(MsgVote_gt: 15m to 3m of CPU, 2026-10-20). The return is closed here (`StepC.refl`); the one
+goal left is the code after the check. -/
 macro "wp_lease_check " cx:term : tactic => `(tactic| (
-  wp_apply Perennial.EtcdGrove.raft.wp_load_checkQuorumC $$ Hphys as Hphys
-  cases Hcq : s.cq
-  all_goals try wp_auto
-  all_goals try (
-    have _ : s.cq = true := Hcq
-    wp_apply Perennial.EtcdGrove.raft.wp_load_leadC $$ Hphys as Hphys
-    try wp_auto
-    wp_if_destruct)
-  all_goals try (
-    have _ : s.cq = true := Hcq
-    wp_apply Perennial.EtcdGrove.raft.wp_load_electionElapsedC $$ Hphys as %ee Hphys
-    try wp_auto
-    wp_apply Perennial.EtcdGrove.raft.wp_load_electionTimeoutC $$ Hphys as %et ⟨Hphys, %Het⟩
-    try wp_auto)
-  all_goals by_cases Hforce : $cx = go!"CampaignTransfer"
-  all_goals (
-    wp_gets
-    try (first | rw [decide_eq_true Hforce] | rw [decide_eq_false Hforce])
-    try wp_auto)
-  -- not forced, a leader known: the timer decides
-  all_goals try (
-    have _ : s.cq = true := Hcq
-    have _ : ¬ $cx = go!"CampaignTransfer" := Hforce
-    have _ : ¬ s.lead = W64 0 := Hif
-    wp_if_destruct)
-  -- ignored within the lease: `lastEntryID` for the log line, then `nil`
-  all_goals try (
-    wp_apply Perennial.EtcdGrove.raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases Perennial.EtcdGrove.ownRaftPhysC_log_same $$ Hphys with ⟨Hlog1, Hback⟩
-    wp_gets
-    wp_apply _P.lastEntryID $$ [Hlog1] as %lastID ⟨Hlog1, -⟩
-    · iframe
-    ihave Hphys := Hback $$ Hlog1
-    try wp_auto
-    repeat (first
-      | (wp_get; try wp_auto)
-      | (wp_apply Perennial.EtcdGrove.raft.wp_load_idC $$ Hphys as Hphys; try wp_auto)
-      | (wp_apply Perennial.EtcdGrove.raft.wp_load_VoteC $$ Hphys as Hphys; try wp_auto)
-      | (wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys; try wp_auto)
-      | (wp_apply Perennial.EtcdGrove.raft.wp_load_electionTimeoutC $$ Hphys as %et' ⟨Hphys, -⟩;
-         try wp_auto)
-      | (wp_apply Perennial.EtcdGrove.raft.wp_load_electionElapsedC $$ Hphys as %ee' Hphys;
-         try wp_auto))
-    wp_raft_logC
+  wp_join (Q := fun v => iprop(⌜v = executeVal ∨ v = returnVal #interface.nil⌝ ∗
+      r_ptr ↦ r ∗ m_ptr ↦ ml ∗ ownRaftPhysCV c c.voters r id s ∗
+      msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap (⟨m, ents, sn, ctx, rs⟩ : MsgSt).msg)
+        ⟨m, ents, sn, ctx, rs⟩)) at next with [r m Hphys Hm force]
+  · wp_apply Perennial.EtcdGrove.raft.wp_load_checkQuorumC $$ Hphys as Hphys
+    cases Hcq : s.cq
+    all_goals try wp_auto
+    all_goals try (
+      have _ : s.cq = true := Hcq
+      wp_apply Perennial.EtcdGrove.raft.wp_load_leadC $$ Hphys as Hphys
+      try wp_auto
+      wp_if_destruct)
+    all_goals try (
+      have _ : s.cq = true := Hcq
+      wp_apply Perennial.EtcdGrove.raft.wp_load_electionElapsedC $$ Hphys as %ee Hphys
+      try wp_auto
+      wp_apply Perennial.EtcdGrove.raft.wp_load_electionTimeoutC $$ Hphys as %et ⟨Hphys, %Het⟩
+      try wp_auto)
+    all_goals by_cases Hforce : $cx = go!"CampaignTransfer"
+    all_goals (
+      wp_gets
+      try (first | rw [decide_eq_true Hforce] | rw [decide_eq_false Hforce])
+      try wp_auto)
+    all_goals try (
+      have _ : s.cq = true := Hcq
+      have _ : ¬ $cx = go!"CampaignTransfer" := Hforce
+      have _ : ¬ s.lead = W64 0 := Hif
+      wp_if_destruct)
+    all_goals try (
+      wp_apply Perennial.EtcdGrove.raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases Perennial.EtcdGrove.ownRaftPhysC_log_same $$ Hphys with ⟨Hlog1, Hback⟩
+      wp_gets
+      wp_apply _P.lastEntryID $$ [Hlog1] as %lastID ⟨Hlog1, -⟩
+      · iframe
+      ihave Hphys := Hback $$ Hlog1
+      try wp_auto
+      repeat (first
+        | (wp_get; try wp_auto)
+        | (wp_apply Perennial.EtcdGrove.raft.wp_load_idC $$ Hphys as Hphys; try wp_auto)
+        | (wp_apply Perennial.EtcdGrove.raft.wp_load_VoteC $$ Hphys as Hphys; try wp_auto)
+        | (wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys; try wp_auto)
+        | (wp_apply Perennial.EtcdGrove.raft.wp_load_electionTimeoutC $$ Hphys as %et' ⟨Hphys, -⟩;
+           try wp_auto)
+        | (wp_apply Perennial.EtcdGrove.raft.wp_load_electionElapsedC $$ Hphys as %ee' Hphys;
+           try wp_auto))
+      wp_raft_logC)
+    all_goals (
+      iframe
+      ipureintro
+      first | exact Or.inl rfl | exact Or.inr rfl | exact Or.inl trivial)
+  iintro ⟨%Hv, r, m, Hphys, Hm⟩
+  rcases Hv with rfl | rfl
+  -- ignored within the lease: `nil`, the state unchanged
+  rotate_left
+  · wp_auto
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
@@ -201,7 +214,8 @@ macro "wp_lease_check " cx:term : tactic => `(tactic| (
           Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _)⟩, rfl,
           Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
       | exact ⟨Hwf, Perennial.EtcdGrove.StepCD.frame (.refl _) (Perennial.EtcdGrove.RFrame.refl _),
-          rfl, Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩)))
+          rfl, Perennial.EtcdGrove.StepProof.keep_frame rfl rfl rfl rfl rfl⟩
+  try wp_auto))
 
 set_option hygiene false in
 /-- (2026-10-17, `CheckQuorum` on) `Step`'s `r.checkQuorum || r.preVote`, in the stale-term arm:

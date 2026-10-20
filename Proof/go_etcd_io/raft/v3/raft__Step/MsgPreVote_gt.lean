@@ -121,51 +121,50 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `force` (2026-10-13): a leader transfer's vote request or not; (2026-10-17) with
   -- `checkQuorum` on, a request within the lease that is not forced is ignored
   wp_lease_check ctx
-  all_goals
-    -- the step-down switch: `MsgPreVote`, so nothing
-    wp_gets
-    rw [Hy17]
-    wp_auto
-    -- the type switch: not `MsgHup` / `MsgStorageAppendResp` / `MsgStorageApplyResp`,
-    -- but `MsgPreVote`
-    wp_gets
-    rw [Hty]
-    wp_auto
-    -- `canVote`: true by its third disjunct, whichever way the first two go; the
-    -- evaluation is joined
-    wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhysCV c c.voters r id s ∗
-        r_ptr ↦ r ∗ m_ptr ↦ ml ∗
-        msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap m) ⟨m, ents, sn, ctx, rs⟩))
-        at (if: _ then _ else _) with [Hphys r m Hm] as ⟨%Hv, Hphys, r, m, Hm⟩
-    · repeat (any_goals cv_step)
-      all_goals first | wp_join_done | (exfalso; omega) | (exfalso; exact Hif Hty)
-    subst Hv
+  -- the step-down switch: `MsgPreVote`, so nothing
+  wp_gets
+  rw [Hy17]
+  wp_auto
+  -- the type switch: not `MsgHup` / `MsgStorageAppendResp` / `MsgStorageApplyResp`,
+  -- but `MsgPreVote`
+  wp_gets
+  rw [Hty]
+  wp_auto
+  -- `canVote`: true by its third disjunct, whichever way the first two go; the
+  -- evaluation is joined
+  wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhysCV c c.voters r id s ∗
+      r_ptr ↦ r ∗ m_ptr ↦ ml ∗
+      msgPtsC ml (DFrac.own 1) DFrac.discard (needsCap m) ⟨m, ents, sn, ctx, rs⟩))
+      at (if: _ then _ else _) with [Hphys r m Hm] as ⟨%Hv, Hphys, r, m, Hm⟩
+  · repeat (any_goals cv_step)
+    all_goals first | wp_join_done | (exfalso; omega) | (exfalso; exact Hif Hty)
+  subst Hv
+  try wp_auto
+  -- `lastEntryID`, then `isUpToDate`
+  wp_gets
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+  wp_gets
+  wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+  ihave Hphys := Hback $$ Hlog
+  wp_gets
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+  wp_gets
+  wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
+  ihave Hphys := Hback $$ Hlog
+  cases uptodate
+  · -- behind: reject at `r.Term`, which is not `0`
+    simp only at Hutd
+    have Hs0 : s.term ≠ W64 0 := fun H0 => by
+      have := Hutd0 H0
+      rw [← Hutd] at this
+      exact Bool.false_ne_true this
     try wp_auto
-    -- `lastEntryID`, then `isUpToDate`
-    wp_gets
-    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
-    wp_gets
-    wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
-    ihave Hphys := Hback $$ Hlog
-    wp_gets
-    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
-    wp_gets
-    wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
-    ihave Hphys := Hback $$ Hlog
-    cases uptodate
-    · -- behind: reject at `r.Term`, which is not `0`
-      simp only at Hutd
-      have Hs0 : s.term ≠ W64 0 := fun H0 => by
-        have := Hutd0 H0
-        rw [← Hutd] at this
-        exact Bool.false_ne_true this
-      try wp_auto
-      prevote_resp_tail false
-    -- up to date: grant at `m.Term`, recording nothing
-    try wp_auto
-    prevote_resp_tail true
+    prevote_resp_tail false
+  -- up to date: grant at `m.Term`, recording nothing
+  try wp_auto
+  prevote_resp_tail true
 
 end StepProof
 
