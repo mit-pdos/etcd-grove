@@ -104,6 +104,23 @@ theorem gset_size_minus2 (S : GSet w64) (w x : w64) (hw : w ∈ S) (hx : x ∈ S
   have := GMap.subseteq_size hsub
   omega
 
+omit [FfiSyntax] in
+/-- (2026-10-20, witness support in the dynamic mode, W5) The counting lemma behind the
+witness case of Leader Completeness across a configuration change (`notes/raft-witness-reconfig.md`,
+(Count)): the witness's write and the candidate's votes meet in a regular voter even when the
+candidate's configuration differs from the entry's by one member.
+
+`S` is the replication set without the witness and the excluded voter (`|S| + 2 = n`, the entry's
+configuration's incoming size); `H` the regular members of it that acknowledged the entry
+(`n/2 ≤ |H|`, the witness's write needs `quorum - 1` of `S`); `G` the candidate's incoming votes,
+all in `S` (the witness checks `G ⊆ S`), with `m/2 ≤ |G|` where `m` is the candidate's incoming
+size (`quorum - 1` by the readiness check). The two configurations are adjacent (`n ≤ m + 1`), so
+`n/2 + m/2 = n - 1 > n - 2 = |S|` and `H`, `G` meet. -/
+theorem wit_count_meet (S H G : GSet w64) (n m : Nat) (hS : size S + 2 = n)
+    (hH : H ⊆ S) (hG : G ⊆ S) (hHn : n / 2 ≤ size H) (hGm : m / 2 ≤ size G)
+    (hadj : n ≤ m + 1) : ∃ x, x ∈ H ∧ x ∈ G :=
+  gset_meet S H G hH hG (by omega)
+
 /-- A campaign log ends at its last entry. -/
 theorem camp_last (T : w64) (F0 : List EntryM) :
     CampOk T F0 →
