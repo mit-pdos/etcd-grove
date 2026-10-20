@@ -30,3 +30,41 @@ addConfig: configEqual
 closure: addConfig mstep removeAt
 step: isWrite mstep outEqual
 linkvtxn_Model: step addConfig closure configEqual
+#
+# `Apply` and its callees (examples/linkvtxn/linkvtxn.go: `call`, one function per kind, and the
+# client's builders; linkv-txn stage F); the clientv3 functions linked here as the leasing
+# package's are, under this package's assumptions
+vrOf:
+NewOp:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+Op__applyOpts:
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+Value:
+Version:
+ModRevision:
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__Clone: cloneCompare
+Cmp__ensureCompare:
+mustInt64:
+mustInt64orLeaseID: mustInt64
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+WithRange:
+ResponseOp__GetResponseRange:
+ResponseOp__GetResponseDeleteRange:
+cmpOf: Value Version ModRevision v3_Compare
+opOf: OpGet OpPut OpDelete
+opsOf: opOf
+cmpsFor: cmpsOf cmpOf
+kvsFrom: vrOf
+txnRes: vrOf ResponseOp__GetResponseRange ResponseOp__GetResponseDeleteRange
+callGet: vrOf
+callList: kvsFrom withKVs WithRange
+callPut:
+callDel:
+callTxn: cmpsFor opsOf thenOf elseOf txnRes withRes
+call: callGet callList callPut callDel callTxn
+linkvtxn_Apply: call isWrite

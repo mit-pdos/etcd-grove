@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stages A to E done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E"); F next.
+Status: stages A to F done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F"); G next.
 
 ## Goal
 
@@ -181,6 +181,11 @@ Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, t
 
 ### F. `Apply` (`Spec/.../linkv/Apply.lean`, `linkv/Inv.lean`, `linkv/Apply.lean`)
 
+**Done** (2026-10-20, STATUS "linkv-txn stage F") for `examples/linkvtxn`: `call` split per kind,
+each kind's call proved at the state its update fired at, `Apply` linked (`wp_Apply`). A finding on
+the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-serializable.md`);
+`Apply`'s input excludes empty transactions, which `Gen` never makes.
+
 - Premises: `DeleteRange` and `Txn` registered (`etcd_kv_served` gives all four).
 - `linkvInv`: pending writes `GMap Nat WOp`; the revisions' map holds the abstract state per
   revision (`absS`, not key-values: List and read-only txns read all keys); `LinkvOk` with
@@ -193,10 +198,14 @@ Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, t
 
 ### G. Close
 
-`Check`/`Main` unchanged in Go; `Main.spec` premises if any; `etc/gen-link.py --linkv` and
-`--linkv3`, `etc/gen-init.py`; `linkv_safe`, `linkv3_safe` re-closed. Gates: `lake build`,
-`goose.py --check`, every link mode, `tcb-report.py --check` and every collection (linkv's and
-linkv3's axioms unchanged: the target), `verified-code.py` shows the new functions verified.
+For `examples/linkvtxn` (stage D made it a module of its own): `Gen` (`genFrom`, `pick`, `mkTxn`,
+`workloadKeys`: `GenIn`, which `Apply`'s input premise is), `Check`, `Main` (linkv's, at
+`linkvtxnS` and `linkvInv`'s allocation from the boot state: `linkvInv_alloc` needs a good state
+that is the model's initial one), the closed theorem `linkvtxn_safe` (as `linkv_safe`), its
+`Results.lean` and a TCB collection; `etc/gen-init.py` if the package's init changes. Then decide
+whether linkv retires (linkv3/linkv3p still use it). Gates: `lake build`, `goose.py --check`, every
+link mode, `tcb-report.py --check` and every collection (`linkvtxn_safe`'s axioms linkv_safe's plus
+the client's comparison clone, `proto.Clone`), `verified-code.py` shows the new functions verified.
 STATUS and decisions updated.
 
 ## Order and sizing (rough)

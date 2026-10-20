@@ -11917,6 +11917,33 @@ issue says so); if the fork takes it, `id ∉ rs` can go. (b) was rejected for t
 `AddRemote`, `AddPeer` restated (the remotes list); `bootOk` (a premise, `bootstrapContract`)
 stronger by `rms = []`.
 
+## linkv-txn F: a write's commit at a state the model cannot answer; `call` per kind (2026-10-20)
+
+**A write's update commits at every firing.** `write_ok_au` must commit `lintest`'s update when the
+server fires it, with the `Output` `call` will return (`outAt i σ`); the model decodes the
+output's revision as a natural number (`decOut`), so the commit needs the answer's revision below
+`2^64`, which nothing at the firing gives (the server's state carries no bound; the reply's log
+is below `2^63`, but the reply comes later). Committing nothing at such a state is not an option:
+the state moves, and `LinkvOk`'s configuration must move with it. So at a state where the answer
+does not fit, the update commits the write *as failed and applied* (`pSeq_errW_applied`: a write
+that returned an error may have taken effect), and its result says so (`wQ`'s right side); the
+reply, below `2^63`, contradicts it. The alternative, a bound in the invariant, would need every
+deposited write to respect a budget nobody tracks.
+
+**Reads commit at the prophesied revision only**, as linkv's gets: the read update is persistent
+(fired at every committed state), the revision prophecy picks the one, and the revisions' map
+(now of whole states: lists and read-only transactions read every key) makes every firing at
+that revision see the committed state. A state's revision determines it because every server
+step keeps the state or moves to the next revision (`kvOpStep_cases`).
+
+**`call` split per kind** (`callGet`, …, `callTxn`, with `cmpsFor` and `txnRes`): the Go program
+is this repository's own, and one function per kind gives each its own spec and proof file
+(the spec/proof discipline) instead of one proof of five branches, two loops and the txn builder.
+
+**Empty transactions are out of `Apply`'s input** (`GenIn`), not handled: etcd serves them
+without the read index (`issues/etcd-txn-empty-serializable.md`), and the client's model agrees
+(`txnSerializable` vacuously true), so no read update fires for them; `Gen` never makes one.
+
 ## linkv-txn E: the model's inputs and outputs as plain values, and what `ioOk` carries (2026-10-20)
 
 porcupine's model receives an operation as boxed Go values (`OpV`), and `ModelSpec.M` must decode

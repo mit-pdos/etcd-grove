@@ -8,8 +8,32 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
+public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
+public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.ModRevision
+public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.client.v3.OpDelete
+public import Proof.go_etcd_io.etcd.client.v3.OpGet
+public import Proof.go_etcd_io.etcd.client.v3.OpPut
+public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseDeleteRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
+public import Proof.go_etcd_io.etcd.client.v3.Value
+public import Proof.go_etcd_io.etcd.client.v3.Version
+public import Proof.go_etcd_io.etcd.client.v3.WithRange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.addConfig
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.call
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callDel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callPut
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callTxn
+public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.closure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpsFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpsOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.delKey
@@ -17,11 +41,18 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.elseOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.holds
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.inputEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.isWrite
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.kvsFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.kvsOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.lookup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.mstep
+public import Proof.go_etcd_io.etcd.client.v3.mustInt64
+public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.opOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.opsOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.outEqual
+public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.removeAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.resEqual
@@ -31,7 +62,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.setKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.step
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.storeEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.thenOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.txnRes
+public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.vrEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.vrOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withKVs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withRes
 
@@ -52,6 +86,74 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
+theorem proto.wp_Clone :
+    EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.Clone.wp_proof
+
+theorem v3.wp_cloneCompare :
+    EtcdGrove.cloneCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cloneCompare.wp_proof proto.wp_Clone
+
+theorem v3.Cmp.wp_Clone :
+    EtcdGrove.Cmp.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.Clone.wp_proof v3.wp_cloneCompare
+
+theorem v3.Cmp.wp_ensureCompare :
+    EtcdGrove.Cmp.ensureCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.ensureCompare.wp_proof
+
+theorem v3.wp_NewOp :
+    EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewOp.wp_proof
+
+theorem v3.wp_IsOptsWithFromKey :
+    EtcdGrove.IsOptsWithFromKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithFromKey.wp_proof v3.wp_NewOp
+
+theorem v3.wp_IsOptsWithPrefix :
+    EtcdGrove.IsOptsWithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.IsOptsWithPrefix.wp_proof v3.wp_NewOp
+
+theorem v3.wp_ModRevision :
+    EtcdGrove.ModRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ModRevision.wp_proof
+
+theorem v3.Op.wp_applyOpts :
+    EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Op.applyOpts.wp_proof
+
+theorem v3.wp_OpDelete :
+    EtcdGrove.OpDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpDelete.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+
+theorem v3.wp_OpGet :
+    EtcdGrove.OpGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpGet.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
+
+theorem v3.wp_OpPut :
+    EtcdGrove.OpPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpPut.wp_proof v3.Op.wp_applyOpts
+
+theorem ResponseOp.wp_GetResponseDeleteRange :
+    EtcdGrove.ResponseOp.GetResponseDeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseDeleteRange.wp_proof
+
+theorem ResponseOp.wp_GetResponseRange :
+    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
+
+theorem v3.wp_Value :
+    EtcdGrove.Value.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Value.wp_proof
+
+theorem v3.wp_Version :
+    EtcdGrove.Version.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Version.wp_proof
+
+theorem v3.wp_WithRange :
+    EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRange.wp_proof
+
 theorem wp_vrEqual :
     EtcdGrove.linkvtxn.vrEqual.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.vrEqual.wp_proof
@@ -71,6 +173,58 @@ theorem wp_configEqual :
 theorem wp_addConfig :
     EtcdGrove.linkvtxn.addConfig.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.addConfig.wp_proof wp_configEqual
+
+theorem wp_vrOf :
+    EtcdGrove.linkvtxn.vrOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.vrOf.wp_proof
+
+theorem wp_withKVs :
+    EtcdGrove.linkvtxn.withKVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.withKVs.wp_proof
+
+theorem wp_cmpsOf :
+    EtcdGrove.linkvtxn.cmpsOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.cmpsOf.wp_proof
+
+theorem v3.wp_mustInt64 :
+    EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mustInt64.wp_proof
+
+theorem v3.wp_mustInt64orLeaseID :
+    EtcdGrove.mustInt64orLeaseID.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mustInt64orLeaseID.wp_proof v3.wp_mustInt64
+
+theorem v3.wp_Compare :
+    EtcdGrove.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Compare.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_ensureCompare v3.wp_mustInt64 v3.wp_mustInt64orLeaseID
+
+theorem wp_cmpOf :
+    EtcdGrove.linkvtxn.cmpOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.cmpOf.wp_proof v3.wp_Value v3.wp_Version v3.wp_ModRevision v3.wp_Compare
+
+theorem wp_cmpsFor :
+    EtcdGrove.linkvtxn.cmpsFor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.cmpsFor.wp_proof wp_cmpsOf wp_cmpOf
+
+theorem wp_opOf :
+    EtcdGrove.linkvtxn.opOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.opOf.wp_proof v3.wp_OpGet v3.wp_OpPut v3.wp_OpDelete
+
+theorem wp_opsOf :
+    EtcdGrove.linkvtxn.opsOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.opsOf.wp_proof wp_opOf
+
+theorem wp_thenOf :
+    EtcdGrove.linkvtxn.thenOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.thenOf.wp_proof
+
+theorem wp_elseOf :
+    EtcdGrove.linkvtxn.elseOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.elseOf.wp_proof
+
+theorem wp_withRes :
+    EtcdGrove.linkvtxn.withRes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.withRes.wp_proof
 
 theorem wp_lookup :
     EtcdGrove.linkvtxn.lookup.spec (GF := GF) (hG := hG) :=
@@ -95,26 +249,6 @@ theorem wp_holds :
 theorem wp_runOps :
     EtcdGrove.linkvtxn.runOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.runOps.wp_proof wp_lookup wp_put wp_delKey
-
-theorem wp_cmpsOf :
-    EtcdGrove.linkvtxn.cmpsOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.cmpsOf.wp_proof
-
-theorem wp_thenOf :
-    EtcdGrove.linkvtxn.thenOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.thenOf.wp_proof
-
-theorem wp_elseOf :
-    EtcdGrove.linkvtxn.elseOf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.elseOf.wp_proof
-
-theorem wp_withRes :
-    EtcdGrove.linkvtxn.withRes.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.withRes.wp_proof
-
-theorem wp_withKVs :
-    EtcdGrove.linkvtxn.withKVs.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.withKVs.wp_proof
 
 theorem wp_mstep :
     EtcdGrove.linkvtxn.mstep.spec (GF := GF) (hG := hG) :=
@@ -157,6 +291,53 @@ theorem wp_Model :
   EtcdGrove.linkvtxn.Model.wp_proof wp_step wp_addConfig wp_closure wp_configEqual
 
 end links
+
+/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
+
+theorem wp_callGet :
+    EtcdGrove.linkvtxn.callGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.callGet.wp_proof wp_vrOf
+
+theorem wp_kvsFrom :
+    EtcdGrove.linkvtxn.kvsFrom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.kvsFrom.wp_proof wp_vrOf
+
+theorem wp_callList :
+    EtcdGrove.linkvtxn.callList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.callList.wp_proof wp_kvsFrom wp_withKVs v3.wp_WithRange
+
+theorem wp_callPut :
+    EtcdGrove.linkvtxn.callPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.callPut.wp_proof
+
+theorem wp_callDel :
+    EtcdGrove.linkvtxn.callDel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.callDel.wp_proof
+
+theorem wp_txnRes :
+    EtcdGrove.linkvtxn.txnRes.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.txnRes.wp_proof wp_vrOf ResponseOp.wp_GetResponseRange ResponseOp.wp_GetResponseDeleteRange
+
+theorem wp_callTxn :
+    EtcdGrove.linkvtxn.callTxn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.callTxn.wp_proof wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
+
+theorem wp_call :
+    EtcdGrove.linkvtxn.call.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.call.wp_proof wp_callGet wp_callList wp_callPut wp_callDel wp_callTxn
+
+theorem wp_Apply :
+    EtcdGrove.linkvtxn.Apply.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkvtxn.Apply.wp_proof wp_call wp_isWrite
+
+end links_hasLC
 
 end linkvtxn
 end EtcdGrove
