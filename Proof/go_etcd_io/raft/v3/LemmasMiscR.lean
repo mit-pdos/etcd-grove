@@ -71,7 +71,7 @@ theorem wp_hsOpt_GetTerm (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) 
   iunfold hsOpt at H
   icases H with (⟨%Hp, %Hh⟩ | #H)
   · subst Hp Hh
-    iapply wp_GetTerm.2 $$ Hi HΦ
+    iapply wp_GetTerm.2.1 $$ Hi HΦ
   · iapply wp_GetTerm.1 p hs $$ [$Hi $H] HΦ
 
 theorem wp_hsOpt_GetVote (wp_GetVote : raftpb.HardState.GetVote.spec (GF := GF) (hG := hG))
@@ -83,7 +83,7 @@ theorem wp_hsOpt_GetVote (wp_GetVote : raftpb.HardState.GetVote.spec (GF := GF) 
   iunfold hsOpt at H
   icases H with (⟨%Hp, %Hh⟩ | #H)
   · subst Hp Hh
-    iapply wp_GetVote.2 $$ Hi HΦ
+    iapply wp_GetVote.2.1 $$ Hi HΦ
   · iapply wp_GetVote.1 p hs $$ [$Hi $H] HΦ
 
 theorem wp_hsOpt_GetCommit (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG))
@@ -95,7 +95,7 @@ theorem wp_hsOpt_GetCommit (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF :
   iunfold hsOpt at H
   icases H with (⟨%Hp, %Hh⟩ | #H)
   · subst Hp Hh
-    iapply wp_GetCommit.2 $$ Hi HΦ
+    iapply wp_GetCommit.2.1 $$ Hi HΦ
   · iapply wp_GetCommit.1 p hs $$ [$Hi $H] HΦ
 
 /-- A fresh `&pb.Message{}`: an owned message holding the zero record, every list empty. -/

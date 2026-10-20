@@ -23,7 +23,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `h.GetVote()` of a hard state holding `hs` (read-only, `hsRO`) is `hs.Vote'` (a nil field reads
-as `0`, `cellRO`); of a nil `*HardState`, `0`. -/
+as `0`, `cellRO`); of a nil `*HardState`, `0`; and, field by field (any fraction: a witness state's hard
+state a handler builds, 2026-10-20), the field's cell. -/
 abbrev raftpb.HardState.GetVote.spec : Prop :=
   (∀ (p : Loc) (hs : HardStateM),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ hsRO p hs }}
@@ -33,7 +34,13 @@ abbrev raftpb.HardState.GetVote.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.HardState.ty @!! go!"GetVote"))
       (Val #()))
-  {{ RET #(W64 0); True }}
+  {{ RET #(W64 0); True }} ∧
+  (∀ (p : Loc) (dq : DFrac) (pf : Loc) (v : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ⌜p ≠ null⌝ ∗
+        p.[raftpb.HardState, go!"Vote"] ↦{dq} pf ∗ cellRO pf v }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.HardState.ty @!! go!"GetVote"))
+        (Val #()))
+    {{ RET #v; p.[raftpb.HardState, go!"Vote"] ↦{dq} pf }})
 
 end spec
 

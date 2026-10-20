@@ -38,9 +38,23 @@ theorem raftpb.HardState.GetCommit.wp_proof :
     · wp_if_destruct
       · exact absurd rfl Hqn
       · iapply HΦ; ipureintro; trivial
+  constructor
   · wp_start
     wp_auto
     iapply HΦ; ipureintro; trivial
+  · intro p dq pf v
+    wp_start as ⟨%Hnn, Hf, #c⟩
+    wp_auto
+    wp_if_destruct
+    · exact absurd rfl Hnn
+    ihave (⟨%Hq, %Hv⟩ | ⟨#Hq, %Hqn⟩) := cellRO_cases $$ c
+    · subst Hq
+      wp_auto
+      rw [show (W64 0) = v from Hv.symm]
+      iapply HΦ; iexact Hf
+    · wp_if_destruct
+      · exact absurd rfl Hqn
+      · iapply HΦ; iexact Hf
 
 end proof
 
