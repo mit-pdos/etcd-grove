@@ -70,7 +70,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false (W64 0))
     (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
-    rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk Hnwit)
+    rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk Hnwit rfl)
     $$ [Hc Hsto Hghost Hpeers Htok] as %nd ⟨Htok, Hpost⟩
   · rfl
   · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk)) =
