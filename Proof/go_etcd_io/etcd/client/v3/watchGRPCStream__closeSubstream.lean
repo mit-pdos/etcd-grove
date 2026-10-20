@@ -425,9 +425,15 @@ theorem watchGRPCStream.closeSubstream.wp_proof
   ihave #Hctx1 := Hctx
   iNamed Hctx1
   ihave #Hctx2 := Hctx
+  ihave #Hspsc' := Hspsc
+  iunfold isSpsc at Hspsc'
+  icases Hspsc' with ⟨#Hic, -⟩
+  ihave %Hnn := isChan_not_null P.outc P.γ.spsc.chanName go_etcd_io.etcd.client.v3.WatchResponse $$ Hic
   icases Hret with (%Hrc0 | ⟨%Hrc1, Hres0⟩)
   · subst Hrc0
     wp_auto_lc 2
+    rw [decide_eq_false (show ¬ (P.outc = chan.nil) from Hnn)]
+    wp_auto
     wp_apply_core chan.wp_select_nonblocking_nil
     isplit
     · iapply BigAndL.bigAndL_cons.2
@@ -439,6 +445,8 @@ theorem watchGRPCStream.closeSubstream.wp_proof
     close_rest
   · subst Hrc1
     wp_auto_lc 2
+    rw [decide_eq_false (show ¬ (P.outc = chan.nil) from Hnn)]
+    wp_auto
     wp_apply_core chan.wp_select_nonblocking
     isplit
     · iapply BigAndL.bigAndL_cons.2
