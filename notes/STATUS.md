@@ -94,7 +94,9 @@ and `InvNodeRun` carry `witR` (done, mechanical); still to do there: `InvNodeRun
 `StepR.applyConf` needs `(rOf s g).p.role = .leader → (rOf s g).cfg.cfg.wit = W64 0` (true of
 witness-free configurations; with a witness the code's apply is `applyConfWit`), and `MsgProp`'s
 `StepR.propose` stamps `stampS term sub` (the physical `proposed` still stamps subterm `0`).
-`InvWitnessGhost` adjusted to the new `wJust`/`wStJust` shape.
+`InvWitnessGhost` adjusted to the new `wJust`/`wStJust` shape. (Merged into `raft-witness`
+2026-10-20: `proposed` stamps the epoch's subterm; both premises are discharged at the staged
+witness-free configuration, `ownRaftPhysC_wit0`, W3b-A.)
 
 ## Witness support, W3b: `Process`, at W2's ghost state, and the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
 
