@@ -402,10 +402,11 @@ abbrev contAt (x : Input) (y : Output) (Φ : val → IProp GF) : IProp GF :=
   iprop((linkvtxnS (GF := GF)).ioOk (boxIn x) (boxOut y) -∗ Φ #(boxOut y))
 
 /-- **A write's result** at its firing at `σ` (see the file header): committed with `call`'s
-output (the continuation), or, at a state whose answer's revision does not fit a word, committed
+output (the continuation; the state good), or, at a state whose answer's revision does not fit a word, committed
 as failed. -/
 def wQ (x : Input) (i : MI) (Φ : val → IProp GF) (σ : KVState) : IProp GF :=
-  iprop((⌜(linkv.mStep wks i (linkv.absSt σ)).2.rev < 2 ^ 64⌝ ∗ contAt x (outAt i σ) Φ) ∨
+  iprop((⌜GoodKV σ ∧ (linkv.mStep wks i (linkv.absSt σ)).2.rev < 2 ^ 64⌝ ∗
+      contAt x (outAt i σ) Φ) ∨
     ⌜2 ^ 64 ≤ (linkv.mStep wks i (linkv.absSt σ)).2.rev⌝)
 
 /-- **A read's call invariant** (see the file header), for the input `x` decoding to `i`, the
@@ -614,7 +615,7 @@ theorem write_ok_au (γ : LinkvNames) (γk : KVNames) (x : Input) (i : MI) (hx :
       unfold wQ
       ileft
       iframe HΦ
-      ipureintro; exact Hb
+      ipureintro; exact ⟨Hok.good, Hb⟩
     · -- an answer the model cannot decode: committed as failed, applied
       obtain ⟨S', HS', Hok'⟩ := linkvOk_errApplied Hok i hw hi
       have Hst : (linkvtxnS (GF := GF)).M.step S0 (boxIn x, boxOut errOut) = some S' := by

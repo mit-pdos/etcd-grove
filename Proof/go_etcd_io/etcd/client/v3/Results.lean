@@ -2272,13 +2272,14 @@ update over the whole state, `kvOpAu1 (.deleteRange (txn.deleteOpOf key [] false
 linearized the delete (unit W-M3: in `deleteReplied`, the state of the log the delete met); or an
 error and no reply. Since 2026-10-20 (linkv-txn stage A, as `client_put_end_to_end` since D21 M6)
 the update is `putAuOk`: persistent, or fired at most once on a client configured for one attempt;
-the reply gives `Q`, not `□ Q`. -/
+the reply gives `Q`, not `□ Q`; (linkv-txn stage F) any context a client call takes (`ctxOk`: `Background()`
+too). -/
 theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
         putAuOk api addr γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -2286,9 +2287,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv G
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
             deleteReplied E γr F (txn.deleteOpOf key [] false) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #HF, Hnp⟩ HΦ
-  ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
-  iclear Hctx
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #HF, Hnp⟩ HΦ
   iapply (v3.kv.wp_Delete api addr ci cd key sl [] (etcdDeleteSpec E γr cid mid)
     (fun m => iprop(deleteReplied E γr F (txn.deleteOpOf key [] false) Q cid mid m))) $$ [Hnp]
   · iframe #
@@ -2602,14 +2601,14 @@ etcd's spec, by a client that knows the committed index `c`, with its persistent
 the whole state `kvReadAu γr.kv Q` (a linearizable range; or none, `Q` trivial): `nil` and the
 reply's message `m` with `rangeReplyOk` for the range the server decodes (`rangeWireOf`; at the
 latest revision, `rangeReply_state` gives `□ Q σ` of the state whose selection the reply is); or an
-error and no reply. -/
+error and no reply. Any context a client call takes (`ctxOk`; linkv-txn stage F). -/
 theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗ committedAtLeast γr c ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨
@@ -2621,9 +2620,7 @@ theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, Hopts, HR, Hsn, %Hg, #Hc0, #Hdq, #HF⟩ HΦ
-  ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
-  iclear Hctx
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hc0, #Hdq, #HF⟩ HΦ
   iapply (v3.kv.wp_Get api addr ci cd key sl gs R (etcdRangeSpec E γr cid mid)
     (rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q)) $$ [Hopts HR Hsn]
   · iframe #

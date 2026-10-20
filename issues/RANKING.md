@@ -114,6 +114,12 @@ before any public issue.
     compaction and a partition; the etcd half reproduced with the real apply loop, the panic in
     raft from hand-built messages, not end to end. Fix a few lines (tested). Searched upstream
     2026-10-19: not reported (raft#47 states the invariant).
+13. **[etcd-txn-empty-serializable](etcd-txn-empty-serializable.md)** (2026-10-20): a `Txn`
+    with comparisons and no operations counts as serializable (`IsTxnSerializable` is vacuously
+    true), so a member that is behind answers it from its local state without the read index: a
+    stale verdict and revision, a linearizability violation of a public request. Rare in practice
+    (compare-only transactions), by inspection only, no reproduction yet; the fix is a one-line
+    guard. Upstream not searched yet.
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),

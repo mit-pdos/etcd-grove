@@ -21,6 +21,8 @@ import (
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
 
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/config"
@@ -716,62 +718,70 @@ func opsOf(ops []TOp) []clientv3.Op {
 	return out
 }
 
-// call runs one operation through the client cli: its output, and the revision a successful read
-// replied at.
-func call(cli *clientv3.Client, in Input) Output {
-	ctx := context.Background()
-	if in.Kind == KGet {
-		resp, err := cli.Get(ctx, in.Key)
-		if err != nil {
-			return Output{Err: true}
-		}
-		out := Output{Rev: resp.Header.Revision}
-		if len(resp.Kvs) > 0 {
-			kv := resp.Kvs[0]
-			out.Found = true
-			out.R = vrOf(kv.Value, kv.ModRevision, kv.Version)
-		}
-		return out
+// callGet runs a get of key through the client cli: its output.
+func callGet(cli *clientv3.Client, key string) Output {
+	resp, err := cli.Get(context.Background(), key)
+	if err != nil {
+		return Output{Err: true}
 	}
-	if in.Kind == KList {
-		resp, err := cli.Get(ctx, listFrom, clientv3.WithRange(listTo))
-		if err != nil {
-			return Output{Err: true}
-		}
-		kvs := make([]KV, 0, len(resp.Kvs))
-		for _, kv := range resp.Kvs {
-			kvs = append(kvs, KV{Key: string(kv.Key), R: vrOf(kv.Value, kv.ModRevision, kv.Version)})
-		}
-		return withKVs(Output{Rev: resp.Header.Revision}, kvs)
+	out := Output{Rev: resp.Header.Revision}
+	if len(resp.Kvs) > 0 {
+		kv := resp.Kvs[0]
+		out.Found = true
+		out.R = vrOf(kv.Value, kv.ModRevision, kv.Version)
 	}
-	if in.Kind == KPut {
-		resp, err := cli.Put(ctx, in.Key, in.Val)
-		if err != nil {
-			return Output{Err: true}
-		}
-		return Output{Rev: resp.Header.Revision}
+	return out
+}
+
+// kvsFrom is the KVs of a reply's key-values.
+func kvsFrom(kvs []*mvccpb.KeyValue) []KV {
+	out := make([]KV, 0, len(kvs))
+	for _, kv := range kvs {
+		out = append(out, KV{Key: string(kv.Key), R: vrOf(kv.Value, kv.ModRevision, kv.Version)})
 	}
-	if in.Kind == KDel {
-		resp, err := cli.Delete(ctx, in.Key)
-		if err != nil {
-			return Output{Err: true}
-		}
-		return Output{Rev: resp.Header.Revision, N: resp.Deleted}
+	return out
+}
+
+// callList runs a list of the keys through the client cli: its output.
+func callList(cli *clientv3.Client) Output {
+	resp, err := cli.Get(context.Background(), listFrom, clientv3.WithRange(listTo))
+	if err != nil {
+		return Output{Err: true}
 	}
+	return withKVs(Output{Rev: resp.Header.Revision}, kvsFrom(resp.Kvs))
+}
+
+// callPut runs a put of key with val through the client cli: its output.
+func callPut(cli *clientv3.Client, key string, val string) Output {
+	resp, err := cli.Put(context.Background(), key, val)
+	if err != nil {
+		return Output{Err: true}
+	}
+	return Output{Rev: resp.Header.Revision}
+}
+
+// callDel runs a delete of key through the client cli: its output.
+func callDel(cli *clientv3.Client, key string) Output {
+	resp, err := cli.Delete(context.Background(), key)
+	if err != nil {
+		return Output{Err: true}
+	}
+	return Output{Rev: resp.Header.Revision, N: resp.Deleted}
+}
+
+// cmpsFor is the client's comparisons of a transaction (a new slice).
+func cmpsFor(in Input) []clientv3.Cmp {
 	cmps := make([]clientv3.Cmp, 0, in.NCmps)
 	for _, c := range cmpsOf(in) {
 		cmps = append(cmps, cmpOf(c))
 	}
-	resp, err := cli.Txn(ctx).If(cmps...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
-	if err != nil {
-		return Output{Err: true}
-	}
-	ops := elseOf(in)
-	if resp.Succeeded {
-		ops = thenOf(in)
-	}
-	res := make([]TRes, 0, len(resp.Responses))
-	for i, r := range resp.Responses {
+	return cmps
+}
+
+// txnRes is the results of a transaction's responses, for its branch's operations ops.
+func txnRes(ops []TOp, resps []*etcdserverpb.ResponseOp) []TRes {
+	res := make([]TRes, 0, len(resps))
+	for i, r := range resps {
 		kind := TGet
 		if i < len(ops) {
 			kind = ops[i].Kind
@@ -795,7 +805,37 @@ func call(cli *clientv3.Client, in Input) Output {
 			res = append(res, t)
 		}
 	}
-	return withRes(Output{Rev: resp.Header.Revision, Ok: resp.Succeeded}, res)
+	return res
+}
+
+// callTxn runs a transaction through the client cli: its output.
+func callTxn(cli *clientv3.Client, in Input) Output {
+	resp, err := cli.Txn(context.Background()).If(cmpsFor(in)...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
+	if err != nil {
+		return Output{Err: true}
+	}
+	ops := elseOf(in)
+	if resp.Succeeded {
+		ops = thenOf(in)
+	}
+	return withRes(Output{Rev: resp.Header.Revision, Ok: resp.Succeeded}, txnRes(ops, resp.Responses))
+}
+
+// call runs one operation through the client cli: its output.
+func call(cli *clientv3.Client, in Input) Output {
+	if in.Kind == KGet {
+		return callGet(cli, in.Key)
+	}
+	if in.Kind == KList {
+		return callList(cli)
+	}
+	if in.Kind == KPut {
+		return callPut(cli, in.Key, in.Val)
+	}
+	if in.Kind == KDel {
+		return callDel(cli, in.Key)
+	}
+	return callTxn(cli, in)
 }
 
 // Apply runs one operation through the client cli, resolving a prophecy with its outcome and,
