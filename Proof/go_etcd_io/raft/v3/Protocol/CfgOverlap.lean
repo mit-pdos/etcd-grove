@@ -215,6 +215,84 @@ theorem ccApplyM_overlap {t : raftpb.ConfChangeTransition} {ccs : List ConfChang
     · exact simpleM_overlap h hs hb
     · cases h
 
+/-! ### The shape of one configuration change (2026-10-20, witness support in the dynamic mode)
+
+What the witness's count (`wit_count_meet`) needs of a configuration `c2` at most one change
+after `c1`: a half of `c2` at most one voter smaller than `c1`'s incoming half. A simple change
+moves at most one incoming voter; entering a joint configuration makes the old incoming voters
+the outgoing half; leaving one keeps the incoming half. -/
+
+theorem symdiff_size_le {l r : GSet w64} (hd : symdiffN l r ≤ 1) :
+    GMap.size l ≤ GMap.size r + 1 := by
+  have h1 := gset_size_inter_diff l r
+  have h2 := gset_size_inter_diff r l
+  rw [gset_inter_comm r l] at h2
+  unfold symdiffN at hd
+  omega
+
+theorem simpleM_shape {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : simpleM ccs s = some s') (hs : CfgOk s) (hb : GMap.size s'.cfg.ids < 2 ^ 62) :
+    CfgShape s.cfg s'.cfg := by
+  unfold simpleM at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  rename_i s1 hs1
+  split at h
+  · cases h
+  rename_i hsd
+  obtain ⟨rfl, -⟩ := checkedM_some h
+  left
+  apply symdiff_size_le
+  apply not_symdiffTooBig _ hsd
+  have := size_diff_le s.cfg.incoming s'.cfg.incoming
+  have := size_diff_le s'.cfg.incoming s.cfg.incoming
+  have := size_incoming_le s.cfg
+  have := size_incoming_le s'.cfg
+  have := hs.2.2
+  unfold symdiffN
+  omega
+
+theorem enterJointM_shape {al : Bool} {ccs : List ConfChangeSingleM} {s s' : CCState}
+    (h : enterJointM al ccs s = some s') : CfgShape s.cfg s'.cfg := by
+  unfold enterJointM at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  rename_i s1 hs1
+  obtain ⟨rfl, -⟩ := checkedM_some h
+  right
+  exact applyM_outgoing ccs _ _ hs1
+
+theorem leaveJointM_shape {s s' : CCState} (h : leaveJointM s = some s') :
+    CfgShape s.cfg s'.cfg := by
+  unfold leaveJointM at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  obtain ⟨rfl, -⟩ := checkedM_some h
+  exact Or.inl (Nat.le_succ _)
+
+theorem ccApplyM_shape {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSingleM}
+    {s s' : CCState} (h : ccApplyM t ccs s = some s') (hs : CfgOk s)
+    (hb : GMap.size s'.cfg.ids < 2 ^ 62) : CfgShape s.cfg s'.cfg := by
+  unfold ccApplyM at h
+  split at h
+  · exact leaveJointM_shape h
+  · split at h
+    · exact enterJointM_shape h
+    · exact simpleM_shape h hs hb
+    · cases h
+
 /-! ### The configuration of a log prefix -/
 
 /-- A conf change as `raft.applyConfChange` takes it: `AsV2`'s transition and changes. -/
@@ -425,6 +503,57 @@ theorem fold_adjacent (dec : CCDec) (l : List EntryM) (i j : Nat)
   rw [hsplit, cfgFold_append, hi, Option.bind_some] at hj
   rw [hsplit, confCount_append] at hc
   exact cfgFoldFrom_le_one_overlap (by omega) hj (cfgFold_ok hi h0)
+
+/-- One conf-change entry: `CfgShape`. -/
+theorem entStep_shape {dec : CCDec} {pre : List EntryM} {s s' : CCState}
+    {e : EntryM} (h : entStep dec pre s e = some s') (hs : CfgOk s) :
+    CfgShape s.cfg s'.cfg := by
+  unfold entStep at h
+  split at h
+  · cases hd : dec pre e with
+    | none => rw [hd] at h; cases h
+    | some op =>
+      rw [hd, Option.bind_some] at h
+      unfold ccStepB at h
+      cases ha : ccApplyM op.1 op.2 s with
+      | none => rw [ha] at h; cases h
+      | some s1 =>
+        rw [ha, Option.bind_some] at h
+        split at h
+        · rename_i hb; cases h; exact ccApplyM_shape ha hs hb
+        · cases h
+  · cases h; exact CfgShape.refl _
+
+/-- Entries with at most one conf change: `CfgShape`. -/
+theorem cfgFoldFrom_le_one_shape {dec : CCDec} {pre : List EntryM} {s s' : CCState}
+    {l : List EntryM} (hc : confCount l ≤ 1) (h : cfgFoldFrom dec pre s l = some s')
+    (hs : CfgOk s) : CfgShape s.cfg s'.cfg := by
+  induction l generalizing s pre with
+  | nil => cases h; exact CfgShape.refl _
+  | cons e l ih =>
+    rw [confCount_cons] at hc
+    simp only [cfgFoldFrom] at h
+    by_cases he : IsConfEnt e
+    · rw [ite_eq_left he] at hc
+      cases hs1 : entStep dec pre s e with
+      | none => rw [hs1] at h; cases h
+      | some s1 =>
+        rw [hs1, Option.bind_some, cfgFoldFrom_zero dec _ s1 l (by omega)] at h
+        cases h
+        exact entStep_shape hs1 hs
+    · rw [ite_eq_right he] at hc
+      rw [entStep_not_conf dec pre s e he, Option.bind_some] at h
+      exact ih (by omega) h hs
+
+/-- A prefix and a longer one with at most one more conf change: `CfgShape`. -/
+theorem fold_shape (dec : CCDec) (P1 P2 : List EntryM) (s0 s1 s2 : CCState)
+    (hp : P1 <+: P2) (hc : confCount P2 ≤ confCount P1 + 1) (h0 : CfgOk s0)
+    (h1 : cfgFold dec s0 P1 = some s1) (h2 : cfgFold dec s0 P2 = some s2) :
+    CfgShape s1.cfg s2.cfg := by
+  obtain ⟨M, rfl⟩ := hp
+  rw [cfgFold_append, h1, Option.bind_some] at h2
+  rw [confCount_append] at hc
+  exact cfgFoldFrom_le_one_shape (by omega) h2 (cfgFold_ok h1 h0)
 
 /-- The symmetric form: the conf counts of the two prefixes, in either order. -/
 theorem fold_adjacent' (dec : CCDec) (l : List EntryM) (i j : Nat)

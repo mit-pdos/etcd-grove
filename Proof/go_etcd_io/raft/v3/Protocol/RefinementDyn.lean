@@ -67,6 +67,18 @@ def DynCfg.ofFold (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) : DynCfg where
           · rfl
         · rw [List.take_left']; exact e1; rfl
         · rw [List.take_length]; exact e2
+  shape := by
+    intro P1 P2 c1 c2 hp hc h1 h2
+    cases e1 : cfgFold dec c0 P1 with
+    | none => rw [e1] at h1; cases h1
+    | some s1 =>
+      cases e2 : cfgFold dec c0 P2 with
+      | none => rw [e2] at h2; cases h2
+      | some s2 =>
+        rw [e1] at h1; rw [e2] at h2
+        simp only [Option.map_some, Option.some.injEq] at h1 h2
+        subst h1 h2
+        exact fold_shape dec P1 P2 c0 s1 s2 hp hc h0 e1 e2
 
 /-- The configurations the dynamic model admits after a prefix: its fold (A3), among the
 prefixes `S` (whose records the refinement takes, see the file header). -/

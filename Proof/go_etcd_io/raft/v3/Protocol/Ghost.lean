@@ -174,10 +174,16 @@ structure DynCfg [FfiSyntax] where
   fold : List EntryM → Option CfgM
   adj : ∀ (P1 P2 : List EntryM) (c1 c2 : CfgM), P1 <+: P2 →
     confCount P2 ≤ confCount P1 + 1 → fold P1 = some c1 → fold P2 = some c2 → QOverlap c1 c2
+  /-- (2026-10-20, witness support) the same prefixes' configurations, the later at most one
+  change after the earlier: `CfgShape` (`fold_shape`) -/
+  shape : ∀ (P1 P2 : List EntryM) (c1 c2 : CfgM), P1 <+: P2 →
+    confCount P2 ≤ confCount P1 + 1 → fold P1 = some c1 → fold P2 = some c2 → CfgShape c1 c2
 
 /-- No configuration at all. -/
-def DynCfg.trivial [FfiSyntax] : DynCfg :=
-  ⟨fun _ => none, by intro _ _ _ _ _ _ h; cases h⟩
+def DynCfg.trivial [FfiSyntax] : DynCfg where
+  fold _ := none
+  adj := by intro _ _ _ _ _ _ h; cases h
+  shape := by intro _ _ _ _ _ _ h; cases h
 
 /-- `D`, at its own `FfiSyntax` instance (`RaftNames.reDyn` is a function of the instance,
 since `RaftNames` takes none). -/

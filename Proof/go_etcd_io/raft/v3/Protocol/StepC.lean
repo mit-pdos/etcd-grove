@@ -75,6 +75,14 @@ def CfgM.simple (cfg lrn : GSet w64) : CfgM :=
 /-- A simple configuration has no witness (2026-10-20). -/
 theorem CfgM.simple_wit (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).wit = W64 0 := rfl
 
+/-- `c2`'s incoming half is at most one voter smaller than `c1`'s, or its outgoing half is
+`c1`'s incoming one (2026-10-20, witness support in the dynamic mode): what one configuration
+change does (`fold_shape`), and what the witness's count needs (`wit_count_meet`). -/
+def CfgShape (c1 c2 : CfgM) : Prop :=
+  GMap.size c1.incoming ≤ GMap.size c2.incoming + 1 ∨ c2.outgoing = c1.incoming
+
+theorem CfgShape.refl (c : CfgM) : CfgShape c c := Or.inl (Nat.le_succ _)
+
 
 /-- `q` is a majority of `s`, by Go's convention for an empty `MajorityConfig`: every set is
 a majority of the empty one. -/
