@@ -69,6 +69,15 @@ def OltqOk (V0 V1 : GSet w64) (em : EpochM) (pvs : GMap w64 Progress) (res : GMa
     (em.rs1.rep = true → em.rs1.wit = w →
       CountGe V1 (rsAcked pvs em.rs1) (GMap.size V1 / 2) N)
 
+/-- When `OneLessThanQuorumInReplicationSet` returns `nil` (2026-10-20, fork `99cb9e2d9`): no half
+replicates to its witness, or the two halves share a witness and only one of them replicates to
+it -- a witness shared by both halves of a joint configuration is sent an entry only if both have
+it in their replication sets (its acknowledgement counts in both halves' commit, its vote is
+checked against the incoming half's set alone: notes/raft-witness-reconfig.md). -/
+def OltqNone (em : EpochM) : Prop :=
+  (em.rs0.rep = false ∧ em.rs1.rep = false) ∨
+  (em.rs0.wit ≠ W64 0 ∧ em.rs0.wit = em.rs1.wit ∧ em.rs0.rep ≠ em.rs1.rep)
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -90,7 +99,8 @@ def oltqRes (dq : DFrac) (tv : tracker.ProgressTracker) (V0 V1 : GSet w64)
 
 /-- `p.OneLessThanQuorumInReplicationSet()`: `nil` when no half replicates to its witness (the
 early return, which reads nothing but the epoch); else, given the fields it reads
-(`oltqRes`), a map satisfying `OltqOk`. -/
+(`oltqRes`, given back), `nil` for a shared witness only one half replicates to (`OltqNone`), or a
+map satisfying `OltqOk`. -/
 abbrev tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec : Prop :=
   ∀ (trk : Loc) (dq : DFrac) (tv : tracker.ProgressTracker) (em : EpochM) (V0 V1 : GSet w64)
     (pvs : GMap w64 Progress),
@@ -100,9 +110,9 @@ abbrev tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec : Prop :=
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty
       @!! go!"OneLessThanQuorumInReplicationSet")) (Val #()))
   {{ (mref : Loc), RET #mref; trk ↦{dq} tv ∗
-      (⌜em.rs0.rep = false ∧ em.rs1.rep = false ∧ mref = map.nil⌝ ∨
-       ⌜em.rs0.rep = true ∨ em.rs1.rep = true⌝ ∗ oltqRes dq tv V0 V1 pvs ∗
-       ∃ res : GMap w64 w64, mref ↦$ res ∗ ⌜OltqOk V0 V1 em pvs res⌝) }}
+      (⌜em.rs0.rep = false ∧ em.rs1.rep = false⌝ ∨ oltqRes dq tv V0 V1 pvs) ∗
+      (⌜OltqNone em ∧ mref = map.nil⌝ ∨
+       ⌜¬ OltqNone em⌝ ∗ ∃ res : GMap w64 w64, mref ↦$ res ∗ ⌜OltqOk V0 V1 em pvs res⌝) }}
 
 /-- With a witness-free epoch, `nil` (the statement this spec had until the epoch model). -/
 theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_nw
@@ -119,10 +129,10 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_nw
   · iframe Hpkg Htrk He
     ileft; ipureintro; exact ⟨rfl, rfl⟩
   inext
-  iintro %mref ⟨Htrk, (%Hm | ⟨%Hrep, -⟩)⟩
-  · rw [Hm.2.2]; iapply HΦ $$ Htrk
+  iintro %mref ⟨Htrk, -, (%Hm | ⟨%Hrep, -⟩)⟩
+  · rw [Hm.2]; iapply HΦ $$ Htrk
   · exfalso
-    simp [EpochM.bare, RSM.bare, RSM.rep] at Hrep
+    exact Hrep (Or.inl (by simp [EpochM.bare, RSM.bare, RSM.rep]))
 
 end spec
 

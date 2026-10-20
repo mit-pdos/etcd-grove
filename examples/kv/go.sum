@@ -10,14 +10,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5 h1:WzlssguIjaM5lAhzKvkb8C7GzG/D+qITpmElatK++nk=
-github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
-github.com/upamanyus/etcd/v3 v3.0.0-20261019203636-eebbe9e9087d h1:u331tkZIDMK0OyDQWZKGzCJUB6Cyfx4uQPoB/fLtUMM=
-github.com/upamanyus/etcd/v3 v3.0.0-20261019203636-eebbe9e9087d/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
-github.com/upamanyus/etcd/v3 v3.0.0-20261019222812-edd87c4895c8 h1:9QADKSPLHcjjBiIDJ56IfHRvQDSJ4tj9L9Q4JGX9iAI=
-github.com/upamanyus/etcd/v3 v3.0.0-20261019222812-edd87c4895c8/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
-github.com/upamanyus/etcd/v3 v3.0.0-20261020021956-9ed005d46117 h1:iiCTmUMzPo3uqGLjPHxqcl/uQr5kxE9WuW/CiyItc6U=
-github.com/upamanyus/etcd/v3 v3.0.0-20261020021956-9ed005d46117/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
+github.com/upamanyus/etcd/v3 v3.0.0-20261020071933-99cb9e2d98d4 h1:67rdBcNysjMjKrnxJmLJzPr1g0RSSLlL9O00vrFQL9I=
+github.com/upamanyus/etcd/v3 v3.0.0-20261020071933-99cb9e2d98d4/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

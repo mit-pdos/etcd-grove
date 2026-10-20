@@ -1280,6 +1280,7 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [FfiSyn
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Epoch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))
   (Let "epoch" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Epoch.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Epoch.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad ProgressMap.ty))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Progress"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"NonWitnessVoters"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 0))))))
   (App (Val (GoInstruction (CompositeLiteral scopedAckIndexer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"indexer")) (ElementExpression matchAckIndexer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"scope")) (ElementExpression (go.GoType.MapType go.uint64 (go.GoType.StructType [])) (Var "$v1")))]))))
@@ -1335,6 +1336,11 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [FfiSyn
   (App (Val (GoInstruction (GoStore (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Pair (Var "result") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore scopedAckIndexer.ty))) (Pair (Var "indexer") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 0)))))) (Val #(W64 0))))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 0)))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ReplicationSet.ty go!"Witness"))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 2 ReplicationSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Epoch.ty go!"ReplicationSet"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Epoch.ty)))) (Var "epoch"))) (Val #(W64 1)))))))) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "w1")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "w2"))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (Var "epoch") (Var "$r0")))))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "w1"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "w2"))) (Val #false))
@@ -1349,7 +1355,7 @@ noncomputable def ProgressTracker.OneLessThanQuorumInReplicationSet.impl [FfiSyn
 
 /-- Visit invokes the supplied closure for all tracked progresses in stable order.
 
-    go: tracker.go:299:27 -/
+    go: tracker.go:309:27 -/
 noncomputable def ProgressTracker.Visit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "f"
@@ -1414,7 +1420,7 @@ noncomputable def ProgressTracker.Visit.impl [FfiSyntax] [GoGlobalContext] : val
 /-- QuorumActive returns true if the quorum is active from the view of the local
     raft state machine. Otherwise, it returns false.
 
-    go: tracker.go:323:27 -/
+    go: tracker.go:333:27 -/
 noncomputable def ProgressTracker.QuorumActive.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1451,7 +1457,7 @@ noncomputable def ProgressTracker.QuorumActive.impl [FfiSyntax] [GoGlobalContext
 
 /-- VoterNodes returns a sorted slice of voters.
 
-    go: tracker.go:336:27 -/
+    go: tracker.go:346:27 -/
 noncomputable def ProgressTracker.VoterNodes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1492,7 +1498,7 @@ noncomputable def ProgressTracker.VoterNodes.impl [FfiSyntax] [GoGlobalContext] 
 
 /-- LearnerNodes returns a sorted slice of learners.
 
-    go: tracker.go:347:27 -/
+    go: tracker.go:357:27 -/
 noncomputable def ProgressTracker.LearnerNodes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1535,7 +1541,7 @@ noncomputable def ProgressTracker.LearnerNodes.impl [FfiSyntax] [GoGlobalContext
 
 /-- ResetVotes prepares for a new round of vote counting via recordVote.
 
-    go: tracker.go:360:27 -/
+    go: tracker.go:370:27 -/
 noncomputable def ProgressTracker.ResetVotes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1551,7 +1557,7 @@ noncomputable def ProgressTracker.ResetVotes.impl [FfiSyntax] [GoGlobalContext] 
 /-- RecordVote records that the node with the given id voted for this Raft
     instance if v == true (and declined it otherwise).
 
-    go: tracker.go:366:27 -/
+    go: tracker.go:376:27 -/
 noncomputable def ProgressTracker.RecordVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "id"
@@ -1585,7 +1591,7 @@ noncomputable def ProgressTracker.RecordVote.impl [FfiSyntax] [GoGlobalContext] 
 /-- TallyVotes returns the number of granted and rejected Votes, and whether the
     election outcome is known.
 
-    go: tracker.go:375:27 -/
+    go: tracker.go:385:27 -/
 noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1644,7 +1650,7 @@ noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Progress.ty)))) (Pair (Var "pr") (Var "$value")))))))))))))))))))
 
-/-- go: tracker.go:398:27 -/
+/-- go: tracker.go:408:27 -/
 noncomputable def ProgressTracker.TallyVotesWithDifference.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
@@ -1711,7 +1717,7 @@ noncomputable def ProgressTracker.TallyVotesWithDifference.impl [FfiSyntax] [GoG
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Progress.ty)))) (Pair (Var "pr") (Var "$value"))))))))))))))))))))
 
-/-- go: tracker.go:421:27 -/
+/-- go: tracker.go:431:27 -/
 noncomputable def ProgressTracker.ResetReplicationSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "resetSubterm"
@@ -1798,7 +1804,7 @@ noncomputable def ProgressTracker.ResetReplicationSet.impl [FfiSyntax] [GoGlobal
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Epoch.ty)))) (Pair (Var "epoch") (Var "$r0")))))))))))))
 
-/-- go: tracker.go:454:27 -/
+/-- go: tracker.go:464:27 -/
 noncomputable def ProgressTracker.ChangeReplicationSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon

@@ -53,8 +53,8 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof
     rw [h0, h1]
     wp_auto
     iapply HΦ
-    iframe Htrk
-    ileft; ipureintro; exact ⟨rfl, rfl, rfl⟩
+    iframe Htrk Hres
+    ileft; ipureintro; exact ⟨Or.inl ⟨h0, h1⟩, rfl⟩
   have Hsome : em.rs0.rep = true ∨ em.rs1.rep = true := by
     cases h0 : em.rs0.rep <;> cases h1 : em.rs1.rep <;> simp_all
   icases Hres with (%Hf | Hres)
@@ -82,6 +82,37 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof
   · iframe Hr0 Hrs0
   icases ownRS_fields _ r1 em.rs1 $$ [Hr1 Hrs1] with ⟨#Hw1, -, #Hn1⟩
   · iframe Hr1 Hrs1
+  wp_auto
+  -- (2026-10-20, fork `99cb9e2d9`) a witness shared by both halves, only one replicating to it
+  wp_bind (App (Val (GoInstruction (Convert go.untypedBool go.bool))) _)
+  iapply (wp_wand (Φ := fun v => iprop(
+      ⌜v = #(decide (em.rs0.wit ≠ W64 0 ∧ em.rs0.wit = em.rs1.wit ∧ em.rs0.rep ≠ em.rs1.rep))⌝ ∗
+      w1_ptr ↦ em.rs0.rep ∗ w2_ptr ↦ em.rs1.rep ∗ epoch_ptr ↦ tv.Epoch'))) $$ [w1 w2 epoch]
+  · wp_if_destruct
+    iterate 5 (all_goals try wp_auto
+               all_goals try wp_if_destruct)
+    all_goals try wp_auto
+    all_goals (try iframe w1 w2 epoch)
+    all_goals (try (ipureintro; simp_all))
+    all_goals (exfalso; exact Hif.1 Hif.2.1)
+  iintro %v ⟨%Hv, w1, w2, epoch⟩
+  subst Hv
+  by_cases Hsh : em.rs0.wit ≠ W64 0 ∧ em.rs0.wit = em.rs1.wit ∧ em.rs0.rep ≠ em.rs1.rep
+  · rw [decide_eq_true Hsh]
+    wp_auto
+    iapply HΦ
+    iframe Htrk
+    isplitl [Hin Hout Hpm]
+    · iright
+      iunfold oltqRes
+      isplitr
+      · ipureintro; rfl
+      iexists vin, vout
+      iframe Hin Hout Hpm
+      ipureintro; exact ⟨Harr, Hsz0, Hsz1⟩
+    ileft; ipureintro; exact ⟨Or.inr Hsh, rfl⟩
+  rw [decide_eq_false Hsh]
+  have Hns : ¬ OltqNone em := fun h => h.elim (fun h' => Hnone h') (fun h' => Hsh h')
   wp_auto
   wp_apply wp_map_make1 (K := w64) (V := w64) as %rm Hrm
   -- the progress map as an indexer (`matchAckIndexer`), and each half's scope
@@ -273,16 +304,17 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof
   wp_auto
   iapply HΦ
   iframe Htrk
-  iright
-  isplitr
-  · ipureintro; exact Hsome
   isplitl [Hin Hout Hpm]
-  · iunfold oltqRes
+  · iright
+    iunfold oltqRes
     isplitr
     · ipureintro; rfl
     iexists vin, vout
     iframe Hin Hout Hpm
     ipureintro; exact ⟨Harr, Hsz0, Hsz1⟩
+  iright
+  isplitr
+  · ipureintro; exact Hns
   iexists res2
   iframe Hrm
   ipureintro
