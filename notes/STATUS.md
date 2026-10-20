@@ -67,6 +67,35 @@ about witness-free configurations: `maybeCommit`, `bcastHeartbeatWithCtx`,
 `leaveJointState` drops the witness, `ConfStateM` has no witness fields. Details:
 `notes/raft-witness.md`, "W3b-A".
 
+## Witness support, W5: the witness across reconfiguration (2026-10-20, branch `raft-witness-w5`)
+
+Leader Completeness with a witness holds in the dynamic mode (protocol layer, no new axiom or
+`sorry`; `notes/raft-witness-reconfig.md`, "The Lean proof"). Found on the way, the joint
+configuration bug `issues/raft-witness-joint-oltq.md` (fixed in the fork at `99cb9e2d9`).
+
+- `StepR` has the witness rules (`newSub`, `sendWApp`, `askWitness`, `sendWPre`) and
+  `applyConfWit` (a leader applies a change and starts a new subterm, `switchToConfig`); a plain
+  `applyConf` at a leader needs a witness-free configuration; `propose` stamps the leader's
+  subterm (`stampS`).
+- A leader's current subterm's configuration prefix is `PState.scp` (ghost, `[]` by default),
+  and `RInv.lf` is (Cfg) of it: committed, no conf entry between it and the configuration index
+  when a witness is involved.
+- `ownRaftGhostR` has `witR`: every entry's subterm prefix (`entWit`: committed at the holder's
+  commit index, at most one conf entry past it up to the entry; `MsgApp` and `MsgSnap` carry the
+  sender's), and a candidate's `campDyn`. `wJust` carries the acknowledged entry's
+  configuration prefix; `wVoteReq` per-half votes, `campDyn` and `entWit`.
+- `lc_wit_gen`: the witness's equal-`(term, subterm)` case through `DynCfg.shape` (one change:
+  a half at most one voter smaller, or the outgoing half the old incoming one) and
+  `wit_count_meet`; the witness splits replace "no witness in the dynamic mode" in `lc_core`,
+  `lc_far_older`, `win_fresh`. `reWit_ok` no longer forbids the dynamic mode.
+
+For the merge with W3b-A (the physical layer, not built here): `StepGhostMode`'s `ghostRestM`
+and `InvNodeRun` carry `witR` (done, mechanical); still to do there: `InvNodeRun`'s
+`StepR.applyConf` needs `(rOf s g).p.role = .leader → (rOf s g).cfg.cfg.wit = W64 0` (true of
+witness-free configurations; with a witness the code's apply is `applyConfWit`), and `MsgProp`'s
+`StepR.propose` stamps `stampS term sub` (the physical `proposed` still stamps subterm `0`).
+`InvWitnessGhost` adjusted to the new `wJust`/`wStJust` shape.
+
 ## Witness support, W3b: `Process`, at W2's ghost state, and the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
 
 `witness.Process` is specified against the storage's contract (any reading of its states) and

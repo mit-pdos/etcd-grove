@@ -1202,7 +1202,10 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (γ.reDyn ≠ none → m.ty = .app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) →
     -- (D19p, 2026-10-18) a snapshot's sender and receiver within the tracked bound
     (m.ty = .snap → ∀ T, γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) →
-    ⊢ isLeader (GF := GF) γ id s.term -∗
+    -- (2026-10-20, witness support) in the dynamic mode, an `MsgApp`'s `Commit` is the leader's
+    (γ.reDyn ≠ none → m.ty = .app → m.commit = s.commit) →
+    ⊢ dynOn γ (entWit (GF := GF) γ (fp ++ s.log) s.commit) -∗
+      isLeader γ id s.term -∗
       leadPrefix γ id s.term s.base s.log -∗
       lpfull γ id s.term s.base s.log fp -∗
       logRecs γ s.base s.log -∗
@@ -1210,8 +1213,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       isMessage γ m := by
-  intro Hr Hok Hid Hi1 Htr
-  iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
+  intro Hr Hok Hid Hi1 Htr Hce
+  iintro #Hew #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
   icases Hlf2 with ⟨%F0, -, #Hfr, %Hfull⟩
@@ -1236,7 +1239,12 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       unfold dynOn
       by_cases hD : γ.reDyn = none
       · ileft; ipureintro; exact hD
-      · iright; ipureintro; exact Hi1 hD Hty
+      · iright
+        isplitr; · ipureintro; exact Hi1 hD Hty
+        rw [Hce hD Hty]
+        icases Hew with (%h | #Hew')
+        · exact absurd h hD
+        · iexact Hew'
     · ipureintro; exact Hid
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩
@@ -1254,8 +1262,17 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       isplitr; · ipureintro; exact Hidx
       isplitr; · iexact Hlf
       isplitr; · iapply commitIn_le γ _ s.commit m.index s.term HwF Hle $$ HrF Hc
-      iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.index).toNat) (cprefix fp s)
-        (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
+      isplitr
+      · iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.index).toNat) (cprefix fp s)
+          (take_prefix_le _ _ _ (Int.toNat_le_toNat Hle)) $$ Hcm
+      -- (2026-10-20, witness support) the snapshot prefix's subterm prefixes
+      unfold dynOn
+      by_cases hD : γ.reDyn = none
+      · ileft; ipureintro; exact hD
+      · iright
+        icases Hew with (%h | #Hew')
+        · exact absurd h hD
+        · iapply entWit_take γ _ s.commit m.index _ (Nat.le_refl _) $$ Hew'
     isplitr
     · ipureintro; exact Hid
     ipureintro; exact ⟨Hdst, Htr'⟩
@@ -1372,7 +1389,7 @@ theorem ownLogGhost_ack_agree (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
     iNamed H
     exfalso
     obtain ⟨rfl, Hne⟩ := Hw
-    rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+    rcases γ.reWit_ok with h | ⟨-, h, -⟩
     · exact Hne h
     · rw [h] at Haname; cases Haname
 

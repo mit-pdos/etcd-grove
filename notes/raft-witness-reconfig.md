@@ -1,5 +1,18 @@
 # The witness across reconfiguration (W5 analysis, 2026-10-20)
 
+**Correction (2026-10-20, W5-Lean).** The "`K = C(T, s)` joint" case below is wrong for the code
+as it was (through fork `9ed005d46`): `OneLessThanQuorumInReplicationSet` sent the witness of both
+halves an entry when only one half had it in its replication set, so the witness's write was
+backed by that half's acknowledgements alone while it checks votes against the incoming half's
+set. With both halves of odd size (two changes in one joint transition, which the model's `enter`
+could not make) a candidate lacking a committed entry wins with the witness's vote:
+`issues/raft-witness-joint-oltq.md`, fixed in the fork at `99cb9e2d9` (the witness of both halves
+is sent an entry only when both halves include it). With the fix, every witness acknowledgement is
+backed by quorum−1 acknowledgements of each half's replication set, and the case holds by the
+static count in the incoming half. The model has `enter2` (joint changes of two adds) and `fixa`
+since; the directed trace `traces/joint-oltq.txt` violates leader completeness without `fixa` and
+is cut off at the witness write with it.
+
 Question: is the witness design of the fork `raft-witness-goose-lean` (`9ed005d46`; raft#168 with
 the fixes of `notes/raft-witness-vs-pr168.md`) safe when the configuration changes -- simple and
 joint changes, adding or removing regular voters while the witness stays, adding or removing the
@@ -118,6 +131,10 @@ and re-added; `joint`: joint changes):
 | `w1-walks-4reg` | `4 3 faithful 6 10 4 3 w0 joint wops`, 150 000 walks of ≤ 100 steps | 1.49·10^7 steps, no violation |
 | `w2-walks-5reg` | `5 4 faithful 6 11 4 3 w0 joint wops`, 30 000 walks of ≤ 100 steps | 2.98·10^6 steps, no violation |
 | `w3-walks-4reg-deep` | `4 3 faithful 7 12 5 3 w0 joint wops`, 100 000 walks of ≤ 120 steps | 1.19·10^7 steps, no violation |
+| `t1-joint-oltq-replay` | `REPLAY=traces/joint-oltq.txt`, `4 2 faithful 3 12 1 2 w0 joint enter2` | leader completeness violated (the bug of `issues/raft-witness-joint-oltq.md`) |
+| `t2-joint-oltq-replay-fixa` | the same, `fixa` | the witness write is not enabled: the trace stops there |
+| `w4-walks-enter2` | `4 2 faithful 4 12 3 2 w0 joint enter2`, 40 000 walks of ≤ 100 steps | see the run's log |
+| `w5-walks-enter2-fixa` | the same, `fixa` | see the run's log |
 
 The BFS depths are shallow (a witness write after a reconfiguration takes 10-14 steps), so the
 exhaustive runs cover the first changes only; the walks reach the deep interleavings
@@ -134,15 +151,42 @@ store or the requester's cache, which may be stale; elections are atomic, as in 
 delayed append to the witness is covered by the argument: a write needs a strictly newer
 `(lt, ls)`, and `(T, s)` always comes with `RS(T, s)`.
 
-## For the Lean proof (W5)
+## The Lean proof (W5, 2026-10-20, branch `raft-witness-w5`)
 
-The dynamic-mode proof needs, on top of W2's static witness proof:
-- (Cfg) as an invariant: a node holding an entry of a witnessed subterm `(T, s)` has committed
-  `cidx(T, s)`; a campaign record's configuration is `C(T, s)` or one entry past it. The existing
-  dynamic proof already tracks a campaign's configuration (`campDyn`, `CfgAt`, the paper's I1-I3,
-  `notes/reconfiguration-safety.md`); the subterm's configuration index joins the leader's
-  subterm records (`subRec`).
-- (Count) per pair of adjacent configurations (`CfgOverlap.lean`'s `maj_symdiff_overlap` is the
-  symmetric-difference-one lemma for majorities; the witness version is one more `q - 1` count).
-- The case split above in `lc_wit`, replacing the static mode's single configuration.
-- The leaveJoint/witness bookkeeping of the confchange model (`CfgM.wit`, W2's note).
+Done, in the protocol layer (`Proof/go_etcd_io/raft/v3/Protocol/`), with no new axiom or
+`sorry`. The pieces, as the argument above uses them:
+
+- **The rules** (`StepR`): the witness rules at the node's configuration (`newSub`, `sendWApp`
+  with the witness one of its incoming voters, `askWitness` with `quorum - 1` granted votes of
+  each half, `sendWPre`) and `applyConfWit`, the change a leader applies together with its new
+  subterm (point (4) above); a plain `applyConf` at a leader needs a configuration without a
+  witness. `propose` stamps the leader's subterm.
+- **(Cfg), the leader's half** (`RInv.lf`): a leader past its first subterm has the subterm's
+  configuration prefix `PState.scp` (ghost) = its full log's first `p0` entries, `p0` at most the
+  commit index, and, when its configuration or the prefix's has a witness, no conf entry between
+  `p0` and the configuration index (so the configuration is the prefix's: `lf_cfgAt`).
+- **(Cfg), every holder's half** (`entWit`, in `ownRaftGhostR`'s `witR`): each entry of a node's
+  full log past the first subterm has, when its subterm prefix's configuration has a witness,
+  the prefix committed at the node's commit index (the "at least" half: `MsgApp` and `MsgSnap`
+  carry the sender's `entWit`, the receiver's commit index covers the prefix) and at most one conf
+  entry past the prefix up to the entry (the leader's `RInv.lf` and I3 at its appends,
+  `entWit_leader_app`; log matching for a receiver, `appAccept_full`).
+- **The campaign**: a witness vote request carries the campaign's `campDyn` and `entWit`
+  (`wVoteReq`); `wJust` the acknowledged entry's configuration prefix and configuration.
+- **(Count), the shape of one change** (`DynCfg.shape`, `fold_shape`, `ccApplyM_shape`): after at
+  most one change, a half of the new configuration is at most one voter smaller than the old
+  incoming half (simple: symmetric difference at most one; leaving a joint configuration: the
+  same incoming half), or the outgoing half is the old incoming one (entering a joint
+  configuration). With the fixed sending rule (quorum−1 acknowledgements of each half's
+  replication set) and the readiness counts of each half, `wit_count_meet` gives the meeting
+  voter.
+- **Leader Completeness** (`lc_wit_gen`, `lc_wit`): the equal-`(term, subterm)` case reads the
+  campaign log's last entry's `entWit`, so the campaign configuration `K` is at most one change
+  after the acknowledged entry's `cA`; a half of `K` meets the acknowledgements in a regular
+  voter. The cases where a quorum meets another only at the witness, in `lc_core` (adjacent),
+  `lc_far_older` and `win_fresh`, go to `lc_wit`/`lc_wit_gen`; `voteJust_campDyn` reads a
+  winner's campaign facts from the witness's vote too. `reWit_ok` admits the dynamic mode.
+
+Not covered: crashes and restarts (the "at least" half of (Cfg) needs the restarted commit
+index to cover the entries' prefixes; out of the faithful mode, as above), and two witness
+identities (one `reWit`).

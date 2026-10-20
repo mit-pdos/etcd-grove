@@ -38,6 +38,7 @@ W = NREG + 1
 W0 = 'w0' in FLAGS
 WOPS = 'wops' in FLAGS
 LAGCAND = 'lag-cand' in FLAGS
+ENTER2 = 'enter2' in FLAGS  # joint changes of two adds (a ConfChangeV2 with two Changes)
 REG = range(1, NREG + 1)
 ALL = list(REG) + [W]
 REDUCED = bool(os.environ.get('REDUCED'))
@@ -56,6 +57,9 @@ def apply_op(c, op):
     elif k == 'enter':  # copy incoming to outgoing (with its witness), then the change
         out, w1 = inc, w0
         inc, out_, w0, w1_ = apply_op((inc, frozenset(), w0, 0), op[1])
+    elif k == 'enter2':  # a joint change of two simple changes (ConfChangeV2 with two Changes)
+        out, w1 = inc, w0
+        inc, _, w0, _ = apply_op(apply_op((inc, frozenset(), w0, 0), op[1]), op[2])
     elif k == 'leave': out, w1 = frozenset(), 0
     return (inc, out, w0, w1)
 
@@ -215,6 +219,9 @@ def succ(st):
                     ops += simple
                     if JOINT:
                         ops += [('enter', o) for o in simple]
+                        if ENTER2:
+                            ops += [('enter2', o1, o2) for o1 in simple for o2 in simple
+                                    if o1 < o2 and o1[0] == o2[0] == 'add']
                 for op in ops:
                     nl = log + ((term, ep[0], 'c', op),)
                     out.append((('propc', i, op), mk({i: lead(nl, len(nl))}, nc2=nc + 1), None))
@@ -255,6 +262,11 @@ def succ(st):
                     if x is not None:
                         w = c[2 + h]
                         idx[w] = x if w not in idx else min(idx[w], x)
+            if 'fixa' in FLAGS:
+                # the fix: a witness is sent an entry only if every half it is the witness of
+                # has it in its replication set
+                idx = {w: x for w, x in idx.items()
+                       if all(w_in_rs(c, ep, h) for h in (0, 1) if c[2 + h] == w)}
             for w, x in idx.items():
                 if x == 0 or x > len(log): continue
                 e = log[x - 1]
@@ -369,7 +381,10 @@ def replay(path):
         if not line or line.startswith('#'): continue
         want = eval(line)
         nx = [(ns, bad) for a, ns, bad in succ(s) if a == want]
-        if not nx: print('not enabled:', want); show(s); return 2
+        if not nx:
+            print('not enabled:', want); show(s)
+            print('enabled:', [a for a, _, _ in succ(s) if a[0] == want[0]])
+            return 2
         s, bad = nx[0]
         print('ok', want, bad or ('' if sms(s) else 'UNSAFE (sms)'))
     show(s)

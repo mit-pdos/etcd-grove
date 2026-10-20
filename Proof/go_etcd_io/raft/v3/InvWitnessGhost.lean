@@ -261,7 +261,7 @@ theorem isMessage_wapp_lt (γ : RaftNames) (m : Msg) (Hty : m.ty = .wapp) (Hd : 
     isMessage (GF := GF) γ m ⊢ ⌜m.logterm = m.term⌝ := by
   simp only [isMessage, Hty]
   rw [if_pos ⟨Hd, Hwnz⟩]
-  iintro ⟨%x, %H, %Hm, -⟩
+  iintro ⟨%x, %P, %c, %H, %Hm, -⟩
   ipureintro; exact Hm.1
 
 /-- The write of a heartbeat of a newer term: the term raised, the heartbeat answered at it. -/
@@ -426,7 +426,7 @@ theorem wStJust_nodup (γ : RaftNames) (st : WState) : wStJust (GF := GF) γ st 
   unfold wStJust
   split
   · iintro %h; ipureintro; rw [h.2]; exact List.nodup_nil
-  · iintro ⟨%x, %H, %h, -⟩; ipureintro; exact h.2
+  · iintro ⟨%x, %P, %c, %H, %h, -⟩; ipureintro; exact h.2
 
 /-- A vote request of the state's term: `handleVote`, W2's `wGhost_vote` on a grant. -/
 theorem wInst_vote_core (γ : RaftNames) (E : CoPset) (HE : (↑raftLogN : CoPset) ⊆ E) (μ : WMsg)

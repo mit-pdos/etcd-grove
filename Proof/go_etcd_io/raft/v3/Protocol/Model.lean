@@ -405,6 +405,11 @@ structure PState [FfiSyntax] where
   .Excluded`), `0` for the witness itself (the replication set of a new leader, and of every
   leader without a witness) -/
   rsx : w64 := W64 0
+  /-- (2026-10-20, W5) ghost: a leader's current subterm's configuration prefix, the prefix of
+  its full log whose configuration the subterm's replication set is of (`RInv.lf`); `[]` where
+  no witness is involved (the static mode, the first subterm, the code's states:
+  `toPState`). -/
+  scp : List EntryM := []
 
 /-! ### The client log (2026-10-10)
 

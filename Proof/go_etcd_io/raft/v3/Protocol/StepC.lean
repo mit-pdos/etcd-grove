@@ -75,6 +75,14 @@ def CfgM.simple (cfg lrn : GSet w64) : CfgM :=
 /-- A simple configuration has no witness (2026-10-20). -/
 theorem CfgM.simple_wit (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).wit = W64 0 := rfl
 
+/-- `c2`'s incoming half is at most one voter smaller than `c1`'s, or its outgoing half is
+`c1`'s incoming one (2026-10-20, witness support in the dynamic mode): what one configuration
+change does (`fold_shape`), and what the witness's count needs (`wit_count_meet`). -/
+def CfgShape (c1 c2 : CfgM) : Prop :=
+  GMap.size c1.incoming ≤ GMap.size c2.incoming + 1 ∨ c2.outgoing = c1.incoming
+
+theorem CfgShape.refl (c : CfgM) : CfgShape c c := Or.inl (Nat.le_succ _)
+
 
 /-- `q` is a majority of `s`, by Go's convention for an empty `MajorityConfig`: every set is
 a majority of the empty one. -/
@@ -309,6 +317,52 @@ theorem confCount_take_agree {l l' : List EntryM} {m k : Nat} (h : l'.take m = l
   have := congrArg (List.take k) h
   simp only [List.take_take, Nat.min_eq_left hk] at this
   rw [this]
+
+theorem confCount_eq_zero {l : List EntryM}
+    (h : ∀ (k : Nat) (e : EntryM), l[k]? = some e → ¬ IsConfEnt e) : confCount l = 0 := by
+  unfold confCount
+  rw [List.countP_eq_zero]
+  intro a ha
+  obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 ha
+  simpa using h k a hk
+
+theorem confCount_le_one {l : List EntryM}
+    (h : ∀ (k1 k2 : Nat) (e1 e2 : EntryM), k1 < k2 → l[k1]? = some e1 →
+      l[k2]? = some e2 → IsConfEnt e1 → IsConfEnt e2 → False) : confCount l ≤ 1 := by
+  induction l with
+  | nil => simp [confCount]
+  | cons e l ih =>
+    rw [confCount_cons]
+    by_cases hc : IsConfEnt e
+    · rw [ite_eq_left hc]
+      have : confCount l = 0 := confCount_eq_zero (fun k e' hk hc' =>
+        h 0 (k + 1) e e' (by omega) rfl (by simpa using hk) hc hc')
+      omega
+    · rw [ite_eq_right hc]
+      have := ih (fun k1 k2 e1 e2 hlt h1 h2 c1 c2 =>
+        h (k1 + 1) (k2 + 1) e1 e2 (by omega) (by simpa using h1) (by simpa using h2) c1 c2)
+      omega
+
+theorem confCount_take_le_self (l : List EntryM) (n : Nat) : confCount (l.take n) ≤ confCount l := by
+  have := List.take_append_drop n l
+  conv => rhs; rw [← this]
+  rw [confCount_append]; omega
+
+/-- I1 at `a` is at most one conf entry at or past `a` (2026-10-20). -/
+theorem confCount_drop_of_ConfI1 {l : List EntryM} {a : Nat} (h : ConfI1 l a) :
+    confCount (l.drop a) ≤ 1 := by
+  apply confCount_le_one
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  rw [List.getElem?_drop] at h1 h2
+  have := h (a + k1) (a + k2) e1 e2 (by omega) h1 h2 c1 c2
+  omega
+
+/-- At most one conf entry at or past `a`: the log has at most one more than its prefix. -/
+theorem confCount_le_take_add_one {l : List EntryM} {a : Nat} (h : confCount (l.drop a) ≤ 1) :
+    confCount l ≤ confCount (l.take a) + 1 := by
+  have := List.take_append_drop a l
+  conv => lhs; rw [← this]
+  rw [confCount_append]; omega
 
 /-- At most one conf entry at or past `a` is I1 at `a`. -/
 theorem ConfI1_of_drop {l : List EntryM} {a : Nat} (h : confCount (l.drop a) ≤ 1) :
@@ -700,13 +754,15 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s []
         (psendMsgs s [Msg.mkV .wapp id c.wit s.term false i s.term s.sub (W64 0) [] vs []])
   /-- (2026-10-19) `stepCandidate`'s `sendRequestVoteToWitness`: a candidate one vote short
-  (`votesToWin = 1`: `quorum - 1` granted votes of the configuration) asks the witness, with its
-  last entry, its subterm (`plogLastSub`) and every voter that has answered so far
-  (`trk.Votes`'s keys). -/
+  (`getWitnessVoteRequestReadiness`: at least `quorum - 1` granted votes of each half of the
+  configuration, 2026-10-20; `votesToWin = 1` in one half, at most one in the other) asks the
+  witness, with its last entry, its subterm (`plogLastSub`) and every voter that has answered so
+  far (`trk.Votes`'s keys). -/
   | askWitness (s : PState) (vs : List w64) :
       s.role = .candidate →
       c.wit ≠ W64 0 →
-      size (granted s.votes ∩ c.incoming) = size c.incoming / 2 →
+      size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
+      (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
       vs ≡ₚ elements (domSet s.votes) →
       StepC s []
         (psendMsgs s [Msg.mkV .wvote id c.wit s.term false (plogLast s.base s.log).index'

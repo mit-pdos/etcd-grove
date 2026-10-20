@@ -95,6 +95,14 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
   isplitr
   · unfold logRecs rinit
     iapply (BigSepL.bigSepL_nil).2; iempintro
+  -- (2026-10-20, witness support) an empty log, no campaign
+  isplitr
+  · unfold witR
+    isplitr
+    · unfold entWit
+      rw [show (rinit c0).full = [] from rfl]
+      iapply (BigSepL.bigSepL_nil).2; iempintro
+    · iintro %h; exfalso; exact absurd h (by simp [rinit, initPState])
   iintro %h
   exfalso; exact absurd h (by simp [initPState])
 

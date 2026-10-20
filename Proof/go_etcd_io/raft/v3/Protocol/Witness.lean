@@ -248,7 +248,7 @@ theorem wSt_app_noupd (γ : RaftNames) (st : WState) (m r : Msg) :
   intro Hty Hd Hwnz Ht Hr
   simp only [isMessage, Hty]
   rw [if_pos ⟨Hd, Hwnz⟩]
-  iintro #Hst ⟨%x, %H, %Hm, #Hj⟩
+  iintro #Hst ⟨%x, %P, %c, %H, %Hm, #Hj⟩
   obtain ⟨Hlt, -, -⟩ := Hm
   ihave %Hle := wSt_lt_le γ st $$ Hst
   unfold wAppNoUpd at Hr
@@ -263,7 +263,7 @@ theorem wSt_app_noupd (γ : RaftNames) (st : WState) (m r : Msg) :
     · unfold isAcked; iright; iright
       isplitr; · ipureintro; exact ⟨rfl, Hwnz⟩
       unfold wAck
-      iexists m.sub, m.index, x, H, st
+      iexists m.sub, m.index, x, P, c, H, st
       isplitr; · ipureintro; exact ⟨Int.le_refl _, Ht.symm, by rw [← He.1, Hlt], He.2.symm⟩
       unfold wJust
       iframe Hl Hin Hacks Hst
@@ -295,7 +295,7 @@ theorem wSt_app_noupd (γ : RaftNames) (st : WState) (m r : Msg) :
         iexfalso; ipureintro; rw [Hs0.1] at Hls; have := uint_Z_nonneg m.sub
         simp at Hls
       rw [if_neg H0]
-      icases Hsj with ⟨%x', %H', -, #Hj'⟩
+      icases Hsj with ⟨%x', %P', %c', %H', -, #Hj'⟩
       rw [Hstl]
       ihave #Hin : ackIn (GF := GF) γ st.term st.li $$ []
       · unfold wJust; icases Hj' with ⟨-, -, #Hin, -⟩; iexact Hin
@@ -303,7 +303,7 @@ theorem wSt_app_noupd (γ : RaftNames) (st : WState) (m r : Msg) :
       · unfold isAcked; iright; iright
         isplitr; · ipureintro; exact ⟨rfl, Hwnz⟩
         unfold wAck
-        iexists st.ls, st.li, x', H', st
+        iexists st.ls, st.li, x', P', c', H', st
         isplitr; · ipureintro; exact ⟨Int.le_refl _, rfl, Hstl, rfl⟩
         iframe Hj' Hst
       · iexact Hin
@@ -318,13 +318,14 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
       wGhost γ (wAppWrite st m) ∗
       isMessage γ (Msg.mk .appResp γ.reWit m.src m.term false m.index (W64 0) (W64 0) (W64 0) []) := by
   intro Hty Hd Hwnz Ht Hnl
-  have Hm' : isMessage (GF := GF) γ m = iprop(∃ (x : w64) (H : GSet w64),
-      ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})) ∧
+  have Hm' : isMessage (GF := GF) γ m = iprop(∃ (x : w64) (P : List EntryM) (c : CfgM)
+      (H : GSet w64),
+      ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ c.incoming \ ({[γ.reWit]} ∪ {[x]})) ∧
         m.voters.Nodup⌝ ∗
-      wJust γ m.term m.sub m.index x H) := by
+      wJust γ m.term m.sub m.index x P c H) := by
     simp only [isMessage, Hty]; rw [if_pos ⟨Hd, Hwnz⟩]
   rw [Hm']
-  iintro ⟨%x, %H, %Hm, #Hj⟩ Hg
+  iintro ⟨%x, %P, %c, %H, %Hm, #Hj⟩ Hg
   obtain ⟨Hlt, Hvs, Hnd⟩ := Hm
   ihave %Htnz : ⌜m.term ≠ W64 0⌝ $$ []
   · unfold wJust; icases Hj with ⟨-, ⟨%ldr, #Hl, -⟩, -⟩; iapply isLeader_term_nz $$ Hl
@@ -332,7 +333,7 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
   · unfold wStJust
     rw [if_neg (show (wAppWrite st m).lt ≠ W64 0 from by
       show m.logterm ≠ W64 0; rw [Hlt]; exact Htnz)]
-    iexists x, H
+    iexists x, P, c, H
     isplitr; · ipureintro; exact ⟨Hvs, Hnd⟩
     rw [show (wAppWrite st m).lt = m.term from Hlt, show (wAppWrite st m).ls = m.sub from rfl,
       show (wAppWrite st m).li = m.index from rfl]
@@ -350,7 +351,7 @@ theorem wGhost_write (γ : RaftNames) (st : WState) (m : Msg) :
   unfold isAcked; iright; iright
   isplitr; · ipureintro; exact ⟨rfl, Hwnz⟩
   unfold wAck
-  iexists m.sub, m.index, x, H, wAppWrite st m
+  iexists m.sub, m.index, x, P, c, H, wAppWrite st m
   isplitr; · ipureintro; exact ⟨Int.le_refl _, Ht.symm, Hlt, rfl⟩
   unfold wJust
   iframe Hl Hin Hacks Hst
@@ -462,7 +463,7 @@ theorem wGhost_heartbeat (γ : RaftNames) (st : WState) (m : Msg) :
     · ihave %Hn := ackReg_not_wit γ γ.reWit t'' i'' $$ Hreg
       ipureintro; exact Hn ⟨rfl, Hwnz⟩
     · unfold wAck
-      icases Hw with ⟨%σ, %idx, %x, %H, %st'', %Hst, -, #Hst''⟩
+      icases Hw with ⟨%σ, %idx, %x, %P, %c, %H, %st'', %Hst, -, #Hst''⟩
       icases wGhost_le γ st st'' $$ Hg Hst'' with %Hle
       ipureintro
       rw [Hst.2.1] at Hle

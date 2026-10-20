@@ -105,6 +105,16 @@ def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
     List EntryM × w64 :=
   propConf r.applied (plastIndex r.p) r.pci ents cs (CfgM.joint r.cfg.cfg)
 
+/-- (2026-10-20, witness support) `maybeStartNewSubterm` at a leader: the next subterm, its
+replication set excluding `x` (`0` for the witness), of the configuration of the prefix `P`
+(ghost, `PState.scp`), with an empty entry of it and its self-acknowledgement (`StepC.newSub`'s
+effect). -/
+abbrev pnewSub (id : w64) (p : PState) (x : w64) (P : List EntryM) : PState :=
+  psendMsgs (pappend { p with sub := p.sub + W64 1, rsx := x, scp := P }
+      [stampS p.term (p.sub + W64 1) (plastIndex p) 0 (zero_val EntryM)])
+    [pselfAck id (pappend { p with sub := p.sub + W64 1, rsx := x, scp := P }
+      [stampS p.term (p.sub + W64 1) (plastIndex p) 0 (zero_val EntryM)])]
+
 /-- The dynamic model's configurations: the fold of the prefix from `c0` (A3). -/
 def AdmFold (dec : CCDec) (c0 : CCState) (l : List EntryM) (cs : CCState) : Prop :=
   cfgFold dec c0 l = some cs
@@ -270,9 +280,10 @@ inductive StepR : RState → List Msg → RState → Prop where
       plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) ≤ B →
       StepR r [m] { r with
         p := psendMsgs
-          (pappend r.p ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))
+          (pappend r.p ((propBatch r m.entries cs).1.mapIdx
+            (stampS r.p.term r.p.sub (plastIndex r.p))))
           [pselfAck id (pappend r.p
-            ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))]
+            ((propBatch r m.entries cs).1.mapIdx (stampS r.p.term r.p.sub (plastIndex r.p))))]
         pci := (propBatch r m.entries cs).2 }
   | propDrop (m : Msg) (r : RState) (cs : List (Option CCMsg)) :
       m.ty = .propose →
@@ -415,7 +426,66 @@ inductive StepR : RState → List Msg → RState → Prop where
       dec (r.full.take k) e = some op →
       ccStepB op r.cfg = some cs' →
       Adm (r.full.take (k + 1)) cs' →
+      -- (2026-10-20, witness support) a leader with a witness starts a new subterm with the
+      -- change (`applyConfWit`)
+      (r.p.role = .leader → r.cfg.cfg.wit = W64 0) →
       StepR r [] { r with cidx := k + 1, cfg := cs' }
+  /-- (2026-10-20, witness support) `ApplyConfChange` at a leader, then `switchToConfig`'s new
+  subterm (`maybeStartNewSubterm`), at the new configuration. -/
+  | applyConfWit (r : RState) (k : Nat) (e : EntryM) (op : CCOp) (cs' : CCState) (x : w64) :
+      r.snap = false →
+      r.cidx ≤ k →
+      k < uint.nat r.p.commit →
+      r.full[k]? = some e →
+      IsConfEnt e →
+      NoConfIn r.full r.cidx k →
+      dec (r.full.take k) e = some op →
+      ccStepB op r.cfg = some cs' →
+      Adm (r.full.take (k + 1)) cs' →
+      r.p.role = .leader →
+      (x = W64 0 ∨ (x ∈ cs'.cfg.incoming ∧ x ≠ cs'.cfg.wit)) →
+      uint.Z r.p.sub + 1 < 2 ^ 64 →
+      plogLastIndexZ r.p.base r.p.log + 1 ≤ B →
+      StepR r [] { r with cidx := k + 1, cfg := cs', p := pnewSub id r.p x (r.full.take (k + 1)) }
+  /-- (2026-10-20, witness support) `StepC.newSub` at the configuration. -/
+  | newSub (r : RState) (x : w64) :
+      r.p.role = .leader →
+      r.cfg.cfg.wit ≠ W64 0 →
+      (x = W64 0 ∨ (x ∈ r.cfg.cfg.incoming ∧ x ≠ r.cfg.cfg.wit)) →
+      uint.Z r.p.sub + 1 < 2 ^ 64 →
+      plogLastIndexZ r.p.base r.p.log + 1 ≤ B →
+      StepR r [] { r with p := pnewSub id r.p x (r.full.take r.cidx) }
+  /-- (2026-10-20) `StepC.sendWApp` at the configuration, whose witness is an incoming voter. -/
+  | sendWApp (r : RState) (i : w64) (e : EntryM) (vs : List w64) :
+      r.p.role = .leader →
+      r.cfg.cfg.wit ≠ W64 0 →
+      r.cfg.cfg.wit ∈ r.cfg.cfg.incoming →
+      exclOf r.cfg.cfg r.p ≠ r.cfg.cfg.wit →
+      exclOf r.cfg.cfg r.p ∈ r.cfg.cfg.incoming →
+      plogEntryAt r.p.base r.p.log i = some e →
+      e.Term' = r.p.term →
+      e.Subterm' = r.p.sub →
+      size r.cfg.cfg.incoming / 2 ≤ size (ackedBy r.p i ∩ rsVoters r.cfg.cfg r.p) →
+      vs ≡ₚ elements (rsVoters r.cfg.cfg r.p) →
+      StepR r [] { r with p := (psendMsgs r.p
+        [Msg.mkV .wapp id r.cfg.cfg.wit r.p.term false i r.p.term r.p.sub (W64 0) [] vs []]) }
+  /-- (2026-10-20) `StepC.askWitness` at the configuration. -/
+  | askWitness (r : RState) (vs : List w64) :
+      r.p.role = .candidate →
+      r.cfg.cfg.wit ≠ W64 0 →
+      size r.cfg.cfg.incoming / 2 ≤ size (granted r.p.votes ∩ r.cfg.cfg.incoming) →
+      (r.cfg.cfg.outgoing ≠ ∅ →
+        size r.cfg.cfg.outgoing / 2 ≤ size (granted r.p.votes ∩ r.cfg.cfg.outgoing)) →
+      vs ≡ₚ elements (domSet r.p.votes) →
+      StepR r [] { r with p := (psendMsgs r.p
+        [Msg.mkV .wvote id r.cfg.cfg.wit r.p.term false (plogLast r.p.base r.p.log).index'
+          (plogLast r.p.base r.p.log).term' (plogLastSub r.p.log) (W64 0) [] vs []]) }
+  /-- (2026-10-20) `StepC.sendWPre`. -/
+  | sendWPre (r : RState) (m : Msg) :
+      r.cfg.cfg.wit ≠ W64 0 →
+      m.ty = .wprevote →
+      m.src = id →
+      StepR r [] { r with p := psendMsgs r.p [m] }
   /-- A leader steps down at its term: `switchToConfig` with `StepDownOnRemoval` (a leader outside
   the voters), or (2026-10-17, `CheckQuorum` on; until then the rule required the leader outside
   its configuration's voters) `stepLeader`'s `MsgCheckQuorum` arm when the voters it heard from
@@ -439,8 +509,15 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
   | snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
     exact .snapRestore m r fp' cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 (hA _ _ h10)
-  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 =>
-    exact .applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 (hA _ _ h9)
+  | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
+    exact .applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 (hA _ _ h9) h10
+  | applyConfWit r k e op cs' x h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 =>
+    exact .applyConfWit r k e op cs' x h1 h2 h3 h4 h5 h6 h7 h8 (hA _ _ h9) h10 h11 h12 h13
+  | newSub r x h1 h2 h3 h4 h5 => exact .newSub r x h1 h2 h3 h4 h5
+  | sendWApp r i e vs h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
+    exact .sendWApp r i e vs h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
+  | askWitness r vs h1 h2 h3 h4 h5 => exact .askWitness r vs h1 h2 h3 h4 h5
+  | sendWPre r m h1 h2 h3 => exact .sendWPre r m h1 h2 h3
   | _ =>
     first
     | (apply StepR.higherTerm <;> assumption)
