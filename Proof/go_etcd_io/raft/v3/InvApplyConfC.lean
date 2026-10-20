@@ -40,7 +40,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`ownTrackerCC` at `c`), the old `Progress` objects' rings set apart (`progRAt`), the tally;
 the `Changer`'s state is `⟨c, trkFlags t.peers⟩`, which is reachable (`CCGood`) and passes
 `checkInvariants`. -/
-theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
+    (hw : c.wit = W64 0) :
     ownTrackerC (GF := GF) c tv t ⊢ ∃ (pvs : GMap w64 tracker.Progress),
       ownTrackerCC tv (DFrac.own 1) DFrac.discard (DFrac.own 1) c t.prs pvs ∗
       ([∗map] k ↦ pv ∈ pvs, progRAt t.peers k pv) ∗
@@ -52,6 +53,10 @@ theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
   iintro Hown
   iunfold ownTrackerC at Hown
   iNamed Hown
+  -- a configuration change is of a witness-free configuration (2026-10-20)
+  have Hnw : NoWitP t.peers := WitP.zero.1 (hw ▸ Hnw)
+  ihave Hcfg : ownCfgCCw (GF := GF) (W64 0) tv.Config' (DFrac.own 1) c $$ [Hcfg]
+  · rw [← hw]; iexact Hcfg
   ihave H : ([∗map] k ↦ pr;p ∈ t.prs;t.peers, ∃ pv : tracker.Progress,
       (pr ↦ pv ∗ (⌜pv.IsLearner' = p.learner ∧ pv.IsWitness' = false⌝ ∗ (emp ∗ progRAt (GF := GF) t.peers k pv)) :
         IProp GF))
@@ -152,7 +157,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     (chg : confchange.Changer)
     (base : GMap w64 tracker.Progress) (peers : GMap w64 Progress) (cfgv : tracker.Config)
     (trk : Loc) (Hsz : (GMap.size s'.cfg.ids : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers)
-    (H0 : W64 0 ∉ s'.cfg.ids) :
+    (H0 : W64 0 ∉ s'.cfg.ids) (hw : s'.cfg.wit = W64 0) :
     ownCfgCC (GF := GF) cfgv (DFrac.own 1) s'.cfg ∗
       ownPrsW chg base trk s'.prs ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
@@ -271,7 +276,8 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     · rw [Htf]; exact Hinv
     · rw [← GMap.size_dom, Hpdom]; exact Hsz
     · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp]; rfl))
-      exact ⟨(Hmk k pr p hpr hp).2.2, ne0_of_dom (by rw [Hpdom]; exact H0) hpr⟩
+      rw [hw]
+      exact ⟨by rw [(Hmk k pr p hpr hp).2.2]; simp, ne0_of_dom (by rw [Hpdom]; exact H0) hpr⟩
   · ipureintro
     refine ⟨fun k p' hp' => ?_, fun k p' hp' => ?_, Hpdom⟩
     · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))

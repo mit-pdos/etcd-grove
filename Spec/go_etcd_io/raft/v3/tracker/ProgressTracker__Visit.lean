@@ -122,7 +122,7 @@ abbrev tracker.ProgressTracker.Visit.spec : Prop :=
     (I : GSet w64 → GMap w64 Progress → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
       ownTrackerC c tv t ∗ I ∅ t.peers ∗
-      □ visitClosureC c trk t.votes t.prs f I }}
+      □ visitClosureC c trk t.votes t.prs t.ep f I }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
       (Val #f))
   {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTrackerC c tv' ⟨t.votes, t.prs, pvs', t.ep⟩ ∗
