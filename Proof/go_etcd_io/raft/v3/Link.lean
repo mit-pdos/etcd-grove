@@ -355,7 +355,9 @@ public import Proof.go_etcd_io.raft.v3.voteRespMsgType
 public import Proof.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
 public import Proof.go_etcd_io.raft.v3.witness__handleHeartbeat
 public import Proof.go_etcd_io.raft.v3.witness__isHealthy
+public import Proof.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
 public import Proof.go_etcd_io.raft.v3.witness__processMessageWithOlderTerm
+public import Proof.go_etcd_io.raft.v3.witness__processNoUpdate
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -1591,9 +1593,17 @@ theorem witness.wp_isHealthy :
     witness.isHealthy.spec (GF := GF) (hG := hG) :=
   witness.isHealthy.wp_proof
 
+theorem witness.wp_processMessageWithNewerTerm :
+    witness.processMessageWithNewerTerm.spec (GF := GF) (hG := hG) :=
+  witness.processMessageWithNewerTerm.wp_proof
+
 theorem witness.wp_processMessageWithOlderTerm :
     witness.processMessageWithOlderTerm.spec (GF := GF) (hG := hG) :=
   witness.processMessageWithOlderTerm.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm
+
+theorem witness.wp_processNoUpdate :
+    witness.processNoUpdate.spec (GF := GF) (hG := hG) :=
+  witness.processNoUpdate.wp_proof witness.wp_isHealthy witness.wp_processMessageWithOlderTerm witness.wp_handleAppendNoUpdate raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm
 
 end links
 
