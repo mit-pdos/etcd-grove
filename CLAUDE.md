@@ -36,6 +36,11 @@ Files are laid out by kind, then by the Go package path (as in Perennial; module
 names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
 
 - `Code/<pkg>.lean`, `GeneratedProof/<pkg>.lean`: the Goose translations (below);
+- `TrustedCode/<pkg>.lean`: the hand-written models of the declarations a Goose configuration
+  lists as `trusted` (a function's `X.impl`, a package variable's whole initializer `X.init`),
+  which the translation imports, as in Perennial's `Perennial/TrustedCode`; each docstring says
+  why the model is faithful. Part of the trust base. `ManualProof/<pkg>.lean` is the (empty)
+  module the generated proof of such a package imports;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.raft.v3.raftpb
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.google_golang_org.protobuf.reflect.protoreflect

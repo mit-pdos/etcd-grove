@@ -1,5 +1,8 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-10-20
+links:
+  - anishathalye/porcupine#11 issue closed: related, not this bug (a user's Step mutated its state; the origin of the documented "purely functional" model contract this finding cites)
 ---
 
 # etcd's robustness model sorts its states in place in `Equal` (and `DescribeState`)

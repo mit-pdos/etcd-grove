@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-16
+checked: 2026-10-20
 links:
   - etcd-io/etcd#22376 issue open: same bug (compaction at a delete-and-recreate revision loses the live value)
   - etcd-io/etcd#22377 pr open: fix for #22376 (keyIndex.doCompact; a regression from #18274)

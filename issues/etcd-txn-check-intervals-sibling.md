@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-16
+checked: 2026-10-20
 links:
   - etcd-io/etcd#16380 issue closed: same bug (put in an earlier nested txn vs delete in a later sibling passes; reversed order rejected); confirmed by ahrtr, closed not planned (stale) in 2025
   - etcd-io/etcd#16395 pr closed: fix for #16380, never merged (drafted, then closed stale); ahrtr found it too costly and questioned the expected semantics

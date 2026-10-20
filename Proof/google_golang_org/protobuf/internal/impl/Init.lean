@@ -2,9 +2,8 @@
 Package initialization of `google_golang_org.protobuf.internal.impl`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact is `True`. Its initializer initializes its imports and runs the trusted
+initializers of its variables (`X.init`, models in `TrustedCode/` that do nothing).
 -/
 module
 
@@ -28,200 +27,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace google_golang_org.protobuf.internal.impl
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `google_golang_org.protobuf.internal.impl`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([wireTypes.init,
-        boolType.init,
-        int32Type.init,
-        int64Type.init,
-        uint32Type.init,
-        uint64Type.init,
-        float32Type.init,
-        float64Type.init,
-        stringType.init,
-        bytesType.init,
-        byteType.init,
-        boolZero.init,
-        int32Zero.init,
-        int64Zero.init,
-        uint32Zero.init,
-        uint64Zero.init,
-        float32Zero.init,
-        float64Zero.init,
-        stringZero.init,
-        bytesZero.init,
-        errDecode.init,
-        errRecursionDepth.init,
-        lazyUnmarshalOptions.init,
-        errUnknown.init,
-        coderMessageValue.init,
-        coderGroupValue.init,
-        coderMessageSliceValue.init,
-        coderGroupSliceValue.init,
-        coderBool.init,
-        coderBoolNoZero.init,
-        coderBoolPtr.init,
-        coderBoolSlice.init,
-        coderBoolPackedSlice.init,
-        coderBoolValue.init,
-        coderBoolSliceValue.init,
-        coderBoolPackedSliceValue.init,
-        coderEnumValue.init,
-        coderEnumSliceValue.init,
-        coderEnumPackedSliceValue.init,
-        coderInt32.init,
-        coderInt32NoZero.init,
-        coderInt32Ptr.init,
-        coderInt32Slice.init,
-        coderInt32PackedSlice.init,
-        coderInt32Value.init,
-        coderInt32SliceValue.init,
-        coderInt32PackedSliceValue.init,
-        coderSint32.init,
-        coderSint32NoZero.init,
-        coderSint32Ptr.init,
-        coderSint32Slice.init,
-        coderSint32PackedSlice.init,
-        coderSint32Value.init,
-        coderSint32SliceValue.init,
-        coderSint32PackedSliceValue.init,
-        coderUint32.init,
-        coderUint32NoZero.init,
-        coderUint32Ptr.init,
-        coderUint32Slice.init,
-        coderUint32PackedSlice.init,
-        coderUint32Value.init,
-        coderUint32SliceValue.init,
-        coderUint32PackedSliceValue.init,
-        coderInt64.init,
-        coderInt64NoZero.init,
-        coderInt64Ptr.init,
-        coderInt64Slice.init,
-        coderInt64PackedSlice.init,
-        coderInt64Value.init,
-        coderInt64SliceValue.init,
-        coderInt64PackedSliceValue.init,
-        coderSint64.init,
-        coderSint64NoZero.init,
-        coderSint64Ptr.init,
-        coderSint64Slice.init,
-        coderSint64PackedSlice.init,
-        coderSint64Value.init,
-        coderSint64SliceValue.init,
-        coderSint64PackedSliceValue.init,
-        coderUint64.init,
-        coderUint64NoZero.init,
-        coderUint64Ptr.init,
-        coderUint64Slice.init,
-        coderUint64PackedSlice.init,
-        coderUint64Value.init,
-        coderUint64SliceValue.init,
-        coderUint64PackedSliceValue.init,
-        coderSfixed32.init,
-        coderSfixed32NoZero.init,
-        coderSfixed32Ptr.init,
-        coderSfixed32Slice.init,
-        coderSfixed32PackedSlice.init,
-        coderSfixed32Value.init,
-        coderSfixed32SliceValue.init,
-        coderSfixed32PackedSliceValue.init,
-        coderFixed32.init,
-        coderFixed32NoZero.init,
-        coderFixed32Ptr.init,
-        coderFixed32Slice.init,
-        coderFixed32PackedSlice.init,
-        coderFixed32Value.init,
-        coderFixed32SliceValue.init,
-        coderFixed32PackedSliceValue.init,
-        coderFloat.init,
-        coderFloatNoZero.init,
-        coderFloatPtr.init,
-        coderFloatSlice.init,
-        coderFloatPackedSlice.init,
-        coderFloatValue.init,
-        coderFloatSliceValue.init,
-        coderFloatPackedSliceValue.init,
-        coderSfixed64.init,
-        coderSfixed64NoZero.init,
-        coderSfixed64Ptr.init,
-        coderSfixed64Slice.init,
-        coderSfixed64PackedSlice.init,
-        coderSfixed64Value.init,
-        coderSfixed64SliceValue.init,
-        coderSfixed64PackedSliceValue.init,
-        coderFixed64.init,
-        coderFixed64NoZero.init,
-        coderFixed64Ptr.init,
-        coderFixed64Slice.init,
-        coderFixed64PackedSlice.init,
-        coderFixed64Value.init,
-        coderFixed64SliceValue.init,
-        coderFixed64PackedSliceValue.init,
-        coderDouble.init,
-        coderDoubleNoZero.init,
-        coderDoublePtr.init,
-        coderDoubleSlice.init,
-        coderDoublePackedSlice.init,
-        coderDoubleValue.init,
-        coderDoubleSliceValue.init,
-        coderDoublePackedSliceValue.init,
-        coderString.init,
-        coderStringValidateUTF8.init,
-        coderStringNoZero.init,
-        coderStringNoZeroValidateUTF8.init,
-        coderStringPtr.init,
-        coderStringPtrValidateUTF8.init,
-        coderStringSlice.init,
-        coderStringSliceValidateUTF8.init,
-        coderStringValue.init,
-        coderStringValueValidateUTF8.init,
-        coderStringSliceValue.init,
-        coderBytes.init,
-        coderBytesValidateUTF8.init,
-        coderBytesNoZero.init,
-        coderBytesNoZeroValidateUTF8.init,
-        coderBytesSlice.init,
-        coderBytesSliceValidateUTF8.init,
-        coderBytesValue.init,
-        coderBytesSliceValue.init,
-        coderEnumNoZero.init,
-        coderEnum.init,
-        coderEnumPtr.init,
-        coderEnumSlice.init,
-        coderEnumPackedSlice.init,
-        enableLazy.init,
-        «_».init,
-        «_».init,
-        aberrantProtoMethods.init,
-        sizecacheType.init,
-        unknownFieldsAType.init,
-        unknownFieldsBType.init,
-        extensionFieldsType.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        nilBytes.init,
-        emptyBytes.init,
-        invalidOffset.init,
-        zeroOffset.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end google_golang_org.protobuf.internal.impl
-end opaqueInits
-
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -244,183 +49,183 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (_root_.Perennial.google_golang_org.protobuf.internal.pragma.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk wireTypes.init (by mem_tac))
-  wp_apply (opaqueInitsOk boolType.init (by mem_tac))
-  wp_apply (opaqueInitsOk int32Type.init (by mem_tac))
-  wp_apply (opaqueInitsOk int64Type.init (by mem_tac))
-  wp_apply (opaqueInitsOk uint32Type.init (by mem_tac))
-  wp_apply (opaqueInitsOk uint64Type.init (by mem_tac))
-  wp_apply (opaqueInitsOk float32Type.init (by mem_tac))
-  wp_apply (opaqueInitsOk float64Type.init (by mem_tac))
-  wp_apply (opaqueInitsOk stringType.init (by mem_tac))
-  wp_apply (opaqueInitsOk bytesType.init (by mem_tac))
-  wp_apply (opaqueInitsOk byteType.init (by mem_tac))
-  wp_apply (opaqueInitsOk boolZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk int32Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk int64Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk uint32Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk uint64Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk float32Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk float64Zero.init (by mem_tac))
-  wp_apply (opaqueInitsOk stringZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk bytesZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk errDecode.init (by mem_tac))
-  wp_apply (opaqueInitsOk errRecursionDepth.init (by mem_tac))
-  wp_apply (opaqueInitsOk lazyUnmarshalOptions.init (by mem_tac))
-  wp_apply (opaqueInitsOk errUnknown.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderMessageValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderGroupValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderMessageSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderGroupSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBool.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolNoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolPtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolPackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBoolPackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumPackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt32PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint32PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint32PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderInt64PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSint64PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderUint64PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed32PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed32PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloat.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatNoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatPtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatPackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFloatPackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderSfixed64PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64NoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64Ptr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64Slice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64PackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64Value.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64SliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderFixed64PackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDouble.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoubleNoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoublePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoubleSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoublePackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoubleValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoubleSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderDoublePackedSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderString.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringNoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringNoZeroValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringPtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringPtrValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringSliceValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringValueValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderStringSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesNoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesNoZeroValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesSliceValidateUTF8.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderBytesSliceValue.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumNoZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnum.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumPtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk coderEnumPackedSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk enableLazy.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk aberrantProtoMethods.init (by mem_tac))
-  wp_apply (opaqueInitsOk sizecacheType.init (by mem_tac))
-  wp_apply (opaqueInitsOk unknownFieldsAType.init (by mem_tac))
-  wp_apply (opaqueInitsOk unknownFieldsBType.init (by mem_tac))
-  wp_apply (opaqueInitsOk extensionFieldsType.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk nilBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk emptyBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk invalidOffset.init (by mem_tac))
-  wp_apply (opaqueInitsOk zeroOffset.init (by mem_tac))
+  wp_call  -- wireTypes: its trusted initializer does nothing
+  wp_call  -- boolType: its trusted initializer does nothing
+  wp_call  -- int32Type: its trusted initializer does nothing
+  wp_call  -- int64Type: its trusted initializer does nothing
+  wp_call  -- uint32Type: its trusted initializer does nothing
+  wp_call  -- uint64Type: its trusted initializer does nothing
+  wp_call  -- float32Type: its trusted initializer does nothing
+  wp_call  -- float64Type: its trusted initializer does nothing
+  wp_call  -- stringType: its trusted initializer does nothing
+  wp_call  -- bytesType: its trusted initializer does nothing
+  wp_call  -- byteType: its trusted initializer does nothing
+  wp_call  -- boolZero: its trusted initializer does nothing
+  wp_call  -- int32Zero: its trusted initializer does nothing
+  wp_call  -- int64Zero: its trusted initializer does nothing
+  wp_call  -- uint32Zero: its trusted initializer does nothing
+  wp_call  -- uint64Zero: its trusted initializer does nothing
+  wp_call  -- float32Zero: its trusted initializer does nothing
+  wp_call  -- float64Zero: its trusted initializer does nothing
+  wp_call  -- stringZero: its trusted initializer does nothing
+  wp_call  -- bytesZero: its trusted initializer does nothing
+  wp_call  -- errDecode: its trusted initializer does nothing
+  wp_call  -- errRecursionDepth: its trusted initializer does nothing
+  wp_call  -- lazyUnmarshalOptions: its trusted initializer does nothing
+  wp_call  -- errUnknown: its trusted initializer does nothing
+  wp_call  -- coderMessageValue: its trusted initializer does nothing
+  wp_call  -- coderGroupValue: its trusted initializer does nothing
+  wp_call  -- coderMessageSliceValue: its trusted initializer does nothing
+  wp_call  -- coderGroupSliceValue: its trusted initializer does nothing
+  wp_call  -- coderBool: its trusted initializer does nothing
+  wp_call  -- coderBoolNoZero: its trusted initializer does nothing
+  wp_call  -- coderBoolPtr: its trusted initializer does nothing
+  wp_call  -- coderBoolSlice: its trusted initializer does nothing
+  wp_call  -- coderBoolPackedSlice: its trusted initializer does nothing
+  wp_call  -- coderBoolValue: its trusted initializer does nothing
+  wp_call  -- coderBoolSliceValue: its trusted initializer does nothing
+  wp_call  -- coderBoolPackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderEnumValue: its trusted initializer does nothing
+  wp_call  -- coderEnumSliceValue: its trusted initializer does nothing
+  wp_call  -- coderEnumPackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderInt32: its trusted initializer does nothing
+  wp_call  -- coderInt32NoZero: its trusted initializer does nothing
+  wp_call  -- coderInt32Ptr: its trusted initializer does nothing
+  wp_call  -- coderInt32Slice: its trusted initializer does nothing
+  wp_call  -- coderInt32PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderInt32Value: its trusted initializer does nothing
+  wp_call  -- coderInt32SliceValue: its trusted initializer does nothing
+  wp_call  -- coderInt32PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderSint32: its trusted initializer does nothing
+  wp_call  -- coderSint32NoZero: its trusted initializer does nothing
+  wp_call  -- coderSint32Ptr: its trusted initializer does nothing
+  wp_call  -- coderSint32Slice: its trusted initializer does nothing
+  wp_call  -- coderSint32PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderSint32Value: its trusted initializer does nothing
+  wp_call  -- coderSint32SliceValue: its trusted initializer does nothing
+  wp_call  -- coderSint32PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderUint32: its trusted initializer does nothing
+  wp_call  -- coderUint32NoZero: its trusted initializer does nothing
+  wp_call  -- coderUint32Ptr: its trusted initializer does nothing
+  wp_call  -- coderUint32Slice: its trusted initializer does nothing
+  wp_call  -- coderUint32PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderUint32Value: its trusted initializer does nothing
+  wp_call  -- coderUint32SliceValue: its trusted initializer does nothing
+  wp_call  -- coderUint32PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderInt64: its trusted initializer does nothing
+  wp_call  -- coderInt64NoZero: its trusted initializer does nothing
+  wp_call  -- coderInt64Ptr: its trusted initializer does nothing
+  wp_call  -- coderInt64Slice: its trusted initializer does nothing
+  wp_call  -- coderInt64PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderInt64Value: its trusted initializer does nothing
+  wp_call  -- coderInt64SliceValue: its trusted initializer does nothing
+  wp_call  -- coderInt64PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderSint64: its trusted initializer does nothing
+  wp_call  -- coderSint64NoZero: its trusted initializer does nothing
+  wp_call  -- coderSint64Ptr: its trusted initializer does nothing
+  wp_call  -- coderSint64Slice: its trusted initializer does nothing
+  wp_call  -- coderSint64PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderSint64Value: its trusted initializer does nothing
+  wp_call  -- coderSint64SliceValue: its trusted initializer does nothing
+  wp_call  -- coderSint64PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderUint64: its trusted initializer does nothing
+  wp_call  -- coderUint64NoZero: its trusted initializer does nothing
+  wp_call  -- coderUint64Ptr: its trusted initializer does nothing
+  wp_call  -- coderUint64Slice: its trusted initializer does nothing
+  wp_call  -- coderUint64PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderUint64Value: its trusted initializer does nothing
+  wp_call  -- coderUint64SliceValue: its trusted initializer does nothing
+  wp_call  -- coderUint64PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderSfixed32: its trusted initializer does nothing
+  wp_call  -- coderSfixed32NoZero: its trusted initializer does nothing
+  wp_call  -- coderSfixed32Ptr: its trusted initializer does nothing
+  wp_call  -- coderSfixed32Slice: its trusted initializer does nothing
+  wp_call  -- coderSfixed32PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderSfixed32Value: its trusted initializer does nothing
+  wp_call  -- coderSfixed32SliceValue: its trusted initializer does nothing
+  wp_call  -- coderSfixed32PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderFixed32: its trusted initializer does nothing
+  wp_call  -- coderFixed32NoZero: its trusted initializer does nothing
+  wp_call  -- coderFixed32Ptr: its trusted initializer does nothing
+  wp_call  -- coderFixed32Slice: its trusted initializer does nothing
+  wp_call  -- coderFixed32PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderFixed32Value: its trusted initializer does nothing
+  wp_call  -- coderFixed32SliceValue: its trusted initializer does nothing
+  wp_call  -- coderFixed32PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderFloat: its trusted initializer does nothing
+  wp_call  -- coderFloatNoZero: its trusted initializer does nothing
+  wp_call  -- coderFloatPtr: its trusted initializer does nothing
+  wp_call  -- coderFloatSlice: its trusted initializer does nothing
+  wp_call  -- coderFloatPackedSlice: its trusted initializer does nothing
+  wp_call  -- coderFloatValue: its trusted initializer does nothing
+  wp_call  -- coderFloatSliceValue: its trusted initializer does nothing
+  wp_call  -- coderFloatPackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderSfixed64: its trusted initializer does nothing
+  wp_call  -- coderSfixed64NoZero: its trusted initializer does nothing
+  wp_call  -- coderSfixed64Ptr: its trusted initializer does nothing
+  wp_call  -- coderSfixed64Slice: its trusted initializer does nothing
+  wp_call  -- coderSfixed64PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderSfixed64Value: its trusted initializer does nothing
+  wp_call  -- coderSfixed64SliceValue: its trusted initializer does nothing
+  wp_call  -- coderSfixed64PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderFixed64: its trusted initializer does nothing
+  wp_call  -- coderFixed64NoZero: its trusted initializer does nothing
+  wp_call  -- coderFixed64Ptr: its trusted initializer does nothing
+  wp_call  -- coderFixed64Slice: its trusted initializer does nothing
+  wp_call  -- coderFixed64PackedSlice: its trusted initializer does nothing
+  wp_call  -- coderFixed64Value: its trusted initializer does nothing
+  wp_call  -- coderFixed64SliceValue: its trusted initializer does nothing
+  wp_call  -- coderFixed64PackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderDouble: its trusted initializer does nothing
+  wp_call  -- coderDoubleNoZero: its trusted initializer does nothing
+  wp_call  -- coderDoublePtr: its trusted initializer does nothing
+  wp_call  -- coderDoubleSlice: its trusted initializer does nothing
+  wp_call  -- coderDoublePackedSlice: its trusted initializer does nothing
+  wp_call  -- coderDoubleValue: its trusted initializer does nothing
+  wp_call  -- coderDoubleSliceValue: its trusted initializer does nothing
+  wp_call  -- coderDoublePackedSliceValue: its trusted initializer does nothing
+  wp_call  -- coderString: its trusted initializer does nothing
+  wp_call  -- coderStringValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderStringNoZero: its trusted initializer does nothing
+  wp_call  -- coderStringNoZeroValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderStringPtr: its trusted initializer does nothing
+  wp_call  -- coderStringPtrValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderStringSlice: its trusted initializer does nothing
+  wp_call  -- coderStringSliceValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderStringValue: its trusted initializer does nothing
+  wp_call  -- coderStringValueValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderStringSliceValue: its trusted initializer does nothing
+  wp_call  -- coderBytes: its trusted initializer does nothing
+  wp_call  -- coderBytesValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderBytesNoZero: its trusted initializer does nothing
+  wp_call  -- coderBytesNoZeroValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderBytesSlice: its trusted initializer does nothing
+  wp_call  -- coderBytesSliceValidateUTF8: its trusted initializer does nothing
+  wp_call  -- coderBytesValue: its trusted initializer does nothing
+  wp_call  -- coderBytesSliceValue: its trusted initializer does nothing
+  wp_call  -- coderEnumNoZero: its trusted initializer does nothing
+  wp_call  -- coderEnum: its trusted initializer does nothing
+  wp_call  -- coderEnumPtr: its trusted initializer does nothing
+  wp_call  -- coderEnumSlice: its trusted initializer does nothing
+  wp_call  -- coderEnumPackedSlice: its trusted initializer does nothing
+  wp_call  -- enableLazy: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- aberrantProtoMethods: its trusted initializer does nothing
+  wp_call  -- sizecacheType: its trusted initializer does nothing
+  wp_call  -- unknownFieldsAType: its trusted initializer does nothing
+  wp_call  -- unknownFieldsBType: its trusted initializer does nothing
+  wp_call  -- extensionFieldsType: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- nilBytes: its trusted initializer does nothing
+  wp_call  -- emptyBytes: its trusted initializer does nothing
+  wp_call  -- invalidOffset: its trusted initializer does nothing
+  wp_call  -- zeroOffset: its trusted initializer does nothing
   iframe Hown
   is_pkg_init_finish
 

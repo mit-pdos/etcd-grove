@@ -1,6 +1,6 @@
 # Which issues matter most to etcd's developers
 
-A triage of every file in this directory (2026-10-18): the order in which we would bring the
+A triage of every file in this directory (2026-10-18; upstream states as of 2026-10-20): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -52,7 +52,9 @@ before any public issue.
    maintainer. File together with
    **[mutex-lock-recreated](mutex-lock-recreated.md)** (`Mutex.Lock` succeeds while another
    session holds the lock; narrower, two `Mutex` values on one session, but the v3lock service
-   reaches it when a client retries a `Lock`).
+   reaches it when a client retries a `Lock`). `mutex-lock-recreated` is reported
+   (etcd-io/etcd#22613, fix PR #22617, both open, 2026-10-19); `election-campaign-key-check` is not
+   yet filed.
 5. **[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)**: a progress
    notification can reach a new watch before its catch-up events, so clients that trust progress
    (Kubernetes' watch cache, etcd's `cache`) skip events. Deterministic integration test on the
@@ -88,14 +90,15 @@ before any public issue.
    `RawNode`; etcd's path is unconfirmed (concurrent membership changes, a slow apply loop, a
    partition). The documentation fix and etcd's five-line change are easy to argue for; claiming
    etcd is affected needs more evidence.
-10. **[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md)**: stale linearizable
-   reads after shrinking to a single voter. Patch with tests ready; in etcd it needs a contrived
-   sequence (scale-down to one member, lost messages, a read right after the election).
+10. (Was [raft-readindex-singleton-stale](raft-readindex-singleton-stale.md): fixed upstream, see
+   "Fixed upstream" below.)
 11. **[cache-ready-after-retry](cache-ready-after-retry.md)**: after one watch retry the new
     `cache` package never becomes ready again. Deterministic test, fix one line; an actively
-    developed package, the likeliest to be merged quickly. Also small and ready:
+    developed package, the likeliest to be merged quickly. Reported: etcd-io/etcd#22614 (open,
+    2026-10-19). Also small:
     **[etcd-range-sort-none-limit](etcd-range-sort-none-limit.md)** (`etcdctl get
-    --sort-by=VERSION --limit=1` returns the wrong key; fix branch exists), with
+    --sort-by=VERSION --limit=1` returns the wrong key): reported, etcd-io/etcd#22612 with our fix
+    #22616, and someone else's fix #22615 an hour earlier, all open; #22615 would also fix
     [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md) (the same `IsDefaultOrdering`
     cause).
 
@@ -105,7 +108,8 @@ before any public issue.
     the quota, every write through the member re-raises NOSPACE for the whole cluster, through
     compaction, defragmentation and disarming, until the member restarts. Default configuration,
     the documented NOSPACE recovery with one member down during it; reproduced by an integration
-    test at the pin; fix a few lines (tested). Upstream not yet searched.
+    test at the pin; fix a few lines (tested). Searched upstream 2026-10-20: not reported
+    (related: #20553, the same stale backend in the maintenance `Defragment` path, fixed).
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
@@ -116,8 +120,11 @@ their TTL after a crash in a small window; the fix changes the `Lessor` interfac
 [etcd-unary-interceptor-learner-removed](etcd-unary-interceptor-learner-removed.md) (known, PRs
 open), [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) with
 [recipes-barrier-wait-closed-watch](recipes-barrier-wait-closed-watch.md) (one fix branch),
-[cache-stale-progress-compacts-newest-watch](cache-stale-progress-compacts-newest-watch.md),
-[raft-prevote-stale-grant](raft-prevote-stale-grant.md) (disruption, not safety),
+[cache-stale-progress-compacts-newest-watch](cache-stale-progress-compacts-newest-watch.md)
+(lower now: its trigger, a stale progress from a lagging member, looks blocked by the server fix
+etcd-io/etcd#20229, in 3.5, 3.6 and the pin; only the demux's missing check remains),
+[raft-prevote-stale-grant](raft-prevote-stale-grant.md) (disruption, not safety; known since
+etcd-io/etcd#8288's review in 2017, accepted then as a rare false positive),
 [raft-stale-term-appresp-index-zero-ack](raft-stale-term-appresp-index-zero-ack.md) (a needless
 log resend or snapshot to a caught-up follower after a delayed stale-term message; upstream's
 `TestLeaderAppResp` pins the behavior),
@@ -125,7 +132,18 @@ log resend or snapshot to a caught-up follower after a delayed stale-term messag
 their low 16 bits),
 [etcd-lease-close-require-leader-ctx-misaligned](etcd-lease-close-require-leader-ctx-misaligned.md)
 (a canceled `KeepAlive` closes another caller's channel after an `ErrNoLeader` stream end; test and
-one-token fix).
+one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, marked stale).
+
+## Fixed upstream
+
+[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md) (etcd-io/raft#535, merged
+2026-10-19, closing #533; the maintainer sees no need to backport) and
+[raft-readindex-removed-leader](raft-readindex-removed-leader.md) (etcd-io/raft#536, merged
+2026-10-19). For #536 the maintainer reopened #534 to track backports and asked us to cherry-pick
+it by hand to raft's release-3.7 and release-3.6 and to etcd's release-3.5 (`raft/`), the bot's
+cherry-picks having conflicts: the open action. #536 merged in the reviewer's form, which leaves
+[raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (a liveness bug, a read at a
+`{1}&&{1}` leader waits) unfixed, not reported.
 
 ## Already in maintainers' hands
 
@@ -135,7 +153,8 @@ v3.7.4; a maintainer is discussing the fix's design) and
 (etcd-io/etcd#21986, fix PRs open; an etcd caller reaches it: `monitorStorageVersion`'s
 v3.5→v3.7 migration writes `meta/storageVersion` three times in one session, and `StorageVersion()`
 reads the old value until the next commit, at most about 100 ms; reproduced at the fork pin, our
-fork carries #21987).
+fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.md)
+(the `ReportSnapshot` comment: etcd-io/raft#243, open, fixes it as part of a breaking v4 change).
 
 ## Probably not worth their time now
 

@@ -6,10 +6,15 @@
 # `Descriptor`, `Reset`, `String`, the enums' `Type`/`Number`/`EnumDescriptor`/
 # `UnmarshalJSON`, the file descriptor and its initialization (`file_raft_proto*`, `init.0`).
 # (After the configuration of branch raft-upstream-1c0011d2-wip, 2026-10-09.)
+# Of the descriptor's tables, the two literals `file_raft_proto_goTypes` and `_depIdxs` are
+# translated; the other two (`make`s of protoimpl's opaque types) and `init.0` (which builds
+# and registers the descriptor) have trusted no-op models
+# (TrustedCode/go_etcd_io/raft/v3/raftpb.lean): only untranslated code reads them.
 translate = ["*",
   "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String", "!*.EnumDescriptor",
   "!*.Type", "!*.Number", "!*.UnmarshalJSON", "!file_raft_proto*", "!File_raft_proto",
-  "!init.*"]
+  "!init.*", "file_raft_proto_goTypes", "file_raft_proto_depIdxs"]
+trusted = ["file_raft_proto_enumTypes", "file_raft_proto_msgTypes", "init.0"]
 
 # confstate.go calls into fmt, slices and proto (Clone, Equal); confchange.go into fmt,
 # strconv, strings and proto (Marshal); raft.pb.go into the protobuf runtime (names only,

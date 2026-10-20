@@ -42,7 +42,8 @@ PROJECT_MODS = tuple(["Spec.", "Proof."] + [f"{r}.{d}." for r in PART_ROOTS
                                              for d in ("Spec", "Proof")])
 PROJECT_DIRS = tuple(m.rstrip(".").replace(".", "/") for m in PROJECT_MODS)
 ROOT_DIRS = ("Proof",) + tuple(os.path.join(r, "Proof") for r in PART_ROOTS)
-LOCAL_DIRS = ("Code", "GeneratedProof", "Spec", "Proof") + tuple(PART_ROOTS)
+LOCAL_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "Proof") + tuple(
+    PART_ROOTS)
 ROOT_FILES = ("Link.lean", "Results.lean")
 IMPORT = re.compile(r"^\s*(?:public\s+)?(?:meta\s+)?import\s+(.*)$", re.M)
 NAMESPACE = re.compile(r"^namespace\s+(\S+)", re.M)

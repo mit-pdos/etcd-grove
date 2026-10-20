@@ -4,3 +4,8 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# The type-descriptor variables (`nilType = typeOf(nil)`, ...) have trusted no-op initializers
+# (TrustedCode/google_golang_org/protobuf/reflect/protoreflect.lean).
+trusted = ["nilType", "boolType", "int32Type", "int64Type", "uint32Type", "uint64Type",
+  "float32Type", "float64Type", "stringType", "bytesType", "enumType"]

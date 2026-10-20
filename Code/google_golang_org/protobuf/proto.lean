@@ -3,6 +3,7 @@ module
 
 public import Code.google_golang_org.protobuf.reflect.protoreflect
 public import Perennial.Golang.Defn
+public import TrustedCode.google_golang_org.protobuf.proto
 
 @[expose] public section
 
@@ -51,25 +52,17 @@ axiom hasProtoMethods [FfiSyntax] [GoGlobalContext] : val
 noncomputable def errUnknown [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errUnknown"
 
-axiom errUnknown.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def errDecode [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errDecode"
 
-axiom errDecode.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def errRecursionDepth [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errRecursionDepth"
-
-axiom errRecursionDepth.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def emptyBuf [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.emptyBuf"
 
 noncomputable def wireTypes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.wireTypes"
-
-axiom wireTypes.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Error [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.Error"
@@ -262,11 +255,13 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnmarshalOptions_instance : UnmarshalOptions.TypeAssumptions
   MarshalOptions_instance : MarshalOptions.TypeAssumptions
   mergeOptions_instance : mergeOptions.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
 
 attribute [instance] Assumptions.UnmarshalOptions_instance
   Assumptions.MarshalOptions_instance
   Assumptions.mergeOptions_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_protoreflect_Assumption
 
 end google_golang_org.protobuf.proto

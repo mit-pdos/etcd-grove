@@ -1,6 +1,9 @@
 ---
-upstream: unchecked
+upstream: known
+checked: 2026-10-20
 links:
+  - etcd-io/etcd#8288 pr merged: same bug, raised in review and left unfixed (bdarnell, 2017-07-20: "We could accept a MsgPreVoteResp for term T as a valid pre-vote in term T+1"; "two consecutive pre-vote election cycles look identical", accepted as "(rare) false positives" leading to a full election); no comment in the code records it
+  - etcd-io/etcd#8243 issue closed: related, not this bug: the PreVote stall #8288 fixed by answering with the request's term, which is what lets the stale grant through
 ---
 
 # raft: a pre-candidate counts a pre-vote granted in an earlier pre-campaign

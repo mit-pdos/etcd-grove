@@ -40,13 +40,11 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/kv/(Link|Results)\.lean$
 # Since 2026-10-19 the register is the key-value store, and its closed theorem is about the
 # randomized porcupine test (`kv_adequate`): the store's results also rest on lintest's and
 # porcupine's, which add no axiom or `sorry` of this repository.
+# Since 2026-10-20 not on the six init axioms of raftpb's and protobuf-go's `proto`,
+# `protoreflect` and `internal/impl` initializers (`opaqueInitsOk`, `initFuncsOk`): their
+# untranslated initializers are goose `trusted` no-op models (`TrustedCode/`), raftpb's two
+# descriptor literals translated. `os`'s and `strconv`'s (Perennial's names-only packages) remain.
 axiom DescribeConfChange.wp_proof
-axiom Perennial.go_etcd_io.raft.v3.raftpb.initFuncsOk
-axiom Perennial.go_etcd_io.raft.v3.raftpb.opaqueInitsOk
-axiom Perennial.google_golang_org.protobuf.internal.impl.opaqueInitsOk
-axiom Perennial.google_golang_org.protobuf.proto.initFuncsOk
-axiom Perennial.google_golang_org.protobuf.proto.opaqueInitsOk
-axiom Perennial.google_golang_org.protobuf.reflect.protoreflect.opaqueInitsOk
 axiom Perennial.os.Stderr_init
 axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk

@@ -24,7 +24,7 @@ Earlier searches (the finding's front matter) plus PR #22408 read, and searches 
   `watchEvents` or `demux.Init`. No textual conflict (its tests go at the end of `cache_test.go`, this one after
   `TestCacheCompactionResync`). If it lands, the test still works: its default `InitialBackoff` stays 50 ms, under
   the test's one second of fake time.
-- #20691 (pr closed, "cache: make demux maintain min/max revision range") and #20614 (pr closed, "cache: make the
+- #20691 (pr merged, "cache: make demux maintain min/max revision range") and #20614 (pr closed, "cache: make the
   cache progress-aware"): where the demux's `Init`/purge come from (not checked further).
 - #21536 (issue closed): a different cache bug (Get with revision gaps).
 

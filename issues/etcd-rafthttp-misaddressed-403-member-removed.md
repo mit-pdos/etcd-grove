@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-19
-links: []
+upstream: none
+checked: 2026-10-20
+links:
+  - etcd-io/etcd#17078 pr merged: introduced the `403` "cannot process message to mismatch member" in Process (2023, backported to 3.5 and 3.4) that the sender reads as errMemberRemoved; the review did not discuss the sender's reaction
+  - etcd-io/etcd#20356 issue closed: related (mismatch-member rejections in a 3.5.11 cluster that became unavailable; maintainer suspected members of different clusters); no member reported stopping as removed; converted to a discussion without a root cause
 ---
 
 # rafthttp: a message delivered to the wrong member makes the healthy sender stop as "removed"
