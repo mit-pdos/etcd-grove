@@ -1664,6 +1664,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+-- (the unused-variables linter walks the whole info tree of this long proof)
+set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
 theorem watchGRPCStream.run.wp_proof
@@ -2083,121 +2085,75 @@ theorem watchGRPCStream.run.wp_proof
           icases Hres with (⟨-, Htok⟩ | ⟨-, %L2, %HL2, Htok⟩)
           · iapply Hmk $$ %_ %(Or.inr rfl) Htok
           · iapply Hmk $$ %L2 %HL2 Htok
-        cases err with
-        | nil =>
-          wp_auto
-          wp_for_post
-          iframe Hrcb
-          iexists bo
-          simp only [named]
-          iframe closeErr cur backoff
-          obtain ⟨Hg2, Hold2, Hnew2⟩ := client.addWs_ok (S := S) (U := U) (ws := «$r0_ptr»)
-            (L' := L') (pend' := si) (si := si) HgOk Hwsn HUf Hcase
-          ihave Hels := BigSepM.bigSepM_impl
-              (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
-          · iintro !> %ws' %u %Hws' Hw'
-            have Hws'' : U !! ws' = some u := Hws'
-            have hne : ws' ≠ «$r0_ptr» := by
-              intro e; subst e; rw [HUf] at Hws''; cases Hws''
-            iapply (client.wsElem_mono V γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
-              (fun ph' h => Hold2 ws' ph' hne h)
-              (fun X _ => client.create_or (by
-                rcases Hcase with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩
-                · exact Or.inl h
-                · exact Or.inl h
-                · exact Or.inr h) X)) $$ Hw'
-          ihave Hels := (BigSepM.bigSepM_insert (Φ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hupi]
-          · iframe Hels
-            unfold client.wsElem
-            iexists P, .queued si
+        -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
+        wp_join at (if: _ then _ else _) with [err]
+        · cases err with
+          | nil =>
+            wp_auto
+            wp_join_done
+          | ok ei =>
+            wp_auto
+            wp_apply wp_zapError as %f1 -
+            wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
             isplitr
-            · ipureintro; exact ⟨rfl, Hnew2⟩
-            iframe HP
-            simp only [WPh.id]
-            iframe id
-            simp only [client.wsRest, client.noCancelOk]
-            rw [show P.γr = γrr from rfl, show P.γhi = γhi from rfl, show P.rev = P0.rev from rfl,
-              show P.ws = «$r0_ptr» from rfl]
-            iframe
-            
-          unfold client.runCore wgAdder
-          iexists S.addWs «$r0_ptr» L' si, GMap.insert «$r0_ptr» () U, rcv, mref, s', e
-          have e1 : (S.addWs «$r0_ptr» L' si).Dm = S.Dm := rfl
-          have e2 : (S.addWs «$r0_ptr» L' si).L = L' := rfl
-          have e3 : (S.addWs «$r0_ptr» L' si).ansd = S.ansd := rfl
-          have e4 : (S.addWs «$r0_ptr» L' si).regs = S.regs := rfl
-          have e5 : (S.addWs «$r0_ptr» L' si).CS = S.CS := rfl
-          have e6 : (S.addWs «$r0_ptr» L' si).M = S.M := rfl
-          have e7 : (S.addWs «$r0_ptr» L' si).CL = S.CL := rfl
-          have e8 : (S.addWs «$r0_ptr» L' si).l = S.l ++ [«$r0_ptr»] := rfl
-          rw [e1, e2, e3, e4, e5, e6, e7, e8]
-          iframe
-          iframe #
-          isplitl [Hs Hscap]
-          · unfold sliceOwn; iframe
-          ipureintro; exact ⟨Hrcv, Hg2⟩
-        | ok ei =>
-          wp_auto
-          wp_apply wp_zapError as %f1 -
-          wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
+            · ipureintro; rfl
+            iintro %fsl ⟨-, -⟩
+            wp_auto
+            wp_apply wp_Debug V.lg _ _ $$ []
+            · iframe #; ipureintro; exact Hlg
+            (try wp_auto)
+            wp_join_done
+        wp_for_post
+        iframe Hrcb
+        iexists bo
+        simp only [named]
+        iframe closeErr cur backoff
+        obtain ⟨Hg2, Hold2, Hnew2⟩ := client.addWs_ok (S := S) (U := U) (ws := «$r0_ptr»)
+          (L' := L') (pend' := si) (si := si) HgOk Hwsn HUf Hcase
+        ihave Hels := BigSepM.bigSepM_impl
+            (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
+        · iintro !> %ws' %u %Hws' Hw'
+          have Hws'' : U !! ws' = some u := Hws'
+          have hne : ws' ≠ «$r0_ptr» := by
+            intro e; subst e; rw [HUf] at Hws''; cases Hws''
+          iapply (client.wsElem_mono V γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
+            (fun ph' h => Hold2 ws' ph' hne h)
+            (fun X _ => client.create_or (by
+              rcases Hcase with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩
+              · exact Or.inl h
+              · exact Or.inl h
+              · exact Or.inr h) X)) $$ Hw'
+        ihave Hels := (BigSepM.bigSepM_insert (Φ := fun ws (_ : Unit) =>
+            client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hupi]
+        · iframe Hels
+          unfold client.wsElem
+          iexists P, .queued si
           isplitr
-          · ipureintro; rfl
-          iintro %fsl ⟨-, -⟩
-          wp_auto
-          wp_apply wp_Debug V.lg _ _ $$ []
-          · iframe #; ipureintro; exact Hlg
-          wp_for_post
-          iframe Hrcb
-          iexists bo
-          simp only [named]
-          iframe closeErr cur backoff
-          obtain ⟨Hg2, Hold2, Hnew2⟩ := client.addWs_ok (S := S) (U := U) (ws := «$r0_ptr»)
-            (L' := L') (pend' := si) (si := si) HgOk Hwsn HUf Hcase
-          ihave Hels := BigSepM.bigSepM_impl
-              (Ψ := fun ws (_ : Unit) => client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) $$ Hels []
-          · iintro !> %ws' %u %Hws' Hw'
-            have Hws'' : U !! ws' = some u := Hws'
-            have hne : ws' ≠ «$r0_ptr» := by
-              intro e; subst e; rw [HUf] at Hws''; cases Hws''
-            iapply (client.wsElem_mono V γs (S := S) (S' := S.addWs «$r0_ptr» L' si) ws' rfl
-              (fun ph' h => Hold2 ws' ph' hne h)
-              (fun X _ => client.create_or (by
-                rcases Hcase with ⟨-, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩
-                · exact Or.inl h
-                · exact Or.inl h
-                · exact Or.inr h) X)) $$ Hw'
-          ihave Hels := (BigSepM.bigSepM_insert (Φ := fun ws (_ : Unit) =>
-              client.wsElem V γs (S.addWs «$r0_ptr» L' si) ws) (m := U) (i := «$r0_ptr») (x := ()) HUf).2 $$ [Hels id Hrprod Hhia Hh2a Hrev2 Hupi]
-          · iframe Hels
-            unfold client.wsElem
-            iexists P, .queued si
-            isplitr
-            · ipureintro; exact ⟨rfl, Hnew2⟩
-            iframe HP
-            simp only [WPh.id]
-            iframe id
-            simp only [client.wsRest, client.noCancelOk]
-            rw [show P.γr = γrr from rfl, show P.γhi = γhi from rfl, show P.rev = P0.rev from rfl,
-              show P.ws = «$r0_ptr» from rfl]
-            iframe
-            
-          unfold client.runCore wgAdder
-          iexists S.addWs «$r0_ptr» L' si, GMap.insert «$r0_ptr» () U, rcv, mref, s', e
-          have e1 : (S.addWs «$r0_ptr» L' si).Dm = S.Dm := rfl
-          have e2 : (S.addWs «$r0_ptr» L' si).L = L' := rfl
-          have e3 : (S.addWs «$r0_ptr» L' si).ansd = S.ansd := rfl
-          have e4 : (S.addWs «$r0_ptr» L' si).regs = S.regs := rfl
-          have e5 : (S.addWs «$r0_ptr» L' si).CS = S.CS := rfl
-          have e6 : (S.addWs «$r0_ptr» L' si).M = S.M := rfl
-          have e7 : (S.addWs «$r0_ptr» L' si).CL = S.CL := rfl
-          have e8 : (S.addWs «$r0_ptr» L' si).l = S.l ++ [«$r0_ptr»] := rfl
-          rw [e1, e2, e3, e4, e5, e6, e7, e8]
+          · ipureintro; exact ⟨rfl, Hnew2⟩
+          iframe HP
+          simp only [WPh.id]
+          iframe id
+          simp only [client.wsRest, client.noCancelOk]
+          rw [show P.γr = γrr from rfl, show P.γhi = γhi from rfl, show P.rev = P0.rev from rfl,
+            show P.ws = «$r0_ptr» from rfl]
           iframe
-          iframe #
-          isplitl [Hs Hscap]
-          · unfold sliceOwn; iframe
-          ipureintro; exact ⟨Hrcv, Hg2⟩
+          
+        unfold client.runCore wgAdder
+        iexists S.addWs «$r0_ptr» L' si, GMap.insert «$r0_ptr» () U, rcv, mref, s', e
+        have e1 : (S.addWs «$r0_ptr» L' si).Dm = S.Dm := rfl
+        have e2 : (S.addWs «$r0_ptr» L' si).L = L' := rfl
+        have e3 : (S.addWs «$r0_ptr» L' si).ansd = S.ansd := rfl
+        have e4 : (S.addWs «$r0_ptr» L' si).regs = S.regs := rfl
+        have e5 : (S.addWs «$r0_ptr» L' si).CS = S.CS := rfl
+        have e6 : (S.addWs «$r0_ptr» L' si).M = S.M := rfl
+        have e7 : (S.addWs «$r0_ptr» L' si).CL = S.CL := rfl
+        have e8 : (S.addWs «$r0_ptr» L' si).l = S.l ++ [«$r0_ptr»] := rfl
+        rw [e1, e2, e3, e4, e5, e6, e7, e8]
+        iframe
+        iframe #
+        isplitl [Hs Hscap]
+        · unfold sliceOwn; iframe
+        ipureintro; exact ⟨Hrcv, Hg2⟩
       · have hlen1 : ¬ (s'.len = W64 1) := by
           intro h
           have : (S.l ++ [«$r0_ptr»]).length = 1 := by
@@ -2949,74 +2905,51 @@ theorem watchGRPCStream.run.wp_proof
             iframe Hid2
             simp only [client.wsRest, client.noCancelOk]
             iframe
-          cases err with
-          | nil =>
-            wp_auto
-            wp_for_post
-            iframe Hrcb
-            iexists bo
-            simp only [named]
-            iframe closeErr cur backoff
-            unfold client.runCore
-            iexists S1.resume L' si, U, rcv ++ [p], mref, s2, e1
-            have r1 : (S1.resume L' si).Dm = S.Dm ++ [m] := HD1
-            have r2 : (S1.resume L' si).M = S1.M := rfl
-            have r3 : (S1.resume L' si).l = S1.l.dropWhile (fun x => decide (x = null)) := rfl
-            have r4 : (S1.resume L' si).CL = S.CL := HCL1
-            have r5 : (S1.resume L' si).CS = S.CS := HCS1
-            have r6 : (S1.resume L' si).L = L' := rfl
-            have r7 : (S1.resume L' si).ansd = S1.ansd := rfl
-            have r8 : (S1.resume L' si).regs = S1.regs := rfl
-            rw [r1, r2, r3, r4, r5, r6, r7, r8]
-            iframe
-            iframe #
-            isplitr
-            · ipureintro; simp [Hrcv]
-            isplitl []
-            · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; exact Hg2
-            imodintro
-            iapply BigSepL.bigSepL_singleton.2
-            unfold client.respInfo; rw [hs0]; itrivial
-          | ok ei =>
-            wp_auto
-            wp_apply wp_zapError as %f2 -
-            wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f2]
-            isplitr
-            · ipureintro; rfl
-            iintro %fsl ⟨-, -⟩
-            wp_auto
-            wp_apply wp_Debug V.lg _ _ $$ []
-            · iframe #; ipureintro; exact Hlg
-            (try wp_auto)
-            wp_for_post
-            iframe Hrcb
-            iexists bo
-            simp only [named]
-            iframe closeErr cur backoff
-            unfold client.runCore
-            iexists S1.resume L' si, U, rcv ++ [p], mref, s2, e1
-            have r1 : (S1.resume L' si).Dm = S.Dm ++ [m] := HD1
-            have r2 : (S1.resume L' si).M = S1.M := rfl
-            have r3 : (S1.resume L' si).l = S1.l.dropWhile (fun x => decide (x = null)) := rfl
-            have r4 : (S1.resume L' si).CL = S.CL := HCL1
-            have r5 : (S1.resume L' si).CS = S.CS := HCS1
-            have r6 : (S1.resume L' si).L = L' := rfl
-            have r7 : (S1.resume L' si).ansd = S1.ansd := rfl
-            have r8 : (S1.resume L' si).regs = S1.regs := rfl
-            rw [r1, r2, r3, r4, r5, r6, r7, r8]
-            iframe
-            iframe #
-            isplitr
-            · ipureintro; simp [Hrcv]
-            isplitl []
-            · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; exact Hg2
-            imodintro
-            iapply BigSepL.bigSepL_singleton.2
-            unfold client.respInfo; rw [hs0]; itrivial
+          -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
+          wp_join at (if: _ then _ else _) with [err]
+          · cases err with
+            | nil =>
+              wp_auto
+              wp_join_done
+            | ok ei =>
+              wp_auto
+              wp_apply wp_zapError as %f2 -
+              wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f2]
+              isplitr
+              · ipureintro; rfl
+              iintro %fsl ⟨-, -⟩
+              wp_auto
+              wp_apply wp_Debug V.lg _ _ $$ []
+              · iframe #; ipureintro; exact Hlg
+              (try wp_auto)
+              wp_join_done
+          wp_for_post
+          iframe Hrcb
+          iexists bo
+          simp only [named]
+          iframe closeErr cur backoff
+          unfold client.runCore
+          iexists S1.resume L' si, U, rcv ++ [p], mref, s2, e1
+          have r1 : (S1.resume L' si).Dm = S.Dm ++ [m] := HD1
+          have r2 : (S1.resume L' si).M = S1.M := rfl
+          have r3 : (S1.resume L' si).l = S1.l.dropWhile (fun x => decide (x = null)) := rfl
+          have r4 : (S1.resume L' si).CL = S.CL := HCL1
+          have r5 : (S1.resume L' si).CS = S.CS := HCS1
+          have r6 : (S1.resume L' si).L = L' := rfl
+          have r7 : (S1.resume L' si).ansd = S1.ansd := rfl
+          have r8 : (S1.resume L' si).regs = S1.regs := rfl
+          rw [r1, r2, r3, r4, r5, r6, r7, r8]
+          iframe
+          iframe #
+          isplitr
+          · ipureintro; simp [Hrcv]
+          isplitl []
+          · unfold v3rpc.downLbW; iexact HLlb
+          isplitr
+          · ipureintro; exact Hg2
+          imodintro
+          iapply BigSepL.bigSepL_singleton.2
+          unfold client.respInfo; rw [hs0]; itrivial
         | cancel X =>
           obtain ⟨hs0, hev0, hcomp0, hfr0, hcr0, hca0, hid0⟩ : m.src = none ∧ m.evs = [] ∧
               m.compactRev = W64 0 ∧ m.fragment = false ∧ m.created = false ∧ m.canceled = true ∧
@@ -3436,104 +3369,67 @@ theorem watchGRPCStream.run.wp_proof
           · icases Hres' with (⟨-, Htok⟩ | ⟨-, %L', %HL', Htok⟩)
             · iexists _; iframe; ipureintro; right; rfl
             · iexists L'; iframe; ipureintro; exact HL'
-          cases err with
-          | nil =>
-            wp_auto
-            wp_for_post
-            iframe Hrcb
-            iexists bo
-            simp only [named]
-            iframe closeErr cur backoff
-            obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
-            ihave Hels := BigSepM.bigSepM_impl
-                (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
-            · iintro !> %ws' %u %Hws' Hw'
-              iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
-                (fun ph' h => Hph2 ws' ph' h
-                  (fun X' e => by
-                    subst e; intro eX; subst eX
-                    apply h.2.2.2.2.2.1
-                    simp only [client.RunSt.recvMvcc]
-                    rw [client.idLive_snoc, if_neg (fun hc => by rw [hsrc] at hc; cases hc.1)]
-                    exact hlive)
-                  (fun e => by subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1))
-                (fun X hph => client.cancels_of_snoc (.cancel ρ.id) X (fun e => by
-                  cases e; have h1 : S.M !! ρ.id = some ws' := hph.1; rw [hMX] at h1; cases h1) HL')) $$ Hw'
-            unfold client.runCore
-            iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
-            have r0 : ((S.recvMvcc m).sentCancel ρ.id L').Dm = S.Dm ++ [m] := rfl
-            have r1 : ((S.recvMvcc m).sentCancel ρ.id L').ansd = S.ansd := rfl
-            have r2 : ((S.recvMvcc m).sentCancel ρ.id L').regs = S.regs := rfl
-            have r3 : ((S.recvMvcc m).sentCancel ρ.id L').M = S.M := rfl
-            have r4 : ((S.recvMvcc m).sentCancel ρ.id L').CL = S.CL := rfl
-            have r5 : ((S.recvMvcc m).sentCancel ρ.id L').l = S.l := rfl
-            have r6 : ((S.recvMvcc m).sentCancel ρ.id L').L = L' := rfl
-            have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
-            rw [r0, r1, r2, r3, r4, r5, r6, r7]
-            iframe
-            iframe #
-            isplitr
-            · ipureintro; simp [Hrcv]
-            isplitl []
-            · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; exact Hg2
-            imodintro
-            iapply BigSepL.bigSepL_singleton.2
-            unfold client.respInfo; rw [hsrc]; iexact Hrok
-          | ok ei =>
-            wp_auto
-            wp_apply wp_zapInt64 as %f1 -
-            wp_apply wp_zapError as %f2 -
-            wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
-            isplitr
-            · ipureintro; rfl
-            iintro %fsl ⟨-, -⟩
-            wp_auto
-            wp_apply wp_Debug V.lg _ _ $$ []
-            · iframe #; ipureintro; exact Hlg
-            wp_for_post
-            iframe Hrcb
-            iexists bo
-            simp only [named]
-            iframe closeErr cur backoff
-            obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
-            ihave Hels := BigSepM.bigSepM_impl
-                (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
-            · iintro !> %ws' %u %Hws' Hw'
-              iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
-                (fun ph' h => Hph2 ws' ph' h
-                  (fun X' e => by
-                    subst e; intro eX; subst eX
-                    apply h.2.2.2.2.2.1
-                    simp only [client.RunSt.recvMvcc]
-                    rw [client.idLive_snoc, if_neg (fun hc => by rw [hsrc] at hc; cases hc.1)]
-                    exact hlive)
-                  (fun e => by subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1))
-                (fun X hph => client.cancels_of_snoc (.cancel ρ.id) X (fun e => by
-                  cases e; have h1 : S.M !! ρ.id = some ws' := hph.1; rw [hMX] at h1; cases h1) HL')) $$ Hw'
-            unfold client.runCore
-            iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
-            have r0 : ((S.recvMvcc m).sentCancel ρ.id L').Dm = S.Dm ++ [m] := rfl
-            have r1 : ((S.recvMvcc m).sentCancel ρ.id L').ansd = S.ansd := rfl
-            have r2 : ((S.recvMvcc m).sentCancel ρ.id L').regs = S.regs := rfl
-            have r3 : ((S.recvMvcc m).sentCancel ρ.id L').M = S.M := rfl
-            have r4 : ((S.recvMvcc m).sentCancel ρ.id L').CL = S.CL := rfl
-            have r5 : ((S.recvMvcc m).sentCancel ρ.id L').l = S.l := rfl
-            have r6 : ((S.recvMvcc m).sentCancel ρ.id L').L = L' := rfl
-            have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
-            rw [r0, r1, r2, r3, r4, r5, r6, r7]
-            iframe
-            iframe #
-            isplitr
-            · ipureintro; simp [Hrcv]
-            isplitl []
-            · unfold v3rpc.downLbW; iexact HLlb
-            isplitr
-            · ipureintro; exact Hg2
-            imodintro
-            iapply BigSepL.bigSepL_singleton.2
-            unfold client.respInfo; rw [hsrc]; iexact Hrok
+          -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
+          wp_join at (if: _ then _ else _) with [err pbresp Hwid]
+          · cases err with
+            | nil =>
+              wp_auto
+              wp_join_done
+            | ok ei =>
+              wp_auto
+              wp_apply wp_zapInt64 as %f1 -
+              wp_apply wp_zapError as %f2 -
+              wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+              isplitr
+              · ipureintro; rfl
+              iintro %fsl ⟨-, -⟩
+              wp_auto
+              wp_apply wp_Debug V.lg _ _ $$ []
+              · iframe #; ipureintro; exact Hlg
+              (try wp_auto)
+              wp_join_done
+          wp_for_post
+          iframe Hrcb
+          iexists bo
+          simp only [named]
+          iframe closeErr cur backoff
+          obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
+          ihave Hels := BigSepM.bigSepM_impl
+              (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
+          · iintro !> %ws' %u %Hws' Hw'
+            iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
+              (fun ph' h => Hph2 ws' ph' h
+                (fun X' e => by
+                  subst e; intro eX; subst eX
+                  apply h.2.2.2.2.2.1
+                  simp only [client.RunSt.recvMvcc]
+                  rw [client.idLive_snoc, if_neg (fun hc => by rw [hsrc] at hc; cases hc.1)]
+                  exact hlive)
+                (fun e => by subst e; have h1 : S.M !! ρ.id = some ws' := h.1; rw [hMX] at h1; cases h1))
+              (fun X hph => client.cancels_of_snoc (.cancel ρ.id) X (fun e => by
+                cases e; have h1 : S.M !! ρ.id = some ws' := hph.1; rw [hMX] at h1; cases h1) HL')) $$ Hw'
+          unfold client.runCore
+          iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
+          have r0 : ((S.recvMvcc m).sentCancel ρ.id L').Dm = S.Dm ++ [m] := rfl
+          have r1 : ((S.recvMvcc m).sentCancel ρ.id L').ansd = S.ansd := rfl
+          have r2 : ((S.recvMvcc m).sentCancel ρ.id L').regs = S.regs := rfl
+          have r3 : ((S.recvMvcc m).sentCancel ρ.id L').M = S.M := rfl
+          have r4 : ((S.recvMvcc m).sentCancel ρ.id L').CL = S.CL := rfl
+          have r5 : ((S.recvMvcc m).sentCancel ρ.id L').l = S.l := rfl
+          have r6 : ((S.recvMvcc m).sentCancel ρ.id L').L = L' := rfl
+          have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
+          rw [r0, r1, r2, r3, r4, r5, r6, r7]
+          iframe
+          iframe #
+          isplitr
+          · ipureintro; simp [Hrcv]
+          isplitl []
+          · unfold v3rpc.downLbW; iexact HLlb
+          isplitr
+          · ipureintro; exact Hg2
+          imodintro
+          iapply BigSepL.bigSepL_singleton.2
+          unfold client.respInfo; rw [hsrc]; iexact Hrok
       | some wsx =>
         have hnb : ¬ client.isBroadcast m := fun h => by
           obtain ⟨-, -, -, -, -, hw⟩ := h; rw [hid0] at hw; exact hid hw
@@ -3720,132 +3616,81 @@ theorem watchGRPCStream.run.wp_proof
             · icases Hres' with (⟨-, Htok⟩ | ⟨-, %L', %HL', Htok⟩)
               · iexists _; iframe; ipureintro; right; rfl
               · iexists L'; iframe; ipureintro; exact HL'
-            cases err with
-            | nil =>
-              wp_auto
-              wp_for_post
-              iframe Hrcb
-              iexists bo
-              simp only [named]
-              iframe closeErr cur backoff
-              obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
-              ihave Hels := BigSepM.bigSepM_impl
-                  (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
-              · iintro !> %ws' %u %Hws' Hw'
-                have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
-                have hne : ws' ≠ P.ws := by
-                  intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
-                iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
-                  (fun ph' h => Hph2 ws' ph' h
-                    (fun X' e => by
-                      subst e; intro eX; subst eX; exact h.2.2.2.2.2.1 hlive')
-                    (fun _ => hCS))
-                  (fun X hph => client.cancels_of_snoc (.cancel ρ.id) X (fun e => by
-                    cases e
-                    have h1 : S.M !! ρ.id = some ws' := hph.1
-                    rw [hMX] at h1; cases h1
-                    exact absurd rfl hne) HL')) $$ Hw'
-              ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                  client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
-                  (x := ()) hU).2 $$ [Hels Hid Hrest]
-              · iframe Hels
-                unfold client.wsElem
-                iexists P, .reg ρ.id
+            -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
+            wp_join at (if: _ then _ else _) with [err pbresp Hwid]
+            · cases err with
+              | nil =>
+                wp_auto
+                wp_join_done
+              | ok ei =>
+                wp_auto
+                wp_apply wp_zapInt64 as %f1 -
+                wp_apply wp_zapError as %f2 -
+                wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
                 isplitr
-                · ipureintro
-                  exact ⟨rfl, Hph2 P.ws _ (Hph1 P.ws _ Hph) (fun X' e => by cases e) (fun _ => hCS)⟩
-                iframe HP
-                iframe
-                unfold client.noCancelOk; iright; iexact Hx
-              unfold client.runCore
-              iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
-              have r0 : ((S.recvMvcc m).sentCancel ρ.id L').Dm = S.Dm ++ [m] := rfl
-              have r1 : ((S.recvMvcc m).sentCancel ρ.id L').ansd = S.ansd := rfl
-              have r2 : ((S.recvMvcc m).sentCancel ρ.id L').regs = S.regs := rfl
-              have r3 : ((S.recvMvcc m).sentCancel ρ.id L').M = S.M := rfl
-              have r4 : ((S.recvMvcc m).sentCancel ρ.id L').CL = S.CL := rfl
-              have r5 : ((S.recvMvcc m).sentCancel ρ.id L').l = S.l := rfl
-              have r6 : ((S.recvMvcc m).sentCancel ρ.id L').L = L' := rfl
-              have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
-              rw [r0, r1, r2, r3, r4, r5, r6, r7]
+                · ipureintro; rfl
+                iintro %fsl ⟨-, -⟩
+                wp_auto
+                wp_apply wp_Debug V.lg _ _ $$ []
+                · iframe #; ipureintro; exact Hlg
+                (try wp_auto)
+                wp_join_done
+            wp_for_post
+            iframe Hrcb
+            iexists bo
+            simp only [named]
+            iframe closeErr cur backoff
+            obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
+            ihave Hels := BigSepM.bigSepM_impl
+                (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
+            · iintro !> %ws' %u %Hws' Hw'
+              have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
+              have hne : ws' ≠ P.ws := by
+                intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
+              iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
+                (fun ph' h => Hph2 ws' ph' h
+                  (fun X' e => by
+                    subst e; intro eX; subst eX; exact h.2.2.2.2.2.1 hlive')
+                  (fun _ => hCS))
+                (fun X hph => client.cancels_of_snoc (.cancel ρ.id) X (fun e => by
+                  cases e
+                  have h1 : S.M !! ρ.id = some ws' := hph.1
+                  rw [hMX] at h1; cases h1
+                  exact absurd rfl hne) HL')) $$ Hw'
+            ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
+                client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
+                (x := ()) hU).2 $$ [Hels Hid Hrest]
+            · iframe Hels
+              unfold client.wsElem
+              iexists P, .reg ρ.id
+              isplitr
+              · ipureintro
+                exact ⟨rfl, Hph2 P.ws _ (Hph1 P.ws _ Hph) (fun X' e => by cases e) (fun _ => hCS)⟩
+              iframe HP
               iframe
-              iframe #
-              isplitr
-              · ipureintro; simp [Hrcv]
-              isplitl []
-              · unfold v3rpc.downLbW; iexact HLlb
-              isplitr
-              · ipureintro; exact Hg2
-              imodintro
-              iapply BigSepL.bigSepL_singleton.2
-              unfold client.respInfo; rw [hsrc]; iexact Hrok
-            | ok ei =>
-              wp_auto
-              wp_apply wp_zapInt64 as %f1 -
-              wp_apply wp_zapError as %f2 -
-              wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
-              isplitr
-              · ipureintro; rfl
-              iintro %fsl ⟨-, -⟩
-              wp_auto
-              wp_apply wp_Debug V.lg _ _ $$ []
-              · iframe #; ipureintro; exact Hlg
-              wp_for_post
-              iframe Hrcb
-              iexists bo
-              simp only [named]
-              iframe closeErr cur backoff
-              obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.recvMvcc m) (U := U) Hg1 hXr HL'
-              ihave Hels := BigSepM.bigSepM_impl
-                  (Ψ := fun ws (_ : Unit) => client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) $$ Hels []
-              · iintro !> %ws' %u %Hws' Hw'
-                have Hws'' : (GMap.delete P.ws U) !! ws' = some u := Hws'
-                have hne : ws' ≠ P.ws := by
-                  intro e; subst e; rw [GMap.lookup_delete] at Hws''; cases Hws''
-                iapply (client.wsElem_mono V γs (S := S.recvMvcc m) (S' := (S.recvMvcc m).sentCancel ρ.id L') ws' rfl
-                  (fun ph' h => Hph2 ws' ph' h
-                    (fun X' e => by
-                      subst e; intro eX; subst eX; exact h.2.2.2.2.2.1 hlive')
-                    (fun _ => hCS))
-                  (fun X hph => client.cancels_of_snoc (.cancel ρ.id) X (fun e => by
-                    cases e
-                    have h1 : S.M !! ρ.id = some ws' := hph.1
-                    rw [hMX] at h1; cases h1
-                    exact absurd rfl hne) HL')) $$ Hw'
-              ihave Hels := (BigSepM.bigSepM_delete (Φ := fun ws (_ : Unit) =>
-                  client.wsElem V γs ((S.recvMvcc m).sentCancel ρ.id L') ws) (m := U) (i := P.ws)
-                  (x := ()) hU).2 $$ [Hels Hid Hrest]
-              · iframe Hels
-                unfold client.wsElem
-                iexists P, .reg ρ.id
-                isplitr
-                · ipureintro
-                  exact ⟨rfl, Hph2 P.ws _ (Hph1 P.ws _ Hph) (fun X' e => by cases e) (fun _ => hCS)⟩
-                iframe HP
-                iframe
-                unfold client.noCancelOk; iright; iexact Hx
-              unfold client.runCore
-              iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
-              have r0 : ((S.recvMvcc m).sentCancel ρ.id L').Dm = S.Dm ++ [m] := rfl
-              have r1 : ((S.recvMvcc m).sentCancel ρ.id L').ansd = S.ansd := rfl
-              have r2 : ((S.recvMvcc m).sentCancel ρ.id L').regs = S.regs := rfl
-              have r3 : ((S.recvMvcc m).sentCancel ρ.id L').M = S.M := rfl
-              have r4 : ((S.recvMvcc m).sentCancel ρ.id L').CL = S.CL := rfl
-              have r5 : ((S.recvMvcc m).sentCancel ρ.id L').l = S.l := rfl
-              have r6 : ((S.recvMvcc m).sentCancel ρ.id L').L = L' := rfl
-              have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
-              rw [r0, r1, r2, r3, r4, r5, r6, r7]
-              iframe
-              iframe #
-              isplitr
-              · ipureintro; simp [Hrcv]
-              isplitl []
-              · unfold v3rpc.downLbW; iexact HLlb
-              isplitr
-              · ipureintro; exact Hg2
-              imodintro
-              iapply BigSepL.bigSepL_singleton.2
-              unfold client.respInfo; rw [hsrc]; iexact Hrok
+              unfold client.noCancelOk; iright; iexact Hx
+            unfold client.runCore
+            iexists (S.recvMvcc m).sentCancel ρ.id L', U, rcv ++ [p], mref, s, e
+            have r0 : ((S.recvMvcc m).sentCancel ρ.id L').Dm = S.Dm ++ [m] := rfl
+            have r1 : ((S.recvMvcc m).sentCancel ρ.id L').ansd = S.ansd := rfl
+            have r2 : ((S.recvMvcc m).sentCancel ρ.id L').regs = S.regs := rfl
+            have r3 : ((S.recvMvcc m).sentCancel ρ.id L').M = S.M := rfl
+            have r4 : ((S.recvMvcc m).sentCancel ρ.id L').CL = S.CL := rfl
+            have r5 : ((S.recvMvcc m).sentCancel ρ.id L').l = S.l := rfl
+            have r6 : ((S.recvMvcc m).sentCancel ρ.id L').L = L' := rfl
+            have r7 : ((S.recvMvcc m).sentCancel ρ.id L').CS = GMap.insert ρ.id () S.CS := rfl
+            rw [r0, r1, r2, r3, r4, r5, r6, r7]
+            iframe
+            iframe #
+            isplitr
+            · ipureintro; simp [Hrcv]
+            isplitl []
+            · unfold v3rpc.downLbW; iexact HLlb
+            isplitr
+            · ipureintro; exact Hg2
+            imodintro
+            iapply BigSepL.bigSepL_singleton.2
+            unfold client.respInfo; rw [hsrc]; iexact Hrok
 
     -- errc
     iapply BigAndL.bigAndL_cons.2
@@ -4018,106 +3863,68 @@ theorem watchGRPCStream.run.wp_proof
       · icases Hres with (⟨-, Htok⟩ | ⟨-, %L', %HL', Htok⟩)
         · iexists _; iframe; ipureintro; right; rfl
         · iexists L'; iframe; ipureintro; exact HL'
-      cases err with
-      | nil =>
-        wp_auto
-        wp_for_post
-        iframe Hrcb
-        iexists bo
-        simp only [named]
-        iframe closeErr cur backoff
-        have hXr : ph.id ∈ S.regs := by
-          cases ph with
-          | queued si => exact absurd rfl hid
-          | reg X => exact Hph.2.2.2.1
-          | closedRun X => exact Hph.2.2.2.1
-          | orphan => exact absurd rfl hid
-        have hM1 : (S.closeWs P.ws ph.id).M !! ph.id = none := by
-          unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
-        have hC1 : (S.closeWs P.ws ph.id).CI !! ph.id = none := by
-          unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
-        obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.closeWs P.ws ph.id) (U := GMap.delete P.ws U)
-          Hg' hXr HL'
-        ihave Hels := BigSepM.bigSepM_impl
-            (Ψ := fun ws (_ : Unit) =>
-              client.wsElem V γs ((S.closeWs P.ws ph.id).sentCancel ph.id L') ws) $$ Hels []
-        · iintro !> %ws' %u %Hws' Hw'
-          iapply (client.wsElem_mono V γs (S := S.closeWs P.ws ph.id)
-            (S' := (S.closeWs P.ws ph.id).sentCancel ph.id L') ws' rfl
-            (fun ph' h => Hph2 ws' ph' h
-              (fun X' e => by
-                subst e; intro eX; subst eX; have h1 := h.1.2.2; rw [hC1] at h1; cases h1)
-              (fun e => by subst e; have h1 := h.1; rw [hM1] at h1; cases h1))
-            (fun X hph => client.cancels_of_snoc (.cancel ph.id) X (fun e => by
-              cases e; have h1 := hph.1; rw [hM1] at h1; cases h1) HL')) $$ Hw'
-        unfold client.runCore
-        iexists (S.closeWs P.ws ph.id).sentCancel ph.id L', GMap.delete P.ws U, rcv, mref, s, e
-        have e1 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').M = (S.closeWs P.ws ph.id).M := rfl
-        have e2 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').l = (S.closeWs P.ws ph.id).l := rfl
-        have e3 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').CL = (S.closeWs P.ws ph.id).CL := rfl
-        have e4 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').Dm = S.Dm := rfl
-        have e5 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').L = L' := rfl
-        have e6 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').ansd = S.ansd := rfl
-        have e7 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').regs = S.regs := rfl
-        have e8 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').CS = GMap.insert ph.id () S.CS := rfl
-        rw [e1, e2, e3, e4, e5, e6, e7, e8]
-        iframe
-        iframe #
-        ipureintro; exact ⟨Hrcv, Hg2⟩
-      | ok ei =>
-        wp_auto
-        wp_apply wp_zapInt64 as %f1 -
-        wp_apply wp_zapError as %f2 -
-        wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
-        isplitr
-        · ipureintro; rfl
-        iintro %fsl ⟨-, -⟩
-        wp_auto
-        wp_apply wp_Debug V.lg _ _ $$ []
-        · iframe #; ipureintro; exact Hlg
-        wp_for_post
-        iframe Hrcb
-        iexists bo
-        simp only [named]
-        iframe closeErr cur backoff
-        have hXr : ph.id ∈ S.regs := by
-          cases ph with
-          | queued si => exact absurd rfl hid
-          | reg X => exact Hph.2.2.2.1
-          | closedRun X => exact Hph.2.2.2.1
-          | orphan => exact absurd rfl hid
-        have hM1 : (S.closeWs P.ws ph.id).M !! ph.id = none := by
-          unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
-        have hC1 : (S.closeWs P.ws ph.id).CI !! ph.id = none := by
-          unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
-        obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.closeWs P.ws ph.id) (U := GMap.delete P.ws U)
-          Hg' hXr HL'
-        ihave Hels := BigSepM.bigSepM_impl
-            (Ψ := fun ws (_ : Unit) =>
-              client.wsElem V γs ((S.closeWs P.ws ph.id).sentCancel ph.id L') ws) $$ Hels []
-        · iintro !> %ws' %u %Hws' Hw'
-          iapply (client.wsElem_mono V γs (S := S.closeWs P.ws ph.id)
-            (S' := (S.closeWs P.ws ph.id).sentCancel ph.id L') ws' rfl
-            (fun ph' h => Hph2 ws' ph' h
-              (fun X' e => by
-                subst e; intro eX; subst eX; have h1 := h.1.2.2; rw [hC1] at h1; cases h1)
-              (fun e => by subst e; have h1 := h.1; rw [hM1] at h1; cases h1))
-            (fun X hph => client.cancels_of_snoc (.cancel ph.id) X (fun e => by
-              cases e; have h1 := hph.1; rw [hM1] at h1; cases h1) HL')) $$ Hw'
-        unfold client.runCore
-        iexists (S.closeWs P.ws ph.id).sentCancel ph.id L', GMap.delete P.ws U, rcv, mref, s, e
-        have e1 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').M = (S.closeWs P.ws ph.id).M := rfl
-        have e2 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').l = (S.closeWs P.ws ph.id).l := rfl
-        have e3 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').CL = (S.closeWs P.ws ph.id).CL := rfl
-        have e4 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').Dm = S.Dm := rfl
-        have e5 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').L = L' := rfl
-        have e6 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').ansd = S.ansd := rfl
-        have e7 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').regs = S.regs := rfl
-        have e8 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').CS = GMap.insert ph.id () S.CS := rfl
-        rw [e1, e2, e3, e4, e5, e6, e7, e8]
-        iframe
-        iframe #
-        ipureintro; exact ⟨Hrcv, Hg2⟩
+      -- `if err != nil`: only logged; joined (`wp_join`), the next iteration verified once
+      wp_join at (if: _ then _ else _) with [err ws Hid]
+      · cases err with
+        | nil =>
+          wp_auto
+          wp_join_done
+        | ok ei =>
+          wp_auto
+          wp_apply wp_zapInt64 as %f1 -
+          wp_apply wp_zapError as %f2 -
+          wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+          isplitr
+          · ipureintro; rfl
+          iintro %fsl ⟨-, -⟩
+          wp_auto
+          wp_apply wp_Debug V.lg _ _ $$ []
+          · iframe #; ipureintro; exact Hlg
+          (try wp_auto)
+          wp_join_done
+      wp_for_post
+      iframe Hrcb
+      iexists bo
+      simp only [named]
+      iframe closeErr cur backoff
+      have hXr : ph.id ∈ S.regs := by
+        cases ph with
+        | queued si => exact absurd rfl hid
+        | reg X => exact Hph.2.2.2.1
+        | closedRun X => exact Hph.2.2.2.1
+        | orphan => exact absurd rfl hid
+      have hM1 : (S.closeWs P.ws ph.id).M !! ph.id = none := by
+        unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
+      have hC1 : (S.closeWs P.ws ph.id).CI !! ph.id = none := by
+        unfold client.RunSt.closeWs; simp only [hid, ↓reduceIte]; exact GMap.lookup_delete _ _
+      obtain ⟨Hg2, Hph2⟩ := client.cancel_ok (S := S.closeWs P.ws ph.id) (U := GMap.delete P.ws U)
+        Hg' hXr HL'
+      ihave Hels := BigSepM.bigSepM_impl
+          (Ψ := fun ws (_ : Unit) =>
+            client.wsElem V γs ((S.closeWs P.ws ph.id).sentCancel ph.id L') ws) $$ Hels []
+      · iintro !> %ws' %u %Hws' Hw'
+        iapply (client.wsElem_mono V γs (S := S.closeWs P.ws ph.id)
+          (S' := (S.closeWs P.ws ph.id).sentCancel ph.id L') ws' rfl
+          (fun ph' h => Hph2 ws' ph' h
+            (fun X' e => by
+              subst e; intro eX; subst eX; have h1 := h.1.2.2; rw [hC1] at h1; cases h1)
+            (fun e => by subst e; have h1 := h.1; rw [hM1] at h1; cases h1))
+          (fun X hph => client.cancels_of_snoc (.cancel ph.id) X (fun e => by
+            cases e; have h1 := hph.1; rw [hM1] at h1; cases h1) HL')) $$ Hw'
+      unfold client.runCore
+      iexists (S.closeWs P.ws ph.id).sentCancel ph.id L', GMap.delete P.ws U, rcv, mref, s, e
+      have e1 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').M = (S.closeWs P.ws ph.id).M := rfl
+      have e2 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').l = (S.closeWs P.ws ph.id).l := rfl
+      have e3 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').CL = (S.closeWs P.ws ph.id).CL := rfl
+      have e4 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').Dm = S.Dm := rfl
+      have e5 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').L = L' := rfl
+      have e6 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').ansd = S.ansd := rfl
+      have e7 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').regs = S.regs := rfl
+      have e8 : ((S.closeWs P.ws ph.id).sentCancel ph.id L').CS = GMap.insert ph.id () S.CS := rfl
+      rw [e1, e2, e3, e4, e5, e6, e7, e8]
+      iframe
+      iframe #
+      ipureintro; exact ⟨Hrcv, Hg2⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
   iintro %v ⟨%Hv, Hexit⟩
@@ -4204,6 +4011,9 @@ theorem watchGRPCStream.run.wp_proof
     simp only [named]
     iframe
     ipureintro; refine ⟨by word, by word, Htd⟩
+  -- the loop gets what it reads only (`wp_for` generalizes the whole context into its
+  -- invariant, and `wp_for_post` reframes it at every iteration); the rest waits after it
+  wp_join at (App (App (App (Val doFor) _) _) _) with [IH2]
   wp_for IH2
   wp_if_destruct
   · have Hif' : sint.Z n < sint.Z s.len := by
@@ -4292,6 +4102,12 @@ theorem watchGRPCStream.run.wp_proof
   (try cleanup_bool_decide)
   (try rw [if_pos (by simp)])
   (try wp_auto)
+  wp_join_done
+  iexists n, wv, CL', U1
+  simp only [named]
+  iframe
+  ipureintro; exact Hn
+  iNamed IH2
   -- the loop's end: join, then wait for the closing substreams
   ihave HdM : iprop([∗map] _k ↦ ws ∈ S.M, donecOf ws) $$ []
   · iapply (BigSepM.bigSepM_intro (P := iprop(□ ∀ ws, ⌜U !! ws = some ()⌝ → donecOf (GF := GF) ws))
