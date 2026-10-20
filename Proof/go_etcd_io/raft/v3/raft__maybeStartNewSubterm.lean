@@ -56,7 +56,8 @@ theorem raft.maybeStartNewSubterm.wp_proof
     wp_auto
     -- `ResetReplicationSet(true)`: a fresh witness-free epoch
     icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-    wp_apply wp_ProgressTracker_ResetReplicationSet c _ tv _ $$ [$Htrkf $Htrk]
+    wp_apply (tracker.ProgressTracker.ResetReplicationSet.spec_nw
+      wp_ProgressTracker_ResetReplicationSet c _ tv _) $$ [$Htrkf $Htrk]
       as %e ⟨Htrkf, Htrk⟩
     icases ownTrackerC_epoch $$ Htrk with ⟨#Hep, Htrk⟩
     wp_apply (tracker.Epoch.HasWitness.spec_nw wp_Epoch_HasWitness _) $$ [$Hep]
