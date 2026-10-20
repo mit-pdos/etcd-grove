@@ -423,9 +423,13 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             unfold rOf pciR
             simp [proposed, sendMsgs, logAppend, Hrole]
           rw [Hr, HP]
-          refine .trans _ _ _ _ _
-            (StepR.propose (absMsg .propose m ents ctx) (rOf s g) cs' rfl Hrl Hct
-              (Int.le_refl _)) ?_
+          -- staged: subterm 0 (`Hsub0`), so `StepR.propose`'s `stampS` is `stamp`
+          have Hpsub' : (rOf s g).p.sub = W64 0 := by
+            show (toPState s).sub = W64 0; simp [toPState, Hrole, Hsub0]
+          have HprR : StepR Adm dec id _ (rOf s g) [absMsg .propose m ents ctx] _ :=
+            StepR.propose (absMsg .propose m ents ctx) (rOf s g) cs' rfl Hrl Hct (Int.le_refl _)
+          rw [Hpsub', stampS_zero_fun] at HprR
+          refine .trans _ _ _ _ _ HprR ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
       ileft; ipureintro; rfl

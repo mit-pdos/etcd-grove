@@ -913,6 +913,8 @@ theorem wp_applyConf_dyn
   · rw [show (GMode.dyn dec c0 h0 g) = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ by rw [hm]; rfl]
     iexact Hghost
   icases ownRaftPhysC_logwf cf rnv.raft' id s $$ Hphys with ⟨%Hlw, Hphys⟩
+  -- STAGED: no witness yet (`ownRaftPhysC_wit0`): a plain `applyConf` (`StepR.applyConf`)
+  icases ownRaftPhysC_wit0 cf rnv.raft' id s $$ Hphys with ⟨%hwcf, Hphys⟩
   icases ownStepGhost_deliv γ dec c0 h0 g cf id s rs.delivered
     (by rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega) $$ Hdeliv Hghost
     with ⟨%Hdp, Hghost⟩
@@ -977,6 +979,7 @@ theorem wp_applyConf_dyn
       (rOf s g') :=
     StepR.applyConf (rOf s g) k e (ccm.transition, ccm.changes) cs' (by simp [rOf, Hsnap]) Hk1 Hkc Hfull_k Hconf
       Hnoc' (by rw [Htake]; exact Hdec) Hstep Hadm
+      (fun _ => by show rs.cfg.cfg.wit = W64 0; rw [Hgc]; exact hwcf)
   have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
     (dec := dec) cs'.cfg id s s' g' Hok rfl
   have HR := StepR.trans _ _ _ _ _ HR1 HR2

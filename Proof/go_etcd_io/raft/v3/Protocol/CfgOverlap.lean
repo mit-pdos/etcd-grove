@@ -298,48 +298,7 @@ theorem ccApplyM_shape {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeS
 A change keeps the configuration's witness (`CfgM.wit`), except leaving a joint configuration,
 which clears it (`leaveJointState`). -/
 
-theorem applyOne_wit {cc : ConfChangeSingleM} {s s' : CCState} (h : applyOne cc s = some s') :
-    s'.cfg.wit = s.cfg.wit := by
-  unfold applyOne at h
-  split at h
-  · cases h; rfl
-  split at h
-  · cases h; unfold makeVoterM initProgressM; split <;> rfl
-  split at h
-  · cases h; unfold makeLearnerM initProgressM removeCfg; split
-    · rfl
-    · rfl
-    · split <;> rfl
-  split at h
-  · cases h; unfold removeM removeCfg; split <;> rfl
-  split at h
-  · cases h; rfl
-  · cases h
-
-theorem applyAll_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
-    (h : applyAll ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
-  induction ccs generalizing s with
-  | nil => cases h; rfl
-  | cons cc ccs ih =>
-    simp only [applyAll] at h
-    cases h1 : applyOne cc s with
-    | none => rw [h1] at h; cases h
-    | some s1 =>
-      rw [h1, Option.bind_some] at h
-      rw [ih h, applyOne_wit h1]
-
-theorem applyM_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
-    (h : applyM ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
-  unfold applyM at h
-  cases h1 : applyAll ccs s with
-  | none => rw [h1] at h; cases h
-  | some s1 =>
-    rw [h1, Option.bind_some] at h
-    split at h
-    · cases h
-    · cases h; exact applyAll_wit h1
-
-/-! ### The configuration of a log prefix -/
+-- (`applyOne_wit`, `applyAll_wit`, `applyM_wit`: `CCApply.lean`.)
 
 /-- A conf change as `raft.applyConfChange` takes it: `AsV2`'s transition and changes. -/
 abbrev CCOp := raftpb.ConfChangeTransition × List ConfChangeSingleM
