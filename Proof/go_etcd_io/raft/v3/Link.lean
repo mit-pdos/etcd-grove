@@ -207,6 +207,7 @@ public import Proof.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.raft__sendAppend
 public import Proof.go_etcd_io.raft.v3.raft__sendAppendToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Proof.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
 public import Proof.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Proof.go_etcd_io.raft.v3.raft__softState
 public import Proof.go_etcd_io.raft.v3.raft__switchToConfig
@@ -1079,6 +1080,14 @@ theorem raft.wp_getWitnessVoteRequestReadiness [StorageModel GF] :
     raft.getWitnessVoteRequestReadiness.spec (GF := GF) (hG := hG) :=
   raft.getWitnessVoteRequestReadiness.wp_proof
 
+theorem raftLog.wp_subterm [StorageModel GF] :
+    raftLog.subterm.spec (GF := GF) (hG := hG) :=
+  raftLog.subterm.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex raftLog.wp_slice raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetSubterm
+
+theorem raft.wp_sendRequestVoteToWitness [StorageModel GF] :
+    raft.sendRequestVoteToWitness.spec (GF := GF) (hG := hG) :=
+  raft.sendRequestVoteToWitness.wp_proof raftLog.wp_lastEntryID raftLog.wp_subterm
+
 theorem wp_traceBecomeLeader [StorageModel GF] :
     traceBecomeLeader.spec (GF := GF) (hG := hG) :=
   traceBecomeLeader.wp_proof
@@ -1213,7 +1222,7 @@ theorem raftpb.Message.wp_GetReject :
 
 theorem wp_stepCandidate [StorageModel GF] :
     stepCandidate.spec (GF := GF) (hG := hG) :=
-  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_getWitnessVoteRequestReadiness raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
+  stepCandidate.wp_proof raft.wp_pollAndReportDiff raft.wp_getWitnessVoteRequestReadiness raft.wp_sendRequestVoteToWitness raft.wp_becomeLeader raft.wp_becomeFollower raft.wp_bcastAppend raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_campaign raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetReject
 
 theorem wp_stepFollower [StorageModel GF] :
     stepFollower.spec (GF := GF) (hG := hG) :=
@@ -1510,10 +1519,6 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
-
-theorem raftLog.wp_subterm [StorageModel GF] :
-    raftLog.subterm.spec (GF := GF) (hG := hG) :=
-  raftLog.subterm.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex raftLog.wp_slice raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetSubterm
 
 theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
     tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=

@@ -317,6 +317,44 @@ without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`); `ConfStateM` has no 
 (Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a snapshot's configuration loses the
 witness in the model.
 
+## W3b-C: the candidate's witness paths (2026-10-20, branch `raft-witness-w3c`)
+
+Proved with their witness branches (no `ownRaftPhysC_wit0` left at these sites):
+- `campaign` skips the witness (`id == r.trk.Witnesses[0] || ...`): its peers are `campSet c id`
+  (`StepLemmasC.lean`; every other voter but `c.wit`, at a witness-free configuration every other
+  voter, `campSet_nw`), justified by the protocol's `campaign` (every other voter) followed by
+  `drain` (`stepC_campaignState`, `stepCD_hup`); `HupGuard`, `PrecandVoteRespResultC` follow;
+- `getWitnessVoteRequestReadiness` at any configuration (`{c.wit ↦ v1 = 1}` or nil), the witness
+  ids `r.trk.Witnesses[i]` at any configuration (`LemmasWitnessR.lean`: `wp_load_trk_witnessC'`,
+  `witOf`), `sendRequestVoteToWitness` (the request `wVoteM` queued on the outbox, its subterm
+  `raftLog.subterm`'s or `0`: W3b-A's `raftLog.subterm` spec, `plogEntryAt`);
+- `stepCandidate`'s `VotePending` arm (`wvp_loop`): the one-key range, `witnessVoteAsked`
+  (`ownRaftPhysC_asked`, its re-seal STAGED as `witQ`'s), the request; `CandVoteRespResultC` /
+  `PrecandVoteRespResultC` carry the queued requests `wq` (`WitAsk`: none, or the one request at a
+  configuration with a witness, one vote short in the incoming half), witness-free corollaries
+  unchanged (`WitAsk.nw`); `raft.Step`'s `MsgVoteResp`/`MsgPreVoteResp` take
+  `StepCF.askWitness` / `StepC.sendWPre` after the tally (`StepCF` has both rules now, frame steps);
+- protocol: `StepC.askWitness`/`StepR.askWitness` take the reported subterm `ls`, `0` or
+  `plogLastSub` (the last entry compacted out of the storage: `raftLog.subterm` fails).
+
+The joint-configuration gap: `askWitness` needs `quorum - 1` granted votes in the outgoing half too,
+but Go's readiness with `Witnesses = [c.wit, 0]` checks only the incoming half (`w[w1] = v1 == 1`).
+In the static mode a configuration with a witness is never joint (a configuration change leaves no
+witness, `ccApplyM_wit0`), recorded as `ownRaftPhysC_witSimple` (`LemmasWitnessR.lean`), which is
+read out of the STAGED conjunct today: **the static-mode invariant that replaces STAGED must keep
+`c.wit ≠ 0 → c.outgoing = ∅`.** With a witness across reconfiguration (W5), either Go asks only at
+`v1 == 1 && v2 <= 1` when `w2 == 0` (a behaviour change, proposed, not made), or `askWitness`'s
+outgoing premise is dropped when the outgoing half has no witness (the witness's vote does not
+count there).
+
+Not done: the Ready path (`ownRaftPhysC_view` with the witness queue, `readyWithoutAccept`'s
+`rd.WitnessMessages` with each request's `isMessage`, `acceptReady`'s `r.witnessMsgs = nil`,
+`HasReady`'s `len(r.witnessMsgs) > 0`, `node.go`'s `Ready`), which goes through W3b-A's view
+accessor and `InvNodeRun`.
+
+`MsgVoteResp.lean`'s `wp_Step_MsgVoteResp` takes `maxHeartbeats 4000000` (the larger
+`CandidateStepResultC` unfolded by `wp_gets`; the file's time is unchanged, about 220 s).
+
 ## W3b: `Process`, its instance at W2's ghost state, the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
 
 - `ErrWitnessStateModified` is among the raft package's facts (`isInitialized`, `Base.lean`;
