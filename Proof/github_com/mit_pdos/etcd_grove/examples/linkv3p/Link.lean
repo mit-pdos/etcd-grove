@@ -20,7 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Proof.net.Listen
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -34,7 +34,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace linkv3p
 
-open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.linkv3p github_com.mit_pdos.etcd_grove.examples.linkv github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine
+open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.linkv3p github_com.mit_pdos.etcd_grove.examples.linkvtxn github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine
 
 section links
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -78,11 +78,11 @@ theorem net.http.wp_Serve :
 
 theorem wp_Apply :
     EtcdGrove.linkv3p.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.Apply.wp_proof linkv.wp_Apply
+  EtcdGrove.linkv3p.Apply.wp_proof linkvtxn.wp_Apply
 
 theorem wp_Check :
     EtcdGrove.linkv3p.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock linkv.wp_Model linkv.wp_Gen wp_Apply
+  EtcdGrove.linkv3p.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock linkvtxn.wp_Model linkvtxn.wp_Gen wp_Apply
 
 theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=

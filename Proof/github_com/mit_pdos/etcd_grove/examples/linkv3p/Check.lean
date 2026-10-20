@@ -1,8 +1,9 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `Check` (the partition plan's S3a, 2026-10-20): linkv's (`Proof/.../linkv/Check.lean`,
-whose clock namespace and disjointness lemmas it reuses) with the closure
+The proof of `Check` (the partition plan's S3a, 2026-10-20; over linkvtxn's workload since
+2026-10-20): linkvtxn's (`Proof/.../linkvtxn/Check.lean`, whose clock namespace and disjointness
+lemmas it reuses) with the closure
 `func(input any) any { return Apply(clis, input) }` meeting `applySpec` from linkv3p's
 `Apply.spec` over the slice of clients.
 -/
@@ -10,11 +11,11 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Gen
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Model
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Gen
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.Run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Check
 
 @[expose] public section
 
@@ -40,15 +41,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 theorem Check.wp_proof
     (wp_Run : lintest.Run.spec (GF := GF) (hG := hG))
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG))
-    (wp_Model : linkv.Model.spec (GF := GF) (hG := hG))
-    (wp_Gen : linkv.Gen.spec (GF := GF) (hG := hG))
+    (wp_Model : linkvtxn.Model.spec (GF := GF) (hG := hG))
+    (wp_Gen : linkvtxn.Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
   intro _ γ cls clis clients ops dur hAs Hrb hne H0 H31 Hops Hmul
   wp_start as ⟨#Hcc, #Hcls, #Hok, Hst⟩
   wp_auto
   ipersist clis
-  ihave #Plkv : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv
+  ihave #Plkv : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn
       $$ []
   · iPkgInit
   ihave #Plt : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest
@@ -58,13 +59,13 @@ theorem Check.wp_proof
   · iPkgInit
   ihave #HA := wp_Apply γ cls clis hAs hne $$ Hpkg Plkv Pcli Hcls Hok
   wp_apply wp_Model as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
-  ihave #Hm := isModel_of_step linkv.linkvS m $$ [Hinit Hstep Heh]
+  ihave #Hm := isModel_of_step linkvtxn.linkvtxnS m $$ [Hinit Hstep Heh]
   · iframe Hinit Hstep Heh
     ipureintro; exact ⟨Hp, Hsc⟩
-  wp_apply wp_CounterClock linkv.clockN Hrb as %clock ⟨%clockVal, #Hclk, Hc0⟩
-  wp_apply wp_Run (linkv.KVSet GoString GoString) linkv.linkvS m _ _ clock linkv.linkvInOk
-    (linkv.linkvState γ) clockVal (W64 0) linkv.linkvE ↑linkv.clockN clients ops dur
-    linkv.lintestN_linkvE linkv.lintestN_clockN H0 H31 Hops Hmul
+  wp_apply wp_CounterClock linkvtxn.clockN Hrb as %clock ⟨%clockVal, #Hclk, Hc0⟩
+  wp_apply wp_Run (linkv.PSet linkvtxn.MS linkvtxn.MI) linkvtxn.linkvtxnS m _ _ clock
+    linkvtxn.linkvInOk (linkvtxn.linkvState γ) clockVal (W64 0) linkvtxn.linkvE ↑linkvtxn.clockN
+    clients ops dur linkvtxn.lintestN_linkvE linkvtxn.lintestN_clockN H0 H31 Hops Hmul
     $$ [Hst Hc0]
   · iframe Hc0 Hcc Hm Hclk
     isplitr

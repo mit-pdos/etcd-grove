@@ -1,8 +1,9 @@
 # Plan: the partitioned three-member cluster over the KV workload (`examples/linkv3p` × linkvtxn)
 
-Status: in progress (2026-10-20): P0–P2 done (branch `linkv3p-txn`, worktree
-`/shared/etcd-grove-lt`); linkv3p's `Apply` (spec and proof) and `Check`'s proof do not build
-until P3.
+Status: in progress (2026-10-20): P0–P3 done (branch `linkv3p-txn`, worktree
+`/shared/etcd-grove-lt`): `linkv3p_safe` is closed over linkvtxn's workload, its trust base
+exactly `etc/tcb-collections/linkv3p.txt` (463 axioms, no `sorry`); P4's headers, gates and notes
+remain.
 
 ## Goal
 
@@ -117,6 +118,10 @@ beyond P1's destructurings and the allocation, so P4's `Main` bullet is done too
   `Gen` (as `linkvtxn/Check.lean`), the clock and the mask lemmas at linkv3p's namespaces.
 - `etc/link-lean-first-linkv3p.txt`: `linkvtxn_Apply: @`, `linkvtxn_Model: @`, `linkvtxn_Gen: @`
   in place of linkv's; `etc/gen-link.py --linkv3p` opens `linkvtxn` instead of `linkv`.
+
+Done (2026-10-20). `Apply.spec` also imports linkvtxn's `Calls` (for `linkvInOk`). The full
+`lake build` passes; `tcb-report --collection etc/tcb-collections/linkv3p.txt --check` matches
+(463 axioms, 0 sorries), as does `--check` against `etc/tcb-baseline.txt`.
 
 ### P4. `Main` and the closed theorem
 

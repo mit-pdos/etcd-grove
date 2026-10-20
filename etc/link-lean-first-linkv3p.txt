@@ -24,15 +24,15 @@ EtcdServer__MemberID: @
 EtcdServer__CutPeer: @
 EtcdServer__MendPeer: @
 linkv3p_partitioner: EtcdServer__MemberID EtcdServer__CutPeer EtcdServer__MendPeer
-# `Apply` over linkv's; `Check` over the driver's `Run` and `CounterClock`, linkv's `Model` and
-# `Gen` (all linked in their `Link.lean`s)
-linkv_Apply: @
-linkv3p_Apply: linkv_Apply
+# `Apply` over linkvtxn's; `Check` over the driver's `Run` and `CounterClock`, linkvtxn's `Model`
+# and `Gen` (all linked in their `Link.lean`s)
+linkvtxn_Apply: @
+linkv3p_Apply: linkvtxn_Apply
 Run: @
 CounterClock: @
-linkv_Model: @
-linkv_Gen: @
-linkv3p_Check: Run CounterClock linkv_Model linkv_Gen linkv3p_Apply
+linkvtxn_Model: @
+linkvtxn_Gen: @
+linkv3p_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkv3p_Apply
 # `Main`: the start of the cluster and the clients, the partitioner forked, the check (zap's
 # trust-boundary axiom; the rest linkv3p's own)
 zap_NewNop:

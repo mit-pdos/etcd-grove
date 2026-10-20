@@ -2,14 +2,14 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `Apply` (the partition plan's S3a, 2026-10-20): `RandomUint64` modulo the slice's
-length (non-zero: the slice is non-empty) picks an index in range; the client at it has linkv's
-`Apply.spec`'s premises (`clientOk`, out of the `[∗list]`), and linkv's `Apply` runs the operation
-with the caller's atomic update, as the closure in linkv's `Check` passes it through.
+length (non-zero: the slice is non-empty) picks an index in range; the client at it has linkvtxn's
+`Apply.spec`'s premises (`clientOk`, out of the `[∗list]`), and linkvtxn's `Apply` runs the
+operation with the caller's atomic update, as the closure in linkvtxn's `Check` passes it through.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Apply
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Apply
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
@@ -33,7 +33,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
-theorem Apply.wp_proof (wp_Apply : linkv.Apply.spec (GF := GF) (hG := hG)) :
+theorem Apply.wp_proof (wp_Apply : linkvtxn.Apply.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
   intro _ γ cls clis hAs hne
   iintro #Hpkg #Plkv #Pcli #Hcls #Hok
@@ -83,9 +83,11 @@ theorem Apply.wp_proof (wp_Apply : linkv.Apply.spec (GF := GF) (hG := hG)) :
   -- the client's premises, out of the list
   ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ c => clientOk (GF := GF) γ c) Hcl_lookup) $$ Hok
   iunfold clientOk at Hc
-  icases Hc with ⟨%ep, %V, %E, %γr, %cid, %mid, #Hncl, #Hone, #Hput, #Hrange, #Hinv⟩
-  ihave #HA := wp_Apply γ cl ep V E γr cid mid hAs $$ Plkv Pcli Hncl Hone Hput Hrange Hinv
-  -- `linkv.Apply(cl, input)`, with the caller's update
+  icases Hc with ⟨%ep, %V, %E, %γr, %cid, %mid, #Hncl, #Hone, #Hput, #Hrange, #Hdel, #Htxn,
+    #Hinv⟩
+  ihave #HA := wp_Apply γ cl ep V E γr cid mid hAs $$ Plkv Pcli Hncl Hone Hput Hrange Hdel
+    Htxn Hinv
+  -- `linkvtxn.Apply(cl, input)`, with the caller's update
   wp_bind (App (App (Val _) (Val _)) (Val _))
   iapply HA $$ %i Hin
   inext
