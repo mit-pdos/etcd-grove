@@ -315,7 +315,7 @@ every `Changer` operation keeps all three canonical (`nilAwareAdd`/`nilAwareDele
 builds start canonical (`MakeProgressTracker`'s are `nil`). A tracker with an empty
 non-`nil` `Learners` map, which no `confchange` operation creates, is outside these specs:
 the canonical representation is what lets `Restore`'s statement promise `Learners = nil`. -/
-def ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
+def ownCfgCCw (w : w64) (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
   iprop(∃ (vin vout : Loc),
     "%Harr" ∷ ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗
     "Hin" ∷ vin ↦${dq} c.incoming ∗
@@ -323,30 +323,36 @@ def ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
     "Hl" ∷ ownIdsetC cfg.Learners' dq c.learners ∗
     "Hln" ∷ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
     "%Hal" ∷ ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗
-    -- the witness (raft#168): the configuration's `wit` in the incoming half, none in the
-    -- outgoing one (2026-10-20, witness support; until then `[0, 0]`, witness-free only)
-    "%Hwit" ∷ ⌜cfg.Witnesses'.arr = [c.wit, W64 0]⌝)
+    -- the witness (raft#168): `w` in the incoming half, none in the outgoing one (2026-10-20,
+    -- witness support: `ownTrackerC` at its configuration's `wit`; `confchange`'s specs are of
+    -- witness-free configurations, `ownCfgCC`)
+    "%Hwit" ∷ ⌜cfg.Witnesses'.arr = [w, W64 0]⌝)
 
-theorem ownCfgCC_elim (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
-    ownCfgCC (GF := GF) cfg dq c ⊢ ∃ (vin vout : Loc),
+/-- A witness-free configuration's representation (raft#168, `notes/pr-verify/raft-168.md`):
+what `confchange`'s specs take and give. -/
+abbrev ownCfgCC (cfg : tracker.Config) (dq : DFrac) (c : CfgM) : IProp GF :=
+  ownCfgCCw (W64 0) cfg dq c
+
+theorem ownCfgCC_elim {w : w64} (cfg : tracker.Config) (dq : DFrac) (c : CfgM) :
+    ownCfgCCw (GF := GF) w cfg dq c ⊢ ∃ (vin vout : Loc),
       ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗ vin ↦${dq} c.incoming ∗ ownIdsetC vout dq c.outgoing ∗
       ownIdsetC cfg.Learners' dq c.learners ∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext ∗
-      ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗ ⌜cfg.Witnesses'.arr = [c.wit, W64 0]⌝ := by
-  unfold ownCfgCC
+      ⌜cfg.AutoLeave' = c.autoLeave⌝ ∗ ⌜cfg.Witnesses'.arr = [w, W64 0]⌝ := by
+  unfold ownCfgCCw
   iintro H
   iNamed H
   iexists vin, vout
   iframe
   ipureintro; exact ⟨Harr, Hal, Hwit⟩
 
-theorem ownCfgCC_intro (cfg : tracker.Config) (dq : DFrac) (c : CfgM) (vin vout : Loc)
+theorem ownCfgCC_intro {w : w64} (cfg : tracker.Config) (dq : DFrac) (c : CfgM) (vin vout : Loc)
     (Harr : cfg.Voters'.arr = [vin, vout]) (Hal : cfg.AutoLeave' = c.autoLeave)
-    (Hwit : cfg.Witnesses'.arr = [c.wit, W64 0]) :
+    (Hwit : cfg.Witnesses'.arr = [w, W64 0]) :
     ⊢ (vin ↦${dq} c.incoming : IProp GF) -∗ ownIdsetC vout dq c.outgoing -∗
       ownIdsetC cfg.Learners' dq c.learners -∗ ownIdsetC cfg.LearnersNext' dq c.learnersNext -∗
-      ownCfgCC cfg dq c := by
+      ownCfgCCw w cfg dq c := by
   iintro Hin Hout Hl Hln
-  unfold ownCfgCC
+  unfold ownCfgCCw
   iexists vin, vout
   simp only [named]
   iframe

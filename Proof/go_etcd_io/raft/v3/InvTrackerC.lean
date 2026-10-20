@@ -255,7 +255,7 @@ def ownTrackerC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :
   "Hvotes" ∷ tv.Votes' ↦$ t.votes ∗
   "#Hprs" ∷ tv.Progress' ↦$□ t.prs ∗
   "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ t.prs;t.peers, ownProgress pr p) ∗
-  "Hcfg" ∷ ownCfgCC tv.Config' (DFrac.own 1) c ∗
+  "Hcfg" ∷ ownCfgCCw c.wit tv.Config' (DFrac.own 1) c ∗
   "%Hinv" ∷ ⌜CfgInv ⟨c, trkFlags t.peers⟩⌝ ∗
   "%Hdom" ∷ ⌜domSet t.prs = c.ids⌝ ∗
   "%Hflags" ∷ ⌜LearnerFlagsC c t.peers⌝ ∗
@@ -281,7 +281,7 @@ theorem ownTrackerC_intro (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMa
     ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗
       tv.Progress' ↦$□ prs -∗
       ([∗map] _k ↦ pr;p ∈ prs;peers, ownProgress pr p) -∗
-      ownCfgCC tv.Config' (DFrac.own 1) c -∗
+      ownCfgCCw c.wit tv.Config' (DFrac.own 1) c -∗
       ownEpochOk c.incoming c.outgoing c.wit tv.Epoch' ep -∗
       ownTrackerC c tv ⟨votes, prs, peers, ep⟩ := by
   unfold ownTrackerC
@@ -312,6 +312,7 @@ theorem ownTracker_toC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk)
     $$ Hvotes Hprs Hprogs [Hvoters Hlearners HlearnersNext] [Hepoch]
   rotate_left
   · iapply ownEpochNWm_ok $$ Hepoch
+  rw [CfgM.simple_wit]
   iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (CfgM.simple voters (domSet t.prs \ voters))
     voters_ref map.nil Hvoters_arr Hautoleave Hwit.1 $$ [Hvoters] [] [Hlearners] [HlearnersNext]
   · simp only [CfgM.simple]; iexact Hvoters
@@ -525,12 +526,12 @@ theorem ownIdsetQ_ofMaj (m : Loc) (s : GSet w64) :
 
 /-- The two voter halves of a configuration value, as `JointConfig`'s specs take them
 (`ownIdsetQ`), with the rest of the configuration kept in the wand that puts them back. -/
-theorem ownCfgCC_voters (cfg : tracker.Config) (c : CfgM) :
-    ownCfgCC (GF := GF) cfg (DFrac.own 1) c ⊢ ∃ (vin vout : Loc),
+theorem ownCfgCC_voters {w : w64} (cfg : tracker.Config) (c : CfgM) :
+    ownCfgCCw (GF := GF) w cfg (DFrac.own 1) c ⊢ ∃ (vin vout : Loc),
       ⌜cfg.Voters'.arr = [vin, vout]⌝ ∗ ownIdsetQ vin (DFrac.own 1) c.incoming ∗
       ownIdsetQ vout (DFrac.own 1) c.outgoing ∗
       (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownIdsetQ vout (DFrac.own 1) c.outgoing -∗
-        ownCfgCC cfg (DFrac.own 1) c) := by
+        ownCfgCCw w cfg (DFrac.own 1) c) := by
   iintro Hc
   icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
   ihave %Hnn := ownMap_not_nil _ _ _ $$ Hin
@@ -723,13 +724,15 @@ theorem ownTrackerC_votes (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
 /-- The new tracker: the old tally and bound, the new configuration and `Progress` objects. -/
 theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) (hw : c.wit = W64 0) :
     ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗ ownConfigC c cfgv prsm prs pvs -∗ ownEpochNW tv.Epoch' -∗
       ownTrackerC c { tv with Config' := cfgv, Progress' := prsm }
         ⟨votes, prs, pvs, EpochM.bare (W64 0)⟩ := by
   iintro Hvotes Hnew #Hepoch
   iunfold ownConfigC at Hnew
   iNamed Hnew
+  ihave Hcfg : ownCfgCCw (GF := GF) c.wit cfgv (DFrac.own 1) c $$ [Hcfg]
+  · rw [hw]; iexact Hcfg
   iapply ownTrackerC_intro c { tv with Config' := cfgv, Progress' := prsm } votes prs pvs
     Hinv Hdom Hflags Hsize Hmi Hnw $$ Hvotes Hprsm Hprogs Hcfg [Hepoch]
   iapply ownEpochNWm_ok

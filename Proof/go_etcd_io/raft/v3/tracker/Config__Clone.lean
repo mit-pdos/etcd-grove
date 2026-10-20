@@ -189,7 +189,7 @@ theorem clonedMap_C (m m' : Loc) (dq : DFrac) (s : GMap w64 Unit) :
 theorem tracker.Config.Clone.wp_proof : tracker.Config.Clone.spec (GF := GF) (hG := hG) := by
   intro p cfg c dq dqc
   wp_start as ⟨Hp, Hc⟩
-  unfold ownCfgCC
+  unfold ownCfgCC ownCfgCCw
   iNamed Hc
   wp_auto
   -- the closure, as an opaque function value (so that its calls are not inlined)
