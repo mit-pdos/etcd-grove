@@ -230,6 +230,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
     "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
     "Hfal" ∷ bkFresh d.γB go!"alarm" ∗
+    -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
+    -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s)
+    "Hncmp" ∷ mvcc.bkNoCmp d.γB ∗
     -- the error paths' close
     "#Hclose" ∷ □ ({{ True }}
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))

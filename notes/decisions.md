@@ -12057,3 +12057,133 @@ lease/auth/alarm buckets) — a sole-writer token per bucket of the new backend,
 boot, would be minted by them or by `OpenSnapshotBackend`'s post (not stated yet). `go oldbe.Close()`
 waits for the old backend's open snapshots (bbolt's `Close` takes the mmap lock): liveness only.
 `etc/tcb-collections/snapshot.txt` tracks the path (26 axioms, 0 sorries).
+
+## D22 S-g carried out: `restore` with data and the no-compaction token; `Restore` stopped on the store's fixed fields (D22l) (2026-10-19)
+
+Stage S-g of T-S. mvcc, storage and server files only (no raft, transport or bbolt file). Items
+1 and 5 done, item 4 (D22h) resolved by a different route than the plan's, item 2 translated and
+its token kept by `NewServer`, items 2 and 3's proofs stopped on a design question (D22l below).
+Trust base unchanged: 531 axioms, 2 sorries (the `restore` axiom restated, none added).
+
+**1. `mvcc.store.restore` restated for a `Key` bucket with data** (`Spec/.../mvcc/store__restore.lean`;
+the definitions at the end of `storage/mvcc/InvStore.lean`'s `reprs`): over the bucket of the log
+`[[], []] ++ R` (`bucketView γ q (bucketMap _)`, read-only), with `restoreLogOk R` (each revision of
+`R` has a change, so the restored `currentRev`, the last revision with an entry, is the log's last;
+`IdxWf` of the log; no put with a lease, so `keyToLease` stays empty and `s.le` is not called: the
+server's workload grants none), the index is rebuilt: `restoreIdxPre γ.idx R` (nothing for `R = []`,
+else the index writer at `[[], []]` and the other half of the committed log's authority) to
+`restoreIdxPost γ.idx R` (the writer, the authority and the certificate at the log); `currentRev`
+stored `|L| - 1` (with data the whole points-to is taken: `R.isEmpty = false → qc = 1`; for `R = []`
+the half `NewStore` holds, the old "no write" modelling); `compactMainRev` stays `-1`. `NewStore`
+instantiates it at `R = []` (`restoreLogOk_nil`), so its proof and spec moved only by the token below.
+`restoreLogOk_len`: a restored log has `2 ≤ |L| ≤ logCh L + 2`, the sole writer's `soleLog`.
+- *An unfinished compaction is excluded, not resumed*: `restore` consumes the backend's
+  no-compaction token (item 5). Resuming it (`compactLockfree`: `updateCompactRev`'s
+  `SetScheduledCompact` and `ForceCommit` on the batch transaction, a job on the new scheduler) needs
+  the compaction right (`compactRight`, the queue and `schedLive`) and a backend whose contract has the
+  compaction's calls (`storeCmp`, false of the real backend: `kbCmp kb := kb = none`); the server's
+  workload never compacts (`apply.dispatchOk`), so S-f's `keyImage` has neither key, and the real
+  backend's contract would have to model the `meta` keys first (D19l (v)'s remaining half).
+- *Not translated and proved instead*: `restore`'s body runs `restoreIntoIndex` on a goroutine fed
+  through a channel, `restoreChunk`'s `proto.Unmarshal` of every value (mvccpb's `KeyValue`, a
+  protobuf-go message: no spec here), `keyIndex.restore`/`restoreTombstone` (untranslated),
+  `kiCache` purging, `verify.Verify`, `setupMetricsReporter` (prometheus gauge funcs) and the
+  lessor's `Attach`; proving it is a unit of its own (the bucket's decoding against `bucketMap`'s
+  encoding, the index's history built per change). Faithfulness checked by hand: in an uncompacted
+  log a key's first bucket entry is its creation, so `ki.restore(created, rev, ver)` is `put` on a
+  fresh key index (`created = rev`, `ver = 1`), and later entries `put`/`tombstone` through
+  `kiCache` or `idx.KeyIndex`, as the model's index of `evsOf L`.
+
+**4. D22h, restated again: the restore pays for its own receipts.** `restoreIdxPost`'s writer holds
+`⧗ (logCh L)`, one time receipt per change of the image's log: each change is put into the index by
+counted steps of `restore`'s own goroutine (`restoreIntoIndex`: a channel receive and a `put`/
+`Insert` per change), whose receipts no one else holds (Perennial's `⧗` are exclusive tokens of
+distinct counted steps, `Receipts.lean`; an axiom may return the receipts of the steps it covers),
+the same argument as a write transaction's `treeIndex.Put`/`Tombstone` taking one per change. So the
+restored log, though made by other members' writes, satisfies `idxCert`'s and `idxSealed`'s
+`logCh log < receiptBound ≤ 2 ^ 48`, and the sole writer at the restored log is had from the
+certificate, a fresh revision budget (`ownTokAuth` of the new epoch with `2 ^ 63 - 3 - |L|` tokens,
+`|L| ≤ logCh L + 2 < 2 ^ 48 + 2`: `restoreLogOk_len`) and `soleLog`. **No cluster-level
+`⧗ (logCh (kvModel A))` in `kvInv`/`kvCertInv` is needed** for the index's and the store's bounds
+(S-0 (4)'s list: `idxSealed_small`, `soleWriter_small`, `srvApplyKV_small`, `entryOk_of_shape`,
+`storeSmall_of_receipts` all read the writer's receipts through `idxCert`/`idxSealed`). What remains
+of D22h is S-0's: `srvWTAt` and the counter go with M3's cap (S-l), and `srvWTPool` is re-allocated
+per backend over the new backend's `wbInit` write-back tokens (S-j).
+
+**5. `backendNoCompaction` removed** (D19l (v) (A)). The opaque `Prop` premise of `restore`,
+`NewStore`, `newWatchableStore`, `mvcc.New`, `NewServer.spec` (`%Hnocmp`) and the closed theorems
+(`putget_safe`, `putget3_safe`: their hypothesis `Hnoc` is gone) is replaced by a per-backend
+exclusive token `mvcc.bkNoCmp γB` (opaque, as `etcdserver.bkFresh`: the readers' view leaves out
+every bucket but `Key`, so the model cannot state the `meta` bucket's keys to the store; `kbNoCmp kb
+γb`, with `viewNoCmp γb` for mvcc's assumed backend, which no caller uses). It is given where the
+backend is opened over data of which it is true: for a new cluster's backend by `bootstrap`'s
+contract (`bootOk`'s `"Hncmp"`, beside the fresh buckets' `bkFresh`: a bbolt file created empty),
+for a received image by `storage.OpenBackend`'s axiom when the data has neither key
+(`mvcc.noCmpData D`, `keyImage_noCmp`; its post `newPost … ∗ (⌜noCmpData D⌝ -∗ bkNoCmp γ)`, threaded
+by `OpenSnapshotBackend`'s proof into its post). So on the snapshot path the fact is derived from the
+image (S-f's `keyImage`), not assumed; at boot it sits with `bootstrap`'s other claims about the
+fresh data directory. Not fewer opaque names (one `Prop` out, two token families in), but no
+premise of the closed theorems about the environment's compaction keys.
+
+**2. `store.Restore` translated** (`mvcc.toml`; `kvstore.go:292-314`), **not specified or proved;
+`NewServer` keeps the stop token.** `NewServer.spec`'s post gains `srvKVCloser srv E`
+(`etcdserver/InvWatchBuilt.lean`: the server's `kv` field's watchable store and its `mvcc.wsCloser`,
+which holds the inner store's `storeCloser`: `stopCloser` of `stopc`, `schedStopTok`, `compactQueue
+(-1)`); until now the success path dropped it (D19m (C)). The examples drop it (`-`).
+
+**2, 3: stopped. `Restore` cannot be specified over `isStore` (D22l, new).** `isStore s γ` is
+persistent and holds `s.b`, `s.kvindex`, `s.fifoSched`, `s.stopc` as `↦□` (with `isKeyBackendG` of
+`b`, `isTreeIndex` of the index, `isFifo` of the scheduler, `storeRegd`, `hookP` and `idxCert γ.idx
+[[], []]`), and every predicate of the store's users is over one fixed `γ : StoreNames` (the index's,
+bucket's, committed log's, revision budget's, scheduler's names); the server's invariants hold
+`isStore` (and `isWatchableStore`) persistently. `Restore` stores to the four fields and its result
+needs a new index, backend instance, committed log, budget and scheduler: no spec of it over `isStore`
+is true, and no proof can write a `↦□` field. The same holds of `watchableStore.Restore` (it calls
+`store.Restore`), and its own part breaks the watch invariant `WsOk.st_flags` (`restore = false` of
+every watcher; Go sets it of every moved watcher, and `chooseAll`'s `minRev > curRev` branch then
+relies on it).
+- *(A) The store's epochs.* `StoreNames` split into the object's (`leases`, `cok`, `watchQ`, and a new
+  ghost variable `ep` naming the current epoch) and the epoch's (`idx`, `bucket`, `kb`, `clog`,
+  `revs`, `hook`, `hookFn`, `cmeta`, `fin`, `sch`). `isStore s σ` keeps the guards of `s.mu` and
+  `s.revMu` (the Go mutexes survive `Restore`); `muInv` and `revMuInv` hold a share of `ep` and of the
+  four fields, and the epoch's persistent facts (`epochOk s γ`: `isKeyBackendG`, `isTreeIndex`,
+  `isFifo`, `storeRegd`, `hookP`, `idxCert γ.idx [[], []]`), at the epoch `γ` the share names. The
+  watchable store's `s.mu` holds a share too (`syncWatchers` reads `s.store.b` and `currentRev` under
+  the watchable store's lock and `s.store.revMu`, not `s.store.mu`); `watchableStore.Restore` holds
+  both locks, so `store.Restore`'s spec takes the watchable store's share from its caller. Readers:
+  `storeReader s σ` becomes the two locks' slots and a ticket; each ticket's per-epoch tokens (the
+  index's reader slot, the backend's `rdTok`/`bOpen`) sit in an invariant at the current epoch, a
+  transaction checks them out at `RLock` (where it reads the epoch) and back in at `End`; `Restore`,
+  holding `s.mu` exclusively (no transaction open, every ticket's tokens in), swaps the pool for the
+  new epoch's (`newTreeIndex`'s slots, `newPost`'s `bkRTx`) and returns the old backend's (for
+  `oldbe.Close`). The writer: the new backend's batch lock holds `lateW` unregistered and `Restore`
+  does not lock it (`restore` reads through `ReadTx`), so the epoch's `writerRes` is deposited at the
+  epoch's first write transaction's `Unlock` (`store.Write`'s spec taking it from the sole writer
+  while the epoch is unregistered). `compactRight γ' (-1)` and `storeCloser s γ'` are re-made from the
+  new scheduler as at `NewStore`; the old `storeCloser` is spent by `close(s.stopc)` and
+  `fifoSched.Stop()` (`Scheduler.Stop`'s spec takes the stop token and the queue). Certificates
+  (`cok`) stay the object's: the restored log extends every certified one (the image is of a longer
+  committed prefix: `applySnapshot` panics on `snapi ≤ appliedi`). The watch side: `WsOk.st_flags`
+  relaxed to "an unsynced watcher may carry `restore = true`, its `minRev` at most `curRev + 1`",
+  `syncWatchers`' `chooseAll` proof using it, and `watchableStore.Restore`'s moves (`Ws` to `Wu`,
+  the flag set) against `isClientWatcher`'s delivered-up-to (unchanged: no event is delivered by a
+  move). Cost: every predicate over `γ : StoreNames` restated over `(σ, γ)`: the store's proofs
+  (mvcc, about 40 files), txn, apply (23), the request path and the cache's readers (14), the watch
+  store; very large, a stage of its own before S-j.
+- *(B) `store.Restore` an axiom over `isFifo` only* (D22d (B)): rejected in D22d, and now also false
+  as a spec over `isStore` (the fields).
+- *(C) S-j at a fresh store object* (the receiver builds a new `store` instead of restoring): not the
+  Go code.
+- *Recommendation:* (A), as stage S-g2 between S-g and S-j; S-j2 (`applySnapshot`) depends on it.
+
+**For S-j.** (1) `restore`'s data case wants `restoreLogOk R` of the image's log `kvModel γk A' =
+[[], []] ++ R` (lemmas from the KV model: its revisions are non-empty, well formed and bounded, and
+the plain workload's puts carry no lease), the index writer at `[[], []]` (from `newTreeIndex` and two
+`idxWriter_commit`s) and the whole `currentRev`. (2) The no-compaction token of the new backend:
+`OpenSnapshotBackend`'s post with `keyImage_noCmp` of `imageAt`'s `keyImage`. (3) The stop token:
+`NewServer`'s post `srvKVCloser srv E`; S-j threads it through `EtcdServer.Start` → `start` → `run`'s
+loop invariant (`isServerRun`, the apply thread's resources) → `applyAll` → `applySnapshot`, which
+gives it to `kv.Restore` and gets the new epoch's back. (4) The restored store's invariants: the
+writer at the image's log with its receipts (item 4), a fresh revision budget, the sole writer
+(`soleLog` from `restoreLogOk_len`), the new epoch's reader pool and compaction right (D22l (A)), and
+`srvWTPool` re-allocated over the new backend.

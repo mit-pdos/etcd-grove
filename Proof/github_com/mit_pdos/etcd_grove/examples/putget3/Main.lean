@@ -73,7 +73,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ bootLog Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS N id₁ id₂ id₃ bootLog Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hms hAs
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
@@ -166,7 +166,7 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hnoc) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      (by simp [dir3]) Hlg Hck Haf Hbuq) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -185,7 +185,7 @@ theorem Main.wp_proof
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
-      (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq Hnoc)
+      (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq)
     $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -205,7 +205,7 @@ theorem Main.wp_proof
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
       (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
       (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).2.1.symm,
-        (id_ne id₁ id₂ id₃ bootLog Hbf).2.2.symm]) Hlg Hck Haf Hbuq Hnoc)
+        (id_ne id₁ id₂ id₃ bootLog Hbf).2.2.symm]) Hlg Hck Haf Hbuq)
     $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)

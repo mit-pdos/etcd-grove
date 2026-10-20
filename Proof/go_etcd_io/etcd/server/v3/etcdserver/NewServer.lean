@@ -508,12 +508,12 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
   wp_apply (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
-      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl Hrb Hnocmp)
-    $$ [Hview Hlate Hwkv Hrts Hlrd Hidx Hcok]
+      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl Hrb)
+    $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
       Hwrds, Hwcl⟩
   · iframe #
-    iframe Hview Hlate Hwkv Hrts Hlrd Hidx Hcok
+    iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
   ihave Hsrs := replicate_mono _ (mvcc.storeReader kst γw.st) 64
@@ -1010,6 +1010,12 @@ theorem NewServer.wp_proof
     iexists ws, γw
     iframe #
     ipureintro; rfl
+  isplitl [Hwcl]
+  · -- (D22 S-g) the KV's closer, kept (until then dropped here)
+    unfold srvKVCloser
+    iexists ws
+    iframe #
+    iexact Hwcl
   unfold srvBuilt
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr

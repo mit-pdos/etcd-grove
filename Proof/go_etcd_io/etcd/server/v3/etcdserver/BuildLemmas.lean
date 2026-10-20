@@ -58,12 +58,12 @@ theorem server_kv_watchable_of
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : val)
     (N : Nat) (γi : mvcc.IdxNames) (γok : GName) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) (hnc : mvcc.backendNoCompaction) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.keySized d.γB d.P d.be ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.lateReg d.gx ∗
+        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         ownToks d.γB.wb (N + 2) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
@@ -90,24 +90,25 @@ theorem server_kv_watchable_of
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
         mvcc.wsCloser ws st γw.st }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hrg, Hw, Hrts, Hlrd, #Hle, Hif, Hok⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hif, Hok⟩ HΦ
   ihave #Hsb := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk γb $$ [$Hbpkg $Hsch $Hb $Hsz]
   rw [show N + 2 = (N + 1) + 1 by omega]
   icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
-  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok hcfg hrb hnc)
-    $$ [Hv Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
+  iapply (hNew lg _ le cfg (some d) γb γl Pk f γi γok hcfg hrb)
+    $$ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd Hif Hok]
   · iframe Hpkg Hle Hif Hok
     isplitr
     · iintro %s %γ %hγ
       iapply Hsb $$ %s %γ %hγ
     rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
+      show mvcc.kbNoCmp (GF := GF) (some d) γb = mvcc.bkNoCmp d.γB from rfl,
       show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
       show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     unfold backend.wbTok
-    iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
+    iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
   iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl⟩
   obtain ⟨hb, hl, hk, hi, hc⟩ := Hγ

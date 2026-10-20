@@ -87,8 +87,8 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0 Hrb0 Hnc
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok⟩
+  intro lg b le cfg kb γb γl P f wq γi γok Hcfg0 Hrb0
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -335,12 +335,27 @@ theorem mvcc.NewStore.wp_proof
   · rw [show (DFrac.own 1 : DFrac) = DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half from hsplit]
     iapply ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2
     iframe HcmpM HcmpB
-  -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
+  -- `s.restore()` on the fresh backend (no revision after the initial log's, `R = []`): nothing
+  -- changes (`err == nil`); the backend's no-compaction token consumed (D22 S-g)
+  have hbm : mvcc.bucketMap ([[], []] ++ ([] : mvcc.Log)) = (∅ : mvcc.Bucket) := by
+    rw [List.append_nil]; exact mvcc.bucketMap_init
+  have hcv : (W64 (((([[], []] ++ ([] : mvcc.Log)).length : Nat) : Int) - 1) : w64) = W64 1 := rfl
+  ihave Hbv2 : mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ([[], []] ++ ([] : mvcc.Log)))
+      $$ [Hbv2]
+  · rw [hbm]; iexact Hbv2
+  ihave Hncmp : mvcc.kbNoCmp γ.kb γ.bucket $$ [Hncmp]
+  · rw [hγk, hγb]; iexact Hncmp
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ %Hnc [$Hbv2 $HcurB $HcmpF $revMu]
-      as ⟨Hbv2, HcurB, HcmpF, revMu⟩
-  · iframe #; ipureintro; exact Hlgnn
+      %(1 : Qp).half %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ %([] : mvcc.Log)
+      %mvcc.restoreLogOk_nil %(fun h => by simp at h) [$Hbv2 $HcurB $HcmpF $revMu $Hncmp]
+      as ⟨Hbv2, -, HcurB, HcmpF, revMu⟩
+  · rw [mvcc.restoreIdxPre_nil]; iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
+  ihave Hbv2 : mvcc.bucketView γ (1 : Qp).half (∅ : mvcc.Bucket) $$ [Hbv2]
+  · rw [← hbm]; iexact Hbv2
+  ihave HcurB : («$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half} (W64 1 : w64) :
+      IProp GF) $$ [HcurB]
+  · rw [← hcv]; iexact HcurB
   ihave HcmpF2 : («$r0_ptr».[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half •
       DFrac.own (1 : Qp).half} (W64 (-1) : w64) : IProp GF) $$ [HcmpF]
   · rw [← hsplit]; iexact HcmpF
