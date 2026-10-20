@@ -125,6 +125,14 @@ fix is needed, below).
   pin is `b3c29bc17`; re-translated: only `waitCancelSubstreams` changes in
   `Code/go_etcd_io/etcd/client/v3.lean` (one `Add(1)` per goroutine); its first-call proof no longer
   adds `0` (the join idiom starts at the fresh counter). Gates as before.
+- **R3a (a synchronous SPSC channel; done).** `SyncSpsc.lean`, a local copy of Perennial's SPSC
+  idiom for unbuffered channels whose tokens record each side's pending operation (the
+  `sent`/`recv` histories carry a flag; the invariant needs it in the pending states), with
+  `sspsc_sync`: the producer's and the consumer's tokens give `sent = recv`. `respc` and every
+  substream's `recvc` use it; `outc` (buffered) keeps Perennial's. **Perennial gap** (to propose
+  there on its own, not changed here): `Idioms/Spsc.lean` cannot show that nothing is in flight on
+  an unbuffered channel when both sides stand outside an operation (D24, "S1c's findings").
+  Gates: build 5769 jobs; the rest as before.
 - **For the user** (done, kept for the record): F1 and F2 are pushed (`watch-resume-fixes` = `a8a459955`, the pin; on
   `goose-lean` as `c15c7dda8`, on the collaborator's D22 commits). Push F3: `watch-resume-fixes`
   at `16f73d6eb` (in `/shared/etcd-goose-lean-wr`), and cherry-pick it onto `goose-lean`; S1c then

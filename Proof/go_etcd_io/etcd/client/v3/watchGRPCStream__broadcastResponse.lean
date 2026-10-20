@@ -104,9 +104,9 @@ theorem watchGRPCStream.broadcastResponse.wp_proof :
       · ipureintro; exact ⟨rfl, rfl⟩
       isplit
       · ihave #H := Hspsc
-        unfold isSpsc
+        unfold isSspsc
         icases H with ⟨$, -⟩
-      iapply spsc_send_au P.γr P.recvc _ _ sent wr _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hel]
+      iapply sspsc_send_au P.γr P.recvc _ _ sent wr _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hel]
       · iframe
       inext
       iintro Hprod

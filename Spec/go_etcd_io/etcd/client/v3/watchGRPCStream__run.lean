@@ -47,7 +47,7 @@ abbrev watchGRPCStream.run.spec : Prop :=
       wgsF G.wgs go!"resuming" ↦ s0 ∗ sliceOwn s0 [] ∗
       wgsF G.wgs go!"closeErr" ↦ GoInterface.nil ∗
       wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
-      spscConsumer G.γr ([] : List Loc) ∗ spscProducer G.γr ([] : List Loc) ∗
+      sspscConsumer G.γr ([] : List Loc) ∗ sspscProducer G.γr ([] : List Loc) ∗
       monoListAuthOwn G.γep 1 ([] : List EpInfo) ∗
       ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Pending ∗ wgAdder G.wgs ∗ threadTok ∗
       ghostMapAuth G.γws 1 (∅ : GMap Loc Unit) }}

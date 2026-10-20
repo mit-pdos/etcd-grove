@@ -43,7 +43,7 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
       wgsF G.wgs go!"substreams" ↦ m0 ∗ ownMap m0 (DFrac.own 1) (∅ : GMap w64 Loc) ∗
       wgsF G.wgs go!"resuming" ↦ s0 ∗ sliceOwn s0 [] ∗
       wgsF G.wgs go!"resumec" ↦ rc ∗ ownBroadcastChan rc γrc iprop(True) .Pending ∗
-      spscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps }}
+      sspscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"newWatchClient")) (Val #()))
   {{ (wc err : GoInterface), RET (PairV #wc #err);
       ∃ (m' : Loc) (s' : GoSlice) (rc' : Loc) (γrc' : ChanNames),
@@ -56,7 +56,7 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗ v3rpc.watchSpec V.R γs Dn ∗
         monoListAuthOwn G.γep 1 (eps ++ [((γs, sent.length, γc) : EpInfo)])) ∨
        (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err ∗
-        spscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps)) }}
+        sspscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps)) }}
 
 end spec
 

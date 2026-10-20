@@ -358,7 +358,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
   ihave IH : iprop(∃ (rcv : List Loc) (sent : List go_etcd_io.etcd.client.v3.WatchResponse)
       (C : List w64) (bufl : List Loc) (b : GoSlice) (rcf : Loc) (nr : w64)
       (t : _root_.Perennial.time.Time) (cl : w64),
-      "Hcons" ∷ spscConsumer P.γr rcv ∗
+      "Hcons" ∷ sspscConsumer P.γr rcv ∗
       "Hprod" ∷ spscProducer P.γ.spsc sent ∗ "Hauth" ∷ monoListAuthOwn P.γ.cur 1 C ∗
       "%HC" ∷ ⌜C.length = sent.length + 1 ∧ bufl.length ≤ rcv.length ∧ C.getLast? = some cl⌝ ∗
       "#Hcur" ∷ monoListIdxOwn P.γhi (rcv.length - bufl.length) cl ∗
@@ -560,10 +560,10 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     · ipureintro; rfl
     isplitr
     · ihave #Hrv' := Hrecvc
-      unfold isSpsc
+      unfold isSspsc
       icases Hrv' with ⟨#Hic, -⟩
       iexact Hic
-    iapply spsc_rcv_au P.γr P.recvc _ _ rcv _ $$ Hrecvc [$Hlc1 $Hlc2] Hcons
+    iapply sspsc_rcv_au P.γr P.recvc _ _ rcv _ $$ Hrecvc [$Hlc1 $Hlc2] Hcons
     inext
     iintro %wr %ok Hrecv
     cases ok

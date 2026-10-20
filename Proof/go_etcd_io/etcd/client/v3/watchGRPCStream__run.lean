@@ -166,7 +166,7 @@ theorem cur2St_mono (V : WEnv GF) (γs : StreamNames) {Dm Dm' : List v3rpc.Watch
 /-- **What `run` holds of a substream in its phase** (but its id field). -/
 def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF) :
     WPh → IProp GF
-  | .queued si => iprop(spscProducer P.γr ([] : List Loc) ∗
+  | .queued si => iprop(sspscProducer P.γr ([] : List Loc) ∗
       monoListAuthOwn P.γhi 1 [P.rev - W64 1] ∗ monoListAuthOwn P.γh2 1 [P.rev - W64 1] ∗
       wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} P.rev ∗ psQ P ∗
       (match si with
@@ -174,7 +174,7 @@ def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : W
        | none => iprop(True)))
   | .reg X => iprop(∃ (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat)
       (sent : List Loc) (C : List w64),
-      regFacts V γs Dm P X w rg fcs lo ∗ spscProducer P.γr sent ∗ monoListAuthOwn P.γhi 1 C ∗
+      regFacts V γs Dm P X w rg fcs lo ∗ sspscProducer P.γr sent ∗ monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
         ⌜C.length = sent.length + 1 ∧ sent ≠ []⌝ ∗ (∃ hi : w64, ⌜C.getLast? = some hi⌝ ∗
           cursorOk V P Dm w rg lo hi) ∗ psAt P sent.length) ∗
@@ -256,7 +256,7 @@ def runCore (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b : Nat) (clm csm
     wgsF G.wgs go!"substreams" ↦ mref ∗ ownMap mref (DFrac.own 1) S.M ∗
     wgsF G.wgs go!"resuming" ↦ s ∗ sliceOwn s S.l ∗
     wgsF G.wgs go!"closeErr" ↦ e ∗ statusErrOk e ∗
-    cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ spscConsumer G.γr rcv ∗
+    cliSendTok (Req := v3rpc.pbWatchRequest) γs S.L ∗ sspscConsumer G.γr rcv ∗
     ⌜rcv.length = b + S.Dm.length⌝ ∗ epochSt G γs b ∗ v3rpc.downLbW γs S.Dm ∗ ⌜gOk S U⌝ ∗
     ([∗list] i ∈ S.ansd, ansH γs i) ∗ ([∗list] X ∈ S.regs, idH γs X) ∗
     (□ [∗list] m ∈ S.Dm, respInfo m) ∗
@@ -1991,9 +1991,8 @@ theorem watchGRPCStream.run.wp_proof
         (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev) (fun _ => iprop(True)) γo
         $$ Houtc [Houto] with ⟨%γsp, #Hosp, Hoprod, Hocons⟩
       · iright; iexact Houto
-      imod start_spsc (V := Loc) recvc (client.recvElem V Ppre) (fun _ => iprop(True)) γrc2
-        $$ Hrecvc [Hrecvo] with ⟨%γrr, #Hrsp, Hrprod, Hrcons2⟩
-      · ileft; iexact Hrecvo
+      imod start_sspsc (V := Loc) recvc (client.recvElem V Ppre) (fun _ => iprop(True)) γrc2
+        $$ Hrecvc Hrecvo with ⟨%γrr, #Hrsp, Hrprod, Hrcons2⟩
       let P : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur2 (cplOf P0)) outc recvc γrr γhi γh2 dnc γdn γx
         P0.sr γps
@@ -2001,8 +2000,8 @@ theorem watchGRPCStream.run.wp_proof
           (fun _ => iprop(True)) : IProp GF) =
           isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.EM) P.γ V.pfx P.o P.rev)
             (fun _ => iprop(True)) := rfl
-      have eq2 : (isSpsc γrr recvc (client.recvElem V Ppre) (fun _ => iprop(True)) : IProp GF) =
-          isSpsc P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) := rfl
+      have eq2 : (isSspsc γrr recvc (client.recvElem V Ppre) (fun _ => iprop(True)) : IProp GF) =
+          isSspsc P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) := rfl
       irevert Hosp Hrsp
       rw [eq1, eq2]
       iintro #Hosp #Hrsp
@@ -2328,12 +2327,12 @@ theorem watchGRPCStream.run.wp_proof
       · ipureintro; rfl
       isplit
       · ihave #H := Hrspsc
-        unfold isSpsc
+        unfold isSspsc
         icases H with ⟨$, -⟩
       iunfold client.runCore at Hcore
       icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
         Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, #Hinfo, Hwsa, Hels, Had, Htt, Hdn⟩
-      iapply spsc_rcv_au G.γr G.respc _ _ rcv _ $$ Hrspsc [$Hlc1 $Hlc2] Hrcons
+      iapply sspsc_rcv_au G.γr G.respc _ _ rcv _ $$ Hrspsc [$Hlc1 $Hlc2] Hrcons
       inext
       iintro %p %ok Hrecv
       cases ok
@@ -3180,7 +3179,7 @@ theorem watchGRPCStream.run.wp_proof
             icases HP' with ⟨-, -, #Frecvc, -, -, #Hrecvc, -⟩
             simp only [hMX, Option.isSome_some, _root_.decide_true, Option.getD_some]
             wp_auto
-            wp_apply wp_spsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
+            wp_apply wp_sspsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
               $$ [Hprod]
             · iframe Hrecvc Hprod
             wp_pures
@@ -4259,7 +4258,7 @@ theorem watchGRPCStream.run.wp_proof
       icases HP' with ⟨-, -, #Frecvc, -, -, #Hrecvc, -⟩
       wp_pures
       wp_auto
-      wp_apply wp_spsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
+      wp_apply wp_sspsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
         $$ [Hprod]
       · iframe Hrecvc Hprod
       wp_pures
@@ -4355,7 +4354,7 @@ theorem watchGRPCStream.run.wp_proof
       icases HP' with ⟨-, -, #Frecvc, -, -, #Hrecvc, -⟩
       wp_pures
       wp_auto
-      wp_apply wp_spsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
+      wp_apply wp_sspsc_close P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) sent
         $$ [Hprod]
       · iframe Hrecvc Hprod
       wp_pures

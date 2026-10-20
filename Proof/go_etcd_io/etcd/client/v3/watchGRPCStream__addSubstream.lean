@@ -56,7 +56,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, -⟩
     · ipureintro; exact He1.1
     (try wp_auto)
-    wp_apply wp_spsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
+    wp_apply wp_sspsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
     (try wp_auto)
     iapply HΦ
     iframe
@@ -88,7 +88,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, -⟩
     · ipureintro; exact He1.1
     (try wp_auto)
-    wp_apply wp_spsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
+    wp_apply wp_sspsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
     (try wp_auto)
     iapply HΦ
     iframe

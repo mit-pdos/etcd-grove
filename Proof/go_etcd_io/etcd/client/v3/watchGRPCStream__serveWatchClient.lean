@@ -45,7 +45,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   subst Hci
   wp_auto
   ihave HI : iprop(∃ (L : List v3rpc.WatchRespM) (sent : List Loc),
-      "Htok" ∷ cliRecvTok (Rep := v3rpc.pbWatchResponse) γs L ∗ "Hprod" ∷ spscProducer G.γr sent ∗
+      "Htok" ∷ cliRecvTok (Rep := v3rpc.pbWatchResponse) γs L ∗ "Hprod" ∷ sspscProducer G.γr sent ∗
       "Hcnt" ∷ monoNatAuthOwn γc 1 sent.length ∗
       "%Hlen" ∷ ⌜sent.length = sent0.length + L.length⌝) $$ [Htok Hprod Hcnt]
   · iexists [], sent0
@@ -72,14 +72,14 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       · ipureintro; exact ⟨rfl, rfl⟩
       isplit
       · ihave #H := Hspsc
-        unfold isSpsc
+        unfold isSspsc
         icases H with ⟨$, -⟩
       iunfold v3rpc.watchSpec at Hspec
       iunfold v3rpc.watchStreamSpec at Hspec
       ihave Hwd := Hspec $$ %L.length %m
       icases Hwd with ⟨Hto, -⟩
       ihave HDn := Hto $$ HDn
-      iapply spsc_send_au G.γr G.respc _ _ sent resp _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hm HDn]
+      iapply sspsc_send_au G.γr G.respc _ _ sent resp _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hm HDn]
       · iframe
         iunfold respcE
         iexists e, sent0.length, γs, γc

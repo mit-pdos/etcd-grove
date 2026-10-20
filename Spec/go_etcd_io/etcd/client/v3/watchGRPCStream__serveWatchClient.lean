@@ -39,7 +39,7 @@ abbrev watchGRPCStream.serveWatchClient.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
       v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp V.R.γ) Dn cd' ∗ v3rpc.watchSpec V.R γs Dn ∗
       cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-      monoListIdxOwn G.γep e ((γs, sent.length, γc) : EpInfo) ∗ spscProducer G.γr sent ∗
+      monoListIdxOwn G.γep e ((γs, sent.length, γc) : EpInfo) ∗ sspscProducer G.γr sent ∗
       monoNatAuthOwn γc 1 sent.length }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"serveWatchClient")) (Val #wc))
   {{ RET #(); True }}

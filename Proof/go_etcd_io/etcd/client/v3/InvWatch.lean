@@ -76,6 +76,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvClient
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
 public import Spec.google_golang_org.grpc.status.FromError
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
+public import Proof.go_etcd_io.etcd.client.v3.SyncSpsc
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.MonoList
@@ -516,7 +517,7 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
     wsF P.ws go!"donec" ↦□ P.donec ∗
     isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.EM) P.γ V.pfx P.o P.rev)
       (fun _ => iprop(True)) ∗
-    isSpsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
+    isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Unknown ∗
     context.isContext P.ctx P.cs ∗
     isChanBag P.γret P.retc (retcP V P.o P.rev P.sr) ∗
@@ -589,7 +590,7 @@ def respcE (V : WEnv GF) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
 epoch the forwarder served, its count at the responses sent. -/
 def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
   iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (sent : List Loc),
-    monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ spscProducer γr sent ∗
+    monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ sspscProducer γr sent ∗
     monoNatAuthOwn γc 1 sent.length ∗ ⌜b ≤ sent.length⌝)
 
 /-- **What `errc` carries** (`serveWatchClient`'s receive error; a bag): a stream error or
@@ -683,7 +684,7 @@ def isWGS (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) : IProp GF :=
     isChanBag G.γreq G.reqc (reqP V) ∗ isChanBag G.γerr G.errc (errP G.γr G.γep) ∗
     isChanBag G.γclosing G.closingc (closingP V G) ∗
     ownBroadcastChan G.donec G.γdone (closeErrPub G.wgs) .Unknown ∗
-    isSpsc G.γr G.respc (respcE V G.γep) (fun _ => iprop(False)))
+    isSspsc G.γr G.respc (respcE V G.γep) (fun _ => iprop(False)))
 
 instance isWGS_persistent (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) :
     Persistent (isWGS V G callSl) := by
@@ -730,7 +731,7 @@ def nilOut (l : List Loc) (ws : Loc) : List Loc :=
 /-- **The right to send the response `wr` to the substream of `P`**: `recvc`'s producer side at
 `sent` with `wr`'s content as its next element. -/
 def sendCap1 (V : WEnv GF) (P : WsPrm GF) (sent : List Loc) (wr : Loc) : IProp GF :=
-  iprop(wsIs V P ∗ spscProducer P.γr sent ∗ recvElem V P sent.length wr)
+  iprop(wsIs V P ∗ sspscProducer P.γr sent ∗ recvElem V P sent.length wr)
 
 /-- A substream's `donec` (persistent): its field and the broadcast channel (`joinSubstreams` waits
 for it). -/
@@ -745,21 +746,21 @@ instance donecOf_persistent (ws : Loc) : Persistent (donecOf (GF := GF) ws) := b
 `sent`), with the response's content for any location `wr` it will be at (`Ψ wr`: the facts about
 the new `*WatchResponse`, which `dispatchEvent` allocates). -/
 def sendCap (V : WEnv GF) (P : WsPrm GF) (sent : List Loc) (Ψ : Loc → IProp GF) : IProp GF :=
-  iprop(wsIs V P ∗ spscProducer P.γr sent ∗ (∀ wr : Loc, Ψ wr -∗ recvElem V P sent.length wr))
+  iprop(wsIs V P ∗ sspscProducer P.γr sent ∗ (∀ wr : Loc, Ψ wr -∗ recvElem V P sent.length wr))
 
 /-- After a successful send of `wr`: the producer's side advanced. -/
 def sendDone (P : WsPrm GF) (sent : List Loc) (wr : Loc) : IProp GF :=
-  iprop(spscProducer P.γr (sent ++ [wr]))
+  iprop(sspscProducer P.γr (sent ++ [wr]))
 
 /-- After a failed send of `wr` (the substream's goroutine stopped): the producer's side as it was,
 `wr`'s content back, and the goroutine's stop published (`γx`, from its closed `donec`). -/
 def sendFail (V : WEnv GF) (P : WsPrm GF) (sent : List Loc) (wr : Loc) : IProp GF :=
-  iprop(spscProducer P.γr sent ∗ recvElem V P sent.length wr ∗
+  iprop(sspscProducer P.γr sent ∗ recvElem V P sent.length wr ∗
     dghostVar P.γx DFrac.discard true)
 
 /-- **The right to close the substream `ws`'s `recvc`** (its producer side). -/
 def recvcCloser (V : WEnv GF) (ws : Loc) : IProp GF :=
-  iprop(∃ (P : WsPrm GF) (sent : List Loc), ⌜P.ws = ws⌝ ∗ wsIs V P ∗ spscProducer P.γr sent)
+  iprop(∃ (P : WsPrm GF) (sent : List Loc), ⌜P.ws = ws⌝ ∗ wsIs V P ∗ sspscProducer P.γr sent)
 
 /-- The `WatchResponse` `dispatchEvent` makes of a response holding `m` whose header pointer is
 `h` and events slice `sl`. -/

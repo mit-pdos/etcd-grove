@@ -50,7 +50,7 @@ abbrev watchGRPCStream.serveSubstream.spec : Prop :=
       retcRes P ∗
       spscProducer P.γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListAuthOwn P.γ.cur 1 [P.rev - W64 1] ∗
-      spscConsumer P.γr ([] : List Loc) ∗ monoListIdxOwn P.γhi 0 (P.rev - W64 1) ∗
+      sspscConsumer P.γr ([] : List Loc) ∗ monoListIdxOwn P.γhi 0 (P.rev - W64 1) ∗
       cur2Pos P 0 0 ∗ (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 0 (P.rev - W64 1)) ∗
       lifeStart P 0 ∗ ownBroadcastChan rc γrc iprop(False) .Unknown ∗
       ownBroadcastChan P.donec P.γdn (dghostVar P.γx DFrac.discard true) .Pending ∗
