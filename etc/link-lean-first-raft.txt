@@ -206,6 +206,7 @@ raftLog__lastIndex: unstable__maybeLastIndex
 raftLog__firstIndex: unstable__maybeFirstIndex
 raftLog__term: unstable__maybeTerm raftLog__firstIndex raftLog__lastIndex
 raftLog__lastEntryID: raftLog__lastIndex raftLog__term
+raftLog__subterm: raftLog__firstIndex raftLog__lastIndex raftLog__slice raftpb_Entry__GetTerm raftpb_Entry__GetSubterm
 raftLog__matchTerm: raftLog__term
 raftLog__commitTo: raftLog__lastIndex
 raftLog__maybeCommit: raftLog__matchTerm raftLog__commitTo

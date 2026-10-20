@@ -1607,23 +1607,23 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0
     · iapply witR_keep γ id r _ (by wk) (by wk) (by wk) $$ Hw
     dsimp only [psendMsgs, RState.full, pappend]
     iexact Hc
-  | askWitness r vs h1 h2 h3 h4 h5 =>
+  | askWitness r vs ls h1 h2 h3 h4 h5 h6 =>
     iintro #Hrc Hregs #HS Hrecv Hcr Htk Hown
     iapply fupd_frame_left
     iframe Hregs
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hw, #Hc⟩
     ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hw Hc
-    icases ownRaftGhost_wvote γ r.cfg.cfg id r.p vs h1 h3 h4 h5 $$ Henv Hg with ⟨#Hm, Hg⟩
+    icases ownRaftGhost_wvote γ r.cfg.cfg id r.p vs ls h1 h3 h4 h5 h6 $$ Henv Hg with ⟨#Hm, Hg⟩
     imod ownRaftGhost_step_sendW γ id r.p
       (Msg.mkV .wvote id r.cfg.cfg.wit r.p.term false (plogLast r.p.base r.p.log).index'
-        (plogLast r.p.base r.p.log).term' (plogLastSub r.p.log) (W64 0) [] vs []) (Or.inr (Or.inl rfl))
+        (plogLast r.p.base r.p.log).term' ls (W64 0) [] vs []) (Or.inr (Or.inl rfl))
       $$ Hm Hrecv Hcr Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr
     isplitr
-    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.askWitness r vs h1 h2 h3 h4 h5) HB noApp0 HI)
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (B := B) (fun _ _ h => h.1) (StepR.askWitness r vs ls h1 h2 h3 h4 h5 h6) HB noApp0 HI)
     isplitr
     · iapply witR_keep γ id r _ (by wk) (by wk) (by wk) $$ Hw
     dsimp only [psendMsgs, RState.full, pappend]

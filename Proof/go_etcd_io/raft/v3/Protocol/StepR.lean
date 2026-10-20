@@ -470,16 +470,17 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [] { r with p := (psendMsgs r.p
         [Msg.mkV .wapp id r.cfg.cfg.wit r.p.term false i r.p.term r.p.sub (W64 0) [] vs []]) }
   /-- (2026-10-20) `StepC.askWitness` at the configuration. -/
-  | askWitness (r : RState) (vs : List w64) :
+  | askWitness (r : RState) (vs : List w64) (ls : w64) :
       r.p.role = .candidate →
       r.cfg.cfg.wit ≠ W64 0 →
       size r.cfg.cfg.incoming / 2 ≤ size (granted r.p.votes ∩ r.cfg.cfg.incoming) →
       (r.cfg.cfg.outgoing ≠ ∅ →
         size r.cfg.cfg.outgoing / 2 ≤ size (granted r.p.votes ∩ r.cfg.cfg.outgoing)) →
       vs ≡ₚ elements (domSet r.p.votes) →
+      (ls = W64 0 ∨ ls = plogLastSub r.p.log) →
       StepR r [] { r with p := (psendMsgs r.p
         [Msg.mkV .wvote id r.cfg.cfg.wit r.p.term false (plogLast r.p.base r.p.log).index'
-          (plogLast r.p.base r.p.log).term' (plogLastSub r.p.log) (W64 0) [] vs []]) }
+          (plogLast r.p.base r.p.log).term' ls (W64 0) [] vs []]) }
   /-- (2026-10-20) `StepC.sendWPre`. -/
   | sendWPre (r : RState) (m : Msg) :
       r.cfg.cfg.wit ≠ W64 0 →
@@ -516,7 +517,7 @@ theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {
   | newSub r x h1 h2 h3 h4 h5 => exact .newSub r x h1 h2 h3 h4 h5
   | sendWApp r i e vs h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
     exact .sendWApp r i e vs h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
-  | askWitness r vs h1 h2 h3 h4 h5 => exact .askWitness r vs h1 h2 h3 h4 h5
+  | askWitness r vs ls h1 h2 h3 h4 h5 h6 => exact .askWitness r vs ls h1 h2 h3 h4 h5 h6
   | sendWPre r m h1 h2 h3 => exact .sendWPre r m h1 h2 h3
   | _ =>
     first
