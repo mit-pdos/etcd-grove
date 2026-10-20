@@ -182,14 +182,13 @@ theorem whsRest_nn (p : Loc) (dq : DFrac) (σ : WHS) :
 /-- A freshly allocated `*pb.WitnessHardState` and `*pb.HardState` (hidden fields zero) whose
 cells hold `σ`'s: an owned witness state (`cloneState`'s). -/
 theorem whsOwn_of_struct (p : Loc) (v : raftpb.WitnessHardState) (hv : raftpb.HardState)
-    (σ : WHS) (E : CoPset) (Hu : v.unknownFields' = slice.nil)
-    (Hhu : hv.unknownFields' = slice.nil) :
-    (p ↦ v ∗ v.State' ↦ hv ∗ cellRO hv.Term' σ.term ∗ cellRO hv.Vote' σ.vote ∗
+    (σ : WHS) (E : CoPset) :
+    (⌜v.unknownFields' = slice.nil ∧ hv.unknownFields' = slice.nil⌝ ∗ p ↦ v ∗ v.State' ↦ hv ∗ cellRO hv.Term' σ.term ∗ cellRO hv.Vote' σ.vote ∗
       cellRO hv.Commit' σ.commit ∗ cellRO v.LastLogIndex' σ.li ∗ cellRO v.LastLogTerm' σ.lt ∗
       cellRO v.LastLogSubterm' σ.ls ∗ cellRO v.Lead' σ.lead ∗
       v.ReplicationSet' ↦*□ σ.rs ∗ v.ReplicationSetOutgoing' ↦*□ σ.rsOut : IProp GF) ⊢
       |={E}=> whsOwn p σ := by
-  iintro ⟨Hp, Hh, #cT, #cV, #cC, #cLi, #cLt, #cLs, #cLd, #Hrs, #Hro⟩
+  iintro ⟨%Huu, Hp, Hh, #cT, #cV, #cC, #cLi, #cLt, #cLs, #cLd, #Hrs, #Hro⟩
   ihave %Hnn := typedPointsto_not_null $$ Hp
   ihave %Hhn := typedPointsto_not_null $$ Hh
   icases typedPointsto_split _ _ _ $$ Hp with Hp
@@ -199,7 +198,7 @@ theorem whsOwn_of_struct (p : Loc) (v : raftpb.WitnessHardState) (hv : raftpb.Ha
   icases typedPointsto_split _ _ _ $$ Hh with Hh
   simp only [TypedPointsto.typedPointstoDef]
   icases Hh with ⟨hstate, Term, Vote, Commit, hunknownFields, hsizeCache, -⟩
-  rw [Hu, Hhu]
+  rw [Huu.1, Huu.2]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   ihave Hnil' : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []

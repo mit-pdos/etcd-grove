@@ -352,6 +352,8 @@ public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Proof.go_etcd_io.raft.v3.witness__cloneState
+public import Proof.go_etcd_io.raft.v3.witness__handleAppend
 public import Proof.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
 public import Proof.go_etcd_io.raft.v3.witness__handleHeartbeat
 public import Proof.go_etcd_io.raft.v3.witness__isHealthy
@@ -1581,9 +1583,17 @@ theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
     tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
   tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
 
+theorem witness.wp_cloneState :
+    witness.cloneState.spec (GF := GF) (hG := hG) :=
+  witness.cloneState.wp_proof raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm raftpb.WitnessHardState.wp_GetLead raftpb.WitnessHardState.wp_GetReplicationSet raftpb.WitnessHardState.wp_GetReplicationSetOutgoing
+
 theorem witness.wp_handleAppendNoUpdate :
     witness.handleAppendNoUpdate.spec (GF := GF) (hG := hG) :=
   witness.handleAppendNoUpdate.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
+
+theorem witness.wp_handleAppend :
+    witness.handleAppend.spec (GF := GF) (hG := hG) :=
+  witness.handleAppend.wp_proof witness.wp_handleAppendNoUpdate raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex
 
 theorem witness.wp_handleHeartbeat :
     witness.handleHeartbeat.spec (GF := GF) (hG := hG) :=
