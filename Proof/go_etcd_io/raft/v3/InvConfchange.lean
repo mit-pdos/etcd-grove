@@ -109,6 +109,13 @@ def removeCfg (id : w64) (c : CfgM) : CfgM :=
            learnersNext := GMap.delete id c.learnersNext,
            wit := if id = c.wit then W64 0 else c.wit }
 
+/-- Without a witness `removeCfg` touches only the three sets. -/
+theorem removeCfg_nw {id : w64} {c : CfgM} (h : c.wit = W64 0) :
+    removeCfg id c =
+      { c with incoming := GMap.delete id c.incoming, learners := GMap.delete id c.learners,
+               learnersNext := GMap.delete id c.learnersNext } := by
+  unfold removeCfg; rw [h]; split <;> rfl
+
 /-- `Changer.remove(id)`: nothing for an untracked id; otherwise out of the incoming
 voters and the learner sets, and untracked unless it is an outgoing voter. -/
 def removeM (id : w64) (s : CCState) : CCState :=
@@ -179,6 +186,15 @@ to non-witness learner" at the tracked witness not a learner (`makeLearnerM` oth
 def makeLearnerO (id : w64) (s : CCState) : Option CCState :=
   if s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0 then none
   else some (makeLearnerM id s)
+
+/-- Without a witness `makeVoter` and `makeLearner` do not fail. -/
+theorem makeVoterO_nw {id : w64} {s : CCState} (h : s.cfg.wit = W64 0) :
+    makeVoterO id s = some (makeVoterM id s) := by
+  unfold makeVoterO; rw [h]; simp
+
+theorem makeLearnerO_nw {id : w64} {s : CCState} (h : s.cfg.wit = W64 0) :
+    makeLearnerO id s = some (makeLearnerM id s) := by
+  unfold makeLearnerO; rw [h]; simp
 
 /-- One change of `Changer.apply`'s loop: `NodeId = 0` is skipped; `AddNode` (`0`),
 `AddLearnerNode` (`3`), `RemoveNode` (`1`), `UpdateNode` (`2`, nothing) and (2026-10-20, witness

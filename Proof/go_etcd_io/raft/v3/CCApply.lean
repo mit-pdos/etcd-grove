@@ -65,37 +65,84 @@ def ccApplyM (t : raftpb.ConfChangeTransition) (ccs : List ConfChangeSingleM)
     | some (_, false) => simpleM ccs s
     | none => none
 
-/-! `confchange` and the witness (2026-10-20). One change keeps the configuration's witness;
-`LeaveJoint`'s transition (`leaveJointState`) builds a configuration without one -- a gap of the
-model for a witness across reconfiguration (Go keeps `Witnesses[0]`), recorded in
-`notes/raft-witness.md` ("W3b-A") -- so what is shown here is that a witness-free configuration
-stays witness-free, which is all the witness-free (staged) proof needs. -/
+/-! `confchange` and the witness (2026-10-20). Without an `AddWitness` a change keeps the
+configuration's witness or clears it (`remove` of the witness clears `Witnesses[0]`;
+`leaveJointState` keeps it), so a witness-free configuration stays witness-free. -/
 
-theorem applyOne_wit {cc : ConfChangeSingleM} {s s' : CCState} (h : applyOne cc s = some s') :
-    s'.cfg.wit = s.cfg.wit := by
+/-- No `AddWitness` among the changes (`apply` skips a change of node `0`). -/
+def NoAddWit (ccs : List ConfChangeSingleM) : Prop :=
+  ∀ c ∈ ccs, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4
+
+theorem removeM_wit (id : w64) (s : CCState) :
+    (removeM id s).cfg.wit = s.cfg.wit ∨ (removeM id s).cfg.wit = W64 0 := by
+  unfold removeM removeCfg
+  split
+  · simp only
+    split
+    · exact .inr rfl
+    · exact .inl rfl
+  · exact .inl rfl
+
+theorem makeLearnerM_wit (id : w64) (s : CCState) :
+    (makeLearnerM id s).cfg.wit = s.cfg.wit ∨ (makeLearnerM id s).cfg.wit = W64 0 := by
+  unfold makeLearnerM initProgressM
+  split
+  · exact .inl rfl
+  · exact .inl rfl
+  · split
+    · simp only [removeCfg]
+      split
+      · exact .inr rfl
+      · exact .inl rfl
+    · simp only [removeCfg]
+      split
+      · exact .inr rfl
+      · exact .inl rfl
+
+theorem applyOne_wit {cc : ConfChangeSingleM} {s s' : CCState} (h : applyOne cc s = some s')
+    (h4 : cc.NodeId' ≠ W64 0 → cc.Type' ≠ W32 4) :
+    s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
   unfold applyOne at h
-  repeat' split at h
-  all_goals first
-    | (simp only [reduceCtorEq] at h; done)
-    | (simp only [Option.some.injEq] at h; subst h
-       first
-        | rfl
-        | (unfold makeVoterM initProgressM; repeat' split) <;> rfl
-        | (unfold makeLearnerM initProgressM removeCfg; repeat' split) <;> rfl
-        | (unfold removeM removeCfg; repeat' split) <;> rfl)
+  split at h
+  · cases h; exact .inl rfl
+  rename_i h0
+  split at h
+  · unfold makeVoterO at h
+    split at h
+    · cases h
+    · cases h; exact .inl (makeVoterM_shape _ _).2
+  split at h
+  · unfold makeLearnerO at h
+    split at h
+    · cases h
+    · cases h; exact makeLearnerM_wit _ _
+  split at h
+  · cases h; exact removeM_wit _ _
+  split at h
+  · cases h; exact .inl rfl
+  split at h
+  · rename_i h4'; exact absurd h4' (h4 h0)
+  · cases h
 
 theorem applyAll_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
-    (h : applyAll ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
+    (h : applyAll ccs s = some s') (h4 : NoAddWit ccs) :
+    s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
   induction ccs generalizing s with
-  | nil => simp only [applyAll, Option.some.injEq] at h; subst h; rfl
+  | nil => simp only [applyAll, Option.some.injEq] at h; subst h; exact .inl rfl
   | cons cc ccs ih =>
     simp only [applyAll] at h
     cases h1 : applyOne cc s with
     | none => rw [h1] at h; cases h
-    | some s1 => rw [h1] at h; exact (ih h).trans (applyOne_wit h1)
+    | some s1 =>
+      rw [h1] at h
+      have e1 := applyOne_wit h1 (h4 cc (List.mem_cons_self ..))
+      rcases ih h (fun c hc => h4 c (List.mem_cons_of_mem _ hc)) with e | e
+      · rw [e]; exact e1
+      · exact .inr e
 
 theorem applyM_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
-    (h : applyM ccs s = some s') : s'.cfg.wit = s.cfg.wit := by
+    (h : applyM ccs s = some s') (h4 : NoAddWit ccs) :
+    s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
   unfold applyM at h
   cases h1 : applyAll ccs s with
   | none => rw [h1] at h; cases h
@@ -104,21 +151,57 @@ theorem applyM_wit {ccs : List ConfChangeSingleM} {s s' : CCState}
     simp only [Option.bind_some] at h
     split at h
     · cases h
-    · simp only [Option.some.injEq] at h; subst h; exact applyAll_wit h1
+    · simp only [Option.some.injEq] at h; subst h; exact applyAll_wit h1 h4
 
-/-- A witness-free configuration stays witness-free. -/
+/-- Without an `AddWitness` a change keeps the witness or clears it. -/
+theorem ccApplyM_wit {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSingleM}
+    {s s' : CCState} (h4 : NoAddWit ccs) (h : ccApplyM t ccs s = some s') :
+    s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
+  unfold ccApplyM at h
+  split at h
+  · unfold leaveJointM at h
+    split at h
+    · cases h
+    split at h
+    · cases h
+    obtain ⟨rfl, -⟩ := checkedM_some h
+    left; rfl
+  · split at h
+    · unfold enterJointM at h
+      split at h
+      · cases h
+      split at h
+      · cases h
+      split at h
+      · cases h
+      split at h
+      · cases h
+      rename_i s2 hs2
+      obtain ⟨rfl, -⟩ := checkedM_some h
+      have e := applyM_wit hs2 h4
+      exact e
+    · unfold simpleM at h
+      split at h
+      · cases h
+      split at h
+      · cases h
+      split at h
+      · cases h
+      rename_i s2 hs2
+      split at h
+      · cases h
+      obtain ⟨rfl, -⟩ := checkedM_some h
+      have e := applyM_wit hs2 h4
+      exact e
+    · cases h
+
+/-- A witness-free configuration stays witness-free, without an `AddWitness`. -/
 theorem ccApplyM_wit0 {t : raftpb.ConfChangeTransition} {ccs : List ConfChangeSingleM}
-    {s s' : CCState} (h0 : s.cfg.wit = W64 0) (h : ccApplyM t ccs s = some s') :
+    {s s' : CCState} (h0 : s.cfg.wit = W64 0) (h4 : NoAddWit ccs) (h : ccApplyM t ccs s = some s') :
     s'.cfg.wit = W64 0 := by
-  unfold ccApplyM leaveJointM enterJointM simpleM at h
-  repeat' split at h
-  all_goals first
-    | (simp only [reduceCtorEq] at h; done)
-    | (rw [(checkedM_some h).1]; rfl)
-    | (rw [(checkedM_some h).1]; simp only [leaveJointState, clearAutoLeave]; exact h0)
-    | (rw [(checkedM_some h).1]; have hs := applyM_wit ‹applyM _ _ = some _›; rw [hs]; exact h0)
-    | (rw [(checkedM_some h).1]; have hs := applyM_wit ‹applyM _ _ = some _›; simp only at hs ⊢
-       rw [hs]; exact h0)
+  rcases ccApplyM_wit h4 h with e | e
+  · rw [e]; exact h0
+  · exact e
 
 /-- A change that leaves every configuration with the voters `cfg` as it is, whatever its
 learners (2026-10-13): the scope of `RawNode.ApplyConfChange`, whose state does not say
@@ -172,33 +255,8 @@ theorem clearAutoLeave_cfgState (cfg lrn : GSet w64) :
     clearAutoLeave (cfgState cfg lrn) = cfgState cfg lrn := rfl
 
 theorem applyOne_outgoing (c : ConfChangeSingleM) (s s' : CCState)
-    (h : applyOne c s = some s') : s'.cfg.outgoing = s.cfg.outgoing := by
-  unfold applyOne at h
-  by_cases h0 : c.NodeId' = W64 0
-  · rw [ite_eq_left h0] at h; cases h; rfl
-  rw [ite_eq_right h0] at h
-  by_cases h1 : c.Type' = W32 0
-  · rw [ite_eq_left h1] at h; cases h
-    unfold makeVoterM; split
-    · rfl
-    · simp [initProgressM]
-  rw [ite_eq_right h1] at h
-  by_cases h3 : c.Type' = W32 3
-  · rw [ite_eq_left h3] at h; cases h
-    unfold makeLearnerM
-    split
-    · simp [initProgressM]
-    · rfl
-    · split <;> rfl
-  rw [ite_eq_right h3] at h
-  by_cases h4 : c.Type' = W32 1
-  · rw [ite_eq_left h4] at h; cases h
-    unfold removeM; split <;> rfl
-  rw [ite_eq_right h4] at h
-  by_cases h2 : c.Type' = W32 2
-  · rw [ite_eq_left h2] at h; cases h; rfl
-  rw [ite_eq_right h2] at h
-  cases h
+    (h : applyOne c s = some s') : s'.cfg.outgoing = s.cfg.outgoing :=
+  (applyOne_shape h).1
 
 theorem applyAll_outgoing (ccs : List ConfChangeSingleM) (s s' : CCState)
     (h : applyAll ccs s = some s') : s'.cfg.outgoing = s.cfg.outgoing := by
@@ -390,7 +448,7 @@ theorem simpleM_cfgState_addNode (V L : GSet w64) (id : w64) (hid : id ≠ W64 0
   have Happ : applyM [addNodeCC id] (cfgState V L) = some (cfgState (<[id := ()]> V) L) := by
     have hid' : (addNodeCC id).NodeId' ≠ W64 0 := hid
     simp only [applyM, applyAll, applyOne, ite_eq_right hid', ↓reduceIte, Option.bind_some]
-    rw [Hmv]
+    rw [makeVoterO_nw rfl, Hmv]
     try simp only [Option.bind_some]
     rw [ite_eq_right (show (cfgState (<[id := ()]> V) L).cfg.incoming ≠ ∅ from
       gset_insert_ne_empty V id)]
@@ -430,7 +488,7 @@ theorem simpleM_cfgState_addLearner (V L : GSet w64) (id : w64) (hid : id ≠ W6
   have Happ : applyM [addLearnerCC id] (cfgState V L) = some (cfgState V (<[id := ()]> L)) := by
     have hid' : (addLearnerCC id).NodeId' ≠ W64 0 := hid
     simp only [applyM, applyAll, applyOne, ite_eq_right hid', ↓reduceIte]
-    rw [Hml, ite_eq_right (show (W32 3 : w32) ≠ W32 0 by decide)]
+    rw [ite_eq_right (show (W32 3 : w32) ≠ W32 0 by decide), makeLearnerO_nw rfl, Hml]
     simp only [Option.bind_some]
     rw [ite_eq_right (show (cfgState V (<[id := ()]> L)).cfg.incoming ≠ ∅ from hne)]
   have Hsd : ¬ SymdiffTooBig V V := by
@@ -542,7 +600,8 @@ theorem simpleM_cfgState_removeLearner (V L : GSet w64) (c : ConfChangeSingleM)
     split
     · have hout : c.NodeId' ∉ (cfgState V L).cfg.outgoing := GMap.not_elem_of_empty _
       rw [ite_eq_right hout]
-      simp only [cfgState, cfgM, removeCfg]
+      rw [removeCfg_nw rfl]
+      simp only [cfgState, cfgM]
       rw [GMap.delete_notin _ _ (gset_lookup_none V _ hV), GMap.delete_empty,
         cfgFlags_delete_learner V L _ hV]
     · rename_i hn
@@ -629,7 +688,8 @@ theorem simpleM_cfgState_removeVoter (V L : GSet w64) (c : ConfChangeSingleM)
     rw [ite_eq_left (show c.NodeId' ∈ (cfgState V L).prs from (cfgFlags_mem V L _).2 (.inl hV))]
     have hout : c.NodeId' ∉ (cfgState V L).cfg.outgoing := GMap.not_elem_of_empty _
     rw [ite_eq_right hout]
-    simp only [cfgState, cfgM, removeCfg]
+    rw [removeCfg_nw rfl]
+    simp only [cfgState, cfgM]
     rw [GMap.delete_notin _ _ (gset_lookup_none L _ hL), GMap.delete_empty,
       cfgFlags_delete_voter V L _ hL]
   have Happ : applyM [c] (cfgState V L) = some (cfgState (GMap.delete c.NodeId' V) L) := by
