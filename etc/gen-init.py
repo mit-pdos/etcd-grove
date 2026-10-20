@@ -41,7 +41,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.serv
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          'github_com.mit_pdos.etcd_grove.examples.linkv',
          'github_com.mit_pdos.etcd_grove.examples.linkv3',
-         'github_com.mit_pdos.etcd_grove.examples.watchkv']
+         'github_com.mit_pdos.etcd_grove.examples.watchkv',
+         'github_com.mit_pdos.etcd_grove.examples.cachekv']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -400,6 +401,50 @@ SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['custom'].update({
 SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'] = (
     ['ipersist HTokenFieldNameGRPC', 'ipersist HTokenFieldNameSwagger'] +
     SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'])
+
+def _cacheErrVar(x, tag, msg):
+    """`cacheInit`'s `errorStringSpec` of the `errors.New(msg)` error variable `x` (`#M<tag>`)."""
+    return ['isplitr',
+            '· iintro !> %e #He',
+            f'  icombine H{x} He gives %Heq',
+            '  simp only [interface.mkOk, GoInterface.ok.injEq] at Heq',
+            '  subst Heq',
+            f'  iapply (errorStringSpec_of_msg _ go!"{msg}")',
+            f'  iexact M{tag}']
+
+SPECIAL['go_etcd_io.etcd.cache.v3'] = dict(
+    doc='''Its fact (`cacheInit`, `Base.lean`; 2026-10-20, cachekv): the error variables `ErrUnsupportedRequest`,
+`ErrKeyRangeInvalid`, `ErrCacheTimeout` (translated `errors.New` calls, whose `Error()` returns
+their message) and `ErrNotReady` (a translated `fmt.Errorf` call), each a fixed non-nil error,
+the first two with `errorStringSpec`. Its initializer allocates them, initializes its imports and
+runs their translated initializers.''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Proof.fmt.Link'],
+    vars=['[_root_.Perennial.fmt.Assumptions]'],
+    alloc_types={'ErrUnsupportedRequest': 'GoInterface', 'ErrKeyRangeInvalid': 'GoInterface',
+                 'ErrCacheTimeout': 'GoInterface', 'ErrNotReady': 'GoInterface'},
+    before={'$end': [
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR #MKR',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT #MCT',
+        'wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))',
+        '    $$ [] as %eNR -',
+        '· isplitl',
+        '  · iapply ownSlice_nil',
+        '  unfold EtcdGrove.fmt.argsOk; itrivial']},
+    finish=['ipersist HErrUnsupportedRequest', 'ipersist HErrKeyRangeInvalid',
+            'ipersist HErrCacheTimeout', 'ipersist HErrNotReady'] + FIN_PRE[:6] + [
+            'imodintro', 'unfold cacheInit',
+            'isplitr; · iexists _; iexact HErrNotReady',
+            'isplitr; · iexists _; iexact HErrUnsupportedRequest',
+            'isplitr; · iexists _; iexact HErrKeyRangeInvalid',
+            'isplitr; · iexists _; iexact HErrCacheTimeout'] +
+           _cacheErrVar('ErrKeyRangeInvalid', 'KR', 'cache: invalid or out‑of‑range key range')[0:1] +
+           _cacheErrVar('ErrKeyRangeInvalid', 'KR', 'cache: invalid or out‑of‑range key range')[1:] +
+           ['iintro !> %e #He', 'icombine HErrUnsupportedRequest He gives %Heq',
+            'simp only [interface.mkOk, GoInterface.ok.injEq] at Heq', 'subst Heq',
+            'iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")',
+            'iexact MUR'],
+)
 
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
@@ -1776,7 +1821,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'github_com.mit_pdos.etcd_grove.examples.linkv3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.watchkv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.cachekv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
