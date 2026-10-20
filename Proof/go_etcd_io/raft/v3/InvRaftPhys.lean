@@ -1601,6 +1601,12 @@ private theorem raft_split_msgs (l : Loc) (rv : raft) :
       (∀ x, l.[raft, go!"msgs"] ↦ x -∗ raftOwn l { rv with msgs' := x }) := by
   split_field_proof H_msgs
 
+private theorem raft_split_witnessMsgs (l : Loc) (rv : raft) :
+    ⊢ raftOwn (GF := GF) l rv -∗
+      l.[raft, go!"witnessMsgs"] ↦ rv.witnessMsgs' ∗
+      (∀ x, l.[raft, go!"witnessMsgs"] ↦ x -∗ raftOwn l { rv with witnessMsgs' := x }) := by
+  split_field_proof H_witnessMsgs
+
 private theorem raft_split_msgsAA (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
       l.[raft, go!"msgsAfterAppend"] ↦ rv.msgsAfterAppend' ∗
@@ -2081,6 +2087,29 @@ theorem ownRaftPhysC_wit0 (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NS
     iframe Hwq Hask
     ipureintro; exact ⟨Hwq, Hw0, Hwz⟩
   resealC c s
+
+/-- The witness queue `r.witnessMsgs` (2026-10-20, witness support): the slice and the requests
+it holds, given back with one more request `μ` queued, whose protocol reading `wAbs μ` is then on
+the outbox (`sendMsgs`). Only at a configuration with a witness. STAGED: while `witOwn` says there
+is no witness (`ownRaftPhysC_wit0`) the re-seal is vacuous; once that conjunct goes it is
+`outboxRel_snocW` and `witOwn` at `μs ++ [μ]`. -/
+theorem ownRaftPhysC_witQ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ∃ (wsl : GoSlice) (μs : List WMsg), r.[raft, go!"witnessMsgs"] ↦ wsl ∗ ownWQueue wsl μs ∗
+        (∀ (wsl' : GoSlice) (μ : WMsg), ⌜c.wit ≠ W64 0⌝ -∗ r.[raft, go!"witnessMsgs"] ↦ wsl' -∗
+          ownWQueue wsl' (μs ++ [μ]) -∗ ownRaftPhysCV c V r id (sendMsgs s [wAbs μ])) := by
+  iintro H
+  iNamed_physC H
+  icases raft_split_witnessMsgs r rv $$ Hr with ⟨Hf, -⟩
+  iunfold witOwn at Hwit
+  icases Hwit with ⟨%μs, -, Hq, -, -, %Hwz⟩
+  iexists wsl, μs
+  ihave Hf : r.[raft, go!"witnessMsgs"] ↦ wsl $$ [Hf]
+  · rw [← Hwf.1]; iexact Hf
+  iframe Hf Hq
+  iintro %wsl' %μ %Hne
+  -- STAGED: no witness yet
+  exact absurd Hwz Hne
 
 /-- The configuration's witness alone is a witness's `Progress` (2026-10-20, `WitP`). -/
 theorem ownRaftPhysC_witP (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
