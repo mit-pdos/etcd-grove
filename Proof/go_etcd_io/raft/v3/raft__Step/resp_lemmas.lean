@@ -197,9 +197,9 @@ theorem LeaderStepResultC.not_precand {c : CfgM} {id : w64} {s : NState} {m : Me
       ⟨-, ms, pvs, -, -, (⟨-, rfl⟩ | ⟨-, N, -, rfl⟩)⟩ |
       ⟨-, (⟨-, rfl⟩ | ⟨-, (⟨-, rfl⟩ | ⟨-, ms, pvs, rfl, -⟩)⟩)⟩ |
       ⟨-, (⟨-, rfl⟩ | ⟨-, -, ms, pvs, rfl, -⟩ | ⟨-, -, H⟩)⟩ |
-      ⟨-, lt', ms, pvs, rfl, -⟩ | ⟨-, pvs, (⟨-, rfl⟩ | rfl)⟩
+      ⟨-, lt', ms, pvs, rfl, -⟩ | ⟨-, (⟨pvs, (⟨-, rfl⟩ | rfl)⟩ | ⟨pvs, em', -, -, -, -, rfl⟩)⟩
     all_goals first
-      | simp_all [sendMsgs, readRespondAll_role, readRespond_role, arriveState]
+      | simp_all [sendMsgs, readRespondAll_role, readRespond_role, arriveState, subtermStart]
       | skip
     -- the accepted `MsgAppResp`
     obtain ⟨x, pvs, n, hb, ms, -, -, -, -, H⟩ := H

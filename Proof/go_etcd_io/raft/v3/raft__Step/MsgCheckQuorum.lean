@@ -32,6 +32,8 @@ pre-vote setting and the ghost bounds are kept. -/
 theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState)
     (m : MessageM) (ents : List EntryM) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgCheckQuorum) (Hwf : NStateWf s)
+    -- STAGED (2026-10-20): no witness yet, so no new subterm (`CQNewSub` is at a witness)
+    (hw : c.wit = W64 0)
     (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧ StepCD c id B m s [] s' ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
@@ -42,8 +44,8 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ |
-    ⟨-, pvs, ⟨Hpm, rfl⟩ | rfl⟩
-  rotate_right 2
+    ⟨-, ⟨pvs, ⟨Hpm, rfl⟩ | rfl⟩ | ⟨-, -, Hcw, -⟩⟩
+  rotate_right 3
   · -- the leader stays
     refine ⟨?_, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     · exact Hwf
@@ -67,6 +69,8 @@ theorem leader_checkQuorum_step (c : CfgM) {ctx : List w8} (id : w64) (s : NStat
         simp [pciR, becomeFollower, toPState, resetTo0, resetTo]
       rw [e] at HR
       exact HR
+  · -- STAGED: a new subterm is at a configuration with a witness
+    exact absurd hw Hcw
   all_goals
     exfalso; rw [Hty] at Hc; revert Hc
     simp only [MsgCheckQuorum, MsgVoteResp, MsgApp, MsgHeartbeat, MsgPreVoteResp,
@@ -87,6 +91,8 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Type' = MsgCheckQuorum →
     m.Term' = W64 0 →
     NStateWf s →
+    -- (2026-10-20, witness support) a leader's term is nonzero (`ownRaftGhost_term_nz`)
+    (s.role = .leader → s.term ≠ W64 0) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
@@ -98,7 +104,7 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hwf
+  intro Hty Hterm Hwf Hlnz
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -169,6 +175,8 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the quorum check, perhaps a step-down at its term
     simp only [stepFuncOf]
+    -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
+    icases ownRaftPhysC_wit0 c r id s $$ Hphys with ⟨%hwcq, Hphys⟩
     imod (preceipt_zero (GF := GF)) with #Hrc00
     wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by simp [Hty]) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -181,12 +189,13 @@ theorem wp_Step_MsgCheckQuorum (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => Hlnz Hrole)
       $$ [$Hphys $Hrc00 Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
     · isplitl [Hm]
       · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
-      leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf Hres
+      leader_checkQuorum_step (B := B) c id s m ents dropped s' Hrole Hty Hwf hwcq Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

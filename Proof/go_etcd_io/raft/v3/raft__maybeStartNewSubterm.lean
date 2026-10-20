@@ -56,8 +56,8 @@ theorem raft.maybeStartNewSubterm.wp_proof
     (wp_ReplicationSet_String : tracker.ReplicationSet.String.spec (GF := GF) (hG := hG))
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG)) :
     raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG) := by
-  intro c r id s nt Hnz
-  wp_start as Hphys
+  intro c r id s nt k Hnz
+  wp_start as ⟨Hphys, #Hrc⟩
   cases nt
   -- `newTerm = false`: `ChangeReplicationSet`
   wp_auto
@@ -169,11 +169,10 @@ theorem raft.maybeStartNewSubterm.wp_proof
       iframe Hes
       iapply BigSepL2.bigSepL2_singleton.2; iexact He
     wp_auto
-    imod (preceipt_zero (GF := GF)) with #Hrc0
-    wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1) 0
+    wp_apply wp_raft_appendEntry c r id _ _ [zero_val EntryM] (DFrac.own 1) k
         (by simp) Hnz1
-        $$ [$Hphys $Hes $Hrc0]
-      as %accepted ⟨-, %Hacc, Hes, Hphys⟩
+        $$ [$Hphys $Hes $Hrc]
+      as %accepted ⟨#Hrc1, %Hacc, Hes, Hphys⟩
     -- empty payload, so accepted: the `Panic` branch is dead
     have Hacc' : accepted = true := Hacc (by intro e He; simp at He; subst He; rfl)
     subst Hacc'
@@ -204,10 +203,10 @@ theorem raft.maybeStartNewSubterm.wp_proof
       first
         | (isplitr
            · ipureintro; trivial
-           iexact Hphys)
+           iframe Hrc1 Hphys)
         | (iexists em'
            isplitr; · ipureintro; exact Hchg
-           iexact Hphys)
+           iframe Hrc1 Hphys)
 
 end proof
 

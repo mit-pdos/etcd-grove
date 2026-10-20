@@ -42,18 +42,20 @@ the empty entry is appended at it, returning `true`. Only `confChange = false` i
 `switchToConfig` passes `true` only when a witness is involved. The term is nonzero when an entry
 may be appended, as for `appendEntry`. -/
 abbrev raft.maybeStartNewSubterm.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (nt : Bool),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (nt : Bool) (k : Nat),
   (nt = true ∨ s.ep.hasWit = true → s.term ≠ W64 0) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
+      -- (2026-10-20) a time receipt, raised by one with the empty entry (`appendEntry`'s)
+      ⧖ k }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeStartNewSubterm"))
       (Val #nt)) (Val #false))
   {{ (ch : Bool), RET #ch;
       if nt then
-        ⌜ch = true⌝ ∗ ownRaftPhysCV c c.voters r id
+        ⌜ch = true⌝ ∗ ⧖ (k + 1) ∗ ownRaftPhysCV c c.voters r id
           (subtermStart id { s with ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) })
       else if ch then
         ∃ em', ⌜s.ep.hasWit = true ∧ ChangeEpochOk c.incoming c.outgoing c.wit (W64 0) s.ep em'⌝ ∗
-          ownRaftPhysCV c c.voters r id (subtermStart id { s with ep := em' })
+          ⧖ (k + 1) ∗ ownRaftPhysCV c c.voters r id (subtermStart id { s with ep := em' })
       else
         ownRaftPhysCV c c.voters r id s }}
 

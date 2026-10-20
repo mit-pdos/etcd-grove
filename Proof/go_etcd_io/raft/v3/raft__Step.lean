@@ -394,7 +394,14 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   iintro #Hinit Hphys Hghost Hrest Hmsg HΦ
-  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf)
+  -- (2026-10-20, witness support) a leader's term is nonzero: a new subterm appends an entry
+  ihave %Hlnz : ⌜s.role = .leader → s.term ≠ W64 0⌝ $$ [Hghost]
+  · by_cases hl : s.role = .leader
+    · ihave %H := ownRaftGhost_term_nz γ id (toPState s)
+        (by rw [toPState_role, hl]; decide) $$ Hghost
+      ipureintro; exact fun _ => H
+    · ipureintro; exact fun h => absurd h hl
+  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf Hlnz)
     $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
       (by resp_other) Hfr.ns $$ Hghost Hrest Hphys [] HΦ

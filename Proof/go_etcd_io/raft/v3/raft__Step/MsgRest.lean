@@ -237,6 +237,7 @@ local macro "local_leader" : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
       (fun Hc => by first | exact Hxo | (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)))
+      (by ty_other)
     $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
   · iframe Hphys Hrc00
     rw [if_neg (by rw [Hty]; w32_ne)]

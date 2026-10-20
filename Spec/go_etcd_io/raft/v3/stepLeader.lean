@@ -104,6 +104,7 @@ public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
 -- read-index (2026-10-12)
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
@@ -221,6 +222,16 @@ def ReadAckResultC (c : CfgM) (id : w64) (s : NState) (src : w64) (ctx : List w8
       { s with rd := { s.rd with ro := (readonlyAdvance (readonlyRecvAck s.rd.ro src ctx) N).1 } }
       (readonlyAdvance (readonlyRecvAck s.rd.ro src ctx) N).2
 
+/-- (2026-10-20, witness support) The check-quorum's new subterm: at a configuration with a
+witness, `ChangeReplicationSet` swaps the excluded voter (`ChangeEpochOk`), the empty entry is
+appended at the next subterm (`maybeStartNewSubterm`, `subtermStart`), and the `Visit` clears
+`RecentActive`, which no record holds (`Match` kept). -/
+def CQNewSub (c : CfgM) (id : w64) (s s' : NState) : Prop :=
+  ∃ (pvs : GMap w64 Progress) (em' : EpochM), c.wit ≠ W64 0 ∧ s.ep.hasWit = true ∧
+    ChangeEpochOk c.incoming c.outgoing c.wit (W64 0) s.ep em' ∧
+    prvalsMatch pvs = prvalsMatch s.prvals ∧
+    s' = { subtermStart id { s with ep := em' } with prvals := pvs }
+
 /-- What `stepLeader` does with `m` at the configuration `c`, for the types other than
 `MsgProp` (none of which drops anything). The disjuncts are exclusive on `m.Type`. The read
 path's confirmation and the commit are joint (`ReadAckResultC`, `AppRespAcceptedC`); a
@@ -272,9 +283,11 @@ def LeaderNonpropResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   -- recently are no quorum); then every other peer's `RecentActive` is cleared, which no record
   -- holds
   (m.Type' = MsgCheckQuorum ∧
-   ∃ pvs : GMap w64 Progress,
+   ((∃ pvs : GMap w64 Progress,
      (prvalsMatch pvs = prvalsMatch s.prvals ∧ s' = { s with prvals := pvs }) ∨
-     s' = { becomeFollower s s.term (W64 0) with prvals := pvs })
+     s' = { becomeFollower s s.term (W64 0) with prvals := pvs }) ∨
+    -- (2026-10-20, witness support) or, the quorum active, a new subterm
+    CQNewSub c id s s'))
 
 /-- What `stepLeader` does with `m` at the configuration `c`, by type. `dropped` is whether it
 returned `ErrProposalDropped` (as in `FollowerStepResult`, `Spec/stepFollower.lean`); only a
@@ -373,6 +386,9 @@ abbrev stepLeader.spec : Prop :=
         uint.Z t0 ≤ 1))) →
   -- (2026-10-19, D21 M2r) a transfer request only with leader transfer on (`NGhost.xf`)
   (m.Type' = MsgTransferLeader → s.gh.xf = false) →
+  -- (2026-10-20, witness support) at a check-quorum, the leader's term nonzero (a new subterm's
+  -- entry, `appendEntry`'s premise; from the ghost state: `ownRaftGhost_term_nz`)
+  (m.Type' = MsgCheckQuorum → s.term ≠ W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
