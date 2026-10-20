@@ -161,6 +161,10 @@ fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnap
 
 ## Probably not worth their time now
 
+- **[etcd-watch-close-hang-refused-create](etcd-watch-close-hang-refused-create.md)**: after the
+  server refuses a watch's create (auth's permission denied), a `Close` before `run` takes the
+  refused substream's teardown post hangs forever. A hang, not a wrong result; small fix.
+
 - **[etcd-watch-resume-below-start-revision](etcd-watch-resume-below-start-revision.md)**: a watch
   from a future revision with progress notifications can, after a reconnect, deliver events below
   its start revision. Needs a future start revision, progress, and a transient stream failure.
