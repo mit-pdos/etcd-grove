@@ -356,6 +356,7 @@ public import Proof.go_etcd_io.raft.v3.witness__cloneState
 public import Proof.go_etcd_io.raft.v3.witness__handleAppend
 public import Proof.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
 public import Proof.go_etcd_io.raft.v3.witness__handleHeartbeat
+public import Proof.go_etcd_io.raft.v3.witness__handleVote
 public import Proof.go_etcd_io.raft.v3.witness__isHealthy
 public import Proof.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
 public import Proof.go_etcd_io.raft.v3.witness__processMessageWithOlderTerm
@@ -1598,6 +1599,10 @@ theorem witness.wp_handleAppend :
 theorem witness.wp_handleHeartbeat :
     witness.handleHeartbeat.spec (GF := GF) (hG := hG) :=
   witness.handleHeartbeat.wp_proof raftpb.MessageType.wp_Enum
+
+theorem witness.wp_handleVote :
+    witness.handleVote.spec (GF := GF) (hG := hG) :=
+  witness.handleVote.wp_proof raftpb.MessageType.wp_Enum raftpb.Message.wp_GetReject raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.WitnessHardState.wp_GetLead raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
 
 theorem witness.wp_isHealthy :
     witness.isHealthy.spec (GF := GF) (hG := hG) :=
