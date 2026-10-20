@@ -53,7 +53,7 @@ theorem Storage.Snapshot.wp_proof
   cases err with
   | nil =>
     -- no error: the clone; `ErrSnapshotTemporarilyUnavailable` is not `nil`
-    icases Hr with (%Herr | ⟨-, %sv, Hsv, %Hsv⟩)
+    icases Hr with (%Herr | ⟨-, %sv, Hsv, %Hsv, #Hcert⟩)
     · exact absurd (Hesu_eq.trans Herr.symm) HErrSnapUnavail
     wp_auto
     wp_apply wp_Snapshot_GetMetadata.1 snap (DFrac.own 1) sv $$ [$Hpbinit $Hsv] as %pm ⟨Hsm, Hback⟩
@@ -71,7 +71,11 @@ theorem Storage.Snapshot.wp_proof
       · ipureintro; rfl
       iexists sv
       iframe Hsv
-      ipureintro; exact ⟨Hif, Hsv.2⟩
+      isplitr
+      · ipureintro; exact ⟨Hif, Hsv.2⟩
+      icases Hcert with (%Hz | #Hc)
+      · exact absurd Hz Hif
+      iexact Hc
   | ok i =>
     wp_auto
     iapply HΦ

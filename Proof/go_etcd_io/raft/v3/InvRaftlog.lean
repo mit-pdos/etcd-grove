@@ -774,7 +774,7 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
   ihave Htok : appendedTok lv.storage' σa ls.unpersisted $$ [Htok]
   · rw [Hstor]; iexact Htok
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -826,7 +826,7 @@ theorem ownRaftLog_raise_floor (l : Loc) (ls : LogState) (x : w64)
   iintro H
   iNamed H
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩

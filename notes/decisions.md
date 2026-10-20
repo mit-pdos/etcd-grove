@@ -13132,3 +13132,36 @@ no raft use; `InvMemstorage.lean`'s lock and snapshot invariants, `MemoryStorage
 ApplySnapshot,Snapshot}`, `NewMemoryStorage`); S-b′3: items 4-5's sender half (`ownRaftPhys`'s
 outbox, `ghostRest`, the ghost steps, `isMessage`); S-b′4: the receiver's premises shrink. Each
 builds on its own; trust base unchanged.
+
+## D22 S-b′2 carried out: the storage's certificate registry and its link to γ (2026-10-20)
+
+Items 1-3 of "D22 S-b′ part 1 carried out" (raft's storage contract, `MemoryStorage`, the kv
+store's instance); no raft proof uses the certificate yet. Trust base unchanged (538 axioms, 2
+sorries); every collection's `--check` passes unchanged.
+- **`StorageModel.storCert : Storage → SnapTrip → IProp GF`** (persistent). `isStorageWith` gains
+  a parameter `SC` (`isStorage` passes `storCert st`); `HSnapshot`'s success post adds
+  `⌜Index = 0⌝ ∨ SC (snapTrip sv lists)`. `raftLog.snapshot` drops it for now (S-b′3 hands it on).
+- **`MemoryStorage`**: `MemStorNames.cert`, a mono list of **`CertKey := SnapTrip × Bool`**
+  entries; `memStorCert γs k` (persistent) holds when an entry covers `k` (`certCovers`: the same
+  trip, or -- `true` -- every trip at that index with those lists and `AutoLeave`, whatever the
+  term). The any-term entry is a deviation from the design: `CreateSnapshot(i, cs, data)` reads
+  the term of `i` from the storage, which the application cannot name before the call, so its
+  premise is `□ ∀ t, memStorCert γs (trip at (t, i))` (`memCert_registerAny` gives it from `□ ∀
+  t, raftSnapCert γ …`, which for a static cluster -- etcd -- is a statement about the lists only).
+  The snapshot's home (`memSnapHome`) keeps `memSnapCertOk γs σp` (empty, or certified) of the
+  current snapshot: `memSnap_put` takes it; `ApplySnapshot` takes `memStorCert` of its snapshot's
+  trip; raft's `Snapshot` triple hands it out. `NewMemoryStorage` gives the empty registry's
+  authority (`memCertAuth γs`).
+- **The link** (`StepGhostMode.lean`, which now imports `InvStorage`): `raftCertN`, `storCertOk γ
+  st` (persistent; both directions: `storCert st k ={E}=∗ raftSnapCert γ k` and back, `↑raftCertN ⊆
+  E`). `MemstorageInstance.lean`: `memCertInv γ γs` (the authority with each entry's
+  `certElemOk`), `memCertInv_alloc` (from `memCertAuth`), `memCert_read`, `memCert_register`,
+  `memCert_registerAny`, `memStorCertOk_intro` (`memCertInv γ γs -∗ memStorReg ms γs -∗ storCertOk γ
+  (memStorIface ms)`); `memStorageModel`'s `storCert` is `memStorCertI` (`memStorCert_at`/`_intro`);
+  the registry tuple gains the name. `raftSnapCert_timeless` (`SnapConf.lean`).
+- kv: `kvStorCert` (`kvStorCert_at`/`_intro`), `memStorRec` with the name, `kv.Storage.Snapshot`'s
+  post with the certificate.
+
+**For S-b′3** (design refined, below "D22 S-b′3 carried out"): the server's storage comes from the
+boot contract (`bootOk`), which carries no `memCertAuth`, so the server cannot allocate
+`memCertInv`; raft's need for `storCertOk` is restricted to outside the no-snapshot mode.

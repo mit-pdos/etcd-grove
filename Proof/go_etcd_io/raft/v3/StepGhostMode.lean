@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.raft.v3.StepLemmasR
 public import Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 public import Proof.go_etcd_io.raft.v3.SnapConf
+public import Proof.go_etcd_io.raft.v3.InvStorage
 
 @[expose] public section
 
@@ -215,6 +216,34 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
     · exact Hempty _ Hac
 
 end mode
+
+/-! ### The storage's certificates and raft's (D22 S-b′2, 2026-10-20)
+
+A storage's registry of certified snapshots (`storCert`, `InvStorage.lean`) is γ-free, as the rest
+of the storage model; `storCertOk γ st` ties it to raft's certificates (`raftSnapCert γ`, both
+ways), from an invariant the application allocates knowing raft's names (for a `MemoryStorage`,
+`memCertInv`, `MemstorageInstance.lean`). Raft reads a certificate out of the registry for a
+snapshot it sends (the storage's, `HSnapshot`), and registers the one a received message carries
+(S-d's lent storage). -/
+
+section certLink
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
+
+/-- The namespace of the registry's invariant. -/
+def raftCertN : Namespace := nroot .@ "raft_snapcert"
+
+/-- See above. -/
+def storCertOk (γ : RaftNames) (st : Storage) : IProp GF :=
+  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ storCert st k ={E}=∗
+      raftSnapCert γ k) ∗
+    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ raftSnapCert γ k ={E}=∗
+      storCert st k))
+
+instance storCertOk_persistent (γ : RaftNames) (st : Storage) :
+    Persistent (storCertOk (GF := GF) γ st) := by
+  unfold storCertOk; infer_instance
+
+end certLink
 
 section ghost
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]

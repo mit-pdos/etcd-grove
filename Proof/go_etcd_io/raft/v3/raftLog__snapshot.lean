@@ -33,7 +33,7 @@ theorem raftLog.snapshot.wp_proof
   iNamed H
   iNamed Hlog
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -96,7 +96,7 @@ theorem raftLog.snapshot.wp_proof
     icases Herr with (%Herr | ⟨%Herr, Hv⟩)
     · ileft; ipureintro; exact Herr
     iright
-    icases Hv with ⟨%sv, Hv, %Hsv⟩
+    icases Hv with ⟨%sv, Hv, %Hsv, -⟩
     obtain ⟨Hnz', Hwhich⟩ := Hsv
     obtain ⟨Hp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     -- (stage R8a) the storage is compacted -- its boundary is the log's, or (D19i part 1) the

@@ -34,7 +34,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
   intro ms γs σ σt sp sv eood Hidle Hbnd Hfl Hcap
-  wp_start as ⟨Hms, Htok, Hsnap, #Herr⟩
+  wp_start as ⟨Hms, Htok, Hsnap, #Hcertn, #Herr⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
   iunfold memSnapShare at Hsn
@@ -70,12 +70,13 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   simp only [Option.getD_some]
   ihave Hsnap := ownSnapE_weaken $$ Hr
   iunfold memSnapHome at Hhome
-  icases Hhome with ⟨%σ1, Hsn, Hsnh⟩
+  icases Hhome with ⟨%σ1, Hsn, Hsnh, #Hcert1⟩
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
   obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %HagS
   obtain ⟨HS1, -, -⟩ := snapPart_inj HagS
   ihave Hsn := memSnapOwn_congr ms σ1 σt Hs1 Hs2 Hs3 $$ Hsn
+  ihave #Hcertt := memSnapCertOk_congr γs σ1 σt Hs1 Hs2 Hs3 $$ Hcert1
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp0, %sv0, Hsnapshot, Hsnap0, %Hsnap_id⟩
   have Hss : σt.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
@@ -95,7 +96,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   rotate_left
   wp_if_destruct
   · -- `ErrSnapOutOfDate`: nothing changes
-    imod memSnap_put ms γs 1 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] with Hk
+    imod memSnap_put ms γs 1 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] Hcertt with Hk
     · iunfold memSnapOwn
       iexists sp0, sv0
       iframe
@@ -193,7 +194,8 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     imod ghostVar_update_halves (memStorApplied sv).prev γs.cb _ _ $$ Hcb Hcbt with ⟨Hcb, Hcbt⟩
     imod mono_nat_own_update (uint.Z (memStorApplied sv).prev.index').toNat
       (by simp only [memStorApplied, snapId]; omega) $$ Hbd with ⟨Hbd, -⟩
-    imod memSnap_put ms γs 1 (memStorApplied sv) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hp'] Hsnh with Hk
+    ihave #Hcerta := memSnapCertOk_of_sv γs (memStorApplied sv) sv ⟨rfl, rfl, rfl⟩ $$ Hcertn
+    imod memSnap_put ms γs 1 (memStorApplied sv) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hp'] Hsnh Hcerta with Hk
     · iunfold memSnapOwn
       iexists p', sv
       iframe

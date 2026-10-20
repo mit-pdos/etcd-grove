@@ -108,17 +108,17 @@ class KVStor (GF : BundledGFunctors) where
   kvStorName : GName
 
 abbrev MemStorRec :=
-  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
+  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
 
 def memStorRec (ms : Loc) (γs : MemStorNames) : MemStorRec :=
-  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
+  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
 
 theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     memStorRec ms1 γs1 = memStorRec ms2 γs2 → ms1 = ms2 ∧ γs1 = γs2 := by
   intro h
   cases γs1; cases γs2
   simp only [memStorRec, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
 def kvStorN : Namespace := nroot.@"kv_storage"
@@ -173,6 +173,11 @@ def kvStorFloor (st : Storage) (x : w64) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
     memFloorTok ms γs x)
 
+/-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: its `MemoryStorage`'s. -/
+def kvStorCert (st : Storage) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
+    memStorCert γs k)
+
 /-- The store's storage model: every `Storage` is a registered store storage. -/
 instance kvStorageModel : StorageModel GF where
   ownStorage := kvOwnStorage
@@ -186,6 +191,8 @@ instance kvStorageModel : StorageModel GF where
   storCap := fun _ _ => iprop(False)
   storCap_persistent := fun _ _ => by infer_instance
   storCut_cap := fun _ _ _ => by iintro ⟨-, %H⟩; exact H.elim
+  storCert := kvStorCert
+  storCert_persistent := fun st k => by unfold kvStorCert; infer_instance
 
 /-- The registry: each registered storage keeps half of its `MemoryStorage` field here
 (so that a storage is registered once: a new one has the whole field). -/

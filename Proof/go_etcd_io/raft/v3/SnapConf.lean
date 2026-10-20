@@ -154,6 +154,10 @@ instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
     Persistent (raftSnapCert (GF := GF) γ k) := by
   unfold raftSnapCert; infer_instance
 
+instance raftSnapCert_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
+
 end cert
 
 end EtcdGrove

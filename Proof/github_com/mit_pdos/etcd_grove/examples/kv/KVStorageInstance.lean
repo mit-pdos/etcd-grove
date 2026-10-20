@@ -112,6 +112,29 @@ theorem kvStorCut_intro (s ms : Loc) (γs : MemStorNames) (n : Int) :
     ipureintro; rfl
   iexact H
 
+theorem kvStorCert_at (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ storCert (kvStorIface s) k -∗ memStorCert γs k := by
+  iintro #Hrec Hc
+  ihave Hc : kvStorCert (kvStorIface s) k $$ [Hc]
+  · iexact Hc
+  unfold kvStorCert
+  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc⟩
+  have := kvStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
+  subst H1 H2
+  iexact Hc
+
+theorem kvStorCert_intro (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ memStorCert γs k -∗ storCert (kvStorIface s) k := by
+  iintro #Hrec Hc
+  ihave H : kvStorCert (kvStorIface s) k $$ [Hc]
+  · unfold kvStorCert
+    iexists s, ms, γs
+    iframe Hrec Hc
+    ipureintro; rfl
+  iexact H
+
 /-- **The store's storage is a raft `Storage`.** -/
 theorem kvStorage_isStorage
     (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
@@ -221,15 +244,17 @@ theorem kvStorage_isStorage
     ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
     -- the store's answer is non-empty outright; the clause asks it only once compacted
-    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv⟩)
+    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv, #Hc⟩)
     · ileft; ipureintro; exact Herr
     iright
     isplitr
     · ipureintro; exact Herr
     iexists sv
     iframe Hv
-    ipureintro
-    exact ⟨fun _ => Hsv.1, Hsv.2⟩
+    isplitr
+    · ipureintro
+      exact ⟨fun _ => Hsv.1, Hsv.2⟩
+    iright; iapply kvStorCert_intro s ms γs _ $$ Hrec Hc
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo

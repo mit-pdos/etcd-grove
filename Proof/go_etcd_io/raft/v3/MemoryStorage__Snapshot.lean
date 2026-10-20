@@ -84,7 +84,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iNamed Hfields_inv
     wp_auto
     iunfold memSnapHome at Hhome
-    icases Hhome with ⟨%σp, Hown, Hsnh⟩
+    icases Hhome with ⟨%σp, Hown, Hsnh, #Hcert⟩
     icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %Hag
     obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
     iunfold memSnapOwn at Hown
@@ -97,7 +97,8 @@ theorem MemoryStorage.Snapshot.wp_proof
     simp only [Option.getD_some]
     wp_apply wp_CloneSnapshot.1 r (DFrac.own 1) sv $$ [Hr] as %p' ⟨Hr, Hp'⟩
     · iframe Hr
-    imod memSnap_put ms γs 1 σp ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hr] Hsnh with Hk
+    ihave #Hcsv := memSnapCertOk_sv γs σp sv ⟨Hsnap_id.1, Hsnap_id.2.1, Hsnap_id.2.2⟩ $$ Hcert
+    imod memSnap_put ms γs 1 σp ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hr] Hsnh Hcert with Hk
     · iunfold memSnapOwn
       iexists r, sv
       iframe
@@ -135,7 +136,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     isplitr
     · ipureintro; rfl
     iexists sv
-    iframe Hp'
+    iframe Hp' Hcsv
     ipureintro
     have Hsid : snapId sv = S.ss := Hsnap_id.1.trans Hs1.symm
     have Hidx : sv.Metadata'.Index' = S.ss.index' := by rw [← Hsid]; rfl
@@ -184,7 +185,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iNamed Hfields_inv
     wp_auto
     iunfold memSnapHome at Hhome
-    icases Hhome with ⟨%σp, Hown, Hsnh⟩
+    icases Hhome with ⟨%σp, Hown, Hsnh, #Hcert⟩
     icases ghostVar_agree γs.sn _ _ _ _ $$ Hsv Hsnh with %Hag
     obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
     iunfold memSnapOwn at Hown
@@ -197,7 +198,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     · iframe Hr
     ihave Hr := ownSnapW_E $$ Hr
     ihave Hr := ownSnapE_weaken $$ Hr
-    imod memSnap_put ms γs 2 σp ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hr] Hsnh with Hk
+    imod memSnap_put ms γs 2 σp ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hr] Hsnh Hcert with Hk
     · iunfold memSnapOwn
       iexists r, sv
       iframe

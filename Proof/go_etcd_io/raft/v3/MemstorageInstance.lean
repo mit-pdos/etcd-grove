@@ -83,7 +83,7 @@ theorem is_Storage_MemoryStorage (ms : Loc) (γs : MemStorNames) :
     ⊢ isStorageWith (GF := GF)
         (fun σ => iprop(ownMemoryStorage ms γs σ ∗ ⌜σ.prev.index' ≠ W64 0 → σ.ss.index' ≠ W64 0⌝))
         (memAppendTok ms γs) (memAppendedTok ms γs) (memStorCut γs) (memFloorTok ms γs)
-        (interface.mkOk (go.GoType.PointerType MemoryStorage.ty) #ms) := by
+        (memStorCert γs) (interface.mkOk (go.GoType.PointerType MemoryStorage.ty) #ms) := by
   unfold isStorageWith
   simp only []
   iexists (interface.mk (go.GoType.PointerType MemoryStorage.ty) #ms)
@@ -183,15 +183,15 @@ class MemStorReg (GF : BundledGFunctors) where
 
 /-- A storage's names, as the registry records them. -/
 abbrev MemStorNamesRec :=
-  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
+  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
+  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2 := by
   cases γs1; cases γs2
   simp only [MemStorNames.tuple, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 section model
@@ -290,6 +290,12 @@ theorem memStorCut_capI (st : Storage) (n k : Int) :
   icases memStorCut_cap γs n $$ Hc with %Hn
   ipureintro; omega
 
+/-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: the `MemoryStorage`'s, of
+its names. -/
+def memStorCertI (st : Storage) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    memStorCert γs k)
+
 /-- The storage model of an application whose `Storage`s are bare `MemoryStorage`s. -/
 instance memStorageModel : StorageModel GF where
   ownStorage := memOwnStorage
@@ -302,6 +308,33 @@ instance memStorageModel : StorageModel GF where
   storCap := memStorCapI
   storCap_persistent := fun st k => by unfold memStorCapI; infer_instance
   storCut_cap := memStorCut_capI
+  storCert := memStorCertI
+  storCert_persistent := fun st k => by unfold memStorCertI; infer_instance
+
+omit package_sem in
+theorem memStorCert_at (ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ storCert (memStorIface ms) k -∗ memStorCert γs k := by
+  iintro #Hreg Hc
+  ihave Hc : memStorCertI (memStorIface ms) k $$ [Hc]
+  · iexact Hc
+  unfold memStorCertI
+  icases Hc with ⟨%ms', %γs', %Hst, #Hreg', Hc⟩
+  have := memStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  iexact Hc
+
+omit package_sem in
+theorem memStorCert_intro (ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ memStorCert γs k -∗ storCert (memStorIface ms) k := by
+  iintro #Hreg Hc
+  ihave H : memStorCertI (memStorIface ms) k $$ [Hc]
+  · unfold memStorCertI
+    iexists ms, γs
+    iframe Hreg Hc
+    ipureintro; rfl
+  iexact H
 
 omit package_sem in
 /-- (2026-10-19, D21 M3) A registered `MemoryStorage` at a cap at most `k` is capped at `k`. -/
@@ -597,7 +630,19 @@ theorem memStorage_isStorage (ms : Loc) (γs : MemStorNames) :
     wp_apply MemoryStorage.wp_Snapshot.1 ms γs σ esu n $$ [$Hown $Hesu $Hn'] as %snap %err ⟨Hown, Hr⟩
     iapply HΦ
     ihave Hown := memOwnStorage_intro ms γs σ Hss $$ Hreg Hown
-    iframe Hown Hr
+    iframe Hown
+    icases Hr with (%He | ⟨%He, %sv, Hs, %Hp, Hc⟩)
+    · ileft; ipureintro; exact He
+    iright
+    isplitr
+    · ipureintro; exact He
+    iexists sv
+    iframe Hs
+    isplitr
+    · ipureintro; exact Hp
+    icases Hc with (%Hc | #Hc)
+    · ileft; ipureintro; exact Hc
+    iright; iapply memStorCert_intro ms γs _ $$ Hreg Hc
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo
@@ -665,6 +710,164 @@ theorem memStorage_Append (ms : Loc) (γs : MemStorNames) (p : List EntryM) (s :
   iexact Hrec
 
 end model
+
+section certLink
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable [MemStorReg GF]
+
+/-! ### The certificate registry's link to raft's names (D22 S-b′2, 2026-10-20)
+
+The application, knowing raft's names `γ`, puts the registry's authority (`memCertAuth`,
+`NewMemoryStorage`'s) in an invariant whose entries carry raft's certificates (`memCertInv`):
+then a registered snapshot is certified for raft (`memCert_read`) and a certified one can be
+registered (`memCert_register`; at any term, `memCert_registerAny`, for `CreateSnapshot`), and
+the storage meets `storCertOk γ` (`memStorCertOk_intro`). -/
+
+/-- What a registry entry carries: raft's certificate of its snapshot, at every term for an
+any-term entry. -/
+def certElemOk (γ : RaftNames) (e : CertKey) : IProp GF :=
+  if e.2 then iprop(∀ t : w64, raftSnapCert γ ⟨⟨t, e.1.sid.index'⟩, e.1.cl, e.1.al⟩)
+  else raftSnapCert γ e.1
+
+omit [MemStorReg GF] in
+theorem certElemOk_covers (γ : RaftNames) (e : CertKey) (k : SnapTrip) (h : certCovers e k) :
+    certElemOk (GF := GF) γ e ⊢ raftSnapCert γ k := by
+  unfold certElemOk
+  unfold certCovers at h
+  split
+  · rename_i he
+    rw [if_pos he] at h
+    obtain ⟨h1, h2, h3⟩ := h
+    iintro H
+    ihave H := H $$ %k.sid.term'
+    have : (⟨⟨k.sid.term', e.1.sid.index'⟩, e.1.cl, e.1.al⟩ : SnapTrip) = k := by
+      cases k with | mk sid cl al => cases sid; simp only at h1 h2 h3; subst h1 h2 h3; rfl
+    rw [this]; iexact H
+  · rename_i he
+    rw [if_neg he] at h
+    subst h
+    exact .rfl
+
+instance certElemOk_persistent (γ : RaftNames) (e : CertKey) :
+    Persistent (certElemOk (GF := GF) γ e) := by
+  unfold certElemOk; split <;> infer_instance
+
+instance certElemOk_timeless (γ : RaftNames) (e : CertKey) :
+    Timeless (certElemOk (GF := GF) γ e) := by
+  unfold certElemOk; split <;> infer_instance
+
+/-- The registry's invariant, at raft's names `γ`. -/
+def memCertInv (γ : RaftNames) (γs : MemStorNames) : IProp GF :=
+  inv raftCertN iprop(∃ L : List CertKey, monoListAuthOwn γs.cert 1 L ∗ [∗list] e ∈ L, certElemOk γ e)
+
+instance memCertInv_persistent (γ : RaftNames) (γs : MemStorNames) :
+    Persistent (memCertInv (GF := GF) γ γs) := by
+  unfold memCertInv; infer_instance
+
+omit [MemStorReg GF] in
+/-- The application allocates it from the empty registry's authority. -/
+theorem memCertInv_alloc (γ : RaftNames) (γs : MemStorNames) (E : CoPset) :
+    ⊢ memCertAuth (GF := GF) γs ={E}=∗ memCertInv γ γs := by
+  iintro Ha
+  unfold memCertInv
+  iapply inv_alloc
+  inext
+  iexists ([] : List CertKey)
+  iunfold memCertAuth at Ha
+  isplitl [Ha]
+  · iexact Ha
+  iapply (BigSepL.bigSepL_nil (Φ := fun _ e => certElemOk (GF := GF) γ e)).2
+  iempintro
+
+omit [MemStorReg GF] in
+/-- A registered snapshot is certified for raft. -/
+theorem memCert_read (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
+    (hE : ↑raftCertN ⊆ E) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ memStorCert γs k ={E}=∗ raftSnapCert γ k := by
+  iintro #Hinv #Hc
+  iunfold memStorCert at Hc
+  icases Hc with ⟨%L0, #Hlb, %Hin⟩
+  obtain ⟨e, he, hc⟩ := Hin
+  unfold memCertInv
+  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
+  icases mono_list_auth_lb_valid _ _ _ _ $$ Ha Hlb with %Hv
+  obtain ⟨-, Hpre⟩ := Hv
+  have he' : e ∈ L := Hpre.subset he
+  ihave ⟨#He, -⟩ := BigSepL.bigSepL_mem_acc he' $$ Hall
+  ihave #Hk := certElemOk_covers γ e k hc $$ He
+  imod Hclose $$ [Ha] with -
+  · inext
+    iexists L
+    iframe Ha Hall
+  imodintro
+  iexact Hk
+
+omit [MemStorReg GF] in
+/-- A certified snapshot can be registered (by anyone holding raft's certificate). -/
+theorem memCert_register (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
+    (hE : ↑raftCertN ⊆ E) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ raftSnapCert γ k ={E}=∗ memStorCert γs k := by
+  iintro #Hinv #Hk
+  unfold memCertInv
+  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
+  imod monoListAuthOwn_update_app [((k, false) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
+  ihave #He : certElemOk (GF := GF) γ ((k, false) : CertKey) $$ []
+  · simp only [certElemOk, Bool.false_eq_true, ↓reduceIte]
+    iexact Hk
+  imod Hclose $$ [Ha] with -
+  · inext
+    iexists L ++ [((k, false) : CertKey)]
+    iframe Ha
+    iapply BigSepL.bigSepL_snoc.2
+    iframe Hall He
+  imodintro
+  iapply memStorCert_of_lb γs (L ++ [((k, false) : CertKey)]) (k, false) k (by simp)
+    (by simp [certCovers]) $$ Hlb
+
+omit [MemStorReg GF] in
+/-- ... at any term (an any-term entry): what `CreateSnapshot`'s premise asks. -/
+theorem memCert_registerAny (γ : RaftNames) (γs : MemStorNames) (i : w64) (cl : CSLists)
+    (al : Bool) (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ (□ ∀ t : w64, raftSnapCert γ ⟨⟨t, i⟩, cl, al⟩) ={E}=∗
+      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al⟩ := by
+  iintro #Hinv #Hk
+  unfold memCertInv
+  iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
+  imod monoListAuthOwn_update_app [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
+  ihave #He : certElemOk (GF := GF) γ ((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey) $$ []
+  · simp only [certElemOk, ↓reduceIte]
+    iexact Hk
+  imod Hclose $$ [Ha] with -
+  · inext
+    iexists L ++ [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)]
+    iframe Ha
+    iapply BigSepL.bigSepL_snoc.2
+    iframe Hall He
+  imodintro
+  imodintro
+  iintro %t
+  iapply memStorCert_of_lb γs (L ++ [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)])
+    (⟨⟨W64 0, i⟩, cl, al⟩, true) ⟨⟨t, i⟩, cl, al⟩ (by simp) (by simp [certCovers]) $$ Hlb
+
+/-- A registered `MemoryStorage` whose registry is tied to `γ` meets `storCertOk γ`. -/
+theorem memStorCertOk_intro (γ : RaftNames) (ms : Loc) (γs : MemStorNames) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ memStorReg ms γs -∗ storCertOk γ (memStorIface ms) := by
+  iintro #Hinv #Hreg
+  unfold storCertOk
+  isplit
+  · iintro !> %k %E %hE #Hc
+    ihave #Hc := memStorCert_at ms γs k $$ Hreg Hc
+    iapply memCert_read γ γs k E hE $$ Hinv Hc
+  · iintro !> %k %E %hE #Hk
+    imod memCert_register γ γs k E hE $$ Hinv Hk with #Hc
+    imodintro
+    iapply memStorCert_intro ms γs k $$ Hreg Hc
+
+end certLink
 
 end EtcdGrove
 end Perennial

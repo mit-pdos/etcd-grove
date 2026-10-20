@@ -40,7 +40,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
   intro ms γs σt x i cs dq oc data bs eood Hpre
-  wp_start as ⟨Htok, #Hfw, Hcs, Hdata, #Herr⟩
+  wp_start as ⟨Htok, #Hfw, Hcs, Hdata, #Hcertn, #Herr⟩
   iunfold memSnapTok at Htok
   icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsvt, Hcbt⟩
   wp_apply wp_with_defer as %defer defer
@@ -83,12 +83,13 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   · iunfold memSnapKeys; iright; ileft; iframe; ipureintro; rfl
   wp_auto
   iunfold memSnapHome at Hhome
-  icases Hhome with ⟨%σ1, Hsn, Hsnh⟩
+  icases Hhome with ⟨%σ1, Hsn, Hsnh, #Hcert1⟩
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
   obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %HagS
   obtain ⟨HS1, -, -⟩ := snapPart_inj HagS
   ihave Hsn := memSnapOwn_congr ms σ1 σt Hs1 Hs2 Hs3 $$ Hsn
+  ihave #Hcertt := memSnapCertOk_congr γs σ1 σt Hs1 Hs2 Hs3 $$ Hcert1
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp0, %sv0, Hsnapshot, Hsnap0, %Hsnap_id⟩
   icases ownSnapM_not_null $$ Hsnap0 with ⟨Hsnap0, %Hsp0nn⟩
@@ -104,7 +105,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   rw [← Hss]
   wp_if_destruct
   · -- `ErrSnapOutOfDate`: nothing changes
-    imod memSnap_put ms γs 2 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] with Hk
+    imod memSnap_put ms γs 2 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] Hcertt with Hk
     · iunfold memSnapOwn
       iexists sp0, sv0
       iframe
@@ -247,7 +248,9 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     · iframe Hsnap
     -- (D17d) the new snapshot's ghost value, and the snapshot back
     imod memSnap_update γs _ _ _ ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave' }) $$ Hsq Hsvt Hsnh with ⟨Hsq, Hsvt, Hsnh⟩
-    imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave' }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh with Hk
+    ihave #Hcertc := memSnapCertOk_of_sv γs ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave' }) (memSnapCreated σt i e.Term' none bs) ⟨rfl, rfl, rfl⟩ $$ []
+    · iapply Hcertn
+    imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave' }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh Hcertc with Hk
     · iunfold memSnapOwn
       iexists sp0, _
       iframe Hsnapshot Hsnap
@@ -329,7 +332,9 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     · iframe Hsnap
     -- (D17d) the new snapshot's ghost value, and the snapshot back
     imod memSnap_update γs _ _ _ ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave' }) $$ Hsq Hsvt Hsnh with ⟨Hsq, Hsvt, Hsnh⟩
-    imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave' }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh with Hk
+    ihave #Hcertc := memSnapCertOk_of_sv γs ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave' }) (memSnapCreated σt i e.Term' (some c) bs) ⟨rfl, rfl, rfl⟩ $$ []
+    · iapply Hcertn
+    imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave' }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh Hcertc with Hk
     · iunfold memSnapOwn
       iexists sp0, _
       iframe Hsnapshot Hsnap

@@ -37,7 +37,10 @@ agrees with the owner's on the snapshot), given back at the new snapshot.
 
 (D19i part 1, 2026-10-18) The storage's snapshot may be newer than the owner's view of it (the
 application's `CreateSnapshot`): the out-of-date test is against the token's, `σt`. The applied
-state keeps the owner's floor, which the snapshot must cover. -/
+state keeps the owner's floor, which the snapshot must cover.
+
+(D22 S-b′2, 2026-10-20) The new snapshot comes with its certificate in the storage's registry
+(`memStorCert`), which the snapshot's home keeps (`memSnapHome`). -/
 abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (sp : Loc) (sv : SnapshotM)
     (eood : GoInterface),
@@ -51,6 +54,8 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Htok" ∷ memSnapTok ms γs σt ∗
       "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv ∗
+      -- (D22 S-b′2, 2026-10-20) the new snapshot certified in the storage's registry
+      "#Hcert" ∷ memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
       (Val #sp))
