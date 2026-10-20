@@ -7,7 +7,8 @@
 // The check (check): the watched events are all puts, at strictly increasing revisions, gap-free
 // from revision 2 (a fresh member is at revision 1, and every revision after it is one writer's
 // Put of one key: one event per revision), each the put of a (key, value) some writer attempted (a
-// Put that returned an error may still have been applied), and every Put that returned no error
+// Put that returned an error may still have been applied; the writers' Puts are picked before the
+// member starts, so the Puts attempted are known then), and every Put that returned no error
 // is the event at its reply's header revision with its key and value. The watch is read after the
 // writers are done, until an event at or above the highest revision a successful Put returned;
 // if the watch channel closes, or a response reports an error (a cancel, a compaction, the
@@ -75,11 +76,10 @@ type event struct {
 	put bool
 }
 
-// The writers' log: every Put attempted, and every Put that returned no error.
+// The writers' log: every Put that returned no error.
 type writes struct {
-	mu    sync.Mutex
-	tried []kv
-	ok    []putRec
+	mu sync.Mutex
+	ok []putRec
 }
 
 // Gen picks a key under the prefix and a value, from a small set.
@@ -92,15 +92,11 @@ func Gen() kv {
 	return kv{key: k, val: vals[n%uint64(len(vals))]}
 }
 
-// writer does nops Puts of random keys through cli, logging each in w before it is sent and,
-// if it returned no error, with its reply's revision after.
-func writer(cli *clientv3.Client, w *writes, nops int) {
+// writer does the Puts of its plan through cli, in order, logging in w each that returned no
+// error, with its reply's revision.
+func writer(cli *clientv3.Client, w *writes, plan []kv) {
 	ctx := context.Background()
-	for i := 0; i < nops; i++ {
-		p := Gen()
-		w.mu.Lock()
-		w.tried = append(w.tried, p)
-		w.mu.Unlock()
+	for _, p := range plan {
 		resp, err := cli.Put(ctx, p.key, p.val)
 		if err == nil {
 			w.mu.Lock()
@@ -108,6 +104,28 @@ func writer(cli *clientv3.Client, w *writes, nops int) {
 			w.mu.Unlock()
 		}
 	}
+}
+
+// plans picks the writers' Puts: nw plans of nops random keys and values each (Gen).
+func plans(nw int, nops int) [][]kv {
+	ps := make([][]kv, nw)
+	for i := 0; i < nw; i++ {
+		var p []kv
+		for j := 0; j < nops; j++ {
+			p = append(p, Gen())
+		}
+		ps[i] = p
+	}
+	return ps
+}
+
+// flatten is every Put of the plans ps.
+func flatten(ps [][]kv) []kv {
+	var all []kv
+	for _, p := range ps {
+		all = append(all, p...)
+	}
+	return all
 }
 
 // maxRev is the highest revision of the successful Puts oks (0 if there is none).
@@ -190,6 +208,10 @@ func check(evs []event, tried []kv, oks []putRec) {
 // Main starts one member of a new cluster, opens a watch of the prefix from revision 1, runs nw
 // writers of nops Puts each, then reads the watch and checks it against the writes.
 func Main(nw int, nops int) int {
+	// The writers' Puts, picked before the member starts (the Puts attempted).
+	ps := plans(nw, nops)
+	tried := flatten(ps)
+
 	lg := zap.NewNop()
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	cfg := config.ServerConfig{
@@ -242,16 +264,16 @@ func Main(nw int, nops int) int {
 	w := &writes{}
 	var wg sync.WaitGroup
 	for i := 0; i < nw; i++ {
+		plan := ps[i]
 		wg.Add(1)
 		go func() {
-			writer(cli, w, nops)
+			writer(cli, w, plan)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 
 	w.mu.Lock()
-	tried := w.tried
 	oks := w.ok
 	w.mu.Unlock()
 	evs, ok := collect(wch, maxRev(oks))

@@ -31,10 +31,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.GetProgressReportInterval.wp_proof
     (hRand : rand.Int63n.spec (GF := GF) (hG := hG)) :
     v3rpc.GetProgressReportInterval.spec (GF := GF) (hG := hG) := by
-  wp_start as ⟨#Hv, Hrd⟩
+  wp_start_folded as ⟨#Hv, Htok, %Hb⟩
+  wp_func_call
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  (try wp_auto)
+  -- the pool, from the package's fact
+  ihave #Hv' := Hv
+  iunfold v3rpc.watchVars at Hv'
+  icases Hv' with ⟨-, #Hwpv⟩
+  iunfold v3rpc.watchPkgVars at Hwpv
+  icases Hwpv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hpool⟩
+  wp_auto_lc 1
+  -- borrow a reader slot
+  imod (v3rpc.intervalPool_borrow ⊤ (by simp) Hb) $$ [Hpool Hlc1 Htok] with ⟨Hrd, Hloan⟩
+  · iframe #; iframe
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := v3rpc.intervalP sync.rfrac)) $$ Hlc1 HP with HP
@@ -48,13 +58,17 @@ theorem v3rpc.GetProgressReportInterval.wp_proof
     iexists d
     iframe
     ipureintro; exact Hb
+  wp_auto_lc 1
+  -- return it
+  imod (v3rpc.intervalPool_return ⊤ (by simp)) $$ [Hloan Hlc1 Hrd] with Htok
+  · iframe
   (try wp_auto)
   have hdiv : sint.Z (BitVec.sdiv d (W64 10)) = sint.Z d / 10 := by word
   wp_apply hRand (BitVec.sdiv d (W64 10)) as %x %Hx
   · ipureintro; rw [hdiv]; omega
   (try wp_auto)
   iapply HΦ
-  iframe Hrd
+  iframe Htok
   ipureintro
   rw [hdiv] at Hx
   word

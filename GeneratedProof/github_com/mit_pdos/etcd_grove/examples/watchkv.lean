@@ -263,7 +263,6 @@ instance writes_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.watchkv.writes where
   typedPointstoDef l v dq := iprop(
     "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"mu" l) v.mu' dq ∗
-    "tried" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"tried" l) v.tried' dq ∗
     "ok" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"ok" l) v.ok' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -287,22 +286,6 @@ instance writes_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.ex
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"mu" l) mu' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.mit_pdos.etcd_grove.examples.watchkv.writes) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance writes_access_load_tried (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.watchkv.writes) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"tried" l) v.tried' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"tried" l) v.tried' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance writes_access_store_tried (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.watchkv.writes) (tried' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"tried" l) v.tried' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"tried" l) tried' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tried' := tried' } : github_com.mit_pdos.etcd_grove.examples.watchkv.writes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

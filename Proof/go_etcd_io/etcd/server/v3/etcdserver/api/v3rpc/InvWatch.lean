@@ -324,9 +324,11 @@ def recvRes (R : WSrv GF) : IProp GF :=
   iprop(mvcc.watchReader R.wsl R.E.s R.γ ∗ R.E.RD)
 
 /-- **The send loop's resources**: a reader slot of the watchable store (`RequestProgress`) and
-a reader token of the progress interval's lock (`GetProgressReportInterval`). -/
+(2026-10-20, watchkv) the thread bound under which `GetProgressReportInterval` borrows a reader
+slot of the progress interval's lock from the package's pool (`intervalPool`; until then the
+slot itself, which nothing produced: `v3rpc`'s initializer dropped them). -/
 def sendRes (R : WSrv GF) : IProp GF :=
-  iprop(mvcc.watchReader R.wsl R.E.s R.γ ∗ sync.ownRWMutex (hlc := HasLC.hasLC) intervalMu intervalP)
+  iprop(mvcc.watchReader R.wsl R.E.s R.γ ∗ ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝)
 
 /-- **A run's resources** (what grpc's run slot holds for a watch stream): the receive loop's
 and the send loop's. -/

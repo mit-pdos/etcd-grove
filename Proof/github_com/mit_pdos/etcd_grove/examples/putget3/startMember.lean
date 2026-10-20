@@ -123,7 +123,7 @@ theorem startMember.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, Hbuilt, Hgap,
-    Hserve, Hsv, Hmon, #Hnm⟩)
+    Hserve, Hsv, Hmon, #Hnm, -⟩)
   · -- `NewServer` failed: the error returned
     cases err with
     | nil => exact absurd rfl Herr

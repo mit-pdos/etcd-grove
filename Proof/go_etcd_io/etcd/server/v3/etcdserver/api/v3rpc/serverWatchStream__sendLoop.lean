@@ -678,7 +678,7 @@ local macro "send_return" : tactic => `(tactic| (
     iintro - HPM
     wp_auto
     iapply HΦ
-    itrivial
+    iexact Htt
   simp only [mvcc.watchRecvResult, ↓reduceIte]
   icases Hres with ⟨%x, Hwc, #HrIR, -⟩
   iunfold mvcc.respIs at HrIR
@@ -1696,7 +1696,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (hRER : mvcc.ReportEventReceived.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r
-  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, Hres, Hmu⟩
+  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, Hres, Hmu, Htt⟩
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
@@ -1748,7 +1748,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold v3rpc.sendRes at Hres
-  icases Hres with ⟨HR, Hiv⟩
+  icases Hres with ⟨HR, %Hiv⟩
   (try wp_auto)
   wp_bind (App (Val wrapDefer) _)
   iapply wp_with_defer
@@ -1758,8 +1758,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (go.StructType [])) as %idsL Hids
   wp_apply (wp_map_make1 (K := w64) (V := GoSlice) go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
     (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty))) as %pendL Hpend
-  wp_apply hGPI $$ [$Hiv] as %d ⟨%Hd, Hiv⟩
-  · iframe #
+  wp_apply hGPI $$ [$Htt] as %d ⟨%Hd, Htt⟩
+  · iframe #; ipureintro; exact Hiv
   wp_apply hNT d $$ [] as %tk #Htk
   · ipureintro; exact Hd
   ihave #Htk' := Htk
@@ -1811,7 +1811,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     simp at h
   -- the loop's postcondition: it returns (`sendRet`), then the deferred function runs
   wp_bind (App (App (App (Val doFor) _) _) _)
-  iapply (wp_wand (Φ := v3rpc.sendRet r pendL)) $$ [- HΦ Hdefer]
+  iapply (wp_wand (Φ := v3rpc.sendRet r pendL)) $$ [- HΦ Hdefer Htt]
   rotate_left
   · iintro %v Hv
     iunfold v3rpc.sendRet at Hv

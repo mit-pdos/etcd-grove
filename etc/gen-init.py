@@ -885,7 +885,10 @@ names) and the four
              '  iframe HprogressReportInterval',
              '  ipureintro',
              '  first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word',
-             'ihave ⟨-, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS'] +
+             'ihave ⟨HIS, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS',
+             '-- (2026-10-20, watchkv) its reader slots pooled, for the watch streams\' send loops',
+             'imod (EtcdGrove.v3rpc.intervalPool_alloc ⊤) $$ [HIS] with #HIP',
+             '· iframe HIG; iexact HIS'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),

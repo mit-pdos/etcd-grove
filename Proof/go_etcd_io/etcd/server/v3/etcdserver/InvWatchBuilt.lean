@@ -41,6 +41,28 @@ instance srvWatchBuilt_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvWatchBuilt (GF := GF) s E) := by
   unfold srvWatchBuilt; infer_instance
 
+/-- **The watch store `NewServer` builds, with `n` of its reader slots** (watch.txt's run slots,
+2026-10-20, watchkv: `v3rpc.watchRunSlot` takes two of them per watch stream; until then
+`NewServer` dropped them): `srvWatchBuilt`'s facts at some `wsl`, `γw`, and `n` reader slots of
+the watchable store's two locks (`mvcc.watchReader`) at the same names. -/
+def srvWatchReaders (s : Loc) (E : apply.AEnv GF) (n : Nat) : IProp GF :=
+  iprop(∃ (wsl : Loc) (γw : mvcc.WsNames),
+    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+    mvcc.isWatchableStore wsl E.s γw ∗ ⌜γw.st = E.γ⌝ ∗ mvcc.watchTokPool γw ∗
+    [∗list] _x ∈ List.replicate n (), mvcc.watchReader wsl E.s γw)
+
+open Iris.ProofMode in
+/-- The reader slots' store is the one `srvWatchBuilt` names. -/
+theorem srvWatchReaders_built (s : Loc) (E : apply.AEnv GF) (n : Nat) :
+    srvWatchReaders (GF := GF) s E n ⊢ srvWatchBuilt s E := by
+  unfold srvWatchReaders
+  iintro ⟨%wsl, %γw, #Ha, #Hws, %Hγ, #Hp, -⟩
+  unfold srvWatchBuilt
+  iexists wsl, γw
+  iframe #
+  ipureintro; exact Hγ
+
 end defs
 
 end EtcdGrove

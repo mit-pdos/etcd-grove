@@ -516,6 +516,8 @@ theorem NewServer.wp_proof
     iframe Hview Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
+  -- (2026-10-20, watchkv) 64 more for the watch service's run slots (`srvWatchReaders`)
+  icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwrx, Hwrds⟩
   ihave Hsrs := replicate_mono _ (mvcc.storeReader kst γw.st) 64
     (by unfold mvcc.watchReader; iintro ⟨H, -⟩; iexact H) $$ Hwsr
   (try wp_auto)
@@ -991,6 +993,15 @@ theorem NewServer.wp_proof
     iframe Htrf
     iunfold transportStarted
     iframe Htrall Htrr
+  -- (2026-10-20, watchkv) the watchable store's reader slots for the watch service
+  ihave HWR : srvWatchReaders s
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
+      64 $$ [Hwrx]
+  · unfold srvWatchReaders
+    iexists ws, γw
+    iframe #
+    iframe Hwrx
+    ipureintro; rfl
   imodintro
   iapply HΦ
   iright
@@ -1000,7 +1011,7 @@ theorem NewServer.wp_proof
     (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
-  iframe Hgap Hserve HSV HMon Hnm
+  iframe Hgap Hserve HSV HMon Hnm HWR
   isplitr
   · ipureintro; exact ⟨hγs, rfl⟩
   isplitr

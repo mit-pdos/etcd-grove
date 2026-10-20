@@ -367,7 +367,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iframe HprogressReportInterval
     ipureintro
     first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word
-  ihave ⟨-, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS
+  ihave ⟨HIS, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS
+  -- (2026-10-20, watchkv) its reader slots pooled, for the watch streams' send loops
+  imod (EtcdGrove.v3rpc.intervalPool_alloc ⊤) $$ [HIS] with #HIP
+  · iframe HIG; iexact HIS
   iframe Hown
   imodintro
   isplitr
