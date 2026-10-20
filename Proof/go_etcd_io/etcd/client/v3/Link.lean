@@ -939,7 +939,7 @@ theorem v3.watcher.wp_closeStream [go_etcd_io.etcd.server.v3.etcdserver.api.v3rp
 
 theorem v3.watchGRPCStream.wp_run [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watchGRPCStream.run.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.watchGRPCStream.run.wp_proof v3.watchGRPCStream.wp_newWatchClient v3.watchGRPCStream.wp_nextResume v3.watchGRPCStream.wp_dispatchEvent v3.watchGRPCStream.wp_addSubstream v3.watchGRPCStream.wp_closeSubstream v3.watchGRPCStream.wp_joinSubstreams v3.watchGRPCStream.wp_serveSubstream v3.watchGRPCStream.wp_newWatcherStreamBufLogger v3.watchRequest.wp_toPB v3.progressRequest.wp_toPB v3.watcher.wp_closeStream v3.wp_isHaltErr zap.Logger.wp_Debug zap.wp_Error zap.wp_Int64
+  EtcdGrove.watchGRPCStream.run.wp_proof v3.watchGRPCStream.wp_newWatchClient v3.watchGRPCStream.wp_nextResume v3.watchGRPCStream.wp_dispatchEvent v3.watchGRPCStream.wp_addSubstream v3.watchGRPCStream.wp_closeSubstream v3.watchGRPCStream.wp_joinSubstreams v3.watchGRPCStream.wp_serveSubstream v3.watchGRPCStream.wp_newWatcherStreamBufLogger v3.watchRequest.wp_toPB v3.progressRequest.wp_toPB v3.watcher.wp_closeStream v3.wp_isHaltErr zap.Logger.wp_Debug zap.wp_Error zap.wp_Int64 v3.wp_ContextError errors.wp_IsStatusErr v3.watchGRPCStream.wp_backoffIfUnavailable
 
 theorem v3.watcher.wp_Close [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.watcher.Close.spec (GF := GF) (hG := hG) :=

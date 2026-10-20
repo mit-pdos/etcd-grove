@@ -74,6 +74,52 @@ theorem epochSt_first (G : WgsPrm GF) (γs : StreamNames) (γc : GName) :
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
+/-- **The current epoch ends** (D24, `run`'s reconnection): with the count authority of an epoch
+the producer side handed back (`prodBack`), at a count `k` at or above the current epoch's start,
+every epoch so far has ended at or below `k` (the handed-back one is the current one: an earlier
+one's authority is `run`'s). -/
+theorem epochSt_close (G : WgsPrm GF) (γs : StreamNames) (b : Nat) (e b0 : Nat)
+    (γs0 : StreamNames) (γc0 : GName) (k : Nat) (hb : b ≤ k) :
+    epochSt G γs b ∗ monoListIdxOwn G.γep e ((γs0, b0, γc0) : EpInfo) ∗ monoNatAuthOwn γc0 1 k ⊢
+      ∃ eps : List EpInfo, monoListAuthOwn G.γep 1 eps ∗
+        [∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2 1 n ∗ ⌜n ≤ k⌝ := by
+  unfold epochSt
+  iintro ⟨⟨%eps, %γc, Ha, Hend⟩, #Hi, Hc⟩
+  ihave %Hl := mono_list_auth_idx_lookup _ _ _ _ _ $$ Ha Hi
+  by_cases he : e < eps.length
+  · rw [List.getElem?_append_left he] at Hl
+    icases (BigSepL.bigSepL_lookup_acc Hl).1 $$ Hend with ⟨⟨%n, Hn, -⟩, -⟩
+    iexfalso
+    iapply monoNatAuthOwn_exclusive $$ Hn Hc
+  · have he' : e = eps.length := by
+      obtain ⟨h1, -⟩ := List.getElem?_eq_some_iff.1 Hl
+      simp only [List.length_append, List.length_singleton] at h1; omega
+    subst he'
+    rw [List.getElem?_append_right (Nat.le_refl _)] at Hl
+    simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at Hl
+    obtain ⟨rfl, rfl, rfl⟩ := Hl
+    iexists eps ++ [((γs, b, γc) : EpInfo)]
+    iframe Ha
+    iapply BigSepL.bigSepL_snoc.2
+    isplitl [Hend]
+    · have hm : ∀ {j : Nat} {x : EpInfo},
+          iprop(∃ n : Nat, monoNatAuthOwn (GF := GF) x.2.2 1 n ∗ ⌜n ≤ b⌝) ⊢
+            iprop(∃ n : Nat, monoNatAuthOwn (GF := GF) x.2.2 1 n ∗ ⌜n ≤ k⌝) := by
+        intro _ x
+        iintro ⟨%n, Hn, %Hn⟩
+        iexists n; iframe; ipureintro; omega
+      iapply BigSepL.bigSepL_mono_of_forall (fun {j x} => hm (j := j) (x := x)) $$ Hend
+    · iexists k; iframe; ipureintro; exact Nat.le_refl _
+
+/-- **The next epoch** (D24): from `respc`'s position `k`, every earlier epoch ended at or below it. -/
+theorem epochSt_open (G : WgsPrm GF) (γs : StreamNames) (k : Nat) (γc : GName) (eps : List EpInfo) :
+    monoListAuthOwn (GF := GF) G.γep 1 (eps ++ [((γs, k, γc) : EpInfo)]) ∗
+      ([∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2 1 n ∗ ⌜n ≤ k⌝) ⊢ epochSt G γs k := by
+  iintro ⟨Ha, Hend⟩
+  unfold epochSt
+  iexists eps, γc
+  iframe
+
 end lemmas
 
 end client
