@@ -1,0 +1,32 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --linkvtxn`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `linkvtxn`.
+#
+# the porcupine model (examples/linkvtxn/linkvtxn.go: Model and its helpers; linkv-txn stage E)
+lookup:
+setKey:
+delKey:
+put: lookup setKey
+holds: lookup
+cmpsOf:
+thenOf:
+elseOf:
+resOf:
+kvsOf:
+withRes:
+withKVs:
+vrEqual:
+inputEqual:
+runOps: lookup put delKey
+mstep: lookup put delKey holds runOps cmpsOf thenOf elseOf withRes withKVs
+isWrite: thenOf elseOf
+resEqual: vrEqual
+outEqual: vrEqual resEqual kvsOf resOf
+storeEqual: vrEqual
+configEqual: storeEqual inputEqual
+removeAt:
+addConfig: configEqual
+closure: addConfig mstep removeAt
+step: isWrite mstep outEqual
+linkvtxn_Model: step addConfig closure configEqual
