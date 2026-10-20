@@ -1,6 +1,7 @@
 # Which issues matter most to etcd's developers
 
-A triage of every file in this directory (2026-10-18; upstream states as of 2026-10-20): the order in which we would bring the
+A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20; upstream
+states as of 2026-10-20): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -128,6 +129,13 @@ etcd-io/etcd#8288's review in 2017, accepted then as a rare false positive),
 [raft-stale-term-appresp-index-zero-ack](raft-stale-term-appresp-index-zero-ack.md) (a needless
 log resend or snapshot to a caught-up follower after a delayed stale-term message; upstream's
 `TestLeaderAppResp` pins the behavior),
+[etcd-rafthttp-misaddressed-403-member-removed](etcd-rafthttp-misaddressed-403-member-removed.md)
+(a peer URL that reaches the wrong member of the same cluster, as after a stale `UpdateMember` or a
+reused address, makes the healthy sender stop with "data-dir used by this member must be removed":
+`Process`'s `403` for a misaddressed message is the one `checkPostResponse` reads as
+`errMemberRemoved`, since etcd-io/etcd#17078, in 3.4 and up; availability only, code path certain,
+reachability not reproduced by a test yet, which it needs before filing; #20356 saw such rejections
+in a cluster that became unavailable, closed without a root cause),
 [etcd-request-id-member-prefix](etcd-request-id-member-prefix.md) (needs two member ids equal in
 their low 16 bits),
 [etcd-lease-close-require-leader-ctx-misaligned](etcd-lease-close-require-leader-ctx-misaligned.md)
@@ -177,10 +185,15 @@ fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnap
   [etcd-index-compact-overlapping](etcd-index-compact-overlapping.md),
   [etcd-txn-empty-requestop](etcd-txn-empty-requestop.md),
   [etcd-stream-interceptor-err-before-done](etcd-stream-interceptor-err-before-done.md).
-- **Raft-library edge cases unreachable from etcd**:
-  [raft-joint-empty-transition-panic](raft-joint-empty-transition-panic.md) and
-  [raft-unknown-transition-panic](raft-unknown-transition-panic.md) (one class: `stepLeader` does
-  not validate the conf changes it accepts),
+- **Raft-library edge cases unreachable from etcd as configured**:
+  [raft-joint-empty-transition-panic](raft-joint-empty-transition-panic.md),
+  [raft-unknown-transition-panic](raft-unknown-transition-panic.md) and
+  [raft-remove-last-voter-panic](raft-remove-last-voter-panic.md) (one class: `stepLeader` does
+  not validate the conf changes it accepts; the last is the one etcd can reach, a `member remove`
+  of the only member with `--strict-reconfig-check=false`, which panics it at apply and at every
+  restart; a self-inflicted loss of the whole cluster, with a one-line refusal in
+  `mayRemoveMember` as the etcd fix; etcd-io/etcd#13848 hit the same panic through
+  `--force-new-cluster` and was closed not planned),
   [raft-changer-nil-incoming](raft-changer-nil-incoming.md),
   [raft-config-clone-autoleave](raft-config-clone-autoleave.md),
   [raft-zero-max-size-per-msg](raft-zero-max-size-per-msg.md),
@@ -216,7 +229,14 @@ fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnap
   PR open), [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (not
   reproduced), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
   reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
-  (a member started in one particular millisecond), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
+  (a member started in one particular millisecond),
+  [etcd-watch-canceled-pending-retained](etcd-watch-canceled-pending-retained.md) (up to 128
+  responses of a canceled watcher kept per cancel until the gRPC stream closes; no wrong result;
+  the `etcd-watch-id-reuse-stale-events` candidate's fix drops them, so it rides on that one),
+  [raft-switchtoconfig-pending-reads](raft-switchtoconfig-pending-reads.md) (reads postponed to
+  the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a
+  bug for an application that applies conf changes before `Advance`, so not filing: it is one more
+  consequence of the misuse in item 9), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
   (Go, not etcd; a golang/go issue drafted, not filed).
 - **Metrics**: [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md),
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
