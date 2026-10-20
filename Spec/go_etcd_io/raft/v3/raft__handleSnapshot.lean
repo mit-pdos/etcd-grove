@@ -111,7 +111,7 @@ abbrev raft.handleSnapshot.spec : Prop :=
   s.votes = ∅ →
   sn = some sv →
   cl = sv.Metadata'.ConfState'.lists →
-  SnapScope sv cl →
+  SnapScopeIf id sv cl →
   -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
   m.From' ≠ id →
   -- (2026-10-19, D21 M3) outside the no-snapshot mode (`raft.restore`'s premise)

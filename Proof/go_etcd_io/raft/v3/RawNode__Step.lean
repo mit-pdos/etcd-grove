@@ -147,11 +147,11 @@ theorem RawNode.Step.wp_proof
         -- (2026-10-20, D22 S-c) a snapshot's facts, at the static mode
         imodintro
         iintro %h
-        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hso0, #Hm0⟩
+        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0⟩
         iexists sv0, scfg0
         rw [Hstat h]
-        simp only [RNMode.toG]
-        iframe Hso0 Hm0
+        simp only [RNMode.toG, GMode.SnapDyn]
+        iframe Hm0
         ipureintro; exact Hp0
       simp only [HnP]
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, %Hsfr, -⟩
@@ -165,19 +165,33 @@ theorem RawNode.Step.wp_proof
         obtain ⟨-, Hst0⟩ := Hsnp Hs
         have Hst := Hstat Hs
         obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hco⟩ := Hsfr Hs
-        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, Hso0, -⟩
-        iunfold GMode.SnapOk at Hso0
-        icases Hso0 with %Hso0
+        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, #Hm0⟩
         obtain ⟨Hsn0, Hcl0, -⟩ := Hp0
         have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
           rw [Hst] at Href ⊢; exact Href.1
+        -- (D22 S-b′4) the restored lists' static facts, from the message's certificate (under
+        -- their naming the node: `SnapCfgOut`)
+        icases ownStepGhost_mode γ md' c' id s' $$ Hghost with ⟨%Hgm, Hghost⟩
+        have Hn : γ.reDyn = none := by
+          rw [Hmd, Hst] at Hgm
+          simp only [RNMode.toG, GMode.isDyn] at Hgm
+          cases h : γ.reDyn with
+          | none => rfl
+          | some _ => simp [h] at Hgm
+        ihave #Hcr0 : raftSnapCert γ (snapTrip sv0 scfg0) $$ []
+        · rw [show snapTrip sv0 scfg0 = msgSnapTrip (absSnap m sv0 scfg0) from rfl]
+          iapply isMessageC_snap_cert γ (absSnap m sv0 scfg0) (by simp [absSnap, absSnapFrom]) $$ Hm0
+        ihave %Hso0 : ⌜scfg0.Has id → scfg0.outgoing = []⌝ $$ []
+        · unfold raftSnapCert
+          icases Hcr0 with ⟨-, %Hs0, -⟩
+          ipureintro; intro hh; exact (Hs0 Hn id hh).2.1
         have Hal' : c'.autoLeave = false := by
-          rcases Hco with rfl | ⟨sv1, Hsv1, rfl⟩
+          rcases Hco with rfl | ⟨sv1, Hsv1, rfl, Hhas⟩
           · exact Hal
           · rw [Hsn0] at Hsv1
             cases Hsv1
-            rw [← Hcl0]
-            simp [snapCfg, csCfgM, Hso0.2.1]
+            rw [← Hcl0] at Hhas ⊢
+            simp [snapCfg, csCfgM, Hso0 Hhas]
         ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c' id s' $$ [Hghost]
         · rw [← Hmd]; iexact Hghost
         have HnT : m.Type' ≠ MsgTimeoutNow := by rw [Hs]; simp [MsgSnap, MsgTimeoutNow]

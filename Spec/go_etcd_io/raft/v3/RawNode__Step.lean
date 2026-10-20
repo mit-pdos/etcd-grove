@@ -13,7 +13,7 @@ Specified for the messages of replication and leader election (`NetMsgOk`): `Msg
 `MsgTransferLeader` (`TransferLeadership`'s), and the local `MsgForgetLeader`,
 `MsgUnreachable`, `MsgSnapStatus`; (2026-10-17) pre-vote; (2026-10-20, D22 S-c) a leader's
 `MsgSnap`, in the static mode, outside the cluster's no-snapshot mode and with no `Ready`
-outstanding, its snapshot as `raft.Step` takes it (`"#Hsnap"`: `SnapScope`, `GMode.SnapOk`,
+outstanding, its snapshot as `raft.Step` takes it (`"#Hsnap"`: the index bound,
 `absSnap`); afterwards a snapshot may be pending (`RNState.psnap`), which `Ready` and `Advance`
 do not hand out until stage S-d (`notes/decisions.md`, "D22 S-c carried out") -- not a
 `MsgTransferLeader` a follower forwarded (stamped:
@@ -121,12 +121,14 @@ abbrev RawNode.Step.spec : Prop :=
       -- static mode (the only one a snapshot comes in, `DynNoSnap`): the snapshot the message
       -- holds, its `ConfState`'s lists well formed (`SnapScope`), the ghost state's voters, not
       -- joint, within the tracked bound (`GMode.SnapOk`), and its abstraction legitimately sent.
-      -- (`SnapScope` and `GMode.SnapOk` are what stage S-b′ derives from the message's
-      -- configuration certificate.)
+      -- (Since D22 S-b′4, 2026-10-20, `SnapScope` and `GMode.SnapOk` come from the message's
+      -- configuration certificate, `isMessageC`'s `raftSnapCert`, once its lists name the node:
+      -- only the index bound is left.)
       "#Hsnap" ∷ □ (⌜st.msg.Type' = MsgSnap⌝ -∗
          ∃ (sv : SnapshotM) (scfg : CSLists),
-           ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧ SnapScope sv scfg⌝ ∗
-           GMode.SnapOk γ .static sv scfg ∗
+           -- (D22 S-b′4, 2026-10-20) the index bound only (the rest from the certificate)
+           ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+             uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`, `raft.Step`'s)
            isMessageC γ (absSnap st.msg sv scfg)) ∗
       -- (2026-10-13) a read-index request's read credit

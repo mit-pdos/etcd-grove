@@ -200,7 +200,7 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
      "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut sn c c'⌝ ∗
+     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut id sn c c'⌝ ∗
      "%Herr" ∷ ⌜err = interface.nil⌝) -∗ Φ #err)
 
 /-- What the dynamic mode's update needs of a step from `s` to `s'` (`DynHyp`), given the

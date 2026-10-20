@@ -327,6 +327,18 @@ theorem ownStepGhost_nsLink (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) 
   iunfold ownStepGhost
   iframe Hg Hr
 
+/-- (D22 S-b′4) The mode is `γ`'s (`ownRaftGhost_mode`), read out. -/
+theorem ownStepGhost_mode (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ ⌜γ.reDyn.isSome = md.isDyn⌝ ∗ ownStepGhost γ md c id s := by
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, Hr⟩
+  ihave %Hm := ownRaftGhost_mode γ id (toPState s) (md := md.isDyn) $$ Hg
+  isplitr
+  · ipureintro; exact Hm
+  iunfold ownStepGhost
+  iframe Hg Hr
+
 /-- The commit invariant, from the ghost state in either mode (2026-10-14, stage R). -/
 theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
     ownStepGhost (GF := GF) γ md c id s ⊢ raftCommitInv γ := by
@@ -577,6 +589,63 @@ instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : SnapshotM)
     (scfg : CSLists) : Persistent (md.SnapOk (GF := GF) γ sv scfg) := by
   cases md <;> unfold GMode.SnapOk <;> infer_instance
 
+/-- (D22 S-b′4, 2026-10-20) What the step needs of the mode: statically `GMode.SnapOk` once the
+`ConfState` names the node (the restore exit: `restore` refuses it otherwise), which the message's
+certificate gives (`snapOkIf_of_cert`); dynamically all of it (the model's step at a dynamic
+configuration asks the snapshot's admissibility, `StepCDS`, also of a refused one). -/
+def GMode.SnapOkIf (γ : RaftNames) (id : w64) : GMode → SnapshotM → CSLists → IProp GF
+  | .static, sv, scfg => iprop(⌜scfg.Has id → GMap.listToSet scfg.voters = γ.reCfg ∧
+      scfg.outgoing = [] ∧
+      ∀ T, γ.reTracked = some T → (snapCfg sv scfg).voters ∪ (snapCfg sv scfg).learners ⊆ T⌝)
+  | .dyn dec c0 h0 g, sv, scfg => GMode.SnapOk γ (.dyn dec c0 h0 g) sv scfg
+
+instance GMode.SnapOkIf_persistent (γ : RaftNames) (id : w64) (md : GMode) (sv : SnapshotM)
+    (scfg : CSLists) : Persistent (md.SnapOkIf (GF := GF) γ id sv scfg) := by
+  cases md <;> unfold GMode.SnapOkIf <;> (try unfold GMode.SnapOk) <;> infer_instance
+
+/-- (D22 S-b′4) What `raft.Step`'s `"#Hsnap"` still takes of the mode: nothing statically (the
+message's certificate gives it), `GMode.SnapOk` dynamically. -/
+def GMode.SnapDyn (γ : RaftNames) : GMode → SnapshotM → CSLists → IProp GF
+  | .static, _, _ => iprop(True)
+  | .dyn dec c0 h0 g, sv, scfg => GMode.SnapOk γ (.dyn dec c0 h0 g) sv scfg
+
+instance GMode.SnapDyn_persistent (γ : RaftNames) (md : GMode) (sv : SnapshotM)
+    (scfg : CSLists) : Persistent (md.SnapDyn (GF := GF) γ sv scfg) := by
+  cases md <;> unfold GMode.SnapDyn <;> (try unfold GMode.SnapOk) <;> infer_instance
+
+/-- (D22 S-b′4) The step's need of the mode from the message's certificate (statically: the
+static mode is `γ`'s, `ownRaftGhost`'s flag) and `SnapDyn` (dynamically). -/
+theorem snapOkIf_of_cert (γ : RaftNames) (md : GMode) (id : w64) (ps : PState)
+    (sv : SnapshotM) (scfg : CSLists) (Hcl : scfg = sv.Metadata'.ConfState'.lists) :
+    ⊢ ownRaftGhost (GF := GF) γ id ps md.isDyn -∗ raftSnapCert γ (snapTrip sv scfg) -∗
+      md.SnapDyn γ sv scfg -∗ md.SnapOkIf γ id sv scfg ∗ ownRaftGhost γ id ps md.isDyn := by
+  cases md with
+  | static =>
+    iintro Hg #Hc -
+    ihave %Hm := ownRaftGhost_mode γ id ps (md := GMode.isDyn .static) $$ Hg
+    have Hn : γ.reDyn = none := by
+      simp only [GMode.isDyn] at Hm
+      cases h : γ.reDyn with
+      | none => rfl
+      | some _ => simp [h] at Hm
+    iframe Hg
+    unfold raftSnapCert
+    icases Hc with ⟨-, %Hs, -⟩
+    simp only [GMode.SnapOkIf]
+    ipureintro
+    intro hhas
+    obtain ⟨h1, h2, h3⟩ := Hs Hn id hhas
+    refine ⟨h1, h2, fun T hT => ?_⟩
+    have := h3 T hT
+    simp only [SnapTrip.cfgM, snapTrip] at this
+    subst Hcl
+    exact this
+  | dyn dec c0 h0 g =>
+    iintro Hg - #Hd
+    iframe Hg
+    simp only [GMode.SnapOkIf, GMode.SnapDyn]
+    iexact Hd
+
 /-- A `MsgSnap` branch's step updates the mode's ghost state (2026-10-14, stage B8): statically
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOk`);
 dynamically `ownRaftGhostR_stepR` at the snapshot's prefix `fp0`, the one the message shows
@@ -586,14 +655,14 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
-    (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
+    (Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
-      md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
+      md.SnapOkIf γ id sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRestM γ md' c' id s' := by
   cases md with
   | static =>
-    simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
+    simp only [ghostRestM, GMode.isDyn, GMode.SnapOkIf]
     iintro #Hrc - Hrecv Hcr Htk Hlc %Hso Hg %HC
     imod ownRaftGhost_stepC γ c HC.1 id HC.2 B HB (toPState s) recv (toPState s') Hstep.1 $$ Hrc
       Hrecv Hcr Htk Hlc Hg
@@ -604,13 +673,14 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     isplitr
     · ipureintro; exact ⟨rfl, B, recv, Hstep.1⟩
     ipureintro
-    rcases Hc' with rfl | rfl
+    rcases Hc' with rfl | ⟨rfl, Hhas⟩
     · exact HC
-    · refine ⟨⟨?_, ?_, HC.1.2.2⟩, fun T hT => ⟨Hso.2.2 T hT, (HC.2 T hT).2⟩⟩
+    · have Hso := Hso Hhas
+      refine ⟨⟨?_, ?_, HC.1.2.2⟩, fun T hT => ⟨Hso.2.2 T hT, (HC.2 T hT).2⟩⟩
       · simp only [snapCfg, csCfgM]; exact Hso.1
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
-    simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
+    simp only [ghostRestM, GMode.isDyn, GMode.SnapOkIf, GMode.SnapOk]
     iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it
@@ -652,9 +722,10 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
-    (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
+    (Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id))
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
-      md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+      md.SnapOkIf γ id sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
   iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg Hrest

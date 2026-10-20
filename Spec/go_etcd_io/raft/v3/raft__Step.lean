@@ -326,8 +326,10 @@ theorem SnapStep.refl [FfiSyntax] (m : MessageM) (s : NState) : SnapStep m s s :
 
 /-- (2026-10-20, D22 S-c) The configuration after a `MsgSnap` holding the snapshot `sn`: `c`, or the
 one the snapshot's `ConfState` denotes (`snapCfg`), after a restore. -/
-def SnapCfgOut [FfiSyntax] (sn : Option SnapshotM) (c c' : CfgM) : Prop :=
-  c' = c ∨ ∃ sv, sn = some sv ∧ c' = snapCfg sv sv.Metadata'.ConfState'.lists
+def SnapCfgOut [FfiSyntax] (id : w64) (sn : Option SnapshotM) (c c' : CfgM) : Prop :=
+  c' = c ∨ ∃ sv, sn = some sv ∧ c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
+    -- (D22 S-b′4) its `ConfState` naming the node
+    sv.Metadata'.ConfState'.lists.Has id
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -557,14 +559,19 @@ abbrev raft.Step.spec : Prop :=
       -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the
       -- `ConfState` the fold of the snapshot's prefix); and the abstraction `absSnap`
       -- (`Defs.lean`) -- the snapshot's metadata, not `m`'s own `Index`/`LogTerm` -- was
-      -- legitimately sent. Transport/client assumptions like the rest.
+      -- legitimately sent. Transport/client assumptions like the rest. (Since D22 S-b′4,
+      -- 2026-10-20, the scope and the static mode's need are the message certificate's, under
+      -- the lists' naming the node, `SnapScopeIf`/`GMode.SnapOkIf`: only the index bound and,
+      -- dynamically, `GMode.SnapOk` (`GMode.SnapDyn`) are left.)
       -- (stage R4) the snapshot the message holds (`sn = some sv`, owned in `"Hm"`) and the
       -- lists of its `ConfState` (until the retarget the read-only slices, `ownCSL`)
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
          ∃ (sv : SnapshotM) (scfg : CSLists),
+           -- (D22 S-b′4, 2026-10-20) the index bound only: the lists' scope and, statically, what
+           -- the mode asks come from the message's certificate (under its naming the node)
            ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-             SnapScope sv scfg⌝ ∗
-           md.SnapOk γ sv scfg ∗
+             uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+           md.SnapDyn γ sv scfg ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`): its snapshot's configuration
            -- certificate, which the step registers in the storage (`certLink`) before the restore
            isMessageC γ (absSnap m sv scfg)) }}
@@ -590,7 +597,7 @@ abbrev raft.Step.spec : Prop :=
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       -- (2026-10-20, D22 S-c) for a snapshot, what is kept of the state and how the term moves
       -- (`SnapStep`), and the configuration afterwards (`SnapCfgOut`)
-      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut sn c c'⌝ ∗
+      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut id sn c c'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

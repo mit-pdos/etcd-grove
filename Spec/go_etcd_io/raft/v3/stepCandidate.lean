@@ -309,7 +309,7 @@ abbrev stepCandidate.spec : Prop :=
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ m.From' ≠ id ∧
+     SnapScopeIf id sv scfg ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
      s.gh.ns = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

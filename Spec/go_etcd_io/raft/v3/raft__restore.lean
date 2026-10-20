@@ -21,7 +21,9 @@ Two more are dead under the premises: the node is not a follower
 .follower`; and `confchange.Restore` failing (`panic`) -- the `ConfState` is
 well formed (`SnapScope`), so `Restore` answers the configuration it denotes (`restoreM_wf`).
 
-`SnapScope sv cl` is the scope for a snapshot, what `Step`'s `"Hsnap"` supplies (since
+(Since D22 S-b′4, 2026-10-20, the premise is `SnapScopeIf id sv cl`: the scope only once the
+lists name the node, which the `!found` exit tests before reading them; `Step` derives it from
+the message's certificate.) `SnapScope sv cl` is the scope for a snapshot, what `Step`'s `"Hsnap"` supplied (since
 2026-10-14, reconfiguration stage B8, for any `ConfState`, joint included; until then
 non-joint, with fixed voters): the lists `cl` the four slices hold are well formed (`CSWf`:
 a voter, no `0` -- `confchange` skips `NodeID = 0` --, a learner no voter, a staged learner
@@ -86,7 +88,7 @@ abbrev raft.restore.spec : Prop :=
   s.role = .follower →
   s.votes = ∅ →
   cl = sv.Metadata'.ConfState'.lists →
-  SnapScope sv cl →
+  SnapScopeIf id sv cl →
   -- (2026-10-19, D21 M3) outside the no-snapshot mode, where no snapshot is sent
   s.gh.ns = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

@@ -52,7 +52,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    SnapScope sv scfg →
+    SnapScopeIf id sv scfg →
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
     sn = some sv →
     scfg = sv.Metadata'.ConfState'.lists →
@@ -67,7 +67,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
+        "%Hc'" ∷ ⌜c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
@@ -127,7 +127,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %interface.nil %s1 %c1
   iframe Hphys
   ipureintro
-  refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
+  refine ⟨snapCfgOk_cases' Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
     by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
     SnapStep.of_handle (t := { becomeFollower s m.Term' m.From' with prvals := pvs })
       (by simp [becomeFollower, resetTo, resetTo0]) rfl

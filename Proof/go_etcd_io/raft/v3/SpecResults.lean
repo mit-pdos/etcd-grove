@@ -122,6 +122,16 @@ def SnapScope (sv : SnapshotM) (cl : CSLists) : Prop :=
   (cl.outgoing = [] → cs.AutoLeave' = false) ∧
   uint.Z sv.Metadata'.Index' < 2^61
 
+/-- (D22 S-b′4, 2026-10-20) What a receiver needs of a snapshot's `ConfState`: its scope once it
+names the node `id` (`restore` reads the lists only past its `!found` exit), and its index below
+`2^61` either way (a refused snapshot is no boundary, but the bound is the transport's). The
+scope comes from the message's certificate (`raftSnapCert`'s `SnapListsOk`, under `Has`). -/
+def SnapScopeIf (id : w64) (sv : SnapshotM) (cl : CSLists) : Prop :=
+  (cl.Has id → SnapScope sv cl) ∧ uint.Z sv.Metadata'.Index' < 2^61
+
+theorem SnapScopeIf.of_scope {id : w64} {sv : SnapshotM} {cl : CSLists} (h : SnapScope sv cl) :
+    SnapScopeIf id sv cl := ⟨fun _ => h, h.2.2.2.2.2.2.2⟩
+
 /-- The configuration a snapshot's `ConfState` denotes (2026-10-14, reconfiguration stage B8). -/
 abbrev snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
   csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'

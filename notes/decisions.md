@@ -13230,3 +13230,32 @@ them). Server: `srvMergedBundle`/`snapBranch_send` take the merged content's `ra
 (`snapBranch_send`: `□ ∀ c, csOpt cs □ c -∗ raftSnapCert γ ⟨⟨at, ai⟩, c.lists, c.AutoLeave⟩`;
 S-l mints it from `ep.confState`'s content with `raftSnapCert_empty`/`_static`);
 `isMessage_snap_lists` still holds (the certificate is not `isMessage`'s).
+
+## D22 S-b′4 carried out: the step's snapshot premises from the certificate (2026-10-20)
+
+Stage S-b′4 (after S-b′3, "D22 S-b′3 carried out"): `raft.Step`'s and `RawNode.Step`'s `"#Hsnap"`
+no longer take the snapshot's list scope or (statically) the mode's need; both come from the
+message's configuration certificate (`isMessageC`'s `raftSnapCert`), which states them only for
+lists that name a node (`k.cl.Has x`). Only the index bound (`< 2^61`, the transport's) and,
+dynamically, `GMode.SnapOk` are left as premises.
+
+- **The scope under `Has`.** `SnapScopeIf id sv cl := (cl.Has id → SnapScope sv cl) ∧ Index <
+  2^61` (`SpecResults.lean`, with `SnapScopeIf.of_scope`) replaces `SnapScope` in the premises of
+  `raft.restore`, `raft.handleSnapshot`, `stepFollower`/`stepCandidate`'s `MsgSnap` clauses and
+  `raft__Step/MsgSnap*.lean`. `restore` reads the lists only past its `!found` exit, so its proof
+  takes the scope out once `Hidv : CSLists.Has … id` is known; before, only the index bound is
+  used. The certificate's `SnapListsOk (snapTrip sv cl)` is `SnapScope sv cl` definitionally.
+- **The mode's need under `Has`.** `GMode.SnapOkIf γ id` (`StepGhostMode.lean`): statically
+  `⌜scfg.Has id → voters = reCfg ∧ outgoing = [] ∧ tracked bound⌝`, dynamically `GMode.SnapOk`;
+  `ghost_stepCDSM`/`ghost_stepCDS` take it, with `Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧
+  scfg.Has id)` (the restored configuration is one that names the node, `snapCfgOk_cases'`;
+  `MsgSnap`/`_eq`/`_gt`'s `"%Hc'"` say so). `GMode.SnapDyn` (static: `True`, dynamic: `SnapOk`) is
+  what `"#Hsnap"` still takes; `snapOkIf_of_cert` turns it and the certificate into `SnapOkIf`
+  (statically through `ownRaftGhost_mode`: the static mode is `γ.reDyn = none`, the premise of
+  the certificate's static conjunct).
+- **`SnapCfgOut id`** gains the restored lists' `Has id`, so `RawNode.Step` (whose `"#Hsnap"` now
+  takes only the index bound and `isMessageC`) gets the restored configuration's `outgoing = []`
+  from the certificate (`ownStepGhost_mode`, `isMessageC_snap_cert`), for its `Hal'`.
+- No server/kv change: their `"#Hsnap"` uses are at `reNoSnap = true` (no `MsgSnap` stepped) or
+  through `raft.Step`'s weaker premise. Trust base unchanged (538 axioms, 2 sorries); every
+  collection passes `--check`.

@@ -415,20 +415,20 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Φ : val → IProp GF) (Hwf : NStateWf s)
     (Hty : m.Type' = MsgSnap)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
-    (Hscope : SnapScope sv scfg)
+    (Hidx : uint.Z sv.Metadata'.Index' < 2^61)
     (Hsn : sn = some sv) (Hcl : scfg = sv.Metadata'.ConfState'.lists)
     (Hnsf : s.gh.ns = false) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
-      md.SnapOk γ sv scfg -∗
+      md.SnapDyn γ sv scfg -∗
       isMessageC γ (absSnap m sv scfg) -∗
       ▷ snapPost γ md c r id s m sn Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
-  iintro #Hinit Hphys Hghost Hrest Hmsg #Hso #HmC HΦ
+  iintro #Hinit Hphys Hghost Hrest Hmsg #Hsd #HmC HΦ
   ihave #Hm := isMessageC_isMessage γ _ $$ HmC
   -- (D22 S-b′3) the snapshot's certificate, registered in the storage's registry (`certLink`:
   -- outside the no-snapshot mode, `storCertOk`)
@@ -443,6 +443,14 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   iunfold storCertOk at Hok
   icases Hok with ⟨-, #Hreg⟩
   imod Hreg $$ %_ %⊤ %CoPset.subseteq_top Hcr with #Hcert
+  -- (D22 S-b′4) the lists' scope and the mode's need, from the certificate
+  ihave %Hlo : ⌜∀ x, scfg.Has x → SnapScope sv scfg⌝ $$ []
+  · unfold raftSnapCert
+    icases Hcr with ⟨%Hl, -⟩
+    ipureintro; intro x hx; subst Hcl; exact Hl x hx
+  have Hscope : SnapScopeIf id sv scfg := ⟨Hlo id, Hidx⟩
+  icases snapOkIf_of_cert γ md id (toPState s) sv scfg Hcl $$ Hghost [] Hsd with ⟨#Hso, Hghost⟩
+  · rw [Hcl]; iexact Hcr
   -- at the current term the receiver is not a leader: the sender leads it
   ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg $$ Hm
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
@@ -483,7 +491,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   refine ⟨Hwf', Hout, by resp_other, ⟨Hsf, ?_⟩, Herr⟩
   rcases Hc1 with h | h
   · exact .inl h
-  · exact .inr ⟨sv, Hsn, by rw [h, Hcl]⟩
+  · exact .inr ⟨sv, Hsn, by rw [h.1, Hcl], by rw [← Hcl]; exact h.2⟩
 
 /-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
 private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := hG))
@@ -830,9 +838,9 @@ theorem raft.Step.wp_proof
       exact ⟨Hwf', Href, fun h => absurd Hns h, fun Hl => by rcases Hl with h | h | h <;> contradiction,
         fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => Hsf⟩
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm'⟩
-    obtain ⟨Hsn, Hcl, Hscope⟩ := Hsc
+    obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
     have Hnsf : s.gh.ns = false := Hnsx Hns
-    iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hscope Hsn Hcl Hnsf
+    iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hidx Hsn Hcl Hnsf
       $$ Hinit Hphys Hghost Hrest Hmi Hso Hm' HΦs
   ihave HΦ : ▷ stepPost γ md c r id s m Φ $$ [HΦ Hlc]
   · inext
