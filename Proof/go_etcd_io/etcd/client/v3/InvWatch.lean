@@ -30,7 +30,7 @@ consumer's resources, `retcP`).
 * the watch-token pool (`mvcc.watchTokPool`, 2026-10-18: a create, and so every `Watch`, spends
   a token, which `run` takes from the pool for a time receipt of its own Go step: D19b's
   method, in place of the unbounded supply `watchTokSupply`);
-* (no longer a premise, D24, 2026-10-20) `noRetryableStreamErr`, that no stream error has the
+* (no longer a premise, D25, 2026-10-20) `noRetryableStreamErr`, that no stream error has the
   status code `Unavailable` or `Internal`, the codes `isHaltErr` lets `run` retry on: the
   reconnection (`newWatchClient` after `errc`, the resume queue, `waitCancelSubstreams`) is
   verified at every call.
@@ -325,7 +325,7 @@ revision `rev`), its context (`ctx`, `cs`), its `watchRequest`'s fields (`key`, 
 `cn`/`pn` the created and progress notifications, `wbl` the buffer logging, `flt` the filters'
 slice), its `retc` channel (a bag), and its substream `ws` (`*watcherStream`) with the substream's
 channels (`outc` the caller's, an SPSC channel with names `γ`; `recvc` from `run`, a synchronous
-SPSC with names `γr` and the dispatch cursor `γhi`; D24: the `donec` of each of its goroutines'
+SPSC with names `γr` and the dispatch cursor `γhi`; D25: the `donec` of each of its goroutines'
 lifetimes is the lifetime's, `LifePrm`). -/
 structure WsPrm (GF : BundledGFunctors) where
   o : OpFull
@@ -354,7 +354,7 @@ structure WsPrm (GF : BundledGFunctors) where
   /-- (K2e-6) the watch's start revision was read from the server's store (`mvcc.startRead`):
   its create request says so (`CreateReqM.sr`) -/
   sr : Bool
-  /-- (D24) the status of `recvc`'s positions: a ghost map from a position to whether a goroutine
+  /-- (D25) the status of `recvc`'s positions: a ghost map from a position to whether a goroutine
   of the substream started there (`true`, `lifeStart`) or `run` sent a response there that is not
   a created one (`false`, `notStart`): a goroutine's first response is its create's -/
   γps : GName
@@ -419,12 +419,12 @@ instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
     Persistent (recvCmpl V P k v r) := by
   unfold recvCmpl; infer_instance
 
-/-- **A goroutine of the substream started at `recvc`'s position `k`** (persistent; D24): its
+/-- **A goroutine of the substream started at `recvc`'s position `k`** (persistent; D25): its
 first response is a created one, with `run`'s half of the request's `rev` field. -/
 def lifeStart (P : WsPrm GF) (k : Nat) : IProp GF := ghostMapElem P.γps k DFrac.discard true
 
 /-- **`run` sent a response at `recvc`'s position `k` that is not a created one** (persistent;
-D24): no goroutine of the substream started there. -/
+D25): no goroutine of the substream started there. -/
 def notStart (P : WsPrm GF) (k : Nat) : IProp GF := ghostMapElem P.γps k DFrac.discard false
 
 instance lifeStart_persistent (P : WsPrm GF) (k : Nat) : Persistent (lifeStart (GF := GF) P k) := by
@@ -444,7 +444,7 @@ theorem lifeStart_notStart (P : WsPrm GF) (k : Nat) :
 revision, or its header's revision. -/
 abbrev resumePos (r : RespModel) : w64 := (r.events.getLast?.map EvModel.rev).getD r.hdrRev
 
-/-- **A response's resume fact** (persistent; D24): unless the watch promises no completeness, a
+/-- **A response's resume fact** (persistent; D25): unless the watch promises no completeness, a
 create from just after the response's position (`resumePos`) is a start-read one
 (`startOk ... true`: the server will deliver every event from it on). -/
 def resumeF (V : WEnv GF) (P : WsPrm GF) (r : RespModel) : IProp GF :=
@@ -454,7 +454,7 @@ instance resumeF_persistent (V : WEnv GF) (P : WsPrm GF) (r : RespModel) :
     Persistent (resumeF V P r) := by
   unfold resumeF; infer_instance
 
-/-- **A substream's resume revision** (persistent; D24): the request's `rev` field `rv` the
+/-- **A substream's resume revision** (persistent; D25): the request's `rev` field `rv` the
 substream would be re-created from after a reconnect, at the dispatch cursor's position `hl` and
 the second cursor's `c2`: at or above the watch's start (unless that is "now", `0`), above the
 dispatch cursor (unless that is below `0`: no event yet of a watch from "now"), just past the
@@ -468,7 +468,7 @@ instance resumeOk_persistent (V : WEnv GF) (P : WsPrm GF) (rv hl c2 : w64) :
     Persistent (resumeOk V P rv hl c2) := by
   unfold resumeOk; infer_instance
 
-/-- **A registration's base** (D24): the create's start revision `rr` and start-read flag `srr`,
+/-- **A registration's base** (D25): the create's start revision `rr` and start-read flag `srr`,
 and the dispatch cursor's position `hb` when the create was sent (the first create's: the watch's
 start, its flag, `rev - 1`; a resumed create's: the resume revision, `cplOf`, the cursor then). -/
 structure RegB where
@@ -476,7 +476,7 @@ structure RegB where
   srr : Bool
   hb : w64
 
-/-- **A registration's base the contract allows** (pure; D24): at or above the watch's start
+/-- **A registration's base the contract allows** (pure; D25): at or above the watch's start
 (unless that is "now"), above the cursor (unless no event yet), start-read and positive when the
 watch promises completeness. -/
 def regBOk (P : WsPrm GF) (B : RegB) : Prop :=
@@ -512,7 +512,7 @@ theorem regB0_ok (pfx : GoString) (P : WsPrm GF) (hok : wsReqOk pfx P) (hc : P.�
 satisfying the contract from the dispatch cursor's position `k` to `k + 1` (`γhi`, a mono list
 `run` extends); a created response has no events and `run`'s half of
 the request's `rev` field (the substream writes it from then on); another is at no goroutine's
-start (`notStart`, D24: a goroutine's first response is its create's) and gives its resume fact
+start (`notStart`, D25: a goroutine's first response is its create's) and gives its resume fact
 (`resumeF`). Or the
 substream's goroutine has stopped for good (`γx` set: what its `donec` publishes): `run`'s dispatch
 to it after a failed one (the select took `donec`), which the stopped goroutine never receives. -/
@@ -534,7 +534,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
 /-- **A substream** `ws` of the watch `P` (persistent): its request's read-only fields
 (`initReq`), its `recvc` field (read-only after `run` set it), the contract's SPSC channel `outc`,
 `recvc` (a synchronous SPSC, `recvElem`), the request's context and `retc`, the request one of the
-contract's. (D24: the `outc` field becomes `nil` when `waitCancelSubstreams` closes the channel, and
+contract's. (D25: the `outc` field becomes `nil` when `waitCancelSubstreams` closes the channel, and
 each lifetime of the goroutine has its own `donec`: owned fields, `LifePrm`.) -/
 def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(wrRO (wsF P.ws go!"initReq") P ∗
@@ -549,9 +549,9 @@ def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
 instance wsIs_persistent (V : WEnv GF) (P : WsPrm GF) : Persistent (wsIs V P) := by
   unfold wsIs; infer_instance
 
-/-! ## A goroutine's lifetime (D24) -/
+/-! ## A goroutine's lifetime (D25) -/
 
-/-- **A lifetime of a substream's goroutine** (D24; one per `go w.serveSubstream`): its `donec`
+/-- **A lifetime of a substream's goroutine** (D25; one per `go w.serveSubstream`): its `donec`
 (and its names), the names of its deposit's flag (`γt`, set once the goroutine leaves what it holds
 in the lifetime's invariant, `lifeSt`) and of `run`'s token for taking the deposit (`γk`), and the
 generation of `resumec` it runs under (`gen`, `WgsPrm.γend`). -/
@@ -643,11 +643,11 @@ instance streamNames_countable : Pos.Countable StreamNames :=
     (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
         simp_all)
 
-/-- **An epoch of `run`** (D24): the gRPC stream it opened, the first position of `respc` its
+/-- **An epoch of `run`** (D25): the gRPC stream it opened, the first position of `respc` its
 responses take, the name of its count of responses forwarded (a mono nat, `serveWatchClient`'s). -/
 abbrev EpInfo := StreamNames × Nat × GName
 
-/-- **What `respc` carries, across reconnections** (D24): the `k`th element was forwarded from the
+/-- **What `respc` carries, across reconnections** (D25): the `k`th element was forwarded from the
 gRPC stream of some epoch `e` of `run` (`γep`), from its first position `b` on, while its count was
 at `k` (the count's lower bound `k + 1`: the epoch had not ended), and is that stream's `(k - b)`th
 response (`respcElem`, its content the watch stream's `watchDn`). -/
@@ -656,7 +656,7 @@ def respcE (V : WEnv GF) (γep : GName) (k : Int) (p : Loc) : IProp GF :=
     monoListIdxOwn γep e ((γs, b, γc) : EpInfo) ∗ monoNatLbOwn γc (k.toNat + 1) ∗ ⌜b ≤ k.toNat⌝ ∗
     respcElem γs (v3rpc.watchDn γs V.R.γ V.R.cid V.R.mid) ((k.toNat - b : Nat) : Int) p)
 
-/-- **`respc`'s producer side, handed back** (D24; with the stream's receive error on `errc`): the
+/-- **`respc`'s producer side, handed back** (D25; with the stream's receive error on `errc`): the
 epoch the forwarder served, its count at the responses sent. -/
 def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
   iprop(∃ (e b : Nat) (γs : StreamNames) (γc : GName) (sent : List Loc),
@@ -664,7 +664,7 @@ def prodBack (γr : SpscNames) (γep : GName) : IProp GF :=
     monoNatAuthOwn γc 1 sent.length ∗ ⌜b ≤ sent.length⌝)
 
 /-- **What `errc` carries** (`serveWatchClient`'s receive error; a bag): a stream error or
-`io.EOF`, which grpc's `status` accepts, and (D24) `respc`'s producer side, handed back to `run`
+`io.EOF`, which grpc's `status` accepts, and (D25) `respc`'s producer side, handed back to `run`
 for the next stream. -/
 def errP (γr : SpscNames) (γep : GName) (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil⌝ ∗ (cliStreamErr err ∨ eofIs err) ∗ statusErrOk err ∗
@@ -694,7 +694,7 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
 instance reqP_persistent (V : WEnv GF) (v : GoInterface) : Persistent (reqP V v) := by
   unfold reqP; infer_instance
 
-/-- **What a goroutine stopping for good leaves** (D24: in its lifetime's invariant, `lifeSt`):
+/-- **What a goroutine stopping for good leaves** (D25: in its lifetime's invariant, `lifeSt`):
 the `outc` field and the producer's side of `outc` (or the field `nil`, the channel closed by
 `waitCancelSubstreams` once the watch's context was done), its `retc` field (with the caller's
 resources if it never sent its channel), its part of the request's `rev` field with the facts of
@@ -735,18 +735,18 @@ structure WgsPrm (GF : BundledGFunctors) where
   γclosing : ChanNames
   /-- the stream's substreams, a ghost map with exclusive elements (`closingP`'s membership) -/
   γws : GName
-  /-- (D24) `respc`'s SPSC names (its element `respcE`: tagged by the gRPC stream it came from) -/
+  /-- (D25) `respc`'s SPSC names (its element `respcE`: tagged by the gRPC stream it came from) -/
   γr : SpscNames
-  /-- (D24) the epochs of `run`: a mono list of the gRPC streams it opened, each with its first
+  /-- (D25) the epochs of `run`: a mono list of the gRPC streams it opened, each with its first
   position on `respc` and the name of its count of responses forwarded (`EpInfo`) -/
   γep : GName
-  /-- (D24) the generations of `resumec`: a mono nat, `run`'s authority at the current one `n`
+  /-- (D25) the generations of `resumec`: a mono nat, `run`'s authority at the current one `n`
   (`resumec` closed publishes `n + 1`, `newWatchClient`) -/
   γend : GName
 
 /-- **What `closingc` carries** (a bag): a substream of this stream that stopped, by its
 membership token (`G.γws`, one per substream `run` made: so `run` knows the message is about one of
-its own). D24: what the goroutine left is in its lifetime's invariant (`lifeSt`), which `run`
+its own). D25: what the goroutine left is in its lifetime's invariant (`lifeSt`), which `run`
 opens with its token; the full membership token says the lifetime is no longer running. -/
 def closingP (V : WEnv GF) (G : WgsPrm GF) (ws : Loc) : IProp GF :=
   iprop(ghostMapElem G.γws ws (DFrac.own 1) ())
@@ -813,7 +813,7 @@ def nilOut (l : List Loc) (ws : Loc) : List Loc :=
   | some i => l.set i null
   | none => l
 
-/-- **The current lifetime's `donec`, for a send** (D24): `run`'s half of the field at `d`, and that
+/-- **The current lifetime's `donec`, for a send** (D25): `run`'s half of the field at `d`, and that
 the close of `d` with `run`'s generation authority at `n` (`γend`) says the substream stopped for
 good (a lifetime of the current generation ends only so). -/
 def dnCap (P : WsPrm GF) (d : DnInfo GF) (γend : GName) (n : Nat) : IProp GF :=
@@ -923,7 +923,7 @@ bound `threadBound GF ≤ 2^31`; each `Add(1)` deposits the caller's thread toke
 `InvWatchWg.lean`). -/
 def wgAdder (wgs : Loc) : IProp GF := wgsWgAdder (wgsF wgs go!"wg")
 
-/-! ## A lifetime's state and deposit (D24) -/
+/-! ## A lifetime's state and deposit (D25) -/
 
 /-- **A received response, live** (`recvElem`'s first disjunct): its value, read-only, with its
 content and the contract's positions around it. -/
@@ -941,7 +941,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
     else iprop(notStart P k.toNat ∗ resumeF V P r)))
 
-/-- **The dispatch cursors do not move from `recvc`'s position `a` to `b`** (persistent; D24): the
+/-- **The dispatch cursors do not move from `recvc`'s position `a` to `b`** (persistent; D25): the
 responses between were created ones the goroutine skipped (a resumed create keeps both cursors). -/
 def chainE (P : WsPrm GF) (a b : Nat) : IProp GF :=
   iprop(⌜a ≤ b⌝ ∗ (∃ c : w64, monoListIdxOwn P.γhi a c ∗ monoListIdxOwn P.γhi b c) ∗
@@ -956,7 +956,7 @@ def bufE (V : WEnv GF) (P : WsPrm GF) : Nat → List (Nat × Loc) → Nat → IP
   | a, [], n => chainE P a n
   | a, x :: rest, n => iprop(chainE P a x.1 ∗ recvLive V P (x.1 : Int) x.2 ∗ bufE V P (x.1 + 1) rest n)
 
-/-- **A goroutine's state** (D24: `serveSubstream`'s loop, and what a lifetime hands to the next),
+/-- **A goroutine's state** (D25: `serveSubstream`'s loop, and what a lifetime hands to the next),
 its lifetime started at `recvc`'s position `k0` with the request's `rev` field at `rv0`, `rcv`
 received, its resume revision `nr`: `recvc`'s consumer, `outc`'s producer and cursor (`γ.cur`, its
 last position `cl` the dispatch cursor's at `p0`, the position after the last response published),
@@ -983,7 +983,7 @@ def wsRun (V : WEnv GF) (P : WsPrm GF) (k0 : Nat) (rv0 : w64) (rcv : List Loc) (
       ⌜rcv ≠ [] ∧ rcf = null⌝) ∗
     wsF P.ws go!"bufWaitStartTime" ↦ t)
 
-/-- **What a goroutine resumed leaves** (D24: on `resumec`, in its lifetime's invariant): its state
+/-- **What a goroutine resumed leaves** (D25: on `resumec`, in its lifetime's invariant): its state
 (`wsRun`), its fields (`closing` `false`, the buffer logger, `outc`, its half of `donec`), its flag
 `γx` (`false`), its membership token (whole). -/
 def resumeBody (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) : IProp GF :=
@@ -993,7 +993,7 @@ def resumeBody (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) : IProp GF :=
     wsF P.ws go!"donec" ↦{DFrac.own (1 : Qp).half} dc ∗
     dghostVar P.γx (DFrac.own 1) false ∗ ghostMapElem G.γws P.ws (DFrac.own 1) ())
 
-/-- **What `waitCancelSubstreams` lends a resuming substream's goroutine** (D24): its values and what
+/-- **What `waitCancelSubstreams` lends a resuming substream's goroutine** (D25): its values and what
 the substream's last goroutine left on `resumec` (`resumeBody`: the goroutine may close the
 substream if its watch's context is done), or what a goroutine stopped for good left
 (`stopBody`, whose `outc` the goroutine closes if the context is done). -/
@@ -1009,7 +1009,7 @@ def wcOut (V : WEnv GF) (G : WgsPrm GF) (P : WsPrm GF) : IProp GF :=
 /-- The namespace of the lifetimes' invariants. -/
 abbrev lifeN : Namespace := nroot.@"wsLife"
 
-/-- **A lifetime's invariant** (D24): running (half its flag `γt`, `false`, the goroutine has the
+/-- **A lifetime's invariant** (D25): running (half its flag `γt`, `false`, the goroutine has the
 other; half the membership token), or the goroutine's deposit (`γt` set for good): stopped for good
 (`wsStopped`, `stopBody`) or resumed (`resumec`'s generation `gen` ended, `resumeBody`), until `run`
 takes it with its token `γk`. -/

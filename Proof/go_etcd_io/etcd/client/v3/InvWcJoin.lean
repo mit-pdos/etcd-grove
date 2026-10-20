@@ -1,5 +1,5 @@
 /-
-**The wait groups of `waitCancelSubstreams`** (`client/v3/watch.go`; D24, the watch client's
+**The wait groups of `waitCancelSubstreams`** (`client/v3/watch.go`; D25, the watch client's
 reconnection). Lean-first, no Rocq counterpart.
 
 `waitCancelSubstreams` starts one goroutine per resuming substream, each after a `wg.Add(1)` on a

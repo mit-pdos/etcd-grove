@@ -49,10 +49,10 @@ links: []
 - **How the proof handles it**: the client's watch was verified under `noRetryableStreamErr` (no
   reconnection, so `waitCancelSubstreams` never saw a substream) until 2026-10-20. The contract
   `isEtcdRangeWatcher` returns an SPSC channel (`isSpsc`), which a nil channel is not: the
-  reconnection is now verified over the fixed code (`notes/decisions.md`, D24;
+  reconnection is now verified over the fixed code (`notes/decisions.md`, D25;
   `closeSubstream`'s nil-`outc` case), and the premise is gone.
 - **Possible fixes**: in `closeSubstream`, send `outc` on `retc` only when it is not nil (the
   fork's fix: a nil `outc` means the context is done, which `Watch` reports with its own closed
   channel); or have `waitCancelSubstreams` keep `outc` and let `closeSubstream` close it.
-- **Found**: 2026-10-20, designing the verification of the reconnection (D24, stage S0:
+- **Found**: 2026-10-20, designing the verification of the reconnection (D25, stage S0:
   `waitCancelSubstreams` writes `outc`, which the proof had read-only).

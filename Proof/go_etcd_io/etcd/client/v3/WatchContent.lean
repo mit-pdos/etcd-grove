@@ -675,7 +675,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
   ihave Hnd' := Hnd $$ %L HL HLc
   imod Hnd' with %HLnd
   imodintro
-  -- the start revision (D24: the registration's, at or above the watch's)
+  -- the start revision (D25: the registration's, at or above the watch's)
   ihave %Hlor : ⌜sint.Z rr ≤ (lo : Int)⌝ $$ []
   · unfold mvcc.watcherIs
     icases Hwi with ⟨%γw0, %C, -, -, -, -, %Hlo⟩

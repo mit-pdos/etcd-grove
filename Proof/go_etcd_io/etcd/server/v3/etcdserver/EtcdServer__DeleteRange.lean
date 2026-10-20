@@ -149,7 +149,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   · subst Herr
     iunfold appliedOk at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
-    obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
+    obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
     have Hk : apply.dispatchKind rq' = .deleteRange := by
       rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
     have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])

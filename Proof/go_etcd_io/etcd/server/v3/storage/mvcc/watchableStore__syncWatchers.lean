@@ -157,7 +157,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   -- under `s.mu`, the committed log is the notified one (unit W-K)
   icases persistent_entails_right (mvcc.wlogQ_auth_agree (GF := GF) γ _ _ σ.Lmu C) $$
     [$Hwlog $HlogQ] with ⟨%HCL, Hwlog, HlogQ⟩
-  -- (D24) the committed log is released
+  -- (D25) the committed log is released
   ihave #HrlC0 := monoNatLbOwn_get γ.rel 1 _ $$ Hrel
   ihave #HrlC : mvcc.relLb γ C.length $$ []
   · iunfold mvcc.relLb; rw [HCL]; iexact HrlC0

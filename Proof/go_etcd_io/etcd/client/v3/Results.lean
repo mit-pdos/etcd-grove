@@ -861,7 +861,9 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63 ∧
         m.succeeded = (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').1 ∧
         opRespsRel skip (t'.branch m.succeeded)
-          (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps⌝ ∗
+          (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps ∧
+        -- (linkv-txn stage B1, 2026-10-20) the ranges run
+        skip = false⌝ ∗
       mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
       mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
@@ -1836,8 +1838,8 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe Hcert HMint Hwit Hcok HQv
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hst
-        refine ⟨s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_⟩
+        obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
+        refine ⟨s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr
@@ -2270,13 +2272,14 @@ update over the whole state, `kvOpAu1 (.deleteRange (txn.deleteOpOf key [] false
 linearized the delete (unit W-M3: in `deleteReplied`, the state of the log the delete met); or an
 error and no reply. Since 2026-10-20 (linkv-txn stage A, as `client_put_end_to_end` since D21 M6)
 the update is `putAuOk`: persistent, or fired at most once on a client configured for one attempt;
-the reply gives `Q`, not `□ Q`. -/
+the reply gives `Q`, not `□ Q`; (linkv-txn stage F) any context a client call takes (`ctxOk`: `Background()`
+too). -/
 theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
         putAuOk api addr γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -2284,9 +2287,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv G
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
             deleteReplied E γr F (txn.deleteOpOf key [] false) Q cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts, #HF, Hnp⟩ HΦ
-  ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
-  iclear Hctx
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, #Hopts, #HF, Hnp⟩ HΦ
   iapply (v3.kv.wp_Delete api addr ci cd key sl [] (etcdDeleteSpec E γr cid mid)
     (fun m => iprop(deleteReplied E γr F (txn.deleteOpOf key [] false) Q cid mid m))) $$ [Hnp]
   · iframe #
@@ -2350,7 +2351,8 @@ linearized a writing transaction (plain in the KV model, `txn.txnPlain`, no rang
 read-only one takes no update, `Q` trivial; unit W-M3: in `txnReplied`, the state of the log the
 transaction met); or an error and no reply. Since 2026-10-20 (linkv-txn stage A) a writing
 transaction's update is `txnAuOk`: persistent, or fired at most once on a builder over a client
-configured for one attempt. -/
+configured for one attempt; (stage B2) a linearizable read-only one may take a read update
+(`kvReadAu`), whose `□ Q` at the state of the log read `txnReplied` carries. -/
 theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (F : mvcc.Log) (Q : KVState → IProp GF) (hp : TxnModel.plain b.model)
@@ -2359,6 +2361,9 @@ theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
         committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
+          -- (2026-10-20, linkv-txn stage B2) a linearizable read-only one's read update
+          (⌜txn.txnReadonly (txnWireOf b.model) = true ∧
+            txn.txnSerializable (txnWireOf b.model) = false⌝ ∗ kvReadAu γr.kv Q) ∨
           (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
             txnNoZeroEnd (txnWireOf b.model)⌝ ∗ txnAuOk tp addr γw.kv (.txn (txnWireOf b.model)) Q)) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
@@ -2373,7 +2378,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (
   · iframe Hobj
     iframe #
     unfold txnReqPre
-    icases Hnp with (%H | ⟨%Hw, Hau⟩)
+    icases Hnp with (%H | ⟨%Hr, #Hra⟩ | ⟨%Hw, Hau⟩)
     · ileft
       imodintro
       inext
@@ -2383,6 +2388,19 @@ theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (
       iexists Q
       isplitr
       · ileft; ipureintro; exact H
+      iexists c, F
+      iframe #
+      iintro %m Hm
+      iexact Hm
+    · ileft
+      imodintro
+      inext
+      unfold etcdTxnSpec
+      isplitl []
+      · ipureintro; exact ⟨txnWireOf_plain _ hp, hin⟩
+      iexists Q
+      isplitr
+      · iright; ileft; iframe Hra; ipureintro; exact Hr
       iexists c, F
       iframe #
       iintro %m Hm
@@ -2583,14 +2601,14 @@ etcd's spec, by a client that knows the committed index `c`, with its persistent
 the whole state `kvReadAu γr.kv Q` (a linearizable range; or none, `Q` trivial): `nil` and the
 reply's message `m` with `rangeReplyOk` for the range the server decodes (`rangeWireOf`; at the
 latest revision, `rangeReply_state` gives `□ Q σ` of the state whose selection the reply is); or an
-error and no reply. -/
+error and no reply. Any context a client call takes (`ctxOk`; linkv-txn stage F). -/
 theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗ committedAtLeast γr c ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨
@@ -2602,9 +2620,7 @@ theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }} := by
-  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, Hopts, HR, Hsn, %Hg, #Hc0, #Hdq, #HF⟩ HΦ
-  ihave #Hctx' := ctxOk_of_isContext ci cd $$ Hctx
-  iclear Hctx
+  iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hc0, #Hdq, #HF⟩ HΦ
   iapply (v3.kv.wp_Get api addr ci cd key sl gs R (etcdRangeSpec E γr cid mid)
     (rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q)) $$ [Hopts HR Hsn]
   · iframe #
@@ -2675,7 +2691,7 @@ notifies it (`certOk`, over which `etcdReached` is stated: the KV model of a com
 prefix), so a watch event's revision is reached (`ev_ok`); the remaining premises are the wire's,
 `srvNoDupKeys`
 (`issues/etcd-txn-check-intervals-sibling.md`) (until 2026-10-20 also `noRetryableStreamErr`, the
-reconnection excluded; D24 verifies it), the watch-token supply, `srvLogsSmall`
+reconnection excluded; D25 verifies it), the watch-token supply, `srvLogsSmall`
 (`srvLogsSmall_of_read`) and `V.R.γ.st = V.R.E.γ` (`watchSrvLink_of_server`). -/
 theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗

@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.joinSubstreams()`: waits for the `donec` of every substream in `substreams` and of every
-non-nil one in `resuming` (D24: each the current lifetime's, `Df ws`, with `run`'s half of the
+non-nil one in `resuming` (D25: each the current lifetime's, `Df ws`, with `run`'s half of the
 field, all of them substreams of `U`), and gets what each published. -/
 abbrev watchGRPCStream.joinSubstreams.spec : Prop :=
   ∀ (wgs m : Loc) (M : GMap w64 Loc) (s : GoSlice) (l : List Loc) (dq1 dq2 dq3 dq4 : DFrac)

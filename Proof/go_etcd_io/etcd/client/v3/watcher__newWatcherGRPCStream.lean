@@ -75,12 +75,12 @@ theorem watcher.newWatcherGRPCStream.wp_proof
   imod wgsWg_init _ Hb $$ wg with Hadder
   imod start_bag (reqP V) _ reqc γreq (by trivial) $$ Hreqc Hreqo with #Hbreq
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit) with ⟨%γws, Hws⟩
-  -- (D24) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
+  -- (D25) `respc`'s SPSC over every epoch of `run`, the epochs' mono list
   imod mono_list_own_alloc (GF := GF) ([] : List EpInfo) with ⟨%γep, Hep, -⟩
   imod start_sspsc (V := Loc) respc (respcE V γep) (fun _ => iprop(False)) γresp $$ Hrespc
     Hrespo with ⟨%γr, #Hsp, Hprod, Hcons⟩
   imod start_bag (errP γr γep) _ errc γerr (by trivial) $$ Herrc Herro with #Hberr
-  -- (D24) the generations of `resumec`
+  -- (D25) the generations of `resumec`
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γend, Hgen, -⟩
   let G : WgsPrm GF := ⟨«$r0_ptr», w, cx, { Values := ∅, Deadline := none, Done_gn := γc, PDone := iprop(True) }, γc, cancel, ckey, reqc, γreq, respc, donec, γdone, errc, γerr, closingc, γcl, γws, γr, γep, γend⟩
   imod start_bag (closingP V G) _ closingc γcl (by trivial) $$ Hclc Hclo with #Hbcl

@@ -39,6 +39,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+/-- `▷ P` under a name. Before each step, `wp_auto` and `wp_apply` check whether a hypothesis
+has a `▷` they may strip (`strippableLater`, not below a wand) and, if one has, search every
+hypothesis for one (`IntoLaterN`), the invoker's specification `Hinv` taking seconds; the request's
+precondition, kept until its attempt (`Hpre`, `Hp`), has its `▷` here, out of that check. -/
+private def laterHid (P : IProp GF) : IProp GF := iprop(▷ P)
+
 set_option maxHeartbeats 1600000 in
 theorem Client.unaryClientInterceptor.wp_proof
     (wp_reuse : reuseOrNewWithCallOptions.spec (GF := GF) (hG := hG))
@@ -92,6 +98,8 @@ theorem Client.unaryClientInterceptor.wp_proof
   unfold etcdInterceptorOkM
   iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
     %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
+  ihave Hpre : iprop(if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) $$ [Hpre]
+  · unfold laterHid; iexact Hpre
   ihave Hout := Rep.blank_own out $$ Hblank
   (try wp_auto)
   wp_apply wp_withVersion ctx cd $$ [$Hctx] as %c' ⟨%ci, %vsv, %Hc', #Hctx'⟩
@@ -133,8 +141,8 @@ theorem Client.unaryClientInterceptor.wp_proof
   · -- `callOpts.max == 0`: one attempt
     ihave Hsp : ▷ Spec m Φ' $$ [Hpre]
     · cases once
-      · simp only [Bool.false_eq_true, ↓reduceIte]; icases Hpre with #Hpre; iexact Hpre
-      · simp only [↓reduceIte]; iexact Hpre
+      · simp only [Bool.false_eq_true, ↓reduceIte, laterHid]; icases Hpre with #Hpre; iexact Hpre
+      · simp only [↓reduceIte, laterHid]; iexact Hpre
     wp_apply Hinv $$ %method %Req %Rep %Spec %m %Φ' %ci
         %{ cd with Values := vsv } %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
       as %err ⟨Hsend, -, Hres⟩
@@ -155,7 +163,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       "Hout" ∷ Rep.own out ∗ "Hpb" ∷ grpcPeerBuf p_ptr ∗
       "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le)) ∗
       -- (D21 M6) the request's precondition: the first attempt's if ordinary
-      "Hp" ∷ (if once then iprop(⌜a = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ ▷ Spec m Φ')))
+      "Hp" ∷ (if once then iprop(⌜a = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
     $$ [attempt lastErr Hsend Hout Hpb Hpre]
   · iexists W64 0, GoInterface.nil
     simp only [named]
@@ -164,7 +172,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     · ileft; itrivial
     cases once
     · simp only [Bool.false_eq_true, ↓reduceIte] at *; iexact Hpre
-    · simp only [↓reduceIte] at *; iintro -; iexact Hpre
+    · simp only [↓reduceIte] at *; iintro -; unfold laterHid; iexact Hpre
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
@@ -205,11 +213,12 @@ theorem Client.unaryClientInterceptor.wp_proof
       -- bound at most `1`)
       have Hlt1 : once = true → a = W64 0 := fun h => by have := Hcovb h; word
       ihave ⟨Hsp, Hp⟩ : iprop(▷ Spec m Φ' ∗
-          (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ ▷ Spec m Φ')))
+          (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
           $$ [Hp]
       · cases once
         · simp only [Bool.false_eq_true, ↓reduceIte]
           icases Hp with #Hp
+          unfold laterHid
           iframe Hp
         · simp only [↓reduceIte]
           have Ha0 := Hlt1 rfl

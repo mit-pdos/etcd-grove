@@ -1,5 +1,5 @@
 /-
-**A synchronous SPSC channel** (D24, `notes/decisions.md`, "S1c's findings"): Perennial's SPSC idiom
+**A synchronous SPSC channel** (D25, `notes/decisions.md`, "S1c's findings"): Perennial's SPSC idiom
 (`Perennial/Golang/Theory/Chan/Idioms/Spsc.lean`) for an *unbuffered* channel, with each side's
 pending operation recorded. A local copy, a workaround of a gap in Perennial's idiom (to be
 proposed there on its own, `notes/STATUS.md`, "watch-resume").

@@ -7,7 +7,7 @@ watchkv's (`Proof/.../watchkv/Defs.lean`) at cachekv's names, ports and prefix:
   whose header explains each premise) at cachekv's names and ports: `cfgOk` (member and token
   `cachekv`, data directory `cachekv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23861`, client
   URL `http://127.0.0.1:23851`), the peer directory `ckDir`, and `premises`: putget's at these
-  (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, gone with D24: the
+  (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, gone with D25: the
   client watcher's reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s, under the prefix `ck/`), `pairOf` (a `kv`'s
   key and value), `CheckOk` (what `check` needs not to panic).

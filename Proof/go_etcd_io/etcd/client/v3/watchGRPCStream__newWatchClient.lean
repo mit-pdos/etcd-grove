@@ -54,7 +54,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  -- (D24) the generation `n` ends
+  -- (D25) the generation `n` ends
   imod mono_nat_own_update (n + 1) (Nat.le_succ _) $$ Hgen with ⟨Hgen, #Hglb⟩
   wp_apply wp_broadcast_chan_close rc γrc (monoNatLbOwn G.γend (n + 1)) $$ [$Hrcb] as -
   · imodintro; iexact Hglb
@@ -309,7 +309,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   wp_apply chan.wp_make1 (V := Unit) as %stopc %γst ⟨#Hstc, %-, Hsto⟩
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γst stopc $$ Hstc Hsto with Hstb
   icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hstb with ⟨Hstb, #Hstu⟩
-  -- (D24) the stream's wait group shared with `waitCancelSubstreams`' goroutines
+  -- (D25) the stream's wait group shared with `waitCancelSubstreams`' goroutines
   iunfold wgAdder at Had
   imod wgsWg_share (wgsF G.wgs go!"wg") $$ Had with ⟨%γS, %γh, Hsh⟩
   -- what each substream's goroutine left, lent
@@ -589,7 +589,7 @@ theorem watchGRPCStream.newWatchClient.wp_proof
   icases Hopen with (⟨%Herr, %γs2, %Dn, %cd', #Hcli, Htok, Hrtok, #Hspec⟩ | ⟨⟨%Hwc, %Herr⟩, #Hse⟩)
   · subst Herr
     (try wp_auto)
-    -- (D24) the new epoch: its count from `respc`'s position `sent.length`
+    -- (D25) the new epoch: its count from `respc`'s position `sent.length`
     imod mono_nat_own_alloc (GF := GF) sent.length with ⟨%γc, Hcnt, -⟩
     imod monoListAuthOwn_update_app (GF := GF) [((γs2, sent.length, γc) : EpInfo)] $$ Hep with
       ⟨Hep, #Hlb⟩

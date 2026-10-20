@@ -27,14 +27,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`w.run()`**, the gRPC watch stream's main goroutine, on a fresh stream (no substream, no
-close error, its `resumec` not yet closed (D24: of the generation `0` of `γend`, whose authority it
-holds), `respc`'s both sides with no epoch yet (D24), `donec` to be closed by it,
+close error, its `resumec` not yet closed (D25: of the generation `0` of `γend`, whose authority it
+holds), `respc`'s both sides with no epoch yet (D25), `donec` to be closed by it,
 its wait group at `0`): opens the gRPC stream (`newWatchClient`), serves the `Watch` requests of
 `reqc` (each a substream with its goroutine, `serveSubstream`, created on the gRPC stream one at a
-time: a create sent only for the head of `resuming`; D24: each goroutine a lifetime of its
+time: a create sent only for the head of `resuming`; D25: each goroutine a lifetime of its
 substream, with its own `donec` and invariant, `LifePrm`), dispatches the stream's responses
 (`respc`) to the substreams with the contract's facts, closes the substreams that stop
-(`closingc`) and those the server cancels; on a stream error `isHaltErr` retries on (D24),
+(`closingc`) and those the server cancels; on a stream error `isHaltErr` retries on (D25),
 reconnects (`newWatchClient`, a new epoch at `respc`'s position, the head of `resuming` created on
 the new stream); stops when the stream's context is done, the gRPC stream fails with a halting
 error or `ErrNoLeader`, or no substream is left, shutting the

@@ -1,5 +1,5 @@
 /-
-**A substream's resume revision** (D24, `notes/decisions.md`): the request's `rev` field that
+**A substream's resume revision** (D25, `notes/decisions.md`): the request's `rev` field that
 `serveSubstream` keeps (`ws.initReq.rev = nextRev` after each response) and from which `run`
 re-creates the watch after a reconnect (`resumeOk`, `InvWatch.lean`): how it moves with each
 response (`resumeOk_created`, `resumeOk_step`, the fork's F3: it moves only forward,
@@ -250,7 +250,7 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
       rw [show e.rev = resumePos r by simp [resumePos, hlast]]
       iexact Hf2
 
-/-- **`recvc`'s positions from `n` on are free** (D24): the authority of the substream's position
+/-- **`recvc`'s positions from `n` on are free** (D25): the authority of the substream's position
 statuses (`WsPrm.γps`), none at or past `n` (`run` marks the next position it sends a response to,
 not a created one, `notStart`). -/
 def psAt (P : WsPrm GF) (n : Nat) : IProp GF :=
@@ -261,7 +261,7 @@ def psAt (P : WsPrm GF) (n : Nat) : IProp GF :=
 def psQ (P : WsPrm GF) : IProp GF :=
   iprop(∃ M : GMap Nat Bool, ghostMapAuth P.γps 1 M ∗ ⌜M !! 0 = some true ∧ ∀ j, 1 ≤ j → M !! j = none⌝)
 
-/-- **Marking `recvc`'s next position** `n` as not a goroutine's start (D24): `run` before a
+/-- **Marking `recvc`'s next position** `n` as not a goroutine's start (D25): `run` before a
 response that is not a created one. -/
 theorem psAt_mark (P : WsPrm GF) (n : Nat) :
     psAt (GF := GF) P n ⊢ |={⊤}=> psAt P (n + 1) ∗ notStart P n := by
@@ -285,7 +285,7 @@ theorem psQ_psAt (P : WsPrm GF) : psQ (GF := GF) P ⊢ psAt P 1 := by
   iframe Ha
   ipureintro; exact HM.2
 
-/-- **The positions' statuses of a queued substream** (D24), its current lifetime started at
+/-- **The positions' statuses of a queued substream** (D25), its current lifetime started at
 `recvc`'s position `n` (`lifeStart`), no later position marked (a fresh one's: `psQ`, `n = 0`). -/
 def psSt (P : WsPrm GF) (n : Nat) : IProp GF :=
   iprop(∃ M : GMap Nat Bool, ghostMapAuth P.γps 1 M ∗

@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`w.newWatchClient()`** (D24: `run`'s start and every reconnection): closes the current
+/-- **`w.newWatchClient()`** (D25: `run`'s start and every reconnection): closes the current
 `resumec` (its generation `n` ends, `γend`; every goroutine of a substream resumes or has stopped)
 and makes a new one of the next generation; waits for the substreams of `substreams` and
 `resuming` (`joinSubstreams`) and takes what their goroutines left; resets their ids and queues
@@ -37,7 +37,7 @@ watch's context is done (`waitCancelSubstreams`); restarts a goroutine for each 
 stopped (`serveSubstream`, from its resume revision). `run`'s knowledge (`S`, the substreams `U`)
 becomes the reconnection's (`RunSt.reconnect`, every substream's phase `WPh.recon`: queued,
 re-created on any next stream `γs'` from its resume revision). On success it starts
-`serveWatchClient` on the stream as `run`'s next epoch (D24: appended to `G.γep`, from `respc`'s
+`serveWatchClient` on the stream as `run`'s next epoch (D25: appended to `G.γep`, from `respc`'s
 position `sent.length`, with `respc`'s producer side) and returns the stream's client end, its
 sender's token and its specification; on failure `respc`'s producer side back and an error grpc's
 `status` accepts. -/

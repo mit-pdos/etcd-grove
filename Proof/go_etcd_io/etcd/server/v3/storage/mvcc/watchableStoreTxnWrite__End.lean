@@ -502,7 +502,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     · iexact H
   ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
   · iunfold mvcc.evLog; iframe Hsl Hok
-  -- (D24) the revision released before its events go out: the released length bumped
+  -- (D25) the revision released before its events go out: the released length bumped
   imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
   ihave #Hrlb : mvcc.relLb γ (ilog ++ [pend]).length $$ []
   · iunfold mvcc.relLb; iexact Hrl

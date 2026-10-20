@@ -150,7 +150,7 @@ theorem EtcdServer.Put.wp_proof
     subst Hrq
     iunfold appliedOk at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
-    obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
+    obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
     have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
       simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
     have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])

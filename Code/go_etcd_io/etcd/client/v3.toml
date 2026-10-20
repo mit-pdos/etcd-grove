@@ -245,6 +245,9 @@ translate = [
   # rules, `ptr_Put_unfold`/`ptr_Get_unfold`, the call through the `KV` field)
   "Client.Put",
   "Client.Get",
+  # linkv-txn stage F: `(*Client).Delete`/`Txn`, promoted likewise (`examples/linkvtxn`'s `call`)
+  "Client.Delete",
+  "Client.Txn",
   # the client lease (item 1, branch `lease-client`): lease.go's lessor with bodies but
   # `closeRequireLeader` (grpc's `metadata`, not imported: names only), retry.go's lease client,
   # client.go's `canceledByCaller`

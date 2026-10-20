@@ -25,7 +25,7 @@ links: []
   `serveSubstream` goroutine, so reaching it takes 2^31 goroutines (terabytes of stacks).
   The panic itself is easy to show: `var wg sync.WaitGroup; wg.Add(1 << 31)` panics.
 - **Expected**: a reconnect does not depend on the number of watches fitting in an `int32`.
-- **How the proof handles it**: the reconnection's proof (D24, `notes/decisions.md`) has to show
+- **How the proof handles it**: the reconnection's proof (D25, `notes/decisions.md`) has to show
   `Add`'s precondition, a counter below `2^31` (Perennial's `sync.WaitGroup.Add` spec). The model's
   only bound on live goroutines is the thread bound (`threadBound GF ≤ 2^31`, a premise of
   `isClientWatcher`), and it does not bound `len(w.resuming)` at that point. By then the resumed
@@ -35,4 +35,4 @@ links: []
   is over the fixed code.
 - **Possible fixes**: call `wg.Add(1)` before each `go` in the loop (the fork's fix); or loop
   `Add` over chunks below `2^31`.
-- **Found**: 2026-10-20, writing `waitCancelSubstreams`'s general spec (D24, stage S1d).
+- **Found**: 2026-10-20, writing `waitCancelSubstreams`'s general spec (D25, stage S1d).

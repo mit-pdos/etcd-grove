@@ -230,7 +230,7 @@ theorem Main.wp_proof
   imod ownMap_persist _ _ _ $$ Hpm with #Hpm
   -- the ghost state `NewServer` takes (`putget_alloc`)
   imod (watchkv_alloc (trs.map pairOf) id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
-    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hidx, Hcok, Hrev,
+    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
@@ -251,7 +251,7 @@ theorem Main.wp_proof
         omega)
       hblen
       hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
+    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
   · iframe
     iframe #
     isplitr

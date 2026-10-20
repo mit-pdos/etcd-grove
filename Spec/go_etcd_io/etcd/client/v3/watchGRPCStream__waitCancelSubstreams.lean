@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`w.waitCancelSubstreams(stopc)`** (D24; `newWatchClient`'s, while it opens a gRPC stream): for
+/-- **`w.waitCancelSubstreams(stopc)`** (D25; `newWatchClient`'s, while it opens a gRPC stream): for
 each substream of `resuming` (`l`, no nil), a goroutine that, unless `stopc` is closed first,
 closes the substream once its watch's context is done (`closing` set, `outc` closed and `nil`, the
 substream posted on `closingc` from a goroutine added to the stream's wait group, which the

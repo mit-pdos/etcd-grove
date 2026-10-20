@@ -29,7 +29,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `w.unicastResponse(wr, watchID)`: `false` if no substream is registered under the id; otherwise
 sends `wr` to it (`true`: its content delivered) unless the substream has stopped (`false`: the
 content back, the substream's `donec` closed). The target's values are `Pf ws`, its `recvc`
-producer's history `Sf ws`, its lifetime's `donec` `Df ws` (D24; with `run`'s generation authority
+producer's history `Sf ws`, its lifetime's `donec` `Df ws` (D25; with `run`'s generation authority
 at `n`, `dnCap`). -/
 abbrev watchGRPCStream.unicastResponse.spec : Prop :=
   ∀ (V : WEnv GF) (wgs wr : Loc) (watchID : w64) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)

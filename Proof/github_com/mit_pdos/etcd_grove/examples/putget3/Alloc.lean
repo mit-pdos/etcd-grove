@@ -56,7 +56,7 @@ def memberBoot (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM) (ρ 
     inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
     srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗
+    idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗ idWaitTok ρ.ids ∗
     mvcc.idxFresh E₀.γ.idx ∗
     ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
     ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
@@ -100,14 +100,15 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
       (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗ rdCred γ (2 ^ 48)) -∗
+      idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) -∗
       mvcc.idxFresh idx -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.wl = γk.wl⌝ ∗
         memberBoot γ bud bootLog ρ (env₀ idx cok rev) Φs id := by
-  iintro Hghost #Hcomm #Hcinv #Hbinv #Hlb #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC⟩ Hidx Hcok Hrev
-  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp
-    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk⟩
+  iintro Hghost #Hcomm #Hcinv #Hbinv #Hlb #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC⟩ Hwn Hidx Hcok Hrev
+  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
+    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   obtain ⟨hraft, hst, hc0', hch', hlog', hwl', hcok, hiss', hcnt, hpfx⟩ := Hρ
   imodintro
   iexists ρ
@@ -117,7 +118,7 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
   simp only [env₀]
   rw [hiss', hcnt, hraft, Hiss]
   rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', Hiss])]
-  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ
+  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt
   isplitr
   · ipureintro
     refine ⟨rfl, Hpol, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
@@ -171,7 +172,7 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         exact Hnz _ h rfl)
       rfl Hbf.boot Hpol Hbf.idLow Hbf.idLow0)
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
-      #Hpm, #Hrc, Hms⟩
+      #Hpm, #Hrc, Hms, Hwns⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
   have Hpol' : srvCCPolicy ⟨γ, [], W64 0⟩ := by
     intro ty d h
@@ -180,6 +181,7 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     rw [hcfg]
     exact h
   icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
+  icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
   -- the nodes' ghost states, out of the map over the cluster
   rw [show toMap (GMap.listToSet [id₁, id₂, id₃]) =
@@ -195,13 +197,13 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
     (GMap.lookup_empty _)).1 $$ Hgs
   imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
-      Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hidx₁ Hcok₁ Hrev₁
+      Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
   imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
-      Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hidx₂ Hcok₂ Hrev₂
+      Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, -, Hb₂⟩
   imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
-      Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hidx₃ Hcok₃ Hrev₃
+      Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, -, Hb₃⟩
   -- the raft network: a slot per member
   imod (netNames_alloc (srvNet γ bud) (dir3 id₁ id₂ id₃)

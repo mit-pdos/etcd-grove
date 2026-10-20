@@ -225,7 +225,7 @@ func TestWatchResumeClosingSubstream(t *testing.T) {
 - **How the proof handles it**: until 2026-10-20 the client's watch was verified under the
   premise `noRetryableStreamErr` (no error of a client stream has the status code `Unavailable` or
   `Internal`, the codes `isHaltErr` lets `run` retry on), which made the reconnection dead code.
-  Since D24 (`notes/decisions.md`; `notes/STATUS.md`, "watch-resume") the reconnection is verified
+  Since D25 (`notes/decisions.md`; `notes/STATUS.md`, "watch-resume") the reconnection is verified
   at every call over the fixed code, and the premise is gone from `watch_safe` and `cache_safe`.
 - **Possible fixes**: in `newWatchClient`, skip `closing` substreams when rebuilding `resuming`
   (they are torn down through `closingc` anyway), or skip them in `nextResume`; or have

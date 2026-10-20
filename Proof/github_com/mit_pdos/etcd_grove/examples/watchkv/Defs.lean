@@ -6,7 +6,7 @@
   `watchkv`, data directory `watchkv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23841`, client
   URL `http://127.0.0.1:23831`), the peer directory `wkDir`, and `premises`: putget's at these,
   (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, that the transport
-  never fails a watch stream with a retryable code; gone with D24: the client watcher's
+  never fails a watch stream with a retryable code; gone with D25: the client watcher's
   reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s), `pairOf` (a `kv`'s key and value),
   `CheckOk` (what `check` needs not to panic).

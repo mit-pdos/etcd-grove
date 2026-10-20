@@ -128,9 +128,9 @@ links: []
   closed channel (with the cancel reason).
 - **How the proof handles it**: not at all: the specs are partial correctness, so a teardown that
   waits forever satisfies them. Recorded here as a finding of the reconnection's verification
-  (D24), which read `run`'s teardown.
+  (D25), which read `run`'s teardown.
 - **Possible fixes**: in `run`'s `Created` case, when `addSubstream` refuses the substream, add it
   to `closing` (as the `Canceled` case does after closing a `recvc`), so that the teardown waits
   for its `closingc` post.
-- **Found**: 2026-10-20, designing the reconnection's verification (D24: which substreams `run`'s
+- **Found**: 2026-10-20, designing the reconnection's verification (D25: which substreams `run`'s
   teardown waits for across a reconnect).

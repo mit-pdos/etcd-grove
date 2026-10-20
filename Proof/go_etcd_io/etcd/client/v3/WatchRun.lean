@@ -1,5 +1,5 @@
 /-
-**`watchGRPCStream.run`'s state** (the watch slice's unit W-C; D24): what `run` knows and holds of
+**`watchGRPCStream.run`'s state** (the watch slice's unit W-C; D25): what `run` knows and holds of
 the gRPC watch stream and its substreams (`RunSt`, `wsElem`, `runCore`), and the lemmas its proof
 and `newWatchClient`'s (the reconnection) use. Moved out of `watchGRPCStream__run.lean` so that
 `newWatchClient`'s spec can state the reconnection over it. Lean-first (no Rocq counterpart).
@@ -73,7 +73,7 @@ instance respInfo_persistent (m : v3rpc.WatchRespM) : Persistent (respInfo (GF :
 /-- The create request of a watch. -/
 abbrev createOfP (P : WsPrm GF) : v3rpc.CreateReqM := createOf P.key P.ed P.rev P.pn P.sr
 
-/-- (D24) The create request of a registration's base. -/
+/-- (D25) The create request of a registration's base. -/
 abbrev createOfB (P : WsPrm GF) (B : RegB) : v3rpc.CreateReqM := createOf P.key P.ed B.rr P.pn B.srr
 
 /-- **A registered substream's place on the channel** (persistent; K2e-7d): a snapshot `l` of the
@@ -185,7 +185,7 @@ def wsRest (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : W
         (P.γ.cpl = true → C2.length = sent.length + 1 ∧ C2.getLast? = some (B.rr - W64 1))⌝ ∗
       wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} B.rr ∗ psSt P sent.length ∗
       upAtOpt γs si (createOfB P B)) ∨
-    -- (D24) stopped for good when a reconnection resumed it: what its create and registration need
+    -- (D25) stopped for good when a reconnection resumed it: what its create and registration need
     (dghostVar P.γx DFrac.discard true ∗ ∃ (B : RegB) (sent : List Loc) (C C2 : List w64) (q : Qp),
       ⌜regBOk P B⌝ ∗ startOk V B.srr B.rr ∗ sspscProducer P.γr sent ∗
       monoListAuthOwn P.γhi 1 C ∗ monoListAuthOwn P.γh2 1 C2 ∗
@@ -221,7 +221,7 @@ theorem queued_fresh (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRes
   · ipureintro; simp
   iapply psQ_psSt; iexact Hps
 
-/-- **A queued substream's create** (`toPB`, D24: for a resumed or stopped one too): its base's start
+/-- **A queued substream's create** (`toPB`, D25: for a resumed or stopped one too): its base's start
 read from (a fraction of) the request's `rev` field, and the queued state back with the create sent
 at any up position of any stream. -/
 theorem queued_send (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P : WsPrm GF)
@@ -252,7 +252,7 @@ theorem queued_send (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchResp
     iframe #
     ipureintro; exact HB
 
-/-- **After a dispatch to a stopped substream's registration** (D24): its registered state with
+/-- **After a dispatch to a stopped substream's registration** (D25): its registered state with
 nothing but the stop (`γx`) for the contract's facts. -/
 theorem reg_post_dead (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB : regBOk P B)
     (Dm : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM) (X : w64) (w : Loc) (rg : mvcc.WatchRange)
@@ -330,13 +330,13 @@ theorem create_or {L L' : List v3rpc.WatchReqM} (h : L' = L ∨ ∃ c, L' = L ++
   · exact hi
   · exact cancels_of_snoc (.create c) X (by intro e; cases e) (Or.inr rfl) i hi
 
-/-- **What `run` holds of a lifetime beyond its `donec`** (D24): its token for taking the deposit;
+/-- **What `run` holds of a lifetime beyond its `donec`** (D25): its token for taking the deposit;
 or the deposit already taken at a reconnection's join, the substream stopped for good (`wsStopped`,
 what its goroutine left). -/
 def lifeTk (V : WEnv GF) (P : WsPrm GF) (L : LifePrm) : IProp GF :=
   iprop(ownTok L.γk ∨ wsStopped P ∗ stopBody V P)
 
-/-- **A lifetime run can dispatch to** (persistent; D24): of the current generation `n` (its
+/-- **A lifetime run can dispatch to** (persistent; D25): of the current generation `n` (its
 `resumec` close contradicts `run`'s authority), or the substream stopped for good. -/
 def genOk (P : WsPrm GF) (L : LifePrm) (n : Nat) : IProp GF :=
   iprop(⌜L.gen = n⌝ ∨ dghostVar P.γx DFrac.discard true)
@@ -345,7 +345,7 @@ instance genOk_persistent (P : WsPrm GF) (L : LifePrm) (n : Nat) :
     Persistent (genOk (GF := GF) P L n) := by
   unfold genOk; infer_instance
 
-/-- **The current lifetime of a substream's goroutine, as `run` holds it** (D24): `run`'s half of
+/-- **The current lifetime of a substream's goroutine, as `run` holds it** (D25): `run`'s half of
 its `donec` field (the channel publishing `lifeQ`), its invariant, the token or the deposit
 (`lifeTk`), and (unless an orphan, `orph`, whose lifetime may be of an earlier generation) that run
 can dispatch to it (`genOk`). -/
@@ -398,7 +398,7 @@ theorem wsLife_cap (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (P : WsPrm GF) :
 
 /-- **A substream `run` made and has not seen stop**: its values, its phase (agreeing with the
 maps, `phOk`), its id field, what `run` holds of it, (unit W-K) its id never cancelled unless
-it stopped (`noCancelOk`), and (D24) its goroutine's current lifetime (`wsLife`). -/
+it stopped (`noCancelOk`), and (D25) its goroutine's current lifetime (`wsLife`). -/
 def wsElem (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames) (S : RunSt) (ws : Loc) :
     IProp GF :=
   iprop(∃ (P : WsPrm GF) (ph : WPh), ⌜P.ws = ws ∧ phOk S ws ph⌝ ∗ wsIs V P ∗
@@ -1052,7 +1052,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB 
       hB.2.1 Hhi $$ []
   · iframe #
   imod Hdc with ⟨%es, #Hes, %Hesl, #Hrok, %Hhi', #Hcut', %kvs', %Hkvs, #Hkv⟩
-  -- (D24) the position marked, the resume fact's server side
+  -- (D25) the position marked, the resume fact's server side
   imod psAt_mark P sent.length $$ Hps with ⟨Hps, #Hns⟩
   ihave #Hrf0 : iprop((⌜ρ.evs ≠ []⌝ ∗ resumeF V P ⟨es, W64 0, false, false, m.hdr.revision⟩) ∨
       (⌜ρ.evs = []⌝ ∗ ∃ L : mvcc.Log, mvcc.notifiedLb V.R.γ L ∗
@@ -1312,7 +1312,7 @@ theorem bcast_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (h
       · iright; ileft; iexact Hx2
       ileft; iexact Hx2
   imod Hcmp with ⟨%C2, Hpend, #Hcm⟩
-  -- (D24) the position marked, the resume fact's server side
+  -- (D25) the position marked, the resume fact's server side
   imod psAt_mark P sent.length $$ Hps with ⟨Hps, #Hns⟩
   ihave ⟨%Lr, #HLr, %HLr⟩ := mvccOk_revLb γs V.R.γ j m ρ hsrc hev $$ Hmv
   imod monoListAuthOwn_update_app (γ := P.γhi) (l := C) [hi] $$ Hauth with ⟨Hauth, #Hlb⟩
@@ -1863,7 +1863,7 @@ def closerRes (V : WEnv GF) (ws : Loc) : WPh → IProp GF
 def closerE (V : WEnv GF) (S : RunSt) (ws : Loc) : IProp GF :=
   iprop(∃ ph : WPh, ⌜phOk S ws ph⌝ ∗ closerRes V ws ph)
 
-/-- **What the teardown needs of a substream's current lifetime** (D24): its values
+/-- **What the teardown needs of a substream's current lifetime** (D25): its values
 (`closeSubstream`'s), the lifetime (its `donec`, to wait for, its invariant and `run`'s token, to
 take what the goroutine leaves). -/
 def lifeE (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (ws : Loc) : IProp GF :=
@@ -1916,7 +1916,7 @@ theorem wsElems_split (V : WEnv GF) (G : WgsPrm GF) (n : Nat) (γs : StreamNames
   refine (BigSepM.bigSepM_mono_of_forall (fun {_ _} => wsElem_split V G n γs S _)).trans ?_
   rw [BigSepM.bigSepM_sep_eq, BigSepM.bigSepM_sep_eq]
 
-/-- **Taking what a goroutine stopped for good left** (D24): its whole membership token (posted on
+/-- **Taking what a goroutine stopped for good left** (D25): its whole membership token (posted on
 `closingc`) says its lifetime is no longer running, `run`'s token that the deposit is still there,
 `run`'s generation authority (or the substream's stop) that the lifetime was not resumed; unless
 `run` took the deposit at a reconnection's join already. -/

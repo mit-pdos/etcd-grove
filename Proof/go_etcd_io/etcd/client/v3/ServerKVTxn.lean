@@ -710,7 +710,7 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
     icases Hrep with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, HQ⟩
-    obtain ⟨Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel⟩ := Hp
+    obtain ⟨Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
     have hlin : t.linearizable = true :=
       linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
     ihave %Hfl := Himp $$ %hlin %(kvStateOf x.log) HQ

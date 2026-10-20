@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.serveWatchClient(wc)` on the client end of a gRPC watch stream with its receiver's token:
-forwards every response it receives, in order, on `respc` (the producer's side, D24: for the
+forwards every response it receives, in order, on `respc` (the producer's side, D25: for the
 epoch `e` of `run` whose stream it serves, from the epoch's first position `b`; the `k`th element
 is the stream's `(k - b)`th response, `respcE`, the epoch's count bumped past it), until the
 receive fails (its error to `errc`, with the producer's side back, `errP`) or the stream is done

@@ -1,5 +1,5 @@
 /-
-**A substream across a reconnection** (D24; `newWatchClient`'s, the watch slice's unit W-C): what
+**A substream across a reconnection** (D25; `newWatchClient`'s, the watch slice's unit W-C): what
 `run` holds of a registered or queued substream (`wsRest`) and what its last goroutine left
 (`resumeBody`, or `stopBody` once stopped for good), turned into the queued state of the new stream
 (the substream re-created from its resume revision) and, for a live substream, the state its next

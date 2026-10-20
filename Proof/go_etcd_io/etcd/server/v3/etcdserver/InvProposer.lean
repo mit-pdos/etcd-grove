@@ -464,13 +464,14 @@ token of the revision the step appended, if it appended one (`revMinted`, unit V
 (`appliedWit γr`, the result's witness, `resultIsW`); and (the vertical slice's unit V2) a KV
 write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`); and (unit W-M3) the log
 the entry met is `lb` (`x.log`, which the raft request's result ties to the raft prefix the
-proposal's update fired at) and the log after is certified (`certOk`). -/
+proposal's update fired at) and the log after is certified (`certOk`); and (linkv-txn stage B1,
+2026-10-20) the ranges were run (`skip = false`: the apply thread found the id registered). -/
 def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (lb : mvcc.Log) :
     IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
-      x.log = lb⌝ ∗
+      x.log = lb ∧ skip = false⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 

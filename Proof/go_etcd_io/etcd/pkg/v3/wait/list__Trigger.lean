@@ -23,6 +23,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.wait.Assumptions]
 
+/-- `Trigger`'s premise with its gone case (linkv-txn stage B1): a gone registration of `id` is
+not in its shard's live map `M`. -/
+theorem trigPre_gone (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γw γs γr : GName) (id k : w64) (M : GMap w64 Loc) (P : IProp GF) (hk : k = id % W64 64) :
+    ⊢ inv waitShardN (waitShardInv γi R γs γr) -∗ k ↪[γw]□ (γs, γr) -∗ £ 1 -∗
+      ghostMapAuth γs (1 : Qp).half M -∗ ((∃ t : GName, waitGone γw id t) ∨ P) ={⊤}=∗
+      ghostMapAuth γs (1 : Qp).half M ∗ (⌜M !! id = none⌝ ∨ P) := by
+  iintro #Hinv #Hnm Hlc Hga Hpre
+  icases Hpre with (⟨%t, #Hgone⟩ | HP)
+  · iunfold waitGone at Hgone
+    icases Hgone with ⟨%γs', %γr', %g, #Hnm', #Hr, #Hd⟩
+    rw [← hk]
+    ihave %Hag := ghostMapElem_agree $$ Hnm Hnm'
+    cases Hag
+    imod waitShard_gone_absent γi R γs γr id M t g $$ Hinv Hlc Hga Hr Hd with ⟨Hga, %Hn⟩
+    iframe Hga
+    imodintro; ileft; ipureintro; exact Hn
+  · iframe Hga
+    imodintro; iright; iexact HP
+
 theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG) := by
   intro l γi γw R id x
   wp_start as ⟨#Hl, Hpre⟩
@@ -55,7 +75,8 @@ theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG
   wp_apply wp_mapDelete $$ [$Hmap] as Hmap
   simp only [hidx, and_self, ↓reduceIte]
   rw [hn']
-  wp_auto_lc 1
+  wp_auto_lc 2
+  imod trigPre_gone γi R γw γs γr id (W64 n) M _ hk $$ Hinv Hnm Hlc2 Hga Hpre with ⟨Hga, Hpre⟩
   imod waitShard_take γi R γs γr id M $$ Hinv Hlc1 Hga with ⟨Hga, Hent⟩
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hga Hmap]
   · inext; iunfold waitShardP; iexists _; iframe
@@ -75,7 +96,8 @@ theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG
     wp_auto
     ihave HV : iprop(waitVal γh Ψ x) $$ [Hpre]
     · iunfold waitVal
-      icases Hpre with (⟨%γh', %Hx, Hc, #Hr'⟩ | Ht)
+      icases Hpre with (%Hn | ⟨%γh', %Hx, Hc, #Hr'⟩ | Ht)
+      · simp_all
       · iright
         iunfold waitRegd at Hr'
         icases Hr' with ⟨%γs', %γr', %g', #Hnm', #Hr'⟩

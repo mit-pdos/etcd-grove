@@ -709,34 +709,13 @@ theorem NewServer.wp_proof
   iNamed
   wp_for IH
   wp_if_destruct
-  · obtain ⟨mx, Hmx⟩ : ∃ mx, rms[(sint.Z n).toNat]? = some mx :=
-      ⟨_, List.getElem?_eq_getElem (by unfold sint.nat at Hrmsl; word)⟩
-    have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z bc.remotes'.len := ⟨Hn.1, Hif⟩
-    simp only [Hbnd, _root_.and_self, ↓reduceIte]
-    wp_apply wp_load_slice_index _ (sint.Z n) _ _ mx Hn.1 $$ [] as -
-    · iframe #; ipureintro; exact Hmx
-    ihave #Hmro := (BigSepL.bigSepL_lookup (Φ := fun _ m => memberRO (GF := GF) dir m) Hmx) $$ Hrmsi
-    iunfold memberRO at Hmro
-    icases Hmro with ⟨%Hmnn, %mv, %mus, #Hmv, #Hmus, %Hmok⟩
-    iStructNamedPrefix Hmv "M"
-    iStructNamedPrefix MRaftAttributes "MR"
-    (try wp_auto)
-    wp_if_destruct
-    · wp_for_post
-      iframe
-      iexists n + W64 1, _
-      iframe
-      ipureintro; constructor <;> word
-    · wp_apply (h39 γn t mv.ID' mv.RaftAttributes'.PeerURLs' DFrac.discard mus) $$ [Htlive]
-        as ⟨Htlive, -⟩
-      · iframe #; iframe Htlive; ipureintro
-        exact ⟨Hmok.1, by rw [Hγn.2]; exact Hmok.2.symm⟩
-      (try wp_auto)
-      wp_for_post
-      iframe
-      iexists n + W64 1, _
-      iframe
-      ipureintro; constructor <;> word
+  · -- (the partition plan's S1, 2026-10-20) no remotes (`bootOk`'s `Hrms0`: a new cluster's
+    -- bootstrap), so the loop's body is dead: `AddRemote` is never called, and the transport's
+    -- list of remotes stays `[]` (`transportRemotes t []`, for `srvNetMember`)
+    exfalso
+    have Hlen : rms.length = 0 := by rw [Hrms0]; rfl
+    unfold sint.nat at Hrmsl
+    word
   -- `for _, m := range b.cluster.cl.Members() { … tr.AddPeer(…) }`: (D21 M2) the members'
   -- records, each naming its member's own URLs (`bootOk`'s `Hmembers`, the directory `dir`)
   wp_apply Hmembers as %msl %mps Hmsl Hmso
@@ -752,6 +731,9 @@ theorem NewServer.wp_proof
     · have := Hmsll.2; word
   -- the result's ghost state is allocated at the end (`wp_fupd`)
   iapply wp_fupd
+  -- the loop gets what it reads only (`wp_for` generalizes the whole context into its invariant,
+  -- and `wp_for_post` reframes it at every iteration); the rest waits after it
+  wp_join at (App (App (App (Val doFor) _) _) _) with [b Hb nodeID tr Htlive Hmsl Hmso IH2]
   wp_for IH2
   wp_if_destruct
   · obtain ⟨px, Hpx⟩ : ∃ px, mps[(sint.Z n).toNat]? = some px :=
@@ -784,7 +766,7 @@ theorem NewServer.wp_proof
       iexists n + W64 1, _
       iframe
       ipureintro; constructor <;> word
-    · wp_apply (h41 γn t px.2 mpu (DFrac.own 1) mpus) $$ [Htlive Hmpus] as ⟨Htlive, Hmpus⟩
+    · wp_apply (h41 γn t px.2 mpu (DFrac.own 1) mpus []) $$ [Htlive Hmpus] as ⟨Htlive, Hmpus⟩
       · iframe #; iframe Htlive Hmpus; ipureintro
         exact ⟨Hmok.1, by rw [Hγn.2]; exact Hmok.2.symm⟩
       (try wp_auto)
@@ -803,6 +785,12 @@ theorem NewServer.wp_proof
       iexists n + W64 1, _
       iframe
       ipureintro; constructor <;> word
+  · wp_join_done
+    iframe b Hb nodeID tr Htlive Hmsl Hmso
+    iexists n, mm
+    iframe i m
+    ipureintro; exact Hn
+  iNamed IH2
   -- `srv.r.transport = tr`; the result
   have hU64 : ∀ u : Loc, u ↦ (zero_val Perennial.sync.atomic.Uint64) ⊢
       sync.atomic.ownUint64 (GF := GF) u (DFrac.own 1) (W64 0) := by
@@ -817,7 +805,8 @@ theorem NewServer.wp_proof
       ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ E₀ :=
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started
-  ihave #Hts := Htstart $$ Htlive
+  ispecialize Htstart $$ %([] : List w64) Htlive
+  icases Htstart with ⟨#Hts, #Hrem0⟩
   iunfold transportStarted at Hts
   icases Hts with ⟨#Htrall, #Htrr⟩
   -- the read names
@@ -990,7 +979,7 @@ theorem NewServer.wp_proof
   · iunfold srvNetMember
     iframe Hprocok
     iexists t
-    iframe Htrf
+    iframe Htrf Hrem0
     iunfold transportStarted
     iframe Htrall Htrr
   -- (2026-10-20, watchkv) the watchable store's reader slots for the watch service
@@ -1277,6 +1266,9 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨Hwrd, -⟩
   iunfold mvcc.watchReader at Hwrd
   icases Hwrd with ⟨Hsrd, -⟩
+  isplitr [Hwtok]
+  rotate_left
+  · iexact Hwtok
   iexists ua
   iframe uberApply
   isplitr

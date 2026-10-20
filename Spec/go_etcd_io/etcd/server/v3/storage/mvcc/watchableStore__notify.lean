@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `s.notify(rev, evs)` under `s.mu` (the lock's state `σ` at the sole writer's log `ilog`, its
 synced watchers delivered at most up to `ilog`'s length), for the events `evs` of the pending
 revision `rev = ilog.length` (sealed and certified: `evLog` of `ilog ++ [pend]`, unit W-M3;
-released, `relLb`, D24): each synced
+released, `relLb`, D25): each synced
 watcher with events gets them in one response (one revision: the `revs != 1` panic is
 unreachable) and is then delivered up to `rev + 1`, or, if its channel is full, becomes a victim
 with its batch; the others are delivered up to `rev + 1` with nothing to send. -/

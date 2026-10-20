@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`w.serveSubstream(ws, resumec)`**, a lifetime `L` of the goroutine of the watch `P` (D24):
+/-- **`w.serveSubstream(ws, resumec)`**, a lifetime `L` of the goroutine of the watch `P` (D25):
 from any state of the substream (`wsRun`: its lifetime starting at `recvc`'s position `k0`, whose
 first response is a created one, `lifeStart`, with half the request's `rev` field at `rv0`; the
 buffer and both cursors as the previous lifetime left them), the fields it owns (`closing` `false`,

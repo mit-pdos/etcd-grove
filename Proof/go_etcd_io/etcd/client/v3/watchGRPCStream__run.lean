@@ -321,7 +321,7 @@ theorem watchGRPCStream.run.wp_proof
       wp_apply (chan.wp_make1 (V := Unit)) as %dnc %γdn ⟨#Hdnc, %-, Hdno⟩
       icases client.ptsto_split_half_loc _ _ $$ donec with ⟨Hdnf1, Hdnf2⟩
       imod dghostVar_alloc false with ⟨%γx, Hx⟩
-      -- (D24) the goroutine's first lifetime: its deposit's flag, `run`'s token
+      -- (D25) the goroutine's first lifetime: its deposit's flag, `run`'s token
       imod dghostVar_alloc false with ⟨%γt, Hγt⟩
       icases dghostVar_halves _ _ $$ Hγt with ⟨Hγt1, Hγt2⟩
       imod dghostVar_alloc () with ⟨%γk, Htk⟩
@@ -335,7 +335,7 @@ theorem watchGRPCStream.run.wp_proof
       imod mono_list_own_alloc (GF := GF) [P0.rev - W64 1] with ⟨%γcur2, Hcur2a, #Hcur2lb⟩
       ihave #Hh20 := monoListIdxOwn_get (GF := GF) 0 (P0.rev - W64 1) rfl $$ Hh2lb
       ihave #Hcur20 := monoListIdxOwn_get (GF := GF) 0 (P0.rev - W64 1) rfl $$ Hcur2lb
-      -- (D24) the positions' statuses: the goroutine starts at `0`
+      -- (D25) the positions' statuses: the goroutine starts at `0`
       imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Bool) with ⟨%γps, Hpsa⟩
       imod ghost_map_insert_persist (γ := γps) 0 true (GMap.lookup_empty 0) $$ Hpsa with
         ⟨Hpsa, #Hps0⟩
@@ -360,7 +360,7 @@ theorem watchGRPCStream.run.wp_proof
       irevert Hosp Hrsp
       rw [eq1, eq2]
       iintro #Hosp #Hrsp
-      -- (D24) the lifetime's `donec`
+      -- (D25) the lifetime's `donec`
       imod alloc_broadcast_chan (E := ⊤) (lifeQ V G P L) γdn dnc $$ Hdnc Hdno with Hdnb
       icases ownBroadcastChan_dup_unknown _ _ _ _ $$ Hdnb with ⟨Hdnb, #Hdnu⟩
       ihave #HP : iprop(wsIs V P) $$ []
@@ -404,7 +404,7 @@ theorem watchGRPCStream.run.wp_proof
       · iframe
       imod ghost_map_insert «$r0_ptr» () HUf $$ Hwsa with ⟨Hwsa, Hwsel⟩
       icases (ghostMapElem_halves G.γws «$r0_ptr» ()).1 $$ Hwsel with ⟨Hwsel1, Hwsel2⟩
-      -- (D24) the lifetime's invariant, running
+      -- (D25) the lifetime's invariant, running
       imod inv_alloc lifeN ⊤ (lifeSt V G P L) $$ [Hγt2 Hwsel2] with #Hli
       · inext
         iunfold lifeSt
@@ -725,7 +725,7 @@ theorem watchGRPCStream.run.wp_proof
         iexfalso; iexact HF
       simp only [↓reduceIte]
       icases Hrecv with ⟨Hel, Hrcons⟩
-      -- (D24) a response of the current epoch's stream
+      -- (D25) a response of the current epoch's stream
       icases client.respcE_at V G γs b rcv.length p (by omega) $$ [Hepst Hel] with ⟨Hepst, Hel⟩
       · iframe
       have hj : rcv.length - b = S.Dm.length := by omega
@@ -929,7 +929,7 @@ theorem watchGRPCStream.run.wp_proof
             icases Hrest with (⟨%B, %sent, %C, %C2, %HB, #HsoB, Hprod, Hauth, Hauth2, %HCs, Hrv, Hpsq, #Hupi⟩ |
               ⟨#HxD, %B, %sent, %C, %C2, %q, %HB, #HsoB, Hprod, Hauth, Hauth2, Hrv, #Hupi⟩)
             rotate_left
-            · -- (D24) a substream stopped for good, re-created after a reconnection: its dispatch fails
+            · -- (D25) a substream stopped for good, re-created after a reconnection: its dispatch fails
               ihave #Hu1 := Hup
               iunfold client.upAtOpt at Hupi
               iunfold v3rpc.upAtW at Hu1 Hupi
@@ -1867,7 +1867,7 @@ theorem watchGRPCStream.run.wp_proof
               isplitr
               · ipureintro; exact ⟨rfl, Hph2⟩
               iframe HP
-              -- (D24) a cancel for its id was sent: its goroutine had stopped (`noCancelOk`)
+              -- (D25) a cancel for its id was sent: its goroutine had stopped (`noCancelOk`)
               ihave #Hx : iprop(dghostVar P.γx DFrac.discard true) $$ []
               · icases Hnc with (%Hn | #Hx)
                 · exact absurd HLi (Hn i)
@@ -2607,7 +2607,7 @@ theorem watchGRPCStream.run.wp_proof
       wp_apply +noauto wp_isHaltErr G.ctx G.cd err $$ [] as %bh %Hbh
       · iframe #
       cases bh
-      · -- (D24) not a halting error: no leader, or a reconnection
+      · -- (D25) not a halting error: no leader, or a reconnection
         wp_auto_lc 1
         ihave #Hcea' := Hcea
         iunfold ctxErrClientAllW at Hcea'
@@ -2645,7 +2645,7 @@ theorem watchGRPCStream.run.wp_proof
         wp_apply wp_backoff G.wgs G.ctx G.cd bo err $$ [] as %bo' -
         · iframe #
         (try wp_auto)
-        -- the reconnection (D24): the old stream's epoch ends at `respc`'s position
+        -- the reconnection (D25): the old stream's epoch ends at `respc`'s position
         iunfold client.runCore at Hcore
         icases Hcore with ⟨%S, %U, %rcv, %mref, %s, %e, Hclm, Hcsm, Hsub, Hm, Hres, Hs, HcF, #He,
           Hstok, Hrcons, %Hrcv, Hepst, -, %HgOk, -, -, -, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
@@ -2948,7 +2948,7 @@ theorem watchGRPCStream.run.wp_proof
       icases (BigSepM.bigSepM_delete HU).1 $$ Hels with ⟨Hw, Hels⟩
       iunfold client.wsElem at Hw
       icases Hw with ⟨%P, %ph, ⟨%HPws, %Hph⟩, #HP, Hid, Hrest, #Hnc, Hlife⟩
-      -- (D24) what the goroutine left in its lifetime's invariant
+      -- (D25) what the goroutine left in its lifetime's invariant
       iunfold client.wsLife at Hlife
       icases Hlife with ⟨%L, -, #Hli, Htk, -⟩
       iapply fupd_wp
@@ -3172,7 +3172,7 @@ theorem watchGRPCStream.run.wp_proof
   wp_auto
   ipersist HcF
   ihave ⟨Hids, Hcls, Hlfs⟩ := client.wsElems_split V G ng γs S U $$ Hels
-  -- (D24) the substreams' current lifetimes
+  -- (D25) the substreams' current lifetimes
   ihave Hlfs : iprop([∗map] ws ↦ _u ∈ U, ∃ a : WsPrm GF × LifePrm,
       (⌜a.1.ws = ws⌝ ∗ wsIs V a.1 ∗ lifeInvIs V G a.1 a.2 ∗ client.lifeTk V a.1 a.2) ∗
       donecAt ws (lifeDn V G a.1 a.2)) $$ [Hlfs]
@@ -3385,7 +3385,7 @@ theorem watchGRPCStream.run.wp_proof
     iunfold client.idE at Hid
     icases Hid with ⟨%idv, Hid⟩
     wp_auto_lc 1
-    -- (D24) what the goroutine left
+    -- (D25) what the goroutine left
     iapply fupd_wp
     imod client.take_stop V G ng (f wsr).1 (f wsr).2 wsr Hfw $$ [Hlc1 Htk Hel Hgen]
       with ⟨Hsb, Hel, Hgen⟩

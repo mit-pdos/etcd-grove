@@ -1,5 +1,5 @@
 /-
-**A response's resume fact from the server's facts** (D24, `notes/decisions.md`): what `run`
+**A response's resume fact from the server's facts** (D25, `notes/decisions.md`): what `run`
 proves of each response it dispatches (`resumeF`, `InvWatch.lean`): a create from just past the
 response's position is a start-read one, from the released length mvcc's deliveries carry
 (`mvcc.relLb`, an event's revision) or the notified log an event-less response's revision is the

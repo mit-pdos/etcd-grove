@@ -224,7 +224,7 @@ structure WsNames where
   wst : GName
   /-- the watcher budget (`watchBudget`): a registration costs one token (`watchTok`) -/
   wt : GName
-  /-- (D24) the released length: a monotone nat, the notified log's length under `s.mu`
+  /-- (D25) the released length: a monotone nat, the notified log's length under `s.mu`
   (`watchStoreInv`), bumped by `End` before it notifies the pending revision's events, so every
   delivered event's revision is below it (`relLb`, kept by `evsWf`) -/
   rel : GName
@@ -533,7 +533,7 @@ theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
   iframe H
   ileft; ipureintro; simp
 
-/-- **The store had released `n` revisions** (persistent; D24): a lower bound of `γ.rel`, the
+/-- **The store had released `n` revisions** (persistent; D25): a lower bound of `γ.rel`, the
 notified log's length under `s.mu`, which `End` bumps before it notifies a revision's events. A
 log whose events a watcher was delivered is released (`evsWf`), so a watch resumed after its last
 event starts within the released revisions (`startRead`). -/
@@ -646,7 +646,7 @@ instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb
 
 /-- **A watch's start revision, read** (K2e-6; persistent): for a watch registered with `sr`, a
 log the store had committed (`idxCert`) reaches its start revision (the start revision minus one
-is a revision of it), or (D24: a watch resumed after a reconnect, from its last delivered event or
+is a revision of it), or (D25: a watch resumed after a reconnect, from its last delivered event or
 progress revision) a log the store had notified, or the released revisions (`relLb`). Under
 `s.mu`, where a watcher registers, the three agree: the notified log is the committed one and the
 released length its length (`watchStoreInv`, `startRead_le`). -/
@@ -1514,7 +1514,7 @@ theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
     monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
   subst h; exact .rfl
 
-/-- **The lock invariant** of `s.mu` (see the module docstring); D24: with the released length's
+/-- **The lock invariant** of `s.mu` (see the module docstring); D25: with the released length's
 authority at the notified log's length (`End` bumps it before notifying, inside its critical
 section). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=

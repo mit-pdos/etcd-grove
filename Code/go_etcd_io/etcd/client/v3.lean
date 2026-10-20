@@ -9341,17 +9341,25 @@ class Client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_callOpts : ∀ (x : Client) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"callOpts") (PairV #x #y) (Val #(({ x with callOpts' := y } : Client)))
   get_lg : ∀ (x : Client), go.IsGoStepPureDetTagged under (StructFieldGet Client.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : Client) (y : (_root_.Perennial.sync.atomic.Pointer _root_.Perennial.go_uber_org.zap.Logger)), go.IsGoStepPureDetTagged under (StructFieldSet Client.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : Client)))
+  Delete_unfold : MethodUnfold Client.ty go!"Delete" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve KV.ty go!"Delete"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"KV"))) (Var "$r"))))
   Get_unfold : MethodUnfold Client.ty go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Get"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"KV"))) (Var "$r"))))
   Put_unfold : MethodUnfold Client.ty go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Put"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"KV"))) (Var "$r"))))
+  Txn_unfold : MethodUnfold Client.ty go!"Txn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve KV.ty go!"Txn"))) (App (Val (GoInstruction (StructFieldGet Client.ty go!"KV"))) (Var "$r"))))
   ptr_Ctx_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Ctx" Client.Ctx.impl
+  ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Delete" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve KV.ty go!"Delete"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Get" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Get"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_GetLogger_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"GetLogger" Client.GetLogger.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve KV.ty go!"Put"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_SetEndpoints_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"SetEndpoints" Client.SetEndpoints.impl
+  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"Txn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve KV.ty go!"Txn"))) (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"KV"))) (Var "$r")))))
   ptr_autoSync_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"autoSync" Client.autoSync.impl
   ptr_credentialsForEndpoint_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"credentialsForEndpoint" Client.credentialsForEndpoint.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dial" Client.dial.impl
@@ -9402,13 +9410,17 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.set_callOpts
   Client.TypeAssumptions.get_lg
   Client.TypeAssumptions.set_lg
+  Client.TypeAssumptions.Delete_unfold
   Client.TypeAssumptions.Get_unfold
   Client.TypeAssumptions.Put_unfold
+  Client.TypeAssumptions.Txn_unfold
   Client.TypeAssumptions.ptr_Ctx_unfold
+  Client.TypeAssumptions.ptr_Delete_unfold
   Client.TypeAssumptions.ptr_Get_unfold
   Client.TypeAssumptions.ptr_GetLogger_unfold
   Client.TypeAssumptions.ptr_Put_unfold
   Client.TypeAssumptions.ptr_SetEndpoints_unfold
+  Client.TypeAssumptions.ptr_Txn_unfold
   Client.TypeAssumptions.ptr_autoSync_unfold
   Client.TypeAssumptions.ptr_credentialsForEndpoint_unfold
   Client.TypeAssumptions.ptr_dial_unfold

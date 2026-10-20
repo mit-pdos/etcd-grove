@@ -22,7 +22,7 @@ It follows, as watchkv's (`Proof/.../watchkv/Adequacy.lean`), from
 
 **Its hypotheses** are watchkv's (`watch_adequate`) at cachekv's configuration
 (`cachekv.premises`: putget's, until 2026-10-20 also the watch stream's transport premise
-`noRetryableStreamErr`, gone with D24; the address `127.0.0.1:23851`): the cache adds none.
+`noRetryableStreamErr`, gone with D25; the address `127.0.0.1:23851`): the cache adds none.
 -/
 module
 

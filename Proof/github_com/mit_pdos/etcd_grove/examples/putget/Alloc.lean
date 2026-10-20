@@ -62,7 +62,7 @@ theorem putget_alloc (id : w64) (bootLog : List EntryM) (Hbf : BootFacts id boot
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
       idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
       srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗
+      idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗ idWaitTok ρ.ids ∗
       mvcc.idxFresh E₀.γ.idx ∗
       ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
       ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
@@ -81,12 +81,13 @@ theorem putget_alloc (id : w64) (bootLog : List EntryM) (Hbf : BootFacts id boot
       (by rw [GMap.elem_of_list_to_set]; simpa using Hid0.symm)
       rfl Hbf.boot (fun ty d h => h) (by simp) (by simpa using Hbf.idLow))
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
-      #Hpm, #Hrc, Hms⟩
+      #Hpm, #Hrc, Hms, Hwns⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, HrdC⟩, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
-  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp
-    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk⟩
+  imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
+    with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   obtain ⟨hraft, hst, hc0', hch', hlog', hwl', hcok, hiss', hcnt, hpfx⟩ := Hρ
   -- this node's ghost state, out of the map over the cluster `{id}`
   ihave Hghost : ownRaftGhost γ id (bootPState bootLog) $$ [Hghosts]
@@ -103,7 +104,7 @@ theorem putget_alloc (id : w64) (bootLog : List EntryM) (Hbf : BootFacts id boot
   rw [etcdKV_congr ρ.rd.kv γk hst,
     show kvModel ρ.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
       unfold kvModel; rw [hc0', hch', hlog']]
-  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hetcd
+  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd
   isplitr
   · ipureintro
     refine ⟨hcfg, hdyn, hcc, hboot, htr, rfl, ?_, by rw [hc0', hc0], by rw [hch', hch],

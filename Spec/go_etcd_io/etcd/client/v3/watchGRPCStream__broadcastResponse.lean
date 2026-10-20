@@ -28,7 +28,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `w.broadcastResponse(wr)`: sends `wr` to every registered substream that has not stopped;
 `true`. The targets' values are `Pf ws`, their `recvc` producers' histories `Sf ws`, their
-lifetimes' `donec`s `Df ws` (D24; `run`'s generation authority at `n`). -/
+lifetimes' `donec`s `Df ws` (D25; `run`'s generation authority at `n`). -/
 abbrev watchGRPCStream.broadcastResponse.spec : Prop :=
   ∀ (V : WEnv GF) (wgs wr : Loc) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)
     (Pf : Loc → WsPrm GF) (Sf : Loc → List Loc) (Df : Loc → DnInfo GF) (γend : GName) (n : Nat),

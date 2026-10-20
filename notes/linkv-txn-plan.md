@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stage A done (2026-10-20, branch `linkv-txn`; STATUS "linkv-txn stage A"); B next.
+Status: done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F", "stage G"): `linkvtxn_safe`, on exactly `linkv_safe`'s axioms.
 
 ## Goal
 
@@ -83,6 +83,27 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
   trigger ⇒ registered at `IsRegistered` (ids are not reused) ⇒ `skip = false`. Put it in
   `txnReplied`'s writing case. **Fallback** if this turns out expensive: gens with no Get in a
   writing Txn (the CAS's `Else(Get)` then becomes `Else()`), and B1 later.
+  **Done** (2026-10-20, STATUS "linkv-txn stage B1"), as the findings below proposed but for (b):
+  the registration rides on a cluster-level registries' map (`IdNames.wn`, per prefix), not on
+  `ρ.wait`, which raft's environment (`srvC`) fixes before `start` makes the wait.
+  **Findings (2026-10-20, before any change)**: the apply thread already proves the
+  dichotomy at a *known* registration (`request_delivered`, `entryDelivered`: `out.waived = false`
+  or the registration with token `t` is gone), but (i) both apply loops (`EtcdServer.apply`)
+  call `applyEntryNormal` at `ot = none` (`entryRegd_none`): no entry carries its id's
+  registration, because the claim (`srv_claim_mint`, `entryClaim`) is minted *before*
+  `Register` (whose condition `reqWaitR` needs the claim); and (ii) `Trigger(id, x)` demands
+  `waitTrig` (every registered expectation's `Ψ x`) even when the registration is gone, so the
+  result handed over cannot say "not waived" unless the apply thread proves it in every case.
+  What B1 needs: (a) `isWait`'s `Trigger` also accepting `waitGone γw id t` (provable in
+  `wait/List.lean`: a gone id is out of the live map and cannot come back, the record map
+  being written once per id); (b) every own-prefix entry carrying its registration: the
+  proposer, after `Register`, records `waitRegd ρ.wait id t` where `kv_prop_au` builds the
+  entry's `entryClaim` (the claim is cluster-level since D21e (A): another member's entries
+  need no record, `reqWaitR`'s prefix clause makes `waitTrig` vacuous for them); (c) the loops
+  passing `some t` for own-prefix entries; (d) `resultΨ` (`resultIsW`) carrying
+  `⌜out.waived = false⌝`, through `appliedOk` to `txnAppliedOk` and `txnReplied` (`skip =
+  false`). Every other consumer of `entryClaim`/`entryWaitOk` (`BuildGap`, `InvRun`, boot logs)
+  follows (b).
 - **B2 read-only Txn with a read update** (item 3): the read-only case of
   `client_txn_end_to_end` takes `kvReadAu γr.kv Q` and returns `□ Q (kvStateOf log)` (already in
   `txnReplied`); for a linearizable (non-serializable) txn only.
@@ -93,6 +114,10 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
   `σ` that `Q` is at, which is what stage F's commit needs.
 
 ### C. The Lean model (`linkv/KVModel.lean`, `ModelKV.lean`; pure)
+
+**Done** (2026-10-20) in new files `PendModel.lean`, `TxnModel.lean`, `TxnModelKV.lean` (STATUS
+"linkv-txn stage C"), with versions and mod revisions as words and `list` over the workload's
+keys; the old model stays until F.
 
 - **State**, as robustness's `EtcdState`: `rev : Nat` and per key `ValRev := (val, modRev,
   version)` (no create revision, no lease, as robustness). Init: revision 1, empty store (what
@@ -120,6 +145,9 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
 
 ### D. The Go program (`examples/linkv/linkv.go`)
 
+**Done** (2026-10-20) as a new module `examples/linkvtxn` (STATUS "linkv-txn stage D"), linkv
+unchanged.
+
 - `Input`/`Output` widened (an op kind, a key, a value, cmps and ops for a txn; the response
   fields above). Keep plain structs with slices of small structs: Goose-friendly, and
   `Input_intoVal_inj`/`Output_intoVal_inj` still come from the field projections.
@@ -143,12 +171,20 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
 
 ### E. The Go model's proofs
 
+**Done** (2026-10-20, STATUS "linkv-txn stage E"): every function of the model specified and
+proved, `Model` linked against `pM (txnSpec wks)`; `Input`/`Output` made plain values first.
+
 Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, the txn's op loop,
 `delete`, the list, `step`, `closure` (pending writes), `Model` (`isModel linkvS` with
 `rep k = stRepB (k + 1)`; lengths and revisions bounded by the step index `< 2^60`).
 `ModelLemmas.lean`'s `stepL`/`absCfg`/`decIO` generalized; `step_closure_ok` re-proved.
 
 ### F. `Apply` (`Spec/.../linkv/Apply.lean`, `linkv/Inv.lean`, `linkv/Apply.lean`)
+
+**Done** (2026-10-20, STATUS "linkv-txn stage F") for `examples/linkvtxn`: `call` split per kind,
+each kind's call proved at the state its update fired at, `Apply` linked (`wp_Apply`). A finding on
+the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-serializable.md`);
+`Apply`'s input excludes empty transactions, which `Gen` never makes.
 
 - Premises: `DeleteRange` and `Txn` registered (`etcd_kv_served` gives all four).
 - `linkvInv`: pending writes `GMap Nat WOp`; the revisions' map holds the abstract state per
@@ -162,10 +198,17 @@ Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, t
 
 ### G. Close
 
-`Check`/`Main` unchanged in Go; `Main.spec` premises if any; `etc/gen-link.py --linkv` and
-`--linkv3`, `etc/gen-init.py`; `linkv_safe`, `linkv3_safe` re-closed. Gates: `lake build`,
-`goose.py --check`, every link mode, `tcb-report.py --check` and every collection (linkv's and
-linkv3's axioms unchanged: the target), `verified-code.py` shows the new functions verified.
+**Done** (2026-10-20, STATUS "linkv-txn stage G"): `linkvtxn_safe`, its axioms `linkv_safe`'s
+(`proto.Clone` was already in its trust base, through the server). linkv stays (linkv3, linkv3p).
+
+For `examples/linkvtxn` (stage D made it a module of its own): `Gen` (`genFrom`, `pick`, `mkTxn`,
+`workloadKeys`: `GenIn`, which `Apply`'s input premise is), `Check`, `Main` (linkv's, at
+`linkvtxnS` and `linkvInv`'s allocation from the boot state: `linkvInv_alloc` needs a good state
+that is the model's initial one), the closed theorem `linkvtxn_safe` (as `linkv_safe`), its
+`Results.lean` and a TCB collection; `etc/gen-init.py` if the package's init changes. Then decide
+whether linkv retires (linkv3/linkv3p still use it). Gates: `lake build`, `goose.py --check`, every
+link mode, `tcb-report.py --check` and every collection (`linkvtxn_safe`'s axioms linkv_safe's plus
+the client's comparison clone, `proto.Clone`), `verified-code.py` shows the new functions verified.
 STATUS and decisions updated.
 
 ## Order and sizing (rough)

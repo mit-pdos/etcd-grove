@@ -11854,7 +11854,7 @@ theorems, and they are deleted rather than kept as proved Props:
   for is in), and removing it is a separate simplification (`notes/STATUS.md`).
 
 
-## D24: the watch client's reconnection, verified (2026-10-20 · S0: designed, stopped on two fork fixes)
+## D25: the watch client's reconnection, verified (2026-10-20 · S0: designed, stopped on two fork fixes)
 
 **Problem.** `watch_safe` and `cache_safe` (and `client_watcher_rangeWatcher`,
 `client_newWatcher_rangeWatcher`, the cache's results over the real watcher) rest on
@@ -12127,3 +12127,137 @@ branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
   `errors.IsStatusErr.wp_proof`, as the lessor does.
 - *S1e.* With every call of the reconnection verified, `noRetryableStreamErr` is no longer used and
   is deleted: the closed theorems lose one hypothesis.
+
+## linkv-txn B1: why the registration rides on a cluster registries' map (2026-10-20)
+
+To show a delivered writing `Txn` ran its ranges (`skip = false`), the result the apply thread
+hands `Trigger` must say "not waived" in every case the proposer can receive it. The apply thread
+proves it at a *known* registration (`request_delivered`), so each committed entry must carry its
+id's registration. Three constraints shaped where:
+- The claim (`idClaim`, `srv_claim_mint`) is minted *before* `Register`, whose condition
+  (`reqWaitR`) needs it; so the claim cannot carry the registration. The post-`Register` fact
+  enters the log where the proposer builds the entry's `entryClaim`, in `kv_prop_au`.
+- `entryClaim`/`kvWork` are shared by every member (one `kvInv`, `kvInv_congr`); a member's own
+  registry name `ρ.wait` is meaningless to the others. And `ρ.wait` is fixed only in `start`
+  (`{ρ with wait := γw}`), after raft's environment (`srvC`, `batchWaitOk ρ`) is fixed at
+  `NewServer`. So the entry names the registry through a cluster table, prefix to registry
+  (`IdNames.wn`), whose member entries `start` sets (a one-shot cell per prefix: ghost-map
+  fragments cannot be updated without the authority).
+- An entry of another member's id is never registered here: `reqWaitR`'s prefix clause makes
+  `waitTrig` vacuous for it, so the loops pass `none` exactly for those (`entryRegd`'s new clause).
+Rejected: fixing the registry name at boot (`wait.New` taking a pre-allocated name; every
+example's `Main` replaces `ρ.wait`), and per-claim registration cells in the claims' facts (needs
+the registry name in `Φs`, fixed before the registry exists). The fallback (no gets in writing
+transactions) was the plan's alternative.
+
+## D24: the partition hooks' axioms and the transport's remotes (2026-10-20, `notes/partition-plan.md` S1/S2)
+
+**Problem.** The partition example (`examples/linkv3p`) cuts and mends links with etcd's own test
+hooks, `EtcdServer.CutPeer`/`MendPeer`, which forward to rafthttp's `Transport.CutPeer`/`MendPeer`
+(names-only: axioms). The plan's S1 stated them over `transportStarted γn t` alone, on the ground
+that pausing a peer only loses messages, which the network model allows. Checking the Go code:
+`CutPeer` also calls `Pause` on a *remote* of `id` if there is one, and `remote.Pause` stops the
+pipeline, whose `stop` closes a channel unconditionally, so a second `CutPeer` of a remote without
+a `MendPeer` in between panics ("close of closed channel"; reproduced,
+`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
+schedule, including one that cuts the same link twice, so the S1 axiom was false as stated.
+
+**Options.** (a) Fix the fork (`remote.Pause`/`Resume` idempotent): the axiom is then true of any
+started transport; needs the fork pushed and the etcd pin moved (every example's `go.mod`
+replaces too), though no translation changes (rafthttp is names-only). (b) A per-link one-shot
+"not cut" token, consumed by `CutPeer`, restored by `MendPeer`: its supply has to come from
+`Transport.Start`'s axiom (one per possible id), and the partitioner would have to track cut links
+(it could: skip a redundant step). (c) Track the transport's remotes in its ghost state: the
+exclusive `transportLive γn t rs` records the ids `AddRemote` was called with (`Start` gives `[]`,
+`AddRemote` appends, `AddPeer` keeps); giving it up yields `transportStarted γn t` and the
+persistent `transportRemotes t rs`; `CutPeer`/`MendPeer` take `id ∉ rs`. `t.remotes` gets a key
+only through `AddRemote`, and `transportLive` is exclusive and given up before the transport is
+shared, so the list is complete.
+
+**Decision: (c)**, with the server side closed by the bootstrap contract: `bootOk` already describes
+a new cluster's bootstrap only (`Hnosnap`: raft started by `StartNode` with the members as peers,
+which `bootstrapRaft` does for `!haveWAL && cfg.NewCluster` alone, where `bootstrapCluster` is
+`bootstrapNewClusterNoWAL` and `remotes` is nil), so it gains `"%Hrms0" ∷ ⌜rms = []⌝`, true of the
+case it describes. `NewServer`'s `AddRemote` loop is then dead (its body closed by contradiction;
+`AddRemote`'s result stays a hypothesis of the linked proof), the transport is given up at `[]`,
+and `srvNetMember γn s id` carries `transportRemotes t []`. The server's `CutPeer`/`MendPeer`
+specs take `srvNetMember` alone (as `RaftHandler`'s axiom does), and their proofs apply the
+transport axiom at `rs = []`. Nothing else changes: `transportStarted`, `srvNetMember`'s
+signature, `NewServer.spec`, `RaftHandler`, the examples. (a) stays the right fix for etcd (the
+issue says so); if the fork takes it, `id ∉ rs` can go. (b) was rejected for the plumbing through
+`Start`'s axiom and the example.
+
+**Trust base.** +2 axioms (`rafthttp.Transport.CutPeer`, `MendPeer`); `Transport.Start`,
+`AddRemote`, `AddPeer` restated (the remotes list); `bootOk` (a premise, `bootstrapContract`)
+stronger by `rms = []`.
+
+## linkv-txn F: a write's commit at a state the model cannot answer; `call` per kind (2026-10-20)
+
+**A write's update commits at every firing.** `write_ok_au` must commit `lintest`'s update when the
+server fires it, with the `Output` `call` will return (`outAt i σ`); the model decodes the
+output's revision as a natural number (`decOut`), so the commit needs the answer's revision below
+`2^64`, which nothing at the firing gives (the server's state carries no bound; the reply's log
+is below `2^63`, but the reply comes later). Committing nothing at such a state is not an option:
+the state moves, and `LinkvOk`'s configuration must move with it. So at a state where the answer
+does not fit, the update commits the write *as failed and applied* (`pSeq_errW_applied`: a write
+that returned an error may have taken effect), and its result says so (`wQ`'s right side); the
+reply, below `2^63`, contradicts it. The alternative, a bound in the invariant, would need every
+deposited write to respect a budget nobody tracks.
+
+**Reads commit at the prophesied revision only**, as linkv's gets: the read update is persistent
+(fired at every committed state), the revision prophecy picks the one, and the revisions' map
+(now of whole states: lists and read-only transactions read every key) makes every firing at
+that revision see the committed state. A state's revision determines it because every server
+step keeps the state or moves to the next revision (`kvOpStep_cases`).
+
+**`call` split per kind** (`callGet`, …, `callTxn`, with `cmpsFor` and `txnRes`): the Go program
+is this repository's own, and one function per kind gives each its own spec and proof file
+(the spec/proof discipline) instead of one proof of five branches, two loops and the txn builder.
+
+**Empty transactions are out of `Apply`'s input** (`GenIn`), not handled: etcd serves them
+without the read index (`issues/etcd-txn-empty-serializable.md`), and the client's model agrees
+(`txnSerializable` vacuously true), so no read update fires for them; `Gen` never makes one.
+
+## linkv-txn E: the model's inputs and outputs as plain values, and what `ioOk` carries (2026-10-20)
+
+porcupine's model receives an operation as boxed Go values (`OpV`), and `ModelSpec.M` must decode
+it purely (`decOp`, from the values alone). A struct holding slices (stage D's `Input.Cmps`,
+`Output.Res`) is a value holding pointers whose contents are in the heap, so no pure function of
+it is the model's input. Hence `Input`/`Output` were made plain values with bounded, unrolled
+fields (at most one comparison, three then- and one else-operation, three results and three
+key-values, each with a count), which is all `Gen` produces and all the workload's replies carry
+(three keys); robustness's model is no wider on these histories (`TestDifferential` unchanged).
+Rejected: decoding through a ghost table of the slices' contents (the model would no longer be a
+function of porcupine's operations).
+
+The decoder reads an output by its input's kind (`decOut`), so `outEqual` was narrowed to compare
+only those fields (`resEqual`): otherwise a reply equal to the model's answer but differing in an
+unread field (a put result's `R`) would be rejected by `Step` and allowed by `pM`, and `Step`
+would not refine the model.
+
+`ioOk` carries `ValidIn x` (the input decodes, its keys the workload's): `Step` runs `mstep` on any
+input, while `pM` has no step for one that does not decode; `Apply` delivers `ioOk` and knows its
+input is `Gen`'s. The configurations' invariant `Bounded n` (`Steps.lean`) carries the pending
+inputs' validity for the same reason (a pending write takes effect through `mstep`), and the
+revision plus the pending count, so that `mstep`'s revision stays far from overflow: each step
+adds at most one to that sum, a pending write taking effect nothing, and porcupine's index stays
+below `2^60`.
+
+## linkv3p over linkvtxn's workload: in place, and what moved where (2026-10-20, `notes/linkv3p-txn-plan.md`)
+
+`linkv3p` switched its workload to linkvtxn's in place (its Go `Apply`/`Check` call package
+`linkvtxn`), not through a fourth example: linkvtxn's workload includes linkv's (Puts and Gets are
+two of its kinds), so the new `linkv3p_safe` implies the old one; everything partition-specific
+(`startMember`, `newClient`, `partitioner`, the transport's axioms, `cluster3_alloc`, `Main`'s
+structure) is reused unchanged; and `linkv`/`linkv3` keep the plain Put/Get workload as the
+simplest end-to-end results. Rejected: a copy `examples/linkv3ptxn` (about 2.7k lines of proof
+duplicated) to keep the Put/Get partition theorem beside the new one.
+
+What the swap took: the members keep etcd's `DeleteRange` and `Txn` registrations
+(`memberServed`), `clientOk` is linkvtxn's `Apply` premises, `linkvInv_congr` unfolds linkvtxn's
+`linkvInvBody` too, and `Apply`/`Check` restate linkvtxn's triples over a slice of clients. No
+server, client or raft proof changed, and the trust base is the same (`etc/tcb-collections/
+linkv3p.txt`, 463 axioms): linkvtxn's results rest on exactly linkv's. The ghost-state bundle stays
+linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's statement is
+unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
+repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.

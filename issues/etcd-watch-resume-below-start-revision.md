@@ -40,11 +40,11 @@ links: []
 - **How the proof handles it**: the client's watch was verified under `noRetryableStreamErr` (no
   reconnection) until 2026-10-20. Its contract (`rangeWatchEvOk`: every event at or above the
   watch's start revision) holds across a reconnect only over the fixed code: the resume revision
-  stays above the contract's position (`notes/decisions.md`, D24), which the reconnection's proof
+  stays above the contract's position (`notes/decisions.md`, D25), which the reconnection's proof
   now shows; the premise is gone.
 - **Possible fixes**: move the resume revision only forward (the fork's fix: `else if
   wr.Header.Revision+1 > nextRev`); or keep `max(nextRev, initReq's original rev)` at the resumed
   create.
-- **Found**: 2026-10-20, designing the resume revision's invariant (D24, stage S1b: after a
+- **Found**: 2026-10-20, designing the resume revision's invariant (D25, stage S1b: after a
   progress notification `rev - 1` must be at least the contract's position, which for a watch from
   a future revision is its start minus one, above the notification's revision).

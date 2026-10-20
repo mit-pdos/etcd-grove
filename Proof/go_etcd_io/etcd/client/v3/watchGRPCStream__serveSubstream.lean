@@ -355,7 +355,7 @@ local macro "ss_return" : tactic => `(tactic| (
   imod dghostVar_persist _ _ _ $$ Hx with #Hx
   wp_auto_lc 1
   ipersist Hclosing
-  -- the deposit (D24), before `donec`'s close (which publishes it)
+  -- the deposit (D25), before `donec`'s close (which publishes it)
   iapply fupd_wp
   iinv Hlinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑lifeN) $$ Hlc1 Hi with Hi
@@ -688,7 +688,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     icases Hrsm with ⟨%hl0, %c20, #Hhl0, #Hc20', #Hrs⟩
     simp only [Int.toNat_natCast]
     by_cases hk : rcv.length = k0
-    · -- (D24) the lifetime's first response: a created one
+    · -- (D25) the lifetime's first response: a created one
       cases hcrr : r.created
       · irevert Hk
         simp only [hcrr, Bool.false_eq_true, ↓reduceIte]
@@ -853,7 +853,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         · iexists hiA, c20
           iframe HiA Hh2A' Hrs'
         iright; ipureintro; simp
-      · -- (D24) a resumed create: skipped, both cursors kept
+      · -- (D25) a resumed create: skipped, both cursors kept
         icases Hrr with (⟨%Hrr, -, -⟩ | %Hrr)
         · exact absurd Hrr.1 hr0
         obtain ⟨-, rfl⟩ := Hrr
@@ -929,7 +929,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     · have hne0 : rcv ≠ [] := by intro h; subst h; simp at hk Hkr; omega
       cases hcrr : r.created
       rotate_left
-      · -- (D24) a created response after the lifetime's first: `run`'s half of `rev` with the whole
+      · -- (D25) a created response after the lifetime's first: `run`'s half of `rev` with the whole
         irevert Hk
         simp only [hcrr, ↓reduceIte]
         iintro ⟨-, %rv, Hrv2⟩
@@ -1038,7 +1038,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       wp_auto
       icases Hrr with (⟨%Hr, -, -⟩ | %Hr)
       · exact absurd Hr.1 hne0
-      -- (D24) the resume revision after the response
+      -- (D25) the resume revision after the response
       ihave %Hhl0e := mono_list_idx_agree P.γhi _ _ _ $$ HiB Hhl0
       subst Hhl0e
       ihave ⟨%h2A, #Hh2A, #Hw2⟩ := recvCmpl_at V P _ v r c20 $$ [Hcm Hc20']
@@ -1139,7 +1139,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     · iapply ownBroadcastChan_is_chan $$ Hrc
     iapply broadcast_chan_receive _ _ _ _ _ $$ Hrc
     iintro ⟨#Hlb, -⟩
-    -- (D24) resumed: the goroutine leaves its state in the lifetime's invariant
+    -- (D25) resumed: the goroutine leaves its state in the lifetime's invariant
     (try wp_auto)
     wp_apply +noauto wp_resetBufWait $$ [Hbwt] as Hbwt
     · iframe

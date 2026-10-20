@@ -8,7 +8,7 @@ Lean-first, no Rocq counterpart.
   `reg X` (registered at the watch id `X`, in `substreams`), `closedRun X` (registered, its `recvc`
   closed by `run` on the server's cancel, in `closing`, out of `substreams`: `run` drops it there,
   the fix of `issues/etcd-watch-progress-closed-substream.md`; at `X` in the ghost map `CI`; its
-  `id` field reset to `-1`, D24's F1, `issues/etcd-watch-resume-stale-canceled-id.md`), `orphan` (its create refused: `recvc`
+  `id` field reset to `-1`, D25's F1, `issues/etcd-watch-resume-stale-canceled-id.md`), `orphan` (its create refused: `recvc`
   closed, in no map).
 * `RunSt`: the requests sent (`L`), the responses received (`Dm`), the pending create (`pend`),
   the answered positions (`ansd`), the registered ids (`regs`), `substreams` (`M`), `resuming`
@@ -42,7 +42,7 @@ inductive WPh where
   | reg (X : w64)
   | closedRun (X : w64)
   | orphan
-  /-- (D24) stopped, its `recvc` closed by `run`'s teardown or the server's cancel on an earlier
+  /-- (D25) stopped, its `recvc` closed by `run`'s teardown or the server's cancel on an earlier
   stream, waiting on `closingc` (in `closing`, in no other map; no fact of the stream it was on) -/
   | closed
 
@@ -331,13 +331,13 @@ def WPh.id : WPh → w64
   | .reg X => X
   | _ => W64 (-1)
 
-/-- An orphan (its create refused; D24: its goroutine's lifetime may be of an earlier generation). -/
+/-- An orphan (its create refused; D25: its goroutine's lifetime may be of an earlier generation). -/
 def WPh.isOrphan : WPh → Bool
   | .orphan => true
   | _ => false
 
 /-- The id a substream's phase has in `run`'s maps, ghost ones included: a `closedRun` one's in
-`CI` (its `id` field is `-1`: `run` resets it when the server cancels it, D24's fix F1). -/
+`CI` (its `id` field is `-1`: `run` resets it when the server cancels it, D25's fix F1). -/
 def WPh.cid : WPh → w64
   | .reg X => X
   | .closedRun X => X
@@ -1396,7 +1396,7 @@ theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.
     | closed => exact hph
 
 
-/-! ## The reconnection (D24) -/
+/-! ## The reconnection (D25) -/
 
 /-- **The model after a reconnection** (`newWatchClient` after `errc`, before the next create): a
 new stream (nothing sent or received, no registered id, no cancel), `substreams` empty, `resuming`

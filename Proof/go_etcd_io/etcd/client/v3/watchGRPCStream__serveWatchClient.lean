@@ -59,7 +59,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   icases Hr with (⟨%Herr0, %m, Hm, HDn, Htok⟩ | ⟨%Hrn, #Heofe, %Hen, Htok, -⟩ | ⟨%Hrn, #Hse, Htok⟩)
   · subst Herr0
     ihave ⟨Htok, #Hlb⟩ := cliRecvTok_lb $$ Htok
-    -- (D24) the epoch's count past the response
+    -- (D25) the epoch's count past the response
     imod mono_nat_own_update (sent.length + 1) (Nat.le_succ _) $$ Hcnt with ⟨Hcnt, #Hcl⟩
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking

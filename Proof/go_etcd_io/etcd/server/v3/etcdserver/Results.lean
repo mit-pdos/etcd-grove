@@ -459,7 +459,8 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       have : id' = id := by rw [hid] at h; exact (Option.some.inj h.2).symm
       subst this
       iunfold waitRegdOpt
-      iexact Hreg
+      iframe Hreg
+      ipureintro; intro h; cases h
     ipureintro; exact ⟨HkA, Hvi, Hpo⟩
   inext
   iintro ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre, Hka⟩, Hpost⟩

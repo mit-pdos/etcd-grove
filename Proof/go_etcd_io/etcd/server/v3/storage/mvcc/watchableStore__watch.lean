@@ -349,7 +349,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
   exact hok.addW b w r st0 γw hM hst hd
 
 /-- A start read is within the committed log (K2e-6), under `s.mu`: there the notified log is the
-committed one and the released length its length (D24). -/
+committed one and the released length its length (D25). -/
 theorem mvcc.startRead_le (γ : mvcc.WsNames) (q q' q'' : Qp) (C : mvcc.Log) (sr : Bool)
     (startRev : w64) :
     mvcc.idxLogAuth (GF := GF) γ.st.idx q C ∗ mvcc.wlogQ γ q' C ∗ monoNatAuthOwn γ.rel q'' C.length ∗

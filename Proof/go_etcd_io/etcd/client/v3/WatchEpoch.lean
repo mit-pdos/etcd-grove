@@ -1,5 +1,5 @@
 /-
-**`run`'s epochs** (D24, `notes/decisions.md`): one per gRPC stream it opened, in a mono list
+**`run`'s epochs** (D25, `notes/decisions.md`): one per gRPC stream it opened, in a mono list
 (`WgsPrm.γep`), each with its first position on `respc` and its count of responses forwarded.
 `run` holds the list's authority and, for every ended epoch, its count's authority at its end
 (at or below the current epoch's first position): so a response it takes from `respc` at a
@@ -74,7 +74,7 @@ theorem epochSt_first (G : WgsPrm GF) (γs : StreamNames) (γc : GName) :
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
-/-- **The current epoch ends** (D24, `run`'s reconnection): with the count authority of an epoch
+/-- **The current epoch ends** (D25, `run`'s reconnection): with the count authority of an epoch
 the producer side handed back (`prodBack`), at a count `k` at or above the current epoch's start,
 every epoch so far has ended at or below `k` (the handed-back one is the current one: an earlier
 one's authority is `run`'s). -/
@@ -111,7 +111,7 @@ theorem epochSt_close (G : WgsPrm GF) (γs : StreamNames) (b : Nat) (e b0 : Nat)
       iapply BigSepL.bigSepL_mono_of_forall (fun {j x} => hm (j := j) (x := x)) $$ Hend
     · iexists k; iframe; ipureintro; exact Nat.le_refl _
 
-/-- **The next epoch** (D24): from `respc`'s position `k`, every earlier epoch ended at or below it. -/
+/-- **The next epoch** (D25): from `respc`'s position `k`, every earlier epoch ended at or below it. -/
 theorem epochSt_open (G : WgsPrm GF) (γs : StreamNames) (k : Nat) (γc : GName) (eps : List EpInfo) :
     monoListAuthOwn (GF := GF) G.γep 1 (eps ++ [((γs, k, γc) : EpInfo)]) ∗
       ([∗list] x ∈ eps, ∃ n : Nat, monoNatAuthOwn x.2.2 1 n ∗ ⌜n ≤ k⌝) ⊢ epochSt G γs k := by

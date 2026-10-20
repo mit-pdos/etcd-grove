@@ -57,7 +57,7 @@ theorem startMember.wp_proof
   icases Hcom with ⟨#Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hghost, #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
-    Hids, HrdCred, Hidx, Hcok, Hrev, Hnk, #Hkvinv⟩
+    Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv⟩
   obtain ⟨hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hρ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
@@ -89,7 +89,7 @@ theorem startMember.wp_proof
         simp only [hne, if_false, h48]
         omega)
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
+    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
   · iframe
     iframe #
     isplitr
