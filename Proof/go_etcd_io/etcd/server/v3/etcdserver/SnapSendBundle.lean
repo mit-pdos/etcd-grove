@@ -36,10 +36,13 @@ section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
-/-- The `.snap` clause of `isMessage` does not read `voters`. -/
-theorem isMessage_snap_voters (γ : RaftNames) (m : Msg) (v : List w64) (h : m.ty = .snap) :
-    isMessage (GF := GF) γ { m with voters := v } = isMessage γ m := by
-  rcases m with ⟨ty, src, dst, term, reject, index, logterm, commit, rejecthint, entries, voters, ctx⟩
+/-- The `.snap` clause of `isMessage` does not read the `ConfState` lists or `AutoLeave`
+(D22 S-b′ part 1: `Msg`'s `cl`/`al`, until then `voters`; S-b′'s certificate will). -/
+theorem isMessage_snap_lists (γ : RaftNames) (m : Msg) (cl : CSLists) (al : Bool)
+    (h : m.ty = .snap) :
+    isMessage (GF := GF) γ { m with cl := cl, al := al } = isMessage γ m := by
+  rcases m with ⟨ty, src, dst, term, reject, index, logterm, commit, rejecthint, entries, cl0, al0,
+    ctx⟩
   simp only at h
   subst h
   rfl
@@ -93,9 +96,9 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
   · rw [Hterm]; iexact Hw
   imod isMessage_snap_recontent γ E (absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists) cw ai at_ A
     HE rfl Hix Hac HAlen HAlast $$ Hinv Hm Hw' HA with #Hm'
-  have Hvo := isMessage_snap_voters (GF := GF) γ
+  have Hvo := isMessage_snap_lists (GF := GF) γ
     { absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists with index := ai, logterm := at_ }
-    c.lists.voters rfl
+    (ConfStateM.lists c) c.AutoLeave' rfl
   imod rdCred_zero_upd γ with Hz
   imodintro
   iunfold netSnapBundle
@@ -126,7 +129,8 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
       · have Heq : absSnap st.msg (SnapshotM.mk [] (SnapshotMetadataM.mk c ai at_))
             (ConfStateM.lists c) =
             { { absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists with
-                index := ai, logterm := at_ } with voters := c.lists.voters } := rfl
+                index := ai, logterm := at_ } with cl := ConfStateM.lists c, al := c.AutoLeave' } :=
+            rfl
         rw [Heq, Hvo]
         iexact Hm'
       iapply BigSepL.bigSepL_nil.2; iempintro
