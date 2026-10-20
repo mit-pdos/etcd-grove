@@ -28,7 +28,9 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
 * **`transportStarted γn t`**: the `rafthttp.Transport` after `Start` (names-only): its `Send` of
   messages with their bundles into the network `γn` (`netBundle`, D21 M2), its `Stop` and its
   `ActiveSince` (`rafthttp.isTransporter`); `isRNTransport` for every environment whose messages
-  carry the bundle (`isRNTransport_of_net`).
+  carry the bundle (`isRNTransport_of_net`). **`transportRemotes t rs`** (the partition plan's
+  S1, 2026-10-20): the ids `AddRemote` was called for, which `transportLive γn t rs` tracks;
+  `CutPeer`/`MendPeer` take an id not among them.
 * The pending constructors' contracts (`lease.NewLessor`, `auth.NewTokenProvider`,
   `auth.NewAuthStore`, `v3compactor.New`, `rafthttp.Transport.Start`/`AddRemote`/`AddPeer`,
   `v3alarm.NewAlarmStore`) are their `Spec/` files, listed `?` in the server's link: hypotheses
@@ -183,6 +185,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
     "Hvcn" ∷ (∃ v : Loc, membership.rcVersionChangedAddr bc.cl' ↦ v) ∗
     "#Hrms" ∷ bc.remotes' ↦*□ rms ∗ "#Hrmsi" ∷ ([∗list] m ∈ rms, memberRO dir m) ∗
+    -- (the partition plan's S1, 2026-10-20) no remotes: the contract describes a new cluster's
+    -- bootstrap (`Hnosnap`: raft started by `StartNode` with the members as peers, which
+    -- `bootstrapRaft` does only for `!haveWAL && cfg.NewCluster`, where `bootstrapCluster` is
+    -- `bootstrapNewClusterNoWAL`, whose `remotes` is nil; `remotes` is set only for a member
+    -- joining an existing cluster). So `NewServer` calls `AddRemote` never, and the member's
+    -- transport has no remote (`transportRemotes t []`, `srvNetMember`), which `CutPeer` needs.
+    "%Hrms0" ∷ ⌜rms = []⌝ ∗
     -- (D21 M2, 2026-10-19) the members' records name each member's own URLs (`dir`, D21b's
     -- deployment fact): `Members()` returns members whose peer URLs are the directory's
     "#Hmembers" ∷ □ (∀ Φ : val → IProp GF,
@@ -331,11 +340,28 @@ abbrev transportIface (t : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t
 
-/-- **The transport `t` live, in the network `γn`** (opaque, exclusive; unit N4, 2026-10-17;
-the network since D21 M2, 2026-10-19): started and not stopped. `Start` gives it; `AddRemote`/
-`AddPeer` take it and give it back (`AddPeer` panics after `Stop`); it is given up for
-`transportStarted` (whose `Stop` there is). -/
-opaque transportLive (γn : NetNames GF) (t : Loc) : IProp GF
+/-- **The transport `t` live, in the network `γn`, with the remotes `rs`** (opaque, exclusive;
+unit N4, 2026-10-17; the network since D21 M2, 2026-10-19; the remotes since the partition
+plan's S1, 2026-10-20): started and not stopped, `AddRemote` called for the ids `rs` so far.
+`Start` gives it at `[]`; `AddRemote` takes it and gives it back with the id added, `AddPeer`
+unchanged (`AddPeer` panics after `Stop`); it is given up for `transportStarted` and
+`transportRemotes` (whose `Stop` there is). -/
+opaque transportLive (γn : NetNames GF) (t : Loc) (rs : List w64) : IProp GF
+
+/-- The opaque core of `transportRemotes`. -/
+opaque transportRemotesCore (t : Loc) (rs : List w64) : IProp GF
+
+/-- **The transport `t`'s remotes are among `rs`** (persistent, opaque; the partition plan's S1,
+2026-10-20): `AddRemote` was called on `t` for the ids `rs` only, before it was given up for
+`transportStarted`, so `t.remotes` has no other key. `CutPeer`/`MendPeer` take `id ∉ rs`: a
+second `CutPeer` of a remote panics (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). Only
+`Transport.Start`'s axiom gives it (with `transportStarted`, from `transportLive γn t rs`). -/
+def transportRemotes (t : Loc) (rs : List w64) : IProp GF :=
+  iprop(□ transportRemotesCore t rs)
+
+instance transportRemotes_persistent (t : Loc) (rs : List w64) :
+    Persistent (transportRemotes (GF := GF) t rs) := by
+  unfold transportRemotes; infer_instance
 
 /-- **The transport `t` after `Start`, in the network `γn`** (persistent; names-only, see the file
 header): `Send` puts each message, with its bundle, into the network (D21 M2, 2026-10-19; until

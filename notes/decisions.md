@@ -11875,3 +11875,44 @@ Rejected: fixing the registry name at boot (`wait.New` taking a pre-allocated na
 example's `Main` replaces `ρ.wait`), and per-claim registration cells in the claims' facts (needs
 the registry name in `Φs`, fixed before the registry exists). The fallback (no gets in writing
 transactions) was the plan's alternative.
+
+## D24: the partition hooks' axioms and the transport's remotes (2026-10-20, `notes/partition-plan.md` S1/S2)
+
+**Problem.** The partition example (`examples/linkv3p`) cuts and mends links with etcd's own test
+hooks, `EtcdServer.CutPeer`/`MendPeer`, which forward to rafthttp's `Transport.CutPeer`/`MendPeer`
+(names-only: axioms). The plan's S1 stated them over `transportStarted γn t` alone, on the ground
+that pausing a peer only loses messages, which the network model allows. Checking the Go code:
+`CutPeer` also calls `Pause` on a *remote* of `id` if there is one, and `remote.Pause` stops the
+pipeline, whose `stop` closes a channel unconditionally, so a second `CutPeer` of a remote without
+a `MendPeer` in between panics ("close of closed channel"; reproduced,
+`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
+schedule, including one that cuts the same link twice, so the S1 axiom was false as stated.
+
+**Options.** (a) Fix the fork (`remote.Pause`/`Resume` idempotent): the axiom is then true of any
+started transport; needs the fork pushed and the etcd pin moved (every example's `go.mod`
+replaces too), though no translation changes (rafthttp is names-only). (b) A per-link one-shot
+"not cut" token, consumed by `CutPeer`, restored by `MendPeer`: its supply has to come from
+`Transport.Start`'s axiom (one per possible id), and the partitioner would have to track cut links
+(it could: skip a redundant step). (c) Track the transport's remotes in its ghost state: the
+exclusive `transportLive γn t rs` records the ids `AddRemote` was called with (`Start` gives `[]`,
+`AddRemote` appends, `AddPeer` keeps); giving it up yields `transportStarted γn t` and the
+persistent `transportRemotes t rs`; `CutPeer`/`MendPeer` take `id ∉ rs`. `t.remotes` gets a key
+only through `AddRemote`, and `transportLive` is exclusive and given up before the transport is
+shared, so the list is complete.
+
+**Decision: (c)**, with the server side closed by the bootstrap contract: `bootOk` already describes
+a new cluster's bootstrap only (`Hnosnap`: raft started by `StartNode` with the members as peers,
+which `bootstrapRaft` does for `!haveWAL && cfg.NewCluster` alone, where `bootstrapCluster` is
+`bootstrapNewClusterNoWAL` and `remotes` is nil), so it gains `"%Hrms0" ∷ ⌜rms = []⌝`, true of the
+case it describes. `NewServer`'s `AddRemote` loop is then dead (its body closed by contradiction;
+`AddRemote`'s result stays a hypothesis of the linked proof), the transport is given up at `[]`,
+and `srvNetMember γn s id` carries `transportRemotes t []`. The server's `CutPeer`/`MendPeer`
+specs take `srvNetMember` alone (as `RaftHandler`'s axiom does), and their proofs apply the
+transport axiom at `rs = []`. Nothing else changes: `transportStarted`, `srvNetMember`'s
+signature, `NewServer.spec`, `RaftHandler`, the examples. (a) stays the right fix for etcd (the
+issue says so); if the fork takes it, `id ∉ rs` can go. (b) was rejected for the plumbing through
+`Start`'s axiom and the example.
+
+**Trust base.** +2 axioms (`rafthttp.Transport.CutPeer`, `MendPeer`); `Transport.Start`,
+`AddRemote`, `AddPeer` restated (the remotes list); `bootOk` (a premise, `bootstrapContract`)
+stronger by `rms = []`.

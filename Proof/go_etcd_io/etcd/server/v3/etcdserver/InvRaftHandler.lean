@@ -9,7 +9,9 @@ messages sent to its member, nothing on `ErrorC`) holds of the program.
 * `srvNetMember γn s id` (persistent): the server `s` is member `id` of the network `γn`:
   what its inbound path reads (`srvProcOk`, its member id among it) and its raft wrapper's
   transport `t`, started in `γn` (`transportStarted`) -- `NewServer` started it with `id`'s slot
-  (`NewServer.spec`'s `netSlot γn id`). `NewServer` gives it.
+  (`NewServer.spec`'s `netSlot γn id`) -- with no remote (`transportRemotes t []`: a new cluster's
+  bootstrap has none, `bootOk`'s `Hrms0`; what `CutPeer`/`MendPeer` need, the partition plan's S2,
+  2026-10-20). `NewServer` gives it.
 * `raftHandlerOf γn id h` (persistent, opaque): `h` is an `http.Handler` of the transport holding
   `id`'s slot in `γn` (`rafthttp.Transport.Handler()`: a mux of the transport's pipeline, stream
   and snapshot handlers, which hand what they receive to that transport's `Raft`). Only
@@ -40,7 +42,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The server `s` is member `id` of the network `γn`** (persistent; see the file header). -/
 def srvNetMember (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(srvProcOk γn s id ∗ ∃ t : Loc, rnTransportAddr (srvRAddr s) ↦□ transportIface t ∗
-    transportStarted γn t)
+    transportStarted γn t ∗ transportRemotes t [])
 
 instance srvNetMember_persistent (γn : NetNames GF) (s : Loc) (id : w64) :
     Persistent (srvNetMember (GF := GF) γn s id) := by
