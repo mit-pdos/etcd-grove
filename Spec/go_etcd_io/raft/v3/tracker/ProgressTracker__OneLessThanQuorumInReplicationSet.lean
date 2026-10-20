@@ -4,7 +4,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTracker
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
 
 @[expose] public section
@@ -133,6 +133,100 @@ theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_nw
   · rw [Hm.2]; iapply HΦ $$ Htrk
   · exfalso
     exact Hrep (Or.inl (by simp [EpochM.bare, RSM.bare, RSM.rep]))
+
+/-- At a tracker of the configuration `c` (2026-10-20, witness support): `nil` (`OltqNone`), or a
+map satisfying `OltqOk` for the configuration's halves and the tracker's epoch and peers; the
+tracker given back. -/
+theorem tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_c
+    (H : tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG))
+    (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+        ownTrackerC c tv t }}
+      (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty
+        @!! go!"OneLessThanQuorumInReplicationSet")) (Val #()))
+    {{ (mref : Loc), RET #mref; trk ↦ tv ∗ ownTrackerC c tv t ∗
+        (⌜OltqNone t.ep ∧ mref = map.nil⌝ ∨
+         ⌜¬ OltqNone t.ep⌝ ∗ ∃ res : GMap w64 w64, mref ↦$ res ∗
+           ⌜OltqOk c.incoming c.outgoing t.ep t.peers res⌝) }} := by
+  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  iunfold ownEpochOk at Hepoch
+  icases Hepoch with ⟨#He, %Hok⟩
+  by_cases hnone : t.ep.rs0.rep = false ∧ t.ep.rs1.rep = false
+  · -- neither half replicates: the early return, which reads nothing else
+    iapply H trk (DFrac.own 1) tv t.ep c.incoming c.outgoing t.peers $$ [Htrk]
+    · iframe Hpkg Htrk He
+      ileft; ipureintro; exact hnone
+    inext
+    iintro %mref ⟨Htrk, -, Hr⟩
+    iapply HΦ
+    iframe Htrk Hr
+    iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+      $$ Hvotes Hprs Hprogs Hcfg [He]
+    unfold ownEpochOk; iframe He; ipureintro; exact Hok
+  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
+  ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hin
+  ihave %Hpo : ⌜(vout = map.nil ∧ c.outgoing = ∅) ∨ c.outgoing ≠ ∅⌝ $$ [Hout]
+  · unfold ownIdsetC
+    icases Hout with (%H | ⟨-, %H⟩)
+    · ipureintro; exact Or.inl H
+    · ipureintro; exact Or.inr H
+  have Hsz : ∀ S : GSet w64, S ⊆ c.ids → (GMap.size S : Int) ≤ 2 ^ 62 := fun S hS => by
+    have h := size_le_of_sub_dom S t.prs (by rw [Hdom]; exact hS)
+    omega
+  have Hsub_i : c.incoming ⊆ c.ids := (GMap.elem_of_subseteq _ _).2 fun k hk =>
+    (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) k
+      ((GMap.elem_of_subseteq _ _).1 (incoming_sub_voters c) k hk)
+  have Hsub_o : c.outgoing ⊆ c.ids := (GMap.elem_of_subseteq _ _).2 fun k hk =>
+    (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) k
+      ((GMap.elem_of_subseteq _ _).1 (outgoing_sub_voters c) k hk)
+  iapply H trk (DFrac.own 1) tv t.ep c.incoming c.outgoing t.peers $$ [Htrk Hin Hout Hprogs]
+  · iframe Hpkg Htrk He
+    iright
+    unfold oltqRes
+    isplitr; · ipureintro; rfl
+    iexists vin, vout
+    isplitr; · ipureintro; exact ⟨Harr, Hsz _ Hsub_i, Hsz _ Hsub_o⟩
+    isplitl [Hin]
+    · unfold ownIdsetQ; iright; iexact Hin
+    isplitl [Hout]
+    · iapply ownIdsetC_Q $$ Hout
+    unfold ownProgressMap
+    iexists t.prs
+    iframe Hprs Hprogs
+  inext
+  iintro %mref ⟨Htrk, Hres, Hr⟩
+  icases Hres with (%Hf | Hres)
+  · exact absurd Hf hnone
+  unfold oltqRes
+  icases Hres with ⟨-, %vin', %vout', %Hvv, Hin, Hout, HP⟩
+  have Hv : vin' = vin ∧ vout' = vout := by
+    have h := Hvv.1; rw [Harr] at h; simp only [List.cons.injEq] at h; exact ⟨h.1.symm, h.2.1.symm⟩
+  obtain ⟨rfl, rfl⟩ := Hv
+  iunfold ownProgressMap at HP
+  icases HP with ⟨%prs', #Hprs', Hprogs⟩
+  ihave %Hprs_eq := progress_map_agree _ _ _ _ _ $$ Hprs Hprs'
+  subst Hprs_eq
+  unfold ownIdsetQ
+  icases Hin with (%Hnil | Hin)
+  · exact absurd Hnil.1 Hvnn
+  ihave Hout : ownIdsetC vout' (DFrac.own 1) c.outgoing $$ [Hout]
+  · unfold ownIdsetC
+    icases Hout with (%Hn | Ho)
+    · ileft; ipureintro; exact Hn
+    · ihave %Honn := ownMap_not_nil _ _ _ $$ Ho
+      iright; iframe Ho
+      ipureintro
+      rcases Hpo with Hp | Hp
+      · exact absurd Hp.1 Honn
+      · exact Hp
+  iapply HΦ
+  iframe Htrk Hr
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln] [He]
+  · iapply ownCfgCC_intro _ _ c vin' vout' Harr Hal Hwit $$ Hin Hout Hl Hln
+  · unfold ownEpochOk; iframe He; ipureintro; exact Hok
 
 end spec
 
