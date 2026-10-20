@@ -16,7 +16,8 @@
 //
 // Main calls only what the proofs specify: putget's start (etcdserver.NewServer, Start,
 // v3rpc.Server, net.Listen, (*grpc.Server).Serve on a goroutine), clientv3.New, the client's Put
-// and Watch, and WatchResponse.Err. An error from a step of the start ends Main with Failed.
+// and Watch, context.WithCancel and WatchResponse.Err. An error from a step of the start ends Main
+// with Failed.
 package watchkv
 
 import (
@@ -92,11 +93,12 @@ func Gen() kv {
 	return kv{key: k, val: vals[n%uint64(len(vals))]}
 }
 
-// writer does the Puts of its plan through cli, in order, logging in w each that returned no
+// writer does the Puts tried[lo:hi] through cli, in order, logging in w each that returned no
 // error, with its reply's revision.
-func writer(cli *clientv3.Client, w *writes, plan []kv) {
+func writer(cli *clientv3.Client, w *writes, tried []kv, lo int, hi int) {
 	ctx := context.Background()
-	for _, p := range plan {
+	for k := lo; k < hi; k++ {
+		p := tried[k]
 		resp, err := cli.Put(ctx, p.key, p.val)
 		if err == nil {
 			w.mu.Lock()
@@ -106,24 +108,11 @@ func writer(cli *clientv3.Client, w *writes, plan []kv) {
 	}
 }
 
-// plans picks the writers' Puts: nw plans of nops random keys and values each (Gen).
-func plans(nw int, nops int) [][]kv {
-	ps := make([][]kv, nw)
-	for i := 0; i < nw; i++ {
-		var p []kv
-		for j := 0; j < nops; j++ {
-			p = append(p, Gen())
-		}
-		ps[i] = p
-	}
-	return ps
-}
-
-// flatten is every Put of the plans ps.
-func flatten(ps [][]kv) []kv {
+// genAll picks n Puts (Gen): the writers' Puts, writer i's at [i*nops, (i+1)*nops).
+func genAll(n int) []kv {
 	var all []kv
-	for _, p := range ps {
-		all = append(all, p...)
+	for i := 0; i < n; i++ {
+		all = append(all, Gen())
 	}
 	return all
 }
@@ -144,6 +133,7 @@ func maxRev(oks []putRec) int64 {
 // reported an error, before.
 func collect(wch clientv3.WatchChan, upTo int64) ([]event, bool) {
 	var evs []event
+	var last int64 // the last event's revision
 	if upTo == 0 {
 		return evs, true
 	}
@@ -157,8 +147,9 @@ func collect(wch clientv3.WatchChan, upTo int64) ([]event, bool) {
 		for _, e := range es {
 			evs = append(evs, event{rev: e.Kv.ModRevision, key: string(e.Kv.Key),
 				val: string(e.Kv.Value), put: e.Type == mvccpb.Event_PUT})
+			last = e.Kv.ModRevision
 		}
-		if len(evs) > 0 && evs[len(evs)-1].rev >= upTo {
+		if len(evs) > 0 && last >= upTo {
 			return evs, true
 		}
 	}
@@ -179,11 +170,12 @@ func attempted(tried []kv, key string, val string) bool {
 // gap-free from revision 2, each a put some writer attempted (tried), and every successful Put
 // (oks) the event at its revision with its key and value.
 func check(evs []event, tried []kv, oks []putRec) {
+	var prev int64 // the previous event's revision
 	for i, e := range evs {
 		if !e.put {
 			panic("watchkv: a watched event is not a put")
 		}
-		if i > 0 && e.rev <= evs[i-1].rev {
+		if i > 0 && e.rev <= prev {
 			panic("watchkv: the watched revisions do not increase")
 		}
 		if e.rev != int64(i)+2 {
@@ -192,6 +184,7 @@ func check(evs []event, tried []kv, oks []putRec) {
 		if !attempted(tried, e.key, e.val) {
 			panic("watchkv: a watched put no writer attempted")
 		}
+		prev = e.rev
 	}
 	for _, p := range oks {
 		i := p.rev - 2
@@ -209,8 +202,7 @@ func check(evs []event, tried []kv, oks []putRec) {
 // writers of nops Puts each, then reads the watch and checks it against the writes.
 func Main(nw int, nops int) int {
 	// The writers' Puts, picked before the member starts (the Puts attempted).
-	ps := plans(nw, nops)
-	tried := flatten(ps)
+	tried := genAll(nw * nops)
 
 	lg := zap.NewNop()
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
@@ -258,25 +250,31 @@ func Main(nw int, nops int) int {
 	}
 
 	// The watch, from revision 1: every write is after it, whenever the server registers it.
-	wch := cli.Watch(context.Background(), prefix, clientv3.WithPrefix(), clientv3.WithRev(1),
+	// Through the embedded Watcher field (the call cli.Watch promotes), in a context cancelled once
+	// the watch has been read.
+	wctx, cancel := context.WithCancel(context.Background())
+	wch := cli.Watcher.Watch(wctx, prefix, clientv3.WithPrefix(), clientv3.WithRev(1),
 		clientv3.WithProgressNotify(), clientv3.WithCreatedNotify())
 
 	w := &writes{}
 	var wg sync.WaitGroup
 	for i := 0; i < nw; i++ {
-		plan := ps[i]
+		lo := i * nops
 		wg.Add(1)
 		go func() {
-			writer(cli, w, plan)
+			writer(cli, w, tried, lo, lo+nops)
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 
+	// The successful Puts, taken out of the log (any writer still appending starts a new one).
 	w.mu.Lock()
 	oks := w.ok
+	w.ok = nil
 	w.mu.Unlock()
 	evs, ok := collect(wch, maxRev(oks))
+	cancel()
 	if !ok {
 		return WatchEnded
 	}
