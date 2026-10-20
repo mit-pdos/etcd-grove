@@ -44,7 +44,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's client is the cache's** (see the file header): premises the KV's (`Range`'s
 registration at `addr`, the server's read side, the sort enumerations' names, the client's read
-updates at the ranges, `kvRangeAu`, 2026-10-20) and the watcher's (`isClientWatcher`), over the same server (`hE`). -/
+updates at the ranges, `kvRangeAu`, 2026-10-20; no sort enumerations: the cache's gets do not sort) and the watcher's (`isClientWatcher`), over the same server (`hE`). -/
 theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_RP : watcher.RequestProgress.spec (GF := GF) (hG := hG)) (cl : Loc) (V : WEnv GF) (w api : Loc) (addr : GoString) (s : Loc)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hE : V.R.E = E)
@@ -55,10 +55,10 @@ theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
       clientKVAddr cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
       clientWatcherAddr cl ↦□ GoInterface.ok (watcherIfaceOf w) ∗ isClientWatcher V w ∗
       isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-      sortNamesOk ∗ kvRangeAu E γr ⊢
+      kvRangeAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
   subst hE
-  iintro ⟨#P1, #P2, #P3, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hrpc, #Hsn, #Hany⟩
+  iintro ⟨#P1, #P2, #P3, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hrpc, #Hany⟩
   ihave ⟨#Hall, %hp⟩ : iprop(ctxErrClientAll ∗ ⌜V.pfx ≠ []⌝) $$ [Hw]
   · iunfold isClientWatcher at Hw
     icases Hw with ⟨%cs, %vs, -, -, -, -, -, -, -, Hsf, -⟩
@@ -118,9 +118,9 @@ theorem isEtcdClient_of_new_r [_root_.Perennial.errors.Assumptions] [_root_.Pere
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl ep V ∗ watchAddrFacts V ∗
       isServerRead s E γr ∗ isGrpcRpc ep go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-      sortNamesOk ∗ kvRangeAu E γr ⊢
+      kvRangeAu E γr ⊢
     isEtcdClient (EM := v3rpc.etcdModelOfServer E) cl V.pfx := by
-  iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany⟩
+  iintro ⟨#P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hany⟩
   ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher wp_ErrAny hAs cl ep V hV $$ [$P1 $P2 $P3 $Hnc $Hf]
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'

@@ -164,7 +164,8 @@ theorem Cache.get.wp_proof
   wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
   · iframe Hctx Hopts HRB
     ipureintro
-    refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word))⟩
+    refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
+      (by simp [opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp))⟩
     rintro ⟨-, h⟩
     simp [opFold, withPrefixM, OpFull.newOp] at h
   iunfold kvGetResultC at Hres
