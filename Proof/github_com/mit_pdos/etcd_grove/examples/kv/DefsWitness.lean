@@ -127,9 +127,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 def wStoreLock (s : Loc) (P : WHS → IProp GF) : IProp GF :=
   iprop(∃ (p : Loc) (σ : WHS), s.[RWStore, go!"state"] ↦ p ∗ whsRO p σ ∗ P σ)
 
-/-- raft's `ErrWitnessStateModified` is a non-nil error. -/
+/-- raft's `ErrWitnessStateModified` is a non-nil error made by `errors.New` (2026-10-20: what
+raft's witness storage contract asks of `Update`'s error, `isWitnessStorage`). -/
 def wErrOk : IProp GF :=
-  iprop(∃ e : GoInterface, globalAddr ErrWitnessStateModified ↦□ e ∗ ⌜e ≠ interface.nil⌝)
+  iprop(∃ e : GoInterface, globalAddr ErrWitnessStateModified ↦□ e ∗
+    ⌜e ≠ interface.nil ∧ IsNewError e⌝)
 
 instance wErrOk_persistent : Persistent (wErrOk (GF := GF)) := by
   unfold wErrOk; infer_instance
@@ -145,7 +147,7 @@ theorem wErrOk_of_init [go_etcd_io.raft.v3.Assumptions] :
   unfold wErrOk
   iexists ew
   iframe Hg
-  ipureintro; exact Hne.1
+  ipureintro; exact Hne
 
 /-- The store at `s`, the ghost counterpart of its state `P`. -/
 def isWStore (s : Loc) (P : WHS → IProp GF) : IProp GF :=

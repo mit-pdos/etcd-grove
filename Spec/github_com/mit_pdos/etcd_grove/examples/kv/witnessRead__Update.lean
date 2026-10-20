@@ -32,7 +32,8 @@ abbrev witnessRead.Update.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isWRead r s P p σ ∗ whsRO q σ' ∗ (P σ ={⊤ \ ↑N}=∗ P σ' ∗ Ψ) }}
     (App (Val (r @!! go.GoType.PointerType rWReadTy @!! go!"Update")) (Val #q))
   {{ (err : GoInterface), RET #err;
-      (⌜err = interface.nil⌝ ∗ Ψ) ∨ (⌜err ≠ interface.nil⌝ ∗ (P σ ={⊤ \ ↑N}=∗ P σ' ∗ Ψ)) }}
+      (⌜err = interface.nil⌝ ∗ Ψ) ∨
+      (⌜err ≠ interface.nil ∧ IsNewError err⌝ ∗ (P σ ={⊤ \ ↑N}=∗ P σ' ∗ Ψ)) }}
 
 end spec
 
