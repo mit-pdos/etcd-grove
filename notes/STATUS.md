@@ -48,6 +48,24 @@ module system").
 
 
 
+## Witness support, W3a: the tracker's epoch and `witness.go` specified with a witness (2026-10-20, branch `raft-witness`)
+
+raft is translated at the fork's `9ed005d46` (two `witness.go` fixes found writing the specs:
+`issues/raft-witness-heartbeat-stale-term.md`, `issues/raft-witness-getstate-nil.md`, rows 13
+and 14 of `notes/raft-witness-vs-pr168.md`). The tracker's epoch has a model (`InvEpoch.lean`:
+`EpochM`, `RSWF`/`EpochWF`, `resetEpoch`, `rsChanged`, `ownEpoch`), and `ResetReplicationSet`,
+`ChangeReplicationSet`, `OneLessThanQuorumInReplicationSet`, `Epoch.{HasWitness,
+ReplicateToWitness}`, `ReplicationSet.GetNonWitnessVoterSlice`, `scopedAckIndexer.AckedIndex`
+are specified and proved with a witness (the witness-free specs their corollaries, `spec_nw`).
+`witness.go`'s handlers are specified against a pure model of each (`InvWitnessM.lean`) and
+proved: `handleHeartbeat`, `handleAppendNoUpdate`, `handleAppend`, `handleVote`,
+`processMessageWithOlderTerm`, `processMessageWithNewerTerm`, `processNoUpdate`,
+`cloneState`, `isHealthy` (with the `WitnessHardState` getters). The storage's contract is a
+premise, not an axiom (`InvWitnessStorage.lean`: `isWitnessStorage`, a CAS over an abstract
+`P`, W2's `wGhost` its intended instance). No new axiom or `sorry`. Not yet: `Process` (the
+loop over the storage), and its instance at `wGhost` with W2's lemmas. Details:
+`notes/raft-witness.md`, "W3a".
+
 ## Witness support, W2: the protocol with a witness (2026-10-20, branch `raft-witness-w2`)
 
 The protocol model has the witness rules (subterms, `newSub`, `sendWApp`, `askWitness`), and the

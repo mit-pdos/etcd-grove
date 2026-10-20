@@ -191,3 +191,54 @@ reads stay outside the proof (ReadOnlySafe only), and are not supported with a w
 Not yet (W3): the code's witness paths and `witness.go` against these lemmas (a
 `WitnessStorage` trust-boundary spec whose CAS owns `wGhost`); the code-level allocation passes
 `wit = 0`.
+
+## W3a: the tracker's epoch and `witness.go` with a witness (2026-10-20, branch `raft-witness`)
+
+The Go code: the fork's `9ed005d46` (`edd87c489` plus two fixes found writing the specs: a
+newer-term heartbeat is answered at the new term, `handleHeartbeat(m, term)`; `cloneState` reads
+a nil stored state as the zero state; rows 13 and 14 of `notes/raft-witness-vs-pr168.md`).
+
+The tracker's epoch (`InvEpoch.lean`):
+- `EpochM` (subterm, two halves `RSM`: witness, excluded voter, non-witness voters); `ownEpoch`,
+  persistent (an epoch is never written in place); `RSWF V w r` (a half well formed for its
+  voters `V` and the configuration's witness `w`), `EpochWF` (bare without a witness, else both
+  halves well formed);
+- `resetEpoch` (what `ResetReplicationSet` builds: each half's witness excluded), `rsChanged`
+  (what `ChangeReplicationSet` rebuilds a half into around a new excluded voter `x`, the witness
+  or an inactive member of the replication set) and `rsChanged_wf`; `ChangeEpochOk` (the next
+  subterm, the same witnesses, both halves well formed: which voter is excluded depends on
+  `RecentActive`, which the `Progress` model leaves out, so the spec leaves it open, as the
+  protocol's `newSub` does).
+
+Specified and proved with a witness (the witness-free specs, `spec_nw`, their corollaries, used
+by the existing callers): `ResetReplicationSet`, `ChangeReplicationSet` (`chgRes`: the progress
+map, whose peers include the halves' voters), `OneLessThanQuorumInReplicationSet` (`OltqOk`),
+`Epoch.HasWitness`, `Epoch.ReplicateToWitness`, `ReplicationSet.GetNonWitnessVoterSlice`,
+`scopedAckIndexer.AckedIndex`.
+
+`witness.go`:
+- the model (`InvWitnessM.lean`): the durable state `WHS` (W2's `WState` plus the commit index,
+  the leader, the outgoing replication set), a request `WMsg`, and each handler as a pure
+  function (`wOlder`, `wNewer`, `wHeartbeat`, `wAppendNoUpdate`, `wAppend`, `wVote`,
+  `wNoUpdate`), and `Process`'s round, `wStep`;
+- the heap (`InvWitness.lean`): a state field by field at a fraction (`whsF`; `whsRO`, the
+  storage's and the cache's; `whsOwn`, the one a handler builds, frozen by `whsOwn_freeze`;
+  `whsOpt`, the cache, nil before the first read); a request `ownWMsg`; an answer `respOpt`;
+- every handler specified against its model and proved: `handleHeartbeat`, `handleAppendNoUpdate`,
+  `handleAppend`, `handleVote`, `processMessageWithOlderTerm`, `processMessageWithNewerTerm`,
+  `processNoUpdate`, `cloneState`, `isHealthy`; the `WitnessHardState` getters (and the
+  `HardState` getters field by field, at any fraction: a built state's hard state is owned);
+- the storage contract (`InvWitnessStorage.lean`), a premise of the witness's specs, not an
+  axiom: `isWitnessStorage s N P`, the stored state's ghost counterpart an abstract `P` in an
+  invariant of namespace `N`; `GetWitnessState` runs the caller's `P σ ={⊤ ∖ N}=∗ P σ ∗ Ψ σ` at
+  its read (W2: `wGhost_read`), `WitnessState.Update` is a compare-and-swap that runs the
+  caller's `P σ ={⊤ ∖ N}=∗ P σ' ∗ Ψ` iff the stored state is still the one read (W2:
+  `wGhost_raise`, `_write`, `_vote`, `_push`). With `N ⊆ raftRegN`, W2's `wGhost_vote` (at
+  `⊤ ∖ raftRegN`) fits the mask.
+
+Not yet: `Process` (its spec against the contract, `wStep` per round with the retry on
+`ErrWitnessStateModified`, which needs that variable's value among the raft package's facts,
+`etc/gen-init.py`'s `SPECIAL`); its instance at `P := wGhost γ ∘ WHS.ws`, which maps each
+`wStep` case to W2's lemma (the model's `WMsg`/`WResp` to W2's `Msg`); and the raft functions'
+witness paths (`maybeCommit`, `stepCandidate`, `maybeStartNewSubterm`,
+`sendAppendToWitness`, `sendRequestVoteToWitness`) with a witness.
