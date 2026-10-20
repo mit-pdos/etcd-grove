@@ -94,7 +94,8 @@ theorem stepCF_askWitness_wv (c : CfgM) (id : w64) (T : PState) (term : w64) (b 
     rw [ite_eq_right (by w32_ne)]
     simp only [↓reduceIte]
   rw [He]
-  exact StepCF.askWitness T _ ls Hrole Hw Hq (fun h => absurd Hout h) (List.Perm.refl _) Hls
+  exact StepCF.askWitness T _ ls Hrole Hw Hq
+    (fun h => by rw [Hout] at h; exact absurd h (GMap.not_elem_of_empty _)) (List.Perm.refl _) Hls
 
 -- (2026-10-20) the witness branch makes `CandidateStepResultC` larger: `wp_gets` unfolds it
 set_option maxHeartbeats 4000000 in

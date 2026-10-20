@@ -5099,7 +5099,7 @@ theorem ownRaftGhost_wvote (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
     (vs : List w64) (ls : w64) :
     s.role = .candidate →
     size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
-    (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
+    (c.wit ∈ c.outgoing → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
     vs ≡ₚ elements (domSet s.votes) →
     (ls = W64 0 ∨ ls = plogLastSub s.log) →
     ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md -∗
@@ -5155,7 +5155,8 @@ theorem ownRaftGhost_wvote (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
     · iapply logRecs_full γ s.base fp s.log Hfp $$ Hfrecs Hrecs
     isplitr
     · ipureintro
-      refine ⟨by rw [full_last _ _ _ Hfp], ?_, HKcfg, fun g hg => ?_, Hsz, Hszo⟩
+      refine ⟨by rw [full_last _ _ _ Hfp], ?_, HKcfg, fun g hg => ?_, Hsz,
+        fun h => Hszo (by rw [Hcw]; exact h)⟩
       · rcases Hls with Hls | Hls
         · exact Or.inl Hls
         subst Hls

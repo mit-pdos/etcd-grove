@@ -325,7 +325,8 @@ def wVoteReq (γ : RaftNames) (c T lt li ls : w64) (resp : List w64) : IProp GF 
       (ls = W64 0 ∨ ∃ e, F0.getLast? = some e ∧ e.Subterm' = ls) ∧
       CfgAt γ (F0.take (uint.Z k).toNat) K ∧ (∀ g, g ∈ G → g ∈ resp) ∧
       size K.incoming / 2 ≤ size (G ∩ K.incoming) ∧
-      (K.outgoing ≠ ∅ → size K.outgoing / 2 ≤ size (G ∩ K.outgoing))⌝ ∗
+      -- (2026-10-20) the outgoing half only when it has the witness (Go's readiness)
+      (γ.reWit ∈ K.outgoing → size K.outgoing / 2 ≤ size (G ∩ K.outgoing))⌝ ∗
     grantLb γ c T G ∗ ([∗map] g ↦ _u ∈ toMap G, isVote γ g T c) ∗
     dynOn γ iprop(campDyn γ c T F0 ∗ entWit γ F0 k))
 

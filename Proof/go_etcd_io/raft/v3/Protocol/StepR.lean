@@ -474,7 +474,8 @@ inductive StepR : RState → List Msg → RState → Prop where
       r.p.role = .candidate →
       r.cfg.cfg.wit ≠ W64 0 →
       size r.cfg.cfg.incoming / 2 ≤ size (granted r.p.votes ∩ r.cfg.cfg.incoming) →
-      (r.cfg.cfg.outgoing ≠ ∅ →
+      -- (2026-10-20) the outgoing half only when it has the witness (Go's readiness)
+      (r.cfg.cfg.wit ∈ r.cfg.cfg.outgoing →
         size r.cfg.cfg.outgoing / 2 ≤ size (granted r.p.votes ∩ r.cfg.cfg.outgoing)) →
       vs ≡ₚ elements (domSet r.p.votes) →
       (ls = W64 0 ∨ ls = plogLastSub r.p.log) →

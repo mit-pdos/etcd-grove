@@ -765,7 +765,8 @@ inductive StepC : PState → List Msg → PState → Prop where
       s.role = .candidate →
       c.wit ≠ W64 0 →
       size c.incoming / 2 ≤ size (granted s.votes ∩ c.incoming) →
-      (c.outgoing ≠ ∅ → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
+      -- (2026-10-20) the outgoing half only when it has the witness (Go's readiness)
+      (c.wit ∈ c.outgoing → size c.outgoing / 2 ≤ size (granted s.votes ∩ c.outgoing)) →
       vs ≡ₚ elements (domSet s.votes) →
       (ls = W64 0 ∨ ls = plogLastSub s.log) →
       StepC s []

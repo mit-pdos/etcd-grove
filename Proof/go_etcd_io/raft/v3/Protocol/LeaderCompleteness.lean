@@ -755,9 +755,10 @@ theorem lc_wit_gen (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
         rcases D.shape P (F0.take (uint.Z kv).toNat) cA K hPF hcc (CfgAt.dyn HD HcA)
             (CfgAt.dyn HD HKcfg) with h1 | h1
         · ipureintro; exact ⟨K.incoming, h1, HGin⟩
-        · have hne : K.outgoing ≠ ∅ := by
-            rw [h1]; intro h; rw [h] at HwA; exact GMap.not_elem_of_empty _ HwA
-          ipureintro; exact ⟨K.outgoing, by rw [h1]; omega, HGout hne⟩
+        · -- entering a joint configuration: its outgoing half is `cA`'s incoming one, which has
+          -- the witness
+          have hin : γ.reWit ∈ K.outgoing := by rw [h1]; exact HwA
+          ipureintro; exact ⟨K.outgoing, by rw [h1]; omega, HGout hin⟩
     obtain ⟨Kh, HKh1, HKh2⟩ := HKh
     have Hresp : ∀ v, v ∈ resp → v ∈ stv.rs := by
       rcases Hgrant with ⟨-, hne⟩ | ⟨-, -, h⟩
