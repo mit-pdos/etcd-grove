@@ -170,6 +170,11 @@ fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnap
   its start revision. Needs a future start revision, progress, and a transient stream failure.
   One-line fix with a test.
 
+- **[etcd-watch-resume-waitgroup-overflow](etcd-watch-resume-waitgroup-overflow.md)**: a reconnect
+  with 2^31 or more watches on one stream panics in `waitCancelSubstreams` (an `int32` wait-group
+  counter given `len(w.resuming)` at once). Out of reach in practice (2^31 goroutines); one-line
+  fix, no test possible.
+
 - **[etcd-watch-resume-nil-watch-chan](etcd-watch-resume-nil-watch-chan.md)**: a watch canceled
   while the client reconnects can be handed a nil `WatchChan` (a receive blocks forever); needs
   the caller's goroutine to be late by a whole reconnect. Small fix with a test.

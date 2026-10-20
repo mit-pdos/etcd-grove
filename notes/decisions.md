@@ -12036,3 +12036,51 @@ for watches that saw a reconnect (no completeness after it): changes the cache's
 branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
 `/shared/etcd-goose-lean-wk`), not on `goose-lean`, not pushed; S1a needs them cherry-picked onto
 `goose-lean` and pushed (or the translation run with `--src etcd=<checkout>` until then).
+
+**S1c's findings (2026-10-20; S1c-R1 and S1c-R2 done; stopped before R3 for a fourth fork fix).**
+- *A fourth fix is needed* (`issues/etcd-watch-resume-waitgroup-overflow.md`): `waitCancelSubstreams`
+  calls `wg.Add(len(w.resuming))` on a local `sync.WaitGroup`, whose counter is an `int32`.
+  Perennial's `Add` spec needs the counter below `2^31`, so the proof needs `len(w.resuming) <
+  2^31`. The model bounds only the live goroutines (`threadBound GF ≤ 2^31`), and nothing ties
+  that bound to the number of watches at a reconnect:
+  - by then the resumed goroutines may have called `Done` and exited;
+  - in the ghost world a closingc sender can call `Done` before `run`'s receive commits (an
+    unbuffered send completes at `SndCommit`, before the receiver's nested update, Perennial's
+    `recvAu`).
+
+  `run` could count live goroutines only with a reworked wait-group accounting and a custom
+  closingc idiom. Fix F4 `b3c29bc17` (on `16f73d6eb`, branch `watch-resume-fixes`, not pushed)
+  calls `wg.Add(1)` before each `go` instead. Each `Add(1)` is then bounded by the thread tokens
+  deposited for the goroutines already started (as for the stream's wait group, `InvWatchWg`).
+  The Go behaviour is a real panic with 2^31 or more watches on one stream, out of reach in
+  practice.
+- *A gap in Perennial's SPSC idiom, to be worked around locally* (`notes/STATUS.md`,
+  "watch-resume"). At the epoch switch `run` must know that no response of the old stream is
+  still in flight on `respc`: the handed-back producer's count must equal `run`'s consumer
+  position, `sent = rcv`. Go's synchronous handoff guarantees it. Perennial's `spscInv`, however,
+  does not tie the `RcvPending`/`SndCommit` states to a pending receive of the consumer, nor
+  `SndPending` to a pending send of the producer, so `run`, holding both tokens at its errc case,
+  cannot exclude an element in flight. The workaround is a local SPSC variant (copied from
+  `Idioms/Spsc.lean`) in which the consumer deposits a token while its receive is pending and the
+  producer one while its send is pending: holding both endpoints' tokens and both "not pending"
+  tokens then gives `sent = recv`. A general version is to be proposed to Perennial on its own.
+- *The lifetimes (R3), refined.*
+  - **Per-lifetime invariant.** At each `go w.serveSubstream`, `run` allocates an invariant for
+    the lifetime: its state `running` holds half of the substream's membership element
+    (`G.γws`, the other half being the goroutine's). Each exit deposits what the substream keeps
+    across lifetimes into it: on `resumec` everything; on a stop for good `outc`'s field and
+    producer, its `retc` field and the rest. `run` holds the lifetime's token.
+  - **`donec`'s predicate.** The new `donec` that `run` allocates per lifetime has the predicate
+    `□ (inv ∗ (γx □ true ∨ endedLb (n+1)))`, `n` the `resumec` generation. `run` holds `γend`'s
+    authority at `n` and so refutes the resume case in its own generation.
+  - **closingc.** A message carries the full membership element, which refutes `running`; `run`
+    takes the deposit with its token (unless it took it at a join). No message has to name the
+    lifetime.
+  - **Fields made read-only.** `closing` is owned while `false` and `↦□ true` once set; `outc`
+    is `↦□ nil` once `waitCancelSubstreams` closes it; `rev` stays with `run`'s queued half.
+    Every read `newWatchClient`, `nextResume` and `closeSubstream` make of a closing substream's
+    fields is then possible while its closingc post is in flight.
+  - **The stream's wait group.** The waitCancel goroutines' concurrent `Add(1)`s need the
+    waiters' authority (`ownWaitGroupWaiters γ 0`) shared in an invariant with fractional tokens
+    for the goroutines, rejoined after the local wait group's `Wait`. A local join idiom backed
+    by thread tokens returns each goroutine's lent state at `Done`.
