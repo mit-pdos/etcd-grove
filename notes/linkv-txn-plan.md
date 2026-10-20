@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stages A to D done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D"); E next.
+Status: stages A to E done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E"); F next.
 
 ## Goal
 
@@ -170,6 +170,9 @@ unchanged.
 - Regenerate (`etc/goose.py --project linkv`); `--check` in CI.
 
 ### E. The Go model's proofs
+
+**Done** (2026-10-20, STATUS "linkv-txn stage E"): every function of the model specified and
+proved, `Model` linked against `pM (txnSpec wks)`; `Input`/`Output` made plain values first.
 
 Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, the txn's op loop,
 `delete`, the list, `step`, `closure` (pending writes), `Model` (`isModel linkvS` with
