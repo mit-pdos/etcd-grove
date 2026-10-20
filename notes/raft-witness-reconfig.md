@@ -151,15 +151,42 @@ store or the requester's cache, which may be stale; elections are atomic, as in 
 delayed append to the witness is covered by the argument: a write needs a strictly newer
 `(lt, ls)`, and `(T, s)` always comes with `RS(T, s)`.
 
-## For the Lean proof (W5)
+## The Lean proof (W5, 2026-10-20, branch `raft-witness-w5`)
 
-The dynamic-mode proof needs, on top of W2's static witness proof:
-- (Cfg) as an invariant: a node holding an entry of a witnessed subterm `(T, s)` has committed
-  `cidx(T, s)`; a campaign record's configuration is `C(T, s)` or one entry past it. The existing
-  dynamic proof already tracks a campaign's configuration (`campDyn`, `CfgAt`, the paper's I1-I3,
-  `notes/reconfiguration-safety.md`); the subterm's configuration index joins the leader's
-  subterm records (`subRec`).
-- (Count) per pair of adjacent configurations (`CfgOverlap.lean`'s `maj_symdiff_overlap` is the
-  symmetric-difference-one lemma for majorities; the witness version is one more `q - 1` count).
-- The case split above in `lc_wit`, replacing the static mode's single configuration.
-- The leaveJoint/witness bookkeeping of the confchange model (`CfgM.wit`, W2's note).
+Done, in the protocol layer (`Proof/go_etcd_io/raft/v3/Protocol/`), with no new axiom or
+`sorry`. The pieces, as the argument above uses them:
+
+- **The rules** (`StepR`): the witness rules at the node's configuration (`newSub`, `sendWApp`
+  with the witness one of its incoming voters, `askWitness` with `quorum - 1` granted votes of
+  each half, `sendWPre`) and `applyConfWit`, the change a leader applies together with its new
+  subterm (point (4) above); a plain `applyConf` at a leader needs a configuration without a
+  witness. `propose` stamps the leader's subterm.
+- **(Cfg), the leader's half** (`RInv.lf`): a leader past its first subterm has the subterm's
+  configuration prefix `PState.scp` (ghost) = its full log's first `p0` entries, `p0` at most the
+  commit index, and, when its configuration or the prefix's has a witness, no conf entry between
+  `p0` and the configuration index (so the configuration is the prefix's: `lf_cfgAt`).
+- **(Cfg), every holder's half** (`entWit`, in `ownRaftGhostR`'s `witR`): each entry of a node's
+  full log past the first subterm has, when its subterm prefix's configuration has a witness,
+  the prefix committed at the node's commit index (the "at least" half: `MsgApp` and `MsgSnap`
+  carry the sender's `entWit`, the receiver's commit index covers the prefix) and at most one conf
+  entry past the prefix up to the entry (the leader's `RInv.lf` and I3 at its appends,
+  `entWit_leader_app`; log matching for a receiver, `appAccept_full`).
+- **The campaign**: a witness vote request carries the campaign's `campDyn` and `entWit`
+  (`wVoteReq`); `wJust` the acknowledged entry's configuration prefix and configuration.
+- **(Count), the shape of one change** (`DynCfg.shape`, `fold_shape`, `ccApplyM_shape`): after at
+  most one change, a half of the new configuration is at most one voter smaller than the old
+  incoming half (simple: symmetric difference at most one; leaving a joint configuration: the
+  same incoming half), or the outgoing half is the old incoming one (entering a joint
+  configuration). With the fixed sending rule (quorum−1 acknowledgements of each half's
+  replication set) and the readiness counts of each half, `wit_count_meet` gives the meeting
+  voter.
+- **Leader Completeness** (`lc_wit_gen`, `lc_wit`): the equal-`(term, subterm)` case reads the
+  campaign log's last entry's `entWit`, so the campaign configuration `K` is at most one change
+  after the acknowledged entry's `cA`; a half of `K` meets the acknowledgements in a regular
+  voter. The cases where a quorum meets another only at the witness, in `lc_core` (adjacent),
+  `lc_far_older` and `win_fresh`, go to `lc_wit`/`lc_wit_gen`; `voteJust_campDyn` reads a
+  winner's campaign facts from the witness's vote too. `reWit_ok` admits the dynamic mode.
+
+Not covered: crashes and restarts (the "at least" half of (Cfg) needs the restarted commit
+index to cover the entries' prefixes; out of the faithful mode, as above), and two witness
+identities (one `reWit`).

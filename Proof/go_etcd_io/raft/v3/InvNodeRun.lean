@@ -918,7 +918,7 @@ theorem wp_applyConf_dyn
   icases (ownStepGhost_dyn γ dec c0 h0 g cf id s).1 $$ Hghost with ⟨%HDc, Hgr⟩
   obtain ⟨HD, Hgc, Hnl⟩ := HDc
   iunfold ownRaftGhostR at Hgr
-  icases Hgr with ⟨Hg, %HI, #Hfr, #Hcamp⟩
+  icases Hgr with ⟨Hg, %HI, #Hfr, #Hwr, #Hcamp⟩
   icases (entails_wand (persistent_entails_left (wand_entails
     (ownRaftGhost_logRecs (GF := GF) γ id (rOf s g).p true)))) $$ Hg with ⟨Hg, %-, #Hlr⟩
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
@@ -988,7 +988,7 @@ theorem wp_applyConf_dyn
     iapply logRecs_take γ _ (k + 1) $$ Hfl
   ihave Hgr : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
   · iunfold ownRaftGhostR
-    iframe Hg Hfr
+    iframe Hg Hfr Hwr
     isplitr
     · ipureintro; exact HI
     iintro %hc; iapply Hcamp; exact hc

@@ -229,6 +229,8 @@ def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
   | .dyn dec c0 h0 g, c, id, s =>
     iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ g.cfg.cfg = c ∧ RInv dec c0 (rOf s g)⌝ ∗
       logRecs γ base0 g.fp ∗
+      -- (2026-10-20, W5) the witness's facts (`ownRaftGhostR`'s `witR`)
+      witR γ id (rOf s g) ∗
       (∀ (_ : (toPState s).role = .candidate),
         isCampK γ id (toPState s).term (rOf s g).full (toPState s).commit))
 
@@ -336,17 +338,17 @@ theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cfg
   simp only [ownStepGhost, ghostRest, ghostRestM, GMode.isDyn, ownRaftGhostR, rOf.proj_p,
     rOf.proj_fp]
   constructor
-  · iintro ⟨Hg, %Hnl, %Hdc, #Hfr, #Hc⟩
+  · iintro ⟨Hg, %Hnl, %Hdc, #Hfr, #Hw, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     isplitr
     · ipureintro; exact ⟨HD, hc, Hnl⟩
-    iframe Hg Hfr
+    iframe Hg Hfr Hw
     isplitr
     · ipureintro; exact HI
     iintro %hcand; iapply Hc; exact hcand
-  · iintro ⟨%Hdc, Hg, %HI, #Hfr, #Hc⟩
+  · iintro ⟨%Hdc, Hg, %HI, #Hfr, #Hw, #Hc⟩
     obtain ⟨HD, hc, Hnl⟩ := Hdc
-    iframe Hg Hfr
+    iframe Hg Hfr Hw
     isplitr
     · ipureintro; exact Hnl
     isplitr
@@ -379,13 +381,13 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     ipureintro; exact HC
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn]
-    iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #Hfr, #Hc⟩
+    iintro #Hrc Hrecv Hcr Htk Hlc Hg ⟨%Hdc, #Hfr, #Hw, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
       (Hdh dec c0 h0 g rfl HI)
     ihave Hown : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
-      iframe Hg Hfr
+      iframe Hg Hfr Hw
       isplitr
       · ipureintro; exact HI
       iintro %hcand; iapply Hc; exact hcand
@@ -397,7 +399,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
     imodintro
     iexists GMode.dyn dec c0 h0 { g with cidx := cidx' }
     iunfold ownRaftGhostR at Hown
-    icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
+    icases Hown with ⟨Hg, %HI', #Hfr', #Hw', #Hc'⟩
     simp only [rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
@@ -406,7 +408,7 @@ theorem ghost_stepCDM (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
       rcases Hcm with h | ⟨h1, h2⟩
       · exact .inr (.inl (by rw [h]))
       · exact .inr (.inr ⟨h1, by rw [h2]⟩)
-    iframe Hfr'
+    iframe Hfr' Hw'
     isplitr
     · ipureintro; exact ⟨HD, hc, HI'⟩
     iintro %hcand; iapply Hc'; exact hcand
@@ -468,7 +470,8 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hc : (toPState s').commit = (toPState s).commit) (ht : (toPState s').term = (toPState s).term)
     (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
-    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl) :
+    (hg : s'.gh.ns = s.gh.ns := by rfl) (hx : s'.gh.xf = s.gh.xf := by rfl)
+    (hsb : (toPState s').sub = (toPState s).sub := by rfl) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
   have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg, hx]
   cases md with
@@ -476,7 +479,7 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
   | dyn dec c0 h0 g =>
     simp only [ghostRest, ghostRestM]
     rw [hn]
-    iintro ⟨%Hnl, %H, #Hfr, #Hc⟩
+    iintro ⟨%Hnl, %H, #Hfr, #Hw, #Hc⟩
     isplitr
     · ipureintro; exact Hnl
     obtain ⟨HD, hc', HI⟩ := H
@@ -486,8 +489,14 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     · ipureintro
       refine ⟨HD, hc', HI.frame (by simp [rOf]) (by simp [rOf, hb]) (by simp [rOf, hl])
         (by simp [rOf, hc]) (by simp [rOf, ha]) (by simp [rOf, hs]) (by simp [rOf])
-        (by simp [rOf]) (.inr ⟨by simp [rOf, hr], by simp [rOf, hpci]⟩)⟩
+        (by simp [rOf]) (.inr ⟨by simp [rOf, hr], by simp [rOf, hpci], by simp [rOf, hsb],
+          by simp [rOf, toPState]⟩)⟩
     iframe Hfr
+    isplitr
+    · iapply witR_keep γ id (rOf s g) (rOf s' g) hfull
+        (by simp only [rOf.proj_p]; rw [hc]; exact Int.le_refl _)
+        (fun h => ⟨by simp only [rOf.proj_p] at h ⊢; rw [← hr]; exact h,
+          by simp only [rOf.proj_p]; rw [ht]⟩) $$ Hw
     iintro %hcand
     rw [hfull, ht, hc]
     iapply Hc
@@ -556,7 +565,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       · simp only [snapCfg, csCfgM]; rw [Hso.2.1]; try rfl
   | dyn dec c0 h0 g =>
     simp only [ghostRestM, GMode.isDyn, GMode.SnapOk]
-    iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
+    iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hw, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it
     icases isMessage_snap_prefix γ a Ha.1 $$ Hm with ⟨%fp0, %Hfp0, #Hr0⟩
@@ -567,7 +576,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
       Hcs.symm (snapCfg_ids Hid) ⟨Hfold, rfl⟩
     ihave Hown : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
-      iframe Hg Hfr
+      iframe Hg Hfr Hw
       isplitr
       · ipureintro; exact HI
       iintro %hcand; iapply Hc; exact hcand
@@ -580,13 +589,13 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     imodintro
     iexists GMode.dyn dec c0 h0 g'
     iunfold ownRaftGhostR at Hown
-    icases Hown with ⟨Hg, %HI', #Hfr', #Hc'⟩
+    icases Hown with ⟨Hg, %HI', #Hfr', #Hw', #Hc'⟩
     simp only [rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
     · ipureintro
       exact ⟨g', .inl Hms, rfl, B, recv, StepR.mono (fun _ _ h => h.1) HR⟩
-    iframe Hfr'
+    iframe Hfr' Hw'
     isplitr
     · ipureintro; exact ⟨HD, hg', HI'⟩
     iintro %hcand; iapply Hc'; exact hcand
