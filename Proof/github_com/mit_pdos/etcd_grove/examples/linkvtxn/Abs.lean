@@ -1000,6 +1000,238 @@ theorem resEqualL_del (x : TRes) (n : w64) (hn : uint.nat n < 2) :
   · rw [if_pos a]
     exact ⟨fun h => (by cases h), fun h => absurd h.1 a⟩
 
+/-! ## The model's outputs compared -/
+
+/-- A result the model gives. -/
+def ModelRes (r : TRes) : Prop :=
+  (∃ p, r = getRes p) ∨ r = putRes ∨ ∃ n : w64, uint.nat n < 2 ∧ r = delRes n
+
+/-- An output the model gives (for an input of any kind). -/
+def ModelOut (b : Output) : Prop :=
+  b.Err' = false ∧ ¬ badCount b.NKVs' ∧ ¬ badCount b.NRes' ∧ ∀ r ∈ resOfL b, ModelRes r
+
+theorem resEqualL_model (x r : TRes) (h : ModelRes r) :
+    resEqualL x r = true ↔ decRes x = decRes r := by
+  rcases h with ⟨p, rfl⟩ | rfl | ⟨n, hn, rfl⟩
+  · exact resEqualL_get x p
+  · exact resEqualL_put x
+  · exact resEqualL_del x n hn
+
+theorem not_badCount_zero : ¬ badCount (W64 0) := by
+  unfold badCount
+  have : sint.Z (W64 0) = 0 := by word
+  omega
+
+theorem resOfL_zero (o : Output) (h : o.NRes' = W64 0) : resOfL o = [] := by
+  have : sint.Z (W64 0) = 0 := by word
+  unfold resOfL; rw [h, this]; simp
+
+theorem kvsOfL_length (o : Output) (h : ¬ badCount o.NKVs') :
+    ((kvsOfL o).length : Int) = sint.Z o.NKVs' := by
+  unfold badCount at h; unfold kvsOfL
+  split <;> split <;> split <;> simp <;> omega
+
+theorem kvsOfL_length_le (o : Output) : (kvsOfL o).length ≤ 3 := by
+  unfold kvsOfL; split <;> split <;> split <;> simp
+
+theorem resOfL_length (o : Output) (h : ¬ badCount o.NRes') :
+    ((resOfL o).length : Int) = sint.Z o.NRes' := by
+  unfold badCount at h; unfold resOfL
+  split <;> split <;> split <;> simp <;> omega
+
+theorem resOfL_length_le (o : Output) : (resOfL o).length ≤ 3 := by
+  unfold resOfL; split <;> split <;> split <;> simp
+
+theorem sint_Z_ne {a b : w64} (h : a ≠ b) : sint.Z a ≠ sint.Z b := fun e => h (by word)
+
+/-- Two lists compared pairwise, by a comparison that is equality of an image when the second
+element is in the second list. -/
+theorem zip_all_iff {α β : Type} (f : α → β) (Q : α × α → Bool) :
+    ∀ (l1 l2 : List α), l1.length = l2.length →
+      (∀ x, ∀ y ∈ l2, Q (x, y) = true ↔ f x = f y) →
+      ((l1.zip l2).all Q = true ↔ l1.map f = l2.map f)
+  | [], [], _, _ => by simp
+  | [], _ :: _, hl, _ => by simp at hl
+  | _ :: _, [], hl, _ => by simp at hl
+  | x :: l1, y :: l2, hl, hQ => by
+    simp only [List.zip_cons_cons, List.all_cons, Bool.and_eq_true, List.map_cons,
+      List.cons.injEq]
+    rw [hQ x y (List.mem_cons.2 (Or.inl rfl)),
+      zip_all_iff f Q l1 l2 (by simpa using hl) (fun a b hb => hQ a b (List.mem_cons.2 (Or.inr hb)))]
+
+theorem decOut_ok (k : w64) (y : Output) (h : y.Err' = false) :
+    ∃ o, decOut k y = .ok o ∧
+      (match o with
+       | .get r _ => r | .list r _ => r | .put r => r | .del r _ => r | .txn r _ _ => r) =
+        uint.nat y.Rev' := by
+  unfold decOut; rw [h]; simp only [Bool.false_eq_true, ↓reduceIte]
+  repeat' split
+  all_goals exact ⟨_, rfl, rfl⟩
+
+/-- **`outEqual` against a model output is equality of the decoded answers.** -/
+theorem outEqualL_dec (k : w64) (a b : Output) (hb : ModelOut b) :
+    outEqualL k a b = true ↔ decOut k a = decOut k b := by
+  obtain ⟨he, hkv, hres, hrs⟩ := hb
+  by_cases ea : a.Err' = true
+  · have h1 : outEqualL k a b = false := by unfold outEqualL; simp [ea]
+    have h2 : decOut k a = .err := by unfold decOut; simp [ea]
+    obtain ⟨o, ho, -⟩ := decOut_ok k b he
+    rw [h1, h2, ho]; simp
+  have ea' : a.Err' = false := by simpa using ea
+  by_cases hr : a.Rev' = b.Rev'
+  case neg =>
+    have h1 : outEqualL k a b = false := by unfold outEqualL; simp [ea', he, hr]
+    obtain ⟨oa, hoa, hra⟩ := decOut_ok k a ea'
+    obtain ⟨ob, hob, hrb⟩ := decOut_ok k b he
+    rw [h1, hoa, hob]
+    refine ⟨fun h => (by cases h), fun h => ?_⟩
+    cases h
+    exact absurd (uint_nat_inj (hra.symm.trans hrb)) hr
+  unfold outEqualL decOut
+  simp only [ea', he, hr, ne_eq, not_true_eq_false, decide_false, Bool.or_false, Bool.false_or,
+    Bool.false_eq_true, ↓reduceIte]
+  by_cases h0 : k = W64 0
+  · simp only [if_pos h0]
+    simp only [linkv.Ans.ok.injEq, linkv.MOut.get.injEq, true_and, decVR_eq]
+    cases a.Found' <;> cases b.Found' <;> simp
+  simp only [if_neg h0]
+  by_cases h1 : k = W64 1
+  · simp only [if_pos h1]; rw [if_neg hkv]
+    simp only [linkv.Ans.ok.injEq, linkv.MOut.list.injEq, true_and]
+    by_cases ha : badCount a.NKVs'
+    · have hn : a.NKVs' ≠ b.NKVs' := fun e => hkv (e ▸ ha)
+      rw [if_pos (Or.inl hn), if_pos ha]
+      refine ⟨fun h => (by cases h), fun h => ?_⟩
+      have := congrArg List.length h
+      simp only [List.length_replicate, List.length_map] at this
+      have := kvsOfL_length_le b
+      omega
+    rw [if_neg ha]
+    by_cases hn : a.NKVs' = b.NKVs'
+    · rw [if_neg (by rintro (h | h); exact h hn; exact ha (Or.inr h))]
+      refine zip_all_iff (fun kv : KV => (kv.Key', absVR kv.R')) _ _ _ ?_ ?_
+      · have := kvsOfL_length a ha; have := kvsOfL_length b hkv; rw [hn] at *; omega
+      · intro x y _
+        simp only [decide_eq_true_eq, Prod.mk.injEq]
+        exact ⟨fun h => ⟨h.1, by rw [h.2]⟩, fun h => ⟨h.1, absVR_inj h.2⟩⟩
+    · rw [if_pos (Or.inl hn)]
+      refine ⟨fun h => (by cases h), fun h => ?_⟩
+      have := congrArg List.length h
+      simp only [List.length_map] at this
+      have := kvsOfL_length a ha; have := kvsOfL_length b hkv; have := sint_Z_ne hn
+      omega
+  simp only [if_neg h1]
+  by_cases h2 : k = W64 2
+  · simp only [if_pos h2]
+  simp only [if_neg h2]
+  by_cases h3 : k = W64 3
+  · simp only [if_pos h3]
+    simp only [decide_eq_true_eq, linkv.Ans.ok.injEq, linkv.MOut.del.injEq, true_and]
+    exact ⟨fun h => by rw [h], uint_nat_inj⟩
+  simp only [if_neg h3]; rw [if_neg hres]
+  simp only [linkv.Ans.ok.injEq, linkv.MOut.txn.injEq, true_and]
+  by_cases ho : a.Ok' = b.Ok'
+  case neg =>
+    rw [if_pos (Or.inl ho)]
+    exact ⟨fun h => (by cases h), fun h => absurd h.1 ho⟩
+  simp only [ho, true_and]
+  by_cases ha : badCount a.NRes'
+  · have hn : a.NRes' ≠ b.NRes' := fun e => hres (e ▸ ha)
+    rw [if_pos (Or.inr (Or.inl hn)), if_pos ha]
+    refine ⟨fun h => (by cases h), fun h => ?_⟩
+    have := congrArg List.length h
+    simp only [List.length_replicate, List.length_map] at this
+    have := resOfL_length_le b
+    omega
+  rw [if_neg ha]
+  by_cases hn : a.NRes' = b.NRes'
+  · rw [if_neg (by rintro (h | h | h); exact h (by simp); exact h hn; exact ha (Or.inr h))]
+    refine zip_all_iff decRes (fun p => resEqualL p.1 p.2) _ _ ?_ ?_
+    · have := resOfL_length a ha; have := resOfL_length b hres; rw [hn] at *; omega
+    · intro x y hy
+      exact resEqualL_model x y (hrs y hy)
+  · rw [if_pos (Or.inr (Or.inl hn))]
+    refine ⟨fun h => (by cases h), fun h => ?_⟩
+    have := congrArg List.length h
+    simp only [List.length_map] at this
+    have := resOfL_length a ha; have := resOfL_length b hres; have := sint_Z_ne hn
+    omega
+
+theorem runStep_res (r : w64) (acc : List entry × List TRes × Bool) (op : TOp) :
+    ∃ t, (runStep r acc op).2.1 = acc.2.1 ++ [t] ∧ ModelRes t := by
+  unfold runStep
+  split
+  · exact ⟨_, rfl, Or.inl ⟨_, rfl⟩⟩
+  split
+  · exact ⟨_, rfl, Or.inr (Or.inl rfl)⟩
+  split
+  · exact ⟨_, rfl, Or.inr (Or.inr ⟨W64 1, by unfold uint.nat; word, rfl⟩)⟩
+  · exact ⟨_, rfl, Or.inr (Or.inr ⟨W64 0, by unfold uint.nat; word, rfl⟩)⟩
+
+theorem runOps_res (r : w64) : ∀ (ops : List TOp) (acc : List entry × List TRes × Bool),
+    (∀ t ∈ acc.2.1, ModelRes t) →
+    (ops.foldl (runStep r) acc).2.1.length = acc.2.1.length + ops.length ∧
+      ∀ t ∈ (ops.foldl (runStep r) acc).2.1, ModelRes t
+  | [], acc, h => ⟨by simp, by simpa using h⟩
+  | op :: ops, acc, h => by
+    obtain ⟨t, ht, hm⟩ := runStep_res r acc op
+    have ih := runOps_res r ops (runStep r acc op) (by
+      rw [ht]; intro u hu
+      rcases List.mem_append.1 hu with hu | hu
+      · exact h u hu
+      · rw [List.mem_singleton.1 hu]; exact hm)
+    rw [List.foldl_cons]
+    refine ⟨?_, ih.2⟩
+    rw [ih.1, ht]
+    simp <;> omega
+
+theorem modelOut_zero (o : Output) (he : o.Err' = false) (h1 : o.NKVs' = W64 0)
+    (h2 : o.NRes' = W64 0) : ModelOut o :=
+  ⟨he, h1 ▸ not_badCount_zero, h2 ▸ not_badCount_zero, by rw [resOfL_zero o h2]; simp⟩
+
+/-- **The model's outputs are model outputs.** -/
+theorem mstepL_model (x : Input) (st : GSt) (hg : GoodSt st) : ModelOut (mstepL x st).2 := by
+  unfold mstepL
+  by_cases h0 : x.Kind' = W64 0
+  · rw [if_pos h0]; exact modelOut_zero _ rfl rfl rfl
+  rw [if_neg h0]
+  by_cases h1 : x.Kind' = W64 1
+  · rw [if_pos h1]
+    have hl : (st.kvs.map fun e => (⟨e.key', e.r'⟩ : KV)).length ≤ 3 := by
+      rw [List.length_map]; exact goodSt_length st hg
+    refine ⟨rfl, (kvsOfL_withKVsL _ _ hl).2, not_badCount_zero, ?_⟩
+    rw [resOfL_zero _ rfl]; simp
+  rw [if_neg h1]
+  by_cases h2 : x.Kind' = W64 2
+  · rw [if_pos h2]; exact modelOut_zero _ rfl rfl rfl
+  rw [if_neg h2]
+  by_cases h3 : x.Kind' = W64 3
+  · rw [if_pos h3]
+    split
+    · exact modelOut_zero _ rfl rfl rfl
+    · exact modelOut_zero _ rfl rfl rfl
+  rw [if_neg h3]
+  dsimp only
+  have hops : (if cmpsOk st.kvs (cmpsOfL x) = true then thenOfL x else elseOfL x).length ≤ 3 := by
+    split
+    · exact thenOfL_length x
+    · exact elseOfL_length x
+  generalize (if cmpsOk st.kvs (cmpsOfL x) = true then thenOfL x else elseOfL x) = ops
+    at hops ⊢
+  have hr := runOps_res (st.rev + W64 1) ops (st.kvs, [], false) (by simp)
+  unfold runOpsL
+  have hl : (ops.foldl (runStep (st.rev + W64 1)) (st.kvs, [], false)).2.1.length ≤ 3 := by
+    rw [hr.1]; simp <;> omega
+  refine ⟨rfl, not_badCount_zero, (resOfL_withResL _ _ hl).2, ?_⟩
+  rw [(resOfL_withResL _ _ hl).1]; exact hr.2
+
+/-- **`outEqual` against the model's output is equality with the model's answer.** -/
+theorem outEqualL_mstep (x : Input) (i : linkv.MIn GoString GoString) (hx : decIn x = some i)
+    (hk : inKeys i) (st : GSt) (hg : GoodSt st) (hr : uint.Z st.rev + 1 < 2^64) (a : Output) :
+    outEqualL x.Kind' a (mstepL x st).2 = true ↔
+      decOut x.Kind' a = .ok (linkv.mStep wks i (absSt st)).2 := by
+  rw [outEqualL_dec _ _ _ (mstepL_model x st hg), (mstepL_abs x i hx hk st hg hr).2.1]
+
 end go
 
 end linkvtxn
