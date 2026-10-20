@@ -85,6 +85,9 @@ abbrev raft.restore.spec : Prop :=
   SnapScope sv cl →
   -- (2026-10-19, D21 M3) outside the no-snapshot mode, where no snapshot is sent
   s.gh.ns = false →
+  -- (2026-10-20, witness support) at a configuration without a witness: `ConfStateM` carries
+  -- none yet, so a restore would lose it (notes/raft-witness.md)
+  c.wit = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hsnap" ∷ ownSnapE sp (DFrac.own 1) sv }}

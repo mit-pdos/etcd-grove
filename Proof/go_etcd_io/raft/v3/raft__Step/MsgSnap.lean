@@ -56,7 +56,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
     (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
     -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
-    (Hnsf : s.gh.ns = false) :
+    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -91,7 +91,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid Hcfg
+  · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hw0 Hty Hto Hterm Hfnz Hfid Hcfg
       Hwf Hscope Hsn Hscl Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · wp_start_folded as ⟨Hphys, Hm⟩
@@ -103,7 +103,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ipureintro
       exact ⟨Or.inl rfl, Hwf', Href, Herr, Hng⟩
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid Hcfg
+      exact wp_Step_MsgSnap_eq _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hw0 Hty Hto Hterm Hfnz Hfid Hcfg
         Hwf Hscope Hsn Hscl Hteq (Hnl Hteq) Hvotes
 
 end StepProof

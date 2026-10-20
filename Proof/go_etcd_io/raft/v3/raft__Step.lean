@@ -455,7 +455,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
     (Hscope : SnapScope sv scfg) (Hid : scfg.Has id)
     (Hsn : sn = some sv) (Hcl : scfg = sv.Metadata'.ConfState'.lists)
-    (Hnsf : s.gh.ns = false) :
+    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -473,7 +473,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
   wp_apply (wp_Step_MsgSnap (B := plogLastIndexZ (toPState s).base (toPState s).log) P Q c r id s
-      ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
+      ml m sn ctx rs ents scfg sv Hnsf Hw0 Hty Hto Hterm Hfnz Hfid
       Hid Hwf Hscope Hsn Hcl Hnl Hfv) $$ [$Hphys $Hmsg]
     as %err %s' %c1 ⟨Hphys, %Hc1, %Hwf', %Hst, %Herr, %Hng⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -846,9 +846,9 @@ theorem raft.Step.wp_proof
   · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"` (either mode since 2026-10-14,
     -- stage B8)
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm'⟩
-    obtain ⟨Hsn, Hcl, Hscope, Hid⟩ := Hsc
+    obtain ⟨Hsn, Hcl, Hscope, Hid, Hw0⟩ := Hsc
     have Hnsf : s.gh.ns = false := Hnsx Hns
-    iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hscope Hid Hsn Hcl Hnsf
+    iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hscope Hid Hsn Hcl Hnsf Hw0
       $$ Hinit Hphys Hghost Hrest Hmi Hso Hm' HΦ
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`

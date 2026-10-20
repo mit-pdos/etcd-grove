@@ -45,7 +45,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
     (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
     -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
-    (Hnsf : s.gh.ns = false) :
+    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -110,7 +110,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid, Hnsf⟩)
+      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid, Hnsf, Hw0⟩)
     $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres

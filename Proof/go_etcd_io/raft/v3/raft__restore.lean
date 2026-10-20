@@ -291,7 +291,7 @@ theorem raft.restore.wp_proof
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hns
+  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hns Hw0
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, Hidx61⟩ := Hscope
   wp_start as H
@@ -527,8 +527,8 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
-    -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
-    icases ownRaftPhysC_wit0 c _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
+    -- (2026-10-20) at a configuration without a witness (the premise)
+    have hw := Hw0
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
         (c := CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)) _ _ _
         (by intro h; exact absurd Hrole h) (by rw [hw]; rfl) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
