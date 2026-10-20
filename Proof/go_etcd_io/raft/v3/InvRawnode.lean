@@ -1134,20 +1134,20 @@ theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List EntryM) (c 
   cases hm : rs.mode with
   | static =>
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC⟩
+    icases H with ⟨Hg, %Hnl, %Hps, %HC⟩
     iframe Hg
     ipureintro
-    exact ⟨⟨HC.1.1, HC.1.2.1⟩, Hnl, HC⟩
+    exact ⟨⟨HC.1.1, HC.1.2.1⟩, Hnl, Hps, HC⟩
   | dyn dec c0 h0 _ =>
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC, Hr⟩
+    icases H with ⟨Hg, %Hnl, %Hps, %HC, Hr⟩
     iframe Hg Hr
     isplitr
     · ipureintro
       have hc := HC.2.1
       exact ⟨by rw [← hc], by rw [← hc]⟩
     ipureintro
-    exact ⟨Hnl, HC⟩
+    exact ⟨Hnl, Hps, HC⟩
 
 /-- A node's committed prefix, with records, is a prefix of the global committed log (persistent;
 read off the ghost state's log ghost). -/
@@ -1176,7 +1176,7 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
     with ⟨Hg, %fp', %Hf', #Hfr', #Hc⟩
   iunfold ghostRest at Hr
   iunfold ghostRestM at Hr
-  icases Hr with ⟨%Hnl, %HC, #Hfr, Hcamp⟩
+  icases Hr with ⟨%Hnl, %Hps, %HC, #Hfr, Hcamp⟩
   icases FullOk_unique γ (toPState s).base fp' g.fp Hf' HC.2.2.full $$ Hfr' Hfr with %He
   icases isCommitted_agree γ _ _ $$ HD Hc with %Hag
   isplitr
@@ -1206,6 +1206,8 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   iunfold ghostRestM
   isplitr
   · ipureintro; exact Hnl
+  isplitr
+  · ipureintro; exact Hps
   isplitr
   · ipureintro; exact HC
   isplitr
@@ -1342,11 +1344,13 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       -- (D19p, 2026-10-18) the tracker within the tracked bound
       ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ ∗
       -- (2026-10-19, D21 M3)
-      ⌜NsLink γ s⌝ := by
+      ⌜NsLink γ s⌝ ∗
+      -- (2026-10-20, witness support) `ghostRest`'s `PSubOk`
+      ⌜PSubOk (toPState s)⌝ := by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %Hnl, %HC⟩
+  icases Hghost with ⟨Hghost, %Hnl, %Hps, %HC⟩
   -- STAGED: no witness yet (`ownRaftPhysC_wit0`)
   icases ownRaftPhysC_wit0 cf _ _ _ $$ Hphys with ⟨%hw, Hphys⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 hw $$ Hphys with ⟨Hphys, %Hlrn⟩
@@ -1356,7 +1360,9 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
   · ipureintro
     exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
       (by rw [Hlrn]; rfl) HC.2
-  ipureintro; exact Hnl
+  isplitr
+  · ipureintro; exact Hnl
+  ipureintro; exact Hps
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
@@ -1373,7 +1379,9 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     -- (D19p, 2026-10-18) the tracker within the ghost state's tracked bound
     (Htrk : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
     -- (2026-10-19, D21 M3) the no-snapshot mode only with a bootstrap log
-    (Hnl : NsLink γ s) :
+    (Hnl : NsLink γ s)
+    -- (2026-10-20, witness support) `ghostRest`'s `PSubOk`
+    (Hps : PSubOk (toPState s)) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
@@ -1393,6 +1401,8 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     iframe Hghost
     isplitr
     · ipureintro; exact Hnl
+    isplitr
+    · ipureintro; exact Hps
     ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
