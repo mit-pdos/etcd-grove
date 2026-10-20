@@ -37,7 +37,10 @@ variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- The `.snap` clause of `isMessage` does not read the `ConfState` lists or `AutoLeave`
-(D22 S-b′ part 1: `Msg`'s `cl`/`al`, until then `voters`; S-b′'s certificate will). -/
+(D22 S-b′ part 1: `Msg`'s `cl`/`al`, until then `voters`). (D22 S-b′3, 2026-10-20) The
+configuration certificate a snapshot carries is not `isMessage`'s but the network's
+(`isMessageC`'s `msgCert`), so this still holds; the merged message's certificate is
+`srvMergedBundle`'s premise. -/
 theorem isMessage_snap_lists (γ : RaftNames) (m : Msg) (cl : CSLists) (al : Bool)
     (h : m.ty = .snap) :
     isMessage (GF := GF) γ { m with cl := cl, al := al } = isMessage γ m := by
@@ -73,10 +76,13 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
     (HAlen : (A.length : Int) = uint.Z ai) (HAlast : A.getLast?.map EntryM.Term' = some at_) :
     ⊢ raftCommitInv (GF := GF) γ -∗ isRaftMsg γ st -∗ termLB bud st.msg.Term' -∗
       rnRtBound γ st.msg.Term' ai -∗ isCommitted γ A -∗
+      -- (D22 S-b′3, 2026-10-20) the merged content's configuration certificate (S-l mints it
+      -- from `ep.confState`'s content: `raftSnapCert_empty`, `raftSnapCert_static`)
+      raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave'⟩ -∗
       msgOwn ml DFrac.discard (mergedSt st c ai at_) -∗
       backend.readerStreams rc (fun bs => backend.boltImage bs D) -∗ srvImage γ ai D ={E}=∗
       netSnapBundle (srvNet γ bud) ml rc := by
-  iintro #Hinv #Hrm #Htlb #Hbnd #HA #Hml Hrs #Himg
+  iintro #Hinv #Hrm #Htlb #Hbnd #HA #Hcc #Hml Hrs #Himg
   iunfold isRaftMsg at Hrm
   icases Hrm with ⟨%Hns, %Hsent, %a, %Habs, #Hmsgs⟩
   -- the abstraction of raft's `MsgSnap`
@@ -87,7 +93,8 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
     · rw [Hsn] at Hsv; cases Hsv; rfl
   subst Ha
   simp only [Option.toList_some]
-  icases BigSepL.bigSepL_cons.1 $$ Hmsgs with ⟨#Hm, -⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hmsgs with ⟨#HmC, -⟩
+  ihave #Hm := isMessageC_isMessage γ _ $$ HmC
   iunfold rnRtBound at Hbnd
   icases Hbnd with ⟨%cw, #Hw, %Hac⟩
   -- the merged content: `isMessage_snap_recontent`, then the voters
@@ -131,8 +138,12 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
             { { absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists with
                 index := ai, logterm := at_ } with cl := ConfStateM.lists c, al := c.AutoLeave' } :=
             rfl
-        rw [Heq, Hvo]
-        iexact Hm'
+        iapply isMessageC_intro
+        · rw [Heq, Hvo]; iexact Hm'
+        unfold msgCert; iright
+        rw [show msgSnapTrip (absSnap st.msg (SnapshotM.mk [] (SnapshotMetadataM.mk c ai at_))
+            (ConfStateM.lists c)) = (⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave'⟩ : SnapTrip) from rfl]
+        iexact Hcc
       iapply BigSepL.bigSepL_nil.2; iempintro
     · simp only [mergedSt]; iexact Htlb
   isplitl [Hz]

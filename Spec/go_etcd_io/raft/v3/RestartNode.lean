@@ -92,7 +92,10 @@ abbrev RestartNode.spec : Prop :=
       -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
       rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
       -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
+      -- no-snapshot mode)
+      certLink γ (interface.ok si) }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (γn : NodeNames) (n : Loc),

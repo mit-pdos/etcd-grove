@@ -86,7 +86,7 @@ theorem raft.handleSnapshot.wp_proof
   · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
   wp_auto
   wp_apply wp_raft_restore c _ _ _ sp sv cl Hrole Hvotes Hcl Hscope Hns
-    $$ [$Hphys $Hsnap] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
+    $$ [$Hphys $Hsnap $Hcert] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
   ihave Hm := Hmback $$ [Hsnap]
   · simp only [snapOpt]; iapply ownSnapE_weaken $$ Hsnap
   generalize Hc1 : restoreCfg c sv cl b = c1
@@ -127,6 +127,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_ %c1
     iframe Hphys
     isplitr
@@ -172,6 +173,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_ %c1
     iframe Hphys
     isplitr
@@ -220,6 +222,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_ %c1
     iframe Hphys
     isplitr

@@ -170,6 +170,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_gets
     rw [Hsf]
     wp_gets
+    ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx (.inl Hty)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -178,7 +180,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · rw [ite_neg Hnprop]; iexact Hm
     have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold FollowerStepResultC at Hres
@@ -252,6 +254,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · -- Follower: `stepFollower` has no `MsgVoteResp` arm.
         simp only [stepFuncOf]
         wp_gets
+        ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+        · iapply tsSrc_ne; notsnap_tac
         wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -259,7 +263,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+          $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
         · rw [ite_neg Hnprop]; iexact Hm
         have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold FollowerStepResultC at Hres
@@ -303,13 +307,15 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩
         ihave Hphys := Hback $$ Hlog
         wp_gets
+        ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+        · iapply tsSrc_ne; notsnap_tac
         wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
             (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hrole] at Hc; exact absurd Hc (by decide))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+          $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
         · rw [ite_neg Hnprop]; iexact Hm
         have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold CandidateStepResultC at Hres
@@ -462,13 +468,15 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- `MsgPreVoteResp`, so a vote response is ignored.
         simp only [stepFuncOf]
         wp_gets
+        ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+        · iapply tsSrc_ne; notsnap_tac
         wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (.inl Hty)
             (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-          $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+          $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
         · rw [ite_neg Hnprop]; iexact Hm
         have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
         unfold CandidateStepResultC at Hres

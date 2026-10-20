@@ -38,7 +38,7 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
   intro γ rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9
-  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap⟩
+  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hnscap, #Hcl⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
@@ -63,7 +63,7 @@ theorem RawNode.Bootstrap.wp_proof
   iNamed Hlog
   wp_auto
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -275,7 +275,8 @@ theorem RawNode.Bootstrap.wp_proof
   ihave Hlog : ownRaftLog s1.log (logAppend s.logst bootLog) $$ [Hlog]
   · iExactEq Hlog; rw [Hs1ls, Hcont.1]
   ihave Hphys := Hlogback $$ %(logAppend s.logst bootLog) Hlog
-    %(⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h), (by intro h; rw [Hs1gh, Hgh] at h; cases h)⟩)
+    %(⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h), (by intro h; rw [Hs1gh, Hgh] at h; cases h),
+      (by rw [Hs1ls]; rfl)⟩)
     %(by intro h; rw [Hs1r] at h; cases h)
   generalize Hs2 : ({ s1 with logst := logAppend s.logst bootLog } : NState) = s2
   have Hs2ls : s2.logst = logAppend s.logst bootLog := by rw [← Hs2]
@@ -492,9 +493,10 @@ theorem RawNode.Bootstrap.wp_proof
         (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
         (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
         Hnl0
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 []
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] []
     · iapply pendList_nil
     · iapply storedRecsP_intro; rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil
+    · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
   · iexact Hpeers
 
 end proof

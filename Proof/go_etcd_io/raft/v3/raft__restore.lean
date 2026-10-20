@@ -269,7 +269,8 @@ theorem raft.restore.wp_proof
     raft.restore.spec (GF := GF) (hG := hG) := by
   intro c r id s sp sv cl Hrole Hvotes Hcl Hscope Hns
   subst Hcl
-  obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, Hidx61⟩ := Hscope
+  -- (D22 S-b′4) the scope only once the node is found; the index bound either way
+  obtain ⟨Hscope, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
   icases ownSnapE_open _ _ _ $$ Hsnap with ⟨%pm, %pc, Hrest, Hcs⟩
@@ -432,6 +433,9 @@ theorem raft.restore.wp_proof
   -- (D22 S-b) the node is one of the `ConfState`'s ids, so the conf state is the snapshot's
   have Hidv : CSLists.Has sv.Metadata'.ConfState'.lists id :=
     found_has Hk3' HLk (List.mem_of_getElem? Hy_lookup)
+  -- (D22 S-b′4) found: the scope of its lists
+  obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, -⟩ := Hscope (by
+    first | exact Hidv | (rw [Hcl]; exact Hidv) | (subst Hcl; exact Hidv))
   icases Hfq with %Hfq
   have Hqp : pc = q := (Hfq Hidv).symm
   subst Hqp
@@ -517,7 +521,7 @@ theorem raft.restore.wp_proof
       iframe HrA
       iunfold csOptA; iright; iright; iexact Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) $$ [$Hlog $HsA] as ⟨HsA, Hlog⟩
+        (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)

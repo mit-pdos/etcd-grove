@@ -89,7 +89,7 @@ theorem raftLog.term.wp_proof
     rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -209,12 +209,12 @@ theorem raftLog.term.wp_proof
       Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
       Hl_logger
-      Hu_logger Husnap Hpksn Hcut Hfloor
+      Hu_logger Husnap Hpksn Hkcert Hcut Hfloor
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto
     ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩

@@ -522,6 +522,14 @@ theorem snapCfgOk_cases {c : CfgM} {s : NState} {sv : SnapshotM} {scfg : CSLists
   · exact .inr h
   · exact .inl h
 
+/-- (D22 S-b′4) ... the restored configuration's `ConfState` naming the node. -/
+theorem snapCfgOk_cases' {c : CfgM} {s : NState} {sv : SnapshotM} {scfg : CSLists}
+    {c' : CfgM} {id : w64} (h : SnapCfgOk id c s sv scfg c') :
+    c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id) := by
+  rcases h with ⟨hr, h⟩ | ⟨-, h⟩
+  · exact .inr ⟨h, hr.2.1⟩
+  · exact .inl h
+
 theorem nstateWf_handle_snap (id : w64) (t : NState) (m : MessageM)
     (sv : SnapshotM) (s' : NState) {voters : CSLists} :
     NStateWf t → HandleSnapResult id t m sv voters s' → NStateWf s' := by

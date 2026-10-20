@@ -168,7 +168,8 @@ theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) 
   · rw [Hty0] at Hn; cases Hn
   · ihave #Hmsg : isMessage (GF := GF) γ (absMsg ty st.msg st.ents st.ctx) $$ [Hl]
     · simp only [Option.toList_some]
-      iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl
+      ihave #Hx := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hl
+      iapply isMessageC_isMessage $$ Hx
     imodintro
     iintro %ty' %Hty'
     rw [Hty] at Hty'

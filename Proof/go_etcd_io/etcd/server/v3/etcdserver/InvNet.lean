@@ -74,7 +74,8 @@ theorem isRaftMsg_isMessages (γ : RaftNames) (st : MsgSt) (Hns : st.msg.Type' �
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
     simp only [Option.toList_some]
-    iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl
+    ihave #Hx := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hl
+    iapply isMessageC_isMessage $$ Hx
   · exact absurd (mtypeOf_Snap _ Hsn) Hns
 
 /-- **A delivered message is what `node.Step` takes** (see the file header): at the node `γ.id`

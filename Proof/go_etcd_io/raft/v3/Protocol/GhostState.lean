@@ -281,6 +281,63 @@ instance isMessage_timeless (γ : RaftNames) (m : Msg) :
     Timeless (isMessage (GF := GF) γ m) := by
   unfold isMessage; split <;> (try split) <;> infer_instance
 
+/-! ### Certified messages (D22 S-b′3, 2026-10-20)
+
+A `snap` message's snapshot carries the application's configuration certificate
+(`raftSnapCert`, `Ghost.lean`) **on the network**: `isMessageC γ m` is `isMessage γ m` and, for a
+`snap`, the certificate of its snapshot (`msgCert`). The protocol's own outbox (`ownRaftGhost`)
+keeps `isMessage` -- a step derivation (`StepC`'s `trans`, `drain`) cannot be given a certificate
+for every message it sends on the way -- and the certificate is attached where a message leaves
+raft (`isRaftMsg`, a `Ready`'s messages: the storage's registry, `storCertOk`), and read where a
+`MsgSnap` enters it (`raft.Step`). -/
+
+/-- The certificate a message carries: none but a `snap`'s. -/
+def msgCert (γ : RaftNames) (m : Msg) : IProp GF :=
+  iprop(⌜m.ty ≠ .snap⌝ ∨ raftSnapCert γ (msgSnapTrip m))
+
+instance msgCert_persistent (γ : RaftNames) (m : Msg) : Persistent (msgCert (GF := GF) γ m) := by
+  unfold msgCert; infer_instance
+
+instance msgCert_timeless (γ : RaftNames) (m : Msg) : Timeless (msgCert (GF := GF) γ m) := by
+  unfold msgCert; infer_instance
+
+/-- A certified message: the protocol's facts and, for a `snap`, its certificate. -/
+def isMessageC (γ : RaftNames) (m : Msg) : IProp GF :=
+  iprop(isMessage γ m ∗ msgCert γ m)
+
+instance isMessageC_persistent (γ : RaftNames) (m : Msg) :
+    Persistent (isMessageC (GF := GF) γ m) := by
+  unfold isMessageC; infer_instance
+
+instance isMessageC_timeless (γ : RaftNames) (m : Msg) :
+    Timeless (isMessageC (GF := GF) γ m) := by
+  unfold isMessageC; infer_instance
+
+theorem isMessageC_isMessage (γ : RaftNames) (m : Msg) :
+    isMessageC (GF := GF) γ m ⊢ isMessage γ m := by
+  unfold isMessageC; iintro ⟨#H, -⟩; iexact H
+
+/-- A message other than a `snap` is certified as it is. -/
+theorem isMessageC_of_ne (γ : RaftNames) (m : Msg) (h : m.ty ≠ .snap) :
+    isMessage (GF := GF) γ m ⊢ isMessageC γ m := by
+  unfold isMessageC msgCert; iintro #H; iframe H; ileft; ipureintro; exact h
+
+theorem msgCert_of_ne (γ : RaftNames) (m : Msg) (h : m.ty ≠ .snap) :
+    ⊢ msgCert (GF := GF) γ m := by
+  unfold msgCert; ileft; ipureintro; exact h
+
+/-- A `snap`'s certificate. -/
+theorem isMessageC_snap_cert (γ : RaftNames) (m : Msg) (h : m.ty = .snap) :
+    isMessageC (GF := GF) γ m ⊢ raftSnapCert γ (msgSnapTrip m) := by
+  unfold isMessageC msgCert
+  iintro ⟨-, (%Hn | #Hc)⟩
+  · exact absurd h Hn
+  · iexact Hc
+
+theorem isMessageC_intro (γ : RaftNames) (m : Msg) :
+    ⊢ isMessage (GF := GF) γ m -∗ msgCert γ m -∗ isMessageC γ m := by
+  unfold isMessageC; iintro #H #Hc; iframe H Hc
+
 /-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11). -/
 theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :
     m.ty = .appResp → m.reject = false →

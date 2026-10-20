@@ -201,6 +201,9 @@ theorem RawNode.acceptReady.wp_proof
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
   icases ghostRest_nsLink γ _ cf id _ $$ Hrest with ⟨%Hnl, Hrest⟩
+  -- (D22 S-b′3) the queued messages' certificates, through the storage's link
+  icases ghostRest_certLink γ _ cf id _ $$ Hrest with ⟨#Hlink, Hrest⟩
+  imod qCerts_of_srcs γ _ (ms1 ++ ms2) ⊤ CoPset.subseteq_top $$ Hlink Hscert with #Hqc
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -556,7 +559,7 @@ theorem RawNode.acceptReady.wp_proof
   -- is closed: `Hself` is about `ms2`)
   have Hsub2 : ∀ q ∈ ms2, q ∈ ms1 ++ ms2 := fun q h => List.mem_append_right _ h
   ihave Hps := self_pending γ id s.term s.outbox ms1 ms2 Houtbox ms2 Hsub2 HmsgsAA_ok Hnsout
-    (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hself
+    (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hqc Hself
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List QMsg)
     %([] : List QMsg) %([] : List Msg)
@@ -564,7 +567,7 @@ theorem RawNode.acceptReady.wp_proof
     %rs' %({ s.rd with states := [] } : RdState)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
-    [] [] [] [] [] [] [] [] Hlog
+    [] [] [] [] [] [] [] [] [] Hlog
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil
@@ -581,6 +584,7 @@ theorem RawNode.acceptReady.wp_proof
   · ipureintro; intro _; rw [logLast_acceptApplying, logLast_acceptUnstable]; exact Int.le_refl _
   · ipureintro
     exact XfOk.nil (fun h => (Hxf.1 h).1) (fun h => (Hxf.2 h).1)
+  · rw [List.append_nil]; iapply qSrcs_nil
   -- the node after `Ready`
   have Hlf := logAcceptApplying_fields (logAcceptUnstable s.logst) ce sz
   have Hlogst : (readyNstate s ce sz).logst = logAcceptApplying (logAcceptUnstable s.logst) ce sz :=
@@ -642,7 +646,8 @@ theorem RawNode.acceptReady.wp_proof
   ihave Hrest := ghostRest_keep γ _ cf id (s := { s with outbox := [] })
     (s' := readyNstate s ce sz) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
     (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
-    Hrapp (by rw [Hlogst, Hlf.2.2.2.1]; rfl) rfl $$ Hrest
+    Hrapp (by rw [Hlogst, Hlf.2.2.2.1]; rfl) rfl
+    (hst := by simp only [readyNstate, logAcceptApplying, logAcceptUnstable]; split <;> rfl) $$ Hrest
   ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
       (readyNstate s ce sz) $$ [Hghost Hrest]
   · iunfold ownStepGhost
@@ -688,7 +693,7 @@ theorem RawNode.acceptReady.wp_proof
         simp only [readyNstate, logAcceptApplying, logAcceptUnstable, hce]
       have Hne : ce ≠ [] := by intro h; subst h; simp at hce
       refine ⟨ce, e, ?_, hce, by rw [hap]; exact Int.le_refl _⟩
-      simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, or_true]
+      simp only [readySteps, if_neg Hne, List.mem_append, List.mem_singleton, _root_.or_true]
   iapply HΦ $$ %(readySteps s ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
   simp only [named]
   iapply ownRawNode_intro γ rn id

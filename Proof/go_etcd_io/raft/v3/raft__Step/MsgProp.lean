@@ -186,6 +186,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop. `send` wants the entries read-only.
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -194,7 +196,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_prop Hty $$ Hm
     have Hc1 := (FollowerStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold FollowerStepResultC at Hres
@@ -252,6 +254,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ileft; ipureintro; rfl
   · -- Candidate: drop
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
@@ -262,7 +266,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_prop Hty $$ Hm
     have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold CandidateStepResultC at Hres
@@ -445,6 +449,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iright; iexact Herrn
   · -- PreCandidate (2026-10-04), as a candidate: drop
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by
@@ -455,7 +461,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_prop Hty $$ Hm
     have Hc1 := (CandidateStepResultC.cfg (by nonsnap Hty) Hres).symm
     unfold CandidateStepResultC at Hres

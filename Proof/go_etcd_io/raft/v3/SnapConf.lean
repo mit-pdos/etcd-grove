@@ -130,29 +130,8 @@ is not done yet is carrying the certificate from those records to the receiving 
 section cert
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
-/-- `SnapScope`'s facts of a snapshot's lists and index. -/
-def SnapListsOk (k : SnapTrip) : Prop :=
-  CSWf k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext ∧
-  k.cl.voters.Nodup ∧ k.cl.learners.Nodup ∧ k.cl.outgoing.Nodup ∧ k.cl.learnersNext.Nodup ∧
-  (k.cl.voters.length + k.cl.learners.length + k.cl.outgoing.length +
-    k.cl.learnersNext.length : Int) ≤ 2 ^ 62 ∧
-  (k.cl.outgoing = [] → k.al = false) ∧
-  uint.Z k.sid.index' < 2 ^ 61
-
-/-- The configuration a snapshot's lists denote. -/
-def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
-  csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
-
-/-- See above. -/
-def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
-  iprop(⌜SnapListsOk k⌝ ∗
-    ⌜γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = []⌝ ∗
-    □ (∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List EntryM), logRecs γ base0 fp -∗
-        ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
-
-instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
-    Persistent (raftSnapCert (GF := GF) γ k) := by
-  unfold raftSnapCert; infer_instance
+-- (D22 S-b′3, 2026-10-20) `SnapListsOk`, `SnapTrip.cfgM` and `raftSnapCert` are
+-- `Protocol/Ghost.lean`'s
 
 end cert
 

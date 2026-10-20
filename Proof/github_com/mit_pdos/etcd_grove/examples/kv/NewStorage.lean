@@ -31,7 +31,7 @@ theorem NewStorage.wp_proof
   intro vsl voters
   wp_start as ⟨#Hreg, #Hv⟩
   wp_auto
-  wp_apply wp_NewMemoryStorage (2 ^ 64) (by simp only [memStorEmpty]; word) as %ms %γs ⟨-, Hown, -⟩
+  wp_apply wp_NewMemoryStorage (2 ^ 64) (by simp only [memStorEmpty]; word) as %ms %γs ⟨-, Hown, -, -, Hca⟩
   wp_alloc s as Hs
   iStructNamed Hs
   imod kvStor_register s ms γs ⊤ CoPset.subseteq_top $$ Hreg MemoryStorage with #Hrec
@@ -39,7 +39,7 @@ theorem NewStorage.wp_proof
   wp_auto
   iapply HΦ
   iexists ms, γs
-  iframe Hrec voters Hown
+  iframe Hrec voters Hown Hca
 
 end proof
 

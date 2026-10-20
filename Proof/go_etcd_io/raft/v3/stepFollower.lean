@@ -128,6 +128,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
         $$ [$Hphys $Hm] as Hphys
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -188,8 +189,13 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
+    ihave #Hcs : storCert (GF := GF) s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+    · iunfold tsSrc at Hcert
+      icases Hcert with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
+      · exact (Hn rfl).elim
+      · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'; iexact Hc
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
-        Hrole Hvotes Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm]
+        Hrole Hvotes Hsn Hscfg Hscope Hfid Hns $$ [$Hphys $Hm $Hcs]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe
@@ -242,6 +248,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
         $$ [$Hphys $Hm] as Hphys
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -408,6 +415,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl, Hxo⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
         $$ [$Hphys $Hm] as Hphys
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys

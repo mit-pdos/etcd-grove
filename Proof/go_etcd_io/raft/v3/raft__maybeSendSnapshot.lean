@@ -139,7 +139,7 @@ theorem raft.maybeSendSnapshot.wp_proof
   -- (stage R8a) the commit index is within the log: `BecomeSnapshot`'s index is at most it
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcmb, Hlog⟩
   ihave Hphys := Hlogback $$ Hlog
-  icases Herr with (%Herr | ⟨%Herr, %sv, Hsnap, %Hsv⟩)
+  icases Herr with (%Herr | ⟨%Herr, %sv, Hsnap, %Hsv, #Hcert⟩)
   · -- `ErrSnapshotTemporarilyUnavailable`: log and return `false`. The
     -- `panic(err)` that follows the inner `if` is never reached.
     subst Herr
@@ -234,6 +234,8 @@ theorem raft.maybeSendSnapshot.wp_proof
     wp_apply wp_raft_send c r id _ «$a0_ptr» mm [] (some sv) [] []
         [absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] (Or.inl rfl) Hok
         (fun _ => ⟨sv, rfl, rfl⟩) $$ [$Hphys $Hm] as Hphys
+    · -- (D22 S-b′3) the snapshot's certificate, from `raftLog.snapshot`
+      iapply tsSrc_snap; iexact Hcert
     iapply HΦ $$ %true %([absSnapFrom mm id s.term sv sv.Metadata'.ConfState'.lists] : List Msg)
       %(<[to := progressBecomeSnapshot pp sv.Metadata'.Index']> s.prvals)
     isplitl [Hphys]

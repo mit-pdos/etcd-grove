@@ -65,6 +65,10 @@ theorem snapBranch_send
         msgOwn ml (DFrac.own 1) st ∗ epCsOk cs ∗
         raftCommitInv γ ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗ rnRtBound γ st.msg.Term' ai ∗
         isCommitted γ A ∗ □ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D) ∗
+        -- (D22 S-b′3, 2026-10-20) the merged content's configuration certificate, of whatever
+        -- `ep.confState` holds
+        □ (∀ c : ConfStateM, csOpt cs DFrac.discard c -∗
+          raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave'⟩) ∗
         srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
         rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn tr }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap"))
@@ -72,14 +76,15 @@ theorem snapBranch_send
           go!"createMergedSnapshotMessage")) (Val #ml)) (Val #at_)) (Val #ai)) (Val #cs)))
     {{ RET #(); srvGoRes s ∗ srvLgReader s ∗ RC' ∗ RS' }} := by
   iintro %Φ ⟨#Hpkg, Hgr, Hlr, #Hlgf, %Hlgnn, #Hkvf, Hkc, HRC, #Hbef, Hbs, HRS, Hm, #Hcs, #Hinv,
-    #Hrm, #Htlb, #Hbnd, #HA, #Himg, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr⟩ HΦ
+    #Hrm, #Htlb, #Hbnd, #HA, #Himg, #Hccs, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr⟩ HΦ
   wp_apply hCM s ml st at_ ai cs lg kv be RC RC' RS RS' Qd $$ [Hlr Hkc HRC Hbs HRS Hm]
-    as %mg ⟨Hlr, HRC', HRS', %rc, %D, %c, #Hmg, #Hml, -, Hrs, %HQ⟩
+    as %mg ⟨Hlr, HRC', HRS', %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQ⟩
   · iframe #; iframe
     ipureintro; exact Hlgnn
   ihave #HimgD := Himg $$ %D %HQ
+  ihave #Hcc := Hccs $$ %c Hcso
   imod srvMergedBundle γ bud ⊤ ml st sn0 c ai at_ A rc D (by simp) Hty Hsn Hix HAlen HAlast
-    $$ Hinv Hrm Htlb Hbnd HA Hml Hrs HimgD with Hbun
+    $$ Hinv Hrm Htlb Hbnd HA Hcc Hml Hrs HimgD with Hbun
   wp_apply hSMS s mg ml rc lg id stg tr γn $$ [Hgr Hlr Hbun] as ⟨Hgr, Hlr⟩
   · iframe #; iframe Hgr Hlr
     isplitr

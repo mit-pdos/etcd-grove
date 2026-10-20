@@ -117,7 +117,10 @@ abbrev StartNode.spec : Prop :=
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
       -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode (`RaftNames.reNoSnap`), a storage
       -- never compacted past index `1` (`Bootstrap`'s)
-      NsCap γ.reNoSnap (interface.ok si) }}
+      NsCap γ.reNoSnap (interface.ok si) ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
+      -- no-snapshot mode)
+      certLink γ (interface.ok si) }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       -- (D17d, 2026-10-18) what the `InitialState` premise gives back: `InitialState` runs before

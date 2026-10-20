@@ -82,6 +82,15 @@ macro_rules
         Perennial.EtcdGrove.MsgTimeoutNow, Perennial.EtcdGrove.MsgCheckQuorum, _root_.or_false, _root_.false_or,
         _root_.or_self]; word))
 
+set_option hygiene false in
+/-- (D22 S-b′3, 2026-10-20) `m.Type' ≠ MsgSnap` at a branch that steps another type, from the
+branch's type hypothesis (`Hty`, `Hty'`, `Hty3`, ...): what `stepFollower`/`stepCandidate`'s
+certificate premise (`tsSrc_ne`) asks. -/
+macro "notsnap_tac" : tactic =>
+  `(tactic| first
+    | nonsnap Hty | nonsnap Hty' | nonsnap Hty3 | nonsnap Hty2 | nonsnap Hty1
+    | (intro hsnap; simp_all [Perennial.EtcdGrove.MsgSnap]))
+
 /-- `RFrame s s'` (`StepLemmasR.lean`) for a branch's end state `s'` built from `s` by record
 updates and the code's transition functions (2026-10-14, stage B7). -/
 macro "rframe" : tactic =>
@@ -191,7 +200,7 @@ def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
      "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
-     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut sn c c'⌝ ∗
+     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut id sn c c'⌝ ∗
      "%Herr" ∷ ⌜err = interface.nil⌝) -∗ Φ #err)
 
 /-- What the dynamic mode's update needs of a step from `s` to `s'` (`DynHyp`), given the
@@ -348,7 +357,7 @@ request (`Hcr`). -/
 theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s s' : NState) (a : Msg) (recv : List Msg) (n : Nat) (B : Int) (HB : B < 2 ^ 64)
     (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepCD c id B m s recv s') (Hdh : DynHypFor md m s s')
-    (Hn : rdCount recv ≤ n) (Hng : s'.gh = s.gh) :
+    (Hn : rdCount recv ≤ n) (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ msgsTks γ recv -∗
       £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
@@ -375,7 +384,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : M
 /-- The same, for a branch that receives nothing. -/
 theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
     (s s' : NState) (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
-    (Hdh : DynHypFor md m s s') (Hng : s'.gh = s.gh) :
+    (Hdh : DynHypFor md m s s') (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
     ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
   iintro Hlc Hg Hrest
@@ -403,7 +412,7 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh)
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom])
     (Hnp : a.ty ≠ .propose := by simp [absMsg, absMsgFrom]) :
     ⊢ isMessage γ a -∗
@@ -441,7 +450,7 @@ theorem finish_branchB (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : StepCD c id B m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh)
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
     (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom])
     (Hnp : a.ty ≠ .propose := by simp [absMsg, absMsgFrom]) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage γ a -∗
@@ -473,7 +482,7 @@ theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
     (Hdh : DynHypFor md m s s') (Hwf' : NStateWf s')
     (Hstep : StepCD c id (plogLastIndexZ (toPState s).base (toPState s).log) m s [] s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh) :
+    (Hresp : RespStep m s s') (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
     ⊢ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨

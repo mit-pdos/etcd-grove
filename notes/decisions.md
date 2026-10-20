@@ -13132,3 +13132,130 @@ no raft use; `InvMemstorage.lean`'s lock and snapshot invariants, `MemoryStorage
 ApplySnapshot,Snapshot}`, `NewMemoryStorage`); S-b′3: items 4-5's sender half (`ownRaftPhys`'s
 outbox, `ghostRest`, the ghost steps, `isMessage`); S-b′4: the receiver's premises shrink. Each
 builds on its own; trust base unchanged.
+
+## D22 S-b′2 carried out: the storage's certificate registry and its link to γ (2026-10-20)
+
+Items 1-3 of "D22 S-b′ part 1 carried out" (raft's storage contract, `MemoryStorage`, the kv
+store's instance); no raft proof uses the certificate yet. Trust base unchanged (538 axioms, 2
+sorries); every collection's `--check` passes unchanged.
+- **`StorageModel.storCert : Storage → SnapTrip → IProp GF`** (persistent). `isStorageWith` gains
+  a parameter `SC` (`isStorage` passes `storCert st`); `HSnapshot`'s success post adds
+  `⌜Index = 0⌝ ∨ SC (snapTrip sv lists)`. `raftLog.snapshot` drops it for now (S-b′3 hands it on).
+- **`MemoryStorage`**: `MemStorNames.cert`, a mono list of **`CertKey := SnapTrip × Bool`**
+  entries; `memStorCert γs k` (persistent) holds when an entry covers `k` (`certCovers`: the same
+  trip, or -- `true` -- every trip at that index with those lists and `AutoLeave`, whatever the
+  term). The any-term entry is a deviation from the design: `CreateSnapshot(i, cs, data)` reads
+  the term of `i` from the storage, which the application cannot name before the call, so its
+  premise is `□ ∀ t, memStorCert γs (trip at (t, i))` (`memCert_registerAny` gives it from `□ ∀
+  t, raftSnapCert γ …`, which for a static cluster -- etcd -- is a statement about the lists only).
+  The snapshot's home (`memSnapHome`) keeps `memSnapCertOk γs σp` (empty, or certified) of the
+  current snapshot: `memSnap_put` takes it; `ApplySnapshot` takes `memStorCert` of its snapshot's
+  trip; raft's `Snapshot` triple hands it out. `NewMemoryStorage` gives the empty registry's
+  authority (`memCertAuth γs`).
+- **The link** (`StepGhostMode.lean`, which now imports `InvStorage`): `raftCertN`, `storCertOk γ
+  st` (persistent; both directions: `storCert st k ={E}=∗ raftSnapCert γ k` and back, `↑raftCertN ⊆
+  E`). `MemstorageInstance.lean`: `memCertInv γ γs` (the authority with each entry's
+  `certElemOk`), `memCertInv_alloc` (from `memCertAuth`), `memCert_read`, `memCert_register`,
+  `memCert_registerAny`, `memStorCertOk_intro` (`memCertInv γ γs -∗ memStorReg ms γs -∗ storCertOk γ
+  (memStorIface ms)`); `memStorageModel`'s `storCert` is `memStorCertI` (`memStorCert_at`/`_intro`);
+  the registry tuple gains the name. `raftSnapCert_timeless` (`SnapConf.lean`).
+- kv: `kvStorCert` (`kvStorCert_at`/`_intro`), `memStorRec` with the name, `kv.Storage.Snapshot`'s
+  post with the certificate.
+
+**For S-b′3** (design refined, below "D22 S-b′3 carried out"): the server's storage comes from the
+boot contract (`bootOk`), which carries no `memCertAuth`, so the server cannot allocate
+`memCertInv`; raft's need for `storCertOk` is restricted to outside the no-snapshot mode.
+
+## D22 S-b′3 carried out: the certificate on the network message, from the storage's registry (2026-10-20)
+
+Items 4-5 of "D22 S-b′ part 1 carried out" (the sender half), with two deviations, both forced by
+what the proofs could carry. Raft files and the server/kv lines its specs force; no bbolt file.
+Trust base unchanged (538 axioms, 2 sorries); every collection's `--check` passes unchanged.
+
+**Deviation 1: the certificate is the network's, not the protocol outbox's.** The design put
+`raftSnapCert γ (msgSnapTrip m)` into `isMessage`'s `.snap` clause, minted by the ghost steps
+(`ghost_stepCD*` into `replOk_message`). That cannot be fed: a branch's model step is a `StepC`
+derivation (`trans`, `drain`), so `ownRaftGhost_stepC` would need a certificate for every
+message any intermediate state sends, which no premise on the final outbox gives. Instead
+`isMessage` is unchanged (so is every protocol proof, `isMessage_snap_recontent`,
+`isMessage_snap_lists`) and the certificate travels with the message on the network:
+- `Protocol/GhostState.lean`: `msgCert γ m := ⌜m.ty ≠ .snap⌝ ∨ raftSnapCert γ (msgSnapTrip m)`,
+  `isMessageC γ m := isMessage γ m ∗ msgCert γ m` (`isMessageC_isMessage`, `_snap_cert`,
+  `_intro`, `msgCert_of_ne`).
+- `isRaftMsg` (what a `Ready` hands out, the network bundle's payload) carries `isMessageC`; the
+  `Ready` attaches the certificate (below); `raft.Step`'s `"#Hsnap"` takes `isMessageC` of the
+  snapshot's abstraction (`RawNode.Step`'s likewise).
+- The moves the clause needed: `SnapTrip`, `msgSnapTrip`, `CSLists.Has`, `CSWf` to
+  `Protocol/Model.lean`; `csCfgM`, `SnapListsOk`, `SnapTrip.cfgM`, `raftSnapCert` to
+  `Protocol/Ghost.lean`. `raftSnapCert` restated as designed (every list fact under `k.cl.Has x`,
+  the tracked bound): `raftSnapCert_empty`, `raftSnapCert_static`.
+
+**Deviation 2: one source, the storage's registry.** The design had `ownRaftPhys` record "trip in
+`ls.ksn` or `storCert`", and `ghostRest` the certificates of `ksn`. Tracking `ksn` in `ghostRest`
+needs `ksn` kept by every frame (`NetFrame`/`LocalFrame`, ~50 files). Instead every snapshot raft
+may send is registered in the storage (γ-free `storCert`):
+- `ownRaftLog`'s `"#Hkcert"`: `[∗list] k ∈ ls.ksn, storCert lv.storage' k` (`ownRaftLog_intro`'s
+  new argument, `reseal_raftLog`); `newLogWithSize`/`newRaft` take `initKsnCert st σ` of the
+  storage's initial snapshot (`NewRawNode` derives it: an empty storage has none,
+  `initKsnCert_zero`); `raftLog.restore` takes the restored snapshot's `storCert`.
+- `raftLog.snapshot` returns `storCert ls.storage (snapTrip sv lists)` in both branches.
+- `ownRaftPhys`'s `"#Hscert"`: `qSrcs s.logst.storage (msgs ++ msgsAA)`, each queued message
+  `qSrc`/`tsSrc` (not a `MsgSnap`, or its snapshot certified); `raft.send` takes
+  `tsSrc s.logst.storage m.Type' sn` (`tsSrc_ne` at every other caller, `tsSrc_snap` from
+  `raftLog.snapshot`'s at `maybeSendSnapshot`); `LogGhOk` gains `ls'.storage = s.logst.storage`.
+- **The receive side registers**: `raft.Step`'s `dispatch_Snap` turns the message's certificate
+  into `storCert` through `certLink` (`storCertOk`'s second half) before the step, and passes it
+  down: `MsgSnap`/`_gt`/`_eq` (`"#Hcert"`), `stepFollower`/`stepCandidate` (`"#Hcert"` ∷ `tsSrc`;
+  every other caller `tsSrc_ne` via `notsnap_tac`), `handleSnapshot`, `raft.restore`,
+  `raftLog.restore`.
+- `ghostRest` gains `certLink γ s.logst.storage := ⌜γ.reNoSnap = true⌝ ∨ storCertOk γ st`
+  (`ghostRest_certLink`); `ghost_stepCD`/`CDS`, `finish_branch*`, `ghost_step_md*` take
+  `s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage` (`NetFrame.nsst`, `LocalFrame.nsst`);
+  `ghostRest_keep`/`ownStepGhost_congr` a defaulted `hst`; `ownStepGhost_dyn` returns it.
+- **The `Ready`**: `readyWithoutAccept`/`acceptReady` turn the queues' `qSrcs` into `qCerts`
+  (`qCert_of_src`, `qCerts_of_srcs`: a fancy update through `storCertOk`'s first half), and
+  `outboxRelP_isRaftMsg` builds `isRaftMsg`'s `isMessageC` with them; `ownRaftPhysReady` keeps
+  `Hscert`, its close takes the new queues'.
+- **Creation**: `RawNode.Bootstrap`, `setupNode`, `StartNode`, `RestartNode` take
+  `certLink γ (interface.ok si)`; `ownRawNode_intro_static` takes it, `ownRawNode_static_open`
+  returns it.
+
+**Who supplies `certLink`.** The server (no-snapshot mode): `certLink_noSnap` in `NewServer`
+(`Hnosnap.1`), threaded `NodeStartSpec` → `bootstrappedRaft.newRaftNode` → `StartNode`; nothing of
+`bootOk` or the closed theorems changed. The kv store (snapshots on): `NewStorage` returns
+`NewMemoryStorage`'s `memCertAuth`, `StartCluster` allocates `memCertInv γ γs` and gives
+`storCertOk` through `kvStorCertOk_intro`. `MemCertLink.lean` (new) holds the registry's
+invariant and its lemmas (moved from `MemstorageInstance.lean`, so that kv's instance can use
+them). Server: `srvMergedBundle`/`snapBranch_send` take the merged content's `raftSnapCert`
+(`snapBranch_send`: `□ ∀ c, csOpt cs □ c -∗ raftSnapCert γ ⟨⟨at, ai⟩, c.lists, c.AutoLeave⟩`;
+S-l mints it from `ep.confState`'s content with `raftSnapCert_empty`/`_static`);
+`isMessage_snap_lists` still holds (the certificate is not `isMessage`'s).
+
+## D22 S-b′4 carried out: the step's snapshot premises from the certificate (2026-10-20)
+
+Stage S-b′4 (after S-b′3, "D22 S-b′3 carried out"): `raft.Step`'s and `RawNode.Step`'s `"#Hsnap"`
+no longer take the snapshot's list scope or (statically) the mode's need; both come from the
+message's configuration certificate (`isMessageC`'s `raftSnapCert`), which states them only for
+lists that name a node (`k.cl.Has x`). Only the index bound (`< 2^61`, the transport's) and,
+dynamically, `GMode.SnapOk` are left as premises.
+
+- **The scope under `Has`.** `SnapScopeIf id sv cl := (cl.Has id → SnapScope sv cl) ∧ Index <
+  2^61` (`SpecResults.lean`, with `SnapScopeIf.of_scope`) replaces `SnapScope` in the premises of
+  `raft.restore`, `raft.handleSnapshot`, `stepFollower`/`stepCandidate`'s `MsgSnap` clauses and
+  `raft__Step/MsgSnap*.lean`. `restore` reads the lists only past its `!found` exit, so its proof
+  takes the scope out once `Hidv : CSLists.Has … id` is known; before, only the index bound is
+  used. The certificate's `SnapListsOk (snapTrip sv cl)` is `SnapScope sv cl` definitionally.
+- **The mode's need under `Has`.** `GMode.SnapOkIf γ id` (`StepGhostMode.lean`): statically
+  `⌜scfg.Has id → voters = reCfg ∧ outgoing = [] ∧ tracked bound⌝`, dynamically `GMode.SnapOk`;
+  `ghost_stepCDSM`/`ghost_stepCDS` take it, with `Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧
+  scfg.Has id)` (the restored configuration is one that names the node, `snapCfgOk_cases'`;
+  `MsgSnap`/`_eq`/`_gt`'s `"%Hc'"` say so). `GMode.SnapDyn` (static: `True`, dynamic: `SnapOk`) is
+  what `"#Hsnap"` still takes; `snapOkIf_of_cert` turns it and the certificate into `SnapOkIf`
+  (statically through `ownRaftGhost_mode`: the static mode is `γ.reDyn = none`, the premise of
+  the certificate's static conjunct).
+- **`SnapCfgOut id`** gains the restored lists' `Has id`, so `RawNode.Step` (whose `"#Hsnap"` now
+  takes only the index bound and `isMessageC`) gets the restored configuration's `outgoing = []`
+  from the certificate (`ownStepGhost_mode`, `isMessageC_snap_cert`), for its `Hal'`.
+- No server/kv change: their `"#Hsnap"` uses are at `reNoSnap = true` (no `MsgSnap` stepped) or
+  through `raft.Step`'s weaker premise. Trust base unchanged (538 axioms, 2 sorries); every
+  collection passes `--check`.

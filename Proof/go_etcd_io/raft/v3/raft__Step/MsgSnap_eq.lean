@@ -52,7 +52,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.From' ≠ W64 0 →
     m.From' ≠ id →
     NStateWf s →
-    SnapScope sv scfg →
+    SnapScopeIf id sv scfg →
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
     sn = some sv →
     scfg = sv.Metadata'.ConfState'.lists →
@@ -64,12 +64,14 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (D22 S-b′3, 2026-10-20) the snapshot certified in the storage's registry
+        "#Hcert" ∷ storCert s.logst.storage (snapTrip sv sv.Metadata'.ConfState'.lists) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
+        "%Hc'" ∷ ⌜c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id)⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
@@ -104,6 +106,9 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
     have Hvs := Hvotes Hrole
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · rw [Hsn]
+      iapply tsSrc_snap; iexact Hcert
     wp_apply _P.stepFollower c scfg r id s ml m ents sn rs sv ctx
         (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -112,7 +117,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hsn, Hscl, Hscope, Hrole, Hvs, Hfid, Hnsf⟩)
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -122,7 +127,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
+    refine ⟨snapCfgOk_cases' Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl, by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
       SnapStep.of_handle (t := { s with lead := m.From' }) rfl rfl rfl (Int.le_refl _)
         (Int.le_max_left _ _) Hrole Hhs⟩
@@ -133,13 +138,16 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         Hc1
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · rw [Hsn]
+      iapply tsSrc_snap; iexact Hcert
     wp_apply _P.stepCandidate c scfg r id s ml m ents sn rs sv ctx
         (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hsn, Hscl, Hscope, Hfid, Hnsf⟩)
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -149,7 +157,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
+    refine ⟨snapCfgOk_cases' Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl, by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
       SnapStep.of_handle (t := { becomeFollower s s.term m.From' with prvals := pvs })
         (by simp [becomeFollower, resetTo, resetTo0]) rfl
@@ -168,13 +176,16 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- `handleSnapshot`
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · rw [Hsn]
+      iapply tsSrc_snap; iexact Hcert
     wp_apply _P.stepCandidate c scfg r id s ml m ents sn rs sv ctx
         (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hsn, Hscl, Hscope, Hfid, Hnsf⟩)
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -184,7 +195,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
+    refine ⟨snapCfgOk_cases' Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl, by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
       SnapStep.of_handle (t := { becomeFollower s s.term m.From' with prvals := pvs })
         (by simp [becomeFollower, resetTo, resetTo0]) rfl

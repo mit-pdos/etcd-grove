@@ -230,6 +230,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           .inl (Int.le_refl _), rfl⟩
       wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (.inl rfl) Hok
         (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [$Hphys $Hresp] as Hphys
+      · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
@@ -273,6 +274,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       -- `send` the granted vote response, then record the vote
       wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (.inl rfl) Hok
         (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [$Hphys $Hresp] as Hphys
+      · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       -- `m.Type = MsgVote`, so the vote is recorded: `r.Vote := m.From`
       wp_gets
       rw [Hty]

@@ -324,6 +324,9 @@ theorem NewServer.wp_proof
     h86
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
+  -- (D22 S-b′3) the storage's certificate link: the no-snapshot mode's
+  ihave #Hclk : certLink (GF := GF) γ (memStorIface bv.storage') $$ []
+  · iapply certLink_noSnap; exact Hnosnap.1
   wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
