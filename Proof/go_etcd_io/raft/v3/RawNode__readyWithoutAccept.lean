@@ -274,7 +274,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       · ipureintro; exact Hn
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hbsn⟩
   · iframe Hlog
-  rw [Hbsn Hsnap]
+  rw [Hbsn.1 (.inl Hsnap)]
   wp_auto
   ihave %Hel := entsPts_len _ _ _ $$ Hents
   -- `if len(r.readStates) != 0 { rd.ReadStates = r.readStates }`

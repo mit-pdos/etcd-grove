@@ -63,7 +63,8 @@ theorem raftLog.acceptUnstable.wp_proof
   obtain ⟨Hip0, Hip1⟩ := Hnip
   iclear Husnap Hpksn Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hipv⟩
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hipv, %Hsipv⟩
+  clear Hsip
   -- the new `offsetInProgress` is the end of the log
   have Hend : uint.Z uv'.offsetInProgress'
       = uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by
@@ -75,9 +76,12 @@ theorem raftLog.acceptUnstable.wp_proof
       word
   have Hipo : uint.Z (logEnd ls) - uint.Z uv'.offset' = (ls.uents.length : Int) := by
     simp only [logEnd, logLast]; word
+  have Hsip : uv'.snapshotInProgress' = (ls.sip || ls.snap.isSome) := Hsipv
+  have HsipnN : ls.snap = none → (ls.sip || ls.snap.isSome) = false := by
+    intro h; rw [Hsipn h, h]; rfl
   have HpendN : PendLogOk σ
       { ls with inprogress := logEnd ls, unpersisted := nextUnstable ls,
-                stored := ls.sents ++ ls.uents } := by
+                stored := ls.sents ++ ls.uents, sip := ls.sip || ls.snap.isSome } := by
     refine ⟨Hpend.1, fun _ e0 He0 => ?_⟩
     obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
     word
@@ -93,6 +97,8 @@ theorem raftLog.acceptUnstable.wp_proof
   unfold logAcceptUnstable
   reseal_raftLog
   all_goals first
+    | exact Hsip
+    | exact HsipnN
     | (simp only [logEnd, logLast]; word)
     | exact ⟨Hfl.1, Hfl.2.1, fun _ => by
         have := Hfl.2.2.1 Hs0; simp only [logEnd, logLast]; word, Hfl.2.2.2⟩

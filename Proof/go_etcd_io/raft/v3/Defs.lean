@@ -331,6 +331,10 @@ structure LogState [FfiSyntax] where
   up to it. Ghost, not a Go field. At most `applied` (`ownRaftLog`'s `Hfl`): raft's
   `hasUnappliedConfChanges` reads the log from `applied + 1`. -/
   fl : w64 := 0
+  /-- (D22 S-d1, 2026-10-20) `unstable.snapshotInProgress`: the pending snapshot has been handed
+  to the application by a `Ready` (`acceptInProgress`), so `nextSnapshot` no longer returns it.
+  `false` with no snapshot pending (`ownRaftLog`'s `Hsipn`); `restore` clears it. -/
+  sip : Bool := false
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -908,7 +912,7 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 (its id, lists and `AutoLeave`) joins the ones the node may send (`ksn`). -/
 def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl, false⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/

@@ -326,6 +326,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__nextSnapshot
 public import Proof.go_etcd_io.raft.v3.unstable__restore
 public import Proof.go_etcd_io.raft.v3.unstable__shrinkEntriesArray
 public import Proof.go_etcd_io.raft.v3.unstable__slice
+public import Proof.go_etcd_io.raft.v3.unstable__stableSnapTo
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
@@ -1459,6 +1460,10 @@ theorem tracker.Inflights.wp_Count :
 theorem tracker.ProgressTracker.wp_LearnerNodes :
     tracker.ProgressTracker.LearnerNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.LearnerNodes.wp_proof slices.wp_Sort
+
+theorem unstable.wp_stableSnapTo [StorageModel GF] :
+    unstable.stableSnapTo.spec (GF := GF) (hG := hG) :=
+  unstable.stableSnapTo.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
 end links
 
