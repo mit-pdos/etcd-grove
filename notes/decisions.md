@@ -12006,6 +12006,32 @@ for watches that saw a reconnect (no completeness after it): changes the cache's
 - **S1e (`run` and the results).** `run`'s `errc` case and resumed creates; the premise dropped
   from `watchConnFacts` up to `watch_safe`/`cache_safe`; collections and baseline updated.
 
+**S1b's findings (2026-10-20; S1a and S1b done, stopped before S1c).**
+- *A third fix is needed* (`issues/etcd-watch-resume-below-start-revision.md`): `serveSubstream`
+  sets the resume revision to a progress notification's header revision + 1 unconditionally; a
+  watch from a revision the store has not reached is synced on the server and gets progress at the
+  store's revision, below its start, so a reconnect re-creates it below its start and it delivers
+  events the caller did not ask for (against `rangeWatchEvOk`'s `rev ≤ e.rev`). Fix F3
+  `16f73d6eb` (on `a8a459955`, branch `watch-resume-fixes`, not pushed): move the resume revision
+  only forward. With F3 the resume invariant is exact: `rev - 1 = ` the second cursor when `cpl`
+  (after a progress notification that does not raise it, its revision equals the cursor), `rev - 1
+  ≥` the first cursor, and `rev ≥` the watch's start.
+- *The event case of item 5, refined.* An event's revision may be notified before mvcc commits it
+  (`notify` runs inside `End`'s critical section before the commit extends `γ.wlog`), so a
+  notified lower bound cannot cover it; S1b added a monotone *released length* (`γ.rel`, bumped by
+  `End` before `notify`, at the notified log's length under `s.mu`) that every delivered log
+  carries (`evsWf`), and `startRead` accepts it.
+- *A liveness bug, not fixed* (`issues/etcd-watch-close-hang-refused-create.md`): a refused
+  create's substream is registered nowhere, so `run`'s teardown does not wait for its `closingc`
+  post and `Close` can hang. Partial correctness does not see it; the proof needs no change.
+- *Checked, no further Go change needed* for S1c–S1e: the old `serveWatchClient` has posted its
+  error (after every response it received went through `respc`) before `run` reconnects; a
+  resumed substream's first dispatch on a new stream is its `Created` (it enters `substreams`
+  there), which can carry `run`'s half of `rev` as the first create's does; a closing substream
+  re-created on the new stream fails its dispatch on its closed `donec` (`run` sets its `γx`
+  itself when `waitCancelSubstreams` closes it); `donec`, `outc`, `closing`, `id` become fields
+  owned per lifetime.
+
 **Stopped after S0** (the parent's rule: a Go fix to etcd is needed): F1 and F2 are on the fork
 branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
 `/shared/etcd-goose-lean-wk`), not on `goose-lean`, not pushed; S1a needs them cherry-picked onto
