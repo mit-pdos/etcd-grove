@@ -336,7 +336,10 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         simp only [plogLastIndexZ, toPState, List.length_append]
         push_cast at Hnw this ⊢
         omega
-      ihave #Hrc2 := Hrcl $$ %(And.intro Hty (by simp))
+      have e : (k0 + if m.Type' = MsgProp then ents.length else 1) = k0 + ents.length := by
+        rw [if_pos Hty]
+      ihave #Hrc2 : ⧖ (k0 + ents.length) $$ [Hrcl]
+      · rw [← e]; iapply Hrcl $$ %(Or.inl (And.intro Hty (by simp)))
       iapply HΦ $$ %_ %_ %(plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int))
       iframe Hphys
       isplitr

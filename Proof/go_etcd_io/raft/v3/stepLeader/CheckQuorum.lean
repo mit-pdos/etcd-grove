@@ -55,14 +55,17 @@ theorem wp_stepLeader_checkQuorum
     (wp_maybeStartNewSubterm : raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
-    (Hty : m.Type' = MsgCheckQuorum) (Hnz : s.term ≠ W64 0) :
+    (Hty : m.Type' = MsgCheckQuorum) (Hnz : s.term ≠ W64 0) (k0 : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-10-20, witness support) a time receipt, raised by one by a new subterm's entry
+        "#Hrc" ∷ ⧖ k0 }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
-        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ }} := by
-  wp_start as ⟨Hphys, Hm⟩
+        ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ ∗
+        (⌜CQNewSub c id s s'⌝ -∗ ⧖ (k0 + 1)) }} := by
+  wp_start as ⟨Hphys, Hm, #Hrc⟩
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   simp only [Hty, MsgCheckQuorum]
@@ -72,14 +75,16 @@ theorem wp_stepLeader_checkQuorum
   wp_apply wp_QuorumActive c _ tv _ $$ [$Htrkf $Htrk] as %b %tv' %act ⟨Htrkf, Htrk, -, -⟩
   ihave Hphys := Hback $$ Htrkf Htrk
   -- the `if !QuorumActive()`, joined at the state it leaves: `s`, or the step-down's
-  wp_join iprop(∃ (s1 : NState),
+  wp_join iprop(∃ (s1 : NState) (nsb : Bool),
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s1 ∗
-      "%Hs1" ∷ ⌜s1 = s ∨ (∃ pvs : GMap w64 Progress,
-                 s1 = { becomeFollower s s.term (W64 0) with prvals := pvs }) ∨
-               -- (2026-10-20, witness support) a new subterm
-               ∃ em', c.wit ≠ W64 0 ∧ s.ep.hasWit = true ∧
-                 ChangeEpochOk c.incoming c.outgoing c.wit (W64 0) s.ep em' ∧
-                 s1 = subtermStart id { s with ep := em' }⌝ ∗
+      "%Hs1" ∷ ⌜if nsb then
+                 -- (2026-10-20, witness support) a new subterm
+                 ∃ em', c.wit ≠ W64 0 ∧ s.ep.hasWit = true ∧
+                   ChangeEpochOk c.incoming c.outgoing c.wit (W64 0) s.ep em' ∧
+                   s1 = subtermStart id { s with ep := em' }
+               else s1 = s ∨ ∃ pvs : GMap w64 Progress,
+                 s1 = { becomeFollower s s.term (W64 0) with prvals := pvs }⌝ ∗
+      "#Hrc1" ∷ (⌜nsb = true⌝ -∗ ⧖ (k0 + 1)) ∗
       "r" ∷ r_ptr ↦ r) at next
     with [Hphys r] as HR
   · cases b
@@ -90,36 +95,41 @@ theorem wp_stepLeader_checkQuorum
       wp_apply wp_becomeFollower c r id s s.term (W64 0) (Int.le_refl _) $$ [$Hphys]
         as %pvs Hphys
       wp_join_done
-      iexists _
+      iexists _, false
       iframe Hphys r
-      ipureintro
-      exact .inr (.inl ⟨pvs, rfl⟩)
+      isplitr
+      · ipureintro
+        exact .inr ⟨pvs, rfl⟩
+      iintro %h; exact absurd h (by decide)
     · -- (2026-10-19, witness support) `r.maybeStartNewSubterm(false, false)`: no excluded voter
       -- to swap in, nothing changes
       wp_auto
       icases ownRaftPhysC_epOk c r id s $$ Hphys with ⟨%Hepok, Hphys⟩
-      imod (preceipt_zero (GF := GF)) with #Hrc0
-      wp_apply wp_maybeStartNewSubterm c r id s false 0 (fun _ => Hnz) $$ [$Hphys $Hrc0]
+      wp_apply wp_maybeStartNewSubterm c r id s false k0 (fun _ => Hnz) $$ [$Hphys $Hrc]
         as %ch Hphys
-      simp only [Bool.false_eq_true, ↓reduceIte]
       cases ch
       case true =>
         -- the next subterm's epoch, its entry appended
         simp only [↓reduceIte]
-        icases Hphys with ⟨%em', %Hc, -, Hphys⟩
+        icases Hphys with ⟨%em', %Hc, #Hrc', Hphys⟩
         try wp_auto
         wp_join_done
-        iexists _
+        iexists _, true
         iframe Hphys r
-        ipureintro
-        exact .inr (.inr ⟨em', (EpochOkC.wf Hepok Hc.1).1, Hc.1, Hc.2, rfl⟩)
+        isplitr
+        · ipureintro
+          exact ⟨em', (EpochOkC.wf Hepok Hc.1).1, Hc.1, Hc.2, rfl⟩
+        iintro -; iexact Hrc'
+
       simp only [Bool.false_eq_true, ↓reduceIte]
       try wp_auto
       wp_join_done
-      iexists s
+      iexists s, false
       iframe Hphys r
-      ipureintro
-      exact .inl rfl
+      isplitr
+      · ipureintro
+        exact .inl rfl
+      iintro %h; exact absurd h (by decide)
   iNamed HR
   try wp_auto
   -- `r.trk.Visit(...)`: the closure clears `RecentActive`, which no record holds
@@ -162,12 +172,26 @@ theorem wp_stepLeader_checkQuorum
   ihave Hphys := Hback $$ Htrkf Htrk
   iapply HΦ
   iframe Hphys
-  ipureintro
-  refine ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, ?_⟩)))))⟩
-  rcases Hs1 with rfl | ⟨pvs, rfl⟩ | ⟨em', Hcw, Hhw, Hchg, rfl⟩
-  · exact .inl ⟨_, .inl ⟨rfl, rfl⟩⟩
-  · exact .inl ⟨pvs, .inr rfl⟩
-  · exact .inr ⟨_, em', Hcw, Hhw, Hchg, rfl, rfl⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro
+    refine Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, ?_⟩)))))
+    cases nsb
+    · rcases Hs1 with rfl | ⟨pvs, rfl⟩
+      · exact .inl ⟨_, .inl ⟨rfl, rfl⟩⟩
+      · exact .inl ⟨pvs, .inr rfl⟩
+    · obtain ⟨em', Hcw, Hhw, Hchg, rfl⟩ := Hs1
+      exact .inr ⟨_, em', Hcw, Hhw, Hchg, rfl, rfl⟩
+  -- the receipt: only a new subterm is a `CQNewSub` step (it grows the log)
+  iintro %Hcq
+  cases nsb
+  · exfalso
+    simp only [Bool.false_eq_true, ↓reduceIte] at Hs1
+    rcases Hs1 with rfl | ⟨pvs, rfl⟩
+    · have := CQNewSub.uents Hcq; simp at this
+    · have := CQNewSub.uents Hcq; simp [becomeFollower, resetTo0, resetTo] at this
+  · iapply Hrc1 $$ %rfl
 
 end proof
 

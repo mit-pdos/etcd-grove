@@ -232,6 +232,12 @@ def CQNewSub (c : CfgM) (id : w64) (s s' : NState) : Prop :=
     prvalsMatch pvs = prvalsMatch s.prvals ∧
     s' = { subtermStart id { s with ep := em' } with prvals := pvs }
 
+/-- (2026-10-20) A new subterm appends its entry: the unstable log grows. -/
+theorem CQNewSub.uents {c : CfgM} {id : w64} {s s' : NState} (H : CQNewSub c id s s') :
+    s'.logst.uents.length = s.logst.uents.length + 1 := by
+  obtain ⟨pvs, em', -, -, -, -, rfl⟩ := H
+  simp [subtermStart, sendMsgs, logAppend]
+
 /-- What `stepLeader` does with `m` at the configuration `c`, for the types other than
 `MsgProp` (none of which drops anything). The disjuncts are exclusive on `m.Type`. The read
 path's confirmation and the commit are joint (`ReadAckResultC`, `AppRespAcceptedC`); a
@@ -403,7 +409,11 @@ abbrev stepLeader.spec : Prop :=
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhysCV c c.voters r id s' ∗
-      (⌜m.Type' = MsgProp ∧ dropped = false⌝ -∗ ⧖ (k0 + ents.length)) ∗
+      -- the receipt raised by the entries appended: an appended proposal's, or (2026-10-20,
+      -- witness support) a check-quorum's new subterm's
+      (⌜(m.Type' = MsgProp ∧ dropped = false) ∨
+          (m.Type' = MsgCheckQuorum ∧ CQNewSub c id s s')⌝ -∗
+        ⧖ (k0 + if m.Type' = MsgProp then ents.length else 1)) ∗
       ⌜LeaderStepResultC c id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}

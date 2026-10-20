@@ -108,10 +108,37 @@ theorem stepLeader.wp_proof
     iframe Hphys Herr
     isplitl [Hrc']
     · iintro %Hd
-      iapply Hrc' $$ %Hd.2
+      rcases Hd with Hd | ⟨Hd, -⟩
+      · rw [if_pos Hp]
+        iapply Hrc' $$ %Hd.2
+      · rw [Hp] at Hd; exact absurd Hd (by simp only [MsgProp, MsgCheckQuorum, ne_eq]; word)
     ipureintro
     simp only [LeaderStepResultC, Hp, ↓reduceIte]
     exact Hres
+  by_cases Hcq : m.Type' = MsgCheckQuorum
+  · -- (2026-10-17) `MsgCheckQuorum`; (2026-10-20, witness support) a new subterm's entry
+    -- raises the receipt
+    iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
+      wp_raft_becomeFollower wp_GetType wp_raft_maybeStartNewSubterm r id s ml m ents ctx sn rs _ _ _
+      Hcq (Hcqt Hcq) k0 $$ [Hphys Hm]
+    · iframe
+      iframe Hinit Hrc
+    inext
+    iintro %err %s' ⟨Hphys, %Herr, %Hres, Hrc'⟩
+    iapply HΦ $$ %err %s' %false
+    iframe Hphys
+    isplitl [Hrc']
+    · iintro %Hd
+      rcases Hd with ⟨Hd, -⟩ | ⟨-, Hd⟩
+      · exact absurd Hd Hp
+      · rw [if_neg Hp]
+        iapply Hrc' $$ %Hd
+    isplitr
+    · ipureintro
+      simp only [LeaderStepResultC, Hp, ↓reduceIte]
+      exact ⟨trivial, Hres⟩
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro; exact Herr
   ihave HΦ' : iprop(▷ ∀ (err : GoInterface) (s' : NState),
       ownRaftPhysCV c c.voters r id s' ∗ ⌜err = interface.nil⌝ ∗
       ⌜LeaderNonpropResultC c id s m ents ctx s'⌝ -∗ Φ #err) $$ [HΦ]
@@ -120,7 +147,10 @@ theorem stepLeader.wp_proof
     iapply HΦ $$ %err %s' %false
     iframe Hphys
     isplitr
-    · iintro %Hd; exact absurd Hd.1 Hp
+    · iintro %Hd
+      rcases Hd with ⟨Hd, -⟩ | ⟨Hd, -⟩
+      · exact absurd Hd Hp
+      · exact absurd Hd Hcq
     isplitr
     · ipureintro
       simp only [LeaderStepResultC, Hp, ↓reduceIte]
@@ -155,13 +185,8 @@ theorem stepLeader.wp_proof
       r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Hxft Hty) $$ [Hphys Hm] HΦ'
     iframe
     iexact Hinit
-  · -- (2026-10-17) `MsgCheckQuorum`
-    iapply wp_stepLeader_checkQuorum c wp_ProgressTracker_QuorumActive wp_ProgressTracker_Visit
-      wp_raft_becomeFollower wp_GetType wp_raft_maybeStartNewSubterm r id s ml m ents ctx sn rs _ _ _ Hty
-      (Hcqt Hty)
-      $$ [Hphys Hm] HΦ'
-    iframe
-    iexact Hinit
+  · -- `MsgCheckQuorum`: above
+    exact absurd Hty Hcq
   · iapply wp_stepLeader_noop c wp_GetType wp_GetFrom r id s ml m ents ctx sn rs _ _ _
       (Or.inl Hty) $$ [Hphys Hm] HΦ'
     iframe

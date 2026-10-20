@@ -401,10 +401,27 @@ private theorem dispatch_CheckQuorum (P : raft.Step.Postulates (GF := GF) (hG :=
         (by rw [toPState_role, hl]; decide) $$ Hghost
       ipureintro; exact fun _ => H
     · ipureintro; exact fun h => absurd h hl
-  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents Hty Hterm Hwf Hlnz)
-    $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
-  iapply finish_branch0 γ md c r id s s' m err Φ (Hdh s') Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
-      (by resp_other) Hfr.ns $$ Hghost Hrest Hphys [] HΦ
+  -- (2026-10-20) a new subterm's entry: the receipt of the log's last index (`lastRec`), raised
+  -- by one in the step, and the subterm bound (`PSubOk`)
+  icases ghostRest_psub γ md c id s $$ Hrest with ⟨%Hps, Hrest⟩
+  ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc0
+  wp_apply (wp_Step_MsgCheckQuorum P Q c r id s ml m sn ctx rs ents _ Hty Hterm Hwf Hlnz Hps HL)
+    $$ [$Hphys $Hmsg $Hrc0] as %err %s' %B ⟨Hphys, %HBb, Hrcb, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+  ihave #HrcB : ⧖ (B.toNat - γ.reBoot.length) $$ [Hrcb]
+  · have Hpl : plogLastIndexZ (toPState s).base (toPState s).log =
+        plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) := rfl
+    by_cases hlt : plogLastIndexZ (toPState s).base (toPState s).log < B
+    · ihave #H := Hrcb $$ %hlt
+      iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+        ((plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)).toNat
+          - γ.reBoot.length) + 1 by omega))
+      iexact H
+    · iapply (preceipt_mono (GF := GF) (show B.toNat - γ.reBoot.length ≤
+        (plogLastIndexZ (toPState s).base (toPState s).log).toNat - γ.reBoot.length by omega))
+      iexact Hrc0
+  iapply finish_branch0B γ md c r id s s' m err Φ B HBb.2.2 (Hdh s') Hwf' Hst (fun _ => Hfr)
+      (fun _ => Htm) (by resp_other) Hfr.ns $$ HrcB Hghost Hrest Hphys [] HΦ
   ileft; ipureintro; exact Herr
 
 /-- `MsgSnap` (2026-10-02): the snapshot and its `ConfState` come from `"Hsnap"`. At the
