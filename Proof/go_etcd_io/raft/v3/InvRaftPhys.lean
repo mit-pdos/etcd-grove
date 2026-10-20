@@ -1603,9 +1603,18 @@ private theorem raft_split_msgs (l : Loc) (rv : raft) :
 
 private theorem raft_split_witnessMsgs (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
-      l.[raft, go!"witnessMsgs"] ↦ rv.witnessMsgs' ∗
-      (∀ x, l.[raft, go!"witnessMsgs"] ↦ x -∗ raftOwn l { rv with witnessMsgs' := x }) := by
-  split_field_proof H_witnessMsgs
+      l.[raft, go!"Term"] ↦ rv.Term' ∗ l.[raft, go!"witnessMsgs"] ↦ rv.witnessMsgs' ∗
+      (∀ x, l.[raft, go!"Term"] ↦ rv.Term' -∗ l.[raft, go!"witnessMsgs"] ↦ x -∗
+        raftOwn l { rv with witnessMsgs' := x }) := by
+  unfold raftOwn
+  iintro Hf
+  iNamed Hf
+  iframe H_Term H_witnessMsgs
+  iintro %x H_Term H_witnessMsgs
+  simp only [named]
+  iframe
+  try iframe #
+  try (ipureintro; simp_all)
 
 private theorem raft_split_msgsAA (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
@@ -2095,18 +2104,22 @@ is no witness (`ownRaftPhysC_wit0`) the re-seal is vacuous; once that conjunct g
 `outboxRel_snocW` and `witOwn` at `μs ++ [μ]`. -/
 theorem ownRaftPhysC_witQ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
-      ∃ (wsl : GoSlice) (μs : List WMsg), r.[raft, go!"witnessMsgs"] ↦ wsl ∗ ownWQueue wsl μs ∗
-        (∀ (wsl' : GoSlice) (μ : WMsg), ⌜c.wit ≠ W64 0⌝ -∗ r.[raft, go!"witnessMsgs"] ↦ wsl' -∗
+      ∃ (wsl : GoSlice) (μs : List WMsg), r.[raft, go!"Term"] ↦ s.term ∗
+        r.[raft, go!"witnessMsgs"] ↦ wsl ∗ ownWQueue wsl μs ∗
+        (∀ (wsl' : GoSlice) (μ : WMsg), ⌜c.wit ≠ W64 0⌝ -∗ r.[raft, go!"Term"] ↦ s.term -∗
+          r.[raft, go!"witnessMsgs"] ↦ wsl' -∗
           ownWQueue wsl' (μs ++ [μ]) -∗ ownRaftPhysCV c V r id (sendMsgs s [wAbs μ])) := by
   iintro H
   iNamed_physC H
-  icases raft_split_witnessMsgs r rv $$ Hr with ⟨Hf, -⟩
+  icases raft_split_witnessMsgs r rv $$ Hr with ⟨HT, Hf, -⟩
   iunfold witOwn at Hwit
   icases Hwit with ⟨%μs, -, Hq, -, -, %Hwz⟩
   iexists wsl, μs
   ihave Hf : r.[raft, go!"witnessMsgs"] ↦ wsl $$ [Hf]
   · rw [← Hwf.1]; iexact Hf
-  iframe Hf Hq
+  ihave HT : r.[raft, go!"Term"] ↦ s.term $$ [HT]
+  · rw [← Hterm]; iexact HT
+  iframe HT Hf Hq
   iintro %wsl' %μ %Hne
   -- STAGED: no witness yet
   exact absurd Hwz Hne

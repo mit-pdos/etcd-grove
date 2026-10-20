@@ -53,7 +53,7 @@ theorem raft.sendAppendToWitness.wp_proof
   · iapply ownSlice_nil
   imod ownSlice_persist $$ Hnil with #Hnil
   -- `r.witnessMsgs = append(r.witnessMsgs, msg)`
-  icases ownRaftPhysC_witQ c r id s $$ Hphys with ⟨%wsl, %μs, Hwf, Hq, Hback⟩
+  icases ownRaftPhysC_witQ c r id s $$ Hphys with ⟨%wsl, %μs, HT, Hwf, Hq, Hback⟩
   iunfold ownWQueue at Hq
   icases Hq with ⟨%wms, Hqs, Hqcap, #Hqm⟩
   try wp_auto
@@ -78,7 +78,7 @@ theorem raft.sendAppendToWitness.wp_proof
     isplitr
     · ipureintro; simp only [MsgApp, and_true]
     ileft; ipureintro; exact ⟨rfl, trivial⟩
-  ihave Hphys := Hback $$ %q' %_ %Hw Hwf Hq
+  ihave Hphys := Hback $$ %q' %_ %Hw HT Hwf Hq
   -- the `Infof`
   try wp_auto
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
