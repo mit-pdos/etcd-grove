@@ -30,7 +30,8 @@ answer. The caller gives
   `Φr`'s;
 - `Hread`: at every read (the storage's linearization point, `GetWitnessState`), `Lb` of the
   state read and the round's obligation `wObl` (`Φr` of an answer without a write, or the
-  write's shift);
+  write's shift), for a request of a type the witness answers (it reads the storage for no
+  other);
 - `Φr none` (a request of a type the witness ignores).
 
 On success (`err = nil`) the answer, if any, is a fresh message (`respOpt`) with `Φr`'s; on a
@@ -45,7 +46,8 @@ abbrev witness.Process.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       ownWitness w id s cq pv c h ∗ isWitnessStorage s N P ∗ ownWMsg mv μ ∗ Lb c ∗
       "#Hcache" ∷ □ (∀ σ hh r, Lb σ -∗ ⌜wNoUpdate id cq pv hh σ μ = some r⌝ -∗ Φr r) ∗
-      "#Hread" ∷ □ (∀ σ, P σ ={⊤ \ ↑N}=∗ P σ ∗ Lb σ ∗ wObl id cq pv N P Lb Φr μ σ) ∗
+      "#Hread" ∷ □ (∀ σ, ⌜μ.ty = MsgHeartbeat ∨ μ.ty = MsgApp ∨ μ.ty = MsgVote ∨
+        μ.ty = MsgPreVote⌝ -∗ P σ ={⊤ \ ↑N}=∗ P σ ∗ Lb σ ∗ wObl id cq pv N P Lb Φr μ σ) ∗
       "#Hnone" ∷ □ Φr none }}
     (App (Val (w @!! go.GoType.PointerType witness.ty @!! go!"Process")) (Val #mv))
   {{ (ml : Loc) (err : GoError), RET (PairV #ml #err);

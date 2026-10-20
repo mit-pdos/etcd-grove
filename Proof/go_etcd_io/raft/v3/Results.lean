@@ -35,6 +35,8 @@ public import Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+-- the witness proxy at W2's ghost state and as a `Witness` (witness support, W3b)
+public import Proof.go_etcd_io.raft.v3.InvWitnessIface
 
 @[expose] public section
 
@@ -376,6 +378,15 @@ namespace EtcdGrove
 #print axioms node.wp_TransferLeadership
 #print axioms node.wp_ReportSnapshot
 #print axioms node.wp_ReportUnreachable
+
+-- the witness proxy (witness support, W3b): `Process` against the storage's contract, at W2's
+-- ghost state (`witness.Process.ghost`), and the `Witness` interface's methods on it
+#print axioms witness.wp_Process
+#print axioms witness.wp_Close
+#print axioms wp_NewWitness
+#print axioms witness.Process.ghost
+#print axioms Witness.wp_Process'
+#print axioms Witness.wp_Close'
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc

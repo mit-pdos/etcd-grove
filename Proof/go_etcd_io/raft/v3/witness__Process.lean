@@ -105,6 +105,13 @@ theorem witness.Process.wp_proof
     iframe Hnone
     unfold respOpt; ipureintro; rfl
   rw [decide_eq_true Hsw]
+  have Hty4 : μ.ty = MsgHeartbeat ∨ μ.ty = MsgApp ∨ μ.ty = MsgVote ∨ μ.ty = MsgPreVote := by
+    rw [← Hty]
+    rcases Hsw with h | h | h | h
+    · exact Or.inl h
+    · exact Or.inr (Or.inr (Or.inr h))
+    · exact Or.inr (Or.inr (Or.inl h))
+    · exact Or.inr (Or.inl h)
   wp_auto
   -- the cache first
   wp_apply wp_processNoUpdate w id cq pv (DFrac.own 1) (DFrac.own 1) p c e mv μ
@@ -149,7 +156,7 @@ theorem witness.Process.wp_proof
   ihave HGet' := HGet $$ %(fun σ => iprop(Lb σ ∗ wObl id cq pv N P Lb Φr μ σ))
   iapply HGet' $$ []
   · iintro %σ HP
-    iapply Hread $$ HP
+    iapply Hread $$ %σ %Hty4 HP
   inext
   iintro %sv %err Hrd
   icases Hrd with (⟨%Herr, -⟩ | ⟨%Herr, %σ, #Hws, #HLbσ, Hobl⟩)
