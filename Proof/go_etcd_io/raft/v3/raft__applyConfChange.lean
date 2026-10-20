@@ -100,7 +100,7 @@ theorem raft.applyConfChange.wp_proof
     wp_auto
     wp_apply wp_Changer_LeaveJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
         (DFrac.own 1) (DFrac.own 1) DFrac.discard (DFrac.own 1)
-        (fun h => H0 ((GMap.elem_of_subseteq _ _).1 (outgoing_sub_ids c) _ h))
+        (fun h => H0 ((GMap.elem_of_subseteq _ _).1 (outgoing_sub_ids c) _ h)) hw
       $$ [$Htc $changer]
       as %cfgv %trk %err ⟨-, -, Hres⟩
     rw [Hst, Happ]

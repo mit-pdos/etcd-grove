@@ -164,7 +164,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto wp_raft_applyConfChange (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg))
           rnv.raft' id s v2 m.asV2 (DFrac.own 1) c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
-          (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2 rfl
+          (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2 rfl (Hw0 Hm).2
         $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)
@@ -250,7 +250,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto wp_raft_applyConfChange (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg))
           rnv.raft' id s p m dq c' (by rw [cfgStateC_simple]; exact Happ) Hsz'
-          (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2 rfl
+          (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2 rfl (Hw0 Hm).2
         $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)

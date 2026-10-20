@@ -85,6 +85,39 @@ def CSWf (vo v l ln : List w64) : Prop :=
   (∀ x, x ∈ ln → x ∈ vo ∧ x ∉ v ∧ x ∉ l) ∧
   (vo = [] → ln = [])
 
+/-- Without an `AddWitness`, `Simple` keeps the witness or clears it (2026-10-20). -/
+theorem simpleM_wit {ccs : List ConfChangeSingleM} {s s' : CCState} (h : simpleM ccs s = some s')
+    (h4 : NoAddWit ccs) : s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
+  unfold simpleM at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  rename_i s2 hs2
+  split at h
+  · cases h
+  obtain ⟨rfl, -⟩ := checkedM_some h
+  have e := applyM_wit hs2 h4
+  exact e
+
+/-- A fold of `Simple`s without an `AddWitness` from a witness-free state stays witness-free. -/
+theorem simpleFold_wit0 {l : List ConfChangeSingleM} {s s' : CCState} (h : simpleFold l s = some s')
+    (h4 : NoAddWit l) (h0 : s.cfg.wit = W64 0) : s'.cfg.wit = W64 0 := by
+  induction l generalizing s with
+  | nil => simp only [simpleFold, Option.some.injEq] at h; subst h; exact h0
+  | cons c cs ih =>
+    simp only [simpleFold] at h
+    cases h1 : simpleM [c] s with
+    | none => rw [h1] at h; cases h
+    | some s1 =>
+      rw [h1, Option.bind_some] at h
+      refine ih h (fun c' hc => h4 c' (List.mem_cons_of_mem _ hc)) ?_
+      rcases simpleM_wit h1 (fun c' hc => h4 c' (by simp at hc; subst hc; exact List.mem_cons_self ..)) with e | e
+      · rw [e]; exact h0
+      · exact e
+
 theorem simpleFold_append (l1 l2 : List ConfChangeSingleM) (s : CCState) :
     simpleFold (l1 ++ l2) s = (simpleFold l1 s).bind (simpleFold l2) := by
   induction l1 generalizing s with

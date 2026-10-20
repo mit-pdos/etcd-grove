@@ -401,6 +401,7 @@ theorem RawNode.Bootstrap.wp_proof
         (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h) rfl
+        (by intro c hc _; simp only [CCV1M.asV2, List.mem_singleton] at hc; subst hc; show (W32 0 : w32) ≠ W32 4; decide)
       $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
     obtain ⟨prs', pvs', Hsk'⟩ := applyCCOkC_nonleader _ _ _ _ Hok (by rw [Hskr]; decide)
     wp_for_post

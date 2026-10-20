@@ -338,7 +338,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, [], W64 0⟩
         (cfgState ∅ ∅) (fun _ => hsh)
         (fun _ => ⟨Hw0, fun c hc _ => by
-          simp only [ccV2Of, List.mem_singleton] at hc; subst hc; rw [Hok.1]; decide⟩)
+          simp only [ccV2Of, List.mem_singleton] at hc; subst hc; show cm.type ≠ W32 4; rw [Hok.1]; intro h; have := congrArg BitVec.toNat h; simp at this⟩)
         (fun dec c0 h0 h1 hd => absurd (hd ▸ Hstatic) (by simp))) $$ [Hc]
       as %csp %cs ⟨Hcs, -⟩
     · iframe #

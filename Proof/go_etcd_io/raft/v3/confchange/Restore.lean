@@ -120,8 +120,7 @@ theorem wp_Simple_st (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (p : Loc) (chg : confchange.Changer) (ccs : GoSlice) (ls : List Loc)
     (l : List ConfChangeSingleM) (s s' : CCState) (dq dqs : DFrac)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
-    (Hm : simpleM l s = some s')
-    (Hnow : ∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) :
+    (Hm : simpleM l s = some s') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
         ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗
         ownCCSt chg.Tracker'.Config' chg.Tracker'.Progress' s }}
@@ -137,7 +136,7 @@ theorem wp_Simple_st (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     iframe
     ipureintro; exact Hnw
   iapply H p chg s.cfg prs pvs ccs ls l dq dqs (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) Hmi
-    Hnow $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
+    $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
   inext
   iintro %cfg %trk %err ⟨Hp, Hccs, -, Hres⟩
   rw [ccState_flags s pvs Hfl]
@@ -155,7 +154,7 @@ theorem wp_EnterJoint_st (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
     (l : List ConfChangeSingleM) (s s' : CCState) (dq dqs : DFrac)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (Hm : enterJointM al l s = some s')
-    (Hnow : ∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) :
+    (Hnow : ∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) (Hcw : s.cfg.wit = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
         ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗
         ownCCSt chg.Tracker'.Config' chg.Tracker'.Progress' s }}
@@ -172,7 +171,7 @@ theorem wp_EnterJoint_st (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
     iframe
     ipureintro; exact Hnw
   iapply H p chg s.cfg prs pvs al ccs ls l dq dqs (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) Hmi
-    Hnow $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
+    Hnow Hcw $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
   inext
   iintro %cfg %trk %err ⟨Hp, Hccs, -, Hres⟩
   rw [ccState_flags s pvs Hfl]
@@ -194,8 +193,7 @@ theorem wp_Simple_empty (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG
     (Hln : chg.Tracker'.Config'.LearnersNext' = map.nil)
     (Hal : chg.Tracker'.Config'.AutoLeave' = false)
     (Hwit : chg.Tracker'.Config'.Witnesses'.arr = [W64 0, W64 0])
-    (Hm : simpleM l (cfgState ∅ ∅) = some s')
-    (Hnow : ∀ c ∈ l, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) :
+    (Hm : simpleM l (cfgState ∅ ∅) = some s') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
         ccs ↦*{dqs} ls ∗ ([∗list] q;c ∈ ls;l, ccsRO q c) ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
         chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
@@ -213,16 +211,17 @@ theorem wp_Simple_empty (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG
     iframe Hpm Hprs0
     isplitl
     rotate_left
-    · ipureintro; intro k pv h; simp at h
+    · ipureintro; exact ⟨fun h => absurd rfl h, fun k pv h => by simp at h⟩
     ihave Hv0 := (show (v0 ↦$ (∅ : GMap w64 Unit) : IProp GF) ⊢ v0 ↦$ (cfgM ∅ ∅).incoming
       from .rfl) $$ Hv0
-    iapply ownCfgCC_intro chg.Tracker'.Config' (DFrac.own 1) (cfgM ∅ ∅) v0 map.nil Harr Hal Hwit
+    iapply ownCfgCC_intro (w := (cfgM ∅ ∅).wit) chg.Tracker'.Config' (DFrac.own 1) (cfgM ∅ ∅) v0
+      map.nil Harr Hal ⟨Hwit, fun h => absurd rfl h⟩
       $$ Hv0 [] [] []
     · simp only [cfgM]; iapply ownIdsetC_nil
     · rw [Hl]; simp only [cfgM]; iapply ownIdsetC_nil
     · rw [Hln]; simp only [cfgM]; iapply ownIdsetC_nil
   iapply H p chg (cfgM ∅ ∅) ∅ ∅ ccs ls l dq dqs (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-    Hnow $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
+    $$ [$Hpkg $Hp $Hccs $Hcl $Htc]
   inext
   iintro %cfg %trk %err ⟨Hp, Hccs, Htc, Hres⟩
   have Hf0 : flagsOf (∅ : GMap w64 tracker.Progress) = cfgFlags ∅ ∅ := by
@@ -248,10 +247,11 @@ of the value's `IsLearner`. -/
 theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
     (P : w64 → Bool → Prop)
     (Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome)
-    (HP : ∀ k pv, pvs !! k = some pv → P k pv.IsLearner') (Hnw : NoWit pvs) :
+    (HP : ∀ k pv, pvs !! k = some pv → P k pv.IsLearner') (w : w64) (Hnw : WitT w pvs) :
     ([∗map] _k ↦ pr;pv ∈ prs;pvs, (pr ↦ pv : IProp GF)) ∗
       ([∗map] _k ↦ pv ∈ pvs, progR2 (GF := GF) pv) ⊢
-      [∗map] k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner ∧ pp.witness = false⌝ := by
+      [∗map] k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp ∗
+        ⌜P k pp.learner ∧ pp.witness = decide (k = w ∧ w ≠ W64 0)⌝ := by
   iintro ⟨Hpt, HR⟩
   ihave HR := (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) (_ : Loc) => (emp : IProp GF))
     (Φ2 := fun (_ : w64) pv => progR2 (GF := GF) pv)
@@ -263,7 +263,8 @@ theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
     · iexact HR
   ihave H := BigSepM2.bigSepM2_sep_eqv.2 $$ [$Hpt $HR]
   ihave H : ([∗map] k ↦ pr;pv ∈ prs;pvs,
-      ((∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner ∧ pp.witness = false⌝) ∗ emp : IProp GF)) $$ [H]
+      ((∃ pp, ownProgress pr pp ∗ ⌜P k pp.learner ∧ pp.witness = decide (k = w ∧ w ≠ W64 0)⌝) ∗
+        emp : IProp GF)) $$ [H]
   · iapply (BigSepM2.bigSepM2_mono (fun {k pr pv} _ hpv => ?_)) $$ H
     iintro ⟨Hp, -, HR⟩
     unfold progR2
@@ -274,12 +275,13 @@ theorem progs_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
       · iapply ownProgress_intro _ _ pp $$ Hp Hinfl
         ipureintro; exact Habs
       · ipureintro
-        refine ⟨?_, ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.symm.trans (Hnw k pv hpv)⟩
+        refine ⟨?_, ((progressAbs_Some _ _ _).1 Habs).2.2.2.2.2.2.2.2.symm.trans (Hnw.2 k pv hpv)⟩
         rw [← ((progressAbs_Some _ _ _).1 Habs).1]
         exact HP k pv hpv
     · iempintro
   icases (BigSepM2.bigSepM2_sepM (Φ1 := fun k pr =>
-      iprop(∃ pp, ownProgress (GF := GF) pr pp ∗ ⌜P k pp.learner ∧ pp.witness = false⌝))
+      iprop(∃ pp, ownProgress (GF := GF) pr pp ∗
+        ⌜P k pp.learner ∧ pp.witness = decide (k = w ∧ w ≠ W64 0)⌝))
     (Φ2 := fun (_ : w64) (_ : tracker.Progress) => (emp : IProp GF)) (m1 := prs) (m2 := pvs)
     Hdom).1 $$ H with ⟨H, -⟩
   iexact H
@@ -338,7 +340,6 @@ theorem wp_restore_simple_op (H : confchange.Changer.Simple.spec (GF := GF) (hG 
       simp only [List.take_zero, simpleFold, Option.some.injEq] at Hsj; exact Hsj.symm
     subst e
     wp_apply wp_Simple_empty H p chg sl2 [q] [c] v0 sj1 _ _ Hmi Harr Hl Hln Hal Hwit Hstep
-      (by simpa using Hcw)
       $$ [$Hpkg $Hp $Hsl2 $Hcl $Hv0 $Hpm] as %cfg' %trk ⟨-, -, Hv0, Hst⟩
     iapply HΦ
     iframe Hv0
@@ -356,7 +357,7 @@ theorem wp_restore_simple_op (H : confchange.Changer.Simple.spec (GF := GF) (hG 
     subst e
     wp_apply wp_Simple_st H p
       ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
-        confchange.Changer) sl2 [q] [c] s sj1 _ _ Hmi Hstep (by simpa using Hcw)
+        confchange.Changer) sl2 [q] [c] s sj1 _ _ Hmi Hstep
       $$ [$Hpkg $Hp $Hsl2 $Hcl $Hst] as %cfg' %trk ⟨-, -, Hst⟩
     iapply HΦ
     iframe Hv0
@@ -373,7 +374,7 @@ theorem wp_restore_ej_op (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
     (chg : confchange.Changer) (v0 : Loc) (sops : List ConfChangeSingleM) (s' sN : CCState)
     (Hfull : simpleFold sops (cfgState ∅ ∅) = some sN) (al : Bool)
     (inc : List ConfChangeSingleM) (Hej : enterJointM al inc sN = some s')
-    (Hnow : ∀ c ∈ inc, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4)
+    (Hnow : ∀ c ∈ inc, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) (HsNw : sN.cfg.wit = W64 0)
     (hpos : 0 < sops.length)
     (Hmi : 0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62)
     (p : Loc) (cfg : tracker.Config) (prs : Loc) (sl : GoSlice) (lsi : List Loc) (dqs : DFrac) :
@@ -397,7 +398,7 @@ theorem wp_restore_ej_op (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
   subst e
   wp_apply wp_EnterJoint_st H p
     ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
-      confchange.Changer) al sl lsi inc s s' _ _ Hmi Hej Hnow
+      confchange.Changer) al sl lsi inc s s' _ _ Hmi Hej Hnow HsNw
     $$ [$Hpkg $Hp $Hsl $Hcl $Hst] as %cfg' %trk ⟨-, Hsl, Hst⟩
   iapply HΦ
   iframe Hv0 Hsl
@@ -413,12 +414,13 @@ theorem ownCCSt_post (cfg : tracker.Config) (prsm : Loc) (s' : CCState) :
     ownCCSt (GF := GF) cfg prsm s' ⊢ ∃ prs : GMap w64 Loc,
       ownCfgCC cfg (DFrac.own 1) s'.cfg ∗ prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
       ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
-        ⌜s'.prs !! k = some p.learner ∧ p.witness = false⌝) := by
+        ⌜s'.prs !! k = some p.learner ∧
+          p.witness = decide (k = s'.cfg.wit ∧ s'.cfg.wit ≠ W64 0)⌝) := by
   unfold ownCCSt
   iintro ⟨%prs, %pvs, Hc, Hprsm, Hpt, HR, %Hfl, %Hnw⟩
   ihave %Hdom := BigSepM2.bigSepM2_lookup_iff $$ Hpt
   have Hdom' : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom
-  ihave Hprogs := progs_of_values prs pvs (fun k b => s'.prs !! k = some b) Hdom' ?_ Hnw
+  ihave Hprogs := progs_of_values prs pvs (fun k b => s'.prs !! k = some b) Hdom' ?_ _ Hnw
     $$ [$Hpt $HR]
   · intro k pv hpv
     have h' := flagsOf_lookup pvs k pv hpv
@@ -786,7 +788,9 @@ theorem confchange.Restore.wp_proof
       wp_apply wp_GetAutoLeave_own wp_ConfState_GetAutoLeave cs dq c $$ [$Hcs] as Hcs
       rw [Hfslen]
       wp_apply wp_restore_ej_op wp_Changer_EnterJoint chg v0 (restoreOutCC c.VotersOutgoing') s' sN Hfull c.AutoLeave' _ Hej
-        (restoreCC_nowit c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').1 hpos Hmi _ cfg prs ins li _ $$ [$Hpkg $chg $Hins $Hli $HI] as %cfg' %trk ⟨-, HI⟩
+        (restoreCC_nowit c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').1
+        (simpleFold_wit0 Hfull (restoreCC_nowit c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext').2 rfl)
+        hpos Hmi _ cfg prs ins li _ $$ [$Hpkg $chg $Hins $Hli $HI] as %cfg' %trk ⟨-, HI⟩
       iapply HΦ
       dsimp only
       iframe HI Hcs

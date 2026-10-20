@@ -82,7 +82,8 @@ abbrev confchange.Restore.spec : Prop :=
         ownCfgCC cfgv (DFrac.own 1) s'.cfg ∗
         prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
         ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
-          ⌜s'.prs !! k = some p.learner ∧ p.witness = false⌝))) }}
+          ⌜s'.prs !! k = some p.learner ∧
+            p.witness = decide (k = s'.cfg.wit ∧ s'.cfg.wit ≠ W64 0)⌝))) }}
 
 /-- `Restore` runs an op exactly when the conf state has a voter or an outgoing voter (2026-10-16,
 stage R8b): with a voter, `restoreInCC` (not joint) holds its `AddNode`, `restoreOutCC` (joint)
@@ -276,7 +277,7 @@ theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (
   iframe Hp
   ipureintro
   obtain ⟨Hpl, Hpw⟩ := Hpl
-  refine ⟨?_, Hpw⟩
+  refine ⟨?_, by rw [Hpw]; simp [cfgState, cfgM]⟩
   simp only [cfgState] at Hpl
   rw [cfgFlags_lookup] at Hpl
   by_cases hv : k ∈ GMap.listToSet c.Voters'
