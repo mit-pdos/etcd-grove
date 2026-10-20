@@ -1,7 +1,8 @@
 # Plan: the partitioned three-member cluster over the KV workload (`examples/linkv3p` × linkvtxn)
 
-Status: in progress (2026-10-20): P0 and P1 done (branch `linkv3p-txn`, worktree
-`/shared/etcd-grove-lt`); `Apply`, `Check` and `Main` do not build until P3/P4.
+Status: in progress (2026-10-20): P0–P2 done (branch `linkv3p-txn`, worktree
+`/shared/etcd-grove-lt`); linkv3p's `Apply` (spec and proof) and `Check`'s proof do not build
+until P3.
 
 ## Goal
 
@@ -101,6 +102,11 @@ build.
 - `Main` allocates the invariant with `linkvtxn.linkvInv_alloc_boot` (`linkvtxn/Boot.lean`: the
   first member's start state, the empty store at revision `1`, good and the model's initial state)
   in place of linkv's, the library state at `linkvState γ (linkv.pInit TS)`.
+
+Done (2026-10-20). `Check.spec`'s statement moved here (its proof stays P3's): `Main` imports it, and
+it had to take the new `clientOk` and the library state the allocation gives
+(`linkvtxn.linkvState γ (linkv.pInit linkvtxn.TS)`). With it, `Main`'s proof builds unchanged
+beyond P1's destructurings and the allocation, so P4's `Main` bullet is done too.
 
 ### P3. `Apply` and `Check`
 

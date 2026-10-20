@@ -8,9 +8,9 @@ the cluster and its members (`cluster3_alloc`, the ids in the names' order, the 
 at the first member's names); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`); the servers' slice; `newClient` to each member (at a watch
 environment the clients never use); the partitioner forked on the schedule (every member's
-`srvNetMember`); the instance's invariant at the cluster's start store (`linkvInv_alloc_boot`,
-at the first member's names, the others' by `linkvInv_congr`), so each client has linkv's
-`Apply.spec`'s premises (`clientOk`); `Check(clis, clients, ops, 0)`, which returns `Ok`
+`srvNetMember`); the instance's invariant at the cluster's start store (linkvtxn's
+`linkvInv_alloc_boot`, at the first member's names, the others' by `linkvInv_congr`), so each
+client has linkvtxn's `Apply.spec`'s premises (`clientOk`); `Check(clis, clients, ops, 0)`, which returns `Ok`
 (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error ends `Main` with
 `Unknown`.
 -/
@@ -21,7 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Boot
 public import Spec.go_uber_org.zap.NewNop
 
 @[expose] public section
@@ -272,12 +272,12 @@ theorem Main.wp_proof
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
   -- the instance's invariant, at the cluster's start store (empty), for every member's names
-  imod (linkv.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
-      Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd
+  imod (linkvtxn.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃)
+      bootLog Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
-  ihave #Hlinv₂ : linkv.linkvInv γl ρ₂.rd.kv $$ []
+  ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂ hwl₂]; iexact Hlinv
-  ihave #Hlinv₃ : linkv.linkvInv γl ρ₃.rd.kv $$ []
+  ihave #Hlinv₃ : linkvtxn.linkvInv γl ρ₃.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃ hwl₃]; iexact Hlinv
   ihave #Hok : ([∗list] cl ∈ [cl₁, cl₂, cl₃], clientOk γl cl) $$ []
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2

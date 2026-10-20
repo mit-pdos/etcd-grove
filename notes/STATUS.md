@@ -54,7 +54,9 @@ module system").
 `notes/linkv3p-txn-plan.md`: re-close `linkv3p_safe` over linkvtxn's KV workload on its present
 axioms. P0 (the Go program: `Apply`/`Check` over linkvtxn, regenerated) and P1 (the members'
 `DeleteRange`/`Txn` registrations, `clientOk` as linkvtxn's `Apply` premises, `linkvInv_congr`
-for linkvtxn's invariant) are done; linkv3p's `Apply`, `Check` and `Main` do not build until P3/P4.
+for linkvtxn's invariant) and P2 (`Main` allocates linkvtxn's invariant; `Check.spec` restated
+over linkvtxn, and `Main`'s proof builds on it) are done; linkv3p's `Apply` and `Check`'s proof do
+not build until P3.
 
 ## Partitions, S3b: `Main` and the closed theorem `linkv3p_safe` (2026-10-20, branch `linkv3p`, worktree `/shared/etcd-grove-pt`)
 
