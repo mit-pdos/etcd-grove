@@ -96,69 +96,72 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_gets
   rw [decide_eq_true Hlt0]
   wp_auto
-  -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: false either way
+  -- `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: false either way, so joined
+  -- (`wp_join`) at `#false`, the flags split (`wp_cq_pv`) in the condition only, and the
+  -- rest verified once
   wp_gets
-  wp_cq_pv
-  all_goals try (wp_gets; rw [Hn8]; wp_auto; wp_gets; rw [Hn3]; wp_auto)
+  wp_join (v := #false) at (if: _ then _ else #false) with [Hphys r m Hm]
+  · wp_cq_pv
+    all_goals try (wp_gets; rw [Hn8]; wp_auto; wp_gets; rw [Hn3]; try wp_auto)
+    all_goals wp_join_done
   -- `MsgPreVote`: reject at `r.Term`
-  all_goals
-    wp_gets
-    rw [Hy17]
-    wp_auto
-    wp_gets
-    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
-    wp_gets
-    wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
-    ihave Hphys := Hback $$ Hlog
-    wp_gets
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_gets
-    wp_apply raft.wp_load_VoteC $$ Hphys as Hphys
-    wp_gets
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-    wp_gets
-    wp_raft_logC
-    icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
-    wp_load
-    ihave Hm := HmB $$ HFr
-    try wp_auto
-    wp_gets
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-    try wp_auto
-    rw [show raftpb.MsgPreVoteResp = #MsgPreVoteResp from rfl]
-    wp_apply PB.Enum MsgPreVoteResp
-    iintro %pty Hpty
-    wp_auto
-    -- the response `&pb.Message{To: m.From, Term: new(r.Term), Type: .., Reject: new(true)}`
-    imod cellRO_alloc _ _ $$ Hpty with #cTy
-    imod cellRO_alloc _ _ $$ «$v1» with #cTe
-    imod cellRO_alloc _ _ $$ «$v3» with #cRj
-    imod msgOwn_of_resp _ _ _ _ _ MsgPreVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
-    · iframe «$a0» cTy cFr cTe cRj
-    let resp : MessageM :=
-      ⟨MsgPreVoteResp, m.From', W64 0, s.term, W64 0, W64 0, W64 0, W64 0, true, W64 0⟩
-    wp_gets
-    have Hok : SendOk id s resp [] [] [absMsgFrom .preVoteResp resp id resp.Term' [] []] :=
-        (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
-          fun Hc => by
-            change MsgPreVoteResp = _ ∨ MsgPreVoteResp = _ at Hc
-            rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-          fun h => absurd h Hfid,
-          .inl (Int.le_refl _), rfl⟩)
-    wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ (Or.inl rfl) Hok
-        (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
-      $$ [$Hphys $Hresp]
-    iintro Hphys
-    wp_auto
-    iapply HΦ $$ %interface.nil %_
-    iframe Hphys
-    ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
-      keep_frame rfl rfl rfl rfl rfl⟩
-    wp_gets
-    rw [toPState_sendMsgs]
-    exact .sendFree _ _ (.inr rfl) rfl
+  wp_gets
+  rw [Hy17]
+  wp_auto
+  wp_gets
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+  wp_gets
+  wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+  ihave Hphys := Hback $$ Hlog
+  wp_gets
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_gets
+  wp_apply raft.wp_load_VoteC $$ Hphys as Hphys
+  wp_gets
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_gets
+  wp_raft_logC
+  icases msgPtsC_From_acc _ _ _ _ _ $$ Hm with ⟨%pfr, HFr, #cFr, HmB⟩
+  wp_load
+  ihave Hm := HmB $$ HFr
+  try wp_auto
+  wp_gets
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  try wp_auto
+  rw [show raftpb.MsgPreVoteResp = #MsgPreVoteResp from rfl]
+  wp_apply PB.Enum MsgPreVoteResp
+  iintro %pty Hpty
+  wp_auto
+  -- the response `&pb.Message{To: m.From, Term: new(r.Term), Type: .., Reject: new(true)}`
+  imod cellRO_alloc _ _ $$ Hpty with #cTy
+  imod cellRO_alloc _ _ $$ «$v1» with #cTe
+  imod cellRO_alloc _ _ $$ «$v3» with #cRj
+  imod msgOwn_of_resp _ _ _ _ _ MsgPreVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
+  · iframe «$a0» cTy cFr cTe cRj
+  let resp : MessageM :=
+    ⟨MsgPreVoteResp, m.From', W64 0, s.term, W64 0, W64 0, W64 0, W64 0, true, W64 0⟩
+  wp_gets
+  have Hok : SendOk id s resp [] [] [absMsgFrom .preVoteResp resp id resp.Term' [] []] :=
+      (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
+        fun Hc => by
+          change MsgPreVoteResp = _ ∨ MsgPreVoteResp = _ at Hc
+          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+        fun h => absurd h Hfid,
+        .inl (Int.le_refl _), rfl⟩)
+  wp_apply _P.send c r id s «$a0_ptr» resp [] none [] [] _ (Or.inl rfl) Hok
+      (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+    $$ [$Hphys $Hresp]
+  iintro Hphys
+  wp_auto
+  iapply HΦ $$ %interface.nil %_
+  iframe Hphys
+  ipureintro
+  refine ⟨nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
+    keep_frame rfl rfl rfl rfl rfl⟩
+  wp_gets
+  rw [toPState_sendMsgs]
+  exact .sendFree _ _ (.inr rfl) rfl
 
 end StepProof
 

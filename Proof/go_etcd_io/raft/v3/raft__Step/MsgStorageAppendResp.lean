@@ -89,20 +89,30 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
     wp_drive _Q
     rw [decide_eq_true Hlt]
     wp_auto
-    wp_drive _Q
-    -- not `MsgHeartbeat`/`MsgApp`, not `MsgPreVote`: the `MsgStorageAppendResp` arm
-    wp_drive _Q
-    cq_split _Q
-    all_goals
-      by_cases Hi0 : m.Index' = W64 0
+    -- `(r.checkQuorum || r.preVote) && (MsgHeartbeat || MsgApp)` is false whichever way the
+    -- flags go: the condition is joined at `false` (`wp_join`), so the rest of the arm is
+    -- verified once, not once per flag case
+    wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+    · wp_drive _Q
+      cq_split _Q
+      -- where the type test ran, its last disjunct (`MsgApp`) is the value left
       all_goals first
-        | (rw [decide_eq_true Hi0]
-           wp_auto)
-        | (rw [decide_eq_false Hi0]
-           wp_auto
-           -- the log line
-           wp_drive _Q
-           wp_raft_logC)
+        | wp_join_done
+        | (isplitr
+           · ipureintro; rw [decide_eq_false (by w32_ne)]
+           iframe)
+    -- not `MsgPreVote`: the `MsgStorageAppendResp` arm
+    try wp_auto
+    wp_drive _Q
+    by_cases Hi0 : m.Index' = W64 0
+    all_goals first
+      | (rw [decide_eq_true Hi0]
+         wp_auto)
+      | (rw [decide_eq_false Hi0]
+         wp_auto
+         -- the log line
+         wp_drive _Q
+         wp_raft_logC)
     -- no snapshot
     all_goals
       wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
@@ -119,58 +129,61 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
     · right
       have : ¬ uint.Z m.Term' < uint.Z s.term := fun h => Hstale ⟨Hz, h⟩
       word
-  by_cases Hz : m.Term' = W64 0
-  all_goals first
-    | (rw [decide_eq_true Hz]
-       wp_auto)
-    | (rw [decide_eq_false Hz]
-       wp_auto
-       have Heq : m.Term' = s.term := Hmt.resolve_left Hz
-       wp_drive _Q
-       rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Heq]; omega)]
-       wp_auto
-       wp_drive _Q
-       rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Heq]; omega)]
-       wp_auto)
+  -- the term switch falls through either way: joined (`wp_join`), so the type switch is
+  -- verified once, not once per case
+  wp_join at (if: _ then _ else _) with [Hphys r m Hm]
+  · by_cases Hz : m.Term' = W64 0
+    all_goals first
+      | (rw [decide_eq_true Hz]
+         wp_auto)
+      | (rw [decide_eq_false Hz]
+         wp_auto
+         have Heq : m.Term' = s.term := Hmt.resolve_left Hz
+         wp_drive _Q
+         rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by rw [Heq]; omega)]
+         wp_auto
+         wp_drive _Q
+         rw [decide_eq_false (show ¬ uint.Z m.Term' < uint.Z s.term by rw [Heq]; omega)]
+         wp_auto)
+    all_goals wp_join_done
   -- the type switch: `MsgStorageAppendResp`
-  all_goals
+  wp_drive _Q
+  by_cases Hi0 : m.Index' = W64 0
+  · rw [decide_eq_true Hi0]
+    wp_auto
+    wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
+    try wp_auto
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
+      StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
+  · rw [decide_eq_false Hi0]
+    wp_auto
+    -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
     wp_drive _Q
-    by_cases Hi0 : m.Index' = W64 0
-    · rw [decide_eq_true Hi0]
-      wp_auto
-      wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
-      try wp_auto
-      iapply HΦ $$ %interface.nil %s
-      iframe Hphys
-      ipureintro
-      exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩,
-        StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
-    · rw [decide_eq_false Hi0]
-      wp_auto
-      -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
-      wp_drive _Q
-      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-      icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, -, Hback⟩
-      wp_apply _P.stableTo _ _ _ (Hstok Hmt Hi0) $$ [$Hlog] as Hlog
-      have Hkp : LogNsKeep s (logStableTo s.logst ⟨m.LogTerm', m.Index'⟩) := fun _ =>
-        ⟨(logStableTo_fields _ _).2.2.2.2.1, (logStableTo_fields _ _).2.2.1,
-          logStableTo_storage _ _, by unfold logStableTo; split <;> exact Int.le_refl _⟩
-      ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkp)
-        %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
-      wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
-      try wp_auto
-      iapply HΦ $$ %interface.nil %_
-      iframe Hphys
-      ipureintro
-      obtain ⟨Hap, Hun, Hsn', Hip, Hpv, Hst⟩ :=
-        logStableTo_fields s.logst (entryID.mk m.LogTerm' m.Index')
-      refine ⟨Hwf, ⟨⟨rfl, Hip, Hun, Hsn', Hpv, Hst, logStableTo_storage _ _, rfl, rfl, rfl,
-        by unfold logStableTo; split <;> rfl,
-        by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
-          by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, Hap⟩, ?_, rfl⟩
-      refine StepCD.frame ?_ ⟨by unfold logStableTo; split <;> rfl, Hsn', fun h => ⟨h, rfl⟩⟩
-      rw [toPState_logStableTo]
-      exact .refl _
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, -, Hback⟩
+    wp_apply _P.stableTo _ _ _ (Hstok Hmt Hi0) $$ [$Hlog] as Hlog
+    have Hkp : LogNsKeep s (logStableTo s.logst ⟨m.LogTerm', m.Index'⟩) := fun _ =>
+      ⟨(logStableTo_fields _ _).2.2.2.2.1, (logStableTo_fields _ _).2.2.1,
+        logStableTo_storage _ _, by unfold logStableTo; split <;> exact Int.le_refl _⟩
+    ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkp)
+      %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
+    wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
+    try wp_auto
+    iapply HΦ $$ %interface.nil %_
+    iframe Hphys
+    ipureintro
+    obtain ⟨Hap, Hun, Hsn', Hip, Hpv, Hst⟩ :=
+      logStableTo_fields s.logst (entryID.mk m.LogTerm' m.Index')
+    refine ⟨Hwf, ⟨⟨rfl, Hip, Hun, Hsn', Hpv, Hst, logStableTo_storage _ _, rfl, rfl, rfl,
+      by unfold logStableTo; split <;> rfl,
+      by rw [show (logStableTo s.logst (entryID.mk m.LogTerm' m.Index')).applied = s.logst.applied
+        by unfold logStableTo; split <;> rfl]; exact Int.le_refl _⟩, Hap⟩, ?_, rfl⟩
+    refine StepCD.frame ?_ ⟨by unfold logStableTo; split <;> rfl, Hsn', fun h => ⟨h, rfl⟩⟩
+    rw [toPState_logStableTo]
+    exact .refl _
 
 end StepProof
 

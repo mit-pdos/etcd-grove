@@ -216,27 +216,38 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       wp_gets
       rw [decide_eq_true Hlt]
       wp_auto
+      -- `(r.checkQuorum || r.preVote) && (m.Type == MsgHeartbeat || m.Type == MsgApp)` is
+      -- false whichever way the flags go: the condition is joined at `false` (`wp_join`), so
+      -- the rest of the arm is verified once, not once per flag case
+      wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+      · wp_gets
+        wp_cq_pv
+        all_goals
+          try wp_auto
+          repeat (wp_gets; rw [Hty]; try wp_auto)
+        all_goals first
+          | wp_join_done
+          | (isplitr
+             · ipureintro; rw [decide_eq_false (by w32_ne)]
+             iframe)
+      try wp_auto
+      repeat (wp_gets; rw [Hty]; try wp_auto)
       wp_gets
-      wp_cq_pv
-      all_goals
-        try wp_auto
-        repeat (wp_gets; rw [Hty]; try wp_auto)
-        wp_gets
-        wp_apply raft.wp_load_idC $$ Hphys as Hphys
-        wp_gets
-        wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_gets
-        wp_raft_logC
-        iapply HΦ $$ %interface.nil %s %_
-        iframe Hphys
-        isplitr
-        · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
-        isplitr
-        · iexact Hrc
-        ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
-          StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
-      RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_gets
+      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+      wp_gets
+      wp_raft_logC
+      iapply HΦ $$ %interface.nil %s %_
+      iframe Hphys
+      isplitr
+      · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
+      isplitr
+      · iexact Hrc
+      ipureintro
+      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+        StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+        RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- m.Term = r.Term: the preamble does nothing and control reaches the type
       -- switch, whose default arm is `r.step(m)`.
       wp_gets
