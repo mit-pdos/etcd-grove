@@ -186,8 +186,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.opaqueInitsOk
-axiom Perennial.go_etcd_io.raft.v3.raftpb.initFuncsOk
-axiom Perennial.go_etcd_io.raft.v3.raftpb.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.codes.opaqueInitsOk
@@ -207,10 +205,6 @@ axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
-axiom Perennial.google_golang_org.protobuf.internal.impl.opaqueInitsOk
-axiom Perennial.google_golang_org.protobuf.proto.initFuncsOk
-axiom Perennial.google_golang_org.protobuf.proto.opaqueInitsOk
-axiom Perennial.google_golang_org.protobuf.reflect.protoreflect.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
