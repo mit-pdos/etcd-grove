@@ -98,9 +98,10 @@ local macro "finish_false" : tactic => `(tactic| (
   iright
   isplitr
   · ipureintro; rfl
+  ihave #Hstrecs0 := storedRecsP_elim γ Hps _ _ $$ Hstrecs
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl ⟨Hout0, Hnu, Hrd0⟩
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
+    (Hsnap (.inl Hps)) Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl ⟨Hout0, Hnu, Hrd0⟩
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs0))
 
 set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
@@ -153,7 +154,7 @@ theorem RawNode.HasReady.wp_proof
     (wp_raft_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_raft_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs
+  intro γ rn id rs Hps
   wp_start as H
   iNamed H
   iNamed Hrn

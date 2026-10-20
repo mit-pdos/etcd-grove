@@ -36,6 +36,8 @@ empty, every unstable entry handed out); that went with the previous `SoftState`
 `HardState` from `RNState`, which no client-facing spec states. -/
 abbrev RawNode.HasReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
+  -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`; S-d hands one out)
+  rs.psnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))

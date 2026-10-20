@@ -208,7 +208,7 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
     (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
     (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
     (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-       st.msg.Type' = MsgReadIndexResp → st.msg.From' ≠ id) ∧
+       st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
     (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id)
@@ -284,11 +284,15 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto
     isplitr
     · ipureintro
-      refine ⟨fun h => (deliverable_not_prevote st Hd h).elim, fun h => ?_⟩
-      exfalso
-      rcases deliverable_mtype st Hd with h' | ⟨ty, h', -⟩
-      · rw [h] at h'; simp [MsgTransferLeader, MsgTimeoutNow] at h'
-      · rw [h] at h'; cases h'
+      refine ⟨fun h => (deliverable_not_prevote st Hd h).elim, fun h => ?_, fun h => ?_⟩
+      · exfalso
+        rcases deliverable_mtype st Hd with h' | ⟨ty, h', -⟩
+        · rw [h] at h'; simp [MsgTransferLeader, MsgTimeoutNow] at h'
+        · rw [h] at h'; cases h'
+      -- (2026-10-20, D22 S-c) no snapshot (`deliverable` drops one)
+      · rcases deliverable_mtype st Hd with h' | ⟨ty, h', hns⟩
+        · rw [h] at h'; simp [MsgSnap, MsgTimeoutNow] at h'
+        · rw [h] at h'; cases h'; exact hns rfl
     iframe Hmsg Hlb Hcr Htc
 
 end defs

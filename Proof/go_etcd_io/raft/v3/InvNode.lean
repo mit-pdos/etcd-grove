@@ -454,9 +454,12 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
       -- (2026-10-17) a pre-vote request only in a cluster started from a bootstrap log, whose
       -- nodes are past term `0` (`RawNode.Step`'s premise); (2026-10-19, D21 M2r) a leader-transfer
       -- request only outside the cluster's no-transfer mode, where leader transfer is off (D22 S-a:
-      -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
+      -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag); (2026-10-20, D22 S-c) no
+      -- snapshot yet: `RawNode.Step` takes one (`NetMsgOk`), but `run` then calls
+      -- `readyWithoutAccept`, which hands out a pending snapshot only from stage S-d on
       ⌜(st.msg.Type' = MsgPreVote → γ.raft.reBoot ≠ []) ∧
-        (st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false)⌝ ∗
+        (st.msg.Type' = MsgTransferLeader → γ.raft.reNoXfer = false) ∧
+        st.msg.Type' ≠ MsgSnap⌝ ∗
       □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
         isMessage γ.raft (absMsg ty st.msg st.ents st.ctx)) ∗
       termLB γ.bud st.msg.Term' ∗
@@ -492,7 +495,7 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
         simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp,MsgCheckQuorum, MsgReadIndexResp, MsgTransferLeader,
-          MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+          MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap] at h
     · exfalso
       rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
         simp [MsgAppResp, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
@@ -506,9 +509,12 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
   isplitr
   · ipureintro; exact Hok
   isplitr
-  · ipureintro; refine ⟨fun h => ?_, Hxt⟩; exfalso
-    rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
-      simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+  · ipureintro; refine ⟨fun h => ?_, Hxt, ?_⟩
+    · exfalso
+      rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
+        simp [MsgPreVote, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+    · rcases Hty with h' | h' | h' | h' <;> rw [h'] <;>
+        simp [MsgSnap, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
   rw [Ht, ite_eq_right Hnr, ite_eq_right Hnt]
   isplitr
   · imodintro
@@ -607,7 +613,10 @@ def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
   iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ rs.delivered.length ∧
       -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
       -- in its `advancec` arm, right before `Advance`
-      rs.flw = false⌝ ∗
+      rs.flw = false ∧
+      -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`): `run` steps no `MsgSnap`
+      -- (`netP`) until stage S-d
+      rs.psnap = false⌝ ∗
     monoListAuthOwn γ.dlm 1 rs.delivered ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
       monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn rs.delivered ca rs.capplied⌝)

@@ -82,7 +82,7 @@ whose network payload is the server's. -/
 theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     (HN : γn.N = srvNet γ.node.raft γ.node.bud) (hns : γ.node.raft.reNoSnap = true)
     (hboot : γ.node.raft.reBoot ≠ [])
-    -- (2026-10-19, D22 S-a) `SentMsgOk` is of both modes
+    -- (2026-10-19, D22 S-a) `SentMsgOk` is of the no-transfer mode (D22 S-a to S-c: of both)
     (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
     netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by
   obtain ⟨N, g, dir⟩ := γn
@@ -98,7 +98,7 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
   ihave #Hrm' := Hrm
   iunfold isRaftMsg at Hrm'
   icases Hrm' with ⟨-, %Hsent0, -⟩
-  have Hsent := Hsent0 ⟨hnx, hns⟩
+  have Hsent := Hsent0 hnx
   have Htn := SentMsgOk.ne_timeoutNow Hsent
   ihave #Hmsgs := isRaftMsg_isMessages γ.node.raft st Hns $$ Hrm
   -- the copy's state is the message's but for its responses
@@ -139,7 +139,7 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · ipureintro
       exact NetMsgOk.of_sent Hsent Hto Hp
     isplitr
-    · ipureintro; exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent)⟩
+    · ipureintro; exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent), Hns⟩
     simp only [ite_eq_right Htn]
     iframe Hmsgs Htl HO Htc
 

@@ -11,8 +11,12 @@ Specified for the messages of replication and leader election (`NetMsgOk`): `Msg
 (2026-10-13) of read-index: `MsgReadIndex`, `MsgReadIndexResp`; and (2026-10-13, for
 `node.go`, whose `run` steps them all) leader transfer, `MsgTimeoutNow` and an unstamped
 `MsgTransferLeader` (`TransferLeadership`'s), and the local `MsgForgetLeader`,
-`MsgUnreachable`, `MsgSnapStatus` -- not pre-vote (an optimization), snapshots (log
-compaction, also an optimization), nor a `MsgTransferLeader` a follower forwarded (stamped:
+`MsgUnreachable`, `MsgSnapStatus`; (2026-10-17) pre-vote; (2026-10-20, D22 S-c) a leader's
+`MsgSnap`, in the static mode, outside the cluster's no-snapshot mode and with no `Ready`
+outstanding, its snapshot as `raft.Step` takes it (`"#Hsnap"`: `SnapScope`, `GMode.SnapOk`,
+`absSnap`); afterwards a snapshot may be pending (`RNState.psnap`), which `Ready` and `Advance`
+do not hand out until stage S-d (`notes/decisions.md`, "D22 S-c carried out") -- not a
+`MsgTransferLeader` a follower forwarded (stamped:
 `raft.Step` takes it only of a receiver that is no follower with a leader at its term,
 `RestMsgOk`, a fact of the receiver's state no message carries) -- with what the transport
 and the peers guarantee of them, which `raft.Step` takes as premises
@@ -81,8 +85,8 @@ abbrev RawNode.Step.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ml : Loc) (st : MsgSt),
   NetMsgOk id st →
   -- (2026-10-14, stage B7 part 2) **no snapshot in the dynamic mode** (`DynNoSnap`): a
-  -- snapshot restore at a dynamic configuration is stage B8. (Implied today by `NetMsgOk`,
-  -- which takes no `MsgSnap` in either mode; a separate premise so that B8 can drop it.)
+  -- snapshot restore at a dynamic configuration is stage B8. (Until 2026-10-20, D22 S-c,
+  -- implied by `NetMsgOk`, which took no `MsgSnap` in either mode.)
   DynNoSnap rs st.msg →
   -- (2026-10-17) the term ceiling covers the message's term (a granted pre-vote answers at it)
   -- and, for a `MsgTimeoutNow` (until then: does not wrap the term), its campaign's term;
@@ -99,19 +103,38 @@ abbrev RawNode.Step.spec : Prop :=
   -- where leader transfer is off (`NGhost.xf`, `NsLink`; D22 S-a: `RaftNames.reNoXfer`, until
   -- then the no-snapshot mode's flag)
   (st.msg.Type' = MsgTransferLeader → γ.reNoXfer = false) →
+  -- (2026-10-20, D22 S-c) a snapshot only outside the cluster's no-snapshot mode, where no node
+  -- sends one (`NsLink`, `raft.Step`'s premise), and with no `Ready` outstanding: a restore
+  -- replaces the log's boundary, which a queued `MsgStorageAppendResp` acknowledges against
+  -- (`PendingOk`; a snapshot between `Ready` and `Advance` is stage S-d's)
+  (st.msg.Type' = MsgSnap → γ.reNoSnap = false ∧ rs.steps = []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then
       -- `#Hents`, `Hents_cap`, `#Hctx`: the entries read-only with the slice's capacity, the
       -- context read-only)
       "Hm" ∷ msgIn ml DFrac.discard st ∗
-      "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
+      -- (2026-10-20, D22 S-c) but a snapshot's, whose abstraction is `absSnap` (`"#Hsnap"`)
+      "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
         isMessage γ (absMsg ty st.msg st.ents st.ctx)) ∗
+      -- (2026-10-20, D22 S-c) a `MsgSnap`'s snapshot, as `raft.Step`'s `"#Hsnap"` takes it at the
+      -- static mode (the only one a snapshot comes in, `DynNoSnap`): the snapshot the message
+      -- holds, its `ConfState`'s lists well formed (`SnapScope`), the ghost state's voters, not
+      -- joint, within the tracked bound (`GMode.SnapOk`), and its abstraction legitimately sent.
+      -- (`SnapScope` and `GMode.SnapOk` are what stage S-b′ derives from the message's
+      -- configuration certificate.)
+      "#Hsnap" ∷ □ (⌜st.msg.Type' = MsgSnap⌝ -∗
+         ∃ (sv : SnapshotM) (scfg : CSLists),
+           ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧ SnapScope sv scfg⌝ ∗
+           GMode.SnapOk γ .static sv scfg ∗
+           isMessage γ (absSnap st.msg sv scfg)) ∗
       -- (2026-10-13) a read-index request's read credit
       "Hcred" ∷ rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (t : w64), RET #err;
-      "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
+      -- (2026-10-20, D22 S-c) after a snapshot, one may be pending (`RNState.psnap`)
+      "Hrn" ∷ ownRawNode γ rn id
+        { rs with term := t, psnap := rs.psnap || decide (st.msg.Type' = MsgSnap) } ∗
       "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.tc ∧
                -- (2026-10-17) but a won pre-vote (on a response of the node's own term), at most
                -- to the message's term (one past it after a transfer's campaign)

@@ -529,6 +529,25 @@ theorem nstateWf_handle_snap (id : w64) (t : NState) (m : MessageM)
   unfold HandleSnapResult at Hres
   rcases Hres with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, _, _, _, rfl⟩ <;> exact Hwf
 
+/-- (2026-10-20, D22 S-c) `handleSnapshot` on a follower state `t` that keeps `s`'s log, pre-vote
+setting and ghost flags, at a term between `s`'s and the message's: a `SnapStep` from `s`. -/
+theorem SnapStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : SnapshotM}
+    {cl : CSLists} (Hl : t.logst = s.logst) (Hpv : t.prevote = s.prevote) (Hgh : t.gh = s.gh)
+    (Ht1 : uint.Z s.term ≤ uint.Z t.term)
+    (Ht2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term'))
+    (Hr : t.role = .follower) (H : HandleSnapResult id t m sv cl s') : SnapStep m s s' := by
+  unfold HandleSnapResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, _, _, _, rfl⟩ <;>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun h => ?_⟩ <;>
+    simp only [sendMsgs, logRestore] at * <;>
+    first
+    | (rw [Hl])
+    | exact Hpv
+    | exact Hgh
+    | exact Ht1
+    | exact Ht2
+    | (rw [Hr] at h; cases h)
+
 theorem followerStepResult_snap (c : CfgM) {scfg : CSLists} {c' : CfgM} {cl : List w8} (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState) :
     m.Type' = MsgSnap →

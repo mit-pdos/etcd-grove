@@ -414,10 +414,13 @@ private theorem wp_step_pending
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rd Hunp0 Hunst0 Ha1
+  intro γ rn id rs rd Hunp0 Hunst0 Ha1 Hps
   wp_start as H
   iNamed H
   iNamed Hrn
+  -- (2026-10-20, D22 S-c) no snapshot pending
+  have Hsnap := Hsnap (.inl Hps)
+  ihave #Hstrecs := storedRecsP_elim γ Hps _ _ $$ Hstrecs
   have Hunp' : s.logst.unpersisted = [] := Hunp ▸ Hunp0
   have Htcb : uint.Z s.gh.tc < 2 ^ 64 := by word
   wp_auto
@@ -592,6 +595,7 @@ theorem RawNode.Advance.wp_proof
     rw [Hsub]
     ihave #Hstr1 := storedRecs_eq γ _ s1.logst.prev _ s1.logst.stored Hs1.2.2.2.1 Hs1.2.2.2.2
       $$ Hstrecs
+    ihave #Hstr1 := storedRecsP_intro γ rs.psnap _ _ $$ Hstr1
     -- (D19i part 1) the queue stepped, `applied` is at least `applying`, so at least the floor
     have Hdrop : rs.steps.drop (sint.nat n) = [] := by
       apply List.drop_eq_nil_of_le
@@ -618,7 +622,7 @@ theorem RawNode.Advance.wp_proof
         { rnv with stepsOnAdvance' :=
             slice.slice rnv.stepsOnAdvance' Loc (W64 0) (W64 0) }
         sv hprev [] Hwf1 Hin Hal Hasync (by rw [Hs1.1]; exact Hdlen) (by rw [Hs1.2.1]; exact Hunp)
-        (by rw [Hs1.2.2.1]; exact Hsnap) trivial rfl (by rw [Hsg1.1]; exact Hstor)
+        (fun _ => by rw [Hs1.2.2.1]; exact Hsnap) trivial rfl (by rw [Hsg1.1]; exact Hstor)
         ⟨fun h => by rw [Hsg1.2.1]; exact Hpvoff.1 h, by rw [Hsg1.2.2]; exact Hpvoff.2.1,
           by rw [Hsg1.2.2]; exact Hti1.2.2.2.1, fun h => by rw [Hsg1.2.2]; exact Hti1.2.2.2.2 h⟩
         (by rw [Hsg1.2.2]; exact Hrs_out)

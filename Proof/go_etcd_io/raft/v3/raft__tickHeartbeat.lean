@@ -154,7 +154,7 @@ theorem raft.tickHeartbeat.wp_proof
         iintro %Hc
         simp [MsgSnap] at Hc
       simp only [hP]
-      iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
+      iintro %err %s0 %c' %md' ⟨Hphys, Hghost, %Hwf0, %Href, %Hcc, -, %Hfr, %Htm, -, -, Herr⟩
       have Hcm0 := Href.commit_mono
       have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
       have e2 := Hcc (by msg_ne); subst c'
@@ -296,7 +296,7 @@ theorem raft.tickHeartbeat.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
     simp only [hP]
-    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
+    iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, Herr⟩
     have Hcm := Href.commit_mono
     have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
     have e2 := Hcc (by msg_ne); subst c'

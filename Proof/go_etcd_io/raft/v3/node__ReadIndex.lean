@@ -92,14 +92,15 @@ theorem node.ReadIndex.wp_proof
       refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ => rfl,
         fun h => ?_, fun h => ?_, fun h => ?_, fun h => ?_⟩
       · exfalso
-        rcases h with h | h | h | h <;>
-          simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp] at h
+        rcases h with h | h | h | h | h <;>
+          simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h
       · exfalso; simp [MsgAppResp] at h
       · exfalso; simp [MsgTransferLeader] at h
       · exfalso; simp [MsgPreVote] at h
     isplitr
     · ipureintro
-      exact ⟨fun h => by exfalso; simp [MsgPreVote] at h, fun h => by exfalso; simp [MsgTransferLeader] at h⟩
+      exact ⟨fun h => by exfalso; simp [MsgPreVote] at h, fun h => by exfalso; simp [MsgTransferLeader] at h,
+        by simp [MsgSnap]⟩
     isplitr
     · imodintro
       iintro %ty %Hty

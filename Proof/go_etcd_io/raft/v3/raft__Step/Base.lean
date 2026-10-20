@@ -180,6 +180,20 @@ def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
      "Herr" ∷ (⌜err = interface.nil⌝ ∨
                (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err))) -∗ Φ #err)
 
+/-- (2026-10-20, D22 S-c) `stepPost` for a `MsgSnap` holding the snapshot `sn`: what the spec says of
+a snapshot's step (`SnapStep`, `SnapCfgOut`, `raft.Step.spec`), which `stepPost` does not carry;
+`dispatch_Snap`'s continuation. -/
+def snapPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (m : MessageM) (sn : Option SnapshotM) (Φ : val → IProp GF) : IProp GF :=
+  iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
+    ("Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
+     "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
+     "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+     "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
+     "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
+     "%Hsnapfr" ∷ ⌜SnapStep m s s' ∧ SnapCfgOut sn c c'⌝ ∗
+     "%Herr" ∷ ⌜err = interface.nil⌝) -∗ Φ #err)
+
 /-- What the dynamic mode's update needs of a step from `s` to `s'` (`DynHyp`), given the
 invariant: from `raft.Step`'s premises (`GMode.Pre.dynHyp`). -/
 def DynHypFor (md : GMode) (m : MessageM) (s s' : NState) : Prop :=

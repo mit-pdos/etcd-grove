@@ -105,10 +105,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0
+  intro γ rn id rs Hsteps0 Hunp0 Hps
   wp_start as H
   iNamed H
   iNamed Hrn
+  -- (2026-10-20, D22 S-c) no snapshot pending
+  have Hsnap := Hsnap (.inl Hps)
+  ihave #Hstrecs := storedRecsP_elim γ Hps _ _ $$ Hstrecs
   have HunpS : s.logst.unpersisted = [] := Hunp ▸ Hunp0
   -- the previous `SoftState`, as a record (no spec states it)
   obtain ⟨soft0, Hsoftv⟩ : ∃ soft0 : SoftSt, sv = softstateVal soft0 :=
@@ -475,7 +478,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexists hrd; iexact HHP
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
-      (fun h => (Hxf.2 (Hnl.1.trans h.2)).2 (Hnl.2.trans h.1)) $$ Hout
+      (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout
   iapply HΦ $$ %(readyVal sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd
   simp only [named]

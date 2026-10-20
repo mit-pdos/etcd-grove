@@ -51,7 +51,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
   ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
   · rw [Hstor]; iexact Hrcpt
   imod ownRawNode_appended γ.raft rn id rs $$ Hrn Hrcpt' with Hrn
-  imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl $$ Hrn
+  imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hm0.2.2.2 $$ Hrn
     with ⟨Hrn, %x, %Hx, #Hfw⟩
   imodintro
   isplitr [Hfw]
@@ -61,7 +61,7 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     isplitl [Hdlm Hcfg]
     · iunfold runCfg
       iframe Hdlm Hcfg
-      ipureintro; exact ⟨Hm0.1, Hm0.2.1, rfl⟩
+      ipureintro; exact ⟨Hm0.1, Hm0.2.1, rfl, Hm0.2.2.2⟩
     isplitl [Hdlv]
     · simp only; rw [Hdel]; iexact Hdlv
     isplitl [Hrof Hrof']

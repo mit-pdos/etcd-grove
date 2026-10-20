@@ -71,7 +71,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
-        "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
+        "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
+        -- (2026-10-20, D22 S-c) what is kept of the state, and the term (the message's)
+        "%Hsf" ∷ ⌜SnapStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hgt
   wp_start as H
   iNamed H
@@ -121,7 +123,12 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iframe Hphys
   ipureintro
   refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl,
-    by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0]⟩
+    by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
+    SnapStep.of_handle (t := { becomeFollower s m.Term' m.From' with prvals := pvs })
+      (by simp [becomeFollower, resetTo, resetTo0]) rfl
+      (by simp [becomeFollower, resetTo, resetTo0])
+      (by simp only [becomeFollower, resetTo, resetTo0]; omega)
+      (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs⟩
   · exact ⟨rfl, rfl⟩
   refine ⟨[absSnap m sv scfg] ++ [absSnap m sv scfg], ?_, ?_⟩
   · intro m' Hm'

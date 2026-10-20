@@ -84,6 +84,9 @@ abbrev RawNode.Advance.spec : Prop :=
   -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
   -- configuration index (`issues/raft-advance-before-applyconfchange.md`)
   (rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) →
+  -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`; S-d hands one out and steps its
+  -- acknowledgement)
+  rs.psnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))

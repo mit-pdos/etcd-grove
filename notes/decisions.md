@@ -12427,3 +12427,79 @@ contradictory. S-j states them over what the apply thread owns at the swap (the 
 `srvKVCloser`) and a fresh abstraction of the restored store (new names, its own predicate), and
 says which facts of the old store's users (readers holding the old `γ`) it does not give; if no
 true and usable form exists short of the epochs, S-j stops and reports.
+
+## D22 S-c carried out: `MsgSnap` at `RawNode.Step`; `SentMsgOk` of the no-transfer mode alone (2026-10-20)
+
+Stage S-c of T-S (the plan's S-c with S-0's and S-a's amendments). Raft files, and two server lines
+the raft specs force (`InvNet.lean`: `isRaftMsg`'s clause, `netP`'s new conjunct); no bbolt file.
+Trust base unchanged (531 axioms, 2 sorries); every collection's `--check` passes unchanged.
+
+**1. `SentMsgOk` under `reNoXfer` alone (S-a's amendment).**
+- `sentTypes` admits `MsgSnap`; `raft.send`'s snapshot case (c') proves `SentMsgOk` (a leader's,
+  stamped `Term: r.Term`, `To ≠ id` by `SendOk`). `SentMsgOk.ne_snap` is gone (false now); the
+  server takes "no `MsgSnap`" from `isRaftMsg`'s first clause (`reNoSnap`), as before.
+- **The term past `0`, from a flag of its own: `NGhost.bt`** ("past term `0` for good"). It cannot
+  be `xf`: `newRaft` builds every node with transfer off (`xf = true`, the default) at term `0`, so
+  `xf → term ≠ 0` is false there; nor `ns`, which S-l turns off. `XfOk s l := (xf → lt = 0 ∧ ∀ m,
+  mtypeOf ≠ none) ∧ (bt → term ≠ 0 ∧ (xf → ∀ m, SentMsgOk m))` (until now `ns` in `bt`'s place).
+  `bt` is off at `newRaft` and set with `xf` at `Bootstrap` (term `1`, empty outbox:
+  `ownRaftPhysC_set_bt`; `ownRaftPhys_set_ns … b bx` sets `ns := b, xf := bx, bt := bx`;
+  `ownRaftPhysC_set_ns` no longer asks the term and the empty outbox). `NsLink` gains `s.gh.bt =
+  γ.reNoXfer` (its `.2` is now `.2.1`).
+- `RaftNames.reNoXfer_ok : reNoXfer = true → reBootRaw ≠ []` (`noXfer_boot`), the plan's option
+  (a): every current no-transfer cluster has a boot log (`ownRaftGhost_alloc_boot` passes it;
+  `alloc_gen`, kv's, is at `false`). `RestartNode` (nothing committed) derives `reNoXfer = false`
+  (`ownRaftGhost_noXfer_of_commit`, as `noSnap_of_commit`).
+- `isRaftMsg γ st := ⌜reNoSnap → ≠ MsgSnap⌝ ∗ ⌜reNoXfer → SentMsgOk st⌝ ∗ …`; `isRaftMsg_sent γ hnx`
+  (no `hns`). The server's `stepP_of_recv` still uses `hns` for "not a snapshot" only.
+
+**2. The network types.** `netStepTypes` admits `MsgSnap`; `NetMsgOk`'s "from another node" clause
+lists it (`… ∨ Type = MsgSnap → From ≠ id`); `NetMsgOk.of_sent` covers it; `NetMsgOk.raftStep`
+gives `raft.Step`'s `MsgSnap` premise (`To`, `Term`, `From`).
+
+**3. `raft.Step`'s snapshot postcondition.** New conjunct `"%Hsnapfr" ∷ ⌜m.Type' = MsgSnap →
+SnapStep m s s' ∧ SnapCfgOut sn c c'⌝` (before `Herr`, so consumers' patterns gained a `-`):
+- `SnapStep` (`Spec/raft__Step.lean`): `NetFrame` minus the log's boundary and pending snapshot
+  (a restore sets both, `logRestore`), with `applied` kept, and the term as `TermStep`'s minus
+  `offsetInProgress` (a restore moves it to the snapshot's index + 1, back when the snapshot is
+  below the log's last index) plus `PreCandStep`. `SnapStep.of_handle` (`repl_lemmas.lean`) gets it
+  from `HandleSnapResult` on the follower state; the three term files return it.
+- `SnapCfgOut sn c c'`: `c`, or `snapCfg` of the message's snapshot.
+- The top-level dispatch now decides `MsgSnap` before the `stepPost` wrapper and hands
+  `dispatch_Snap` its own continuation `snapPost` (`Base.lean`).
+
+**4. A pending snapshot in `ownRawNode`: the split with S-d.** `RNState.psnap : Bool := false` ("a
+snapshot may be pending"); only `RawNode.Step` raises it (`psnap := psnap || decide (Type =
+MsgSnap)`), nothing clears it yet. `ownRawNode`: `Hsnap : psnap = false ∨ mode.isDyn = true →
+snap = none` (the dynamic mode takes no snapshot, `DynNoSnap`, so `ApplyConfChange`'s dynamic
+proof keeps its `snap = none`), `Hstrecs : storedRecsP γ psnap prev stored` (the records of what
+the storage holds, while no snapshot may be pending: a restore replaces `prev` by the snapshot's
+id, of which `stored` has no records; `storedRecsP_intro/_elim/_eq/_mono/_true`).
+`ownRawNodeReady`/`ownRawNodeIdle` keep the strict forms.
+- **In S-c:** `RawNode.Step` takes a `MsgSnap` (premises: `DynNoSnap` (static), `reNoSnap =
+  false`, `rs.steps = []`, and `"#Hsnap"`: the message's snapshot, `SnapScope`,
+  `GMode.SnapOk γ .static`, `isMessage (absSnap …)`; `"#Hmsg"` now asks `ty ≠ .snap`); every
+  method but those below keeps the flag (Tick, Propose, ProposeConfChange, Campaign, ReadIndex,
+  TransferLeader, ForgetLeader, the reports, ApplyConfChange, BasicStatus, `Step` again).
+- **Left to S-d (premises `rs.psnap = false`):** `HasReady`, `readyWithoutAccept`, `Ready`,
+  `Advance`, `ownRawNode_raise_floor` (handing out `rd.Snapshot`, `acceptReady` with a snapshot in
+  progress, `appliedSnap`, both `stableSnapTo`s, the two `MsgStorageAppendResp` snapshot arms, the
+  storage's `ApplySnapshot` handout, clearing `psnap`); `RawNode.Step`'s `rs.steps = []` for a
+  `MsgSnap` (a restore breaks a queued `MsgStorageAppendResp`'s `PendingOk`, which compares against
+  `prev`: the second restore between `Ready` and `Advance` of S-0 (c)); and **`node.Step`'s
+  `netP` admitting a `MsgSnap`**: it now says `Type ≠ MsgSnap` (D22 S-c), because `node.run`
+  calls `HasReady`/`readyWithoutAccept` right after a step, so a snapshot there needs S-d's
+  `Ready`. `runCfg` carries `rs.psnap = false` for `run` (`runCfg_psnap`). The receiver's network
+  bundle (`isMessage`'s `.snap` clause through `netP`) therefore reaches `RawNode.Step` but not yet
+  `node.Step`; the server (in the no-snapshot mode) supplies `netP`'s conjunct from `isRaftMsg`.
+
+**For S-b′, S-d, S-h, D22l.**
+- S-b′: `RawNode.Step`'s `"#Hsnap"` carries `SnapScope` and `GMode.SnapOk` as `raft.Step` does:
+  both go when the message carries the certificate (D22b; the design is "D22 S-b carried out", item 4).
+- S-d: remove the premises listed above; `ownRawNodeReady`/`Idle` need the pending snapshot (or its
+  absence) and `storedRecsP`; `netP`'s and `runCfg`'s conjuncts go with `node.run`'s snapshot path.
+- S-h: `isRaftMsg` gives `SentMsgOk` of a queued `MsgSnap` under `reNoXfer` alone, so the server's
+  `msgSnapC` messages carry the receiver's `NetMsgOk` once S-l turns `reNoSnap` off.
+- D22l: `readyWithoutAccept`/`Ready`/`HasReady` take `rs.psnap = false` (last premise), and
+  `runCfg`'s pure part is `mode ∧ capplied ∧ flw ∧ psnap` (`runCfg_extend`/`_advance` take a
+  defaulted `rs'.psnap = rs.psnap`).

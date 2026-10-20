@@ -86,7 +86,7 @@ theorem RawNode.Campaign.wp_proof
     iintro %Hc
     simp [MsgSnap] at Hc
   simp only [hP]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
@@ -94,7 +94,7 @@ theorem RawNode.Campaign.wp_proof
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, Ht2, -, -, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht2' := Ht2 rfl
-  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ $$ %err %s'.term
     simp only [named]

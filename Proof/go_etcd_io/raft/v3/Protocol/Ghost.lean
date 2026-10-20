@@ -324,8 +324,16 @@ structure RaftNames where
   struct has leader transfer off (`NGhost.xf`, `NsLink`), so that no node records a transferee or
   queues a `MsgTimeoutNow` or a forwarded `MsgTransferLeader` (`XfOk`), and `RawNode.Step` takes
   no `MsgTransferLeader`. It needs nothing of the boot; with the no-snapshot mode it gives what
-  the receiver's `NetMsgOk` comes from (`SentMsgOk`, `isRaftMsg`). -/
+  the receiver's `NetMsgOk` comes from (`SentMsgOk`, `isRaftMsg`). (2026-10-20, D22 S-c) Alone: a
+  node in it is past term `0` (`NGhost.bt`, its bootstrap log's), so that `SentMsgOk` is of this
+  mode only, and the no-snapshot mode can be left (S-l) without losing the receiver's facts. -/
   reNoXfer : Bool
+  /-- What the no-transfer mode needs of the boot (2026-10-20, D22 S-c): a bootstrap log, so that a
+  node in the mode is past term `0` (`NGhost.bt`, set at `Bootstrap`), which `SentMsgOk`'s stamped
+  terms need; a cluster without one (`RestartNode`'s fresh nodes) is out of it
+  (`ownRaftGhost_noXfer_of_commit`). Every current no-transfer cluster (the server's, putget's,
+  putget3's) starts from a bootstrap log. -/
+  reNoXfer_ok : reNoXfer = true → reBootRaw ≠ []
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -449,6 +457,13 @@ theorem RaftNames.noSnap_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoSnap = tr
   unfold RaftNames.reBoot
   intro he
   exact γ.reNoSnap_ok h (List.map_eq_nil_iff.1 he)
+
+/-- (2026-10-20, D22 S-c) The no-transfer mode is of a cluster with a bootstrap log. -/
+theorem RaftNames.noXfer_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoXfer = true) :
+    γ.reBoot ≠ [] := by
+  unfold RaftNames.reBoot
+  intro he
+  exact γ.reNoXfer_ok h (List.map_eq_nil_iff.1 he)
 
 def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
   γ.reDyn.map fun f => f ext
