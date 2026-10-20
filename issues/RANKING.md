@@ -99,6 +99,21 @@ before any public issue.
     the documented NOSPACE recovery with one member down during it; reproduced by an integration
     test at the pin; fix a few lines (tested). Searched upstream 2026-10-20: not reported
     (related: #20553, the same stale backend in the maintenance `Defragment` path, fixed).
+11. **[etcd-auth-snapshot-closed-backend-panic](etcd-auth-snapshot-closed-backend-panic.md)**
+    (2026-10-19): with auth enabled, `applySnapshot` closes the old backend before
+    `authStore.Recover`, so a serializable read, watch, keep-alive, `Authenticate` or admin RPC
+    reaching a member as it installs a leader's snapshot panics it on a nil bolt read tx. One
+    member crashes and a restart recovers it. Reproduced end to end at the pin (7 of 10 runs) and
+    on `main` (3 of 3). The fix moves the close after the stores' recovery (tested, applies to
+    `main`). Searched upstream: not reported (the shutdown variant was #17223).
+12. **[etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md)** (2026-10-19): a
+    leader that steps down while saving a Ready (a slow disk) can later send a queued `MsgSnap`
+    stamped with its old term but carrying data of a newer term, which a follower still at the old
+    term installs; with a gap of two terms, a leader of the term in between can panic (`need
+    non-empty snapshot`). Needs a stall longer than an election timeout, two followers past
+    compaction and a partition; the etcd half reproduced with the real apply loop, the panic in
+    raft from hand-built messages, not end to end. Fix a few lines (tested). Searched upstream
+    2026-10-19: not reported (raft#47 states the invariant).
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
@@ -221,6 +236,16 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [raft-joiner-empty-confstate](raft-joiner-empty-confstate.md),
   [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) (a mixed-version
   panic, hypothetical until a field is added).
+- **A Raft invariant broken, no wrong result found**:
+  [etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md) (2026-10-19). `applyAll`
+  merges a queued `MsgSnap` of an old leader's term with content applied later, so a follower
+  still at that term ends with a last log term above its own term. It needs 5 or more members, a
+  stalled fsync on the leader, two followers lagging past compaction and an asymmetric partition.
+  Reproduced at raft level with an emulation of etcd's pipeline, and the merge with etcd's real
+  `applyAll`; not end to end. The only consequence found is untraced: a `--force-new-cluster`
+  restart of that follower writes log terms that go down. The fix is a few lines (merge only at
+  the message's term), and the verified fork carries it for the proof. Searched upstream: not
+  reported.
 - **Model or documentation only**: [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md),
   [raft-ready-messages-read-after-handout](raft-ready-messages-read-after-handout.md),
   [raft-step-writes-caller-message](raft-step-writes-caller-message.md),
