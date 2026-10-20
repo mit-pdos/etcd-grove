@@ -213,7 +213,16 @@ theorem raft.switchToConfig.wp_proof
           by cases s1; simp [sendMsgs]⟩
       try wp_auto
       -- `if r.maybeCommit() { r.bcastAppend() } else { r.trk.Visit(...maybeSendAppend...) }`
-      wp_apply wp_raft_maybeCommit c r id s1 Hl1 $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
+      icases ownRaftPhysC_wit0 c r id s1 $$ Hphys with ⟨%hwmc, Hphys⟩
+      wp_apply wp_raft_maybeCommit c r id s1 Hl1 $$ [$Hphys] as %b %N %ws ⟨Hphys, %HN⟩
+      -- STAGED: no witness yet (`ownRaftPhysC_wit0`), so no request to the witness
+      have Hws : ws = [] := HN.2.1 hwmc
+      subst Hws
+      replace HN := HN.2.2
+      ihave Hphys : ownRaftPhysCV c c.voters r id
+          (if b then { s1 with logst := { (s1).logst with committed := N } } else s1) $$ [Hphys]
+      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+        cases b <;> simp [sendMsgs]
       -- after the broadcast, the state is `s2` with sends `ms` and values `pvs2`
       wp_join iprop(∃ (ms : List Msg) (pvs2 : GMap w64 Progress),
           "Hphys" ∷ ownRaftPhysCV c c.voters r id

@@ -5,6 +5,8 @@ Lean notes: Rocq's `commit_ok` (a Prop-valued definition) is `CommitOk`.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
+public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
 
 @[expose] public section
 
@@ -42,6 +44,20 @@ theorem CommitOkC.simple {cfg lrn : GSet w64} {ps : PState} {n : w64} (hne : cfg
     (h : CommitOkC (CfgM.simple cfg lrn) ps n) : CommitOk cfg ps n :=
   ⟨h.1, h.2.1, h.2.2.1, (JQuorum_of_out (c := CfgM.simple cfg lrn) hne rfl _).1 h.2.2.2⟩
 
+/-- A request `maybeCommit` sends the witness (2026-10-20, witness support): to a witness `w` the
+tracker reports (`OneLessThanQuorumInReplicationSet`: `OltqOk`, at the configuration `c`, the
+node's epoch and peers) with the index `i`, nonzero, of an entry of the log of the leader's term
+and the epoch's subterm (`raftLog.subterm`), with the halves' non-witness voters
+(`sendAppendToWitness`). -/
+def WAppSent (c : CfgM) (id : w64) (s : NState) (m : Msg) : Prop :=
+  ∃ (w i : w64) (e : EntryM) (vs0 vs1 : List w64) (res : GMap w64 w64),
+    m = wAbs (wappMsg id w s.term s.ep.sub i vs0 vs1) ∧
+    ¬ OltqNone s.ep ∧ OltqOk c.incoming c.outgoing s.ep s.prvals res ∧ res !! w = some i ∧
+    i ≠ W64 0 ∧
+    plogEntryAt s.logst.prev (s.logst.sents ++ s.logst.uents) i = some e ∧
+    e.Term' = s.term ∧ e.Subterm' = s.ep.sub ∧
+    vs0 ≡ₚ GMap.elements s.ep.rs0.nwv ∧ vs1 ≡ₚ GMap.elements s.ep.rs1.nwv
+
 end commit_ok
 
 section spec
@@ -72,17 +88,24 @@ it is `MaxUint64`). On `false` nothing changes.
 At any configuration since 2026-10-13 (reconfiguration stage A2): `CommitOkC`, a joint quorum
 of the two voter halves, with no premise on the voters (an empty half has committed
 everything, `MajQ`). The old statement (`id ∈ cfg`, `CommitOk cfg`) was
-`raft.maybeCommit.specS`; it had no caller and is gone (2026-10-17). -/
+`raft.maybeCommit.specS`; it had no caller and is gone (2026-10-17).
+
+(2026-10-20, witness support) First, to each witness `OneLessThanQuorumInReplicationSet`
+reports, the entry at its index if it is of the leader's term and subterm
+(`sendAppendToWitness`): the requests' readings `ws` are on the outbox, each a `WAppSent`, none
+without a witness. -/
 abbrev raft.maybeCommit.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
-  {{ (b : Bool) (N : w64), RET #b;
+  {{ (b : Bool) (N : w64) (ws : List Msg), RET #b;
       ownRaftPhysCV c c.voters r id
-        (if b then { s with logst := { s.logst with committed := N } } else s) ∗
-      ⌜b = true → CommitOkC c (toPState s) N⌝ }}
+        (if b then { sendMsgs s ws with logst := { s.logst with committed := N } }
+         else sendMsgs s ws) ∗
+      ⌜(∀ m ∈ ws, WAppSent c id s m) ∧ (c.wit = W64 0 → ws = []) ∧
+        (b = true → CommitOkC c (toPState s) N)⌝ }}
 
 end spec
 

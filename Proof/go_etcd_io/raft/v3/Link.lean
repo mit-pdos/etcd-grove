@@ -783,9 +783,45 @@ theorem raftLog.wp_maybeCommit [StorageModel GF] :
     raftLog.maybeCommit.spec (GF := GF) (hG := hG) :=
   raftLog.maybeCommit.wp_proof raftLog.wp_matchTerm raftLog.wp_commitTo
 
+theorem raftLog.wp_mustCheckOutOfBounds [StorageModel GF] :
+    raftLog.mustCheckOutOfBounds.spec (GF := GF) (hG := hG) :=
+  raftLog.mustCheckOutOfBounds.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex
+
+theorem unstable.wp_mustCheckOutOfBounds [StorageModel GF] :
+    unstable.mustCheckOutOfBounds.spec (GF := GF) (hG := hG) :=
+  unstable.mustCheckOutOfBounds.wp_proof
+
+theorem unstable.wp_slice [StorageModel GF] :
+    unstable.slice.spec (GF := GF) (hG := hG) :=
+  unstable.slice.wp_proof unstable.wp_mustCheckOutOfBounds
+
+theorem wp_entsSize [StorageModel GF] :
+    entsSize.spec (GF := GF) (hG := hG) :=
+  entsSize.wp_proof proto.wp_SizeEntry
+
+theorem wp_extend [StorageModel GF] :
+    extend.spec (GF := GF) (hG := hG) :=
+  extend.wp_proof
+
+theorem raftLog.wp_slice [StorageModel GF] :
+    raftLog.slice.spec (GF := GF) (hG := hG) :=
+  raftLog.slice.wp_proof raftLog.wp_mustCheckOutOfBounds unstable.wp_slice wp_limitSize wp_entsSize wp_extend
+
+theorem raftLog.wp_subterm [StorageModel GF] :
+    raftLog.subterm.spec (GF := GF) (hG := hG) :=
+  raftLog.subterm.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex raftLog.wp_slice raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetSubterm
+
+theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
+    tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
+  tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
+
+theorem raft.wp_sendAppendToWitness [StorageModel GF] :
+    raft.sendAppendToWitness.spec (GF := GF) (hG := hG) :=
+  raft.sendAppendToWitness.wp_proof tracker.ReplicationSet.wp_GetNonWitnessVoterSlice
+
 theorem raft.wp_maybeCommit [StorageModel GF] :
     raft.maybeCommit.spec (GF := GF) (hG := hG) :=
-  raft.maybeCommit.wp_proof wp_traceCommit tracker.ProgressTracker.wp_Committed tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet raftLog.wp_maybeCommit
+  raft.maybeCommit.wp_proof wp_traceCommit tracker.ProgressTracker.wp_Committed tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet raftLog.wp_maybeCommit raftLog.wp_subterm raft.wp_sendAppendToWitness
 
 theorem tracker.ProgressTracker.wp_Visit :
     tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG) :=
@@ -814,30 +850,6 @@ theorem tracker.Progress.wp_SentEntries :
 theorem tracker.Progress.wp_SentCommit :
     tracker.Progress.SentCommit.spec (GF := GF) (hG := hG) :=
   tracker.Progress.SentCommit.wp_proof
-
-theorem raftLog.wp_mustCheckOutOfBounds [StorageModel GF] :
-    raftLog.mustCheckOutOfBounds.spec (GF := GF) (hG := hG) :=
-  raftLog.mustCheckOutOfBounds.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex
-
-theorem unstable.wp_mustCheckOutOfBounds [StorageModel GF] :
-    unstable.mustCheckOutOfBounds.spec (GF := GF) (hG := hG) :=
-  unstable.mustCheckOutOfBounds.wp_proof
-
-theorem unstable.wp_slice [StorageModel GF] :
-    unstable.slice.spec (GF := GF) (hG := hG) :=
-  unstable.slice.wp_proof unstable.wp_mustCheckOutOfBounds
-
-theorem wp_entsSize [StorageModel GF] :
-    entsSize.spec (GF := GF) (hG := hG) :=
-  entsSize.wp_proof proto.wp_SizeEntry
-
-theorem wp_extend [StorageModel GF] :
-    extend.spec (GF := GF) (hG := hG) :=
-  extend.wp_proof
-
-theorem raftLog.wp_slice [StorageModel GF] :
-    raftLog.slice.spec (GF := GF) (hG := hG) :=
-  raftLog.slice.wp_proof raftLog.wp_mustCheckOutOfBounds unstable.wp_slice wp_limitSize wp_entsSize wp_extend
 
 theorem raftLog.wp_entries [StorageModel GF] :
     raftLog.entries.spec (GF := GF) (hG := hG) :=
@@ -1510,18 +1522,6 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
-
-theorem raftLog.wp_subterm [StorageModel GF] :
-    raftLog.subterm.spec (GF := GF) (hG := hG) :=
-  raftLog.subterm.wp_proof raftLog.wp_firstIndex raftLog.wp_lastIndex raftLog.wp_slice raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetSubterm
-
-theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
-    tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
-  tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
-
-theorem raft.wp_sendAppendToWitness [StorageModel GF] :
-    raft.sendAppendToWitness.spec (GF := GF) (hG := hG) :=
-  raft.sendAppendToWitness.wp_proof tracker.ReplicationSet.wp_GetNonWitnessVoterSlice
 
 theorem raftpb.ConfChangeTransition.wp_Enum :
     raftpb.ConfChangeTransition.Enum.spec (GF := GF) (hG := hG) :=

@@ -1371,8 +1371,17 @@ theorem wp_stepLeader_appresp
         "%Hmm4" ∷ ⌜prvalsMatch pvs4 = prvalsMatch pvs3⌝ ∗
         "m" ∷ m_ptr ↦ ml ∗ "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
       with [Hphys m Hm r pr] as HJ
-    · wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } Hlead $$ [$Hphys]
-        as %b %N ⟨Hphys, %HN⟩
+    · icases ownRaftPhysC_wit0 c r id _ $$ Hphys with ⟨%hwmc, Hphys⟩
+      wp_apply wp_raft_maybeCommit c r id { s with prvals := pvs3 } Hlead $$ [$Hphys]
+        as %b %N %ws ⟨Hphys, %HN⟩
+      -- STAGED: no witness yet (`ownRaftPhysC_wit0`), so no request to the witness
+      have Hws : ws = [] := HN.2.1 hwmc
+      subst Hws
+      replace HN := HN.2.2
+      ihave Hphys : ownRaftPhysCV c c.voters r id
+          (if b then { { s with prvals := pvs3 } with logst := { ({ s with prvals := pvs3 }).logst with committed := N } } else { s with prvals := pvs3 }) $$ [Hphys]
+      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+        cases b <;> simp [sendMsgs]
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · -- not committed: `r.id != m.From && pr.CanBumpCommit(r.raftLog.committed)`
         wp_auto
