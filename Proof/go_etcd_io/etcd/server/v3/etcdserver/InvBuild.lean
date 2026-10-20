@@ -36,6 +36,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvNodeStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 
 @[expose] public section
 
@@ -92,7 +93,10 @@ payload, `NetPayload`): persistently, the protocol facts and the term bound (`is
 `SentMsgOk` clause gives the receiver's `NetMsgOk`, and `termLB`); once, the read credit of a
 `MsgReadIndex`, delivered at most once; any other message may be duplicated, its credit `0` anew.
 (2026-10-19, D21 M6, D20 (b)) and a forwarded `MsgProp`'s tickets (`stTks`), delivered at most
-once: the transport's at-most-once promise for a `once` message (`Transport.Start`, D21b). -/
+once: the transport's at-most-once promise for a `once` message (`Transport.Start`, D21b).
+(2026-10-19, D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh
+cluster's start): what the sender's backend snapshot gives (S-h) and the receiver's
+`OpenSnapshotBackend` reads (S-j). -/
 def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
   P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
   O st := iprop(rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ st)
@@ -109,19 +113,43 @@ def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
     unfold stTks
     rw [if_neg h2]
     iempintro
+  img i D := srvImage γ i D
+  img_pers i D := by infer_instance
 
-/-- A message raft hands the server, with its bundle, is one the network takes (`netBundle`). -/
+/-- Two read-only views of a message agree on its type. -/
+theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
+    msgOwn (GF := GF) m DFrac.discard st1 ∗ msgOwn m DFrac.discard st2 ⊢
+      ⌜st1.msg.Type' = st2.msg.Type'⌝ := by
+  simp only [msgOwn, msgPts, msgPtsC]
+  iintro ⟨⟨%pty1, %pto1, %pfr1, %pte1, %plt1, %pix1, %pco1, %pvo1, %prj1, %prh1, %es1, %els1,
+      %ps1, %cs1, %rs1, %uf1, -, #HTy1, #cTy1, -⟩,
+    ⟨%pty2, %pto2, %pfr2, %pte2, %plt2, %pix2, %pco2, %pvo2, %prj2, %prh2, %es2, %els2,
+      %ps2, %cs2, %rs2, %uf2, -, #HTy2, #cTy2, -⟩⟩
+  icombine HTy1 HTy2 gives %Heq
+  subst Heq
+  iunfold named at cTy1 cTy2
+  iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
+
+/-- A message raft hands the server, with its bundle, not a snapshot (D22 S-i: `Send` takes
+none), is one the network takes (`netBundle`). -/
 theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
-    srvMsgNet (GF := GF) γ bud m ⊢ netBundle (srvNet γ bud) m := by
-  iintro H
+    srvMsgNet (GF := GF) γ bud m ∗ srvMsgNoSnap m ⊢ netBundle (srvNet γ bud) m := by
+  iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, #Ht, Hc, Htk⟩
+  iunfold srvMsgNoSnap at Hns
+  icases Hns with ⟨%st', #Hm', %Hns⟩
+  ihave %Hty := msgOwn_type_agree m st st' $$ [Hm Hm']
+  · iframe Hm Hm'
   iunfold netBundle
   iexists st
   simp only [srvNet]
   iframe Hm Hc Htk
-  imodintro
-  iframe Hr Ht
+  isplitr
+  · imodintro
+    iframe Hr Ht
+  ipureintro
+  rw [Hty]; exact Hns
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
@@ -142,20 +170,6 @@ theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (st : Msg
   iunfold isRaftMsg at Hr
   icases Hr with ⟨%H, -⟩
   ipureintro; exact H hns
-
-/-- Two read-only views of a message agree on its type. -/
-theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
-    msgOwn (GF := GF) m DFrac.discard st1 ∗ msgOwn m DFrac.discard st2 ⊢
-      ⌜st1.msg.Type' = st2.msg.Type'⌝ := by
-  simp only [msgOwn, msgPts, msgPtsC]
-  iintro ⟨⟨%pty1, %pto1, %pfr1, %pte1, %plt1, %pix1, %pco1, %pvo1, %prj1, %prh1, %es1, %els1,
-      %ps1, %cs1, %rs1, %uf1, -, #HTy1, #cTy1, -⟩,
-    ⟨%pty2, %pto2, %pfr2, %pte2, %plt2, %pix2, %pco2, %pvo2, %prj2, %prh2, %es2, %els2,
-      %ps2, %cs2, %rs2, %uf2, -, #HTy2, #cTy2, -⟩⟩
-  icombine HTy1 HTy2 gives %Heq
-  subst Heq
-  iunfold named at cTy1 cTy2
-  iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
 
 /-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is a
 `MsgSnap` (`isRNMsgSnapC`), which no message of `srvEr`'s is. -/

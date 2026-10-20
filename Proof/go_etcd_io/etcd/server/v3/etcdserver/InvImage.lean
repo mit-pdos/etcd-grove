@@ -24,6 +24,9 @@
   `bkRestAt L`, `L` the raft log (`pre ++ A`).
 * `dbImage γ γk i D` (persistent): `imageAt` of a committed prefix `A` (`srvRLogLb`) of the
   server's log ending at index `i`.
+* `srvImage γ i D` (persistent; D22 S-i): `dbImage` at the fresh cluster's start for any KV names
+  with `NewServer.spec`'s start values: what a snapshot message carries over the network
+  (`srvNet`'s `img`), member-independent.
 
 Who establishes it: the sender (D22 S-h), from `backend.Snapshot`'s observation (`Q`: the `Key`
 bucket from the store's view in the batch lock's resource, the stored index from the consistent
@@ -99,6 +102,62 @@ def dbImage (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) : IProp 
 instance dbImage_persistent (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) :
     Persistent (dbImage (GF := GF) γ γk i D) := by
   unfold dbImage; infer_instance
+
+/-- **The image certificate a snapshot message carries over the network** (persistent; D22 S-i,
+2026-10-19; the server's `NetPayload.img`, `srvNet`): `dbImage` at the fresh cluster's start
+(`⟨γ, [], 0⟩`, `NewServer.spec`'s `ρ.rd.raft`) for KV names with the start values `NewServer.spec`
+fixes. The KV names differ per member (their ghost names), but `dbImage` reads only the start
+values (`kvModel`): `dbImage_of_srvImage`, `srvImage_of_dbImage` move between a member's and the
+network's. -/
+def srvImage (γ : RaftNames) (i : w64) (D : Data) : IProp GF :=
+  iprop(∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧
+    γk.log0 = [[], []]⌝ ∗ dbImage ⟨γ, [], W64 0⟩ γk i D)
+
+instance srvImage_persistent (γ : RaftNames) (i : w64) (D : Data) :
+    Persistent (srvImage (GF := GF) γ i D) := by
+  unfold srvImage; infer_instance
+
+/-- `dbImage` reads the KV names only through their start values. -/
+theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {D : Data}
+    (h0 : γk.c0 = γk'.c0) (h1 : γk.ch0 = γk'.ch0) (h2 : γk.log0 = γk'.log0) :
+    dbImage (GF := GF) γ γk i D ⊢ dbImage γ γk' i D := by
+  have hk : ∀ A, kvModel γk A = kvModel γk' A := by
+    intro A; simp only [kvModel, h0, h1, h2]
+  iintro H
+  iunfold dbImage at H
+  iunfold dbImage
+  icases H with ⟨%A, #Hlb, %h⟩
+  iexists A
+  iframe Hlb
+  ipureintro
+  refine ⟨h.1, ?_⟩
+  have h2' := h.2
+  unfold imageAt at h2' ⊢
+  rw [← hk]
+  exact h2'
+
+/-- A member's image certificate is the network's. -/
+theorem srvImage_of_dbImage {γ : RaftNames} {γk : KVNames} {i : w64} {D : Data}
+    (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
+    (h2 : γk.log0 = [[], []]) :
+    dbImage (GF := GF) ⟨γ, [], W64 0⟩ γk i D ⊢ srvImage γ i D := by
+  iintro #H
+  iunfold srvImage
+  iexists γk
+  iframe H
+  ipureintro
+  exact ⟨h0, h1, h2⟩
+
+/-- The network's image certificate is any member's. -/
+theorem dbImage_of_srvImage {γ : RaftNames} {γk : KVNames} {i : w64} {D : Data}
+    (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
+    (h2 : γk.log0 = [[], []]) :
+    srvImage (GF := GF) γ i D ⊢ dbImage ⟨γ, [], W64 0⟩ γk i D := by
+  iintro H
+  iunfold srvImage at H
+  icases H with ⟨%γk', %h, #H⟩
+  obtain ⟨h0', h1', h2'⟩ := h
+  iapply (dbImage_kv_congr (h0'.trans h0.symm) (h1'.trans h1.symm) (h2'.trans h2.symm)) $$ H
 
 end defs
 

@@ -669,13 +669,17 @@ theorem NewServer.wp_proof
       exact Hrpsne (List.length_eq_zero_iff.mp hl.symm)
     exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1, Hrn2],
       by rw [Hrn1]; exact Hnosnap.1, hb, by rw [Hrn1]; exact Hnoxfer⟩
-  ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn s id $$ [$Hpkg $Hprocok]
+  -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
+  -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j)
+  imod (snapDir_alloc bs.ss' γn.N.img (fun _ => iprop(True)) ⊤) with ⟨%γd, #Hsdir⟩
+  ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
-  wp_apply (h38 t _ γn (srvLgReader s)) $$ [«$r0» Hslot HlgNet] as %terr Htres
+  wp_apply (h38 t _ γn (srvLgReader s) γd (fun _ => iprop(True))) $$ [«$r0» Hslot HlgNet]
+    as %terr Htres
   · iframe #; iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hslot HlgNet Hnro
+    iframe Hslot HlgNet Hnro Hss Hsdir
     ipureintro; exact ⟨Hlgnn, Hssnn, Hlsnn⟩
   icases Htres with (%Hterr | ⟨%Hterr, Htlive, Htstart⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
@@ -896,7 +900,6 @@ theorem NewServer.wp_proof
     iapply isRNTransport_of_net γn $$ [] Htrall
     iintro !> %m HM
     simp only [srvEr]
-    icases HM with ⟨HM, -⟩
     rw [Hγn.1, ← hργ]
     iapply srvMsgNet_bundle $$ HM
   · iexact Hrtm

@@ -240,6 +240,7 @@ axiom auth.NewTokenProvider.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
 axiom backend.optsAt
