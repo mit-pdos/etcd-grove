@@ -8,7 +8,7 @@ the fork's `de825d8c6`) sends it only when the batch's `toApply.raftTerm`, the l
 `HardState` term the raft goroutine saw, is the message's term `T`. This file states what that
 check buys at the protocol level:
 
-- `commitWit γ T c`: what a node at term `T` with commit index `c` knows of its full log `F`:
+- `commitWit γ T c` (`CommitWit.lean`): what a node at term `T` with commit index `c` knows of its full log `F`:
   its records, `commitIn γ F c T` and the committed prefix `F.take c`. Every node holds it of its
   own state (`ownRaftGhost_commitWit`); raft's `Ready` hands it out with a non-empty `HardState`
   `(T, c)` (`readyData`, `InvNode.lean`), so the raft goroutine has it for the term it records.
@@ -26,6 +26,7 @@ check buys at the protocol level:
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 
 @[expose] public section
 
@@ -41,34 +42,6 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
-
-/-- See the file header. -/
-def commitWit (γ : RaftNames) (T c : w64) : IProp GF :=
-  iprop(∃ F, ⌜PlogWf base0 F⌝ ∗ logRecs γ base0 F ∗ commitIn γ F c T ∗
-    isCommitted γ (F.take (uint.Z c).toNat))
-
-instance commitWit_persistent (γ : RaftNames) (T c : w64) :
-    Persistent (commitWit (GF := GF) γ T c) := by
-  unfold commitWit; infer_instance
-instance commitWit_timeless (γ : RaftNames) (T c : w64) :
-    Timeless (commitWit (GF := GF) γ T c) := by
-  unfold commitWit; infer_instance
-
-/-- Every node holds the witness of its own term and commit index. -/
-theorem ownRaftGhost_commitWit (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
-    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ commitWit γ s.term s.commit := by
-  unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  unfold commitWit
-  iexists fp ++ s.log
-  isplitr; · ipureintro; exact full_wf _ _ _ Hfull.1 Hfull.2.1
-  isplitr; · iapply logRecs_full γ s.base fp s.log Hfull.1 $$ Hfrecs Hrecs
-  isplitr; · iexact Hcommit
-  iunfold cprefix at Hcmt
-  iexact Hcmt
 
 /-- A full log's last entry at `i ≥ 1`, from its term there. -/
 private theorem full_entry_of_term (F : List EntryM) (i t : w64) :

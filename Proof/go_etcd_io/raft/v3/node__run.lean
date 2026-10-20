@@ -143,7 +143,7 @@ theorem node.run.wp_proof
           iframe Hrs Hrs_ok
         isplitr
         · iexists hrd
-          iexact Hhard
+          iframe Hhard Hhsw
         ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
       · try wp_auto
         wp_join_done
@@ -750,7 +750,8 @@ theorem node.run.wp_proof
         ([∗list] q ∈ ms, isRaftMsg γ.raft q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateOk γ.raft st) ∗
-        (∃ h : HardStateM, hsOpt rdv'.HardState' h) ∗
+        (∃ h : HardStateM, hsOpt rdv'.HardState' h ∗
+          hsWit γ.raft h (rs.delivered ++ ce).length) ∗
         ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ rdv'.Snapshot' = null⌝) $$ [Hst]
     · icases Hst with (⟨%ce, %es, %ms, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
       · iunfold freshOk at Hf
@@ -762,7 +763,8 @@ theorem node.run.wp_proof
       · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs $$ Hrn with ⟨%Hidf, Hrn⟩
         iunfold staleOk at Hstale
         icases Hstale with
-          ⟨%ce, %es, %k, %hrd, #Hrdsoft, #Hrdh, #Hce, Hce_cap, #Hcommitted, #Hents, #Hrsts, %Hsf⟩
+          ⟨%ce, %es, %k, %hrd, #Hrdsoft, #Hrdh, #Hhsw, #Hce, Hce_cap, #Hcommitted, #Hents, #Hrsts,
+            %Hsf⟩
         icases Hrsts with ⟨%sts, #Hrs, #Hrs_ok⟩
         obtain ⟨Hrdz, Hes, Hshape, Hk, Hce_ok⟩ := Hsf
         have Hes0 : es = [] := by
@@ -791,7 +793,7 @@ theorem node.run.wp_proof
           iframe Hrs Hrs_ok
         isplitr
         · iexists hrd
-          iexact Hrdh
+          iframe Hrdh Hhsw
         ipureintro; exact ⟨by simp, Hrdz⟩
     icases Hg with
       ⟨%ce, %es, %ms, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hmsgs_ok, #Hrsts, #Hhd,

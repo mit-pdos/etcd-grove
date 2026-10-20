@@ -90,7 +90,7 @@ theorem KV.run.wp_proof
   wp_apply node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
   ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es $$ Hbusy
   unfold readyData
-  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, Htks, ⟨%sts, #Hsts, #Hstsok⟩, ⟨%hs, #Hhs⟩,
+  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, Htks, ⟨%sts, #Hsts, #Hstsok⟩, ⟨%hs, #Hhs, -⟩,
     #Hss, %Hsnap, -⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b

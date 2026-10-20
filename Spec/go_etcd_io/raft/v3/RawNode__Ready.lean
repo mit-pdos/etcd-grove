@@ -105,6 +105,8 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
       -- (2026-10-16, stage R5) the hard state, `nil` or fresh and read-only
       "#Hhard" ∷ hsOpt rd.HardState' h ∗
+      -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`)
+      "#Hhsw" ∷ hsWit γ h (rs.delivered ++ ce).length ∗
       -- the right to append `es` to the node's storage (2026-10-10)
       "Happ" ∷ appendRight rs.storage es }}
 
