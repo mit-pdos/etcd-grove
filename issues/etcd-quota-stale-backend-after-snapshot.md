@@ -3,6 +3,7 @@ upstream: none
 checked: 2026-10-20
 links:
   - etcd-io/etcd#20553 pr merged: related, not this bug (another holder of the backend across applySnapshot's swap: the maintenance Defragment path, now under bemu; fixes #20271); does not touch the gRPC quota servers
+candidate: issues/upstream/etcd-quota-stale-backend-after-snapshot/
 ---
 
 # After a member installs a leader's snapshot, its gRPC quota check still measures the old, closed backend
