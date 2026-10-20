@@ -18,7 +18,10 @@ shift of the caller's on `P` at its linearization point (an atomic update reduce
   reads a nil state as the zero state, `issues/raft-witness-getstate-nil.md`);
 - `ws.Update(q)`: if the stored state is still `σ`, it is now `q`'s (`σ'`), the caller's
   `P σ ={⊤ ∖ N}=∗ P σ' ∗ Ψ` run (`wGhost_push`, `_write`, `_vote`, `_raise`); else an error
-  (`ErrWitnessStateModified`, or another), the shift handed back.
+  (`ErrWitnessStateModified`, or another), the shift handed back. The error is a pointer error
+  (`IsNewError`: `errors.New`'s, as `ErrWitnessStateModified` is), which `Process` compares
+  against `ErrWitnessStateModified` (2026-10-20, W3b: a comparison of interface values of the
+  same dynamic type compares their values, which for a pointer is decidable).
 -/
 module
 
@@ -55,7 +58,7 @@ def isWState (sv : GoInterface) (N : Namespace) (P : WHS → IProp GF) (σ : WHS
         (App (Val #(methods j.ty go!"Update" j.v)) (Val #q))
       {{ (err : GoError), RET #err;
           (⌜err = interface.nil⌝ ∗ Ψ) ∨
-          (⌜err ≠ interface.nil⌝ ∗ (P σ ={⊤ \ ↑N}=∗ P σ' ∗ Ψ)) }}))
+          (⌜err ≠ interface.nil ∧ IsNewError err⌝ ∗ (P σ ={⊤ \ ↑N}=∗ P σ' ∗ Ψ)) }}))
 
 instance isWState_persistent (sv : GoInterface) (N : Namespace) (P : WHS → IProp GF) (σ : WHS) :
     Persistent (isWState sv N P σ) := by
@@ -79,6 +82,32 @@ def isWitnessStorage (s : GoInterface) (N : Namespace) (P : WHS → IProp GF) : 
 instance isWitnessStorage_persistent (s : GoInterface) (N : Namespace) (P : WHS → IProp GF) :
     Persistent (isWitnessStorage s N P) := by
   unfold isWitnessStorage; infer_instance
+
+/-! ### The witness proxy (2026-10-20, W3b)
+
+`ownWitness w id s cq pv c h`: a `*witness` (one node's access to the shared witness): its
+configuration (`id`, `storage`, `checkQuorum`, `preVote`) read-only, its cache `w.state` holding
+`c` (`whsOpt`: nil before the first read), its last storage error `w.lastError`, `nil` iff `h`
+(`isHealthy`). -/
+def ownWitness (w : Loc) (id : w64) (s : GoInterface) (cq pv : Bool) (c : WHS) (h : Bool) :
+    IProp GF :=
+  iprop(∃ (p : Loc) (e : GoError),
+    "#Hid" ∷ w.[witness, go!"id"] ↦□ id ∗
+    "#Hstorage" ∷ w.[witness, go!"storage"] ↦□ s ∗
+    "#HpreVote" ∷ w.[witness, go!"preVote"] ↦□ pv ∗
+    "#HcheckQuorum" ∷ w.[witness, go!"checkQuorum"] ↦□ cq ∗
+    "Hstate" ∷ w.[witness, go!"state"] ↦ p ∗ "#Hcache" ∷ whsOpt p c ∗
+    "HlastError" ∷ w.[witness, go!"lastError"] ↦ e ∗ "%Hh" ∷ ⌜h = decide (e = interface.nil)⌝)
+
+/-- What a round of `Process` on the state `σ` just read obliges the caller to give (`wStep`):
+the answer's `Φr` when nothing is written; else the shift that the write runs at the storage's
+linearization point, from `P σ` to the written state's, with the new cache's `Lb` and the
+answer's `Φr`. -/
+def wObl (id : w64) (cq pv : Bool) (N : Namespace) (P Lb : WHS → IProp GF)
+    (Φr : Option WResp → IProp GF) (μ : WMsg) (σ : WHS) : IProp GF :=
+  match wStep id cq pv σ μ with
+  | (none, r) => Φr r
+  | (some σ', r) => iprop(P σ ={⊤ \ ↑N}=∗ P σ' ∗ Lb σ' ∗ Φr r)
 
 end storage
 

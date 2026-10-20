@@ -314,8 +314,11 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
   -- term's entry, with the replication set's voters
   | .wapp =>
       if m.dst = γ.reWit ∧ γ.reWit ≠ W64 0 then
+        -- (2026-10-20) the voters without repetition (`GetNonWitnessVoterSlice`, a map's
+        -- keys): `handleVote` counts the responders over them
         iprop(∃ (x : w64) (H : GSet w64),
-          ⌜m.logterm = m.term ∧ ∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})⌝ ∗
+          ⌜m.logterm = m.term ∧ (∀ v, v ∈ m.voters ↔ v ∈ γ.reCfg \ ({[γ.reWit]} ∪ {[x]})) ∧
+            m.voters.Nodup⌝ ∗
           wJust γ m.term m.sub m.index x H)
       else iprop(True)
   -- a candidate's vote request to the witness

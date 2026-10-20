@@ -425,6 +425,47 @@ theorem wp_whsOpt_GetReplicationSetOutgoing (wp_GetReplicationSetOutgoing : raft
     iintro %s ⟨#Hs, -⟩
     iapply HΦ $$ Hs
 
+/-- `GetState` of a state being built (2026-10-20, W3b): its hard state, owned. -/
+theorem wp_whsOwn_GetState (wp_GetState : raftpb.WitnessHardState.GetState.spec (GF := GF) (hG := hG))
+    (q : Loc) (σ : WHS) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ whsOwn q σ }}
+      (App (Val (q @!! go.GoType.PointerType raftpb.WitnessHardState.ty @!! go!"GetState"))
+        (Val #()))
+    {{ (ps : Loc), RET #ps; hsF ps (DFrac.own 1) σ ∗ (hsF ps (DFrac.own 1) σ -∗ whsOwn q σ) }} := by
+  iintro %Φ ⟨#Hi, H⟩ HΦ
+  iunfold whsOwn at H
+  iNamed H
+  icases whsRest_nn _ _ _ $$ Hr with ⟨%Hnn, Hr⟩
+  iapply wp_GetState.1 q (DFrac.own 1) ps $$ [$Hi $HS]
+  · ipureintro; exact Hnn
+  inext
+  iintro HS
+  iapply HΦ
+  iframe Hhs
+  iintro Hhs
+  unfold whsOwn
+  iexists ps
+  iframe HS Hhs Hr
+
+/-- `GetTerm` of a witness state's hard state (2026-10-20, W3b). -/
+theorem wp_hsF_GetTerm (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
+    (ps : Loc) (dq : DFrac) (σ : WHS) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ hsF ps dq σ }}
+      (App (Val (ps @!! go.GoType.PointerType raftpb.HardState.ty @!! go!"GetTerm")) (Val #()))
+    {{ RET #σ.term; hsF ps dq σ }} := by
+  iintro %Φ ⟨#Hi, H⟩ HΦ
+  iNamed H
+  iapply wp_GetTerm.2.2 ps dq _ σ.term $$ [$Hi $HT $cT]
+  · ipureintro; exact Hsn
+  inext
+  iintro HT
+  iapply HΦ
+  unfold hsF
+  iexists pt, pv, pc, uf
+  isplitr
+  · ipureintro; exact Hsn
+  iframe HT cT HV cV HC cC Hpbs
+
 end lemmas
 
 end EtcdGrove

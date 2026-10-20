@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.raft.v3.MemoryStorage__lastIndex
 public import Proof.go_etcd_io.raft.v3.MustSync
 public import Proof.go_etcd_io.raft.v3.NewMemoryStorage
 public import Proof.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.NewWitness
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__ApplyConfChange
 public import Proof.go_etcd_io.raft.v3.RawNode__BasicStatus
@@ -352,6 +353,8 @@ public import Proof.go_etcd_io.raft.v3.unstable__slice
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Proof.go_etcd_io.raft.v3.witness__Close
+public import Proof.go_etcd_io.raft.v3.witness__Process
 public import Proof.go_etcd_io.raft.v3.witness__cloneState
 public import Proof.go_etcd_io.raft.v3.witness__handleAppend
 public import Proof.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
@@ -1000,6 +1003,10 @@ theorem raft.wp_hardState [StorageModel GF] :
     raft.hardState.spec (GF := GF) (hG := hG) :=
   raft.hardState.wp_proof
 
+theorem wp_NewWitness :
+    NewWitness.spec (GF := GF) (hG := hG) :=
+  NewWitness.wp_proof
+
 theorem wp_traceBecomeCandidate [StorageModel GF] :
     traceBecomeCandidate.spec (GF := GF) (hG := hG) :=
   traceBecomeCandidate.wp_proof
@@ -1584,41 +1591,49 @@ theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
     tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
   tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
 
-theorem witness.wp_cloneState :
-    witness.cloneState.spec (GF := GF) (hG := hG) :=
-  witness.cloneState.wp_proof raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm raftpb.WitnessHardState.wp_GetLead raftpb.WitnessHardState.wp_GetReplicationSet raftpb.WitnessHardState.wp_GetReplicationSetOutgoing
-
-theorem witness.wp_handleAppendNoUpdate :
-    witness.handleAppendNoUpdate.spec (GF := GF) (hG := hG) :=
-  witness.handleAppendNoUpdate.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
-
-theorem witness.wp_handleAppend :
-    witness.handleAppend.spec (GF := GF) (hG := hG) :=
-  witness.handleAppend.wp_proof witness.wp_handleAppendNoUpdate raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex
-
-theorem witness.wp_handleHeartbeat :
-    witness.handleHeartbeat.spec (GF := GF) (hG := hG) :=
-  witness.handleHeartbeat.wp_proof raftpb.MessageType.wp_Enum
-
-theorem witness.wp_handleVote :
-    witness.handleVote.spec (GF := GF) (hG := hG) :=
-  witness.handleVote.wp_proof raftpb.MessageType.wp_Enum raftpb.Message.wp_GetReject raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.WitnessHardState.wp_GetLead raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
+theorem witness.wp_Close :
+    witness.Close.spec (GF := GF) (hG := hG) :=
+  witness.Close.wp_proof
 
 theorem witness.wp_isHealthy :
     witness.isHealthy.spec (GF := GF) (hG := hG) :=
   witness.isHealthy.wp_proof
 
-theorem witness.wp_processMessageWithNewerTerm :
-    witness.processMessageWithNewerTerm.spec (GF := GF) (hG := hG) :=
-  witness.processMessageWithNewerTerm.wp_proof
-
 theorem witness.wp_processMessageWithOlderTerm :
     witness.processMessageWithOlderTerm.spec (GF := GF) (hG := hG) :=
   witness.processMessageWithOlderTerm.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm
 
+theorem witness.wp_handleAppendNoUpdate :
+    witness.handleAppendNoUpdate.spec (GF := GF) (hG := hG) :=
+  witness.handleAppendNoUpdate.wp_proof raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
+
 theorem witness.wp_processNoUpdate :
     witness.processNoUpdate.spec (GF := GF) (hG := hG) :=
   witness.processNoUpdate.wp_proof witness.wp_isHealthy witness.wp_processMessageWithOlderTerm witness.wp_handleAppendNoUpdate raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm
+
+theorem witness.wp_cloneState :
+    witness.cloneState.spec (GF := GF) (hG := hG) :=
+  witness.cloneState.wp_proof raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit raftpb.WitnessHardState.wp_GetLastLogIndex raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm raftpb.WitnessHardState.wp_GetLead raftpb.WitnessHardState.wp_GetReplicationSet raftpb.WitnessHardState.wp_GetReplicationSetOutgoing
+
+theorem witness.wp_processMessageWithNewerTerm :
+    witness.processMessageWithNewerTerm.spec (GF := GF) (hG := hG) :=
+  witness.processMessageWithNewerTerm.wp_proof
+
+theorem witness.wp_handleHeartbeat :
+    witness.handleHeartbeat.spec (GF := GF) (hG := hG) :=
+  witness.handleHeartbeat.wp_proof raftpb.MessageType.wp_Enum
+
+theorem witness.wp_handleAppend :
+    witness.handleAppend.spec (GF := GF) (hG := hG) :=
+  witness.handleAppend.wp_proof witness.wp_handleAppendNoUpdate raftpb.MessageType.wp_Enum raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.WitnessHardState.wp_GetLastLogIndex
+
+theorem witness.wp_handleVote :
+    witness.handleVote.spec (GF := GF) (hG := hG) :=
+  witness.handleVote.wp_proof raftpb.MessageType.wp_Enum raftpb.Message.wp_GetReject raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.WitnessHardState.wp_GetLead raftpb.WitnessHardState.wp_GetLastLogTerm raftpb.WitnessHardState.wp_GetLastLogSubterm
+
+theorem witness.wp_Process :
+    witness.Process.spec (GF := GF) (hG := hG) :=
+  witness.Process.wp_proof witness.wp_processNoUpdate witness.wp_cloneState witness.wp_processMessageWithNewerTerm witness.wp_handleHeartbeat witness.wp_handleAppend witness.wp_handleVote raftpb.WitnessHardState.wp_GetState raftpb.HardState.wp_GetTerm
 
 end links
 

@@ -681,7 +681,8 @@ theorem lc_wit (γ : RaftNames) (T t n : w64) (F : List EntryM) (c : w64)
     have Hlt0 : stv.lt ≠ W64 0 := by
       intro h; rw [HC3] at h; rw [h] at Ht0; simp at Ht0
     rw [if_neg Hlt0]
-    icases Hsj with ⟨%xv, %Hv, %Hrs, #Hjv⟩
+    icases Hsj with ⟨%xv, %Hv, %Hrs0, #Hjv⟩
+    have Hrs := Hrs0.1
     iunfold wJust at Hjv
     icases Hjv with ⟨-, ⟨%ldrv, #Hlv, #Hsrv⟩, -, -⟩
     rw [HC3, HC4]
@@ -1495,12 +1496,14 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List EntryM) (ldr : w64)
   iframe Hc
   iexists P'
   iframe Hq2 Hregs
-/-- A vote, recorded in the node's half of its vote map and in the table. -/
-theorem vote_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 w64)
-    (T c : w64) :
+/-- A vote, recorded in the node's half of its vote map and in the table, at any mask where the
+log half of the commit invariant can be opened (2026-10-20: the witness's storage records its
+votes inside its own invariant). -/
+theorem vote_insertE (γ : RaftNames) (E : CoPset) (HE : (↑raftLogN : CoPset) ⊆ E) (id : w64)
+    (γv : GName) (voted : GMap w64 w64) (T c : w64) :
     γ.reVotes !! id = some γv → voted !! T = none →
     ⊢ raftCommitInv (GF := GF) γ -∗ voteJust γ id T c -∗ ghostMapAuth γv (1 : Qp).half voted
-      ={⊤ \ ↑raftRegN}=∗
+      ={E}=∗
       ghostMapAuth γv (1 : Qp).half (<[T := c]> voted) ∗ T ↪[γv]□ c := by
   intro Hγv Hfree
   iintro #Hinv #Hj Ha
@@ -1516,6 +1519,15 @@ theorem vote_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 
   isplitl [Ha]
   · iexact Ha
   · iexact Hf
+
+/-- `vote_insertE` at the mask a node's step runs at. -/
+theorem vote_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 w64)
+    (T c : w64) :
+    γ.reVotes !! id = some γv → voted !! T = none →
+    ⊢ raftCommitInv (GF := GF) γ -∗ voteJust γ id T c -∗ ghostMapAuth γv (1 : Qp).half voted
+      ={⊤ \ ↑raftRegN}=∗
+      ghostMapAuth γv (1 : Qp).half (<[T := c]> voted) ∗ T ↪[γv]□ c :=
+  vote_insertE γ (⊤ \ ↑raftRegN) raftLogN_sub id γv voted T c
 
 
 /-! ### The winners table (2026-10-14, reconfiguration stage B4)

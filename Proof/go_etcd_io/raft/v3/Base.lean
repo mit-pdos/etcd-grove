@@ -231,7 +231,11 @@ def isInitialized : IProp GF :=
     -- (item 8, 2026-10-17) `ErrStopped` and `ErrProposalDropped` as the `errors.New` errors they
     -- are (`node.go`, `raft.go`), which the server's and the read loop's facts take from here
     "#ErrStoppedNew" ∷ EtcdGrove.errorsNewVar ErrStopped go!"raft: stopped" ∗
-    "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped")
+    "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped" ∗
+    -- (2026-10-20, witness support) `ErrWitnessStateModified = errors.New(...)` (`witness.go`),
+    -- which `witness.Process` compares the storage's `Update` error against (so `IsNewError`)
+    "#ErrWitnessStateModified" ∷ (∃ ew : GoInterface,
+      (globalAddr ErrWitnessStateModified ↦□ ew : IProp GF) ∗ ⌜ew ≠ interface.nil ∧ IsNewError ew⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

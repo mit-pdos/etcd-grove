@@ -48,6 +48,19 @@ module system").
 
 
 
+## Witness support, W3b: `Process`, at W2's ghost state, and the `Witness` interface (2026-10-20, branch `raft-witness-w3b`)
+
+`witness.Process` is specified against the storage's contract (any reading of its states) and
+proved (the cache, the retry on `ErrWitnessStateModified`, now among raft's facts, the write's
+shift at the compare-and-swap); `NewWitness` and `Close` too. Instantiated at W2's `wGhost`
+(`InvWitnessGhost.lean`, `InvWitnessIface.lean`: `witness.Process.ghost`, every `wStep` case
+one of W2's lemmas): a request whose protocol reading is legitimate is answered, if at all,
+legitimately. `ownWitnessI` and `Witness.wp_Process'`/`wp_Close'` are the interface-level specs
+for raft and the kv example. W2 adjusted minimally: the stored replication set without
+repetition (the vote rule's count), `vote_insert` at any mask containing `raftLogN`. No new
+axiom or `sorry`. Not yet: the raft functions' witness paths (W3b-A). Details:
+`notes/raft-witness.md`, "W3b".
+
 ## Witness support, W3a: the tracker's epoch and `witness.go` specified with a witness (2026-10-20, branch `raft-witness`)
 
 raft is translated at the fork's `9ed005d46` (two `witness.go` fixes found writing the specs:
