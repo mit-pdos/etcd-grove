@@ -149,9 +149,28 @@ local macro "cc_refuse_tail" : tactic => `(tactic| (
   ))
 
 set_option hygiene false in
+/-- A case of `cc_join` at its end, refused: `Hstep0`, and `failedCheck` non-empty by `hne`
+(`c.joint` rewritten by `Hjv` in the goal, where the case did). -/
+local macro "cc_join_refuse" hne:term : tactic => `(tactic| (
+    wp_join_done
+    iexists _
+    iframe
+    ipureintro
+    first | exact Or.inl ⟨$hne, Hstep0⟩ | exact Or.inl ⟨$hne, Hjv ▸ Hstep0⟩))
+
+set_option hygiene false in
+/-- A case of `cc_join` at its end, accepted: `Hstep1`, and `failedCheck` empty. -/
+local macro "cc_join_accept" : tactic => `(tactic| (
+    wp_join_done
+    iexists _
+    iframe
+    ipureintro
+    first | exact Or.inr ⟨rfl, Hstep1⟩ | exact Or.inr ⟨rfl, Hjv ▸ Hstep1⟩))
+
+set_option hygiene false in
 /-- A conf change refused because one is pending (`ConfChange` and `ConfChangeV2` alike, `ccm`
-the decoded change): the `Sprintf` of the log line, then `cc_refuse_tail`. -/
-local macro "cc_pending_refuse" ccm:term:max : tactic => `(tactic| (
+the decoded change): the `Sprintf` of the log line, `failedCheck`'s value; `cc_join`'s case. -/
+local macro "cc_pending" ccm:term:max : tactic => `(tactic| (
     have Hpend : uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
       rw [← Happ]; exact Hif
     wp_apply raft.wp_load_pendingConfIndexC $$ Hphys as Hphys
@@ -175,13 +194,11 @@ local macro "cc_pending_refuse" ccm:term:max : tactic => `(tactic| (
     have Hstr : str ≠ [] := by
       obtain ⟨o', rfl, -⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) Hout
       simp
-    simp only [decide_eq_false Hstr, Bool.not_false]
-    wp_auto
     have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
         (e, some $ccm) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
       unfold propConfStep
       simp only [Hpend, _root_.true_or, ↓reduceIte]
-    cc_refuse_tail
+    cc_join_refuse Hstr
   ))
 
 set_option hygiene false in
@@ -210,6 +227,37 @@ local macro "cc_accept_tail" : tactic => `(tactic| (
     iframe Hents
     ipureintro; word
   ))
+
+set_option hygiene false in
+/-- (2026-10-20) A decoded conf change's checks (`ccm` the change), joined: the `failedCheck`
+chain leaves `failedCheck` at a string `str` and `Hphys` as it was, and `Hfc` says what the
+loop's step makes of the change, refused for a non-empty `str`, accepted for the empty one; so
+that the refusal and the acceptance are each verified once (`cc_after`), not once per check.
+Leaves the two cases of `alreadyPending` (`Hif`; each ends with `cc_join_refuse` or
+`cc_join_accept`), then the code after the chain. -/
+local macro "cc_join" ccm:term:max : tactic => `(tactic| (
+    wp_join iprop(∃ (str : GoString), failedCheck_ptr ↦ str ∗ r_ptr ↦ r ∗
+        alreadyJoint_ptr ↦ c.joint ∗ wantsLeaveJoint_ptr ↦ decide (chs.len = W64 0) ∗
+        ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
+        ⌜(str ≠ [] ∧ propConfStep c.joint s.logst.applied (logLast s.logst)
+            (lpc (sint.nat n)) (e, some $ccm) =
+              ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2)) ∨
+          (str = [] ∧ propConfStep c.joint s.logst.applied (logLast s.logst)
+            (lpc (sint.nat n)) (e, some $ccm) = ((lpc (sint.nat n)).1 ++ [e],
+              logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1))⌝)
+      with [failedCheck r alreadyJoint wantsLeaveJoint Hphys]
+      as ⟨%str, failedCheck, r, alreadyJoint, wantsLeaveJoint, Hphys, %Hfc⟩))
+
+set_option hygiene false in
+/-- After `cc_join`: `failedCheck != ""` (and `!r.disableConfChangeValidation`) decides between
+`cc_refuse_tail` and `cc_accept_tail`. -/
+local macro "cc_after" : tactic => `(tactic| (
+    rcases Hfc with ⟨Hstr, Hstep0⟩ | ⟨rfl, Hstep1⟩
+    · simp only [decide_eq_false Hstr, Bool.not_false]
+      wp_auto
+      cc_refuse_tail
+    · try wp_auto
+      cc_accept_tail))
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgProp`**
@@ -452,9 +500,9 @@ theorem wp_stepLeader_prop
       icases ownCCV2_changes _ _ _ $$ Hv2 with ⟨%chs, HCh, %Hchl, -⟩
       try wp_auto
       have Happ : lv.applied' = s.logst.applied := Hlv.2
-      wp_if_destruct
+      cc_join (.v1 c1)
       · -- a conf change is pending: refused
-        cc_pending_refuse (.v1 c1)
+        cc_pending (.v1 c1)
       · -- no conf change pending, one change (`wantsLeaveJoint` false)
         have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
@@ -472,7 +520,7 @@ theorem wp_stepLeader_prop
                 logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
             unfold propConfStep
             simp only [Hnp, ccWantsLeave, Hjv, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
-          cc_accept_tail
+          cc_join_accept
         · -- inside one (`must transition out of joint config first`): refused
           rw [Hjv]
           wp_auto
@@ -480,7 +528,8 @@ theorem wp_stepLeader_prop
               (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
             unfold propConfStep
             simp only [ccWantsLeave, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true, ↓reduceIte]
-          cc_refuse_tail
+          cc_join_refuse (List.cons_ne_nil _ _)
+      cc_after
     · -- a `ConfChangeV2`
       iunfold ccEntOk at Heo
       icases Heo with ⟨%H2, %Hdec⟩
@@ -500,9 +549,9 @@ theorem wp_stepLeader_prop
       wp_apply wp_ConfChangeV2_AsV2
       try wp_auto
       have Happ : lv.applied' = s.logst.applied := Hlv.2
-      wp_if_destruct
+      cc_join (.v2 c2)
       · -- a conf change is pending: refused
-        cc_pending_refuse (.v2 c2)
+        cc_pending (.v2 c2)
       · have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
         have Hlv0 : chs.len = W64 0 ↔ c2.changes = [] := by
@@ -522,7 +571,7 @@ theorem wp_stepLeader_prop
                 (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
               unfold propConfStep
               simp only [ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, Bool.true_eq_false, not_false_eq_true, _root_.or_true, ↓reduceIte]
-            cc_refuse_tail
+            cc_join_refuse (List.cons_ne_nil _ _)
           · -- a request to leave the joint configuration: accepted
             rw [Hjv]
             try wp_auto
@@ -531,7 +580,7 @@ theorem wp_stepLeader_prop
                   logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
               unfold propConfStep
               simp only [Hnp, ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
-            cc_accept_tail
+            cc_join_accept
         · rw [decide_eq_false (fun h => Hcw (Hlv0.1 h))]
           try wp_auto
           have Hne : c2.changes.isEmpty = false := by
@@ -548,7 +597,7 @@ theorem wp_stepLeader_prop
                   logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
               unfold propConfStep
               simp only [Hnp, ccWantsLeave, Hne, Hjv, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
-            cc_accept_tail
+            cc_join_accept
           · -- a change inside one: refused
             rw [Hjv]
             wp_auto
@@ -556,7 +605,8 @@ theorem wp_stepLeader_prop
                 (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
               unfold propConfStep
               simp only [ccWantsLeave, Hne, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true, ↓reduceIte]
-            cc_refuse_tail
+            cc_join_refuse (List.cons_ne_nil _ _)
+      cc_after
   · -- the loop is done: `appendEntry` of the loop's batch
     have Hnend : sint.nat n = ents.length := by
       have := Hl'.1; rw [Hlen', Hcurlen] at this; word
