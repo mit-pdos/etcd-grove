@@ -33,7 +33,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs σ σt sp sv eood Hidle Hbnd Hfl Hcap
+  intro ms γs σ σt sp sv eood Hidle Hbnd Hfl Hcap Hsw
   wp_start as ⟨Hms, Htok, Hsnap, #Herr⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
@@ -198,7 +198,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     · iunfold memSnapOwn
       iexists p', sv
       iframe
-      ipureintro; exact ⟨rfl, rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl, Hsw⟩
     iunfold memSnapKeys at Hk
     icases Hk with (⟨-, Hlk, Hok⟩ | ⟨%Hk, -⟩ | ⟨%Hk, -⟩)
     rotate_left

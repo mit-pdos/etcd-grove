@@ -47,6 +47,8 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   uint.Z σ.fl ≤ uint.Z sv.Metadata'.Index' →
   -- (2026-10-19, D21 M3) and is within the storage's cap, the new boundary
   uint.Z sv.Metadata'.Index' ≤ γs.cap →
+  -- (2026-10-20, witness support) of a configuration without a witness (`memSnapOwn`)
+  sv.Metadata'.ConfState'.Witness' = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Htok" ∷ memSnapTok ms γs σt ∗

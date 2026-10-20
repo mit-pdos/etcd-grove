@@ -455,7 +455,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
     (Hscope : SnapScope sv scfg) (Hid : scfg.Has id)
     (Hsn : sn = some sv) (Hcl : scfg = sv.Metadata'.ConfState'.lists)
-    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0) :
+    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0 ∧ sv.Metadata'.ConfState'.Witness' = W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗

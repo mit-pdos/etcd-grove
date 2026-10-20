@@ -291,7 +291,8 @@ theorem raft.restore.wp_proof
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hns Hw0
+  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hns Hw0'
+  obtain ⟨Hw0, Hsw0⟩ := Hw0'
   subst Hcl
   obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, Hidx61⟩ := Hscope
   wp_start as H
@@ -548,13 +549,13 @@ theorem raft.restore.wp_proof
     have Hinv := restoreM_cfgInv Hrm
     ihave HcB := csPts_weaken $$ Hcf
     wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } pc sv.Metadata'.ConfState'
-        _ v0 _ Hrm Hmi0 (fun h => Hwf.2.1 (W64 0) (.inl h) rfl)
-        (fun h => Hwf.2.1 (W64 0) (.inr (.inl h)) rfl) Htv0wit Htv0arr Htv0l Htv0ln Htv0al
+        _ v0 _ (by rw [Hsw0]; exact Hrm) Hmi0 (fun h => Hwf.2.1 (W64 0) (.inl h) rfl)
+        (fun h => Hwf.2.1 (W64 0) (.inr (.inl h)) rfl) (fun _ => Hsw0) Htv0wit Htv0arr Htv0l Htv0ln Htv0al
         $$ [$HcB $Hv0 $Hprs0]
       as %cfgv %prsm %prs ⟨HcB, Hv0, -, Hres⟩
     -- a voter, so an op ran: the fresh maps (2026-10-16, stage R8b)
     icases Hres with (⟨%Hops, -⟩ | ⟨-, Hcfg, Hprsm, %Hprs, Hprogs⟩)
-    · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
+    · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne _ Hops
     -- the configuration `Restore` built, as `switchToConfig` takes it
     ipersist Hprsm
     have Hsz' : (GMap.size prs : Int) ≤ 2 ^ 62 :=
@@ -619,7 +620,7 @@ theorem raft.restore.wp_proof
       · simp only [ho, ↓reduceIte]
     wp_apply wp_assertConfStatesEquivalent _ pc cs2 sv.Metadata'.ConfState'
         (ConfStateM.mk xs2 ls2 os2 lns2
-          (if sv.Metadata'.ConfState'.VotersOutgoing' = [] then false else sv.Metadata'.ConfState'.AutoLeave') (W64 0)) _ _ Hperm Hbnd Hal2
+          (if sv.Metadata'.ConfState'.VotersOutgoing' = [] then false else sv.Metadata'.ConfState'.AutoLeave') (W64 0)) _ _ Hperm Hbnd Hal2 Hsw0
         $$ [$HcB $Hcs2v] as ⟨HcB, -⟩
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩

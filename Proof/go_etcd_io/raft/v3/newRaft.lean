@@ -61,7 +61,7 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
     (Hl : chg.Tracker'.Config'.Learners' = map.nil)
     (Hln : chg.Tracker'.Config'.LearnersNext' = map.nil)
     (Hal : chg.Tracker'.Config'.AutoLeave' = false)
-    (Hwit : chg.Tracker'.Config'.Witnesses'.arr = [W64 0, W64 0]) :
+    (Hwit : chg.Tracker'.Config'.Witnesses'.arr = [W64 0, W64 0]) (Hcw : c.Witness' = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
         ownCSM cs dq c ∗ v0 ↦$ (∅ : GMap w64 Unit) ∗
         chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
@@ -97,7 +97,7 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
     · ipureintro; exact domSet_empty_loc
   · -- a voter: fresh maps
     wp_apply (confchange.Restore.spec_simple H) chg cs c dq v0 Hvne Hv0n (by rw [Hcl]; exact List.not_mem_nil)
-      (by rw [Hcl]; intro k hk; cases hk) Hcvo Hcln Hmi Hwit Harr Hl Hln Hal
+      (by rw [Hcl]; intro k hk; cases hk) Hcvo Hcln Hcw Hmi Hwit Harr Hl Hln Hal
       $$ [$Hcs $Hv0 $Hpm]
       as %cfgv %prsm %prs %vref %vm ⟨Hcs, -, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
     obtain ⟨Hcfgarr, Hcfgln, Hcfgal, Hcfgwit⟩ := Hcfgv
@@ -136,7 +136,7 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si σ hs csm R
-    Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal Hfl0
+    Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal Hfl0 Hcw0
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, HInit⟩
   wp_auto
@@ -174,7 +174,7 @@ theorem newRaft.wp_proof
   -- `confchange.Restore` on the empty tracker: the configuration `switchToConfig` installs
   -- (fresh maps, or with no voter the tracker's own: `wp_Restore_voters`, 2026-10-16, stage R8b)
   wp_apply wp_Restore_voters wp_confchange_Restore ⟨tv0, lastID.index'⟩ cs csm DFrac.discard v0
-    Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hmi Htv0arr Htv0l Htv0ln Htv0al Htv0wit
+    Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hmi Htv0arr Htv0l Htv0ln Htv0al Htv0wit Hcw0
     $$ [$Hcsw $Hv0 $Hprs0]
     as %cfgv %prsm Hres
   imod Hres with ⟨-, %prs, Hcfg, %Hprs'⟩
@@ -245,7 +245,7 @@ theorem newRaft.wp_proof
   ihave Hcs2v := csPts_weaken $$ Hcs2v
   ihave Hcsw := csPts_weaken $$ Hcs
   wp_apply wp_assertConfStatesEquivalent _ cs cs2 csm (ConfStateM.mk xs2 [] [] [] false (W64 0))
-    DFrac.discard (DFrac.own 1) Hperm Hbnd Hal $$ [$Hcsw $Hcs2v] as ⟨-, -⟩
+    DFrac.discard (DFrac.own 1) Hperm Hbnd Hal Hcw0 $$ [$Hcsw $Hcs2v] as ⟨-, -⟩
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.

@@ -45,7 +45,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
     (ents : List EntryM) (scfg : CSLists) (sv : SnapshotM)
     -- (2026-10-19, D21 M3) not in the no-snapshot mode (`raft.restore`'s premise)
-    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0) :
+    (Hnsf : s.gh.ns = false) (Hw0 : c.wit = W64 0 ∧ sv.Metadata'.ConfState'.Witness' = W64 0) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →

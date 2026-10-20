@@ -155,7 +155,7 @@ theorem NewMemoryStorage.wp_proof
     iunfold memSnapOwn
     iexists sp, _
     iframe snapshot Hsp
-    ipureintro; exact ⟨rfl, rfl, rfl⟩
+    ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   imodintro
   iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap⟩ : MemStorNames)
   isplitr

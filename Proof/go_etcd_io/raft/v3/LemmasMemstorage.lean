@@ -20,9 +20,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- A conf state whose lists and `AutoLeave` are the storage's is `storCS σ`. -/
 theorem confState_eq_storCS [FfiSyntax] (c : ConfStateM) (σ : StorState) (h1 : c.lists = σ.scs)
-    (h2 : c.AutoLeave' = σ.sal) : c = storCS σ := by
+    (h2 : c.AutoLeave' = σ.sal) (h3 : c.Witness' = W64 0) : c = storCS σ := by
   unfold storCS
-  rw [← h1, ← h2]
+  rw [← h1, ← h2, ← h3]
   rfl
 
 section lemmas

@@ -39,7 +39,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs σt x i cs dq oc data bs eood Hpre
+  intro ms γs σt x i cs dq oc data bs eood Hpre Hocw
   wp_start as ⟨Htok, #Hfw, Hcs, Hdata, #Herr⟩
   iunfold memSnapTok at Htok
   icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsvt, Hcbt⟩
@@ -95,7 +95,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   have Hss : σt.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
   (try wp_auto)
   have Hcs0 : sv0.Metadata'.ConfState' = storCS σt :=
-    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2
+    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2.1 Hsnap_id.2.2.2
   wp_apply wp_GetMetadata.1 sp0 (DFrac.own 1) sv0 $$ [Hsnap0] as %pm0 ⟨Hm0, Hmback0⟩
   · iframe Hsnap0
   wp_apply wp_SMGetIndex pm0 (DFrac.own 1) sv0.Metadata' $$ [Hm0] as Hm0
@@ -251,7 +251,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     · iunfold memSnapOwn
       iexists sp0, _
       iframe Hsnapshot Hsnap
-      ipureintro; exact ⟨rfl, rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     iunfold memSnapKeys at Hk
     icases Hk with (⟨%Hk, -⟩ | ⟨-, Hlk, Hak⟩ | ⟨%Hk, -⟩)
     · exact absurd Hk (by decide)
@@ -333,7 +333,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     · iunfold memSnapOwn
       iexists sp0, _
       iframe Hsnapshot Hsnap
-      ipureintro; exact ⟨rfl, rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl, Hocw c rfl⟩
     iunfold memSnapKeys at Hk
     icases Hk with (⟨%Hk, -⟩ | ⟨-, Hlk, Hak⟩ | ⟨%Hk, -⟩)
     · exact absurd Hk (by decide)

@@ -63,6 +63,8 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
     (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
   (uint.Z σt.ss.index' < uint.Z i →
     uint.Z σt.prev.index' ≤ uint.Z i ∧ uint.Z i ≤ uint.Z x) →
+  -- (2026-10-20, witness support) a conf state without a witness (`memSnapOwn`)
+  (∀ c, oc = some c → c.Witness' = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Htok" ∷ memSnapTok ms γs σt ∗
       "#Hfw" ∷ memFloorTok ms γs x ∗

@@ -34,6 +34,8 @@ abbrev assertConfStatesEquivalent.spec : Prop :=
   ∀ (l : Logger) (cs1 cs2 : Loc) (c1 c2 : ConfStateM) (dq1 dq2 : DFrac),
   c1.lists.Perm c2.lists → c1.lists.Bounded →
   c1.AutoLeave' = c2.AutoLeave' →
+  -- (2026-10-20, witness support) the same witness
+  c1.Witness' = c2.Witness' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       ownCSM cs1 dq1 c1 ∗ ownCSM cs2 dq2 c2 }}
     (App (App (App (Val #(functions assertConfStatesEquivalent [])) (Val #l))

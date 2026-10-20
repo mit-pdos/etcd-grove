@@ -35,7 +35,7 @@ theorem RestartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 Hcw0
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -65,7 +65,7 @@ theorem RestartNode.wp_proof
   wp_auto
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28
+    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28 Hcw0
     $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s0, Hfresh0, %Herr⟩
   · iintro %Φ %ss' Hs HK
     iapply Hinit $$ Hs

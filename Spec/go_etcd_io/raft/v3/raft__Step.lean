@@ -528,7 +528,7 @@ abbrev raft.Step.spec : Prop :=
              SnapScope sv scfg ∧ scfg.Has id ∧
              -- (2026-10-20, witness support) at a configuration without a witness:
              -- `ConfStateM` carries none yet (`raft.restore`; `RawNode` delivers no snapshot)
-             c.wit = W64 0⌝ ∗
+             c.wit = W64 0 ∧ sv.Metadata'.ConfState'.Witness' = W64 0⌝ ∗
            md.SnapOk γ sv scfg ∗
            isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))

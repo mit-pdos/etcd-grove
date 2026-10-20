@@ -55,7 +55,7 @@ theorem MemoryStorage.InitialState.wp_proof
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
   have Hcs : sv.Metadata'.ConfState' = storCS σt :=
-    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2
+    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2.1 Hsnap_id.2.2.2
   (try wp_auto)
   wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
   · iframe Hsnap

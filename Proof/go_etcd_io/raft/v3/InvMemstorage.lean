@@ -590,7 +590,9 @@ def memSnapOwn (ms : Loc) (σ : StorState) : IProp GF :=
   "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦ sp ∗
   "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv ∗
   "%Hsnap_id" ∷ ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
-    sv.Metadata'.ConfState'.AutoLeave' = σ.sal⌝)
+    sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
+    -- (2026-10-20, witness support) the `MemoryStorage` holds no witness's conf state (`storCS`)
+    sv.Metadata'.ConfState'.Witness' = W64 0⌝)
 
 /-- `memSnapOwn` reads only the snapshot's part of the state. -/
 theorem memSnapOwn_congr (ms : Loc) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)

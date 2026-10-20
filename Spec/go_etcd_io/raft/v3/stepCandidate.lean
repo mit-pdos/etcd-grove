@@ -349,8 +349,8 @@ abbrev stepCandidate.spec : Prop :=
      SnapScope sv scfg ∧ scfg.Has id ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
      s.gh.ns = false ∧
-     -- (2026-10-20, witness support) at a configuration without a witness (`raft.restore`)
-     c.wit = W64 0) →
+     -- (2026-10-20, witness support) at a configuration without a witness, of one (`raft.restore`)
+     (c.wit = W64 0 ∧ sv.Metadata'.ConfState'.Witness' = W64 0)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the

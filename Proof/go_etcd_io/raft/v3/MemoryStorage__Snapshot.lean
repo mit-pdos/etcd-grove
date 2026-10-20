@@ -154,7 +154,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     rcases Hrel with ⟨Hr1, Hr2, Hr3⟩ | ⟨Hr1, Hr2, Hr3, Hr4⟩
     · left
       refine ⟨Hsid.trans (Hr1.trans Hvs1), ?_, ?_⟩
-      · rw [Hsnap_id.2.2, ← Hs3, Hr3, Hvs3]
+      · rw [Hsnap_id.2.2.1, ← Hs3, Hr3, Hvs3]
       · rw [Hsnap_id.2.1, ← Hs2, Hr2, Hvs2]
     · right
       rw [Hidx, Htm, ← Hvs1, ← Hvp]
@@ -228,7 +228,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iexists sv
     iframe Hp'
     ipureintro
-    exact ⟨Hsnap_id.1.trans Hs1.symm, Hsnap_id.2.2.trans Hs3.symm, Hsnap_id.2.1.trans Hs2.symm⟩
+    exact ⟨Hsnap_id.1.trans Hs1.symm, Hsnap_id.2.2.1.trans Hs3.symm, Hsnap_id.2.1.trans Hs2.symm⟩
 
 end proof
 
