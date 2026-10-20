@@ -11484,6 +11484,7 @@ noncomputable def witness.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve WitnessState.ty go!"GetState"))) (App (Val (GoInstruction (GoLoad WitnessState.ty))) (Var "state"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"processNoUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -11560,6 +11561,12 @@ noncomputable def witness.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m"))) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))) (Val #false)))
+  (App (Val doReturn)
+  (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleHeartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (Val doExecute)
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
@@ -11591,7 +11598,7 @@ noncomputable def witness.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))))))))
 
-/-- go: witness.go:109:19 -/
+/-- go: witness.go:112:19 -/
 noncomputable def witness.isHealthy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -11600,7 +11607,7 @@ noncomputable def witness.isHealthy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"lastError"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))))))
 
-/-- go: witness.go:113:19 -/
+/-- go: witness.go:116:19 -/
 noncomputable def witness.processNoUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "m"
@@ -11618,15 +11625,6 @@ noncomputable def witness.processNoUpdate.impl [FfiSyntax] [GoGlobalContext] : v
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "resp")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Term"))) (Var "m"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty) go!"GetTerm"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty) go!"GetState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.WitnessHardState.ty)))) (App (Val (GoInstruction (StructFieldRef witness.ty go!"state"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))))) (Val #()))) (Val #())))))
   (Let "$sw" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (App (Val (GoInstruction (StructFieldRef WitnessMessage.ty go!"Type"))) (Var "m")))
-  (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgHeartbeat)))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleHeartbeat"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (Var "$sw") (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp)))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad WitnessMessage.ty))) (Var "m"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType witness.ty) go!"handleAppendNoUpdate"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType witness.ty)))) (Var "w"))) (Var "$a0")))
@@ -11640,7 +11638,7 @@ noncomputable def witness.processNoUpdate.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))
   (App (Val doExecute)
-  (Val #())))))
+  (Val #()))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
