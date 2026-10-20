@@ -255,9 +255,9 @@ theorem sortNamesIf_of_ok (b : Bool) : sortNamesOk (GF := GF) ⊢ sortNamesIf b 
 an exact get and a non-empty prefix (see the file header). Premises: the registration of etcd's
 `Range` at `addr`, the server's read side (`isServerRead`: the first certificate, `storeSmall`),
 `etcdserverpb`'s sort enumerations (`sortNamesOk`), and (unit W-M3) the client's updates at the
-read names (`kvAnyAu E γr`: a linearizable get's floor is its read update's result, at the state
-of the log read). -/
-theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+read names at the ranges (`kvRangeAu E γr`, 2026-10-20: a linearizable get's floor is its read
+update's result, at the state of the log read). -/
+theorem kv_get_server_r (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
@@ -265,7 +265,7 @@ theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF
     (Hx : (opGetModel key gs).getExact) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        sortNamesOk ∗ kvAnyAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
+        sortNamesOk ∗ kvRangeAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -279,8 +279,8 @@ theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF
   ihave ⟨%l, #Hcl, %Hll⟩ := certOk_of_reached E lo $$ Hlo
   ihave ⟨%F, #HF, %HlF⟩ := floor0_of_read s E γr $$ Hsrd
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
-  iunfold kvAnyAu at Hany
-  imod Hany $$ %(KVOp.range (rangeWireOf (opGetModel key gs))) %l Hcl with #Hau
+  iunfold kvRangeAu at Hany
+  imod Hany $$ %(rangeWireOf (opGetModel key gs)) %l Hcl with #Hau
   ihave ⟨%Q, #Hdq, #HQf⟩ : iprop(∃ Q : KVState → IProp GF,
       (⌜Q = fun _ => iprop(True)⌝ ∨
         (⌜(rangeWireOf (opGetModel key gs)).base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
@@ -460,6 +460,35 @@ theorem kvGetResultC_R [EM : EtcdModel GF] (pfx : GoString) (lo : w64) (o : OpFu
   iframe #
   ipureintro; exact Hb
 
+/-- **A real `*kv`'s get at the server's model** (`kv_get_server_r` from `kvAnyAu`; the core of `isEtcdKVTodo_of_kv` and
+`isEtcdKVE_of_kv`, at any context `ci` the client's contracts accept: `ctxOk`, `ctxErrClient`), for
+an exact get and a non-empty prefix (see the file header). Premises: the registration of etcd's
+`Range` at `addr`, the server's read side (`isServerRead`: the first certificate, `storeSmall`),
+`etcdserverpb`'s sort enumerations (`sortNamesOk`), and (unit W-M3) the client's updates at the
+read names (`kvAnyAu E γr`: a linearizable get's floor is its read update's result, at the state
+of the log read). -/
+theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
+    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
+    (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
+    (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
+    (Hx : (opGetModel key gs).getExact) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        sortNamesOk ∗ kvAnyAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
+      (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
+        (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        R ∗ kvGetResultC (EM := v3rpc.etcdModelOfServer E) pfx lo (opGetModel key gs) resp err ∗
+        getRespMore (EM := v3rpc.etcdModelOfServer E) pfx (opGetModel key gs) resp err ∗
+        statusErrOk err }} := by
+  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hctx, #Hce, #Hopts, HR, #Hlo⟩ HΦ
+  ihave #Hr := kvAnyAu_range E γr $$ Hany
+  iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ci cd key sl gs R lo Hnp Ht Hx)
+    $$ [HR] HΦ
+  iframe #; iframe
+
 /-- **A real `*kv` meets the recipes' get contract** (`isEtcdKVTodo`) at the server's model, for a
 non-empty prefix (see the file header): `kv_get_server` at `context.TODO()` (`todo_ctx`, given
 that `errors.As` can take `*rpctypes.EtcdError`, `hAs`). -/
@@ -486,12 +515,12 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
 
 /-- **A real `*kv` meets the cache's get contract** (`isEtcdKVE`, K3) at the server's model, for a
 non-empty prefix: `kv_get_server` at any context (`ctxErrClientAll`: its `Err()` returns client
-errors), with no resource for the options. -/
-theorem isEtcdKVE_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+errors), with no resource for the options; with the ranges' updates (`kvRangeAu`, 2026-10-20). -/
+theorem isEtcdKVE_of_kv_r (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        sortNamesOk ∗ kvAnyAu E γr ∗ ctxErrClientAll ⊢
+        sortNamesOk ∗ kvRangeAu E γr ∗ ctxErrClientAll ⊢
       isEtcdKVE (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hall⟩
   unfold isEtcdKVE
@@ -501,7 +530,7 @@ theorem isEtcdKVE_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv 
   ihave #Hce := Hall $$ %ctx %cs Hctx
   ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
   ihave #Hor := optsAt_res sl gs iprop(True) $$ Hopts
-  iapply (kv_get_server api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx)
+  iapply (kv_get_server_r api addr s E γr cid mid pfx hpfx ctx cs key sl gs iprop(True) lo Hnp Ht Hx)
     $$ [] [HΦ]
   · iframe #
   inext
@@ -509,6 +538,20 @@ theorem isEtcdKVE_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv 
   iapply HΦ
   iframe Hres
   iapply errStrOk_of_statusErrOk $$ Hse
+
+/-- **A real `*kv` meets the cache's get contract** (`isEtcdKVE`, K3) at the server's model, for a
+non-empty prefix: `kv_get_server` at any context (`ctxErrClientAll`: its `Err()` returns client
+errors), with no resource for the options. -/
+theorem isEtcdKVE_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ []) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        sortNamesOk ∗ kvAnyAu E γr ∗ ctxErrClientAll ⊢
+      isEtcdKVE (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hall⟩
+  ihave #Hr := kvAnyAu_range E γr $$ Hany
+  iapply isEtcdKVE_of_kv_r api addr s E γr cid mid pfx hpfx
+  iframe #
 
 end proofs
 

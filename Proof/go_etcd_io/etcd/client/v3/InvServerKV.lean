@@ -335,6 +335,72 @@ theorem kvAnyAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName)
     ipureintro
     omega
 
+/-- **A range's update, with the floor of a certified log** (persistent; 2026-10-20, cachekv):
+`kvAnyAu` at the ranges only, what a get needs (`kv_get_server_r`). A workload always lets its
+clients deposit a range (`SrvWorkload.writes_range`), so a client whose workload lets it write
+only some operations (watchkv's, cachekv's: the plan's puts) has it from `etcdKV` in its
+invariant (`kvRangeAu_of_inv`), where it may not have `kvAnyAu`. -/
+def kvRangeAu (E : apply.AEnv GF) (γ : ReadNames) : IProp GF :=
+  iprop(□ ∀ (o : OpFull) (l : mvcc.Log), mvcc.certOk E.γ l ={⊤}=∗
+    kvOpAu γ.kv (.range o) (fun σ => iprop(⌜l.length ≤ σ.rev + 1⌝)))
+
+instance kvRangeAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
+    Persistent (kvRangeAu (GF := GF) E γ) := by
+  unfold kvRangeAu; infer_instance
+
+/-- `kvAnyAu` gives the ranges' updates. -/
+theorem kvAnyAu_range (E : apply.AEnv GF) (γ : ReadNames) :
+    kvAnyAu (GF := GF) E γ ⊢ kvRangeAu E γ := by
+  iintro #H
+  iunfold kvAnyAu at H
+  iunfold kvRangeAu
+  iintro !> %o %l #Hc
+  iapply H $$ %(KVOp.range o) %l Hc
+
+/-- **`kvRangeAu` from `etcdKV` in the client's invariant** (`kvAnyAu_of_inv` at the ranges, which
+every workload lets a client deposit). -/
+theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
+    srvKVInvs E γ ∗ kvClientInv γ γm ⊢ kvRangeAu (GF := GF) E γ := by
+  have Hm := kvClientN_mask
+  iintro ⟨#Hinvs, #Hinv⟩
+  iunfold kvRangeAu
+  iintro !> %o %l #Hc
+  imod kv_client_floor E γ γm l $$ Hinvs Hinv Hc with ⟨%n, #Hlb, %Hn⟩
+  imodintro
+  iunfold kvOpAu
+  isplitr
+  · ipureintro; exact γ.kv.wl.writes_range o
+  iunfold kvAu
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold kvClientInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, Hσ, Hmn⟩
+  ihave %Hv := monoNatLbOwn_valid γm 1 σ.rev n $$ Hmn Hlb
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hmask with -
+    imod Hclose $$ [Hσ Hmn] with -
+    · inext; iexists σ; iframe Hσ Hmn
+    imodintro
+    itrivial
+  · iintro Hσ
+    imod Hmask with -
+    imod (mono_nat_own_update (GF := GF) (γ := γm) (kvOpStep (.range o) σ).rev
+      (kvOpStep_rev (.range o) σ)) $$ Hmn with ⟨Hmn, -⟩
+    imod Hclose $$ [Hσ Hmn] with -
+    · inext; iexists (kvOpStep (.range o) σ); iframe Hσ Hmn
+    imodintro
+    iintro !>
+    ipureintro
+    omega
+
 end anyAu
 
 section floor
