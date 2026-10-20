@@ -197,6 +197,9 @@ noncomputable def vrEqual [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def outEqual [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkvtxn.outEqual"
 
+noncomputable def resEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/linkvtxn.resEqual"
+
 noncomputable def inputEqual [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkvtxn.inputEqual"
 
@@ -1280,23 +1283,13 @@ noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Lam "$key"
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad TRes.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TRes.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TRes.ty)))) (Var "ar")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (Let "x" (App (Val (GoInstruction (GoAlloc TRes.ty))) (App (Val (GoInstruction (GoZeroVal TRes.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad TRes.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TRes.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TRes.ty)))) (Var "br")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (Let "y" (App (Val (GoInstruction (GoAlloc TRes.ty))) (App (Val (GoInstruction (GoZeroVal TRes.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Kind"))) (Var "x"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Kind"))) (Var "y")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"N"))) (Var "x"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"N"))) (Var "y"))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Found"))) (Var "x"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Found"))) (Var "y"))))))) (Val #true) (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Found"))) (Var "x"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad VR.ty))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"R"))) (Var "x")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad VR.ty))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"R"))) (Var "y")))
-  (App (App (App (Val (GoInstruction (FuncResolve vrEqual []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #false)))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad TRes.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TRes.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TRes.ty)))) (Var "ar")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad TRes.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TRes.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TRes.ty)))) (Var "br")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (App (Val (GoInstruction (FuncResolve resEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (Val doReturn)
   (Val #false))
   (App (Val doExecute)
   (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore TRes.ty))) (Pair (Var "y") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore TRes.ty))) (Pair (Var "x") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
   (App (Val doExecute)
@@ -1370,7 +1363,40 @@ noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))
 
-/-- go: linkvtxn.go:497:6 -/
+/-- resEqual compares a transaction operation's result with the model's (only the fields its kind
+    answers: a get's (Found, R), a delete's N).
+
+    go: linkvtxn.go:497:6 -/
+noncomputable def resEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam "y"
+  (App (Val exceptionDo)
+  (Let "y" (App (Val (GoInstruction (GoAlloc TRes.ty))) (Var "y"))
+  (Let "x" (App (Val (GoInstruction (GoAlloc TRes.ty))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #true))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Kind"))) (Var "x"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TDel)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"N"))) (Var "x"))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"N"))) (Var "y"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Kind"))) (Var "x"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TGet)))))
+  (App (Val doReturn)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Found"))) (Var "x"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Found"))) (Var "y"))))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Found"))) (Var "x")))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad VR.ty))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"R"))) (Var "x")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad VR.ty))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"R"))) (Var "y")))
+  (App (App (App (Val (GoInstruction (FuncResolve vrEqual []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #false)))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Kind"))) (Var "x"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef TRes.ty go!"Kind"))) (Var "y")))))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #())))))))))
+
+/-- go: linkvtxn.go:510:6 -/
 noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1380,7 +1406,7 @@ noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals Input.ty))) (Pair (App (Val (GoInstruction (GoLoad Input.ty))) (Var "a")) (App (Val (GoInstruction (GoLoad Input.ty))) (Var "b"))))))))))
 
-/-- go: linkvtxn.go:501:6 -/
+/-- go: linkvtxn.go:514:6 -/
 noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1414,7 +1440,7 @@ noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: linkvtxn.go:513:6 -/
+/-- go: linkvtxn.go:526:6 -/
 noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1450,7 +1476,7 @@ noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: linkvtxn.go:525:6 -/
+/-- go: linkvtxn.go:538:6 -/
 noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -1484,7 +1510,7 @@ noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- removeAt returns pend without its i-th input (a new slice).
 
-    go: linkvtxn.go:535:6 -/
+    go: linkvtxn.go:548:6 -/
 noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pend"
   (Lam "i"
@@ -1512,7 +1538,7 @@ noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- closure adds to s every configuration reachable by pending writes taking effect.
 
-    go: linkvtxn.go:542:6 -/
+    go: linkvtxn.go:555:6 -/
 noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -1608,7 +1634,7 @@ noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
     effect and answered the model's output; a failed write becomes pending; a failed read does
     nothing.
 
-    go: linkvtxn.go:564:6 -/
+    go: linkvtxn.go:577:6 -/
 noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "in"
@@ -1685,7 +1711,7 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
     returned no error took effect at once and answered as the model; a failed write may take
     effect at any later time, or never; a failed read constrains nothing.
 
-    go: linkvtxn.go:584:6 -/
+    go: linkvtxn.go:597:6 -/
 noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -1803,7 +1829,7 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- pick returns n mod m and n / m.
 
-    go: linkvtxn.go:619:6 -/
+    go: linkvtxn.go:632:6 -/
 noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "m"
@@ -1818,7 +1844,7 @@ noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
     on distinct keys (10), or a compare-and-set (5): if the key's value, version or mod revision is
     as guessed, put a new value, else get it.
 
-    go: linkvtxn.go:627:6 -/
+    go: linkvtxn.go:640:6 -/
 noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (App (Val exceptionDo)
@@ -2055,7 +2081,7 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Gen picks an operation at random (genFrom of a random number).
 
-    go: linkvtxn.go:667:6 -/
+    go: linkvtxn.go:680:6 -/
 noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "id"
   (App (Val exceptionDo)
@@ -2064,7 +2090,7 @@ noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert Input.ty go.any))) (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve genFrom []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: linkvtxn.go:674:6 -/
+/-- go: linkvtxn.go:687:6 -/
 noncomputable def vrOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "value"
   (Lam "mod"
@@ -2079,7 +2105,7 @@ noncomputable def vrOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (Var "ver"))
   (App (Val (GoInstruction (CompositeLiteral VR.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Mod")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Ver")) (ElementExpression go.int64 (Var "$v2")))])))))))))))))
 
-/-- go: linkvtxn.go:678:6 -/
+/-- go: linkvtxn.go:691:6 -/
 noncomputable def cmpOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -2111,7 +2137,7 @@ noncomputable def cmpOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: linkvtxn.go:688:6 -/
+/-- go: linkvtxn.go:701:6 -/
 noncomputable def opOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "op"
   (App (Val exceptionDo)
@@ -2138,7 +2164,7 @@ noncomputable def opOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: linkvtxn.go:698:6 -/
+/-- go: linkvtxn.go:711:6 -/
 noncomputable def opsOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ops"
   (App (Val exceptionDo)
@@ -2174,7 +2200,7 @@ noncomputable def opsOf.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- call runs one operation through the client cli: its output, and the revision a successful read
     replied at.
 
-    go: linkvtxn.go:708:6 -/
+    go: linkvtxn.go:721:6 -/
 noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "in"
@@ -2545,7 +2571,7 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Apply runs one operation through the client cli, resolving a prophecy with its outcome and,
     for a read, another with the revision it read at (0 otherwise).
 
-    go: linkvtxn.go:790:6 -/
+    go: linkvtxn.go:803:6 -/
 noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "input"
@@ -2597,7 +2623,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Check runs lintest.Run of clients concurrent clients of cli, each running ops operations, and
     returns porcupine's verdict.
 
-    go: linkvtxn.go:806:6 -/
+    go: linkvtxn.go:819:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "clients"
@@ -2633,7 +2659,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
     configured for one attempt per call and runs Check; it panics if porcupine finds the history
     illegal. An error from a step before Check ends Main without a check.
 
-    go: linkvtxn.go:818:6 -/
+    go: linkvtxn.go:831:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -3397,6 +3423,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isWrite_unfold : FuncUnfold isWrite [] isWrite.impl
   vrEqual_unfold : FuncUnfold vrEqual [] vrEqual.impl
   outEqual_unfold : FuncUnfold outEqual [] outEqual.impl
+  resEqual_unfold : FuncUnfold resEqual [] resEqual.impl
   inputEqual_unfold : FuncUnfold inputEqual [] inputEqual.impl
   storeEqual_unfold : FuncUnfold storeEqual [] storeEqual.impl
   configEqual_unfold : FuncUnfold configEqual [] configEqual.impl
@@ -3460,6 +3487,7 @@ attribute [instance] Assumptions.Cmp_instance
   Assumptions.isWrite_unfold
   Assumptions.vrEqual_unfold
   Assumptions.outEqual_unfold
+  Assumptions.resEqual_unfold
   Assumptions.inputEqual_unfold
   Assumptions.storeEqual_unfold
   Assumptions.configEqual_unfold

@@ -485,11 +485,24 @@ func outEqual(kind int, a, b Output) bool {
 	ar := resOf(a)
 	br := resOf(b)
 	for i := range ar {
-		x := ar[i]
-		y := br[i]
-		if x.Kind != y.Kind || x.N != y.N || x.Found != y.Found || (x.Found && !vrEqual(x.R, y.R)) {
+		if !resEqual(ar[i], br[i]) {
 			return false
 		}
+	}
+	return true
+}
+
+// resEqual compares a transaction operation's result with the model's (only the fields its kind
+// answers: a get's (Found, R), a delete's N).
+func resEqual(x, y TRes) bool {
+	if x.Kind != y.Kind {
+		return false
+	}
+	if x.Kind == TGet {
+		return x.Found == y.Found && (!x.Found || vrEqual(x.R, y.R))
+	}
+	if x.Kind == TDel {
+		return x.N == y.N
 	}
 	return true
 }
