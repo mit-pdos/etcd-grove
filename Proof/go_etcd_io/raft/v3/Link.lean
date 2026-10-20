@@ -736,9 +736,17 @@ theorem tracker.Epoch.wp_ReplicateToWitness :
     tracker.Epoch.ReplicateToWitness.spec (GF := GF) (hG := hG) :=
   tracker.Epoch.ReplicateToWitness.wp_proof
 
+theorem quorum.MajorityConfig.wp_OneLessThanQuorum :
+    quorum.MajorityConfig.OneLessThanQuorum.spec (GF := GF) (hG := hG) :=
+  quorum.MajorityConfig.OneLessThanQuorum.wp_proof slices.wp_Sort
+
+theorem tracker.scopedAckIndexer.wp_AckedIndex :
+    tracker.scopedAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
+  tracker.scopedAckIndexer.AckedIndex.wp_proof
+
 theorem tracker.ProgressTracker.wp_OneLessThanQuorumInReplicationSet :
     tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness
+  tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.wp_proof tracker.Epoch.wp_ReplicateToWitness quorum.MajorityConfig.wp_OneLessThanQuorum tracker.matchAckIndexer.wp_AckedIndex tracker.scopedAckIndexer.wp_AckedIndex
 
 theorem raftLog.wp_matchTerm [StorageModel GF] :
     raftLog.matchTerm.spec (GF := GF) (hG := hG) :=
@@ -1464,10 +1472,6 @@ theorem raft.wp_pastElectionTimeout [StorageModel GF] :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
 
-theorem quorum.MajorityConfig.wp_OneLessThanQuorum :
-    quorum.MajorityConfig.OneLessThanQuorum.spec (GF := GF) (hG := hG) :=
-  quorum.MajorityConfig.OneLessThanQuorum.wp_proof slices.wp_Sort
-
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
@@ -1535,10 +1539,6 @@ theorem tracker.ProgressTracker.wp_TallyVotes :
 theorem tracker.ReplicationSet.wp_GetNonWitnessVoterSlice :
     tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG) :=
   tracker.ReplicationSet.GetNonWitnessVoterSlice.wp_proof
-
-theorem tracker.scopedAckIndexer.wp_AckedIndex :
-    tracker.scopedAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
-  tracker.scopedAckIndexer.AckedIndex.wp_proof
 
 end links
 

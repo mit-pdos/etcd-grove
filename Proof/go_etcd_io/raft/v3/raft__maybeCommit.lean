@@ -102,7 +102,8 @@ theorem raft.maybeCommit.wp_proof
   -- (2026-10-19, witness support) no witness: the map is `nil`, the range does nothing
   icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTrackerC_epoch $$ Htrk with ⟨#Hep, Htrk⟩
-  wp_apply wp_ProgressTracker_OneLessThanQuorumInReplicationSet $$ [$Htrkf $Hep] as Htrkf
+  wp_apply (tracker.ProgressTracker.OneLessThanQuorumInReplicationSet.spec_nw
+    wp_ProgressTracker_OneLessThanQuorumInReplicationSet _ _ _) $$ [$Htrkf $Hep] as Htrkf
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   wp_apply (wp_map_nil_for_range_val ⟨_, _, _⟩)
   wp_pures; (try wp_auto)
