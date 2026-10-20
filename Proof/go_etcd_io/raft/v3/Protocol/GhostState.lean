@@ -2246,7 +2246,7 @@ theorem ownLogGhost_not_wit (γ : RaftNames) (id : w64) (s : PState) (kl : Optio
   iNamed H
   ipureintro
   rintro ⟨rfl, Hne⟩
-  rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+  rcases γ.reWit_ok with h | ⟨-, h, -⟩
   · exact Hne h
   · rw [h] at Haname; cases Haname
 
@@ -2424,7 +2424,7 @@ theorem ownRaftGhost_not_wit (γ : RaftNames) (id : w64) (s : PState) {md : Bool
   iNamed H
   ipureintro
   rintro ⟨rfl, Hne⟩
-  rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+  rcases γ.reWit_ok with h | ⟨-, h, -⟩
   · exact Hne h
   · rw [h] at Haname; cases Haname
 

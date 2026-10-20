@@ -328,7 +328,7 @@ structure RaftNames where
   of `reCfg` that is not a raft node (a storage object answers the leaders' and the candidates'
   witness messages, `witness.go`). Its acknowledgements and votes are justified by its own ghost
   state (`wAck`, `wVoteJust`), not by a node's: it has no acknowledgement map, vote-time logs or
-  event history (`reWit_ok`). Static mode only. -/
+  event history (`reWit_ok`). (Until 2026-10-20 static mode only; W5, the dynamic mode.) -/
   reWit : w64
   /-- The witness's state history: a `mono_list` of `WState`s, term-sorted and monotone in the
   last entry's `(term, subterm)` (`wHistOk`), whose authority the witness's ghost state holds. -/
@@ -337,7 +337,7 @@ structure RaftNames where
   the term it led (`subRec`) and the granted votes of its campaign of the term (`grantLb`). -/
   reWG : GMap w64 GName
   reWit_ok : reWit = W64 0 ∨
-    (reWit ∈ reCfg ∧ reDyn = none ∧ reAcks !! reWit = none ∧ reVlogs !! reWit = none)
+    (reWit ∈ reCfg ∧ reAcks !! reWit = none ∧ reVlogs !! reWit = none)
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -1892,7 +1892,7 @@ theorem ackReg_not_wit (γ : RaftNames) (v t i : w64) :
   iintro ⟨⟨%γa, %Ha, -⟩, -⟩
   ipureintro
   rintro ⟨rfl, Hne⟩
-  rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+  rcases γ.reWit_ok with h | ⟨-, h, -⟩
   · exact Hne h
   · rw [h] at Ha; cases Ha
 

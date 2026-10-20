@@ -86,7 +86,7 @@ theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : 
   · -- (2026-10-19) the receiver is a node, not the witness
     iexfalso; ipureintro
     obtain ⟨Hd, Hnz⟩ := Hw
-    rcases γ.reWit_ok with h | ⟨-, -, Hn, -⟩
+    rcases γ.reWit_ok with h | ⟨-, Hn, -⟩
     · exact Hnz h
     · rw [← Hd, Hto, Haname] at Hn; cases Hn
   rw [Hto, Haname] at Hγa'
@@ -1457,7 +1457,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
         wit, γwh, nwg, by
           rcases Hwit.2 with h | ⟨h1, h2⟩
           · exact Or.inl h
-          · exact Or.inr ⟨h1, h2, Hnot na Hna, Hnot nl Hnl⟩⟩ :=
+          · exact Or.inr ⟨h1, Hnot na Hna, Hnot nl Hnl⟩⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = <[wit := γwv]> nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]

@@ -1389,7 +1389,7 @@ theorem ownLogGhost_ack_agree (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
     iNamed H
     exfalso
     obtain ⟨rfl, Hne⟩ := Hw
-    rcases γ.reWit_ok with h | ⟨-, -, h, -⟩
+    rcases γ.reWit_ok with h | ⟨-, h, -⟩
     · exact Hne h
     · rw [h] at Haname; cases Haname
 

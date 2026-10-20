@@ -343,6 +343,11 @@ theorem confCount_le_one {l : List EntryM}
         h (k1 + 1) (k2 + 1) e1 e2 (by omega) (by simpa using h1) (by simpa using h2) c1 c2)
       omega
 
+theorem confCount_take_le_self (l : List EntryM) (n : Nat) : confCount (l.take n) ≤ confCount l := by
+  have := List.take_append_drop n l
+  conv => rhs; rw [← this]
+  rw [confCount_append]; omega
+
 /-- I1 at `a` is at most one conf entry at or past `a` (2026-10-20). -/
 theorem confCount_drop_of_ConfI1 {l : List EntryM} {a : Nat} (h : ConfI1 l a) :
     confCount (l.drop a) ≤ 1 := by

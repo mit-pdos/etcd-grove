@@ -122,11 +122,6 @@ theorem lf_cfgAt {γ : RaftNames} {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0}
   · rw [Nat.min_eq_right hle, Nat.max_eq_left hle] at hn
     exact cfgFold_noConf dec c0 hn hle HI.cfg
 
-theorem confCount_take_le_self (l : List EntryM) (n : Nat) : confCount (l.take n) ≤ confCount l := by
-  have := List.take_append_drop n l
-  conv => rhs; rw [← this]
-  rw [confCount_append]; omega
-
 /-- No conf entry in `[lo, hi)`: the two prefixes have the same conf entries. -/
 theorem confCount_take_noConf {l : List EntryM} {lo hi : Nat} (h : NoConfIn l lo hi)
     (hlh : lo ≤ hi) : confCount (l.take hi) = confCount (l.take lo) := by
