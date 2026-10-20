@@ -11968,3 +11968,22 @@ inputs' validity for the same reason (a pending write takes effect through `mste
 revision plus the pending count, so that `mstep`'s revision stays far from overflow: each step
 adds at most one to that sum, a pending write taking effect nothing, and porcupine's index stays
 below `2^60`.
+
+## linkv3p over linkvtxn's workload: in place, and what moved where (2026-10-20, `notes/linkv3p-txn-plan.md`)
+
+`linkv3p` switched its workload to linkvtxn's in place (its Go `Apply`/`Check` call package
+`linkvtxn`), not through a fourth example: linkvtxn's workload includes linkv's (Puts and Gets are
+two of its kinds), so the new `linkv3p_safe` implies the old one; everything partition-specific
+(`startMember`, `newClient`, `partitioner`, the transport's axioms, `cluster3_alloc`, `Main`'s
+structure) is reused unchanged; and `linkv`/`linkv3` keep the plain Put/Get workload as the
+simplest end-to-end results. Rejected: a copy `examples/linkv3ptxn` (about 2.7k lines of proof
+duplicated) to keep the Put/Get partition theorem beside the new one.
+
+What the swap took: the members keep etcd's `DeleteRange` and `Txn` registrations
+(`memberServed`), `clientOk` is linkvtxn's `Apply` premises, `linkvInv_congr` unfolds linkvtxn's
+`linkvInvBody` too, and `Apply`/`Check` restate linkvtxn's triples over a slice of clients. No
+server, client or raft proof changed, and the trust base is the same (`etc/tcb-collections/
+linkv3p.txt`, 463 axioms): linkvtxn's results rest on exactly linkv's. The ghost-state bundle stays
+linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's statement is
+unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
+repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.

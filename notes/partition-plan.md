@@ -23,6 +23,10 @@ partition schedule, universally quantified:
 > linearizable against linkv's key-value model), and the main thread's result, if any, is `Ok`
 > or `Unknown`.
 
+(Since 2026-10-20 the workload is linkvtxn's, `notes/linkv3p-txn-plan.md`: gets, lists, puts,
+deletes, transactions and compare-and-sets against the model of etcd's KV, on the same trust
+base.)
+
 On exactly `linkv3_safe`'s axioms plus two, rafthttp's `Transport.CutPeer` and `MendPeer`
 (below). Safety only: that the majority side keeps serving is liveness, which this framework
 does not state.

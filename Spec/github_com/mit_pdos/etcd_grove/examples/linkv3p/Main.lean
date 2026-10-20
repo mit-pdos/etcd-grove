@@ -3,8 +3,8 @@
 three etcd members started in process and served (`startMember`, on linkv3p's names and ports), a
 one-attempt client connected to each (`newClient`), the partitioner forked on the schedule
 `sched` (`go partitioner(srvs, sched)`: the links between members cut and mended as its steps say,
-any steps), and `Check(clis, clients, ops, 0)` (linkv's workload, each operation through a random
-member), with a panic if porcupine reports the history `Illegal`. Lean-first (no Rocq
+any steps), and `Check(clis, clients, ops, 0)` (linkvtxn's KV workload since 2026-10-20, linkv's
+before; each operation through a random member), with a panic if porcupine reports the history `Illegal`. Lean-first (no Rocq
 counterpart).
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the six addresses

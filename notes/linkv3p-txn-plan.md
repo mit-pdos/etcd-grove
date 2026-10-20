@@ -1,9 +1,8 @@
 # Plan: the partitioned three-member cluster over the KV workload (`examples/linkv3p` × linkvtxn)
 
-Status: in progress (2026-10-20): P0–P3 done (branch `linkv3p-txn`, worktree
-`/shared/etcd-grove-lt`): `linkv3p_safe` is closed over linkvtxn's workload, its trust base
-exactly `etc/tcb-collections/linkv3p.txt` (463 axioms, no `sorry`); P4's headers, gates and notes
-remain.
+Status: done (2026-10-20, branch `linkv3p-txn`, worktree `/shared/etcd-grove-lt`):
+`linkv3p_safe` is closed over linkvtxn's workload, its trust base exactly
+`etc/tcb-collections/linkv3p.txt` (463 axioms, no `sorry`).
 
 ## Goal
 
