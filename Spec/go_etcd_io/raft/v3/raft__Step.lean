@@ -515,7 +515,8 @@ abbrev raft.Step.spec : Prop :=
       -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
       -- `CSWf`, no repeats, `AutoLeave` off when not joint, the index below `2^61` -- a pending
       -- snapshot becomes the `Storage`'s boundary, which `isStorage`'s `Hbounded` bounds the
-      -- same way), the node one of its ids (`CSLists.Has`); what the mode asks of it
+      -- same way) (since D22 S-b, D22j, naming the node or not: `restore`'s `!found` exit refuses
+      -- it, `Step.snapStale`; until then a premise `CSLists.Has`); what the mode asks of it
       -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the
       -- `ConfState` the fold of the snapshot's prefix); and the abstraction `absSnap`
       -- (`Defs.lean`) -- the snapshot's metadata, not `m`'s own `Index`/`LogTerm` -- was
@@ -525,7 +526,7 @@ abbrev raft.Step.spec : Prop :=
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
          ∃ (sv : SnapshotM) (scfg : CSLists),
            ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-             SnapScope sv scfg ∧ scfg.Has id⌝ ∗
+             SnapScope sv scfg⌝ ∗
            md.SnapOk γ sv scfg ∗
            isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))

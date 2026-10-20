@@ -56,7 +56,9 @@ others) holds the pointers of `ms : List QMsg`, each message owned at `readyDq` 
 every other message whole); `Habandon` takes them back. `Entries`/`CommittedEntries` are
 `entsRO` (`[]*pb.Entry`, read-only), the read states `readStatesPts` (their contexts bytes, D6),
 `rd.Snapshot` `nil` (was the zero `Snapshot`), and the hard state `hsOpt rd.HardState' h` (new:
-the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). -/
+the `Ready` hands out `hardState()`'s fresh pointer, or `nil`). (D22 S-b, 2026-10-19: with the
+witness `hsWit` of a non-`nil` one: the node's term and commit index at the `Ready`, `commitWit`,
+and the committed log handed out within the commit index.) -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
@@ -93,7 +95,10 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
       -- (2026-10-16, stage R5) the hard state: `nil` when unchanged, else `hardState()`'s fresh
       -- read-only one
-      "#Hhard" ∷ hsOpt rd.HardState' h }}
+      "#Hhard" ∷ hsOpt rd.HardState' h ∗
+      -- (D22 S-b) a non-`nil` one is the node's hard state: its witness (`hsWit`), bounding the
+      -- committed log handed out
+      "#Hhsw" ∷ hsWit γ h (rs.delivered ++ ce).length }}
 
 end spec
 

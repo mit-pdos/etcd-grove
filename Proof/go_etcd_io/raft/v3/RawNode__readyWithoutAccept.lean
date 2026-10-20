@@ -126,6 +126,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
   icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
+  -- (D22 S-b) the witness of the node's term and commit index, for a non-`nil` `HardState`
+  ihave #Hcw := ownRaftGhost_commitWit _ _ _ $$ Hghost
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Houtbox, Hown1, Hown2⟩
@@ -210,12 +212,37 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · rw [ite_neg' (fun Hc => Hif (Hhs_iff.2 Hc))]
     iexact rd
   generalize HHP : (if nodeHardstate s = hsAbs hprev then null else hp) = HP
-  ihave #HHP : iprop(∃ h, hsOpt HP h) $$ []
+  -- (D22 S-b) the committed log handed out is within the commit index
+  have HceOk := ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩
+    (by omega) Hcepre
+  have Hn : ((rs.delivered ++ ce).length : Int) ≤ uint.Z s.logst.committed := by
+    have Hac : uint.Z s.logst.applying ≤ uint.Z s.logst.committed := Hwf1.2.2
+    rw [List.length_append, Hdlen]
+    cases Hl : ce.getLast? with
+    | none =>
+      rw [List.getLast?_eq_none_iff.1 Hl]
+      have := uint_Z_nonneg s.logst.applying
+      simp only [List.length_nil, Nat.add_zero]; omega
+    | some e =>
+      obtain ⟨-, H2, H3⟩ := HceOk e Hl
+      have := uint_Z_nonneg s.logst.applying
+      push_cast; omega
+  ihave #HHP : iprop(∃ h, hsOpt HP h ∗ hsWit γ h (rs.delivered ++ ce).length) $$ []
   · rw [← HHP]
     by_cases He : nodeHardstate s = hsAbs hprev
     · rw [ite_pos' He]; iexists HardStateM.mk (W64 0) (W64 0) (W64 0)
-      unfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
-    · rw [ite_neg' He]; iexists hardstateVal (nodeHardstate s); iexact Hhp'
+      isplitr
+      · unfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
+      · iapply hsWit_zero
+    · rw [ite_neg' He]; iexists hardstateVal (nodeHardstate s)
+      isplitr
+      · iexact Hhp'
+      unfold hsWit; iright
+      rw [show (hardstateVal (nodeHardstate s)).Term' = (toPState s).term from rfl,
+        show (hardstateVal (nodeHardstate s)).Commit' = (toPState s).commit from rfl]
+      isplitr
+      · iexact Hcw
+      · ipureintro; exact Hn
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hbsn⟩
   · iframe Hlog
   rw [Hbsn Hsnap]
@@ -443,8 +470,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexists s.rd.states
     iframe Hrdrs
     ipureintro; exact fun h => h
-  ihave #Hrdhard := HHP
-  icases HHP with ⟨%hrd, #HHP⟩
+  icases HHP with ⟨%hrd, #HHP, #Hhsw⟩
+  ihave #Hrdhard : iprop(∃ h, hsOpt HP h) $$ []
+  · iexists hrd; iexact HHP
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
       (fun h => (Hxf.2 (Hnl.1.trans h.2)).2 (Hnl.2.trans h.1)) $$ Hout
@@ -494,7 +522,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitr
   · rw [← toPState_rd_states s]
     iexact Hrs_ok
+  isplitr
   · iexact HHP
+  · iexact Hhsw
 
 end proof
 

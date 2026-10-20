@@ -12057,3 +12057,135 @@ lease/auth/alarm buckets) — a sole-writer token per bucket of the new backend,
 boot, would be minted by them or by `OpenSnapshotBackend`'s post (not stated yet). `go oldbe.Close()`
 waits for the old backend's open snapshots (bbolt's `Close` takes the mmap lock): liveness only.
 `etc/tcb-collections/snapshot.txt` tracks the path (26 axioms, 0 sorries).
+
+## D22 S-b carried out: the merged snapshot's content minted; `!found` a protocol rule; the term's witness half-tied (2026-10-19)
+
+Stage S-b of T-S under D22a as carried out (`toApply.raftTerm`, fork `de825d8c6`). Items 3 and 5
+done, item 2 done in part (D22l below for the rest), item 4 (D22b) stopped at a design. Trust base
+unchanged (525 axioms, 2 sorries; every collection's `--check` passes).
+
+**Item 1, the step-down question** (answered by a read-only pass before this one; recorded here).
+`Step.stepDown` (`Protocol/Model.lean:2004`, `StepC.lean:653`, `StepR.stepDown`), ghost step
+`ownRaftGhost_step_stepDown` (`Protocol/Refinement.lean:4205`) -> `ownLogGhost_stepDown`
+(`Protocol/StepGhost.lean:735`), clears `Htlog` (the leader's term-log authority and `leadFrags`),
+so a stepped-down node's `ownLogGhost` has no "my log is a leader prefix of `T`"; it keeps
+`commitIn γ (fp ++ log) commit T`, `logRecs`, `FullOk`/`TermsLe`, `kl = some id` (`isWin γ id T
+q`), base, log and commit unchanged. "Log frozen after step-down" is not in the ghost, and **no
+step-down record is needed**: the node being at term `T` at the batch suffices, through the commit
+fact's justification (item 3). The planned "`commitIn`-lowering lemma" exists (`commitIn_le`,
+`Protocol/Ghost.lean:2739`), with `commitIn_move` (`:2810`).
+
+**Item 3: `isMessage_snap_recontent`** (`Proof/go_etcd_io/raft/v3/Protocol/SnapMint.lean`, new;
+`commitWit`/`hsWit` in `Protocol/CommitWit.lean`, new).
+- `commitWit γ T c := ∃ F, ⌜PlogWf base0 F⌝ ∗ logRecs γ base0 F ∗ commitIn γ F c T ∗
+  isCommitted γ (F.take c)`: what a node at term `T` with commit index `c` knows; every node holds
+  it of its own state (`ownRaftGhost_commitWit`).
+- `isMessage_snap_recontent γ E m c ai at_ A : ↑raftLogN ⊆ E → m.ty = .snap → m.index ≤ ai → ai ≤ c
+  → |A| = ai → A.getLast?.map Term' = some at_ → raftCommitInv γ -∗ isMessage γ m -∗ commitWit γ
+  m.term c -∗ isCommitted γ A ={E}=∗ isMessage γ {m with index := ai, logterm := at_}`: the `.snap`
+  clause unchanged (`GhostState.lean:242-256`), the metadata replaced. The leader log of `T` holding
+  `ai` comes from `commitJ` of the witness lowered to `ai` (`snap_leadLog`): the boot arm (the boot
+  log starts every leader log, `leadFull_boot`); a commit fact of `T` (its log is a `leadFull` of
+  `T`, the sender's by `isLeader_unique`); a commit fact of an earlier term (Leader Completeness,
+  `lc_core`, puts its entry at `n ≥ ai` in the sender's campaign log, so in the message's own
+  leader log: it needs the vote table, hence the fancy update opening `raftLogN`). Then
+  `commitIn_move`, `full_take_eq` (the committed prefix) and `isCommitted_agree` with `A` (so `at_`
+  is the leader log's term at `ai`).
+- **The two open points, resolved.** (i) *The base*: all leader prefixes of one term share their
+  base (`leadPrefix_base`, through `isTermLog_agree`: one base per term, whatever the leader does
+  during it), so the premise "`bL.index ≤ appliedi`" is stated on the message itself, `m.index ≤
+  ai` (the base is at most `m.index`, `plogTermAt_some_range`). S-h discharges it: the `MsgSnap`
+  raft made carries the storage's snapshot, which etcd creates at an applied index
+  (`CreateSnapshot` at `ep.appliedi`), at most the apply thread's current one. (ii) *`isSnapMeta`*:
+  the leader log's record at `ai` (`logRecs_lookup` of the full log at `ai - 1`, the entry's
+  `isEntryR`), `ai ≥ 1` from `A ≠ []`; no `baseOk` needed.
+
+**Item 5 (D22j): `restore`'s `!found` exit a protocol rule.** `raft.restore`'s exit when `r.id` is
+in none of the `ConfState`'s sets is proved (a `Warningf`, `false`; a `nil` `ConfState` reads as
+`EnsureConfState`'s fresh empty one, `wp_EnsureConfState_opt`, `LemmasConfState.lean`).
+`RestoreResult`/`HandleSnapResult` take the node id: the first case is "obsolete or not in the
+`ConfState`" (reply `MsgAppResp{Index: committed}`), the other two carry `cl.Has id`;
+`SnapRestores`/`SnapCfgOk` likewise. The model's `snapStale` (`Step`, `StepC`, `StepCF`, `StepR`)
+drops its `m.index ≤ s.commit`: a *refused* snapshot, with no condition, since the abstract message
+carries no `ConfState` lists to state `!found` on; its ghost step (`ownRaftGhost_step_snap_stale`,
+`commitIn_ackIn`) never read the condition. The premise `scfg.Has id` is gone from `raft.Step`'s
+`MsgSnap` clause, `stepFollower`, `stepCandidate`, `handleSnapshot` and `restore`; `StepCDS` no
+longer takes `id ∈ cn.ids` (the restore exit gives it; `snapCfg_ids` moved to `StepLemmasR.lean`).
+(A `word` call failing with "unknown free variable" in `raft__restore.lean` while the proof was
+broken was an error-recovery artifact, not a `word` bug: it went away with the proof fixed.)
+
+**Item 2, in part: the witness handed out with a non-empty `HardState`.**
+- Raft: `RawNode.readyWithoutAccept` and `RawNode.Ready` return `hsWit γ h (rs.delivered ++
+  ce).length` of the `Ready`'s hard state `h`: the zero record (`nil`), or `commitWit γ h.Term'
+  h.Commit'` with the committed log handed out within `h.Commit'` (`h` is `hardState()` of the node
+  then: `ownRaftGhost_commitWit`, `CeOk`). `node.run` carries it (`freshOk`, `staleOk`: the
+  witness as computed, its length over `rs.delivered`, which steps keep) into `readyData`'s hard
+  state, `∃ h, hsOpt rd.HardState' h ∗ hsWit γ.raft h (d ++ ce).length`.
+- Server: `rnReadyData` has `hsWit γ.node.raft hs.toM (rnLogOf γ (d ++ ce)).length`;
+  `raftNode.start`'s loop keeps `rnRtOk γ rt` (`rt = 0`, or `∃ c, commitWit γ.node.raft rt c`),
+  set from a non-empty `HardState` (non-empty is not the zero record, so the witness's second
+  case); `rnApP` carries `rnRtOk γ ap.raftTerm'`, read by `rnApP_rtOk` (`InvRaftNode.lean`).
+- **What is missing (D22l): the witness's `c` bounds the batch only for the `Ready` that set
+  `rt`.** A later batch whose `Ready` has a `nil` `HardState` keeps `rt`; its entries lie within
+  raft's commit index at that `Ready`, which equals the last *accepted* hard state's (`prevHardSt`:
+  a `nil` `HardState` means "unchanged since"), but the server does not know that this is the hard
+  state it recorded. `isMessage_snap_recontent` needs `c ≥ appliedi`.
+
+**D22l (new). Tying the recorded term to raft's `prevHardSt`.** The fact needed is, at every
+`Ready` with a `nil` `HardState`, "the node's current `(term, commit)` is the last non-empty
+`HardState` handed out". Only a ghost value the driver holds *between* `Ready`s can carry it, and
+`dlv` is the only one (run sends its half with `readyP` and the driver keeps one; `rof` goes back
+with `advanceP`).
+- *(A) `dlv` at `(delivered, phs)`*, `phs : HardStateM` the abstraction of `prevHardSt`. Raft:
+  `RNState.phs` (new; only `acceptReady` moves it, `phs := if h = 0 then phs else h`, as Go's
+  `IsEmptyHardState` check), `ownRawNode`'s `hprev` tied to it (`⌜rs.phs = hprev⌝`; the 43
+  `ownRawNode_intro`-style calls could take it as an `autoParam`), `readyWithoutAccept`/`Ready`
+  exporting `∃ hc, hsWit γ hc n ∗ ⌜(rd.HardState' = null → hc = rs.phs) ∧ (rd.HardState' ≠ null →
+  hc = h)⌝`, `hc` the node's current hard state; `node.run`'s `dlv` half at `(rs.delivered, rs.phs)`
+  (`headRest`, `runMid`, `advDep`, `advRet`), `readyP`/`advanceP`/`nodeDriver`/`nodeDriverBusy`
+  over the pair, `StartNode`/`RestartNode` allocating it at `NewRawNode`'s `hardState()`. A stale
+  `Ready` (abandoned, re-sent while `HasReady` is false) with a non-`nil` `HardState` must be shown
+  impossible: `HasReady` false means the current hard state is `prevHardSt`, while the stale one
+  was computed as different from it, and the hard state is monotone (term, the vote within a term,
+  commit); that needs abandon-time lower bounds in `RNState` for the term and the vote, as `clb` for
+  the commit index. Server: `rnDrv`/`rnBusy` over the pair, the loop invariant `rt = 0 ∨ (rt =
+  phs.Term' ∧ commitWit γ rt phs.Commit' ∧ |pre ++ L| ≤ phs.Commit')`, `rnApP` with the batch's log
+  within the witness's `c`. Large (raft's node layer, every `ownRawNode` variant); trust base
+  unchanged.
+- *(B) A fork change* recording raft's term otherwise (`Status()`): against D22a as decided (the
+  user's: the latest `HardState` term).
+- *Recommendation:* (A), a stage of its own before S-h (it gates S-h, not S-c/S-d).
+
+**Item 4 (D22b), stopped at a design.** `raftSnapCert` (`SnapConf.lean:147`) lacks `GMode.SnapOk`'s
+tracked bound, and the `.snap` clause carries no configuration certificate. Carrying it on the
+message ripples past S-b:
+- `Msg` carries only the `ConfState`'s `voters` (`Model.lean:129`); the certificate needs the four
+  lists and `AutoLeave` (27 `Msg.mkV` sites, `absSnapFrom`, `isMessage`'s users).
+- The *sender* must produce it: `maybeSendSnapshot` sends the storage's snapshot, whose lists raft
+  knows (`StorState.scs`/`sal`; `ownRaftLog`'s `Hsksn`: the storage's snapshot is in `ls.ksn`) but
+  of which nothing certifies the content. The certificate has to come from the application at
+  `MemoryStorage.CreateSnapshot`/`ApplySnapshot` (a premise of their specs, kept per snapshot in
+  raft's ghost state, as the unmerged `stage-s-msg-extension` did with `PState.snaps`), so from
+  etcd's `EtcdServer.snapshot`/`compactRaftLog` contracts and the examples' drivers.
+- **D22j interacts:** etcd's `ep.confState` may be the empty `ConfState`, of which no static
+  certificate (`voters = reCfg`) holds. Since item 5 a receiver refuses a snapshot that does not
+  name it, so the mode's facts are needed only for a restore: `raftSnapCert` with `SnapListsOk`
+  (true of the empty lists) and `GMode.SnapOk`'s parts under `cl.Has id` (statically the voters
+  `reCfg`, not joint, the ids tracked; dynamically A3), and `GMode.SnapOk` weakened the same way in
+  `raft.Step`'s premise (`ghost_stepCDSM` reads it only in the restore exit).
+- *Recommendation:* a stage of its own, **S-b′**, with or after S-c: the `Msg` extension and the
+  clause's certificate, the storage/application premise, `raft.Step` deriving `SnapScope` and
+  `md.SnapOk` from the message; `isMessage_snap_recontent` then also takes a certificate of
+  `(appliedi, appliedt, ep.confState)`, which S-h mints from `epConfState ∈ {empty, static}`.
+
+**For S-c, S-d, S-h.**
+- S-c: `raft.Step`'s `MsgSnap` clause no longer asks `scfg.Has id`; it still asks `SnapScope` and
+  `md.SnapOk` (until S-b′ premises, which the receiver's `NetMsgOk` must carry for `MsgSnap`).
+- S-d: `readyData`'s hard state carries `hsWit`; a `Ready` with `rd.Snapshot ≠ null` keeps it.
+  D22l (A) adds `RNState.phs` and the `dlv` pair: before or with S-d, since both touch
+  `readyWithoutAccept`/`acceptReady` and `node.run`'s invariants.
+- S-h: `isMessage_snap_recontent`'s premises are `raftCommitInv` (in `isNode`), the queued
+  message's `isMessage` (`rnMsgOk`'s `E.M`), `commitWit γ m.term c` with `c ≥ ep.appliedi` (from
+  `rnApP_rtOk` once D22l gives the bound; today only `∃ c`), `m.index ≤ ep.appliedi`, and the applied
+  committed prefix `A` with `ep.appliedt` its last term (S-0 part 2 (2)(b): not kept yet);
+  `SnapScope`'s `Index < 2^61` for `appliedi` stays S-h's (D22h).

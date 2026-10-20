@@ -513,16 +513,6 @@ instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : SnapshotM)
     (scfg : CSLists) : Persistent (md.SnapOk (GF := GF) γ sv scfg) := by
   cases md <;> unfold GMode.SnapOk <;> infer_instance
 
-/-- An id `restore`'s `found` search finds is an id of the configuration the `ConfState`
-denotes. -/
-theorem snapCfg_ids {sv : SnapshotM} {scfg : CSLists} {id : w64} (h : scfg.Has id) :
-    id ∈ (snapCfg sv scfg).ids := by
-  unfold snapCfg csCfgM CfgM.ids CfgM.voters
-  rcases h with h | h | h
-  · exact GMap.elem_of_union_l _ (GMap.elem_of_union_l _ ((GMap.elem_of_list_to_set _ _).2 h))
-  · exact GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h)
-  · exact GMap.elem_of_union_l _ (GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h))
-
 /-- A `MsgSnap` branch's step updates the mode's ghost state (2026-10-14, stage B8): statically
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOk`);
 dynamically `ownRaftGhostR_stepR` at the snapshot's prefix `fp0`, the one the message shows
@@ -532,7 +522,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
-    (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
+    (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRestM γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
@@ -565,7 +555,7 @@ theorem ghost_stepCDSM (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m
     ihave %Hsc := Hso $$ %fp0 Hr0 %Hfp0
     obtain ⟨-, cs, Hfold, Hcs⟩ := Hsc
     obtain ⟨g', hg', HR⟩ := Hstep.2 (AdmS dec c0 (fun fp => fp = fp0)) dec g fp0 cs hc Hfp0
-      Hcs.symm (snapCfg_ids Hid) ⟨Hfold, rfl⟩
+      Hcs.symm ⟨Hfold, rfl⟩
     ihave Hown : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
       iframe Hg Hfr
@@ -598,7 +588,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id B (snapId sv) s recv s')
-    (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh = s.gh) :
+    (Hc' : c' = c ∨ c' = snapCfg sv scfg) (Hng : s'.gh = s.gh) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
@@ -606,7 +596,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   iintro #Hrc #Hm Hrecv Hcr Htk Hlc #Hso Hg Hrest
   iunfold ghostRest at Hrest
   icases Hrest with ⟨%Hnl, Hrest⟩
-  imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hid Hc' $$ Hrc Hm Hrecv
+  imod ghost_stepCDSM γ md c c' id m Hms sv scfg s recv s' a Ha B HB Hstep Hc' $$ Hrc Hm Hrecv
     Hcr Htk Hlc Hso Hg Hrest with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
   iexists md'

@@ -51,7 +51,6 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    scfg.Has id →
     NStateWf s →
     SnapScope sv scfg →
     -- (stage R4) the snapshot the message holds, and its `ConfState`'s lists
@@ -73,7 +72,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hsn Hscl Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hgt
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -110,7 +109,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hcfg, Hfid, Hnsf⟩)
+      (fun _ => ⟨Hsn, Hscl, Hscope, rfl, rfl, Hfid, Hnsf⟩)
     $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -136,7 +135,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rw [← e] at Hcf
     refine StepCDS.trans_frame Hcf ⟨by simp [becomeFollower, resetTo, resetTo0],
       by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩ ?_
-    exact stepCDS_handle_snap c _ c1 id _ _ m sv scfg s1
+    exact stepCDS_handle_snap c c1 id _ _ m sv scfg s1
       (adopt_follower _ m.From' rfl rfl) rfl (by simp [becomeFollower]) rfl Hto
       (by simp [toPState, becomeFollower, resetTo, resetTo0]) Hfid Hhs Hc1
 

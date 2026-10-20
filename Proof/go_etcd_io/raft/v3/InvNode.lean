@@ -547,7 +547,9 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
-    (∃ h : HardStateM, hsOpt rd.HardState' h) ∗
+    -- (D22 S-b) with its witness: a non-`nil` one is the node's hard state at the `Ready`, its
+    -- term and commit index (`commitWit`), the commit index bounding the committed log handed out
+    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ hsWit γ.raft h (d ++ ce).length) ∗
     -- (2026-10-16, stage R7a, D10) the soft state: `nil`, or `Lead`/`RaftState` read-only
     softStateRO rd.SoftState' ∗
     ⌜rd.Snapshot' = null⌝ ∗

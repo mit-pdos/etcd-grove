@@ -1846,7 +1846,8 @@ inductive Step : PState → List Msg → PState → Prop where
   an `app` (`padoptLeader`). `restore(s)` (raft.go:1849) returns `false` when
   `Metadata.Index ≤ committed` (`Step.snapStale`); when the node is not a follower
   (dead: both callers have just made it one); when `r.id` is in none of the
-  `ConfState`'s sets (the physical layer's scope: `SnapScope`; until 2026-10-13 the
+  `ConfState`'s sets (`Step.snapStale` too since D22 S-b, D22j; until then the physical layer's
+  scope, a premise of `raft.Step`; until 2026-10-13 the
   premises `m.voters ≡ₚ elements cfg` and `id ∈ cfg` here, which no refinement read); and when the log already has `(Term, Index)`, after
   `commitTo(Index)` (`Step.snapFastfwd`). Otherwise the log is replaced by the snapshot
   (`Step.snapRestore`). The reply is `MsgAppResp{Index: lastIndex()}` after a restore
@@ -1882,14 +1883,17 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs { padoptLeader s m.src with commit := m.index }
           [Msg.mk .appResp id m.src s.term false m.index (W64 0) (W64 0) (W64 0) []])
-  /-- An obsolete snapshot: acknowledge the commit index. -/
+  /-- A refused snapshot: acknowledge the commit index. `restore` refuses an obsolete one
+  (`Metadata.Index ≤ committed`) and (D22 S-b, D22j, 2026-10-19) one whose `ConfState` names the
+  node in none of its sets (the `!found` exit), which the abstract message does not carry: so the
+  rule has no condition on the snapshot (until D22j it took `m.index ≤ s.commit`, and the `!found`
+  exit was excluded by a premise of `raft.Step`). -/
   | snapStale (m : Msg) (s : PState) :
       m.ty = .snap →
       m.dst = id →
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      uint.Z m.index ≤ uint.Z s.commit →
       Step s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])

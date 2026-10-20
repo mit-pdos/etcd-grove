@@ -1243,6 +1243,8 @@ def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
   iprop(∃ (ce es : List EntryM) (k : Nat) (hrd : HardStateM),
     (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
     hsOpt rd.HardState' hrd ∗
+    -- (D22 S-b) its witness, as `readyWithoutAccept` computed it
+    hsWit γ.raft hrd (rs.delivered ++ ce).length ∗
     entsRO rd.CommittedEntries' ce ∗ ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
     isCommitted γ.raft (rs.delivered ++ ce) ∗ entsRO rd.Entries' es ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
@@ -1264,7 +1266,8 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     ([∗list] q ∈ ms, isRaftMsg γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
-    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd) ∗
+    -- (D22 S-b) with its witness (`hsWit`)
+    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ hsWit γ.raft hrd (rs.delivered ++ ce).length) ∗
     ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧
      rd.Snapshot' = null⌝)
 
@@ -1401,11 +1404,11 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     · ipureintro; exact ⟨Hac, Hsteps, Hunp⟩
     ileft; ipureintro; exact Hrc
   · unfold freshOk
-    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hmsgs_ok, #Hrsts, -,
-      %Hfacts⟩
+    icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, Hmsgs_cap, Hown, #Hmsgs_ok, #Hrsts,
+      ⟨%hrd0, #Hrdh0, #Hhsw⟩, %Hfacts⟩
     ihave %Hshape := ownSlice_shape _ _ _ $$ Hmsgs
     icases ownRawNodeReady_abandon_keep γ.raft nv.rn' id rs rd ce es ms Hsteps Hunp
-      $$ Hmsgs Hmsgs_cap Hown Hrn with ⟨Hce_cap, #Hrdsoft, ⟨%hrd, #Hrdh⟩, %n, %u, %c, %Hnuc, Hrn⟩
+      $$ Hmsgs Hmsgs_cap Hown Hrn with ⟨Hce_cap, #Hrdsoft, -, %n, %u, %c, %Hnuc, Hrn⟩
     iexists { rs with outlb := n, unst := u, clb := c }
     iframe Hrn
     unfold headRest
@@ -1422,8 +1425,8 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     isplitr
     · ipureintro; exact Hrc
     unfold staleOk
-    iexists ce, es, ms.length, hrd
-    iframe Hrdsoft Hrdh Hce Hce_cap Hcommitted Hents Hrsts
+    iexists ce, es, ms.length, hrd0
+    iframe Hrdsoft Hrdh0 Hhsw Hce Hce_cap Hcommitted Hents Hrsts
     ipureintro
     exact ⟨Hfacts.2, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2⟩
   · iexists rs

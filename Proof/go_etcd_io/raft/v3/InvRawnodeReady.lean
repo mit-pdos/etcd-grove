@@ -76,6 +76,8 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 -- `ownRaftGhost_drain` (2026-10-13)
 public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
+-- (D22 S-b) the hard state's witness, `hsWit`
+public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 
 @[expose] public section
 

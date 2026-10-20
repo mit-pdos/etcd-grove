@@ -188,6 +188,9 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnAppendRight γ es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗
+    -- (D22 S-b) raft's witness of a non-empty hard state: the node's term and commit index at the
+    -- `Ready` (`commitWit`), the commit index bounding the committed log handed out
+    hsWit γ.node.raft hs.toM (rnLogOf γ (d ++ ce)).length ∗
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs) ∗
     ⌜rd.Snapshot' = null⌝)
 
@@ -514,7 +517,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   iunfold rnLogFits at Hfits
   icases Hfits with %Hrb
   iunfold readyData at Hdata
-  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, Hmt, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
+  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, Hmt, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs, #Hhw⟩,
     #Hss, %Hsnap, #Hri⟩
   -- (2026-10-18, D19b stage 5) the indices handed out, bounded by the receipt of the log's last
   iunfold readyIdx at Hri
@@ -571,6 +574,9 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
     · iunfold hardStateAt
       rw [HardStateModel.toM_ofM]
       iexact Hhs
+    isplitr
+    · rw [HardStateModel.toM_ofM, rnLogOf_append, EntryModel.map_toM_ofM]
+      iexact Hhw
     isplitr
     · iunfold readStatesPts at Hrs
       icases Hrs with ⟨%vs, #Hvs, #Hrs2⟩
@@ -726,10 +732,22 @@ instance rnAdvChan_persistent (c : Loc) (P : IProp GF) : Persistent (rnAdvChan (
   unfold rnAdvChan; infer_instance
 
 
+/-- (D22 S-b, item 2) The raft term a batch carries (`toApply.raftTerm`, the latest non-empty
+`HardState` term the raft goroutine saw, D22a): `0`, or a term of which raft handed out the
+witness `commitWit` (`readyData`'s `hsWit`: the node's term and commit index at that `Ready`).
+What it does not say yet: that the witness's commit index bounds the batch (it bounds the
+committed log handed out with the `Ready` that set the term, not with later ones whose
+`HardState` is `nil`; `notes/decisions.md`, "D22 S-b carried out"). -/
+def rnRtOk (γ : RNNames) (t : w64) : IProp GF :=
+  iprop(⌜uint.Z t = 0⌝ ∨ ∃ c : w64, commitWit γ.node.raft t c)
+
+instance rnRtOk_persistent (γ : RNNames) (t : w64) : Persistent (rnRtOk (GF := GF) γ t) := by
+  unfold rnRtOk; infer_instance
+
 /-- The `i`th payload on `applyc`: the log `F` forwarded before it (`cum[i]`) and the batch
 `ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two channels;
 and (2026-10-14, unit C2a) the committed index at least the batch's last index (`committedLast`:
-`updateCommittedIndex` raised it before the send). -/
+`updateCommittedIndex` raised it before the send); and (D22 S-b) its raft term (`rnRtOk`). -/
 def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
@@ -737,7 +755,21 @@ def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     isUnitBag ap.notifyc' ∗
     -- (D19i part 1) closed once `Advance` returned: the storage's floor past the batch
     rnAdvChan ap.raftAdvancedC' (memFloorAtLeast γ.ms γ.γs (γ.pre ++ F ++ ce).length) ∗
-    committedLast E.γr ce)
+    committedLast E.γr ce ∗
+    -- (D22 S-b) the raft term it carries
+    rnRtOk γ ap.raftTerm')
+
+/-- (D22 S-b) A batch's raft term, read off its payload (for `applyAll`'s merged snapshot). -/
+theorem rnApP_rtOk (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) :
+    ⊢ rnApP E γ i ap -∗ rnApP E γ i ap ∗ rnRtOk γ ap.raftTerm' := by
+  iintro H
+  iunfold rnApP at H
+  icases H with ⟨%F, %ce, %ceL, #H1, #H2, #H3, #H4, #H5, %H6, #H7, #H8, #H9, #Hrt⟩
+  iframe Hrt
+  iunfold rnApP
+  iexists F, ce, ceL
+  iframe H1 H2 H3 H4 H5 H7 H8 H9 Hrt
+  ipureintro; exact H6
 
 /-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never
