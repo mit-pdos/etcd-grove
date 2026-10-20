@@ -211,3 +211,40 @@ sends it entries with `ReplicationSet[1]`. The code-level proof states it as the
 witness"). The model checker above covers the transition (`joint wops`); the Lean proof does not.
 Covering it: `CfgM.witOut`, rules for an outgoing-only witness, and its Leader Completeness case,
 a task of W5's size (deferred).
+
+### The CC model with Go's witness changes (design, 2026-10-20, W3b-A; a stage of its own, after STAGED)
+
+What `InvConfchange`'s model lacks (above, "Scope"): `AddWitness`, the witness's removal
+clearing `Witnesses[0]`, the refusals to convert a witness, `checkInvariants`'s witness check.
+The design:
+- **`CCState.pw`**: the tracked id whose `Progress` has `IsWitness` (`0` for none). It cannot be
+  derived from `cfg.wit`: Go's `Restore` of a joint configuration with a shared witness passes,
+  inside one `EnterJoint`, through "witness tracked, `Witnesses[0] = 0`" (it removes every
+  outgoing voter, then `AddWitness(W)` re-adds the tracked `IsWitness` `Progress`:
+  `toConfChangeSingle`, `makeWitness`'s re-add).
+- **`CCState.wid`** (ghost, constant): the cluster's witness identity, so that the protocol's step
+  can enforce one identity (`ccStepB` has no access to `γ.reWit`).
+- `ccApplyM` stays exactly Go's semantics (the code-level specs need it): `applyOne` type `4` is
+  `makeWitnessM` (error if `wit ≠ 0 ∧ wit ≠ id`; an untracked id is initialized as the witness,
+  `pw := id`, `wit := id`, an incoming voter; a tracked non-`pw` id is an error; `pw` itself is
+  re-added to the incoming voters, `wit := id`); `makeVoterM`/`makeLearnerM` error on `pw`;
+  `removeM` clears `wit` on it and `pw` when its `Progress` is untracked; `leaveJointState`
+  keeps `Witnesses[0]` (done) and untracks an outgoing `pw` that is not the incoming witness;
+  `CfgInv` gains "each half's witness is a voter of it". Every `{ cfg := …, prs := … }` literal
+  carries `pw` and `wid`.
+- The scope restrictions go into the protocol's step only: `ccStepB` keeps a result only when
+  its witnesses are `wid` (`wit, pw ∈ {0, wid}`) and `NoOutWit` (`pw = 0 ∨ pw ∉ outgoing ∨
+  pw = wit`); the dynamic mode links `c0.wid = γ.reWit`. At the code level the same two are
+  premises of `ApplyConfChange` in the dynamic mode (the application's discipline).
+- The representation: `ownCfgCCw` with `Witnesses = [wit, if pw ∈ outgoing then pw else 0]`;
+  `ownNewPr`/`NoWit` generalized (`IsWitness ↔ id = pw ≠ 0`: a copy keeps it, a fresh witness has
+  it).
+- To prove: `makeWitness`; `remove`, `makeVoter`, `makeLearner`, `initProgress(isWitness)`,
+  `EnterJoint` (the `Witnesses[1]` copy), `LeaveJoint`, `checkInvariants` with the witness;
+  `Restore`/`toConfChangeSingle` (the `AddWitness` ops), `Config.Clone`,
+  `ProgressTracker.ConfState` and `ConfStateM`'s `Witness`/`WitnessOutgoing`; the tracker
+  conversions (`ownTrackerC_toCC`, `ownResult_transfer`, `ownTrackerC_reconfig`); W5's lemmas
+  over `ccApplyM`/`ccStepB` (`ccStepB_wit`, the shape lemmas: `AddWitness` is a one-voter add for
+  (Count)), and `StepR.applyConf`'s premise "the old and the new configuration witness-free"
+  (`switchToConfig` starts a new subterm whenever the new one has a witness). About 58 files name
+  the model (the server and the kv example among them).
