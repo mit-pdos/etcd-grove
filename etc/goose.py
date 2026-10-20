@@ -412,6 +412,21 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3")],
     ),
     Project(
+        name="watchkv",
+        # The watch example: one member started in-process, as in putget, a prefix watch from
+        # revision 1, writer goroutines putting random keys under the prefix, and a check of the
+        # watched events against the writes. A Go module of this repository, with putget's
+        # replaces (keep them in step); its imports are the etcd project's translations (names
+        # reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "watchkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "watchkv")],
+    ),
+    Project(
         name="putget3",
         # putget with three members (D21 stage M5): three members started in-process, each
         # serving its raft handler on its own peer listener, a client's Put and Get through the
