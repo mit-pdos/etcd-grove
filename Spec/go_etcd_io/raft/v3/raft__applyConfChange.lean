@@ -299,7 +299,7 @@ abbrev raft.applyConfChange.spec : Prop :=
   {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
       ownRaftPhysCV c'.cfg c'.cfg.voters r id s' ∗
       ownCCV2 cc dq ccm ∗
-      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c'.cfg.autoLeave (W64 0)) true ∗
       ⌜xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
         ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext⌝ ∗
       ⌜ApplyCCOkC c'.cfg id s s'⌝ }}
@@ -324,7 +324,7 @@ abbrev raft.applyConfChange.specS : Prop :=
   {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
       ownCCV2 cc dq ccm ∗
-      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false (W64 0)) true ∗
       ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn'⌝ ∗
       ⌜ApplyCCOk cfg id s s'⌝ ∗
       -- (D19p, 2026-10-18) the progress map tracks the new configuration's ids

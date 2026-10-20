@@ -102,8 +102,11 @@ structure ConfStateM where
   VotersOutgoing' : List w64
   LearnersNext' : List w64
   AutoLeave' : Bool
+  -- (2026-10-20, witness support) raft#168's `GetWitness()`, `0` for none (`GetWitnessOutgoing()`
+  -- is `0` in every conf state the specs handle: no joint configuration with a witness)
+  Witness' : w64
 
-instance ConfStateM.zero_val : ZeroVal ConfStateM := ⟨ConfStateM.mk [] [] [] [] false⟩
+instance ConfStateM.zero_val : ZeroVal ConfStateM := ⟨ConfStateM.mk [] [] [] [] false (W64 0)⟩
 
 /-- A snapshot's metadata as the model sees it: `GetConfState()` (a nil one reads as the zero
 record), `GetIndex()`, `GetTerm()` of a `*pb.SnapshotMetadata`. -/
@@ -114,7 +117,7 @@ structure SnapshotMetadataM where
   Term' : w64
 
 instance SnapshotMetadataM.zero_val [FfiSyntax] : ZeroVal SnapshotMetadataM :=
-  ⟨SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) zeroValDef zeroValDef⟩
+  ⟨SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) zeroValDef zeroValDef⟩
 
 /-- A snapshot as the model sees it: `GetData()` (the bytes) and `GetMetadata()` (a nil one
 reads as the zero record) of a `*pb.Snapshot`. -/
@@ -124,7 +127,7 @@ structure SnapshotM where
   Metadata' : SnapshotMetadataM
 
 instance SnapshotM.zero_val [FfiSyntax] : ZeroVal SnapshotM :=
-  ⟨SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) zeroValDef zeroValDef)⟩
+  ⟨SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) zeroValDef zeroValDef)⟩
 
 /-- A hard state as the model sees it: `GetTerm()`, `GetVote()`, `GetCommit()` of a
 `*pb.HardState`. -/

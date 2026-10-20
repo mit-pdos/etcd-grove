@@ -35,13 +35,13 @@ theorem raftpb.EnsureSnapshot.wp_proof
     subst Hp
     wp_auto
     wp_apply wp_EnsureSnapshotMetadata null
-      (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)) $$ []
+      (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) (W64 0) (W64 0)) $$ []
       as %rm ⟨Hsm, -⟩
     · iunfold smOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
     ihave Hn : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
     · iapply ownSlice_nil
     imod ownSnapW_of_struct «$r0_ptr» { (zero_val raftpb.Snapshot) with Metadata' := rm }
-      (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))
+      (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) (W64 0) (W64 0)))
       ⊤ (by rfl) $$ [«$r0» Hn Hsm] with Hsn
     · dsimp only
       iframe «$r0»

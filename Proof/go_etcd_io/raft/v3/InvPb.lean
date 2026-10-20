@@ -240,7 +240,7 @@ def csPts (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) : IProp GF :=
       "Hn" ∷ sn ↦*{dq} c.LearnersNext' ∗
     "HA" ∷ p.[raftpb.ConfState, go!"AutoLeave"] ↦{dq} pa ∗ "#cA" ∷ cellRO pa c.AutoLeave' ∗
       "%Hal" ∷ ⌜al = true → pa ≠ null⌝ ∗
-    "HW" ∷ p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw ∗ "#cW" ∷ cellRO pw (W64 0) ∗
+    "HW" ∷ p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw ∗ "#cW" ∷ cellRO pw c.Witness' ∗
     "HWO" ∷ p.[raftpb.ConfState, go!"WitnessOutgoing"] ↦{dq} pwo ∗ "#cWO" ∷ cellRO pwo (W64 0) ∗
     "#Hpb" ∷ pbMsg raftpb.ConfState p [])
 
@@ -249,14 +249,14 @@ abbrev ownCSM (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF := csPts p dq c
 
 /-- A nested conf state: `nil` (read as the zero record) or owned. -/
 def csOpt (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
-  iprop(⌜p = null ∧ c = ConfStateM.mk [] [] [] [] false⌝ ∨ ownCSM p dq c)
+  iprop(⌜p = null ∧ c = ConfStateM.mk [] [] [] [] false (W64 0)⌝ ∨ ownCSM p dq c)
 
 /-- A snapshot's nested conf state (D7, stage R4): `nil` (read as the zero record), owned at the
 snapshot's fraction, or read-only for good with its `AutoLeave` set (frozen by
 `MemoryStorage.InitialState`; nothing writes a conf state in place once `AutoLeave` is set:
 `EnsureConfState` writes only a nil one). -/
 def csOptA (p : Loc) (dq : DFrac) (c : ConfStateM) : IProp GF :=
-  iprop(⌜p = null ∧ c = ConfStateM.mk [] [] [] [] false⌝ ∨ csPts p dq c false ∨
+  iprop(⌜p = null ∧ c = ConfStateM.mk [] [] [] [] false (W64 0)⌝ ∨ csPts p dq c false ∨
     csPts p DFrac.discard c true)
 
 /-- A `*pb.SnapshotMetadata` at `p` holding `md`, at `dq`. -/
@@ -270,7 +270,7 @@ def smPts (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
 
 /-- A nested snapshot metadata: `nil` (read as the zero record) or owned. -/
 def smOpt (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : IProp GF :=
-  iprop(⌜p = null ∧ md = SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)⌝ ∨
+  iprop(⌜p = null ∧ md = SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) (W64 0) (W64 0)⌝ ∨
     smPts p dq md)
 
 /-- A `*pb.Snapshot` at `p` holding `s`, owned at `dq` (D4): its `Data` bytes and its metadata. -/
@@ -551,7 +551,7 @@ theorem csPts_of_struct (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : C
     (Hu : v.unknownFields' = slice.nil) :
     (p ↦ v ∗ v.Voters' ↦* c.Voters' ∗ v.Learners' ↦* c.Learners' ∗
       v.VotersOutgoing' ↦* c.VotersOutgoing' ∗ v.LearnersNext' ↦* c.LearnersNext' ∗
-      cellRO v.AutoLeave' c.AutoLeave' ∗ cellRO v.Witness' (W64 0) ∗
+      cellRO v.AutoLeave' c.AutoLeave' ∗ cellRO v.Witness' c.Witness' ∗
       cellRO v.WitnessOutgoing' (W64 0) : IProp GF) ⊢
       |={E}=> csPts p (DFrac.own 1) c (decide (v.AutoLeave' ≠ null)) := by
   iintro ⟨Hp, Hv, Hl, Ho, Hn, #cA, #cW, #cWO⟩
@@ -582,7 +582,7 @@ theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E 
     (Hu : v.unknownFields' = slice.nil) :
     (p ↦ v ∗ v.Voters' ↦*□ c.Voters' ∗ v.Learners' ↦*□ c.Learners' ∗
       v.VotersOutgoing' ↦*□ c.VotersOutgoing' ∗ v.LearnersNext' ↦*□ c.LearnersNext' ∗
-      cellRO v.AutoLeave' c.AutoLeave' ∗ cellRO v.Witness' (W64 0) ∗
+      cellRO v.AutoLeave' c.AutoLeave' ∗ cellRO v.Witness' c.Witness' ∗
       cellRO v.WitnessOutgoing' (W64 0) : IProp GF) ⊢
       |={E}=> csPts p DFrac.discard c (decide (v.AutoLeave' ≠ null)) := by
   iintro ⟨Hp, #Hv, #Hl, #Ho, #Hn, #cA, #cW, #cWO⟩
@@ -879,7 +879,7 @@ theorem csOpt_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
 /-- A snapshot's nested conf state is `nil` holding the zero record, or not `nil`. -/
 theorem csOptA_nn (p : Loc) (dq : DFrac) (c : ConfStateM) :
     csOptA (GF := GF) p dq c ⊢
-      csOptA p dq c ∗ ⌜(p = null ∧ c = ConfStateM.mk [] [] [] [] false) ∨ p ≠ null⌝ := by
+      csOptA p dq c ∗ ⌜(p = null ∧ c = ConfStateM.mk [] [] [] [] false (W64 0)) ∨ p ≠ null⌝ := by
   iunfold csOptA
   iintro (%H | H | #H)
   · isplitl []

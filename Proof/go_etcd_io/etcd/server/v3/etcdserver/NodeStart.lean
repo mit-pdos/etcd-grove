@@ -261,7 +261,7 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
             ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
             memSnapTok bv.storage' γs memStorEmpty -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
+            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false (W64 0)) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
              (Val #())) {{ Φ }}) ∗

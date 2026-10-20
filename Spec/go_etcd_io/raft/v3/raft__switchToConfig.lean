@@ -160,7 +160,7 @@ abbrev raft.switchToConfig.spec : Prop :=
       (Val #cfgv)) (Val #prsm))
   {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
       ownRaftPhysCV c c.voters r id s' ∗
-      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave (W64 0)) true ∗
       ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
         lns ≡ₚ elements c.learnersNext⌝ ∗
       ⌜SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id }
@@ -188,7 +188,7 @@ abbrev raft.switchToConfig.specS : Prop :=
       (Val #cfgv)) (Val #prsm))
   {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
-      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false (W64 0)) true ∗
       ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet prs \ cfg)⌝ ∗
       ⌜SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }
         s'⌝ }}
@@ -263,7 +263,7 @@ theorem raft.switchToConfig.spec_nonleader_open
     {{ (cs : Loc) (xs : List w64)
         (pvs : GMap w64 Progress), RET #cs;
         ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false (W64 0)) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
   iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, #Hepoch, Hcfg⟩ HΦ
   icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
   iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs

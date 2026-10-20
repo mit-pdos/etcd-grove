@@ -34,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
 /-- The conf state the store's `InitialState` returns: the voters, nothing else. -/
-abbrev kvConfState (voters : List w64) : ConfStateM := ConfStateM.mk voters [] [] [] false
+abbrev kvConfState (voters : List w64) : ConfStateM := ConfStateM.mk voters [] [] [] false (W64 0)
 
 /-- See the file header. -/
 abbrev Storage.InitialState.spec : Prop :=

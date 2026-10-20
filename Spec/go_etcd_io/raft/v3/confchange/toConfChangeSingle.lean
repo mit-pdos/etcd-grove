@@ -48,8 +48,8 @@ abbrev confchange.toConfChangeSingle.spec : Prop :=
       ownCSM cs dq c ∗
       o ↦* lo ∗ ([∗list] q;x ∈ lo;restoreOutCC c.VotersOutgoing', ccsRO q x) ∗
       s ↦* li ∗
-      ([∗list] q;x ∈ li;restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext',
-        ccsRO q x) ∗
+      ([∗list] q;x ∈ li;restoreInCC c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext'
+        c.Witness', ccsRO q x) ∗
       ownSliceCap Loc s (DFrac.own 1) }}
 
 end spec

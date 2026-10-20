@@ -191,7 +191,7 @@ theorem raft.switchToConfig.wp_proof
       iNamed Hcs
       ihave %Hxlen := ownSlice_len $$ Hv
       wp_auto
-      ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true
+      ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave (W64 0)) true
         $$ [HV Hv HL Hl HO Ho HN Hn HA HW HWO]
       · iunfold csPts
         iexists sv, sl, so, sn, pa, pw, pwo

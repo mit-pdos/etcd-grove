@@ -930,7 +930,7 @@ theorem wp_applyConf_dyn
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
         ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
         ownCCV2 cc dq ccm ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave (W64 0)) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
   obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal', Hw0r⟩ := Hpre
@@ -1147,7 +1147,7 @@ theorem wp_rn_raft_applyConfChange
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs ls : List w64), RET #cs;
         ownRawNode γ rn id rs ∗ ownCCV2 cc DFrac.discard ccm ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false (W64 0)) true ∗
           ⌜xs ≡ₚ elements γ.reCfg ∧ (∀ k ∈ ls, k ∉ γ.reCfg)⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hccs, Hlc⟩ HΦ
   icases ownRawNode_mode γ rn id rs $$ Hrn with ⟨%Hmd, Hrn⟩
@@ -1223,7 +1223,7 @@ theorem wp_rn_raft_applyConfChange_dyn
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
         ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
         ownCCV2 cc DFrac.discard ccm ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave (W64 0)) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hccs, Hlc⟩ HΦ

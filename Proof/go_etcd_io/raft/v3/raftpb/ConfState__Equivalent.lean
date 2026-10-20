@@ -31,15 +31,17 @@ section pure
 permutation of `c`'s. -/
 def SortedOf (c c' : ConfStateM) : Prop :=
   c.lists.Perm c'.lists ∧ SortedW64 c'.Voters' ∧ SortedW64 c'.Learners' ∧
-    SortedW64 c'.VotersOutgoing' ∧ SortedW64 c'.LearnersNext' ∧ c'.AutoLeave' = c.AutoLeave'
+    SortedW64 c'.VotersOutgoing' ∧ SortedW64 c'.LearnersNext' ∧ c'.AutoLeave' = c.AutoLeave' ∧
+    c'.Witness' = c.Witness'
 
 /-- Two sorted versions of conf states whose lists are permutations of each other, with equal
 `AutoLeave`, are one record: what makes `proto.Equal` answer `true`. -/
 theorem sortedOf_eq {c1 c2 c1' c2' : ConfStateM} (hp : c1.lists.Perm c2.lists)
-    (ha : c1.AutoLeave' = c2.AutoLeave') (h1 : SortedOf c1 c1') (h2 : SortedOf c2 c2') :
+    (ha : c1.AutoLeave' = c2.AutoLeave') (hw : c1.Witness' = c2.Witness')
+    (h1 : SortedOf c1 c1') (h2 : SortedOf c2 c2') :
     c1' = c2' := by
-  obtain ⟨⟨p1v, p1l, p1o, p1n⟩, s1v, s1l, s1o, s1n, a1⟩ := h1
-  obtain ⟨⟨p2v, p2l, p2o, p2n⟩, s2v, s2l, s2o, s2n, a2⟩ := h2
+  obtain ⟨⟨p1v, p1l, p1o, p1n⟩, s1v, s1l, s1o, s1n, a1, w1⟩ := h1
+  obtain ⟨⟨p2v, p2l, p2o, p2n⟩, s2v, s2l, s2o, s2n, a2, w2⟩ := h2
   obtain ⟨pv, pl, po, pn⟩ := hp
   simp only [ConfStateM.lists] at p1v p1l p1o p1n p2v p2l p2o p2n pv pl po pn
   rw [sortedW64_iff_pairwise] at s1v s1l s1o s1n s2v s2l s2o s2n
@@ -48,9 +50,10 @@ theorem sortedOf_eq {c1 c2 c1' c2' : ConfStateM} (hp : c1.lists.Perm c2.lists)
   have eo := sorted_perm_eq _ _ (p1o.symm.trans (po.trans p2o)) s1o s2o
   have en := sorted_perm_eq _ _ (p1n.symm.trans (pn.trans p2n)) s1n s2n
   have ea : c1'.AutoLeave' = c2'.AutoLeave' := by rw [a1, a2, ha]
+  have ew : c1'.Witness' = c2'.Witness' := by rw [w1, w2, hw]
   cases c1'; cases c2'
-  simp only at ev el eo en ea
-  rw [ev, el, eo, en, ea]
+  simp only at ev el eo en ea ew
+  rw [ev, el, eo, en, ea, ew]
 
 end pure
 
@@ -73,7 +76,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     (wp_ConfState_GetAutoLeave : raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG))
     (wp_proto_EqualConfState : proto.EqualConfState.spec (GF := GF) (hG := hG)) :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) := by
-  intro p q c1 c2 dq1 dq2 Hperm Hbd Hal
+  intro p q c1 c2 dq1 dq2 Hperm Hbd Hal Hwe
   wp_start as ⟨H1, H2⟩
   ihave %Hp := (show ownCSM (GF := GF) p dq1 c1 ⊢ ⌜p ≠ null⌝ by
     iintro H; iNamed H; ipureintro; exact Hnn) $$ H1
@@ -168,7 +171,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     wp_apply wp_slices_Sort sn cc.LearnersNext' $$ [$Hn] as %xs4 ⟨Hn, %Hp4, %Hs4⟩
     · ipureintro; omega
     -- the sorted clone, closed for `GetAutoLeave`
-    ihave Hc' : csOpt (GF := GF) pc (DFrac.own 1) (ConfStateM.mk xs1 xs2 xs3 xs4 cc.AutoLeave')
+    ihave Hc' : csOpt (GF := GF) pc (DFrac.own 1) (ConfStateM.mk xs1 xs2 xs3 xs4 cc.AutoLeave' cc.Witness')
         $$ [HV Hv HL Hl HO Ho HN Hn HA HW HWO]
     · iunfold csOpt
       iright
@@ -192,7 +195,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     imodintro
     wp_for_post
     ihave Hd := Hback $$ [HV' Hv' HL' Hl' HO' Ho' HN' Hn' HA' HW' HWO']
-    · iexists (ConfStateM.mk xs1 xs2 xs3 xs4 cc.AutoLeave')
+    · iexists (ConfStateM.mk xs1 xs2 xs3 xs4 cc.AutoLeave' cc.Witness')
       isplitl
       · iunfold csPts
         iexists sv, sl, so, sn, autoLeave_ptr, pw, pwo
@@ -201,7 +204,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
         iframe
         iframe cq cW' cWO' Hpb'
         ipureintro; intro _; exact Hqn
-      · ipureintro; exact ⟨⟨Hp1, Hp2, Hp3, Hp4⟩, Hs1, Hs2, Hs3, Hs4, rfl⟩
+      · ipureintro; exact ⟨⟨Hp1, Hp2, Hp3, Hp4⟩, Hs1, Hs2, Hs3, Hs4, rfl, rfl⟩
     icases Hd with ⟨S1, S2⟩
     iframe
     iexists (i + W64 1)
@@ -223,7 +226,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     icases S1 with ⟨%c1', S1, %Hs1⟩
     icases S2 with ⟨%c2', S2, %Hs2⟩
     wp_apply wp_proto_EqualConfState p1 p2 _ _ c1' c2' $$ [$S1 $S2] as %b ⟨S1, S2, %Hb⟩
-    have Hbt : b = true := Hb.2 (sortedOf_eq Hperm Hal Hs1 Hs2)
+    have Hbt : b = true := Hb.2 (sortedOf_eq Hperm Hal Hwe Hs1 Hs2)
     subst Hbt
     wp_auto
     iapply HΦ

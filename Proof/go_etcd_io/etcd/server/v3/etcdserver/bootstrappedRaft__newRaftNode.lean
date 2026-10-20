@@ -67,7 +67,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   (try wp_auto)
   -- `raft.StartNode(b.config, b.peers)`
   wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
-    memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
+    memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false (W64 0))
     (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
     rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk Hnwit)

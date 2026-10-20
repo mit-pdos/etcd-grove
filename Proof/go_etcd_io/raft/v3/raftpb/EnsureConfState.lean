@@ -81,7 +81,7 @@ theorem raftpb.EnsureConfState.wp_proof : raftpb.EnsureConfState.spec (GF := GF)
     ihave Hn4 : (slice.nil ↦* ([] : List w64) : IProp GF) $$ []
     · iapply ownSlice_nil
     imod csPts_of_struct r { (zero_val raftpb.ConfState) with AutoLeave' := «$r0_ptr» }
-      (ConfStateM.mk [] [] [] [] false) ⊤ (by rfl) $$ [«$r0» Hn1 Hn2 Hn3 Hn4 cq]
+      (ConfStateM.mk [] [] [] [] false (W64 0)) ⊤ (by rfl) $$ [«$r0» Hn1 Hn2 Hn3 Hn4 cq]
       with Hcs
     · dsimp only
       iframe

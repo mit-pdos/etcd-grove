@@ -23,17 +23,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `c.GetWitness()` of a non-`nil` conf state pointer whose `Witness` field is a cell holding `0`
-(`csPts`: the conf states of these proofs have no witness) is `0`. Stated on the field, as its
-caller `toConfChangeSingle` holds the conf state's fields apart. -/
+/-- `c.GetWitness()` of a non-`nil` conf state pointer whose `Witness` field is a cell holding `w`
+(`csPts`'s `Witness'`; until 2026-10-20 `0`) is `w`. Stated on the field, as its caller
+`toConfChangeSingle` holds the conf state's fields apart. -/
 abbrev raftpb.ConfState.GetWitness.spec : Prop :=
-  ∀ (p pw : Loc) (dq : DFrac),
+  ∀ (p pw : Loc) (w : w64) (dq : DFrac),
   p ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
-      p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw ∗ cellRO pw (W64 0) }}
+      p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw ∗ cellRO pw w }}
     (App (Val (p @!! go.GoType.PointerType raftpb.ConfState.ty @!! go!"GetWitness"))
       (Val #()))
-  {{ RET #(W64 0); p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw }}
+  {{ RET #w; p.[raftpb.ConfState, go!"Witness"] ↦{dq} pw }}
 
 end spec
 

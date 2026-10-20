@@ -51,7 +51,7 @@ abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
       (Val #()))
   {{ (csl : Loc) (xs os ls lns : List w64), RET #csl;
       trk ↦ tv ∗ ownTrackerC c tv t ∗
-      csPts csl (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
+      csPts csl (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave (W64 0)) true ∗
       ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
         lns ≡ₚ elements c.learnersNext⌝ }}
 

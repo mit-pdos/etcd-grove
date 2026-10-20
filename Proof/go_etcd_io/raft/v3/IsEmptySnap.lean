@@ -36,7 +36,7 @@ theorem IsEmptySnap.wp_proof
     icases Hsp with %Hsp
     subst Hsp
     wp_apply wp_GetMetadata.2
-    wp_apply wp_GetIndex null dq (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)) $$ []
+    wp_apply wp_GetIndex null dq (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) (W64 0) (W64 0)) $$ []
     · iunfold smOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
     iintro -
     wp_auto

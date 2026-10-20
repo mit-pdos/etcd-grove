@@ -33,7 +33,7 @@ abbrev raftpb.EnsureSnapshot.spec : Prop :=
     (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #s))
   {{ (r : Loc), RET #r;
       ownSnapW r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
-        (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))) ∗ ⌜s ≠ null → r = s⌝ }}
+        (ConfStateM.mk [] [] [] [] false (W64 0)) (W64 0) (W64 0)))) ∗ ⌜s ≠ null → r = s⌝ }}
 
 end spec
 

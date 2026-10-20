@@ -35,6 +35,8 @@ pointers are non-nil (`ownCSM`), so the nil-input error is not reached. -/
 abbrev raftpb.ConfState.Equivalent.spec : Prop :=
   ∀ (p q : Loc) (c1 c2 : ConfStateM) (dq1 dq2 : DFrac),
   c1.lists.Perm c2.lists → c1.lists.Bounded → c1.AutoLeave' = c2.AutoLeave' →
+  -- (2026-10-20, witness support) and the same witness (`proto.Equal` compares it)
+  c1.Witness' = c2.Witness' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCSM p dq1 c1 ∗ ownCSM q dq2 c2 }}
     (App (Val (p @!! go.GoType.PointerType raftpb.ConfState.ty @!! go!"Equivalent")) (Val #q))
   {{ RET #interface.nil; ownCSM p dq1 c1 ∗ ownCSM q dq2 c2 }}

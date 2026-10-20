@@ -236,7 +236,7 @@ theorem newRaft.wp_proof
     refine List.Perm.trans ?_ Hxs2.symm
     refine (List.perm_ext_iff_of_nodup Hvnd (GMap.NoDup_elements _)).2 ?_
     intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
-  have Hperm : csm.lists.Perm (ConfStateM.mk xs2 [] [] [] false).lists := by
+  have Hperm : csm.lists.Perm (ConfStateM.mk xs2 [] [] [] false (W64 0)).lists := by
     simp only [CSLists.Perm, ConfStateM.lists, Hcs1, Hcs2, Hcs3]
     exact ⟨Hpermv, List.Perm.refl _, List.Perm.refl _, List.Perm.refl _⟩
   have Hbnd : csm.lists.Bounded := by
@@ -244,7 +244,7 @@ theorem newRaft.wp_proof
     exact ⟨Hvlen62, by decide, by decide, by decide⟩
   ihave Hcs2v := csPts_weaken $$ Hcs2v
   ihave Hcsw := csPts_weaken $$ Hcs
-  wp_apply wp_assertConfStatesEquivalent _ cs cs2 csm (ConfStateM.mk xs2 [] [] [] false)
+  wp_apply wp_assertConfStatesEquivalent _ cs cs2 csm (ConfStateM.mk xs2 [] [] [] false (W64 0))
     DFrac.discard (DFrac.own 1) Hperm Hbnd Hal $$ [$Hcsw $Hcs2v] as ⟨-, -⟩
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof

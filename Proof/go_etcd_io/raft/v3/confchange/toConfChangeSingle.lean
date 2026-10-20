@@ -185,7 +185,7 @@ theorem confchange.toConfChangeSingle.wp_proof
       "Hin" ∷ in_ptr ↦ s' ∗
       "id" ∷ id_ptr ↦ x ∗
       "Hs" ∷ s' ↦* li ∗
-      "#Hc" ∷ ([∗list] q;y ∈ li;c.VotersOutgoing'.map removeNodeCC ++ (c.Voters'.take (sint.nat n)).map addNodeCC, ccsRO q y) ∗
+      "#Hc" ∷ ([∗list] q;y ∈ li;c.VotersOutgoing'.map removeNodeCC ++ (c.Voters'.take (sint.nat n)).map (voterCC c.Witness'), ccsRO q y) ∗
       "Hcap" ∷ ownSliceCap Loc s' (DFrac.own 1) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (c.Voters'.length : Int)⌝) $$ [i Hin id Hs Hcap]
   · iexists W64 0, s', zero_val w64, li
@@ -203,44 +203,82 @@ theorem confchange.toConfChangeSingle.wp_proof
     simp only [Hbnd', _root_.and_self]
     wp_apply wp_load_slice_index sv (sint.Z n) _ _ x Hn.1 $$ [Hv] with Hv
     · iframe Hv; ipureintro; exact Hx
-    -- raft#168: `if id == cs.GetWitness()`: no, `0` is no voter
-    wp_apply wp_ConfState_GetWitness cs pw dq Hnn $$ [$HW $cW] as HW
-    have Hx0 : x ≠ W64 0 := fun h => Hv0 (h ▸ List.mem_of_getElem? Hx)
-    first
-      | rw [decide_eq_false (show ¬ (x = W64 0) from Hx0)]
-      | rw [decide_eq_false (show ¬ (W64 0 = x) from fun h => Hx0 h.symm)]
-    wp_auto
-    rw [show raftpb.ConfChangeAddNode = #(W32 0) from rfl]
-    wp_apply wp_ConfChangeType_Enum (W32 0)
-    iintro %pty Hpt
-    wp_auto
-    imod cellRO_alloc _ _ $$ Hpt with #cty
-    imod cellRO_alloc _ _ $$ «$v1» with #cnd
-    imod ccsRO_of_struct «$sl0_ptr»
-      { state' := zeroValDef, Type' := pty, NodeId' := «$v1_ptr», unknownFields' := slice.nil,
-        sizeCache' := 0 }
-      (addNodeCC x) ⊤ rfl $$ [«$sl0»] with #Hq
-    · dsimp only
+    -- raft#168: `if id == cs.GetWitness()` (2026-10-20: the witness, an `AddWitness`)
+    wp_apply wp_ConfState_GetWitness cs pw c.Witness' dq Hnn $$ [$HW $cW] as HW
+    by_cases hxw : x = c.Witness'
+    · rw [decide_eq_true hxw]
+      wp_auto
+      rw [show raftpb.ConfChangeAddWitness = #(W32 4) from rfl]
+      wp_apply wp_ConfChangeType_Enum (W32 4)
+      iintro %pty Hpt
+      wp_auto
+      -- `NodeId: new(cs.GetWitness())`
+      wp_apply wp_ConfState_GetWitness cs pw c.Witness' dq Hnn $$ [$HW $cW] as HW
+      try wp_auto
+      ihave «$v1» : («$v1_ptr» ↦ x : IProp GF) $$ [«$v1»]
+      · rw [hxw]; iexact «$v1»
+      imod cellRO_alloc _ _ $$ Hpt with #cty
+      imod cellRO_alloc _ _ $$ «$v1» with #cnd
+      imod ccsRO_of_struct «$sl0_ptr»
+        { state' := zeroValDef, Type' := pty, NodeId' := «$v1_ptr», unknownFields' := slice.nil,
+          sizeCache' := 0 }
+        (addWitnessCC x) ⊤ rfl $$ [«$sl0»] with #Hq
+      · dsimp only
+        iframe
+        iframe cty cnd
+      rw [show (addWitnessCC x) = voterCC c.Witness' x by simp [voterCC, hxw]]
+      wp_apply wp_slice_literal (V := Loc) [«$sl0_ptr»]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl2 ⟨Hsl2, -⟩
+      wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl2] as %s3 ⟨Hs, Hcap, -⟩
+      wp_for_post
+      have Htake : c.Voters'.take (sint.nat (n + W64 1)) =
+          c.Voters'.take (sint.nat n) ++ [x] := by
+        rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hx]; rfl
       iframe
-      iframe cty cnd
-    wp_apply wp_slice_literal (V := Loc) [«$sl0_ptr»]
-    isplitr
-    · ipureintro; rfl
-    iintro %sl2 ⟨Hsl2, -⟩
-    wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl2] as %s3 ⟨Hs, Hcap, -⟩
-    wp_for_post
-    have Htake : c.Voters'.take (sint.nat (n + W64 1)) =
-        c.Voters'.take (sint.nat n) ++ [x] := by
-      rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hx]; rfl
-    iframe
-    iexists n + W64 1, s3, x, li ++ [«$sl0_ptr»]
-    simp only [named, Htake, List.map_append, List.map_cons, List.map_nil]
-    iframe
-    isplitr
-    · rw [← List.append_assoc]
-      iapply BigSepL2.bigSepL2_snoc.2
-      iframe Hc Hq
-    ipureintro; constructor <;> word
+      iexists n + W64 1, s3, x, li ++ [«$sl0_ptr»]
+      simp only [named, Htake, List.map_append, List.map_cons, List.map_nil]
+      iframe
+      isplitr
+      · rw [← List.append_assoc]
+        iapply BigSepL2.bigSepL2_snoc.2
+        iframe Hc Hq
+      ipureintro; constructor <;> word
+    · rw [decide_eq_false hxw]
+      wp_auto
+      rw [show raftpb.ConfChangeAddNode = #(W32 0) from rfl]
+      wp_apply wp_ConfChangeType_Enum (W32 0)
+      iintro %pty Hpt
+      wp_auto
+      imod cellRO_alloc _ _ $$ Hpt with #cty
+      imod cellRO_alloc _ _ $$ «$v1» with #cnd
+      imod ccsRO_of_struct «$sl0_ptr»
+        { state' := zeroValDef, Type' := pty, NodeId' := «$v1_ptr», unknownFields' := slice.nil,
+          sizeCache' := 0 }
+        (addNodeCC x) ⊤ rfl $$ [«$sl0»] with #Hq
+      · dsimp only
+        iframe
+        iframe cty cnd
+      rw [show (addNodeCC x) = voterCC c.Witness' x by simp [voterCC, hxw]]
+      wp_apply wp_slice_literal (V := Loc) [«$sl0_ptr»]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl2 ⟨Hsl2, -⟩
+      wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl2] as %s3 ⟨Hs, Hcap, -⟩
+      wp_for_post
+      have Htake : c.Voters'.take (sint.nat (n + W64 1)) =
+          c.Voters'.take (sint.nat n) ++ [x] := by
+        rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hx]; rfl
+      iframe
+      iexists n + W64 1, s3, x, li ++ [«$sl0_ptr»]
+      simp only [named, Htake, List.map_append, List.map_cons, List.map_nil]
+      iframe
+      isplitr
+      · rw [← List.append_assoc]
+        iapply BigSepL2.bigSepL2_snoc.2
+        iframe Hc Hq
+      ipureintro; constructor <;> word
   have Hif' : ¬ sint.Z n < sint.Z sv.len := by simpa using Hif
   have Hn' : sint.nat n = c.Voters'.length := by word
   rw [Hn', List.take_length]
@@ -250,7 +288,7 @@ theorem confchange.toConfChangeSingle.wp_proof
       "Hin" ∷ in_ptr ↦ s' ∗
       "id" ∷ id_ptr ↦ x ∗
       "Hs" ∷ s' ↦* li ∗
-      "#Hc" ∷ ([∗list] q;y ∈ li;c.VotersOutgoing'.map removeNodeCC ++ c.Voters'.map addNodeCC ++ (c.Learners'.take (sint.nat n)).map addLearnerCC, ccsRO q y) ∗
+      "#Hc" ∷ ([∗list] q;y ∈ li;c.VotersOutgoing'.map removeNodeCC ++ c.Voters'.map (voterCC c.Witness') ++ (c.Learners'.take (sint.nat n)).map addLearnerCC, ccsRO q y) ∗
       "Hcap" ∷ ownSliceCap Loc s' (DFrac.own 1) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (c.Learners'.length : Int)⌝) $$ [i Hin id Hs Hcap]
   · iexists W64 0, s', zero_val w64, li
@@ -308,7 +346,7 @@ theorem confchange.toConfChangeSingle.wp_proof
       "Hin" ∷ in_ptr ↦ s' ∗
       "id" ∷ id_ptr ↦ x ∗
       "Hs" ∷ s' ↦* li ∗
-      "#Hc" ∷ ([∗list] q;y ∈ li;c.VotersOutgoing'.map removeNodeCC ++ c.Voters'.map addNodeCC ++ c.Learners'.map addLearnerCC ++ (c.LearnersNext'.take (sint.nat n)).map addLearnerCC, ccsRO q y) ∗
+      "#Hc" ∷ ([∗list] q;y ∈ li;c.VotersOutgoing'.map removeNodeCC ++ c.Voters'.map (voterCC c.Witness') ++ c.Learners'.map addLearnerCC ++ (c.LearnersNext'.take (sint.nat n)).map addLearnerCC, ccsRO q y) ∗
       "Hcap" ∷ ownSliceCap Loc s' (DFrac.own 1) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (c.LearnersNext'.length : Int)⌝) $$ [i Hin id Hs Hcap]
   · iexists W64 0, s', zero_val w64, li

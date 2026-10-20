@@ -58,7 +58,7 @@ theorem RawNode.ApplyConfChange.wp_proof
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
-      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave (W64 0))
       simp only [named]
       iframe Hcs
       isplitl [Hc1]
@@ -82,7 +82,7 @@ theorem RawNode.ApplyConfChange.wp_proof
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
           $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
-      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave (W64 0))
       simp only [named]
       iframe Hcs
       isplitl [Hch]
@@ -124,7 +124,7 @@ theorem RawNode.ApplyConfChange.wp_proof
         (trackedOk_shrink Htrk Hlp Hdom') Hnl Hps
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
-      iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false (W64 0))
       simp only [named]
       iframe Hcs
       isplitl [Hc1]
@@ -167,7 +167,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2 rfl (Hw0 Hm).2
         $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok⟩
       try wp_auto
-      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave (W64 0))
       simp only [named]
       iframe Hcs
       isplitl [Hc1]
@@ -210,7 +210,7 @@ theorem RawNode.ApplyConfChange.wp_proof
         (trackedOk_shrink Htrk Hlp Hdom') Hnl Hps
         $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
       try wp_auto
-      iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false (W64 0))
       simp only [named]
       iframe Hcs
       isplitl [Hch]
@@ -253,7 +253,7 @@ theorem RawNode.ApplyConfChange.wp_proof
           (fun _ h => absurd Hin' h) (fun _ => Hin') Hli2 rfl (Hw0 Hm).2
         $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
       try wp_auto
-      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave)
+      iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns c'.cfg.autoLeave (W64 0))
       simp only [named]
       iframe Hcs
       isplitl [Hch]

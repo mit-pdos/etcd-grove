@@ -619,7 +619,7 @@ theorem raft.restore.wp_proof
       · simp only [ho, ↓reduceIte]
     wp_apply wp_assertConfStatesEquivalent _ pc cs2 sv.Metadata'.ConfState'
         (ConfStateM.mk xs2 ls2 os2 lns2
-          (if sv.Metadata'.ConfState'.VotersOutgoing' = [] then false else sv.Metadata'.ConfState'.AutoLeave')) _ _ Hperm Hbnd Hal2
+          (if sv.Metadata'.ConfState'.VotersOutgoing' = [] then false else sv.Metadata'.ConfState'.AutoLeave') (W64 0)) _ _ Hperm Hbnd Hal2
         $$ [$HcB $Hcs2v] as ⟨HcB, -⟩
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩

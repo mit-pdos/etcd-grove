@@ -42,10 +42,24 @@ abbrev removeNodeCC (id : w64) : ConfChangeSingleM :=
 /-- `toConfChangeSingle`'s `out`: one `AddNode` per outgoing voter. -/
 def restoreOutCC (vo : List w64) : List ConfChangeSingleM := vo.map addNodeCC
 
+/-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddWitness, NodeId: id}` (2026-10-20, raft#168). -/
+abbrev addWitnessCC (id : w64) : ConfChangeSingleM :=
+  { Type' := W32 4, NodeId' := id }
+
+/-- A voter's change in `toConfChangeSingle`'s `in` (2026-10-20, raft#168): `AddWitness` for the
+conf state's witness `w` (`id == cs.GetWitness()`), `AddNode` otherwise. -/
+def voterCC (w id : w64) : ConfChangeSingleM :=
+  if id = w then addWitnessCC id else addNodeCC id
+
+theorem map_voterCC_of {w : w64} {v : List w64} (H : ∀ x ∈ v, x ≠ w) :
+    v.map (voterCC w) = v.map addNodeCC :=
+  List.map_congr_left (fun x hx => by unfold voterCC; rw [if_neg (H x hx)])
+
 /-- `toConfChangeSingle`'s `in`: one `RemoveNode` per outgoing voter, then one `AddNode` per
-voter, one `AddLearnerNode` per learner, one `AddLearnerNode` per staged learner. -/
-def restoreInCC (vo v l ln : List w64) : List ConfChangeSingleM :=
-  vo.map removeNodeCC ++ v.map addNodeCC ++ l.map addLearnerCC ++ ln.map addLearnerCC
+voter (`AddWitness` for the witness `w`, 2026-10-20; `0` for none), one `AddLearnerNode` per
+learner, one `AddLearnerNode` per staged learner. -/
+def restoreInCC (vo v l ln : List w64) (w : w64 := W64 0) : List ConfChangeSingleM :=
+  vo.map removeNodeCC ++ v.map (voterCC w) ++ l.map addLearnerCC ++ ln.map addLearnerCC
 
 /-- One `Simple([c])` per change, in order (`Restore`'s ops chained by `chain`). -/
 def simpleFold : List ConfChangeSingleM → CCState → Option CCState
@@ -54,15 +68,16 @@ def simpleFold : List ConfChangeSingleM → CCState → Option CCState
 
 /-- The changes `Restore` runs as `Simple` ops: the incoming ones when not joint, the
 outgoing ones when joint. -/
-def restoreSimpleOps (vo v l ln : List w64) : List ConfChangeSingleM :=
-  if vo = [] then restoreInCC [] v l ln else restoreOutCC vo
+def restoreSimpleOps (vo v l ln : List w64) (w : w64 := W64 0) : List ConfChangeSingleM :=
+  if vo = [] then restoreInCC [] v l ln w else restoreOutCC vo
 
 /-- `Restore(chg, cs)` on the empty tracker (`cfgState ∅ ∅`), for a `ConfState` with
-`VotersOutgoing = vo`, `Voters = v`, `Learners = l`, `LearnersNext = ln`, `AutoLeave = al`. -/
-def restoreM (vo v l ln : List w64) (al : Bool) : Option CCState :=
-  if vo = [] then simpleFold (restoreSimpleOps vo v l ln) (cfgState ∅ ∅)
-  else (simpleFold (restoreSimpleOps vo v l ln) (cfgState ∅ ∅)).bind
-    (enterJointM al (restoreInCC vo v l ln))
+`VotersOutgoing = vo`, `Voters = v`, `Learners = l`, `LearnersNext = ln`, `AutoLeave = al`,
+`Witness = w` (2026-10-20). -/
+def restoreM (vo v l ln : List w64) (al : Bool) (w : w64 := W64 0) : Option CCState :=
+  if vo = [] then simpleFold (restoreSimpleOps vo v l ln w) (cfgState ∅ ∅)
+  else (simpleFold (restoreSimpleOps vo v l ln w) (cfgState ∅ ∅)).bind
+    (enterJointM al (restoreInCC vo v l ln w))
 
 /-- The configuration a `ConfState`'s lists denote; `AutoLeave` only when joint (what
 `Restore` keeps of it). -/
@@ -233,7 +248,7 @@ theorem simpleFold_restoreIn (v l : List w64) (hv : v ≠ [])
     exact ⟨fun h => h.elim (fun h' => absurd h' (GMap.not_elem_of_empty _)) id, .inr⟩
   subst eL
   simp only [restoreInCC, List.map_nil, List.nil_append, List.append_nil]
-  rw [simpleFold_append, Hf1]
+  rw [map_voterCC_of (fun x hx => H0 x (.inl hx)), simpleFold_append, Hf1]
   exact Hf2
 
 /-! ### The joint path: `EnterJoint`'s changes -/
@@ -421,6 +436,7 @@ theorem enterJointM_restoreIn (vo v l ln : List w64) (al : Bool) (Hwf : CSWf vo 
     rw [HN4]; exact ⟨fun h => h.elim (fun h' => absurd h' (GMap.not_elem_of_empty _)) id, .inr⟩
   have Happ : applyAll (restoreInCC vo v l ln) (jst O O ∅ ∅) = some (jst I2 O L3 N4) := by
     simp only [restoreInCC]
+    rw [map_voterCC_of (fun x hx => H0 x (.inr (.inl hx)))]
     rw [applyAll_append, applyAll_append, applyAll_append, Hf1]
     simp only [Option.bind_some]
     rw [Hf2]; simp only [Option.bind_some]

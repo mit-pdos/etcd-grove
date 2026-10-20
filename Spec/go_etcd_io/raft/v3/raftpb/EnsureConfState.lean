@@ -37,7 +37,7 @@ abbrev raftpb.EnsureConfState.spec : Prop :=
     {{ RET #cs; csPts cs dq c true }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val #(functions raftpb.EnsureConfState [])) (Val #(null : Loc)))
-  {{ (r : Loc), RET #r; csPts r (DFrac.own 1) (ConfStateM.mk [] [] [] [] false) true }}
+  {{ (r : Loc), RET #r; csPts r (DFrac.own 1) (ConfStateM.mk [] [] [] [] false (W64 0)) true }}
 
 end spec
 

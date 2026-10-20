@@ -153,7 +153,7 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
     { state' := zeroValDef, Voters' := sl0, Learners' := sl2, VotersOutgoing' := sl1,
       LearnersNext' := sl3, AutoLeave' := «$v4_ptr», Witness' := null, WitnessOutgoing' := null,
       unknownFields' := slice.nil, sizeCache' := 0 }
-    (ConfStateM.mk xs0 xs2 xs1 xs3 tv.Config'.AutoLeave') ⊤ rfl
+    (ConfStateM.mk xs0 xs2 xs1 xs3 tv.Config'.AutoLeave' (W64 0)) ⊤ rfl
     $$ [«$r0» Hsl0 Hsl2 Hsl1 Hsl3 cA] with «$r0»
   · iframe
     iframe cA

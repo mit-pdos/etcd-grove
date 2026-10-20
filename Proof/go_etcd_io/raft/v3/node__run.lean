@@ -467,7 +467,7 @@ theorem node.run.wp_proof
         iapply handshake_send_au γ.confstatec nv.confstatec' _ (confstateP γ) iprop(True)
           $$ [$Hlc1 $Hlc2 $Hlc3] Hconfstatec [Hcsp]
         · unfold confstateP
-          iexists ConfStateM.mk xs ls [] [] false
+          iexists ConfStateM.mk xs ls [] [] false (W64 0)
           iframe Hcsp
           ileft
           ipureintro; exact ⟨Hgm, Hcs.1, Hcs.2, rfl, rfl, rfl⟩
@@ -534,7 +534,7 @@ theorem node.run.wp_proof
     -- `if okBefore && !okAfter { ... if !found { propc = nil } }`: the node removed
     wp_join iprop(∃ pc'' : GoChan, propc_ptr ↦ pc'' ∗ ⌜pc'' = chan.nil ∨ pc'' = nv.propc'⌝ ∗
         cs_ptr ↦ cs ∗ r_ptr ↦ r ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true)
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave (W64 0)) true)
       at next with [propc cs r okAfter Hcsp]
     · by_cases Hb1 : (s.progress !! id).isSome = true
       · rw [decide_eq_true Hb1]
@@ -658,7 +658,7 @@ theorem node.run.wp_proof
       iapply handshake_send_au γ.confstatec nv.confstatec' _ (confstateP γ) iprop(True)
         $$ [$Hlc1 $Hlc2 $Hlc3] Hconfstatec [Hcap Hccq Hcsp]
       · unfold confstateP
-        iexists ConfStateM.mk xs ls os lns cs'.cfg.autoLeave
+        iexists ConfStateM.mk xs ls os lns cs'.cfg.autoLeave (W64 0)
         iframe Hcsp
         iright
         isplitr

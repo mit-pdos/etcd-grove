@@ -121,7 +121,7 @@ theorem raftpb.EnsureSnapshotMetadata.wp_proof
     icases csPts_nn _ _ _ _ $$ Hcs with ⟨Hcs, %Hrc⟩
     ihave Hc := csPts_weaken _ _ _ _ $$ Hcs
     imod smPtsW_of_struct pm { (zero_val raftpb.SnapshotMetadata) with ConfState' := rc, Index' := pi, Term' := «$r0_ptr» }
-      (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)) ⊤ (by rfl) Hrc
+      (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) (W64 0) (W64 0)) ⊤ (by rfl) Hrc
       $$ [«$r0» Hc] with Hsm
     · dsimp only
       iframe «$r0»

@@ -125,7 +125,7 @@ def memStorCompacted (σ : StorState) (ci t : w64) : StorState :=
 
 /-- The conf state of the storage's snapshot at `σ`, as `σ` records it (`scs`, `sal`). -/
 def storCS (σ : StorState) : ConfStateM :=
-  ConfStateM.mk σ.scs.voters σ.scs.learners σ.scs.outgoing σ.scs.learnersNext σ.sal
+  ConfStateM.mk σ.scs.voters σ.scs.learners σ.scs.outgoing σ.scs.learnersNext σ.sal (W64 0)
 
 /-- The snapshot `CreateSnapshot(i, cs, data)` leaves (2026-10-12): metadata at `i` and the term
 `t` of `i`, its `ConfState` replaced by `*cs` when given (`oc`), else the storage's (`storCS σ`),
