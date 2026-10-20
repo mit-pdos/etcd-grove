@@ -159,7 +159,7 @@ theorem tracker.ProgressTracker.ChangeReplicationSet.spec_c
       simp only [↓reduceIte]
       iframe Htrk
       iexists em'
-      isplitr; · ipureintro; exact ⟨hw, Hchg⟩
+      isplitr; · ipureintro; exact ⟨by simp, Hchg⟩
       iapply ownTrackerC_intro c { tv with Epoch' := e } t.votes t.prs t.peers Hinv Hdom Hflags
         Hsize HmaxInfl Hnw $$ Hvotes Hprs Hprogs Hcfg [He']
       unfold ownEpochOk; iframe He'; ipureintro; exact EpochOkC.of_wf Hwnz Hchg.2.1

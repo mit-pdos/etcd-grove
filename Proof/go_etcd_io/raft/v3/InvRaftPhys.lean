@@ -2009,6 +2009,33 @@ theorem ownRaftPhysC_tracker_ep (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (
   ihave Hr := Hback $$ %tv' Hf
   resealC c { s with ep := ep' }
 
+/-- The epoch's halves have at most `2^62` ids each (2026-10-20, witness support:
+`ReplicationSet.String`'s premise), from the tracker's size bound. -/
+theorem ownRaftPhysC_strLen (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜(s.ep.rs0.strLen : Int) ≤ 2 ^ 62 ∧ (s.ep.rs1.strLen : Int) ≤ 2 ^ 62⌝ ∗
+      ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  iunfold ownTrackerC at Htrk
+  iNamed Htrk
+  iunfold ownEpochOk at Hepoch
+  icases Hepoch with ⟨#He, %Hok⟩
+  have Hids : GMap.size c.ids = GMap.size s.progress := by rw [← Hdom, GMap.size_dom]
+  obtain ⟨h0, h1⟩ := EpochOkC.strLen Hok
+    ((GMap.elem_of_subseteq _ _).2 fun k hk => (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) k
+        ((GMap.elem_of_subseteq _ _).1 (incoming_sub_voters c) k hk))
+    ((GMap.elem_of_subseteq _ _).2 fun k hk => (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) k
+        ((GMap.elem_of_subseteq _ _).1 (outgoing_sub_voters c) k hk))
+  simp only at h0 h1 Hsize
+  isplitr
+  · ipureintro
+    constructor <;> push_cast <;> omega
+  ihave Htrk := ownTrackerC_intro c rv.trk' _ _ _ Hinv Hdom Hflags Hsize HmaxInfl Hnw
+    $$ Hvotes Hprs Hprogs Hcfg [He]
+  · unfold ownEpochOk; iframe He; ipureintro; exact Hok
+  resealC c s
+
 /-- No peer is the witness (2026-10-19, witness support): `NoWitP` of the `Progress` records. -/
 theorem ownRaftPhysC_nowit (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
     (hw : c.wit = W64 0) :

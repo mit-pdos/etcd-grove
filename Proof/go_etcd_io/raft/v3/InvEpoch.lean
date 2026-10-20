@@ -81,6 +81,42 @@ theorem rsReset_wf (V : GSet w64) (w : w64) (H0 : W64 0 ∉ V) : RSWF V w (rsRes
     · rintro ⟨hk, _⟩; exact ⟨hk, fun h => by subst h; exact H0 hk⟩
     · rintro ⟨hk, _⟩; exact ⟨hk, fun h => by subst h; exact hw hk⟩
 
+/-- How many ids `ReplicationSet.String` collects of a half (2026-10-20): its non-witness voters,
+and the witness when it is in the replication set. -/
+def RSM.strLen (r : RSM) : Nat := size r.nwv + (if r.excl = r.wit then 0 else 1)
+
+/-- A well-formed half's ids are among its voters. -/
+theorem RSWF.strLen_le {V : GSet w64} {w : w64} {r : RSM} (H : RSWF V w r) :
+    r.strLen ≤ size V := by
+  obtain ⟨hw, hx, hn⟩ := H
+  unfold RSM.strLen
+  have hsub : r.nwv ⊆ V := by
+    rw [hn, elem_of_subseteq]; intro k hk; exact ((elem_of_difference _ _ _).1 hk).1
+  split
+  · simpa using subseteq_size hsub
+  · rename_i hne
+    rcases hx with hx | ⟨-, -, hwz⟩
+    · exact absurd hx hne
+    have hwV : r.wit ∈ V := by
+      by_cases h : w ∈ V
+      · rw [hw, if_pos h]; exact h
+      · rw [if_neg h] at hw; exact absurd hw hwz
+    have hnin : r.wit ∉ r.nwv := by
+      rw [hn]; intro h
+      exact ((elem_of_difference _ _ _).1 h).2 (elem_of_union_l _ (elem_of_singleton_2 _))
+    have hdis : r.nwv ## {[r.wit]} := (disjoint_singleton_r _ _).2 hnin
+    have hu : r.nwv ∪ {[r.wit]} ⊆ V := by
+      rw [elem_of_subseteq]; intro k hk
+      rcases (elem_of_union _ _ _).1 hk with hk | hk
+      · exact (elem_of_subseteq _ _).1 hsub k hk
+      · rw [(elem_of_singleton _ _).1 hk]; exact hwV
+    have := subseteq_size hu
+    rw [size_union hdis, size_singleton] at this
+    exact this
+
+theorem RSM.bare_strLen : RSM.bare.strLen = 0 := by
+  simp [RSM.strLen, RSM.bare, size_empty]
+
 theorem resetEpoch_wf (V0 V1 : GSet w64) (w0 w1 sub' : w64) (H0 : W64 0 ∉ V0)
     (H1 : W64 0 ∉ V1) : EpochWF V0 V1 w0 w1 (resetEpoch V0 V1 w0 w1 sub') := by
   unfold EpochWF resetEpoch

@@ -576,6 +576,24 @@ theorem EpochOkC.wf {V0 V1 : GSet w64} {w : w64} {em : EpochM} (H : EpochOkC V0 
     · subst H; rw [EpochM.bare_hasWit] at Hw; cases Hw
     · exact ⟨hw, H⟩
 
+/-- The ids `ReplicationSet.String` collects of each half are bounded by a set holding both
+halves' voters. -/
+theorem EpochOkC.strLen {V0 V1 S : GSet w64} {w : w64} {em : EpochM} (H : EpochOkC V0 V1 w em)
+    (H0 : V0 ⊆ S) (H1 : V1 ⊆ S) :
+    em.rs0.strLen ≤ GMap.size S ∧ em.rs1.strLen ≤ GMap.size S := by
+  unfold EpochOkC at H
+  have hb : ∀ em : EpochM, em = EpochM.bare (W64 0) →
+      em.rs0.strLen ≤ GMap.size S ∧ em.rs1.strLen ≤ GMap.size S := by
+    intro em h; subst h; simp [EpochM.bare, RSM.bare_strLen]
+  split at H
+  · exact hb _ H
+  · rcases H with H | H
+    · exact hb _ H
+    · rcases H with ⟨-, -, h0, h1⟩ | ⟨-, h0, h1⟩
+      · rw [h0, h1, RSM.bare_strLen]; simp
+      · exact ⟨Nat.le_trans h0.strLen_le (GMap.subseteq_size H0),
+          Nat.le_trans h1.strLen_le (GMap.subseteq_size H1)⟩
+
 /-- A well-formed epoch of a configuration with a witness is one of it. -/
 theorem EpochOkC.of_wf {V0 V1 : GSet w64} {w : w64} {em : EpochM} (hw : w ≠ W64 0)
     (H : EpochWF V0 V1 w (W64 0) em) : EpochOkC V0 V1 w em := by

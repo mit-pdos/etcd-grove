@@ -33,12 +33,122 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-set_option hygiene false in
-/-- The tail of `maybeStartNewSubterm` after the replication set is settled: the empty entry
-appended (`appendEntry`), the `HasWitness` log line, `true`. At `Hphys : ownRaftPhysCV c _ r id s1`
-with `Hnz1 : s1.term ≠ W64 0`. -/
-local macro "subterm_tail" : tactic => `(tactic| (
-    wp_pures; (try wp_auto)
+/-- `HasWitness`, its answer a variable (for `wp_if_destruct`). -/
+private theorem wp_hasWit (H : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG))
+    (e : Loc) (em : EpochM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ ownEpoch e em }}
+      (App (Val (e @!! go.GoType.PointerType tracker.Epoch.ty @!! go!"HasWitness")) (Val #()))
+    {{ (b : Bool), RET #b; ⌜b = em.hasWit⌝ }} := by
+  iintro %Φ ⟨#Hpkg, #He⟩ HΦ
+  iapply H e em $$ [] [HΦ]
+  · iframe Hpkg He
+  inext
+  iintro -
+  iapply HΦ
+  ipureintro; rfl
+
+theorem raft.maybeStartNewSubterm.wp_proof
+    (wp_ProgressTracker_ResetReplicationSet :
+      tracker.ProgressTracker.ResetReplicationSet.spec (GF := GF) (hG := hG))
+    (wp_ProgressTracker_ChangeReplicationSet :
+      tracker.ProgressTracker.ChangeReplicationSet.spec (GF := GF) (hG := hG))
+    (wp_Epoch_HasWitness : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG))
+    (wp_ReplicationSet_String : tracker.ReplicationSet.String.spec (GF := GF) (hG := hG))
+    (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG)) :
+    raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG) := by
+  intro c r id s nt Hnz
+  wp_start as Hphys
+  cases nt
+  -- `newTerm = false`: `ChangeReplicationSet`
+  wp_auto
+  icases ownRaftPhysC_tracker_ep c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  wp_apply (tracker.ProgressTracker.ChangeReplicationSet.spec_c
+    wp_ProgressTracker_ChangeReplicationSet c _ tv _) $$ [$Htrkf $Htrk] as %ch %e ⟨Htrkf, Hres⟩
+  cases ch
+  · -- nothing to change: `false`
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hres with ⟨%He, Htrk⟩
+    subst He
+    ihave Hphys := Hback $$ %tv %s.ep Htrkf Htrk
+    wp_auto
+    iapply HΦ
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iexact Hphys
+  -- the next subterm's epoch
+  simp only [↓reduceIte]
+  icases Hres with ⟨%em', %Hchg, Htrk⟩
+  ihave Hphys := Hback $$ %_ %em' Htrkf Htrk
+  have Hnz1 : ({ s with ep := em' } : NState).term ≠ W64 0 := Hnz (Or.inr Hchg.1)
+  wp_auto
+  -- the `Infof` of the new replication set
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  try wp_auto
+  wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %e2 ⟨Hphys, #He2⟩
+  iunfold ownEpochOk at He2
+  icases He2 with ⟨#He2, -⟩
+  icases ownEpoch_fields _ _ $$ He2 with ⟨-, ⟨%r0, #Hr0, #Hrs0⟩, -⟩
+  try wp_auto
+  icases ownRaftPhysC_strLen c r id _ $$ Hphys with ⟨%Hsl0, Hphys⟩
+  wp_apply wp_ReplicationSet_String _ r0 _ $$ [$Hr0 $Hrs0]
+  · ipureintro; exact Hsl0.1
+  iintro %str0 -
+  try wp_auto
+  wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %e3 ⟨Hphys, #He3⟩
+  iunfold ownEpochOk at He3
+  icases He3 with ⟨#He3, -⟩
+  icases ownEpoch_fields _ _ $$ He3 with ⟨-, -, ⟨%r1, #Hr1, #Hrs1⟩⟩
+  try wp_auto
+  icases ownRaftPhysC_strLen c r id _ $$ Hphys with ⟨%Hsl1, Hphys⟩
+  wp_apply wp_ReplicationSet_String _ r1 _ $$ [$Hr1 $Hrs1]
+  · ipureintro; exact Hsl1.2
+  iintro %str1 -
+  try wp_auto
+  wp_raft_logC
+  rotate_left
+  -- `newTerm = true`: `ResetReplicationSet(true)`
+  wp_auto
+  icases ownRaftPhysC_tracker_ep c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  wp_apply (tracker.ProgressTracker.ResetReplicationSet.spec_c
+    wp_ProgressTracker_ResetReplicationSet c _ tv _) $$ [$Htrkf $Htrk]
+    as %e ⟨Htrkf, Htrk⟩
+  icases ownTrackerC_epochOk c _ _ $$ Htrk with ⟨#He1, Htrk⟩
+  ihave Hphys := Hback $$ %_ %(resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0)) Htrkf Htrk
+  have Hnz1 : ({ s with ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) } :
+    NState).term ≠ W64 0 := Hnz (Or.inl rfl)
+  try wp_auto
+  iunfold ownEpochOk at He1
+  icases He1 with ⟨#He1, -⟩
+  wp_apply wp_hasWit wp_Epoch_HasWitness _ _ $$ [$He1] as %bw1 %Hbw1
+  wp_if_destruct
+  rotate_left
+  -- the `Infof` of the reset replication set
+  try wp_auto
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  try wp_auto
+  wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %e2 ⟨Hphys, #He2⟩
+  iunfold ownEpochOk at He2
+  icases He2 with ⟨#He2, -⟩
+  icases ownEpoch_fields _ _ $$ He2 with ⟨-, ⟨%r0, #Hr0, #Hrs0⟩, -⟩
+  try wp_auto
+  icases ownRaftPhysC_strLen c r id _ $$ Hphys with ⟨%Hsl0, Hphys⟩
+  wp_apply wp_ReplicationSet_String _ r0 _ $$ [$Hr0 $Hrs0]
+  · ipureintro; exact Hsl0.1
+  iintro %str0 -
+  try wp_auto
+  wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %e3 ⟨Hphys, #He3⟩
+  iunfold ownEpochOk at He3
+  icases He3 with ⟨#He3, -⟩
+  icases ownEpoch_fields _ _ $$ He3 with ⟨-, -, ⟨%r1, #Hr1, #Hrs1⟩⟩
+  try wp_auto
+  icases ownRaftPhysC_strLen c r id _ $$ Hphys with ⟨%Hsl1, Hphys⟩
+  wp_apply wp_ReplicationSet_String _ r1 _ $$ [$Hr1 $Hrs1]
+  · ipureintro; exact Hsl1.2
+  iintro %str1 -
+  try wp_auto
+  wp_raft_logC
+  all_goals
+    try wp_pures
+    try wp_auto
     -- `emptyEnt := &pb.Entry{Data: nil}`: a fresh entry, frozen read-only
     ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
     · iapply ownSlice_nil
@@ -69,67 +179,35 @@ local macro "subterm_tail" : tactic => `(tactic| (
     subst Hacc'
     simp only [↓reduceIte]
     wp_auto
-    wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %ep' ⟨Hphys, #Hep'⟩
-    iunfold ownEpochOk at Hep'
-    icases Hep' with ⟨#Hep', -⟩
-    wp_apply wp_Epoch_HasWitness _ _ $$ [$Hep']
+    wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %e4 ⟨Hphys, #He4⟩
+    iunfold ownEpochOk at He4
+    icases He4 with ⟨#He4, -⟩
+    wp_apply wp_hasWit wp_Epoch_HasWitness _ _ $$ [$He4] as %bw4 %Hbw4
     wp_if_destruct
-    · try wp_auto
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    rotate_left
+    -- the `Infof` of the new subterm
+    try wp_auto
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    try wp_auto
+    wp_apply raft.wp_load_trk_EpochC' c r id _ $$ Hphys as %e5 ⟨Hphys, #He5⟩
+    iunfold ownEpochOk at He5
+    icases He5 with ⟨#He5, -⟩
+    icases ownEpoch_fields _ _ $$ He5 with ⟨#Hsub5, -, -⟩
+    try wp_auto
+    wp_raft_logC
+    all_goals
       try wp_auto
-      wp_raft_logC
-    all_goals (try wp_auto)))
-
-theorem raft.maybeStartNewSubterm.wp_proof
-    (wp_ProgressTracker_ResetReplicationSet :
-      tracker.ProgressTracker.ResetReplicationSet.spec (GF := GF) (hG := hG))
-    (wp_ProgressTracker_ChangeReplicationSet :
-      tracker.ProgressTracker.ChangeReplicationSet.spec (GF := GF) (hG := hG))
-    (wp_Epoch_HasWitness : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG))
-    (wp_ReplicationSet_String : tracker.ReplicationSet.String.spec (GF := GF) (hG := hG))
-    (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG)) :
-    raft.maybeStartNewSubterm.spec (GF := GF) (hG := hG) := by
-  intro c r id s nt Hnz
-  wp_start as Hphys
-  cases nt with
-  | false =>
-    wp_auto
-    -- `ChangeReplicationSet`
-    icases ownRaftPhysC_tracker_ep c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-    wp_apply (tracker.ProgressTracker.ChangeReplicationSet.spec_c
-      wp_ProgressTracker_ChangeReplicationSet c _ tv _) $$ [$Htrkf $Htrk] as %ch %e ⟨Htrkf, Hres⟩
-    cases ch with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Hres with ⟨%He, Htrk⟩
-      subst He
-      ihave Hphys := Hback $$ %tv %s.ep Htrkf Htrk
-      wp_auto
       iapply HΦ
+      unfold subtermStart
       simp only [Bool.false_eq_true, ↓reduceIte]
-      iexact Hphys
-    | true =>
-      simp only [↓reduceIte]
-      icases Hres with ⟨%em', %Hchg, Htrk⟩
-      ihave Hphys := Hback $$ %_ %em' Htrkf Htrk
-      have Hnz1 : ({ s with ep := em' } : NState).term ≠ W64 0 := Hnz (Or.inr Hchg.1)
-      wp_auto
-      -- the `Infof` of the new replication set
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      sorry
-  | true =>
-    wp_auto
-    -- `ResetReplicationSet(true)`
-    icases ownRaftPhysC_tracker_ep c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-    wp_apply (tracker.ProgressTracker.ResetReplicationSet.spec_c
-      wp_ProgressTracker_ResetReplicationSet c _ tv _) $$ [$Htrkf $Htrk]
-      as %e ⟨Htrkf, Htrk⟩
-    ihave Hphys := Hback $$ %_ %(resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0)) Htrkf Htrk
-    have Hnz1 : ({ s with ep := resetEpoch c.incoming c.outgoing c.wit (W64 0) (W64 0) } :
-      NState).term ≠ W64 0 := Hnz (Or.inl rfl)
-    wp_auto
-    sorry
+      first
+        | (isplitr
+           · ipureintro; trivial
+           iexact Hphys)
+        | (iexists em'
+           isplitr; · ipureintro; exact Hchg
+           iexact Hphys)
 
 end proof
 

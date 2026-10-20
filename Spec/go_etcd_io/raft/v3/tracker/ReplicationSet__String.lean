@@ -23,10 +23,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.String()` of a replication set holding `m` (read-only, as an installed epoch's): some
 string (the sorted ids of the replication set in hexadecimal, `{a,b,c}`), which only the
-leader's `Infof`s print. -/
+leader's `Infof`s print. At most `2^62` ids (`RSM.strLen`), as `slices.Sort` needs: a tracker's
+halves have (`EpochOkC.strLen`). -/
 abbrev tracker.ReplicationSet.String.spec : Prop :=
   ∀ (l : Loc) (rv : tracker.ReplicationSet) (m : RSM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ l ↦□ rv ∗ ownRS rv m }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ l ↦□ rv ∗ ownRS rv m ∗
+      ⌜(m.strLen : Int) ≤ 2 ^ 62⌝ }}
     (App (Val (l @!! go.GoType.PointerType tracker.ReplicationSet.ty @!! go!"String")) (Val #()))
   {{ (str : GoString), RET #str; True }}
 
