@@ -133,3 +133,7 @@ newBoltLoggerZap:
 # `Tx.WriteTo`), names only, axioms. Linked for the sender (D22 S-h).
 backend__Snapshot:
 snapshot__WriteTo:
+# (D22 S-h, 2026-10-20) the snapshot's `Size` (bbolt's `Tx.Size`, promoted) and `Close` (translated,
+# over the opaque `snapRO`): axioms, linked for the sender.
+snapshot__Size:
+snapshot__Close:

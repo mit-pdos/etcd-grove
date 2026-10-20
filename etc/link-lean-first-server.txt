@@ -143,7 +143,7 @@ EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentI
 HardState__GetTerm: @
 HardState__GetVote: @
 HardState__GetCommit: @
-Message__GetTo: @
+raftpb_Message__GetTo: @
 Message__GetFrom: @
 Message__GetType: @
 Snapshot__GetMetadata: @
@@ -162,7 +162,7 @@ raftNode__ReadState:
 raftNode__apply:
 raftNode__onStop:
 raftNode__stop:
-raftNode__processMessages: Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
+raftNode__processMessages: raftpb_Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
 raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_Clone zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn
 # raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
 raftNode__ReadIndex:
@@ -461,7 +461,7 @@ node__ReportSnapshot: @
 v2stats_ServerStats__RecvAppendReq:
 proto_SizeMessage:
 RaftCluster__IsIDRemoved:
-EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
+EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
@@ -487,3 +487,21 @@ os_Rename:
 config_ServerConfig__BackendPath:
 storage_OpenBackend:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
+# (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
+# SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
+# and `sendMergedSnap` with their bodies; the trust boundary: `io.Pipe` and its writer's
+# `CloseWithError` (names-only in Perennial), snap's `NewMessage`, `CloseNotify` and the promoted
+# `GetTo` (snap is names-only); the backend snapshot's `WriteTo`, `Size` and `Close` and raft's
+# `proto.Clone` of a conf state are linked elsewhere (`@`).
+io_Pipe:
+io_PipeWriter__CloseWithError:
+snap_NewMessage:
+snap_Message__CloseNotify:
+snap_Message__GetTo:
+snapshot__WriteTo: @
+snapshot__Size: @
+snapshot__Close: @
+proto_CloneConfState: @
+newSnapshotReaderCloser: io_Pipe snapshot__WriteTo zap_Int64 go_humanize_Bytes zap_String zap_Logger__Info zap_Error zap_Logger__Warn io_PipeWriter__CloseWithError snapshot__Close
+EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage
+EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__String zap_String snap_Message__GetTo zap_Int64 go_humanize_Bytes zap_Logger__Info EtcdServer__GoAttach snap_Message__CloseNotify zap_Duration zap_Logger__Warn

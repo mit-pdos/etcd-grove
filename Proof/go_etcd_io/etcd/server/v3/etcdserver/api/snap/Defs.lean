@@ -15,6 +15,8 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
   once; `CloseWithError` reads the reader and sends on `closeC`, `CloseNotify` reads `closeC`). An
   opaque predicate (`msgRO`): `snap.Message` is an axiomatized type, so its fields are not
   modeled. `NewMessage`'s spec makes it (D22 S-h); the transport's `SendSnapshot` takes it.
+* `msgCloseC m c` (persistent; D22 S-h): `m`'s `closeC` is the channel `c` (`NewMessage`'s
+  `make(chan bool, 1)`, read by `CloseNotify`). An opaque predicate (`msgCloseRO`), as `msgRO`.
 -/
 module
 
@@ -60,6 +62,15 @@ def msgIs (m ml : Loc) (rc : GoInterface) : IProp GF := iprop(□ msgRO m ml rc)
 instance msgIs_persistent (m ml : Loc) (rc : GoInterface) :
     Persistent (msgIs (GF := GF) m ml rc) := by
   unfold msgIs; infer_instance
+
+/-- `m`'s `closeC` field, read-only (opaque; see the file header). -/
+opaque msgCloseRO (m c : Loc) : IProp GF
+
+/-- **`m`'s `closeC` is `c`** (persistent; D22 S-h; see the file header). -/
+def msgCloseC (m c : Loc) : IProp GF := iprop(□ msgCloseRO m c)
+
+instance msgCloseC_persistent (m c : Loc) : Persistent (msgCloseC (GF := GF) m c) := by
+  unfold msgCloseC; infer_instance
 
 end defs
 

@@ -257,6 +257,8 @@ axiom backend.rtxSnap_persistent
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
+axiom backend.snapshot.Close.wp_proof
+axiom backend.snapshot.Size.wp_proof
 axiom backend.snapshot.WriteTo.wp_proof
 axiom backend.txBytes
 axiom backend.txBytes_acc
@@ -385,6 +387,8 @@ axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
+axiom io.Pipe.wp_proof
+axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -460,6 +464,9 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
+axiom snap.Message.CloseNotify.wp_proof
+axiom snap.Message.GetTo.wp_proof
+axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof

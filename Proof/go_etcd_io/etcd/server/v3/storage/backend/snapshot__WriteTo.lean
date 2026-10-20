@@ -30,7 +30,10 @@ writes, through `w.Write` only, the bytes of a database file whose data is the t
 `D` (its meta pages rebuilt for the transaction, then the data pages up to the transaction's
 size, read from the file, which no later transaction changes below that size while the read
 transaction is open); an error (opening the file, a short or failed write, closing it) is
-returned, with what was written so far. What would discharge it: bbolt's `Tx.WriteTo` (its page
+returned, with what was written so far. Its first action is the first meta page's `w.Write`
+(the transaction's `WriteFlag` is `0`: etcd never sets it, so no file is reopened before), so a
+`Write` has returned when it does. It only reads the transaction, so a share of the snapshot
+suffices (the sender reads its `Size` meanwhile). What would discharge it: bbolt's `Tx.WriteTo` (its page
 format and copy-on-write discipline: pages a read transaction can reach are not reused while it
 is open), i.e. the round trip of `bolt.Open` over `Tx.WriteTo`'s output. -/
 axiom backend.snapshot.WriteTo.wp_proof : backend.snapshot.WriteTo.spec (GF := GF) (hG := hG)

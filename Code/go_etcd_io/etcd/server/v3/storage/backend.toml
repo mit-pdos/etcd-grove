@@ -47,7 +47,7 @@ translate = ["!*",
   "batchTxBuffered.LockOutsideApply", "batchTxBuffered.UnsafeCreateBucket",
   "batchTxBuffered.UnsafeRange", "batchTxBuffered.UnsafeForEach",
   "batchTxBuffered.safePending", "batchTxBuffered.TryLock"]
-imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "math", "sort", "sync", "sync/atomic", "time",
+imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "io", "math", "sort", "sync", "sync/atomic", "time",
   "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/bbolt/errors",
   "go.etcd.io/etcd/client/pkg/v3/verify",
   "github.com/prometheus/client_golang/prometheus"]
