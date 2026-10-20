@@ -19,6 +19,11 @@ porcupine's.
   propose a conf change / a leadership transfer; nothing promised of the outcome.
 * **The storage** (`kv_NewStorage`, `kv_storage_isStorage`, `kv_storage_initialState`):
   `*kv.Storage` meets raft's `Storage` contract (`isStorage`).
+* **The witness storage** (`kv_NewWitnessStore`, `kv_wstore_isWitnessStorage`, 2026-10-20,
+  witness support): `*kv.WitnessStore`, the in-process storage of a cluster with a witness
+  (`StartClusterWitness`), meets raft's witness storage contract (`isWitnessStorage`) at any
+  ghost counterpart `P` of its state: the contract is not a trust boundary for the store. (The
+  cluster with a witness itself is not yet specified: W4.)
 * **The ghost state's allocation** (`kvStorInv_alloc`, `rkvInv_alloc`, `Alloc.lean`).
 * **The cluster** (`kv_StartCluster`, `cluster.go`) and **the randomized linearizability test**
   (`kv_Check`, `check.go`): `Check` over replicas of one store, from the empty store, returns
@@ -39,6 +44,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KVStorageInstance
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.WitnessStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Alloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.AdequacyLinked
 
@@ -135,6 +141,18 @@ theorem kv_storage_initialState (s : Loc) (vsl : GoSlice) (voters : List w64)
              (Val #())) {{ Φ }}) :=
   kvStorage_initialState kv.Storage.wp_InitialState s vsl voters σ
 
+/-- **The witness storage**: `NewWitnessStore()` is a store at the zero state, of any ghost
+counterpart `P` given there (and the value of raft's `ErrWitnessStateModified`, `wErrOk`)... -/
+theorem kv_NewWitnessStore : kv.NewWitnessStore.spec (GF := GF) (hG := hG) :=
+  kv.wp_NewWitnessStore
+
+/-- ... which meets raft's witness storage contract at any `P` and namespace `N`. -/
+theorem kv_wstore_isWitnessStorage (s : Loc) (N : Namespace) (P : WHS → IProp GF) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
+      isWStore s P -∗ isWitnessStorage (kvWStoreIface s) N P :=
+  kvWStore_isWitnessStorage kv.WitnessStore.wp_GetWitnessState kv.WitnessStore.wp_Close
+    kv.witnessRead.wp_GetState kv.witnessRead.wp_Update s N P
+
 /-- `StartCluster(ids)` (`Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`). -/
 theorem kv_StartCluster : kv.StartCluster.spec (GF := GF) (hG := hG) :=
   kv.wp_StartCluster
@@ -175,6 +193,8 @@ end main
 #print axioms kv_run
 #print axioms kv_NewStorage
 #print axioms kv_storage_isStorage
+#print axioms kv_NewWitnessStore
+#print axioms kv_wstore_isWitnessStorage
 #print axioms kv_storage_initialState
 #print axioms kvStorInv_alloc
 #print axioms rkvInv_alloc
