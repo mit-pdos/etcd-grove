@@ -72,7 +72,7 @@ payload's new `img` certificate, for the server `srvImage`: `dbImage` at the fre
 allocates (`snapDir_alloc`) and gives `Start` (files present with `fileHolds` and the certificate,
 indices ever saved, a removal fact `Rm`); `Process` of a `MsgSnap` gets `snapSaved γd i`
 (`netRecv`). `bootOk` gives `snap.isSnapshotter bs.ss'` (+0). Trust base unchanged (531 axioms,
-2 sorries). Left: S-h's `NewMessage`/`CloseNotify`/`io.Pipe` axioms; S-j keeps the directory
+2 sorries; `putget`/`putget3` collections now list the existing `backend.fileHolds`). Left: S-h's `NewMessage`/`CloseNotify`/`io.Pipe` axioms; S-j keeps the directory
 invariant (now dropped after `Start`), picks `Rm`, and takes the file out for `OpenSnapshotBackend`.
 
 ## D22g and D22k carried out (2026-10-19, branch `raft-retarget`)

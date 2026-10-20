@@ -12063,7 +12063,8 @@ waits for the old backend's open snapshots (bbolt's `Close` takes the mmap lock)
 Stage S-i of T-S (D21b's contract extended; S-f's vocabulary). `rafthttp` and `snap` stay
 names-only; `rafthttp.Transport.Start` is **restated** (no new declaration) and its started
 transport (`netTransport`, `api/rafthttp/Net.lean`) gains `SendSnapshot`. Trust base unchanged (531
-axioms, 2 sorries).
+axioms, 2 sorries); the collections `putget` and `putget3` now list the existing predicate axiom
+`backend.fileHolds` (`Start`'s statement names the directory's files), every other collection unchanged.
 
 **The sender** (`SendSnapshot`, `transport.go:409-418`): `{{ snap.msgIs m ml rc ∗ netSnapBundle
 γn.N ml rc }} SendSnapshot(m) {{ True }}`.
