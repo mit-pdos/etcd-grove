@@ -99,7 +99,7 @@ abbrev RawNode.ApplyConfChange.spec : Prop :=
   (rs.mode = .static → CCApplies γ.reCfg id (ccV2Of o).1 (ccV2Of o).2) →
   -- (2026-10-20, witness support) and of a cluster without a witness: the static mode's change has
   -- no witness yet (NoWitReconf, `notes/raft-witness.md`)
-  (rs.mode = .static → γ.reWit = W64 0) →
+  (rs.mode = .static → γ.reWit = W64 0 ∧ NoAddWit (ccV2Of o).2) →
   -- the dynamic mode: it is the next committed conf entry's decoded change, and applies
   (∀ dec c0 h0 h1, rs.mode = .dyn dec c0 h0 h1 → DynCCPre dec rs o k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

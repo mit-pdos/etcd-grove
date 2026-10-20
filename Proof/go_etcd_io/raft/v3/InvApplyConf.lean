@@ -121,14 +121,15 @@ theorem ownTracker_toCC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk
     · have Hv : voters = cfg := by rw [← Hvoters_dom, domSet_gset]
       subst Hv
       subst Hlrn
-      iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (cfgM voters (domSet t.prs \ voters))
-        voters_ref map.nil Hvoters_arr Hautoleave Hwit.1 $$ [Hvoters] [] [Hlearners] [HlearnersNext]
+      iapply ownCfgCC_intro (w := (cfgM voters (domSet t.prs \ voters)).wit) tv.Config' (DFrac.own 1)
+        (cfgM voters (domSet t.prs \ voters)) voters_ref map.nil Hvoters_arr Hautoleave ⟨Hwit.1, fun h => absurd rfl h⟩ $$ [Hvoters] [] [Hlearners] [HlearnersNext]
       · simp only [cfgM]; iexact Hvoters
       · simp only [cfgM]; iapply ownIdsetC_nil
       · simp only [cfgM]; iexact Hlearners
       · simp only [cfgM]; iexact HlearnersNext
     · iframe Hprs
       ipureintro
+      apply WitT_zero.2
       intro k pv hpv
       obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom' k).2 (by rw [hpv]; rfl))
       exact (Hlf k pr pv hpr hpv).2
@@ -175,7 +176,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     (trk : Loc) (Hsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers)
     (H0 : W64 0 ∉ cfg ∪ lrn) :
     ownCfgCC (GF := GF) cfgv (DFrac.own 1) (cfgM cfg lrn) ∗
-      ownPrsW chg base trk (cfgFlags cfg lrn) ∗
+      ownPrsW chg base trk (W64 0) (cfgFlags cfg lrn) ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
       |==> ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
         ownConfigV cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ ∗
@@ -186,12 +187,13 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
   icases ownIdsetC_nil_of _ _ (cfgM cfg lrn).learnersNext rfl $$ Hln with %Hln
   subst Hvout
   unfold ownPrsW
-  icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩
+  icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, %Hwt, Hnew⟩
   -- the rings, to the new objects
   ihave HQ := ownNewPr_transfer chg base (fun k pv => progRAt (GF := GF) peers k pv)
-      (fun k pv => newPrQ (GF := GF) peers k pv) ?_ ?_ pvs $$ [$HR $Hnew]
+      (fun k pv => newPrQ (GF := GF) peers k pv) (fun _ pv => pv.IsWitness' = false) ?_ ?_ pvs
+      (fun k pv h => by rw [Hwt.2 k pv h]; simp) $$ [$HR $Hnew]
   · -- a copy (`IsLearner` possibly changed)
-    intro k pv0 pv _ h1
+    intro k pv0 pv _ h1 _
     unfold progRAt newPrQ
     iintro ⟨%p, %Hp, Hinfl, %Habs⟩
     iexists { p with learner := pv.IsLearner' }
@@ -204,7 +206,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
       (Hnw k p Hp).1⟩ <;>
       (rw [h1]; assumption)
   · -- a fresh one
-    intro k pv Hf
+    intro k pv Hf Hw
     unfold newPrQ
     iintro Hinfl
     iexists progressOf pv .probe (inflightsNew chg.Tracker'.MaxInflight'
@@ -212,7 +214,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     isplitl [Hinfl]
     · simp only [progressOf]; iexact Hinfl
     ipureintro
-    obtain ⟨Hm, -, -, Hst, -, -, -, Hw⟩ := Hf
+    obtain ⟨Hm, -, -, Hst, -, -, -⟩ := Hf
     refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inl ?_,
       by simp only [progressOf]; exact Hw⟩
     simp only [progressOf, Hm]; rfl
@@ -280,7 +282,7 @@ theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → 
     simp only [named]
     iframe Hin Htrk Hprogs Hl
     ipureintro
-    refine ⟨Harr, Hln, Hal, ⟨Hwit, fun k p hp => ?_⟩, domSet_gset cfg, ?_, ⟨?_, rfl, ?_⟩, ?_⟩
+    refine ⟨Harr, Hln, Hal, ⟨Hwit.1, fun k p hp => ?_⟩, domSet_gset cfg, ?_, ⟨?_, rfl, ?_⟩, ?_⟩
     · obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp]; rfl))
       exact ⟨(Hmk k pr p hpr hp).2.2, ne0_of_dom (by rw [Hpdom]; exact H0) hpr⟩
     · rw [Hpdom]; exact GMap.union_subseteq_l _ _

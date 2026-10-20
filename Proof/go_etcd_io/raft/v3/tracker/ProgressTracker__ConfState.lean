@@ -136,11 +136,11 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
       (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
         tv.Config'.Witnesses')
       (P := trk ↦ tv)) $$ Htrk with ⟨HW, Htrkback⟩
-  icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit, hw]; rfl)
+  icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit.1, hw]; rfl)
     $$ HW with ⟨Hw0, Hwback⟩
   wp_auto
   ihave HW := Hwback $$ Hw0
-  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit, hw]; rfl)
+  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit.1, hw]; rfl)
     $$ HW with ⟨Hw1, Hwback⟩
   wp_auto
   ihave HW := Hwback $$ Hw1

@@ -221,8 +221,8 @@ theorem applyOne_remove (I O : GSet w64) (x : w64) (hx : x ≠ W64 0) (hO : x �
   simp only [applyOne, ite_eq_right hx', 
     show (W32 1 : w32) ≠ W32 0 by decide, show (W32 1 : w32) ≠ W32 3 by decide,
     ↓reduceIte, removeM, ite_eq_left hmem]
-  rw [ite_eq_left (show x ∈ (jst I O ∅ ∅).cfg.outgoing from hO)]
-  simp only [jst, removeCfg, GMap.delete_empty, Option.some.injEq, CCState.mk.injEq, true_and]
+  rw [ite_eq_left (show x ∈ (jst I O ∅ ∅).cfg.outgoing from hO), removeCfg_nw rfl]
+  simp only [jst, GMap.delete_empty, Option.some.injEq, CCState.mk.injEq, true_and]
   congr 1
   apply GMap.set_eq; intro k
   rw [GMap.elem_of_union, GMap.elem_of_union, gm_mem_delete]
@@ -238,8 +238,9 @@ theorem applyOne_addNodeJ (I O : GSet w64) (x : w64) (hx : x ≠ W64 0) :
     rw [GMap.elem_of_union, gset_mem_insert, gset_mem_insert, GMap.elem_of_union, or_assoc]
   have hf : <[x := false]> (cfgFlags (I ∪ O) ∅) = cfgFlags (<[x := ()]> I ∪ O) ∅ := by
     rw [eU, cfgFlags_insert_voter _ _ x hxL]
-  simp only [applyOne, ite_eq_right hx', ↓reduceIte,
-    makeVoterM]
+  simp only [applyOne, ite_eq_right hx', ↓reduceIte]
+  rw [makeVoterO_nw (s := jst I O ∅ ∅) rfl]
+  simp only [makeVoterM]
   split
   · simp only [jst, GMap.delete_empty, Option.some.injEq, CCState.mk.injEq, true_and]
     exact hf
@@ -253,7 +254,9 @@ theorem applyOne_addLearnerJ (I O L : GSet w64) (x : w64) (hx : x ≠ W64 0) (hI
   have hx' : (addLearnerCC x).NodeId' ≠ W64 0 := hx
   have hV : x ∉ (I ∪ O : GSet w64) := by rw [GMap.elem_of_union]; exact fun h => h.elim hI hO
   simp only [applyOne, ite_eq_right hx', 
-    show (W32 3 : w32) ≠ W32 0 by decide, ↓reduceIte, makeLearnerM]
+    show (W32 3 : w32) ≠ W32 0 by decide, ↓reduceIte]
+  rw [makeLearnerO_nw (s := jst I O L ∅) rfl]
+  simp only [makeLearnerM]
   have hlk := cfgFlags_lookup (I ∪ O) L x
   rw [ite_eq_right hV] at hlk
   by_cases hl : x ∈ L
@@ -276,9 +279,11 @@ theorem applyOne_addStaged (I O L N : GSet w64) (x : w64) (hx : x ≠ W64 0) (hO
     show cfgFlags (I ∪ O) L !! x = some false
     rw [cfgFlags_lookup, ite_eq_left (by rw [GMap.elem_of_union]; exact .inr hO)]
   simp only [applyOne, ite_eq_right hx', 
-    show (W32 3 : w32) ≠ W32 0 by decide, ↓reduceIte, makeLearnerM, hlk]
-  rw [ite_eq_left (show x ∈ (jst I O L N).cfg.outgoing from hO)]
-  simp only [jst, removeCfg, Option.some.injEq, CCState.mk.injEq, and_true, CfgM.mk.injEq,
+    show (W32 3 : w32) ≠ W32 0 by decide, ↓reduceIte]
+  rw [makeLearnerO_nw (s := jst I O L N) rfl]
+  simp only [makeLearnerM, hlk]
+  rw [ite_eq_left (show x ∈ (jst I O L N).cfg.outgoing from hO), removeCfg_nw rfl]
+  simp only [jst, Option.some.injEq, CCState.mk.injEq, and_true, CfgM.mk.injEq,
     true_and]
   refine ⟨GMap.delete_notin _ _ (gset_lookup_none _ _ hI),
     GMap.delete_notin _ _ (gset_lookup_none _ _ hL), ?_⟩

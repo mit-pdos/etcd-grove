@@ -45,7 +45,7 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand Hli2 Hw0
+  intro c r id s cc ccm dq c' Happ0 Hsz Hsdr Hcand Hli2 Hw0 Hnaw
   wp_start as H
   iNamed H
   icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
@@ -53,7 +53,7 @@ theorem raft.applyConfChange.wp_proof
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨%Hok0, -, Hphys⟩
   -- (2026-10-20) at a configuration without a witness (`NoWitReconf`); the new one has none either
   have hw := Hw0
-  have hw' : c'.cfg.wit = W64 0 := ccApplyM_wit0 (s := cfgStateC c) hw Happ0
+  have hw' : c'.cfg.wit = W64 0 := ccApplyM_wit0 (s := cfgStateC c) hw Hnaw Happ0
   icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
       (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) (by rw [hw, hw']) $$ Hphys
     with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
@@ -158,7 +158,6 @@ theorem raft.applyConfChange.wp_proof
         wp_auto
         wp_apply wp_Changer_Simple _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
             chs ls ccm.changes (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-            (simpleM_noWit Happ)
           $$ [$Hch $Htc $changer]
           as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
         · iexact Hccs
@@ -210,7 +209,7 @@ theorem raft.applyConfChange.wp_proof
         wp_auto
         wp_apply wp_Changer_EnterJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs al
             chs ls ccm.changes (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-            (enterJointM_noWit Happ)
+            Hnaw hw
           $$ [$Hch $Htc $changer]
           as %cfgv %trk %err ⟨-, Hch, -, Hres⟩
         · iexact Hccs

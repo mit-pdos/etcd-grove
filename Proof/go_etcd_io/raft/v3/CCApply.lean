@@ -73,6 +73,9 @@ configuration's witness or clears it (`remove` of the witness clears `Witnesses[
 def NoAddWit (ccs : List ConfChangeSingleM) : Prop :=
   ∀ c ∈ ccs, c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4
 
+instance NoAddWit.decidable (ccs : List ConfChangeSingleM) : Decidable (NoAddWit ccs) := by
+  unfold NoAddWit; infer_instance
+
 theorem removeM_wit (id : w64) (s : CCState) :
     (removeM id s).cfg.wit = s.cfg.wit ∨ (removeM id s).cfg.wit = W64 0 := by
   unfold removeM removeCfg

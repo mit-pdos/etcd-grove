@@ -97,7 +97,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro; exact ⟨Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, trivial⟩
   have Hm := hm
   have Hap0 := Hap0 hm
-  icases ownRawNode_static_open γ rs Hm (Hw0 Hm) fp cf rnv.raft' id s $$ Hphys Hghost with
+  icases ownRawNode_static_open γ rs Hm (Hw0 Hm).1 fp cf rnv.raft' id s $$ Hphys Hghost with
     ⟨Hphys, Hghost, %Htrk, %Hnl, %Hps⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
@@ -117,7 +117,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       obtain ⟨lrn', Hd', Hsz', Hn, Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
       icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
-          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hli2
+          id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hli2 (Hw0 Hm).2
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
@@ -203,7 +203,7 @@ theorem RawNode.ApplyConfChange.wp_proof
       obtain ⟨lrn', Hd', Hsz', Hn, Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
       icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft'
-          id s p m dq lrn' Hd' Hsz' Hn Hli2
+          id s p m dq lrn' Hd' Hsz' Hn Hli2 (Hw0 Hm).2
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
         Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok

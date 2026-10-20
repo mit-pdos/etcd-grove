@@ -54,21 +54,21 @@ def ownCCSt (cfg : tracker.Config) (prsm : Loc) (s : CCState) : IProp GF :=
   iprop(∃ (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress),
     ownCfgCC cfg (DFrac.own 1) s.cfg ∗ prsm ↦$ prs ∗
     ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦ pv) ∗ ([∗map] _k ↦ pv ∈ pvs, progR2 pv) ∗
-    ⌜flagsOf pvs = s.prs⌝ ∗ ⌜NoWit pvs⌝)
+    ⌜flagsOf pvs = s.prs⌝ ∗ ⌜WitT s.cfg.wit pvs⌝)
 
 /-- A `Changer` step's result, its new `Progress` objects given the rings of the old ones
 (copies) or their own (fresh). -/
 theorem ownCCSt_of_result (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
     (cfg : tracker.Config) (trk : Loc) (s : CCState) :
-    ownCfgCC (GF := GF) cfg (DFrac.own 1) s.cfg ∗ ownPrsW chg base trk s.prs ∗
+    ownCfgCC (GF := GF) cfg (DFrac.own 1) s.cfg ∗ ownPrsW chg base trk s.cfg.wit s.prs ∗
       ([∗map] _k ↦ pv ∈ base, progR2 pv) ⊢ ownCCSt cfg trk s := by
   iintro ⟨Hc, Hw, HR⟩
   unfold ownPrsW
-  icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩
-  icases ownNewPrs_nowit _ _ _ $$ Hnew with ⟨Hnew, %Hnw⟩
+  icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, %Hnw, Hnew⟩
   ihave HQ := ownNewPr_transfer chg base (fun _ pv => progR2 (GF := GF) pv)
-      (fun _ pv => progR2 (GF := GF) pv) ?_ ?_ pvs $$ [$HR $Hnew]
-  · intro k pv0 pv _ h1
+      (fun _ pv => progR2 (GF := GF) pv) (fun _ _ => True) ?_ ?_ pvs (fun _ _ _ => trivial)
+      $$ [$HR $Hnew]
+  · intro k pv0 pv _ h1 _
     unfold progR2
     iintro ⟨%p, Hinfl, %Habs⟩
     iexists { p with learner := pv.IsLearner' }
@@ -79,7 +79,7 @@ theorem ownCCSt_of_result (chg : confchange.Changer) (base : GMap w64 tracker.Pr
     obtain ⟨_, h2, h3, h4, h5, h6, h7, h8, Hw9⟩ := (progressAbs_Some _ _ _).1 Habs
     refine (progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, ?_⟩ <;>
       (rw [h1]; assumption)
-  · intro k pv Hf
+  · intro k pv Hf _
     unfold progR2
     iintro Hinfl
     iexists progressOf pv .probe (inflightsNew chg.Tracker'.MaxInflight'

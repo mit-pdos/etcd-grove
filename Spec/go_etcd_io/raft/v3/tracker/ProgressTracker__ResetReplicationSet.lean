@@ -77,7 +77,7 @@ theorem tracker.ProgressTracker.ResetReplicationSet.spec_c
     · ipureintro; exact Or.inl H
     · ipureintro; exact Or.inr H
   have HspecE := H trk tv true vin vout (DFrac.own 1) c.incoming c.outgoing c.wit (W64 0) (W64 0)
-    Harr Hwit
+    Harr Hwit.1
   simp only [↓reduceIte] at HspecE
   iapply HspecE $$ [Htrk Hin Hout]
   · iframe Hpkg Htrk

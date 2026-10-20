@@ -150,11 +150,14 @@ theorem confchange.Changer.makeWitness.wp_proof
         iframe Hp
         simp only [makeWitnessM, if_neg Hother, if_neg Hnm, if_pos Hiw, ownWorkO]
         isplitr; · itrivial
-        iapply ownWork_intro chg base cfgp trk ⟨{ s.cfg with incoming := <[id := ()]> s.cfg.incoming }, s.prs⟩
-          cfg prs pvs Hflags Hwt $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
-        iapply ownCfgCC_intro cfg (DFrac.own 1) { s.cfg with incoming := <[id := ()]> s.cfg.incoming }
-          vin vout Harr Hal
-          ⟨Hwit.1, fun h => (gset_mem_insert _ _ _).2 (.inr (Hwit.2 h))⟩ $$ Hin Hout Hl Hln
+        -- the witness is an incoming voter already (`ownCfgCCw`)
+        have Hins : (<[id := zero_val Unit]> s.cfg.incoming : GMap w64 Unit) = s.cfg.incoming := by
+          apply GMap.insert_id
+          rw [Hiw]; exact (GMap.elem_of_gset _ _).1 (Hwit.2 (fun h => Hid0 (Hiw.trans h)))
+        rw [Hins]
+        iapply ownWork_intro chg base cfgp trk s cfg prs pvs Hflags Hwt $$ Hcfgp [Hin Hout Hl Hln] Htrk
+          Hprs Hnew
+        iapply ownCfgCC_intro cfg (DFrac.own 1) s.cfg vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
       · rw [show (#(!pv.IsWitness') : val) = #true by rw [Hpvw, decide_eq_false (fun h => Hiw h.1)]; rfl]
         wp_auto
         ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) (DFrac.own 1)

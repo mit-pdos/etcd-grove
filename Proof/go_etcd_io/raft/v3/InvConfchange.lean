@@ -140,13 +140,13 @@ def initWitnessM (id : w64) (s : CCState) : CCState :=
 /-- `Changer.makeWitness(id)` (2026-10-20, witness support): the error "cannot have more than
 one witness in incoming" if another id is the incoming witness; an untracked id via
 `initProgress` as the witness; the tracked witness (its `Progress` has `IsWitness`: the incoming
-witness, `ownPrsW`'s `WitT`) back among the incoming voters; any other tracked id is the error
+witness, `ownPrsW`'s `WitT`) back among the incoming voters, where it is (`ownCfgCCw`), so
+unchanged; any other tracked id is the error
 "cannot change non-witness voter/learner to witness". -/
 def makeWitnessM (id : w64) (s : CCState) : Option CCState :=
   if s.cfg.wit ≠ W64 0 ∧ s.cfg.wit ≠ id then none
   else if id ∉ s.prs then some (initWitnessM id s)
-  else if id = s.cfg.wit then
-    some { cfg := { s.cfg with incoming := <[id := ()]> s.cfg.incoming }, prs := s.prs }
+  else if id = s.cfg.wit then some s
   else none
 
 /-- `Changer.makeVoter(id)`: a new id via `initProgress`; a tracked one is marked a
@@ -790,58 +790,63 @@ theorem ownNewPr_elim (chg : confchange.Changer) (base : GMap w64 tracker.Progre
 /-- What a `Changer`'s result's `Progress` objects are, given what the tracker's were: a
 resource `R` held for each of the tracker's values `base` (say, its inflight ring) goes to
 the copy of it, if any (`Hcopy`), and a fresh `Progress` has its fresh ring (`Hfresh`).
-Each tracker value is copied at most once, so each `R` is used at most once. -/
+Each tracker value is copied at most once, so each `R` is used at most once. A fact `F` of
+every result object (2026-10-20: its witness flag, `ownPrsW`'s `WitT`) is passed to both. -/
 theorem ownNewPr_transfer (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
-    (R Q : w64 → tracker.Progress → IProp GF)
+    (R Q : w64 → tracker.Progress → IProp GF) (F : w64 → tracker.Progress → Prop)
     (Hcopy : ∀ k pv0 pv, base !! k = some pv0 →
-      pv = { pv0 with IsLearner' := pv.IsLearner' } → R k pv0 ⊢ Q k pv)
-    (Hfresh : ∀ k pv, FreshPr chg pv →
+      pv = { pv0 with IsLearner' := pv.IsLearner' } → F k pv → R k pv0 ⊢ Q k pv)
+    (Hfresh : ∀ k pv, FreshPr chg pv → F k pv →
       ownInflights pv.Inflights' (inflightsNew chg.Tracker'.MaxInflight'
         chg.Tracker'.MaxInflightBytes') ⊢ Q k pv)
-    (pvs : GMap w64 tracker.Progress) :
+    (pvs : GMap w64 tracker.Progress) (HF : ∀ k pv, pvs !! k = some pv → F k pv) :
     ([∗map] k ↦ pv ∈ base, R k pv) ∗ ([∗map] k ↦ pv ∈ pvs, ownNewPr chg base k pv) ⊢
       [∗map] k ↦ pv ∈ pvs, Q k pv := by
-  suffices H : ∀ (pvs P : GMap w64 tracker.Progress),
+  suffices H : ∀ (pvs P : GMap w64 tracker.Progress), (∀ k pv, pvs !! k = some pv → F k pv) →
       (∀ k pv0, (pvs !! k).isSome → base !! k = some pv0 → P !! k = some pv0) →
       ([∗map] k ↦ pv ∈ P, R k pv) ∗ ([∗map] k ↦ pv ∈ pvs, ownNewPr chg base k pv) ⊢
-        [∗map] k ↦ pv ∈ pvs, Q k pv from H pvs base (fun _ _ _ h => h)
+        [∗map] k ↦ pv ∈ pvs, Q k pv from H pvs base HF (fun _ _ _ h => h)
   intro pvs
   refine GMap.map_ind (P := fun pvs => ∀ (P : GMap w64 tracker.Progress),
+      (∀ k pv, pvs !! k = some pv → F k pv) →
       (∀ k pv0, (pvs !! k).isSome → base !! k = some pv0 → P !! k = some pv0) →
       ([∗map] k ↦ pv ∈ P, R k pv) ∗ ([∗map] k ↦ pv ∈ pvs, ownNewPr chg base k pv) ⊢
         [∗map] k ↦ pv ∈ pvs, Q k pv) ?_ ?_ pvs
-  · intro P _
+  · intro P _ _
     iintro ⟨-, -⟩
     iapply BigSepM.bigSepM_empty.2
     iempintro
-  · intro k pv m Hk IH P HP
+  · intro k pv m Hk IH P HF' HP
     iintro ⟨HP', Hm⟩
     icases (BigSepM.bigSepM_insert (Φ := fun k pv => ownNewPr (GF := GF) chg base k pv) Hk).1 $$
       Hm with ⟨Hn, Hm⟩
     iapply (BigSepM.bigSepM_insert (Φ := Q) Hk).2
     have Hne : ∀ k', (m !! k').isSome → k ≠ k' := by
       intro k' h e; subst e; rw [Hk] at h; cases h
+    have Fk : F k pv := HF' k pv (GMap.lookup_insert_eq _ _ _)
+    have HFm : ∀ k' pv', m !! k' = some pv' → F k' pv' := fun k' pv' h =>
+      HF' k' pv' (by rw [GMap.lookup_insert_ne _ _ (Hne k' (by rw [h]; rfl))]; exact h)
     icases ownNewPr_elim _ _ _ _ $$ Hn with (%Hc | ⟨%Hf, Hinfl⟩)
     · obtain ⟨pv0, h0, h1⟩ := Hc
       have hP : P !! k = some pv0 := HP k pv0 (by simp) h0
       icases (BigSepM.bigSepM_delete (Φ := R) hP).1 $$ HP' with ⟨Hr, HP'⟩
       isplitl [Hr]
-      · iapply Hcopy k pv0 pv h0 h1 $$ Hr
+      · iapply Hcopy k pv0 pv h0 h1 Fk $$ Hr
       · have HP2 : ∀ k' pv0', (m !! k').isSome → base !! k' = some pv0' →
             (GMap.delete k P) !! k' = some pv0' := by
           intro k' pv0' hk' hb
           rw [GMap.lookup_delete_ne _ (Hne k' hk')]
           exact HP k' pv0' (by rw [GMap.lookup_insert_ne _ _ (Hne k' hk')]; exact hk') hb
-        iapply IH (GMap.delete k P) HP2 $$ [HP' Hm]
+        iapply IH (GMap.delete k P) HFm HP2 $$ [HP' Hm]
         iframe Hm
         simp only [pm_delete_gmap]
         iexact HP'
     · isplitl [Hinfl]
-      · iapply Hfresh k pv Hf $$ Hinfl
+      · iapply Hfresh k pv Hf Fk $$ Hinfl
       · have HP2 : ∀ k' pv0', (m !! k').isSome → base !! k' = some pv0' → P !! k' = some pv0' :=
           fun k' pv0' hk' hb =>
             HP k' pv0' (by rw [GMap.lookup_insert_ne _ _ (Hne k' hk')]; exact hk') hb
-        iapply IH P HP2 $$ [$HP' $Hm]
+        iapply IH P HFm HP2 $$ [$HP' $Hm]
 
 end lemmas
 

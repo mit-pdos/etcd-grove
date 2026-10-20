@@ -303,9 +303,12 @@ which clears it (`leaveJointState`). -/
 /-- A conf change as `raft.applyConfChange` takes it: `AsV2`'s transition and changes. -/
 abbrev CCOp := raftpb.ConfChangeTransition × List ConfChangeSingleM
 
-/-- One conf change applied, within the size bound of `CfgOk`. -/
+/-- One conf change applied, within the size bound of `CfgOk`, and (2026-10-20, witness support)
+with no `AddWitness` (`NoAddWit`: the protocol keeps one witness identity, `ccStepB_wit`; the
+dynamic mode adds no witness). -/
 def ccStepB (op : CCOp) (s : CCState) : Option CCState :=
-  (ccApplyM op.1 op.2 s).bind fun s' => if GMap.size s'.cfg.ids < 2 ^ 62 then some s' else none
+  (ccApplyM op.1 op.2 s).bind fun s' =>
+    if GMap.size s'.cfg.ids < 2 ^ 62 ∧ NoAddWit op.2 then some s' else none
 
 theorem ccStepB_wit {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
     s'.cfg.wit = s.cfg.wit ∨ s'.cfg.wit = W64 0 := by
@@ -315,42 +318,7 @@ theorem ccStepB_wit {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
   | some s1 =>
     rw [ha, Option.bind_some] at h
     split at h
-    · cases h
-      unfold ccApplyM at ha
-      split at ha
-      · unfold leaveJointM at ha
-        split at ha
-        · cases ha
-        split at ha
-        · cases ha
-        obtain ⟨rfl, -⟩ := checkedM_some ha
-        left; rfl
-      · split at ha
-        · unfold enterJointM at ha
-          split at ha
-          · cases ha
-          split at ha
-          · cases ha
-          split at ha
-          · cases ha
-          split at ha
-          · cases ha
-          rename_i s2 hs2
-          obtain ⟨rfl, -⟩ := checkedM_some ha
-          left; have h := applyM_wit hs2; exact h
-        · unfold simpleM at ha
-          split at ha
-          · cases ha
-          split at ha
-          · cases ha
-          split at ha
-          · cases ha
-          rename_i s2 hs2
-          split at ha
-          · cases ha
-          obtain ⟨rfl, -⟩ := checkedM_some ha
-          left; have h := applyM_wit hs2; exact h
-        · cases ha
+    · rename_i hb; cases h; exact ccApplyM_wit hb.2 ha
     · cases h
 
 /-- A decoder (2026-10-14, reconfiguration stage B3): the change a conf-change entry makes,
@@ -479,7 +447,7 @@ theorem entStep_overlap {dec : CCDec} {pre : List EntryM} {s s' : CCState}
       | some s1 =>
         rw [ha, Option.bind_some] at h
         split at h
-        · rename_i hb; cases h; exact ccApplyM_overlap ha hs hb
+        · rename_i hb; cases h; exact ccApplyM_overlap ha hs hb.1
         · cases h
   · cases h; exact ⟨QOverlap.refl hs.2.1, hs⟩
 
@@ -571,7 +539,7 @@ theorem entStep_shape {dec : CCDec} {pre : List EntryM} {s s' : CCState}
       | some s1 =>
         rw [ha, Option.bind_some] at h
         split at h
-        · rename_i hb; cases h; exact ccApplyM_shape ha hs hb
+        · rename_i hb; cases h; exact ccApplyM_shape ha hs hb.1
         · cases h
   · cases h; exact CfgShape.refl _
 
@@ -691,7 +659,7 @@ theorem ccStepB_removeVoter (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
     by_cases hk : m.nodeId = x
     · subst hk; rw [GMap.lookup_delete] at hx; cases hx
     · rw [GMap.lookup_delete_ne _ hk] at hx; exact hx
-  rw [ite_eq_left (by omega)]
+  rw [ite_eq_left ⟨by omega, by intro c hc; simp at hc; subst hc; intro _; simp [Hty]⟩]
 
 /-- The same change at a configuration it is no voter of: nothing changes. -/
 theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
@@ -702,7 +670,7 @@ theorem ccStepB_removeAbsent (V : GSet w64) (m : CCV1M) (Hty : m.type = W32 1)
   rw [ccApplyM_single_simple, simpleM_cfgState_removeLearner V ∅ _ Hty h0 hV hne
     (fun k hk => absurd hk (GMap.not_elem_of_empty _)), GMap.delete_empty]
   simp only [Option.bind_some]
-  rw [cfgState_empty_ids, ite_eq_left Hsz]
+  rw [cfgState_empty_ids, ite_eq_left ⟨Hsz, by intro c hc; simp at hc; subst hc; intro _; simp [Hty]⟩]
 
 /-- A configuration of voters only (`V` non-empty, few) is one a node can be in. -/
 theorem cfgOk_cfgState (V : GSet w64) (hne : V ≠ ∅) (Hsz : GMap.size V < 2 ^ 62) :

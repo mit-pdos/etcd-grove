@@ -257,7 +257,7 @@ theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (
   iapply HΦ
   iframe Hcs Hv0 Hpm Hprsm
   isplitr
-  · ipureintro; exact ⟨by rw [Harr1, Hvout], Hln1', Hal1, Hwit1⟩
+  · ipureintro; exact ⟨by rw [Harr1, Hvout], Hln1', Hal1, Hwit1.1⟩
   ihave Hl1 := (show ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1)
     (cfgState (GMap.listToSet c.Voters') (GMap.listToSet c.Learners')).cfg.learners ⊢
     ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet c.Learners') from .rfl) $$ Hl1

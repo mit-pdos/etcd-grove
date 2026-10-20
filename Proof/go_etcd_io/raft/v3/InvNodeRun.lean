@@ -882,7 +882,7 @@ theorem applyCCOkC_frame {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC 
 
 /-- `ccStepB`'s answer is `ccApplyM`'s, of fewer than `2^62` tracked ids. -/
 theorem ccStepB_some {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
-    ccApplyM op.1 op.2 s = some s' ∧ GMap.size s'.cfg.ids < 2 ^ 62 := by
+    ccApplyM op.1 op.2 s = some s' ∧ GMap.size s'.cfg.ids < 2 ^ 62 ∧ NoAddWit op.2 := by
   unfold ccStepB at h
   cases h1 : ccApplyM op.1 op.2 s with
   | none => rw [h1] at h; cases h
@@ -890,7 +890,7 @@ theorem ccStepB_some {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') :
     rw [h1] at h
     simp only [Option.bind_some] at h
     split at h
-    · cases h; exact ⟨rfl, by assumption⟩
+    · rename_i hb; cases h; exact ⟨rfl, hb.1, hb.2⟩
     · cases h
 
 
@@ -975,7 +975,7 @@ theorem wp_applyConf_dyn
   -- the configuration the code sees is the model's
   have Hgood : CCGood rs.cfg := cfgFold_good h1 HI.cfg
   have Hcfg : cfgStateC cf = rs.cfg := by rw [← Hgc]; exact cfgStateC_of_good Hgood
-  obtain ⟨Happ, Hsz⟩ := ccStepB_some Hstep
+  obtain ⟨Happ, Hsz, Hnaw⟩ := ccStepB_some Hstep
   -- no candidate: a candidate has no conf entry past `applied` (`RInv.cand`)
   have Hnc : s.role ≠ .candidate := by
     intro hc
@@ -990,7 +990,7 @@ theorem wp_applyConf_dyn
       (fun h => by
         rcases h with h | h
         · exact absurd h Hnc
-        · exact absurd h (Hpf.1 (by rw [hm]; rfl))) Hli2 hwcf
+        · exact absurd h (Hpf.1 (by rw [hm]; rfl))) Hli2 hwcf Hnaw
     $$ [$Hphys $Hch] as %cs %xs %os %ls %lns %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok⟩
   -- the ghost step
   let g' : RGh := ⟨k + 1, cs', fp⟩
@@ -1140,7 +1140,7 @@ theorem wp_rn_raft_applyConfChange
     (Hst : γ.reDyn = none)
     (Hn : CCShrink γ.reCfg ccm.transition ccm.changes)
     -- (2026-10-20, witness support) a cluster without a witness
-    (Hw0 : γ.reWit = W64 0) :
+    (Hw0 : γ.reWit = W64 0) (Hnaw : NoAddWit ccm.changes) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownCCV2 cc DFrac.discard ccm ∗
         £ 1 }}
@@ -1166,7 +1166,7 @@ theorem wp_rn_raft_applyConfChange
   obtain ⟨lrn', Hd', Hsz', Hn', Hlp⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
   icases ownRaftGhost_ns_last γ id s Hnl $$ Hghost with ⟨%Hli2, Hghost⟩
   wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id
-      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2
+      s cc ccm DFrac.discard lrn' Hd' Hsz' Hn' Hli2 Hnaw
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, Hccs, Hcs, %Hcs0, %Hok, %Hdom'⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok

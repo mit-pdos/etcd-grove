@@ -289,6 +289,9 @@ abbrev raft.applyConfChange.spec : Prop :=
   -- witness: `confchange`'s model has none of Go's witness changes yet (`AddWitness`, removing,
   -- converting; notes/raft-witness-reconfig.md, "The CC model with Go's witness changes")
   c.wit = W64 0 →
+  -- (2026-10-20) and no `AddWitness` (`confchange`'s model has it now, but a configuration change
+  -- with a witness is outside the specs above `confchange`)
+  NoAddWit ccm.changes →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -312,6 +315,8 @@ abbrev raft.applyConfChange.specS : Prop :=
     some (cfgState cfg lrn') →
   (s.gh.ns = true → s.role = .leader →
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  -- (2026-10-20) no `AddWitness`
+  NoAddWit ccm.changes →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hcc" ∷ ownCCV2 cc dq ccm }}
@@ -330,7 +335,7 @@ open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
     (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hli2
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hli2 Hnaw
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -341,7 +346,7 @@ theorem raft.applyConfChange.spec_simple
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz')
       (fun hl hn => absurd (Hv (by rw [hl]; decide)) (by rw [Hv'] at hn; exact hn))
-      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) Hli2 rfl
+      (fun hc => by rw [Hv']; exact Hv (by rcases hc with h | h <;> rw [h] <;> decide)) Hli2 rfl Hnaw
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩

@@ -417,7 +417,8 @@ theorem node.run.wp_proof
     · -- the static mode: a shrinking change (2026-10-13)
       have Hstatic : γ.raft.reDyn = none := Hmd.1 (Hrm.trans Hn.1)
       have Hgm := Hn.1
-      have Hw0 := Hn.2.2
+      have Hw0 := Hn.2.2.1
+      have Hnaw := Hn.2.2.2
       have Hn := Hn.2.1
       -- `_, okBefore := r.trk.Progress[r.id]`: the node is a voter
       icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic Hw0 $$ Hrn Hrnraft
@@ -435,7 +436,7 @@ theorem node.run.wp_proof
       try wp_auto
       -- `cs := r.applyConfChange(cc)`
       wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
-        Hstatic Hn Hw0
+        Hstatic Hn Hw0 Hnaw
         $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, -, Hcsp, %Hcs⟩
       -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
       icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic Hw0 $$ Hrn Hrnraft

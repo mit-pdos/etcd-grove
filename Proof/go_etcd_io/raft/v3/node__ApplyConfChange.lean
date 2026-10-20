@@ -38,7 +38,7 @@ local macro "apply_cc_send" : tactic => `(tactic| (
           iframe Hch
           ileft
           ipureintro
-          exact ⟨hm, Hshr hm, Hw0 hm⟩
+          exact ⟨hm, Hshr hm, (Hw0 hm).1, (Hw0 hm).2⟩
         ileft; ipureintro; exact hm
       · icases HR with (%Hs | ⟨Hcfg, #Hdlb⟩)
         · rw [hm] at Hs; cases Hs

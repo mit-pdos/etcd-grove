@@ -336,7 +336,9 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     have hsh : CCShrink γ.node.raft.reCfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
       rw [← Hraft]; exact ccShrink_of_raftOk _ cm Hok
     wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, [], W64 0⟩
-        (cfgState ∅ ∅) (fun _ => hsh) (fun _ => Hw0)
+        (cfgState ∅ ∅) (fun _ => hsh)
+        (fun _ => ⟨Hw0, fun c hc _ => by
+          simp only [ccV2Of, List.mem_singleton] at hc; subst hc; rw [Hok.1]; decide⟩)
         (fun dec c0 h0 h1 hd => absurd (hd ▸ Hstatic) (by simp))) $$ [Hc]
       as %csp %cs ⟨Hcs, -⟩
     · iframe #

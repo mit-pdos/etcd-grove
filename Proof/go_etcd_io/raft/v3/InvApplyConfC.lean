@@ -55,8 +55,6 @@ theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
   iNamed Hown
   -- a configuration change is of a witness-free configuration (2026-10-20)
   have Hnw : NoWitP t.peers := WitP.zero.1 (hw ▸ Hnw)
-  ihave Hcfg : ownCfgCCw (GF := GF) (W64 0) tv.Config' (DFrac.own 1) c $$ [Hcfg]
-  · rw [← hw]; iexact Hcfg
   ihave H : ([∗map] k ↦ pr;p ∈ t.prs;t.peers, ∃ pv : tracker.Progress,
       (pr ↦ pv ∗ (⌜pv.IsLearner' = p.learner ∧ pv.IsWitness' = false⌝ ∗ (emp ∗ progRAt (GF := GF) t.peers k pv)) :
         IProp GF))
@@ -106,6 +104,7 @@ theorem ownTrackerC_toCC (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
   · unfold ownTrackerCC
     iframe Hcfg Hpt Hprs
     ipureintro
+    rw [hw]; apply WitT_zero.2
     intro k pv hpv
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom' k).2 (by rw [hpv]; rfl))
     exact (Hlf k pr pv hpr hpv).2
@@ -159,17 +158,18 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     (trk : Loc) (Hsz : (GMap.size s'.cfg.ids : Int) ≤ 2 ^ 62) (Hnw : NoWitP peers)
     (H0 : W64 0 ∉ s'.cfg.ids) (hw : s'.cfg.wit = W64 0) :
     ownCfgCC (GF := GF) cfgv (DFrac.own 1) s'.cfg ∗
-      ownPrsW chg base trk s'.prs ∗
+      ownPrsW chg base trk s'.cfg.wit s'.prs ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
       |==> ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
         ownConfigC s'.cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ ∗
         ⌜PrKept peers pvs chg.LastIndex'⌝ ∗ ⌜domSet prs = s'.cfg.ids⌝ := by
   iintro ⟨Hc, Hw, HR⟩
   unfold ownPrsW
-  icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩
+  icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, %Hwt, Hnew⟩
   ihave HQ := ownNewPr_transfer chg base (fun k pv => progRAt (GF := GF) peers k pv)
-      (fun k pv => newPrQC (GF := GF) chg peers k pv) ?_ ?_ pvs $$ [$HR $Hnew]
-  · intro k pv0 pv _ h1
+      (fun k pv => newPrQC (GF := GF) chg peers k pv) (fun _ pv => pv.IsWitness' = false) ?_ ?_ pvs
+      (fun k pv h => by rw [Hwt.2 k pv h, hw]; simp) $$ [$HR $Hnew]
+  · intro k pv0 pv _ h1 _
     unfold progRAt newPrQC
     iintro ⟨%p, %Hp, Hinfl, %Habs⟩
     iexists { p with learner := pv.IsLearner' }
@@ -181,7 +181,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8, ?_⟩, .inl ⟨p, Hp, rfl, rfl, rfl, rfl⟩,
       (Hnw k p Hp).1⟩ <;>
       (rw [h1]; assumption)
-  · intro k pv Hf
+  · intro k pv Hf Hw
     unfold newPrQC
     iintro Hinfl
     iexists progressOf pv .probe (inflightsNew chg.Tracker'.MaxInflight'
@@ -189,7 +189,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     isplitl [Hinfl]
     · simp only [progressOf]; iexact Hinfl
     ipureintro
-    obtain ⟨Hm, Hn, -, Hst, Hps, -, -, Hw⟩ := Hf
+    obtain ⟨Hm, Hn, -, Hst, Hps, -, -⟩ := Hf
     exact ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inr ⟨Hm, Hn, Hps, rfl⟩,
       by simp only [progressOf]; exact Hw⟩
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs

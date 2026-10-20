@@ -66,6 +66,7 @@ public import Proof.go_etcd_io.raft.v3.confchange.Changer__err
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__initProgress
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeVoter
+public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeWitness
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__remove
 public import Proof.go_etcd_io.raft.v3.confchange.Restore
 public import Proof.go_etcd_io.raft.v3.confchange.chain
@@ -667,7 +668,7 @@ theorem confchange.wp_nilAwareDelete :
 
 theorem confchange.Changer.wp_makeVoter :
     confchange.Changer.makeVoter.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.makeVoter.wp_proof confchange.Changer.wp_initProgress confchange.wp_incoming confchange.wp_nilAwareDelete
+  confchange.Changer.makeVoter.wp_proof confchange.Changer.wp_initProgress confchange.wp_incoming confchange.wp_nilAwareDelete fmt.wp_Errorf
 
 theorem confchange.Changer.wp_remove :
     confchange.Changer.remove.spec (GF := GF) (hG := hG) :=
@@ -675,7 +676,11 @@ theorem confchange.Changer.wp_remove :
 
 theorem confchange.Changer.wp_makeLearner :
     confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_outgoing confchange.wp_nilAwareAdd
+  confchange.Changer.makeLearner.wp_proof confchange.Changer.wp_initProgress confchange.Changer.wp_remove confchange.wp_outgoing confchange.wp_nilAwareAdd fmt.wp_Errorf
+
+theorem confchange.Changer.wp_makeWitness :
+    confchange.Changer.makeWitness.spec (GF := GF) (hG := hG) :=
+  confchange.Changer.makeWitness.wp_proof confchange.Changer.wp_initProgress confchange.wp_incoming fmt.wp_Errorf
 
 theorem raftpb.ConfChangeType.wp_String :
     raftpb.ConfChangeType.String.spec (GF := GF) (hG := hG) :=
@@ -691,7 +696,7 @@ theorem raftpb.ConfChangeSingle.wp_GetType :
 
 theorem confchange.Changer.wp_apply :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) :=
-  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeType.wp_String raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
+  confchange.Changer.apply.wp_proof confchange.Changer.wp_makeVoter confchange.Changer.wp_makeLearner confchange.Changer.wp_remove confchange.Changer.wp_makeWitness confchange.wp_incoming fmt.wp_Errorf raftpb.ConfChangeType.wp_String raftpb.ConfChangeSingle.wp_GetNodeId raftpb.ConfChangeSingle.wp_GetType
 
 theorem confchange.wp_symdiff :
     confchange.symdiff.spec (GF := GF) (hG := hG) :=
