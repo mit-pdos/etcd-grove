@@ -82,7 +82,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         exact Hnz _ h rfl)
       rfl Hbf.boot Hpol Hbf.idLow Hbf.idLow0)
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
-      #Hpm, #Hrc, Hms⟩
+      #Hpm, #Hrc, Hms, Hwns⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
   have Hpol' : srvCCPolicy ⟨γ, [], W64 0⟩ := by
     intro ty d h
@@ -91,6 +91,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     rw [hcfg]
     exact h
   icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
+  icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
   -- the nodes' ghost states, out of the map over the cluster
   rw [show toMap (GMap.listToSet [id₁, id₂, id₃]) =
@@ -106,13 +107,13 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
     (GMap.lookup_empty _)).1 $$ Hgs
   imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
-      Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hidx₁ Hcok₁ Hrev₁
+      Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, -, Hb₁⟩
   imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
-      Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hidx₂ Hcok₂ Hrev₂
+      Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, -, Hb₂⟩
   imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
-      Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hidx₃ Hcok₃ Hrev₃
+      Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network: a slot per member
   imod (netNames_alloc (srvNet γ bud) dir

@@ -11853,3 +11853,25 @@ theorems, and they are deleted rather than kept as proved Props:
   `context` re-proof completed by the new conjunct; it is now redundant (the clean fix it waited
   for is in), and removing it is a separate simplification (`notes/STATUS.md`).
 
+
+## linkv-txn B1: why the registration rides on a cluster registries' map (2026-10-20)
+
+To show a delivered writing `Txn` ran its ranges (`skip = false`), the result the apply thread
+hands `Trigger` must say "not waived" in every case the proposer can receive it. The apply thread
+proves it at a *known* registration (`request_delivered`), so each committed entry must carry its
+id's registration. Three constraints shaped where:
+- The claim (`idClaim`, `srv_claim_mint`) is minted *before* `Register`, whose condition
+  (`reqWaitR`) needs it; so the claim cannot carry the registration. The post-`Register` fact
+  enters the log where the proposer builds the entry's `entryClaim`, in `kv_prop_au`.
+- `entryClaim`/`kvWork` are shared by every member (one `kvInv`, `kvInv_congr`); a member's own
+  registry name `ρ.wait` is meaningless to the others. And `ρ.wait` is fixed only in `start`
+  (`{ρ with wait := γw}`), after raft's environment (`srvC`, `batchWaitOk ρ`) is fixed at
+  `NewServer`. So the entry names the registry through a cluster table, prefix to registry
+  (`IdNames.wn`), whose member entries `start` sets (a one-shot cell per prefix: ghost-map
+  fragments cannot be updated without the authority).
+- An entry of another member's id is never registered here: `reqWaitR`'s prefix clause makes
+  `waitTrig` vacuous for it, so the loops pass `none` exactly for those (`entryRegd`'s new clause).
+Rejected: fixing the registry name at boot (`wait.New` taking a pre-allocated name; every
+example's `Main` replaces `ρ.wait`), and per-claim registration cells in the claims' facts (needs
+the registry name in `Φs`, fixed before the registry exists). The fallback (no gets in writing
+transactions) was the plan's alternative.

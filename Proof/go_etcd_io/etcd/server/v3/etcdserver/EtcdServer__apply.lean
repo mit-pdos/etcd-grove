@@ -100,7 +100,7 @@ local macro "cc_respond" : tactic => `(tactic| (
     (try wp_auto)
     ihave #Hwok2 := Hwok
     iunfold waitInv at Hwok2
-    icases Hwok2 with ⟨%RD0, Hwok2⟩
+    icases Hwok2 with ⟨⟨%RD0, Hwok2⟩, -⟩
     iunfold isWait at Hwok2
     icases Hwok2 with ⟨%wi, %hw, -, #Htrig, -⟩
     simp only [hw]
@@ -403,13 +403,16 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         simp only [h0, _root_.decide_true]
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr none aw
+        -- (linkv-txn stage B1) the entry's registration, for the member's own ids
+        ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
+        · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
             (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka⟩, Hpost⟩
         · rw [ite_eq_left rfl]
           iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HlbJ
           isplitr
-          · iapply entryRegd_none
+          · iexact Hreg
           isplitr
           · ipureintro
             exact ⟨hawA, (decide_eq_true ((HkB.2 m hmem).1 (by omega))).symm⟩
@@ -618,13 +621,16 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         (try simp only [h0, _root_.decide_true])
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr none aw
+        -- (linkv-txn stage B1) the entry's registration, for the member's own ids
+        ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
+        · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
             (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka]
           as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HlbJ
           isplitr
-          · iapply entryRegd_none
+          · iexact Hreg
           isplitr
           · ipureintro
             exact ⟨hawA, (decide_eq_false (fun h =>

@@ -232,14 +232,15 @@ transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`applie
 certificate of the log after; and (unit V2) `x.log` extends the floor `F`; and (unit W-M3) the
 caller's certificate of the log after (`certOk`) and `Q` of the state of the log the entry met
 (the transaction's update fired there, at most once: not persistent since 2026-10-20, linkv-txn
-stage A). -/
+stage A); and (linkv-txn stage B1) its ranges run (`skip = false`). -/
 def txnAppliedOk (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnModel)
     (Q : KVState → IProp GF) (resp : Loc) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
       (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
     ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
       (irrNoZeroEnd (irrTxn t) → t' = t) ∧
-      apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧ F <+: x.log⌝ ∗
+      apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧ F <+: x.log ∧
+      skip = false⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗

@@ -159,7 +159,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     imod srv_claim_mint ρ E v.gen id bs rq' F Hdec Hidrq Hpfx $$ HidGen Hmint Hunc HF
       with ⟨%γf, #Hclaim, #Hfl, Hpf⟩
     iunfold waitInv at Hwi
-    icases Hwi with ⟨%RD, #Hwait⟩
+    icases Hwi with ⟨⟨%RD, #Hwait⟩, #Hwn⟩
     iunfold isWait at Hwait
     icases Hwait with ⟨%wi, %Hwi', #HReg, #HTrig, -⟩
     rw [Hwi']
@@ -193,8 +193,14 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold raftPropose at Hprop
     icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose, -⟩
     ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
+    -- (linkv-txn stage B1) the id registered in this member's registry, before the proposal
+    ihave #Hireg : iprop(idRegd ρ.ids id) $$ []
+    · iunfold idRegd
+      iexists ρ.wait, γh.takenName
+      rw [Hpfx]
+      iframe Hwn Hregd
     imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim HokW with Hau
+      CoPset.subseteq_top $$ Hclog Hclaim Hireg HokW with Hau
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]

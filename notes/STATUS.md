@@ -101,6 +101,32 @@ etcd's cache. Done: closed, with watchkv's four checks unweakened.
   error may still apply), so the program would read the watch up to the `Get`'s revision, and the
   proof needs a lemma relating `stateAt` of a watchkv log to the puts' `revAt`s (none exists).
 
+## linkv-txn stage B1: a delivered writing Txn ran its ranges (2026-10-20, branch `linkv-txn-b`)
+
+`txnReplied`'s writing case (and `txnAppliedOk`, `txnAppliedAns`, `appliedOk`) now carry
+`skip = false`, and `client_txn_value` states the responses with `opRespsRel false`. Why it holds:
+the apply thread runs a transaction's ranges unless `IsRegistered(id)` is false; a reply reaches
+the client only through the registered proposer's channel, and a registration, once gone, is never
+live again. What the proof needed (design: `notes/decisions.md`, "linkv-txn B1"):
+- **wait** (`pkg/v3/wait`): `Trigger(id, x)` also accepts `waitGone` in place of the expectation
+  (`waitShard_gone_absent`: a gone registration is not in the live map; nothing is sent).
+- **The cluster's registries' map** (`idutil`: `IdNames.wn`, `idWaitTokAt`/`idWaitTok`,
+  `idWaitIs`, `idWait_alloc_list`): per member prefix, a cell naming that member's wait registry,
+  set by the member's `start` once `wait.New` returns (the token flows `srvClusterBoot_alloc` ->
+  `srvMemberBoot_alloc` -> `NewServer.spec` (`"Hwtok"`) -> `srvBuilt`/`isServerBuilt` -> `start`);
+  `waitInv` carries the member's entry.
+- **The entries** (`InvRequest`): `entryClaim` and `entryWaitOk` carry `idRegd` (the id
+  registered in its prefix's registry), which the proposer gives `kv_prop_au` after `Register`.
+- **The apply thread**: `entryRegd` takes the member's prefix and says `none` only of another
+  prefix's id; the loops build it (`entryRegd_of_wait`, `isServer_waitIs`) instead of
+  `entryRegd_none` (gone); `applyEntryNormal` hands over a result with `out.waived = false`
+  (`resultIsW`), or, its registration gone, `Trigger`'s new case, or, another member's id, a
+  vacuous `waitTrig`.
+- **Examples**: `putget`, `putget3`, `watchkv`, `linkv3` allocations and the six `Main`/
+  `startMember` proofs thread the token. Closed theorems' statements unchanged.
+- **Gates**: full build; every link mode unchanged; `gen-init.py --check`; trust base (519 axioms,
+  2 sorries) and every collection unchanged.
+
 ## linkv-txn stage B2, B3: read-only Txn's read update; the replies' values (2026-10-20, branch `linkv-txn-b`)
 
 - **B2**: `client_txn_end_to_end` takes, for a linearizable read-only transaction, a read update
@@ -113,7 +139,7 @@ etcd's cache. Done: closed, with watchkv's four checks unweakened.
   key-values; a transaction's verdict and branch responses from `srvRunTxn` at `σ`, its revision
   `(σ.commit cs).rev`). Helpers `kvStateOf_rev_succ`, `kvStateOf_commit_rev`. List is
   `rangeReply_state` (existing). A writing transaction's ranges still under `skip` (B1).
-- **B1 not done**: needs a decision (the plan's findings, `notes/linkv-txn-plan.md`, B1).
+- **B1**: done the same day (above).
 - **Gates**: full build; every link mode unchanged; trust base and collections unchanged.
 
 ## linkv-txn stage A: at-most-once Delete and Txn (2026-10-20, branch `linkv-txn`)

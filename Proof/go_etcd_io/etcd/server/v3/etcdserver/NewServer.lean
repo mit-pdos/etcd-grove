@@ -1277,6 +1277,9 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨Hwrd, -⟩
   iunfold mvcc.watchReader at Hwrd
   icases Hwrd with ⟨Hsrd, -⟩
+  isplitr [Hwtok]
+  rotate_left
+  · iexact Hwtok
   iexists ua
   iframe uberApply
   isplitr

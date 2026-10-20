@@ -1151,13 +1151,27 @@ instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF :
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
 
+/-- **`id` was registered** (persistent; linkv-txn stage B1, 2026-10-20) in the wait registry of
+the member of its prefix (the cluster's registries' map, `idWaitIs`), with the consumer token `t`:
+what a proposal's entry carries, its proposer having registered the id before proposing. -/
+def idRegd (γi : IdNames) (id : w64) : IProp GF :=
+  iprop(∃ W t : GName, idWaitIs γi (idPfx id) W ∗ waitRegd W id t)
+
+instance idRegd_persistent (γi : IdNames) (id : w64) : Persistent (idRegd (GF := GF) γi id) := by
+  unfold idRegd; infer_instance
+
+instance idRegd_timeless (γi : IdNames) (id : w64) : Timeless (idRegd (GF := GF) γi id) := by
+  unfold idRegd idWaitIs waitRegd; infer_instance
+
 /-- **A committed entry's id claimed** (persistent; D19c): a normal entry whose data decode to a
 request with an id was claimed for its data under that id (`idClaim`, the generator's names
-`γi`). -/
+`γi`), and (linkv-txn stage B1, 2026-10-20) the id registered before the entry was proposed
+(`idRegd`). -/
 def entryClaim (γi : IdNames) (m : EntryModel) : IProp GF :=
   iprop(⌜m.typ ≠ W32 0 ∨ m.data = []⌝ ∨
     ∃ (rq : apply.IRRModel) (id : w64) (γf : GName),
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf)
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf ∗
+      idRegd γi id)
 
 instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
     Persistent (entryClaim (GF := GF) γi m) := by
@@ -1904,12 +1918,15 @@ the log after is applied through an index of the committed log (`appliedWit γr 
 thread deposits it before it hands the result over, `srvAppliedPre`); and (unit W-M3) the log the
 entry met is `lb` (`y.log`: the proposer ties it to the raft prefix its update fired at,
 `entryWit`) and the log after is certified (`certOk`: the KV model of a committed raft prefix,
-what makes its revisions reached in the clients' model). -/
+what makes its revisions reached in the clients' model). Since linkv-txn stage B1 (2026-10-20)
+the outcome is not waived (`out.waived = false`: the apply thread found the id registered, so a
+transaction's ranges were run): a result reaches the registered proposer only then. -/
 def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
-      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb⌝ ∗
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
+        out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       mvcc.certOk E.γ y'.log)
@@ -1971,9 +1988,12 @@ instance reqWaitR_persistent (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
 /-- **The server's wait** `s.w` (persistent): a `wait.Wait` (`wait.New`'s contract) with the
 server's registration condition, the ids `ρ.ids`, the registered ids' map `ρ.wait`, and some
 reader's resource (the apply thread's `srvApplyKV` holds `IsRegistered`'s, as the apply package's
-`waitOk`). Replaces the apply package's `waitOk` in `srvFieldsAt` (unit 2). -/
+`waitOk`). Replaces the apply package's `waitOk` in `srvFieldsAt` (unit 2). Since linkv-txn stage
+B1 (2026-10-20) also `ρ.wait` as the member's entry of the cluster's registries' map. -/
 def waitInv (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ E) RD)
+  iprop((∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ E) RD) ∗
+    -- (linkv-txn stage B1, 2026-10-20) the member's registry in the cluster's registries' map
+    idWaitIs ρ.ids ρ.ids.pfx ρ.wait)
 
 instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (waitInv (GF := GF) w ρ E) := by
@@ -1981,7 +2001,8 @@ instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF
 
 /-- **What the apply thread knows of a committed entry's id** (persistent; the raft contract's
 apply side, `batchCommitted`, gives the first half; unit 4): a normal entry's data, if they
-decode to a request with an id, were claimed under that id; a conf change's id (`ccIdOf`) is no
+decode to a request with an id, were claimed under that id, and (linkv-txn stage B1) the id
+registered (`idRegd`); a conf change's id (`ccIdOf`) is no
 KV request's registration (the conf change's proposer claimed it for the conf change: typed
 claims, unit 4), and the change is one `applyConfChange` takes (`ccBootOk` at raft's
 configuration; audit phase B3, 2026-10-18). -/
@@ -1989,7 +2010,7 @@ def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF 
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-        ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
+        (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
       ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝)
   else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
     ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝)

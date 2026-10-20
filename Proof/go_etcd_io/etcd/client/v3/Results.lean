@@ -861,7 +861,9 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
         F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63 ∧
         m.succeeded = (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').1 ∧
         opRespsRel skip (t'.branch m.succeeded)
-          (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps⌝ ∗
+          (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.2 m.resps ∧
+        -- (linkv-txn stage B1, 2026-10-20) the ranges run
+        skip = false⌝ ∗
       mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
       mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
@@ -1836,8 +1838,8 @@ theorem etcd_txnHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         iframe Hcert HMint Hwit Hcok HQv
         ipureintro
         obtain ⟨h1, h2, h3, h4, h5⟩ := Hmm
-        obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8⟩ := Hst
-        refine ⟨s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_⟩
+        obtain ⟨s1, s2, s3, s4, s5, s6, s7, s8, s9⟩ := Hst
+        refine ⟨s1, s2, s3, s4, ?_, h2, h3, s6, s7, s8, h4, ?_, s9⟩
         · rw [h1]
         · rw [h4]; exact h5
     · obtain ⟨-, Hne⟩ := Herr

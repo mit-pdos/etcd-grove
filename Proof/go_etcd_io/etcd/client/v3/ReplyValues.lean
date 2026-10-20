@@ -6,8 +6,9 @@ a read-only transaction's read update) and the reply's fields as functions of `�
 revision (`σ`'s next) and previous key-value; a delete's count, revision (the state's after the
 delete, `kvOpStep`'s) and previous key-values; a transaction's verdict, its branch's responses
 and its revision (the state's after its writes, `KVState.commit`'s). As `client_get_value` and
-`rangeReply_state` (`Results.lean`) for the reads. A writing transaction's ranges may be
-header-only (`skip`: B1 is to exclude it). Lean-first (no Rocq counterpart).
+`rangeReply_state` (`Results.lean`) for the reads. A writing transaction's ranges are run
+(`skip = false`, linkv-txn stage B1: the reply reached a registered proposer). Lean-first (no Rocq
+counterpart).
 -/
 module
 
@@ -97,15 +98,15 @@ theorem client_delete_value (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log)
 
 /-- **What a successful writing `Txn` returns** (of a transaction with no range end `[0]`, which
 the wire keeps): its update `Q` fired at a state `σ`; the server's run of the transaction at `σ`
-(at `σ`'s next revision) gives the reply's verdict and its branch's responses (header-only ranges
-if `skip`), and the state after its changes has the reply's revision. -/
+(at `σ`'s next revision) gives the reply's verdict and its branch's responses (its ranges run:
+linkv-txn stage B1), and the state after its changes has the reply's revision. -/
 theorem client_txn_value (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log)
     (t : TxnModel) (Q : KVState → IProp GF) (cid mid : w64) (m : TxnRespM)
     (hro : txn.txnReadonly t = false) (hnz : irrNoZeroEnd (irrTxn t)) :
     txnReplied E γw γr c F t Q cid mid m ⊢
-      ∃ (σ : KVState) (skip : Bool), Q σ ∗
+      ∃ σ : KVState, Q σ ∗
         ⌜m.succeeded = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).1 ∧
-          opRespsRel skip (t.branch m.succeeded)
+          opRespsRel false (t.branch m.succeeded)
             (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.2 m.resps ∧
           m.hdr.revision =
             W64 ((σ.commit (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs t).2.1).rev :
@@ -114,11 +115,11 @@ theorem client_txn_value (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F 
   unfold txnReplied
   simp only [hro, Bool.false_eq_true, ↓reduceIte]
   icases H with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, -, Hz, -, hrev, -, -, -, hlen, -, hok, hrel⟩ := Hp
+  obtain ⟨-, -, Hz, -, hrev, -, -, -, hlen, -, hok, hrel, hsk⟩ := Hp
   have ht : t' = t := Hz hnz
-  subst ht
+  subst ht hsk
   have hr : ((kvStateOf x.log).rev + 1 : Nat) = x.log.length := kvStateOf_rev_succ _ hlen
-  iexists kvStateOf x.log, skip
+  iexists kvStateOf x.log
   iframe HQ
   ipureintro
   have hs : (kvStateOf x.log).kvs = mvcc.stateAfter x.log := rfl

@@ -42,6 +42,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.DGhostVar
 public import Perennial.GooseLang.Receipts
 
 @[expose] public section
@@ -59,12 +60,15 @@ open Iris Iris.BI Iris.ProofMode
 map (keyed by id: the data an id was claimed for, `none` until claimed) and its prefixes' map
 (keyed by a member's prefix: the ids that member issued), the member's wait slots (keyed by id)
 and the member's prefix. (Until M4 one generator owned the issued map; until D19b, 2026-10-18,
-also the issued ids' counter, `cred`.) -/
+also the issued ids' counter, `cred`.) Since 2026-10-20 (linkv-txn stage B1) also the cluster's
+registries' map (keyed by a member's prefix: the ghost name of that member's wait registry, `none`
+until its `start` made it; `idWaitTok`, `idWaitIs`). -/
 structure IdNames where
   issued : GName
   cnt : GName
   slot : GName
   pfx : w64
+  wn : GName
 
 /-- `id` is among the first `k` ids of the generator with prefix `pfx` and initial suffix
 `s0`: `pfx | lowbit(s0 + j, 48)` for `1 ≤ j ≤ k`. -/
@@ -377,6 +381,86 @@ def idGen (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF
 instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GName → IProp GF) :
     Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
+
+/-- **A member's entry of the registries' map, not yet set** (exclusive; linkv-txn stage B1,
+2026-10-20): the map's (persistent) element of the member's prefix names a cell the member owns,
+empty; the member's `start` sets it to its wait registry's ghost name (`idWaitTok_set`). -/
+def idWaitTokAt (wn : GName) (p : w64) : IProp GF :=
+  iprop(∃ γp : GName, p ↪[wn]□ γp ∗ dghostVar γp (DFrac.own 1) (none : Option GName))
+
+/-- `idWaitTokAt` at the member's names. -/
+abbrev idWaitTok (γi : IdNames) : IProp GF := idWaitTokAt γi.wn γi.pfx
+
+/-- **The member of prefix `p` registers its requests in the wait registry `W`** (persistent;
+linkv-txn stage B1): the cell of `p`'s element of the registries' map, set to `W`. -/
+def idWaitIs (γi : IdNames) (p : w64) (W : GName) : IProp GF :=
+  iprop(∃ γp : GName, p ↪[γi.wn]□ γp ∗ dghostVar γp DFrac.discard (some W))
+
+instance idWaitIs_persistent (γi : IdNames) (p : w64) (W : GName) :
+    Persistent (idWaitIs (GF := GF) γi p W) := by
+  unfold idWaitIs; infer_instance
+
+/-- A prefix's registry is unique. -/
+theorem idWaitIs_agree (γi : IdNames) (p : w64) (W W' : GName) :
+    ⊢ idWaitIs (GF := GF) γi p W -∗ idWaitIs γi p W' -∗ ⌜W = W'⌝ := by
+  unfold idWaitIs
+  iintro ⟨%γp, #H1, #C1⟩ ⟨%γp', #H2, #C2⟩
+  ihave %Hp := ghostMapElem_agree $$ H1 H2
+  subst Hp
+  ihave %Hw := dghostVar_agree γp (some W) DFrac.discard (some W') DFrac.discard $$ C1 C2
+  ipureintro
+  exact Option.some.inj Hw
+
+/-- Setting a member's entry of the registries' map. -/
+theorem idWaitTok_set (γi : IdNames) (W : GName) :
+    ⊢ idWaitTok (GF := GF) γi ==∗ idWaitIs γi γi.pfx W := by
+  unfold idWaitTok idWaitTokAt idWaitIs
+  iintro ⟨%γp, #Hp, Hc⟩
+  imod dghostVar_update (some W) γp (none : Option GName) $$ Hc with Hc
+  imod dghostVar_persist γp 1 (some W) $$ Hc with #Hc
+  imodintro
+  iexists γp
+  iframe Hp Hc
+
+/-- **The registries' map, allocated** (linkv-txn stage B1): an unset entry for each prefix of
+`ps` (distinct). -/
+theorem idWait_alloc_list (ps : List w64) (Hnd : ps.Nodup) :
+    ⊢ |==> ∃ wn : GName, [∗list] p ∈ ps, idWaitTokAt (GF := GF) wn p := by
+  istart
+  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := GName)) with ⟨%γ, H⟩
+  have hgen : ∀ (qs : List w64) (M : GMap w64 GName), qs.Nodup →
+      (∀ q ∈ qs, M !! q = none) →
+      ⊢ ghostMapAuth (GF := GF) γ 1 M ==∗ [∗list] p ∈ qs, ∃ γp : GName,
+        p ↪[γ]□ γp ∗ dghostVar (GF := GF) γp (DFrac.own 1) (none : Option GName) := by
+    intro qs
+    induction qs with
+    | nil =>
+      intro M _ _
+      iintro -
+      imodintro
+      iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+      itrivial
+    | cons q qs ih =>
+      intro M hnd hfr
+      have hnd' := List.nodup_cons.1 hnd
+      iintro HM
+      imod dghostVar_alloc (GF := GF) (none : Option GName) with ⟨%γq, Hc⟩
+      imod ghost_map_insert_persist q γq (hfr q (List.mem_cons_self ..)) $$ HM with ⟨HM, #Hq⟩
+      imod (ih (M.insert q γq) hnd'.2 (fun r hr => by
+          rw [GMap.lookup_insert_eq_iff]
+          have hne : q ≠ r := fun h => hnd'.1 (h ▸ hr)
+          simp only [hne, ite_false]
+          exact hfr r (List.mem_cons_of_mem _ hr))) $$ HM with Hqs
+      imodintro
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hqs
+      iexists γq
+      iframe Hq Hc
+  imod (hgen ps ∅ Hnd (fun q _ => GMap.lookup_empty q)) $$ H with Hps
+  imodintro
+  iexists γ
+  unfold idWaitTokAt
+  iexact Hps
 
 /-- The prefixes' entries of the list `ps`, each with no id issued, inserted into a map that has
 none of them. -/

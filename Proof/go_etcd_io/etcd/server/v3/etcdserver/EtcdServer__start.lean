@@ -148,6 +148,8 @@ theorem EtcdServer.start.wp_proof
   ipersist Hscu
   -- `s.w = wait.New()`
   wp_apply hWN ρ.ids (reqWaitR ρ E) as %w ⟨%γw, %RD, #Hwait, HRD⟩
+  -- (linkv-txn stage B1) the member's registry, in the cluster's registries' map
+  imod idWaitTok_set ρ.ids γw $$ Hwtok with #Hwn
   icases Hw with ⟨%w0, Hw⟩
   wp_auto
   -- `s.applyWait = wait.NewTimeList()`
@@ -348,10 +350,12 @@ theorem EtcdServer.start.wp_proof
       · ipureintro; exact F2
       isplitr
       · iunfold waitInv
-        iexists RD
-        have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
-        rw [hwr]
-        iexact Hwait
+        isplitr
+        · iexists RD
+          have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
+          rw [hwr]
+          iexact Hwait
+        iexact Hwn
       first
         | (ipureintro; exact ⟨F5, F5o⟩)
         | (isplitr
@@ -442,10 +446,12 @@ theorem EtcdServer.start.wp_proof
     iframe #
     isplitr
     · iunfold waitInv
-      iexists RD
-      have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
-      rw [hwr]
-      iexact Hwait
+      isplitr
+      · iexists RD
+        have hwr : reqWaitR (GF := GF) { ρ with wait := γw } E = reqWaitR ρ E := rfl
+        rw [hwr]
+        iexact Hwait
+      iexact Hwn
     isplitr
     · iunfold srvDoneChan
       iexists γd

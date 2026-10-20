@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stage A done (2026-10-20, branch `linkv-txn`; STATUS "linkv-txn stage A"); B next.
+Status: stages A and B done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3"); C next.
 
 ## Goal
 
@@ -83,6 +83,9 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
   trigger ⇒ registered at `IsRegistered` (ids are not reused) ⇒ `skip = false`. Put it in
   `txnReplied`'s writing case. **Fallback** if this turns out expensive: gens with no Get in a
   writing Txn (the CAS's `Else(Get)` then becomes `Else()`), and B1 later.
+  **Done** (2026-10-20, STATUS "linkv-txn stage B1"), as the findings below proposed but for (b):
+  the registration rides on a cluster-level registries' map (`IdNames.wn`, per prefix), not on
+  `ρ.wait`, which raft's environment (`srvC`) fixes before `start` makes the wait.
   **Findings (2026-10-20, before any change)**: the apply thread already proves the
   dichotomy at a *known* registration (`request_delivered`, `entryDelivered`: `out.waived = false`
   or the registration with token `t` is gone), but (i) both apply loops (`EtcdServer.apply`)

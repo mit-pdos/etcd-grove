@@ -611,7 +611,7 @@ theorem EtcdServer.Txn.wp_proof
     · subst Herr
       iunfold appliedOk at Hok
       icases Hok with ⟨%x, %x', %oc, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
-      obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
+      obtain ⟨Hstep, Hfl, Hxlb, Hskip⟩ := Hstep0
       have Hk : apply.dispatchKind rq' = .txn := by
         rw [Hwire.2.2.1]
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
@@ -653,7 +653,7 @@ theorem EtcdServer.Txn.wp_proof
       rotate_left
       · rw [Hxlb, ← HLlb]; iexact HQ
       ipureintro
-      refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl⟩
+      refine ⟨Hwire, Ht', fun hz => ?_, Hstep, Hfl' log' false rfl, Hskip⟩
       have := Hwire.2.2.2 hz
       subst this
       simp [apply.withHeader, irrTxn] at Ht'

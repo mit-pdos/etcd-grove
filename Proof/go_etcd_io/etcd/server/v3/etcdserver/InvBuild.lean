@@ -320,7 +320,9 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hcv" ∷ clusterVersionOk s ∗
     "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
     "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀))
+      apply.applyKV E ua x₀) ∗
+    -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
+    "Hwtok" ∷ idWaitTok ρ.ids)
 
 /-- **The residual** (see the file header): the row of `isServerBuilt` no `NewServer` proof
 gives -- the raft storage's snapshot contract `rnSnapOnce` (`notes/STATUS.md`, "srvBuildGap's
