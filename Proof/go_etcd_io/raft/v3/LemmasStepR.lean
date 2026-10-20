@@ -32,7 +32,7 @@ theorem ownTrackerC_halves (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
         ownIdsetQ vin (DFrac.own 1) c.incoming ∗ ownIdsetQ vout (DFrac.own 1) c.outgoing ∗
         (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownIdsetQ vout (DFrac.own 1) c.outgoing -∗
            ownTrackerC c tv t) := by
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   iintro Hown
   icases ownTrackerC_voters_size c tv _ $$ Hown with ⟨%Hsz, Hown⟩
   iunfold ownTrackerC at Hown

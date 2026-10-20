@@ -65,7 +65,7 @@ theorem quorum.JointConfig.IDs.spec_trackerC
         @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
     {{ (mref : Loc), RET #mref;
         trk ↦ tv ∗ ownTrackerC c tv t ∗ mref ↦$ c.voters }} := by
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
   iunfold ownTrackerC at Hown
   iNamed Hown

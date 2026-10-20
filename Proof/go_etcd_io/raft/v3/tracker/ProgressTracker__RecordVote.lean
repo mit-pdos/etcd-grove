@@ -22,7 +22,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem tracker.ProgressTracker.RecordVote.wp_proof :
     tracker.ProgressTracker.RecordVote.spec (GF := GF) (hG := hG) := by
   intro c trk tv t src v
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   dsimp only
   wp_start as ⟨Htrk, Hown⟩
   iunfold ownTrackerC at Hown

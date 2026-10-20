@@ -32,7 +32,7 @@ theorem tracker.ProgressTracker.Committed.wp_proof
       tracker.matchAckIndexer.AckedIndex.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG) := by
   intro c trk tv t
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   wp_start as ⟨Htrk, Hown⟩
   iunfold ownTrackerC at Hown
   iNamed Hown

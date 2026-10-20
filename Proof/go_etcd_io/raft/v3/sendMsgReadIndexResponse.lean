@@ -43,7 +43,7 @@ theorem ownTrackerC_incoming (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk)
       ∃ (vin vout : Loc), ⌜tv.Config'.Voters'.arr = [vin, vout]⌝ ∗
         ownIdsetQ vin (DFrac.own 1) c.incoming ∗
         (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownTrackerC c tv t) := by
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   iintro Hown
   iunfold ownTrackerC at Hown
   iNamed Hown

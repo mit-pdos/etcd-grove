@@ -64,7 +64,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG) := by
   intro c trk tv t f I
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   wp_start as ⟨Htrk, Hown, HI, #Hf⟩
   iunfold ownTrackerC at Hown
   iNamed Hown

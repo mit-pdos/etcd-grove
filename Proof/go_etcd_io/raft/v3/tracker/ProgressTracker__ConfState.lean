@@ -46,7 +46,7 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
     (wp_MajorityConfig_Slice : quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) := by
   intro c trk tv t
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   wp_start as ⟨Htrk, Hown⟩
   iapply wp_fupd
   iunfold ownTrackerC at Hown

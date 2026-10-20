@@ -30,7 +30,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
     (wp_JointConfig_VoteResult : quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG) := by
   intro c trk tv t
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   wp_start as ⟨Htrk, Hown⟩
   iunfold ownTrackerC at Hown
   iNamed Hown

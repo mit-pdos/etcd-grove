@@ -55,7 +55,7 @@ theorem tracker.ProgressTracker.IsSingleton.spec_trackerC
       (Val #()))
   {{ RET #(decide (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0));
       trk ↦{dq} tv ∗ ownTrackerC c tv t }} := by
-  obtain ⟨votes, prs, pvs⟩ := t
+  obtain ⟨votes, prs, pvs, ep⟩ := t
   iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
   iunfold ownTrackerC at Hown
   iNamed Hown
