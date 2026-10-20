@@ -151,9 +151,6 @@ noncomputable def thenOf [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def elseOf [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkvtxn.elseOf"
 
-noncomputable def mkTxn [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/linkvtxn.mkTxn"
-
 noncomputable def resOf [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkvtxn.resOf"
 
@@ -378,90 +375,9 @@ noncomputable def elseOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType TOp.ty)))) (Pair (Var "out") (Var "$r0"))))))))))
 
-/-- mkTxn is the transaction of at most MaxCmps comparisons, MaxThen then- and MaxElse
-    else-operations (any beyond are dropped).
-
-    go: linkvtxn.go:136:6 -/
-noncomputable def mkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "cmps"
-  (Lam "then"
-  (Lam "els"
-  (App (Val exceptionDo)
-  (Let "els" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType TOp.ty)))) (Var "els"))
-  (Let "then" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType TOp.ty)))) (Var "then"))
-  (Let "cmps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Cmp.ty)))) (Var "cmps"))
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KTxn))
-  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0")))])))
-  (Let "in" (App (Val (GoInstruction (GoAlloc Input.ty))) (App (Val (GoInstruction (GoZeroVal Input.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad Input.ty))) (Var "in")))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "els"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType TOp.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad TOp.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "els")) (Val #(W64 0)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 1))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"NElse"))) (Var "in")) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"Else0"))) (Var "in")) (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "then"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType TOp.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad TOp.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "then")) (Val #(W64 2)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 3))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"NThen"))) (Var "in")) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"Then2"))) (Var "in")) (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "then"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType TOp.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad TOp.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "then")) (Val #(W64 1)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 2))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"NThen"))) (Var "in")) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"Then1"))) (Var "in")) (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "then"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType TOp.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad TOp.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType TOp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "then")) (Val #(W64 0)))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #(W64 1))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"NThen"))) (Var "in")) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore TOp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"Then0"))) (Var "in")) (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "cmps"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Cmp.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
-  (Let "$r0" (Val #(W64 1))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Cmp.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Cmp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "cmps")) (Val #(W64 0)))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Cmp.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"Cmp0"))) (Var "in")) (Var "$r0")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Input.ty go!"NCmps"))) (Var "in")) (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Input.ty))) (Pair (Var "in") (Var "$r0"))))))))))))))
-
 /-- resOf is a transaction output's results (a new slice; at most 3).
 
-    go: linkvtxn.go:205:6 -/
+    go: linkvtxn.go:178:6 -/
 noncomputable def resOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (App (Val exceptionDo)
@@ -506,7 +422,7 @@ noncomputable def resOf.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- kvsOf is a list output's key-values (a new slice; at most 3).
 
-    go: linkvtxn.go:220:6 -/
+    go: linkvtxn.go:193:6 -/
 noncomputable def kvsOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (App (Val exceptionDo)
@@ -551,7 +467,7 @@ noncomputable def kvsOf.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- withRes is o with the results rs (their count; the first 3).
 
-    go: linkvtxn.go:235:6 -/
+    go: linkvtxn.go:208:6 -/
 noncomputable def withRes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam "rs"
@@ -592,7 +508,7 @@ noncomputable def withRes.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- withKVs is o with the key-values kvs (their count; the first 3).
 
-    go: linkvtxn.go:250:6 -/
+    go: linkvtxn.go:223:6 -/
 noncomputable def withKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "o"
   (Lam "kvs"
@@ -634,7 +550,7 @@ noncomputable def withKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- workloadKeys are the keys Gen picks from (sorted), as a function so that the package's
     initializer runs no code.
 
-    go: linkvtxn.go:271:6 -/
+    go: linkvtxn.go:244:6 -/
 noncomputable def workloadKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -644,7 +560,7 @@ noncomputable def workloadKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (Val #(go!"k2"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))]))))))))
 
-/-- go: linkvtxn.go:299:6 -/
+/-- go: linkvtxn.go:272:6 -/
 noncomputable def lookup.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "k"
@@ -673,7 +589,7 @@ noncomputable def lookup.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- setKey returns kvs with k's value r (a new slice, sorted).
 
-    go: linkvtxn.go:309:6 -/
+    go: linkvtxn.go:282:6 -/
 noncomputable def setKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "k"
@@ -749,7 +665,7 @@ noncomputable def setKey.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- delKey returns kvs without k (a new slice).
 
-    go: linkvtxn.go:329:6 -/
+    go: linkvtxn.go:302:6 -/
 noncomputable def delKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "k"
@@ -788,7 +704,7 @@ noncomputable def delKey.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- put returns kvs after a put of k with v at revision r: the key's version one more.
 
-    go: linkvtxn.go:340:6 -/
+    go: linkvtxn.go:313:6 -/
 noncomputable def put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "r"
@@ -837,7 +753,7 @@ noncomputable def put.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- holds is a comparison's verdict on the store (TxnModel.lean's MCmp.holds).
 
-    go: linkvtxn.go:350:6 -/
+    go: linkvtxn.go:323:6 -/
 noncomputable def holds.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "c"
@@ -877,7 +793,7 @@ noncomputable def holds.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- runOps runs a transaction's operations at revision r (TxnModel.lean's runOps): the store
     after them, their results, and whether they changed the store.
 
-    go: linkvtxn.go:363:6 -/
+    go: linkvtxn.go:336:6 -/
 noncomputable def runOps.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (Lam "r"
@@ -1000,7 +916,7 @@ noncomputable def runOps.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- mstep is an operation's effect on the store and its output (TxnModel.lean's mStep).
 
-    go: linkvtxn.go:389:6 -/
+    go: linkvtxn.go:362:6 -/
 noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "st"
@@ -1208,7 +1124,7 @@ noncomputable def mstep.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- isWrite reports whether an operation may write (a failed one may take effect later).
 
-    go: linkvtxn.go:432:6 -/
+    go: linkvtxn.go:405:6 -/
 noncomputable def isWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (App (Val exceptionDo)
@@ -1264,7 +1180,7 @@ noncomputable def isWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: linkvtxn.go:452:6 -/
+/-- go: linkvtxn.go:425:6 -/
 noncomputable def vrEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1277,7 +1193,7 @@ noncomputable def vrEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- outEqual compares an output with the model's for an input of kind kind (only the fields that
     kind answers).
 
-    go: linkvtxn.go:458:6 -/
+    go: linkvtxn.go:431:6 -/
 noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kind"
   (Lam "a"
@@ -1392,7 +1308,7 @@ noncomputable def outEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- resEqual compares a transaction operation's result with the model's (only the fields its kind
     answers: a get's (Found, R), a delete's N).
 
-    go: linkvtxn.go:499:6 -/
+    go: linkvtxn.go:472:6 -/
 noncomputable def resEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "y"
@@ -1422,7 +1338,7 @@ noncomputable def resEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: linkvtxn.go:512:6 -/
+/-- go: linkvtxn.go:485:6 -/
 noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1432,7 +1348,7 @@ noncomputable def inputEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals Input.ty))) (Pair (App (Val (GoInstruction (GoLoad Input.ty))) (Var "a")) (App (Val (GoInstruction (GoLoad Input.ty))) (Var "b"))))))))))
 
-/-- go: linkvtxn.go:516:6 -/
+/-- go: linkvtxn.go:489:6 -/
 noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1466,7 +1382,7 @@ noncomputable def storeEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: linkvtxn.go:528:6 -/
+/-- go: linkvtxn.go:501:6 -/
 noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -1502,7 +1418,7 @@ noncomputable def configEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: linkvtxn.go:540:6 -/
+/-- go: linkvtxn.go:513:6 -/
 noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -1536,7 +1452,7 @@ noncomputable def addConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- removeAt returns pend without its i-th input (a new slice).
 
-    go: linkvtxn.go:550:6 -/
+    go: linkvtxn.go:523:6 -/
 noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pend"
   (Lam "i"
@@ -1564,7 +1480,7 @@ noncomputable def removeAt.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- closure adds to s every configuration reachable by pending writes taking effect.
 
-    go: linkvtxn.go:557:6 -/
+    go: linkvtxn.go:530:6 -/
 noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
@@ -1660,7 +1576,7 @@ noncomputable def closure.impl [FfiSyntax] [GoGlobalContext] : val :=
     effect and answered the model's output; a failed write becomes pending; a failed read does
     nothing.
 
-    go: linkvtxn.go:579:6 -/
+    go: linkvtxn.go:552:6 -/
 noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "in"
@@ -1737,7 +1653,7 @@ noncomputable def step.impl [FfiSyntax] [GoGlobalContext] : val :=
     returned no error took effect at once and answered as the model; a failed write may take
     effect at any later time, or never; a failed read constrains nothing.
 
-    go: linkvtxn.go:599:6 -/
+    go: linkvtxn.go:572:6 -/
 noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -1855,7 +1771,7 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- pick returns n mod m and n / m.
 
-    go: linkvtxn.go:634:6 -/
+    go: linkvtxn.go:607:6 -/
 noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "m"
@@ -1870,7 +1786,7 @@ noncomputable def pick.impl [FfiSyntax] [GoGlobalContext] : val :=
     on distinct keys (10), or a compare-and-set (5): if the key's value, version or mod revision is
     as guessed, put a new value, else get it.
 
-    go: linkvtxn.go:642:6 -/
+    go: linkvtxn.go:615:6 -/
 noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (App (Val exceptionDo)
@@ -1935,11 +1851,10 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "n4" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (Let "ck" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n4"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a1" (Val #(W64 4))
   (App (App (App (Val (GoInstruction (FuncResolve pick []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -1949,40 +1864,38 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "guess" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ck")))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
-  (Let "$v3" (App (Val (GoInstruction (Convert go.uint64 go.int64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "guess")))
-  (App (Val (GoInstruction (CompositeLiteral Cmp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Num")) (ElementExpression go.int64 (Var "$v3")))]))))))
-  (Let "cmp" (App (Val (GoInstruction (GoAlloc Cmp.ty))) (App (Val (GoInstruction (GoZeroVal Cmp.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vals")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "vi")) (Val #(W64 1)))) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vals"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))))
   (Let "nv" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad Cmp.ty))) (Var "cmp"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Cmp.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Cmp.ty (Var "$v0")))])))
-  (Let "$a1" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TPut))
+  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KTxn))
+  (Let "$v1" (Val #(W64 1))
+  (Let "$v2" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ck")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$v3" (App (Val (GoInstruction (Convert go.uint64 go.int64))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "guess")))
+  (App (Val (GoInstruction (CompositeLiteral Cmp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Num")) (ElementExpression go.int64 (Var "$v3")))]))))))
+  (Let "$v3" (Val #(W64 1))
+  (Let "$v4" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TPut))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "nv"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType TOp.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))]))])))))
-  (Let "$a2" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TGet))
+  (App (Val (GoInstruction (CompositeLiteral TOp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))])))))
+  (Let "$v5" (Val #(W64 1))
+  (Let "$v6" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val TGet))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType TOp.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (App (App (App (App (Val (GoInstruction (FuncResolve mkTxn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
+  (App (Val (GoInstruction (CompositeLiteral TOp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"NCmps")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"Cmp0")) (ElementExpression Cmp.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"NThen")) (ElementExpression go.int (Var "$v3"))), (KeyedElement (some (KeyField go!"Then0")) (ElementExpression TOp.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"NElse")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Else0")) (ElementExpression TOp.ty (Var "$v6")))]))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "nv") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Cmp.ty))) (Pair (Var "cmp") (Var "$r0")))))))))
   (App (Val doExecute)
   (Var "$r1")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "guess") (Var "$r0")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n4") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ck") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ck") (Var "$r0")))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 58)))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a1" (Val #(W64 3))
@@ -1991,67 +1904,72 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "n2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (Let "cnt" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType TOp.ty)))) (LiteralValue []))
-  (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType TOp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType TOp.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType Cmp.ty)))) (Val UntypedNil))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "ops"))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType TOp.ty)))) (Val UntypedNil))
-  (App (App (App (App (Val (GoInstruction (FuncResolve mkTxn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "j" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "j")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "cnt")))))) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n2"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
   (Let "$a1" (Val #(W64 3))
   (App (App (App (Val (GoInstruction (FuncResolve pick []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
-  (Let "n3" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (Let "kind" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (Let "k0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n3"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
+  (Let "$a1" (Val #(W64 3))
+  (App (App (App (Val (GoInstruction (FuncResolve pick []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "k1" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ki")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "j")))) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))))
-  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType TOp.ty)))) (Var "ops"))
-  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "kind")))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n"))
+  (Let "$a1" (Val #(W64 3))
+  (App (App (App (Val (GoInstruction (FuncResolve pick []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "k2" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val KTxn))
+  (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "cnt"))) (Val #(W64 1))))
+  (Let "$v2" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k0")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ki"))))))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
   (App (Val (GoInstruction (CompositeLiteral TOp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))])))))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType TOp.ty)))) (LiteralValue [(KeyedElement none (ElementExpression TOp.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType TOp.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v3" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k1")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ki")) (Val #(W64 1)))) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (Val (GoInstruction (CompositeLiteral TOp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))])))))
+  (Let "$v4" (Let "$v0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "k2")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "ki")) (Val #(W64 2)))) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (Val (GoInstruction (CompositeLiteral TOp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral Input.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Kind")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"NThen")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"Then0")) (ElementExpression TOp.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Then1")) (ElementExpression TOp.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Then2")) (ElementExpression TOp.ty (Var "$v4")))]))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType TOp.ty)))) (Pair (Var "ops") (Var "$r0")))))))
+  (Var "$r1")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k2") (Var "$r0")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n2") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n3") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k1") (Var "$r0")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "kind") (Var "$r0"))))))))))))))
-  (Lam BAnon
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "j")) (Val #(W64 1)))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "k0") (Var "$r0")))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "j") (Var "$r0"))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType TOp.ty)))) (Pair (Var "ops") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n2") (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "cnt") (Var "$r0"))))))))))))
   (App (Val doExecute)
@@ -2107,7 +2025,7 @@ noncomputable def genFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Gen picks an operation at random (genFrom of a random number).
 
-    go: linkvtxn.go:682:6 -/
+    go: linkvtxn.go:654:6 -/
 noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "id"
   (App (Val exceptionDo)
@@ -2116,7 +2034,7 @@ noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert Input.ty go.any))) (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #()))
   (App (App (Val (GoInstruction (FuncResolve genFrom []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: linkvtxn.go:689:6 -/
+/-- go: linkvtxn.go:661:6 -/
 noncomputable def vrOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "value"
   (Lam "mod"
@@ -2131,7 +2049,7 @@ noncomputable def vrOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int64))) (Var "ver"))
   (App (Val (GoInstruction (CompositeLiteral VR.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Mod")) (ElementExpression go.int64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Ver")) (ElementExpression go.int64 (Var "$v2")))])))))))))))))
 
-/-- go: linkvtxn.go:693:6 -/
+/-- go: linkvtxn.go:665:6 -/
 noncomputable def cmpOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
@@ -2163,7 +2081,7 @@ noncomputable def cmpOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: linkvtxn.go:703:6 -/
+/-- go: linkvtxn.go:675:6 -/
 noncomputable def opOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "op"
   (App (Val exceptionDo)
@@ -2190,7 +2108,7 @@ noncomputable def opOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
-/-- go: linkvtxn.go:713:6 -/
+/-- go: linkvtxn.go:685:6 -/
 noncomputable def opsOf.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ops"
   (App (Val exceptionDo)
@@ -2225,7 +2143,7 @@ noncomputable def opsOf.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- callGet runs a get of key through the client cli: its output.
 
-    go: linkvtxn.go:722:6 -/
+    go: linkvtxn.go:694:6 -/
 noncomputable def callGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "key"
@@ -2286,7 +2204,7 @@ noncomputable def callGet.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- kvsFrom is the KVs of a reply's key-values.
 
-    go: linkvtxn.go:737:6 -/
+    go: linkvtxn.go:709:6 -/
 noncomputable def kvsFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "kvs"
   (App (Val exceptionDo)
@@ -2325,7 +2243,7 @@ noncomputable def kvsFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- callList runs a list of the keys through the client cli: its output.
 
-    go: linkvtxn.go:746:6 -/
+    go: linkvtxn.go:718:6 -/
 noncomputable def callList.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (App (Val exceptionDo)
@@ -2364,7 +2282,7 @@ noncomputable def callList.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- callPut runs a put of key with val through the client cli: its output.
 
-    go: linkvtxn.go:755:6 -/
+    go: linkvtxn.go:727:6 -/
 noncomputable def callPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "key"
@@ -2403,7 +2321,7 @@ noncomputable def callPut.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- callDel runs a delete of key through the client cli: its output.
 
-    go: linkvtxn.go:764:6 -/
+    go: linkvtxn.go:736:6 -/
 noncomputable def callDel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "key"
@@ -2440,7 +2358,7 @@ noncomputable def callDel.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- cmpsFor is the client's comparisons of a transaction (a new slice).
 
-    go: linkvtxn.go:773:6 -/
+    go: linkvtxn.go:745:6 -/
 noncomputable def cmpsFor.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "in"
   (App (Val exceptionDo)
@@ -2475,7 +2393,7 @@ noncomputable def cmpsFor.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- txnRes is the results of a transaction's responses, for its branch's operations ops.
 
-    go: linkvtxn.go:782:6 -/
+    go: linkvtxn.go:754:6 -/
 noncomputable def txnRes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ops"
   (Lam "resps"
@@ -2589,7 +2507,7 @@ noncomputable def txnRes.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- callTxn runs a transaction through the client cli: its output.
 
-    go: linkvtxn.go:812:6 -/
+    go: linkvtxn.go:784:6 -/
 noncomputable def callTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "in"
@@ -2650,7 +2568,7 @@ noncomputable def callTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- call runs one operation through the client cli: its output.
 
-    go: linkvtxn.go:825:6 -/
+    go: linkvtxn.go:797:6 -/
 noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "in"
@@ -2697,7 +2615,7 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Apply runs one operation through the client cli, resolving a prophecy with its outcome and,
     for a read, another with the revision it read at (0 otherwise).
 
-    go: linkvtxn.go:843:6 -/
+    go: linkvtxn.go:815:6 -/
 noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "input"
@@ -2749,7 +2667,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Check runs lintest.Run of clients concurrent clients of cli, each running ops operations, and
     returns porcupine's verdict.
 
-    go: linkvtxn.go:859:6 -/
+    go: linkvtxn.go:831:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "clients"
@@ -2785,7 +2703,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
     configured for one attempt per call and runs Check; it panics if porcupine finds the history
     illegal. An error from a step before Check ends Main without a check.
 
-    go: linkvtxn.go:871:6 -/
+    go: linkvtxn.go:843:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -3539,7 +3457,6 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   cmpsOf_unfold : FuncUnfold cmpsOf [] cmpsOf.impl
   thenOf_unfold : FuncUnfold thenOf [] thenOf.impl
   elseOf_unfold : FuncUnfold elseOf [] elseOf.impl
-  mkTxn_unfold : FuncUnfold mkTxn [] mkTxn.impl
   resOf_unfold : FuncUnfold resOf [] resOf.impl
   kvsOf_unfold : FuncUnfold kvsOf [] kvsOf.impl
   withRes_unfold : FuncUnfold withRes [] withRes.impl
@@ -3613,7 +3530,6 @@ attribute [instance] Assumptions.Cmp_instance
   Assumptions.cmpsOf_unfold
   Assumptions.thenOf_unfold
   Assumptions.elseOf_unfold
-  Assumptions.mkTxn_unfold
   Assumptions.resOf_unfold
   Assumptions.kvsOf_unfold
   Assumptions.withRes_unfold

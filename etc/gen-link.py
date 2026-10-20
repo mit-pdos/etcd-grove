@@ -282,9 +282,12 @@ LEAN_FIRST = {
                  "github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptions",
                  "The three-member linearizability instance's proofs (`examples/linkv3`)", [""]),
     # the linearizability instance over the robustness tester's KV workload (examples/linkvtxn,
-    # notes/linkv-txn-plan.md): its porcupine model (stage E)
+    # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
+    # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
+    # stage G)
     "--linkvtxn": ("link-lean-first-linkvtxn.txt",
                    "github_com.mit_pdos.etcd_grove.examples.linkvtxn "
+                   "github_com.mit_pdos.etcd_grove.examples.lintest "
                    "github_com.anishathalye.porcupine",
                    "github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions",
                    "The KV-workload linearizability instance's proofs (`examples/linkvtxn`)", [""]),
@@ -332,7 +335,8 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3", "--linkv3p"}
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3", "--linkv3p",
+            "--linkvtxn"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None

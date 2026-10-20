@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stages A to F done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F"); G next.
+Status: done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F", "stage G"): `linkvtxn_safe`, on exactly `linkv_safe`'s axioms.
 
 ## Goal
 
@@ -197,6 +197,9 @@ the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-seria
 - `Apply`'s proof: one branch per kind; most of the work is the reply-to-output step (B3, C).
 
 ### G. Close
+
+**Done** (2026-10-20, STATUS "linkv-txn stage G"): `linkvtxn_safe`, its axioms `linkv_safe`'s
+(`proto.Clone` was already in its trust base, through the server). linkv stays (linkv3, linkv3p).
 
 For `examples/linkvtxn` (stage D made it a module of its own): `Gen` (`genFrom`, `pick`, `mkTxn`,
 `workloadKeys`: `GenIn`, which `Apply`'s input premise is), `Check`, `Main` (linkv's, at

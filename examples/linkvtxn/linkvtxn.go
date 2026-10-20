@@ -131,33 +131,6 @@ func elseOf(in Input) []TOp {
 	return out
 }
 
-// mkTxn is the transaction of at most MaxCmps comparisons, MaxThen then- and MaxElse
-// else-operations (any beyond are dropped).
-func mkTxn(cmps []Cmp, then []TOp, els []TOp) Input {
-	in := Input{Kind: KTxn}
-	if len(cmps) > 0 {
-		in.NCmps = 1
-		in.Cmp0 = cmps[0]
-	}
-	if len(then) > 0 {
-		in.Then0 = then[0]
-		in.NThen = 1
-	}
-	if len(then) > 1 {
-		in.Then1 = then[1]
-		in.NThen = 2
-	}
-	if len(then) > 2 {
-		in.Then2 = then[2]
-		in.NThen = 3
-	}
-	if len(els) > 0 {
-		in.Else0 = els[0]
-		in.NElse = 1
-	}
-	return in
-}
-
 // A VR is a key's value, mod revision and version.
 type VR struct {
 	Val string
@@ -660,22 +633,21 @@ func genFrom(n uint64) Input {
 		return Input{Kind: KDel, Key: k}
 	}
 	if w < 58 {
-		// up to three operations, on the keys from ki on (distinct)
-		cnt, n2 := pick(n, 3)
-		ops := []TOp{}
-		for j := uint64(0); j <= cnt; j++ {
-			kind, n3 := pick(n2, 3)
-			n2 = n3
-			key := keys[(ki+j)%uint64(len(keys))]
-			ops = append(ops, TOp{Kind: int(kind), Key: key, Val: v})
-		}
-		return mkTxn(nil, ops, nil)
+		// one to three operations, on the keys from ki on (distinct)
+		cnt, n := pick(n, 3)
+		k0, n := pick(n, 3)
+		k1, n := pick(n, 3)
+		k2, _ := pick(n, 3)
+		return Input{Kind: KTxn, NThen: int(cnt) + 1,
+			Then0: TOp{Kind: int(k0), Key: keys[ki], Val: v},
+			Then1: TOp{Kind: int(k1), Key: keys[(ki+1)%uint64(len(keys))], Val: v},
+			Then2: TOp{Kind: int(k2), Key: keys[(ki+2)%uint64(len(keys))], Val: v}}
 	}
-	ck, n4 := pick(n, 3)
-	guess, _ := pick(n4, 4)
-	cmp := Cmp{Kind: int(ck), Key: k, Val: v, Num: int64(guess)}
+	ck, n := pick(n, 3)
+	guess, _ := pick(n, 4)
 	nv := vals[(vi+1)%uint64(len(vals))]
-	return mkTxn([]Cmp{cmp}, []TOp{{Kind: TPut, Key: k, Val: nv}}, []TOp{{Kind: TGet, Key: k}})
+	return Input{Kind: KTxn, NCmps: 1, Cmp0: Cmp{Kind: int(ck), Key: k, Val: v, Num: int64(guess)},
+		NThen: 1, Then0: TOp{Kind: TPut, Key: k, Val: nv}, NElse: 1, Else0: TOp{Kind: TGet, Key: k}}
 }
 
 // Gen picks an operation at random (genFrom of a random number).

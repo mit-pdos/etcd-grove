@@ -42,6 +42,7 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.serv
          'github_com.mit_pdos.etcd_grove.examples.linkv',
          'github_com.mit_pdos.etcd_grove.examples.linkv3',
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
+         'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
          'github_com.mit_pdos.etcd_grove.examples.watchkv',
          'github_com.mit_pdos.etcd_grove.examples.cachekv']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -1823,6 +1824,8 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':
             'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.linkvtxn':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.watchkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.cachekv':

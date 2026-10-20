@@ -141,3 +141,30 @@ func TestModel(t *testing.T) {
 		op(0, 2, 3, Input{Kind: KList}, Output{Err: true}),
 	})
 }
+
+// mkTxn is the transaction of at most MaxCmps comparisons, MaxThen then- and MaxElse
+// else-operations (any beyond are dropped).
+func mkTxn(cmps []Cmp, then []TOp, els []TOp) Input {
+	in := Input{Kind: KTxn}
+	if len(cmps) > 0 {
+		in.NCmps = 1
+		in.Cmp0 = cmps[0]
+	}
+	if len(then) > 0 {
+		in.Then0 = then[0]
+		in.NThen = 1
+	}
+	if len(then) > 1 {
+		in.Then1 = then[1]
+		in.NThen = 2
+	}
+	if len(then) > 2 {
+		in.Then2 = then[2]
+		in.NThen = 3
+	}
+	if len(els) > 0 {
+		in.Else0 = els[0]
+		in.NElse = 1
+	}
+	return in
+}
