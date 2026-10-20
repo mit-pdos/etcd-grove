@@ -312,6 +312,25 @@ also for a witness both halves share when only one replicates to it (`OltqNone`;
 `oltqRes` back in every case). Static mode is unaffected (one half). kv's `wErrOk` records
 `IsNewError` (W3b-B's storage contract) and follows from raft's initialization (`wErrOk_of_init`).
 
+Witness branches proved since (2026-10-20, the split with W3b-C: this branch has maybeCommit,
+heartbeats, stepLeader, reconfiguration, restore, MsgProp, InvNodeRun):
+- `raftLog.subterm`, `sendAppendToWitness`, `sendHeartbeatToWitness` specified and proved; the
+  queue push is `ownRaftPhysC_witQ` (its re-seal the one STAGED step: vacuous while `witOwn`
+  says no witness, `outboxRel_snocW` once it goes);
+- `maybeCommit`: `OneLessThanQuorumInReplicationSet.spec_c`, then to each reported witness the
+  entry at its index if of the leader's term and subterm; every request a `WAppSent` (the
+  premises `StepC.sendWApp` needs, at the physical level: `OltqOk`, the entry, the voter lists);
+  its callers still use `ws = []` without a witness;
+- `bcastHeartbeatWithCtx`: the witness's heartbeat is a plain heartbeat with commit 0, so it is
+  `HeartbeatOk` like the others: the spec is unchanged and the branch is no longer staged;
+- `stepLeader`'s `MsgTransferLeader` ignores the witness, as a learner.
+
+Open for check-quorum's new subterm (`ChangeReplicationSet` true, `StepC.newSub`): the step needs
+`uint.Z s.sub + 1 < 2^64`, which nothing bounds yet. Each new subterm appends an entry at it, so
+a leader's subterm is at most the entries it appended in its term; the physical invariant
+"a leader's `ep.sub` is at most its log's last index" (kept by `appendEntry`, set at
+`becomeLeader`) would give it from the log bound.
+
 Gaps of the model found on the way: `leaveJointState` (`InvConfchange.lean`) builds a configuration
 without a witness (Go's `LeaveJoint` keeps `Witnesses[0]`); `ConfStateM` has no witness fields
 (Go's `ConfState()` sets `Witness`/`WitnessOutgoing`), so a snapshot's configuration loses the
