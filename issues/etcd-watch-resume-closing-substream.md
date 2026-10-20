@@ -8,7 +8,17 @@ links:
 
 # The watch client resumes a closing substream and can send on its closed `recvc`
 
-- **Status**: open (not reported).
+- **Status**: bug, fixed in the verified fork (open upstream: etcd-io/etcd#22191 has the same
+  root-cause fix): `goose-lean` `107edf7e4` (the fix of
+  [etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)) drops the
+  substream from `substreams` when `run` closes its `recvc`, so `newWatchClient` no longer moves
+  it into `resuming`. Re-run 2026-10-20 at the pin `8a24be2a3`: the reproduction below no longer
+  panics (3000 trials; in the 133 that reached the reconnect, no create was sent for the canceled
+  substream; the package's leak check then reports the
+  trials' leftover goroutines, which the test does not clean up). The fix leaves the substream's
+  id, which a reconnect can make another watch's:
+  [etcd-watch-resume-stale-canceled-id](etcd-watch-resume-stale-canceled-id.md) (fixed on the
+  fork branch `watch-resume-fixes`).
 - **Where**: `client/v3/watch.go` at `upamanyus/etcd` `bc8b52a50` (the same code as upstream
   `main`; the pinned `457b8d1b6` adds one line at 868, shifting the later lines by one): `watchGRPCStream.run` (the `Canceled` case, lines 620–629, closes a
   substream's `recvc`; the `errc` case, 666–680, reconnects), `newWatchClient` (928–972: every

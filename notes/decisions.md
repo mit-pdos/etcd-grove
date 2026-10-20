@@ -11853,3 +11853,160 @@ theorems, and they are deleted rather than kept as proved Props:
   `context` re-proof completed by the new conjunct; it is now redundant (the clean fix it waited
   for is in), and removing it is a separate simplification (`notes/STATUS.md`).
 
+
+## D24: the watch client's reconnection, verified (2026-10-20 · S0: designed, stopped on two fork fixes)
+
+**Problem.** `watch_safe` and `cache_safe` (and `client_watcher_rangeWatcher`,
+`client_newWatcher_rangeWatcher`, the cache's results over the real watcher) rest on
+`client.noRetryableStreamErr` (`watchConnFacts`): no client watch-stream error, nor `io.EOF`, has
+the gRPC code `Unavailable` or `Internal`, the codes on which `isHaltErr` lets
+`watchGRPCStream.run` reconnect. Under it every receive error stops `run`, and the reconnection
+(`newWatchClient` after `errc`, `resuming`, `nextResume`, `waitCancelSubstreams`, each substream
+resumed from its `initReq.rev`) is verified at its first call only. The premise is false of any
+real network. The goal: verify the reconnection and drop the premise.
+
+### S0 (a): the resume path at the pin `8a24be2a3`
+
+- **The original finding is fixed at the pin.** `issues/etcd-watch-resume-closing-substream.md`'s
+  reproduction (3000 trials) no longer panics: K0 (`107edf7e4`, the same as etcd-io/etcd#22191)
+  drops a server-canceled substream from `substreams`, so `newWatchClient` never resumes it.
+- **Two bugs remain** (each reproduced by an overlay test with a fake `pb.WatchClient`, fixed on
+  the fork branch `watch-resume-fixes` off the pin, one commit each with a regression test that
+  fails without the fix; `go test -race ./client/v3` passes with both):
+  1. `issues/etcd-watch-resume-stale-canceled-id.md` (introduced by K0): the dropped substream
+     keeps its id; after a reconnect a resumed watch can be registered under the same id, and
+     `closeSubstream` of the canceled one then deletes the resumed watch (which never gets
+     another event; `run` may stop and hang in `wg.Wait()`). Fix F1 `04375baaa`: the `Canceled`
+     case resets the id to `InvalidWatchID`.
+  2. `issues/etcd-watch-resume-nil-watch-chan.md` (upstream too): a watch canceled while `run`
+     reconnects has its `outc` closed and set to `nil` by `waitCancelSubstreams`;
+     `closeSubstream` then sends the nil channel on `retc`, which `Watch` may return. Fix F2
+     `a8a459955`: send on `retc` only a non-nil `outc`. The proof needs it: `retcP` (`isSpsc`)
+     cannot hold of a nil channel.
+- **Hazards checked, not bugs** (each is a proof obligation of S1, below):
+  - *The resume revision.* `serveSubstream` sets `initReq.rev` on every receive from `recvc`
+    (unbuffered: a response `run` took from the old stream is either received, so counted, or
+    dropped because the goroutine stopped for good), to the last event's revision + 1, or a
+    non-created response's header revision + 1; `buf` and `outc` survive the goroutine. So the
+    resumed create starts right after the contract's position: after events, the position is
+    the last event (`rangeWatchRespOk`, `watchRespOk`); after a progress notification, its
+    header revision (`watchRespOk`'s progress case: `c ≤ hdrRev`, `c' = hdrRev`). For the weak
+    contract (`cpl = false`) after an event-less response, `hdrRev ≥ c` is needed and is the
+    server's: an event-less response covers its watcher, whose deliveries stop at its revision
+    (`respCov`, K2a/K2e-4). A non-created, event-less response with header revision `0` would
+    resume from `1`; the verified server never sends one (an event-less response's revision is
+    a notified log's last, `≥ 1`).
+  - *`rev = 0`.* After the first `Created`, `nextRev` is the header revision `H` (not `H + 1`), so a
+    resumed "from now" watch can get the events of `H`, committed before it was created. Allowed
+    by the client's contract (events above `rev - 1 = -1`; `cplCond` excludes `rev = 0`), and
+    deliberate (the code's comment: never lose an event committed between the server's watch
+    registration and its reading of `H`). Not recorded as an issue.
+  - *Fragments and `cur`.* `cur` survives a reconnect only holding a fragment; the client never
+    asks for fragments (`wrRO`: `fragment` false), so `cur` is nil at every `errc`.
+  - *Progress.* A progress request sent on the old stream may go unanswered (liveness only); a
+    `-1` response on the new stream is broadcast to the substreams re-created on it only (they
+    enter `substreams` at their `Created`), and covers them by K1b on that stream.
+  - *A closing substream resumed.* A substream whose goroutine stopped for good and is still
+    waiting on `closingc` is moved to `resuming` and may be re-created on the new stream; the
+    `Created`'s dispatch fails on its closed `donec` (no send on an open `recvc` nobody receives),
+    and `closingc` later removes it and cancels the server's watch. `run` must read its
+    `initReq.rev` for the create before it gets the substream's `closingBody`.
+  - *A goroutine racing `resumec` against its closed `recvc`.* If the server canceled a *live*
+    substream, its goroutine could take `resumec` instead of the closed `recvc`, return without
+    posting on `closingc`, and leave `run`'s teardown waiting forever. etcd's server sends a
+    `Canceled` (without compaction) for a registered id only to answer a cancel request, which
+    the client sends only for a substream whose goroutine stopped (K2c's `noCancelOk`): so the
+    goroutine has stopped when `run` closes its `recvc`. Unreachable with etcd's server (a
+    proxy that cancels watches on its own would reach it); the proof uses `noCancelOk`.
+  - *`closeErr`, `isHaltErr`, `openWatchClient`'s loop.* Unchanged: a halting error or the
+    stream's context ends `run` with a `status`-accepted close error; `openWatchClient`'s spec is
+    not first-call-specific (any call gives a fresh stream with `watchSpec`, or an error); its
+    retry loop and `backoffIfUnavailable` are already proved.
+
+### S0 (b): the proof design
+
+**Options.** (A) Keep the premise (the status quo). (B) Verify the reconnection over the fork with
+F1 and F2, the client's contract `isEtcdRangeWatcher` unchanged (it already allows a channel that
+closes and promises no completeness for the weak contract; the cache's `cpl` contract is per
+response, from cursor positions that survive the reconnect). (C) As (B), but weaken the contract
+for watches that saw a reconnect (no completeness after it): changes the cache's results, so
+`cache_safe`'s checks; rejected.
+
+**Choice: (B).** The design:
+
+1. **Epochs of `run`.** `run`'s state names the current gRPC stream (epoch `e`: its
+   `StreamNames`, `Dn`, `watchSpec`, sender token, the requests sent on it, the model's
+   per-stream registry `M`/`CI` and cancels, `WatchClientModel.lean`). A reconnect is a model
+   transition: every registered substream goes back to `resuming` with its id reset (F1 makes a
+   server-canceled one's `-1` too), the per-stream sets empty, the epoch advances. The facts
+   `wsElem` keeps per registered substream (`noCancelOk`, `idAssigned`, the dispatch facts) are
+   per epoch; nothing of an old epoch is used after it.
+2. **`respc` across epochs.** One SPSC over all epochs, its `k`th element tagged with its epoch
+   and its index in that epoch's stream (a monotone ghost list of the epochs' start positions).
+   `serveWatchClient` of an epoch owns the producer side from that epoch's start; its receive
+   error goes on `errc` with the producer token and its count (`errP` gains them: `errc` is a
+   bag, buffered 1, one sender per epoch). Every response of the old stream precedes its error on
+   `respc`/`errc` (the old goroutine sends them in order), so `run` has dispatched all of them
+   before it reconnects; responses the server sent but the client never received are simply
+   not counted (no fact about the old stream is needed).
+3. **A substream across goroutine lifetimes.** What outlives a lifetime: `recvc` (one producer,
+   `run`; the consumer side owned by the current lifetime), the dispatch cursors `γhi`/`γh2`, the
+   `outc` producer and `γ.cur`/`γ.cur2` authorities, `buf`, the `rev` and `retc` fields, `outc`'s
+   field (now mutable: `waitCancelSubstreams` writes it; `wsIs` keeps it as a fraction). Each
+   lifetime gets a fresh `donec` (a broadcast channel per lifetime) whose close publishes either
+   the stop for good (`γx`, with a read-only copy of `rev`: the closing substream's resume create
+   reads it) or, on `resumec`, an invariant holding the handed-back resources with a token `run`
+   keeps (`joinSubstreams` collects them). `resumec`'s predicate becomes `True` (a signal).
+   `serveSubstream`'s spec starts from any such state (`n` published, `k` received, the buffer's
+   contents) instead of the fresh one.
+4. **The resume revision.** A per-substream invariant, kept by whoever holds the `rev` field:
+   `rev - 1 ≥` the last `γhi` position, `rev - 1 =` the last `γh2` position when `cpl`, and the
+   create's facts for `rev` (`startOk V sr rev`, the original `sr`). Each `recvElem` gains the
+   facts that make `hiA + 1` / `h2A + 1` such a revision; `recvElem` also admits a `Created`
+   response at `k > 0` (a resumed create: no events, position kept; `serveSubstream` ignores it).
+5. **The server side: `startRead` from a notified log.** A resumed create's start revision is
+   the last delivered event's or progress revision + 1, which the server notified, perhaps before
+   committing it (`TxnWrite.End` notifies, then bumps `currentRev`, both under `s.mu`), so
+   `mvcc.startRead` (a committed log, `idxCert`, reaching `rev - 1`) may not hold. But
+   `watchableStore.watch` registers under `s.mu`, whose body holds the committed log's quarter at
+   the notified log (K1a's `wlogQ`): so `startRead` can be stated as either a committed or a
+   notified log reaching `rev - 1` (`notifiedLb`, K2e-2), and `startRead_le` still holds under
+   `s.mu`. The responses then export, per response, the notified log their position is in (an
+   event-less one's revision is a notified log's last, K2e-5's `respRev`; an event's revision is
+   one of the notified log the delivery was cut from). Internal statements change
+   (`mvcc.startRead`, `watchRecvResult`/`mvccOk`'s exports); no closed theorem's.
+6. **`waitCancelSubstreams` and `newWatchClient`, general.** `newWatchClient` lends each resuming
+   substream's state to its `waitCancelSubstreams` goroutine (closing it — F2's case — when its
+   context is done: `outc` closed and nil, `closing` set, `γx` set by the lender's token, posted
+   on `closingc` by a goroutine that `w.wg.Add(1)`s) and gets it back at the returned channel's
+   close (Perennial's `WaitGroup` for the local group; an invariant per substream with a token,
+   as for `donec`). The concurrent `Add(1)`s need `run`'s `wgsWgAdder` split into fractions while
+   no `Wait` can happen (`InvWatchWg.lean`: each `Add` still deposits a thread token). Then it
+   restarts every non-closing substream (`serveSubstream`, general) and `serveWatchClient`.
+7. **Premises.** `noRetryableStreamErr` leaves `watchConnFacts` and with it
+   `client_watcher_rangeWatcher`, `client_newWatcher_rangeWatcher`, the cache's results over the
+   watcher, `watchkv.premises`, `cachekv.premises`, `watch_safe`, `cache_safe` (and is deleted).
+   Nothing else in those statements changes; every other closed theorem's statement is unchanged.
+   **No new axiom**: a second stream is another `openWatchClient` call (the stub's spec is
+   persistent, the gRPC stream axioms give each `NewStream` fresh names); the old stream is
+   abandoned with its tokens; each resumed create spends a watch token from the pool, as a first
+   create does.
+
+**Stages.**
+- **S1a (the pin).** F1 and F2 cherry-picked onto `goose-lean` (pushed by the user), the pin
+  moved, the translation regenerated (expected to change only `Code/`/`GeneratedProof/` of
+  `go_etcd_io/etcd/client/v3`: `run`'s `Canceled` case, `closeSubstream`); `run`'s and
+  `closeSubstream`'s proofs re-done over it, still under the premise.
+- **S1b (server).** `startRead` from a notified log; the per-response resume facts exported.
+- **S1c (model).** Epochs and the reconnect transition (`WatchClientModel.lean`); `recvElem`'s
+  resume facts and resumed `Created`s; the resume-revision invariant.
+- **S1d (the helpers).** `serveSubstream` from any state with the resume exit; `joinSubstreams`
+  collecting the hand-backs; `waitCancelSubstreams`, `serveWatchClient` (the producer over
+  `errc`), `newWatchClient`, general; `InvWatchWg`'s split adder.
+- **S1e (`run` and the results).** `run`'s `errc` case and resumed creates; the premise dropped
+  from `watchConnFacts` up to `watch_safe`/`cache_safe`; collections and baseline updated.
+
+**Stopped after S0** (the parent's rule: a Go fix to etcd is needed): F1 and F2 are on the fork
+branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
+`/shared/etcd-goose-lean-wk`), not on `goose-lean`, not pushed; S1a needs them cherry-picked onto
+`goose-lean` and pushed (or the translation run with `--src etcd=<checkout>` until then).

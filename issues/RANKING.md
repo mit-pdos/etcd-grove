@@ -75,7 +75,10 @@ before any public issue.
 7. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
    [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) (the same cause):
    the client library panics on a send to a closed channel (for Kubernetes, the API server).
-   etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it.
+   etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it, with
+   [etcd-watch-resume-stale-canceled-id](etcd-watch-resume-stale-canceled-id.md): the fix keeps
+   the canceled substream's id, which after a reconnect can delete the resumed watch that reuses
+   it (a one-line addition to the PR: reset the id).
 8. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)**: the retry
    interceptor can resend a `Put`/`Txn`/`Delete` after a `Canceled` status, applying the write
    twice. Less reachable than the file suggests (mostly through proxies or load balancers).
@@ -157,6 +160,10 @@ fork carries #21987). Also [raft-reportsnapshot-finish-not-noop](raft-reportsnap
 (the `ReportSnapshot` comment: etcd-io/raft#243, open, fixes it as part of a breaking v4 change).
 
 ## Probably not worth their time now
+
+- **[etcd-watch-resume-nil-watch-chan](etcd-watch-resume-nil-watch-chan.md)**: a watch canceled
+  while the client reconnects can be handed a nil `WatchChan` (a receive blocks forever); needs
+  the caller's goroutine to be late by a whole reconnect. Small fix with a test.
 
 - **Leasing** ([leasing-update-stale](leasing-update-stale.md),
   [leasing-evictrange-key](leasing-evictrange-key.md),
