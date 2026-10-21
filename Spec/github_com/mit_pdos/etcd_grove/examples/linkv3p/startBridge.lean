@@ -36,7 +36,7 @@ abbrev startBridge.spec : Prop :=
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge)) (Val #addr))
       (Val #client))
   {{ (br err : GoInterface), RET (PairV #br #err); threadTok ∗
-      ((⌜err = GoInterface.nil⌝ ∗ bridgeP.ownBridge br client false ∗ forwards addr client) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ bridge.ownBridge br client false ∗ forwards addr client) ∨
         ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec

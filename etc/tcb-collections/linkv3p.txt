@@ -317,6 +317,7 @@ axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
 axiom grpc.WithUnaryInterceptor.wp_proof
+axiom grpc.relay
 axiom grpc.serve
 axiom grpc.start
 axiom grpcConn
@@ -350,6 +351,7 @@ axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
+axiom io.Copy.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -363,9 +365,14 @@ axiom monitorFileDescriptor.wp_proof
 axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.HashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
+axiom net.ConnClose
+axiom net.Dial.wp_proof
 axiom net.Listen.wp_proof
 axiom net.http.Serve.wp_proof
 axiom netAddrFree
+axiom netConnOk
+axiom netConnOk_persistent
+axiom netDialed
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -406,6 +413,15 @@ axiom rafthttp.Transport.MendPeer.wp_proof
 axiom rafthttp.Transport.Start.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom reflect.ValueOf.wp_proof
+axiom relay.Accept
+axiom relay.ListenerClose
+axiom relay.Read
+axiom relay.Write
+axiom relay.pair
+axiom relayDir
+axiom relayFresh
+axiom relayListener
+axiom relayListener_persistent
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof

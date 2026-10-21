@@ -1,7 +1,8 @@
 # Plan: cuts between clients and members in `linkv3p`, and recovery from them
 
-Status: in progress (2026-10-21): K0 done (branch `client-cut`, worktree `/shared/etcd-grove-cc`);
-linkv3p's `partitioner`, `Main` and `Adequacy` proofs do not build until K3.
+Status: in progress (2026-10-21, branch `client-cut`, worktree `/shared/etcd-grove-cc`): K0, K2 and
+K3 done; K1 drafted (`notes/decisions.md` D26) and awaiting the user's approval, on which K2 and K3
+rest; K4 not started. `linkv3p_safe` now covers client-member cuts and recovery at the same member.
 
 ## Goal
 
@@ -220,6 +221,39 @@ connection map under `mu`; the `WaitGroup`'s counter with thread tokens (as Pere
 `WaitGroup` spec takes since `105fb79f5`). A lock invariant holds the map and the three channels'
 states. The bridge holds no gRPC resource: its specs say nothing about the bytes.
 
+**Done (2026-10-21).** `Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`: `Defs.lean`
+(the protocol), `Lemmas.lean`, and the proofs of the functions linkv3p calls and their callees:
+`New`, `newBridge`, `serveListen`, `serveConn`, `ioCopy`, `bridgeConn.Close`/`close`,
+`dialer.Dial`, `Blackhole`, `Unblackhole`, `DropConnections` (11 of the package's 14 functions;
+`Close`, `PauseConnections`, `UnpauseConnections` are not verified: linkv3p does not call them).
+`Link.lean` by `etc/gen-link.py --bridge`. What the proofs needed:
+
+- **`b.blackholec` read without the mutex** by every copy goroutine and written by `Unblackhole`
+  under it (race-free in Go because `Unblackhole` waits for every registered connection's
+  `donec` first): each registration halves the mutex's fraction of the field for the new
+  connection's goroutines; `serveConn` deposits the share in an invariant and closes `donec` with
+  it; whoever removes the connection from the map trades a claim token for it. The mutex holds a
+  wand from its fraction and the outstanding shares to the whole field, so no fraction
+  arithmetic beyond halves.
+- **A registry of every connection ever registered** (insert-only ghost map, persistent
+  entries): `serveConn` knows its entry is its own; a fresh allocation is not registered, since a
+  registered connection's fields are persistent and the fresh one's owned whole.
+- **The bridge's wait group**: `serveConn`s counted by deposited thread tokens (`serveListen`
+  deposits the loop's, the `go` statement gives a fresh one back); `serveListen` itself by a flag,
+  since the caller of `New` keeps its token and the fresh one goes to `serveListen`, which needs
+  one for its first `Add`. So the counter is below `threadBound GF + 1`, and linkv3p's run bound is
+  one less (`n + 3 ≤ 2 ^ 31`).
+- **`serveConn`'s local wait group** (`Add(2)`, which Perennial's join idiom, `Add(1)` at a time,
+  does not cover): a pair invariant of its own.
+- **`Blackhole` takes the owner's flag "not blackholed"** (`bridgeHoled γ false`): the panic of a
+  second call (`issues/etcd-bridge-blackhole-twice-panic.md`) is excluded by the premise, which
+  linkv3p's `clientStep` meets by tracking the flags (`holed`).
+
+Perennial limitations met, worked around locally (to propose upstream): `wp_load` does not load a
+field through a persistent points-to of the whole struct (the connection's fields are persistent
+field by field); there is no validity lemma for typed points-to (`loc_own_discard`, for `Loc`'s,
+from `heapPointsto_valid`).
+
 ### K3. linkv3p over the bridge
 
 - `newClient` at the bridge's address; `clientOk`'s registrations at it, from the forwarding fact
@@ -232,6 +266,15 @@ states. The bridge holds no gRPC resource: its specs say nothing about the bytes
   (`--update` for the new axioms) and every collection. `linkv3p.txt` gains exactly the `net`
   axioms and the forwarding fact; nothing else moves. `verified-code.py` (the bridge's functions
   verified).
+
+**Done (2026-10-21).** `peerStep` (the old loop body), `clientStep`, `startBridge` (`net.Listen`,
+`grpc.relay`, `bridge.New`: the bridge owned and `forwards bridgeAddr clientAddr`), `partitioner`
+over both, `Main` (the clients at the bridges' addresses, `clientOk`'s registrations through
+`isGrpcRpc_forwards`), `Adequacy` (nine addresses; the run bound `n + 3 ≤ 2 ^ 31`) and `Results`.
+Gates: `lake build` (5952 jobs), every `gen-link` mode, `goose --check`, `gen-init --check`,
+`tcb-report --check` (the baseline gains exactly D26's 16 axioms: 537 axioms, 2 sorries) and every
+collection (`linkv3p.txt`: 463 -> 479 axioms, exactly D26's; no other collection moves),
+`verified-code.py` (linkv3p 9 of 9 functions; the bridge 11 of 14).
 
 ### K4. Failover (D-C4)
 

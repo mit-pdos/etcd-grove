@@ -4,15 +4,17 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
 (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`linkv3p_Main`** (`Link.lean`'s `linkv3p.wp_Main`): `Main(clients, ops, sched)` -- three etcd
-  members started in process and served (`startMember`), a one-attempt client to each
-  (`127.0.0.1:2383{1,2,3}`), the partitioner forked on the schedule `sched` (the links between
-  members cut and mended, in both directions, as its steps say, with etcd's own
-  `CutPeer`/`MendPeer`), linkvtxn's `Check` (gets, lists, puts, deletes, transactions and
+  members started in process and served (`startMember`), a copy of etcd's test bridge to each
+  member's client address (`127.0.0.1:2385{1,2,3}` to `127.0.0.1:2383{1,2,3}`, since 2026-10-21),
+  a one-attempt client to each bridge, the partitioner forked on the schedule `sched` (the links
+  between members cut and mended, in both directions, with etcd's own `CutPeer`/`MendPeer`, and
+  the links between each client and its member blackholed, unblackholed or dropped, with the
+  bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say), linkvtxn's `Check` (gets, lists, puts, deletes, transactions and
   compare-and-sets against the model of etcd's KV; linkv's Puts and Gets until 2026-10-20) with
   each operation through a random member, and a panic if porcupine answers `Illegal` -- does
   not panic and returns `Ok` or `Unknown`, **for every schedule** (`sched ↦*□ steps`, any
   `steps`). From `isPkgInit linkv3p`, the right to listen on
-  the six addresses, the main thread's token and `Main`'s named premises
+  the nine addresses, the main thread's token and `Main`'s named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/Main.lean`).
 * **`linkv3p_safe`** (`Adequacy.lean`'s `linkv3p_adequate`): the closed theorem. Every real
   execution of `n` steps of `linkv3p`'s initialization followed by `Main(clients, ops, sched)`,
@@ -21,13 +23,19 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
   under linkv3's hypotheses (`linkv3_safe`) at linkv3p's configuration, v3rpc's method sets as
   an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s, as `linkvtxn_safe`'s)
-  and the schedule's length below `2^63`.
+  and the schedule's length below `2^63`; the run's length is bounded by `2^31 - 3`, one less
+  than linkv3's (each bridge's accept loop counted in its wait group by a flag).
 
 What the theorem says of partitions: the network model (`Transport.Start`'s axiom) lets any
 message be lost, so the proofs of raft and of etcd's server never needed delivery; this program
 is the one in which messages *are* lost, on the schedule's say, with clients at every member,
 and the theorem is that every history it produces is still linearizable (D24, the
-transport's remotes: the hooks' axioms take a member of a new cluster).
+transport's remotes: the hooks' axioms take a member of a new cluster). The same holds of the
+links between the clients and their members (`notes/client-cut-plan.md`): each client reaches
+its member through a bridge that only relays a prefix of each side's bytes, which gRPC sees as
+the member's server or as a failed attempt (the forwarding fact, D26); the bridge's code is
+proved, a blackholed bridge never blackholed again (its `Blackhole` panics on a second call,
+`issues/etcd-bridge-blackhole-twice-panic.md`).
 -/
 module
 
@@ -95,7 +103,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 3 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=

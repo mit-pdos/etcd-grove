@@ -19,11 +19,20 @@ linkv3p_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer E
 # `newClient`: the client's `New` (linked in the client's `Link.lean`)
 client_v3_New: @
 linkv3p_newClient: client_v3_New
-# `partitioner`: etcd's partition hooks and the member id (linked in the server's `Link.lean`)
+# `startBridge`: `net.Listen` and the bridge's `New` (linked in the bridge's `Link.lean`)
+bridge_New: @
+linkv3p_startBridge: net_Listen bridge_New
+# `partitioner`: `peerStep` over etcd's partition hooks and the member id (linked in the server's
+# `Link.lean`), `clientStep` over the bridge's `Blackhole`, `Unblackhole`, `DropConnections`
 EtcdServer__MemberID: @
 EtcdServer__CutPeer: @
 EtcdServer__MendPeer: @
-linkv3p_partitioner: EtcdServer__MemberID EtcdServer__CutPeer EtcdServer__MendPeer
+linkv3p_peerStep: EtcdServer__MemberID EtcdServer__CutPeer EtcdServer__MendPeer
+bridge__Blackhole: @
+bridge__Unblackhole: @
+bridge__DropConnections: @
+linkv3p_clientStep: bridge__Blackhole bridge__Unblackhole bridge__DropConnections
+linkv3p_partitioner: linkv3p_peerStep linkv3p_clientStep
 # `Apply` over linkvtxn's; `Check` over the driver's `Run` and `CounterClock`, linkvtxn's `Model`
 # and `Gen` (all linked in their `Link.lean`s)
 linkvtxn_Apply: @
@@ -33,7 +42,7 @@ CounterClock: @
 linkvtxn_Model: @
 linkvtxn_Gen: @
 linkv3p_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkv3p_Apply
-# `Main`: the start of the cluster and the clients, the partitioner forked, the check (zap's
-# trust-boundary axiom; the rest linkv3p's own)
+# `Main`: the start of the cluster, the bridges and the clients, the partitioner forked, the check
+# (zap's trust-boundary axiom; the rest linkv3p's own)
 zap_NewNop:
-linkv3p_Main: zap_NewNop linkv3p_startMember linkv3p_newClient linkv3p_partitioner linkv3p_Check
+linkv3p_Main: zap_NewNop linkv3p_startMember linkv3p_startBridge linkv3p_newClient linkv3p_partitioner linkv3p_Check

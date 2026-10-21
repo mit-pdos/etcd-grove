@@ -53,7 +53,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace bridgeP
+namespace bridge
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.third_party
 
@@ -199,6 +199,6 @@ def ownBridge (br : GoInterface) (addr : GoString) (h : Bool) : IProp GF :=
 
 end defs
 
-end bridgeP
+end bridge
 end EtcdGrove
 end Perennial

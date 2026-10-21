@@ -17,7 +17,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace bridgeP
+namespace bridge
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.third_party
 
@@ -76,6 +76,6 @@ theorem bridge.DropConnections.wp_proof (wp_Close : bridgeConn.Close.spec (GF :=
 
 end proof
 
-end bridgeP
+end bridge
 end EtcdGrove
 end Perennial

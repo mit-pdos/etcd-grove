@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
 theorem startBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_New : bridgeP.New.spec (GF := GF) (hG := hG)) :
+    (wp_New : bridge.New.spec (GF := GF) (hG := hG)) :
     startBridge.spec (GF := GF) (hG := hG) := by
   intro addr client Htb
   wp_start as ⟨Hfree, Htok⟩

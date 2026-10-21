@@ -31,11 +31,11 @@ abbrev clientStep.spec : Prop :=
   ∀ (brs holed : GoSlice) (bs : List GoInterface) (hs : List Bool) (kind a : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       brs ↦*□ bs ∗ holed ↦* hs ∗
-      ([∗list] br; h ∈ bs; hs, ∃ addr : GoString, bridgeP.ownBridge br addr h) }}
+      ([∗list] br; h ∈ bs; hs, ∃ addr : GoString, bridge.ownBridge br addr h) }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.clientStep))
       (Val #brs)) (Val #holed)) (Val #kind)) (Val #a))
   {{ RET #(); ∃ hs' : List Bool, holed ↦* hs' ∗
-      ([∗list] br; h ∈ bs; hs', ∃ addr : GoString, bridgeP.ownBridge br addr h) }}
+      ([∗list] br; h ∈ bs; hs', ∃ addr : GoString, bridge.ownBridge br addr h) }}
 
 end spec
 

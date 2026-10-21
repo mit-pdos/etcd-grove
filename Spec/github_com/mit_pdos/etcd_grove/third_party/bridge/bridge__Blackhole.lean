@@ -14,7 +14,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace bridgeP
+namespace bridge
 
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.third_party
 
@@ -37,6 +37,6 @@ abbrev bridge.Blackhole.spec : Prop :=
 
 end spec
 
-end bridgeP
+end bridge
 end EtcdGrove
 end Perennial

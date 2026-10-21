@@ -32,9 +32,9 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
 theorem clientStep.wp_proof
-    (wp_Blackhole : bridgeP.bridge.Blackhole.spec (GF := GF) (hG := hG))
-    (wp_Unblackhole : bridgeP.bridge.Unblackhole.spec (GF := GF) (hG := hG))
-    (wp_DropConnections : bridgeP.bridge.DropConnections.spec (GF := GF) (hG := hG)) :
+    (wp_Blackhole : bridge.bridge.Blackhole.spec (GF := GF) (hG := hG))
+    (wp_Unblackhole : bridge.bridge.Unblackhole.spec (GF := GF) (hG := hG))
+    (wp_DropConnections : bridge.bridge.DropConnections.spec (GF := GF) (hG := hG)) :
     clientStep.spec (GF := GF) (hG := hG) := by
   intro brs holed bs hs kind a
   wp_start as ⟨#Hbrs, Hholed, Hown⟩
@@ -74,9 +74,9 @@ theorem clientStep.wp_proof
   · iframe #; ipureintro; exact Hbr_lookup
   (try wp_auto)
   icases (BigSepL2.bigSepL2_insert_acc (Φ := fun _ br h =>
-    iprop(∃ addr : GoString, bridgeP.ownBridge (GF := GF) br addr h)) Hbr_lookup Hh_lookup) $$ Hown
+    iprop(∃ addr : GoString, bridge.ownBridge (GF := GF) br addr h)) Hbr_lookup Hh_lookup) $$ Hown
     with ⟨⟨%addr, Hob⟩, Hback⟩
-  iunfold bridgeP.ownBridge at Hob
+  iunfold bridge.ownBridge at Hob
   icases Hob with ⟨%bp, %γ, %Hbrv, #Hb, Hh⟩
   subst Hbrv
   wp_if_destruct
@@ -102,7 +102,7 @@ theorem clientStep.wp_proof
       rw [hbs]
       iapply Hall
       iexists addr
-      iunfold bridgeP.ownBridge
+      iunfold bridge.ownBridge
       iexists bp, γ
       iframe #
       iframe
@@ -116,7 +116,7 @@ theorem clientStep.wp_proof
       rw [hbs, hhs]
       iapply Hall
       iexists addr
-      iunfold bridgeP.ownBridge
+      iunfold bridge.ownBridge
       iexists bp, γ
       iframe #
       iframe
@@ -139,7 +139,7 @@ theorem clientStep.wp_proof
     rw [hbs]
     iapply Hall
     iexists addr
-    iunfold bridgeP.ownBridge
+    iunfold bridge.ownBridge
     iexists bp, γ
     iframe #
     iframe
@@ -156,7 +156,7 @@ theorem clientStep.wp_proof
     rw [hbs, hhs]
     iapply Hall
     iexists addr
-    iunfold bridgeP.ownBridge
+    iunfold bridge.ownBridge
     iexists bp, γ
     iframe #
     iframe

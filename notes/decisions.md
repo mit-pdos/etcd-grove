@@ -12055,5 +12055,12 @@ duplicates or invents bytes guarantees.
 persistence of `netConn`); `net.Dial` and `io.Copy` (to `io.Discard`) as `Spec`/`Proof` pairs.
 `linkv3p.txt` gains these and nothing else.
 
-**Status.** Proposed 2026-10-21 while the user was away, with the instruction to keep going; K2
-(the bridge's proof) is written against it, so a different choice changes K2's `net` calls only.
+**Status.** Proposed 2026-10-21 while the user was away, with the instruction to keep going, and
+carried out on branch `client-cut` (K2 and K3: the bridge proved over these specs, `linkv3p_safe`
+re-closed over the bridges); still to be approved. A different choice changes the bridge's
+`net` calls and `startBridge`. As stated: `Proof/net/InvRelay.lean` (`grpc.relay`, the relay's
+predicates, `relay.Accept`, `relay.ListenerClose`, `net.ConnClose`, `relay.pair`, `relay.Read`,
+`relay.Write`), `Spec/net/Dial.lean` and `Spec/io/Copy.lean` with their axioms: 16 axioms in all,
+which `etc/tcb-collections/linkv3p.txt` gains and nothing else. `net.Conn` is translated as an
+interface (`Code/net.toml`), which removes nothing from any trust base (its axiomatized type was
+reached by no result).

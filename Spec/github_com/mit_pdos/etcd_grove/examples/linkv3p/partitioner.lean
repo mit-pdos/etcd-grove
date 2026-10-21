@@ -39,7 +39,7 @@ abbrev partitioner.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       srvs ↦*□ ss ∗ brs ↦*□ bs ∗ sched ↦*□ steps ∗
       ([∗list] s ∈ ss, ∃ id : w64, srvNetMember γn s id) ∗
-      ([∗list] br ∈ bs, ∃ addr : GoString, bridgeP.ownBridge br addr false) }}
+      ([∗list] br ∈ bs, ∃ addr : GoString, bridge.ownBridge br addr false) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner))
       (Val #srvs)) (Val #brs)) (Val #sched))
   {{ RET #(); True }}

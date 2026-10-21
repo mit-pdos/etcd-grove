@@ -20,7 +20,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace bridgeP
+namespace bridge
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.third_party
 
@@ -309,6 +309,6 @@ theorem bridge.serveListen.wp_proof (wp_serveConn : bridge.serveConn.spec (GF :=
       iexact Htok
 end proof
 
-end bridgeP
+end bridge
 end EtcdGrove
 end Perennial

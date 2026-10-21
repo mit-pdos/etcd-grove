@@ -45,7 +45,7 @@ theorem partitioner.wp_proof
   wp_apply wp_slice_make2 (V := Bool) $$ [] as %hl ⟨Hhl, -⟩
   · ipureintro; word
   ihave Hown := (BigSepL2.bigSepL2_replicate_right (Φ := fun _ br h =>
-    iprop(∃ addr : GoString, bridgeP.ownBridge (GF := GF) br addr h)) (l := bs) (x := false)).2 $$ Hown
+    iprop(∃ addr : GoString, bridge.ownBridge (GF := GF) br addr h)) (l := bs) (x := false)).2 $$ Hown
   have hrep : List.replicate (sint.nat brs.len) (zero_val Bool) = List.replicate bs.length false := by
     rw [Hbl.1]; rfl
   rw [hrep]
@@ -53,7 +53,7 @@ theorem partitioner.wp_proof
   ihave HI : (∃ (j : w64) (st0 : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step)
       (hs : List Bool),
       "i" ∷ i_ptr ↦ j ∗ "st" ∷ st_ptr ↦ st0 ∗ "Hhl" ∷ hl ↦* hs ∗
-      "Hown" ∷ ([∗list] br; h ∈ bs; hs, ∃ addr : GoString, bridgeP.ownBridge br addr h) ∗
+      "Hown" ∷ ([∗list] br; h ∈ bs; hs, ∃ addr : GoString, bridge.ownBridge br addr h) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sched.len⌝ : IProp GF) $$ [i st Hhl Hown]
   · iexists W64 0, _, _
     iframe

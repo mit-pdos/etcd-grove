@@ -17,7 +17,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace bridgeP
+namespace bridge
 
 open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.third_party
 
@@ -137,6 +137,6 @@ theorem bridge.ioCopy.wp_proof (wp_Copy : io.Copy.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end bridgeP
+end bridge
 end EtcdGrove
 end Perennial
