@@ -1,14 +1,15 @@
 /-
-`partitioner(srvs, sched)` (`examples/linkv3p/linkv3p.go`; the partition plan's S3a,
-2026-10-20): for each step of the schedule `sched`, after its delay (`time.Sleep`), the link
-between members `A` and `B` of `srvs` cut (`EtcdServer.CutPeer`, both directions) or mended
-(`MendPeer`); a step whose indices are out of range or equal does nothing. Lean-first (no Rocq
-counterpart).
+`partitioner(srvs, brs, sched)` (`examples/linkv3p/linkv3p.go`; the partition plan's S3a,
+2026-10-20; the client steps since 2026-10-21, `notes/client-cut-plan.md`): for each step of the
+schedule `sched`, after its delay (`time.Sleep`), a peer step (`peerStep`: cut or mend the link
+between members `A` and `B` of `srvs`) or a client step (`clientStep`: blackhole, unblackhole or
+drop the connections of member `A`'s bridge in `brs`, a second blackhole skipped), by its kind;
+any other kind does nothing. Lean-first (no Rocq counterpart).
 
-**The triple:** over the read-only slices of servers `ss` and steps, each server a member of the
-network `γn` (`srvNetMember`, which `startMember` returns in `memberServed` and `CutPeer`/
-`MendPeer`'s specs take; `MemberID` reads the member id it carries): it returns. Nothing is
-assumed of the schedule: the theorem that runs it (`Main`) quantifies over every one.
+**The triple:** over the read-only slices of servers `ss`, each a member of the network `γn`
+(`srvNetMember`), of bridges `bs`, each owned and not blackholed (`ownBridge`), and of steps: it
+returns. Nothing is assumed of the schedule: the theorem that runs it (`Main`) quantifies over
+every one.
 -/
 module
 
@@ -33,12 +34,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev partitioner.spec : Prop :=
-  ∀ (γn : NetNames GF) (srvs sched : GoSlice) (ss : List Loc)
+  ∀ (γn : NetNames GF) (srvs brs sched : GoSlice) (ss : List Loc) (bs : List GoInterface)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
-      srvs ↦*□ ss ∗ sched ↦*□ steps ∗ ([∗list] s ∈ ss, ∃ id : w64, srvNetMember γn s id) }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner))
-      (Val #srvs)) (Val #sched))
+      srvs ↦*□ ss ∗ brs ↦*□ bs ∗ sched ↦*□ steps ∗
+      ([∗list] s ∈ ss, ∃ id : w64, srvNetMember γn s id) ∗
+      ([∗list] br ∈ bs, ∃ addr : GoString, bridgeP.ownBridge br addr false) }}
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner))
+      (Val #srvs)) (Val #brs)) (Val #sched))
   {{ RET #(); True }}
 
 end spec

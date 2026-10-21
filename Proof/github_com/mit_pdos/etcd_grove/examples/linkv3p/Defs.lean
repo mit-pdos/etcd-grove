@@ -17,7 +17,8 @@ linkv3's. So the cluster's list (`ids`: the bootstrap log's order, one conf chan
 `[id₁, id₂, id₃]`, and `BootFacts` is putget3's in that order.
 
 **What a started member gives** (`memberServed`) and **what a client's `Apply` takes**
-(`clientOk`) are at the end.
+(`clientOk`) are at the end, with **what a bridge's start gives** (`forwards`: the bridge's
+address serves what the member's does, `Proof/net/InvRelay.lean`'s `grpc.relay`).
 -/
 module
 
@@ -26,6 +27,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Inv
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
 
 @[expose] public section
 
@@ -60,10 +62,16 @@ abbrev peerAddr₁ : GoString := go!"127.0.0.1:23841"
 abbrev peerAddr₂ : GoString := go!"127.0.0.1:23842"
 abbrev peerAddr₃ : GoString := go!"127.0.0.1:23843"
 
-/-- The members' client addresses (each served, to its client). -/
+/-- The members' client addresses (each served, to its bridge). -/
 abbrev clientAddr₁ : GoString := go!"127.0.0.1:23831"
 abbrev clientAddr₂ : GoString := go!"127.0.0.1:23832"
 abbrev clientAddr₃ : GoString := go!"127.0.0.1:23833"
+
+/-- The bridges' addresses (each a relay to a member's client address, which its client dials;
+`notes/client-cut-plan.md`). -/
+abbrev bridgeAddr₁ : GoString := go!"127.0.0.1:23851"
+abbrev bridgeAddr₂ : GoString := go!"127.0.0.1:23852"
+abbrev bridgeAddr₃ : GoString := go!"127.0.0.1:23853"
 
 /-- **The initial cluster's peer URLs, by name** (the map `Main` builds, `cluster`). -/
 def initURLs3 (k : GoString) : List _root_.Perennial.net.url.URL :=
@@ -167,6 +175,35 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid))
 
 end defs
+
+section forwards
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
+gives, from the forwarding fact `grpc.relay`). -/
+def forwards (a b : GoString) : IProp GF :=
+  iprop(□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
+    grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S)
+
+instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) a b) := by
+  unfold forwards; infer_instance
+
+/-- A method registered at `b` is registered at an address that forwards to `b`. -/
+theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpec Req Rep) :
+    forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec := by
+  iintro ⟨#Hf, #Hr⟩
+  iunfold forwards at Hf
+  unfold isGrpcRpc
+  icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  iexists mh, srv, ics, S
+  isplitl
+  · iapply Hf $$ %name %mh %srv %ics %S Hs
+  · iexact Hm
+
+end forwards
 
 end linkv3p
 end EtcdGrove
