@@ -68,13 +68,6 @@ def proleRole : PRole → Role
 theorem proleRole_leader (ro : PRole) : proleRole ro = .leader ↔ ro = .leader := by
   cases ro <;> simp [proleRole]
 
-theorem proleRole_candidate (ro : PRole) : proleRole ro = .candidate ↔ ro = .candidate := by
-  cases ro <;> simp [proleRole]
-
-theorem proleRole_follower (ro : PRole) :
-    proleRole ro = .follower ↔ ro = .follower ∨ ro = .preCandidate := by
-  cases ro <;> simp [proleRole]
-
 theorem proleRole_not_leader (ro : PRole) (Hne : ro ≠ .leader) : proleRole ro ≠ .leader :=
   fun Hr => Hne ((proleRole_leader ro).1 Hr)
 
@@ -435,9 +428,6 @@ theorem prstateW64_inj (p1 p2 : PRState) (H : prstateW64 p1 = prstateW64 p2) : p
   have H' := (prstateOfW64_Some _ _).2 H
   rw [prstateOfW64_w64] at H'
   exact (Option.some.inj H')
-
-theorem prstateW64_ne (p1 p2 : PRState) (Hne : p1 ≠ p2) : prstateW64 p1 ≠ prstateW64 p2 :=
-  fun H => Hne (prstateW64_inj _ _ H)
 
 section abs
 variable [FfiSyntax]
@@ -1533,13 +1523,7 @@ theorem toPState_vote (s : NState) (v : w64) :
 theorem nstateWf_becomeFollower (s : NState) (term lead : w64) :
     NStateWf (becomeFollower s term lead) := ⟨rfl, rfl⟩
 
-theorem nstateWf_becomeCandidate (id : w64) (s : NState) :
-    NStateWf (becomeCandidate id s) := ⟨rfl, rfl⟩
-
 theorem nstateWf_becomeLeader (id : w64) (s : NState) : NStateWf (becomeLeader id s) :=
-  ⟨rfl, rfl⟩
-
-theorem nstateWf_becomePrecandidate (s : NState) : NStateWf (becomePrecandidate s) :=
   ⟨rfl, rfl⟩
 
 /-- A state with new `Progress` values is as well-formed as before: `r.step` and the
@@ -1570,13 +1554,6 @@ theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
     (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m) : ReplOk id ps' m := by
   unfold ReplOk AppOk SnapOk at *
   rw [Ht, Hb, Hl, Hc]; exact H
-
-/-- `replOk_proper` for `ReplSends`'s element (with `AppCommitEq`, 2026-10-14). -/
-theorem replAC_proper (id : w64) (ps ps' : PState) (m : Msg)
-    (Ht : ps'.term = ps.term) (Hb : ps'.base = ps.base) (Hl : ps'.log = ps.log)
-    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m ∧ AppCommitEq ps m) :
-    ReplOk id ps' m ∧ AppCommitEq ps' m :=
-  ⟨replOk_proper id ps ps' m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2 h⟩
 
 /-- `replAC_proper` for `ReplSends`'s element (D19p: with the snapshot's peer), at a state with
 the same progress map. -/

@@ -351,19 +351,6 @@ theorem waitedEvent_put (pfx : GoString) (o : OpFull) (rev : w64) (ev : Loc) :
   iframe He Hv Hr Hs
   ipureintro; exact ⟨Hvs.1, Hvs.2, Hvk.1, Hvk.2, Hp.2.1, Hp.1⟩
 
-/-- The key of a single-key watch's event is the key. -/
-theorem waitedEvent_key (pfx key : GoString) (rev : w64) (typ : w32) (ev : Loc) :
-    waitedEvent (GF := GF) pfx (keyWatchOp key rev) rev typ ev ⊢
-      ∃ e : EvModel, eventAt ev e ∗ ⌜e.key = key ∧ e.typ = typ⌝ := by
-  obtain ⟨-, -, hk, he⟩ := keyWatchOp_fields key rev
-  unfold waitedEvent rangeWatchEvOk
-  iintro ⟨%e, #He, %Ht, %Hp, -, -, -⟩
-  iexists e
-  iframe He
-  ipureintro
-  refine ⟨?_, Ht⟩
-  have := Hp.1; rw [hk, he] at this; simpa [inRange] using this
-
 end iprop
 
 end recipes

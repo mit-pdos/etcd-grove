@@ -166,10 +166,6 @@ instance termLB_persistent (bud : BudgetNames) (t : w64) :
 instance budgetInv_timeless (bud : BudgetNames) : Timeless (budgetInv (GF := GF) bud) := by
   unfold budgetInv; infer_instance
 
-instance tickCred_timeless (bud : BudgetNames) (n : Nat) :
-    Timeless (tickCred (GF := GF) bud n) := by
-  unfold tickCred; infer_instance
-
 theorem tickCred_split (bud : BudgetNames) (a b : Nat) :
     tickCred (GF := GF) bud (a + b) ⊣⊢ tickCred bud a ∗ tickCred bud b := by
   unfold tickCred
@@ -803,13 +799,6 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
 
-/-- The committed log the driver was handed is a lower bound of `run`'s (2026-10-15). -/
-theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) :
-    ⊢ nodeDriver (GF := GF) γ id n ds -∗ dlvLb γ ds := by
-  iintro H
-  unfold nodeDriver
-  icases H with ⟨-, -, $, -⟩
-
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
     ⊢ nodeDriverBusy (GF := GF) γ id n ds es -∗ dlvLb γ ds := by
   iintro H
@@ -874,10 +863,11 @@ macro "open_node " H:ident : tactic =>
 
 /-! ## Proposals and the client log, at the node (2026-10-10)
 
-A proposal's ghost work before it leaves the node (`node_propose_ghost`: the update
-deposited); and what the committed log's entries hold, for the application applying them
-(`node_committed_data`, `node_entData_heap`, `node_collect`). (2026-10-16, stage R5, D6: no
-proposed slices to record, `propDataInv` gone.) -/
+A data's registration with its result predicate (`node_prop_register`, the client's step before
+proposing it), a proposal's ghost work before it leaves the node (`node_propose_ghost`: the
+update deposited); and what the committed log's entries hold, for the application applying them
+(`node_committed_data`, `node_entData_heap`). (2026-10-16, stage R5, D6: no proposed slices to
+record, `propDataInv` gone.) -/
 
 section props
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -885,24 +875,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- What `Node.Propose` takes for its data `d` (`fresh`: the first proposal of `d`, with
-its fresh token and the client's persistent atomic update (2026-10-14, stage R); otherwise a
-retry, with `d` deposited). Since 2026-10-19 (D21 M6) a first proposal is deposited `once`
-(proposed once: its ticket goes with it, so it is appended once) or not; a retry needs `d`
-deposited not once (`propMulti`). A proposal deposited once takes an update fired at most once
-(`propAuM`). -/
-def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool)
-    (once : Bool) : IProp GF :=
-  if fresh then iprop(propFresh γ d ∗ propAuM γ d Q once) else propMulti γ d
-
-/-- What it gives back: `d` deposited, for a first proposal the handle on the update's
-results (2026-10-14, stage R: persistent, no ticket), and (D21 M6) whether it is proposed
-once. -/
-def propRes (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool)
-    (once : Bool) : IProp GF :=
-  iprop(deposited γ d ∗
-    (if fresh then iprop(∃ γq, isProp γ d γq Q) else iprop(True)) ∗
-    (if fresh && once then propOnce γ d else propMulti γ d))
+/-- What `Node.Propose` takes for its data `d` (2026-10-21): `d` registered with the result
+predicate `Q` (`propIs`, from `node_prop_register`) and the client's atomic update for `d` and
+`Q` (2026-10-14, stage R), which raft fires at most once (D21 M6: each proposal is appended
+once, its ticket going with it). `d` may be proposed any number of times, each with its own
+update. (Until 2026-10-21 the fresh token went with the first proposal, and a retry of the same
+bytes needed `propMulti`.) -/
+def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+  iprop(propIs γ d Q ∗ propAu1 γ d Q)
 
 -- (2026-10-16, stage R5, D6) `propDataInv_alloc`, `propData_register` and `propData_heap` are
 -- gone with the proposed slices: an entry's data, a read context, is its bytes.
@@ -921,61 +901,36 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 the entry `propEntryM data` holds the bytes, which must not be empty (`Hne`: an empty one would
 be a leader's own entry); no slice to record.) -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
-    (data : List w8) (Q : List EntryM → IProp GF) (fresh once : Bool) (E : CoPset)
+    (data : List w8) (Q : List EntryM → IProp GF) (E : CoPset)
     (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) :
-    ⊢ isNode γ id n -∗ propArg γ.raft data Q fresh once ={E}=∗
-      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) ∗
-      propRes γ.raft data Q fresh once := by
+    ⊢ isNode γ id n -∗ propArg γ.raft data Q ={E}=∗
+      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) := by
   iintro #Hnode Harg
   open_node Hnode
-  have Htk : entTk (GF := GF) γ.raft (propEntryM data) =
-      iprop(propTk γ.raft data ∨ propMulti γ.raft data) := by
+  have Htk : entTk (GF := GF) γ.raft (propEntryM data) = propTk γ.raft data := by
     unfold entTk; rw [if_pos ⟨rfl, Hne⟩]; rfl
   rw [Htk]
-  ihave Hres : |={E}=> (propTk γ.raft data ∨ propMulti γ.raft data) ∗
-      propRes γ.raft data Q fresh once $$ [Harg]
-  · unfold propArg propRes
-    cases fresh with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte, Bool.false_and]
-      icases Harg with #Hm
-      imodintro
-      isplitr; · iright; iexact Hm
-      isplitr; · iapply propMulti_deposited $$ Hm
-      iframe Hm
-    | true =>
-      simp only [↓reduceIte, Bool.true_and]
-      icases Harg with ⟨Hfr, Hau⟩
-      imod prop_deposit γ.raft E data Q once HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp, Hk⟩
-      ihave #Hdep := isProp_deposited $$ Hp
-      cases once with
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        icases Hk with #Hm
-        imodintro
-        isplitr; · iright; iexact Hm
-        iframe Hdep Hm
-        iexists γq; iexact Hp
-      | true =>
-        simp only [↓reduceIte]
-        icases propTk_once γ.raft data $$ Hk with ⟨Hk, #Ho⟩
-        imodintro
-        isplitl [Hk]; · ileft; iexact Hk
-        iframe Hdep Ho
-        iexists γq; iexact Hp
-  imod Hres with ⟨Htk, Hres⟩
-  ihave #Hdep : deposited γ.raft data $$ [Hres]
-  · unfold propRes
-    icases Hres with ⟨#Hd, -⟩
-    iexact Hd
+  unfold propArg
+  icases Harg with ⟨#Hpi, Hau⟩
+  ihave #Hdep := propIs_deposited $$ Hpi
+  imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hpi Hau with Htk
   imodintro
-  iframe Hres Htk
+  iframe Htk
   unfold propData
   iexists some data
   unfold propDataIs
   isplitr
   · ipureintro; exact ⟨rfl, Hne, rfl⟩
   iexact Hdep
+
+/-- **Registering `d` with `Q`, at the node** (2026-10-21; `prop_register`): what a client does,
+once per data, before proposing it. -/
+theorem node_prop_register (γ : NodeNames) (id : w64) (n : Loc) (d : List w8)
+    (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) :
+    ⊢ isNode γ id n -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q := by
+  iintro #Hnode Hfr
+  open_node Hnode
+  iapply prop_register γ.raft E d Q HE1 $$ Hcinv Hfr
 
 /-- A `ReadState`'s context and `readOk` of it (2026-10-13). A client that compares the bytes
 with its own context's (its `readReq γ c Lc`) learns `readOk` of its read (`readOk_prefix`).
@@ -1000,30 +955,6 @@ theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List Entr
   open_node Hnode
   iapply committed_data γ.raft E l HE $$ Hcinv Hc
 
-/-- A proposed entry holds its data (2026-10-16, stage R5, D6: the bytes, on the record; until
-then its slice held them, read through the proposed slices' invariant). -/
-theorem node_entData_heap (γ : NodeNames) (id : w64) (n : Loc) (e : EntryM)
-    (d : List w8) (E : CoPset) :
-    ⊢ isNode (GF := GF) γ id n -∗ entDataIs γ.raft e (some d) ={E}=∗ ⌜e.Data' = d⌝ := by
-  iintro #Hnode #He
-  unfold entDataIs propDataIs
-  icases He with ⟨⟨%H, -⟩, -⟩
-  imodintro
-  ipureintro; exact H.1
-
-/-- Collecting a proposal's result (`prop_collect`), at the node: at a committed occurrence
-of its data, the result at the log before it (2026-10-14, stage R). -/
-theorem node_collect (γ : NodeNames) (id : w64) (n : Loc) (d : List w8) (γq : GName)
-    (Q : List EntryM → IProp GF) (L : List EntryM) (m : Nat) (e : EntryM)
-    (E : CoPset) (HE : ↑raftN ⊆ E) :
-    L[m]? = some e →
-    ⊢ isNode γ id n -∗ isProp γ.raft d γq Q -∗ isCommitted γ.raft L -∗
-      entDataIs γ.raft e (some d) ={E}=∗ ▷ ▷ □ Q (L.take m) := by
-  intro Hm
-  iintro #Hnode #Hp #Hc #He
-  open_node Hnode
-  iapply prop_collect γ.raft E d γq Q L m e HE Hm $$ Hcinv Hp Hc He
-
 /-- Depositing a read (`read_deposit`), at the node (2026-10-14, stage R). -/
 theorem node_read_deposit (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
     (Qr : List EntryM → IProp GF) (L0 : List EntryM) :
@@ -1032,17 +963,6 @@ theorem node_read_deposit (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
   iintro #Hnode Hfr #Hau #HL0
   open_node Hnode
   iapply read_deposit γ.raft c Qr L0 $$ Hcinv Hfr Hau HL0
-
-/-- Collecting a read's result (`read_collect`), at the node (2026-10-14, stage R). -/
-theorem node_read_collect (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
-    (Qr : List EntryM → IProp GF) (i : w64) (L : List EntryM) (E : CoPset)
-    (HE : ↑raftN ⊆ E) :
-    uint.Z i ≤ (L.length : Int) →
-    ⊢ isNode γ id n -∗ readWit γ.raft c Qr i -∗ isCommitted γ.raft L ={E}=∗ ▷ ▷ □ Qr L := by
-  intro HiL
-  iintro #Hnode #Hw #HL
-  open_node Hnode
-  iapply read_collect γ.raft E c Qr i L HE HiL $$ Hcinv Hw HL
 
 end nodeprops
 

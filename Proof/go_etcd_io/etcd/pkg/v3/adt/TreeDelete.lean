@@ -103,11 +103,6 @@ def comp : RbCtx E → RbCtx E → RbCtx E
 @[simp] theorem comp_inR (c : RbColor) (l : RbT E) (e : E) (A D : RbCtx E) :
     comp (inR c l e A) D = inR c l e (comp A D) := rfl
 
-theorem comp_top : ∀ (A : RbCtx E), comp A top = A
-  | top => rfl
-  | inL c A e r => by simp [comp_top A]
-  | inR c l e A => by simp [comp_top A]
-
 theorem plug_comp : ∀ (A D : RbCtx E) (t : RbT E), (comp A D).plug t = D.plug (A.plug t)
   | top, D, t => rfl
   | inL c A e r, D, t => by simp [plug_comp A D]
@@ -535,12 +530,6 @@ theorem maxEnd_plug : ∀ (C : RbCtx Entry) (t : RbT Entry), (C.plug t).maxEnd =
     rw [RbCtx.plug_inL, maxEnd_plug C]; rfl
   | .inR c l e C, t => by
     rw [RbCtx.plug_inR, maxEnd_plug C]; rfl
-
-theorem upMax_comp : ∀ (A D : RbCtx Entry) (mh : Option GoString),
-    (A.comp D).upMax mh = D.upMax (A.upMax mh)
-  | .top, _, _ => rfl
-  | .inL _ A _ _, D, _ => upMax_comp A D _
-  | .inR _ _ _ A, D, _ => upMax_comp A D _
 
 theorem maxEnd_blacken (t : RbT Entry) : t.blacken.maxEnd = t.maxEnd := by
   cases t <;> rfl

@@ -217,10 +217,6 @@ theorem zip_get_snd {α β : Type} (a : List α) (b : List β) (i : Nat) (e : α
     (h : (a.zip b)[i]? = some e) : b[i]? = some e.2 := by
   rw [List.getElem?_zip_eq_some] at h; exact h.2
 
-theorem zip_get_fst {α β : Type} (a : List α) (b : List β) (i : Nat) (e : α × β)
-    (h : (a.zip b)[i]? = some e) : a[i]? = some e.1 := by
-  rw [List.getElem?_zip_eq_some] at h; exact h.1
-
 section kvs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

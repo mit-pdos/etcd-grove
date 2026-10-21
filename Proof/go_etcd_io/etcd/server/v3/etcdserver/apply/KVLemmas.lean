@@ -22,35 +22,12 @@ namespace apply
 
 open Iris Iris.BI Iris.ProofMode
 
-/-- Deletions keep a sub-list of the state. -/
-theorem applyChanges_dels_mem (r : w64) :
-    ∀ (pend : List mvcc.Change) (s : List EtcdKv), (∀ c ∈ pend, c.isDel = true) →
-      ∀ v ∈ mvcc.applyChanges r s pend, v ∈ s
-  | [], s, _, v, hv => by simpa [mvcc.applyChanges] using hv
-  | c :: cs, s, h, v, hv => by
-    have hc := h c (List.mem_cons_self ..)
-    have hcs : ∀ c' ∈ cs, c'.isDel = true := fun c' hc' => h c' (List.mem_cons_of_mem _ hc')
-    simp only [mvcc.applyChanges, List.foldl_cons] at hv
-    have := applyChanges_dels_mem r cs (mvcc.applyChange r s c) hcs v hv
-    cases c with
-    | put k v' l => simp [mvcc.Change.isDel] at hc
-    | del k => simp only [mvcc.applyChange] at this; exact (List.mem_filter.1 this).1
-
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
-
-/-- **Deletions committed keep the leases known** (a revocation's). -/
-theorem leasesKnown_commit_dels (L : List w64) (log : mvcc.Log) (pend : List mvcc.Change)
-    (h : ∀ c ∈ pend, c.isDel = true) :
-    txn.leasesKnown (GF := GF) L (mvcc.stateAfter log) ⊢
-      txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log pend)) := by
-  rw [txn.stateAfter_commitLog]
-  apply txn.leasesKnown_sub
-  exact applyChanges_dels_mem _ pend _ h
 
 /-- **A delete committed keeps the leases known.** -/
 theorem leasesKnown_commit_delete (L : List w64) (log : mvcc.Log) (o : OpFull) :

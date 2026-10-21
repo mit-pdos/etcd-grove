@@ -267,16 +267,6 @@ theorem txnAnswerIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : 
   · icases H with ⟨H, -⟩
     iapply txnOutcomeIs_errIs $$ Hv H
 
-theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
-    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
-      revokeOutcomeIs resp err oc -∗ applyErrIs err := by
-  iintro #Hv H
-  rcases oc with k | ⟨log', ns⟩ <;> simp only [revokeOutcomeIs]
-  · icases H with ⟨-, H⟩
-    iapply rejErrIs_errIs _ k err ?_ $$ Hv H
-    iintro - %h; exact h.elim
-  · iexact H
-
 end errIs
 
 end apply

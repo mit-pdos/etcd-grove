@@ -53,12 +53,6 @@ private theorem list_set_mid {A : Type} (P l : List A) (n : Nat) (x e : A) (hP :
     simp only [List.cons_append, List.length_cons, List.set_cons_succ]
     exact congrArg (y :: ·) ih
 
-/-- A list written back at the element it holds. -/
-private theorem list_set_self {A : Type} (l : List A) (i : Int) (x : A)
-    (H : l[i.toNat]? = some x) : l.set i.toNat x = l := by
-  obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 H
-  rw [← hget]; exact List.set_getElem_self hlt
-
 
 set_option hygiene false in
 /-- A decoded conf change's checks, `ConfChange` and `ConfChangeV2` alike: `alreadyPending`

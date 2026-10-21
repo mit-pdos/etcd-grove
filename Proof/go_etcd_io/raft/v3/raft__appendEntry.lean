@@ -79,11 +79,6 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
 
-private theorem lookup_take_drop {A : Type _} (l1 l2 : List A) (k : Nat) (hk : k ≤ l1.length) :
-    (l1.take k ++ l2.drop k)[k]? = l2[k]? := by
-  rw [List.getElem?_append_right (by simp only [List.length_take]; omega)]
-  simp only [List.length_take, Nat.min_eq_left hk, Nat.sub_self, List.getElem?_drop, Nat.add_zero]
-
 /-- One iteration of the loop, on the list: the prefix already stamped grows
 by one. -/
 private theorem stamp_step (tm li : w64) (ents : List EntryM) (n : Nat) (e : EntryM)

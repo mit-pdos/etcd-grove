@@ -100,10 +100,6 @@ then with something that is not a `τ`, or never again). -/
 def typedProph (τ : Type) (p : proph_id) (xs : List τ) : IProp GF :=
   iprop(∃ pvs : List val, proph p pvs ∗ ⌜prophDecode τ pvs = xs⌝)
 
-instance typedProph_timeless (p : proph_id) (xs : List τ) :
-    Timeless (typedProph (GF := GF) τ p xs) := by
-  unfold typedProph; infer_instance
-
 /-- `go.prophId` (`ProphId`'s underlying type) is not an interface: the premise of stepping
 `MethodResolve ProphId.ty m #p` (`go_method_resolve_step`). Perennial proves `go.NotInterface` per
 constructor of `go.GoType` and does not see through the (not reducible) definitions of the
@@ -202,11 +198,6 @@ theorem wp_ptr_ResolveU64_typed
   iapply HΦ
   iframe
   ipureintro; exact Hxs
-
-/-- The outcome a commit learns: the next resolution, if it comes, is `xs.head?`. -/
-theorem typedProph_head (xs : List τ) (x : τ) (xs' : List τ) (h : xs = x :: xs') :
-    xs.head? = some x := by
-  subst h; rfl
 
 end specs
 

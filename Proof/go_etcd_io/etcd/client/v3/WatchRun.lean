@@ -67,9 +67,6 @@ def respInfo (m : v3rpc.WatchRespM) : IProp GF :=
   | some ρ => mvcc.respOk ρ
   | none => iprop(True)
 
-instance respInfo_persistent (m : v3rpc.WatchRespM) : Persistent (respInfo (GF := GF) m) := by
-  unfold respInfo; split <;> infer_instance
-
 /-- The create request of a watch. -/
 abbrev createOfP (P : WsPrm GF) : v3rpc.CreateReqM := createOf P.key P.ed P.rev P.pn P.sr
 

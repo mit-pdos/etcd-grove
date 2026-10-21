@@ -757,11 +757,6 @@ A queued `MsgProp` carries its entries' tickets (`entTk`); the abstract outbox k
 def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
   if st.msg.Type' = MsgProp then iprop([∗list] e ∈ st.ents, entTk γ e) else iprop(emp)
 
-/-- A message with no tickets. -/
-theorem stTks_nonprop (γ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgProp) :
-    ⊢ stTks (GF := GF) γ st := by
-  unfold stTks; rw [if_neg h]; iempintro
-
 omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 /-- Only `MsgProp` is abstracted as a `propose`. -/
 theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp := by
@@ -1396,42 +1391,6 @@ theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) {md : 
   iunfold rdOwn at Hrd
   icases Hrd with ⟨%γl, %rqm, -, -, -, -, -, #Hst0, -⟩
   iexact Hst0
-
-/-- **A client's reading of a `ReadState`** (2026-10-13): the client that created the read
-context `c` and finds `st`'s `RequestCtx` to be `c` learns `readOk γ c st.Index'`: its read
-was created knowing a committed log no longer than the index. (2026-10-16, stage R5, D6: the
-context is its bytes, so the client compares them, `Hc`; until then it registered its slice,
-`isPropData γ rctx c`, and found `st`'s `RequestCtx` to be that slice.) -/
-theorem readStateOk_readOk (γ : RaftNames) (st : ReadStateM) (c : List w8)
-    (Hc : st.RequestCtx' = c) :
-    ⊢ readStateOk (GF := GF) γ st -∗ readOk γ c st.Index' := by
-  iintro #Hst
-  iunfold readStateOk at Hst
-  icases Hst with ⟨%c', %Hc', #Hok⟩
-  rw [← Hc, Hc']
-  iexact Hok
-
-/-- ... and with the client's handle on its deposited read (2026-10-14, stage R), the read
-witness: the update's results at every committed log at least `st.Index'` long
-(`read_collect`). -/
-theorem readStateOk_readWit (γ : RaftNames) (st : ReadStateM) (c : List w8)
-    (Qr : List EntryM → IProp GF) (Hc : st.RequestCtx' = c) :
-    ⊢ readStateOk (GF := GF) γ st -∗ isRead γ c Qr -∗ readWit γ c Qr st.Index' := by
-  iintro #Hst #Hrd
-  unfold readWit
-  iframe Hrd
-  iapply readStateOk_readOk γ st c Hc $$ Hst
-
-/-- ... and with `readOk_prefix`: every committed log at least `st.Index'` long extends the
-committed log `Lc` the read was created knowing (`readReq γ c Lc`), so applying the log up
-to an index of at least `st.Index'` reads a state at least as new as the request. -/
-theorem readStateOk_prefix (γ : RaftNames) (st : ReadStateM) (c : List w8)
-    (Lc D : List EntryM) (Hc : st.RequestCtx' = c) (Hle : uint.Z st.Index' ≤ (D.length : Int)) :
-    ⊢ readStateOk (GF := GF) γ st -∗ readReq γ c Lc -∗
-      isCommitted γ D -∗ ⌜Lc <+: D⌝ := by
-  iintro #Hst #Hrq #HD
-  ihave #Hok := readStateOk_readOk γ st c Hc $$ Hst
-  iapply readOk_prefix γ c st.Index' Lc D Hle $$ Hok Hrq HD
 
 /-- The physical `ReadState`s are the protocol state's. -/
 theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by

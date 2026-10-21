@@ -409,10 +409,6 @@ def createReqSend (cr : Loc) (c : CreateReqM) : IProp GF :=
     structFieldRef etcdserverpb.WatchCreateRequest go!"WatchId" cr ↦□ c.watchId ∗
     structFieldRef etcdserverpb.WatchCreateRequest go!"Fragment" cr ↦□ c.fragment)
 
-instance createReqSend_persistent (cr : Loc) (c : CreateReqM) :
-    Persistent (createReqSend (GF := GF) cr c) := by
-  unfold createReqSend; infer_instance
-
 /-- **A `*pb.WatchRequest` the client sends** at `l` holding `m` (read-only; unit W-W): its oneof
 (`RequestUnion`) and the inner request's fields the server reads (as `watchReqRecv`, all
 read-only). The codec's copy of it is one `watchReqRecv` holds at `m` (the wire model; the
@@ -454,15 +450,6 @@ abbrev pbWatchResponse : StreamMsg GF where
   own l := iprop(∃ v : etcdserverpb.WatchResponse, l ↦ v)
 
 /-! ## The stream specification -/
-
-/-- **The client's restrictions** (persistent): every request it sends is restricted
-(`watchReqOk`: no `prev_kv`, no fragments, no filters). -/
-def upRestricted (Up : Nat → WatchReqM → IProp GF) : IProp GF :=
-  iprop(□ ∀ (i : Nat) (m : WatchReqM), Up i m -∗ ⌜watchReqOk m⌝)
-
-instance upRestricted_persistent (Up : Nat → WatchReqM → IProp GF) :
-    Persistent (upRestricted Up) := by
-  unfold upRestricted; infer_instance
 
 /-- The `i`th watch request the client sent is `m` (persistent; `upAt` at `pbWatchRequest`). -/
 def upAtW (γ : StreamNames) (i : Nat) (m : WatchReqM) : IProp GF := monoListIdxOwn γ.up i m

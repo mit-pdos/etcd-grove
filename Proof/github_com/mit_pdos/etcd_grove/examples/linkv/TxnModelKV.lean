@@ -426,17 +426,6 @@ theorem absSt_kvOpStep (ks : List GoString) (lk le : GoString) (σ : KVState)
 theorem mStep_put_out (ks : List GoString) (σ : KVState) (k v : GoString) :
     (mStep ks (.put k v) (absSt σ)).2 = .put (σ.rev + 1) := rfl
 
-/-- A get's answer: the state's key-values of the key (the server's, `srvRangeOk_getKey`), at
-the state's revision. -/
-theorem mStep_get_out (ks : List GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess)
-    (k : GoString) :
-    (mStep ks (.get k) (absSt σ)).2 =
-      .get σ.rev ((σ.kvs.filter (fun v => decide (v.key = k))).head?.map absVR) := by
-  simp only [mStep, absSt]
-  rw [filter_key_sorted k σ.kvs hs]
-  unfold absM
-  cases findKey k σ.kvs <;> rfl
-
 /-- A delete's answer: the revision of the state after it, and its count. -/
 theorem mStep_del_out (ks : List GoString) (lk le : GoString) (σ : KVState)
     (hs : σ.kvs.Pairwise etcdKvLess) (k : GoString) :
@@ -716,13 +705,6 @@ theorem opsPlain_tOpOf : ∀ ops : List (MOp GoString GoString), txn.opsPlain (o
 /-- **The instance's transactions are plain** (`txnPlain`, the server's specs' premise). -/
 theorem txnPlain_txnOf (cs : List (MCmp GoString GoString)) (t e : List (MOp GoString GoString)) :
     txn.txnPlain (txnOf cs t e) := ⟨opsPlain_tOpOf t, opsPlain_tOpOf e⟩
-
-/-- The instance's transactions are flat. -/
-theorem opsFlat_tOpOf (ops : List (MOp GoString GoString)) : txn.opsFlat (ops.map tOpOf) := by
-  intro op hop cs ts es h
-  rw [List.mem_map] at hop
-  obtain ⟨o, -, rfl⟩ := hop
-  cases o <;> simp [tOpOf] at h
 
 end kv
 

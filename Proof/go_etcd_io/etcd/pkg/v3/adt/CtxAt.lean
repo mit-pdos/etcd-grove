@@ -515,62 +515,6 @@ theorem ownCtxAt_root (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n 
   iintro Hr
   iframe; ipureintro; exact Ht
 
-/-- **One level up**, the frames pinned. -/
-theorem ownCtxAt_up_inL (t s : Loc) (c : RbColor) (C : RbCtx Entry) (e : Entry) (r : RbT Entry)
-    (pp rp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (T : RbT Entry) :
-    ownCtxAt (GF := GF) t s (.inL c C e r) ((pp, rp) :: ls) n p T.maxEnd ∗ ownNode s 1 p n T ⊢
-      ownCtxAt t s C ls p pp (some (nodeMax T e r)) ∗ ownNode s 1 pp p (.node c T e r) := by
-  iintro ⟨H, Hn⟩
-  icases (ownCtxAt_inL t s c C e r pp rp ls n p _).1 $$ H with
-    ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnr, HC⟩
-  rw [nodeMax_eq]
-  iframe HC
-  iapply ownNode_node_close
-  iexists n, rp
-  simp only [nodeMax_eq]
-  iframe
-  ipureintro; exact Hp
-
-theorem ownCtxAt_up_inR (t s : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (C : RbCtx Entry)
-    (pp lp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (T : RbT Entry) :
-    ownCtxAt (GF := GF) t s (.inR c l e C) ((pp, lp) :: ls) n p T.maxEnd ∗ ownNode s 1 p n T ⊢
-      ownCtxAt t s C ls p pp (some (nodeMax l e T)) ∗ ownNode s 1 pp p (.node c l e T) := by
-  iintro ⟨H, Hn⟩
-  icases (ownCtxAt_inR t s c l e C pp lp ls n p _).1 $$ H with
-    ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnl, HC⟩
-  rw [nodeMax_eq]
-  iframe HC
-  iapply ownNode_node_close
-  iexists lp, n
-  simp only [nodeMax_eq]
-  iframe
-  ipureintro; exact Hp
-
-/-- **The hole moved to its sibling** (left to right): the same frame, the other child. -/
-theorem ownCtxAt_swap_L (t s : Loc) (c : RbColor) (C : RbCtx Entry) (e : Entry) (r : RbT Entry)
-    (pp rp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (T : RbT Entry) :
-    ownCtxAt (GF := GF) t s (.inL c C e r) ((pp, rp) :: ls) n p T.maxEnd ∗ ownNode s 1 p n T ⊢
-      ownCtxAt t s (.inR c T e C) ((pp, n) :: ls) rp p r.maxEnd ∗ ownNode s 1 p rp r := by
-  iintro ⟨H, Hn⟩
-  icases (ownCtxAt_inL t s c C e r pp rp ls n p _).1 $$ H with
-    ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnr, HC⟩
-  iframe Hnr
-  iapply (ownCtxAt_inR t s c T e C pp n ls rp p _).2
-  iframe
-  ipureintro; exact Hp
-
-theorem ownCtxAt_swap_R (t s : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (C : RbCtx Entry)
-    (pp lp : Loc) (ls : List (Loc × Loc)) (n p : Loc) (T : RbT Entry) :
-    ownCtxAt (GF := GF) t s (.inR c l e C) ((pp, lp) :: ls) n p T.maxEnd ∗ ownNode s 1 p n T ⊢
-      ownCtxAt t s (.inL c C e T) ((pp, n) :: ls) lp p l.maxEnd ∗ ownNode s 1 p lp l := by
-  iintro ⟨H, Hn⟩
-  icases (ownCtxAt_inR t s c l e C pp lp ls n p _).1 $$ H with
-    ⟨%Hp, Hiv, Hmx, Hl, Hr, Hpp, Hc, Hnl, HC⟩
-  iframe Hnl
-  iapply (ownCtxAt_inL t s c C e T pp n ls lp p _).2
-  iframe
-  ipureintro; exact Hp
-
 /-- The hole is the root exactly at the top (the hole the sentinel or a node whose `parent`
 field is owned elsewhere). -/
 theorem ownCtxAt_root_ne (t s : Loc) (C : RbCtx Entry) (ls : List (Loc × Loc)) (n p x v : Loc)

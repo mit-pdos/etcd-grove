@@ -78,15 +78,6 @@ theorem st0_bgOk (P : BParams) (D : Data) (tx : Loc) : bgOk P (st0 D tx) true wb
   · intro nm i _ _; simp [st0, bkOf_empty]
   · intro _; simp only [st0]; refine ⟨by word, fun h => absurd rfl h⟩
 
-/-- A new backend's readers' view over the empty database is empty. -/
-theorem vData_rv0_empty (P : BParams) : vData P (rv0 ∅) = ∅ := by
-  apply GMap.ext
-  intro nk
-  show (if P.HB nk.1 then none else vOf P (rv0 ∅) nk.1 nk.2) = none
-  split
-  · rfl
-  · simp [vOf, ovB, rv0, rb0, bkOf_empty, lastVal, dget]
-
 /-! ## The invariants -/
 
 section alloc

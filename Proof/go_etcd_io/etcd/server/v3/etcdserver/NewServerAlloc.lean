@@ -85,12 +85,6 @@ theorem srvPropMint_congr (γs : ServerRaftNames) (γi γi' : IdNames) (h : γi.
     srvPropMint (GF := GF) γs γi = srvPropMint γs γi' := by
   unfold srvPropMint idClaim; rw [h]
 
-theorem srvReadNamesFresh_split (γr : ReadNames) (σ : KVState) :
-    srvReadNamesFresh (GF := GF) γr σ ⊢ srvReadNamesFreshNK γr ∗ ghostVar γr.kv.st 1 σ := by
-  unfold srvReadNamesFresh srvReadNamesFreshNK
-  iintro ⟨Ha, Hc, Hn, Hl, Hp, Hs, Hh⟩
-  iframe
-
 /-- **The standing update, as raft's**, from the pure facts of `srvRaftLogInv` only (as
 `srvNoopAu_to_noopAu`, whose proof uses no more): usable inside raft's allocation continuation,
 before raft's commit invariant exists. -/

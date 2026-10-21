@@ -128,13 +128,6 @@ theorem idClaim_noZero (γi : IdNames) (d : List w8) (γf : GName) :
   icombine H1 H2 gives %Heq
   cases Heq.2
 
-theorem idSlot_excl (γi : IdNames) (id : w64) :
-    ⊢ idSlot (GF := GF) γi id -∗ idSlot γi id -∗ False := by
-  iintro H1 H2
-  iunfold idSlot at H1 H2
-  ihave %Hne := ghostMapElem_ne _ _ _ _ _ _ $$ H1 H2
-  exact absurd rfl Hne
-
 end lemmas
 
 end EtcdGrove

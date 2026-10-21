@@ -318,24 +318,6 @@ theorem sspsc_rcv_au (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF) (R
     | cons v rest => simp only [sspscInvMatch]; iexfalso; iexact Hm
   | _ => itrivial
 
-/-- Receive on a synchronous SPSC channel. -/
-theorem wp_sspsc_receive (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF)
-    (R : List V → IProp GF) (received : List V) :
-    {{ isSspsc γ ch P R ∗ sspscConsumer γ received }}
-      (App (Val (chan.receive t)) (Val #ch))
-    {{ (v : V) (ok : Bool), RET (PairV #v #ok);
-        (if ok then iprop(P received.length v ∗ sspscConsumer γ (received ++ [v]))
-         else iprop(R received ∗ ⌜v = zero_val V⌝)) }} := by
-  iintro %Φ ⟨#Hspsc, Hcons⟩ HΦ
-  ihave #Hch : isChan ch γ.chanName V $$ [Hspsc]
-  · unfold isSspsc; icases Hspsc with ⟨$, -⟩
-  iapply chan.wp_receive ch γ.chanName $$ Hch
-  iintro ⟨Hlc1, Hlc2, _, _⟩
-  iapply sspsc_rcv_au γ ch P R received (fun v ok => Φ (PairV #v #ok)) $$ Hspsc [$Hlc1 $Hlc2] Hcons
-  inext
-  iintro %v %ok H
-  iapply HΦ $$ %v %ok H
-
 omit [IntoValTyped (GF := GF) V t] in
 set_option maxHeartbeats 800000 in
 theorem sspsc_send_au (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF) (R : List V → IProp GF)
@@ -436,19 +418,6 @@ theorem sspsc_send_au (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF) (
       iapply dghostVar_three_halves $$ Hprod HsentI Hp2
     | cons _ _ => simp only [sspscInvMatch]; iexfalso; iexact Hm
   | _ => itrivial
-
-/-- Send on a synchronous SPSC channel. -/
-theorem wp_sspsc_send (γ : SpscNames) (ch : Loc) (P : Int → V → IProp GF) (R : List V → IProp GF)
-    (sent : List V) (v : V) :
-    {{ isSspsc γ ch P R ∗ sspscProducer γ sent ∗ P sent.length v }}
-      (App (App (Val (chan.send t)) (Val #ch)) (Val #v))
-    {{ RET #(); sspscProducer γ (sent ++ [v]) }} := by
-  iintro %Φ ⟨#Hspsc, Hprod, HP⟩ HΦ
-  ihave #Hch : isChan ch γ.chanName V $$ [Hspsc]
-  · unfold isSspsc; icases Hspsc with ⟨$, -⟩
-  iapply chan.wp_send ch v γ.chanName $$ Hch
-  iintro ⟨Hlc1, Hlc2, Hlc3, _⟩
-  iapply sspsc_send_au γ ch P R sent v (Φ #()) $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [$Hprod $HP] HΦ
 
 omit [IntoValTyped (GF := GF) V t] in
 set_option maxHeartbeats 800000 in

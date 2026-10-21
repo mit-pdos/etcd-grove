@@ -24,15 +24,6 @@ variable [ext : FfiSyntax]
 /-- The zero `Loc` is nil. -/
 theorem zero_val_loc : (zero_val Loc : Loc) = null := rfl
 
-/-- The entries after `modify`. -/
-theorem modify_entries (k : GoString) (f : LeaseEntry → LeaseEntry) (st : LeaseCacheSt) :
-    (st.modify k f).entries =
-      match st.entries !! k with
-      | some e => GMap.insert k (f e) st.entries
-      | none => st.entries := by
-  unfold LeaseCacheSt.modify
-  split <;> rename_i h <;> rw [h]
-
 /-- `modify` changes only the entries. -/
 theorem modify_other (k : GoString) (f : LeaseEntry → LeaseEntry) (st : LeaseCacheSt) :
     (st.modify k f).emap = st.emap ∧ (st.modify k f).rmap = st.rmap ∧

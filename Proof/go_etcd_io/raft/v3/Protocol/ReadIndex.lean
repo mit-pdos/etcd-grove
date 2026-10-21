@@ -520,19 +520,6 @@ theorem node_leader (γ : RaftNames) (id2 : w64) (ps2 : PState) :
   isplitr; · ipureintro; exact ⟨Hf, Hw, Hpre⟩
   iframe Hfr Hr Hlead Hc0 HLF
 
-theorem node_within (γ : RaftNames) (id2 : w64) (ps2 : PState) (G : List EntryM) :
-    ps2.role = .leader →
-    ⊢ ownRaftGhost (GF := GF) γ id2 ps2 md -∗ leadFull γ ps2.term G -∗
-      ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ ps2.base ps2.log⌝ := by
-  intro Hr2
-  unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩ #HG
-  iNamed H
-  have Hw : leaderWit (GF := GF) γ id2 ps2 = isLeader γ id2 ps2.term := by
-    unfold leaderWit; rw [Hr2]
-  rw [Hw]
-  iapply ownLogGhost_within γ id2 ps2 kl G Hr2 $$ Hlead HG Hlg
-
 /-- A record whose doom set misses every member of a joint quorum `Q` of the reader's
 configuration (its full log's prefix at its configuration index `aL`) is not doomed, in the
 dynamic mode (2026-10-14, stage B5; the paper's section 8). With `j_r` the reader's and `j_m` the
@@ -671,42 +658,6 @@ theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
     ipureintro; exact Hc.term_nz
 
 /-! ### Followers: no acknowledgement above their term -/
-
-theorem ownRaftGhost_ack_le (γ : RaftNames) (v : w64) (s : PState) (t i : w64) :
-    ⊢ ownRaftGhost (GF := GF) γ v s md -∗ ackEv γ v t i -∗ ⌜uint.Z t ≤ uint.Z s.term⌝ := by
-  unfold ownRaftGhost ownLogGhost ownEvs ackEv
-  iintro ⟨%γv, %voted, %kl, H⟩ ⟨%γe', %L, %HL, #Hlb⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  icases Hevs with ⟨%γe, %evs, %Hγe, Ha, %Hevs⟩
-  obtain ⟨Hγe', Hin, -⟩ := HL
-  rw [Hγe] at Hγe'; cases Hγe'
-  icases mono_list_auth_lb_valid $$ Ha Hlb with %Hp
-  ipureintro
-  have := Hevs.2.1 _ (Hp.2.subset Hin)
-  simpa [aevTerm] using this
-
-/-- A node at term `T` is in no quorum that dooms a record of `T`. -/
-theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqRec) :
-    ⊢ ownRaftGhost (GF := GF) γ v s md -∗ rqRecOk γ s.term r -∗
-      ⌜∀ t' q, r.2 = some (t', q) → v ∉ q⌝ := by
-  iintro Hown #Hr
-  rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
-  · ipureintro; intro t' q h'; cases h'
-  · unfold doomed
-    icases Hr with ⟨%n, %G, %a, %c, %q', %Hpq, -, #HU, -⟩
-    by_cases hv : v ∈ q
-    · ihave ⟨%t'', %i'', %Hti, #Ha⟩ := HU $$ %v %hv
-      unfold isAcked
-      icases Ha with (%H0 | ⟨-, #Hev⟩)
-      · exfalso; have := Hti.2; omega
-      · ihave %Hle := ownRaftGhost_ack_le γ v s t'' i'' $$ Hown Hev
-        exfalso; have := Hti.1; omega
-    · ipureintro
-      intro t'' q' hh
-      cases hh
-      exact hv
 
 /-! ### Arrival at the leader -/
 

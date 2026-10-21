@@ -100,11 +100,6 @@ def bridgeParams (P : BParams) : Prop :=
     (∀ n, P.HB n = decide (n ≠ go_etcd_io.etcd.server.v3.storage.schema.keyName)) ∧
     ∀ n, P.SB n = decide (n = go_etcd_io.etcd.server.v3.storage.schema.keyName)
 
-/-- A real instance's parameters are the bridge's when its table has schema's buckets. -/
-theorem bridgeParams_of (d : KBReal) (hk : d.BT.lookup keyBI.name = some keyBI.id)
-    (hm : d.BT.lookup metaBI.name = some metaBI.id) : bridgeParams d.P :=
-  ⟨hk, hm, fun _ => rfl, fun _ => rfl⟩
-
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

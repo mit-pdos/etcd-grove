@@ -243,17 +243,6 @@ theorem mem_of_domSet_eq {V V' : Type} {a : GMap w64 V} {b : GMap w64 V'}
 proj_simps Perennial.EtcdGrove.clearAutoLeave Perennial.EtcdGrove.removeCfg
   Perennial.EtcdGrove.initProgressM Perennial.EtcdGrove.leaveJointState
 
-/-- A voters-only, non-joint `Config` value: the incoming voter map is `v`; the outgoing
-voter map, `Learners` and `LearnersNext` are `nil`. What `Restore.spec` says of the
-configuration it starts from (`MakeProgressTracker`'s), and all `Config.Clone` reads. -/
-def ConfigVotersOnly [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
-  cfg.Voters'.arr = [v, map.nil] ∧ cfg.Learners' = map.nil ∧ cfg.LearnersNext' = map.nil
-
-/-- `ConfigVotersOnly`, and `AutoLeave` off: what Go's `checkInvariants` requires of a
-non-joint config, and what `Config.Clone` produces (it does not copy `AutoLeave`). -/
-def ConfigSimple [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
-  ConfigVotersOnly cfg v ∧ cfg.AutoLeave' = false
-
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: id}`. -/
 abbrev addNodeCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 0, NodeId' := id }
@@ -294,10 +283,6 @@ def opSpec (f : GoFunc) (chg : confchange.Changer)
           confchange.Changer)))
     {{ (cfg' : tracker.Config) (prs' : Loc), RET (PairV (PairV #cfg' #prs') #interface.nil);
         Q cfg' prs' }})
-
-instance opSpec_persistent (f : GoFunc) (chg : confchange.Changer)
-    (P Q : tracker.Config → Loc → IProp GF) : Persistent (opSpec f chg P Q) := by
-  unfold opSpec; infer_instance
 
 /-! ### The representation of the model (2026-10-12) -/
 

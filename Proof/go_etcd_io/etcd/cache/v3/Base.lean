@@ -252,10 +252,6 @@ def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
     □ ∀ (target : GoInterface) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
 
-instance grpcErrMethodsOk_persistent (e : GoInterfaceOk) :
-    Persistent (grpcErrMethodsOk (GF := GF) e) := by
-  unfold grpcErrMethodsOk; infer_instance
-
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks
 of its error tree only check it) whose `Error()` returns some string (`errorStringSpec`:

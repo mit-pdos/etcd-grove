@@ -519,15 +519,6 @@ theorem certPre_capped (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log
     simp only [chainStep, hk, Bool.false_eq_true, ↓reduceIte]; split <;> simp [h])
 
 open Iris.ProofMode in
-/-- The backend's certificate of the log after the outcome `oc` it comes to. -/
-theorem certPre_backend (E : AEnv GF) (rq : IRRModel) (log : mvcc.Log) (oc : Outcome)
-    (h : backendStep rq log oc) :
-    certPre E .backend rq log ⊢ mvcc.certOk E.γ (oc.logAfter log) := by
-  unfold certPre
-  iintro #H
-  iapply H
-  ipureintro; exact h
-
 open Iris.ProofMode in
 /-- The backend's certificate of the log `log'` it commits. -/
 theorem certPre_backend_applied (E : AEnv GF) (rq : IRRModel) (log log' : mvcc.Log) (ns : Bool)

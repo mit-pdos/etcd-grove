@@ -50,7 +50,7 @@ theorem domSet_empty_loc : domSet (∅ : GMap w64 Loc) = ∅ := by
 /-- `confchange.Restore` on the empty tracker `MakeProgressTracker` built, for a voters-only
 conf state -- possibly with **no** voter (2026-10-16, stage R8b: a new cluster's, before
 `RawNode.Bootstrap` installs the peers): the configuration `switchToConfig` takes (`ownConfig` at
-the voters): fresh maps when there is a voter (`spec_simple`), the tracker's own `v0` and
+the voters): fresh maps when there is a voter (the general `spec`), the tracker's own `v0` and
 (read-only) progress map when there is none (`spec_empty`: no op runs). -/
 theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
     (chg : confchange.Changer) (cs : Loc) (c : ConfStateM) (dq : DFrac) (v0 : Loc)
@@ -93,14 +93,53 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
       · rw [Hl]; iapply ownIdsetC_nil
       · iapply BigSepM.bigSepM_empty.2; iempintro
     · ipureintro; exact domSet_empty_loc
-  · -- a voter: fresh maps
-    wp_apply (confchange.Restore.spec_simple H) chg cs c dq v0 Hvne Hv0n (by rw [Hcl]; exact List.not_mem_nil)
-      (by rw [Hcl]; intro k hk; cases hk) Hcvo Hcln Hmi Harr Hl Hln Hal
-      $$ [$Hcs $Hv0 $Hpm]
-      as %cfgv %prsm %prs %vref %vm ⟨Hcs, -, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
-    obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
+  · -- a voter: fresh maps; with no outgoing voter and no learner the model's answer is the
+    -- voters (`simpleFold_restoreIn`)
+    have Hm : restoreM c.VotersOutgoing' c.Voters' c.Learners' c.LearnersNext' c.AutoLeave' =
+        some (cfgState (GMap.listToSet c.Voters') (GMap.listToSet c.Learners')) := by
+      rw [Hcvo, Hcln]
+      unfold restoreM restoreSimpleOps
+      simp only [↓reduceIte]
+      exact simpleFold_restoreIn c.Voters' c.Learners' Hvne
+        (fun x hx => hx.elim (fun h e => Hv0n (e ▸ h)) (fun h _ => by rw [Hcl] at h; cases h))
+        (fun x hx => by rw [Hcl] at hx; cases hx)
+    wp_apply H chg cs c dq v0 _ Hm Hmi Harr Hl Hln Hal $$ [$Hcs $Hv0 $Hpm]
+      as %cfgv %prsm %prs ⟨Hcs, -, -, (⟨%Hops, -⟩ | ⟨-, Hc, Hprsm, %Hdom, Hprogs⟩)⟩
+    · exfalso; exact restoreSimpleOps_ne_nil_of_voters _ _ _ _ Hvne Hops
+    icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vref, %vout, %Harr1, Hvref, Hout, Hlm, Hln1, %Hal1⟩
+    icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.outgoing rfl $$ Hout with %Hvout
+    icases ownIdsetC_nil_of _ _ (cfgState _ _).cfg.learnersNext rfl $$ Hln1 with %Hcfgln
+    have Hcfgarr : cfgv.Voters'.arr = [vref, map.nil] := by rw [Harr1, Hvout]
+    have Hcfgal := Hal1
+    ihave Hlm := (show ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1)
+      (cfgState (GMap.listToSet c.Voters') (GMap.listToSet c.Learners')).cfg.learners ⊢
+      ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet c.Learners') from .rfl) $$ Hlm
+    ihave Hvref := (show (vref ↦$ (cfgState (GMap.listToSet c.Voters')
+      (GMap.listToSet c.Learners')).cfg.incoming : IProp GF) ⊢
+      vref ↦$ GMap.listToSet c.Voters' from .rfl) $$ Hvref
+    have Hvm := domSet_gset (GMap.listToSet c.Voters')
+    have Hprs : domSet prs = GMap.listToSet c.Voters' ∪ GMap.listToSet c.Learners' := by
+      rw [Hdom]
+      apply GMap.set_eq; intro k
+      rw [GMap.elem_of_dom', cfgState, cfgFlags_mem, GMap.elem_of_union]
     have Hprs' : domSet prs = GMap.listToSet c.Voters' := by
       rw [Hprs, Hcl]; exact GMap.map_union_empty _
+    ihave Hprogs : [∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
+        ⌜p.learner = !decide (k ∈ GMap.listToSet c.Voters')⌝ $$ [Hprogs]
+    · iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
+      intro k pr _
+      iintro ⟨%p, Hp, %Hpl⟩
+      iexists p
+      iframe Hp
+      ipureintro
+      simp only [cfgState] at Hpl
+      rw [cfgFlags_lookup] at Hpl
+      by_cases hv : k ∈ GMap.listToSet c.Voters'
+      · rw [ite_eq_left hv] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
+      · rw [ite_eq_right hv] at Hpl
+        by_cases hl : k ∈ GMap.listToSet c.Learners'
+        · rw [ite_eq_left hl] at Hpl; rw [← Option.some.inj Hpl]; simp [hv]
+        · rw [ite_eq_right hl] at Hpl; cases Hpl
     iapply HΦ
     ipersist Hprsm
     imodintro
@@ -108,11 +147,80 @@ theorem wp_Restore_voters (H : confchange.Restore.spec (GF := GF) (hG := hG))
     iexists prs
     isplitl [Hvref Hlm Hprogs]
     · iapply ownConfig_restore (GMap.listToSet c.Voters') (GMap.listToSet c.Learners') cfgv prsm prs
-        vref vm Hcfgarr Hcfgln Hcfgal Hvm Hprs
+        vref _ Hcfgarr Hcfgln Hcfgal Hvm Hprs
         (fun k hk => by rw [Hcl] at hk; exact absurd hk (GMap.not_elem_of_empty _))
         (by rw [Hcl, show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
         $$ Hvref Hlm Hprsm Hprogs
     · ipureintro; exact Hprs'
+
+/-- `switchToConfig` at a follower, from the struct sealed at any configuration `cfg0` and the
+new configuration as `confchange.Restore` builds it (`ownConfig`), with no learners
+(`domSet prs = cfg`): its `spec` at the simple configuration `cfg`. (Until 2026-10-21
+`raft.switchToConfig.spec_nonleader_open`, through the simple-configuration `specS`.) -/
+theorem wp_switchToConfig_follower (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
+    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tv : tracker.ProgressTracker)
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
+    (Hdom : domSet prs = cfg)
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        r.[raft, go!"trk"] ↦ tv ∗
+        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
+           ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
+        tv.Votes' ↦$ s.votes ∗
+        ownConfig cfg cfgv prsm prs }}
+      (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
+        (Val #cfgv)) (Val #prsm))
+    {{ (cs : Loc) (xs : List w64)
+        (pvs : GMap w64 Progress), RET #cs;
+        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
+        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
+  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, Hcfg⟩ HΦ
+  icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
+  ihave Hcfg := ownConfigV_toC _ _ _ _ _ $$ Hcfg
+  have Hnl : ¬ s.role = .leader := by rw [Hrole]; decide
+  iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv cfgv prsm prs pvs
+      (fun h => absurd h Hnl)
+      (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
+      (fun h => absurd h Hnl)
+    $$ [$Hpkg $Htrkf Hback $Hvotes $Hcfg]
+  · isplitl [Hback]
+    · iintro %tv' %prs' %pvs' Hf Ht %Hok
+      icases ownTrackerC_toTracker _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
+      ihave Hp := Hback $$ %tv' %prs' %pvs' Hf Ht %Hok
+      ihave Hp := ownRaftPhys_toC' $$ Hp
+      simp only at HL
+      rw [HL]
+      iapply ownRaftPhysCV_widen _ _ _ _ _ ?_ $$ Hp
+      intro h hr
+      exact GMap.elem_of_union_l _ (h hr)
+    · ipureintro; exact Hmi
+  inext
+  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hp, %Hsw⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  obtain ⟨H1, H2, H3, H4⟩ := Hp
+  have Hos0 : os = [] := perm_elements_empty _ H2
+  have Hlns0 : lns = [] := perm_elements_empty _ H4
+  have Hl0 : domSet prs \ cfg = (∅ : GSet w64) := by
+    rw [Hdom]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_difference]
+    exact ⟨fun h => absurd h.1 h.2, fun h => absurd h (GMap.not_elem_of_empty _)⟩
+  have Hls0 : ls = [] := perm_elements_empty _ (by simpa only [CfgM.simple, Hl0] using H3)
+  subst Hos0 Hlns0 Hls0
+  rw [learnerOfC_simple] at Hsw
+  unfold SwitchOkC at Hsw
+  rw [ite_eq_right Hnl] at Hsw
+  subst Hsw
+  have HL : learnerOf cfg prs id = false := by
+    unfold learnerOf; rw [Hdom]; simp
+  iapply HΦ $$ %cs %xs %pvs
+  rw [HL]
+  iframe Hphys
+  isplitl [Hcs]
+  · simp only [CfgM.simple]; iexact Hcs
+  ipureintro; exact H1
 
 theorem newRaft.wp_proof
     (wp_Config_validate : Config.validate.spec (GF := GF) (hG := hG))
@@ -224,7 +332,7 @@ theorem newRaft.wp_proof
     -- (2026-10-19, D21 M2r) leader transfer off (the default), the queues empty
     (XfOk.nil (fun _ => rfl) (fun h => absurd h (by simp only [s0]; decide)))
     $$ «$r0» Hlg0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob Hns0 with ⟨Htrkf, Hback⟩
-  wp_apply (raft.switchToConfig.spec_nonleader_open wp_raft_switchToConfig) _ _ _ s0 tv0 cfgv prsm prs
+  wp_apply (wp_switchToConfig_follower wp_raft_switchToConfig) _ _ _ s0 tv0 cfgv prsm prs
     (by simp only [s0]) Hprs' Hmi $$ [$Htrkf $Hback $Hvotes $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2⟩
   have Hpermv : csm.Voters' ≡ₚ xs2 := by
@@ -329,12 +437,17 @@ theorem newRaft.wp_proof
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
     as %pvs3 Hphys
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
-  wp_apply (tracker.ProgressTracker.VoterNodes.spec_simple wp_ProgressTracker_VoterNodes) $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  ihave Htrk3 := ownTracker_toC _ _ _ $$ Htrk3
+  wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  icases ownTrackerC_toTracker _ _ _ _ $$ Htrk3 with ⟨Htrk3, -⟩
+  rw [CfgM.voters_simple] at Hnxs
   ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
   -- the log line's `nodesStrs` loop; what it builds is never read
   ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),

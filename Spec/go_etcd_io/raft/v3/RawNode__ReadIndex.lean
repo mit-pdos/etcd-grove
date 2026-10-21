@@ -48,11 +48,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-/-- The scalars of the message `ReadIndex` builds: `pb.Message{Type: MsgReadIndex, ...}`
-(2026-10-16, stage R5: a record; its one entry is `propEntryM c`, the context's bytes; until
-then the Goose value `readIndexMsg esl` with the entries' slice). -/
-def readIndexMsgM [FfiSyntax] : MessageM := { (zero_val MessageM) with Type' := MsgReadIndex }
-
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

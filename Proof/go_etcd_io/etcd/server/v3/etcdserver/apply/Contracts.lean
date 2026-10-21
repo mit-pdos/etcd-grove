@@ -115,13 +115,6 @@ def respHdrOk (T : Type) (resp : Loc) : IProp GF :=
 
 /-! ## The backend's write budget -/
 
-/-- **What a write under the batch lock spends and borrows of the backend** (2026-10-17, unit N4,
-D14f): a write-back token of the store `γ`'s instance (`mvcc.storeWT γ`: the real backend's
-`Unlock` may write back, `backend.wbTok`), spent, and a reader's token (`mvcc.storeRT γ`: a share
-of the backend open, which `LockInsideApply` needs), lent and given back. `dispatch` hands its
-per-entry write token to the method; the apply thread's reader lends its token. -/
-def wTok (γ : mvcc.StoreNames) : IProp GF := iprop(mvcc.storeWT γ ∗ mvcc.storeRT γ)
-
 /-! ## The auth store -/
 
 /-- An auth-store method taking a request `r` and returning `(resp, err)` with `resp` of type

@@ -37,14 +37,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- Over mvcc's assumed backend a write token is free. -/
-theorem storeWT_none (γ : mvcc.StoreNames) (h : γ.kb = none) : ⊢ mvcc.storeWT (GF := GF) γ := by
-  unfold mvcc.storeWT mvcc.kbWT; rw [h]; iintro; itrivial
-
-/-- Over mvcc's assumed backend a transaction's changes are bounded by `2 ^ 63` only. -/
-theorem putMax_none (γ : mvcc.StoreNames) (h : γ.kb = none) : mvcc.putMax γ = 2 ^ 63 := by
-  unfold mvcc.putMax mvcc.kbPutMax; rw [h]
-
 /-- Either instance allows `2 ^ 56` changes per transaction. -/
 theorem putMax_ge (γ : mvcc.StoreNames) : 2 ^ 56 ≤ mvcc.putMax γ := by
   unfold mvcc.putMax mvcc.kbPutMax; cases γ.kb <;> simp
@@ -71,14 +63,6 @@ theorem storeWTs_split (γ : mvcc.StoreNames) (n : Nat) :
     simp only [backend.wbTok]
     rw [Nat.add_comm]
     exact ownToks_add_1 n 1 d.γB.wb
-
-/-- A supply splits and joins (the server's `run` splits each batch's share off its budget). -/
-theorem storeWTs_add (γ : mvcc.StoreNames) (a b : Nat) :
-    storeWTs (GF := GF) γ (a + b) ⊣⊢ storeWTs γ a ∗ storeWTs γ b := by
-  unfold storeWTs
-  cases γ.kb with
-  | none => exact ⟨by iintro -; isplitl <;> itrivial, by iintro -; itrivial⟩
-  | some d => exact ownToks_add b a d.γB.wb
 
 /-- The `lease.Lessor` `le` as the txn package uses it: mvcc's contract, and `Lookup(id)` by the
 lease owner (`lease.lessorUser γl L`: its half of the live set `L`, a reader slot of the lessor's

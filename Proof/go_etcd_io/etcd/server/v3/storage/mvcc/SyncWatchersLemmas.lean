@@ -415,10 +415,6 @@ theorem SyncVars.step_ST (v : SyncVars) (w : Loc) (r : WatchRange) (dst : SyncDs
     (st' : WatcherSt) (e' : List EvM × Nat) :
     (v.step w r dst st' e').ST = <[w := st']> v.ST := by cases dst <;> rfl
 
-theorem SyncVars.step_E (v : SyncVars) (w : Loc) (r : WatchRange) (dst : SyncDst)
-    (st' : WatcherSt) (e' : List EvM × Nat) :
-    (v.step w r dst st' e').E = <[w := e']> v.E := by cases dst <;> rfl
-
 theorem SyncLoop.step {σ : WsState} {v : SyncVars} {PB PBv PBr : GMap Loc (Loc × EventBatch)}
     {keys : List Loc} {i : Nat} (h : SyncLoop σ v PB PBv PBr keys i) {key : Loc}
     (hkey : keys[i]? = some key) (r : WatchRange) (dst : SyncDst) (st' : WatcherSt)

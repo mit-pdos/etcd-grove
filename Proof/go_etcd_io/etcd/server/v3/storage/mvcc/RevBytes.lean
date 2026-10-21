@@ -101,15 +101,6 @@ theorem enc_subslice9 (m : w64) (l : List w8) :
     List.drop_left' (u64Be_length m)]
   simp
 
-theorem enc_drop_length (m : w64) (l : List w8) :
-    (u64Be m ++ revSep :: l).drop (9 + l.length) = [] := by
-  rw [← enc_length m l, List.drop_length]
-
-/-- The 17 bytes, split as the encoder leaves them: before 9, from 9, after the end. -/
-theorem revBytes_eq (r : Rev) (rest : List w8) :
-    revBytes r false ++ rest = u64Be r.main ++ revSep :: (u64Be r.sub ++ rest) := by
-  simp [revBytes, revSep]
-
 section go
 variable [ext : FfiSyntax]
 

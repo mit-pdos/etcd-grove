@@ -60,10 +60,6 @@ def tresOf (op : TOp) (m : OpRespM) : TRes :=
     | .delete _ n _ => delRes n
     | _ => delRes (W64 0)
 
-/-- **A transaction's output**: the header revision, the verdict, each response's result. -/
-def txnOut (rev : w64) (ok : Bool) (ops : List TOp) (ms : List OpRespM) : Output :=
-  withResL { zOut with Rev' := rev, Ok' := ok } (List.zipWith tresOf ops ms)
-
 /-! ## Against the model -/
 
 theorem getOut_eq (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess) (k : GoString) :
@@ -183,30 +179,6 @@ theorem tresOf_zip (ops : List TOp) (mops : List (linkv.MOp GoString GoString))
           simp only [List.map_cons, client.opRespsRel] at h
           simp only [List.zipWith_cons_cons, List.map_cons]
           rw [tresOf_eq op mop hf r m h.1, ih mops' hr rs ms h.2]
-
-/-- **A transaction's output**, against the model's: its Go operations decode to the model's
-`t` and `e`, its responses are the server's run of the branch at `σ`, its verdict the run's, its
-revision the state's after the run. -/
-theorem txnOut_eq (σ : KVState) (h : GoodKV σ) (cs : List (linkv.MCmp GoString GoString))
-    (t e : List (linkv.MOp GoString GoString)) (tops eops : List TOp)
-    (ht : decAll decTOp tops = some t) (he : decAll decTOp eops = some e)
-    (ok : Bool) (ms : List OpRespM)
-    (hok : ok = (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).1)
-    (hrel : client.opRespsRel false ((linkv.txnOf cs t e).branch ok)
-      (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (linkv.txnOf cs t e)).2.2 ms) :
-    txnOut (W64 ((kvOpStep (opIn (.txn cs t e)) σ).rev : Int)) ok (if ok then tops else eops) ms =
-      outAt (.txn cs t e) σ := by
-  unfold outAt
-  rw [linkv.mStep_txn_out wks listFrom listTo σ h.1 cs t e, ← hok]
-  simp only [txnOut, outOf]
-  congr 1
-  have hb : (linkv.txnOf cs t e).branch ok = (if ok then t else e).map linkv.tOpOf := by
-    unfold linkv.txnOf TxnModel.branch
-    cases ok <;> rfl
-  rw [hb] at hrel
-  cases ok
-  · exact tresOf_zip eops e he _ ms hrel
-  · exact tresOf_zip tops t ht _ ms hrel
 
 /-- `opRespsRel` element by element. -/
 theorem opRespsRel_getElem (skip : Bool) :

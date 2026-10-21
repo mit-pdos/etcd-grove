@@ -98,19 +98,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `readTx.mu`'s whole resource holds a half of `γ.rvs`. -/
-theorem rtRes_rvs (γ : BNames) (P : BParams) (rt : Loc) :
-    rtRes (GF := GF) γ P rt 1 ⊢ ∃ y : RView × Bool, ghostVar γ.rvs (1 : Qp).half y ∗
-      (ghostVar γ.rvs (1 : Qp).half y -∗ rtRes γ P rt 1) := by
-  unfold rtRes rtResAt rtRest rtCore
-  iintro ⟨%rd, %rv, %H, %m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hr⟩
-  iexists (rv, rd.win)
-  iframe Hrvs
-  iintro Hrvs
-  iexists rd, rv, H, m, Pb, cm
-  iframe
-  ipureintro; exact Hok
-
 /-- `rtCm`'s half of `γ.rvs`, out and back. -/
 theorem rtCm_rvs (γ : BNames) (P : BParams) (C : Data) (R : RBuf) (win : Bool) :
     rtCm (GF := GF) γ P C R win ⊢ ghostVar γ.rvs (1 : Qp).half ((C, R), win) ∗

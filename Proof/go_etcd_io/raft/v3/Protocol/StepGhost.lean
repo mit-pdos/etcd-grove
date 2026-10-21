@@ -280,41 +280,12 @@ theorem ownLogGhost_recs (γ : RaftNames) (id : w64) (s : PState) (kl : Option w
   isplitr; · ipureintro; exact Hlog_ok
   iexact Hrecs
 
-/-- The full log, with what the node keeps of it. -/
-theorem ownLogGhost_full (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗
-      ∃ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log ∧
-              TermsLe s (fp ++ s.log)⌝ ∗
-        logRecs γ base0 fp ∗
-        commitIn γ (fp ++ s.log) s.commit s.term ∗
-        campOwn γ id s (fp ++ s.log) := by
-  unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  iexists fp
-  isplitr; · ipureintro; exact Hfull
-  iframe Hfrecs Hcommit Hcown
-
-theorem ownLogGhost_kl (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗ klOk γ id s kl := by
-  unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  iexact Hkl
-
 theorem ownLogGhost_wf (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
     ⊢ ownLogGhost (GF := GF) γ id s kl -∗ ⌜PlogWf s.base s.log⌝ := by
   unfold ownLogGhost
   iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
   iNamed H
   ipureintro; exact Hfull.2.1
-
-theorem ownLogGhost_committed (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    ⊢ ownLogGhost (GF := GF) γ id s kl -∗ isCommittedIdx γ s.commit := by
-  unfold ownLogGhost
-  iintro ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  iapply commitIn_committed $$ Hcommit
 
 theorem ownLogGhost_matched (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
     ⊢ ownLogGhost (GF := GF) γ id s kl -∗ matchedOk γ s := by
@@ -716,18 +687,6 @@ theorem ownLogGhost_lead_full (γ : RaftNames) (id : w64) (s : PState) (kl : Opt
     · iexists γt, M, l0
       iframe % # ∗
     · iexact Hcown
-
-theorem ownLogGhost_lead_prefix (γ : RaftNames) (id : w64) (s : PState)
-    (kl : Option w64) :
-    s.role = .leader →
-    ⊢ isLeader (GF := GF) γ id s.term -∗ ownLogGhost γ id s kl -∗
-      leadPrefix γ id s.term s.base s.log ∗ ownLogGhost γ id s kl := by
-  intro Hr
-  iintro #Hl H
-  icases ownLogGhost_lead_full γ id s kl Hr $$ Hl H with ⟨⟨%fp, #Hp, -, -⟩, H⟩
-  isplitr [H]
-  · iexact Hp
-  · iexact H
 
 /-- A leader stepping down at its term (2026-10-14, stage B5: `StepR.stepDown`): its term
 log is dropped (`TermsOk`'s keys allow a non-candidate at its term); its acknowledgements of

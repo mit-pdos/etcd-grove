@@ -181,12 +181,6 @@ theorem ivlLt_of_lt_of_le {x y z : IvlS} (h1 : ivlLt x y) (h2 : ¬ ivlLt z y) : 
   · exact absurd h1 h2
   · exact absurd (ivlLt_trans h h1) h2
 
-theorem ivlLt_of_le_of_lt {x y z : IvlS} (h1 : ¬ ivlLt y x) (h2 : ivlLt y z) : ivlLt x z := by
-  rcases ivlLt_trichotomy x z with h | rfl | h
-  · exact h
-  · exact absurd h2 h1
-  · exact absurd (ivlLt_trans h2 h) h1
-
 /-! ## `Insert` -/
 
 section entries

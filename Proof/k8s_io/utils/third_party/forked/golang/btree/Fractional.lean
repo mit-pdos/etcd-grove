@@ -155,10 +155,6 @@ instance ownNode_persistent (n : Loc) (t : Tree (V × K)) :
     Persistent (ownNode o c f less DFrac.discard n t) :=
   ownNode_persistent' o c f less n t
 
-instance ownNodes_persistent (ps : List Loc) (ts : List (Tree (V × K))) :
-    Persistent (ownNodes o c f less DFrac.discard ps ts) :=
-  ownNodes_persistent' o c f less ps ts
-
 instance ownRoot_persistent (d : Nat) (r : Loc) (s : List (V × K)) :
     Persistent (ownRoot o c f less d DFrac.discard r s) := by
   unfold ownRoot; infer_instance

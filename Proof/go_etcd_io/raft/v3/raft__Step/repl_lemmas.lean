@@ -371,17 +371,6 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
     rw [Hs, Ht]
     simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
 
-theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
-    (m : MessageM) (sv : SnapshotM) (voters : CSLists) :
-    uint.Z ps.term < uint.Z m.Term' →
-    m.To' = id →
-    m.From' ≠ id →
-    StepC c id B ps [absSnap m sv voters] (pbecomeFollower ps m.Term' m.From') := by
-  intro Hgt Hto Hfid
-  refine step_eq c id _ _ _ _
-    (StepC.higherTerm (absSnap m sv voters) ps Hgt Hto (fun _ => Hfid)) ?_
-  simp only [absSnap, absSnapFrom, fromLeader, ↓reduceIte]
-
 /-- `step_handle_snap`'s two exits that keep the configuration, as `StepCF` steps. -/
 theorem stepCF_handle_snap_keep (c : CfgM) (id : w64) (ps : PState) (t : NState)
     (m : MessageM) (sv : SnapshotM) (voters : CSLists) (s' : NState) :

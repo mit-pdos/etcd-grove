@@ -61,9 +61,6 @@ def wgsWgInv (γ : WgsWgNames) : IProp GF :=
   iprop(∃ (ctr : w32) (k : Nat), sync.ownWaitGroup γ.γwg ctr ∗ ownTokAuth γ.γwr k ∗ threadToks k ∗
     ⌜0 ≤ sint.Z ctr ∧ sint.nat ctr = k⌝)
 
-instance wgsWgInv_timeless (γ : WgsWgNames) : Timeless (wgsWgInv (GF := GF) γ) := by
-  unfold wgsWgInv; infer_instance
-
 /-- The wait group `wg` with the names `γ` (persistent). -/
 def isWgsWg (wg : Loc) (γ : WgsWgNames) : IProp GF :=
   iprop(sync.isWaitGroup wg γ.γwg wgsWgWN ∗ inv wgsWgCN (wgsWgInv γ))

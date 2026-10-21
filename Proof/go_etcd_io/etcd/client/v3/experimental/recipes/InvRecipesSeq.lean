@@ -355,16 +355,6 @@ theorem seqNext_order (kp : GoString) (sg : List EtcdKv) (key : GoString) (hkp :
     rw [hwkey, hk]
     exact seqKey_lt kp mw (mv + 1) hmw (by omega)
 
-/-- Under the premise, the new key is absent from the state the get saw. -/
-theorem seqNext_absent (kp : GoString) (sg : List EtcdKv) (key : GoString) (hkp : kp ≠ [])
-    (hwf : SeqKeysBelow kp (10 ^ 16 - 1) sg) (h : SeqNext kp sg key) : ∀ v ∈ sg, v.key ≠ key := by
-  obtain ⟨m, -, hk, -, hlt, -⟩ := seqNext_order kp sg key hkp hwf h
-  intro v hv e
-  have hpre : kp <+: v.key := by
-    rw [e, hk]; unfold seqKey; rw [List.append_assoc]; exact List.prefix_append _ _
-  have := hlt v hv hpre
-  rw [e] at this; exact go.goStringLt_irrefl _ this
-
 section sprintf
 variable [FfiSyntax] [GoGlobalContext]
 
@@ -490,23 +480,6 @@ theorem putKv_wf (pfx : GoString) (r : w64) (k val : GoString) (l : w64) (s : Li
     · rw [e]; exact hk
     · exact hwf.2 v hv
 
-/-- A put of a key absent from `s` creates it: create and mod revision `r`, version `1`. -/
-theorem putKv_new (r : w64) (k val : GoString) (l : w64) (s : List EtcdKv)
-    (habs : ∀ v ∈ s, v.key ≠ k) :
-    ∃ v ∈ putKv r k val l s, v.key = k ∧ v.createRev = r ∧ v.modRev = r ∧
-      v.version = W64 1 ∧ v.value = val ∧ v.lease = l := by
-  have hfind : s.find? (fun v => decide (v.key = k)) = none := by
-    rw [List.find?_eq_none]; intro v hv; simpa using habs v hv
-  unfold putKv; rw [hfind]
-  exact ⟨_, btInsert_self_mem _ _, rfl, rfl, rfl, rfl, rfl, rfl⟩
-
-theorem length_seqKey (kp : GoString) (m : Nat) (hm : m < 10 ^ 16) :
-    (seqKey kp m).length = kp.length + 17 := by
-  unfold seqKey
-  have := _root_.Perennial.fmt.length_decimalNat_le m 16 (by omega) hm
-  simp [_root_.Perennial.fmt.length_padZeros]
-  omega
-
 section iprop
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -547,53 +520,6 @@ theorem seqKeyPutAt_order (pfx kp key val : GoString) (g r : w64) (hkp : kp ≠ 
   ipureintro
   intro hwf
   exact seqNext_order kp sg key hkp hwf H.2.2.1
-
-/-- **The key was created**, under the premise on the keys under `kp` at the get's revision `g`
-and if no key under `kp` appeared between `g` and the transaction (every key under `kp` at
-`r - 1` was there at `g`: true if every writer of a key under `kp` also puts `__kp`, which the
-transaction's comparison then rules out). -/
-theorem seqKeyPutAt_created (pfx kp key val : GoString) (g r : w64) (hkp : kp ≠ [])
-    (hpk : pfx <+: key) (hpb : pfx <+: baseKey kp) :
-    seqKeyPutAt (GF := GF) pfx kp key val g r ⊢
-      ∀ s0 : List EtcdKv, □ etcdState (r - W64 1) pfx s0 -∗
-      ∃ sg : List EtcdKv, □ etcdState g pfx sg ∗
-        ⌜SeqKeysBelow kp (10 ^ 16 - 1) sg →
-          (∀ v ∈ s0, kp <+: v.key → ∃ w ∈ sg, w.key = v.key) →
-          ∃ s1 : List EtcdKv, s1 = putKv r key val (W64 0) (putKv r (baseKey kp) [] (W64 0) s0) ∧
-            (∀ v ∈ s0, v.key ≠ key) ∧ EtcdStateWf pfx s1 ∧
-            ∃ v ∈ s1, v.key = key ∧ v.createRev = r ∧ v.modRev = r ∧ v.version = W64 1 ∧
-              v.value = val ∧ v.lease = W64 0⌝ := by
-  unfold seqKeyPutAt
-  iintro ⟨%sg, %s0, #Hsg, #Hs0, -, %H⟩ %s0' #Hs0'
-  ihave %He := etcdState_agree _ _ _ _ $$ [Hs0 Hs0']
-  · isplitl [Hs0]
-    · iexact Hs0
-    · iexact Hs0'
-  subst He
-  iexists sg
-  iframe Hsg
-  ipureintro
-  intro hwf hnew
-  obtain ⟨-, hwf0, hseq, -, -⟩ := H
-  obtain ⟨m, hm, hk, -, -, -⟩ := seqNext_order kp sg key hkp hwf hseq
-  have habs0 := seqNext_absent kp sg key hkp hwf hseq
-  have hkkp : kp <+: key := by rw [hk]; unfold seqKey; rw [List.append_assoc]; exact List.prefix_append _ _
-  have habs : ∀ v ∈ s0, v.key ≠ key := by
-    intro v hv e
-    obtain ⟨w, hw, hwk⟩ := hnew v hv (e ▸ hkkp)
-    exact habs0 w hw (hwk.trans e)
-  have hbk : baseKey kp ≠ key := by
-    intro e
-    have h1 := congrArg List.length e
-    rw [hk, length_seqKey kp m hm] at h1
-    simp [baseKey] at h1
-  have habs1 : ∀ v ∈ putKv r (baseKey kp) [] (W64 0) s0, v.key ≠ key := by
-    intro v hv
-    rcases putKv_mem _ _ _ _ _ v hv with e | hv
-    · rw [e]; exact hbk
-    · exact habs v hv
-  exact ⟨_, rfl, habs, putKv_wf _ _ _ _ _ _ (putKv_wf _ _ _ _ _ _ hwf0 hpb) hpk,
-    putKv_new _ _ _ _ _ habs1⟩
 
 end iprop
 

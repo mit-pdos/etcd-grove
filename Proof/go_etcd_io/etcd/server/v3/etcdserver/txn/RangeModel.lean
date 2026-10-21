@@ -589,22 +589,6 @@ theorem rangeLimitOf_pos (o : OpFull) (h : 0 < sint.Z (rangeLimitOf o)) :
       simp only [hl, ↓reduceIte]
       refine ⟨?_, ?_⟩ <;> (first | trivial | rfl | word)
 
-/-- `effSortOrder` of a request whose `sortSet` is as `rangeOpOf` sets it: the server sorts
-(order `1` or `2`) only off its default ordering. -/
-theorem effSortOrder_sorts (o : OpFull)
-    (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
-    (h : o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) :
-    isDefaultOrd o.sortTarget o.sortOrder = true → o.sortOrder = W64 0 ∧ o.sortTarget ≠ W64 0 := by
-  intro hd
-  unfold OpFull.effSortOrder at h
-  unfold isDefaultOrd at hd
-  rw [hset] at h
-  simp only [decide_eq_true_eq] at hd
-  rcases hd with h0 | ⟨ht, ho⟩
-  · refine ⟨h0, fun ht => ?_⟩
-    simp [h0, ht] at h
-  · simp [ho, ht] at h
-
 theorem srvTrunc_map (o : OpFull) (f : EtcdKv → EtcdKv) (L : List EtcdKv) :
     srvTrunc o (L.map f) = (srvTrunc o L).map f := by
   unfold srvTrunc srvMore

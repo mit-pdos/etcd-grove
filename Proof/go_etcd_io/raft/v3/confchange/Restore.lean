@@ -9,8 +9,9 @@ Until 2026-10-08 this file was `axiom confchange.Restore.wp_proof` (the Rocq
 proved from its callees (`toConfChangeSingle`, the `chg.Simple(cc)` and
 `chg.EnterJoint(...)` closures, `chain`). Since 2026-10-14 (reconfiguration stage B8) for any
 `ConfState` (`spec`, joint or not; until 2026-10-14 `specG`), each op a `Simple` or `EnterJoint` step of the
-model (`restoreM`, `InvRestore.lean`) on the pair held as `ownCCSt`; the statement of 2026-10-13
-(`specS`, non-joint) follows (`spec_simple`).
+model (`restoreM`, `InvRestore.lean`) on the pair held as `ownCCSt`. (Until 2026-10-21 the
+statement of 2026-10-13, `specS`, non-joint, followed by `spec_simple`; its one caller,
+`newRaft`'s `wp_Restore_voters`, now uses `spec`.)
 -/
 module
 

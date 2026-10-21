@@ -168,19 +168,6 @@ theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : MessageM}
     · rfl
     · exact absurd h hm
 
-/-- A `MsgStorageApplyResp`'s step moves the configuration index to the new `applied` when it
-was below (`CidxMove`). -/
-theorem GMode.StepOut.applyResp {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0} {g : RGh}
-    {c : CfgM} {id : w64} {m : MessageM} {s s' : NState} {md' : GMode}
-    (H : (GMode.dyn dec c0 h0 g).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap) :
-    ∃ cidx', (cidx' = g.cidx ∨ cidx' = max g.cidx (uint.nat s'.logst.applied)) ∧
-      md' = .dyn dec c0 h0 { g with cidx := cidx' } := by
-  obtain ⟨g', Hcm, rfl, -⟩ := H
-  rcases Hcm with h | h | ⟨-, h⟩
-  · exact absurd h hs
-  · refine ⟨g.cidx, .inl rfl, ?_⟩; rw [h]
-  · refine ⟨_, .inr rfl, ?_⟩; rw [h]
-
 /-- The dynamic mode's premises of a step, for a message that is no snapshot, no storage-apply
 acknowledgement and no proposal: only that the node is no pre-candidate. -/
 theorem GMode.Pre.of_other {md : GMode} {m : MessageM} {ents : List EntryM}
@@ -283,21 +270,6 @@ that are only definitionally the ones a lemma wants (`(toPState s).term`, `(absM
 theorem ackIn_cast (γ : RaftNames) {t t' i i' : w64} (ht : t = t') (hi : i = i') :
     ackIn (GF := GF) γ t i ⊢ ackIn γ t' i' := by
   subst ht hi; exact .rfl
-
-/-- At a leader, an `ackIn` of its term is at most its last index (2026-10-16, stage R8a, D11):
-`ownRaftGhost_ackIn_le` through the mode's ghost state. -/
-theorem ownStepGhost_ackIn_le (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState)
-    (i : w64) (Hl : s.role = .leader) :
-    ⊢ ownStepGhost (GF := GF) γ md c id s -∗ ackIn γ s.term i -∗
-      ⌜uint.Z i ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ ∗
-      ownStepGhost γ md c id s := by
-  unfold ownStepGhost
-  iintro ⟨Hg, Hrest⟩ Hai
-  ihave Hai' := ackIn_cast γ (show s.term = (toPState s).term from rfl) rfl $$ Hai
-  icases ownRaftGhost_ackIn_le γ id (toPState s) i
-      (by rw [toPState_role, proleRole_leader]; exact Hl) $$ Hg Hai' with ⟨%H, Hg⟩
-  iframe Hg Hrest
-  ipureintro; exact H
 
 /-- (2026-10-19, D21 M3) In the no-snapshot mode a leader's last index is at least `2`
 (`ownRaftGhost_leader_last`, the mode only with a bootstrap log, `NsLink`): what

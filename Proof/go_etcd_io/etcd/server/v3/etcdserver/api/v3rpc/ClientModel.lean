@@ -110,18 +110,10 @@ def srvEtcdState (E : apply.AEnv GF) (rev : w64) (pfx : GoString) (s : List Etcd
     ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧
       s = underPfx pfx (stateAt log (sint.Z rev).toNat)⌝)
 
-instance srvEtcdState_persistent (E : apply.AEnv GF) (rev : w64) (pfx : GoString)
-    (s : List EtcdKv) : Persistent (srvEtcdState E rev pfx s) := by
-  unfold srvEtcdState; infer_instance
-
 /-- **etcd has reached `r`, on the server** (unit W-M3): a log the server certified (`certOk`:
 the KV model of a committed raft prefix) has revision `r` (see the file header). -/
 def srvReachedAt (E : apply.AEnv GF) (r : w64) : IProp GF :=
   iprop(∃ log : Log, certOk E.γ log ∗ ⌜sint.Z r < log.length⌝)
-
-instance srvReachedAt_persistent (E : apply.AEnv GF) (r : w64) :
-    Persistent (srvReachedAt E r) := by
-  unfold srvReachedAt; infer_instance
 
 instance srvReachedAt_timeless (E : apply.AEnv GF) (r : w64) : Timeless (srvReachedAt E r) := by
   unfold srvReachedAt; infer_instance

@@ -213,11 +213,6 @@ theorem optApplyMax_of_retryApplyOks (ros : List go_etcd_io.etcd.client.v3.retry
     · iapply optApplyMax_of_retryApplyOk $$ H1
     · iapply ih $$ H2
 
-/-- A call's `retryOption` (`retryApplyOk`: it writes only `retryPolicy`) builds options. -/
-theorem optApplyOk_of_retryApplyOk (f : GoFunc) :
-    retryApplyOk (GF := GF) f ⊢ optApplyOk f :=
-  (optApplyMax_of_retryApplyOk f).trans (optApplyMax_ok f none false)
-
 /-- **A call option the client passes to a stream** (persistent; item 1, the client lease,
 2026-10-18): one it passes to a unary call (`callOptOk`), or a `retryOption` whose closure builds
 the interceptor's options (`optApplyOk`: the lessor's `withMax(0)`). The stream interceptor applies

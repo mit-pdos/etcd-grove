@@ -304,7 +304,7 @@ theorem ccShrink_of_raftOk (cfg : GSet w64) (cm : CCV1M) (h : ccRaftOk cfg cm) :
 `ccShrink_of_raftOk`): raft's commit invariant and the
 proposals' witnesses are the server's (`srvPropWits_of_raft`); a `Propose` over the request
 path's context (`txnCtx_nodeCtx`) with the server's argument (`srvPropArg`, converted by
-`srvPropAu_to_propAu`) returns raft's result in the server's terms (`srvPropRes`) and an error
+`srvPropAu1_to_propAu1`) returns raft's result in the server's terms (`srvPropRes`) and an error
 the gRPC layer takes (`applyErrIs_of_propErr`). -/
 theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     (wp_Propose : letI : MemStorReg GF := ⟨γ.reg⟩; node.Propose.spec (GF := GF) (hG := hG))
@@ -345,50 +345,39 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iapply HΦ
     iexists cs
     iexact Hcs
-  iintro !> %ctx %cd %dsl %data %Q %fresh %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg⟩ HΦ
+  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
-  -- (2026-10-19, D21 M6) deposited once: the update fired at most once
-  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) fresh true $$ [Harg]
-  · iunfold srvPropArg at Harg
-    unfold propArg
+  iunfold srvPropArg at Harg
+  icases Harg with ⟨Hfr, Hau⟩
+  iunfold srvPropFresh at Hfr
+  -- (2026-10-21) the data registered with the lifted predicate (raft's public ghost step), then
+  -- proposed once with the update (D21 M6: fired at most once)
+  ihave #Hnode' : isNode γ.node γ.id γ.nl $$ []
+  · iunfold rnIsNode at Hnode; iexact Hnode
+  imod node_prop_register γ.node γ.id γ.nl data (srvLift E.γr.raft Q) ⊤ CoPset.subseteq_top
+    $$ Hnode' [Hfr] with #Hpi
+  · rw [← Hraft]; iexact Hfr
+  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) $$ [Hau]
+  · unfold propArg
+    iframe Hpi
     rw [← Hraft]
-    cases fresh with
-    | true =>
-      simp only [↓reduceIte]
-      icases Harg with ⟨Hfr, Hau⟩
-      iunfold srvPropFresh at Hfr
-      iframe Hfr
-      unfold propAuM
-      simp only [↓reduceIte]
-      iapply srvPropAu1_to_propAu1 E.γr.raft data Q $$ Hinv Hau
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iexact Harg
-  wp_apply wp_Propose γ.node γ.id γ.nl dsl data (srvLift E.γr.raft Q) fresh true ctx cd $$ [Harg']
-    as %err ⟨Hres, #Herr⟩
+    iapply srvPropAu1_to_propAu1 E.γr.raft data Q $$ Hinv Hau
+  wp_apply wp_Propose γ.node γ.id γ.nl dsl data (srvLift E.γr.raft Q) ctx cd $$ [Harg']
+    as %err #Herr
   · iframe #
     iframe Harg'
     ipureintro; exact Hne
   iapply HΦ
-  isplitl [Hres]
+  isplitr
   · iunfold srvPropRes
-    unfold propRes
-    icases Hres with ⟨#Hdep, Hp, -⟩
+    ihave #Hdep := propIs_deposited $$ Hpi
     isplitr
     · iunfold srvDeposited
       rw [Hraft]
       iexact Hdep
-    cases fresh with
-    | true =>
-      simp only [↓reduceIte]
-      icases Hp with ⟨%γq, #Hp⟩
-      iunfold srvIsProp
-      iexists γq
-      rw [Hraft]
-      iexact Hp
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      itrivial
+    iunfold srvIsProp
+    rw [Hraft]
+    iexact Hpi
   · iapply applyErrIs_of_propErr cd err $$ Hpkg Herr
 
 /-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise): `Ready` from

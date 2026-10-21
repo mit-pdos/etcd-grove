@@ -230,14 +230,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `TypeRepr` of `clientv3.Client` straight from its `TypeAssumptions` (as `cache/v3/InvNew.lean`
-does under the cache's assumptions): without it, the `StructFieldRef` step of `c.conn` and
-`c.callOpts` (`RetryKVClient`, `NewKV`) finds `TypeRepr` through `Client`'s `IntoValTyped`,
-built from the `sorry` instances of its names-only fields' axiomatized types. -/
-instance (priority := high) clientC1_typeRepr :
-    TypeRepr go_etcd_io.etcd.client.v3.Client.ty go_etcd_io.etcd.client.v3.Client :=
-  go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
 instance (priority := high) clientC1_typeRepr_u :
     TypeRepr go_etcd_io.etcd.client.v3.Client.underlying go_etcd_io.etcd.client.v3.Client :=
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
@@ -731,11 +723,6 @@ theorem callOptsOk_app (vs ws : List GoInterface) :
   · iexact H1
   · iexact H2
 
-theorem callOptsOk_nil : ⊢ callOptsOk (GF := GF) [] := by
-  unfold callOptsOk
-  iapply BigSepL.bigSepL_nil.2
-  itrivial
-
 theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ callOptsOk [v] := by
   unfold callOptsOk
   iintro H
@@ -804,19 +791,6 @@ instance etcdInterceptorOk1_persistent (ic : GoFunc) :
 call options, `defaultCallOpts` and the message-size options; a write's). -/
 def scalarOpts (vs : List GoInterface) : Prop :=
   ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys
-
-theorem scalarOpts_callOptsOk (vs : List GoInterface) (h : scalarOpts vs) :
-    ⊢ callOptsOk (GF := GF) vs := by
-  induction vs with
-  | nil => iapply callOptsOk_nil
-  | cons v vs ih =>
-    unfold callOptsOk
-    iapply BigSepL.bigSepL_cons.2
-    isplitl []
-    · unfold callOptOk; ileft; ipureintro; exact h v (by simp)
-    · have := ih (fun w hw => h w (by simp [hw]))
-      unfold callOptsOk at this
-      iapply this
 
 /-- **The attempt modes of the retry interceptor's contract**: any number of attempts (a
 persistent precondition), one attempt (D21 M6: `MaxUnaryRetries: 1`), or a write that is never

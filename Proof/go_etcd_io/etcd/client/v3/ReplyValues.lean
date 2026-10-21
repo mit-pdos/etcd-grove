@@ -48,54 +48,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **What a successful `Put` returns**: its update `Q` fired at a state `σ` whose next
-revision is the reply's and whose key-value of the key is the reply's previous one (if asked). -/
-theorem client_put_value (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
-    (Q : KVState → IProp GF) (cid mid : w64) (m : PutRespM) :
-    putReplied E γr F o Q cid mid m ⊢
-      ∃ σ : KVState, Q σ ∗ ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧
-        m.prev = (if o.base.prevKV then mvcc.findKey o.key σ.kvs else none)⌝ := by
-  iintro H
-  unfold putReplied
-  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, hrev, -, -, hprev, -, hlen, -⟩ := Hp
-  iexists kvStateOf x.log
-  iframe HQ
-  ipureintro
-  refine ⟨?_, hprev⟩
-  rw [hrev, kvStateOf_rev_succ _ hlen]
-
-/-- **What a successful `DeleteRange` returns** (of a delete whose range end is not `[0]`, which
-the wire keeps): its update `Q` fired at a state `σ` whose keys in the range are the reply's
-count (and previous key-values, if asked), and whose state after the delete has the reply's
-revision. -/
-theorem client_delete_value (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
-    (Q : KVState → IProp GF) (cid mid : w64) (m : DelRespM) (hz : o.base.rangeEnd ≠ [W8 0]) :
-    deleteReplied E γr F o Q cid mid m ⊢
-      ∃ σ : KVState, Q σ ∗ ⌜m.deleted = W64 ((rangeIn σ.kvs o).length : Int) ∧
-        m.hdr.revision = W64 ((kvOpStep (.deleteRange o) σ).rev : Int) ∧
-        m.prevs = (if o.base.prevKV then rangeIn σ.kvs o else [])⌝ := by
-  iintro H
-  unfold deleteReplied
-  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, -, Hz, -, hrev, -, -, hdel, hprevs, -, hlen, -⟩ := Hp
-  have hnz : irrNoZeroEnd (irrDeleteRange o) := by
-    refine ⟨fun o' h => by simp [irrDeleteRange, apply.irrEmpty] at h, fun o' h => ?_,
-      fun t h => by simp [irrDeleteRange, apply.irrEmpty] at h⟩
-    simp only [irrDeleteRange, Option.some.injEq] at h
-    subst h
-    exact hz
-  have hop : op' = o := Hz hnz
-  subst hop
-  iexists kvStateOf x.log
-  iframe HQ
-  ipureintro
-  refine ⟨hdel, ?_, hprevs⟩
-  rw [hrev]
-  unfold kvOpStep
-  rw [kvStateOf_commit_rev _ _ hlen]
-  rfl
-
 /-- **What a successful writing `Txn` returns** (of a transaction with no range end `[0]`, which
 the wire keeps): its update `Q` fired at a state `σ`; the server's run of the transaction at `σ`
 (at `σ`'s next revision) gives the reply's verdict and its branch's responses (its ranges run:

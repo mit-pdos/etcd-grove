@@ -92,8 +92,10 @@ theorem RawNode.Bootstrap.wp_proof
   ihave ⟨%es, #Hg, #Hes⟩ := emptyState_hsRO $$ Hinit
   wp_auto
   -- `rn.raft.becomeFollower(1, None)`
-  wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) ∅ rnv.raft' id s (W64 1)
-    (W64 0) (by rw [Ht0]; word) $$ [$Hphys] as %pvs1 Hphys
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  wp_apply wp_raft_becomeFollower _ rnv.raft' id s (W64 1) (W64 0) (by rw [Ht0]; word)
+    $$ [$Hphys] as %pvs1 Hphys
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
   -- the state after `becomeFollower(1, None)`, as a variable (`s1`): term `1`, no vote, no leader
   generalize Hs1 : ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState) = s1
   have Hs1f : s1.term = W64 1 ∧ s1.vote = W64 0 ∧ s1.lead = W64 0 ∧ s1.role = .follower ∧

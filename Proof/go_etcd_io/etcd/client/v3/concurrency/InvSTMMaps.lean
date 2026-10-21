@@ -24,11 +24,6 @@ theorem stm_deleteOp_txnOpOf (key : GoString) :
 
 /-! ## Map sizes -/
 
-theorem GMap_size_eq_of_dom {V1 V2 : Type} (m1 : GMap GoString V1) (m2 : GMap GoString V2)
-    (h : ∀ k, (m1 !! k).isSome = (m2 !! k).isSome) : GMap.size m1 = GMap.size m2 := by
-  rw [GMap.size_eq_length m1 m2.domList (GMap.nodup_dom_list m2)
-    (fun k => by rw [GMap.mem_dom_list, h]), GMap.size_eq_dom_list_length]
-
 /-! ## `readSet.first` -/
 
 /-- `first()`'s loop invariant: `r` is the least of `2^63 - 2` and the header revisions of the

@@ -168,10 +168,6 @@ def srvProgressAllAnswers (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(□ ∀ (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM), v3rpc.mvccOk γs R.γ j m -∗
     ⌜m.watchId = W64 (-1)⌝ -∗ ∃ i : Nat, v3rpc.upAtW γs i .progress)
 
-instance srvProgressAllAnswers_persistent (R : v3rpc.WSrv GF) :
-    Persistent (srvProgressAllAnswers R) := by
-  unfold srvProgressAllAnswers; infer_instance
-
 /-- **(S3) A response with events carries an id the stream assigned to its watcher** (persistent;
 every create being auto-id, `watchReqOk`; a premise until unit W-M2, now a theorem:
 `srvEventIdsAssigned_holds`). -/

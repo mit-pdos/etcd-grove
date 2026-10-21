@@ -152,15 +152,6 @@ theorem forall2_takeLimit {α β : Type} {R : α → β → Prop} (lim : Option 
   | none => exact h
   | some n => exact forall2_take n h
 
-theorem forall2_mem_left {α β : Type} {R : α → β → Prop} :
-    ∀ {A : List α} {B : List β}, List.Forall₂ R A B → ∀ a ∈ A, ∃ b ∈ B, R a b
-  | _, _, .nil, _, h => absurd h List.not_mem_nil
-  | _, _, .cons h t, a, ha => by
-    rcases List.mem_cons.1 ha with rfl | ha
-    · exact ⟨_, List.mem_cons_self, h⟩
-    · obtain ⟨b, hb, hr⟩ := forall2_mem_left t a ha
-      exact ⟨b, List.mem_cons_of_mem _ hb, hr⟩
-
 /-- **Answers key by key.** A sorted list of keys `T` covering the sorted state `S`'s keys, and
 an answer function `f` that answers a key exactly when `S` has it (with an answer related to
 its key-value): the answers of `T`, in order, are `S`'s key-values one for one. -/
@@ -338,14 +329,6 @@ theorem rangeAnswers_keys (log : Log) (hok : LogOk log) (endNil : Bool) (k e : G
       (srvSel (stateAt log r) endNil k e).map EtcdKv.key :=
   forall2_map_eq Prod.fst EtcdKv.key (fun _ _ h => (AnsKv.key h).symm) (rangeAnswers_stateAt log hok endNil k e r hr)
 
-/-- What each answer's key finds in the state, in order: the state's key-values in the range
-(the `KVs` a range read fills, `rangeKvs`). -/
-theorem rangeAnswers_findKey (log : Log) (hok : LogOk log) (endNil : Bool) (k e : GoString)
-    (r : Nat) (hr : r < 2 ^ 63) :
-    (rangeAnswers log endNil k e (W64 r)).map (fun a => findKey a.1 (stateAt log r)) =
-      (srvSel (stateAt log r) endNil k e).map some :=
-  forall2_map_eq (fun a => findKey a.1 (stateAt log r)) some (fun _ _ h => h.1) (rangeAnswers_stateAt log hok endNil k e r hr)
-
 /-- As many answers as key-values in the range (a `CountOnly` read's count). -/
 theorem rangeAnswers_length (log : Log) (hok : LogOk log) (endNil : Bool) (k e : GoString)
     (r : Nat) (hr : r < 2 ^ 63) :
@@ -380,14 +363,6 @@ theorem stateAt_lastRev (log : Log) (hne : log ≠ []) (h : log.length ≤ 2 ^ 6
 
 /-! ## The limit and the count -/
 
-/-- A one-key read answers at most one key. -/
-theorem srvSel_true_length_le (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (k e : GoString) :
-    (srvSel s true k e).length ≤ 1 := by
-  unfold srvSel srvInRange
-  simp only [↓reduceIte]
-  rw [filter_key_eq k hs]
-  cases findKey k s <;> simp
-
 /-- `rangeTaken` is the answers up to the limit, for both kinds of reads (a one-key read has at
 most one answer, which a positive limit keeps). -/
 theorem rangeTaken_eq (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64) :
@@ -412,24 +387,6 @@ theorem rangeTaken_nonpos (log : Log) (endNil : Bool) (k e : GoString) (atRev li
   unfold limitOf
   simp only [show ¬ (0 < sint.Z limit) by omega, ↓reduceIte]
   rfl
-
-/-- A positive limit takes that many answers. -/
-theorem rangeTaken_pos (log : Log) (endNil : Bool) (k e : GoString) (atRev limit : w64)
-    (h : 0 < sint.Z limit) :
-    rangeTaken log endNil k e atRev limit =
-      (rangeAnswers log endNil k e atRev).take (sint.Z limit).toNat := by
-  rw [rangeTaken_eq]
-  unfold limitOf
-  simp only [h, ↓reduceIte]
-  rfl
-
-/-- **The taken answers** are the state's key-values in the range, up to the limit. -/
-theorem rangeTaken_stateAt (log : Log) (hok : LogOk log) (endNil : Bool) (k e : GoString)
-    (r : Nat) (hr : r < 2 ^ 63) (limit : w64) :
-    List.Forall₂ (AnsKv log (stateAt log r)) (rangeTaken log endNil k e (W64 r) limit)
-      (takeLimit (limitOf limit) (srvSel (stateAt log r) endNil k e)) := by
-  rw [rangeTaken_eq]
-  exact forall2_takeLimit _ (rangeAnswers_stateAt log hok endNil k e r hr)
 
 /-- **The count** a range read returns: the number of key-values in the range (`withTotal`),
 or at most the limit. -/
@@ -520,24 +477,6 @@ theorem delKeys_eq (ilog : Log) (pend : List Change) (hok : LogOk (ilog ++ [pend
     rangeAnswers_keys _ hok endNil k e (writeRev ilog pend) (by have := hok.len; omega),
     stateAt_writeRev ilog pend hne]
 
-/-- **A range delete is the client's filter**: the pending state with the deleted keys' changes
-appended is the pending state without the range. -/
-theorem applyChanges_delKeys (ilog : Log) (pend : List Change) (hok : LogOk (ilog ++ [pend]))
-    (hne : ilog ≠ []) (endNil : Bool) (k e : GoString) :
-    applyChanges (W64 ilog.length) (stateAfter ilog)
-        (pend ++ (delKeys ilog pend endNil k e).map .del) =
-      (applyChanges (W64 ilog.length) (stateAfter ilog) pend).filter
-        (fun v => !srvInRange endNil k e v.key) := by
-  rw [applyChanges_append, delKeys_eq ilog pend hok hne]
-  exact applyChanges_dels_sel _ _ _
-
-/-- As many keys deleted as key-values in the range. -/
-theorem delKeys_length (ilog : Log) (pend : List Change) (hok : LogOk (ilog ++ [pend]))
-    (hne : ilog ≠ []) (endNil : Bool) (k e : GoString) :
-    (delKeys ilog pend endNil k e).length =
-      (srvSel (applyChanges (W64 ilog.length) (stateAfter ilog) pend) endNil k e).length := by
-  rw [delKeys_eq ilog pend hok hne, List.length_map]
-
 /-! ## The client's range: the end key -/
 
 /-- The server's range for the client's `rangeEnd` (after the protobuf round trip and
@@ -567,18 +506,6 @@ theorem srvSel_srvEnd (s : List EtcdKv) (o : OpFull) :
   intro v _
   exact srvInRange_srvEnd _ _ _
 
-/-- A range delete of the client's `o`, on the server: the client's delete. -/
-theorem applyChanges_delKeys_client (ilog : Log) (pend : List Change) (hok : LogOk (ilog ++ [pend]))
-    (hne : ilog ≠ []) (o : OpFull) :
-    applyChanges (W64 ilog.length) (stateAfter ilog)
-        (pend ++ (delKeys ilog pend (srvEnd o.base.rangeEnd).1 o.key (srvEnd o.base.rangeEnd).2).map .del) =
-      (applyChanges (W64 ilog.length) (stateAfter ilog) pend).filter
-        (fun v => !inRange o.key o.base.rangeEnd v.key) := by
-  rw [applyChanges_delKeys ilog pend hok hne]
-  apply List.filter_congr
-  intro v _
-  rw [srvInRange_srvEnd]
-
 /-! ## The index's history determines a log's shape -/
 
 /-- What the index records of a change: its key and whether it is a delete. -/
@@ -597,54 +524,6 @@ theorem evsOfRev_shape (i : Nat) (cs : List Change) :
   have : (evShape ∘ fun p : Change × Nat =>
       ({ rev := ⟨W64 i, W64 p.2⟩, change := p.1 } : Ev)) = chShape ∘ Prod.fst := rfl
   rw [this, ← List.map_map, List.zipIdx_map_fst]
-
-theorem histOfFrom_ne_commit_free (i : Nat) (cs : List Change) (log : Log) (X : List HistItem)
-    (hX : ∀ x ∈ X, x ≠ HistItem.commit) : ¬ histOfFrom i (cs :: log) <+: X := by
-  intro h
-  rw [histOfFrom] at h
-  have : HistItem.commit ∈ X := h.subset (by simp)
-  exact hX _ this rfl
-
-/-- A history prefix of another followed by events alone (no commit): the shapes are prefixes. -/
-theorem histOfFrom_prefix_logShape (i : Nat) : ∀ (a b : Log) (X : List HistItem),
-    (∀ x ∈ X, x ≠ HistItem.commit) → histOfFrom i a <+: histOfFrom i b ++ X →
-    logShape a <+: logShape b
-  | [], b, _, _, _ => by simp [logShape]
-  | c :: a, [], X, hX, h => by
-    rw [show histOfFrom i ([] : Log) = [] from rfl, List.nil_append] at h
-    exact absurd h (histOfFrom_ne_commit_free i c a X hX)
-  | c :: a, c' :: b, X, hX, h => by
-    rw [histOfFrom, histOfFrom, List.append_assoc ((evsOfRev i c').map HistItem.ev ++ [HistItem.commit])] at h
-    obtain ⟨hcc, hpre⟩ := prefix_commit_split _ _ _ _ (map_ev_ne_commit _) (map_ev_ne_commit _) h
-    have hc := map_ev_injective _ _ hcc
-    have hs : c.map chShape = c'.map chShape := by
-      rw [← evsOfRev_shape i c, ← evsOfRev_shape i c', hc]
-    have ih := histOfFrom_prefix_logShape (i + 1) a b X hX hpre
-    unfold logShape at ih ⊢
-    rw [List.map_cons, List.map_cons, hs]
-    exact (List.cons_prefix_cons).2 ⟨rfl, ih⟩
-
-/-- **The certificates' order is the shapes' order**: a committed log's history that is a
-prefix of the index's history (`histShape ilog pend`) has its shape a prefix of `ilog`'s. -/
-theorem histOf_prefix_shape_logShape (log ilog : Log) (pend : List Change)
-    (h : histOf log <+: histShape ilog pend) : logShape log <+: logShape ilog :=
-  histOfFrom_prefix_logShape 0 log ilog _ (map_ev_ne_commit _) h
-
-/-- Two committed logs' histories, one a prefix of the other: their shapes are. -/
-theorem histOf_prefix_logShape (a b : Log) (h : histOf a <+: histOf b) :
-    logShape a <+: logShape b :=
-  histOfFrom_prefix_logShape 0 a b [] (by simp) (by rw [List.append_nil]; exact h)
-
-theorem logShape_length (log : Log) : (logShape log).length = log.length := by
-  unfold logShape; rw [List.length_map]
-
-/-- Shapes in prefix order with the same length are equal. -/
-theorem logShape_eq_of_prefix {a b : Log} (h : logShape a <+: logShape b)
-    (hlen : b.length ≤ a.length) : logShape a = logShape b :=
-  h.eq_of_length (by
-    have := h.length_le
-    rw [logShape_length, logShape_length] at this ⊢
-    omega)
 
 end txn
 end EtcdGrove

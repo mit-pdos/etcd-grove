@@ -278,28 +278,6 @@ theorem appKnow_of_msg (γ : RaftNames) (r : RState) (m : Msg) (Hty : m.ty = .ap
   exact appKnow_pure r m bL fp l HwR Hpay Hpl.1 Hpl.2 Hfl.1 (full_wf _ _ _ Hfl.1 Hfl.2.1)
     (by rw [← toNat_uZ]; exact HI1) HRA
 
-/-- Closing a step that keeps the full prefix, and a candidate's campaign record. -/
-theorem ownRaftGhostR_close (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
-    (r r' : RState) :
-    ⊢ ⌜RInv dec c0 r'⌝ -∗ ⌜r'.fp = r.fp⌝ -∗
-      ⌜r'.p.role = .candidate →
-        r.p.role = .candidate ∧ r'.p.term = r.p.term ∧ r'.p.log = r.p.log ∧
-          r'.p.commit = r.p.commit⌝ -∗
-      ownRaftGhost (GF := GF) γ id r'.p true -∗ logRecs γ base0 r.fp -∗
-      (∀ (_ : r.p.role = .candidate), isCampK γ id r.p.term r.full r.p.commit) -∗
-      ownRaftGhostR γ dec c0 id r' := by
-  iintro %HI' %Hfp %Hcand Hg #Hfr #Hc
-  unfold ownRaftGhostR
-  iframe Hg
-  isplitr; · ipureintro; exact HI'
-  isplitr; · rw [Hfp]; iexact Hfr
-  iintro %hc
-  obtain ⟨hc0, ht, hl, hcm⟩ := Hcand hc
-  ihave #Hk := Hc $$ %hc0
-  unfold RState.full
-  rw [Hfp, ht, hl, hcm]
-  iexact Hk
-
 
 /-- The dynamic refinement (2026-10-14, stage B5): a `StepR` derivation at the dynamic
 configurations (`AdmS dec c0 S`: the fold of the prefix, among `S`) updates the node's

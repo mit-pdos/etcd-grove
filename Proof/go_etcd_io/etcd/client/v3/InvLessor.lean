@@ -564,14 +564,6 @@ theorem kaPaired_get (γr : GName) (chs : List GoChan) (ctxs : List GoInterface)
   unfold kaPaired
   iapply Hp $$ %i %ch %c %h1 %h2
 
-/-- **The pair at an index.** -/
-theorem kaPaired_lookup (γr : GName) (chs : List GoChan) (ctxs : List GoInterface) (i : Nat)
-    (h1 : i < chs.length) (h2 : i < ctxs.length) :
-    kaPaired (GF := GF) γr chs ctxs ⊢ kaReg γr (chs[i]'h1) (ctxs[i]'h2) := by
-  iintro #Hp
-  unfold kaPaired
-  iapply Hp $$ %i %(chs[i]'h1) %(ctxs[i]'h2) %(List.getElem?_eq_getElem h1) %(List.getElem?_eq_getElem h2)
-
 end lemmas
 
 end EtcdGrove

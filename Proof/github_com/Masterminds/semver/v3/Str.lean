@@ -20,10 +20,5 @@ def decDigits (a : GoString) : Prop := a ≠ [] ∧ ∀ c ∈ a, 48 ≤ c.toNat 
 def semverStr (s : GoString) : Prop :=
   ∃ a b r : GoString, s = a ++ go!"." ++ b ++ go!"." ++ r ∧ decDigits a ∧ decDigits b
 
-theorem asciiStr_of_decDigits {a : GoString} (h : decDigits a) : asciiStr a := by
-  intro c hc
-  have := (h.2 c hc).2
-  omega
-
 end EtcdGrove
 end Perennial

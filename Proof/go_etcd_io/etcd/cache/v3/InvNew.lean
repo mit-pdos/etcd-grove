@@ -54,16 +54,6 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `TypeRepr` of `clientv3.Client` (named and underlying types), straight from its
-`TypeAssumptions`, as `InvStore.lean` does for the protobuf messages: without these, the
-`StructFieldRef` step of `client.KV`/`client.Watcher` finds `TypeRepr` through `Client`'s
-`IntoValTyped` instance, built from the `sorry` instances ("axiomatized type") of its
-names-only fields (`cfg`, `creds`, `authTokenBundle`, `lg`, `Maintenance`), putting them in the
-trust base for nothing. -/
-instance (priority := high) client_typeRepr :
-    TypeRepr go_etcd_io.etcd.client.v3.Client.ty go_etcd_io.etcd.client.v3.Client :=
-  go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
 instance (priority := high) client_typeRepr_u :
     TypeRepr go_etcd_io.etcd.client.v3.Client.underlying go_etcd_io.etcd.client.v3.Client :=
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)

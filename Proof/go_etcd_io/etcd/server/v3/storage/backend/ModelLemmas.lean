@@ -191,40 +191,11 @@ theorem entLt_swo :
         have e2 := go.goStringLt_eq_of_not_lt h2.1 h2.2
         refine ⟨?_, ?_⟩ <;> rw [e1, e2] <;> exact go.goStringLt_irrefl _ } }
 
-/-- Sorted entries have distinct keys. -/
-theorem entsSorted_nodup {es : List Ent} (h : entsSorted es) : (es.map Prod.fst).Nodup := by
-  rw [List.Nodup, List.pairwise_map]
-  refine h.imp ?_
-  intro a b hab heq
-  rw [heq] at hab
-  exact go.goStringLt_irrefl _ hab
-
 theorem entsSorted_nil : entsSorted [] := List.Pairwise.nil
 
 theorem entsSorted_append {a b : List Ent} :
     entsSorted (a ++ b) ↔ entsSorted a ∧ entsSorted b ∧ ∀ x ∈ a, ∀ y ∈ b, strLt x.1 y.1 := by
   exact List.pairwise_append
-
-/-- What `sort.Sort` gives of entries with distinct keys (a permutation with no later key
-below an earlier one) is sorted. -/
-theorem entsSorted_of_sorted_nodup {l l' : List Ent} (hp : l.Perm l')
-    (hn : (l.map Prod.fst).Nodup)
-    (hs : ∀ (i j : Nat) (a b : Ent), l'[i]? = some a → l'[j]? = some b → i < j →
-      decide (strLt b.1 a.1) = false) :
-    entsSorted l' := by
-  have hn' : (l'.map Prod.fst).Nodup := (hp.map _).nodup_iff.mp hn
-  rw [List.Nodup, List.pairwise_map] at hn'
-  have hle : l'.Pairwise (fun a b => ¬ strLt b.1 a.1) := by
-    rw [List.pairwise_iff_getElem]
-    intro i j hi hj hij h
-    have := hs i j _ _ (List.getElem?_eq_getElem hi) (List.getElem?_eq_getElem hj) hij
-    simp only [decide_eq_false_iff_not] at this
-    exact this h
-  unfold entsSorted
-  refine (hle.and hn').imp (fun ⟨h1, h2⟩ => ?_)
-  rcases strLt_total h1 with e | e
-  · exact absurd e.symm h2
-  · exact e
 
 /-! ## The canonical form -/
 
@@ -293,24 +264,6 @@ theorem eq_of_sorted_lastVal {a b : List Ent} (ha : entsSorted a) (hb : entsSort
         rw [lastVal_cons, lastVal_cons] at this
         simpa [hkx] using this
 
-/-- The canonical form of entries followed by others does not depend on the order of the
-others when their keys are distinct (`writeback` sorts them with `sort.Sort`, not stably). -/
-theorem canon_append_perm {a b b' : List Ent} (hp : b.Perm b') (hn : (b.map Prod.fst).Nodup) :
-    canon (a ++ b) = canon (a ++ b') := by
-  apply eq_of_sorted_lastVal (canon_sorted _) (canon_sorted _)
-  intro k
-  rw [lastVal_canon, lastVal_canon, lastVal_eq_filter, lastVal_eq_filter, List.filter_append,
-    List.filter_append]
-  have hpf := hp.filter (keyIs k)
-  have hlen := filter_key_length_le hn k
-  have hf : b.filter (keyIs k) = b'.filter (keyIs k) := by
-    generalize b.filter (keyIs k) = c at hpf hlen
-    match c, hpf, hlen with
-    | [], hpf, _ => exact (List.Perm.nil_eq hpf)
-    | [_], hpf, _ => exact (List.perm_singleton.mp hpf.symm).symm
-    | _ :: _ :: _, _, hlen => simp at hlen
-  rw [hf]
-
 theorem lastVal_append (a b : List Ent) (k : GoString) :
     lastVal (a ++ b) k = (lastVal b k).or (lastVal a k) := by
   unfold lastVal
@@ -339,9 +292,6 @@ theorem canon_isEmpty (l : List Ent) : (canon l).isEmpty = l.isEmpty := by
 theorem canon_length_le (l : List Ent) : (canon l).length ≤ l.length := by
   unfold canon
   exact Nat.le_trans (dedupLast_length_le _) (by simp)
-
-theorem canon_nil : canon [] = [] := by
-  simp [canon, dedupLast]
 
 /-- `dedupe`'s loop: after `sort.Stable` (the stable sort by key, `List.mergeSort entLe`),
 keeping the last entry of each run of one key gives the canonical form (by definition). -/

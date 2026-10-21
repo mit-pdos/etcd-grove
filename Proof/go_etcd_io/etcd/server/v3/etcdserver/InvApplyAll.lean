@@ -97,16 +97,6 @@ def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :
     ∃ σ : StorState, memSnapTok ms γs σ ∗
       ⌜uint.Z σ.prev.index' ≤ uint.Z ai ∧ uint.Z sl ≤ uint.Z σ.ss.index'⌝)
 
-/-- **The apply thread's resources besides the KV and the snapshot state** at the applied index
-`ai` with the protocol's state `st` (what `applyEntries` takes and gives back): `ep`'s applied
-index, term and conf state, the protocol, the backend, the applying index, the logger's reader
-slot, the ghost applied index's half. -/
-def srvApplyRes (s ep : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (γr : ReadNames)
-    (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) : IProp GF :=
-  iprop(epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
-    applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
-    srvAppliedOwn γr ai)
-
 end defs
 
 end EtcdGrove

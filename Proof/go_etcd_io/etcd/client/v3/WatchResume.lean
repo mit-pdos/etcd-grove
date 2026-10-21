@@ -277,14 +277,6 @@ theorem psAt_mark (P : WsPrm GF) (n : Nat) :
   rw [GMap.lookup_insert_ne _ _ (by omega)]
   exact HM j (by omega)
 
-/-- After a created response at `0`, the positions from `1` on are free. -/
-theorem psQ_psAt (P : WsPrm GF) : psQ (GF := GF) P ⊢ psAt P 1 := by
-  unfold psQ psAt
-  iintro ⟨%M, Ha, %HM⟩
-  iexists M
-  iframe Ha
-  ipureintro; exact HM.2
-
 /-- **The positions' statuses of a queued substream** (D25), its current lifetime started at
 `recvc`'s position `n` (`lifeStart`), no later position marked (a fresh one's: `psQ`, `n = 0`). -/
 def psSt (P : WsPrm GF) (n : Nat) : IProp GF :=

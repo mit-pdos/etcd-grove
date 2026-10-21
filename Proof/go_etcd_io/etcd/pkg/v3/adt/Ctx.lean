@@ -98,11 +98,6 @@ theorem ownCtx_parent (t s : Loc) (C : RbCtx Entry) (n p : Loc) (mh : Option GoS
   | inR c l e C =>
     rw [ownCtx_inR]; iintro ⟨%pp, %lp, %h, -⟩; ipureintro; simp [h.1]
 
-/-- At the top, the hole's max does not matter. -/
-theorem ownCtx_top_any (t s n p : Loc) (mh mh' : Option GoString) :
-    ownCtx (GF := GF) t s .top n p mh ⊢ ownCtx t s .top n p mh' := by
-  rw [ownCtx_top, ownCtx_top]
-
 /-- **One level up**: the hole's subtree with its parent's frame is the parent's subtree. -/
 theorem ownCtx_up_inL (t s : Loc) (c : RbColor) (C : RbCtx Entry) (e : Entry) (r : RbT Entry)
     (n p : Loc) (T : RbT Entry) :
@@ -133,38 +128,6 @@ theorem ownCtx_up_inR (t s : Loc) (c : RbColor) (l : RbT Entry) (e : Entry) (C :
   simp only [nodeMax_eq]
   iframe
   ipureintro; exact Hp
-
-/-- **One level down**, to the left child. -/
-theorem ownCtx_down_left (t s : Loc) (C : RbCtx Entry) (n p : Loc) (c : RbColor)
-    (l : RbT Entry) (e : Entry) (r : RbT Entry) :
-    ownCtx (GF := GF) t s C n p (some (nodeMax l e r)) ∗ ownNode s 1 p n (.node c l e r) ⊢
-      ∃ lp, ownCtx t s (.inL c C e r) lp n l.maxEnd ∗ ownNode s 1 n lp l := by
-  iintro ⟨HC, Hn⟩
-  icases ownNode_node_open _ _ _ _ c l e r $$ Hn with
-    ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
-  iexists lp
-  iframe Hnl
-  rw [ownCtx_inL]
-  iexists p, rp
-  simp only [nodeMax_eq]
-  iframe
-  ipureintro; exact Hn
-
-/-- **One level down**, to the right child. -/
-theorem ownCtx_down_right (t s : Loc) (C : RbCtx Entry) (n p : Loc) (c : RbColor)
-    (l : RbT Entry) (e : Entry) (r : RbT Entry) :
-    ownCtx (GF := GF) t s C n p (some (nodeMax l e r)) ∗ ownNode s 1 p n (.node c l e r) ⊢
-      ∃ rp, ownCtx t s (.inR c l e C) rp n r.maxEnd ∗ ownNode s 1 n rp r := by
-  iintro ⟨HC, Hn⟩
-  icases ownNode_node_open _ _ _ _ c l e r $$ Hn with
-    ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr, Hp, Hc, Hnl, Hnr⟩
-  iexists rp
-  iframe Hnr
-  rw [ownCtx_inR]
-  iexists p, lp
-  simp only [nodeMax_eq]
-  iframe
-  ipureintro; exact Hn
 
 /-- One level down to the left child, from the node's fields (a descent that read them). -/
 theorem ownCtx_push_inL (t s : Loc) (C : RbCtx Entry) (x y : Loc) (c : RbColor)

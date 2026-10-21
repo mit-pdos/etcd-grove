@@ -234,9 +234,6 @@ def keyLt (h : StrictWeakOrder less) : Key h → Key h → Prop :=
     exact propext ⟨less_congr h ha hb,
       less_congr h ⟨ha.2, ha.1⟩ ⟨hb.2, hb.1⟩⟩)
 
-theorem keyLt_key (h : StrictWeakOrder less) (a b : V) :
-    keyLt h (key h a) (key h b) ↔ less a b := Iff.rfl
-
 theorem key_eq_iff (h : StrictWeakOrder less) (a b : V) :
     key h a = key h b ↔ incomp less a b :=
   ⟨fun e => Quotient.exact (s := keySetoid h) e, fun e => Quotient.sound (s := keySetoid h) e⟩
@@ -523,16 +520,6 @@ theorem ownBTree_persist {T' : Type} [ZeroVal T'] [TypedPointsto (GF := GF) T']
   iexists h, zs
   iframe # ∗
   ipureintro; exact Hzs
-
-/-- Lists of pairs with the same projections are equal. -/
-theorem pairs_ext {A B : Type} : ∀ (l1 l2 : List (A × B)), l1.map Prod.fst = l2.map Prod.fst →
-    l1.map Prod.snd = l2.map Prod.snd → l1 = l2
-  | [], [], _, _ => rfl
-  | [], _ :: _, h, _ => by simp at h
-  | _ :: _, [], h, _ => by simp at h
-  | (a, b) :: l1, (a', b') :: l2, h1, h2 => by
-    simp only [List.map_cons, List.cons.injEq] at h1 h2
-    rw [h1.1, h2.1, pairs_ext l1 l2 h1.2 h2.2]
 
 /-- Pairs of Go items and models, the same Go items, whose models the items determine. -/
 theorem models_agree {T' V : Type} (isItem : T' → V → IProp GF) [∀ p v, Persistent (isItem p v)]

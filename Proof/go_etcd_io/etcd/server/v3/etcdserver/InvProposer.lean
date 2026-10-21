@@ -303,16 +303,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `TypeRepr` of the structs the request path reads fields through (`s.r.raftNodeConfig.Node`,
-`.transport`), from their `TypeAssumptions` (as `InvServer.lean` for `EtcdServer`): else the
-`StructFieldRef` step finds it through the structs' `IntoValTyped`, built from every field's,
-some of axiomatized types (`sorry` instances). -/
-instance (priority := high) raftNode_typeRepr : TypeRepr raftNode.ty raftNode :=
-  go.type_repr_underlying (u := raftNode.underlying)
 instance (priority := high) raftNode_typeRepr_u : TypeRepr raftNode.underlying raftNode :=
   go.type_repr_underlying (u := raftNode.underlying)
-instance (priority := high) raftNodeConfig_typeRepr : TypeRepr raftNodeConfig.ty raftNodeConfig :=
-  go.type_repr_underlying (u := raftNodeConfig.underlying)
 instance (priority := high) raftNodeConfig_typeRepr_u :
     TypeRepr raftNodeConfig.underlying raftNodeConfig :=
   go.type_repr_underlying (u := raftNodeConfig.underlying)

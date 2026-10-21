@@ -30,14 +30,6 @@ theorem opSortAt_of (p : Loc) (o o' : OpFull) (h1 : o'.base.sortSet = o.base.sor
   unfold opSortAt
   rw [h1, h2, h3]
 
-/-- No sort option. -/
-theorem opSortAt_unset (p : Loc) (o : OpFull) (h : o.base.sortSet = false) :
-    ⊢ opSortAt (GF := GF) p o := by
-  unfold opSortAt
-  rw [h]
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  iintro; itrivial
-
 /-- A closure needing no resource needs any: `optSpec` frames `R`. -/
 theorem optSpec_res (f : GoFunc) (g : OpFull → OpFull) (R : IProp GF) :
     optSpec (GF := GF) f g ⊢ optSpecRes f g R := by

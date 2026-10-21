@@ -407,18 +407,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The loop's view gives the clients'. -/
-theorem isReadLoopPre_pre (r : Loc) (γr : ReadNames)
-    (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) (LR NR : IProp GF) :
-    isReadLoopPre r γr RQ LR NR ⊢ isReadPre r γr := by
-  iunfold isReadLoopPre
-  iintro ⟨%srv, %rf, %wc, %γw, #Hs, #Hsrv, -, -, #Hw, #Hb, #Hi, -, -, -, -⟩
-  iunfold isReadServer at Hsrv
-  icases Hsrv with ⟨#Hd, -⟩
-  iunfold isReadPre
-  iexists srv, wc, γw
-  iframe #
-
 /-- The lock's resource is fractional (for `sync.init_RWMutex`): the points-to and the ghost
 variable split, two parts agree on the notifier and its need. -/
 instance readMuP_fractional (r : Loc) (γr : ReadNames) : Fractional (readMuP (GF := GF) r γr) where

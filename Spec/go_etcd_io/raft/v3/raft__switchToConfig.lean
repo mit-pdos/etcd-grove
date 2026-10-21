@@ -101,7 +101,7 @@ struct open lets the caller move the old `Progress` objects' resources to the ne
 the call: `ApplyConfChange`'s new `Progress` objects are copies that share the old ones'
 `Inflights` (`ownNewPr_transfer`). (Until 2026-10-13 it took `ownRaftPhys cfg0` sealed and
 `ownConfig`, the non-leader case only: that statement, `spec_nonleader`, had no
-caller and is gone, 2026-10-17; `spec_nonleader_open` below is its open form.)
+caller and is gone, 2026-10-17; its open form is `newRaft`'s `wp_switchToConfig_follower`.)
 
 **The leader case** (2026-10-13): `id ∈ cfg` (the node stays a voter: removing or demoting the
 leader, and `stepDownOnRemoval`, are not covered), and each new `Match` is `0` or the old one
@@ -125,8 +125,7 @@ stay a voter, for the same reason (the Go code leaves it campaigning; if it then
 `becomeLeader` would dereference its missing `Progress`: see
 `issues/raft-advance-before-applyconfchange.md`, which is how an application gets there).
 The result is `SwitchOkC`, from `{ s with progress, prvals, isLearner := learnerOfC c id }`.
-The statement on `ownRaftPhys` is `raft.switchToConfig.specS`, which gained the candidate
-premise.
+(Until 2026-10-21 also the statement on `ownRaftPhys`, `specS`, derived by `spec_simple`.)
 
 raft v3.7 (2026-10-15, stage R4): the `ConfState` returned is a `*pb.ConfState`, the tracker's
 fresh one (`ProgressTracker.ConfState`'s post, R0): owned, its `AutoLeave` set (`csPts cs 1 ⟨xs,
@@ -159,134 +158,6 @@ abbrev raft.switchToConfig.spec : Prop :=
         lns ≡ₚ elements c.learnersNext⌝ ∗
       ⌜SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id }
         s'⌝ }}
-
-/-- The statement on `ownRaftPhys` (a simple configuration `cfg`) until 2026-10-13, with one
-premise added: a candidate or pre-candidate stays a voter. Derived by `spec_simple`. -/
-abbrev raft.switchToConfig.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-  (s.role = .leader → id ∈ cfg ∧ MatchKept s.prvals pvs) →
-  (s.role = .candidate ∨ s.role = .preCandidate → id ∈ cfg) →
-  (s.role = .leader → ∀ v p, pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Htrkf" ∷ r.[raft, go!"trk"] ↦ tv0 ∗
-      "Hback" ∷ (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
-           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
-           ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
-      "Hvotes" ∷ tv0.Votes' ↦$ s.votes ∗
-      "%Hmi" ∷ ⌜0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62⌝ ∗
-      "Hnew" ∷ ownConfigV cfg cfgv prsm prs pvs }}
-    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
-      (Val #cfgv)) (Val #prsm))
-  {{ (cs : Loc) (xs ls : List w64) (s' : NState), RET #cs;
-      ownRaftPhys cfg r id s' ∗
-      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
-      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet prs \ cfg)⌝ ∗
-      ⌜SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }
-        s'⌝ }}
-
-open Iris.ProofMode in
-theorem raft.switchToConfig.spec_simple
-    (H : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
-    raft.switchToConfig.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
-  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, %Hmi, Hnew⟩ HΦ
-  ihave Hnew := ownConfigV_toC _ _ _ _ _ $$ Hnew
-  iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv0 cfgv prsm prs pvs
-      (fun hl => .inl (by rw [CfgM.voters_simple]; exact Hlead hl))
-      (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc) Hpok
-    $$ [$Hpkg $Htrkf Hback $Hvotes $Hnew]
-  · isplitl [Hback]
-    · iintro %tv' %prs' %pvs' Hf Ht %Hok
-      icases ownTrackerC_toTracker _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
-      ihave Hp := Hback $$ %tv' %prs' %pvs' Hf Ht %Hok
-      ihave Hp := ownRaftPhys_toC' $$ Hp
-      simp only at HL
-      rw [HL]
-      iapply ownRaftPhysCV_widen _ _ _ _ _ ?_ $$ Hp
-      intro h hr
-      exact GMap.elem_of_union_l _ (h hr)
-    · ipureintro; exact Hmi
-  inext
-  iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hp, %Hsw⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  obtain ⟨H1, H2, H3, H4⟩ := Hp
-  have Hos0 : os = [] := perm_elements_empty _ H2
-  have Hlns0 : lns = [] := perm_elements_empty _ H4
-  subst Hos0 Hlns0
-  iapply HΦ $$ %cs %xs %ls %s'
-  iframe Hphys
-  isplitl [Hcs]
-  · simp only [CfgM.simple]; iexact Hcs
-  ipureintro
-  refine ⟨⟨H1, H3⟩, ?_⟩
-  · rw [learnerOfC_simple] at Hsw
-    unfold SwitchOkC at Hsw
-    unfold SwitchOk
-    split
-    · rename_i hl
-      have hin : id ∈ cfg := (Hlead hl).1
-      rw [ite_eq_left hl, ite_eq_left (by rw [CfgM.voters_simple]; exact hin)] at Hsw
-      exact Hsw.simple (fun h => by rw [h] at hin; exact GMap.not_elem_of_empty _ hin)
-    · rename_i hl
-      rw [ite_eq_right hl] at Hsw
-      exact Hsw
-
-/-- The statement until 2026-10-13: at a non-leader, from the struct sealed at any
-configuration `cfg0` and the new configuration as `confchange.Restore` builds it
-(`ownConfig`), with no learners (`domSet prs = cfg`). What `newRaft` and `restore` call.
-(Stage R4: the `ConfState` a `csPts` pointer; the other three lists empty, `AutoLeave` off.) -/
-theorem raft.switchToConfig.spec_nonleader_open
-    (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tv : tracker.ProgressTracker)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
-    (Hdom : domSet prs = cfg)
-    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        r.[raft, go!"trk"] ↦ tv ∗
-        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
-           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
-           ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
-        tv.Votes' ↦$ s.votes ∗
-        ownConfig cfg cfgv prsm prs }}
-      (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
-        (Val #cfgv)) (Val #prsm))
-    {{ (cs : Loc) (xs : List w64)
-        (pvs : GMap w64 Progress), RET #cs;
-        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
-        csPts cs (DFrac.own 1) (ConfStateM.mk xs [] [] [] false) true ∗ ⌜xs ≡ₚ elements cfg⌝ }} := by
-  iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, Hcfg⟩ HΦ
-  icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
-  iapply (raft.switchToConfig.spec_simple H) cfg r id s tv cfgv prsm prs pvs
-      (fun h => absurd (Hrole.symm.trans h) (by decide))
-      (fun h => by rcases h with h | h <;> rw [Hrole] at h <;> cases h)
-      (fun h => absurd (Hrole.symm.trans h) (by decide))
-    $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
-  · ipureintro; exact Hmi
-  inext
-  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
-  unfold SwitchOk at Hsw
-  rw [ite_eq_right (by rw [Hrole]; decide)] at Hsw
-  subst Hsw
-  have HL : learnerOf cfg prs id = false := by
-    unfold learnerOf; rw [Hdom]; simp
-  have Hls0 : ls = [] := by
-    have h := Hcs0.2.length_eq
-    rw [Hdom, GMap.length_elements] at h
-    have h2 : cfg \ cfg = (∅ : GSet w64) := by
-      apply GMap.set_eq; intro k
-      rw [GMap.elem_of_difference]
-      exact ⟨fun h => absurd h.1 h.2, fun h => absurd h (GMap.not_elem_of_empty _)⟩
-    rw [h2, GMap.size_empty] at h
-    exact List.eq_nil_of_length_eq_zero h
-  subst Hls0
-  iapply HΦ $$ %cs %xs %pvs
-  rw [HL]
-  iframe Hphys Hcs
-  ipureintro
-  exact Hcs0.1
 
 end spec
 

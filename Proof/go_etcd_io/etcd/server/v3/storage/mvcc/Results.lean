@@ -113,7 +113,6 @@ its `Q`, `End` takes `P` back, `writeView.Put`/`DeleteRange` take the critical-s
 (`csContract`) and return `Post`. The results above are stated at any `P f`; the statements
 before the hook are the instance `P := True`, `f` a no-op (`csContract_noHook`). A caller's
 view of the hook agrees with the store's (`hookIs_agree_lc`, a later credit spent). -/
-#print axioms Perennial.EtcdGrove.mvcc.csContract_noHook
 #print axioms Perennial.EtcdGrove.mvcc.hookIs_agree_lc
 
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
@@ -129,15 +128,11 @@ watcher's first revision on, in revision order (`watchRecvOk_cert`), exactly tho
 watcher with no filters (`watchGuarantee_unfiltered`), each response's revision at or above its
 events' and a response with events carrying the watcher's id (`watchRecvOk_revs`). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_watch_receive
-#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_cert
-#print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
-#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
 
 /-! What the watch client reads (unit W-M, `WatchRecv.lean`, `InvWatchStream.lean`): the events
 received for a watcher are at or above its first revision, which is its start revision unless
 that is `0` (`watchRecvOk_startRev`, from `watchEvents_rev_ge`); an id a stream assigned names one
 watcher (`idAssigned_agree`). -/
-#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_startRev
 #print axioms Perennial.EtcdGrove.mvcc.watchEvents_rev_ge
 #print axioms Perennial.EtcdGrove.mvcc.idAssigned_agree
 
@@ -153,7 +148,6 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
-#print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact_le
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_neg
 #print axioms Perennial.EtcdGrove.mvcc.kiCompactO_step
 #print axioms Perennial.EtcdGrove.mvcc.IdxCRep.step

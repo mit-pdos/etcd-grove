@@ -42,16 +42,6 @@ theorem evsOfFrom_cons (i : Nat) (cs : List Change) (log : Log) :
   unfold evsOfFrom
   rw [List.zipIdx_cons, List.map_cons, List.flatten_cons]
 
-theorem evsOfFrom_append (i : Nat) (log : Log) (cs : List Change) :
-    evsOfFrom i (log ++ [cs]) = evsOfFrom i log ++ evsOfRev (i + log.length) cs := by
-  unfold evsOfFrom
-  rw [List.zipIdx_append, List.map_append, List.flatten_append]
-  simp only [List.zipIdx_cons, List.zipIdx_nil, List.map_cons, List.map_nil, List.flatten_cons,
-    List.flatten_nil, List.append_nil]
-
-/-- Mains of events as numbers: `W64` of a small number. -/
-theorem toNat_W64 (n : Nat) (h : n < 2 ^ 63) : (W64 n).toNat = n := by word
-
 /-- The history of the committed log `log`, its revisions numbered from `i`. -/
 def histOfFrom : Nat → Log → List HistItem
   | _, [] => []
@@ -127,10 +117,6 @@ theorem histShape_ev (ilog : Log) (pend : List Change) (c : Change) :
       histShape ilog (pend ++ [c]) := by
   unfold histShape
   rw [evsOfRev_append_singleton, List.map_append, List.map_cons, List.map_nil, List.append_assoc]
-
-theorem evCount_histShape (ilog : Log) (pend : List Change) :
-    (evsOfHist (histShape ilog pend)).length = (evsOf (ilog ++ [pend])).length := by
-  rw [evsOfHist_histShape]
 
 /-! ### A reader's certified log, as a prefix of the history -/
 
@@ -348,11 +334,6 @@ theorem histOf_cmp_log {L1 L2 : Log} (h : histOf L1 <+: histOf L2 ∨ histOf L2 
     L1 <+: L2 ∨ L2 <+: L1 :=
   h.imp histOf_prefix_log histOf_prefix_log
 
-theorem histOf_inj {L1 L2 : Log} (h : histOf L1 = histOf L2) : L1 = L2 := by
-  have h1 : L1 <+: L2 := histOf_prefix_log (by rw [h]; exact List.prefix_refl _)
-  have h2 : L2 <+: L1 := histOf_prefix_log (by rw [h]; exact List.prefix_refl _)
-  exact h1.eq_of_length (Nat.le_antisymm h1.length_le h2.length_le)
-
 /-- A committed log's history below the writer's (`histShape ilog pend`, no commit after
 `pend`): the log is a prefix of the committed part `ilog`. -/
 theorem histOfFrom_prefix_shape_log (i : Nat) : ∀ (L ilog : Log) (E : List HistItem),
@@ -408,10 +389,6 @@ theorem evsOfHist_prefix_eq (h1 h2 : List HistItem) (hpre : h1 <+: h2)
 theorem evsOf_append_change (ilog : Log) (pend : List Change) (c : Change) :
     evsOf (ilog ++ [pend ++ [c]]) = evsOf (ilog ++ [pend]) ++ [evOfChange ilog.length pend.length c] := by
   rw [evsOf_append, evsOf_append, evsOfRev_append_singleton, List.append_assoc]
-
-theorem indexOf_append_ev (evs : List Ev) (ev : Ev) :
-    indexOf (evs ++ [ev]) = idxApply (indexOf evs) ev := by
-  unfold indexOf; rw [List.foldl_append]; rfl
 
 theorem evOfChange_put (m i : Nat) (k v : GoString) (l : w64) :
     evOfChange m i (.put k v l) = { rev := ⟨W64 m, W64 i⟩, change := .put k v l } := rfl
@@ -805,16 +782,6 @@ theorem idxOfEntries_btInsert (z : IdxEntry) (L : List IdxEntry) :
   rw [btInsert_map (lessA := entryLess) (lessB := idxLess) (fun z => (z.2.1, z.2.2)) z L
     (fun _ _ => ⟨Iff.rfl, Iff.rfl⟩)]
 
-theorem entryLess_swo : StrictWeakOrder entryLess where
-  irrefl a := go.goStringLt_irrefl a.2.1
-  trans _ _ _ h1 h2 := go.goStringLt_trans h1 h2
-  incomp_trans a b c h1 h2 h3 h4 := by
-    have e1 := go.goStringLt_eq_of_not_lt h1 h2
-    have e2 := go.goStringLt_eq_of_not_lt h3 h4
-    unfold entryLess
-    rw [e1, e2]
-    exact ⟨go.goStringLt_irrefl _, go.goStringLt_irrefl _⟩
-
 theorem itemsOfEntries_sorted_iff (L : List IdxEntry) :
     (itemsOfEntries L).Pairwise kiItemLess ↔ L.Pairwise entryLess := by
   unfold itemsOfEntries; rw [List.pairwise_map]; rfl
@@ -873,12 +840,6 @@ theorem find?_entry_getElem? (L : List IdxEntry) (k : GoString) (z : IdxEntry)
   have hk := List.find?_some h
   obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 hz
   exact ⟨i, hi, by simpa using hk⟩
-
-theorem find?_entry_none (L : List IdxEntry) (k : GoString)
-    (h : L.find? (fun z => decide (z.2.1 = k)) = none) : ∀ z ∈ L, z.2.1 ≠ k := by
-  intro z hz
-  have := List.find?_eq_none.1 h z hz
-  simpa using this
 
 /-! ### Range reads: the keys in `[k, e)` with their answers -/
 
@@ -1388,40 +1349,11 @@ theorem totalOf_reached (lim : Option Nat) (n N : Nat) (hn : n ≤ N) (h : reach
     simp only [reached, decide_eq_true_eq] at h
     simp [totalOf]; omega
 
-theorem totalOf_true (lim : Option Nat) (n : Nat) : totalOf lim true n = n := by
-  cases lim <;> rfl
-
-/-- `limit > 0 && len(revs) >= limit`, on the words. -/
-theorem reached_words (limit : w64) (s : GoSlice) (n : Nat) (hs : n = sint.nat s.len)
-    (hs0 : 0 ≤ sint.Z s.len) :
-    (decide (0 < sint.Z limit) && decide (sint.Z limit ≤ sint.Z s.len)) = reached (limitOf limit) n := by
-  unfold limitOf reached
-  by_cases h : 0 < sint.Z limit
-  · simp only [h, ↓reduceIte, decide_true, Bool.true_and]
-    subst hs
-    unfold sint.nat sint.Z at *
-    simp only [decide_eq_decide]
-    omega
-  · simp [h]
-
 theorem takeLimit_nil {α : Type} (lim : Option Nat) : takeLimit lim ([] : List α) = [] := by
   cases lim <;> simp [takeLimit]
 
 theorem totalOf_zero (lim : Option Nat) (withTotal : Bool) : totalOf lim withTotal 0 = 0 := by
   cases lim <;> cases withTotal <;> rfl
-
-/-- The range answers of the certified log are those of the tree's entries in range (through
-the reader's stability, `reader_range`). -/
-theorem rangeAnswers_entries (log₀ ilog : Log) (pend : List Change) (L : List IdxEntry)
-    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
-    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
-    (hlen : ilog.length < 2 ^ 63) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
-    (HLL : idxOfEntries L = indexOf (evsOf (ilog ++ [pend])))
-    (k e : GoString) (r : Nat) (hr : r < log₀.length) :
-    rangeAnswers log₀ false k e (W64 r) = entryAnswers (rangeEntries L k e) (W64 r) := by
-  unfold rangeAnswers
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  rw [← reader_range log₀ ilog pend hcmp hcount hlen hwf hcs k e r hr, ← HLL, rangeAt_entries]
 
 theorem rangeAnswers_nil (log : Log) (k e : GoString) (atRev : w64) :
     rangeAnswers log true k e atRev = ((kiGet (kiOfKey (evsOf log) k) atRev).map fun r => (k, r)).toList := by

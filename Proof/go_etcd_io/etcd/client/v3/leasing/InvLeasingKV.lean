@@ -189,10 +189,6 @@ instance leasingX_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
 def leasingSeen (γ : LeasingNames) (st : LeaseCacheSt) : IProp GF :=
   iprop(∃ i : Nat, monoListIdxOwn γ.log i st)
 
-instance leasingSeen_persistent (γ : LeasingNames) (st : LeaseCacheSt) :
-    Persistent (leasingSeen (GF := GF) γ st) := by
-  unfold leasingSeen; infer_instance
-
 /-- **A step of the cache** from `st` to `st'` (persistent): consecutive states of the log. -/
 def leasingStep (γ : LeasingNames) (st st' : LeaseCacheSt) : IProp GF :=
   iprop(∃ i : Nat, monoListIdxOwn γ.log i st ∗ monoListIdxOwn γ.log (i + 1) st')
@@ -319,10 +315,6 @@ abbrev lkvIface (lkv : Loc) : GoInterfaceOk :=
 def leasingCloseFn (cf : GoFunc) (γ : LeasingNames) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, leasingOpen γ 1 -∗ ▷ Φ #() -∗ WP (App (Val #cf) (Val #())) {{ Φ }})
 
-instance leasingCloseFn_persistent (cf : GoFunc) (γ : LeasingNames) :
-    Persistent (leasingCloseFn (GF := GF) cf γ) := by
-  unfold leasingCloseFn; infer_instance
-
 /-- The number of the reader slots of the lease cache's `RWMutex` (`sync.rwmutex.actualMaxReaders`,
 `2^30 - 1`), all of which `NewKV` hands out. -/
 abbrev leasingMaxReaders : Nat := Int.toNat sync.rwmutex.actualMaxReaders
@@ -341,10 +333,6 @@ def newKVResult (pfx : GoString) (kv : GoInterface) (cf : GoFunc) (err : GoInter
 revision `r > rev` (reached) has no key `pfx ++ key`. -/
 def leaseKeyDeleted (pfx key : GoString) (rev : w64) : IProp GF :=
   iprop(∃ r : w64, etcdReached r ∗ etcdAbsent [] (pfx ++ key) r ∗ ⌜sint.Z rev < sint.Z r⌝)
-
-instance leaseKeyDeleted_persistent (pfx key : GoString) (rev : w64) :
-    Persistent (leaseKeyDeleted (GF := GF) pfx key rev) := by
-  unfold leaseKeyDeleted; infer_instance
 
 /-! ## A transaction being built -/
 

@@ -229,22 +229,5 @@ theorem batchStep_plain (W : SrvWorkload) (c₀ : w64) (m : EntryModel) (x x' : 
     subst h
     exact ⟨rfl, rfl⟩
 
-/-- **The apply relation on a plain log, at a `kvExact` chain, is the model**: the chain
-unchanged and the log `kvRaftOf` of the entries. -/
-theorem entriesStep_plain (W : SrvWorkload) (c₀ : w64) (A : List EntryModel) :
-    ∀ (x x' : apply.ApplyKV), plainLog W A → x.chain.kvExact = true → entriesStep c₀ A x x' →
-      x'.chain = x.chain ∧ x'.log = kvRaftOf c₀ x.chain x.log A := by
-  induction A with
-  | nil => intro x x' _ _ h; simp only [entriesStep] at h; subst h; exact ⟨rfl, rfl⟩
-  | cons m A ih =>
-    intro x x' hp hoff h
-    obtain ⟨x1, h1, h2⟩ := h
-    have hp' : plainLog W A := fun m' hm' => hp m' (List.mem_cons_of_mem _ hm')
-    obtain ⟨hc1, hl1⟩ := batchStep_plain W c₀ m x x1 (hp m (List.mem_cons_self ..)) hoff h1
-    obtain ⟨hc2, hl2⟩ := ih x1 x' hp' (by rw [hc1]; exact hoff) h2
-    refine ⟨hc2.trans hc1, ?_⟩
-    rw [hl2, hc1, hl1]
-    rfl
-
 end EtcdGrove
 end Perennial

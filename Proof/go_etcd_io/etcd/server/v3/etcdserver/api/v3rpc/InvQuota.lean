@@ -82,10 +82,6 @@ def v3rpc.learnerReqOk (req : GoInterface) : IProp GF :=
     ∀ r : Loc, ⌜req = interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r⌝ →
       ∃ b : Bool, structFieldRef etcdserverpb.RangeRequest go!"Serializable" r ↦□ b)
 
-instance v3rpc.learnerReqOk_persistent (req : GoInterface) :
-    Persistent (v3rpc.learnerReqOk (GF := GF) req) := by
-  unfold v3rpc.learnerReqOk; infer_instance
-
 end defs
 
 end EtcdGrove
