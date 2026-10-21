@@ -2172,7 +2172,7 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
       · iexact Hau
       iintro %m Hm
       iexact Hm
-    · iright
+    · iright; ileft
       iframe Ho
       inext
       rw [Hw]
@@ -2313,7 +2313,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
         · iexact Hnp
         iintro %m Hm
         iexact Hm
-      · iright
+      · iright; ileft
         iframe Ho
         inext
         unfold etcdDeleteSpec
@@ -2420,7 +2420,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
         iframe #
         iintro %m Hm
         iexact Hm
-      · iright
+      · iright; ileft
         iframe Ho
         inext
         unfold etcdTxnSpec

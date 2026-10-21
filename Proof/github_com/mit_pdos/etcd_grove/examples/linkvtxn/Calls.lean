@@ -500,6 +500,8 @@ theorem client_Put_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Honce := clientKVOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
+  ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ []
+  · iunfold client.writeOnce; ileft; iexact Honce
   ihave #Hrr := kvRegs_put ms $$ Hregs
   ihave #Hst' := srvStart_idx ms $$ Hst
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
@@ -549,6 +551,8 @@ theorem client_Delete_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Honce := clientKVOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
+  ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ []
+  · iunfold client.writeOnce; ileft; iexact Honce
   ihave #Hrr := kvRegs_del ms $$ Hregs
   ihave #Hst' := srvStart_idx ms $$ Hst
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
@@ -604,6 +608,8 @@ theorem client_Txn_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   ihave #Honce := clientKVOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
+  ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ []
+  · iunfold client.writeOnce; ileft; iexact Honce
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Txn_unfold.method_unfold]
   wp_pures
   wp_auto
@@ -723,7 +729,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     · iframe Hobj
       iframe #
       iright
-      iframe Hone
+      isplitl [Hone]
+      · iunfold client.txnWriteOnce; ileft; iexact Hone
       iexact Hau'
     iapply HΦ
     icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)

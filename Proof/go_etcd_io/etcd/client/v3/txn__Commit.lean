@@ -37,14 +37,14 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   iunfold kvObjAt at Hkv'
   icases Hkv' with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco'⟩
   iunfold callOptsAt at Hco
-  icases Hco with ⟨%vs, #Hvs, %Hcap, #Hok⟩
+  icases Hco with ⟨%vs, #Hvs, %Hcap, #Hok, %Hsc⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
-  ihave Hrun' : reqPre conn addr (Spec (txnWireOf b.model) Q) $$ [Hrun]
-  · iapply kvReqPre_conn api rkv conn addr $$ [Hrun]
+  ihave Hrun' : reqPre conn addr vs (Spec (txnWireOf b.model) Q) $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn addr vs _ Hsc $$ [Hrun]
     iframe Hremote Hrkv
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun

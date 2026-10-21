@@ -174,11 +174,11 @@ theorem Client.dialSetupOpts.wp_proof
   iintro %l2 ⟨Hl2, -⟩
   ipersist Hl2
   (try wp_auto)
-  ihave #Hros2 : iprop([∗list] ro;k ∈ [m1, rro];[some nr, none], optApplyMax (GF := GF) ro.applyFunc' k) $$ []
+  ihave #Hros2 : iprop([∗list] ro;k ∈ [m1, rro];[some nr, none], optApplyMax (GF := GF) ro.applyFunc' k true) $$ []
   · iapply BigSepL2.bigSepL2_cons.2; iframe Hm1
     iapply BigSepL2.bigSepL2_cons.2; iframe Hrro'
     iapply BigSepL2.bigSepL2_nil.2; itrivial
-  wp_apply wp_unaryIc c _ [m1, rro] [some nr, none] $$ [$Hc $Hl2 $Hros2] as %ic ⟨#Hic, #Hic1⟩
+  wp_apply wp_unaryIc c _ [m1, rro] [some nr, none] $$ [$Hc $Hl2 $Hros2] as %ic ⟨#Hic, #Hic1, #HicW⟩
   wp_apply wp_WithUnaryInterceptor ic $$ [$Hgrpc] as %o4 %Ho4
   wp_apply wp_slice_literal (V := GoInterface) [o3, o4]
   isplitr
@@ -191,7 +191,7 @@ theorem Client.dialSetupOpts.wp_proof
   imodintro
   iapply HΦ
   iexists si, ic
-  iframe Ho5c Hic
+  iframe Ho5c Hic HicW
   isplitr
   · iunfold dialOptsAt
     iexists _

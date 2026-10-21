@@ -44,7 +44,7 @@ theorem lessor.resetRecv.wp_proof
   iunfold lessorRemoteAt at Hrem
   icases Hrem with ⟨%rlc, %conn, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
-  icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok⟩
+  icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

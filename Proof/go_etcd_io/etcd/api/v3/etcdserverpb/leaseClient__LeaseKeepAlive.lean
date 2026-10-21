@@ -40,7 +40,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   iunfold leaseKAStreamOk at Hstr0
   icases Hstr0 with ⟨%Spec, #Hstr⟩
   wp_auto
-  wp_apply wp_StaticMethod as %sm #Hsm
+  wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
   isplitr
   · ipureintro; rfl

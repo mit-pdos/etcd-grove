@@ -930,6 +930,21 @@ theorem reqPre_box (conn : Loc) (addr : List GoString) (vs : List GoInterface) (
     (□ ▷ P : IProp GF) ⊢ reqPre conn addr vs P := by
   unfold reqPre; iintro #H; ileft; iexact H
 
+/-- Scalar options added to a call's options keep its precondition (the stubs' `StaticMethod`). -/
+theorem reqPre_scalar_app (conn : Loc) (addr : List GoString) (ws vs : List GoInterface)
+    (P : IProp GF) (h : scalarOpts ws) :
+    reqPre (GF := GF) conn addr vs P ⊢ reqPre conn addr (ws ++ vs) P := by
+  unfold reqPre
+  iintro (#H | ⟨#Ho, H⟩ | ⟨%Hw, H⟩)
+  · ileft; iexact H
+  · iright; ileft; iframe H; iexact Ho
+  · iright; iright; iframe H
+    ipureintro
+    refine ⟨Hw.1, fun v hv => ?_⟩
+    rcases List.mem_append.1 hv with hv | hv
+    · exact h v hv
+    · exact Hw.2 v hv
+
 /-! ## Context errors -/
 
 /-- **The context `ci` (descriptor `cd`)'s `Err()` returns client errors** (persistent; see the

@@ -32,7 +32,7 @@ theorem kVClient.Put.wp_proof
   intro kc conn addr Spec Q ctx cd inp req k v opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Hk, #Hv, #Hopts, #Hok⟩
   wp_auto
-  wp_apply wp_StaticMethod as %sm #Hsm
+  wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
   isplitr
   · ipureintro; rfl
@@ -58,6 +58,7 @@ theorem kVClient.Put.wp_proof
     ([sm] ++ vs)
   rw [show (pbPutRequest (GF := GF)).ty = etcdserverpb.PutRequest.ty from rfl,
     show (pbPutResponse (GF := GF)).ty = etcdserverpb.PutResponse.ty from rfl] at hI
+  ihave Hpre := reqPre_scalar_app conn addr [sm] vs _ Hsms $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe

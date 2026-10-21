@@ -12485,6 +12485,11 @@ refusal-freedom is assumed (choice (P) of R1, chosen by the user), and the rest 
   bridge relays bytes, so a member's status arrives unchanged, and a cut's errors are grpc's own.
   linkv3p's clients dial the bridges, so the fact has to pass through them.
 
+- **grpc's `StaticMethod`** (its axiom's spec, restated at R4): the option it returns is a scalar
+  option (`scalarOpts [v]`; it returns a `StaticMethodCallOption`). The generated stubs prepend it
+  to a call's options, and a write's options must hold no retry option.
+- **`defaultOptions`' initializer** (R4): its policy is `nonRepeatable`.
+
 The members' axiom is `etcd_noRefusal` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/
 NoRefusal.lean`). Its premises are the server's request view (`isServerReq s E ρ`, whose raft log
 invariant has the static membership policy, `srvCCPolicy`) with `E.authOn = false`, the quota

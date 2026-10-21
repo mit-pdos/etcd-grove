@@ -39,7 +39,7 @@ theorem isSafeRetryImmutableRPC.wp_proof
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_rpctypes_Error err $$ [$Hse] as %e1' ⟨%Hne1, #Hse1, %Hce1⟩
+  wp_apply wp_rpctypes_Error err $$ [$Hse] as %e1' ⟨%Hne1, #Hse1, %Hce1, -⟩
   · ipureintro; exact Hne
   have Hc1 := Hce1 Hce
   obtain ⟨e1, rfl⟩ : ∃ e1, e1' = GoInterface.ok e1 := by

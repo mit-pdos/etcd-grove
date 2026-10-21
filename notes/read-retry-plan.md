@@ -235,6 +235,41 @@ gets it through `forwards`). `startMember` and `Main` build.
   `Put`/`DeleteRange`/`Txn` ordinary on a refusal-free connection.
 - `dialSetupOpts`/`New`: any `MaxUnaryRetries` gives the policy-aware contract.
 
+**Done (2026-10-21).**
+
+- **Specs that name descriptions and policies.**
+  - `ErrorDesc` returns `errDesc err`.
+  - `rpctypes.Error` keeps the description.
+  - `isSafeRetryMutableRPC` and `shouldRefreshToken` return `true` only on a refusal.
+  - `isSafeRetry`, given the call's policy (`retryOptsPol`), returns `true` only on a refusal or
+    for the repeatable policy.
+- **The options' policy.**
+  - `defaultOptions` is `nonRepeatable` (`W8 1`; its initializer's fact, `etc/gen-init.py`).
+  - The dial's `withMax` and `withBackoff` keep the policy (`optApplyMax … true`).
+  - `reuseOrNewWithCallOptions` keeps it through such options, and returns the options themselves
+    when there are none.
+  - `filterCallOptions` finds no retry option among scalar options.
+- **The interceptor's contract has three modes** (`AttemptMode`, `modePre`, `etcdInterceptorOkM`).
+  The third, `.write` (`etcdInterceptorOkW`), takes an ordinary precondition whatever the bound,
+  on a refusal-free connection with scalar call options.
+  - The loop's invariant gains `md = .write → a = 0`. Each `continue` is a contradiction in that
+    mode: the context-error branch returns for `nonRepeatable`, a token refresh follows an auth
+    refusal, and `isSafeRetry` is `true` only on a refusal or the repeatable policy.
+  - `isEtcdConn` carries the third mode. `dialSetupOpts`, `dial` and `newClient` pass it on.
+- **The request precondition takes the call options** (`reqPre conn addr vs P`).
+  - Its third case is a refusal-free connection with scalar options. `etcdConn_Invoke` uses the
+    third mode for it.
+  - The stubs prepend grpc's `StaticMethod` option. Its axiom's spec now also says it is a scalar
+    option (it returns a `StaticMethodCallOption`): a restatement, recorded in D29.
+    `reqPre_scalar_app` carries the precondition across it.
+  - `callOptsAt` (a client's call options) is scalar. `kvReqPre` and `txnReqPre` gain the
+    refusal-free case, and `kvReqPre_conn` passes the scalar fact on.
+- **The failover results take `writeOnce`** (a one-attempt client, or refusal-free members), and
+  `txnWriteOnce` for transactions. linkvtxn's `Calls` passes its one-attempt client's fact
+  (`ileft`).
+
+`lake build` fails only in linkv3p's `newClient` (R0).
+
 ### R5. linkv3p (and linkvtxn)
 
 - `newClient`'s proof without `MaxUnaryRetries`, `clientOk` with `noRefusalAt`, `Apply`/`Calls`

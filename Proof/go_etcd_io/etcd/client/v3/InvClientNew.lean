@@ -157,7 +157,10 @@ theorem clientNewVars_of_init :
   iframe Hvs
   isplitr
   · ipureintro; exact Hv.1
-  iapply callOptsOk_scalar
+  isplitl
+  · iapply callOptsOk_scalar
+    ipureintro
+    exact Hv.2
   ipureintro
   exact Hv.2
 

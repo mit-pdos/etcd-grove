@@ -161,7 +161,7 @@ theorem newClient.wp_proof
     wp_auto
     ipersist conn
     iunfold isEtcdConn at Hconn
-    icases Hconn with ⟨%ic, #Hgc, #Hic⟩
+    icases Hconn with ⟨%ic, #Hgc, #Hic, #HicW⟩
     ihave #Hcore : clientCoreAt (GF := GF) «$r0_ptr» $$ []
     · iunfold clientCoreAt
       iframe HcLg'
@@ -180,12 +180,12 @@ theorem newClient.wp_proof
       iframe conn callOpts Hdslok
       iunfold isEtcdConn
       iexists ic
-      iframe Hgc Hic
+      iframe Hgc Hic HicW
     wp_apply wp_NewCluster «$r0_ptr» $$ [$Hcore] as %vc -
     wp_apply wp_NewKV «$r0_ptr» eps $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi, #Hapi1⟩
     wp_apply wp_NewLease «$r0_ptr» eps $$ [$Hcore $Hkv] as %vl ⟨%lp, %Hvl, #Hlp⟩
     iunfold callOptsAt at Hdslok
-    icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok⟩
+    icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok, -⟩
     have Htb := HV
     wp_apply wp_NewWatcher { V with conn := conn, ics := [ic] } «$r0_ptr» dsl cvs
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩

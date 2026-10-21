@@ -36,7 +36,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
   intro lc conn addr Spec Q ctx cd inp req opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hopts, #Hok⟩
   wp_auto
-  wp_apply wp_StaticMethod as %sm #Hsm
+  wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
   isplitr
   · ipureintro; rfl
@@ -61,7 +61,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
     pbLeaseRevokeResponse Spec req.ID' Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
   rw [show (pbLeaseRevokeRequest (GF := GF)).ty = etcdserverpb.LeaseRevokeRequest.ty from rfl,
     show (pbLeaseRevokeResponse (GF := GF)).ty = etcdserverpb.LeaseRevokeResponse.ty from rfl] at hI
-  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
+  ihave Hpre' := reqPre_box conn addr ([sm] ++ vs) _ $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe

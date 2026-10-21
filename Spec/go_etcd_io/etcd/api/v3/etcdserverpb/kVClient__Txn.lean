@@ -33,7 +33,7 @@ abbrev kVClient.Txn.spec : Prop :=
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" Spec ∗
-      reqPre conn addr (Spec t Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ txnReqAt req t ∗
+      reqPre conn addr vs (Spec t Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ txnReqAt req t ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
