@@ -206,7 +206,7 @@ theorem wp_drain (b : Loc) (m : GoMap) (body : GoFunc) (conns : GMap Loc Unit)
     · ipureintro
       refine ⟨by omega, fun c => ?_⟩
       have htk : (i + 1).toNat = i.toNat + 1 := by omega
-      rw [htk, List.take_succ, Hk]
+      rw [htk, List.take_add_one, Hk]
       by_cases hc : c = key
       · subst hc
         simp
