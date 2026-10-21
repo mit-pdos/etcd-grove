@@ -29,7 +29,7 @@ abbrev rpctypes.ErrorDesc.spec : Prop :=
   ∀ (err : GoError),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc)) (Val #err))
-  {{ (d : GoString), RET #d; True }}
+  {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ }}
 
 end spec
 

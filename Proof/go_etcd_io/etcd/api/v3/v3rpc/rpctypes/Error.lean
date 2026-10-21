@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Spec.google_golang_org.grpc.status.FromError
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrDesc
 
 @[expose] public section
 
@@ -86,13 +87,13 @@ theorem rpctypes.Error.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, ⟨%mref, %m, #Hmg, #Hm, #Hmv, -⟩, %Hty, -⟩
+  icases Hri with ⟨-, -, -, ⟨%mref, %m, #Hmg, #Hm, #Hmv, %Hmd⟩, %Hty, -⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with
     | nil => exact absurd rfl Hne
     | ok e => exact ⟨e, rfl⟩
   wp_auto
-  wp_apply wp_ErrorDesc (GoInterface.ok e) $$ [$Hok] as %d -
+  wp_apply wp_ErrorDesc (GoInterface.ok e) $$ [$Hok] as %d %Hd
   wp_apply wp_map_lookup2 $$ [$Hm] as -
   cases hk : m !! d with
   | none =>
@@ -101,22 +102,22 @@ theorem rpctypes.Error.wp_proof
     iapply HΦ
     iframe #
     ipureintro
-    exact ⟨Hne, id⟩
+    exact ⟨Hne, id, rfl⟩
   | some v =>
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
     ihave #Hv := Hmv $$ %d %v %hk
-    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg, -⟩
+    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr⟩
     cases ok
     · obtain ⟨ve, rfl⟩ : ∃ ve, v = GoInterface.ok ve := by
         cases v with
         | nil => exact absurd (Hnil rfl) (by simp)
         | ok ve => exact ⟨ve, rfl⟩
       wp_auto
-      iunfold statusErrOk at Hv
-      ihave ⟨#HE, -⟩ := Hv $$ %ve %rfl
-      iunfold errorStringSpec at HE
-      wp_apply HE as %str
+      -- (D29) not a status error: its `Error()` is its description
+      have hpe : false = false ∧ GoInterface.ok ve = GoInterface.ok ve := ⟨rfl, rfl⟩
+      ihave #HE := HErr $$ %ve %hpe
+      wp_apply HE
       wp_apply HCode
       iapply HΦ
       isplitr
@@ -124,7 +125,8 @@ theorem rpctypes.Error.wp_proof
       isplitr
       · iapply rpctypes_etcdError_statusErrOk wp_EErr Hty
       ipureintro
-      exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
+      refine ⟨fun hc => rpctypes_etcdError_clientErr Hty _ hc _, ?_⟩
+      rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
     · wp_auto
       wp_apply HMsg
       wp_apply HCode
@@ -134,7 +136,8 @@ theorem rpctypes.Error.wp_proof
       isplitr
       · iapply rpctypes_etcdError_statusErrOk wp_EErr Hty
       ipureintro
-      exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
+      refine ⟨fun hc => rpctypes_etcdError_clientErr Hty _ hc _, ?_⟩
+      rw [rpctypes.errDesc_etcdError, Hmd d _ hk, Hd]
 
 end proof
 

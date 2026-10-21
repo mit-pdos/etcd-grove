@@ -31,7 +31,9 @@ abbrev Client.shouldRefreshToken.spec : Prop :=
       statusErrOk err }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"shouldRefreshToken")) (Val #err)) (Val #o))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      -- (2026-10-21, D29) `true` only for an auth refusal
+      ⌜b = true → go_etcd_io.etcd.cache.v3.errDesc err ∈ go_etcd_io.etcd.cache.v3.refusalDescs⌝ }}
 
 end spec
 

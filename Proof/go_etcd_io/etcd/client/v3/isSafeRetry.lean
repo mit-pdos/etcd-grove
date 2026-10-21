@@ -42,8 +42,8 @@ theorem isSafeRetry.wp_proof
     (wp_zapString : zap.String.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     isSafeRetry.spec (GF := GF) (hG := hG) := by
-  intro c err o
-  wp_start as ⟨#Hc, #Ho, %Herr, #Hse⟩
+  intro c err o pol
+  wp_start as ⟨#Hc, #Ho, %Herr, #Hse, #Hpol⟩
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -52,9 +52,13 @@ theorem isSafeRetry.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, -⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, ⟨%eL, #HeL, %HeLp, %HdL⟩, -⟩
   iunfold retryOptsAt at Ho
   icases Ho with ⟨%ov, #Hov, #Hovk⟩
+  iunfold retryOptsPol at Hpol
+  icases Hpol with ⟨%ov', #Hov', %Hpol⟩
+  icombine Hov Hov' gives %Heqo
+  subst Heqo
   icases options_fields_ro o ov $$ Hov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   ihave #Hc' := Hc
   iunfold retryClientOk at Hc'
@@ -65,23 +69,24 @@ theorem isSafeRetry.wp_proof
   cases b1
   rotate_left
   · wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; ipureintro; intro h; cases h
   wp_auto
-  wp_apply (wp_Is err (GoInterface.ok eL) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 -
+  wp_apply (wp_Is err (GoInterface.ok eL) (Or.inr (Or.inl ⟨eL, rfl, HeLp⟩))) $$ [$Herrs $Hse] as %b2 %Hb2
   cases b2
   rotate_left
   · wp_auto
     wp_apply wp_Endpoints c $$ [$Hc] as %sl -
     wp_if_destruct
-    · iapply HΦ; itrivial
+    · iapply HΦ; ipureintro; intro _; left
+      rw [Hb2 rfl, HdL]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
     (try wp_auto)
     wp_if_destruct
     · wp_apply wp_Imm err $$ [] as %b -
       · iframe #; ipureintro; exact Herr
-      iapply HΦ; itrivial
+      iapply HΦ; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
     wp_if_destruct
-    · wp_apply wp_Mut err $$ [$Hse] as %b -
-      iapply HΦ; itrivial
+    · wp_apply wp_Mut err $$ [$Hse] as %b %Hb
+      iapply HΦ; ipureintro; intro h; left; exact Hb h
     wp_method_call
     wp_auto
     wp_apply wp_String ov.retryPolicy' as %str -
@@ -94,15 +99,15 @@ theorem isSafeRetry.wp_proof
     wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
     wp_apply wp_Warn lg _ _ $$ []
     · iframe #; ipureintro; exact Hlgn
-    iapply HΦ; itrivial
+    iapply HΦ; ipureintro; intro h; cases h
   · wp_auto
     wp_if_destruct
     · wp_apply wp_Imm err $$ [] as %b -
       · iframe #; ipureintro; exact Herr
-      iapply HΦ; itrivial
+      iapply HΦ; ipureintro; intro _; right; rw [← Hpol]; simpa using Hif
     wp_if_destruct
-    · wp_apply wp_Mut err $$ [$Hse] as %b -
-      iapply HΦ; itrivial
+    · wp_apply wp_Mut err $$ [$Hse] as %b %Hb
+      iapply HΦ; ipureintro; intro h; left; exact Hb h
     wp_method_call
     wp_auto
     wp_apply wp_String ov.retryPolicy' as %str -
@@ -115,7 +120,7 @@ theorem isSafeRetry.wp_proof
     wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
     wp_apply wp_Warn lg _ _ $$ []
     · iframe #; ipureintro; exact Hlgn
-    iapply HΦ; itrivial
+    iapply HΦ; ipureintro; intro h; cases h
 
 end proof
 

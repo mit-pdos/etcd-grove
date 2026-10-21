@@ -62,6 +62,11 @@ def refusalDescs : List GoString :=
     go!"etcdserver: user name is empty", go!"etcdserver: rpc not supported for learner",
     go!"there is no address available", go!"there is no connection available"]
 
+theorem mem_refusalDescs_balancer (d : GoString)
+    (h : d = go!"there is no address available" ∨ d = go!"there is no connection available") :
+    d ∈ refusalDescs := by
+  rcases h with rfl | rfl <;> simp [refusalDescs]
+
 /-- **An error that is not a refusal** (D29): `nil`, or one whose description is not a refusal's. -/
 def noRefusal [FfiSyntax] (err : GoInterface) : Prop :=
   err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
@@ -486,7 +491,9 @@ abbrev clientv3Init : IProp GF :=
     sl ↦*□ [W8 0]) ∗
     (∃ (dp : Loc) (ov : go_etcd_io.etcd.client.v3.options),
       globalAddr go_etcd_io.etcd.client.v3.defaultOptions ↦□ dp ∗ dp ↦□ ov ∗
-      backoffOk ov.backoffFunc') ∗
+      backoffOk ov.backoffFunc' ∗
+      -- (D29, 2026-10-21) the default policy: `nonRepeatable`
+      ⌜ov.retryPolicy' = W8 1⌝) ∗
     -- (item 8, 2026-10-17: `client/v3`'s `clientNewVars`, which `New` took as a premise)
     -- `defaultCallOpts` (`options.go`: `WaitForReady(true)`, `MaxCallSendMsgSize`,
     -- `MaxCallRecvMsgSize`: options holding only scalars) and the retry defaults

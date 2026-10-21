@@ -38,18 +38,18 @@ theorem isSafeRetryMutableRPC.wp_proof
   wp_apply wp_FromError err $$ [$Hst $Hse] as %ev %ok ⟨-, #HCode, -⟩
   cases ok
   · wp_auto
-    wp_apply wp_ErrorDesc err $$ [$Hse] as %d -
+    wp_apply wp_ErrorDesc err $$ [$Hse] as %d %Hd
     wp_if_destruct
-    · iapply HΦ; itrivial
-    · iapply HΦ; itrivial
+    · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+    · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
   · wp_auto
     wp_apply HCode
     wp_if_destruct
-    · wp_apply wp_ErrorDesc err $$ [$Hse] as %d -
+    · wp_apply wp_ErrorDesc err $$ [$Hse] as %d %Hd
       wp_if_destruct
-      · iapply HΦ; itrivial
-      · iapply HΦ; itrivial
-    · iapply HΦ; itrivial
+      · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+      · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
+    · iapply HΦ; ipureintro; intro h; first | (rw [← Hd]; apply go_etcd_io.etcd.cache.v3.mem_refusalDescs_balancer; simp_all; done) | simp_all
 
 end proof
 
