@@ -197,6 +197,18 @@ therefore mend every blackhole for the test to finish. That affects only the tes
   under which `grpcServes b` gives `grpcServes a`.
 - Write the decision down (`notes/decisions.md`), as D21j's, and ask.
 
+**Drafted (2026-10-21), not yet approved: `notes/decisions.md` D26.** The plan's forwarding fact
+("a listener at `a`, given up, serves what `b` serves") is unsound alone, since byte-agnostic
+`Read`/`Write` specs would let a program write invented replies. D26 instead proposes a relay:
+connections accepted at `a` are paired with ones dialed to `b`, and each direction writes a prefix
+of what it read. `Proof/net/InvRelay.lean` holds the forwarding fact `grpc.relay`, the relay's
+predicates and the specs of `Accept`, `Listener.Close`, `Conn.Close`, `Read`, `Write` and the
+pairing; `net.Dial` and `io.Copy` (to `io.Discard`) are `Spec`/`Proof` pairs. `net.Conn` is
+translated as an interface (`Code/net.toml`, which now imports `time`), so the bridge's
+connection fields load and store without the axiomatized type's `sorry`; that moved `net`'s
+initializer and the examples' package tables (regenerated), and nothing else (the full build
+passes but for linkv3p's three proofs, as before).
+
 ### K2. The bridge proved
 
 Its functions: `newBridge`, `serveListen` (the accept loop; `pausec` and `stopc`), `serveConn`
