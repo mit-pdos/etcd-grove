@@ -22,7 +22,10 @@ claim `token`); when they are done, `serveConn` deposits the half in an invarian
 closes `donec` with it; whoever removes `c` from the map (`Unblackhole`, `DropConnections`, or
 `serveConn` itself) waits on `donec`, trades the claim token for the half and gives it back to the
 lock. The lock holds a wand from its fraction and every outstanding share to the whole field
-(`Hwand`), so that once the map is empty, `Unblackhole` holds the field whole.
+(`Hwand`), so that once the map is empty, `Unblackhole` holds the field whole. A registry of every
+connection ever registered (`γ.reg`, insert-only, its entries persistent: `c ↪[γ.reg]□ (q, γt)`)
+tells `serveConn` that its connection, if still in the map, has its own share and token; a
+registered connection's fields are persistent, so a fresh allocation is not registered.
 
 **The wait group `b.wg`** counts `serveListen` and every `serveConn`; nobody waits on it here
 (`Close` is not verified). Its counter's bound is by thread tokens, as the server's `GoAttach`
@@ -40,6 +43,7 @@ public import Proof.net.InvRelay
 public import Perennial.Proof.sync
 public import Perennial.Ghost.Token
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Perennial.Ghost.GhostMap
 
 @[expose] public section
 
@@ -59,15 +63,20 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 /-- A field of the bridge `b`. -/
 abbrev bF (b : Loc) (f : GoString) : Loc := structFieldRef bridge.bridge f b
 
+/-- A field of the connection `c` (`*bridgeConn`). -/
+abbrev cF (c : Loc) (f : GoString) : Loc := structFieldRef bridge.bridgeConn f c
+
 end addrs
 
 /-- The ghost names of a bridge: the flag "blackholed", the wait group's, the started
-`serveConn`s' receipts, and the flag "`serveListen` runs". -/
+`serveConn`s' receipts, the flag "`serveListen` runs", and the registry of every connection
+ever registered (`lockInv`). -/
 structure BridgeNames where
   holed : GName
   wg : sync.WaitGroupNames
   run : GName
   sl : GName
+  reg : GName
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -113,12 +122,23 @@ instance doneQ_persistent (b : Loc) (q : Qp) (γt : GName) :
     Persistent (doneQ (GF := GF) b q γt) := by
   unfold doneQ; infer_instance
 
-/-- **The connection `c` of the bridge `b`** (persistent): its fields (never written after
-`serveListen` makes it), its two connections, and its `donec` (closed with `doneQ b q γt`). -/
+/-- **A connection's fields**, never written after `serveListen` makes it (persistent, field by
+field: Perennial's `wp_load` does not load a field through a persistent points-to of the whole
+struct). -/
+def connFields (c : Loc) (inc outc : GoInterfaceOk) (donec : GoChan) : IProp GF :=
+  iprop(cF c go!"in" ↦□ (interface.ok inc : GoInterface) ∗
+    cF c go!"out" ↦□ (interface.ok outc : GoInterface) ∗ cF c go!"donec" ↦□ donec)
+
+instance connFields_persistent (c : Loc) (inc outc : GoInterfaceOk) (donec : GoChan) :
+    Persistent (connFields (GF := GF) c inc outc donec) := by
+  unfold connFields; infer_instance
+
+/-- **The connection `c` of the bridge `b`** (persistent): its fields, its two connections, and
+its `donec` (closed with `doneQ b q γt`). -/
 def connOk (b c : Loc) (q : Qp) (γt : GName) : IProp GF :=
   iprop(∃ (inc outc : GoInterfaceOk) (donec : GoChan) (γd : ChanNames),
-    c ↦□ (bridge.bridgeConn.mk (interface.ok inc) (interface.ok outc) donec) ∗
-    netConnOk inc ∗ netConnOk outc ∗ ownBroadcastChan donec γd (doneQ b q γt) .Unknown)
+    connFields c inc outc donec ∗ netConnOk inc ∗ netConnOk outc ∗
+    ownBroadcastChan donec γd (doneQ b q γt) .Unknown)
 
 instance connOk_persistent (b c : Loc) (q : Qp) (γt : GName) :
     Persistent (connOk (GF := GF) b c q γt) := by
@@ -130,7 +150,7 @@ def sharesPts (b : Loc) (ch : GoChan) (shares : GMap Loc (Qp × GName)) : IProp 
 
 /-- **The mutex's resource** (see the file header). -/
 def lockInv (b : Loc) (γ : BridgeNames) : IProp GF :=
-  iprop(∃ (m : GoMap) (conns : GMap Loc Unit) (shares : GMap Loc (Qp × GName))
+  iprop(∃ (m : GoMap) (conns : GMap Loc Unit) (shares reg : GMap Loc (Qp × GName))
       (pc bhc : GoChan) (γpc γbh : ChanNames) (holed : Bool) (q : Qp),
     "Hconns" ∷ bF b go!"conns" ↦ m ∗ "Hm" ∷ m ↦$ conns ∗
     "%Hdom" ∷ ⌜∀ c, (conns !! c).isSome = (shares !! c).isSome⌝ ∗
@@ -144,7 +164,11 @@ def lockInv (b : Loc) (γ : BridgeNames) : IProp GF :=
     "Hbhst" ∷ (if holed then iprop(True) else ownBroadcastChan bhc γbh iprop(True) .Pending) ∗
     "Hwand" ∷ (bF b go!"blackholec" ↦{DFrac.own q} bhc ∗ sharesPts b bhc shares -∗
       bF b go!"blackholec" ↦ bhc) ∗
-    "Hregs" ∷ [∗map] c ↦ x ∈ shares, connOk b c x.1 x.2 ∗ token x.2)
+    "Hregs" ∷ ([∗map] c ↦ x ∈ shares, connOk b c x.1 x.2 ∗ token x.2) ∗
+    "Hreg" ∷ ghostMapAuth γ.reg (1 : Qp) reg ∗
+    "#Hregf" ∷ ([∗map] c ↦ _x ∈ reg, ∃ (inc outc : GoInterfaceOk) (donec : GoChan),
+      connFields c inc outc donec) ∗
+    "%Hsub" ∷ ⌜∀ c x, shares.lookup c = some x → reg.lookup c = some x⌝)
 
 /-- **The bridge `b`, to the relay address `addr`** (persistent): the fields written once by
 `newBridge` (its dialer, to `addr`; its listener, a relay's to `addr`; `stopc`), the mutex with
