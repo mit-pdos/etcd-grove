@@ -9,7 +9,7 @@ T.M.spec`; `Results.lean` beside it restates exported results).  A project of
 `<root>/Code/`, ..., `<root>/Proof/`), for a Go path that is also translated from another
 source; the modules that reach one part root's translations cannot be imported with
 those that reach another's, or the main root's same path.  A project translated into a
-root of its own (`Project.root`; none now, raft v3.7's parallel tree `Raft37/` was one) is a part root
+root of its own (`Project.root`: the witness experiment's `RaftWitness/`; raft v3.7's parallel tree `Raft37/` was one) is a part root
 here too.
 
 The roots are the theorems of every `Link.lean` and `Results.lean` under `Proof/` and

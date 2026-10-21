@@ -2,9 +2,10 @@
 // in-process as examples/putget3 starts them, each serving its raft handler on its own peer
 // listener and etcd's gRPC API on its own client listener, a client connected to each member,
 // a partitioner goroutine that cuts and mends the links between members on a schedule Main is
-// given, and linkv's workload (lintest.Run with concurrent clients doing Put and Get of a few
-// keys, each operation through a member picked at random, checked by porcupine against linkv's
-// key-value model). Main panics if porcupine finds the history not linearizable; the theorem is
+// given, and linkvtxn's workload (lintest.Run with concurrent clients doing gets, lists, puts,
+// deletes, multi-operation transactions and compare-and-sets of a few keys, robustness's KV
+// traffic without leases and stale reads, each operation through a member picked at random,
+// checked by porcupine against linkvtxn's model of etcd's KV; notes/linkv3p-txn-plan.md). Main panics if porcupine finds the history not linearizable; the theorem is
 // that it does not, for every schedule (notes/partition-plan.md).
 //
 // The partitions are etcd's own: EtcdServer.CutPeer and MendPeer, which etcd's integration tests
@@ -12,8 +13,9 @@
 // resume the transport's peer, which then drops every message to and from it. Both directions of
 // a link are cut and mended together, as those tests do.
 //
-// The workload is package linkv's (Gen, Apply, Model), imported, so that their proofs carry over
-// unchanged; Apply here picks the member. The start of a member is putget3's (startMember), on
+// The workload is package linkvtxn's (Gen, Apply, Model), imported, so that their proofs carry
+// over unchanged; Apply here picks the member. (Until 2026-10-20 it was package linkv's, Puts and
+// Gets only.) The start of a member is putget3's (startMember), on
 // linkv3p's own member names, cluster token and ports, plus the member's gRPC server.
 package linkv3p
 
@@ -33,7 +35,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 	"go.etcd.io/etcd/server/v3/features"
 
-	"github.com/mit-pdos/etcd-grove/examples/linkv"
+	"github.com/mit-pdos/etcd-grove/examples/linkvtxn"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 
@@ -130,21 +132,22 @@ func partitioner(srvs []*etcdserver.EtcdServer, sched []Step) {
 	}
 }
 
-// Apply runs one operation through a client of clis picked at random (linkv.Apply).
+// Apply runs one operation through a client of clis picked at random (linkvtxn.Apply).
 func Apply(clis []*clientv3.Client, input any) any {
 	i := primitive.RandomUint64() % uint64(len(clis))
-	return linkv.Apply(clis[i], input)
+	return linkvtxn.Apply(clis[i], input)
 }
 
 // Check runs lintest.Run of clients concurrent clients, each running ops operations through the
 // clients clis (one per member, each operation's picked at random), and returns porcupine's
-// verdict against linkv's model.
+// verdict against linkvtxn's model.
 func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
 	apply := func(input any) any { return Apply(clis, input) }
-	return lintest.Run(linkv.Model(), apply, linkv.Gen, lintest.CounterClock(), clients, ops, timeout)
+	return lintest.Run(linkvtxn.Model(), apply, linkvtxn.Gen, lintest.CounterClock(), clients, ops,
+		timeout)
 }
 
-// newClient connects a one-attempt client to the member at addr: a Put is sent at most once, so
+// newClient connects a one-attempt client to the member at addr: a write is sent at most once, so
 // the cluster applies it at most once (decision D21i).
 func newClient(addr string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{

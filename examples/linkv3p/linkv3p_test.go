@@ -67,7 +67,8 @@ func heal(delay time.Duration, m int) []Step {
 // member fails after the request timeout, 7s, which stretches the workload over the schedule),
 // and porcupine's verdict must be Ok. Then it asks each member, which Main left running, for the
 // keys (so that the history was not all errors, and the three members, mended, agree), the raft
-// term (past the first election's: a re-election happened) and the member count.
+// term (past the first election's: a re-election happened) and the member count. (The keys may
+// all be deleted at the end: the workload has deletes; the revision says the writes took effect.)
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
 	var sched []Step
@@ -93,8 +94,8 @@ func TestMainRun(t *testing.T) {
 			cancel()
 			t.Fatalf("member %d: %v", i+1, err)
 		}
-		if len(resp.Kvs) == 0 || resp.Header.Revision < 10 {
-			t.Fatalf("member %d: Main's puts did not take effect: revision %d, %v", i+1,
+		if resp.Header.Revision < 10 {
+			t.Fatalf("member %d: Main's writes did not take effect: revision %d, %v", i+1,
 				resp.Header.Revision, resp.Kvs)
 		}
 		if resp.Header.RaftTerm < 3 {

@@ -63,11 +63,11 @@ func toRequest(in Input) model.EtcdRequest {
 			OperationsOnSuccess: toOps([]TOp{{Kind: TDel, Key: in.Key}})}}
 	default:
 		conds := []model.EtcdCondition{}
-		for _, c := range in.Cmps {
+		for _, c := range cmpsOf(in) {
 			conds = append(conds, toCond(c))
 		}
 		return model.EtcdRequest{Type: model.Txn, Txn: &model.TxnRequest{Conditions: conds,
-			OperationsOnSuccess: toOps(in.Then), OperationsOnFailure: toOps(in.Else)}}
+			OperationsOnSuccess: toOps(thenOf(in)), OperationsOnFailure: toOps(elseOf(in))}}
 	}
 }
 
@@ -91,22 +91,22 @@ func toResponse(in Input, out Output) model.MaybeEtcdResponse {
 		resp.Range = &rr
 	case KList:
 		rr := model.RangeResponse{KVs: []model.KeyValue{}}
-		for _, kv := range out.KVs {
+		for _, kv := range kvsOf(out) {
 			rr.KVs = append(rr.KVs, toKV(kv.Key, kv.R))
 		}
-		rr.Count = int64(len(out.KVs))
+		rr.Count = int64(out.NKVs)
 		resp.Range = &rr
 	case KPut:
 		resp.Txn = &model.TxnResponse{Results: []model.EtcdOperationResult{{}}}
 	case KDel:
 		resp.Txn = &model.TxnResponse{Results: []model.EtcdOperationResult{{Deleted: out.N}}}
 	default:
-		ops := in.Else
+		ops := elseOf(in)
 		if out.Ok {
-			ops = in.Then
+			ops = thenOf(in)
 		}
 		results := []model.EtcdOperationResult{}
-		for i, r := range out.Res {
+		for i, r := range resOf(out) {
 			key := ""
 			if i < len(ops) {
 				key = ops[i].Key
@@ -135,7 +135,7 @@ func genInput(rng *rand.Rand) Input {
 	for {
 		in := genFrom(rng.Uint64())
 		ok := true
-		for _, c := range in.Cmps {
+		for _, c := range cmpsOf(in) {
 			if c.Kind == CValue {
 				ok = false
 			}
@@ -158,11 +158,11 @@ func corrupt(rng *rand.Rand, in Input, out Output) Output {
 		out.N = 1 - out.N
 		out.Ok = !out.Ok
 	default:
-		if len(out.KVs) > 0 {
-			out.KVs = out.KVs[1:]
+		if out.NKVs > 0 {
+			out = withKVs(out, kvsOf(out)[1:])
 		}
-		if len(out.Res) > 0 && out.Res[0].Kind == TGet {
-			out.Res[0].Found = !out.Res[0].Found
+		if out.NRes > 0 && out.Res0.Kind == TGet {
+			out.Res0.Found = !out.Res0.Found
 		}
 		out.R.Mod++
 	}

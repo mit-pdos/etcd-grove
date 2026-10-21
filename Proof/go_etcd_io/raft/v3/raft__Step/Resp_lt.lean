@@ -80,10 +80,19 @@ theorem wp_Step_Resp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_drive _Q
   rw [decide_eq_true Hlt]
   wp_auto
-  wp_drive _Q
-  -- (2026-10-17) `checkQuorum`, then (off) the pre-vote flag; the type test is false either way
-  rcases Hty with Hty | Hty <;> cq_split _Q
+  -- (2026-10-17) `(checkQuorum || preVote) && (MsgHeartbeat || MsgApp)`: `checkQuorum`, then
+  -- (off) the pre-vote flag (`cq_split`); the type test is false either way, so the test is
+  -- joined (`wp_join`) at `#false` and the rest verified once per type
+  rcases Hty with Hty | Hty
   all_goals
+    wp_join (v := #false) at (if: _ then _ else #false) with [Hphys r m Hm]
+    · wp_drive _Q
+      cq_split _Q
+      -- at the join value (`#false`, or the closed `decide` of the last type test)
+      all_goals
+        isplitr
+        · ipureintro; first | trivial | rfl
+        iframe
     wp_drive _Q
     wp_raft_logC
     iapply HΦ $$ %interface.nil %s

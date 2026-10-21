@@ -49,6 +49,75 @@ theorem nilOut_none (l : List Loc) (ws : Loc) (hall : ∀ j, j < l.length → l[
   simpa using this
 
 set_option hygiene false in
+/-- The end of `closeSubstream`: the removal from `substreams` (an id) or `resuming` (its first
+place). -/
+local macro "close_tail" : tactic => `(tactic| (
+  wp_if_destruct
+  · rename_i ig
+    irename : (ig ↦ zero_val w64 : IProp GF) => gi
+    ihave %Hsll := ownSlice_len $$ Hs
+    ihave IH : iprop(∃ (n v0 : w64), "i" ∷ i_ptr ↦ n ∗ "gi" ∷ ig ↦ v0 ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (l.length : Int) ∧
+          ∀ j, j < sint.nat n → l[j]? ≠ some P.ws⌝) $$ [i gi]
+    · iexists W64 0, _
+      simp only [named]
+      iframe
+      ipureintro
+      refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+    wp_for IH
+    (try wp_auto)
+    wp_if_destruct
+    · have Hc : sint.Z n < sint.Z s.len := by
+        first | assumption | exact of_decide_eq_true (go.intoVal_inj Hif)
+      have Hlt : sint.nat n < l.length := by word
+      obtain ⟨x, Hx⟩ : ∃ x, l[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt⟩
+      have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len := ⟨Hn.1, by word⟩
+      rw [ite_eq_left Hbnd]
+      wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+      · iframe; ipureintro; rw [← Hx]
+      (try wp_auto)
+      rw [ite_eq_left Hbnd]
+      wp_apply wp_load_slice_index s (sint.Z n) l (DFrac.own 1) x Hn.1 $$ [Hs] as Hs
+      · iframe; ipureintro; rw [← Hx]
+      (try wp_auto)
+      wp_if_destruct
+      · -- found: set to nil, return
+        (try wp_auto)
+        rw [ite_eq_left Hbnd]
+        wp_apply wp_store_slice_index s (sint.Z n) l null $$ [Hs] as Hs
+        · iframe; ipureintro; constructor <;> word
+        (try wp_auto)
+        wp_for_post
+        iapply HΦ
+        rw [nilOut_found l P.ws (sint.nat n) Hn.2.2 Hx]
+        iframe
+      · (try wp_auto)
+        wp_for_post
+        iframe
+        iexists n + W64 1, n
+        simp only [named]
+        iframe
+        ipureintro
+        refine ⟨by word, by word, fun j hj => ?_⟩
+        rcases Nat.lt_succ_iff_lt_or_eq.1 (show j < sint.nat n + 1 by word) with h | h
+        · exact Hn.2.2 j h
+        · subst h; rw [Hx]; intro h'; cases h'; contradiction
+    · -- the end: no place held `ws`
+      have Hc : ¬ sint.Z n < sint.Z s.len := by
+        first | assumption | (intro h; apply Hif; simp [h])
+      (try wp_auto)
+      (try rw [decide_eq_false Hc, if_pos (decide_eq_true rfl)])
+      (try wp_auto)
+      iapply HΦ
+      rw [nilOut_none l P.ws (fun j hj => Hn.2.2 j (by have := Hsll; word))]
+      iframe
+  · (try wp_auto)
+    wp_apply wp_mapDelete $$ [$(frameH `Hmap)] as Hmap
+    (try wp_auto)
+    iapply HΦ
+    iframe))
+
+set_option hygiene false in
 /-- The code after the `select` on `ws.initReq.retc <- ws.outc` (closing `ws.outc` or forking `sendCloseSubstream`, then the `substreams`/`resuming` removal), for the `select`'s three ways out: `retc` nil (`default`), and with `retc` live the send done and `default`. -/
 local macro "close_rest" : tactic => `(tactic| (
     (try wp_auto)
@@ -198,8 +267,8 @@ local macro "close_rest" : tactic => `(tactic| (
       | nil =>
         (try wp_auto)
         icases typedPointsto_not_null_dup _ _ _ $$ «$v0» with ⟨Hh0, %Hhnn⟩
-        wp_apply wp_fork $$ [Hprod Hh0 «$a1»]
-        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$(frameH `Hws) $(frameH `Hprod) $(frameH `«$a1») $(frameH `Hh0)]
+        wp_apply wp_fork $$ [Hprod Houtcf Hh0 «$a1»]
+        · wp_apply wp_sendCloseSubstream V P wgs «$a1_ptr» _ $$ [$(frameH `Hws) $(frameH `Hprod) $(frameH `Houtcf) $(frameH `«$a1») $(frameH `Hh0)]
           · iframe Hse
             ipureintro
             exact ⟨Hhnn, rfl, rfl, rfl, rfl⟩
@@ -415,53 +484,80 @@ theorem watchGRPCStream.closeSubstream.wp_proof
   intro V wgs ws id e dq1 dq2 dq3 m M s l
   wp_start as ⟨Hcl, Hid, Hce, #Hse, Hsub, Hmap, Hres, Hs⟩
   iunfold closingBody at Hcl
-  icases Hcl with ⟨%P, %rc, %HPws, #Hws, Hprod, Hrc, Hret, Hclosing⟩
+  icases Hcl with ⟨%P, %HPws, #Hws, Hsb⟩
+  iunfold stopBody at Hsb
+  icases Hsb with ⟨%rc, %q, %nr, %dc, Hoc, Hrc, Hret, -, -⟩
   subst HPws
   ihave #Hws' := Hws
   iunfold wsIs at Hws'
-  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, #Hbag, %Hok, -⟩
+  icases Hws' with ⟨#Hro, -, #Hspsc, -, #Hctx, #Hbag, %Hok, -⟩
   iunfold wrRO at Hro
   icases Hro with ⟨#Hctxf, -⟩
   ihave #Hctx1 := Hctx
   iNamed Hctx1
   ihave #Hctx2 := Hctx
-  icases Hret with (%Hrc0 | ⟨%Hrc1, Hres0⟩)
-  · subst Hrc0
-    wp_auto_lc 2
-    wp_apply_core chan.wp_select_nonblocking_nil
-    isplit
-    · iapply BigAndL.bigAndL_cons.2
+  ihave #Hspsc' := Hspsc
+  iunfold isSpsc at Hspsc'
+  icases Hspsc' with ⟨#Hic, -⟩
+  ihave %Hnn := isChan_not_null P.outc P.γ.spsc.chanName go_etcd_io.etcd.client.v3.WatchResponse $$ Hic
+  icases Hoc with (⟨Houtcf, Hprod⟩ | ⟨Houtcf, #Hcc⟩)
+  rotate_left
+  · -- `outc` nil: closed by `waitCancelSubstreams`, the watch's context done
+    wp_auto
+    cases e with
+    | nil =>
+      (try wp_auto)
+      close_tail
+    | ok e0 =>
+      (try wp_auto)
+      wp_apply HErrDone as %err %herr
+      · iexact Hcc
+      cases err with
+      | nil => exact absurd rfl (context.isTypedErr_ne_nil herr)
+      | ok i =>
+        (try wp_auto)
+        close_tail
+  · icases Hret with (%Hrc0 | ⟨%Hrc1, Hres0⟩)
+    · subst Hrc0
+      wp_auto_lc 2
+      rw [decide_eq_false (show ¬ (P.outc = chan.nil) from Hnn)]
+      wp_auto
+      wp_apply_core chan.wp_select_nonblocking_nil
       isplit
-      · iright
-        iapply chan.nilClausePre_send (V := Loc) (t := go.GoType.ChannelType go.ChanDir.sendrecv go_etcd_io.etcd.client.v3.WatchResponse.ty) null P.outc _ rfl
-      iapply BigAndL.bigAndL_nil.2
-      itrivial
-    close_rest
-  · subst Hrc1
-    wp_auto_lc 2
-    wp_apply_core chan.wp_select_nonblocking
-    isplit
-    · iapply BigAndL.bigAndL_cons.2
+      · iapply BigAndL.bigAndL_cons.2
+        isplit
+        · iright
+          iapply chan.nilClausePre_send (V := Loc) (t := go.GoType.ChannelType go.ChanDir.sendrecv go_etcd_io.etcd.client.v3.WatchResponse.ty) null P.outc _ rfl
+        iapply BigAndL.bigAndL_nil.2
+        itrivial
+      close_rest
+    · subst Hrc1
+      wp_auto_lc 2
+      rw [decide_eq_false (show ¬ (P.outc = chan.nil) from Hnn)]
+      wp_auto
+      wp_apply_core chan.wp_select_nonblocking
       isplit
-      · simp only [chan.nonblockingClausePre]
-        iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, P.retc, P.γret, P.outc
+      · iapply BigAndL.bigAndL_cons.2
         isplit
-        · ipureintro; exact ⟨rfl, rfl⟩
-        isplit
-        · iapply is_bag_is_chan $$ Hbag
-        iapply blocking_send_implies_nonblocking
-        iapply bag_send_au $$ [$Hlc1 $Hlc2] Hbag [Hres0]
-        · iunfold retcP
-          iunfold retcRes at Hres0
-          iexists P.γ
-          icases Hres0 with ⟨Hr1, Hr2, Hr3⟩
-          iframe Hspsc Hr1 Hr2 Hr3
-          ipureintro; exact Hok.2.2
-        inext
-        close_rest
-      iapply BigAndL.bigAndL_nil.2
-      itrivial
-    close_rest
+        · simp only [chan.nonblockingClausePre]
+          iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, P.retc, P.γret, P.outc
+          isplit
+          · ipureintro; exact ⟨rfl, rfl⟩
+          isplit
+          · iapply is_bag_is_chan $$ Hbag
+          iapply blocking_send_implies_nonblocking
+          iapply bag_send_au $$ [$Hlc1 $Hlc2] Hbag [Hres0]
+          · iunfold retcP
+            iunfold retcRes at Hres0
+            iexists P.γ
+            icases Hres0 with ⟨Hr1, Hr2, Hr3⟩
+            iframe Hspsc Hr1 Hr2 Hr3
+            ipureintro; exact Hok.2.2
+          inext
+          close_rest
+        iapply BigAndL.bigAndL_nil.2
+        itrivial
+      close_rest
 
 end proof
 

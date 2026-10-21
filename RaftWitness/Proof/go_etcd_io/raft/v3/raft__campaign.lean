@@ -1,0 +1,548 @@
+/-
+Port of election_proof/proof_raft__campaign.v.
+
+Lean notes: Rocq's `cmsg f` (with a ghost function `f` giving each request's entry id)
+is `campMsg` at the one entry id every request carries, `L` (`lastEntryID()`'s result,
+which the loop never changes), so the loop invariant needs no `f`. The two `wp_wand`
+joins are `wp_join`. `own_tracker_cfg_size` is the pure `ownTracker_cfg_size`;
+`elements_split` is `perm_id_cons`; `own_raft_phys_send_perm` is inlined as
+`ownRaftPhysC_outbox`. The slice range is a `doFor` over an index, as in Rocq.
+(`_wp_raft_poll`, unused, as in Rocq, is gone since 2026-10-19: `campaign` no longer calls
+`poll`.)
+
+raft v3.7 (stage R4): each message is a fresh `*pb.Message`, built owned (`msgOwn_lit0` for the
+self-addressed response, `msgOwn_lit` with the `Context` bytes for a request; its cells
+`new(id)`, `new(term)`, `new(last.index)`, `new(last.term)` frozen); the request's type is
+`voteMsg.Enum()` on the local variable, Go's lifted method of `*MessageType`
+(`MessageType.wp_ptr_Enum_of`), the response's `voteRespMsgType(voteMsg).Enum()`. A new callee,
+`raftpb.MessageType.Enum`; `send`'s `MsgSnap` premise discharged by the message type.
+-/
+module
+
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitnessR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__campaign
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.voteRespMsgType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__promotable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section helpers
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The message types `campaign` sends, by `pre` (`t = campaignPreElection`): the
+request and the self-addressed response. -/
+def vreqTy (pre : Bool) : MsgType := if pre then .preVote else .vote
+def vrespTy (pre : Bool) : MsgType := if pre then .preVoteResp else .voteResp
+def vreqW32 (pre : Bool) : w32 := if pre then MsgPreVote else MsgVote
+def vrespW32 (pre : Bool) : w32 := if pre then MsgPreVoteResp else MsgVoteResp
+
+/-- The role transition `campaign` makes, by `pre`. -/
+def campRoleState (id : w64) (s : NState) (pre : Bool) : NState :=
+  if pre then becomePrecandidate s else becomeCandidate id s
+
+theorem campRoleState_logst (id : w64) (s : NState) (pre : Bool) :
+    (campRoleState id s pre).logst = s.logst := by
+  cases pre <;> rfl
+
+
+/-- The request `campaign` sends voter `y`, carrying the entry id `e` that
+`lastEntryID()` returned when it was built, and the `Context` `cl` (2026-10-13: the
+leader-transfer marker, or nothing). -/
+def campReq (pre : Bool) (id y T : w64) (e : entryID) (cl : List w8) : Msg :=
+  Msg.mkV (vreqTy pre) id y T false e.index' e.term' (W64 0) (W64 0) [] [] cl
+
+/-- The message `campaign` sends on behalf of voter `y`: the self-addressed response
+when `y` is this node, a request otherwise. `send` panics on a self-addressed request,
+which is exactly why the code splits these two cases. (Rocq's `cmsg f` takes a ghost
+function `f` for the entry id of each request; every request carries the same one,
+`L`, so here it is that entry id.) -/
+def campMsg (pre : Bool) (id T : w64) (e : entryID) (cl : List w8) (y : w64) : Msg :=
+  if y = id then Msg.plain (vrespTy pre) id id T false else campReq pre id y T e cl
+
+omit [GoGlobalContext] [GoSemanticsFunctions] in
+/-- `xs` enumerates the voters, so it is `id` followed by the other voters in some
+order -- which is exactly the shape `step_campaignState` asks for. (Rocq
+`elements_split`.) -/
+theorem perm_id_cons (cfg : GSet w64) (id : w64) (xs : List w64) (Hid : id ∈ cfg)
+    (Hnd : xs.Nodup) (Hmem : ∀ z, z ∈ xs ↔ z ∈ cfg) :
+    xs ≡ₚ id :: elements (cfg \ {[id]}) := by
+  have Hnin : id ∉ elements (cfg \ {[id]}) := by
+    rw [GMap.elem_of_elements, GMap.elem_of_difference, GMap.elem_of_singleton]
+    exact fun h => h.2 rfl
+  refine (List.perm_ext_iff_of_nodup Hnd
+    (List.nodup_cons.2 ⟨Hnin, GMap.NoDup_elements _⟩)).2 ?_
+  intro z
+  rw [Hmem, List.mem_cons, GMap.elem_of_elements, GMap.elem_of_difference,
+    GMap.elem_of_singleton]
+  constructor
+  · intro h; by_cases hz : z = id
+    · exact Or.inl hz
+    · exact Or.inr ⟨h, hz⟩
+  · rintro (rfl | ⟨h, -⟩)
+    · exact Hid
+    · exact h
+
+omit [GoGlobalContext] [GoSemanticsFunctions] in
+private theorem ite_of_true {α : Sort _} {c : Prop} [Decidable c] (h : c) (a b : α) :
+    (if c then a else b) = a := by simp [h]
+
+/-- Whether `campaign` sends voter `y` a message (2026-10-20, witness support): the node itself
+its response, any other voter but the witness `w` a request. -/
+def campSent (w id y : w64) : Bool := decide (y = id ∨ w = W64 0 ∨ y ≠ w)
+
+/-- Two sends in a row grow the outbox by the concatenation. -/
+theorem sendMsgs_app (s0 : NState) (ms1 ms2 : List Msg) :
+    sendMsgs (sendMsgs s0 ms1) ms2 = sendMsgs s0 (ms1 ++ ms2) := by
+  simp [sendMsgs, List.append_assoc]
+
+theorem sendMsgs_log (s0 : NState) (ms : List Msg) : (sendMsgs s0 ms).log = s0.log := rfl
+theorem sendMsgs_logst (s0 : NState) (ms : List Msg) :
+    (sendMsgs s0 ms).logst = s0.logst := rfl
+
+end helpers
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `(*MessageType).Enum` (`voteMsg.Enum()` on the local variable): the value method on `*l`, Go's
+method set of `*MessageType` (stage R4). -/
+private theorem MessageType.wp_ptr_Enum_of
+    (wp_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) (l : Loc) (x : raftpb.MessageType) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ (l ↦ x : IProp GF) }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.MessageType.ty @!! go!"Enum")) (Val #()))
+    {{ (p : Loc), RET #p; l ↦ x ∗ p ↦ x }} := by
+  wp_start as Hl
+  wp_auto
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply wp_Enum x
+  iintro %p Hp
+  iapply HΦ
+  iframe
+
+theorem raft.campaign.wp_proof
+    (wp_raft_becomeCandidate : raft.becomeCandidate.spec (GF := GF) (hG := hG))
+    (wp_raft_becomePreCandidate : raft.becomePreCandidate.spec (GF := GF) (hG := hG))
+    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+    (wp_voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG))
+    (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
+    (wp_JointConfig_IDs : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
+    (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
+    (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
+    (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
+    raft.campaign.spec (GF := GF) (hG := hG) := by
+  intro c r id s t Hrole Hid_cfg Hnowrap Hpv
+  -- the voters of either half, named: everything below is about that set
+  obtain ⟨cfg, hV⟩ : ∃ cfg, c.voters = cfg := ⟨_, rfl⟩
+  -- every `send` below carries `Term + 1`; `send` panics on a zero term,
+  -- whence the premise.
+  have Hno_wrap : s.term + W64 1 ≠ W64 0 := by word
+  wp_start as Hphys
+  wp_auto
+  -- `promotable` is only logged: `id ∈ cfg`, but a pending snapshot makes
+  -- it false. The two arms are joined.
+  wp_apply wp_raft_promotable $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+  wp_join at next with [Hphys r]
+  · cases b
+    · wp_auto
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_raft_logC
+      wp_join_done
+    · wp_auto
+      wp_join_done
+  -- the role transition: `becomePreCandidate` and `Term + 1`, or
+  -- `becomeCandidate` and the new `Term`; joined at the state each leaves
+  wp_join iprop(∃ (pvs : GMap w64 Progress),
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id
+        { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } ∗
+      "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
+      "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
+      "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
+  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg
+      (by first | exact (Hpv rfl).1 | exact (Hpv (by assumption)).1 | simp_all) $$ [$Hphys] as Hphys
+    rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
+    wp_auto
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    isplitr
+    · ipureintro; rfl
+    iexists s.prvals
+    simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
+    iframe
+  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap Hid_cfg $$ [$Hphys] as %pvs Hphys
+    rw [show raftpb.MsgVote = #MsgVote from rfl]
+    wp_auto
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    isplitr
+    · ipureintro; rfl
+    iexists pvs
+    have Hne : ¬ t = campaignPreElection := Hif
+    simp only [decide_eq_false Hne, campRoleState, vreqW32, Bool.false_eq_true, ↓reduceIte]
+    iframe
+  iintro HJ
+  iNamed HJ
+  have Hpvpre : decide (t = campaignPreElection) = true →
+      s.prevote = true ∧ uint.Z s.term + 1 ≤ uint.Z s.gh.tc :=
+    fun h => Hpv (of_decide_eq_true h)
+  -- a pre-election's requests carry no `Context` (2026-10-13)
+  have Hprecl : decide (t = campaignPreElection) = true → transferCtx t = [] := by
+    intro h
+    rw [of_decide_eq_true h]
+    simp [transferCtx, campaignPreElection, campaignTransfer]
+  generalize decide (t = campaignPreElection) = pre at Hpvpre Hprecl
+  wp_auto
+  -- the voter ids, as a map. `IDs` is a method of the tracker's
+  -- `Config.Voters`, so it takes the tracker object; the call does not
+  -- change it, and the struct is re-sealed right after.
+  icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  wp_apply (quorum.JointConfig.IDs.spec_trackerC wp_JointConfig_IDs) $$ [$Htrkf $Htrk] as %mref ⟨Htrkf, Hown, Hidm⟩
+  obtain ⟨idm, hidm⟩ : ∃ idm, cfg = idm := ⟨_, rfl⟩
+  have Hdomidm : domSet idm = cfg := by rw [← hidm]; exact domSet_gset cfg
+  ihave Hidm : mref ↦$ idm $$ [Hidm]
+  · rw [← hidm, ← hV]; iexact Hidm
+  -- `ownTracker` pins the voter set's cardinality: `campaign` runs
+  -- `make([]uint64, 0, len(idMap))` and `wp_slice_make3` needs `0 ≤ cap`.
+  -- (Rocq's `own_tracker_cfg_size`; here the tracker is opened and re-sealed.)
+  icases ownTrackerC_voters_size c tv _ $$ Hown with ⟨%Hcfg_fits, Hown⟩
+  replace Hcfg_fits : (GMap.size cfg : Int) ≤ 2 ^ 62 := by rw [← hV]; exact Hcfg_fits.1
+  ihave Hphys := Hback $$ %tv Htrkf Hown
+  wp_apply wp_map_len $$ Hidm as Hidm
+  have Hszidm : GMap.size idm = GMap.size cfg := by
+    rw [← Hdomidm, GMap.size_dom]
+  rw [Hszidm]
+  wp_apply wp_slice_make3 (V := w64) (t := go.uint64) (W64 0) (W64 (GMap.size cfg))
+    (by word) as %sl ⟨Hsl, Hsl_cap, %Hslcap⟩
+  simp only [List.replicate_zero]
+  -- The map range appends the voter ids to `ids`, in the order `IDs` yields
+  -- them. `0 ≤ i` has to be part of the invariant: `wp_map_for_range`'s
+  -- body hypothesis is quantified over all `i` whose lookup succeeds, and
+  -- without it `take (i+1).toNat` cannot be split.
+  wp_func_lits
+  wp_bind (App (App (Val (map.forRange _ _)) _) _)
+  iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (sl' : GoSlice) (x : w64),
+      "%Hi" ∷ ⌜0 ≤ i⌝ ∗
+      "ids" ∷ ids_ptr ↦ sl' ∗
+      "Hsl" ∷ sl' ↦* keys.take i.toNat ∗
+      "Hsl_cap" ∷ ownSliceCap w64 sl' (DFrac.own 1) ∗
+      "id" ∷ id_ptr ↦ x)) $$ Hidm
+  iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
+  isplitl [ids Hsl Hsl_cap id]
+  · iexists sl, zero_val w64
+    simp only [Int.toNat_zero, List.take_zero]
+    iframe
+    ipureintro
+    omega
+  isplitr
+  · imodintro
+    iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
+    iNamed HP
+    wp_auto
+    wp_apply wp_slice_literal (V := w64) [key]
+    isplitr
+    · ipureintro; rfl
+    iintro %sl2 ⟨Hsl2, -⟩
+    wp_apply wp_slice_append $$ [$Hsl $Hsl_cap $Hsl2] as %sl3 ⟨Hsl, Hsl_cap, -⟩
+    unfold forMapPostcondition
+    iright
+    ileft
+    isplitr
+    · ipureintro; rfl
+    have Htake : keys.take (i + 1).toNat = keys.take i.toNat ++ [key] := by
+      rw [show (i + 1).toNat = i.toNat + 1 by omega]
+      rw [List.take_add_one, Hkey]; rfl
+    iexists sl3, key
+    rw [Htake]
+    iframe
+    ipureintro
+    omega
+  -- the range is over, so `ids` holds every voter id exactly once.
+  iintro HP -
+  iNamed HP
+  rw [← Hklen, Int.toNat_natCast, List.take_length]
+  wp_auto
+  wp_apply wp_slices_Sort $$ [$Hsl] as %xs ⟨Hsl, %Hxs, -⟩
+  · ipureintro; omega
+  have Hkeys_perm : keys ≡ₚ elements cfg := by
+    refine (List.perm_ext_iff_of_nodup Hknodup (GMap.NoDup_elements cfg)).2 ?_
+    intro k
+    rw [Hkset, GMap.elem_of_elements, ← Hdomidm, GMap.elem_of_dom]
+    cases idm !! k <;> simp
+  have Hlenxs : xs.length = GMap.size cfg := by
+    rw [← Hxs.length_eq, Hklen, Hszidm]
+  have Hnodupxs : xs.Nodup := Hxs.nodup_iff.1 Hknodup
+  ihave %Hxslen := ownSlice_len _ _ _ $$ Hsl
+  ihave Hphys := ownRaftPhysC_send_nil c r id _ $$ Hphys
+  -- every request carries the log's last entry id, `L`
+  ihave IH : iprop(∃ (n x : w64),
+      "i" ∷ i_ptr ↦ n ∗
+      "id" ∷ id_ptr ↦ x ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (xs.length : Int)⌝ ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id
+        (sendMsgs { campRoleState id s pre with prvals := pvs }
+          (((xs.take (sint.Z n).toNat).filter (campSent c.wit id)).map (campMsg pre id
+            (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))) $$ [i id Hphys]
+  · iexists W64 0, zero_val w64
+    iframe
+    ipureintro
+    word
+  wp_for IH
+  wp_if_destruct
+  · -- one more voter to notify
+    obtain ⟨y, Hy⟩ : ∃ y, xs[(sint.Z n).toNat]? = some y :=
+      ⟨_, List.getElem?_eq_getElem (by word)⟩
+    rw [ite_of_true (by word)]
+    wp_apply wp_load_slice_index (V := w64) (t := go.uint64) sl' (sint.Z n) xs (DFrac.own 1) y
+      (by word) $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact Hy
+    have Hylt : (sint.Z n).toNat < xs.length := (List.getElem?_eq_some_iff.1 Hy).1
+    -- `y` has not been visited yet: `xs` has no duplicates
+    have Hgrow : xs.take (sint.Z (n + W64 1)).toNat = xs.take (sint.Z n).toNat ++ [y] := by
+      rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word, List.take_add_one, Hy]
+      rfl
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    by_cases Hyid : y = id
+    · -- this node's own vote: a self-addressed response
+      subst Hyid
+      rw [decide_eq_true rfl]
+      wp_auto
+      -- the response type: `wp_auto` cannot step through the call that
+      -- computes the literal's `Type` field
+      wp_apply wp_voteRespMsgType (vreqW32 pre) (vrespW32 pre)
+        (by cases pre <;> simp [vreqW32, vrespW32])
+      haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+      wp_apply wp_MessageType_Enum (vrespW32 pre)
+      iintro %pty Hpty
+      imod cellRO_alloc $$ Hpty with #cTy
+      imod cellRO_alloc $$ «$v0» with #cTo
+      imod cellRO_alloc $$ «$v1» with #cTe
+      wp_auto
+      imod msgOwn_lit0 «$a0_ptr» _
+          ⟨vrespW32 pre, y, 0, s.term + W64 1, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
+      · iframe «$a0» cTy cTo cTe
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+        msg_nulls
+      -- `send`'s side conditions: `From = 0` (the literal leaves it unset),
+      -- and `SendOk`'s vote clause -- the type is a vote message, its
+      -- `mtypeOf`, the term is nonzero (this is what the no-wrap premise
+      -- buys), and -- only for a request -- the destination is not this
+      -- node. The last is vacuous here: this is a response.
+      wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none [] []
+          [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
+          (Or.inl rfl)
+          (Or.inl ⟨vrespTy pre,
+            by cases pre <;> simp [vrespW32],
+            by cases pre <;> rfl,
+            Hno_wrap,
+            by cases pre <;> simp [vrespW32, MsgVote, MsgPreVote, MsgVoteResp, MsgPreVoteResp],
+            -- self-addressed: no entries, no context, and at the node's term (an
+            -- election's, raised by `becomeCandidate`) or one later (a pre-election's)
+            fun _ => ⟨rfl, rfl, by
+              cases pre <;> simp [campRoleState, becomeCandidate, becomePrecandidate, resetTo, resetTo0,
+                sendMsgs, vrespW32, MsgPreVoteResp, MsgVoteResp] <;> word⟩,
+            -- (2026-10-17) within the node's term or the ceiling
+            by cases pre
+               · left; simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs]
+               · right; simp only [campRoleState, becomePrecandidate, sendMsgs, ↓reduceIte]
+                 have := (Hpvpre rfl).2; word,
+            by cases pre <;> rfl⟩)
+          (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
+        $$ [$Hphys $Hm]
+      iintro Hphys
+      ihave Hphys : ownRaftPhysCV c c.voters r y
+          (sendMsgs { campRoleState y s pre with prvals := pvs }
+            (((xs.take (sint.Z (n + W64 1)).toNat).filter (campSent c.wit y)).map (campMsg pre y
+              (s.term + W64 1)
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
+      · rw [Hgrow, List.filter_append, List.filter_cons_of_pos (by simp [campSent]),
+          List.filter_nil, List.map_append, ← sendMsgs_app]
+        simp only [List.map_cons, List.map_nil, campMsg, ↓reduceIte]
+        iexact Hphys
+      wp_auto
+      wp_for_post
+      iframe
+      iexists _, _
+      iframe
+      ipureintro
+      word
+    · -- a peer: read the last entry, log, and send it a request
+      rw [decide_eq_false Hyid]
+      wp_auto
+      -- (2026-10-19, witness support) `if id == r.trk.Witnesses[0] || id == r.trk.Witnesses[1]`:
+      -- both are `0`, which no voter is
+      icases ownRaftPhysC_no0 c r id _ $$ Hphys with ⟨%H0, Hphys⟩
+      have Hy0 : y ≠ W64 0 := by
+        intro h
+        apply H0
+        have hyc : y ∈ cfg := by
+          rw [← GMap.elem_of_elements, ← Hkeys_perm.mem_iff, Hxs.mem_iff]
+          exact List.mem_of_getElem? Hy
+        rw [← h]
+        exact (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ (hV ▸ hyc)
+      -- (2026-10-20) the configuration's witnesses are `[c.wit, 0]`: `y` is skipped when it is
+      -- `c.wit` (`campSent`), and is never `0`
+      wp_apply raft.wp_load_trk_witnessC' c r id _ (W64 0) (by decide) $$ Hphys as Hphys
+      rw [witOf_zero]
+      by_cases Hyw : y = c.wit
+      · -- the witness: `continue`
+        rw [decide_eq_true Hyw]
+        wp_auto
+        wp_for_post
+        iframe
+        iexists _, _
+        iframe
+        isplitr
+        · ipureintro; word
+        rw [Hgrow, List.filter_append, List.filter_cons_of_neg (by
+            simp only [campSent, decide_eq_true_eq, not_or, ne_eq, Decidable.not_not]
+            exact ⟨Hyid, fun h => Hy0 (Hyw.trans h), Hyw⟩),
+          List.filter_nil, List.append_nil]
+        iexact Hphys
+      rw [decide_eq_false Hyw]
+      try wp_auto
+      wp_apply raft.wp_load_trk_witnessC' c r id _ (W64 1) (by decide) $$ Hphys as Hphys
+      rw [witOf_one, decide_eq_false Hy0]
+      try wp_auto
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+      ihave Hlog : ownRaftLog (campRoleState id s pre).log (campRoleState id s pre).logst $$ [Hlog]
+      · simp only [sendMsgs_log, sendMsgs_logst]; iexact Hlog
+      wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, %HlastID⟩
+      ihave Hphys := Hback $$ [Hlog]
+      · simp only [sendMsgs_log, sendMsgs_logst]; iexact Hlog
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+      wp_raft_logC
+      rw [campRoleState_logst] at HlastID
+      -- `ctx` is the `campaignTransfer` marker or nil (2026-10-13: `transferCtx t`)
+      wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ csl ↦* (transferCtx t) ∗ t_ptr ↦ t)
+        with [ctx t] as ⟨%csl, ctx, Hcl, t⟩
+      · wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
+        wp_join_done
+        iexists ct_sl
+        iframe
+      · iexists _
+        iframe
+        have Htc : transferCtx t = [] := by unfold transferCtx; exact ite_eq_right (fun h => Hif h)
+        rw [Htc]
+        iapply ownSlice_nil
+      imod ownSlice_persist $$ Hcl with #Hcl
+      -- (stage R4) the request `&pb.Message{To: new(id), Term: new(term), Type: voteMsg.Enum(),
+      -- Index: new(last.index), LogTerm: new(last.term), Context: ctx}`, built owned
+      imod cellRO_alloc $$ «$v0» with #cTo
+      imod cellRO_alloc $$ «$v1» with #cTe
+      wp_apply MessageType.wp_ptr_Enum_of wp_MessageType_Enum $$ [$voteMsg] as %pty ⟨voteMsg, Hpty⟩
+      imod cellRO_alloc $$ Hpty with #cTy
+      imod cellRO_alloc $$ «$v3» with #cIx
+      imod cellRO_alloc $$ «$v4» with #cLt
+      imod msgOwn_lit «$a0_ptr» _
+          ⟨vreqW32 pre, y, 0, s.term + W64 1, lastID.term', lastID.index', 0, 0, false, 0⟩
+          (transferCtx t) ⊤ $$ [«$a0»] with Hm
+      · iframe «$a0» cTy cTo cTe cIx cLt Hcl
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+        msg_nulls
+      wp_apply wp_raft_send _ _ _ _ «$a0_ptr» _ [] none (transferCtx t) []
+          [campReq pre id y (s.term + W64 1) lastID (transferCtx t)]
+          (Or.inl rfl)
+          (Or.inl ⟨vreqTy pre,
+            by cases pre <;> simp [vreqW32],
+            by cases pre <;> rfl,
+            Hno_wrap,
+            fun _ => Hyid,
+            fun h => absurd h Hyid,
+            -- (2026-10-17) within the node's term or the ceiling
+            by cases pre
+               · left; simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs]
+               · right; simp only [campRoleState, becomePrecandidate, sendMsgs, ↓reduceIte]
+                 have := (Hpvpre rfl).2; word,
+            by cases pre <;> rfl⟩)
+          (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
+        $$ [$Hphys $Hm]
+      iintro Hphys
+      ihave Hphys : ownRaftPhysCV c c.voters r id
+          (sendMsgs { campRoleState id s pre with prvals := pvs }
+            (((xs.take (sint.Z (n + W64 1)).toNat).filter (campSent c.wit id)).map (campMsg pre id
+              (s.term + W64 1)
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
+      · rw [Hgrow, List.filter_append, List.filter_cons_of_pos (by simp [campSent, Hyw]),
+          List.filter_nil, List.map_append, ← sendMsgs_app]
+        simp only [List.map_cons, List.map_nil, campMsg, Hyid, ↓reduceIte, ← HlastID]
+        iexact Hphys
+      wp_auto
+      wp_for_post
+      iframe
+      iexists _, _
+      iframe
+      ipureintro
+      word
+  · -- every voter has been notified
+    have Hfull : (sint.Z n).toNat = xs.length := by word
+    rw [Hfull, List.take_length]
+    iapply HΦ $$ %(elements (campSet c id)) %pvs
+    isplitr
+    · ipureintro; rfl
+    have Hmem : ∀ z, z ∈ xs ↔ z ∈ cfg := by
+      intro z
+      rw [← Hxs.mem_iff, Hkeys_perm.mem_iff, GMap.elem_of_elements]
+    have Hsplit := perm_id_cons cfg id xs (hV ▸ Hid_cfg) Hnodupxs Hmem
+    -- (2026-10-20) the voters sent to: the node, and `campSet`
+    have Hxf : xs.filter (campSent c.wit id) ≡ₚ id :: elements (campSet c id) := by
+      refine (Hsplit.filter _).trans ?_
+      rw [List.filter_cons_of_pos (by simp [campSent])]
+      refine List.Perm.cons _ ?_
+      have HE := (campSet_perm_filter c id).symm
+      rw [hV] at HE
+      refine List.Perm.trans (List.Perm.of_eq (List.filter_congr ?_)) HE
+      intro z hz
+      have : z ≠ id := by
+        rw [GMap.elem_of_elements, GMap.elem_of_difference, GMap.elem_of_singleton] at hz
+        exact hz.2
+      simp [campSent, this]
+    -- `campMsg` turns `id` into the self-addressed response and every other voter
+    -- into one request each
+    have Hmap : (xs.filter (campSent c.wit id)).map (campMsg pre id (s.term + W64 1)
+          (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) ≡ₚ
+        [Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
+          (elements (campSet c id)).map (fun d => campReq pre id d (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) := by
+      refine (Hxf.map _).trans ?_
+      rw [List.map_cons]
+      simp only [campMsg, ↓reduceIte, List.singleton_append]
+      refine List.Perm.cons _ (List.Perm.of_eq (List.map_congr_left ?_))
+      intro z hz
+      have : z ≠ id := campSet_ne ((GMap.elem_of_elements _ _).1 hz)
+      simp [campMsg, this]
+    ihave Hphys := ownRaftPhysC_outbox c r id _
+      ((campRoleState id s pre).outbox ++
+        ([Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
+          (elements (campSet c id)).map (fun d => campReq pre id d (s.term + W64 1)
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))
+      (List.Perm.append_left _ Hmap.symm) $$ Hphys
+    iapply ownRaftPhysC_eq $$ Hphys
+    cases pre
+    · rfl
+    · rw [Hprecl rfl]; rfl
+
+end proof
+
+end EtcdGrove
+end Perennial

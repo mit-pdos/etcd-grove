@@ -83,12 +83,23 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   share one lemma instead of each proving a copy (`notes/decisions.md`, "Proof/Lib: facts that
   belong to no Go package").
 - A project translated into a module root of its own (`<root>/{Code,GeneratedProof,Spec,Proof}/`,
-  a part: `etc/goose.py`, `etc/proof_roots.py`) is supported but none exists now: until stage R6
+  a part: `etc/goose.py`, `etc/proof_roots.py`): until stage R6
   of the raft v3.7 retarget (2026-10-16, `notes/raft-retarget-plan.md`) `EtcdDeps/` held etcd's
   raft dependency names-only for the server and `Raft37/` the parallel tree the Raft proof was
   ported into; the swap made the latter the raft tree and the server imports it. The
   trust-boundary specs of protobuf-go's `proto` the Raft proof rests on are in
   `Spec/google_golang_org/protobuf/proto/`.
+- `RaftWitness/` is such a part: the witness experiment (`notes/raft-witness.md`; raft with
+  witness support, a candidate implementation of etcd-io/raft#133, not merged upstream), a
+  parallel tree with the main layout (`RaftWitness/{Code,TrustedCode,GeneratedProof,ManualProof,
+  Spec,Proof}/`, modules `RaftWitness.*`): the raft of the fork's `raft-witness-goose-lean`
+  (`99cb9e2d9`, project `raft-witness` of `etc/goose.py`) with its proof, and `examples/kvwitness`
+  (project `kvwitness`, the key-value store with a witness, `kv_witness_porcupine_safe`). It
+  imports the main tree but never the main raft or kv (its modules declare the same names), so
+  it has its own copies of the main modules that reach them (raft's standard-library and `proto`
+  specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
+  `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
+  --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
 
 ## Modules
 
@@ -215,6 +226,11 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
   (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
   (`-lean-root go.etcd.io/raft/v3=`).
+- `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
+  the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
+  `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,
+  `RaftWitness/Code/**.toml`) and `examples/kvwitness` (project `kvwitness`, a Go module whose
+  `go.mod` replaces raft by that commit), modules `RaftWitness.Code.go_etcd_io.raft.v3`, ....
 
 goose's `-lean-root PKG=` maps every non-standard-library Go path a translation
 reaches to the empty root (`Code.<pkg>`), keeping the modules out of the

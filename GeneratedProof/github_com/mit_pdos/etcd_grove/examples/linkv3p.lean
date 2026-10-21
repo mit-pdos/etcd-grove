@@ -4,7 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.linkv
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.linkvtxn
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lintest
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.client.v3

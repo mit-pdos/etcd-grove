@@ -11854,6 +11854,280 @@ theorems, and they are deleted rather than kept as proved Props:
   for is in), and removing it is a separate simplification (`notes/STATUS.md`).
 
 
+## D25: the watch client's reconnection, verified (2026-10-20 · S0: designed, stopped on two fork fixes)
+
+**Problem.** `watch_safe` and `cache_safe` (and `client_watcher_rangeWatcher`,
+`client_newWatcher_rangeWatcher`, the cache's results over the real watcher) rest on
+`client.noRetryableStreamErr` (`watchConnFacts`): no client watch-stream error, nor `io.EOF`, has
+the gRPC code `Unavailable` or `Internal`, the codes on which `isHaltErr` lets
+`watchGRPCStream.run` reconnect. Under it every receive error stops `run`, and the reconnection
+(`newWatchClient` after `errc`, `resuming`, `nextResume`, `waitCancelSubstreams`, each substream
+resumed from its `initReq.rev`) is verified at its first call only. The premise is false of any
+real network. The goal: verify the reconnection and drop the premise.
+
+### S0 (a): the resume path at the pin `8a24be2a3`
+
+- **The original finding is fixed at the pin.** `issues/etcd-watch-resume-closing-substream.md`'s
+  reproduction (3000 trials) no longer panics: K0 (`107edf7e4`, the same as etcd-io/etcd#22191)
+  drops a server-canceled substream from `substreams`, so `newWatchClient` never resumes it.
+- **Two bugs remain** (each reproduced by an overlay test with a fake `pb.WatchClient`, fixed on
+  the fork branch `watch-resume-fixes` off the pin, one commit each with a regression test that
+  fails without the fix; `go test -race ./client/v3` passes with both):
+  1. `issues/etcd-watch-resume-stale-canceled-id.md` (introduced by K0): the dropped substream
+     keeps its id; after a reconnect a resumed watch can be registered under the same id, and
+     `closeSubstream` of the canceled one then deletes the resumed watch (which never gets
+     another event; `run` may stop and hang in `wg.Wait()`). Fix F1 `04375baaa`: the `Canceled`
+     case resets the id to `InvalidWatchID`.
+  2. `issues/etcd-watch-resume-nil-watch-chan.md` (upstream too): a watch canceled while `run`
+     reconnects has its `outc` closed and set to `nil` by `waitCancelSubstreams`;
+     `closeSubstream` then sends the nil channel on `retc`, which `Watch` may return. Fix F2
+     `a8a459955`: send on `retc` only a non-nil `outc`. The proof needs it: `retcP` (`isSpsc`)
+     cannot hold of a nil channel.
+- **Hazards checked, not bugs** (each is a proof obligation of S1, below):
+  - *The resume revision.* `serveSubstream` sets `initReq.rev` on every receive from `recvc`
+    (unbuffered: a response `run` took from the old stream is either received, so counted, or
+    dropped because the goroutine stopped for good), to the last event's revision + 1, or a
+    non-created response's header revision + 1; `buf` and `outc` survive the goroutine. So the
+    resumed create starts right after the contract's position: after events, the position is
+    the last event (`rangeWatchRespOk`, `watchRespOk`); after a progress notification, its
+    header revision (`watchRespOk`'s progress case: `c ≤ hdrRev`, `c' = hdrRev`). For the weak
+    contract (`cpl = false`) after an event-less response, `hdrRev ≥ c` is needed and is the
+    server's: an event-less response covers its watcher, whose deliveries stop at its revision
+    (`respCov`, K2a/K2e-4). A non-created, event-less response with header revision `0` would
+    resume from `1`; the verified server never sends one (an event-less response's revision is
+    a notified log's last, `≥ 1`).
+  - *`rev = 0`.* After the first `Created`, `nextRev` is the header revision `H` (not `H + 1`), so a
+    resumed "from now" watch can get the events of `H`, committed before it was created. Allowed
+    by the client's contract (events above `rev - 1 = -1`; `cplCond` excludes `rev = 0`), and
+    deliberate (the code's comment: never lose an event committed between the server's watch
+    registration and its reading of `H`). Not recorded as an issue.
+  - *Fragments and `cur`.* `cur` survives a reconnect only holding a fragment; the client never
+    asks for fragments (`wrRO`: `fragment` false), so `cur` is nil at every `errc`.
+  - *Progress.* A progress request sent on the old stream may go unanswered (liveness only); a
+    `-1` response on the new stream is broadcast to the substreams re-created on it only (they
+    enter `substreams` at their `Created`), and covers them by K1b on that stream.
+  - *A closing substream resumed.* A substream whose goroutine stopped for good and is still
+    waiting on `closingc` is moved to `resuming` and may be re-created on the new stream; the
+    `Created`'s dispatch fails on its closed `donec` (no send on an open `recvc` nobody receives),
+    and `closingc` later removes it and cancels the server's watch. `run` must read its
+    `initReq.rev` for the create before it gets the substream's `closingBody`.
+  - *A goroutine racing `resumec` against its closed `recvc`.* If the server canceled a *live*
+    substream, its goroutine could take `resumec` instead of the closed `recvc`, return without
+    posting on `closingc`, and leave `run`'s teardown waiting forever. etcd's server sends a
+    `Canceled` (without compaction) for a registered id only to answer a cancel request, which
+    the client sends only for a substream whose goroutine stopped (K2c's `noCancelOk`): so the
+    goroutine has stopped when `run` closes its `recvc`. Unreachable with etcd's server (a
+    proxy that cancels watches on its own would reach it); the proof uses `noCancelOk`.
+  - *`closeErr`, `isHaltErr`, `openWatchClient`'s loop.* Unchanged: a halting error or the
+    stream's context ends `run` with a `status`-accepted close error; `openWatchClient`'s spec is
+    not first-call-specific (any call gives a fresh stream with `watchSpec`, or an error); its
+    retry loop and `backoffIfUnavailable` are already proved.
+
+### S0 (b): the proof design
+
+**Options.** (A) Keep the premise (the status quo). (B) Verify the reconnection over the fork with
+F1 and F2, the client's contract `isEtcdRangeWatcher` unchanged (it already allows a channel that
+closes and promises no completeness for the weak contract; the cache's `cpl` contract is per
+response, from cursor positions that survive the reconnect). (C) As (B), but weaken the contract
+for watches that saw a reconnect (no completeness after it): changes the cache's results, so
+`cache_safe`'s checks; rejected.
+
+**Choice: (B).** The design:
+
+1. **Epochs of `run`.** `run`'s state names the current gRPC stream (epoch `e`: its
+   `StreamNames`, `Dn`, `watchSpec`, sender token, the requests sent on it, the model's
+   per-stream registry `M`/`CI` and cancels, `WatchClientModel.lean`). A reconnect is a model
+   transition: every registered substream goes back to `resuming` with its id reset (F1 makes a
+   server-canceled one's `-1` too), the per-stream sets empty, the epoch advances. The facts
+   `wsElem` keeps per registered substream (`noCancelOk`, `idAssigned`, the dispatch facts) are
+   per epoch; nothing of an old epoch is used after it.
+2. **`respc` across epochs.** One SPSC over all epochs, its `k`th element tagged with its epoch
+   and its index in that epoch's stream (a monotone ghost list of the epochs' start positions).
+   `serveWatchClient` of an epoch owns the producer side from that epoch's start; its receive
+   error goes on `errc` with the producer token and its count (`errP` gains them: `errc` is a
+   bag, buffered 1, one sender per epoch). Every response of the old stream precedes its error on
+   `respc`/`errc` (the old goroutine sends them in order), so `run` has dispatched all of them
+   before it reconnects; responses the server sent but the client never received are simply
+   not counted (no fact about the old stream is needed).
+3. **A substream across goroutine lifetimes.** What outlives a lifetime: `recvc` (one producer,
+   `run`; the consumer side owned by the current lifetime), the dispatch cursors `γhi`/`γh2`, the
+   `outc` producer and `γ.cur`/`γ.cur2` authorities, `buf`, the `rev` and `retc` fields, `outc`'s
+   field (now mutable: `waitCancelSubstreams` writes it; `wsIs` keeps it as a fraction). Each
+   lifetime gets a fresh `donec` (a broadcast channel per lifetime) whose close publishes either
+   the stop for good (`γx`, with a read-only copy of `rev`: the closing substream's resume create
+   reads it) or, on `resumec`, an invariant holding the handed-back resources with a token `run`
+   keeps (`joinSubstreams` collects them). `resumec`'s predicate becomes `True` (a signal).
+   `serveSubstream`'s spec starts from any such state (`n` published, `k` received, the buffer's
+   contents) instead of the fresh one.
+4. **The resume revision.** A per-substream invariant, kept by whoever holds the `rev` field:
+   `rev - 1 ≥` the last `γhi` position, `rev - 1 =` the last `γh2` position when `cpl`, and the
+   create's facts for `rev` (`startOk V sr rev`, the original `sr`). Each `recvElem` gains the
+   facts that make `hiA + 1` / `h2A + 1` such a revision; `recvElem` also admits a `Created`
+   response at `k > 0` (a resumed create: no events, position kept; `serveSubstream` ignores it).
+5. **The server side: `startRead` from a notified log.** A resumed create's start revision is
+   the last delivered event's or progress revision + 1, which the server notified, perhaps before
+   committing it (`TxnWrite.End` notifies, then bumps `currentRev`, both under `s.mu`), so
+   `mvcc.startRead` (a committed log, `idxCert`, reaching `rev - 1`) may not hold. But
+   `watchableStore.watch` registers under `s.mu`, whose body holds the committed log's quarter at
+   the notified log (K1a's `wlogQ`): so `startRead` can be stated as either a committed or a
+   notified log reaching `rev - 1` (`notifiedLb`, K2e-2), and `startRead_le` still holds under
+   `s.mu`. The responses then export, per response, the notified log their position is in (an
+   event-less one's revision is a notified log's last, K2e-5's `respRev`; an event's revision is
+   one of the notified log the delivery was cut from). Internal statements change
+   (`mvcc.startRead`, `watchRecvResult`/`mvccOk`'s exports); no closed theorem's.
+6. **`waitCancelSubstreams` and `newWatchClient`, general.** `newWatchClient` lends each resuming
+   substream's state to its `waitCancelSubstreams` goroutine (closing it — F2's case — when its
+   context is done: `outc` closed and nil, `closing` set, `γx` set by the lender's token, posted
+   on `closingc` by a goroutine that `w.wg.Add(1)`s) and gets it back at the returned channel's
+   close (Perennial's `WaitGroup` for the local group; an invariant per substream with a token,
+   as for `donec`). The concurrent `Add(1)`s need `run`'s `wgsWgAdder` split into fractions while
+   no `Wait` can happen (`InvWatchWg.lean`: each `Add` still deposits a thread token). Then it
+   restarts every non-closing substream (`serveSubstream`, general) and `serveWatchClient`.
+7. **Premises.** `noRetryableStreamErr` leaves `watchConnFacts` and with it
+   `client_watcher_rangeWatcher`, `client_newWatcher_rangeWatcher`, the cache's results over the
+   watcher, `watchkv.premises`, `cachekv.premises`, `watch_safe`, `cache_safe` (and is deleted).
+   Nothing else in those statements changes; every other closed theorem's statement is unchanged.
+   **No new axiom**: a second stream is another `openWatchClient` call (the stub's spec is
+   persistent, the gRPC stream axioms give each `NewStream` fresh names); the old stream is
+   abandoned with its tokens; each resumed create spends a watch token from the pool, as a first
+   create does.
+
+**Stages.**
+- **S1a (the pin).** F1 and F2 cherry-picked onto `goose-lean` (pushed by the user), the pin
+  moved, the translation regenerated (expected to change only `Code/`/`GeneratedProof/` of
+  `go_etcd_io/etcd/client/v3`: `run`'s `Canceled` case, `closeSubstream`); `run`'s and
+  `closeSubstream`'s proofs re-done over it, still under the premise.
+- **S1b (server).** `startRead` from a notified log; the per-response resume facts exported.
+- **S1c (model).** Epochs and the reconnect transition (`WatchClientModel.lean`); `recvElem`'s
+  resume facts and resumed `Created`s; the resume-revision invariant.
+- **S1d (the helpers).** `serveSubstream` from any state with the resume exit; `joinSubstreams`
+  collecting the hand-backs; `waitCancelSubstreams`, `serveWatchClient` (the producer over
+  `errc`), `newWatchClient`, general; `InvWatchWg`'s split adder.
+- **S1e (`run` and the results).** `run`'s `errc` case and resumed creates; the premise dropped
+  from `watchConnFacts` up to `watch_safe`/`cache_safe`; collections and baseline updated.
+
+**S1b's findings (2026-10-20; S1a and S1b done, stopped before S1c).**
+- *A third fix is needed* (`issues/etcd-watch-resume-below-start-revision.md`): `serveSubstream`
+  sets the resume revision to a progress notification's header revision + 1 unconditionally; a
+  watch from a revision the store has not reached is synced on the server and gets progress at the
+  store's revision, below its start, so a reconnect re-creates it below its start and it delivers
+  events the caller did not ask for (against `rangeWatchEvOk`'s `rev ≤ e.rev`). Fix F3
+  `16f73d6eb` (on `a8a459955`, branch `watch-resume-fixes`, not pushed): move the resume revision
+  only forward. With F3 the resume invariant is exact: `rev - 1 = ` the second cursor when `cpl`
+  (after a progress notification that does not raise it, its revision equals the cursor), `rev - 1
+  ≥` the first cursor, and `rev ≥` the watch's start.
+- *The event case of item 5, refined.* An event's revision may be notified before mvcc commits it
+  (`notify` runs inside `End`'s critical section before the commit extends `γ.wlog`), so a
+  notified lower bound cannot cover it; S1b added a monotone *released length* (`γ.rel`, bumped by
+  `End` before `notify`, at the notified log's length under `s.mu`) that every delivered log
+  carries (`evsWf`), and `startRead` accepts it.
+- *A liveness bug, not fixed* (`issues/etcd-watch-close-hang-refused-create.md`): a refused
+  create's substream is registered nowhere, so `run`'s teardown does not wait for its `closingc`
+  post and `Close` can hang. Partial correctness does not see it; the proof needs no change.
+- *Checked, no further Go change needed* for S1c–S1e: the old `serveWatchClient` has posted its
+  error (after every response it received went through `respc`) before `run` reconnects; a
+  resumed substream's first dispatch on a new stream is its `Created` (it enters `substreams`
+  there), which can carry `run`'s half of `rev` as the first create's does; a closing substream
+  re-created on the new stream fails its dispatch on its closed `donec` (`run` sets its `γx`
+  itself when `waitCancelSubstreams` closes it); `donec`, `outc`, `closing`, `id` become fields
+  owned per lifetime.
+
+**Stopped after S0** (the parent's rule: a Go fix to etcd is needed): F1 and F2 are on the fork
+branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
+`/shared/etcd-goose-lean-wk`), not on `goose-lean`, not pushed; S1a needs them cherry-picked onto
+`goose-lean` and pushed (or the translation run with `--src etcd=<checkout>` until then).
+
+**S1c's findings (2026-10-20; S1c-R1 and S1c-R2 done; stopped before R3 for a fourth fork fix).**
+- *A fourth fix is needed* (`issues/etcd-watch-resume-waitgroup-overflow.md`): `waitCancelSubstreams`
+  calls `wg.Add(len(w.resuming))` on a local `sync.WaitGroup`, whose counter is an `int32`.
+  Perennial's `Add` spec needs the counter below `2^31`, so the proof needs `len(w.resuming) <
+  2^31`. The model bounds only the live goroutines (`threadBound GF ≤ 2^31`), and nothing ties
+  that bound to the number of watches at a reconnect:
+  - by then the resumed goroutines may have called `Done` and exited;
+  - in the ghost world a closingc sender can call `Done` before `run`'s receive commits (an
+    unbuffered send completes at `SndCommit`, before the receiver's nested update, Perennial's
+    `recvAu`).
+
+  `run` could count live goroutines only with a reworked wait-group accounting and a custom
+  closingc idiom. Fix F4 `b3c29bc17` (on `16f73d6eb`, branch `watch-resume-fixes`, not pushed)
+  calls `wg.Add(1)` before each `go` instead. Each `Add(1)` is then bounded by the thread tokens
+  deposited for the goroutines already started (as for the stream's wait group, `InvWatchWg`).
+  The Go behaviour is a real panic with 2^31 or more watches on one stream, out of reach in
+  practice.
+- *A gap in Perennial's SPSC idiom, to be worked around locally* (`notes/STATUS.md`,
+  "watch-resume"). At the epoch switch `run` must know that no response of the old stream is
+  still in flight on `respc`: the handed-back producer's count must equal `run`'s consumer
+  position, `sent = rcv`. Go's synchronous handoff guarantees it. Perennial's `spscInv`, however,
+  does not tie the `RcvPending`/`SndCommit` states to a pending receive of the consumer, nor
+  `SndPending` to a pending send of the producer, so `run`, holding both tokens at its errc case,
+  cannot exclude an element in flight. The workaround is a local SPSC variant (copied from
+  `Idioms/Spsc.lean`) in which the consumer deposits a token while its receive is pending and the
+  producer one while its send is pending: holding both endpoints' tokens and both "not pending"
+  tokens then gives `sent = recv`. A general version is to be proposed to Perennial on its own.
+- *The lifetimes (R3), refined.*
+  - **Per-lifetime invariant.** At each `go w.serveSubstream`, `run` allocates an invariant for
+    the lifetime: its state `running` holds half of the substream's membership element
+    (`G.γws`, the other half being the goroutine's). Each exit deposits what the substream keeps
+    across lifetimes into it: on `resumec` everything; on a stop for good `outc`'s field and
+    producer, its `retc` field and the rest. `run` holds the lifetime's token.
+  - **`donec`'s predicate.** The new `donec` that `run` allocates per lifetime has the predicate
+    `□ (inv ∗ (γx □ true ∨ endedLb (n+1)))`, `n` the `resumec` generation. `run` holds `γend`'s
+    authority at `n` and so refutes the resume case in its own generation.
+  - **closingc.** A message carries the full membership element, which refutes `running`; `run`
+    takes the deposit with its token (unless it took it at a join). No message has to name the
+    lifetime.
+  - **Fields made read-only.** `closing` is owned while `false` and `↦□ true` once set; `outc`
+    is `↦□ nil` once `waitCancelSubstreams` closes it; `rev` stays with `run`'s queued half.
+    Every read `newWatchClient`, `nextResume` and `closeSubstream` make of a closing substream's
+    fields is then possible while its closingc post is in flight.
+  - **The stream's wait group.** The waitCancel goroutines' concurrent `Add(1)`s need the
+    waiters' authority (`ownWaitGroupWaiters γ 0`) shared in an invariant with fractional tokens
+    for the goroutines, rejoined after the local wait group's `Wait`. A local join idiom backed
+    by thread tokens returns each goroutine's lent state at `Done`.
+
+**R4's findings (2026-10-20; R4a and R4b done).**
+- *The reconnection is `newWatchClient`'s proof, over `run`'s state.* Its spec takes `run`'s
+  model and substreams (`RunSt`, `wsElem`, moved to `WatchRun.lean` so that the spec can name
+  them) and returns the reconnection's (`RunSt.reconnect`, every phase's `WPh.recon`: registered
+  and queued substreams queued, `closedRun` ones `closed`), independent of the next stream. The
+  per-substream steps are lemmas of `WatchRecon.lean`: the deposit taken after
+  `joinSubstreams` (`take_dep`: `lifeQ` now includes the deposit's flag `γt`, so the deposit
+  is there), a live substream re-queued from its resume revision with its next goroutine's start
+  (`recon_alive`: `sspsc_sync` gives `sent = rcv`; a registered substream's created response was
+  received, so its goroutine owns the whole `rev` field, by `lifeStart`/`psAt`; the new base is
+  `⟨rv, cplOf P, hl⟩`), a stopped one re-queued without a goroutine (`recon_dead`).
+- *A stopped substream in the queue* (`wsRest .queued`'s second disjunct): one that a
+  reconnection resumed after its goroutine stopped for good keeps only what its create and its
+  registration need (a fraction of `rev` at a start revision `startOk` holds of, the dispatch
+  cursors' authorities, `recvc`'s producer); its registration's dispatch fails on the closed
+  `donec` (`reg_post_dead`). `stopBody` keeps the resume revision's facts (`resumeOk`) for it.
+- *`regBOk` drops `0 ≤ rr`* (`dispatch_content` never used it); the promised case is `1 ≤ rr`.
+- *Lifetimes of an earlier generation.* `wsLife` holds the token or the taken deposit
+  (`lifeTk`), and `genOk` (current generation, or stopped) except for orphans, whose goroutine
+  may have resumed: dispatches need `genOk`, `take_stop` does not (a whole membership element
+  posted on `closingc` refutes a resumed deposit, which holds the element too).
+- *`waitCancelSubstreams`' wait groups* (`InvWcJoin.lean`). The local join is Perennial's
+  idiom with thread tokens instead of a bound on the `Add`s. A goroutine closing its substream
+  `Add`s to the stream's wait group with its slot's token (the slot then holds the stream's
+  running token) and refills the slot at its inner `go` statement with the fresh token, at the
+  fork itself (`wp_fork_tok_upd`, below), so the local `Add`'s bound counts the borrowed slots
+  against the stream's deposited tokens. The waiters' authority of the stream's wait group is
+  shared through an invariant with counted tokens (`wgsWgShared`).
+- *Two more gaps in Perennial, worked around locally:* `wp_fork_tok`'s premise is a plain wand,
+  so a ghost update cannot happen at the fork step (and `Fork` may stutter, so it is not atomic
+  and no invariant can be opened around it): `wp_fork_tok_upd` is a local copy whose premise is an
+  update with a later credit; its join idiom (`sync.join`) bounds the `Add`s since the last
+  `Wait` rather than the goroutines running: `wcjAdder` backs the counter with thread tokens (as
+  `InvWatchWg.lean` and `cacheWgInv` do). The general versions are to be proposed to Perennial.
+- *`run`'s `errc` case (R4c).* The handed-back producer's count equals `run`'s consumer position
+  (`sspsc_sync`), so the old epoch ends where the new one starts (`epochSt_close`: the handed-back
+  count authority is the current epoch's, an earlier one's being `run`'s); `run`'s loop invariant
+  quantifies over the stream, its epoch's first position, the generation and `cancelSet`'s map.
+  `ErrNoLeader` (`ContextError` then `errors.Is`) uses the existing trust-boundary axiom
+  `errors.IsStatusErr.wp_proof`, as the lessor does.
+- *S1e.* With every call of the reconnection verified, `noRetryableStreamErr` is no longer used and
+  is deleted: the closed theorems lose one hypothesis.
+
 ## linkv-txn B1: why the registration rides on a cluster registries' map (2026-10-20)
 
 To show a delivered writing `Txn` ran its ranges (`skip = false`), the result the apply thread
@@ -11916,3 +12190,74 @@ issue says so); if the fork takes it, `id ∉ rs` can go. (b) was rejected for t
 **Trust base.** +2 axioms (`rafthttp.Transport.CutPeer`, `MendPeer`); `Transport.Start`,
 `AddRemote`, `AddPeer` restated (the remotes list); `bootOk` (a premise, `bootstrapContract`)
 stronger by `rms = []`.
+
+## linkv-txn F: a write's commit at a state the model cannot answer; `call` per kind (2026-10-20)
+
+**A write's update commits at every firing.** `write_ok_au` must commit `lintest`'s update when the
+server fires it, with the `Output` `call` will return (`outAt i σ`); the model decodes the
+output's revision as a natural number (`decOut`), so the commit needs the answer's revision below
+`2^64`, which nothing at the firing gives (the server's state carries no bound; the reply's log
+is below `2^63`, but the reply comes later). Committing nothing at such a state is not an option:
+the state moves, and `LinkvOk`'s configuration must move with it. So at a state where the answer
+does not fit, the update commits the write *as failed and applied* (`pSeq_errW_applied`: a write
+that returned an error may have taken effect), and its result says so (`wQ`'s right side); the
+reply, below `2^63`, contradicts it. The alternative, a bound in the invariant, would need every
+deposited write to respect a budget nobody tracks.
+
+**Reads commit at the prophesied revision only**, as linkv's gets: the read update is persistent
+(fired at every committed state), the revision prophecy picks the one, and the revisions' map
+(now of whole states: lists and read-only transactions read every key) makes every firing at
+that revision see the committed state. A state's revision determines it because every server
+step keeps the state or moves to the next revision (`kvOpStep_cases`).
+
+**`call` split per kind** (`callGet`, …, `callTxn`, with `cmpsFor` and `txnRes`): the Go program
+is this repository's own, and one function per kind gives each its own spec and proof file
+(the spec/proof discipline) instead of one proof of five branches, two loops and the txn builder.
+
+**Empty transactions are out of `Apply`'s input** (`GenIn`), not handled: etcd serves them
+without the read index (`issues/etcd-txn-empty-serializable.md`), and the client's model agrees
+(`txnSerializable` vacuously true), so no read update fires for them; `Gen` never makes one.
+
+## linkv-txn E: the model's inputs and outputs as plain values, and what `ioOk` carries (2026-10-20)
+
+porcupine's model receives an operation as boxed Go values (`OpV`), and `ModelSpec.M` must decode
+it purely (`decOp`, from the values alone). A struct holding slices (stage D's `Input.Cmps`,
+`Output.Res`) is a value holding pointers whose contents are in the heap, so no pure function of
+it is the model's input. Hence `Input`/`Output` were made plain values with bounded, unrolled
+fields (at most one comparison, three then- and one else-operation, three results and three
+key-values, each with a count), which is all `Gen` produces and all the workload's replies carry
+(three keys); robustness's model is no wider on these histories (`TestDifferential` unchanged).
+Rejected: decoding through a ghost table of the slices' contents (the model would no longer be a
+function of porcupine's operations).
+
+The decoder reads an output by its input's kind (`decOut`), so `outEqual` was narrowed to compare
+only those fields (`resEqual`): otherwise a reply equal to the model's answer but differing in an
+unread field (a put result's `R`) would be rejected by `Step` and allowed by `pM`, and `Step`
+would not refine the model.
+
+`ioOk` carries `ValidIn x` (the input decodes, its keys the workload's): `Step` runs `mstep` on any
+input, while `pM` has no step for one that does not decode; `Apply` delivers `ioOk` and knows its
+input is `Gen`'s. The configurations' invariant `Bounded n` (`Steps.lean`) carries the pending
+inputs' validity for the same reason (a pending write takes effect through `mstep`), and the
+revision plus the pending count, so that `mstep`'s revision stays far from overflow: each step
+adds at most one to that sum, a pending write taking effect nothing, and porcupine's index stays
+below `2^60`.
+
+## linkv3p over linkvtxn's workload: in place, and what moved where (2026-10-20, `notes/linkv3p-txn-plan.md`)
+
+`linkv3p` switched its workload to linkvtxn's in place (its Go `Apply`/`Check` call package
+`linkvtxn`), not through a fourth example: linkvtxn's workload includes linkv's (Puts and Gets are
+two of its kinds), so the new `linkv3p_safe` implies the old one; everything partition-specific
+(`startMember`, `newClient`, `partitioner`, the transport's axioms, `cluster3_alloc`, `Main`'s
+structure) is reused unchanged; and `linkv`/`linkv3` keep the plain Put/Get workload as the
+simplest end-to-end results. Rejected: a copy `examples/linkv3ptxn` (about 2.7k lines of proof
+duplicated) to keep the Put/Get partition theorem beside the new one.
+
+What the swap took: the members keep etcd's `DeleteRange` and `Txn` registrations
+(`memberServed`), `clientOk` is linkvtxn's `Apply` premises, `linkvInv_congr` unfolds linkvtxn's
+`linkvInvBody` too, and `Apply`/`Check` restate linkvtxn's triples over a slice of clients. No
+server, client or raft proof changed, and the trust base is the same (`etc/tcb-collections/
+linkv3p.txt`, 463 axioms): linkvtxn's results rest on exactly linkv's. The ghost-state bundle stays
+linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's statement is
+unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
+repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.

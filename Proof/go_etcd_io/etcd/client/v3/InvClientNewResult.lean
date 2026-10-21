@@ -42,7 +42,7 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
     (V : WEnv GF) : IProp GF :=
   iprop(isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
-    mvcc.watchTokPool V.R.γ ∗ noRetryableStreamErr ∗
+    mvcc.watchTokPool V.R.γ ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
     eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
 
@@ -99,7 +99,7 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
       grpcConn (GF := GF) conn V.addr ics [] ∗ watchAddrFacts V ⊢
       watchConnFacts { V with conn := conn, ics := ics } := by
   unfold watchAddrFacts watchConnFacts
-  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H4, #H5, #H6, #H7, %H11⟩
+  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H6, #H7, %H11⟩
   ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
   ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
   ihave #H2 := watchDescOk_of_init $$ P2

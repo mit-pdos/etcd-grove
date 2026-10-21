@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: stages A to D done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D"); E next.
+Status: done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F", "stage G"): `linkvtxn_safe`, on exactly `linkv_safe`'s axioms.
 
 ## Goal
 
@@ -171,12 +171,20 @@ unchanged.
 
 ### E. The Go model's proofs
 
+**Done** (2026-10-20, STATUS "linkv-txn stage E"): every function of the model specified and
+proved, `Model` linked against `pM (txnSpec wks)`; `Input`/`Output` made plain values first.
+
 Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, the txn's op loop,
 `delete`, the list, `step`, `closure` (pending writes), `Model` (`isModel linkvS` with
 `rep k = stRepB (k + 1)`; lengths and revisions bounded by the step index `< 2^60`).
 `ModelLemmas.lean`'s `stepL`/`absCfg`/`decIO` generalized; `step_closure_ok` re-proved.
 
 ### F. `Apply` (`Spec/.../linkv/Apply.lean`, `linkv/Inv.lean`, `linkv/Apply.lean`)
+
+**Done** (2026-10-20, STATUS "linkv-txn stage F") for `examples/linkvtxn`: `call` split per kind,
+each kind's call proved at the state its update fired at, `Apply` linked (`wp_Apply`). A finding on
+the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-serializable.md`);
+`Apply`'s input excludes empty transactions, which `Gen` never makes.
 
 - Premises: `DeleteRange` and `Txn` registered (`etcd_kv_served` gives all four).
 - `linkvInv`: pending writes `GMap Nat WOp`; the revisions' map holds the abstract state per
@@ -190,10 +198,17 @@ Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, t
 
 ### G. Close
 
-`Check`/`Main` unchanged in Go; `Main.spec` premises if any; `etc/gen-link.py --linkv` and
-`--linkv3`, `etc/gen-init.py`; `linkv_safe`, `linkv3_safe` re-closed. Gates: `lake build`,
-`goose.py --check`, every link mode, `tcb-report.py --check` and every collection (linkv's and
-linkv3's axioms unchanged: the target), `verified-code.py` shows the new functions verified.
+**Done** (2026-10-20, STATUS "linkv-txn stage G"): `linkvtxn_safe`, its axioms `linkv_safe`'s
+(`proto.Clone` was already in its trust base, through the server). linkv stays (linkv3, linkv3p).
+
+For `examples/linkvtxn` (stage D made it a module of its own): `Gen` (`genFrom`, `pick`, `mkTxn`,
+`workloadKeys`: `GenIn`, which `Apply`'s input premise is), `Check`, `Main` (linkv's, at
+`linkvtxnS` and `linkvInv`'s allocation from the boot state: `linkvInv_alloc` needs a good state
+that is the model's initial one), the closed theorem `linkvtxn_safe` (as `linkv_safe`), its
+`Results.lean` and a TCB collection; `etc/gen-init.py` if the package's init changes. Then decide
+whether linkv retires (linkv3/linkv3p still use it). Gates: `lake build`, `goose.py --check`, every
+link mode, `tcb-report.py --check` and every collection (`linkvtxn_safe`'s axioms linkv_safe's plus
+the client's comparison clone, `proto.Clone`), `verified-code.py` shows the new functions verified.
 STATUS and decisions updated.
 
 ## Order and sizing (rough)

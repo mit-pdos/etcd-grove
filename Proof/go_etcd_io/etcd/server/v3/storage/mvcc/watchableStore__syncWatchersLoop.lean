@@ -68,7 +68,7 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -79,8 +79,8 @@ theorem mvcc.watchableStore.syncWatchersLoop.wp_proof
   ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
       [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP Hrel] as Hmur
+  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
   (try wp_auto)
   ihave HR : mvcc.watchReader s st γ $$ [Hsr0 Hmur]
   · iunfold mvcc.watchReader; iframe

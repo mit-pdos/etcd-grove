@@ -29,25 +29,26 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem watchGRPCStream.serveWatchClient.wp_proof :
     watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V G callSl wc γs Dn cd' γr
-  wp_start as ⟨#Hwgs, #Hcs, Htok, #Hspsc, Hprod⟩
+  intro V G callSl wc γs Dn cd' e γc sent0
+  wp_start as ⟨#Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
   icases Hwgs' with ⟨%Hwnn, -, #Hfacts, -, -, -, -, -, -, -, -, #Frespc, #Fdonec, #Ferrc, -, -,
-    -, -, -, #Herr, -, #Hdone⟩
+    -, -, -, #Herr, -, #Hdone, #Hspsc⟩
   iunfold watchSrvFacts at Hfacts
   icases Hfacts with ⟨-, #Hfacts⟩
   iunfold watchConnFacts at Hfacts
-  icases Hfacts with ⟨-, -, -, -, -, -, -, #Heof, -⟩
+  icases Hfacts with ⟨-, -, -, -, -, -, #Heof, -⟩
   iunfold v3rpc.cliWatchStreamIs at Hcs
   iunfold cliBidiStreamIs at Hcs
   icases Hcs with ⟨%ci, %Hci, -, #HRecv, -⟩
   subst Hci
   wp_auto
   ihave HI : iprop(∃ (L : List v3rpc.WatchRespM) (sent : List Loc),
-      "Htok" ∷ cliRecvTok (Rep := v3rpc.pbWatchResponse) γs L ∗ "Hprod" ∷ spscProducer γr sent ∗
-      "%Hlen" ∷ ⌜sent.length = L.length⌝) $$ [Htok Hprod]
-  · iexists [], []
+      "Htok" ∷ cliRecvTok (Rep := v3rpc.pbWatchResponse) γs L ∗ "Hprod" ∷ sspscProducer G.γr sent ∗
+      "Hcnt" ∷ monoNatAuthOwn γc 1 sent.length ∗
+      "%Hlen" ∷ ⌜sent.length = sent0.length + L.length⌝) $$ [Htok Hprod Hcnt]
+  · iexists [], sent0
     iframe
     ipureintro; rfl
   wp_for HI
@@ -58,25 +59,38 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   icases Hr with (⟨%Herr0, %m, Hm, HDn, Htok⟩ | ⟨%Hrn, #Heofe, %Hen, Htok, -⟩ | ⟨%Hrn, #Hse, Htok⟩)
   · subst Herr0
     ihave ⟨Htok, #Hlb⟩ := cliRecvTok_lb $$ Htok
+    -- (D25) the epoch's count past the response
+    imod mono_nat_own_update (sent.length + 1) (Nat.le_succ _) $$ Hcnt with ⟨Hcnt, #Hcl⟩
     wp_auto_lc 3
     wp_apply_core chan.wp_select_blocking
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
       iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, G.respc,
-        γr.chanName, resp
+        G.γr.chanName, resp
       isplit
       · ipureintro; exact ⟨rfl, rfl⟩
       isplit
       · ihave #H := Hspsc
-        unfold isSpsc
+        unfold isSspsc
         icases H with ⟨$, -⟩
-      iapply spsc_send_au γr G.respc _ _ sent resp _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hm HDn]
+      iunfold v3rpc.watchSpec at Hspec
+      iunfold v3rpc.watchStreamSpec at Hspec
+      ihave Hwd := Hspec $$ %L.length %m
+      icases Hwd with ⟨Hto, -⟩
+      ihave HDn := Hto $$ HDn
+      iapply sspsc_send_au G.γr G.respc _ _ sent resp _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hm HDn]
       · iframe
+        iunfold respcE
+        iexists e, sent0.length, γs, γc
+        simp only [Int.toNat_natCast]
+        iframe Hep Hcl
+        isplitr
+        · ipureintro; omega
         iunfold respcElem
         iexists m, L
-        iframe
-        have Hk : (((sent.length : Nat) : Int)).toNat = L.length := by simp [Hlen]
+        have Hk : (((sent.length - sent0.length : Nat) : Int)).toNat = L.length := by
+          simp only [Int.toNat_natCast]; omega
         rw [Hk]
         iframe
         isplitl
@@ -88,8 +102,9 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       wp_for_post
       iframe
       iexists L ++ [m], sent ++ [resp]
+      simp only [List.length_append, List.length_singleton]
       iframe
-      ipureintro; simp [Hlen]
+      ipureintro; omega
     iapply BigAndL.bigAndL_cons.2
     isplit
     · simp only [chan.blockingClausePre]
@@ -122,13 +137,17 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       · ipureintro; exact ⟨rfl, rfl⟩
       isplit
       · iapply is_bag_is_chan $$ Herr
-      iapply bag_send_au G.γerr G.errc errP _ _ $$ [$Hlc1 $Hlc2] Herr [] 
+      iapply bag_send_au G.γerr G.errc (errP G.γr G.γep) _ _ $$ [$Hlc1 $Hlc2] Herr [Hprod Hcnt]
       · iunfold errP
         isplitr
         · ipureintro; exact Hen
         isplitr
         · iright; iexact Heofe
-        iexact Hst
+        iframe Hst
+        iunfold prodBack
+        iexists e, sent0.length, γs, γc, sent
+        iframe Hep Hprod Hcnt
+        ipureintro; omega
       inext
       (try wp_auto)
       wp_for_post
@@ -167,13 +186,17 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       · ipureintro; exact ⟨rfl, rfl⟩
       isplit
       · iapply is_bag_is_chan $$ Herr
-      iapply bag_send_au G.γerr G.errc errP _ _ $$ [$Hlc1 $Hlc2] Herr [] 
+      iapply bag_send_au G.γerr G.errc (errP G.γr G.γep) _ _ $$ [$Hlc1 $Hlc2] Herr [Hprod Hcnt]
       · iunfold errP
         isplitr
         · ipureintro; exact Hok.1
         isplitr
         · ileft; iexact Hse
-        iexact Hst
+        iframe Hst
+        iunfold prodBack
+        iexists e, sent0.length, γs, γc, sent
+        iframe Hep Hprod Hcnt
+        ipureintro; omega
       inext
       (try wp_auto)
       wp_for_post

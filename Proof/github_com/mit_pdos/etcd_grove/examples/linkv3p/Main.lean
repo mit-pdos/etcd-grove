@@ -8,9 +8,9 @@ the cluster and its members (`cluster3_alloc`, the ids in the names' order, the 
 at the first member's names); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`); the servers' slice; `newClient` to each member (at a watch
 environment the clients never use); the partitioner forked on the schedule (every member's
-`srvNetMember`); the instance's invariant at the cluster's start store (`linkvInv_alloc_boot`,
-at the first member's names, the others' by `linkvInv_congr`), so each client has linkv's
-`Apply.spec`'s premises (`clientOk`); `Check(clis, clients, ops, 0)`, which returns `Ok`
+`srvNetMember`); the instance's invariant at the cluster's start store (linkvtxn's
+`linkvInv_alloc_boot`, at the first member's names, the others' by `linkvInv_congr`), so each
+client has linkvtxn's `Apply.spec`'s premises (`clientOk`); `Check(clis, clients, ops, 0)`, which returns `Ok`
 (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error ends `Main` with
 `Unknown`.
 -/
@@ -21,7 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Boot
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Boot
 public import Spec.go_uber_org.zap.NewNop
 
 @[expose] public section
@@ -50,7 +50,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 which `clientv3.New` takes as the caller's choice; `isNewClient_watcher` would need its facts): the
 member's apply environment and null for the rest. -/
 def noWatch (E : apply.AEnv GF) (addr : GoString) : EtcdGrove.client.WEnv GF :=
-  ⟨⟨null, E, null, ⟨E.γ, 0, 0, 0, 0⟩, W64 0, W64 0, null, W64 0⟩, addr, [], null, null, [], null⟩
+  ⟨⟨null, E, null, ⟨E.γ, 0, 0, 0, 0, 0⟩, W64 0, W64 0, null, W64 0⟩, addr, [], null, null, [], null⟩
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 8192 in
@@ -151,7 +151,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₁
-  icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁, #Hnm₁, #HPut₁, #HRange₁⟩
+  icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁,
+    #Hnm₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
@@ -170,7 +171,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₂
-  icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂, #Hnm₂, #HPut₂, #HRange₂⟩
+  icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂,
+    #Hnm₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
@@ -189,7 +191,8 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   iunfold memberServed at Hup₃
-  icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃, #Hnm₃, #HPut₃, #HRange₃⟩
+  icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃,
+    #Hnm₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
@@ -269,12 +272,12 @@ theorem Main.wp_proof
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
   -- the instance's invariant, at the cluster's start store (empty), for every member's names
-  imod (linkv.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
-      Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd
+  imod (linkvtxn.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃)
+      bootLog Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
-  ihave #Hlinv₂ : linkv.linkvInv γl ρ₂.rd.kv $$ []
+  ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂ hwl₂]; iexact Hlinv
-  ihave #Hlinv₃ : linkv.linkvInv γl ρ₃.rd.kv $$ []
+  ihave #Hlinv₃ : linkvtxn.linkvInv γl ρ₃.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃ hwl₃]; iexact Hlinv
   ihave #Hok : ([∗list] cl ∈ [cl₁, cl₂, cl₃], clientOk γl cl) $$ []
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2

@@ -1,0 +1,19 @@
+finished depth 0 states 1 seen 5
+finished depth 1 states 5 seen 23
+finished depth 2 states 23 seen 91
+finished depth 3 states 91 seen 339
+finished depth 4 states 339 seen 1173
+finished depth 5 states 1173 seen 3715
+finished depth 6 states 3715 seen 10759
+VIOLATION: leader completeness at depth 8
+   ('elect', 1, (1,), 1, (1,))
+   ('rschange', 1, 2, 0)
+   ('propv', 1, 1)
+   ('app', 1, 2, 1)
+   ('app', 1, 2, 2)
+   ('wapp', 1, 3, 'store')
+   ('commit', 1, 3)
+   ('elect', 2, (2,), 2, (2,))
+  node 1 term 1 L log ((1, 0, 'e', None), (1, 1, 'e', None), (1, 1, 'v', 1)) commit 3 applied 0 cfg (frozenset({1, 2, 3}), frozenset(), 3, 0) epoch (1, 2, 0)
+  node 2 term 2 L log ((1, 0, 'e', None), (1, 1, 'e', None), (2, 0, 'e', None)) commit 0 applied 0 cfg (frozenset({1, 2, 3}), frozenset(), 3, 0) epoch (0, 3, 0)
+  witness (2, 2, 0, 1, 1, 3, frozenset({1}), frozenset())

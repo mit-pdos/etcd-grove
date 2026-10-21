@@ -1,0 +1,46 @@
+/- Lean-first (no Rocq counterpart).
+
+`(*KV).apply(e)` (kv.go:179): one committed entry, after the committed prefix
+`ap` the replica applied (`runOwn`); a waiter of the entry's operation, if this replica
+proposed it and the entry is the operation's first, gets the value after it (`waitP`).
+
+raft v3.7 (2026-10-16, stage R6b): `e` is a `*pb.Entry` holding the log entry `em` (`entRO`,
+read-only for good, D2: what `Ready.CommittedEntries` hands out), read through its getters.
+-/
+module
+
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace kvwitness
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section spec
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
+variable [KVStor GF]
+
+/-- See the file header. -/
+abbrev KV.apply.spec : Prop :=
+  ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
+    (ap : List EntryM) (e : Loc) (em : EntryM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
+      isReplica γr γp r id n st ∗ runOwn γr r ap ∗ entRO e em ∗
+      isCommitted γr.raft (ap ++ [em]) }}
+    (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"apply")) (Val #e))
+  {{ RET #(); runOwn γr r (ap ++ [em]) }}
+
+end spec
+
+end kvwitness
+end EtcdGrove
+end Perennial

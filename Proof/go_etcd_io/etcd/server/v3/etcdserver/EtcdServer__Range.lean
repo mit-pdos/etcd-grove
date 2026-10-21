@@ -521,66 +521,99 @@ theorem EtcdServer.Range.wp_proof
   ihave #HisRead' := HisRead
   iunfold isReadNotify at HisRead'
   have Hser : o.base.serializable = ser := by subst Ho; rfl
-  cases ser
-  · -- linearizable: the read index first
-    (try wp_auto)
-    iunfold srvReadReader at Hrr
-    icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
-    icombine Hread Hrd0 gives %Hrdeq
-    subst Hrdeq
-    imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
-    wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
-    · iframe #; iframe Hrr
-    ihave Hrr : srvReadReader s γr $$ [Hrr]
-    · iunfold srvReadReader; iexists _; iframe Hread Hrr
-    (try wp_auto)
-    wp_apply hStep trc false _ slice.nil $$ [$Hown0] as Hown0
-    · iapply traceutil.ownFields_nil
-    (try wp_auto)
-    cases rerr with
-    | ok rei =>
-      wp_auto
-      ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
-      · iexists false; iexact Hown0
-      wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
-      · iframe #; iframe Hlr; ipureintro; exact Hlgn
+  -- `if !r.Serializable { err = s.read.LinearizableReadNotify(ctx); trace.Step(..); if err != nil
+  -- { return nil, err } }`, joined (`wp_join`): falling through, at a log `logR` the read opens at
+  -- (the read index's if linearizable, the floor's `log₀` if serializable), or returning the read
+  -- index's error; the rest of `Range` (`range_tail`) is verified once, not once per mode
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ ∃ logR : mvcc.Log, ⌜2 ≤ logR.length ∧ F <+: logR⌝ ∗
+        mvcc.idxCert E.γ.idx logR ∗
+        (if o.base.serializable then iprop(True) else readLogOk γr c logR) ∗
+        (if o.base.serializable then iprop(True) else ∃ g' : GName, readWitAt γr Q g' logR) ∗
+        err_ptr ↦ GoInterface.nil ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
+        traceutil.ownTrace trc false) ∨
+      (∃ rei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok rei))⌝ ∗
+        err_ptr ↦ GoInterface.ok rei ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
+        traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei))))
+    at next with [err Hrr Hown0 trace]
+  · cases ser
+    · -- linearizable: the read index first
       (try wp_auto)
-      wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
-      · isplitr; · ipureintro; exact Hlgn
-        isplitr; · iexact Hstr
-        isplitr; · itrivial
-        ileft; ipureintro; rfl
+      iunfold srvReadReader at Hrr
+      icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
+      icombine Hread Hrd0 gives %Hrdeq
+      subst Hrdeq
+      imod saved_pred_alloc Q DFrac.discard trivial with ⟨%g, #Hg⟩
+      wp_apply HisRead' $$ %ctx2 %_ %c %g %Q [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+      · iframe #; iframe Hrr
+      ihave Hrr : srvReadReader s γr $$ [Hrr]
+      · iunfold srvReadReader; iexists _; iframe Hread Hrr
       (try wp_auto)
-      range_defer_c
-      iapply HΦ
-      isplitl [Hsr Hlr Hrr Hard]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
-      iright
-      iframe HrE
-      ipureintro; exact ⟨rfl, by intro h; cases h⟩
-    | nil =>
-      ihave #Hri' := Hri $$ %rfl
-      icases Hri' with ⟨-, #Hsv⟩
-      imod readServed_logR s E γr c g Q log₀ $$ Hainv Hsv Hg Hc0
-        with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
-      ihave #HwO : (if o.base.serializable then iprop(True) else
-          ∃ g' : GName, readWitAt γr Q g' logR : IProp GF) $$ []
-      · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
-      have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
-      have HFR : F <+: logR := HL0.2.trans HpR
-      ihave #HriO : (if o.base.serializable then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
-      · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
-      wp_auto
-      range_tail
-  · (try wp_auto)
-    have HFR : F <+: log₀ := HL0.2
-    generalize log₀ = logR at Hl0 HFR ⊢
-    ihave #HriO : (if o.base.serializable then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
-    · rw [Hser]; simp only [↓reduceIte]; itrivial
-    ihave #HwO : (if o.base.serializable then iprop(True) else
-        ∃ g' : GName, readWitAt γr Q g' logR : IProp GF) $$ []
-    · rw [Hser]; simp only [↓reduceIte]; itrivial
+      wp_apply hStep trc false _ slice.nil $$ [$Hown0] as Hown0
+      · iapply traceutil.ownFields_nil
+      (try wp_auto)
+      cases rerr with
+      | ok rei =>
+        wp_auto
+        iright
+        iexists rei
+        isplitr
+        · ipureintro; rfl
+        iframe err trace Hrr Hown0 HrE
+      | nil =>
+        ihave #Hri' := Hri $$ %rfl
+        icases Hri' with ⟨-, #Hsv⟩
+        imod readServed_logR s E γr c g Q log₀ $$ Hainv Hsv Hg Hc0
+          with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
+        wp_auto
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists logR
+        isplitr
+        · ipureintro; exact ⟨Nat.le_trans Hl0 HpR.length_le, HL0.2.trans HpR⟩
+        iframe HcR err trace Hrr Hown0
+        isplitr
+        · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
+        rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
+    · (try wp_auto)
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iexists log₀
+      isplitr
+      · ipureintro; exact ⟨Hl0, HL0.2⟩
+      iframe Hc0 err trace Hrr Hown0
+      isplitr
+      · rw [Hser]; simp only [↓reduceIte]; itrivial
+      rw [Hser]; simp only [↓reduceIte]; itrivial
+  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0⟩ |
+    ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE⟩)
+  · subst Hv
+    obtain ⟨HlR, HFR⟩ := HlF
+    wp_auto
     range_tail
+  · -- the read index's error: return
+    subst Hv
+    wp_auto
+    ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
+    · iexists false; iexact Hown0
+    wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
+    · iframe #; iframe Hlr; ipureintro; exact Hlgn
+    (try wp_auto)
+    wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
+    · isplitr; · ipureintro; exact Hlgn
+      isplitr; · iexact Hstr
+      isplitr; · itrivial
+      ileft; ipureintro; rfl
+    (try wp_auto)
+    range_defer_c
+    iapply HΦ
+    isplitl [Hsr Hlr Hrr Hard]
+    · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
+    iright
+    iframe HrE
+    ipureintro; exact ⟨rfl, by intro h; cases h⟩
 
 end proof
 

@@ -7,9 +7,11 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   members started in process and served (`startMember`), a one-attempt client to each
   (`127.0.0.1:2383{1,2,3}`), the partitioner forked on the schedule `sched` (the links between
   members cut and mended, in both directions, as its steps say, with etcd's own
-  `CutPeer`/`MendPeer`), linkv's `Check` with each operation through a random member, and a panic
-  if porcupine answers `Illegal` -- does not panic and returns `Ok` or `Unknown`, **for every
-  schedule** (`sched ↦*□ steps`, any `steps`). From `isPkgInit linkv3p`, the right to listen on
+  `CutPeer`/`MendPeer`), linkvtxn's `Check` (gets, lists, puts, deletes, transactions and
+  compare-and-sets against the model of etcd's KV; linkv's Puts and Gets until 2026-10-20) with
+  each operation through a random member, and a panic if porcupine answers `Illegal` -- does
+  not panic and returns `Ok` or `Unknown`, **for every schedule** (`sched ↦*□ steps`, any
+  `steps`). From `isPkgInit linkv3p`, the right to listen on
   the six addresses, the main thread's token and `Main`'s named premises
   (`Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/Main.lean`).
 * **`linkv3p_safe`** (`Adequacy.lean`'s `linkv3p_adequate`): the closed theorem. Every real
@@ -18,8 +20,8 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   thread, has no stuck thread, no thread ended in a panic (so never "linkv3p: porcupine found
   the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
   under linkv3's hypotheses (`linkv3_safe`) at linkv3p's configuration, v3rpc's method sets as
-  an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s) and the schedule's length
-  below `2^63`.
+  an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s, as `linkvtxn_safe`'s)
+  and the schedule's length below `2^63`.
 
 What the theorem says of partitions: the network model (`Transport.Start`'s axiom) lets any
 message be lost, so the proofs of raft and of etcd's server never needed delivery; this program

@@ -59,6 +59,8 @@ github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261018220001-8a24be2a324f h1:XzQS/A+/1
 github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261018220001-8a24be2a324f/go.mod h1:VVZoKvlAPMLR5RhNcTMHxWAN/0WZAFN4b3aoLaBkg/w=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261018220001-8a24be2a324f h1:bOu+h1Hr/ROjbg6Wl78peNnL/Cto94rktF7WJiPy2sE=
 github.com/upamanyus/etcd/server/v3 v3.0.0-20261018220001-8a24be2a324f/go.mod h1:+ZmNAS82E95ZeF+wdM0nIqP5uEArFJuQlUU/54jH1bs=
+github.com/upamanyus/etcd/tests/v3 v3.0.0-20261018220001-8a24be2a324f h1:aYt8pWzY9de8CSF5f6IyDUyDiBpDjkNG7vU+SccwGUM=
+github.com/upamanyus/etcd/tests/v3 v3.0.0-20261018220001-8a24be2a324f/go.mod h1:8oek9elyomUSnGEVZ/WlQU4IQRVtP/B/XtpeaOzik90=
 github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5 h1:WzlssguIjaM5lAhzKvkb8C7GzG/D+qITpmElatK++nk=
 github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5/go.mod h1:6gX6T2X907DjnjsFLODnTxba77stjs84W9gTTI0GUNA=
 github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 h1:S2dVYn90KE98chqDkyE9Z4N61UnQd+KOfgp5Iu53llk=

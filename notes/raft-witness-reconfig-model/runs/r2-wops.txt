@@ -1,0 +1,11 @@
+finished depth 0 states 1 seen 5
+finished depth 1 states 5 seen 31
+finished depth 2 states 31 seen 143
+finished depth 3 states 143 seen 601
+finished depth 4 states 601 seen 2385
+finished depth 5 states 2385 seen 8553
+finished depth 6 states 8553 seen 28769
+finished depth 7 states 28769 seen 91895
+finished depth 8 states 91895 seen 272779
+finished depth 9 states 272779 seen 747297
+finished depth 10 states 747297 seen 1884388
