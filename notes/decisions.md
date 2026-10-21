@@ -13928,3 +13928,14 @@ no snapshot (`DynNoSnap`): S-r needs it in the static mode (or B8). Then, with `
   restored meanwhile (item 3 removes that case); with it `CreateSnapshot` (`memFloorTok` from the
   floor witness, `memStorCert` of the new snapshot's trip at any term, registered through
   `storCertOk`: `raftSnapCert` of a prefix committed by `isCommitted`) and `Compact`.
+
+## `proto.Clone` of a set snapshot approved (2026-10-21 · the user)
+
+S-d4's item 4: `proto.CloneSnapshot.spec` (the trust-boundary spec of protobuf-go's `proto.Clone`
+at a `*raftpb.Snapshot`, `Spec/google_golang_org/protobuf/proto/CloneSnapshot.lean`) may gain a
+third clause, the clone of a snapshot whose pointer fields are all set (`ownSnapS`) is set too, so
+that raft's log can hold its pending snapshot as set and the `Ready` hand out a snapshot
+`MemoryStorage.ApplySnapshot` accepts (it writes nil fields, `EnsureSnapshot`). True of
+protobuf-go: `Clone` deep-copies, and a set message field stays set in the copy (what the spec's
+existing clauses already state of `Metadata` and `ConfState`). A stronger trusted statement, no new
+axiom. Approved by the user; carried out with S-r.
