@@ -38,9 +38,9 @@ callee of this proof. The premise is `raftLog.appliedTo`'s `Panicf` guard on the
 abbrev raft.appliedTo.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (index size : w64),
   uint.Z index ≤ uint.Z s.logst.committed →
-  -- (D19i part 1) past `applying` only below `offsetInProgress` (`ownRaftLog`'s `FlOk`)
-  (uint.Z s.logst.applying < uint.Z index → s.logst.snap = none →
-    uint.Z index < uint.Z s.logst.inprogress) →
+  -- (D19i part 1) past `applying` only below `offsetInProgress` (`ownRaftLog`'s `FlOk`; D22
+  -- S-d1b, 2026-10-21: with a snapshot pending too)
+  (uint.Z s.logst.applying < uint.Z index → uint.Z index < uint.Z s.logst.inprogress) →
   -- (2026-10-14, stage B7: at any configuration) the auto-leave branch is not taken: no
   -- `AutoLeave` at a leader. Its `r.Step` would make this function and `raft.Step` mutually
   -- recursive, which the link (one proof per function, callees' specs as hypotheses) does

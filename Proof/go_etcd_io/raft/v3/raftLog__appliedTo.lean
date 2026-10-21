@@ -25,9 +25,9 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
   wp_start as Hlog
   iNamed Hlog
   wp_auto
-  rw [decide_eq_false (by rw [Hcm]; omega)]
+  rw [decide_eq_false (show ¬ (uint.Z lv.committed' < uint.Z i) by rw [Hcm]; omega)]
   wp_auto
-  rw [decide_eq_false (by rw [Hap]; omega)]
+  rw [decide_eq_false (show ¬ (uint.Z i < uint.Z lv.applied') by rw [Hap]; omega)]
   wp_auto
   -- `max(l.applying, i)`
   wp_func_call
@@ -35,13 +35,18 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
   wp_if_destruct <;> wp_if_destruct
   all_goals
     iapply HΦ
-    reseal_raftLog
+    reseal_raftLogW
   all_goals
     simp only [Hcm, Hap, Hapg, Hasz, Hamx] at *
     first
       | rfl
       | omega
       | (intro Hn; have := Hpapplied Hn; omega)
+      -- (D22 S-d1b) `appliedSnap`'s window ends at the boundary
+      | (intro Hn Ha
+         rcases Bool.eq_false_or_eq_true ls.aps with Ha0 | Ha0
+         · rw [Ha0] at Ha; simp only [Bool.true_and, decide_eq_false_iff_not] at Ha; omega
+         · have := Hpapplied Hn Ha0; omega)
       | (unfold w64Max; split <;> first | rfl | omega)
       | (split <;> first | rfl | omega)
       | (intro Hpz; simp only [decide_eq_false_iff_not] at Hpz; split <;> word)
@@ -50,8 +55,8 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
          unfold w64Max; split <;> omega)
       | (refine ⟨Hfl.1, ?_, ?_, Hfl.2.2.2⟩
          · have := Hfl.2.1; simp only; unfold w64Max; split <;> omega
-         · intro Hs; have := Hfl.2.2.1 Hs; simp only; unfold w64Max
-           split <;> first | omega | (rename_i hnl; rcases Int.lt_or_eq_of_le (Int.not_lt.1 hnl) with h | h <;> first | exact Hipo h Hs | (rw [← h]; exact this)))
+         · have := Hfl.2.2.1; simp only; unfold w64Max
+           split <;> first | omega | (rename_i hnl; rcases Int.lt_or_eq_of_le (Int.not_lt.1 hnl) with h | h <;> first | exact Hipo h | (rw [← h]; exact this)))
 
 end proof
 

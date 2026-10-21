@@ -60,11 +60,20 @@ theorem raftLog.stableTo.wp_proof
   iNamed H
   iNamed Hlog
   wp_auto
+  -- (D22 S-d1b) a pending snapshot is `prev` (in the `sapp` window too, with a stable part
+  -- after it), below the offset
   have Hsoff : ∀ sid, ls.snap = some sid →
-      uint.Z lv.unstable'.offset' = uint.Z sid.index' + 1 := by
+      uint.Z sid.index' < uint.Z lv.unstable'.offset' := by
     intro sid Hs
-    obtain ⟨rfl, Hse, -⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
-    rw [Hse, List.length_nil] at Hoffset
+    have Hpv : ls.prev = sid := by
+      cases Hsa : ls.sapp
+      · have Hv := snapV_of Hsa
+        rw [Hv, Hs] at Hstore
+        exact Hstore.1
+      · have := (Hsappi Hsa).1
+        rw [Hs] at this
+        exact (Option.some.inj this).symm
+    subst Hpv
     omega
   have Hnw' : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2^64 := by omega
   lend_unstable
@@ -81,7 +90,15 @@ theorem raftLog.stableTo.wp_proof
   · -- the hit: the persisted prefix moves stable
     rw [ite_eq_left Hh]
     obtain rfl := Hhit (Hiff.1 Hh)
-    obtain ⟨Hsn, Hup, Hsto⟩ := Hok Hh
+    obtain ⟨Hsn0, Hup, Hsto⟩ := Hok Hh
+    -- (D22 S-d1b) no snapshot pending, or the storage holds it (`sapp`): the storage relation is
+    -- the one with none
+    have Hsn : snapV ls = none := by
+      rcases Hsn0 with h | h
+      · cases Hsa : ls.sapp
+        · rw [snapV_of Hsa]; exact h
+        · exact snapV_sapp Hsa
+      · exact snapV_sapp h
     obtain ⟨Hr, -⟩ := Hh
     obtain ⟨Hsp, Hsl, Hsu⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     have Hp := Hpersist Hsn
@@ -106,11 +123,12 @@ theorem raftLog.stableTo.wp_proof
       (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') (k : Int) Hkb Hp
       (fun _ => by rw [Int.toNat_natCast]; exact Hst')
     rw [Int.toNat_natCast] at Hps
-    reseal_raftLog
+    reseal_raftLogW
     · rw [List.append_assoc, List.take_append_drop]; exact Hidx
     · simp only [List.length_append, List.length_take, List.length_drop]; omega
     · -- the storage relation
-      simp only [Hsn]
+      show LogStoreOk (snapV ls) _ _ _ _
+      rw [Hsn]
       exact ⟨Hsp, (List.prefix_append _ _).trans Hps.1.1, Hps.2⟩
     · simp only [Huoff, List.length_append, List.length_take]
       word
@@ -130,16 +148,23 @@ theorem raftLog.stableTo.wp_proof
     · -- nothing pending: an acknowledgement that hits comes after the append
       exact ⟨Hpend.1, fun _ e0 He0 => by simp [Hup] at He0⟩
     · -- (D19i part 1) the floor: `offsetInProgress` only rises
-      refine ⟨Hfl.1, Hfl.2.1, fun _ => ?_, Hfl.2.2.2⟩
-      have := Hfl.2.2.1 Hsn
+      refine ⟨Hfl.1, Hfl.2.1, ?_, Hfl.2.2.2⟩
+      have := Hfl.2.2.1
       have := w64Max_spec ls.inprogress (id.index' + W64 1)
       simp only
       omega
+    · -- (D22 S-d1b) a snapshot in progress: the relation, from the storage's
+      intro _
+      have Hipo : uint.Z (w64Max ls.inprogress (id.index' + W64 1)) - uint.Z (id.index' + W64 1)
+          = max (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') (k : Int) - (k : Int) := by
+        rw [w64Max_spec]; word
+      simp only [Huoff, Hipo]
+      exact Hps.1.rel
     · simp only [Hk]
   · -- a miss: nothing changes
     rw [ite_eq_right Hh]
     obtain rfl := Hmiss (fun H => Hh (Hiff.2 H))
-    reseal_raftLog
+    reseal_raftLogW
 
 end proof
 

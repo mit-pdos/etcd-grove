@@ -53,10 +53,14 @@ theorem raft.appliedTo.wp_proof
     -- `r.raftLog.appliedTo(newApplied, size)`
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
+    -- (D22 S-d1b) `raftLog.appliedTo` admits `appliedSnap`'s window (`ownRaftLogW`)
+    icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq0, Hlog⟩
+    ihave Hlog := ownRaftLog_toW _ _ $$ Hlog
     first
       | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) Hipo $$ [$Hlog] as Hlog
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega)
           (fun h => absurd Hrw.2.1 (Int.not_le.2 h)) $$ [$Hlog] as Hlog
+    ihave Hlog := ownRaftLogW_quietW _ _ $$ Hlog %(⟨Hq0.1, by simp [Hq0.2]⟩)
     ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     -- `r.trk.Config.AutoLeave`: off, or the node is no leader (`Hal0`) -- the rest is dead
@@ -79,7 +83,7 @@ theorem raft.appliedTo.wp_proof
         have Hst : stateW64 s.role ≠ W64 2 := by
           cases h : s.role <;> simp_all [stateW64] <;> decide
         try wp_auto
-        rw [decide_eq_false (by simpa [StateLeader] using Hst)]
+        rw [decide_eq_false (show ¬ (stateW64 s.role = W64 2) from Hst)]
         try wp_auto
         iapply HΦ
         iapply ownRaftPhysC_eq c _ _ _ _ ?_ $$ Hphys

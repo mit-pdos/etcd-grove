@@ -151,7 +151,12 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
       wp_drive _Q
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, -, Hback⟩
+      -- (D22 S-d1b) `stableTo` admits the acknowledgement's window (`ownRaftLogW`)
+      icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq0, Hlog⟩
+      ihave Hlog := ownRaftLog_toW _ _ $$ Hlog
       wp_apply _P.stableTo _ _ _ (Hstok Hmt Hi0) $$ [$Hlog] as Hlog
+      ihave Hlog := ownRaftLogW_quietW _ _ $$ Hlog %(⟨by unfold logStableTo; split <;> exact Hq0.1,
+        by unfold logStableTo; split <;> exact Hq0.2⟩)
       have Hkp : LogNsKeep s (logStableTo s.logst ⟨m.LogTerm', m.Index'⟩) := fun _ =>
         ⟨(logStableTo_fields _ _).2.2.2.2.1, (logStableTo_fields _ _).2.2.1,
           logStableTo_storage _ _, by unfold logStableTo; split <;> exact Int.le_refl _⟩

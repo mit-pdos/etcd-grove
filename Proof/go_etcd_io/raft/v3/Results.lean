@@ -214,6 +214,7 @@ namespace EtcdGrove
 #print axioms raftLog.wp_maybeAppend
 #print axioms raftLog.wp_restore
 #print axioms raftLog.wp_stableTo
+#print axioms raftLog.wp_stableSnapTo
 #print axioms raftLog.wp_hasNextOrInProgressSnapshot
 #print axioms raftLog.wp_hasNextUnstableSnapshot
 #print axioms raftLog.wp_nextUnstableEnts

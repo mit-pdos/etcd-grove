@@ -95,7 +95,8 @@ theorem raftLog.term.wp_proof
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
   lend_unstable
-  wp_apply wp_unstable_maybeTerm _ (unstableOf lv ls) _ Hsoff Hnw $$ [$Hun]
+  wp_apply wp_unstable_maybeTerm _ (unstableOf lv ls) _
+    (fun sid h => by have := Hsoff sid h; simp only [unstableOf]; omega) Hnw $$ [$Hun]
     as %t %ok ⟨Hun, %Hok, %Hokt⟩
   reopen_unstable
   cases ok with
@@ -207,6 +208,7 @@ theorem raftLog.term.wp_proof
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
       Hapg Hip Hsip Hsipn Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
+      Hlent Hq Hprel
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
       Hl_logger
       Hu_logger Husnap Hpksn Hkcert Hcut Hfloor
@@ -222,6 +224,7 @@ theorem raftLog.term.wp_proof
     rw [Hstok]
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     have Hstlen := Hstored.length_le
+    take_storage Hs
     wp_apply HTerm $$ %σ %i %errCompacted [$HStorage] as %t2 %err2 ⟨Ht2, HStorage⟩
     · isplitr
       · ipureintro; rw [Hsp]; omega

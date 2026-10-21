@@ -66,6 +66,7 @@ theorem raftLog.lastIndex.wp_proof
       obtain ⟨Hsp, -, Hstored_eq⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
       have Hpnil : σ.pend = [] := by
         rw [Hpend.1]; exact (Hpersist Hs).2.2.1 He
+      take_storage Hs
       wp_apply HLastIndex $$ [$HStorage] as %li2 ⟨%Hli2, HStorage⟩
       · ipureintro; exact Hpnil
       rw [← Hstok]

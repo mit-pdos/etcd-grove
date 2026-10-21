@@ -266,8 +266,8 @@ theorem raftLog.append.wp_proof
     -- `offsetInProgress`
     have Hcmlt : uint.Z ls.committed < uint.Z e0.Index' := by word
     have Hfl2 : FlOk σ (logTruncateAppend ls (e0 :: ents')) := by
-      refine ⟨Hfl.1, Hfl.2.1, fun Hs => ?_, Hfl.2.2.2⟩
-      have := Hfl.2.2.1 Hs
+      refine ⟨Hfl.1, Hfl.2.1, ?_, Hfl.2.2.2⟩
+      have := Hfl.2.2.1
       have := Hfl.2.1
       have := Happlied.2
       simp only [logTruncateAppend, ← Hip2]
@@ -275,12 +275,20 @@ theorem raftLog.append.wp_proof
       unfold logTruncInprogress
       repeat' split
       all_goals omega
+    -- (D22 S-d1b) a snapshot in progress: the relation survives the truncation, as the storage's
+    -- does (`append_persistOk` at the state the storage will be at)
+    have Hprel2 : SipOk (logTruncateAppend ls (e0 :: ents')) uv'.offset' := by
+      intro Hsp
+      obtain ⟨Hpre0, -⟩ := Hprel Hsp
+      obtain ⟨Hk1, Hk2, Hk3⟩ := Hk'
+      exact (append_persistOk { σ with ents := ls.stored, pend := [] } [] ls.sents ls.uents
+        ls.stored e0 ents' _ _ _ _ Hpre0 rfl (by omega) Hprev (by omega) Hk1 Hk2 Hk3).rel
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _
           (logTruncateAppend ls (e0 :: ents')) rfl Hcm Hap Hidx' Hnw2 Hst2 Hoff2
           Happlied Hpapplied Hcm2 Hss2 Hapg Hip2 Hipb2 Hpers2 Happlying Hpaused Hasz Hamx
-          Hstor Hpend2 Hfl2 Hsksn Hsipm Hsipn ?_ ?_ ?_
+          Hstor Hpend2 Hfl2 Hsksn Hsipm Hsipn Hlent Hq Hprel2 ?_ ?_ ?_ ?_
         $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Hents Hents_cap Hl_logger Hu_logger
       all_goals rfl
     wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩

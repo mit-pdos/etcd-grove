@@ -663,24 +663,10 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
       ⌜uint.Z ls.prev.index' + ((ls.sents ++ ls.uents).length : Int) < 2^61 + 2^63⌝ ∗
       ownRaftLog l ls := by
   iintro H0
+  -- (D22 S-d1b) the stable part's bound (the storage may be lent)
+  icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
   iNamed H0
-  ihave #Hsto : isStorage (GF := GF) lv.storage' $$ []
-  · iexact HisStorage
-  iunfold isStorage at Hsto
-  iunfold isStorageWith at Hsto
-  icases Hsto with ⟨%isv, #Hs⟩
-  iNamed Hs
-  icases Hbounded $$ %σ HStorage with ⟨%Hstb, HStorage⟩
   ihave %Hul := entsPts_len _ _ _ $$ Huents
-  have Hsb : uint.Z ls.prev.index' + (ls.sents.length : Int) < 2^61 := by
-    unfold LogStoreOk at Hstore
-    split at Hstore
-    · obtain ⟨Hsp, Hstored, -⟩ := Hstore
-      have := Hstored.length_le
-      rw [Hsp] at Hstb
-      omega
-    · obtain ⟨rfl, Hs0, Hsid⟩ := Hstore
-      rw [Hs0, List.length_nil]; omega
   isplitr
   · ipureintro
     have : (ls.uents.length : Int) < 2^63 := by
@@ -689,7 +675,7 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
 /-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
@@ -1039,7 +1025,7 @@ theorem stableOk_of_stored (γ : RaftNames) (id : w64) (s : NState) {md : Bool}
   isplitr
   · ipureintro
     intro Hhit
-    exact ⟨Hsn, Hun, stored_agree _ _ _ _ HwL HwF HRA He Hhit.2⟩
+    exact ⟨.inl Hsn, Hun, stored_agree _ _ _ _ HwL HwF HRA He Hhit.2⟩
   iexact Hg
 
 /-- Nothing stored has records. -/

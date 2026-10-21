@@ -159,6 +159,7 @@ public import Proof.go_etcd_io.raft.v3.raftLog__restore
 public import Proof.go_etcd_io.raft.v3.raftLog__scan
 public import Proof.go_etcd_io.raft.v3.raftLog__slice
 public import Proof.go_etcd_io.raft.v3.raftLog__snapshot
+public import Proof.go_etcd_io.raft.v3.raftLog__stableSnapTo
 public import Proof.go_etcd_io.raft.v3.raftLog__stableTo
 public import Proof.go_etcd_io.raft.v3.raftLog__term
 public import Proof.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
@@ -1405,6 +1406,14 @@ theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
 
+theorem unstable.wp_stableSnapTo [StorageModel GF] :
+    unstable.stableSnapTo.spec (GF := GF) (hG := hG) :=
+  unstable.stableSnapTo.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_stableSnapTo [StorageModel GF] :
+    raftLog.stableSnapTo.spec (GF := GF) (hG := hG) :=
+  raftLog.stableSnapTo.wp_proof unstable.wp_stableSnapTo
+
 theorem raftpb.ConfChangeTransition.wp_Enum :
     raftpb.ConfChangeTransition.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeTransition.Enum.wp_proof
@@ -1460,10 +1469,6 @@ theorem tracker.Inflights.wp_Count :
 theorem tracker.ProgressTracker.wp_LearnerNodes :
     tracker.ProgressTracker.LearnerNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.LearnerNodes.wp_proof slices.wp_Sort
-
-theorem unstable.wp_stableSnapTo [StorageModel GF] :
-    unstable.stableSnapTo.spec (GF := GF) (hG := hG) :=
-  unstable.stableSnapTo.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
 end links
 

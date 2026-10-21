@@ -75,6 +75,7 @@ theorem raftLog.snapshot.wp_proof
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
     rw [decide_eq_true Hnosnap]
     wp_auto
+    take_storage Hsn
     -- (D19i part 1) what raft knows of the compaction: its own boundary, or the application's
     ihave Hn : (∃ n : Int, (⌜n ≤ 0⌝ ∨ storCut (GF := GF) lv.storage' n) ∗
         ⌜uint.Z ls.prev.index' ≠ 0 ∨ 1 ≤ n⌝) $$ []
@@ -133,7 +134,7 @@ theorem raftLog.snapshot.wp_proof
       -- entry of the log (`termAt_log_below`)
       obtain ⟨HflE, Hfla, Hflip, Hab⟩ := Hfl
       rw [HflE] at Hle
-      have Hip := Hflip Hsn
+      have Hip := Hflip
       have Hpers := Hpersist Hsn
       rw [← Hpend.1] at Hpers
       refine ⟨Hnz, by omega, ?_, .inr Hle⟩

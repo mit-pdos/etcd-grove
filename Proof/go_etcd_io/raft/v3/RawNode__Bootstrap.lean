@@ -71,6 +71,7 @@ theorem RawNode.Bootstrap.wp_proof
   rw [Hstok]
   wp_auto
   have Hpnil : σ.pend = [] := by rw [Hpend.1]; exact Hun
+  take_storage Hsn
   wp_apply HLastIndex $$ [$HStorage] as %li ⟨%Hli, HStorage⟩
   · ipureintro; exact Hpnil
   rw [← Hstok]

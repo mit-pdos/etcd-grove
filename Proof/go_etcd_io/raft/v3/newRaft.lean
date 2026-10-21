@@ -180,7 +180,7 @@ theorem newRaft.wp_proof
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
-    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ, 0, false⟩
+    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ, 0, false, false, false, false⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval', cv.CheckQuorum'⟩
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
@@ -248,7 +248,7 @@ theorem newRaft.wp_proof
   -- is done once, for both.
   let ls1 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, σ.prev.index', none, ip,
     σ.prev.index', [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si, initKsn σ, 0, false⟩
+    interface.ok si, initKsn σ, 0, false, false, false, false⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet csm.Voters') «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hp ∗
@@ -299,7 +299,7 @@ theorem newRaft.wp_proof
   let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
   let ls2 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, ap, none, ip,
     w64Max σ.prev.index' ap, [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si, initKsn σ, 0, false⟩
+    interface.ok si, initKsn σ, 0, false, false, false, false⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet csm.Voters') «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -314,10 +314,12 @@ theorem newRaft.wp_proof
     icases ownRaftPhys_log_at _ «$r0_ptr» cv.ID' s1 $$ Hphys with ⟨HL, %Hgh0, Hlogback⟩
     icases ownRaftLog_ready_wf _ _ $$ HL with ⟨%Hrw1, HL⟩
     icases ownRaftLog_committed _ _ $$ HL with ⟨%Hcb1, HL⟩
+    ihave HL := ownRaftLog_toW _ _ $$ HL
     wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng
-      (fun _ _ => by
+      (fun _ => by
         have h1 := Hrw1.1.1; have h2 := Hcb1.1.2.2; have h3 := Hrng.2
         simp only [s1, s0, ls1, List.length_nil] at h1 h2 h3 ⊢; omega) $$ [$HL] as HL
+    ihave HL := ownRaftLogW_quietW _ _ $$ HL %(⟨rfl, rfl⟩)
     ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     isplitr
