@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- What `run` starts with (see the file header). -/
 def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
   iprop(∃ (nv : node) (rs : RNState) (x : List EntryM × List EntryM ×
-      List EntryM × HardStateM),
+      List EntryM × HardStateM × Option SnapLoan),
     n ↦□ nv ∗ ownRawNode γ.raft nv.rn' id rs ∗
     ⌜rs.steps = [] ∧ rs.unpersisted = [] ∧ rs.storage = γ.stor⌝ ∗
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rs.delivered, rs.phs) ∗

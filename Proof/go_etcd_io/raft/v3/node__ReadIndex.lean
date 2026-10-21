@@ -100,10 +100,10 @@ theorem node.ReadIndex.wp_proof
     isplitr
     · ipureintro
       exact ⟨fun h => by exfalso; simp [MsgPreVote] at h, fun h => by exfalso; simp [MsgTransferLeader] at h,
-        by simp [MsgSnap]⟩
+        fun h => by exfalso; simp [MsgSnap] at h⟩
     isplitr
     · imodintro
-      iintro %ty %Hty
+      iintro %ty %Hty %_Hne
       rw [show mtypeOf (W32 15) = some .readIndex from rfl] at Hty
       cases Hty
       unfold isMessage absMsg absMsgFrom
@@ -113,6 +113,10 @@ theorem node.ReadIndex.wp_proof
       isplitr
       · ipureintro; rfl
       iframe Hrq
+    isplitr
+    · imodintro
+      iintro %h
+      exfalso; simp [MsgSnap] at h
     isplitr
     · iExactEq Hlb; rfl
     rw [ite_eq_left hR]

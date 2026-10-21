@@ -291,10 +291,23 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
         · rw [h] at h'; simp [MsgTransferLeader, MsgTimeoutNow] at h'
         · rw [h] at h'; cases h'
       -- (2026-10-20, D22 S-c) no snapshot (`deliverable` drops one)
-      · rcases deliverable_mtype st Hd with h' | ⟨ty, h', hns⟩
+      · exfalso
+        rcases deliverable_mtype st Hd with h' | ⟨ty, h', hns⟩
         · rw [h] at h'; simp [MsgSnap, MsgTimeoutNow] at h'
         · rw [h] at h'; cases h'; exact hns rfl
-    iframe Hmsg Hlb Hcr Htc
+    -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
+    isplitr
+    · imodintro
+      iintro %ty %Hty %_Hne
+      iapply Hmsg $$ %ty %Hty
+    isplitr
+    · imodintro
+      iintro %h
+      exfalso
+      rcases deliverable_mtype st Hd with h' | ⟨ty, h', hns⟩
+      · rw [h] at h'; simp [MsgSnap, MsgTimeoutNow] at h'
+      · rw [h] at h'; cases h'; exact hns rfl
+    iframe Hlb Hcr Htc
 
 end defs
 

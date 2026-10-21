@@ -245,7 +245,10 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
   iprop(⌜E.T = iprop(True)⌝ ∗
     ⌜E.γr.raft.raft = γ.node.raft ∧ E.γr.raft.pre = γ.pre ∧
       uint.Z E.γr.raft.ai0 = γ.pre.length⌝ ∗
-    ⌜γ.node.mode = RNMode.static ∧ γ.node.stor = memStorIface γ.ms⌝ ∗
+    -- (D22 S-d4, 2026-10-21) in raft's no-snapshot mode (`RaftNames.reNoSnap`): no `Ready` hands
+    -- out a snapshot (`readyP_none`), and `Advance` gives the floor's witness (`reqWit_none`)
+    ⌜γ.node.mode = RNMode.static ∧ γ.node.stor = memStorIface γ.ms ∧
+      γ.node.raft.reNoSnap = true⌝ ∗
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗
     □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
@@ -508,10 +511,10 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : H
   iunfold rnEnvOk at Henv
   icases Henv with ⟨-, %Hn, %Hmode, -, #HM, #HC, -, -⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  obtain ⟨-, Hstor⟩ := Hmode
+  obtain ⟨-, Hstor, Hns⟩ := Hmode
   iunfold rnReadyP at HP
-  iunfold readyP at HP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', Hd, Hrof, Hdata, #Hlb⟩
+  -- (D22 S-d4) no snapshot: raft's no-snapshot mode
+  icases readyP_none γ.node rd (.inl Hns) $$ HP with ⟨%d, %ce, %es, %ms, %p0, %p', Hd, Hrof, Hdata, #Hlb⟩
   iunfold rnDrv at Hdrv
   icases Hdrv with ⟨Hdrv, Hcfg⟩
   iunfold nodeDriver at Hdrv

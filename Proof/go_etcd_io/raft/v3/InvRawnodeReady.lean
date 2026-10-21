@@ -1053,11 +1053,14 @@ def rdSnapOut (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : List EntryM)
 
 /-- (D22 S-d3a) What a `Ready` hands the application for the storage: the right to append the batch
 (`appendRight`), or with a snapshot the storage itself, at a state with nothing pending and the
-loan's floor (`ownRaftLog_lend`). -/
+loan's floor (`ownRaftLog_lend`); (D22 S-d4, 2026-10-21) and the snapshot's certificate in the
+storage's registry (`storCert`, the log's `Hkcert`), which the application's `ApplySnapshot` takes
+(`MemoryStorage.ApplySnapshot`'s `memStorCert`). -/
 def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
   match L with
   | none => appendRight st es
-  | some l => iprop(∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝)
+  | some l => iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
+      storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
 
 /-- (D22 S-d3a) **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes:
 the half of the snapshot it was handed, and the storage at the snapshot -- its boundary and its
@@ -1320,13 +1323,31 @@ theorem readyIdx_pure (ls : LogState) (d ce : List EntryM)
       push_cast
       rw [Int.toNat_of_nonneg Hapz]; omega
 
+/-- (D22 S-d4, 2026-10-21) The certificates of the snapshots the log may send (`Hkcert`), read
+out without consuming the log: each certified in the storage's own registry (`storCert`). What a
+snapshot `Ready` hands the application with the snapshot (`readyOut`), for `ApplySnapshot`. -/
+theorem ownRaftLog_kcert (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ([∗list] k ∈ ls.ksn, storCert ls.storage k) ∗ ownRaftLog l ls := by
+  iintro H0
+  iNamed H0
+  ihave #Hkc : ([∗list] k ∈ ls.ksn, storCert ls.storage k) $$ []
+  · rw [← Hstor]; iexact Hkcert
+  iframe Hkc
+  iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+    Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+    Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl
+    HisStorage HStorage Husnap Hpksn Hkcert Huents Huents_cap Hl_logger Hu_logger
+
 /-- (D22 S-d3a) The log's part of a `Ready`'s hand-out: the right to append the batch
 (`ownRaftLog_handout`), or with a snapshot the storage itself (`ownRaftLog_lend`). -/
 theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Option SnapLoan)
     (st : Storage) (Hunp : ls.unpersisted = []) (Hes : es = nextUnstable ls)
     (Hst : st = ls.storage) (Hn : L = none → ls.snap = none)
     (Hs : ∀ l, L = some l → ls.snap ≠ none ∧ l.fl = ls.fl)
-    (Hlt : ∀ l, L = some l → ls.lent = false) :
+    (Hlt : ∀ l, L = some l → ls.lent = false)
+    -- (D22 S-d4) the snapshot one the log may send, so certified (`ownRaftLog_kcert`)
+    (Hk : ∀ l, L = some l → snapTrip l.snap l.snap.Metadata'.ConfState'.lists ∈ ls.ksn) :
     ⊢ ownRaftLog (GF := GF) l ls ==∗ ownRaftLog l (rdyLog true L.isSome ls) ∗ readyOut st es L := by
   iintro Hlog
   cases L with
@@ -1339,15 +1360,19 @@ theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Opt
     rw [Hes, Hst]; iexact Happ
   | some lo =>
     obtain ⟨Hsn, Hfl⟩ := Hs lo rfl
+    icases ownRaftLog_kcert _ _ $$ Hlog with ⟨#Hkc, Hlog⟩
+    ihave #Hc := BigSepL.bigSepL_mem (Hk lo rfl) $$ Hkc
     icases ownRaftLog_lend _ _ Hunp Hsn (Hlt lo rfl) $$ Hlog with ⟨Hlog, %σ, HSt, %Hσ⟩
     imodintro
     isplitl [Hlog]
     · iExactEq Hlog; rfl
-    unfold readyOut
-    iexists σ
+    simp only [readyOut]
     rw [Hst]
-    iframe HSt
-    ipureintro; exact ⟨Hσ.1, Hσ.2.1.trans Hfl.symm⟩
+    isplitl [HSt]
+    · iexists σ
+      iframe HSt
+      ipureintro; exact ⟨Hσ.1, Hσ.2.1.trans Hfl.symm⟩
+    iexact Hc
 
 /-- (D22 S-d3a) The pure facts of a computed `Ready`'s snapshot. -/
 theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM)
@@ -1414,7 +1439,8 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     rw [h1, Hloan.1.1, Hloan.2]; rfl
   imod ownRaftLog_rdy_out s.log s.logst es L rs.storage Hunp Hes Hstor
     (fun h => (Hrdp.1 h).2)
-    (fun l h => ⟨by rw [(Hrdp.2 l h).2.1]; simp, (Hrdp.2 l h).2.2.2.2.2.1⟩) Hlt0 $$ Hlog
+    (fun l h => ⟨by rw [(Hrdp.2 l h).2.1]; simp, (Hrdp.2 l h).2.2.2.2.2.1⟩) Hlt0
+    (fun l h => (Hrdp.2 l h).2.2.2.1) $$ Hlog
     with ⟨Hlog, Hout⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩

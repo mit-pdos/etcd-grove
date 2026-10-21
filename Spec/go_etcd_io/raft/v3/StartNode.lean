@@ -66,7 +66,7 @@ abbrev StartNode.spec : Prop :=
     (σ : StorState)
     (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
-    (bootLog : List EntryM),
+    (bootLog : List EntryM) (sn : Bool),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -101,6 +101,9 @@ abbrev StartNode.spec : Prop :=
   BootLogOk γ.reCCOk ps bootLog →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
+  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
+  -- outside the no-snapshot mode
+  (sn = true → γ.reNoSnap = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- `NewRawNode`'s `InitialState` premise (D7's shape; the conf state's record `csm` empty)
@@ -127,7 +130,7 @@ abbrev StartNode.spec : Prop :=
       -- the node's goroutine starts
       R ∗ ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = RNMode.static ∧
-         nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         -- the driver's view of the configuration: the peers'
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
