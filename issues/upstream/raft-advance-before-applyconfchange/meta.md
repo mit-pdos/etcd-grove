@@ -12,7 +12,7 @@ membership changes in a row; a client of an application built on raft cannot cau
   `etcd-leader-advance-before-applyconfchange.md`)
 - **Target**: etcd-io/raft, `main` (the same documentation and guards in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-advance-before-applyconfchange` in `~/etcd-fixes/raft-advance-before-applyconfchange`, one
-  commit: f75808d2f (documentation only: `doc.go`, `README.md`, `node.go`, `raft.go`; 10 lines added, 5 removed).
+  commit: fd30b41a2 (documentation only: `doc.go`, `README.md`, `node.go`, `raft.go`; 9 lines added, 5 removed).
 - **Reproduction branch**: `repro/raft-advance-before-applyconfchange` in
   `~/etcd-fixes/raft-advance-before-applyconfchange-repro`, one commit, 3dcedb6af, adding
   `TestNodeAdvanceBeforeApplyConfChange` to `node_test.go` (lines 1063-1150). Not part of the PR (below). The issue
@@ -29,17 +29,19 @@ then check the issue's link `#L1063-L1150` on GitHub.
 
 Commit messages (drafts for the user to rewrite):
 
-- `raft: document that conf changes must be applied before Advance` — "The checks for pending conf changes go by
-  the applied index, which Advance moves even if the conf changes have not been applied yet."
+- `raft: document that conf changes must be applied before Advance` — "Raft's checks for a pending conf change
+  trust the applied index, which Advance moves even if the conf change has not been applied yet."
 - (reproduction branch) `raft: test Advance before ApplyConfChange` (no body)
 
 No changelog entry: a documentation change.
 
-## Why a documentation-only PR, and how this deviates from the skill
+## Why a documentation-only PR, and its shape
 
-The skill's shape (a tests commit that fails, then the fix) does not fit a documentation fix: no test can fail
-before a doc change and pass after it. The reproduction is still a test of the package, on a branch of its own that
-the issue links; the PR is one commit. `check.py` FAILs on exactly that (below).
+No test can fail before a doc change and pass after it, so the PR is the one documentation commit and the
+reproduction is a test of the package on a branch of its own, which the issue links (the skill's documented shape
+for a documentation fix, step 7; `check.py` checks it). Committing the test on the fix branch was considered and
+rejected: as written it fails with the fix too, and rewritten to follow the documented order it would pass at the
+base as well, testing nothing the PR changes.
 
 ## Duplicates checked (2026-10-21, with the token)
 
@@ -120,15 +122,23 @@ the same way.
 
 - Reproduction branch 3dcedb6af (`go test -count=1 -run 'TestNodeAdvanceBeforeApplyConfChange$' .`): fails,
   `expected: "1/4 EntryNormal \"x\""`, `actual: "2/4 EntryNormal \"\""`; `-race -count=5`: fails 5/5 the same way.
-- Fix branch f75808d2f: `go test -count=1 ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
+- Fix branch fd30b41a2: `go test -count=1 ./...` (raft, confchange, quorum, raftpb, rafttest, tracker) ok;
   `gofmt -l .` empty; `go vet ./...` clean. The reproduction test still fails on it (documentation only).
-- Not run: `make verify`, golangci-lint. `AsyncStorageWrites` not reproduced on `main`: the claim is from the code
-  (`MsgStorageApplyResp` calls `appliedTo`, `raft.go:1206-1211`) and from the earlier prototype's async tests at
-  40f8be7 (`issues/raft-conf-lag-model/guard-fix.md`).
+- The `Config.AsyncStorageWrites` sentence, checked on `main` with a temporary test (not on any branch): a
+  single-voter `RawNode` with `AsyncStorageWrites` commits "add 2"; with the `MsgStorageApply`'s response stepped
+  and `ApplyConfChange` not called, a second `ProposeConfChange` ("add 3") is appended as `EntryConfChange` while
+  the voters are still `(1)`; with the response held, it is ignored ("possible unapplied conf change at index 2
+  (applied to 1)"). So the response, not `ApplyConfChange`, moves the applied index the check reads, as `Advance`
+  does (both step the same `MsgStorageApplyResp`, `rawnode.go:384-395`, `raft.go:1206-1211`).
+- Not run: `make verify`, golangci-lint.
 
 ## If a reviewer asks
 
-Candidate layers and fixes, and why the documentation is the one a maintainer would merge:
+Candidate layers and fixes, and why the documentation is the one a maintainer would merge. The root-cause rule
+(step 7) asks whether the helper (`hasUnappliedConfChanges`, the leader's `pendingConfIndex > applied`) should be
+fixed instead: no, because the defect is the permission, not the check. Under the contract the code was written
+for and every example follows, the check is right; making it right under the permission needs raft to see every
+`ApplyConfChange` call, which applications that reject or skip conf changes do not make ((b) below).
 
 - **(a) Documentation (taken).** The guards have read the applied index since they were written; every example in
   the package (doc.go's two loops, README's) and `RawNode.Advance`'s comment already apply conf changes first; the
@@ -177,15 +187,8 @@ Candidate layers and fixes, and why the documentation is the one a maintainer wo
 
 ## check.py (2026-10-21)
 
-Run as `python3 -I .claude/skills/upstream-report/check.py raft-advance-before-applyconfchange`. FAILs, all from
-the documentation-only shape, decided:
+Run as `python3 -I .claude/skills/upstream-report/check.py raft-advance-before-applyconfchange`, with the
+documentation-only shape (one commit changing comments only, the reproduction on `repro/<slug>`): no FAIL. WARNs,
+decided:
 
-- `commit: 1 commits on top of the base`: one documentation commit, no tests commit (above).
-- `issue: no link to the test on upamanyus/etcd-raft's branch fix/raft-advance-before-applyconfchange` and
-  `issue: names TestNodeAdvanceBeforeApplyConfChange, which the branch does not add`: the test is on the
-  reproduction branch, which the issue links, because it cannot be merged (it fails with the fix too).
-
-WARNs, decided:
-
-- The comments added (`node.go`, `raft.go`): kept; the change is documentation.
-- The issue's 269 words (aim 250): kept; the four steps are the shortest execution found (three nodes, one cut).
+- The issue's 272 words (aim 250): kept; the four steps are the shortest execution found (three nodes, one cut).

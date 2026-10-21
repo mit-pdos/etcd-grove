@@ -104,6 +104,12 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
     helper did what it said and a caller needed more. Before settling on a fix, list the candidate layers and
     fixes in `meta.md`, "If a reviewer asks", and say why the chosen one is the one a maintainer would pick.
   - A comment only when it says why (an ordering that matters), never what the code does.
+   - A fix that changes only documentation (doc comments, `doc.go`, `README.md`) has no test that can fail before it
+     and pass after: the branch is that one commit, and the reproduction test goes on a branch `repro/<slug>` off the
+     same base (worktree `~/etcd-fixes/<slug>-repro`), which `meta.md` names in its line "**Reproduction branch**"
+     (the branch and the worktree, each in backticks, as on the line "**Branch**") and the issue links instead of
+     `fix/<slug>`; the PR leaves out the first-commit sentence, and the hand-off pushes both branches. `check.py`
+     accepts this shape only when the fix changes no code or tests.
    - Try the simplest alternative first (reorder, one more condition); if it fails, run it and record why in
      `meta.md`, "If a reviewer asks", with the other alternatives and costs; do not research more for it.
 8. **Verify**: check out the tests commit (the new tests fail) and the fix commit (they pass, the module's tests

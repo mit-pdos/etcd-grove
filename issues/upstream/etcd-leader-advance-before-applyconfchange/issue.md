@@ -7,7 +7,7 @@ When a `Ready` commits a membership change, a follower's raft loop waits for the
 ```
 --- FAIL: TestConfigChangeBlocksApply (1.01s)
     --- FAIL: TestConfigChangeBlocksApply/StateLeader (0.00s)
-        raft_test.go:255: unexpected execution: raft routine should block waiting for toApply
+        raft_test.go:251: unexpected execution: raft routine should block waiting for toApply
 ```
 
 This affects every leader that commits a membership change while its apply loop is behind. I have not reproduced a wrong result on a cluster.
@@ -18,7 +18,7 @@ The leader should call `Advance` only after the membership change is applied, as
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestConfigChangeBlocksApply`](https://github.com/upamanyus/etcd/blob/fix/etcd-leader-advance-before-applyconfchange/server/etcdserver/raft_test.go#L214-L270) on branch [`upamanyus/etcd:fix/etcd-leader-advance-before-applyconfchange`](https://github.com/upamanyus/etcd/tree/fix/etcd-leader-advance-before-applyconfchange), off `main` (7ff040cb8). On `main` its `StateLeader` case fails as above.
+Unit test: [`TestConfigChangeBlocksApply`](https://github.com/upamanyus/etcd/blob/fix/etcd-leader-advance-before-applyconfchange/server/etcdserver/raft_test.go#L214-L268) on branch [`upamanyus/etcd:fix/etcd-leader-advance-before-applyconfchange`](https://github.com/upamanyus/etcd/tree/fix/etcd-leader-advance-before-applyconfchange), off `main` (7ff040cb8). On `main` its `StateLeader` case fails as above.
 
 ### Anything else we need to know?
 

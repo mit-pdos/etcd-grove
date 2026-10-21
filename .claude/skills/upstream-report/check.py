@@ -53,6 +53,17 @@ def section(md, title):
     return m.group(1).strip() if m else None
 
 
+def show(wt, rev, path):
+    r = subprocess.run(["git", "-C", wt, "show", f"{rev}:{path}"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else ""
+
+
+def go_code(src):
+    """Go source without its comments, whitespace normalized: equal for two versions that differ only in comments."""
+    tokens = re.findall(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\\n])*"|`[^`]*`|\'(?:\\.|[^\'\\\n])*\'|\S', src, flags=re.S)
+    return " ".join(t for t in tokens if not t.startswith(("//", "/*")))
+
+
 def norm(s):
     return " ".join(s.split())
 
@@ -85,16 +96,37 @@ def main():
         m = re.search(r"github\.com[:/](.+?)(\.git)?$", url)
         fork = m.group(1) if m else None
 
+    # A documentation-only fix (SKILL.md, step 7): one commit, the reproduction on a branch repro/<slug> of its own.
+    m = re.search(r"\*\*Reproduction branch\*\*: `repro/" + re.escape(a.slug) + r"`\s+in\s+`(~/etcd-fixes/[^`]+)`", meta)
+    repro_wt = os.path.expanduser(m.group(1)) if m else None
+    branch = "repro" if repro_wt else "fix"
+
     diff = code_diff = ""
     if wt and base:
         revs = git(wt, "rev-list", "--reverse", f"{base}..HEAD").split()
 
-        def names(rev):
-            return git(wt, "diff-tree", "--no-commit-id", "--name-only", "-r", rev).split()
+        def names(rev, w=wt):
+            return git(w, "diff-tree", "--no-commit-id", "--name-only", "-r", rev).split()
 
         # the tests, the fix, and optionally the changelog entry in a commit of its own
         code_revs = revs[:2] if len(revs) == 3 and all(f.startswith("CHANGELOG/") for f in names(revs[2])) else revs
-        if len(code_revs) != 2:
+        if repro_wt:
+            code_revs = revs
+            if len(revs) != 1:
+                fail(f"commit: {len(revs)} commits on top of the base {base[:9]}; a documentation-only fix is one commit")
+            go_files = [f for f in git(wt, "diff", "--name-only", f"{base}..HEAD").split() if f.endswith(".go")]
+            if any(f.endswith("_test.go") for f in go_files) or any(
+                    go_code(show(wt, base, f)) != go_code(show(wt, "HEAD", f)) for f in go_files):
+                fail("commit: meta.md names a reproduction branch, but the fix changes code or tests, not only "
+                     "documentation; a code fix has the tests commit on fix/<slug>")
+            if subprocess.run(["git", "-C", repro_wt, "merge-base", "--is-ancestor", base, "HEAD"]).returncode:
+                fail(f"repro: the reproduction branch is not off the base {base[:9]}")
+            else:
+                rrevs = git(repro_wt, "rev-list", f"{base}..HEAD").split()
+                if not rrevs or any(not f.endswith("_test.go") for r in rrevs for f in names(r, repro_wt)):
+                    fail("repro: the reproduction branch should add only tests (*_test.go) on top of the base")
+                diff = git(repro_wt, "diff", f"{base}..HEAD")
+        elif len(code_revs) != 2:
             fail(f"commit: {len(revs)} commits on top of the base {base[:9]}; want the tests, then the fix, then "
                  "optionally the changelog entry")
         else:
@@ -118,14 +150,15 @@ def main():
                 warn(f"commit {rev[:9]}: {len(body)} lines of message body; upstream's are mostly none, at most a "
                      "few sentences")
         subject = git(wt, "log", "-1", "--format=%s", code_revs[-1] if code_revs else "HEAD").strip()
-        diff = git(wt, "diff", f"{base}..HEAD")
+        if not repro_wt:
+            diff = git(wt, "diff", f"{base}..HEAD")
         code_diff = git(wt, "diff", f"{base}..HEAD", "--", ".", ":(exclude)*_test.go")
         files = [f for f in git(wt, "diff", "--name-only", f"{base}..HEAD").split() if f.endswith(".go")]
         if files:
             out = subprocess.run(["gofmt", "-l", *files], cwd=wt, capture_output=True, text=True).stdout.strip()
             if out:
                 fail(f"commit: not gofmt'ed: {out}")
-        for line in code_diff.splitlines():
+        for line in [] if repro_wt else code_diff.splitlines():  # a documentation fix adds only comments
             if re.match(r"^\+\s*//", line):
                 warn(f"fix: added comment, keep it only if it says what the code does not: {line[1:].strip()}")
     else:
@@ -144,9 +177,9 @@ def main():
             fail(f"issue: this repository's vocabulary: {sorted(set(re.findall(LOCAL_WORDS, p)))}")
         if re.search(r"linked branch|the branch\b", p) and not fork:
             fail("issue: refers to a branch without a link to it")
-        if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/fix/{re.escape(a.slug)}\b", issue):
-            fail(f"issue: no link to the test on {fork}'s branch fix/{a.slug}")
-        for link in re.findall(r"github\.com/[^/\s]+/[^/\s]+/blob/fix/[^\s)#]+_test\.go[^\s)]*", issue):
+        if fork and not re.search(rf"github\.com/{re.escape(fork)}/(blob|tree)/{branch}/{re.escape(a.slug)}\b", issue):
+            fail(f"issue: no link to the test on {fork}'s branch {branch}/{a.slug}")
+        for link in re.findall(r"github\.com/[^/\s]+/[^/\s]+/blob/(?:fix|repro)/[^\s)#]+_test\.go[^\s)]*", issue):
             if "#L" not in link:
                 fail(f"issue: the link to the test does not name its lines (#L<a>-L<b>): {link}")
         for t in set(re.findall(r"\bTest\w+", p)):

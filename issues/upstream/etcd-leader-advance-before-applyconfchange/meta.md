@@ -12,7 +12,7 @@ on etcd.
   `raft-advance-before-applyconfchange`; the raft side is `issues/upstream/raft-advance-before-applyconfchange/`)
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-leader-advance-before-applyconfchange` in `~/etcd-fixes/etcd-leader-advance-before-applyconfchange`,
-  two commits: c2a650a0d (the test), 94aafb90f (the fix,
+  two commits: 06f2a0238 (the test), 18ed639bc (the fix,
   `server/etcdserver/raft.go`, 11 lines added).
 - **Base**: upstream `main` 7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b (2026-10-20)
 - **State**: draft, on hold (2026-10-21). File only after the raft PR (documenting that a `Ready`'s conf changes
@@ -24,14 +24,13 @@ on etcd.
 - **PR**: —
 
 Push: `git -C ~/etcd-fixes/etcd-leader-advance-before-applyconfchange push origin fix/etcd-leader-advance-before-applyconfchange`;
-then check the issue's link `#L214-L270` on GitHub.
+then check the issue's link `#L214-L268` on GitHub.
 
 Commit messages (drafts for the user to rewrite):
 
-- `etcdserver: test that a leader waits for a conf change to be applied` (no body)
-- `etcdserver: apply conf changes before Advance on the leader too` — "raft checks for pending conf changes against
-  its applied index, which Advance moves, so the leader could accept a second conf change while it still used the
-  configuration before the first."
+- `etcdserver: test that a leader waits for conf changes to be applied` (no body)
+- `etcdserver: apply conf changes before Advance on the leader too` — "Otherwise the leader's raft accepts a second
+  conf change while it still uses the configuration before the first."
 
 ## Duplicates checked (2026-10-21)
 
@@ -57,7 +56,9 @@ conf change proposal is `pendingConfIndex > applied` (`raft.go:1326`), false fro
 configuration changes only at `ApplyConfChange`. The fix adds the follower's second send to the leader branch, so
 `Advance` comes after the apply loop has applied the batch.
 
-The test is `TestConfigChangeBlocksApply` (the existing test of the follower's wait) run for `StateLeader` too: a
+The test is `TestConfigChangeBlocksApply` (the existing test of the follower's wait) run for `StateLeader` too, as
+subtests in a loop over the two states (the body re-indented, otherwise unchanged but for the state; `git diff -w`
+shows 5 lines): a
 `Ready` from a leader with a conf change entry; the raft loop must not hand out the next batch until the first
 batch's apply is finished. At the base the `StateLeader` case fails ("raft routine should block waiting for
 toApply"); with the fix both pass.
@@ -76,17 +77,29 @@ membership change from another client reaches raft, then a partition. etcd's own
 
 ## Verification (go1.27.1 linux/amd64, 2026-10-21)
 
-- At the test commit c2a650a0d (`cd server && go test -count=1 -run 'TestConfigChangeBlocksApply$' ./etcdserver/`):
-  `--- FAIL: TestConfigChangeBlocksApply/StateLeader`, "unexpected execution: raft routine should block waiting for
-  toApply"; `StateFollower` passes.
-- At the fix commit 94aafb90f: both cases pass; `go test -count=1 ./etcdserver/...` ok; `go test -race -count=1
+- At the test commit 06f2a0238 (`cd server && go test -count=1 -run 'TestConfigChangeBlocksApply$' ./etcdserver/`):
+  `--- FAIL: TestConfigChangeBlocksApply/StateLeader`, "raft_test.go:251: unexpected execution: raft routine should
+  block waiting for toApply"; `StateFollower` passes.
+- At the fix commit 18ed639bc: both cases pass; `go test -count=1 ./etcdserver/...` ok; `go test -race -count=1
   ./etcdserver/` ok; `gofmt -l` empty on the two files; `go vet ./etcdserver/` clean.
+- The integration run below was at the earlier fix commit 94aafb90f, whose `raft.go` is the same as 18ed639bc's
+  (only the test was re-indented and the messages rewritten); not rerun.
 - Integration (`cd tests && go test -count=1 -run 'Member|TestCluster|TestIssue|TestRestartMember|TestLearner|TestAddMember|TestRemove|Rotation|TestSpeedyTerminate|TestKVPutStoppedServerAndClose' ./integration/ ./integration/clientv3/`):
   ok (31 tests pass, 2 skipped), including `TestAddMemberAfterClusterFullRotation`, `TestRemoveMember`,
   `TestNetworkPartition*`, `TestIssue2746`, `TestIssue3699`.
 - Not run: `make verify`, e2e and robustness tests.
 
 ## If a reviewer asks
+
+- What the leader waits on, and shutdown: the second send on `notifyc` (capacity 1) completes once `applyAll` has
+  received the first, after `applyEntries` has returned (`server.go:978-989`; a leader's `Ready` carries no
+  snapshot, so `applySnapshot` does not take it first). The apply path does not wait on the raft loop: its
+  `ApplyConfChange` goes to raft's own node goroutine, `configure`'s wait on `raftAdvancedC` is in the proposer's
+  goroutine, and followers already run the same apply code while their raft loop waits. If the apply goroutine stops
+  (`sched.Stop` in `run`'s shutdown), `s.r.stop()` follows and the wait's `case <-r.stopped` returns, as in the
+  follower's wait.
+- Hot path: the wait runs only for a `Ready` whose committed entries include a conf change (`confChanged`); every
+  other leader batch is unchanged.
 
 - Cost: on a batch with a membership change the leader's raft loop waits for its apply loop before `Advance`, so
   for that batch the leader hands out no new `Ready` (no heartbeats, no appends) until the batch is applied, as
