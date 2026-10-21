@@ -12406,3 +12406,86 @@ given.
 collection whose results go through `clientv3.New` (`dialSetupOpts`' proof covers the keepalive
 branch whether a configuration takes it or not); `grpc.KeepaliveEnforcementPolicy.wp_proof` in
 linkv3p's only (its members' servers).
+
+## D29: refusal-free members: a write is never retried (2026-10-21 · asked of the user; `notes/read-retry-plan.md` R2)
+
+**Problem.** A production client keeps the default retries (`MaxUnaryRetries` unset: 100), so
+a read that fails with `Unavailable` is retried on the next member (`notes/read-retry-plan.md`,
+R0: no read failed in any run). The bound is per client, so writes get it too, and linkvtxn's
+write update is ordinary: it may fire once (D21 M6). At the fork's pin the retry interceptor sends
+a `nonRepeatable` call (every unary call but `Range`) again only after a **refusal**, an error
+whose description (`rpctypes.ErrorDesc`, the status message) is one of:
+
+- `"etcdserver: invalid auth token"`, `"etcdserver: revision of auth store is old"`
+  (`shouldRefreshToken` with `retryAuth`, then `refreshToken`, which returns `nil` without a token
+  bundle), `"etcdserver: user name is empty"` (the same path, only with a token bundle; listed so
+  that the client's proof does not depend on the bundle);
+- `"etcdserver: rpc not supported for learner"` (`isSafeRetry`, with more than one endpoint);
+- `"there is no address available"`, `"there is no connection available"`
+  (`isSafeRetryMutableRPC`, messages of grpc's old balancer).
+
+The context-error branch returns for a `nonRepeatable` call (the fork's fix,
+`issues/etcd-client-retry-put-ctx-error.md`), and every other error stops the loop. A proof that
+the members never send a refusal costs far more than the rest of the plan. The server's specs
+describe its errors by structure, not identity (R1, "Error identity"). So the members'
+refusal-freedom is assumed (choice (P) of R1, chosen by the user), and the rest is proved.
+
+**Decision.** `refusalDescs`, the six strings above, and `noRefusal err := err = nil ∨ errDesc err
+∉ refusalDescs`. Four trust-boundary changes, none a new kind:
+
+1. **An error's description, a function of the error** (`errDesc : GoInterface → GoString`,
+   opaque, beside `statusCode`). `status.FromError(err)`'s `s.Message()` returns `errDesc err`
+   (it returned some string), and when `FromError` says the error is not a status error, its
+   `Error()` returns `errDesc err`. True of grpc-go v1.84: the status is embedded in the error
+   value (`GRPCStatus()`), and for an error without one `FromError` builds `Unknown` with
+   `err.Error()` as the message. This is a refinement of the axiom's spec, as `statusCode` was
+   (2026-10-15).
+2. **`errors.Is` on a leaf error** (`errors.IsStatusErr`'s axiom): `true` only if `errDesc err =
+   errDesc target`. True of Go: for a leaf error (`statusErrOk`: no `Unwrap`), `Is` is `err ==
+   target` or `err.Is(target)`. `==` on equal errors gives equal descriptions. `*status.Error`'s
+   `Is` compares the two statuses (`proto.Equal`), so their messages are equal. `EtcdError` has no
+   `Is`, so for it `==` compares `code` and `desc`.
+3. **rpctypes' initializers** (`Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean`'s
+   axioms, about untranslated initializers). The four `ErrGRPC*` refusals have the descriptions
+   above; `errStringToError`'s value at key `k` has description `k` (its literal is
+   `ErrorDesc(ErrGRPCx): ErrGRPCx`, entry by entry); and the client-side `ErrInvalidAuthToken`,
+   `ErrAuthOldRevision`, `ErrUserEmpty` are `EtcdError`s with those descriptions
+   (`Error(ErrGRPCx)`). `rpctypes.Error`'s spec (proved) then keeps the description:
+   `errDesc (Error err) = errDesc err`.
+4. **The attempt and the members.**
+   - A persistent predicate `noRefusalAt addr`. `grpc.ClientConn.Invoke`'s promise, through the
+     attempt contract `grpcInvokerOk`, gains on its error side: if every address of the
+     connection is `noRefusalAt`, then `noRefusal err`. True of grpc-go: a status the server
+     sends is forwarded unchanged (`grpc-status`, `grpc-message`), and grpc's own errors carry
+     grpc's messages. Neither balancer string occurs in grpc v1.84's sources, and the four etcd
+     strings are etcd's. This is the at-most-once kind of D21j: a property of what an attempt
+     returns.
+   - **The members never refuse** (the new axiom, in the server's tree). An etcd server whose KV
+     service is served at `addr` gives `noRefusalAt addr` if it bootstrapped a new cluster as a
+     voter (the membership changes it takes keep it so: `ccApplyOk`, an `AddNode` of a voter),
+     with authentication off (a fresh backend: `NewAuthStore`'s `isAuthStore … false`). The
+     premises are the facts linkv3p's `startMember` has, named exactly at R2. True of etcd at the
+     pin, by its code. The four etcd refusals are made only by `togRPCError`'s map entries for
+     `auth.ErrUserEmpty`, `ErrInvalidAuthToken`, `ErrAuthOldRevision` (`v3rpc/util.go:78-91`;
+     the auth errors' own messages start `"auth: "`) and by the unary interceptor's learner branch
+     (`interceptor.go:54`). `AuthInfoFromCtx` and `isOpPermitted` return those errors only with
+     authentication enabled. The learner branch runs only at a learner. Any other error reaches
+     the client through `togRPCError`'s other entries or its default case, whose message is
+     `err.Error()`, an error of the server's own and not one of the six strings. (The watch
+     stream's cancel reasons use the same strings, but a stream is not a unary call.)
+
+**What it buys.** The client proves (R4): `isSafeRetry`, `isSafeRetryMutableRPC` and
+`shouldRefreshToken` return `true` for a `nonRepeatable` call only on a refusal. So on a
+connection to refusal-free members, the interceptor sends a write once and takes its ordinary
+precondition. Reads keep the persistent one and are retried.
+
+**Alternatives.** (T) two clients per worker, one with retries for reads and one with
+`MaxUnaryRetries: 1` for writes: no trust change, not the production pattern. (F) prove the
+members' refusal-freedom: the learner flag in the membership model with a stronger `IsLearner`
+axiom, an off mode for the request side's auth, and error identity through the request path
+(R1). The learner and auth parts can be proved later. That would leave the axiom only "the server's
+other errors are not refusals".
+
+**Trust base.** +1 axiom (the members'), and restated specs of four existing axioms and
+initializer axioms (`status.FromError`, `errors.IsStatusErr`, `grpc.ClientConn.Invoke` through
+`grpcInvokerOk`, rpctypes' `Init` axioms). linkv3p's collection gains the new axiom.

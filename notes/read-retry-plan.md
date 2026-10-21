@@ -190,6 +190,13 @@ choices:
 - `etcdRefusal`; `noRefusalAt`; the attempt contract's error side; the handler contract's
   option; `notes/decisions.md` D29; ask.
 
+With (P) (chosen by the user, 2026-10-21) the handler contract does not change. D29, as drafted:
+`errDesc` (an error's description, a function of the error, through `status.FromError`), `errors.Is`
+on a leaf error keeps the description, rpctypes' initializers give the refusals' descriptions,
+the attempt's error is `noRefusal` on a connection to `noRefusalAt` addresses, and a new axiom
+says the members are `noRefusalAt`. R3 shrinks to stating the members' axiom from `startMember`'s
+facts.
+
 ### R3. The server
 
 - The unary interceptor, the KV handlers' error paths, `v3rpc.Server`'s registration giving
