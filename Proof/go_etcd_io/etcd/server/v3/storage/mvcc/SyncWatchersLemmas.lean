@@ -657,16 +657,16 @@ theorem sw_bigSepM_step {V : Type} {Φ Ψ : Loc → V → IProp GF} (m : GMap Lo
 they stopped (the caller's certificate of it, `certOk`, with it: unit W-M3). -/
 theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List EvM) (m D : Nat)
     (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) :
-    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ⊢
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ⊢
       evsWf γ r lo (evsw ++ watchEvents C r m D) D := by
-  iintro ⟨Hwf, #HC, #HokC⟩
+  iintro ⟨Hwf, #HC, #HokC, #HrlC⟩
   iunfold evsWf at Hwf
-  icases Hwf with ⟨%L, #HlbL, %HL⟩
+  icases Hwf with ⟨%L, #HlbL, -, %HL⟩
   ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
   ihave %hcmp := evLog_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
   iexists C
-  iframe HlbC
+  iframe HlbC HrlC
   ipureintro
   refine ⟨?_, Or.inl hD⟩
   rw [HL.1, watchEvents_cmp hcmp.symm r HL.2 (Or.inl (by omega)),

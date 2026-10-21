@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove"]
+defaultTargets = ["EtcdGrove", "RaftWitness"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -24,6 +24,15 @@ rev = "a39a3d14c5497444d8c3fe69dc6625c257711297"
 [[lean_lib]]
 name = "EtcdGrove"
 globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+", "Proof.+"]
+
+# The witness experiment (notes/raft-witness.md): raft with witness support (a candidate for
+# etcd-io/raft#133) and the key-value store on it, in a parallel tree with the same layout
+# (RaftWitness/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/, translated by
+# etc/goose.py's projects raft-witness and kvwitness). It imports the main tree, but not its raft
+# or kv, and nothing outside it imports it: its modules declare the main raft's names.
+[[lean_lib]]
+name = "RaftWitness"
+globs = ["RaftWitness.+"]
 
 [leanOptions]
 linter.unusedSectionVars = false

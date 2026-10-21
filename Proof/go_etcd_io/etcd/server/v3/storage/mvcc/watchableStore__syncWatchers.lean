@@ -117,7 +117,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -129,8 +129,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ihave HP : mvcc.watchStoreBody s γ 1 σ $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo
         Hmeta Hwt Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HP]
-    · inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HP Hrel]
+    · inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.watchReader
@@ -157,6 +157,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   -- under `s.mu`, the committed log is the notified one (unit W-K)
   icases persistent_entails_right (mvcc.wlogQ_auth_agree (GF := GF) γ _ _ σ.Lmu C) $$
     [$Hwlog $HlogQ] with ⟨%HCL, Hwlog, HlogQ⟩
+  -- (D25) the committed log is released
+  ihave #HrlC0 := monoNatLbOwn_get γ.rel 1 _ $$ Hrel
+  ihave #HrlC : mvcc.relLb γ C.length $$ []
+  · iunfold mvcc.relLb; rw [HCL]; iexact HrlC0
   wp_auto
   -- the unsynced members' states, for `choose`
   icases persistent_entails_right (mvcc.sw_unsynced_bounds γ σ Hok _ C) $$ [$Hmem $HlogQ]
@@ -414,7 +418,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       have hloN : γw.lo ≤ sint.nat st.minRev := by
         show _ ≤ (sint.Z st.minRev).toNat; omega
       ihave #Hwf' := mvcc.sw_evsWf_extend γ r' γw.lo evsw (sint.nat st.minRev) C.length C hmN
-        (Nat.le_refl _) hloN $$ [$Hwf $HcertQ $HokQ]
+        (Nat.le_refl _) hloN $$ [$Hwf $HcertQ $HokQ $HrlC]
       rw [hwE, List.append_nil] at *
       generalize hst' : ({ st with minRev := W64 ((C.length : Int) - 1) + W64 1 } : mvcc.WatcherSt) = st'
       have hst'm : sint.Z st'.minRev = C.length := by rw [← hst']; exact hcur1
@@ -482,7 +486,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         wp_auto
         have hmD : sint.nat st.minRev ≤ C.length := hmN
         ihave #Hwf' := mvcc.sw_evsWf_extend γ r' γw.lo evsw (sint.nat st.minRev) C.length C hmD
-          (Nat.le_refl _) hloN $$ [$Hwf $HcertQ $HokQ]
+          (Nat.le_refl _) hloN $$ [$Hwf $HcertQ $HokQ $HrlC]
         rw [← hevB]
         have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) C.length
           (Nat.le_refl _)
@@ -642,7 +646,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         wp_auto
         have hmD : sint.nat st.minRev ≤ M := by omega
         ihave #Hwf' := mvcc.sw_evsWf_extend γ r' γw.lo evsw (sint.nat st.minRev) M C hmD
-          (by omega) hloN $$ [$Hwf $HcertQ $HokQ]
+          (by omega) hloN $$ [$Hwf $HcertQ $HokQ $HrlC]
         rw [← hevB]
         have hmodB := mvcc.watchEvents_modRev C HCwf.2.1 r' (sint.nat st.minRev) M
           (by omega)
@@ -935,8 +939,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     isplitr
     · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by unfold mvcc.outRes; exact .rfl)) $$ Hout
     ipureintro; exact hokf
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf]
-  · inext; iunfold mvcc.watchStoreInv; iexists σf; iframe HPf; ipureintro
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf Hrel]
+  · inext; iunfold mvcc.watchStoreInv; iexists σf; iframe HPf Hrel; ipureintro
     exact ⟨mvcc.WsState.settled_congr Hl.set rfl rfl rfl rfl rfl rfl hvo, Hsrb⟩
   (try wp_auto)
   iapply HΦ

@@ -290,7 +290,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ sync.rfrac)) $$ Hlc1 HP with HP
   -- `s.rev()`, lent the lock body's fraction of the committed log: the notified log (unit W-K)
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -318,12 +318,14 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "Hdx" ∷ (defer ↦ func.mk BAnon BAnon
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
-      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
+      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
+      "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
+      "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS ∗
       "%Hi" ∷ ⌜0 ≤ i ∧ ∀ (j : Nat) (id : w64) (w : Loc), j < i.toNat → keys[j]? = some id →
         M !! id = some w → (σ.Ws !! w).isSome⌝)) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [w s responseWatchID watchers Hrl Hdx HP Hrd rev HΦ HCS]
+  isplitl [w s responseWatchID watchers Hrl Hdx HP Hrel Hrd rev HΦ HCS]
   · iexists _
     simp only [named]
     iframe
@@ -364,8 +366,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       · ipureintro; rfl
       iintro Hm
       wp_auto
-      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-      · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
+      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP Hrel] as Hslot
+      · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
       wp_auto
       iapply HΦ
       iframe Hm HCS
@@ -388,8 +390,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
         · ipureintro; rfl
         iintro Hm
         wp_auto
-        wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-        · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
+        wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP Hrel] as Hslot
+        · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
         wp_auto
         iapply HΦ
         iframe Hm HCS
@@ -474,10 +476,12 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "Hdx" ∷ (defer ↦ func.mk BAnon BAnon
         (Seq (App (Val #(methods (go.GoType.PointerType sync.RWMutex.ty) go!"RUnlock" #(mvcc.wsMuAddr s)))
           (Val #())) (App (Val #(func.mk BAnon BAnon (Val #()))) (Val #()))) : IProp GF) ∗
-      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗ "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
+      "HP" ∷ mvcc.watchStoreBody s γ sync.rfrac σ ∗
+      "Hrel" ∷ monoNatAuthOwn γ.rel sync.rfrac σ.Lmu.length ∗
+      "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS)) $$ Hm
   iintro %keys2 -
-  isplitl [w responseWatchID Hrl Hdx HP Hrd rev HΦ HCS]
+  isplitl [w responseWatchID Hrl Hdx HP Hrel Hrd rev HΦ HCS]
   · iexists _
     simp only [named]
     iframe
@@ -599,8 +603,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · ipureintro; rfl
     iintro Hm
     wp_auto
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-    · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP Hrel] as Hslot
+    · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
     wp_auto
     iapply HΦ
     iframe Hm HCS
@@ -609,8 +613,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
   iintro HP' Hm
   iNamed HP'
   wp_auto
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hslot
-  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP; ipureintro; exact ⟨Hset, Hsrb⟩
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP Hrel] as Hslot
+  · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
   wp_auto
   iapply HΦ
   iframe Hm HCS

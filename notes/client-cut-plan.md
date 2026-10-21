@@ -1,6 +1,6 @@
 # Plan: cuts between clients and members in `linkv3p`, and recovery from them
 
-Status: in progress (2026-10-21, branch `client-cut`, worktree `/shared/etcd-grove-cc`): K0, K1 and
+Status: in progress (2026-10-21, branch `client-cut`, merged into `lean`): K0, K1 and
 K3 done; K2 dropped (the bridge is part of the network, its code not verified: `notes/decisions.md`
 D26, the user's decision); K4 not started. `linkv3p_safe` now covers client-member cuts and recovery at the same member.
 

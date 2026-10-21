@@ -43,6 +43,7 @@ axiom backend.rtxStats
 axiom backend.txLive
 axiom context.WithCancelValCtx.wp_proof
 axiom errors.IsCtxErr.wp_proof
+axiom errors.IsStatusErr.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.GenericClientStream.CloseSend.wp_proof
 axiom grpc.GenericClientStream.Context.wp_proof

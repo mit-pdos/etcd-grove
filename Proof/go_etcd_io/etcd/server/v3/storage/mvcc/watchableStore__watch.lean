@@ -277,6 +277,9 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
   imod ghostVar_update (σ.addW b w r st0 γw) γ.wst σ $$ Hσ with Hσ
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
+  imod (monoNatLbOwn_0 (GF := GF) γ.rel) with #Hrl0
+  ihave #Hrlb0 : mvcc.relLb γ ([] : mvcc.Log).length $$ []
+  · iunfold mvcc.relLb; iexact Hrl0
   imodintro
   iunfold mvcc.watchStoreBody
   simp only [mvcc.WsState.addW_Lmu, mvcc.WsState.addW_Ws, mvcc.WsState.addW_Wu,
@@ -323,14 +326,14 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
         · ipureintro; refine ⟨by omega, ?_⟩
           rw [show sint.nat st0.minRev = (sint.Z st0.minRev).toNat from rfl]; omega
         isplitr
-        · iunfold mvcc.evsWf; iexists []; iframe Hlb; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
+        · iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
         iexists C
         iframe HC
         ipureintro; exact hu rfl
       · simp only [mvcc.WsState.addW, GMap.lookup_insert, Option.isSome_some, ↓reduceIte]
         isplitr
         · ipureintro; omega
-        iunfold mvcc.evsWf; iexists []; iframe Hlb; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
+        iunfold mvcc.evsWf; iexists []; iframe Hlb Hrlb0; ipureintro; exact ⟨(hlb []).symm, Or.inr (Nat.le_refl _)⟩
     iapply BigSepM.bigSepM_mono $$ Hmem
     intro w' st' hw'
     have hne : w ≠ w' := by
@@ -345,17 +348,27 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
   ipureintro
   exact hok.addW b w r st0 γw hM hst hd
 
-/-- A start read is within the committed log (K2e-6). -/
-theorem mvcc.startRead_le (γ : mvcc.WsNames) (q : Qp) (C : mvcc.Log) (sr : Bool) (startRev : w64) :
-    mvcc.idxLogAuth (GF := GF) γ.st.idx q C ∗ mvcc.startRead γ sr startRev ⊢
+/-- A start read is within the committed log (K2e-6), under `s.mu`: there the notified log is the
+committed one and the released length its length (D25). -/
+theorem mvcc.startRead_le (γ : mvcc.WsNames) (q q' q'' : Qp) (C : mvcc.Log) (sr : Bool)
+    (startRev : w64) :
+    mvcc.idxLogAuth (GF := GF) γ.st.idx q C ∗ mvcc.wlogQ γ q' C ∗ monoNatAuthOwn γ.rel q'' C.length ∗
+      mvcc.startRead γ sr startRev ⊢
       ⌜sr = true → sint.Z startRev ≤ (C.length : Int)⌝ := by
-  iintro ⟨Ha, Hs⟩
+  iintro ⟨Ha, Hw, Hr, Hs⟩
   iunfold mvcc.startRead at Hs
-  icases Hs with (%hsf | ⟨%Ls, #HcL, %hLs⟩)
+  icases Hs with (%hsf | ⟨%Ls, #HcL, %hLs⟩ | ⟨%Ls, #HnL, %hLs⟩ | ⟨%n, #HrL, %hn⟩)
   · ipureintro; intro h; rw [hsf] at h; cases h
   · ihave %HpL := mvcc.idxLogAuth_cert_prefix _ _ _ _ $$ [$Ha $HcL]
     ipureintro; intro _
     have := HpL.length_le; omega
+  · ihave %HpL := mvcc.wlogQ_lb_valid _ _ _ _ $$ [$Hw $HnL]
+    ipureintro; intro _
+    have := HpL.length_le; omega
+  · iunfold mvcc.relLb at HrL
+    ihave %Hle := monoNatLbOwn_valid _ _ _ _ $$ Hr HrL
+    ipureintro; intro _
+    omega
 
 /-- The committed log's authority is above the notified log's certificate (kept). -/
 theorem mvcc.watch_logAuth_prefix (γi : mvcc.IdxNames) (q : Qp) (C L : mvcc.Log) :
@@ -567,6 +580,9 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
   imod ghostVar_update_halves (w :: L) γc.regl _ _ $$ Hregl0 Hregl with ⟨Hregl0, Hregl⟩
   -- no event yet: the empty log is watched (`evLog_nil`, unit W-M3)
   imod (mvcc.evLog_nil (GF := GF) γ.st) with #Hlb
+  imod (monoNatLbOwn_0 (GF := GF) γ.rel) with #Hrl0
+  ihave #Hrlb0 : mvcc.relLb γ ([] : mvcc.Log).length $$ []
+  · iunfold mvcc.relLb; iexact Hrl0
   -- the registration index (unit W-K)
   imod mvcc.sentAuth_register _ γc sent L w HwL $$ Hsentl with ⟨Hsentl, #Hrega⟩
   imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws He2 Hl2 Hsentl] with -
@@ -611,13 +627,13 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
       iexists lo
       iunfold mvcc.evsWf
       iexists []
-      iframe Hlb
+      iframe Hlb Hrlb0
       ipureintro
       exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
     isplitr
     · iunfold mvcc.evsWf
       iexists []
-      iframe Hlb
+      iframe Hlb Hrlb0
       ipureintro
       exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
     ileft
@@ -667,7 +683,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -685,8 +701,16 @@ theorem mvcc.watchableStore.watch.wp_proof
   -- under `s.mu` the committed log is the notified one; a start read is within it (K2e-6)
   icases persistent_entails_right (mvcc.wlogQ_auth_agree (GF := GF) γ _ _ σ.Lmu C) $$
     [$Hwlog $HlogQ] with ⟨%HCL, Hwlog, HlogQ⟩
-  icases persistent_entails_right (mvcc.startRead_le γ _ C sr startRev) $$ [$HlogQ $Hsrp]
-    with ⟨%HsrC, HlogQ, -⟩
+  ihave Hrel : monoNatAuthOwn γ.rel 1 C.length $$ [Hrel]
+  · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu C HCL.symm); iexact Hrel
+  ihave Hwlog : mvcc.wlogQ γ 1 C $$ [Hwlog]
+  · rw [HCL]; iexact Hwlog
+  icases persistent_entails_right (mvcc.startRead_le γ _ _ _ C sr startRev) $$
+    [$HlogQ $Hwlog $Hrel $Hsrp] with ⟨%HsrC, HlogQ, Hwlog, Hrel, -⟩
+  ihave Hwlog : mvcc.wlogQ γ 1 σ.Lmu $$ [Hwlog]
+  · rw [← HCL]; iexact Hwlog
+  ihave Hrel : monoNatAuthOwn γ.rel 1 σ.Lmu.length $$ [Hrel]
+  · iapply (mvcc.relAuth_of_eq γ _ C σ.Lmu HCL); iexact Hrel
   ihave %HCwf : ⌜C.length < 2 ^ 63⌝ $$ [HcertQ]
   · iunfold mvcc.idxCert at HcertQ
     icases HcertQ with ⟨-, -, %H, -⟩
@@ -808,11 +832,13 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
         ipureintro; exact Hvlen
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
+        isplitl [Hrel]
+        · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
         ipureintro
         exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
           mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
@@ -916,11 +942,13 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
         ipureintro; exact Hvlen
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
+        isplitl [Hrel]
+        · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
         ipureintro
         exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
           mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
@@ -1034,11 +1062,13 @@ theorem mvcc.watchableStore.watch.wp_proof
           iunfold mvcc.watcherOwn
           iframe minRev victim compacted restore ch
           ipureintro; exact Hvlen
-        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
+        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
         · inext
           iunfold mvcc.watchStoreInv
           iexists _
           iframe Hbody
+          isplitl [Hrel]
+          · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
           ipureintro
           exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
             mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
@@ -1143,11 +1173,13 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
         ipureintro; exact Hvlen
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
+        isplitl [Hrel]
+        · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
         ipureintro
         exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
           mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩

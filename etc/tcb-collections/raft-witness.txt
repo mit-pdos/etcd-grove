@@ -1,0 +1,37 @@
+# The witness experiment (notes/raft-witness.md; the parallel tree RaftWitness/): every linked
+# result of RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean (raft with witness support) and of
+# RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean (the key-value
+# store with a witness), and the results of their Results.lean (kv_witness_porcupine_safe).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/raft-witness.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/raft-witness.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/raft-witness.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+# The axioms (2026-10-21) are those of etc/tcb-collections/raft.txt and kv.txt (the part's
+# copies of the same trust-boundary statements, `RaftWitness/{Spec,Proof}/`, declare the same
+# names) and `strconv.FormatUint` (the server's trust boundary, copied: raft#168's tracker formats a
+# replication set's ids, `ReplicationSet.String`). The witness's storage is a hypothesis (its interface's contract), not an
+# axiom; no `sorry`.
+roots ^RaftWitness/Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
+roots ^RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/(Link|Results)\.lean$
+axiom DescribeConfChange.wp_proof
+axiom Perennial.os.Stderr_init
+axiom Perennial.os.initFuncsOk
+axiom Perennial.os.opaqueInitsOk
+axiom Perennial.strconv.opaqueInitsOk
+axiom context.ErrAny.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom initLb_of_spec
+axiom proto.CloneConfState.wp_proof
+axiom proto.CloneEntry.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.EqualConfState.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizeEntry.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom raftpb.ConfChangeType.String.wp_proof
+axiom strconv.FormatUint.wp_proof

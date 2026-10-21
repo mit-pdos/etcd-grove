@@ -31,30 +31,30 @@ read only if it has no events; its events `es`): makes the `WatchResponse` `wrOf
 fresh location, read-only) and broadcasts it (a progress notification of id `-1`,
 `isBroadcast`) or sends it to the substream registered under its id (`unicastResponse`), each
 target's content of it given (`sendCap`, the target's values `Pf ws`, its `recvc` producer's
-history `Sf ws`); returns whether it was delivered (unicast; `true` for a broadcast). -/
+history `Sf ws`, its lifetime's `donec` `Df ws`, D25); returns whether it was delivered (unicast; `true` for a broadcast). -/
 abbrev watchGRPCStream.dispatchEvent.spec : Prop :=
   ∀ (V : WEnv GF) (wgs p : Loc) (dq : DFrac) (mm : v3rpc.WatchRespM) (h : Loc) (sl : GoSlice)
     (es : List EvModel) (m : Loc) (M : GMap w64 Loc) (dq1 dq2 : DFrac)
-    (Pf : Loc → WsPrm GF) (Sf : Loc → List Loc),
+    (Pf : Loc → WsPrm GF) (Sf : Loc → List Loc) (Df : Loc → DnInfo GF) (γend : GName) (n : Nat),
   let Ψ : Loc → IProp GF := fun wr => iprop(wr ↦□ wrOf mm h sl)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ respFields p dq mm h sl ∗
       eventsAt sl es ∗ ⌜es.length = mm.evs.length⌝ ∗
       (⌜mm.evs = []⌝ -∗ hdrAt h mm.hdr.revision) ∗
-      wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
+      wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗ monoNatAuthOwn γend 1 n ∗
       (if decide (isBroadcast mm) then
-        iprop([∗map] _k ↦ ws ∈ M, ⌜(Pf ws).ws = ws⌝ ∗ sendCap V (Pf ws) (Sf ws) Ψ)
+        iprop([∗map] _k ↦ ws ∈ M, ⌜(Pf ws).ws = ws⌝ ∗ sendCap V (Pf ws) (Sf ws) Ψ (Df ws) γend n)
        else match M !! mm.watchId with
-         | some ws => iprop(⌜(Pf ws).ws = ws⌝ ∗ sendCap V (Pf ws) (Sf ws) Ψ)
+         | some ws => iprop(⌜(Pf ws).ws = ws⌝ ∗ sendCap V (Pf ws) (Sf ws) Ψ (Df ws) γend n)
          | none => iprop(True)) }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"dispatchEvent")) (Val #p))
   {{ (b : Bool), RET #b; respFields p dq mm h sl ∗
-      wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗
+      wgsF wgs go!"substreams" ↦{dq1} m ∗ ownMap m dq2 M ∗ monoNatAuthOwn γend 1 n ∗
       (if decide (isBroadcast mm) then
         iprop(⌜b = true⌝ ∗ ∃ wr : Loc, [∗map] _k ↦ ws ∈ M,
-          sendDone (Pf ws) (Sf ws) wr ∨ sendFail V (Pf ws) (Sf ws) wr)
+          sendDone (Pf ws) (Sf ws) wr (Df ws) γend n ∨ sendFail V (Pf ws) (Sf ws) wr (Df ws) γend n)
        else match M !! mm.watchId with
-         | some ws => iprop(∃ wr : Loc, (⌜b = true⌝ ∗ sendDone (Pf ws) (Sf ws) wr) ∨
-             (⌜b = false⌝ ∗ sendFail V (Pf ws) (Sf ws) wr))
+         | some ws => iprop(∃ wr : Loc, (⌜b = true⌝ ∗ sendDone (Pf ws) (Sf ws) wr (Df ws) γend n) ∨
+             (⌜b = false⌝ ∗ sendFail V (Pf ws) (Sf ws) wr (Df ws) γend n))
          | none => iprop(⌜b = false⌝)) }}
 
 end spec

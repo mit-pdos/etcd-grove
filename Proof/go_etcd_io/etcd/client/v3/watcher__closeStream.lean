@@ -35,7 +35,7 @@ theorem watcher.closeStream.wp_proof : watcher.closeStream.spec (GF := GF) (hG :
   iunfold isWGS at Hg
   icases Hg with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
-    #Hbdone⟩
+    #Hbdone, -⟩
   wp_auto
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   wp_apply wp_broadcast_chan_close G.donec G.γdone (closeErrPub G.wgs) $$ [$Hdc] as -

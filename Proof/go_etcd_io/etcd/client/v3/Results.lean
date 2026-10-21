@@ -2690,8 +2690,8 @@ model's `etcdState`/`EtcdStep` are stated) and certified by the apply thread bef
 notifies it (`certOk`, over which `etcdReached` is stated: the KV model of a committed raft
 prefix), so a watch event's revision is reached (`ev_ok`); the remaining premises are the wire's,
 `srvNoDupKeys`
-(`issues/etcd-txn-check-intervals-sibling.md`), `noRetryableStreamErr` (the reconnection excluded:
-`issues/etcd-watch-resume-closing-substream.md`), the watch-token supply, `srvLogsSmall`
+(`issues/etcd-txn-check-intervals-sibling.md`) (until 2026-10-20 also `noRetryableStreamErr`, the
+reconnection excluded; D25 verifies it), the watch-token supply, `srvLogsSmall`
 (`srvLogsSmall_of_read`) and `V.R.γ.st = V.R.E.γ` (`watchSrvLink_of_server`). -/
 theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗

@@ -12,6 +12,7 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txLive
 axiom context.WithCancelValCtx.wp_proof
+axiom errors.IsStatusErr.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof

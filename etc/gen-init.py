@@ -24,6 +24,9 @@ for a package whose import closure contains a `PRE_RES` package, `wp_initialize'
 come from their `wp_initialize'` by the trust-boundary axiom `EtcdGrove.initLb_of_spec`, over the
 initializers listed in the generated `Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
 
+The parallel tree `RaftWitness/` gets copies of the files it imports that reach raft
+(`PART_INITS`, and `PkgInitExt`), at `RaftWitness/<path>`.
+
   etc/gen-init.py            regenerate every file
   etc/gen-init.py --check    exit 1 if a file differs from what would be generated
   etc/gen-init.py PKG...     regenerate these packages (Lean names, `go_etcd_io.etcd.pkg.v3.wait`)
@@ -1888,6 +1891,34 @@ def gen_table(p, path):
     return path, '\n'.join(L) + '\n'
 
 
+# The parallel tree `RaftWitness/` (raft's witness experiment, notes/raft-witness.md) imports the
+# initializers of these packages, which reach raft through `PkgInitExt` (raft's `initialize'` is
+# an `ExternalInit`); no module may import both raft trees (the same declarations), so the part
+# has its own copies: the same files, at `RaftWitness/<path>`, whose imports of these modules and
+# of raft's translation are the part's.
+PART_ROOT = 'RaftWitness'
+PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_grove.examples.lintest',
+              'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.internal.pragma',
+              'google_golang_org.protobuf.reflect.protoreflect',
+              'google_golang_org.protobuf.runtime.protoimpl']
+PART_PATHS = {f'Proof/{dirof(p)}/Init.lean' for p in PART_INITS} | {'Proof/runtime/PkgInitExt.lean'}
+PART_MODULES = {p[:-len('.lean')].replace('/', '.') for p in PART_PATHS}
+
+
+def part_copy(path, txt):
+    """The part's copy of the generated file `path`."""
+    def imp(m):
+        x = m.group(2)
+        if x in PART_MODULES or x == 'Code.go_etcd_io.raft' or x.startswith('Code.go_etcd_io.raft.'):
+            x = PART_ROOT + '.' + x
+        return m.group(1) + x
+    txt = re.sub(r'(?m)^(public import )(\S+)', imp, txt)
+    i = txt.index('\nmodule\n') + 1
+    note = (f'-- The copy for the parallel tree `{PART_ROOT}/` of `{path}` (`PART_INITS` in\n'
+            f'-- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part\'s.\n')
+    return f'{PART_ROOT}/{path}', txt[:i] + note + txt[i:]
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -1897,6 +1928,7 @@ def main(argv):
     if not [a for a in argv if not a.startswith('--')]:
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
+    outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

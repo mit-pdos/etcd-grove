@@ -52,6 +52,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.MonoNat
 
 @[expose] public section
 
@@ -223,6 +224,10 @@ structure WsNames where
   wst : GName
   /-- the watcher budget (`watchBudget`): a registration costs one token (`watchTok`) -/
   wt : GName
+  /-- (D25) the released length: a monotone nat, the notified log's length under `s.mu`
+  (`watchStoreInv`), bumped by `End` before it notifies the pending revision's events, so every
+  delivered event's revision is below it (`relLb`, kept by `evsWf`) -/
+  rel : GName
 
 /-! ## Channel states
 
@@ -528,10 +533,23 @@ theorem evLog_nil (γ : StoreNames) : ⊢ |==> evLog (GF := GF) γ [] := by
   iframe H
   ileft; ipureintro; simp
 
+/-- **The store had released `n` revisions** (persistent; D25): a lower bound of `γ.rel`, the
+notified log's length under `s.mu`, which `End` bumps before it notifies a revision's events. A
+log whose events a watcher was delivered is released (`evsWf`), so a watch resumed after its last
+event starts within the released revisions (`startRead`). -/
+def relLb (γ : WsNames) (n : Nat) : IProp GF := monoNatLbOwn γ.rel n
+
+instance relLb_persistent (γ : WsNames) (n : Nat) : Persistent (relLb (GF := GF) γ n) := by
+  unfold relLb; infer_instance
+
+theorem relLb_le (γ : WsNames) (n m : Nat) (h : m ≤ n) :
+    relLb (GF := GF) γ n ⊢ relLb γ m := by
+  unfold relLb; iintro H; iapply monoNatLbOwn_le m h $$ H
+
 /-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
 sealed and certified; persistent; `d` past the log only for an empty range). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
-  iprop(∃ L : Log, evLog γ.st L ∗
+  iprop(∃ L : Log, evLog γ.st L ∗ relLb γ L.length ∗
     ⌜evs = watchEvents L r lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝)
 
 instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) :
@@ -628,9 +646,14 @@ instance notifiedLb_persistent (γ : WsNames) (L : Log) : Persistent (notifiedLb
 
 /-- **A watch's start revision, read** (K2e-6; persistent): for a watch registered with `sr`, a
 log the store had committed (`idxCert`) reaches its start revision (the start revision minus one
-is a revision of it). -/
+is a revision of it), or (D25: a watch resumed after a reconnect, from its last delivered event or
+progress revision) a log the store had notified, or the released revisions (`relLb`). Under
+`s.mu`, where a watcher registers, the three agree: the notified log is the committed one and the
+released length its length (`watchStoreInv`, `startRead_le`). -/
 def startRead (γ : WsNames) (sr : Bool) (startRev : w64) : IProp GF :=
-  iprop(⌜sr = false⌝ ∨ ∃ Ls : Log, idxCert γ.st.idx Ls ∗ ⌜sint.Z startRev ≤ (Ls.length : Int)⌝)
+  iprop(⌜sr = false⌝ ∨ (∃ Ls : Log, idxCert γ.st.idx Ls ∗ ⌜sint.Z startRev ≤ (Ls.length : Int)⌝) ∨
+    (∃ Ls : Log, notifiedLb γ Ls ∗ ⌜sint.Z startRev ≤ (Ls.length : Int)⌝) ∨
+    (∃ n : Nat, relLb γ n ∗ ⌜sint.Z startRev ≤ (n : Int)⌝))
 
 instance startRead_persistent (γ : WsNames) (sr : Bool) (startRev : w64) :
     Persistent (startRead (GF := GF) γ sr startRev) := by
@@ -1077,7 +1100,7 @@ theorem cov_one (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
   ihave %Hag := monoListAuthOwn_agree _ _ _ _ _ $$ Ha' Hq
   ihave #Hcov : covFact γ γc sent c.w rev $$ []
   · iunfold evsWf at Hwf
-    icases Hwf with ⟨%L0, #HL0, %Hev0⟩
+    icases Hwf with ⟨%L0, #HL0, -, %Hev0⟩
     iunfold covFact
     iexists c.γw, c.r, c.fcs, D, L0, c.d
     iframe Hm Hf HL0
@@ -1485,9 +1508,18 @@ def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :
     "#Hout" ∷ ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ∗
     "%Hok" ∷ ⌜WsOk σ⌝)
 
-/-- **The lock invariant** of `s.mu` (see the module docstring). -/
+/-- The released length's authority at a log of the same length (`watchStoreInv`'s, re-established
+after a step that keeps the notified log). -/
+theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
+    monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
+  subst h; exact .rfl
+
+/-- **The lock invariant** of `s.mu` (see the module docstring); D25: with the released length's
+authority at the notified log's length (`End` bumps it before notifying, inside its critical
+section). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
-  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
+  iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ monoNatAuthOwn γ.rel q σ.Lmu.length ∗
+    ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
 
 /-! ## The store -/
 

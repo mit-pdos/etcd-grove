@@ -30,10 +30,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 theorem watchGRPCStream.sendCloseSubstream.wp_proof :
     watchGRPCStream.sendCloseSubstream.spec (GF := GF) (hG := hG) := by
   intro V P wgs resp v
-  wp_start as ⟨#Hws, Hprod, Hresp, Hhdr, %Hv, #Hse⟩
+  wp_start as ⟨#Hws, Hprod, Houtcf, Hresp, Hhdr, %Hv, #Hse⟩
   ihave #Hws' := Hws
   iunfold wsIs at Hws'
-  icases Hws' with ⟨#Hro, #Houtc, -, -, #Hspsc, -, -, #Hctx, -, %Hwsp, -⟩
+  icases Hws' with ⟨#Hro, -, #Hspsc, -, #Hctx, -, %Hwsp, -⟩
   iunfold wrRO at Hro
   icases Hro with ⟨#Hctxf, -⟩
   ihave #Hctx1 := Hctx

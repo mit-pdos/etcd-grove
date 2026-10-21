@@ -23,6 +23,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --leasing > Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --kv > Proof/github_com/mit_pdos/etcd_grove/examples/kv/Link.lean
+       etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
+       etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
@@ -128,6 +130,10 @@ until stage R6 swapped the trees).
 example, `--register`), from etc/link-lean-first-kv.txt; raft's, the porcupine driver's and
 porcupine's functions it calls are `@` callees, linked in their `Link.lean`s, and its specs'
 `[KVStor GF]` (the storage registry) is passed on.
+`--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
+witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
+etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
+`RaftWitness/`, the part's spec of a function taking the place of the main tree's.
 """
 import os
 import re
@@ -245,6 +251,21 @@ LEAN_FIRST = {
     "--raft": ("link-lean-first-raft.txt", "go_etcd_io.raft.v3",
                "go_etcd_io.raft.v3.Assumptions",
                "The Raft proof (raft v3.7 plus the read-index fix)", [""]),
+    # the witness experiment (the parallel tree RaftWitness/, project raft-witness of
+    # etc/goose.py): its Raft proof, and the key-value store on it (project kvwitness). A spec
+    # of the part (`RaftWitness/Spec/`) is linked in place of the main tree's of the same
+    # function (its copies of `slices.Sort`, the `proto` axioms, ...); the other callees (`fmt`'s,
+    # lintest's, porcupine's) are the main tree's.
+    "--raft-witness": ("link-lean-first-raft-witness.txt", "go_etcd_io.raft.v3",
+                       "go_etcd_io.raft.v3.Assumptions",
+                       "The Raft proof of the witness experiment (raft v3.7 plus the read-index "
+                       "fix and witness support, `RaftWitness/`)", ["", "RaftWitness"]),
+    "--kvwitness": ("link-lean-first-kvwitness.txt",
+                    "github_com.mit_pdos.etcd_grove.examples.kvwitness go_etcd_io.raft.v3 "
+                    "github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine",
+                    "github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions",
+                    "The key-value store example's proofs on the witness raft (`examples/kvwitness`, "
+                    "`RaftWitness/`)", ["", "RaftWitness"]),
     # porcupine (third_party/porcupine), the linearizability checker of etcd's robustness tests
     "--porcupine": ("link-lean-first-porcupine.txt", "github_com.anishathalye.porcupine",
                     "github_com.anishathalye.porcupine.Assumptions",
@@ -337,7 +358,7 @@ if mode is None:
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
 NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3", "--linkv3p",
-            "--linkvtxn"}
+            "--linkvtxn", "--kvwitness"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
@@ -484,13 +505,15 @@ def specref(fn):
 
 def external_link(fn):
     """The `Link` module that links the external callee `fn`: its package's, or the nearest
-    enclosing package's that has one (raft's `Link.lean` links `raftpb`'s functions too)."""
+    enclosing package's that has one (raft's `Link.lean` links `raftpb`'s functions too), in the
+    module root of its spec (a part's, `RaftWitness/`)."""
     parts = where[fn].split(".")[:-1]
+    pre = prefix[fn]
     while parts:
-        if os.path.exists(os.path.join(root, "Proof", *parts, "Link.lean")):
-            return "Proof." + ".".join(parts + ["Link"])
+        if os.path.exists(os.path.join(root, pre.rstrip("."), "Proof", *parts, "Link.lean")):
+            return pre + "Proof." + ".".join(parts + ["Link"])
         parts = parts[:-1]
-    return "Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
+    return pre + "Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
 
 # **Reuse**: the callees whose result a Link this one imports already defines (same full name):
 # imported from there (`reused`: fn -> the Link's module), not emitted.
@@ -514,7 +537,7 @@ if cache:
         seen_links.add(mod)
         src = open(link_file(mod)).read()
         links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
-        todo.extend(re.findall(r"^public import (Proof\.\S+\.Link)$", src, re.M))
+        todo.extend(re.findall(r"^public import ((?:RaftWitness\.)?Proof\.\S+\.Link)$", src, re.M))
     here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
     # an `@` callee's result named, in its Link, by the name `result` gives but in another
     # namespace than this one's (the client's `v3.clientv3.wp_New`, in `EtcdGrove.client`, called

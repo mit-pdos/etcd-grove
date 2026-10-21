@@ -1,0 +1,28 @@
+# REPLAY=traces/joint-oltq.txt python3 model.py 4 2 faithful 3 12 1 2 w0 joint enter2
+# nodes A=1 B=2 E=3 F=4, witness W=5; initial voters {1,2,W}
+# A leads term 1
+('elect', 1, (1, 2), 1, None)
+# one joint change adding E and F: (1 2 3 4 W) && (1 2 W)
+('propc', 1, ('enter2', ('add', 3), ('add', 4)))
+('app', 1, 2, 2)
+('commit', 1, 2)
+('apply', 1, 1)
+# A applies the joint configuration: subterm 1 (both halves exclude W), then the auto-leave entry
+('apply', 1, 2)
+# B learns the commit of the joint entry and applies it (its commit stays at 2)
+('app', 1, 2, 2)
+('apply', 2, 1)
+('apply', 2, 2)
+# subterm 2: the incoming half excludes W, the outgoing half excludes B
+('rschange', 1, 5, 2)
+# B gets the log up to subterm 2's empty entry (index 5), not the next entry
+('app', 1, 2, 5)
+# the entry e at index 6, subterm 2
+('propv', 1, 1)
+('app', 1, 4, 6)
+# the witness is written on A's own acknowledgement (quorum-1 of the outgoing set {A})
+('wapp', 1, 6, 'store')
+# e committed: incoming {A, F, W}, outgoing {A, W}
+('commit', 1, 6)
+# B (lacking e) is elected in term 2 with E's vote and the witness's
+('elect', 2, (2, 3), 2, (2, 3))

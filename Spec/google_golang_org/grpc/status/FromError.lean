@@ -26,8 +26,7 @@ variable [sem : go.Semantics]
 /-- **The gRPC status code of an error** (opaque): what `status.FromError(err).Code()` returns.
 grpc's `FromError` reads the status embedded in the error value (`GRPCStatus()`, or `Unknown` for
 an error that has none, `OK` for `nil`), so the code is a function of the error; nothing more is
-said of it. (The watch slice's unit W-C: `isHaltErr` compares it; a premise names the codes the
-client's watch must not see, `client.noRetryableStreamErr`.) -/
+said of it. (The watch slice's unit W-C: `isHaltErr` compares it.) -/
 opaque statusCode [FfiSyntax] : GoInterface → w32
 
 /-- `status.FromError(err)` of an error grpc's `status` accepts (`statusErrOk`: `nil`, or a leaf

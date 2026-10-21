@@ -65,7 +65,7 @@ theorem isEtcdClient_of_server_r (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
     iunfold watchSrvFacts at Hsf
     icases Hsf with ⟨-, Hcf⟩
     iunfold watchConnFacts at Hcf
-    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, #Hca, -, %h⟩
+    icases Hcf with ⟨-, -, -, -, -, -, -, -, #Hca, -, %h⟩
     isplitl
     · unfold ctxErrClientAll; iunfold ctxErrClientAllW at Hca; iexact Hca
     ipureintro; exact h.2

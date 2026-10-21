@@ -1,0 +1,232 @@
+/-
+Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__makeLearner.lean`. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__remove
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
+public import Spec.fmt.Errorf
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem confchange.Changer.makeLearner.wp_proof
+    (wp_Changer_initProgress : confchange.Changer.initProgress.spec (GF := GF) (hG := hG))
+    (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
+    (wp_confchange_outgoing : confchange.outgoing.spec (GF := GF) (hG := hG))
+    (wp_confchange_nilAwareAdd : confchange.nilAwareAdd.spec (GF := GF) (hG := hG))
+    (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
+    confchange.Changer.makeLearner.spec (GF := GF) (hG := hG) := by
+  intro p cfgp trk chg base s id dq Hmi
+  wp_start as ⟨Hp, Hw⟩
+  icases ownWork_elim _ _ _ _ _ $$ Hw with
+    ⟨%cfg, %prs, %pvs, Hcfgp, Hc, Htrk, Hprs, %Hflags, %Hwt, Hnew⟩
+  ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
+  have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
+  wp_auto
+  wp_method_call
+  wp_call
+  wp_auto
+  -- `pr := trk[id]`
+  wp_apply wp_map_lookup1 $$ Htrk as Htrk
+  rcases Hlk : prs !! id with _ | pr
+  · -- a new id: `initProgress(..., true)`
+    simp only [Option.getD_none]
+    wp_auto
+    have Hid : id ∉ s.prs := by
+      rw [← Hflags, flagsOf_mem]
+      intro h; rw [← Hdom, Hlk] at h; cases h
+    have Hsn : s.prs !! id = none := by
+      rcases h : s.prs !! id with _ | b
+      · rfl
+      · exact absurd (by rw [GMap.mem_iff, h]; rfl) Hid
+    ihave Hw := ownWork_intro chg base cfgp trk s cfg prs pvs Hflags Hwt $$ Hcfgp Hc Htrk Hprs Hnew
+    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id true false _ Hid
+      (fun h => absurd h (by decide)) Hmi
+      $$ [$c $Hw] as ⟨c, Hw⟩
+    iapply HΦ
+    iframe Hp
+    simp only [makeLearnerO, makeLearnerM, Hsn, ownWorkO]
+    have Hc : ¬ ((none : Option Bool) = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0) :=
+      fun h => by cases h.1
+    simp only [if_neg Hc]
+    isplitr; · itrivial
+    iexact Hw
+  · simp only [Option.getD_some]
+    obtain ⟨pv, Hpv⟩ : ∃ pv, pvs !! id = some pv :=
+      Option.isSome_iff_exists.1 ((Hdom id).1 (by rw [Hlk]; rfl))
+    have Hsl : s.prs !! id = some pv.IsLearner' := by rw [← Hflags]; exact flagsOf_lookup pvs id pv Hpv
+    have Hmem : id ∈ s.prs := by rw [GMap.mem_iff, Hsl]; rfl
+    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, Hback⟩
+    have Hpvw' := Hwt.2 id pv Hpv
+    icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
+    wp_if_destruct
+    · exact absurd rfl Hprnn
+    have Hpv_eq : ∀ b, pv.IsLearner' = b → ({ pv with IsLearner' := b } : tracker.Progress) = pv := by
+      intro b hb; rw [← hb]
+    cases hl : pv.IsLearner'
+    · -- not a learner: the witness is an error (2026-10-20, witness support)
+      wp_auto
+      by_cases Hw : id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0
+      · rw [show (#pv.IsWitness' : val) = #true by rw [Hpvw', decide_eq_true Hw]]
+        wp_auto
+        ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) (DFrac.own 1)
+        wp_apply wp_fmt_Errorf $$ [$Hnil] as %e -
+        · fmt_args_ok
+        iapply HΦ
+        iframe Hp
+        have Hc : s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0 :=
+          ⟨by rw [Hsl, hl], Hw⟩
+        simp only [makeLearnerO, if_pos Hc, ownWorkO]
+        ipureintro; intro h; cases h
+      have Hpvw : pv.IsWitness' = false := by rw [Hpvw', decide_eq_false Hw]
+      -- (not the witness) removed, its `Progress` kept, then staged or made a learner
+      have Hrw : (if id = s.cfg.wit then W64 0 else s.cfg.wit) = s.cfg.wit := by
+        split
+        · rename_i h; by_cases h0 : s.cfg.wit = W64 0
+          · rw [h0]
+          · exact absurd ⟨h, h0⟩ Hw
+        · rfl
+      have Hc : ¬ (s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0) :=
+        fun h => Hw h.2
+      have Hrw' : id = s.cfg.wit → W64 0 = s.cfg.wit := fun h => by
+        by_cases h0 : s.cfg.wit = W64 0
+        · exact h0.symm
+        · exact absurd ⟨h, h0⟩ Hw
+      rw [show (#pv.IsWitness' : val) = #false by rw [Hpvw]]
+      wp_auto
+      have Hdomeq : domSet prs = domSet s.prs := by
+        apply GMap.set_eq; intro k
+        rw [GMap.elem_of_dom', GMap.elem_of_dom', ← Hflags, flagsOf_mem]
+        exact Hdom k
+      ihave Hcw : ownCfgAt cfgp s.cfg $$ [Hcfgp Hc]
+      · unfold ownCfgAt; iexists cfg; iframe
+      wp_apply wp_Changer_remove c_ptr cfgp trk chg s prs id _ Hdomeq $$ [$c $Hcw $Htrk]
+        as ⟨c, Hcw, Htrk⟩
+      wp_apply wp_mapInsert $$ Htrk as Htrk
+      have Hprs' : <[id := pr]> (if id ∈ s.prs ∧ id ∉ s.cfg.outgoing then GMap.delete id prs
+          else prs) = prs := by
+        split
+        · rw [GMap.insert_delete_eq, GMap.insert_id _ _ _ Hlk]
+        · rw [GMap.insert_id _ _ _ Hlk]
+      rw [Hprs']
+      unfold ownCfgAt
+      icases Hcw with ⟨%cfg1, Hcfgp, Hc⟩
+      icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal, %Hwit⟩
+      simp only [removeM, ite_eq_left Hmem, removeCfg, Hrw] at Hal Hwit ⊢
+      wp_auto
+      wp_apply wp_confchange_outgoing _ vin vout Harr
+      icases ownIdsetC_split _ _ _ $$ Hout with ⟨Hout, %Hcout⟩
+      wp_apply wp_idset_lookup2 $$ Hout as Hout
+      ihave Hout := ownIdsetC_join _ _ _ Hcout $$ Hout
+      icases typedPointsto_not_null_dup _ _ _ $$ Hcfgp with ⟨Hcfgp, %Hcnn⟩
+      iStructNamed Hcfgp
+      wp_if_destruct
+      · -- an outgoing voter: staged in `LearnersNext`
+        have Hon : id ∈ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
+        ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
+        wp_apply wp_confchange_nilAwareAdd $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
+        ihave Hcfgp : (cfgp ↦ ({ cfg1 with LearnersNext' := mln } : tracker.Config)) $$
+            [Voters AutoLeave Learners LearnersNext Witnesses]
+        · iapply typedPointsto_combine _ _ _ Hcnn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+        ihave Hln : ownIdsetC mln (DFrac.own 1) (<[id := ()]> (GMap.delete id s.cfg.learnersNext))
+          $$ [Hln]
+        · unfold ownIdsetC; iright; iframe Hln; ipureintro
+          intro h
+          have := congrArg (fun m => m !! id) h
+          simp at this
+        icases Hback $$ %false [Hpr] with ⟨Hprs, Hnew⟩
+        · rw [Hpv_eq false hl]; iexact Hpr
+        rw [Hpv_eq false hl, GMap.insert_id _ _ _ Hpv]
+        iapply HΦ
+        iframe Hp
+        have Hst : makeLearnerM id s =
+            ⟨⟨GMap.delete id s.cfg.incoming, s.cfg.outgoing, GMap.delete id s.cfg.learners,
+              <[id := ()]> (GMap.delete id s.cfg.learnersNext), s.cfg.autoLeave, s.cfg.wit⟩, s.prs⟩ := by
+          simp [makeLearnerM, Hsl, hl, Hon, removeCfg]
+          first | done | exact Hrw'
+        simp only [makeLearnerO, if_neg Hc, ownWorkO]
+        isplitr; · itrivial
+        iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs pvs
+          (by rw [Hst]; exact Hflags) (by rw [Hst]; exact Hwt) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
+        iapply ownCfgCC_intro ({ cfg1 with LearnersNext' := mln } : tracker.Config) (DFrac.own 1)
+          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) (by rw [Hst]; exact Hwit)
+          $$ [Hin] [Hout] [Hl] [Hln]
+        all_goals rw [Hst]
+        · iexact Hin
+        · iexact Hout
+        · iexact Hl
+        · iexact Hln
+      · -- not an outgoing voter: a learner
+        have Hon : id ∉ s.cfg.outgoing := by simpa [GMap.mem_iff] using Hif
+        ihave Hl := ownIdsetC_Q _ _ _ $$ Hl
+        wp_apply wp_confchange_nilAwareAdd $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
+        ihave Hcfgp : (cfgp ↦ ({ cfg1 with Learners' := ml } : tracker.Config)) $$
+            [Voters AutoLeave Learners LearnersNext Witnesses]
+        · iapply typedPointsto_combine _ _ _ Hcnn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+        ihave Hl := ownIdsetC_insert _ _ _ _ $$ Hl
+        -- raft#168's `pr.IsWitness = false`: it already is
+        have Hweq : ({ ({ pv with IsLearner' := true } : tracker.Progress) with IsWitness' := false } :
+            tracker.Progress) = { pv with IsLearner' := true } := by
+          rw [← Hpvw]
+        rw [Hweq]
+        icases Hback $$ %true Hpr with ⟨Hprs, Hnew⟩
+        iapply HΦ
+        iframe Hp
+        have Hst : makeLearnerM id s =
+            ⟨⟨GMap.delete id s.cfg.incoming, s.cfg.outgoing,
+              <[id := ()]> (GMap.delete id s.cfg.learners), GMap.delete id s.cfg.learnersNext,
+              s.cfg.autoLeave, s.cfg.wit⟩, <[id := true]> s.prs⟩ := by
+          simp [makeLearnerM, Hsl, hl, Hon, removeCfg]
+          first | done | exact Hrw'
+        simp only [makeLearnerO, if_neg Hc, ownWorkO]
+        isplitr; · itrivial
+        iapply ownWork_intro chg base cfgp trk (makeLearnerM id s) _ prs _
+          (by rw [Hst]; simp only [flagsOf_insert, Hflags])
+          (by rw [Hst]; exact WitT.set_learner true Hwt Hpv) $$ Hcfgp [Hin Hout Hl Hln] Htrk Hprs Hnew
+        iapply ownCfgCC_intro ({ cfg1 with Learners' := ml } : tracker.Config) (DFrac.own 1)
+          (makeLearnerM id s).cfg vin vout Harr (by rw [Hst]; exact Hal) (by rw [Hst]; exact Hwit)
+          $$ [Hin] [Hout] [Hl] [Hln]
+        all_goals rw [Hst]
+        · iexact Hin
+        · iexact Hout
+        · iexact Hl
+        · iexact Hln
+    · -- already a learner: nothing
+      wp_auto
+      icases Hback $$ %true [Hpr] with ⟨Hprs, Hnew⟩
+      · rw [Hpv_eq true hl]; iexact Hpr
+      rw [Hpv_eq true hl, GMap.insert_id _ _ _ Hpv]
+      iapply HΦ
+      iframe Hp
+      have Hst : makeLearnerM id s = s := by simp [makeLearnerM, Hsl, hl]
+      have Hc' : ¬ (s.prs !! id = some false ∧ id = s.cfg.wit ∧ s.cfg.wit ≠ W64 0) :=
+        fun h => by rw [Hsl, hl] at h; cases h.1
+      simp only [makeLearnerO, if_neg Hc', ownWorkO, Hst]
+      isplitr; · itrivial
+      iapply ownWork_intro chg base cfgp trk s cfg prs pvs Hflags Hwt $$ Hcfgp Hc Htrk Hprs Hnew
+
+end proof
+
+end EtcdGrove
+end Perennial

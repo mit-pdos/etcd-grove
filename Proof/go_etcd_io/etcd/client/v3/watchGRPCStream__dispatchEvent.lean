@@ -52,8 +52,8 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
     (wp_broadcastResponse : watchGRPCStream.broadcastResponse.spec (GF := GF) (hG := hG))
     (wp_unicastResponse : watchGRPCStream.unicastResponse.spec (GF := GF) (hG := hG)) :
     watchGRPCStream.dispatchEvent.spec (GF := GF) (hG := hG) := by
-  intro V wgs p dq mm h sl es m M dq1 dq2 Pf Sf Ψ
-  wp_start as ⟨Hf, #Hevs, %Hlen, #Hhdr, Hsub, Hmap, Hcaps⟩
+  intro V wgs p dq mm h sl es m M dq1 dq2 Pf Sf Df γend n Ψ
+  wp_start as ⟨Hf, #Hevs, %Hlen, #Hhdr, Hsub, Hmap, Hauth, Hcaps⟩
   iunfold respFields at Hf
   icases Hf with ⟨%Hhn, Hh, Hid, Hcr, Hca, Hcomp, Hrs, Hfr, Hev⟩
   (try wp_auto)
@@ -84,8 +84,8 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
       cases hM : M !! mm.watchId with
       | none =>
         simp only []
-        wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf $$ [$Hsub $Hmap]
-          as %b ⟨Hsub, Hmap, Hb⟩
+        wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf Df γend n $$ [$Hsub $Hmap $Hauth]
+          as %b ⟨Hsub, Hmap, Hauth, Hb⟩
         · rw [hM]; itrivial
         rw [hM]
         iapply HΦ
@@ -96,10 +96,10 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
         simp only []
         icases Hcaps with ⟨%HPws, Hcap⟩
         iunfold sendCap at Hcap
-        icases Hcap with ⟨#Hws, Hprod, Hf⟩
+        icases Hcap with ⟨#Hws, Hprod, Hf, Hdc⟩
         ihave Hel := Hf $$ %«$r0_ptr» HΨ
-        wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf
-          $$ [$Hsub $Hmap Hprod Hel] as %b ⟨Hsub, Hmap, Hb⟩
+        wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf Df γend n
+          $$ [$Hsub $Hmap $Hauth Hprod Hel Hdc] as %b ⟨Hsub, Hmap, Hauth, Hb⟩
         · rw [hM]
           iframe
           isplitr
@@ -117,13 +117,13 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
       · have Hb : isBroadcast mm := Hbr.2 ⟨hpn, by assumption⟩
         simp only [decide_eq_true Hb, ↓reduceIte]
         (try wp_auto)
-        wp_apply wp_broadcastResponse V wgs «$r0_ptr» m M dq1 dq2 Pf Sf $$ [$Hsub $Hmap Hcaps]
-          as ⟨Hsub, Hmap, Hb⟩
+        wp_apply wp_broadcastResponse V wgs «$r0_ptr» m M dq1 dq2 Pf Sf Df γend n $$ [$Hsub $Hmap $Hauth Hcaps]
+          as ⟨Hsub, Hmap, Hauth, Hb⟩
         · iapply BigSepM.bigSepM_impl $$ Hcaps
           imodintro
           iintro %k %ws %_ ⟨%HPws, Hcap⟩
           iunfold sendCap at Hcap
-          icases Hcap with ⟨#Hws, Hprod, Hf⟩
+          icases Hcap with ⟨#Hws, Hprod, Hf, Hdc⟩
           ihave Hel := Hf $$ %«$r0_ptr» HΨ
           iframe
           isplitr
@@ -142,8 +142,8 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
         cases hM : M !! mm.watchId with
         | none =>
           simp only []
-          wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf $$ [$Hsub $Hmap]
-            as %b ⟨Hsub, Hmap, Hb⟩
+          wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf Df γend n $$ [$Hsub $Hmap $Hauth]
+            as %b ⟨Hsub, Hmap, Hauth, Hb⟩
           · rw [hM]; itrivial
           rw [hM]
           iapply HΦ
@@ -154,10 +154,10 @@ theorem watchGRPCStream.dispatchEvent.wp_proof
           simp only []
           icases Hcaps with ⟨%HPws, Hcap⟩
           iunfold sendCap at Hcap
-          icases Hcap with ⟨#Hws, Hprod, Hf⟩
+          icases Hcap with ⟨#Hws, Hprod, Hf, Hdc⟩
           ihave Hel := Hf $$ %«$r0_ptr» HΨ
-          wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf
-            $$ [$Hsub $Hmap Hprod Hel] as %b ⟨Hsub, Hmap, Hb⟩
+          wp_apply wp_unicastResponse V wgs «$r0_ptr» mm.watchId m M dq1 dq2 Pf Sf Df γend n
+            $$ [$Hsub $Hmap $Hauth Hprod Hel Hdc] as %b ⟨Hsub, Hmap, Hauth, Hb⟩
           · rw [hM]
             iframe
             isplitr
