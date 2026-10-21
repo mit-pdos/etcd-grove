@@ -862,39 +862,6 @@ theorem cutGen_cutGen (c c' : w64) (hcc : sint.Z c ≤ sint.Z c') (g : Gen) :
     simp only [List.drop_drop]
     congr 2; omega
 
-theorem cutGen_cutGen_le (c c' : w64) (hcc : sint.Z c' ≤ sint.Z c) (g : Gen) :
-    cutGen c' (cutGen c g) = cutGen c g := by
-  rcases genWalk_pAbove_spec g.revs c with ⟨h1, h2⟩ | ⟨j, hj, h1, h2, h3⟩
-  · have hc : cutGen c g = g := by unfold cutGen; rw [ite_eq_right]; rintro ⟨-, h⟩; exact h h1
-    rw [hc]
-    unfold cutGen
-    rw [ite_eq_right]
-    rintro ⟨-, h⟩
-    apply h
-    apply genWalk_eq_none
-    intro r hr; have := h2 r hr; simp [pAbove]; omega
-  · have hne : g.revs ≠ [] := by intro h; rw [h] at hj; simp at hj
-    have hc : cutGen c g = { g with revs := g.revs.drop j } := by
-      unfold cutGen; rw [ite_eq_left ⟨hne, by omega⟩, h1]; rfl
-    rw [hc]
-    unfold cutGen
-    split
-    · rename_i hh
-      simp only at hh ⊢
-      have hw : genWalk (g.revs.drop j) (pAbove c') = 0 := by
-        rcases genWalk_pAbove_spec (g.revs.drop j) c' with ⟨h4, -⟩ | ⟨k, hk, h4, h5, -⟩
-        · exact absurd h4 hh.2
-        · rw [h4]
-          cases k with
-          | zero => rfl
-          | succ k =>
-            exfalso
-            simp only [List.getElem_drop, List.length_drop] at h5 hk
-            have := h3 (j + (k + 1)) (by omega) (by omega)
-            omega
-      rw [hw]; rfl
-    · rfl
-
 theorem dropSet_dropSet {α : Type} (G : List α) (gi m : Nat) (x y : α) (h : gi < m) :
     (((G.set gi x).drop gi).set (m - gi) y).drop (m - gi) = (G.set m y).drop m := by
   apply List.ext_getElem?
@@ -925,28 +892,6 @@ theorem kiCompact_kiCompact_S {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64) (hcc 
   · subst heq
     rw [Nat.sub_self, dropSet_getD0 _ _ _ _ hlt, cutGen_cutGen c c' hcc, List.drop_zero,
       dropSet_set0 _ _ _ _ hlt]
-
-theorem kiCompact_kiCompact_le_S {ki : KeyIndex} (hwf : KiWf ki) (c c' : w64) (hcc : sint.Z c' ≤ sint.Z c) :
-    kiCompact c' (kiCompact c ki) = kiCompact c ki := by
-  have hne := hwf.ne
-  have hlt := compactGenIdx_lt c ki.gens hne
-  have hG := kiCompact_gens c ki
-  generalize hgi : compactGenIdx c ki.gens = gi at *
-  have h0 : compactGenIdx c' (kiCompact c ki).gens = 0 := by
-    apply compactGenIdx_eq
-    · rw [hG, dropSet_length]; omega
-    · intro j hj; omega
-    · rcases compactGenIdx_stop c ki.gens hne with h | h
-      · left; rw [hG, dropSet_length]; rw [hgi] at h; omega
-      · right; rw [hgi] at h; rw [hG, dropSet_getD0 _ _ _ _ hlt, cutGen_tombZ]; omega
-  refine KeyIndex.ext' rfl ?_
-  rw [kiCompact_gens c' (kiCompact c ki), h0, List.drop_zero]
-  apply set_same
-  rw [hG, List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_set, ite_eq_left (by omega),
-    ite_eq_left hlt, List.getD_eq_getElem?_getD, List.getElem?_drop, List.getElem?_set,
-    ite_eq_left (by omega), ite_eq_left hlt]
-  simp only [Option.getD_some]
-  rw [cutGen_cutGen_le c c' hcc]
 
 /-- The compacted generations' last one. -/
 theorem kiCompact_getLastD {ki : KeyIndex} (hwf : KiWf ki) (c : w64) :
@@ -1323,13 +1268,6 @@ theorem kiCompact_kiCompact (log : Log) (hb : LogB log) (k : GoString) (c c' : I
     kiCompact (W64 c') (kiCompact (W64 c) (kiOfKey (evsOf log) k)) =
       kiCompact (W64 c') (kiOfKey (evsOf log) k) :=
   kiCompact_kiCompact_S (kiOfKey_KiS log hb k).wf _ _ (by word)
-
-/-- A compaction at a lower revision after one at a higher revision changes nothing. -/
-theorem kiCompact_kiCompact_le (log : Log) (hb : LogB log) (k : GoString) (c c' : Int)
-    (hc0 : -1 ≤ c') (h : c' ≤ c) (hc : c < 2 ^ 63) :
-    kiCompact (W64 c') (kiCompact (W64 c) (kiOfKey (evsOf log) k)) =
-      kiCompact (W64 c) (kiOfKey (evsOf log) k) :=
-  kiCompact_kiCompact_le_S (kiOfKey_KiS log hb k).wf _ _ (by word)
 
 /-- A compaction leaves the last generation's emptiness (`tombstone`'s test). -/
 theorem kiCompact_lastEmpty (log : Log) (hb : LogB log) (k : GoString) (c : Int) (hc0 : -1 ≤ c)

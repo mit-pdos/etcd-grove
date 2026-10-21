@@ -63,7 +63,7 @@ invariants and predicates, and no lemma that a complete etcd system's adequacy d
   Lean does not export, anonymous instances), so a removal is checked by the build and by a
   scan for names a remaining file still mentions. A matcher (`match_n`) shared by two
   definitions does not make its owner used.
-- **Removed** (two commits, about 7,900 lines; trust base unchanged, `tcb-report.py --check`):
+- **Removed** (four commits, about 8,800 lines; trust base unchanged, `tcb-report.py --check`):
   in raft, the model-level safety results no linked result or closed theorem uses
   (`raft_dyn_committed_agree`/`_election_safety`/`_read_states`/`_read_index`, `log_matching`,
   `state_machine_safety`, `leader_completeness`, `is_Storage_MemoryStorage`/
@@ -72,10 +72,13 @@ invariants and predicates, and no lemma that a complete etcd system's adequacy d
   lemmas and the last simple-configuration spec forms (`FollowerStepResult`,
   `CandidateStepResult`, `HupOk`, the `*.simple` derivations); unused `raftOwn_access_*` loads
   and stores, tracker, memstorage, protobuf and log helpers. In the rest of the main tree the
-  same, conservatively: kept whatever a remaining file names (the curated results other
-  `Results.lean` files print), `@[simp]`/`rfl` lemmas, `bbolt` (unlinked) and the auth store
-  (the unlinked `AuthDerive`/`AuthReqDerive` derive its contract from the real store: future
-  adequacy work). `RaftWitness/` untouched (its own copies).
+  same, conservatively: kept whatever a remaining file names, `@[simp]`/`rfl` lemmas, `bbolt`
+  (unlinked) and the auth store (the unlinked `AuthDerive`/`AuthReqDerive` derive its contract
+  from the real store: future adequacy work). The curated etcd-level results nothing linked
+  uses, as raft's: mvcc's watch guarantees (`watchGuarantee_unfiltered`, `watchRecvOk_*`),
+  `csContract_noHook`, `kiCompact_kiCompact_le`, txn's history laws (`stateAt_revs`,
+  `stateAtPfx_*`, `LogOk.snoc`, `NoDupKeysPerRev.*`, `sel_keys_nodup`), v3rpc's
+  `intervalsOk*Stmt_*`, adt's `inorder_rotate*`/`maxEnd_eq_of_inorder`, with their print lines. `RaftWitness/` untouched (its own copies).
 - **Every proposal is proposed once** (the user: "raft has a disjunction for proposals to be
   multi or single ... unnecessary"): `PropRec` is `(result, ticket)`, an entry's ticket `entTk`
   is `propTk` (no `∨ propMulti`), a committed client entry carries its index (`entDataIs`'s

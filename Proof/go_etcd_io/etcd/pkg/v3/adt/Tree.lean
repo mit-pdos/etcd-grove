@@ -72,14 +72,6 @@ def rotateRight : RbT E → RbT E
   | node cy (node cx a x b) y d => node cx a x (node cy b y d)
   | t => t
 
-theorem inorder_rotateLeft (t : RbT E) : t.rotateLeft.inorder = t.inorder := by
-  unfold rotateLeft
-  split <;> simp
-
-theorem inorder_rotateRight (t : RbT E) : t.rotateRight.inorder = t.inorder := by
-  unfold rotateRight
-  split <;> simp
-
 end RbT
 
 /-! ## The affine order, more -/

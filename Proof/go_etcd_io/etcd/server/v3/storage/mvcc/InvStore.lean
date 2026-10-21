@@ -611,26 +611,6 @@ def csContract (P : IProp GF) (f : val) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
     (Q ={⊤}=∗ P ∗ Post))
 
-/-- **The no-hook instance**: with invariant `True` and a hook that does nothing
-(`{True} f() {True}`), any `Pre` is its own contract (`Q = Post = Pre`). -/
-theorem csContract_noHook (f : val) (Pre : IProp GF) :
-    □ ({{ True }} (App (Val f) (Val #())) {{ RET #(); True }}) ∗ Pre ⊢
-      csContract iprop(True) f Pre Pre Pre := by
-  iintro ⟨#Hf, Hpre⟩
-  iunfold csContract
-  iframe Hpre
-  isplitr
-  · iintro !> %Φ !> ⟨-, Hpre⟩ HΦ
-    iapply Hf $$ %Φ [] [Hpre HΦ]
-    · itrivial
-    inext
-    iintro -
-    iapply HΦ
-    iexact Hpre
-  · iintro Hq
-    imodintro
-    iframe Hq
-
 /-! ## The batch transaction -/
 
 /-- The entries a batch transaction has put into the `Key` bucket since it was locked, in

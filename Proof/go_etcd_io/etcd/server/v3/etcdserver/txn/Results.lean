@@ -566,21 +566,13 @@ axioms; they do not discharge them (`etcdState` is abstract).
 
 section unit4
 #print axioms Perennial.EtcdGrove.txn.stateAt_revInv
-#print axioms Perennial.EtcdGrove.txn.stateAt_revs
 #print axioms Perennial.EtcdGrove.txn.stateAt_create_persist
 #print axioms Perennial.EtcdGrove.txn.stateAt_modrev_persist
 #print axioms Perennial.EtcdGrove.txn.stateAt_modrev_det
-#print axioms Perennial.EtcdGrove.txn.stateAtPfx_agree
 #print axioms Perennial.EtcdGrove.txn.stateAtPfx_wf
-#print axioms Perennial.EtcdGrove.txn.stateAtPfx_revs
 #print axioms Perennial.EtcdGrove.txn.stateAtPfx_create_persist
 #print axioms Perennial.EtcdGrove.txn.stateAtPfx_modrev_det
 #print axioms Perennial.EtcdGrove.txn.stateAtPfx_modrev_persist
 #print axioms Perennial.EtcdGrove.txn.stateAt_of_prefix
-#print axioms Perennial.EtcdGrove.txn.stateAtPfx_of_prefix
-#print axioms Perennial.EtcdGrove.txn.LogOk.snoc
-#print axioms Perennial.EtcdGrove.txn.NoDupKeysPerRev.snoc_iff
 #print axioms Perennial.EtcdGrove.txn.keys_nodup_iff_check
-#print axioms Perennial.EtcdGrove.txn.NoDupKeysPerRev.snoc
-#print axioms Perennial.EtcdGrove.txn.sel_keys_nodup
 end unit4

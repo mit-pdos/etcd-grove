@@ -531,29 +531,6 @@ def RbCtx.dirOk (z : Entry) : RbCtx Entry → Prop
 
 /-! ## The `max` augmentation under a change of shape -/
 
-/-- A subtree's max is determined by its entries. -/
-theorem maxEnd_eq_of_inorder (t1 t2 : RbT Entry) (h : t1.inorder = t2.inorder) :
-    t1.maxEnd = t2.maxEnd := by
-  cases t1 with
-  | leaf =>
-    cases t2 with
-    | leaf => rfl
-    | node c l e r => simp at h
-  | node c1 l1 e1 r1 =>
-    cases t2 with
-    | leaf => simp at h
-    | node c2 l2 e2 r2 =>
-      simp only [maxEnd_node, Option.some.injEq]
-      obtain ⟨z1, hz1, hz1e⟩ := maxEnd_mem _ _ (maxEnd_node c1 l1 e1 r1)
-      obtain ⟨z2, hz2, hz2e⟩ := maxEnd_mem _ _ (maxEnd_node c2 l2 e2 r2)
-      have h1 := maxEnd_ge _ _ (maxEnd_node c1 l1 e1 r1) z2 (h ▸ hz2)
-      have h2 := maxEnd_ge _ _ (maxEnd_node c2 l2 e2 r2) z1 (h.symm ▸ hz1)
-      rw [hz2e] at h1; rw [hz1e] at h2
-      rcases affLt_trichotomy (nodeMax l1 e1 r1) (nodeMax l2 e2 r2) with h3 | h3 | h3
-      · exact absurd h3 h1
-      · exact h3
-      · exact absurd h3 h2
-
 /-- A node's max as its children's maxima (`updateMax`'s computation). -/
 def nodeMaxO (lo : Option GoString) (e : Entry) (ro : Option GoString) : GoString :=
   affMaxO (affMaxO e.1.2 lo) ro

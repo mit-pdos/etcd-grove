@@ -896,10 +896,6 @@ def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp
                    ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
 
-instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
-    Persistent (propAu (GF := GF) γ d Q) := by
-  unfold propAu; infer_instance
-
 /-- **A proposal's update** (2026-10-19, D21 M6, D20 (b)), fired at most once: a proposal (its
 ticket travelling with it, `propTk`) is appended at one index, so it occurs at most once in the
 committed log, and raft fires its update at most once (`fire_one`). -/

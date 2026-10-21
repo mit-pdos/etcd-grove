@@ -629,33 +629,6 @@ theorem check_gives_nodup (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s
   rw [g4 k hk o ho] at this
   cases this
 
-/-- **`intervalsOkCheckStmt` holds.** -/
-theorem intervalsOkCheckStmt_holds : intervalsOkCheckStmt :=
-  fun n ops tops s0 s r htx hck hfk hsib hiv => check_gives_nodup n ops tops s0 s r htx hck hfk hsib hiv
-
-/-- **Unit 0's statement, without the keys checked, is false**: without the keys checked (`checkRequestOp`,
-which runs before `checkIntervals` in `kvServer.Txn`), a put of the empty key and a delete of the
-empty key pass `checkIntervals` (the affine order reads `""` as +∞, so the point `["", "\x00")`
-overlaps nothing) and the run puts and deletes `""` in one revision. -/
-theorem intervalsOkNoKeysStmt_false : ¬ intervalsOkNoKeysStmt := by
-  intro h
-  have := h [.put (txn.putOpOf [] [] (W64 0) false false false),
-      .delete (txn.deleteOpOf [] [] false)]
-    [txn.putTxnOp (txn.putOpOf [] [] (W64 0) false false false),
-      .delete (txn.deleteOpOf [] [] false)] [] [] (W64 1) rfl
-    (by simp [ReqOp.noFromKeyDelL, ReqOp.noFromKeyDel, txn.deleteOpOf])
-    (by simp [ReqOp.siblingSafeL, ReqOp.siblingSafe, sibOk])
-    (by
-      simp only [intervalsOk, ivCheck, ivNest, Option.bind_some, ivFinish, levelPuts, levelDels,
-        List.foldl_nil, List.foldl_cons, putStep, txn.putOpOf, txn.deleteOpOf, delIvl, pointIvl,
-        hits, List.any_cons, List.any_nil, adt.ivlCmp, adt.affCmp]
-      decide)
-  obtain ⟨-, h2⟩ := this
-  apply h2 []
-  · simp [txn.srvOps, txn.srvOp, txn.putTxnOp, txn.putOpOf, txn.putKeysOf]
-  · simp [txn.srvOps, txn.srvOp, txn.putTxnOp, txn.putOpOf, txn.deleteOpOf, txn.delKeysOf,
-      rangeIn, inRange, mvcc.applyChanges, mvcc.applyChange, putKv, btInsert]
-
 end v3rpc
 end EtcdGrove
 end Perennial

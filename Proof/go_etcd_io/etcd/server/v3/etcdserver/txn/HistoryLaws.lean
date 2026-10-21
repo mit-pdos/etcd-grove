@@ -59,9 +59,6 @@ theorem hl_nat_W64 (n : Nat) (h : n < 2 ^ 63) : uint.nat (W64 (n : Int)) = n := 
 
 theorem hl_sint_eq (x : w64) (h : uint.nat x < 2 ^ 63) : sint.Z x = (uint.nat x : Int) := by word
 
-theorem hl_succ (x : w64) (h : uint.nat x < 2 ^ 63) : uint.nat (x + W64 1) = uint.nat x + 1 := by
-  word
-
 /-! ## The state at a revision, one revision at a time -/
 
 theorem stateAt_zero (log : Log) (h : 0 < log.length) :
@@ -188,66 +185,7 @@ distinct. etcd's check of a transaction's requests (`checkIntervals`: "duplicate
 txn request") gives it (`keys_nodup_iff_check`). -/
 def NoDupKeysPerRev (log : Log) : Prop := ∀ cs ∈ log, (cs.map Change.key).Nodup
 
-/-- A record of the state at `r`, with positive revisions and version: a record created at
-`c` and last modified at `m` has been put at most once in each of the revisions `c, ..., m`. -/
-def KvInv (r : Nat) (v : EtcdKv) : Prop :=
-  1 ≤ uint.nat v.createRev ∧ uint.nat v.createRev ≤ uint.nat v.modRev ∧ uint.nat v.modRev ≤ r ∧
-    1 ≤ uint.nat v.version ∧ uint.nat v.version + uint.nat v.createRev ≤ uint.nat v.modRev + 1
-
-/-- One revision's changes, with distinct keys, keep `KvInv`: a key not yet written in the
-revision has a mod revision below it. -/
-theorem kvInv_applyChanges (r : Nat) (hr1 : 1 ≤ r) (hr : r < 2 ^ 63) :
-    ∀ (cs : List Change) (s : List EtcdKv), (cs.map Change.key).Nodup →
-      (∀ w ∈ s, KvInv r w ∧ (w.key ∈ cs.map Change.key → uint.nat w.modRev < r)) →
-      ∀ v ∈ applyChanges (W64 (r : Int)) s cs, KvInv r v
-  | [], _, _, hs, v, h => (hs v h).1
-  | c :: cs, s, hnd, hs, v, h => by
-    rw [applyChanges_cons] at h
-    rw [List.map_cons, List.nodup_cons] at hnd
-    refine kvInv_applyChanges r hr1 hr cs _ hnd.2 ?_ v h
-    intro w hw
-    cases c with
-    | put k val l =>
-      rcases mem_putKv hw with h1 | ⟨hk, hm, ⟨w0, hw0, hw0k, hwc, hwv⟩ | ⟨hcr, hver⟩⟩
-      · exact ⟨(hs w h1).1, fun hin => (hs w h1).2 (List.mem_cons_of_mem _ hin)⟩
-      · obtain ⟨⟨h1, h2, h3, h4, h5⟩, h6⟩ := hs w0 hw0
-        have hlt := h6 (by rw [hw0k]; exact List.mem_cons_self)
-        have hv := hl_succ w0.version (by omega)
-        refine ⟨?_, fun hin => absurd (hk ▸ hin) hnd.1⟩
-        unfold KvInv; simp only [hm, hwc, hwv, hl_nat_W64 r hr, hv]; omega
-      · refine ⟨?_, fun hin => absurd (hk ▸ hin) hnd.1⟩
-        have h1 : uint.nat (W64 1) = 1 := by word
-        unfold KvInv; simp only [hm, hcr, hver, hl_nat_W64 r hr, h1]; omega
-    | del k =>
-      have h1 := (mem_applyChange_del hw).1
-      exact ⟨(hs w h1).1, fun hin => (hs w h1).2 (List.mem_cons_of_mem _ hin)⟩
-
-theorem stateAt_kvInv (log : Log) (h0 : log[0]? = some []) (hnd : NoDupKeysPerRev log)
-    (hlen : log.length < 2 ^ 63) : ∀ r, r < log.length → ∀ v ∈ stateAt log r, KvInv r v
-  | 0, _, v, hv => by rw [stateAt_zero_nil log h0] at hv; exact absurd hv List.not_mem_nil
-  | j + 1, hr, v, hv => by
-    rw [stateAt_succ log j hr] at hv
-    refine kvInv_applyChanges (j + 1) (by omega) (by omega) _ _
-      (hnd _ (List.getElem_mem hr)) ?_ v hv
-    intro w hw
-    have := stateAt_kvInv log h0 hnd hlen j (by omega) w hw
-    unfold KvInv at *
-    refine ⟨⟨?_, ?_, ?_, ?_, ?_⟩, fun _ => ?_⟩ <;> omega
-
 /-! ## The laws -/
-
-/-- **`etcdState_revs` holds of the log**: a record of the state at `r` has a positive create
-revision, at or before its mod revision, at or before `r`, and a positive version. Needs
-revision 0 empty (in `LogOk`) and `NoDupKeysPerRev` (for the version only). -/
-theorem stateAt_revs (log : Log) (hok : LogOk log) (hnd : NoDupKeysPerRev log) (r : Nat)
-    (hr : r < log.length) :
-    ∀ v ∈ stateAt log r, 0 < sint.Z v.createRev ∧ sint.Z v.createRev ≤ sint.Z v.modRev ∧
-      sint.Z v.modRev ≤ r ∧ 0 < sint.Z v.version := by
-  intro v hv
-  have hlen := hok.len
-  obtain ⟨h1, h2, h3, h4, h5⟩ := stateAt_kvInv log hok.wf.1 hnd hlen r hr v hv
-  rw [hl_sint_eq _ (by omega), hl_sint_eq v.modRev (by omega), hl_sint_eq v.version (by omega)]
-  omega
 
 /-- **`etcdState_modrev_persist` holds of the log**: a record of the state at `a` is in the
 state at every revision `b` from its mod revision to `a`. Needs only the word bound. -/
@@ -330,11 +268,6 @@ theorem mem_stateAtPfx {log : Log} {r : Nat} {pfx : GoString} {v : EtcdKv} :
     v ∈ stateAtPfx log r pfx ↔ v ∈ stateAt log r ∧ pfx <+: v.key := by
   unfold stateAtPfx; rw [List.mem_filter, decide_eq_true_iff]
 
-/-- **`etcdState_agree` holds of the log**: one state per revision and prefix (`stateAtPfx` is
-a function). -/
-theorem stateAtPfx_agree (log : Log) (r : Nat) (pfx : GoString) (s s' : List EtcdKv)
-    (h : s = stateAtPfx log r pfx) (h' : s' = stateAtPfx log r pfx) : s = s' := h.trans h'.symm
-
 /-- The log's states per prefix are what the client's `EtcdStateWf` says: keys strictly
 increasing, under the prefix. -/
 theorem stateAtPfx_wf (log : Log) (r : Nat) (pfx : GoString) :
@@ -342,12 +275,6 @@ theorem stateAtPfx_wf (log : Log) (r : Nat) (pfx : GoString) :
   refine ⟨?_, fun v hv => (mem_stateAtPfx.1 hv).2⟩
   rw [List.pairwise_map]
   exact (stateAt_sorted log r).filter _
-
-theorem stateAtPfx_revs (log : Log) (hok : LogOk log) (hnd : NoDupKeysPerRev log) (r : Nat)
-    (hr : r < log.length) (pfx : GoString) :
-    ∀ v ∈ stateAtPfx log r pfx, 0 < sint.Z v.createRev ∧ sint.Z v.createRev ≤ sint.Z v.modRev ∧
-      sint.Z v.modRev ≤ r ∧ 0 < sint.Z v.version :=
-  fun v hv => stateAt_revs log hok hnd r hr v (mem_stateAtPfx.1 hv).1
 
 theorem stateAtPfx_create_persist (log : Log) (hlen : log.length < 2 ^ 63) (r a : Nat)
     (hr : r < log.length) (pfx : GoString) :
@@ -382,10 +309,6 @@ theorem stateAt_of_prefix {log log' : Log} (h : log <+: log') {r : Nat} (hr : r 
   obtain ⟨t, rfl⟩ := h
   unfold stateAt
   rw [List.take_append_of_le_length (by omega)]
-
-theorem stateAtPfx_of_prefix {log log' : Log} (h : log <+: log') {r : Nat} (hr : r < log.length)
-    (pfx : GoString) : stateAtPfx log' r pfx = stateAtPfx log r pfx := by
-  unfold stateAtPfx; rw [stateAt_of_prefix h hr]
 
 /-! ## A commit keeps the hypotheses -/
 
@@ -544,17 +467,6 @@ theorem NoDupKeysPerRev.snoc {log : Log} (hnd : NoDupKeysPerRev log) {pend : Lis
     (hput : (putKeysOf pend).Nodup) (hdis : ∀ k ∈ putKeysOf pend, k ∉ delKeysOf pend) :
     NoDupKeysPerRev (log ++ [pend]) :=
   (NoDupKeysPerRev.snoc_iff log pend).2 ⟨hnd, (keys_nodup_iff_check pend _ hdel).2 ⟨hput, hdis⟩⟩
-
-/-- A range delete's keys (`(srvSel s …).map EtcdKv.key`, `delKeys_eq`), of a sorted state,
-are distinct. -/
-theorem sel_keys_nodup {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (p : EtcdKv → Bool) :
-    ((s.filter p).map EtcdKv.key).Nodup := by
-  have h : ((s.filter p).map EtcdKv.key).Pairwise go.GoStringLt := by
-    rw [List.pairwise_map]; exact hs.filter _
-  refine h.imp ?_
-  intro a b hab e
-  rw [e] at hab
-  exact go.goStringLt_irrefl _ hab
 
 end txn
 end EtcdGrove
