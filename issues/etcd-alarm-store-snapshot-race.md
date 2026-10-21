@@ -1,7 +1,10 @@
 ---
 upstream: none
 checked: 2026-10-21
-links: []
+links:
+  - etcd-io/etcd#22609 pr merged: the same class (mvcc `Hash` racing with `Restore`'s backend swap); a different field
+  - etcd-io/etcd#10874 pr closed: `s.be` read outside `bemu` in `applySnapshot`; not the alarm store
+candidate: issues/upstream/etcd-alarm-store-snapshot-race/
 ---
 
 # `applySnapshot` replaces `s.alarmStore` while gRPC and health goroutines read it (a data race)
@@ -49,5 +52,10 @@ links: []
   `s.bemu` (build the new store before `s.bemu.Unlock()`, assign it inside the critical section, and
   have `Alarms()` read the field under `s.bemu.RLock()`), at the cost of holding `bemu` across
   `NewAlarmStore`'s `ForceCommit`.
+- **Fix chosen upstream** (2026-10-21, `issues/upstream/etcd-alarm-store-snapshot-race/`): neither of the
+  above: `AlarmStore.Recover(be)` reloads the store in place under its own mutex, as `lessor.Recover` does, and
+  `applySnapshot` calls it instead of `restoreAlarms`, so `s.alarmStore` is written only by `NewServer` (the
+  comparison is in the candidate's `meta.md`). For the proof this makes the field read-only for good again
+  (`srvAlarmStoreAddr s ↦□` holds through the snapshot path); `Recover` needs a spec on the store's lock invariant.
 - **Found**: 2026-10-20, stage S-j2 of track T-S, listing the server fields `applySnapshot` writes
   against the proof's read-only facts of them.
