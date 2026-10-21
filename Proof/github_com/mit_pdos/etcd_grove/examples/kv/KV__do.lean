@@ -92,14 +92,13 @@ theorem KV.do.wp_proof
     unfold waiterOk
     iexists d, γh
     iframe Hmint Hho Hprod
-  -- the update over raft's log that `Node.Propose` deposits (2026-10-14, stage R), persistent,
-  -- deposited as fired at most once (D21 M6: the operation is proposed once)
-  ihave #Hpau := kv_propAu γr d γo $$ Hinv Hop
+  -- the update over raft's log that `Node.Propose` deposits (2026-10-14, stage R), fired at most
+  -- once (D21 M6: the operation is proposed once)
+  ihave Hpau := kv_propAu γr d γo $$ Hinv Hop
   rw [← Hraft]
-  ihave Harg : propArg γp.node.raft d (fun _ => iprop(True)) $$ [Hfresh]
+  ihave Harg : propArg γp.node.raft d (fun _ => iprop(True)) $$ [Hfresh Hpau]
   · unfold propArg
-    iframe Hfresh
-    iapply propAu_one; iexact Hpau
+    iframe Hfresh Hpau
   wp_apply context.wp_Background
   wp_apply wp_encode id (ns + W64 1) kind key val Hkey Hval as %b ⟨Hb, Hbcap⟩
   rw [Hd]

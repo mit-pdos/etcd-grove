@@ -89,7 +89,9 @@ invariants and predicates, and no lemma that a complete etcd system's adequacy d
   operation raft dropped locally; it now stops instead (`for {}`, partial correctness, as for a
   proposal the leader it is forwarded to drops; local drops are a transferring leader or the
   uncommitted-size limit: while no leader is known `node` does not take proposals), its Go test
-  passes, and it still deposits its persistent update, as fired at most once (`propAu_one`).
+  passes. With one kind of proposal, one kind of update: raft's persistent `propAu` and the
+  server's `srvPropAu` are gone too (each was built only to be weakened to the at-most-once
+  `propAu1`/`srvPropAu1`; `kv_propAu` and `kv_prop_au` now build those directly).
   The alternative -- the ticket back to the caller on `ErrProposalDropped` through `raft.Step`,
   `run`'s result handoff and `stepWithWaitOption` -- was scoped (about 15 files, `node__run`
   among them) and not taken; it cannot cover `ErrStopped` (`run` may have stepped the proposal).

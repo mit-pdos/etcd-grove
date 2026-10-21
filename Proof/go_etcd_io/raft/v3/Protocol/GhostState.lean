@@ -886,16 +886,6 @@ instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
     Persistent (readAu (GF := GF) γ Qr) := by
   unfold readAu; infer_instance
 
-/-- A proposal's update, persistent: a client's convenience (the register's), which it deposits as
-the update fired at most once (`propAu_one`); raft chooses the entry `e` (a normal entry holding
-the bytes `d`, `entDataIs`). The entry's index is its position in the committed log
-(entry `k` has index `k + 1`; 2026-10-16, stage R7, for the server's contract). -/
-def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
-              <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
-                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
-                 COMM □ Q L }>)
-
 /-- **A proposal's update** (2026-10-19, D21 M6, D20 (b)), fired at most once: a proposal (its
 ticket travelling with it, `propTk`) is appended at one index, so it occurs at most once in the
 committed log, and raft fires its update at most once (`fire_one`). -/
@@ -904,12 +894,6 @@ def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
                    ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
-
-/-- A persistent update can be fired once. -/
-theorem propAu_one (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
-    propAu (GF := GF) γ d Q ⊢ propAu1 γ d Q := by
-  unfold propAu propAu1
-  exact intuitionistically_elim
 
 /-- The standing update for raft's own entries (see the section header): the client gives it
 at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
