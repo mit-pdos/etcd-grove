@@ -161,7 +161,8 @@ to what `Main` needs of it -- the server's request and read views (at its apply 
 agreeing with the stand-in `E₀`, auth off), the `GoAttach` resources with the thread token
 (`srvGoRes`), the member's place in the network (`srvNetMember`: what the partitioner's
 `CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
-client address (`etcd_kv_started`), what its client's `Apply` takes. -/
+client address (`etcd_kv_started`), what its client's `Apply` takes, and (D29) that address
+refusal-free (`etcd_noRefusal`). -/
 def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (client : GoString) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (γw : GName) (cid mid : w64),
@@ -172,7 +173,9 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
-    isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid))
+    isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
+    -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
+    ⌜noRefusalAt client⌝)
 
 end defs
 

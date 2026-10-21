@@ -7,7 +7,7 @@ storage registry, `NewServer`, `net.Listen` at the peer address, `s.RaftHandler(
 steps of linkv3's `Main` (`Proof/.../linkv3/Main.lean`), for this member: `v3rpc.Server(s, nil,
 nil)` (its configuration from `NewServer`'s and `Start`'s, `grpcCfgOk_of_started'`), the ghost
 step `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client
-address), `go
+address) with the members' axiom `etcd_noRefusal` before it (D29: the address refusal-free), `go
 gs.Serve(l)`. Every step's error returns it, with the thread token.
 -/
 module
@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 
 @[expose] public section
 
@@ -277,6 +278,11 @@ theorem startMember.wp_proof
   · iframe
   ihave #Hkva := EtcdGrove.client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hclis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal client gs q p srv clis E
+      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HEo) $$
+    [Hgsn Hclis]
+  · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
     $$ [Hgsn Hclis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn⟩
@@ -298,8 +304,10 @@ theorem startMember.wp_proof
   iexists E, γw, cid, mid
   iframe Hgo2 HPut HRange HDel HTxn
   iframe #
-  ipureintro
-  exact ⟨HEa, HEo⟩
+  isplitl []
+  · ipureintro
+    exact ⟨HEa, HEo⟩
+  ipureintro; exact Hnr
 
 end proof
 

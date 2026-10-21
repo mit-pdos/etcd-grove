@@ -220,6 +220,12 @@ until R5.
 - The unary interceptor, the KV handlers' error paths, `v3rpc.Server`'s registration giving
   `noRefusalAt` for the KV methods.
 
+**Done (2026-10-21).** `startMember` applies `etcd_noRefusal` before `etcd_kv_started`, with the
+server's request view, the quota wrapper, the gRPC server with its KV registrations, the client
+listener, and authentication off (`memberUp`'s `E.authOn = false`). `memberServed` gains
+`⌜noRefusalAt client⌝`, and `Main` takes it apart (unused until R5, where each bridge's address
+gets it through `forwards`). `startMember` and `Main` build.
+
 ### R4. The client
 
 - The stronger specs of `isSafeRetry`, `isSafeRetryMutableRPC` and `shouldRefreshToken`. The
