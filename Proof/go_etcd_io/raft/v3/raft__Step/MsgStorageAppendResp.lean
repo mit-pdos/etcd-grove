@@ -315,7 +315,11 @@ theorem ackOpen (c : CfgM) (r : Loc) (id : w64) (s : NState) (sv : SnapshotM)
   iapply Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkeep0 (SnpOk.ackL _ Hgh0.1.2) h6)
     %(fun _ => logLast_le_of_fields (by rw [h1]) (by rw [h2]) (by rw [h3]))
 
-set_option maxHeartbeats 1000000 in
+-- (2026-10-21) 4000000, not 1000000: under a parallel full build this proof ran out of 1000000
+-- heartbeats once and passes alone, since `word`'s caches (Perennial's `Std/Word/Cache.lean`,
+-- process-global `IO.Ref`s) are shared between the module's parallel declarations, so its
+-- heartbeat count depends on their scheduling (`notes/STATUS.md`, "`word`'s shared cache").
+set_option maxHeartbeats 4000000 in
 /-- `Step` on the acknowledgement of a `Ready` that handed out a snapshot `sv`, its receipt
 absorbed (`sat` when it is the pending snapshot). By the term, as without a snapshot:
 
