@@ -3,7 +3,8 @@
 - **Finding**: `issues/etcd-compact-past-raft-applied.md`
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-compact-past-raft-applied` in `~/etcd-fixes/etcd-compact-past-raft-applied`, two commits
-  (2026-10-21): 1fb0e1926 adds the test, which fails there; 8967f11ae is the fix. Not pushed.
+  (2026-10-21): 1fb0e1926 adds the test, which fails there; be0ad9592 is the fix (8967f11ae before its message was
+  rewritten, same tree). Not pushed.
 - **Base**: upstream `main` 7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b (2026-10-21). `server/etcdserver/raft.go` and
   `server.go`'s `applyAll`/`compactRaftLog` are as in the finding (checked at 22cc5d9ac); raft `v3.7.0`
   (b867cf13f).
@@ -12,8 +13,8 @@
 Commit messages (drafts for the user to rewrite):
 
 - `tests/integration: test leader transfer to a member replaying its WAL` (no body)
-- `etcdserver: compact the raft log only after raft advances`, body: "The raft log was compacted before raft
-  advanced past the applied entries, while raft still reads the log from its applied index."
+- `etcdserver: compact the raft log only after raft advances`, body: "Raft reads its log from its applied index
+  until Advance, so a campaign right after the compaction could panic."
 
 Push (once approved): `git -C ~/etcd-fixes/etcd-compact-past-raft-applied push origin fix/etcd-compact-past-raft-applied`;
 then check the issue's test link (`#L185-L222`, doc comment to closing brace) on GitHub.
@@ -61,8 +62,21 @@ configuration changes to apply"); the transfer times out and the member serves t
 
 No deadlock: the raft routine's only wait on the apply loop between `applyc` and `Advance` is a follower's second
 `notifyc` send for a batch with a conf change, which `applyAll`'s `<-apply.notifyc` releases before the new wait.
-Shutdown: `raftNode.stop` runs only after the scheduler stops, and nothing between `applyc` and `Advance` waits on
-the job, so `Advance` comes. No throughput cost: the next batch is handed out only after this `Advance`, so the
+Everything else on that path does not block on the apply loop (`processMessages` drops a `MsgSnap` when `msgSnapC`
+is full, rafthttp's `Send` drops when a peer's buffer is full, `Advance` returns on `node.run`'s `advancec`), and
+its failures are `lg.Fatal`, which exits the process.
+
+Shutdown: the new wait is unconditional, like `<-apply.notifyc` before it, and for the same reason. The raft routine
+returns without reaching `Advance` only on `r.stopped` (the `readStateC` send and the `applyc` send, before the
+job exists; the conf-change `notifyc` send, after the job has read `notifyc`). `r.stopped` is signalled only by
+`raftNode.stop`, which `EtcdServer.run`'s deferred shutdown calls after `sched.Stop()` returns, and the FIFO
+scheduler's `Stop` runs every pending job to completion before returning. So while any `applyAll` waits, the raft
+routine cannot be stopped, and it reaches `close(raftAdvancedC)`. A `select` on `s.stopping` (as in the finding's
+first patch) is not needed, and would let a job compact before `Advance` during shutdown. The wait also makes
+`configure`'s existing unconditional `<-resp.raftAdvanceC` safer: before, `sched.Stop()` could return while the raft
+routine was still in the conf-change batch, and that `select` could then pick `r.stopped` and never send.
+
+No throughput cost: the next batch is handed out only after this `Advance`, so the
 wait delays only the snapshot step of the current job.
 
 The test is the finding's end-to-end reproduction with the existing failpoint `raftBeforeFollowerSend` (between
@@ -70,7 +84,9 @@ The test is the finding's end-to-end reproduction with the existing failpoint `r
 commit cannot add) set to `sleep("2s")` only after the puts, to widen the window. Everything else is the ordinary
 protocol: a restart, a `MoveLeader` from the leader. It asserts the guarantee (the transferee does not crash and
 serves a put), not whether the transfer succeeds. Like the other failpoint tests in `tests/integration`, it skips
-without `gofail enable`.
+without `gofail enable`. CI runs it: the Prow presubmits `pull-etcd-integration-{1,2,4}-cpu-{amd64,arm64}`
+(kubernetes/test-infra `config/jobs/etcd/etcd-presubmits.yaml`, checked 2026-10-21) run `make gofail-enable` before
+`make test-integration`, as etcd-io/etcd 6d79b8621 set up for the then GitHub Actions jobs.
 
 ## If a reviewer asks: the candidate layers and fixes
 
@@ -111,6 +127,11 @@ Failpoints enabled as `tests/robustness/Makefile`'s `gofail-enable` for `server/
   entries [1, 159): requested index is unavailable due to compaction` from `hasUnappliedConfChanges` / `hup` /
   `stepFollower` (`MsgTimeoutNow`); the output in `issue.md` is from one of these runs.
 - At the fix 8967f11ae: passes, 5 runs of 5 (about 6.7 s each); the log shows the refused campaign.
+- Rerun 2026-10-21 after the message rewrite (go1.27.2): at 1fb0e1926 panics 3 of 3 (`[1, 159)`, as above); at
+  be0ad9592 passes 5 of 5 and 3 of 3 with `-cpu 1` (as the 1-CPU CI job), and, failpoints still enabled,
+  `go test ./integration/ -run 'TestMoveLeader|TestTransferLeader|TestFirstCommit|TestMember|TestRestart|TestV3LeaseRevoke|TestV3RangeStream|TestSnapshot'`
+  ok and `cd server && go test ./etcdserver/...` ok; without failpoints `go test ./etcdserver/...` ok, `go vet` of
+  `server/etcdserver` and `tests/integration` clean, `gofmt -l` empty.
 - A first draft with `sleep("5s")` and no `WaitLeader` failed at the fix with "request timed out": a 5 s sleep in
   every follower made the leader lose its quorum (CheckQuorum) and the next election slow. Shortened to 2 s and
   `WaitLeader` added (setup only).
@@ -126,3 +147,12 @@ By hand, as a maintainer: `raftAdvancedC`'s readers are `configure` (`<-resp.raf
 `applyAll` (new) and `TestConfigChangeBlocksApply` (reads once, served by a close); the server tests that call
 `apply` directly pass their own channel. `toApply`'s comment no longer restricts it to conf changes. No other code
 compacts `raftStorage`. No other comment claims the old behavior. No new bug found.
+
+Second pass (2026-10-21), as a maintainer: every return of the raft routine and the scheduler's `Stop` checked
+(above, "Shutdown"); no hang, so the fix is unchanged. Readers of `raftAdvancedC` rechecked: `configure` and
+`TestConfigChangeBlocksApply` read once, served by a close; `TestApplyConfigChangeUpdatesConsistIndex` and
+`TestApplyMultiConfChangeShouldStop` (server_test.go) pass their own channel with one value to `apply`; no test
+calls `applyAll`. The test matches the package's failpoint tests (`SkipIfNoGoFail`, `gofail.Enable` mid-test,
+`TestV3RangeStreamWriteBetweenChunks`). Only the fix commit's body was rewritten, and `pr.md` shortened. The `check.py` WARNs on the fix's comments are
+kept: the field comment replaces one that restricted the channel to conf changes, the `notify etcdserver` line is
+the existing comment re-indented, and the `applyAll` comment says why the wait is there.
