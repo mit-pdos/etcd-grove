@@ -73,7 +73,18 @@ theorem Check.wp_proof
   ipersist cli
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
-  ihave #HA := wp_Apply γ cl ep V E γr cid mid hAs $$ Hpkg Pcli Hcl Hone Hput Hrange Hdel Htxn Hinv
+  -- the client's one member (`Apply` takes a client of several, D27)
+  ihave #Hregs : ([∗list] sv ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)], client.kvRegsAt sv) $$ []
+  · iapply BigSepL.bigSepL_singleton.2
+    iunfold client.kvRegsAt
+    iframe #
+  ihave #Hinvs : ([∗list] sv ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
+      linkvInv γ sv.γr.kv) $$ []
+  · iapply BigSepL.bigSepL_singleton.2
+    iexact Hinv
+  have HA0 := wp_Apply γ cl [⟨ep, E, γr, cid, mid⟩] V hAs (List.cons_ne_nil _ _)
+  simp only [List.map_cons, List.map_nil] at HA0
+  ihave #HA := HA0 $$ Hpkg Pcli Hcl Hone Hregs Hinvs
   wp_apply wp_Model as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   ihave #Hm := isModel_of_step linkvtxnS m $$ [Hinit Hstep Heh]
   · iframe Hinit Hstep Heh

@@ -218,18 +218,19 @@ func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration)
 		timeout)
 }
 
-// newClient connects a one-attempt client to the member (through its bridge) at addr: a write is sent at most once, so
-// the cluster applies it at most once (decision D21i).
-func newClient(addr string, lg *zap.Logger) (*clientv3.Client, error) {
+// newClient connects a one-attempt client to the members (through their bridges) at eps, each
+// attempt to one of them: a write is sent at most once, so the cluster applies it at most once
+// (decision D21i).
+func newClient(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
-		Endpoints:       []string{addr},
+		Endpoints:       eps,
 		Logger:          lg,
 		MaxUnaryRetries: 1,
 	})
 }
 
 // Main starts the three members of a new cluster, a bridge to each member's client address,
-// connects a client to each bridge, starts the partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
+// connects three clients to the three bridges (each client to every bridge: failover), starts the partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
 // error from a step before Check ends Main without a check (the specs allow every step to fail).
 func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
 	lg := zap.NewNop()
@@ -266,15 +267,17 @@ func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
 	}
 	brs := []bridge.Bridge{br1, br2, br3}
 
-	cli1, err := newClient(bridgeAddr1, lg)
+	// every client has every member's bridge: an attempt goes to one of them (failover)
+	eps := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}
+	cli1, err := newClient(eps, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}
-	cli2, err := newClient(bridgeAddr2, lg)
+	cli2, err := newClient(eps, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}
-	cli3, err := newClient(bridgeAddr3, lg)
+	cli3, err := newClient(eps, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}

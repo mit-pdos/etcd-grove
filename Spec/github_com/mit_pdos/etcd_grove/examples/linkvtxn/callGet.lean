@@ -27,14 +27,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev callGet.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString) (V : client.WEnv GF)
-    (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64),
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+    (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (key : GoString) (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-      isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
-      (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) }}
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
+      ([∗list] x ∈ ms, client.kvRegsAt x) ∗
+      □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.callGet)) (Val #cl))
       (Val #key))
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨

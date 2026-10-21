@@ -26,6 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Inv
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.Failover
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
 
@@ -137,20 +138,19 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
   unfold premises; infer_instance
 
 /-- **What `Apply` and `Check` take of one client** (persistent): linkvtxn's `Apply.spec`'s
-premises for a client `cl` of some member -- `New`'s one-attempt client (`isNewClient`,
-`clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its endpoint with that
-member's apply environment, read names and ids, and the instance's invariant at the member's KV
-names (the cluster's state, D21 M4: `linkvInv_congr`, `Alloc.lean`). A list of clients is a
-`[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and `Range`, linkv's invariant.) -/
+premises for a client `cl` of some members `ms` (at least one; all three since 2026-10-21,
+failover, `notes/decisions.md` D27) -- `New`'s one-attempt client of their endpoints
+(`isNewClient`, `clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
+member's endpoint with that member's apply environment, read names and ids (`kvRegsAt`), and the
+instance's invariant at each member's KV names (the cluster's state, D21 M4: `linkvInv_congr`,
+`Alloc.lean`). A list of clients is a `[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and
+`Range`, linkv's invariant; until 2026-10-21, one member.) -/
 def clientOk (γ : linkvtxn.LinkvNames) (cl : Loc) : IProp GF :=
-  iprop(∃ (ep : GoString) (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
-      (cid mid : w64),
-    isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γr γr cid mid) ∗
-    linkvtxn.linkvInv γ γr.kv)
+  iprop(∃ (ms : List (EtcdGrove.client.SrvAt GF)) (V : EtcdGrove.client.WEnv GF), ⌜ms ≠ []⌝ ∗
+    isNewClient cl (ms.map EtcdGrove.client.SrvAt.addr) V ∗
+    clientKVOnce cl (ms.map EtcdGrove.client.SrvAt.addr) ∗
+    ([∗list] sv ∈ ms, EtcdGrove.client.kvRegsAt sv) ∗
+    ([∗list] sv ∈ ms, linkvtxn.linkvInv γ sv.γr.kv))
 
 instance clientOk_persistent (γ : linkvtxn.LinkvNames) (cl : Loc) :
     Persistent (clientOk (GF := GF) γ cl) := by

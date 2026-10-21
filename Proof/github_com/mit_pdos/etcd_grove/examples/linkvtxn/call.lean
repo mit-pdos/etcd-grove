@@ -43,8 +43,8 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     (wp_callDel : callDel.spec (GF := GF) (hG := hG))
     (wp_callTxn : callTxn.spec (GF := GF) (hG := hG)) :
     call.spec (GF := GF) (hG := hG) := by
-  intro _ cl ep V E γr cid mid hAs x i Q hx hgen
-  wp_start as ⟨#Hcl, #Hone, #Hput, #Hrange, #Hdel, #Htxn, Hau⟩
+  intro _ cl ms V hAs x i Q hx hgen
+  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
   unfold callUpd callRes
   rcases decIn_cases x i hx with ⟨hk, rfl⟩ | ⟨hk, rfl⟩ | ⟨hk, rfl⟩ | ⟨hk, rfl⟩ |
@@ -52,9 +52,9 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
   · -- a get
     simp only [linkv.MIn.isWrite, Bool.false_eq_true, ↓reduceIte]
     wp_if_destruct
-    · wp_apply wp_callGet cl ep V E γr cid mid hAs x.Key' Q $$ [Hau] as %y Hy
+    · ihave #Hau' := readUpds_box ms Q $$ Hau
+      wp_apply wp_callGet cl ms V hAs x.Key' Q $$ [] as %y Hy
       · iframe #
-        iexact Hau
       iapply HΦ
       icases Hy with (%Hy | ⟨%σ, #HQ, %Hy, %Hb⟩)
       · ileft; ipureintro; exact Hy
@@ -71,9 +71,9 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
-    · wp_apply wp_callList cl ep V E γr cid mid hAs Q $$ [Hau] as %y Hy
+    · ihave #Hau' := readUpds_box ms Q $$ Hau
+      wp_apply wp_callList cl ms V hAs Q $$ [] as %y Hy
       · iframe #
-        iexact Hau
       iapply HΦ
       icases Hy with (%Hy | ⟨%σ, #HQ, %Hy, %Hb⟩)
       · ileft; ipureintro; exact Hy
@@ -92,7 +92,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
-    · wp_apply wp_callPut cl ep V E γr cid mid hAs x.Key' x.Val' Q $$ [Hau] as %y Hy
+    · wp_apply wp_callPut cl ms V hAs x.Key' x.Val' Q $$ [Hau] as %y Hy
       · iframe #
         iExactEq Hau; rfl
       iapply HΦ
@@ -115,7 +115,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
-    · wp_apply wp_callDel cl ep V E γr cid mid hAs x.Key' Q $$ [Hau] as %y Hy
+    · wp_apply wp_callDel cl ms V hAs x.Key' Q $$ [Hau] as %y Hy
       · iframe #
         iExactEq Hau; rfl
       iapply HΦ
@@ -139,7 +139,7 @@ theorem call.wp_proof (wp_callGet : callGet.spec (GF := GF) (hG := hG))
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
     wp_if_destruct
     · exfalso; rw [hk] at Hif; exact absurd Hif (by decide)
-    wp_apply wp_callTxn cl ep V E γr cid mid hAs x cs t e Q hx hne $$ [Hau] as %y Hy
+    wp_apply wp_callTxn cl ms V hAs x cs t e Q hx hne $$ [Hau] as %y Hy
     · iframe #
       unfold callUpd
       iexact Hau

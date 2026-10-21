@@ -490,18 +490,18 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))))))
 
-/-- newClient connects a one-attempt client to the member (through its bridge) at addr: a write is sent at most once, so
-    the cluster applies it at most once (decision D21i).
+/-- newClient connects a one-attempt client to the members (through their bridges) at eps, each
+    attempt to one of them: a write is sent at most once, so the cluster applies it at most once
+    (decision D21i).
 
-    go: linkv3p.go:223:6 -/
+    go: linkv3p.go:224:6 -/
 noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "addr"
+  (LamV "eps"
   (Lam "lg"
   (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
-  (Let "__p" (Let "$a0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "__p" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$v2" (Val #(W64 1))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"MaxUnaryRetries")) (ElementExpression go.uint (Var "$v2")))])))))
@@ -512,10 +512,10 @@ noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Pair (Var "$ret0") (Var "$ret1")))))))))))
 
 /-- Main starts the three members of a new cluster, a bridge to each member's client address,
-    connects a client to each bridge, starts the partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
+    connects three clients to the three bridges (each client to every bridge: failover), starts the partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
     error from a step before Check ends Main without a check (the specs allow every step to fail).
 
-    go: linkv3p.go:234:6 -/
+    go: linkv3p.go:235:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -642,7 +642,13 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty (Var "$v2")))])))))
   (Let "brs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr1))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr1))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr2))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr3))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2")))])))))
+  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -653,7 +659,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr2))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -664,7 +670,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val bridgeAddr3))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
@@ -736,6 +742,8 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli1") (Var "$r0")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "eps") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Bridge.ty)))) (Pair (Var "brs") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))

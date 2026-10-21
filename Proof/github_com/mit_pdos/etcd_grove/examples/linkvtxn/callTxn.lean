@@ -44,9 +44,9 @@ theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
     (wp_elseOf : elseOf.spec (GF := GF) (hG := hG)) (wp_txnRes : txnRes.spec (GF := GF) (hG := hG))
     (wp_withRes : withRes.spec (GF := GF) (hG := hG)) :
     callTxn.spec (GF := GF) (hG := hG) := by
-  intro _ cl ep V E γr cid mid hAs x cs t e Q hx hne
+  intro _ cl ms V hAs x cs t e Q hx hne
   obtain ⟨hn, hcs, ht, he⟩ := decIn_txn x cs t e hx
-  wp_start as ⟨#Hcl, #Hone, #Hrpc, Hau⟩
+  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
   wp_apply wp_elseOf x as %esl ⟨Hesl, -⟩
   wp_apply wp_opsOf esl (elseOfL x) (DFrac.own 1) e he $$ [$Hesl] as %eos ⟨-, #Heos⟩
@@ -61,40 +61,36 @@ theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
-  imod monoNatLbOwn_0 (GF := GF) γr.committed with #Hc0
-  ihave #Hc0' : committedAtLeast (GF := GF) γr (W64 0) $$ []
-  · iunfold committedAtLeast
-    iExactEq Hc0; rfl
+  imod (srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
-  wp_apply (client_Txn_st cl ep V context.backgroundCtxVal cd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
+  wp_apply (client_Txn_st cl ms V context.backgroundCtxVal cd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_If tp [ep] context.backgroundCtxVal cd TxnBuild.empty csl
+  wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd TxnBuild.empty csl
       (cs.map linkv.cmpOf)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp [ep] context.backgroundCtxVal cd _ tos (t.map clientOp)
+  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd _ tos (t.map clientOp)
       (t.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps t, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Else tp [ep] context.backgroundCtxVal cd _ eos (e.map clientOp)
+  wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd _ eos (e.map clientOp)
       (e.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps e, rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp [ep] context.backgroundCtxVal cd
+  ihave Hobj : txnObjAt (GF := GF) tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd
       ⟨clientTxn cs t e, true, true, true⟩ $$ [Hobj]
   · iExactEq Hobj
     simp [TxnModel.empty, clientTxn]
   (try wp_auto)
-  wp_apply (txn_Commit_st tp ep E γr cid mid context.backgroundCtxVal cd
-      ⟨clientTxn cs t e, true, true, true⟩ [] Q cs t e rfl hne) $$ [Hobj Hau Hkt]
+  wp_apply (txn_Commit_st tp ms context.backgroundCtxVal cd
+      ⟨clientTxn cs t e, true, true, true⟩ Q cs t e rfl hne) $$ [Hobj Hau Hkt]
     as %resp %err Hout
   · iframe #
     iframe

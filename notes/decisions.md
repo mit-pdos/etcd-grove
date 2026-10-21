@@ -12363,3 +12363,13 @@ the reply of whichever member ran it. A handler meeting one member's spec meets 
 **Trust base.** No axiom added or removed: `grpcConn`, `grpcResolverAt`, `grpc.NewClient`,
 `ClientConn.Invoke`, `ClientConn.Target` and `etcdResolver_grpc` change their statements (the old
 ones are the one-element case); `ClientConn.NewStream`'s narrows.
+
+**Carried out** (2026-10-21, `notes/client-cut-plan.md` K4): `isGrpcRpcs` is defined by recursion,
+reducible, so at one address it is that address's `isGrpcRpc` and the one-endpoint examples' proofs
+frame it unchanged (their statements take `[ep]`). Failover's calls are
+`Proof/go_etcd_io/etcd/client/v3/Failover.lean` (one-attempt clients only: an update fired at most
+once, by the member reached). linkv3p's clients each have the three bridges; the closed theorem's
+statement is unchanged. A note on what failover covers in Go: a blackholed member's established
+connection stays READY to grpc (no keepalive, `clientCfgOk`), so a call sent on it hangs until the
+connection closes; failover happens once the connection is gone (dropped, refused or closed) and a
+re-dial cannot complete, as in `TestFailover`'s blackhole-then-drop.

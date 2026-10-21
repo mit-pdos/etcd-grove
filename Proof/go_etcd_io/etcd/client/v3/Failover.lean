@@ -79,6 +79,18 @@ theorem anySpec_intro {Req Rep : ProtoMsg GF} {α : Type _} (ms : List α) (S : 
   · iapply (BigSepL.bigSepL_mem (Φ := C) hx) $$ HC
   · iapply (BigAndL.bigAndL_mem (Φ := R) hx) $$ HR
 
+/-- **A conjunct per member from shared resources** `R` and each member's persistent facts
+`C x` (`∧`: `R` serves every conjunct). -/
+theorem bigAndL_of_sep {α : Type _} (ms : List α) (R : IProp GF) (C Φ : α → IProp GF)
+    [∀ x, Persistent (C x)] (h : ∀ x, x ∈ ms → R ∗ C x ⊢ Φ x) :
+    R ∗ ([∗list] x ∈ ms, C x) ⊢ [∧list] x ∈ ms, Φ x := by
+  refine BigAndL.bigAndL_intro fun k x hk => ?_
+  have hx : x ∈ ms := List.mem_of_getElem? hk
+  iintro ⟨HR, #HC⟩
+  iapply (h x hx)
+  iframe HR
+  iapply (BigSepL.bigSepL_mem (Φ := C) hx) $$ HC
+
 end defs
 
 /-! ## The calls -/
@@ -89,6 +101,18 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **etcd's KV registrations at a member** (persistent): etcd's `Put`, `Range`, `DeleteRange` and `Txn` at its address, at its apply environment, read names
+and ids (`etcd_kv_started`'s). -/
+def kvRegsAt (x : SrvAt GF) : IProp GF :=
+  iprop(isGrpcRpc x.addr go!"/etcdserverpb.KV/Put" (etcdPutSpec x.E x.γr x.cid x.mid) ∗
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec x.E x.γr x.cid x.mid) ∗
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
+      (etcdDeleteSpec x.E x.γr x.cid x.mid) ∗
+    isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid))
+
+instance kvRegsAt_persistent (x : SrvAt GF) : Persistent (kvRegsAt x) := by
+  unfold kvRegsAt; infer_instance
 
 /-- **`kv.Put(ctx, key, val)` through a client of the members `ms`** (`client_put_end_to_end`'s
 one-attempt case, failover): each member's `Put` registered at its address, the members' floors

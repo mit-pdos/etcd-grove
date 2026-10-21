@@ -6,8 +6,9 @@ linkv3's closed theorem (`linkv3/Adequacy.lean`) for `examples/linkv3p`: the pac
 initialization (which initializes its import closure: etcd's server, its gRPC layer, the client,
 raft, linkvtxn, porcupine, the driver `lintest`, ...) followed by `Main(clients, ops, sched)` -- three
 etcd members started in process and served (`startMember`), a copy of etcd's test bridge to each
-member's client address (`startBridge`, `third_party/bridge`, since 2026-10-21), a one-attempt
-client to each bridge, the partitioner forked on the schedule `sched` (`go partitioner(srvs, brs,
+member's client address (`startBridge`, `third_party/bridge`, since 2026-10-21), three one-attempt
+clients each of all three bridges (failover, since 2026-10-21: each attempt to one of the members,
+`notes/decisions.md` D27), the partitioner forked on the schedule `sched` (`go partitioner(srvs, brs,
 sched)`: the links between members cut and mended, in both directions, with etcd's own
 `CutPeer`/`MendPeer`, and the links between each client and its member blackholed, unblackholed or
 dropped, with the bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say;

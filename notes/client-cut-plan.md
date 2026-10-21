@@ -1,8 +1,8 @@
 # Plan: cuts between clients and members in `linkv3p`, and recovery from them
 
-Status: in progress (2026-10-21, branch `client-cut`, merged into `lean`): K0, K1 and
-K3 done; K2 dropped (the bridge is part of the network, its code not verified: `notes/decisions.md`
-D26, the user's decision); K4 not started. `linkv3p_safe` now covers client-member cuts and recovery at the same member.
+Status: done (2026-10-21; K0, K1, K3 on branch `client-cut`, merged into `lean`; K4 on branch
+`failover`): K2 dropped (the bridge is part of the network, its code not verified:
+`notes/decisions.md` D26, the user's decision); K4, failover, done (D27). `linkv3p_safe` now covers client-member cuts and recovery at the same member.
 
 ## Goal
 
@@ -280,8 +280,7 @@ linkv3p's `Link.lean`, which the script counts under linkv3p's project).
 
 ### K4. Failover (D-C4)
 
-**In progress (2026-10-21, branch `failover`, worktree `/shared/etcd-grove-fo`; `notes/decisions.md`
-D27, approved).** Stages:
+**Done (2026-10-21, branch `failover`; `notes/decisions.md` D27, approved).** Stages:
 
 - **K4a, K4b (done):** the gRPC boundary over a list of addresses (`grpcConn conn addrs`,
   `grpcResolverAt`, `NewClient`, `Invoke`'s attempt at one of them, `isGrpcRpcs`; streams at one
@@ -293,8 +292,18 @@ D27, approved).** Stages:
   (`Proof/go_etcd_io/etcd/client/v3/Failover.lean`: `anySpec`, `isGrpcRpcs_anySpec` from
   `isGrpcRpc_mono`, `client_put_any`, `client_range_any`, `client_delete_any`, `client_txn_any`,
   for a one-attempt client).
-- **K4d:** linkvtxn's `Apply` (and its calls) for a client of several members; linkv3p's clients
-  each with the three bridges' addresses; `TestMainRun`/`TestClientCuts` with failover.
+- **K4d (done):** linkvtxn's `Apply`, `call`, `call*` and `Calls.lean` for a client of the members
+  `ms` (`kvRegsAt` per member, the updates `[∧ list]`, built per member from the instance's
+  invariant at its names, `bigAndL_of_sep`); linkvtxn's own `Check` the one-member case (its
+  statement unchanged); linkv3p's `newClient(eps, lg)` and its three clients each of the three
+  bridges' addresses (`clientOk` over the members). The closed theorem's statement is unchanged.
+  The Go tests: `TestClientCuts` keeps one bridge per client (recovery at the same member), and
+  `TestFailover` (every client of the three bridges; member 1's bridge blackholed and its
+  connections dropped from 50ms to 3.1s) shows every client working while member 1's link is cut:
+  about 2,200-2,500 operations per client succeeded during the cut, 3 failed in all; `go test
+  -race` passes. Gates: `lake build` (6935 jobs), every `gen-link` mode, `goose --check`,
+  `gen-init --check`, `tcb-report --check` (526 axioms, 2 sorries: none added) and every
+  collection.
 
 The original stage:
 

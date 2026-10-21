@@ -6,7 +6,8 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
 * **`linkv3p_Main`** (`Link.lean`'s `linkv3p.wp_Main`): `Main(clients, ops, sched)` -- three etcd
   members started in process and served (`startMember`), a copy of etcd's test bridge to each
   member's client address (`127.0.0.1:2385{1,2,3}` to `127.0.0.1:2383{1,2,3}`, since 2026-10-21),
-  a one-attempt client to each bridge, the partitioner forked on the schedule `sched` (the links
+  three one-attempt clients each of all three bridges (failover: each attempt to one member, grpc's
+  balancer's choice, D27), the partitioner forked on the schedule `sched` (the links
   between members cut and mended, in both directions, with etcd's own `CutPeer`/`MendPeer`, and
   the links between each client and its member blackholed, unblackholed or dropped, with the
   bridge's `Blackhole`/`Unblackhole`/`DropConnections`, as its steps say), linkvtxn's `Check` (gets, lists, puts, deletes, transactions and
@@ -31,10 +32,13 @@ is the one in which messages *are* lost, on the schedule's say, with clients at 
 and the theorem is that every history it produces is still linearizable (D24, the
 transport's remotes: the hooks' axioms take a member of a new cluster). The same holds of the
 links between the clients and their members (`notes/client-cut-plan.md`): each client reaches
-its member through a copy of etcd's test bridge, which is part of the network (D26: trust-boundary
+every member, through a copy of etcd's test bridge per member, which is part of the network (D26: trust-boundary
 specs, its code not verified): it relays a prefix of each side's bytes, which gRPC sees as the
 member's server or as a failed attempt, as any connection. A blackholed bridge is never blackholed
 again (its `Blackhole` panics on a second call, `issues/etcd-bridge-blackhole-twice-panic.md`).
+Each client is configured with every member's bridge (failover, D27): a call's one attempt goes to
+one member, and the reply is that member's; the client's results take the conjunction of the
+members' specs (`Proof/go_etcd_io/etcd/client/v3/Failover.lean`).
 -/
 module
 

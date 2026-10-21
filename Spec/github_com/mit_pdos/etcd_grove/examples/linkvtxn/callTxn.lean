@@ -29,16 +29,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev callTxn.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString) (V : client.WEnv GF)
-    (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64),
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+    (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
     (Q : KVState → IProp GF), decIn x = some (.txn cs t e) → t ++ e ≠ [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-      clientKVOnce cl [ep] ∗
-      isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E γr γr cid mid) ∗
-      callUpd γr.kv (.txn cs t e) Q }}
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
+      clientKVOnce cl (ms.map client.SrvAt.addr) ∗
+      ([∗list] sv ∈ ms, client.kvRegsAt sv) ∗
+      ([∧list] sv ∈ ms, callUpd sv.γr.kv (.txn cs t e) Q) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.callTxn)) (Val #cl))
       (Val #x))
   {{ (y : Output), RET #y; ⌜y = errOut⌝ ∨

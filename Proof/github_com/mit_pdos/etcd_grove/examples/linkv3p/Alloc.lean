@@ -9,7 +9,7 @@ member's names, with that member's start log `[[], []]` (what `linkvInv_alloc_bo
 the other two members' KV names agreeing with the first's in state variable and workload (what
 `linkvInv_congr` takes: the instance's invariant, allocated at the first member's names, is the
 other members' too, D21 M4). linkv3p's `Main` calls it with its members in `bootstrap`'s order,
-`[id₁, id₂, id₃]` (`Defs.lean`), and connects a client to each.
+`[id₁, id₂, id₃]` (`Defs.lean`), and connects three clients, each to every member (failover, D27).
 -/
 module
 
