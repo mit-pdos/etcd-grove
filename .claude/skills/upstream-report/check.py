@@ -103,8 +103,8 @@ def main():
                 fail(f"commit: the first commit should add only the tests (*_test.go), not {tests}")
             if any(f.startswith("CHANGELOG/") for f in names(code_revs[1])):
                 warn("commit: the changelog entry goes in a commit of its own, after the fix")
-        if fork and fork.endswith("/etcd") and any(f.startswith("CHANGELOG/") for r in revs for f in names(r)):
-            warn("commit: etcd's changelog is updated separately; leave it out of the fix PR")
+        if fork and fork.endswith(("/etcd", "/bbolt")) and any(f.startswith("CHANGELOG/") for r in revs for f in names(r)):
+            warn("commit: etcd's and bbolt's changelogs are updated separately; leave them out of the fix PR")
         for rev in revs:
             msg = git(wt, "log", "-1", "--format=%B", rev)
             if re.search(r"^(Co-Authored-By|Assisted-by|Generated-by):", msg, flags=re.M | re.I):

@@ -1,0 +1,105 @@
+# bbolt-commit-meta-error-frees-reader-pages: upstream candidate
+
+- **Target**: etcd-io/bbolt.
+- **Base**: upstream `main` a4ef19710eb7ddc41fd1155336baf331b5c57ba8 ("Update changelog for bucket related
+  protection", 2026-10-15). `Tx.Commit`, `Tx.writeMeta`, `Tx.rollback` and `DB.meta` unchanged since v1.5.0 (the
+  finding's lines moved by a few: `rollback` is `tx.go:322-343`, the meta write `tx.go:605-619`).
+- **Branch**: `fix/bbolt-commit-meta-error-frees-reader-pages` in `~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages`
+  (clone `~/etcd-bbolt`, remotes `upstream` etcd-io/bbolt, `origin` upamanyus/bbolt):
+  - `a6fa226cf` tx: test reader snapshot after a failed commit's meta write (`db_whitebox_test.go`)
+  - `e252fc804` tx: keep a failed commit's freed pages pending if its meta is current (`tx.go`)
+  - No changelog commit: bbolt's `CHANGELOG/` entries are added in commits of their own, mostly by the
+    maintainers after merging (the last 15 changelog commits touch no code but two).
+- **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
+- **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
+  etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages push origin
+  fix/bbolt-commit-meta-error-frees-reader-pages`; then check the issue's test link (`db_whitebox_test.go#L116-L156`).
+
+## Commands and results (go1.26.9 linux/amd64)
+
+- At `a6fa226cf` (tests only): `go test -run TestTx_Commit_MetaWriteError -count=1 .` fails:
+  `expected: "v1"`, `actual  : "v3"`. Also with `FreelistType: FreelistMapType` (temporary edit in a copy).
+- At `e252fc804` (fix): the test passes (both freelist types); `go test -count=1 . ./internal/... ./cmd/...`: all
+  `ok` (root package 409 s). `tests/failpoint` with gofail enabled (in a copy named `bbolt`,
+  `go tool go.etcd.io/gofail enable .`; `BBOLT_VERIFY=all TEST_FREELIST_TYPE={hashmap,array} go test ./tests/failpoint`):
+  `ok` for both. `gofmt -l .`: nothing. `golangci-lint` v2.10.1 (the CI's) `run .`: 0 issues.
+  `go vet .` reports `db_test.go:1507` (copies a lock), also at the base.
+- The panic path (not in the branch, a temporary test in a copy): `beforeSyncMetaPage` set to `panic("boom")`
+  inside `db.Update`, recovered, then one more `Update`: the open reader reads `v3` at the base, `v1` with the fix.
+  `Update`'s deferred `rollback` is the same code, so the fix in `rollback` covers it; a fix in `Commit` would not.
+
+## check.py
+
+`python3 -I .claude/skills/upstream-report/check.py bbolt-commit-meta-error-frees-reader-pages`: no FAIL. WARNs
+kept: the fix's comment (it says why the early return is right, which the code does not); the issue's 266
+words (the five steps are needed); the PR's 105 words (about 35 of them the fixed sentences).
+
+## Duplicates (2026-10-21, repo:etcd-io/bbolt, issues and PRs)
+
+Searched `writeMeta rollback`, `fdatasync error commit`, `rollback freelist reload`, `commit error pending pages`,
+`fsync failure rollback`, `commit failed meta`, `fsync error`, `freelist rollback reader`, `writeMeta`: nothing
+on this bug. Related, different: #262 (a fault in `rollback`'s `db.meta` during a remap), #152/#153 (rollback
+panic with `NoFreelistSync`), #331 (a crash between the data pages' sync and the meta's), #447 (removing panics).
+
+## Why the fix works
+
+`beginRWTx` copies the current meta and increments its txid, so the transaction's meta has a txid one above the
+current meta's until its meta page is written. The base, on a meta write error: (1) the meta bytes are in the
+file, so the mapping's meta for this txid validates and `db.meta()` returns it; (2) `rollback` calls
+`freelist.Rollback(txid)`, which drops `pending[txid]` (the pages the transaction freed: the old leaf and the
+old freelist page, which the open reader still sees) and its allocations; (3) `Reload` reads the new freelist
+page (every free and pending id at commit, the dropped ones included) and filters out only the ids still pending,
+so the dropped ids become free; (4) the next writer allocates them and overwrites the reader's pages. The fix:
+when `db.meta().Txid() == tx.meta.Txid()`, the in-memory freelist already matches the current meta (it is what
+the successful `Commit` path keeps: `pending[txid]` released once no reader older than txid is open), so
+`rollback` only closes the transaction. The `tx.db.data != nil` guard keeps `db.meta()` off an unmapped
+mapping (a failed remap, the case the existing comment names); the meta cannot be the transaction's then.
+
+## Why the test shows the bug and not a misuse
+
+Every call is ordinary API use: `Update`, `Begin(false)`, `Get` on the open read transaction, `Commit` returning
+an error that the caller handles by carrying on (bbolt rolls back on a `Commit` error precisely so that the `DB`
+stays usable: `rollback`'s comment, `TestTx_Rollback_Freelist`, `TestFailpoint_LackOfDiskSpace`). The injected
+error is the documented test hook `db.ops.writeAt` (added for write-failure tests, e9b2cab, 2014), made to fail
+after the meta page's bytes were written, which is what an `fdatasync` failure after the write does, and what
+`os.File.WriteAt` returns when a later `pwrite` of the page fails after the first part (with the meta's fields
+and checksum) landed. `InitialMmapSize` avoids the remap deadlock `Begin`'s doc warns of with a reader open.
+The test asserts only the guarantee: the open reader's value is unchanged.
+
+## If a reviewer asks
+
+Candidate layers and fixes, and why `rollback` is the one:
+
+1. **`rollback` (chosen).** Its comment says it reloads the free pages from disk for a system error such as an
+   fsync error, and an fsync error on the meta page is exactly where it does not: it drops the transaction's
+   pending pages although the current meta (the one on disk and in the mapping) is the transaction's. Fixing it
+   there covers every caller: `Commit`'s meta write error and `Update`'s deferred rollback after a
+   panic in the same window (checked above). Six lines, no API change.
+2. **`Commit`'s meta write error path** (call `close` instead of `rollback` when the meta is current): the same
+   effect for the error, but misses the panic path, and leaves `rollback` wrong for its stated purpose.
+3. **Reload from the freelist of the meta the transaction started from**: wrong. The new meta stays current,
+   so the next writer starts from the new tree, and the old freelist lists as free the pages the new tree was
+   written to: the current tree itself would be overwritten.
+4. **Undo the meta write** (write the old meta back, or invalidate the new one): the mapping is read-only, a
+   second write can fail like the first, and after an `fdatasync` error the page cache's contents are not
+   reliable either way. Not attempted.
+5. **Mark the `DB` failed after a meta write error** (refuse further transactions until reopened; the
+   PostgreSQL "fsyncgate" lesson that an fsync error leaves durability unknown): bbolt has no failed state, and
+   its error handling in `Commit` is designed to recover in place (the reload after an fsync error, the
+   failpoint tests that keep using the `DB` after an error). A new failed state is an API change for the
+   maintainers to decide, independent of this bug: even with it, the open readers must keep their pages. Worth
+   raising only if a reviewer brings it up.
+6. **Keep the pending pages but still roll back the allocations**: wrong for the same reason as 3: the
+   allocations are the current tree's pages.
+
+The finding's second consequence (`Commit` returns an error, yet new transactions see its writes) is the same
+event, not the same defect: once the meta page reached the file, the outcome is genuinely unknown (it may or may
+not survive a crash), and returning an error is the honest answer; no code change can make it "not taken
+effect" (alternative 4). It is asked as a documentation question in the issue's "Anything else", not split into
+its own issue.
+
+Durability after the error is out of scope: the data pages were synced before the meta page, so a later commit's
+meta refers only to synced pages; a crash may lose the failed transaction's meta, which the error allows.
+
+Backports: `rollback` is the same on `release-1.3`, `release-1.4` and `release-1.5` (the drop-then-reload dates from 4db9964, 2014); the
+maintainers decide on `release-1.3`/`release-1.4` backports, with the changelog entries they add.

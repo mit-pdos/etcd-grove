@@ -1,6 +1,6 @@
 ---
 name: upstream-report
-description: Turn a finding in issues/<slug>.md into an upstream-ready candidate — a GitHub issue text, a fix branch off upstream main with a regression test, and a PR description — for etcd-io/etcd, etcd-io/raft or etcd-io/website. Use when asked to report, file, draft, or fix an issue from issues/ upstream, or to revise a fix branch after review. Never pushes or files anything.
+description: Turn a finding in issues/<slug>.md into an upstream-ready candidate — a GitHub issue text, a fix branch off upstream main with a regression test, and a PR description — for etcd-io/etcd, etcd-io/raft, etcd-io/bbolt or etcd-io/website. Use when asked to report, file, draft, or fix an issue from issues/ upstream, or to revise a fix branch after review. Never pushes or files anything.
 ---
 
 # Reporting a finding upstream
@@ -22,6 +22,7 @@ force-push the user approved. Aim for a candidate the user can file as it is. `e
 |---|---|---|
 | etcd-io/etcd | `~/etcd` | `upstream` etcd-io/etcd, `origin` upamanyus/etcd |
 | etcd-io/raft | `~/etcd-raft` (clone on first use) | `upstream` etcd-io/raft, `origin` upamanyus/etcd-raft |
+| etcd-io/bbolt | `~/etcd-bbolt` | `upstream` etcd-io/bbolt, `origin` upamanyus/bbolt |
 | etcd-io/website | `~/etcd-website` | `upstream` etcd-io/website (no fork) |
 
 `git -C <clone> fetch upstream && git -C <clone> worktree add ~/etcd-fixes/<slug> -b fix/<slug> upstream/main`. Never
@@ -36,11 +37,12 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
   2026-10-19): leave it out of bug fixes unless a reviewer asks. Otherwise the changelog entry comes last, alone
   (`changelog: add entry for <what>`, no body, in `CHANGELOG/CHANGELOG-<next minor>.md` on `main`, the link
   `pull/TODO` until the PR exists): raft keeps its changelogs on `main`, mostly in commits of their own. In etcd, no
-  changelog edit: its changelog is updated separately (few changelog commits touch code).
+  changelog edit: its changelog is updated separately (few changelog commits touch code). Nor in bbolt, whose
+  `CHANGELOG/` entries go in commits of their own, mostly by the maintainers after merging.
 - Messages are as short as upstream's: most etcd and raft commits have no body, and nine in ten at most three lines.
   The tests commit has no body; the fix commit says in one short sentence what changes, or what was wrong, in words
   rather than function names, without restating the diff. Subjects at most 72 characters; the prefix the package's
-  history uses (`client/v3:`, `etcdserver:`, `raft:`). `git commit -s`, no AI trailer of any kind. The messages are
+  history uses (`client/v3:`, `etcdserver:`, `raft:`; bbolt's root package: `tx:`, `db:`). `git commit -s`, no AI trailer of any kind. The messages are
   drafts the user rewrites (Kubernetes' AI guidance, which etcd follows, forbids AI-written commit messages). Amend
   the commits until the PR is open.
 - The issue and the PR each end with their AI disclosure (below; etcd's PR template asks for one, following
