@@ -23,6 +23,10 @@ gives `context`'s `isClosedchanInit`) and `Main`'s spec. This file proves it fro
 as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the linked result
 `kv.wp_Main` (`Link.lean`): `kv_adequate`.
 
+The same for `MainWitness()` (2026-10-21, W4: the cluster of two voters and a witness,
+`StartClusterWitness([]uint64{1, 2}, 3)`, then the same test): `kv_witness_adequate_of`, from
+`MainWitness.spec`, and `kv_witness_adequate` (`AdequacyLinked.lean`).
+
 - **The length bound.** `Main.spec` takes `receiptBound GF ≤ 2^63` (the counter clock does not
   wrap; raft's terms stay below `2^64`), and `goose_adequacy`'s receipt bound `N` must exceed
   the execution's length `n`: `N = n + 1 ≤ 2^63`, so the theorem is about executions of
@@ -40,6 +44,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Init
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Main
+public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.MainWitness
 public import Proof.runtime.Threads
 public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
 
@@ -245,9 +250,73 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ipureintro
   rfl
 
+/-- `MainWitness`'s spec at `kvGF`, the hypothesis of `kv_witness_adequate_of`. -/
+abbrev kvMainWitnessSpec : Prop :=
+  ∀ [hG : HeapGS HasLC.hasLC kvGF] [go.Semantics]
+    [github_com.mit_pdos.etcd_grove.examples.kv.Assumptions],
+    kv.MainWitness.spec (GF := kvGF) (hG := hG)
+
+/-- The store's program with a witness: the package's initialization, then `MainWitness()`. -/
+def kvProgramWitness [GoSemanticsFunctions] : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.kv.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.kv.MainWitness) #()
+
+/-- **Porcupine never rejects the trace of the store with a witness**, from `MainWitness`'s
+spec: `kv_adequate_of` for `kvProgramWitness` (the store package's initialization, then
+`MainWitness()`: the cluster of the voters `1`, `2` and the witness `3` in raft's static mode,
+the same randomized test, and a panic unless porcupine answers `Ok`). -/
+theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
+    [hLog : log.NewModel]
+    (wp_MainWitness : kvMainWitnessSpec)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : g.threads = 1)
+    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvProgramWitness], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
+    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
+    cases h : v.isPanic
+    · rfl
+    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
+      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
+  refine goose_adequacy (GF := kvGF) (n + 1) (n + 2) kvProgramWitness σ g
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
+    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+  intro hG HN _ HL
+  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
+  subst Hlctx
+  subst HL
+  letI : HeapGS .hasLC kvGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
+  have Hbound : receiptBound kvGF ≤ 2 ^ 63 := by rw [HN]; omega
+  unfold IsInit at Hinit
+  rw [Hinit]
+  iintro _ _ Hgs Htok
+  ihave Hown : ownInitializing (getIsPkgInit (GF := kvGF)) $$ [Hgs]
+  · rw [ownInitializing_unseal]
+    unfold ownInitializingDef
+    iexists ∅
+    iframe Hgs
+    imodintro
+    iapply BigSepM.bigSepM_empty.2
+    itrivial
+  imodintro
+  unfold kvProgramWitness
+  wp_apply (github_com.mit_pdos.etcd_grove.examples.kv.wp_initialize' _
+    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+  wp_apply (wp_MainWitness Hbound) $$ [Hpkg Hcc]
+  · iframe #
+  ipureintro
+  rfl
+
 end adequacy
 
 end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.kv_adequate_of
+#print axioms Perennial.EtcdGrove.kv_witness_adequate_of

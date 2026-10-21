@@ -22,8 +22,7 @@ porcupine's.
 * **The witness storage** (`kv_NewWitnessStore`, `kv_wstore_isWitnessStorage`, 2026-10-20,
   witness support): `*kv.WitnessStore`, the in-process storage of a cluster with a witness
   (`StartClusterWitness`), meets raft's witness storage contract (`isWitnessStorage`) at any
-  ghost counterpart `P` of its state: the contract is not a trust boundary for the store. (The
-  cluster with a witness itself is not yet specified: W4.)
+  ghost counterpart `P` of its state: the contract is not a trust boundary for the store.
 * **The ghost state's allocation** (`kvStorInv_alloc`, `rkvInv_alloc`, `Alloc.lean`).
 * **The cluster** (`kv_StartCluster`, `cluster.go`) and **the randomized linearizability test**
   (`kv_Check`, `check.go`): `Check` over replicas of one store, from the empty store, returns
@@ -31,6 +30,12 @@ porcupine's.
 * **The top-level driver** (`kv_Main`): `{{ isPkgInit kv ∗ context.isClosedchanInit }} Main()
   {{ RET #(); True }}` for executions of fewer than `2^63` steps: the cluster is started, the
   test runs, and `Main`'s panic unless porcupine answers `Ok` is unreachable.
+* **The cluster with a witness** (`kv_StartClusterWitness`, `kv_MainWitness`, 2026-10-21, W4):
+  `StartClusterWitness([]uint64{1, 2}, 3)` starts the two voters and the witness `3` (raft's
+  static mode: no conf change, each replica's `run` forwarding the witness requests of a Ready to
+  the in-process `raft.Witness` and stepping its answers into the node), and `MainWitness` runs
+  the same test on it: `{{ isPkgInit kv ∗ context.isClosedchanInit }} MainWitness() {{ RET #();
+  True }}`; closed (`kv_witness_porcupine_safe`, from `kv_witness_adequate`).
 * **Adequacy** (`kv_adequate`, `AdequacyLinked.lean`, from `Adequacy.lean`'s `kv_adequate_of`):
   the same in the operational semantics, with package initialization proved (`Init.lean`):
   every execution of `initialize'(); Main()` from a fresh state, of fewer than `2^63` steps,
@@ -162,6 +167,12 @@ theorem kv_StartCluster : kv.StartCluster.spec (GF := GF) (hG := hG) :=
 theorem kv_Check : kv.Check.spec (GF := GF) (hG := hG) :=
   kv.wp_Check
 
+/-- `StartClusterWitness(voters, witness)` at the voters `[1, 2]` and the witness `3`
+(`Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartClusterWitness.lean`): two replicas of
+one store, from the empty store. -/
+theorem kv_StartClusterWitness : kv.StartClusterWitness.spec (GF := GF) (hG := hG) :=
+  kv.wp_StartClusterWitness
+
 end results
 
 /-! The top-level driver, at no storage registry (the section has no `KVStor`). -/
@@ -179,6 +190,12 @@ than `2^63` steps, it returns: porcupine accepts the test's trace. Stated at no 
 registry: the proof allocates one. -/
 theorem kv_Main : kv.Main.spec (GF := GF) (hG := hG) :=
   kv.wp_Main
+
+/-- **The top-level driver with a witness** `MainWitness()`
+(`Spec/github_com/mit_pdos/etcd_grove/examples/kv/MainWitness.lean`): as `kv_Main`, on the
+cluster of `StartClusterWitness([]uint64{1, 2}, 3)`. -/
+theorem kv_MainWitness : kv.MainWitness.spec (GF := GF) (hG := hG) :=
+  kv.wp_MainWitness
 
 end main
 
@@ -201,6 +218,8 @@ end main
 #print axioms kv_StartCluster
 #print axioms kv_Check
 #print axioms kv_Main
+#print axioms kv_StartClusterWitness
+#print axioms kv_MainWitness
 
 section closed
 attribute [local instance] disk_op disk_model disk_semantics disk_interp
@@ -225,9 +244,31 @@ theorem kv_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   kv_adequate σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
+/-- **The randomized linearizability test of the store with a witness never fails**
+(`kv_witness_adequate`, `AdequacyLinked.lean`): every real execution of `kvProgramWitness` --
+the store package's initialization, then `MainWitness()`: a cluster of the raft voters `1`, `2`
+and the witness `3` (raft's static mode, the witness an in-process `raft.Witness` each replica
+forwards its node's witness requests to), the same 4 clients of 25 random operations, porcupine's
+check of the trace and a panic unless it answers `Ok` -- from a fresh state with one thread, of
+`n < 2^63` steps, has no stuck thread and no thread that ended in a panic: porcupine always
+answers `Ok`. -/
+theorem kv_witness_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
+    [hLog : log.NewModel]
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : g.threads = 1)
+    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvProgramWitness], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  kv_witness_adequate σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+
 end closed
 
 #print axioms kv_porcupine_safe
+#print axioms kv_witness_porcupine_safe
 
 end EtcdGrove
 end Perennial

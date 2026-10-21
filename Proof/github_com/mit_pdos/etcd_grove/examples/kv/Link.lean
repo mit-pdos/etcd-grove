@@ -31,9 +31,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.fits
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.MainWitness
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.New
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.StartCluster
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.StartClusterWitness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.copyIDs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.copyMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.deliver
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
@@ -237,6 +240,10 @@ theorem kv.wp_Main :
     kv.Main.spec (GF := GF) (hG := hG) :=
   kv.Main.wp_proof kv.wp_StartCluster kv.wp_Check lintest.wp_CounterClock
 
+theorem kv.wp_copyIDs :
+    kv.copyIDs.spec (GF := GF) (hG := hG) :=
+  kv.copyIDs.wp_proof
+
 theorem kv.witnessRead.wp_GetState :
     kv.witnessRead.GetState.spec (GF := GF) (hG := hG) :=
   kv.witnessRead.GetState.wp_proof
@@ -244,6 +251,14 @@ theorem kv.witnessRead.wp_GetState :
 theorem kv.witnessRead.wp_Update :
     kv.witnessRead.Update.spec (GF := GF) (hG := hG) :=
   kv.witnessRead.Update.wp_proof
+
+theorem kv.wp_StartClusterWitness [KVStor GF] :
+    kv.StartClusterWitness.spec (GF := GF) (hG := hG) :=
+  kv.StartClusterWitness.wp_proof kv.wp_copyIDs wp_NewMemoryStorage kv.Storage.wp_InitialState kv.Storage.wp_Snapshot kv.wp_newKV kv.wp_deliver kv.wp_tick kv.quietLogger.wp_Debugf kv.quietLogger.wp_Errorf kv.quietLogger.wp_Infof kv.quietLogger.wp_Warningf wp_RestartNode kv.wp_NewWitnessStore kv.WitnessStore.wp_GetWitnessState kv.WitnessStore.wp_Close kv.witnessRead.wp_GetState kv.witnessRead.wp_Update wp_NewWitness
+
+theorem kv.wp_MainWitness :
+    kv.MainWitness.spec (GF := GF) (hG := hG) :=
+  kv.MainWitness.wp_proof kv.wp_StartClusterWitness kv.wp_Check lintest.wp_CounterClock
 
 end links_hasLC
 
