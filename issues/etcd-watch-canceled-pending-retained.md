@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
 ---
 
@@ -26,5 +26,6 @@ links:
   (`WatchSendModel.lean`); it promises nothing about memory, so nothing is assumed.
 - **Possible fixes**: drop a canceled watcher's responses instead of buffering them; the upstream
   candidate for `etcd-watch-id-reuse-stale-events` (`issues/upstream/etcd-watch-id-reuse-stale-events/`)
-  does so as part of its fix.
+  does so as part of its fix, on every stream (including those whose creates never wait: the drop
+  needs no wait where ids are never reused); its PR does not mention this finding.
 - **Found**: 2026-10-16, the upstream report of `etcd-watch-id-reuse-stale-events`.
