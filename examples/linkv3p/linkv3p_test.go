@@ -549,3 +549,227 @@ func TestWriteOnce(t *testing.T) {
 	}
 	t.Logf("%d keys, each put once", len(resp.Kvs))
 }
+
+// A watched event of TestWatchFailover: its revision, key, value, whether it is a put, and when it
+// arrived (since the run's start).
+type wEvent struct {
+	rev      int64
+	key, val string
+	put      bool
+	at       time.Duration
+}
+
+// A put of TestWatchFailover's writers: its key and value, and for one that returned no error its
+// reply's revision.
+type wPut struct {
+	key, val string
+	rev      int64
+	ok       bool
+}
+
+// checkWatch fails the test unless the events evs are the writes puts, as watchkv's check: all
+// puts, at revisions 2, 3, ... without a gap or a repeat (a fresh cluster is at revision 1, and
+// every write is a put of one key), each a put some writer attempted, and every put that returned
+// no error the event at its reply's revision with its key and value.
+func checkWatch(t *testing.T, evs []wEvent, puts []wPut) {
+	t.Helper()
+	tried := map[[2]string]bool{}
+	for _, p := range puts {
+		tried[[2]string{p.key, p.val}] = true
+	}
+	for i, e := range evs {
+		if !e.put {
+			t.Fatalf("event %d at revision %d is not a put", i, e.rev)
+		}
+		if e.rev != int64(i)+2 {
+			t.Fatalf("event %d at revision %d, expected %d: a gap or a repeat (the previous at %d)",
+				i, e.rev, i+2, evs[max(i-1, 0)].rev)
+		}
+		if !tried[[2]string{e.key, e.val}] {
+			t.Fatalf("event at revision %d puts %s=%s, which no writer attempted", e.rev, e.key,
+				e.val)
+		}
+	}
+	for _, p := range puts {
+		if !p.ok {
+			continue
+		}
+		i := p.rev - 2
+		if i < 0 || i >= int64(len(evs)) {
+			t.Fatalf("the put of %s=%s at revision %d was not watched", p.key, p.val, p.rev)
+		}
+		if e := evs[i]; e.key != p.key || e.val != p.val {
+			t.Fatalf("the event at revision %d is %s=%s, the put there %s=%s", p.rev, e.key, e.val,
+				p.key, p.val)
+		}
+	}
+}
+
+// TestWatchFailover shows a watch surviving the cut of the member it streams from
+// (notes/watch-cut-plan.md, W0): every client of all three bridges, as Main's; a prefix watch from
+// revision 1 through client 1, opened before any write; 3 writers putting keys under the prefix
+// (watchkv's workload: a few keys and values) through clients picked at random, each put after a
+// 2ms pause; and the bridges blackholed in turn, each for 14s, then unblackholed: whichever member
+// the watch streams from is cut once at least. A cut stream's connection is closed by the client's
+// keepalive (the stream is a call in flight, so the client pings: 10s, then 2s), and the watch
+// client re-opens the stream on the same client, which grpc's balancer sends to a reachable member,
+// resuming each watch from the revision after the last event it delivered.
+//
+// After the writers stop, the watch is read up to the highest revision a put returned (30s at
+// most). It checks: the events are the writes (checkWatch: no gap, no repeat, every successful put
+// its event); the events stalled (no event for 10s while puts succeeded: a cut of the stream's
+// member) and resumed; and some put succeeded during each blackhole. It runs in a child process
+// (inChild), as TestMainRun.
+func TestWatchFailover(t *testing.T) {
+	if inChild(t, "TestWatchFailover") {
+		return
+	}
+	_, brs, clis := cutSetup(t, func(int) []string { return bridgeAddrs })
+	t0 := time.Now()
+	wctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wch := clis[0].Watch(wctx, "wk/", clientv3.WithPrefix(), clientv3.WithRev(1),
+		clientv3.WithCreatedNotify(), clientv3.WithProgressNotify())
+
+	var mu sync.Mutex
+	var evs []wEvent
+	var werr error
+	watchDone := make(chan struct{})
+	go func() {
+		defer close(watchDone)
+		for wresp := range wch {
+			if err := wresp.Err(); err != nil {
+				mu.Lock()
+				werr = err
+				mu.Unlock()
+				return
+			}
+			at := time.Since(t0)
+			mu.Lock()
+			for _, e := range wresp.Events {
+				evs = append(evs, wEvent{e.Kv.ModRevision, string(e.Kv.Key), string(e.Kv.Value),
+					e.Type == clientv3.EventTypePut, at})
+			}
+			mu.Unlock()
+		}
+	}()
+
+	// the blackholes, in turn; the writers run until the last one ends, and 3s more
+	const hole = 14 * time.Second
+	var holes [3][2]time.Duration
+	stop := make(chan struct{})
+	go func() {
+		for i := range brs {
+			time.Sleep(time.Second)
+			holes[i][0] = time.Since(t0)
+			brs[i].Blackhole()
+			time.Sleep(hole)
+			brs[i].Unblackhole()
+			holes[i][1] = time.Since(t0)
+		}
+		time.Sleep(3 * time.Second)
+		close(stop)
+	}()
+
+	keys := []string{"wk/k0", "wk/k1", "wk/k2"}
+	vals := []string{"a", "b", "c", "d"}
+	var puts []wPut
+	var putAt []time.Duration // when each successful put returned
+	var wg sync.WaitGroup
+	for w := 0; w < 3; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				time.Sleep(2 * time.Millisecond)
+				mu.Lock()
+				p := wPut{key: keys[rand.Intn(len(keys))], val: vals[rand.Intn(len(vals))]}
+				cli := clis[rand.Intn(len(clis))]
+				mu.Unlock()
+				resp, err := cli.Put(context.Background(), p.key, p.val)
+				if err == nil {
+					p.rev, p.ok = resp.Header.Revision, true
+				}
+				mu.Lock()
+				puts = append(puts, p)
+				if err == nil {
+					putAt = append(putAt, time.Since(t0))
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+
+	var maxRev int64
+	nOk := 0
+	mu.Lock()
+	for _, p := range puts {
+		if p.ok {
+			nOk++
+			maxRev = max(maxRev, p.rev)
+		}
+	}
+	mu.Unlock()
+	t.Logf("%d puts, %d succeeded, the highest revision %d; blackholes %v", len(puts), nOk, maxRev,
+		holes)
+	deadline := time.Now().Add(30 * time.Second)
+	for {
+		mu.Lock()
+		n, err := len(evs), werr
+		var last int64
+		if n > 0 {
+			last = evs[n-1].rev
+		}
+		mu.Unlock()
+		if last >= maxRev {
+			break
+		}
+		if err != nil {
+			t.Fatalf("the watch ended at revision %d: %v", last, err)
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("the watch reached revision %d only, of %d", last, maxRev)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	cancel()
+	<-watchDone
+	mu.Lock()
+	defer mu.Unlock()
+	checkWatch(t, evs, puts)
+	t.Logf("%d events, revisions 2 to %d, no gap or repeat", len(evs), evs[len(evs)-1].rev)
+
+	// the stalls: no event for 5s or more (the run's puts succeed every few milliseconds)
+	stalled := false
+	prev := time.Duration(0)
+	for i, e := range evs {
+		if e.at-prev > 5*time.Second {
+			t.Logf("no event from %v to %v (revision %d next)", prev, e.at, e.rev)
+			if e.at-prev >= 10*time.Second && i > 0 {
+				stalled = true
+			}
+		}
+		prev = e.at
+	}
+	if !stalled {
+		t.Fatalf("the events never stalled: no blackhole cut the watch's stream")
+	}
+	for i, h := range holes {
+		ok := false
+		for _, at := range putAt {
+			if at > h[0] && at < h[1] {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			t.Fatalf("no put succeeded during member %d's blackhole: no failover for writes", i+1)
+		}
+	}
+}

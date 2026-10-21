@@ -1,6 +1,6 @@
 # Plan: watches across a cut (linkv3p)
 
-Status: planned (2026-10-21, branch `watch-cut`). Follows `notes/read-retry-plan.md` (D29),
+Status: W0 done (2026-10-21, branch `watch-cut`); next W1. Follows `notes/read-retry-plan.md` (D29),
 `notes/keepalive-plan.md` (D28) and `notes/client-cut-plan.md` (D26, D27), whose "Later" section
 lists this item.
 
@@ -112,6 +112,21 @@ member, because the stream changes members. Two ways:
   revision on another member? Record any findings in `issues/` (the resume path has had bugs:
   D25's fork fixes F3, F4).
 - `go test -race`.
+
+**Done (2026-10-21).** `TestWatchFailover`, in the test file: the workload lives there until W4
+settles Q4, so linkv3p's translation and proofs are untouched. One run under `-race`, 49s:
+- the puts: 6285, of which 6270 succeeded (the 15 failures are writes in flight at a keepalive
+  close);
+- the events: 6277, revisions 2 to 6278, with no gap or repeat; every successful put is its event.
+- **The stream was cut in each of the three blackholes, not just one.** Each time the events
+  stopped for 12s, and the watch resumed on the member blackholed next (grpc's round robin moves
+  on). So the resume across members ran three times, from revisions 770, 3135 and 3958.
+- No finding for `issues/`: etcd's client resumes from the right revision on another member.
+- Q4: only the watch workload ran, so the gapless check held. This supports running it alone
+  (Q4's simpler proof). Running it beside linkvtxn's workload would need the weaker check.
+- Not tested: a peer-isolated member keeps its stream (no `WithRequireLeader`), so its watch stalls
+  until the member is mended, then catches up. That costs liveness, not safety, and the closed
+  theorem is about safety.
 
 ### W1. The trust boundary (asked of the user; D30)
 
