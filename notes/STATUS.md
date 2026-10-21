@@ -394,7 +394,7 @@ of the stages follows.
 
 
 
-## Keepalive and failover on a silent partition (2026-10-21, branch `keepalive`)
+## Keepalive and failover on a silent partition (2026-10-21, branch `keepalive`, merged into `lean`)
 
 `notes/keepalive-plan.md`, `notes/decisions.md` D28. `clientv3.New`'s configuration may enable
 gRPC keepalive (`clientCfgOk` no longer requires `DialKeepAliveTime ≤ 0`; `dialSetupOpts`'

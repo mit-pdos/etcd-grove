@@ -1,6 +1,6 @@
 # Plan: keepalive in the client's configuration, and failover on a silent partition
 
-Status: done (2026-10-21, branch `keepalive`; D28 approved). Follows
+Status: done (2026-10-21, branch `keepalive`, merged into `lean`; D28 approved). Follows
 `notes/client-cut-plan.md` (K4, failover; `notes/decisions.md` D27).
 
 ## Goal
