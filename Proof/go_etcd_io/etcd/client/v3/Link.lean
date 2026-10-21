@@ -77,6 +77,7 @@ public import Proof.google_golang_org.grpc.GenericClientStream__Send
 public import Proof.google_golang_org.grpc.NewClient
 public import Proof.google_golang_org.grpc.Peer
 public import Proof.google_golang_org.grpc.StaticMethod
+public import Proof.google_golang_org.grpc.WithKeepaliveParams
 public import Proof.google_golang_org.grpc.WithResolvers
 public import Proof.google_golang_org.grpc.WithStreamInterceptor
 public import Proof.google_golang_org.grpc.WithTransportCredentials
@@ -477,6 +478,10 @@ theorem insecure.wp_NewCredentials :
     EtcdGrove.insecure.NewCredentials.spec (GF := GF) (hG := hG) :=
   EtcdGrove.insecure.NewCredentials.wp_proof
 
+theorem grpc.wp_WithKeepaliveParams :
+    EtcdGrove.grpc.WithKeepaliveParams.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.WithKeepaliveParams.wp_proof
+
 theorem grpc.wp_WithTransportCredentials :
     EtcdGrove.grpc.WithTransportCredentials.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.WithTransportCredentials.wp_proof
@@ -491,7 +496,7 @@ theorem grpc.wp_WithUnaryInterceptor :
 
 theorem v3.Client.wp_dialSetupOpts :
     EtcdGrove.Client.dialSetupOpts.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.dialSetupOpts.wp_proof v3.Client.wp_roundRobinQuorumBackoff v3.wp_withBackoff v3.wp_withMax v3.Client.wp_streamClientInterceptor v3.Client.wp_unaryClientInterceptor insecure.wp_NewCredentials grpc.wp_WithTransportCredentials grpc.wp_WithStreamInterceptor grpc.wp_WithUnaryInterceptor
+  EtcdGrove.Client.dialSetupOpts.wp_proof v3.Client.wp_roundRobinQuorumBackoff v3.wp_withBackoff v3.wp_withMax v3.Client.wp_streamClientInterceptor v3.Client.wp_unaryClientInterceptor insecure.wp_NewCredentials grpc.wp_WithKeepaliveParams grpc.wp_WithTransportCredentials grpc.wp_WithStreamInterceptor grpc.wp_WithUnaryInterceptor
 
 theorem strings.wp_SplitN :
     EtcdGrove.strings.SplitN.spec (GF := GF) (hG := hG) :=

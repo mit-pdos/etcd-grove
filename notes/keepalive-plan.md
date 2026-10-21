@@ -1,7 +1,7 @@
 # Plan: keepalive in the client's configuration, and failover on a silent partition
 
-Status: in progress (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`): KA0 and KA1
-done (D28 approved). Follows
+Status: in progress (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`): KA0, KA1 and
+KA2 done (D28 approved). Follows
 `notes/client-cut-plan.md` (K4, failover; `notes/decisions.md` D27).
 
 ## Goal
@@ -151,6 +151,15 @@ and the configuration's new fields; the translation and package tables regenerat
 - `dial`: `dialOk` and `unaryIcsOf` of the longer list (by the KA1 lemmas).
 - `clientCfgOk` without the keepalive conjunct; the pure conjunction's destructurings in
   `newClient` and in every example's configuration proof (one conjunct fewer).
+
+**Done (2026-10-21).** `kaOpts cfg` (`InvClientNew.lean`: `[.keepalive]` when `DialKeepAliveTime`
+is positive, with `unaryIcsOf_kaOpts`, `dialOk_kaOpts`); `dialSetupOpts`' branch proved (a join
+before the dial options: the parameters' struct, `WithKeepaliveParams`, the append), its result
+`kaOpts cfg ++ ds ++ [...]`; `dial` through the two lemmas; `clientCfgOk`, `dial`,
+`dialWithBalancer` and `newClient` without the keepalive premise; `WithKeepaliveParams` linked in
+the client's `Link.lean` (`etc/link-lean-first-client.txt`). The examples' configuration proofs
+needed no change (their `simp` closes the shorter conjunction), and linkv3p's `newClient` builds
+again; only linkv3p's `startMember` waits for KA3.
 
 ### KA3. linkv3p
 

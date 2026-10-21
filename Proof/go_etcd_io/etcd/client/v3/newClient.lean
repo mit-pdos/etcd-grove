@@ -67,7 +67,7 @@ theorem newClient.wp_proof
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
   icases Hcfg with ⟨#Heps, #Hdo, %Hc⟩
-  obtain ⟨Hplain, Htls, Hun, Hpw, Htok, Hctx, Hlg, Hms, Hmr, Hka, Hrej, Has⟩ := Hc
+  obtain ⟨Hplain, Htls, Hun, Hpw, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has⟩ := Hc
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
   ihave #Hpf := Hp
   iStructNamed Hpf
@@ -155,9 +155,7 @@ theorem newClient.wp_proof
   wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps
     $$ [$Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
-  · isplitr
-    · ipureintro; exact Hka
-    ipureintro; exact Hplain
+  · ipureintro; exact Hplain
   icases Hres with (⟨%Hderr, #Hconn, #Hconn1⟩ | %Hderr)
   · subst Hderr
     wp_auto

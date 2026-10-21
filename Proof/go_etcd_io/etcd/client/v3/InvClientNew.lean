@@ -9,13 +9,14 @@ addresses servers are served at (several since 2026-10-21, `notes/decisions.md` 
 goes to one of them); no TLS (`TLS` nil), no authentication (`Username`, `Password`, `Token` empty), no
 context of the caller's (`Context` nil: the client's context is `context.TODO()`'s child), a
 logger of the caller's (`Logger` non-nil: no default logger is built, `logutil`), the default call
-options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no keepalive pings
-(`DialKeepAliveTime` not positive), no dial options of the caller's (`DialOptions` empty:
+options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no dial options of the caller's (`DialOptions` empty:
 `issues/etcd-client-dialoptions-unary-interceptor.md`, a `WithUnaryInterceptor` there would
 replace the retry interceptor), no version check (`RejectOldCluster` false: `checkVersion`'s
 `Status` calls) and no auto-sync (`AutoSyncInterval` zero: the `autoSync` goroutine returns at
 once). `DialTimeout`, `MaxUnaryRetries`, `BackoffWaitBetween`, `BackoffJitterFraction` and
-`PermitWithoutStream` are any.
+`PermitWithoutStream` are any, and so are the keepalive parameters (`DialKeepAliveTime`,
+`DialKeepAliveTimeout`; since 2026-10-21, `notes/decisions.md` D28: a positive `DialKeepAliveTime`
+adds grpc's keepalive option, `kaOpts`).
 
 **The package's variables** (`clientNewVars`): `defaultCallOpts` (a full slice of grpc's scalar
 call options, `callOptsAt`) and the retry defaults `defaultUnaryMaxRetries`,
@@ -171,6 +172,27 @@ def clientCoreAt (c : Loc) : IProp GF :=
 instance clientCoreAt_persistent (c : Loc) : Persistent (clientCoreAt (GF := GF) c) := by
   unfold clientCoreAt; infer_instance
 
+/-- **The keepalive option of a configuration's dial** (D28): grpc's `WithKeepaliveParams` when
+`DialKeepAliveTime` is positive (`dialSetupOpts`), none otherwise. -/
+def kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) : List GrpcDialOpt :=
+  if 0 < sint.Z cfg.DialKeepAliveTime' then [.keepalive] else []
+
+/-- The keepalive option sets no unary interceptor. -/
+theorem unaryIcsOf_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDialOpt) :
+    unaryIcsOf (kaOpts cfg ++ ds) = unaryIcsOf ds := by
+  unfold kaOpts
+  split
+  · exact unaryIcsOf_keepalive ds
+  · rfl
+
+/-- The keepalive option keeps a dial `NewClient`'s. -/
+theorem dialOk_kaOpts (cfg : go_etcd_io.etcd.client.v3.Config) (ds : List GrpcDialOpt)
+    (rb : GoInterface) : dialOk ds rb → dialOk (kaOpts cfg ++ ds) rb := by
+  unfold kaOpts
+  split
+  · exact dialOk_keepalive ds rb
+  · exact id
+
 /-- **`New`'s configuration premise** (persistent; see the file header): the configuration `cfg`
 of one plain endpoint `ep`. -/
 def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) : IProp GF :=
@@ -178,7 +200,7 @@ def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
     ⌜plainEndpoints eps ∧ cfg.TLS' = null ∧ cfg.Username' = [] ∧ cfg.Password' = [] ∧
       cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧ cfg.Logger' ≠ null ∧
       sint.Z cfg.MaxCallSendMsgSize' ≤ 0 ∧ sint.Z cfg.MaxCallRecvMsgSize' ≤ 0 ∧
-      sint.Z cfg.DialKeepAliveTime' ≤ 0 ∧ cfg.RejectOldCluster' = false ∧
+      cfg.RejectOldCluster' = false ∧
       cfg.AutoSyncInterval' = W64 0⌝)
 
 instance clientCfgOk_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :

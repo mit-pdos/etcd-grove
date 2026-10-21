@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Client__unaryClientInterceptor
 public import Spec.go_etcd_io.etcd.client.v3.withBackoff
 public import Spec.go_etcd_io.etcd.client.v3.withMax
 public import Spec.google_golang_org.grpc.WithTransportCredentials
+public import Spec.google_golang_org.grpc.WithKeepaliveParams
 public import Spec.google_golang_org.grpc.WithStreamInterceptor
 public import Spec.google_golang_org.grpc.WithUnaryInterceptor
 public import Spec.google_golang_org.grpc.credentials.insecure.NewCredentials
@@ -40,12 +41,13 @@ theorem Client.dialSetupOpts.wp_proof
     (wp_streamIc : Client.streamClientInterceptor.spec (GF := GF) (hG := hG))
     (wp_unaryIc : Client.unaryClientInterceptor.spec (GF := GF) (hG := hG))
     (wp_NewCredentials : insecure.NewCredentials.spec (GF := GF) (hG := hG))
+    (wp_WithKeepaliveParams : grpc.WithKeepaliveParams.spec (GF := GF) (hG := hG))
     (wp_WithTransportCredentials : grpc.WithTransportCredentials.spec (GF := GF) (hG := hG))
     (wp_WithStreamInterceptor : grpc.WithStreamInterceptor.spec (GF := GF) (hG := hG))
     (wp_WithUnaryInterceptor : grpc.WithUnaryInterceptor.spec (GF := GF) (hG := hG)) :
     Client.dialSetupOpts.spec (GF := GF) (hG := hG) := by
   intro c cfg cr sl ds
-  wp_start as ⟨#Hc, #Hcfg, %Hka, #Hds⟩
+  wp_start as ⟨#Hc, #Hcfg, #Hds⟩
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
@@ -58,19 +60,54 @@ theorem Client.dialSetupOpts.wp_proof
   icases Hds with ⟨%os, #Hos, %Hosds⟩
   iStructNamed Hcfg
   wp_auto
-  wp_if_destruct
-  · exfalso; have : sint.Z (W64 0) = 0 := by decide
-    word
   ihave Hnil := ownSlice_nil (V := GoInterface) (GF := GF) (DFrac.own 1)
   ihave Hnilc := ownSliceCap_nil (V := GoInterface) (GF := GF)
-  wp_apply wp_slice_append_dfrac (V := GoInterface) slice.nil [] (DFrac.own 1) sl os DFrac.discard
-    $$ [$Hnil $Hnilc $Hos] as %o1 ⟨Ho1, Ho1c, -⟩
+  -- (2026-10-21, D28) grpc's keepalive option first, if `DialKeepAliveTime` is positive
+  wp_join iprop(c_ptr ↦ c ∗ ∃ (o0 : GoSlice) (ka : List GoInterface), opts_ptr ↦ o0 ∗
+      o0 ↦* ka ∗ ownSliceCap GoInterface o0 (DFrac.own 1) ∗
+      ⌜List.Forall₂ grpcDialOptIs ka (kaOpts cfg)⌝) at next
+      with [c opts Hnil Hnilc] as ⟨c, %o0, %ka, opts, Ho0, Ho0c, %Hka⟩
+  · wp_if_destruct
+    · (try wp_auto)
+      wp_apply wp_WithKeepaliveParams _ $$ [$Hgrpc] as %kv %Hkv
+      wp_apply wp_slice_literal (V := GoInterface) [kv]
+      isplitr
+      · ipureintro; rfl
+      iintro %lp ⟨Hl, -⟩
+      simp only [go.arrayLiteralSize, List.foldl]
+      (try wp_auto)
+      rw [show (zero_val GoSlice) = slice.nil from rfl]
+      wp_apply (wp_slice_append (V := GoInterface) slice.nil [] _ [kv] (DFrac.own 1))
+        $$ [$Hnil $Hnilc $Hl] as %ok ⟨Hok, Hokc, -⟩
+      wp_join_done
+      iframe c
+      iexists ok, [kv]
+      iframe
+      ipureintro
+      unfold kaOpts
+      have hpos : 0 < sint.Z cfg.DialKeepAliveTime' := by
+        have h0 : sint.Z (W64 0) = 0 := by decide
+        word
+      simp only [hpos, ↓reduceIte]
+      exact .cons Hkv .nil
+    · wp_join_done
+      iframe c
+      iexists slice.nil, []
+      iframe opts Hnil Hnilc
+      ipureintro
+      unfold kaOpts
+      have hneg : ¬ 0 < sint.Z cfg.DialKeepAliveTime' := by
+        have h0 : sint.Z (W64 0) = 0 := by decide
+        word
+      simp only [hneg, ↓reduceIte]
+      exact .nil
+  wp_apply wp_slice_append_dfrac (V := GoInterface) o0 ka (DFrac.own 1) sl os DFrac.discard
+    $$ [$Ho0 $Ho0c $Hos] as %o1 ⟨Ho1, Ho1c, -⟩
   · ipureintro; exact DFrac.valid_own_one
-  wp_join iprop(∃ (o2 : GoSlice) (v : GoInterface), opts_ptr ↦ o2 ∗ o2 ↦* (os ++ [v]) ∗
+  wp_join iprop(∃ (o2 : GoSlice) (v : GoInterface), opts_ptr ↦ o2 ∗ o2 ↦* (ka ++ os ++ [v]) ∗
       ownSliceCap GoInterface o2 (DFrac.own 1) ∗ ⌜grpcDialOptIs v .transportCreds⌝) at next
       with [opts Ho1 Ho1c creds] as ⟨%o2, %v, opts, Ho2, Ho2c, %Hv⟩
-  · rw [List.nil_append]
-    cases cr with
+  · cases cr with
     | nil =>
       wp_auto
       wp_apply wp_NewCredentials $$ [$Hins] as %ic -
@@ -160,8 +197,8 @@ theorem Client.dialSetupOpts.wp_proof
     iexists _
     iframe Ho5
     ipureintro
-    rw [List.append_assoc]
-    exact List.Forall₂.append Hosds (.cons Hv (.cons Ho3 (.cons Ho4 .nil)))
+    simp only [List.append_assoc, List.cons_append]
+    exact List.Forall₂.append Hka (List.Forall₂.append Hosds (.cons Hv (.cons Ho3 (.cons Ho4 .nil))))
   isplitr
   · ipureintro; exact Hsi
   iintro %Hm
