@@ -474,7 +474,47 @@ the remaining step.
 `switchToConfig`, `DynCCPreOp`; now also `NoAddWit`), the snapshot premise (a snapshot only at and
 of a witness-free configuration), NoOutWit (dynamic), the static `ApplyConfChange`'s `γ.reWit = 0 ∧
 NoAddWit`, `EnterJoint`/`LeaveJoint` at a witness-free configuration, `MemoryStorage` witness-free,
-and the temporary `csm.Witness' = 0` on the node constructors.
+and the temporary `csm.Witness' = 0` on the node constructors. (2026-10-21: done, see "W4";
+`RestartNode` now takes a witness in the static mode, `StartNode`/`Bootstrap` still
+`csm.Witness' = 0`.)
+
+## W4: the kv example with a witness (2026-10-21, branch `raft-witness`)
+
+**Done.** `examples/kv`'s `MainWitness()` (`check.go`, added with its Go test
+`TestMainWitnessPasses`): `StartClusterWitness([]uint64{1, 2}, 3)`, then the same
+`Check(kvs, CounterClock(), 4, 25)` as `Main`. Closed theorem `kv_witness_porcupine_safe`
+(`kv/Results.lean`, from `kv_witness_adequate`/`kv_witness_adequate_of`, `AdequacyLinked.lean`/
+`Adequacy.lean`, mirroring `kv_porcupine_safe`, whose statement is unchanged): every real
+execution of `kvProgramWitness` (initialization, then `MainWitness()`) of `n < 2^63` steps has no
+stuck thread and no panic. Same axioms as `kv_porcupine_safe` (538 in `#print axioms`), no
+`sorry`. How:
+
+- **RestartNode at a witness (CC2, `cdc6b537bb`).** `restoreM_wit` (Restore of the voters with
+  the witness, `stW`/`cfgW`), `ProgressTracker.ConfState`/`switchToConfig` at any witness (a
+  non-leader's: `c.wit = 0 ∨ (s.role ≠ .leader ∧ c.outgoing = ∅)`), `loadState` at any
+  configuration, `newRaft`/`NewRawNode` at `cfgW (voters) w` with `csm.Witness' = 0 ∨ ∈ Voters'`,
+  `RestartNode` with `csm.Witness' = 0 ∨ (∈ Voters' ∧ = γ.reWit ∧ md = .static)`.
+- **The Ready's witness requests (`d30fd4f54c`).** `witOwn` carries `WqOk W id t` on the queue
+  (each request to the configuration's witness, from the node, of a term at most the node's but a
+  pre-vote's); `RawNode.Ready` reports it (`Hwms_f`), `node`'s `readyWit γ id rd` carries each
+  request's `isMessage (wAbs μ)` and `wReqOk` (from, to `γ.reWit` in the static mode, term under
+  the budget `termLB`). `InvWitnessIfaceT.lean`: the witness at W2's ghost state with its terms
+  within a bound `T` (`ownWitnessIT`, `Witness.wp_ProcessT`), its answers addressed to the
+  requester (`RespAddr`), so `stepP` accepts a deliverable answer (`stepP_witResp`).
+- **kv (`fc2b0a131a`, `bfd56a5d9c`).** `isReplica`'s witness field any; `kvWitRes γn id wi`
+  (nil, or the shared `ownWitnessIT` in the static mode at a witness other than the replica);
+  `witnessDeliver` proved; `run`/`newKV` in a static cluster that admits no conf change
+  (`KVCCS`: `∀ ty bs, ¬ reCCOk ty bs`, so no conf entry is ever committed: `kvCCS_noConf`);
+  `Storage.InitialState` at the storage's witness; `copyIDs`; `StartClusterWitness` (the ghost
+  state allocated static at witness 3 with no admissible conf change; the `WitnessStore` at
+  `wGhost γ σ.ws ∗ termLB bud σ.term`) and `MainWitness` proved, linked (`Link.lean`).
+
+**Premises left on the way (all named, none on the kv theorem):** NoWitReconf
+(`raft.applyConfChange`, `switchToConfig` at a leader with a witness, `DynCCPreOp`, `NoAddWit`),
+the snapshot premise (witness-free), NoOutWit (dynamic), the static `ApplyConfChange`'s
+`γ.reWit = 0 ∧ NoAddWit`, `EnterJoint`/`LeaveJoint` at a witness-free configuration,
+`MemoryStorage` witness-free, `StartNode`/`Bootstrap` at `csm.Witness' = 0`. The kv witness
+cluster passes them vacuously (static mode, no conf change, no snapshot).
 
 ## W3b-C: the candidate's witness paths (2026-10-20, branch `raft-witness-w3c`)
 
