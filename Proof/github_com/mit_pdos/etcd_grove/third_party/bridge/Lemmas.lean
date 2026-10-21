@@ -232,6 +232,57 @@ theorem wp_drain (b : Loc) (m : GoMap) (body : GoFunc) (conns : GMap Loc Unit)
     subst hsh
     iapply HΦ $$ HR Hm Hbh Hwand
 
+/-- The registered connections, persistently, from the mutex's entries. -/
+theorem regs_connOk (b : Loc) (shares : GMap Loc (Qp × GName)) :
+    ([∗map] c ↦ x ∈ shares, connOk b c x.1 x.2 ∗ token x.2) ⊢
+      ([∗map] c ↦ x ∈ shares, connOk b c x.1 x.2 ∗ token x.2) ∗
+      □ ([∗map] c ↦ x ∈ shares, connOk (GF := GF) b c x.1 x.2) := by
+  rw [BigSepM.bigSepM_sep_eq (Φ := fun c (x : Qp × GName) => connOk (GF := GF) b c x.1 x.2)
+    (Ψ := fun _ (x : Qp × GName) => (token x.2 : IProp GF))]
+  iintro ⟨#Hc, Ht⟩
+  isplitl [Ht]
+  · iframe
+    iexact Hc
+  · imodintro
+    iexact Hc
+
+/-- **Closing every registered connection**, under the mutex (`serveListen`'s deferred loop): a
+`for range` over the map whose body behaves as `c.Close()` on a registered connection (with the
+loop's resource `R`). -/
+theorem wp_close_all (b : Loc) (m : GoMap) (body : GoFunc) (conns : GMap Loc Unit)
+    (shares : GMap Loc (Qp × GName)) (R : IProp GF) (Φ : val → IProp GF)
+    (Hdom : ∀ c, (conns !! c).isSome = (shares !! c).isSome) :
+    (□ ∀ (c : Loc) (q' : Qp) (γt : GName), connOk b c q' γt -∗ R -∗
+        WP (App (App (Val #body) (Val #c)) (Val #())) {{ v, ⌜v = executeVal⌝ ∗ R }}) -∗
+    (□ [∗map] c ↦ x ∈ shares, connOk b c x.1 x.2) -∗
+    R -∗ m ↦$ conns -∗
+    (R -∗ m ↦$ conns -∗ Φ executeVal) -∗
+    WP (App (App (Val (map.forRange (go.GoType.PointerType bridge.bridgeConn.ty)
+      (go.GoType.StructType []))) (Val #m)) (Val #body)) {{ Φ }} := by
+  iintro #Hbody #Hcs HR Hm HΦ
+  iapply (wp_map_for_range (V := Unit) (fun (_ : List Loc) (_ : Int) => R)
+    body _ _ m conns (DFrac.own 1) Φ) $$ Hm
+  iintro %keys ⟨%Hmem, %Hsize, %Hnd⟩
+  isplitl [HR]
+  · iexact HR
+  isplitr
+  · imodintro
+    iintro %i %key %v ⟨%Hk, %Hv⟩ HR
+    have hsome : (shares !! key).isSome := by rw [← Hdom, Hv]; rfl
+    obtain ⟨x, hx⟩ := Option.isSome_iff_exists.mp hsome
+    ihave #Hc := BigSepM.bigSepM_lookup (Φ := fun c (x : Qp × GName) =>
+      iprop(connOk (GF := GF) b c x.1 x.2)) hx $$ Hcs
+    iapply wp_wand $$ (Hbody $$ %key %x.1 %x.2 Hc HR)
+    iintro %bv ⟨%Hbv, HR⟩
+    subst Hbv
+    unfold forMapPostcondition
+    iright; ileft
+    isplitr
+    · ipureintro; rfl
+    iexact HR
+  · iintro HR Hm
+    iapply HΦ $$ HR Hm
+
 section wg
 variable [package_sem : sync.Assumptions]
 

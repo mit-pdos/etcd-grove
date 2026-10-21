@@ -112,7 +112,7 @@ axiom net.ConnClose (c : GoInterfaceOk) :
 gives the two directions of the bridged connection, nothing read or written yet. -/
 axiom relay.pair (l c d : GoInterfaceOk) (b : GoString) :
   relayListener (GF := GF) l b ∗ relayFresh l c ∗ netDialed d b ⊢ |==>
-    relayDir l c d [] [] ∗ relayDir l d c [] []
+    (relayDir l c d [] [] ∗ relayDir l d c [] [])
 
 /-- **Trust boundary: `s.Read(buf)`** on the source of a relay's direction (Go's `io.Reader`
 contract): it returns `n` and an error, `n` at most the buffer's length, the buffer's first `n`
