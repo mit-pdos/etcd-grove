@@ -343,6 +343,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
      StableOk (ackLog s.logst (some sv)) (entryID.mk m.LogTerm' m.Index')) →
     s.gh.unst = false →
     NStateWf s →
+    (s.logst.snap ≠ none → s.logst.lent = false → uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) →
+    (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ }}
@@ -350,7 +352,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
     {{ (err : GoInterface), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with logst := ackSnapLog s.logst m s.term sv } ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hhit Hle Hal Hlt Hstok Hghoff Hwf
+  intro Hty Hhit Hle Hal Hlt Hstok Hghoff Hwf Hsx Hkx
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
@@ -363,6 +365,14 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
   obtain ⟨h1, -, -, -, h5, -, -, h8, -⟩ := ackLog_fields s.logst sv
   -- `appliedSnap`'s premises, at the log the arm leaves for it (`stableTo` keeps them)
   have Hsa0 : (ackLog s.logst (some sv)).sapp = s.logst.sat := ackLog_sapp _ _ Hq0.1
+  -- (D22 S-d4 item 3) the storage's extent, at the logs the arm leaves (`stableTo` keeps it)
+  have Hxa : ∀ L : LogState, L.snap = s.logst.snap → L.lent = s.logst.lent → L.sxt = s.logst.sxt →
+      L.snap ≠ none → L.lent = false → uint.Z sv.Metadata'.Index' ≤ uint.Z L.sxt := by
+    intro L a b c h1 h2
+    rw [a] at h1; rw [b] at h2; rw [c]; exact Hsx h1 h2
+  have Hak : (ackLog s.logst (some sv)).lent = s.logst.lent ∧
+      (ackLog s.logst (some sv)).sxt = s.logst.sxt := by
+    cases h : s.logst.sat <;> simp [ackLog, h]
   have Hpre : ∀ L : LogState, L.snap = s.logst.snap → L.sapp = s.logst.sat → L.aps = false →
       L.prev = s.logst.prev →
       (snapHit L.snap sv.Metadata'.Index' = true ↔ L.sapp = true) ∧ L.aps = false ∧
@@ -416,7 +426,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       wp_apply wp_GetSnapshot_some _Q _ _ _ _ _ sv rfl $$ [$Hm] as %ps' ⟨%Hps', Hsv, Hmb⟩
       obtain ⟨Hiff, Haps, Hle1⟩ := Hpre _ h5 Hsa0 (by rw [h8]; exact Hq0.2) h1
       wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ _ sv Hiff Haps
-        Hle1 Hal Hghoff (fun h => by simp only [h5]; exact Hns h) $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
+        Hle1 Hal Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
+        $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
@@ -460,7 +471,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       wp_apply wp_GetSnapshot_some _Q _ _ _ _ _ sv rfl $$ [$Hm] as %ps' ⟨%Hps', Hsv, Hmb⟩
       obtain ⟨Hiff, Haps, Hle1⟩ := Hpre _ h5 Hsa0 (by rw [h8]; exact Hq0.2) h1
       wp_apply _P.appliedSnap c r id { s with logst := ackLog s.logst (some sv) } _ _ sv Hiff Haps
-        Hle1 Hal Hghoff (fun h => by simp only [h5]; exact Hns h) $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
+        Hle1 Hal Hghoff (fun h => by simp only [h5]; exact Hns h) (Hxa _ h5 Hak.1 Hak.2) Hkx
+        $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil
       isplitl [Hphys]
@@ -503,6 +515,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       wp_apply _P.appliedSnap c r id
           { s with logst := logStableTo (ackLog s.logst (some sv)) ⟨m.LogTerm', m.Index'⟩ } _ _ sv
           Hiff Haps Hle1 Hal Hghoff (fun h => by simp only [g3, h5]; exact Hns h)
+          (Hxa _ (g3.trans h5) (by unfold logStableTo; split <;> exact Hak.1)
+            (by unfold logStableTo; split <;> exact Hak.2)) Hkx
         $$ [$Hphys $Hsv] as ⟨Hsv, Hphys⟩
       try wp_auto
       iapply HΦ $$ %interface.nil

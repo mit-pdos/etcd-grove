@@ -45,6 +45,11 @@ abbrev raft.appliedSnap.spec : Prop :=
   -- acknowledgement, `raft.Step`'s premise), and no snapshot pending in the no-snapshot mode
   s.gh.unst = false →
   (s.gh.ns = true → s.logst.snap = none) →
+  -- (D22 S-d4 item 3) with a snapshot pending and the storage not lent, the storage holds the log
+  -- up to the acknowledged snapshot (`LogState.sxt`: the one its receipt left it at)
+  (s.logst.snap ≠ none → s.logst.lent = false → uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) →
+  -- and the snapshot handed out is at most the acknowledged one (it is the one)
+  (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "Hsnap" ∷ ownSnapM sp dq sv }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appliedSnap")) (Val #sp))

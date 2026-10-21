@@ -356,6 +356,13 @@ structure LogState [FfiSyntax] where
   cleared by `restore`, a `Ready`'s `acceptUnstable` and `stableSnapTo`'s hit. Quiet: the
   acknowledgement's arm turns it into the `sapp` window (`ownRaftLog_sapp`). -/
   sat : Bool := false
+  /-- (D22 S-d4 item 3, 2026-10-21) With a snapshot pending and the storage not lent, a lower
+  bound of what the storage holds (ghost): it holds the log up to `sxt`, and unless it is at the
+  pending snapshot `applying ≤ sxt` (`StorExtOk`), so that the floor can be raised to `applying`
+  with a snapshot pending. Set by `restore` (to `applying`) and by the absorption of a snapshot
+  `Ready`'s receipt (to the snapshot the storage is then at, which `appliedSnap` moves `applying`
+  to also when a later snapshot was restored meanwhile: `SnpOk`'s link to the lent snapshot). -/
+  sxt : w64 := 0
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -935,7 +942,9 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
    ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl, false,
    -- (D22 S-d1b) the storage stays lent, if it is; the storage no longer at the pending snapshot
-   ls.lent, false, false, false⟩
+   ls.lent, false, false, false,
+   -- (D22 S-d4 item 3) what the storage holds: as before if a snapshot was pending, else `applying`
+   if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/

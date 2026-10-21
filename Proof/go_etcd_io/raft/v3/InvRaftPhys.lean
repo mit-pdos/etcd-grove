@@ -855,9 +855,11 @@ theorem LogGhOk.of_fields {s : NState} {ls' : LogState} (H : LogGhOk s s.logst)
     (hcm : uint.Z s.logst.committed ≤ uint.Z ls'.committed := by exact Int.le_refl _)
     -- (D22 S-d3a) the fields `SnpOk` reads
     (hlt : ls'.lent = s.logst.lent := by rfl) (hsip : ls'.sip = s.logst.sip := by rfl)
-    (hsat : ls'.sat = s.logst.sat := by rfl) (hk : ls'.ksn = s.logst.ksn := by rfl) :
+    (hsat : ls'.sat = s.logst.sat := by rfl) (hk : ls'.ksn = s.logst.ksn := by rfl)
+    -- (D22 S-d4 item 3) and those `SnpExt` reads
+    (hx : SnpExt s.gh s.logst → SnpExt s.gh ls' := by exact fun h => h) :
     LogGhOk s ls' := by
-  refine ⟨⟨?_, H.1.2.of_fields hlt hsn hsip hsat hk hcm⟩, fun _ => ⟨hpv, hsn, hst, hcm⟩, hst⟩
+  refine ⟨⟨?_, H.1.2.of_fields hlt hsn hsip hsat hk hcm hx⟩, fun _ => ⟨hpv, hsn, hst, hcm⟩, hst⟩
   have H := H.1.1
   unfold nextUnstable logOffset at *
   rw [hu, hi, hp, hs, hsn]; exact H

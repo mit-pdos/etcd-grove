@@ -132,7 +132,7 @@ theorem raftLog.snapshot.wp_proof
         exact ⟨Hnz, Hle, Ht, .inl Hk⟩
     · -- (D19i part 1) the application's snapshot, at or below the floor: committed, and an
       -- entry of the log (`termAt_log_below`)
-      obtain ⟨HflE, Hfla, Hflip, Hab⟩ := Hfl
+      obtain ⟨HflE, Hfla, Hflip, Hab, -⟩ := Hfl
       rw [HflE] at Hle
       have Hip := Hflip
       have Hpers := Hpersist Hsn

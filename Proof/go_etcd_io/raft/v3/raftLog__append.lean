@@ -266,7 +266,7 @@ theorem raftLog.append.wp_proof
     -- `offsetInProgress`
     have Hcmlt : uint.Z ls.committed < uint.Z e0.Index' := by word
     have Hfl2 : FlOk σ (logTruncateAppend ls (e0 :: ents')) := by
-      refine ⟨Hfl.1, Hfl.2.1, ?_, Hfl.2.2.2⟩
+      refine ⟨Hfl.1, Hfl.2.1, ?_, Hfl.2.2.2.1, Hfl.2.2.2.2⟩
       have := Hfl.2.2.1
       have := Hfl.2.1
       have := Happlied.2

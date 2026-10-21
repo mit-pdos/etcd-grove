@@ -509,8 +509,9 @@ theorem raft.restore.wp_proof
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh1, Hlogback⟩
     -- (D22 S-d3a) the restore past the commit index keeps what the log says of the snapshot the
     -- last `Ready` handed out (`SnpOk`)
+    icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq1, Hlog⟩
     have Hsnp1 : SnpOk s.gh (logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists)) :=
-      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega)
+      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
     ihave Hrest : snapRest sp pm pc (DFrac.own 1) sv $$ [HD Hd HM HC HI HT]
     · iunfold snapRest
       iexists ds, pi, pt, uf, ufm

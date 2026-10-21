@@ -438,7 +438,11 @@ private theorem wp_step_snapack
     (Hhit : snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat)
     (Hle : uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index')
     (Hsok : ∀ x, e = some x → (t = W64 0 ∨ t = s.term) → StableOk (ackLog s.logst (some sv)) x)
-    (Hghoff : s.gh.unst = false) :
+    (Hghoff : s.gh.unst = false)
+    -- (D22 S-d4 item 3) the storage's extent (`SnpExt`) and the snapshot handed out
+    (Hsxp : s.logst.snap ≠ none → s.logst.lent = false →
+      uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt)
+    (Hkxp : ∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         ownStepGhost γ .static c id s ∗
         msgIn ml DFrac.discard ⟨appendAckM id t (e.getD ⟨W64 0, W64 0⟩), [], some sv, [], []⟩ ∗
@@ -465,10 +469,13 @@ private theorem wp_step_snapack
   have Hsnp : ∀ sv', some sv = some sv' →
       snapHit s.logst.snap sv'.Metadata'.Index' = s.logst.sat ∧
       uint.Z sv'.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-      GMode.isDyn .static = false ∧ (c.autoLeave = true → s.role ≠ .leader) := by
+      GMode.isDyn .static = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+      (s.logst.snap ≠ none → s.logst.lent = false →
+        uint.Z sv'.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+      (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv'.Metadata'.Index') := by
     intro sv' hsv
     cases hsv
-    exact ⟨Hhit, Hle, rfl, fun h => by rw [Hal] at h; cases h⟩
+    exact ⟨Hhit, Hle, rfl, (fun h => by rw [Hal] at h; cases h), Hsxp, Hkxp⟩
   iapply wp_raft_Step c .static γ r id s ml (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) [] [] (some sv) []
     (by simp [StepMsg, stepMsgTypes, appendAckM])
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -712,12 +719,20 @@ theorem RawNode.Advance.wp_proof
     ihave HSt : ownStorage s.logst.storage σr $$ [HSt]
     · rw [← Hstor]; iexact HSt
     ihave Hlog := ownRaftLog_absorb_snap s.log s.logst σr Hlt
-      ⟨Hr1.trans Hr2.symm, by rw [Hr3, Hunp, Hstu], Hr4, Hr5.trans Hfl0⟩ Hk $$ Hlog HSt
+      ⟨Hr1.trans Hr2.symm, by rw [Hr3, Hunp, Hstu], Hr4, Hr5.trans Hfl0⟩ Hk
+      (by rw [Hr1]; exact Hapl) $$ Hlog HSt
     have HghN : LogGhOk { s with gh := { s.gh with slent := false, snp := s.gh.snp } }
         (logAbsorbSnap s.logst σr.ss) := by
       refine ⟨⟨fun _ => .inr Hsnn, rfl,
-          fun k hk => ?_, fun _ => by show s.gh.snp ≠ none; rw [Hsnp]; simp, fun h => ?_⟩,
+          fun k hk => ?_, fun _ => by show s.gh.snp ≠ none; rw [Hsnp]; simp, fun h => ?_,
+          fun k hk _ => ⟨fun _ => ?_, fun h => absurd h Hsnn⟩⟩,
         fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+      rotate_right
+      · -- (D22 S-d4 item 3) the storage at the snapshot handed out (`sxt`)
+        have hk' : s.gh.snp = some k := hk
+        rw [Hsnp] at hk'; cases hk'
+        show uint.Z (snapId l.snap).index' ≤ uint.Z σr.ss.index'
+        rw [Hr2]; exact Int.le_refl _
       · obtain ⟨a, b, c⟩ := Hgh0.1.2.2.1 k hk
         refine ⟨fun h => ⟨(a h).1, .inr ((logAbsorbSnap_sat s.logst σr.ss).2 ⟨?_, (a h).1⟩)⟩, b, c⟩
         rw [Hsnp] at hk; cases hk
@@ -725,7 +740,7 @@ theorem RawNode.Advance.wp_proof
         rw [Hr2]; exact h
       · -- (D22 S-d3b) the storage at the pending snapshot only for the lent one
         rcases h with h | h
-        · exact Hgh0.1.2.2.2.2 (.inl h)
+        · exact Hgh0.1.2.2.2.2.1 (.inl h)
         · obtain ⟨Hs, -⟩ := (logAbsorbSnap_sat s.logst σr.ss).1 h
           exact ⟨_, Hsnp, by show s.logst.snap = _; rw [Hs, Hr2]; rfl⟩
     ihave Hphys := Hback $$ %(logAbsorbSnap s.logst σr.ss) %false %s.gh.snp Hlog %HghN
@@ -929,6 +944,8 @@ theorem RawNode.Advance.wp_proof
             (by rw [Hpv1]; exact Int.le_refl _)
             (fun x hx _ => by rw [← (Hpok.2 x hx).1, ← Hpv1]; exact Hsok)
             (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
+            (fun hs hl => (Hgh1.1.2.2.2.2.2 _ Hsnp1 hl).1 hs)
+            (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             $$ [$Hphys $Hghost $Hmin $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
           obtain ⟨Hwf2, rfl, Hs2⟩ := Hst2
           have Hl2 : s2.logst =
@@ -985,13 +1002,13 @@ theorem RawNode.Advance.wp_proof
             cases h : s1.logst.sat
             · rfl
             · exfalso
-              obtain ⟨k, hk, hks⟩ := Hgh1.1.2.2.2.2 (.inr h)
+              obtain ⟨k, hk, hks⟩ := Hgh1.1.2.2.2.2.1 (.inr h)
               exact Hne2 k hk hks
           have Hsip1 : s1.logst.sip = false := by
             cases h : s1.logst.sip
             · rfl
             · exfalso
-              obtain ⟨k, hk, hks⟩ := Hgh1.1.2.2.2.2 (.inl h)
+              obtain ⟨k, hk, hks⟩ := Hgh1.1.2.2.2.2.1 (.inl h)
               exact Hne2 k hk hks
           have Hak : ackLog s1.logst (some l.snap) = s1.logst := by simp [ackLog, Hsat1]
           have Hbp1 : uint.Z (snapId l.snap).index' < uint.Z s1.logst.prev.index' := by
@@ -1056,6 +1073,8 @@ theorem RawNode.Advance.wp_proof
             (by rw [Hpv1]; exact Int.le_of_lt Hl2)
             (fun x hx ht => by rw [Hak]; exact fun h => absurd h (Hnh x hx ht))
             (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
+            (fun hs hl => (Hgh1.1.2.2.2.2.2 _ Hsnp1 hl).1 hs)
+            (fun k hk => by rw [Hsnp1] at hk; cases hk; exact Int.le_refl _)
             $$ [$Hphys $Hghost $Hmin $Hlc1] as %err %s2' %md2 ⟨Hphys, Hghost, %Hst2⟩
           obtain ⟨Hwf2, rfl, Hs2'⟩ := Hst2
           have Hl2' : s2'.logst =

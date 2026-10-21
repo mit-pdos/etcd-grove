@@ -33,7 +33,7 @@ theorem raft.appliedSnap.wp_proof
     (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
     raft.appliedSnap.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp dq sv Hiff Haps Hle Hal Hun Hns
+  intro c r id s sp dq sv Hiff Haps Hle Hal Hun Hns Hsx Hkx
   wp_start as H
   iNamed H
   wp_auto
@@ -80,9 +80,17 @@ theorem raft.appliedSnap.wp_proof
         simp only [snapHit, decide_eq_true_eq] at Hh
         rw [← Hsp sid Hs, Hh]
         exact Int.le_refl _
+  have Hsx1 : (logStableSnap s.logst sv.Metadata'.Index').snap ≠ none →
+      (logStableSnap s.logst sv.Metadata'.Index').lent = false →
+      uint.Z (logStableSnap s.logst sv.Metadata'.Index').applying < uint.Z sv.Metadata'.Index' →
+      uint.Z sv.Metadata'.Index' ≤ uint.Z (logStableSnap s.logst sv.Metadata'.Index').sxt := by
+    intro h1 h2 _
+    cases Hh : snapHit s.logst.snap sv.Metadata'.Index'
+    · rw [logStableSnap_miss _ _ Hh] at h1 h2 ⊢; exact Hsx h1 h2
+    · exfalso; apply h1; unfold logStableSnap; simp [Hh]
   wp_apply wp_raft_appliedTo c r id { s with logst := logStableSnap s.logst sv.Metadata'.Index' }
       sv.Metadata'.Index' (W64 0) (by simp only; omega) (fun _ => by simp only; omega) Hal Hsa1 Haps1
-      $$ [$Hphys] as Hphys
+      Hsx1 (fun _ k hk => Hkx k hk) $$ [$Hphys] as Hphys
   iapply HΦ
   iframe Hback Hphys
 

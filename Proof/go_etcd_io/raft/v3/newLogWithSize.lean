@@ -121,7 +121,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; exact ⟨Hpe, fun _ e0 He0 => by simp at He0⟩
     isplitr
     · ipureintro
-      refine ⟨Hfl0, by simp, by word, fun e0 He0 => by simp [Hpe] at He0⟩
+      refine ⟨Hfl0, by simp, by word, fun e0 He0 => by simp [Hpe] at He0, fun h => absurd rfl h⟩
     -- (D22 S-d1b) not lent, no window, no snapshot in progress
     isplitr
     · ipureintro; first | exact trivial | (intro h; cases h)

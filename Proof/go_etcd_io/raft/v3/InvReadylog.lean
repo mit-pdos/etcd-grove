@@ -393,7 +393,7 @@ theorem ownRaftLog_handout (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [
     simp only [nextUnstable, logOffset, ← Hoffset]
     exact persist_handed ls.prev σ ls.sents ls.uents _ Hidx Hsp (by omega) ls.stored Hp0
   have HflN : FlOk { σ with pend := nextUnstable ls } (logHanded ls) := by
-    refine ⟨Hfl.1, Hfl.2.1, ?_, fun e0 He0 => ?_⟩
+    refine ⟨Hfl.1, Hfl.2.1, ?_, fun e0 He0 => ?_, fun h _ => (h Hs0).elim⟩
     · have := Hfl.2.2.1
       have := Hipb
       simp only [logHanded]
@@ -465,16 +465,43 @@ theorem SnpOk.stableSnap {g : NGhost} {ls : LogState} (i : w64) (H : SnpOk g ls)
     SnpOk g (logStableSnap ls i) := by
   unfold logStableSnap
   split
-  · obtain ⟨H1, H2, -, -⟩ := H
-    refine ⟨H1, fun k hk => ?_, fun h => by simp at h, fun h => by simp at h⟩
+  · obtain ⟨H1, H2, -, -, -⟩ := H
+    refine ⟨H1, fun k hk => ?_, fun h => by simp at h, fun h => by simp at h,
+      fun k hk hl => ⟨fun h => by simp at h, fun _ h => by simp at h⟩⟩
     obtain ⟨-, Hb, Hc⟩ := H2 k hk
     exact ⟨fun h => by simp at h, Hb, Hc⟩
   · exact H
 
-/-- (D22 S-d3a) ... and after `appliedTo`, which keeps every field `SnpOk` reads. -/
-theorem SnpOk.appliedTo {g : NGhost} {ls : LogState} (i sz : w64) (H : SnpOk g ls) :
+/-- (D22 S-d4 item 3) `SnpExt` of a log whose `applying` grew (past the snapshot handed out if it
+was in `appliedSnap`'s window), the rest it reads kept. -/
+theorem SnpExt.raise {g : NGhost} {ls ls' : LogState} (h : SnpExt g ls)
+    (hlt : ls'.lent = ls.lent) (hsn : ls'.snap = ls.snap) (hsx : ls'.sxt = ls.sxt)
+    (hap : uint.Z ls.applying ≤ uint.Z ls'.applying)
+    (haps : ls.aps = true → ∀ k, g.snp = some k → uint.Z k.sid.index' ≤ uint.Z ls'.applying) :
+    SnpExt g ls' := by
+  intro k hk hl
+  rw [hlt] at hl
+  obtain ⟨h1, h2⟩ := h k hk hl
+  refine ⟨fun hs => ?_, fun hs _ => ?_⟩
+  · rw [hsx]; exact h1 (hsn ▸ hs)
+  · rcases Bool.eq_false_or_eq_true ls.aps with Ha | Ha
+    · exact haps Ha k hk
+    · have := h2 (hsn ▸ hs) Ha; omega
+
+/-- (D22 S-d3a) ... and after `appliedTo`, which keeps every field `SnpOk` reads but `applying`,
+which grows, and (D22 S-d4 item 3) `appliedSnap`'s window, which it may end: past the snapshot
+handed out (`Hk`). -/
+theorem SnpOk.appliedTo {g : NGhost} {ls : LogState} (i sz : w64) (H : SnpOk g ls)
+    (Hk : ls.aps = true → ∀ k, g.snp = some k → uint.Z k.sid.index' ≤ uint.Z i) :
     SnpOk g (logAppliedTo ls i sz) :=
-  H.of_fields rfl rfl rfl rfl rfl (Int.le_refl _)
+  H.of_fields rfl rfl rfl rfl rfl (Int.le_refl _) (fun h k hk hl => by
+    obtain ⟨h1, h2⟩ := h k hk hl
+    refine ⟨h1, fun hs _ => ?_⟩
+    show uint.Z k.sid.index' ≤ uint.Z (w64Max ls.applying (w64Max i ls.applied))
+    rw [w64Max_spec, w64Max_spec]
+    rcases Bool.eq_false_or_eq_true ls.aps with Ha | Ha
+    · have := Hk Ha k hk; omega
+    · have := h2 hs Ha; omega)
 
 /-- (D22 S-d1b) The absorption of the application's receipt for the snapshot `sid` (its storage
 at `sid`): the storage is no longer lent, nothing is unpersisted, and the storage holds the
@@ -482,7 +509,8 @@ pending snapshot (`sat`) when `sid` is the one in progress -- otherwise (a secon
 between the `Ready` and its acknowledgement) it is shadowed again. -/
 def logAbsorbSnap (ls : LogState) (sid : entryID) : LogState :=
   { ls with lent := false, unpersisted := [],
-            sat := @decide (ls.snap = some sid ∧ ls.sip = true) (Classical.propDecidable _) }
+            sat := @decide (ls.snap = some sid ∧ ls.sip = true) (Classical.propDecidable _),
+            sxt := sid.index' }
 
 theorem logAbsorbSnap_sat (ls : LogState) (sid : entryID) :
     (logAbsorbSnap ls sid).sat = true ↔ ls.snap = some sid ∧ ls.sip = true := by
@@ -543,7 +571,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
   have Hpend' : PendLogOk { σ with pend := nextUnstable ls } (logHanded { ls with lent := true, sat := false }) :=
     ⟨rfl, fun h => absurd h Hs0⟩
   have Hfl' : FlOk { σ with pend := nextUnstable ls } (logHanded { ls with lent := true, sat := false }) := by
-    refine ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => ?_⟩
+    refine ⟨Hfl.1, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => ?_, fun _ h => by simp [logHanded] at h⟩
     have := Hhead e0 He0
     have := Hfl.2.2.1
     have := Hfl.2.1
@@ -626,7 +654,9 @@ struct outside the quiet predicate between `RawNode.Advance`'s absorption and it
 theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (σr : StorState)
     (Hlt : ls.lent = true)
     (Hr : σr.prev = σr.ss ∧ σr.ents = ls.stored ∧ σr.pend = [] ∧ σr.fl = ls.fl)
-    (Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal ∈ ls.ksn) :
+    (Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal ∈ ls.ksn)
+    -- (D22 S-d4 item 3) `applying` at most the snapshot the storage is at (the loan's, `LoanOk`)
+    (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index') :
     ⊢ ownRaftLog (GF := GF) l ls -∗ ownStorage ls.storage σr -∗
       ownRaftLog l (logAbsorbSnap ls σr.ss) := by
   iintro Hlog HSt
@@ -638,7 +668,12 @@ theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (σr : StorState)
   have Hpend' : PendLogOk σr (logAbsorbSnap ls σr.ss) :=
     ⟨Hrpend, fun h => absurd h Hsn⟩
   have Hfl' : FlOk σr (logAbsorbSnap ls σr.ss) :=
-    ⟨Hrfl, Hfl.2.1, Hfl.2.2.1, fun e0 He0 => by rw [Hrpend] at He0; cases He0⟩
+    have Hext : StorExtOk σr (logAbsorbSnap ls σr.ss) := fun _ _ => by
+      show uint.Z σr.ss.index' ≤ uint.Z σr.prev.index' + ((storApp σr σr.pend).length : Int) ∧
+        uint.Z ls.applying ≤ uint.Z σr.ss.index'
+      rw [← Hrp]
+      exact ⟨by have := Happ; word, Happ⟩
+    ⟨Hrfl, Hfl.2.1, Hfl.2.2.1, (fun e0 He0 => by rw [Hrpend] at He0; cases He0), Hext⟩
   have Hstore' : LogStoreOk (logAbsorbSnap ls σr.ss).snap σr
       (logAbsorbSnap ls σr.ss).prev (logAbsorbSnap ls σr.ss).sents
       (logAbsorbSnap ls σr.ss).uents := by

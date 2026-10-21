@@ -32,9 +32,8 @@ the floor raised to the committed log `run` handed out (`ownRawNode_raise_floor`
 driver's lower bound `ds` is a prefix of; its witness, and `run`'s node after it. (D22 S-d4,
 2026-10-21) For the `Ready`'s loan `L` (`run`'s record names it): after a snapshot `Ready` the
 receipt is the loan's (`snapReceipt`), which passes to `run` for `RawNode.Advance` (`advRet`'s
-`loanRet`), and no floor is raised; after one without, a snapshot restored since
-(`RNState.psnap`) shadows the storage, and the floor is not raised either (`reqWit`'s second case:
-the node takes snapshots). -/
+`loanRet`), and no floor is raised; after one without, the floor is raised also when a snapshot
+was restored since (`RNState.psnap`; D22 S-d4 item 3, the storage's extent `StorExtOk`). -/
 theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List EntryM)
     (L : Option SnapLoan) :
     ⊢ dlvLb (GF := GF) γ ds -∗ advDep γ rn id -∗ advanceP γ L ==∗
@@ -68,61 +67,33 @@ theorem advance_complete (γ : NodeNames) (rn : Loc) (id : w64) (ds : List Entry
     ihave Hrcpt' : appendReceipt rs.storage rs.unpersisted $$ [Hrcpt]
     · rw [Hstor]; iexact Hrcpt
     imod ownRawNode_appended γ.raft rn id rs Hsl $$ Hrn Hrcpt' with Hrn
-    by_cases Hps : rs.psnap = false
-    · imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hps Hsl $$ Hrn
-        with ⟨Hrn, %x, %Hx, #Hfw⟩
-      imodintro
-      isplitr [Hfw]
-      · iunfold advRet
-        iexists { { rs with unpersisted := [] } with flw := true }, ca_d
-        iframe Hrn Htlb Hcamlb
-        isplitl [Hcfg]
-        · iapply (runCfg_congr (GF := GF) γ (rs := rs)
-            (rs' := { { { rs with unpersisted := [] } with flw := true } with flw := false })
-            rfl rfl rfl Hflw.symm rfl rfl rfl) $$ Hcfg
-        isplitl [Hdlv]
-        · simp only [rsDlv, Hsl]; rw [Hdel]; iexact Hdlv
-        isplitl [Hrof Hrof']
-        · iexists _
-          iframe Hrof Hrof'
-        isplitr
-        · simp only [loanRet, Hsl]; iempintro
-        ipureintro
-        exact ⟨Hstor, Hunst, fun _ => rfl, fun h => by simp only; rw [Hdel]; exact HA h⟩
-      ileft
-      iexists x
+    imod ownRawNode_raise_floor γ.raft rn id { rs with unpersisted := [] } rfl Hsl $$ Hrn
+      with ⟨Hrn, %x, %Hx, #Hfw⟩
+    imodintro
+    isplitr [Hfw]
+    · iunfold advRet
+      iexists { { rs with unpersisted := [] } with flw := true }, ca_d
+      iframe Hrn Htlb Hcamlb
+      isplitl [Hcfg]
+      · iapply (runCfg_congr (GF := GF) γ (rs := rs)
+          (rs' := { { { rs with unpersisted := [] } with flw := true } with flw := false })
+          rfl rfl rfl Hflw.symm rfl rfl rfl) $$ Hcfg
+      isplitl [Hdlv]
+      · simp only [rsDlv, Hsl]; rw [Hdel]; iexact Hdlv
+      isplitl [Hrof Hrof']
+      · iexists _
+        iframe Hrof Hrof'
       isplitr
-      · simp only; rw [← Hstor]; iexact Hfw
+      · simp only [loanRet, Hsl]; iempintro
       ipureintro
-      have := Hpfx.2.length_le
-      simp only at Hx
-      omega
-    · -- (D22 S-d4) a snapshot restored since the `Ready`: the floor not raised
-      have Hsin : γ.snapIn = true := by
-        cases h : γ.snapIn
-        · exact absurd (Hsn h).1 Hps
-        · rfl
-      imodintro
-      isplitl
-      · iunfold advRet
-        iexists { rs with unpersisted := [] }, ca_d
-        iframe Hrn Htlb Hcamlb
-        isplitl [Hcfg]
-        · iapply (runCfg_congr (GF := GF) γ (rs := rs)
-            (rs' := { { rs with unpersisted := [] } with flw := false })
-            rfl rfl rfl Hflw.symm rfl rfl rfl) $$ Hcfg
-        isplitl [Hdlv]
-        · simp only [rsDlv, Hsl]; rw [Hdel]; iexact Hdlv
-        isplitl [Hrof Hrof']
-        · iexists _
-          iframe Hrof Hrof'
-        isplitr
-        · simp only [loanRet, Hsl]; iempintro
-        ipureintro
-        exact ⟨Hstor, Hunst, fun _ => rfl, fun h => by simp only; rw [Hdel]; exact HA h⟩
-      iright
-      ipureintro
-      exact ⟨Hsin, Hsi Hsin⟩
+      exact ⟨Hstor, Hunst, fun _ => rfl, fun h => by simp only; rw [Hdel]; exact HA h⟩
+    iexists x
+    isplitr
+    · simp only; rw [← Hstor]; iexact Hfw
+    ipureintro
+    have := Hpfx.2.length_le
+    simp only at Hx
+    omega
   | some l =>
     have Hsl : rs.slent = some l := HL
     rw [Hsl]

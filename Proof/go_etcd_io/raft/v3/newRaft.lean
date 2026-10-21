@@ -180,7 +180,7 @@ theorem newRaft.wp_proof
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
   -- empty.
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
-    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ, 0, false, false, false, false, false⟩
+    W64 0, cv'.MaxCommittedSizePerReady', interface.ok si, initKsn σ, 0, false, false, false, false, false, 0⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
     cv.PreVote', {}, {}, W64 0, W64 0, false, cv'.StepDownOnRemoval', cv.CheckQuorum'⟩
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
@@ -222,7 +222,7 @@ theorem newRaft.wp_proof
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _)
-    ⟨fun h => absurd h Bool.false_ne_true, SnpOk.of_quiet rfl rfl rfl rfl (fun _ h => by cases h)⟩
+    ⟨fun h => absurd h Bool.false_ne_true, SnpOk.of_quiet rfl rfl rfl rfl (fun _ h => by cases h) (fun _ h => by cases h)⟩
     (fun h => absurd rfl h) (LogNsOk.off rfl)
     -- (2026-10-19, D21 M2r) leader transfer off (the default), the queues empty
     (XfOk.nil (fun _ => rfl) (fun h => absurd h (by simp only [s0]; decide)))
@@ -249,7 +249,7 @@ theorem newRaft.wp_proof
   -- is done once, for both.
   let ls1 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, σ.prev.index', none, ip,
     σ.prev.index', [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si, initKsn σ, 0, false, false, false, false, false⟩
+    interface.ok si, initKsn σ, 0, false, false, false, false, false, 0⟩
   let s1 : NState :=
     { s0 with progress := prs, prvals := pvs1, term := hs.Term', vote := hs.Vote', logst := ls1 }
   wp_join iprop(ownRaftPhys (listToSet csm.Voters') «$r0_ptr» cv.ID' s1 ∗ hs_ptr ↦ hp ∗
@@ -300,7 +300,7 @@ theorem newRaft.wp_proof
   let ap : w64 := if cv.Applied' = W64 0 then σ.prev.index' else cv.Applied'
   let ls2 : LogState := ⟨σ.prev, σ.ents, [], committedAfter σ.prev hs, ap, none, ip,
     w64Max σ.prev.index' ap, [], σ.ents, W64 0, cv'.MaxCommittedSizePerReady',
-    interface.ok si, initKsn σ, 0, false, false, false, false, false⟩
+    interface.ok si, initKsn σ, 0, false, false, false, false, false, 0⟩
   let s2 : NState := { s1 with logst := ls2 }
   rw [HpAp]
   wp_join iprop(ownRaftPhys (listToSet csm.Voters') «$r0_ptr» cv.ID' s2 ∗ c_ptr ↦ c ∗ c ↦ cv' ∗
@@ -319,9 +319,13 @@ theorem newRaft.wp_proof
     wp_apply wp_raftLog_appliedTo l ls1 cv'.Applied' (W64 0) Hrng
       (fun _ => by
         have h1 := Hrw1.1.1; have h2 := Hcb1.1.2.2; have h3 := Hrng.2
-        simp only [s1, s0, ls1, List.length_nil] at h1 h2 h3 ⊢; omega) $$ [$HL] as HL
+        simp only [s1, s0, ls1, List.length_nil] at h1 h2 h3 ⊢; omega)
+      (fun h => absurd rfl h) $$ [$HL] as HL
     ihave HL := ownRaftLogW_quietW _ _ $$ HL %(⟨rfl, rfl⟩)
-    ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
+        (hx := fun h => SnpExt.raise h rfl rfl rfl
+          (by rw [w64Max_spec]; exact Int.le_max_left _ _)
+          (fun ha => by simp [s1, s0, ls1] at ha)))
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     isplitr
     · ipureintro; rfl

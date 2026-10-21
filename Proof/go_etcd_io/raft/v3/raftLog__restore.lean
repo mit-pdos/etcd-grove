@@ -79,7 +79,19 @@ theorem raftLog.restore.wp_proof
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
       ⟨Hfl.1, Hfl.2.1, by
         show uint.Z ls.applying < uint.Z (sv.Metadata'.Index' + W64 1)
-        have := Happlying.2; word, Hfl.2.2.2⟩
+        have := Happlying.2; word, Hfl.2.2.2.1, fun _ hl => by
+        have Ha := storExt_of_inv Hstore Hoffset Hipb Hpersist Hpend Hfl hl
+        show uint.Z (if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt
+            else ls.applying) ≤ _ ∧
+          uint.Z ls.applying ≤
+            uint.Z (if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt
+              else ls.applying)
+        split
+        · rename_i hc
+          obtain ⟨hs, hle⟩ := hc
+          have := Hfl.2.2.2.2 (by intro h; rw [h] at hs; cases hs) hl
+          exact ⟨this.1, hle⟩
+        · exact ⟨Ha, Int.le_refl _⟩⟩
       (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
       (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩
