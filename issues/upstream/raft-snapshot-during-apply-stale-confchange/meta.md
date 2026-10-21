@@ -11,8 +11,8 @@ uses v1 conf changes only, so there the outcome is a wrong configuration on one 
 - **Finding**: `issues/raft-snapshot-during-apply-stale-confchange.md`
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses: `raft.go` is identical)
 - **Branch**: `fix/raft-snapshot-during-apply-stale-confchange` in `~/etcd-fixes/raft-snapshot-during-apply-stale-confchange`,
-  three commits: a016d92 adds the test, which fails there; 0801b5f is the fix (`raft.go`, 27 lines added, 1
-  changed); 3c7c901 adds the changelog entry (48dafe8 cherry-picked). Rebuilt 2026-10-21 with a third fix, keeping
+  three commits: a016d92 adds the test, which fails there; b556234 is the fix (`raft.go`, 27 lines added, 1
+  changed); 9f77761 adds the changelog entry (48dafe8 cherry-picked). Rebuilt 2026-10-21 with a third fix, keeping
   the pre-snapshot configuration for the stale `ApplyConfChange` calls (the user's objection to the second fix,
   deferring the snapshot: it can make the leader send the snapshot again, in etcd a full database transfer;
   below). The second fix's branch is kept as local `backup/raft-snapshot-during-apply-stale-confchange-v2-defer`
@@ -53,7 +53,7 @@ reported here: `raft-advance-before-applyconfchange`, `raft-track-confchange-app
 ## Other candidates
 
 Independent of every other candidate. The fix touches `raft.go` in the `raft` struct, `appliedTo`, `Step`'s
-`MsgStorageApplyResp` case, `restore` and `applyConfChange`; 0801b5f merges cleanly (`git merge-tree`, 2026-10-21)
+`MsgStorageApplyResp` case, `restore` and `applyConfChange`; b556234 merges cleanly (`git merge-tree`, 2026-10-21)
 with the code commits of `raft-confstate-unknown-fields-panic` and `raft-joint-empty-transition-panic` (each
 branch's commit before its changelog tip; both are still on 638f42739) and with the tips of
 `raft-advance-before-applyconfchange` and `raft-memorystorage-initialstate-unlocked`. The changelog commits of the
@@ -130,8 +130,8 @@ node 2's voters equal the snapshot's.
 - At the tests commit a016d92 (`go test -count=1 -run 'TestRawNodeSnapshotDuringConfChangeApply$' .`): fails,
   case 0 `expected: []uint64{0x1, 0x2, 0x3}`, `actual: []uint64{0x1, 0x2, 0x3, 0x4}`; case 1
   `panic: config is already joint`.
-- At the fix commit 0801b5f: passes; `go test -count=1 ./...` (raft, confchange, quorum, raftpb, rafttest,
-  tracker) ok, also with `-race`; `gofmt -l .` empty; `go vet ./...` clean. 3c7c901 differs only in the
+- At the fix commit b556234: passes; `go test -count=1 ./...` (raft, confchange, quorum, raftpb, rafttest,
+  tracker) ok, also with `-race`; `gofmt -l .` empty; `go vet ./...` clean. 9f77761 differs only in the
   changelog. golangci-lint not installed, not run.
 - Temporary tests, not on the branch (`go test -overlay` adding test files under `/tmp/snapscratch`), at the fix:
   - `ApplyConfChange`'s results (`RawNode`): the stale "add 4" returns `[1 2 3 4]` while raft's configuration
