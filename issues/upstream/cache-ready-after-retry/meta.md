@@ -12,7 +12,9 @@
   "Closing the cache and creating a new one recovers." line (dropped from `issue.md` to match); its configuration
   section still holds the template's placeholder (`# paste your configuration here`), not `issue.md`'s line, as do
   the debug-information and log sections the draft omits
-- **PR**: —
+- **PR**: — (ours). Someone else's: [etcd-io/etcd#22618](https://github.com/etcd-io/etcd/pull/22618) (NUAAwqy,
+  opened 2026-10-19, one commit 922d4f9fa, "Fixes #22614"): this branch's fix and test verbatim (its diff's changed
+  lines are those of `22cc5d9ac..27352098d`), crediting the report; `needs-ok-to-test`, no review (2026-10-21)
 
 ## Duplicates checked (2026-10-16, re-checked 2026-10-18)
 

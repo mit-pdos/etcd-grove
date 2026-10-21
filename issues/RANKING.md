@@ -170,8 +170,10 @@ what is left to do:
    [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md); if the maintainers prefer it, ours
    closes.
 4. **[cache-ready-after-retry](cache-ready-after-retry.md)**: reported, etcd-io/etcd#22614 (open,
-   2026-10-19), no fix PR yet; a one-line fix with a deterministic test in an actively developed
-   package, the likeliest quick merge once a PR is up.
+   2026-10-19); no PR of ours, but someone else's #22618 (open, 2026-10-19, `needs-ok-to-test`) is
+   our candidate's fix and test verbatim, crediting the report. A one-line fix with a
+   deterministic test in an actively developed package, the likeliest quick merge; what is left is
+   to support #22618 rather than open a duplicate.
 5. **[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md)**: fixed, etcd-io/raft#535
    (merged 2026-10-19, closing our #533); the maintainer sees no need to backport. Nothing left.
 6. **[leasing-update-stale](leasing-update-stale.md)**: reported in part, etcd-io/etcd#20704
@@ -211,7 +213,7 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 - **A test hook**: [etcd-rafthttp-cutpeer-twice-remote-panic](etcd-rafthttp-cutpeer-twice-remote-panic.md):
   a second `CutPeer` of a *remote* (a member that joined an existing cluster) panics, "close of
   closed channel"; only the integration tests' partition injection calls it, a two-line
-  idempotence fix with a test.
+  idempotence fix with a test. Searched upstream 2026-10-21: not reported.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-newauthstore-nil-tp](etcd-auth-newauthstore-nil-tp.md),

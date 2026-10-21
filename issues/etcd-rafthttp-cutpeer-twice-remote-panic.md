@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-20
-links: []
+upstream: none
+checked: 2026-10-21
+links:
+  - etcd-io/etcd#6154 pr merged: related (2016: added Transport.CutPeer/MendPeer, with remote.Pause as g.stop(), which closes the pipeline's stopc); where the bug starts
+  - etcd-io/etcd#4427 issue closed: related, not this bug (2016: "close of closed channel" in peer.stop from Transport.Stop after a member removal, before CutPeer existed)
 ---
 
 # server/etcdserver/api/rafthttp: a second `CutPeer` of a remote panics

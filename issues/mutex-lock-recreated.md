@@ -1,6 +1,6 @@
 ---
 upstream: reported
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#22613 issue open: this bug, reported 2026-10-19
   - etcd-io/etcd#22617 pr open: the fix, opened 2026-10-19
