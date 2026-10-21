@@ -12261,3 +12261,30 @@ linkv3p.txt`, 463 axioms): linkvtxn's results rest on exactly linkv's. The ghost
 linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's statement is
 unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
 repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.
+
+## Proposals proposed once; unused declarations found from the terms (2026-10-21, branch `clean-up`)
+
+**2026-10-21 · accepted (the user's clean-up goal)**
+
+*Every proposal once.* D21 M6 gave a proposal a ticket (`propTk`, spent where it is appended)
+for the server's at-most-once firing, and kept a second kind, `propMulti` (no ticket, a
+persistent update fired at every occurrence), for the one client that re-proposes the same
+bytes: the register, after a local `ErrProposalDropped`. Two ways to keep one kind: (A) the
+register stops instead of retrying; (B) raft hands the ticket back on `ErrProposalDropped`
+(`raft.Step`'s error post, `run`'s result handoff, `stepWithWaitOption`, `node.Propose`,
+`RawNode.Propose`: about 15 files, `node__run` among them). **Decision: (A).** Local drops
+happen only at a transferring leader or over the uncommitted-size limit (`run` takes no
+proposal while no leader is known), the register already waits forever when the leader it
+forwarded to drops a proposal, and (B) cannot cover `ErrStopped` anyway (`run` may have stepped
+the proposal before `done` fires). The register still deposits its persistent update, weakened
+to the at-most-once one (`propAu_one`). Revisit (B) if a client needs to retry.
+
+*Unused declarations.* The 2026-10-17 removal scanned names in the text; `etc/dead-decls.lean`
+walks the elaborated constants from the roots (statements, bodies, proofs). What a term does
+not record -- `@[simp]`/`rfl` lemmas `dsimp` uses, a lemma named in a `simp` set but unused,
+anonymous instances of an unlinked module, definitions whose bodies are not exported -- is why
+a removal keeps `@[simp]`/`rfl` lemmas and whatever a remaining file names, and is checked by the
+build; matchers shared between definitions over-approximate use (one such case,
+`FollowerStepResult`, removed by hand). Protocol-level results nothing links
+(`state_machine_safety`, `raft_dyn_*`, ...) are removed with the rest: the client-facing
+guarantees are the specs' atomic updates, and the closed theorems do not use them.
