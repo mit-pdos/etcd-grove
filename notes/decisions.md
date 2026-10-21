@@ -14005,3 +14005,99 @@ theorem's statement changed.
   the node's half forgotten to `ownSnapM` (`rdSnapRel`, `lentPend`), the application's half `ownSnapS`
   (`rdSnapOut`, `readySnapData`): what `MemoryStorage.ApplySnapshot` takes (`snapArg`'s second case).
   `raftLog.snapshot` reads `pendKsn` through `ownSnapS_M`.
+
+## D22 S-r carried out: the Go change of `examples/kv` made and tested (side branch); the proof designed, not carried out (2026-10-21)
+
+Stage S-r ("D22e (A)"; the user's design of 2026-10-21). The Go change is made and tested (below);
+it is **not** committed with this entry: re-translated, it changes `KV.run`, `deliverable` and
+`deliver` and adds six functions, and the proof that would have to come with it (items (1)-(5)) is
+several times the size of S-d4, the data certificate (3) alone a change to the `Storage` model
+(below). Per the brief: S-d4 items 3-4 committed, S-r stopped at this design. The Go change is kept,
+untranslated, on a side branch (`worktree-agent-a7bb8e7cea7f035db-sr-go`, one commit on top of this
+entry's): committing it here would leave `etc/goose.py --check` failing, or the proofs of the
+re-translated functions missing.
+
+### The Go change (examples/kv, tested)
+
+- `KV.run` installs a `Ready`'s snapshot (`rd.Snapshot != nil`) before appending its entries:
+  `decodeState(rd.Snapshot.GetData())` replaces `r.kv` and `r.applied` (under `r.mu`), the applied
+  index jumps to the snapshot's, then `r.storage.ApplySnapshot(rd.Snapshot)`. Data that does not
+  decode stops the replica (`for {}`; unreachable: every snapshot is a replica's).
+- After `Advance`, every `snapEvery = 100` applied entries: `CreateSnapshot(applied,
+  &pb.ConfState{Voters: r.storage.voters}, encodeState(r.kv, r.applied))` and `Compact(applied -
+  snapMargin)` (`snapMargin = 10`, below the floor `Advance` raises to `applied`). **Not after a
+  configuration change** (`reconf`, set when the replica applies one): the brief's "conf state of
+  the fixed voters" is the configuration only until then, so a replica that has applied
+  `RemoveMember`'s change takes no more snapshots (a snapshot it installs is of an index before any
+  configuration change: every snapshot is taken at one). Without this, a dynamic cluster (the
+  `TestRemoveMember` one) could install a snapshot with the wrong configuration -- a bug the brief's
+  design would have put in the example, found while writing it; not an issue of the verified code.
+- `encodeState`/`decodeState`: the key count, each key and value length-prefixed, in increasing
+  byte order of the keys (`less`, an insertion sort `sortStrings`), then the applied operations the
+  same way; `decodeState` refuses trailing bytes. A function of the state, whatever Go's map order.
+- `deliverable` admits `MsgSnap` (a term, a snapshot of index below `maxIndex`, `From ≠ 0`, `From ≠
+  To`, no context); `deliver`'s wire copy clones the snapshot (`proto.Clone`: the receiver's
+  `EnsureSnapshot` writes unset fields).
+- An operation of a replica that commits inside a snapshot the replica installs is not answered
+  (its `do` waits: partial correctness, documented).
+- Tests (`kv_test.go`): `TestEncodeState` (round trip, determinism, refusals), `TestDeliverable`'s
+  `MsgSnap` cases, `TestSnapshotCatchUp` (replica 3 cut off, 250 operations, the others compact; healed,
+  a `MsgSnap` is delivered to 3, which serves the latest values and applies its own operations
+  after). `go test ./...` and `go test -race ./...` pass (`-count=10` of the catch-up and porcupine
+  tests under `-race` too). `etc/goose.py --check --project kv` translates it without error.
+
+### The proof, designed
+
+(1) **The porcupine cluster in the static mode.** `StartCluster` allocates the raft ghost state
+with `raft_dyn_alloc` (dynamic mode, for `RemoveMember`). A static variant `StartClusterS` (or a
+mode parameter): `ownRaftGhost_alloc_boot`-style allocation with `reNoSnap = false`, `RestartNode …
+(sn := true)` (S-d4: `snapIn` needs the static mode), `New`/`KV.run` specs over `γn.mode = .static`
+in place of `KVCC`; `KV.run`'s conf-change branch refuted: in the static mode no conf-change entry
+is committed (`node_entry_data`'s static case: every entry's data is a client operation or empty,
+as no `ProposeConfChange` is issued: `Main`/`Gen` call only `Put`/`Get`/`Append`/`Read`/
+`TransferLeadership`). `RemoveMember.spec` stays over the dynamic mode; `TransferLeadership` is
+mode-generic already.
+
+(2) **The replica's state across an install.** `runOwn γr r ds` (the store's map and applied table
+as of the committed prefix `ds` it applied) jumps to the loan's `l.dlv` (`isCommitted`, `|l.dlv| =
+index`; S-d4's `readySnapData`); `nodeDriverBusy … (some l)` already follows `dlvAfter`. The
+applied counter is `|l.dlv|`.
+
+(3) **The data certificate**, the large part. Raft's snapshot certificates are about the trip
+`(id, lists, AutoLeave)` (`SnapTrip`, `raftSnapCert`, the storage's registry `storCert` with
+`CertKey`, `memCertInv`'s `certElemOk`); nothing records a snapshot's `Data`, and the storage model
+(`StorState`) has no data. Design:
+- a class `SnapData GF` (as `StorageModel`): `dataOk : RaftNames → entryID → List w8 → IProp GF`,
+  persistent -- the application's predicate, fixed by the instance, raft generic in it;
+- `StorState.sdat` (the storage's snapshot's data), kept by `MemoryStorage`'s model: `Snapshot`
+  returns a snapshot with `Data' = σ.sdat`, `CreateSnapshot(i, cs, data)` sets it, `ApplySnapshot`
+  sets it from the snapshot; the storage's registry entries carry it (`CertKey := SnapTrip × Bool ×
+  List w8`, `certCovers` checks it), `certElemOk γ e` adds `dataOk γ e.sid e.data`;
+- `raftSnapCert γ k` stays the configuration's; the message's `.snap` content carries
+  `dataOk γ (snapId sv) sv.Data'` beside it (`isMessageC`), established by raft's sender from the
+  storage's registry (`raftLog.snapshot` returns the storage's snapshot, `Hsksn` and `Hkcert`
+  extended with the data), and given to the receiver: `raft.restore` registers it (`Hcert`), the log's
+  `pendKsn` records the data, and `readySnapData` hands out `dataOk γ (snapId l.snap) l.snap.Data'`;
+- the application mints it at `CreateSnapshot` (the registry's direction `raftSnapCert`/`dataOk` →
+  `storCert`, `storCertOk`), and reads it at install.
+- kv's instance: `dataOk γ sid d := ∃ L, isCommitted γ L ∗ ⌜L.length = sid.index ∧ d =
+  encodeStateM (kvFold (firstOcc (dataOf L))) (appliedOf L)⌝` -- the replicated state of the
+  committed prefix of that length (`runOwn`'s own relation). Minted at `CreateSnapshot(applied, …)`
+  from `runOwn γr r ds` (`ds` committed, `|ds| = applied`); at install, `isCommitted_agree` of `L`
+  and `l.dlv` (same length) gives `L = l.dlv`, so the decoded state is `runOwn`'s at `l.dlv`.
+Cost: the `Storage` model (`StorState`, `MemoryStorage`'s six specs and their proofs, the registry),
+raft's sender and receiver certificate paths (S-b′2..S-b′4's files), `pendKsn`, `readySnapData`, and
+the server's `NodeBridge`/`InvRaftNode` instance (`dataOk` trivial for etcd until S-j: its merged
+snapshot's content is the backend's, D22c).
+
+(4) **Encoding lemmas.** `encodeStateM`/`decodeStateM` over the model (sorted keys, `less` the
+lexicographic order of bytes), `decodeStateM (encodeStateM m a) = some (m, a)`, and the specs of the
+six Go functions (`putBytes`/`getBytes`/`less`/`sortStrings`/`encodeState`/`decodeState`: Goose maps
+iterated as `range`, the sort a permutation into sorted order).
+
+(5) **`kv_porcupine_safe`**, statement unchanged: `Main` over `StartClusterS`; the replica's
+invariants (`rkvInv`, `kvLb`) are about raft's committed log, which a snapshot install does not
+change, so the client side is untouched; `KV.run` re-proved with (2)-(4) and `MemoryStorage`'s
+`ApplySnapshot` (`snapArg`'s set half, `memStorCert` from the `Ready`'s `storCert`, `index ≤ cap`:
+the store's storages are made with `cap ≥ 2^61`), `CreateSnapshot` (`memFloorTok` from `node.Advance`'s
+floor witness, now unconditional, item 3) and `Compact`.
