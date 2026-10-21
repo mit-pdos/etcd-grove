@@ -33,6 +33,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev raft.sendAppendToWitness.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (w i st : w64),
   c.wit ≠ W64 0 →
+  -- (2026-10-20, W4) to the configuration's witness (what the queue records, `WqOk`)
+  w = c.wit →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppendToWitness"))
       (Val #w)) (Val #i)) (Val #st))

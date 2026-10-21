@@ -82,6 +82,10 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       -- (`rd.WitnessMessages`, the queue `r.witnessMsgs`), each legitimately sent
       "Hwms" ∷ ownWQueue rd.WitnessMessages' μh ∗
       "#Hwms_ok" ∷ ([∗list] μ ∈ μh, isMessage γ (wAbs μ)) ∗
+      -- (2026-10-20, W4) each from the node, of a term within its ceiling (but a pre-vote), and in
+      -- the static mode to the cluster's witness
+      "%Hwms_f" ∷ ⌜∀ μ ∈ μh, μ.frm = id ∧ (μ.ty ≠ MsgPreVote → uint.Z μ.term ≤ uint.Z rs.tc) ∧
+        (rs.mode = .static → μ.to = γ.reWit)⌝ ∗
       "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗
                     ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
                     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗

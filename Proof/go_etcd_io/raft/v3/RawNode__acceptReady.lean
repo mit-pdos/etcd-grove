@@ -554,11 +554,12 @@ theorem RawNode.acceptReady.wp_proof
     %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({ tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf } : NGhost)
     %rs' %({ s.rd with states := [] } : RdState) %slice.nil %([] : List WMsg)
     Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
-    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs [] [] Hf_msgs [] [] Hf_msgsAA [] []
+    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs [] [] [] Hf_msgs [] [] Hf_msgsAA [] []
     [] [] [] [] [] [] [] [] Hlog
   · -- (2026-10-20, witness support) `rn.raft.witnessMsgs = nil`: the queue handed out
     iapply ownWQueue_nil
   · ipureintro; intro _; exact ⟨rfl, rfl⟩
+  · ipureintro; exact WqOk.nil
   · rw [List.map_nil]; iapply ownSlice_nil
   · iapply ownSliceCap_nil
   · rw [List.map_nil]; iapply ownSlice_nil

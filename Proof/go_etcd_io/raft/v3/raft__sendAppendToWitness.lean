@@ -28,7 +28,7 @@ theorem raft.sendAppendToWitness.wp_proof
     (wp_GetNonWitnessVoterSlice :
       tracker.ReplicationSet.GetNonWitnessVoterSlice.spec (GF := GF) (hG := hG)) :
     raft.sendAppendToWitness.spec (GF := GF) (hG := hG) := by
-  intro c r id s w i st Hw
+  intro c r id s w i st Hw Hwc
   wp_start as Hphys
   wp_auto
   wp_apply raft.wp_load_trk_EpochC' c r id s $$ Hphys as %e ⟨Hphys, #He⟩
@@ -78,7 +78,7 @@ theorem raft.sendAppendToWitness.wp_proof
     isplitr
     · ipureintro; simp only [MsgApp, and_true]
     ileft; ipureintro; exact ⟨rfl, trivial⟩
-  ihave Hphys := Hback $$ %q' %_ %Hw HT Hwf Hq
+  ihave Hphys := Hback $$ %q' %_ %Hw %(⟨Hwc, rfl, fun _ => Int.le_refl _⟩) HT Hwf Hq
   -- the `Infof`
   try wp_auto
   wp_apply raft.wp_load_idC $$ Hphys as Hphys

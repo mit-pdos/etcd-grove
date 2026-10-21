@@ -47,6 +47,9 @@ abbrev raft.sendRequestVoteToWitness.spec : Prop :=
   ∀ (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (wid : w64)
     (vt : raftpb.MessageType) (term : w64),
   c.wit ≠ W64 0 →
+  -- (2026-10-20, W4) to the configuration's witness, a vote request of the node's term (what the
+  -- queue records, `WqOk`; a pre-vote's is the next one)
+  wid = c.wit → (vt ≠ MsgPreVote → uint.Z term ≤ uint.Z s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
     (App (App (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendRequestVoteToWitness"))
       (Val #slice.nil)) (Val #wid)) (Val #vt)) (Val #term))

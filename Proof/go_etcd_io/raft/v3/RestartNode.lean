@@ -217,7 +217,7 @@ theorem RestartNode.wp_proof
   imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
   imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
-  imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
+  imod start_handshake nv.readyc' (readyP γn cv.ID') iprop(True) γrd $$ Hcrd Hord with #Hhrd
   imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
   imod start_handshake nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) γd $$ Hcd Hod
     with #Hhd

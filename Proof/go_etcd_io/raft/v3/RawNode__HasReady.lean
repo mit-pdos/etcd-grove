@@ -47,7 +47,7 @@ set_option hygiene false in
 /-- Rocq's local `close_view`: close the raft struct unchanged (`Hphys`). -/
 local macro "close_view" : tactic => `(tactic| (
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd %wsl %μs Hf_Term Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil %Hwok Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
     HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog))
 
 set_option hygiene false in

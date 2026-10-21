@@ -236,7 +236,28 @@ theorem raft.maybeCommit.wp_proof
             · exact Or.inl (of_decide_eq_true h1).1
             · exact Or.inr (of_decide_eq_true h1).1
           exact (EpochOkC.wf Hepok hw).1
-        wp_apply wp_raft_sendAppendToWitness c r id s1 key wci0 st Hcw $$ [$Hphys]
+        -- (2026-10-20, W4) the reported witness is the configuration's: the incoming half's
+        -- (the outgoing half's is `0`, which replicates to nobody, `RSM.rep`)
+        have Hkw : key = c.wit := by
+          have h := (Hok.1 key).1 (by rw [Hv]; rfl)
+          have hw : s.ep.hasWit = true := by
+            unfold EpochM.hasWit; apply decide_eq_true
+            rcases h with ⟨h1, -⟩ | ⟨h1, -⟩
+            · exact Or.inl (of_decide_eq_true h1).1
+            · exact Or.inr (of_decide_eq_true h1).1
+          obtain ⟨-, Hwf⟩ := EpochOkC.wf Hepok hw
+          rcases Hwf with ⟨h0, -⟩ | ⟨-, H0, H1⟩
+          · exact absurd h0 Hcw
+          rcases h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+          · have hr := (of_decide_eq_true h1).1
+            rw [H0.1] at h2 hr
+            by_cases hm : c.wit ∈ c.incoming
+            · rw [if_pos hm] at h2; exact h2.symm
+            · rw [if_neg hm] at hr; exact absurd rfl hr
+          · have hr := (of_decide_eq_true h1).1
+            rw [H1.1] at hr
+            split at hr <;> exact absurd rfl hr
+        wp_apply wp_raft_sendAppendToWitness c r id s1 key wci0 st Hcw (by rw [Hkw]) $$ [$Hphys]
           as %vs0 %vs1 ⟨%Hvs, Hphys⟩
         obtain ⟨e0, He0, He0t, He0s⟩ := Hsub rfl
         unfold forMapPostcondition

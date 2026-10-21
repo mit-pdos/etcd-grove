@@ -31,6 +31,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev raft.sendHeartbeatToWitness.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice) (cl : List w8),
   c.wit ≠ W64 0 →
+  -- (2026-10-20, W4) to the configuration's witness (what the queue records, `WqOk`)
+  to = c.wit →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       ctx ↦*□ cl }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeatToWitness"))

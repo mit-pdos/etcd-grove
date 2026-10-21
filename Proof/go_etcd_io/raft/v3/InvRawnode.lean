@@ -1339,6 +1339,24 @@ In the static mode the struct's configuration has the ghost state's voters, not 
 stage B7 part 2 -- `ownRaftPhys γ.reCfg` and `ownRaftGhost` -- for the proofs that are about
 the static mode only (a shrinking `ApplyConfChange`, `node.go`'s loop). -/
 
+/-- (2026-10-20, W4) In the static mode the node's configuration has no witness or the
+cluster's (`ghostRestM`). -/
+theorem ghostRest_static_wit (γ : RaftNames) (rs : RNState) (g : RGh) (c : CfgM) (id : w64)
+    (s : NState) :
+    ghostRest (GF := GF) γ (rs.mode.toG g) c id s ⊢
+      ⌜rs.mode = .static → c.wit = W64 0 ∨ c.wit = γ.reWit⌝ ∗ ghostRest γ (rs.mode.toG g) c id s := by
+  iintro H
+  cases hm : rs.mode with
+  | static =>
+    rw [hm] at *
+    simp only [RNMode.toG, ghostRest, ghostRestM]
+    icases H with ⟨%Hn, %Hps, %Hc⟩
+    isplitr; · ipureintro; exact fun _ => Hc.2.2
+    ipureintro; exact ⟨Hn, Hps, Hc⟩
+  | dyn dec c0 h0 h1 =>
+    iframe H
+    ipureintro; intro h; cases h
+
 theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .static)
     -- (2026-10-20, witness support) a cluster without a witness: `ApplyConfChange`'s
     -- premise (the static mode's configuration change has no witness yet, NoWitReconf)

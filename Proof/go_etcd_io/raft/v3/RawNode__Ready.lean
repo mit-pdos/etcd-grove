@@ -56,7 +56,7 @@ theorem RawNode.Ready.wp_proof
   iapply HΦ $$ %rd %ce %es %ms %μh %sts %h %steps
   iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard
     Hwms Hwms_ok
-  ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
+  ipureintro; exact ⟨Hmsgs_term, Hwms_f, Hsnapz⟩
 
 end proof
 

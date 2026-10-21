@@ -144,7 +144,7 @@ theorem node.run.wp_proof
         isplitr
         · iexists hrd
           iexact Hhard
-        ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
+        ipureintro; exact ⟨Hmsgs_term, Hsnapz, Hwms_f⟩
       · try wp_auto
         wp_join_done
         iexists rc, rdv
@@ -743,9 +743,10 @@ theorem node.run.wp_proof
       ⟨%Hac, %rs, #Hlb', %Hrs, Hdlv, Hrof, Hcfg, Hst⟩
     subst Hac
     obtain ⟨Hstor, Hsteps, Hunp⟩ := Hrs
+    icases runCfg_mode γ rs $$ Hcfg with ⟨%Hmd, Hcfg⟩
     -- the `Ready` to send, fresh or stale (then it holds no messages and no entries)
     ihave Hg : iprop(∃ (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg),
-        ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false μh ∗ readyWit γ rdv' ∗
+        ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false μh ∗ readyWit γ id rdv' ∗
         entsRO rdv'.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
         entsRO rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
@@ -758,10 +759,13 @@ theorem node.run.wp_proof
       · iunfold freshOk at Hf
         icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, Hown, #Hmsgs_ok, Hwq, #Hwok, #Hrsts,
           #Hhd, %Hfacts⟩
-        ihave Hrw := readyWit_of_queue γ rdv' μh $$ Hwq Hwok
+        ihave Hrw := readyWit_of_queue γ id rdv' μh rs.tc
+          (fun μ hμ => by
+            obtain ⟨h1, h2, h3⟩ := Hfacts.2.2 μ hμ
+            exact ⟨h1, h2, fun hm => h3 (Hmd.trans hm)⟩) $$ Hwq Hwok Hlb'
         iexists ce, es, ms, μh
         iframe Hrn Hrw Hce Hcommitted Hents Hmsgs Hown Hmsgs_ok Hrsts Hhd
-        ipureintro; exact Hfacts
+        ipureintro; exact ⟨Hfacts.1, Hfacts.2.1⟩
       · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs $$ Hrn with ⟨%Hidf, Hrn⟩
         iunfold staleOk at Hstale
         icases Hstale with
@@ -779,7 +783,7 @@ theorem node.run.wp_proof
         -- (2026-10-20, witness support) nor any request to the witness
         have Hkw0 : kw = 0 := by have := Hidf.1; omega
         subst Hes0 Hk0 Hkw0
-        ihave Hrw := readyWit_empty γ rdv' Hwshape
+        ihave Hrw := readyWit_empty γ id rdv' Hwshape
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
           Hce_ok $$ Hrdsoft Hrdh Hce Hce_cap Hents Hcommitted Hrs Hrn
         iexists ce, [], [], []
@@ -803,7 +807,7 @@ theorem node.run.wp_proof
     icases Hg with
       ⟨%ce, %es, %ms, %μh, Hrn, Hrw, #Hce, #Hcommitted, #Hents, Hmsgs, Hown, #Hmsgs_ok, #Hrsts,
         #Hhd, %Hfacts⟩
-    iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
+    iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ id) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- (2026-10-16, stage R7a) the `Ready`'s soft state, read-only for the application
     icases ownRawNodeReady_softStateRO γ.raft nv.rn' id rs rdv' ce es ms false μh $$ Hrn

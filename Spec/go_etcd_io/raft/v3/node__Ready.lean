@@ -30,7 +30,7 @@ abbrev node.Ready.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
-  {{ (ch : Loc), RET #ch; isReadyChan γ ch }}
+  {{ (ch : Loc), RET #ch; isReadyChan γ id ch }}
 
 end spec
 

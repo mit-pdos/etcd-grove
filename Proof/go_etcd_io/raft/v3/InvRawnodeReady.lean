@@ -656,6 +656,8 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
     -- gives it back (`Hwundo`; `acceptReady` drops it)
     "Hf_witnessMsgs" ∷ r.[raft, go!"witnessMsgs"] ↦ wsl0 ∗
     "%Hwnil" ∷ ⌜c.wit = W64 0 → wsl0 = slice.nil ∧ μs = []⌝ ∗
+    -- (2026-10-20, W4) the requests to the witness, from the node, of its term (`WqOk`)
+    "%Hwok" ∷ ⌜WqOk c.wit id s.term μs⌝ ∗
     "Hwundo" ∷ (ownWQueue wsl μh -∗ ownWQueue wsl0 μs) ∗
     "Hf_msgs" ∷ r.[raft, go!"msgs"] ↦ sl1 ∗
     "Hf_msgsAA" ∷ r.[raft, go!"msgsAfterAppend"] ↦ sl2 ∗
@@ -691,7 +693,7 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         r.[raft, go!"state"] ↦ stateW64 s.role -∗
         r.[raft, go!"lead"] ↦ s.lead -∗
         r.[raft, go!"witnessMsgs"] ↦ wsl' -∗ ownWQueue wsl' μs' -∗
-        ⌜c.wit = W64 0 → wsl' = slice.nil ∧ μs' = []⌝ -∗
+        ⌜c.wit = W64 0 → wsl' = slice.nil ∧ μs' = []⌝ -∗ ⌜WqOk c.wit id s.term μs'⌝ -∗
         r.[raft, go!"msgs"] ↦ sl1' -∗ sl1' ↦* ms1'.map QMsg.loc -∗
         ownSliceCap Loc sl1' (DFrac.own 1) -∗
         r.[raft, go!"msgsAfterAppend"] ↦ sl2' -∗ sl2' ↦* ms2'.map QMsg.loc -∗
@@ -1060,7 +1062,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
                       unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd %wsl0 %μs Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
-    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
+    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil %Hwok Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
@@ -1217,7 +1219,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
         Hf_state Hf_lead Hf_witnessMsgs Hwundo Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother
         Hundo Hlog Hclose
       ipureintro
-      exact ⟨Hwnil, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
+      exact ⟨Hwnil, Hwok, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
     exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
@@ -1405,6 +1407,8 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       Hf_lead Hf_witnessMsgs Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog
     isplitr
     · ipureintro; exact Hwnil
+    isplitr
+    · ipureintro; exact Hwok
     -- (2026-10-20) the witness queue kept: the abandoned `Ready` hands none out
     isplitl [Hwq]
     · iintro -; iexact Hwq
@@ -1426,10 +1430,10 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' %wsl' %μs' HfTerm HfVote Hfrs Hrs' Hrsc
-      %Hrd' Hflog Hfst Hfld Hfw Hwq' %Hwn' Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6
+      %Hrd' Hflog Hfst Hfld Hfw Hwq' %Hwn' %Hwk' Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6
       %H7 Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' %wsl' %μs' HfTerm HfVote Hfrs
-      Hrs' Hrsc %Hrd' Hflog Hfst Hfld Hfw Hwq' %Hwn' Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4
+      Hrs' Hrsc %Hrd' Hflog Hfst Hfld Hfw Hwq' %Hwn' %Hwk' Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4
       %H5 %H6 %H7 Hl
   ipureintro
   refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,

@@ -86,8 +86,8 @@ theorem ownSlice_of_shape (s : GoSlice) (dq : DFrac) (h : SliceShape s 0) :
 
 /-- (2026-10-20, witness support) A `Ready` whose witness slice is empty hands out no request to
 the witness. -/
-theorem readyWit_empty (γ : NodeNames) (rd : Ready) (h : SliceShape rd.WitnessMessages' 0) :
-    ⊢ readyWit (GF := GF) γ rd := by
+theorem readyWit_empty (γ : NodeNames) (id : w64) (rd : Ready) (h : SliceShape rd.WitnessMessages' 0) :
+    ⊢ readyWit (GF := GF) γ id rd := by
   iunfold readyWit
   iexists [], []
   isplitl []
@@ -136,7 +136,7 @@ theorem ownRaftPhys_lead (c : CfgM) (r : Loc) (id : w64) (s : NState) :
   · iexact Hf_Term
   iintro Hl Ht
   ihave H := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd %wsl %μs Ht Hf_Vote
-    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hl Hf_witnessMsgs Hwq %Hwnil %Hwok Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox
     %HmsgsAA_ok %Hout_term %Hgh_out %(Hgh_unst.1) %(⟨rfl, Hgh_unst.2, fun _ h => h⟩) %(fun _ => Int.le_refl _) %Hxf Hlog
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ H
 
@@ -258,7 +258,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       Hf_lead Hf_witnessMsgs Hwundo Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog Hundo
       Hclose
     ipureintro
-    exact ⟨Hwnil, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
+    exact ⟨Hwnil, Hwok, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
     Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
@@ -311,7 +311,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
                       unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd %wsl0 %μs Hf_Term
     Hf_Vote Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
-    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
+    Hf_raftLog Hf_state Hf_lead Hf_witnessMsgs Hwq %Hwnil %Hwok Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(fun h => .inl (of_decide_eq_true h))
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
@@ -1294,7 +1294,7 @@ def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
 /-- A `Ready` `readyWithoutAccept` just computed: its outputs. (2026-10-16, stage R5: the
 messages handed out (D8), owned at `readyDq`, with `rd.Messages`' slice and capacity; the
 entries `entsRO`; the read states `readStatesPts`; the hard state `hsOpt`.) -/
-def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
+def freshOk (γ : NodeNames) (id : w64) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     (ms : List QMsg) (μh : List WMsg) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
     entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
@@ -1307,7 +1307,10 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
       [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     (∃ hrd : HardStateM, hsOpt rd.HardState' hrd) ∗
     ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧
-     rd.Snapshot' = null⌝)
+     rd.Snapshot' = null ∧
+     -- (2026-10-20, W4) the requests' facts (`RawNode.readyWithoutAccept`'s `Hwms_f`)
+     (∀ μ ∈ μh, μ.frm = id ∧ (μ.ty ≠ MsgPreVote → uint.Z μ.term ≤ uint.Z rs.tc) ∧
+       (rs.mode = .static → μ.to = γ.raft.reWit))⌝)
 
 /-- Both halves of `rof`: no `Ready` handed out. -/
 def rofFull (γ : NodeNames) : IProp GF :=
@@ -1340,7 +1343,7 @@ def runMid (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd : Ready)
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
       ((⌜rc = chan.nil⌝ ∗ ownRawNode γ.raft nv.rn' id rs) ∨
        (⌜rc = nv.readyc'⌝ ∗ ∃ (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg),
-          ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false μh ∗ freshOk γ rd rs ce es ms μh) ∨
+          ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false μh ∗ freshOk γ id rd rs ce es ms μh) ∨
        (⌜rc = nv.readyc'⌝ ∗ ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs))))
 
 theorem headRest_termLB (γ : NodeNames) (nv : node) (rs : RNState) (ac rc : GoChan)
@@ -1467,7 +1470,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     iexists ce, es, ms.length, hrd, μh.length
     iframe Hrdsoft Hrdh Hce Hce_cap Hcommitted Hents Hrsts
     ipureintro
-    exact ⟨Hfacts.2, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2, Hwshape⟩
+    exact ⟨Hfacts.2.1, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2, Hwshape⟩
   · iexists rs
     ihave Hrn := ownRawNodeIdle_ownRawNode γ.raft nv.rn' id rs $$ Hrn
     iframe Hrn
@@ -1535,7 +1538,7 @@ theorem runMid_ready (γ : NodeNames) (id : w64) (nv : node) (ac : GoChan) (rd :
         dghostVar γ.dlv (DFrac.own (1 : Qp).half) rs.delivered ∗ rofFull γ ∗ runCfg γ rs ∗
         ((∃ (ce es : List EntryM) (ms : List QMsg) (μh : List WMsg),
             ownRawNodeReady γ.raft nv.rn' id rs rd ce es ms false μh ∗
-              freshOk γ rd rs ce es ms μh) ∨
+              freshOk γ id rd rs ce es ms μh) ∨
          (ownRawNodeIdle γ.raft nv.rn' id rs ∗ staleOk γ rd rs)) := by
   iintro H
   unfold runMid
@@ -1813,6 +1816,18 @@ theorem runCfg_extend (γ : NodeNames) (rs rs' : RNState) (ce : List EntryM)
   iframe Hcap_r Hcam
   ipureintro
   exact ⟨Hinv.1, NoConfIn_prefix (List.prefix_append _ _) Hm0.2.1 Hinv.2⟩
+
+/-- (2026-10-20, W4) The node's mode is the names'. -/
+theorem runCfg_mode (γ : NodeNames) (rs : RNState) :
+    runCfg (GF := GF) γ rs ⊢ ⌜rs.mode = γ.mode⌝ ∗ runCfg γ rs := by
+  iintro H
+  iunfold runCfg at H
+  icases H with ⟨%Hp, H⟩
+  isplitr
+  · ipureintro; exact Hp.1
+  iunfold runCfg
+  iframe H
+  ipureintro; exact Hp
 
 /-- (D19i part 1) The floor is not raised past `applied` (`RNState.flw`). -/
 theorem runCfg_flw (γ : NodeNames) (rs : RNState) :

@@ -524,20 +524,45 @@ def stepP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
 /-- (2026-10-20, witness support) The requests to the witness a `Ready` hands out
 (`rd.WitnessMessages`): the slice's cells (not its capacity: a stale `Ready`'s slice is empty),
 each request owned (`ownWMsg`) and legitimately sent (`isMessage`), for the application to deliver
-to its `Witness`. -/
-def readyWit (γ : NodeNames) (rd : Ready) : IProp GF :=
-  iprop(∃ (wms : List WitnessMessage) (μh : List WMsg), rd.WitnessMessages' ↦* wms ∗
-    ([∗list] _k ↦ wm;μ ∈ wms;μh, ownWMsg wm μ) ∗ [∗list] μ ∈ μh, isMessage γ.raft (wAbs μ))
+to its `Witness`; (2026-10-20, W4) each from the node `id`, in the static mode to the cluster's
+witness, and, but a pre-vote, of a term within the budget (`wReqOk`): what a transport needs of
+the witness's answers (to the node, within the budget). -/
+def wReqOk (γ : NodeNames) (id : w64) (μ : WMsg) : IProp GF :=
+  iprop(⌜μ.frm = id ∧ (γ.mode = .static → μ.to = γ.raft.reWit)⌝ ∗
+    (if μ.ty = MsgPreVote then iprop(True) else termLB γ.bud μ.term))
 
-theorem readyWit_of_queue (γ : NodeNames) (rd : Ready) (μh : List WMsg) :
+instance wReqOk_persistent (γ : NodeNames) (id : w64) (μ : WMsg) :
+    Persistent (wReqOk (GF := GF) γ id μ) := by
+  unfold wReqOk; split <;> infer_instance
+
+def readyWit (γ : NodeNames) (id : w64) (rd : Ready) : IProp GF :=
+  iprop(∃ (wms : List WitnessMessage) (μh : List WMsg), rd.WitnessMessages' ↦* wms ∗
+    ([∗list] _k ↦ wm;μ ∈ wms;μh, ownWMsg wm μ) ∗
+    [∗list] μ ∈ μh, isMessage γ.raft (wAbs μ) ∗ wReqOk γ id μ)
+
+theorem readyWit_of_queue (γ : NodeNames) (id : w64) (rd : Ready) (μh : List WMsg) (t : w64)
+    (Hf : ∀ μ ∈ μh, μ.frm = id ∧ (μ.ty ≠ MsgPreVote → uint.Z μ.term ≤ uint.Z t) ∧
+      (γ.mode = .static → μ.to = γ.raft.reWit)) :
     ⊢ ownWQueue (GF := GF) rd.WitnessMessages' μh -∗
-      ([∗list] μ ∈ μh, isMessage γ.raft (wAbs μ)) -∗ readyWit γ rd := by
-  iintro Hq #Hok
+      ([∗list] μ ∈ μh, isMessage γ.raft (wAbs μ)) -∗ termLB γ.bud t -∗ readyWit γ id rd := by
+  iintro Hq #Hok #Hlb
   iunfold ownWQueue at Hq
   icases Hq with ⟨%wms, Hsl, -, Hb⟩
   iunfold readyWit
   iexists wms, μh
-  iframe Hsl Hb Hok
+  iframe Hsl Hb
+  iapply (BigSepL.bigSepL_impl (Φ := fun _ μ => isMessage (GF := GF) γ.raft (wAbs μ))) $$ Hok
+  imodintro
+  iintro %k %μ %Hk #Hm
+  iframe Hm
+  have Hμ := Hf μ (List.mem_of_getElem? Hk)
+  unfold wReqOk
+  isplitr
+  · ipureintro; exact ⟨Hμ.1, Hμ.2.2⟩
+  split
+  · itrivial
+  · rename_i hp
+    iapply termLB_le γ.bud t μ.term (Hμ.2.1 hp) $$ Hlb
 
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`isCommitted` of `d ++ ce`), the entries `es` to
@@ -552,7 +577,7 @@ the entries `entsRO`; the read states `readStatesPts`, their contexts bytes (D6)
 state `hsOpt` (`nil`, or `hardState()`'s fresh one the application may persist); the snapshot
 `nil`.) (2026-10-16, stage R7a, D10: the soft state `softStateRO`, `nil` or its `Lead`/`RaftState`
 read-only, which the server reads.) -/
-def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
+def readyData (γ : NodeNames) (id : w64) (rd : Ready) (d ce es : List EntryM)
     (ms : List QMsg) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
     entsRO rd.Entries' es ∗ appendRight γ.stor es ∗
@@ -571,14 +596,14 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-10-18, D19b stage 5) the indices handed out are within the log (`readyIdx`)
     readyIdx γ.raft d ce es ∗
     -- (2026-10-20, witness support) the requests to the witness
-    readyWit γ rd)
+    readyWit γ id rd)
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. -/
-def readyP (γ : NodeNames) (rd : Ready) : IProp GF :=
+def readyP (γ : NodeNames) (id : w64) (rd : Ready) : IProp GF :=
   iprop(∃ (d ce es : List EntryM) (ms : List QMsg),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) d ∗
-    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ readyData γ rd d ce es ms ∗
+    dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es) ∗ readyData γ id rd d ce es ms ∗
     -- (2026-10-15, stage N) the committed log handed out, a lower bound
     monoListLbOwn γ.dlm (d ++ ce))
 
@@ -749,7 +774,7 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hrecvc" ∷ isHandshake γ.recvc nv.recvc' (netP γ id) iprop(True) ∗
     "#Hconfc" ∷ isHandshake γ.confc nv.confc' (confcP γ) iprop(True) ∗
     "#Hconfstatec" ∷ isHandshake γ.confstatec nv.confstatec' (confstateP γ) iprop(True) ∗
-    "#Hreadyc" ∷ isHandshake γ.readyc nv.readyc' (readyP γ) iprop(True) ∗
+    "#Hreadyc" ∷ isHandshake γ.readyc nv.readyc' (readyP γ id) iprop(True) ∗
     "#Hadvancec" ∷ isAdvChan γ nv.rn' id nv.advancec' ∗
     "#Hdone" ∷ isHandshake γ.done nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) ∗
     "#Hstop" ∷ isHandshake γ.stop nv.stop' (fun (_ : Unit) => iprop(False)) iprop(True) ∗
@@ -786,27 +811,27 @@ def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
       dghostVar γ.req (DFrac.own (1 : Qp).half) k)
 
 /-- `readyc`, as the driver sees it (`Node.Ready()`'s result). -/
-def isReadyChan (γ : NodeNames) (ch : Loc) : IProp GF :=
-  isHandshake γ.readyc ch (readyP γ) iprop(True)
+def isReadyChan (γ : NodeNames) (id : w64) (ch : Loc) : IProp GF :=
+  isHandshake γ.readyc ch (readyP γ id) iprop(True)
 
-instance isReadyChan_persistent (γ : NodeNames) (ch : Loc) :
-    Persistent (isReadyChan (GF := GF) γ ch) := by
+instance isReadyChan_persistent (γ : NodeNames) (id : w64) (ch : Loc) :
+    Persistent (isReadyChan (GF := GF) γ id ch) := by
   unfold isReadyChan; infer_instance
 
 /-- **Receiving a `Ready`** (the driver's loop, `for rd := range node.Ready()`): with the
 driver's token, the `Ready`'s data for the committed log handed out so far, and the token
 busy with it. The channel is never closed. -/
 theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM) :
-    {{ isReadyChan γ ch ∗ nodeDriver (GF := GF) γ id n ds }}
+    {{ isReadyChan γ id ch ∗ nodeDriver (GF := GF) γ id n ds }}
       (App (Val (chan.receive Ready.ty)) (Val #ch))
     {{ (rd : Ready), RET (PairV #rd #true);
         ∃ (ce es : List EntryM) (ms : List QMsg),
-          readyData γ rd ds ce es ms ∗ nodeDriverBusy γ id n (ds ++ ce) es }} := by
+          readyData γ id rd ds ce es ms ∗ nodeDriverBusy γ id n (ds ++ ce) es }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriver
   icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
   unfold isReadyChan
-  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq]
+  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ id) iprop(True) $$ [] [HΦ Hds Hreq]
   · iframe Hrc
   iintro %rd
   iintro !> HP

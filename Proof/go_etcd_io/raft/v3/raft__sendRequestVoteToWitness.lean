@@ -148,7 +148,7 @@ local macro "svw_tail " v:term : tactic => `(tactic| (
       subst Hlast
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> first | trivial | rfl
     iright; iexact Hvm
-  ihave Hphys := Hreseal $$ %wsl' %_ %Hw HT Hwf Hq'
+  ihave Hphys := Hreseal $$ %wsl' %_ %Hw %(⟨Hwid, rfl, Hvt⟩) HT Hwf Hq'
   try wp_auto
   wp_raft_logC
   iapply HΦ
@@ -159,7 +159,7 @@ theorem raft.sendRequestVoteToWitness.wp_proof
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_raftLog_subterm : raftLog.subterm.spec (GF := GF) (hG := hG)) :
     raft.sendRequestVoteToWitness.spec (GF := GF) (hG := hG) := by
-  intro c V r id s wid vt term Hw
+  intro c V r id s wid vt term Hw Hwid Hvt
   wp_start as Hphys
   wp_auto
   wp_apply raft.wp_load_raftLogC (c := c) (V := V) r id s $$ Hphys as Hphys

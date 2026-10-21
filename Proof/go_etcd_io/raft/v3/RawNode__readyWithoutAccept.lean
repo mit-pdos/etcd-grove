@@ -123,6 +123,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
   icases ghostRest_nsLink γ _ cf id s $$ Hrest with ⟨%Hnl, Hrest⟩
+  icases ghostRest_static_wit γ rs _ cf id s $$ Hrest with ⟨%Hsw, Hrest⟩
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
   icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
@@ -396,7 +397,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       Hf_lead Hf_witnessMsgs Hwundo Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog
       Hclose
     ipureintro
-    refine ⟨Hwnil, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
+    refine ⟨Hwnil, Hwok, Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
     simp only [List.length_append]
     have := List.length_filter_le (fun q => !isSelfQ id q) ms2
     simp only [nonself]
@@ -454,6 +455,18 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
       (fun h => (Hxf.2 (Hnl.1.trans h)).2.2) $$ Hout
   ihave #Hwms_ok := outboxRelP_wq_isMessage γ (toPState s).outbox ms1 ms2 μs Houtbox $$ Hout
+  -- (2026-10-20, W4) the requests' facts (`WqOk`); a queued request means a witness, in the static
+  -- mode the cluster's
+  have Hwms_f : ∀ μ ∈ μs, μ.frm = id ∧ (μ.ty ≠ MsgPreVote → uint.Z μ.term ≤ uint.Z rs.tc) ∧
+      (rs.mode = .static → μ.to = γ.reWit) := by
+    intro μ hμ
+    obtain ⟨h1, h2, h3⟩ := Hwok μ hμ
+    refine ⟨h2, fun hp => by rw [Hpvoff.2.1]; exact Int.le_trans (h3 hp) Hpvoff.2.2.1, fun hm => ?_⟩
+    rcases Hsw hm with h | h
+    · exfalso
+      rw [(Hwnil h).2] at hμ
+      exact List.not_mem_nil hμ
+    · rw [h1, h]
   iapply HΦ $$ %(readyVal wsl sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %μs %s.rd.states %hrd
   simp only [named]
@@ -493,6 +506,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iexact Hwq
   isplitr
   · iexact Hwms_ok
+  isplitr
+  · ipureintro; exact Hwms_f
   isplitr
   · iintro H1 H2 H3 H4 H5
     iapply ownRawNodeReady_abandon γ rn id rs (readyVal wsl sp HP RS sents sce msl MS) ce

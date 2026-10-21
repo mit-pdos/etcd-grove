@@ -146,7 +146,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         rw [decide_eq_true Hiw]
         wp_auto
         have Hcw : c.wit ≠ W64 0 := Hiw ▸ (Hnw i p1 Hp1).2
-        wp_apply wp_raft_sendHeartbeatToWitness c r id _ i ctx cl Hcw $$ [$Hphys $Hctx] as Hphys
+        wp_apply wp_raft_sendHeartbeatToWitness c r id _ i ctx cl Hcw Hiw $$ [$Hphys $Hctx] as Hphys
         try wp_auto
         icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
         icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩

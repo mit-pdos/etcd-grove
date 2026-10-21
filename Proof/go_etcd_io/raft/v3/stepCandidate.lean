@@ -65,7 +65,7 @@ local macro "wvp_pure" : tactic => `(tactic| (
   | (refine ⟨?_, ?_, ?_⟩ <;> first | trivial | omega | exact fun _ => rfl | exact Or.inl rfl)))
 
 set_option hygiene false in
-local macro "wvp_send" : tactic => `(tactic| (
+local macro "wvp_send " vt:term:max tm:term:max : tactic => `(tactic| (
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   first
   | (rw [decide_eq_true (by simp only [Hrole]; decide)])
@@ -75,7 +75,9 @@ local macro "wvp_send" : tactic => `(tactic| (
   try wp_auto
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   try wp_auto
-  wp_apply wp_raft_sendRequestVoteToWitness c _ r id _ c.wit _ _ Hw $$ [Hphys]
+  wp_apply wp_raft_sendRequestVoteToWitness c _ r id
+      ({ s with votes := recordVote s.votes m.From' (!m.Reject') }) c.wit $vt $tm Hw rfl
+      (by intro h; first | exact absurd rfl h | exact Int.le_refl _) $$ [Hphys]
     as %ls ⟨Hphys, %Hls⟩
   · iframe
   unfold forMapPostcondition
@@ -216,7 +218,7 @@ local macro "wvp_loop " vt:term:max tm:term:max : tactic => `(tactic| (
         ihave Hask : ownAsked (GF := GF) am $$ [Ham]
         · iunfold ownAsked; iright; iexists _; iexact Ham
         ihave Hphys := Hreseal $$ %am %Hw Haf Hask
-        wvp_send
+        wvp_send $vt $tm
       · ihave %Hann := ownMap_not_nil _ _ _ $$ Ha
         wp_apply (wp_map_lookup1 go.uint64 go.bool asked a c.wit) $$ Ha as Ha
         rw [show (zero_val Bool : Bool) = false from rfl]
@@ -230,7 +232,7 @@ local macro "wvp_loop " vt:term:max tm:term:max : tactic => `(tactic| (
           ihave Hask : ownAsked (GF := GF) asked $$ [Ha]
           · iunfold ownAsked; iright; iexists _; iexact Ha
           ihave Hphys := Hreseal $$ %asked %Hw Haf Hask
-          wvp_send
+          wvp_send $vt $tm
         · -- asked already: skipped
           simp only [Bool.not_true]
           wp_auto

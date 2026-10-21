@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The heartbeat appended to the queue (`ownRaftPhysC_witQ`). -/
 theorem raft.sendHeartbeatToWitness.wp_proof :
     raft.sendHeartbeatToWitness.spec (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Hw
+  intro c r id s to ctx cl Hw Hwc
   wp_start as ⟨Hphys, #Hctx⟩
   ihave Hnil : (slice.nil ↦* ([] : List w64) : IProp GF) $$ []
   · iapply ownSlice_nil
@@ -55,7 +55,7 @@ theorem raft.sendHeartbeatToWitness.wp_proof :
     isplitr
     · ipureintro; simp only [MsgHeartbeat, and_true]; exact ⟨trivial, trivial, trivial, trivial, rfl, rfl, rfl, rfl⟩
     ileft; ipureintro; exact ⟨rfl, trivial⟩
-  ihave Hphys := Hback $$ %q' %_ %Hw HT Hwf Hq
+  ihave Hphys := Hback $$ %q' %_ %Hw %(⟨Hwc, rfl, fun _ => Int.le_refl _⟩) HT Hwf Hq
   try wp_auto
   iapply HΦ $$ Hphys
 

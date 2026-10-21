@@ -195,7 +195,7 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
 statements' shape). -/
 def rnReadyP (_E : RNEnv GF) (γ : RNNames) (rd : Ready) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
-  readyP γ.node rd
+  readyP γ.node γ.id rd
 
 /-- The driver, idle, handed the committed log `L` so far: raft's `nodeDriver` at `pre ++ L`,
 with the driver's view of the configuration (`nodeCfg`, which `Advance` takes and returns). -/
