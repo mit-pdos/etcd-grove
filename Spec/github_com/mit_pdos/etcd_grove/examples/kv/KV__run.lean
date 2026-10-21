@@ -31,13 +31,16 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.run.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc)
-    (op : CCOp) (c0 c1 : CCState),
+    (op : CCOp) (c0 c1 : CCState) (wi : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isReplica γr γp r id n st ∗
       -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
-      -- `op` (`KVCC`), and the driver's view of its configuration, the initial one
-      ⌜KVCC γp.node op c0 c1⌝ ∗ nodeCfg γp.node 0 c0 ∗
+      -- `op` (`KVCC`), and the driver's view of its configuration, the initial one; (2026-10-20,
+      -- W4) or in the static mode of a cluster that admits no conf change (`KVCCS`)
+      ⌜KVCC γp.node op c0 c1 ∨ KVCCS γp.node⌝ ∗ nodeCfg γp.node 0 c0 ∗
       nodeDriver γp.node id n [] ∗ runOwn γr r [] ∗
-      sendSpec send γp.node }}
+      sendSpec send γp.node ∗
+      -- (2026-10-20, W4) the replica's access to the witness, if any, which the driver owns
+      r.[RKV, go!"witness"] ↦□ wi ∗ kvWitRes γp.node id wi }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"run")) (Val #send))
   {{ RET #(); True }}
 

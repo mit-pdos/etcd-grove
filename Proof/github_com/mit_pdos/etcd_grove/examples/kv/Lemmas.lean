@@ -872,6 +872,39 @@ theorem kvCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : KVCC �
       intro hn _
       exact hn (H.2.1 _ _ Hcc.2.2).1
 
+/-- (2026-10-20, W4) A cluster that admits no conf change (`KVCCS`) commits no conf-change entry. -/
+theorem kvCCS_noConf (γn : NodeNames) (H : KVCCS γn) (e : EntryM) (o : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜¬ IsConfEnt e⌝ := by
+  iintro He
+  cases o with
+  | some d =>
+    simp only [entDataIs, propDataIs]
+    icases He with ⟨⟨%Hd, -⟩, -⟩
+    ipureintro
+    intro hc
+    unfold IsConfEnt at hc
+    rw [Hd.2.2] at hc
+    rcases hc with h | h <;> revert h <;> word
+  | none =>
+    simp only [entDataIs, propDataIs]
+    icases He with (%Hz | %Hcc)
+    · ipureintro
+      intro hc
+      unfold IsConfEnt at hc
+      rw [Hz.1] at hc
+      rcases hc with h | h <;> revert h <;> word
+    · exfalso; exact H.2.1 _ _ Hcc.2.2
+
+/-- `kvCC_notConf` in either kind of cluster (2026-10-20, W4). -/
+theorem kvCC_notConf' (γn : NodeNames) (op : CCOp) (c0 c1 : CCState)
+    (H : KVCC γn op c0 c1 ∨ KVCCS γn) (e : EntryM) (o : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' ≠ W32 1 → ¬ IsConfEnt e⌝ := by
+  rcases H with H | H
+  · exact kvCC_notConf γn op c0 c1 H e o
+  · iintro He
+    ihave %Hn := kvCCS_noConf γn H e o $$ He
+    ipureintro; exact fun _ => Hn
+
 /-- A conf-change entry of the cluster carries `op` (`KVCC`): its bytes decode to a `ConfChange`
 whose change is `op` (raft v3.7, stage R6b: pure, over the record's bytes, D6; until then the
 entry's slice was read through the proposed slices' invariant). -/

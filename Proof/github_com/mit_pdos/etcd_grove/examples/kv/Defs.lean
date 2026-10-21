@@ -77,6 +77,7 @@ whose authority is in `kvStorInv`) so that a storage's tokens are of its own nam
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
+public import Proof.go_etcd_io.raft.v3.InvWitnessIfaceT
 
 @[expose] public section
 
@@ -408,8 +409,9 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#Hid" ∷ r.[RKV, go!"id"] ↦□ id ∗
     "#Hnode" ∷ r.[RKV, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
     "#Hst" ∷ r.[RKV, go!"storage"] ↦□ st ∗
-    -- (2026-10-20, witness support) a replica of a cluster without a witness: no access to one
-    "#Hwit" ∷ r.[RKV, go!"witness"] ↦□ (interface.nil : GoInterface) ∗
+    -- (2026-10-20, witness support) its access to the cluster's witness, if any (`nil`: none);
+    -- the replica's driver (`run`) owns it (`kvWitRes`)
+    "#Hwit" ∷ (∃ wi : GoInterface, r.[RKV, go!"witness"] ↦□ wi) ∗
     "#Hsrec" ∷ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
@@ -481,6 +483,22 @@ def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (firstOcc ods) k⌝ ∗
     "%HA" ∷ ⌜AppliedOk A (firstOcc ods)⌝)
 
+/-- The namespace of the witness storage's states (`isWitnessStorage`'s; the `WitnessStore` is a
+lock, so no invariant is at it). -/
+def kvWitN : Namespace := nroot.@"kv_witness"
+
+theorem raftLogN_kvWitN : (↑raftLogN : CoPset) ⊆ ⊤ \ ↑kvWitN :=
+  raftLogN_of (mask_ndot_ne' nroot "raft_commit" "kv_witness" (by decide))
+
+/-- (2026-10-20, W4) A replica's access to the cluster's witness, `wi` (`KV.witness`), as its
+driver (`run`) owns it: none (`nil`), or a `Witness` of the cluster's witness (`ownWitnessIT`,
+its storage's terms within the cluster's term budget), in the static mode, the witness not the
+replica's own node. -/
+def kvWitRes (γn : NodeNames) (id : w64) (wi : GoInterface) : IProp GF :=
+  iprop(⌜wi = interface.nil⌝ ∨
+    (⌜γn.mode = .static ∧ γn.raft.reWit ≠ W64 0 ∧ id ≠ γn.raft.reWit ∧ id ≠ W64 0⌝ ∗
+      ownWitnessIT γn.raft kvWitN (termLB γn.bud) wi))
+
 end ghost
 
 /-! ## The cluster's configuration changes (2026-10-15, stage N)
@@ -511,6 +529,12 @@ def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
   γn.raft.reNoSnap = false ∧
   -- (2026-10-20, witness support) no witness (raft's `NoWitReconf`)
   c0.cfg.wit = W64 0 ∧ c1.cfg.wit = W64 0
+
+/-- (2026-10-20, W4) A replica's node in the static mode of a cluster that admits no conf change
+(`StartClusterWitness`'s: a cluster with a witness, whose configuration does not change), out of
+raft's no-snapshot mode. Its committed log holds no conf-change entry (`kvCCS_noConf`). -/
+def KVCCS (γn : NodeNames) : Prop :=
+  γn.mode = .static ∧ (∀ ty bs, ¬ γn.raft.reCCOk ty bs) ∧ γn.raft.reNoSnap = false
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

@@ -34,16 +34,19 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev newKV.spec : Prop :=
   ∀ (γr : RKVNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc) (op : CCOp)
-    (c0 c1 : CCState),
+    (c0 c1 : CCState) (wi : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ rkvInv γr ∗ nodeDriver γn id n [] ∗ ⌜γn.raft = γr.raft⌝ ∗
       -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
-      -- `op` (`KVCC`), and the driver's view of its configuration, the initial one
-      ⌜KVCC γn op c0 c1⌝ ∗ nodeCfg γn 0 c0 ∗
+      -- `op` (`KVCC`), and the driver's view of its configuration, the initial one; (2026-10-20,
+      -- W4) or in the static mode of a cluster that admits no conf change (`KVCCS`)
+      ⌜KVCC γn op c0 c1 ∨ KVCCS γn⌝ ∗ nodeCfg γn 0 c0 ∗
       ⌜γn.stor = kvStorIface st⌝ ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗ isCommitted γr.raft [] ∗ id ↪[γr.seq] (W64 0) ∗
-      sendSpec send γn }}
+      sendSpec send γn ∗
+      -- (2026-10-20, W4) the replica's access to the witness, if any (`nil`: none)
+      kvWitRes γn id wi }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.newKV))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))
-      (Val #send)) (Val #(interface.nil : GoInterface)))
+      (Val #send)) (Val #wi))
   {{ (r : Loc), RET #r; ∃ γp : RepNames, ⌜γp.node = γn⌝ ∗ isKV γr γp r }}
 
 end spec

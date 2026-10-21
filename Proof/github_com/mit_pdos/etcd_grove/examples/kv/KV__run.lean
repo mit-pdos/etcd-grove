@@ -56,8 +56,8 @@ theorem KV.run.wp_proof
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_witnessDeliver : kv.KV.witnessDeliver.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id n st send op c0 c1
-  wp_start as ⟨#Hrep, %Hcc, Hncfg, Hdrv, Hrun, #Hsend⟩
+  intro γr γp r id n st send op c0 c1 wi
+  wp_start as ⟨#Hrep, %Hcc, Hncfg, Hdrv, Hrun, #Hsend, #HwF, Hwres⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -76,8 +76,9 @@ theorem KV.run.wp_proof
       "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
       "Hps" ∷ ([∗list] v ∈ ps, rsOk γr.raft v) ∗
       "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝ ∗
-      "Hncfg" ∷ nodeCfg γp.node ca cfg ∗ "%Hrc" ∷ ⌜RunCfg ds ds.length ca cfg c0 c1⌝)
-    $$ [rd Hdrv Hrun pending applied Hncfg]
+      "Hncfg" ∷ nodeCfg γp.node ca cfg ∗ "%Hrc" ∷ ⌜RunCfg ds ds.length ca cfg c0 c1⌝ ∗
+      "Hwres" ∷ kvWitRes γp.node id wi)
+    $$ [rd Hdrv Hrun pending applied Hncfg Hwres]
   · iexists [], _, _, [], _, 0, c0
     iframe
     isplitl []
@@ -93,7 +94,7 @@ theorem KV.run.wp_proof
   ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es $$ Hbusy
   unfold readyData
   icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, Htks, ⟨%sts, #Hsts, #Hstsok⟩, ⟨%hs, #Hhs⟩,
-    #Hss, %Hsnap, -⟩
+    #Hss, %Hsnap, -, Hrw⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b
   · -- a log past `maxIndex`: the replica stops
@@ -146,10 +147,10 @@ theorem KV.run.wp_proof
   · iframe
   iintro !> -
   wp_auto
-  -- (2026-10-20, witness support) `r.witnessDeliver(rd.WitnessMessages)`: no witness, nothing
-  ihave #Hwit : r.[RKV, go!"witness"] ↦□ (interface.nil : GoInterface) $$ []
-  · iNamed Hrep; iexact Hwit
-  wp_apply wp_witnessDeliver r _ $$ [$Hwit]
+  -- (2026-10-20, witness support) `r.witnessDeliver(rd.WitnessMessages)`: the requests to the
+  -- witness, if any, and their answers stepped (W4)
+  wp_apply wp_witnessDeliver r rdv' wi γp.node id n $$ [$HwF $Hwres $Hnode $HisNode $Hrw]
+    as Hwres
   -- the read states, noted (`rsOk` of each value)
   ihave Hvs := readStatesPts_rsOk γp.node.raft rdv'.ReadStates' sts $$ [Hsts Hstsok]
   · iframe Hsts Hstsok
@@ -212,6 +213,11 @@ theorem KV.run.wp_proof
       at next with [Hncfg e r] as ⟨%ca'', %cfg'', Hncfg, %Hrc', e, r⟩
     · by_cases Hty1 : en.Type' = W32 1
       · rw [decide_eq_true Hty1]
+        -- (2026-10-20, W4) none in a cluster that admits no conf change
+        rcases Hcc with Hcc | Hccs
+        rotate_left
+        · ihave %Hnc := kvCCS_noConf γp.node Hccs en o $$ Ho
+          exact absurd (Or.inl Hty1) Hnc
         ihave %Hm := kvCC_confData γp.node op c0 c1 Hcc en o Hty1 $$ Ho
         obtain ⟨m, Hm, Hop⟩ := Hm
         wp_auto
@@ -265,7 +271,7 @@ theorem KV.run.wp_proof
         ipureintro
         exact ⟨Nat.le_refl _, NoConfIn_empty _ _, .inr rfl⟩
       · rw [decide_eq_false Hty1]
-        ihave %Hnc := kvCC_notConf γp.node op c0 c1 Hcc en o $$ Ho
+        ihave %Hnc := kvCC_notConf' γp.node op c0 c1 Hcc en o $$ Ho
         wp_auto
         wp_join_done
         iexists ca', cfg'

@@ -33,20 +33,22 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
-/-- The conf state the store's `InitialState` returns: the voters, nothing else. -/
-abbrev kvConfState (voters : List w64) : ConfStateM := ConfStateM.mk voters [] [] [] false (W64 0)
+/-- The conf state the store's `InitialState` returns: the voters, and (2026-10-20, W4) the
+witness `w` (`0`: none), nothing else. -/
+abbrev kvConfState (voters : List w64) (w : w64 := W64 0) : ConfStateM :=
+  ConfStateM.mk voters [] [] [] false w
 
 /-- See the file header. -/
 abbrev Storage.InitialState.spec : Prop :=
-  ∀ (s : Loc) (vsl : GoSlice) (voters : List w64),
+  ∀ (s : Loc) (vsl : GoSlice) (voters : List w64) (w : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       s.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ voters ∗
-      -- (2026-10-20, witness support) a storage of a cluster without a witness
-      s.[RStorage, go!"witness"] ↦□ W64 0 }}
+      -- (2026-10-20, witness support) the cluster's witness (`0`: none; W4: any)
+      s.[RStorage, go!"witness"] ↦□ w }}
     (App (Val (s @!! go.GoType.PointerType rStorageTy @!! go!"InitialState")) (Val #()))
   {{ (hp cs : Loc), RET (PairV (PairV #hp #cs) #interface.nil);
       hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      csPts cs DFrac.discard (kvConfState voters) false }}
+      csPts cs DFrac.discard (kvConfState voters w) false }}
 
 end spec
 

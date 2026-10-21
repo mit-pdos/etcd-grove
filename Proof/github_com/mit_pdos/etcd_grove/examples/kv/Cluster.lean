@@ -291,6 +291,69 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
       · rw [h] at h'; cases h'
     iframe Hmsg Hlb Hcr Htc
 
+/-- (2026-10-20, W4) A deliverable answer of the witness to a request from node `id`
+(`Witness.Process`'s: legitimate, `wRespOk`; within the budget, `wRespTerm`; addressed to the
+requester, `RespAddr`), owned as `Process` returns it: what `Node.Step` takes from the network. -/
+theorem stepP_witResp (γn : NodeNames) (id : w64) (l : Loc) (rr : WResp) (μ : WMsg) (wid : w64)
+    (Hd : Deliverable ⟨rr.1, [], none, rr.2, []⟩) (Ha : RespAddr μ wid (some rr))
+    (Hfrm : μ.frm = id) :
+    ⊢ wRespOk (GF := GF) γn.raft (some rr) -∗ wRespTerm (termLB γn.bud) (some rr) -∗
+      msgOwn l (DFrac.own 1) ⟨rr.1, [], none, rr.2, []⟩ ==∗ stepP γn id l := by
+  have Hnpv : rr.1.Type' ≠ MsgPreVoteResp := by
+    intro h
+    obtain ⟨Hty, -⟩ := Hd
+    rcases Hty with h' | ⟨h', -⟩ | ⟨h', -⟩ | ⟨h', -⟩
+    · simp only at h'; rw [h] at h'; simp [MsgProp, MsgPreVoteResp] at h'
+    · simp only at h'; rw [h] at h'; simp [MsgReadIndex, MsgPreVoteResp] at h'
+    · simp only at h'
+      rw [h] at h'
+      simp [kvNetTypes, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
+        MsgHeartbeatResp, MsgReadIndexResp, MsgPreVoteResp] at h'
+    · simp only at h'; rw [h] at h'; simp [MsgTimeoutNow, MsgPreVoteResp] at h'
+  obtain ⟨Hto, -, Hty3⟩ := Ha Hnpv
+  have Hnp : rr.1.Type' ≠ MsgProp := by
+    rcases Hty3 with h | h | h <;> rw [h] <;> simp [MsgProp, MsgAppResp, MsgHeartbeatResp, MsgVoteResp]
+  have Hna : rr.1.Type' ≠ MsgApp := by
+    rcases Hty3 with h | h | h <;> rw [h] <;> simp [MsgApp, MsgAppResp, MsgHeartbeatResp, MsgVoteResp]
+  have Hnri : rr.1.Type' ≠ MsgReadIndex := by
+    rcases Hty3 with h | h | h <;> rw [h] <;>
+      simp [MsgReadIndex, MsgAppResp, MsgHeartbeatResp, MsgVoteResp]
+  have Hntn : rr.1.Type' ≠ MsgTimeoutNow := by
+    rcases Hty3 with h | h | h <;> rw [h] <;>
+      simp [MsgTimeoutNow, MsgAppResp, MsgHeartbeatResp, MsgVoteResp]
+  have Hntl : rr.1.Type' ≠ MsgTransferLeader := by
+    rcases Hty3 with h | h | h <;> rw [h] <;>
+      simp [MsgTransferLeader, MsgAppResp, MsgHeartbeatResp, MsgVoteResp]
+  have Hnpv' : rr.1.Type' ≠ MsgPreVote := by
+    rcases Hty3 with h | h | h <;> rw [h] <;> simp [MsgPreVote, MsgAppResp, MsgHeartbeatResp, MsgVoteResp]
+  have Hwt : wRespTerm (GF := GF) (termLB γn.bud) (some rr) = termLB γn.bud rr.1.Term' := by
+    simp [wRespTerm, Hnpv]
+  have Hnc : needsCap (⟨rr.1, [], none, rr.2, []⟩ : MsgSt).msg = false := needsCap_of_ne Hna
+  rw [Hwt]
+  iintro #Hok #Ht Hm
+  imod rdCred_zero (GF := GF) γn.raft with Hcr
+  imod tickCred_zero (GF := GF) γn.bud with Htc
+  imodintro
+  unfold stepP
+  ileft
+  unfold netP
+  iexists ⟨rr.1, [], none, rr.2, []⟩
+  isplitl [Hm]
+  · have Hmi : msgOwn (GF := GF) l (DFrac.own 1) ⟨rr.1, [], none, rr.2, []⟩ ⊢
+        msgIn l DFrac.discard ⟨rr.1, [], none, rr.2, []⟩ := by
+      simp only [msgIn, msgOwn, msgPts, Hnc]; exact .rfl
+    iapply Hmi $$ Hm
+  isplitr
+  · ipureintro; exact deliverable_netMsgOk id _ Hd Hnp (Hto.trans Hfrm)
+  isplitr
+  · ipureintro; exact ⟨fun h => absurd h Hnpv', fun h => absurd h Hntl⟩
+  isplitr
+  · imodintro; iunfold wRespOk at Hok; iexact Hok
+  isplitr
+  · iexact Ht
+  simp only [Hnri, Hntn, ↓reduceIte]
+  iframe Hcr Htc
+
 end defs
 
 

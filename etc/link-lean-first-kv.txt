@@ -30,6 +30,9 @@ raftpb_Message__GetTo: @
 raftpb_Snapshot__GetMetadata: @
 raftpb_SnapshotMetadata__GetIndex: @
 raftpb_ConfChangeType__Enum: @
+# (2026-10-20, W4) the witness proxy
+witness__Process: @
+NewWitness: @
 # the porcupine driver's functions the store's test calls, linked in lintest's `Link.lean`
 Run: @
 CounterClock: @
@@ -49,7 +52,7 @@ KV__Read: encode node__ReadIndex
 KV__TransferLeadership: node__TransferLeadership
 KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
-KV__witnessDeliver:
+KV__witnessDeliver: witness__Process kv_deliverable node__Step
 NewWitnessStore:
 WitnessStore__GetWitnessState:
 WitnessStore__Close:

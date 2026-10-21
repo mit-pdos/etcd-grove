@@ -280,22 +280,22 @@ good, its `AutoLeave` cell unset (`al = false`: the store sets none; 2026-10-16,
 raft's specs admit either), the owner's state unchanged. -/
 theorem kvStorage_initialState
     (wp_InitialState : kv.Storage.InitialState.spec (GF := GF) (hG := hG))
-    (s : Loc) (vsl : GoSlice) (voters : List w64) (σ : StorState) :
+    (s : Loc) (vsl : GoSlice) (voters : List w64) (σ : StorState) (w : w64 := W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
-      s.[RStorage, go!"witness"] ↦□ W64 0 -∗
+      s.[RStorage, go!"witness"] ↦□ w -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (kvStorIface s) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (kvStorIface s) { σ with ss := ss' } -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (kv.kvConfState voters) al -∗
+            csPts cs DFrac.discard (kv.kvConfState voters w) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
              (Val #())) {{ Φ }}) := by
   iintro #Hpkg #Hfield #Hv #Hwit
   imodintro
   iintro %Φ %ss' Hown HΦ
-  wp_apply wp_InitialState s vsl voters $$ [$Hfield $Hv $Hwit] as %hp %cs ⟨#Hhs, #Hcs⟩
+  wp_apply wp_InitialState s vsl voters w $$ [$Hfield $Hv $Hwit] as %hp %cs ⟨#Hhs, #Hcs⟩
   iapply HΦ $$ %hp %cs %false Hown Hhs Hcs
 
 end inst

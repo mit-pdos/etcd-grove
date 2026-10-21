@@ -129,9 +129,13 @@ theorem kv.wp_fits [KVStor GF] :
     kv.fits.spec (GF := GF) (hG := hG) :=
   kv.fits.wp_proof raftpb.Entry.wp_GetIndex
 
-theorem kv.KV.wp_witnessDeliver :
+theorem kv.wp_deliverable :
+    kv.deliverable.spec (GF := GF) (hG := hG) :=
+  kv.deliverable.wp_proof raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo
+
+theorem kv.KV.wp_witnessDeliver [StorageModel GF] :
     kv.KV.witnessDeliver.spec (GF := GF) (hG := hG) :=
-  kv.KV.witnessDeliver.wp_proof
+  kv.KV.witnessDeliver.wp_proof witness.wp_Process kv.wp_deliverable node.wp_Step
 
 theorem kv.KV.wp_run [KVStor GF] :
     kv.KV.run.spec (GF := GF) (hG := hG) :=
@@ -196,10 +200,6 @@ theorem kv.wp_newKV [KVStor GF] :
 theorem kv.wp_New [KVStor GF] :
     kv.New.spec (GF := GF) (hG := hG) :=
   kv.New.wp_proof kv.wp_newKV
-
-theorem kv.wp_deliverable :
-    kv.deliverable.spec (GF := GF) (hG := hG) :=
-  kv.deliverable.wp_proof raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo
 
 theorem kv.transfers.wp_take [StorageModel GF] :
     kv.transfers.take.spec (GF := GF) (hG := hG) :=

@@ -28,9 +28,18 @@ variable [KVStor GF]
 theorem New.wp_proof (wp_newKV : kv.newKV.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro γr γn id n st send op c0 c1
-  wp_start as Hpre
+  wp_start as ⟨Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, #Hsend⟩
   wp_auto
-  wp_apply wp_newKV γr γn id n st send op c0 c1 $$ [$Hpkg $Hpre] as %r Hr
+  wp_apply wp_newKV γr γn id n st send op c0 c1 interface.nil
+      $$ [$Hpkg $Hinv $Hdrv $Hncfg $Hsrec $Hc0 $Hseq $Hsend]
+    as %r Hr
+  · isplitr
+    · ipureintro; exact Hraft
+    isplitr
+    · ipureintro; exact .inl Hmd
+    isplitr
+    · ipureintro; exact Hstor
+    unfold kvWitRes; ileft; ipureintro; rfl
   iapply HΦ $$ Hr
 
 end proof
