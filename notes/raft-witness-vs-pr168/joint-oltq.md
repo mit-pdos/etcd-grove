@@ -1,8 +1,6 @@
----
-upstream: unchecked
----
-
 # A joint configuration's witness is written on one half's acknowledgements only
+
+*A defect of etcd-io/raft#168 as rebased on the fork `raft-witness-goose-lean`, not of raft's or etcd's main branches: recorded here, not in `issues/` (which is for the main branches). Summary row in `notes/raft-witness-vs-pr168.md`.*
 
 **Status**: a bug (Leader Completeness, so State Machine Safety): raft#168's witness, as rebased on
 the fork's `raft-witness-goose-lean` (through commit `9ed005d46`). **Fixed in the fork**, commit

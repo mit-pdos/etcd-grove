@@ -91,7 +91,7 @@ conf state's witness through `Restore`; the remaining steps for `RestartNode` wi
 
 Leader Completeness with a witness holds in the dynamic mode (protocol layer, no new axiom or
 `sorry`; `notes/raft-witness-reconfig.md`, "The Lean proof"). Found on the way, the joint
-configuration bug `issues/raft-witness-joint-oltq.md` (fixed in the fork at `99cb9e2d9`).
+configuration bug `notes/raft-witness-vs-pr168/joint-oltq.md` (fixed in the fork at `99cb9e2d9`).
 
 **Scope (2026-10-20, W3b-A; until the CC model covers Go's witness changes).** The dynamic
 mode's configurations are `ccApplyM`'s (`InvConfchange.lean`), which does not model Go's witness
@@ -142,7 +142,7 @@ axiom or `sorry`. Not yet: the raft functions' witness paths (W3b-A). Details:
 ## Witness support, W3a: the tracker's epoch and `witness.go` specified with a witness (2026-10-20, branch `raft-witness`)
 
 raft is translated at the fork's `9ed005d46` (two `witness.go` fixes found writing the specs:
-`issues/raft-witness-heartbeat-stale-term.md`, `issues/raft-witness-getstate-nil.md`, rows 13
+`notes/raft-witness-vs-pr168/heartbeat-stale-term.md`, `notes/raft-witness-vs-pr168/getstate-nil.md`, rows 13
 and 14 of `notes/raft-witness-vs-pr168.md`). The tracker's epoch has a model (`InvEpoch.lean`:
 `EpochM`, `RSWF`/`EpochWF`, `resetEpoch`, `rsChanged`, `ownEpoch`), and `ResetReplicationSet`,
 `ChangeReplicationSet`, `OneLessThanQuorumInReplicationSet`, `Epoch.{HasWitness,

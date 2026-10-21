@@ -1789,7 +1789,7 @@ witness, at the configuration `c` of the prefix `P`, 2026-10-20), the entry with
 log (`ackIn`), and the replication set's incoming voters `H`, `quorum - 1` of them, that
 acknowledged it in `t`. (In a joint configuration whose halves share the witness, the code sends
 the witness an entry only when both halves have it in their replication sets, fork `99cb9e2d9`, so
-the incoming half's acknowledgements are there; `issues/raft-witness-joint-oltq.md`.) -/
+the incoming half's acknowledgements are there; `notes/raft-witness-vs-pr168/joint-oltq.md`.) -/
 def wJust (γ : RaftNames) (t σ idx x : w64) (P : List EntryM) (c : CfgM) (H : GSet w64) :
     IProp GF :=
   iprop(⌜γ.reWit ≠ W64 0 ∧ CfgAt γ P c ∧ c.wit = γ.reWit ∧ γ.reWit ∈ c.incoming ∧

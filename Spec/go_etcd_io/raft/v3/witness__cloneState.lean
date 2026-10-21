@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `w.cloneState()`: a fresh witness state holding `w.state`'s (nil read as the zero state),
 owned (with a hard state), its replication sets fresh copies. (Until fork `9ed005d46` a nil
-`w.state` panicked: `issues/raft-witness-getstate-nil.md`.) -/
+`w.state` panicked: `notes/raft-witness-vs-pr168/getstate-nil.md`.) -/
 abbrev witness.cloneState.spec : Prop :=
   ∀ (w : Loc) (dq : DFrac) (p : Loc) (σ : WHS),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

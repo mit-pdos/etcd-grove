@@ -3,7 +3,10 @@
 One file per issue found in the verified Go code (raft, etcd, their dependencies) or its
 documentation: a bug (a reachable panic or wrong result), a precondition the code needs
 but its API does not state, or documentation the code contradicts. Not for bugs in this
-repository's own specs and proofs (those go in `notes/`).
+repository's own specs and proofs (those go in `notes/`), nor for bugs only in an unmerged
+pull request's code, even one this repository verifies on a fork branch: those are not in
+the main branches and go with that work (`notes/pr-verify/<repo>-<n>.md`, or for the witness
+of etcd-io/raft#168, `notes/raft-witness-vs-pr168.md`).
 
 Name a file `<project>-<short-slug>.md`. It starts with a front-matter block that tracks where the
 issue stands upstream (the only place that does; `etc/issues-status.py` lists it, and `--refresh`

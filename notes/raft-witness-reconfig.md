@@ -6,7 +6,7 @@ halves an entry when only one half had it in its replication set, so the witness
 backed by that half's acknowledgements alone while it checks votes against the incoming half's
 set. With both halves of odd size (two changes in one joint transition, which the model's `enter`
 could not make) a candidate lacking a committed entry wins with the witness's vote:
-`issues/raft-witness-joint-oltq.md`, fixed in the fork at `99cb9e2d9` (the witness of both halves
+`notes/raft-witness-vs-pr168/joint-oltq.md`, fixed in the fork at `99cb9e2d9` (the witness of both halves
 is sent an entry only when both halves include it). With the fix, every witness acknowledgement is
 backed by quorum−1 acknowledgements of each half's replication set, and the case holds by the
 static count in the incoming half. The model has `enter2` (joint changes of two adds) and `fixa`
@@ -131,7 +131,7 @@ and re-added; `joint`: joint changes):
 | `w1-walks-4reg` | `4 3 faithful 6 10 4 3 w0 joint wops`, 150 000 walks of ≤ 100 steps | 1.49·10^7 steps, no violation |
 | `w2-walks-5reg` | `5 4 faithful 6 11 4 3 w0 joint wops`, 30 000 walks of ≤ 100 steps | 2.98·10^6 steps, no violation |
 | `w3-walks-4reg-deep` | `4 3 faithful 7 12 5 3 w0 joint wops`, 100 000 walks of ≤ 120 steps | 1.19·10^7 steps, no violation |
-| `t1-joint-oltq-replay` | `REPLAY=traces/joint-oltq.txt`, `4 2 faithful 3 12 1 2 w0 joint enter2` | leader completeness violated (the bug of `issues/raft-witness-joint-oltq.md`) |
+| `t1-joint-oltq-replay` | `REPLAY=traces/joint-oltq.txt`, `4 2 faithful 3 12 1 2 w0 joint enter2` | leader completeness violated (the bug of `notes/raft-witness-vs-pr168/joint-oltq.md`) |
 | `t2-joint-oltq-replay-fixa` | the same, `fixa` | the witness write is not enabled: the trace stops there |
 | `w4-walks-enter2` | `4 2 faithful 4 12 3 2 w0 joint enter2`, 40 000 walks of ≤ 100 steps | see the run's log |
 | `w5-walks-enter2-fixa` | the same, `fixa` | see the run's log |

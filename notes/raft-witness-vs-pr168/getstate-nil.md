@@ -1,8 +1,6 @@
----
-upstream: unchecked
----
-
 # `witness.Process` panics when the storage's `WitnessState.GetState()` returns nil
+
+*A defect of etcd-io/raft#168 as rebased on the fork `raft-witness-goose-lean`, not of raft's or etcd's main branches: recorded here, not in `issues/` (which is for the main branches). Summary row in `notes/raft-witness-vs-pr168.md`.*
 
 **Status**: an unstated precondition of the `WitnessStorage` API (raft#168's witness, as rebased
 on the fork's `raft-witness-goose-lean`, commit `edd87c48`). **Fixed in the fork**, commit

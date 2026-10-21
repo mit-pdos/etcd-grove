@@ -1,8 +1,6 @@
----
-upstream: unchecked
----
-
 # The witness answers a heartbeat of a newer term with its old term
+
+*A defect of etcd-io/raft#168 as rebased on the fork `raft-witness-goose-lean`, not of raft's or etcd's main branches: recorded here, not in `issues/` (which is for the main branches). Summary row in `notes/raft-witness-vs-pr168.md`.*
 
 **Status**: a wrong result, harmless to safety (a liveness hiccup): raft#168's witness, as rebased
 on the fork's `raft-witness-goose-lean` (commit `edd87c48`). **Fixed in the fork**, commit

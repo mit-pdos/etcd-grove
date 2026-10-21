@@ -15,7 +15,7 @@ shift of the caller's on `P` at its linearization point (an atomic update reduce
   `P σ ={⊤ ∖ N}=∗ P σ ∗ Ψ σ` (a lower bound of the history, say: `wGhost_read`), or an error,
   the shift unrun;
 - `ws.GetState()`: that state, read-only, or nil for the zero state (`whsOpt`; fork `9ed005d46`
-  reads a nil state as the zero state, `issues/raft-witness-getstate-nil.md`);
+  reads a nil state as the zero state, `notes/raft-witness-vs-pr168/getstate-nil.md`);
 - `ws.Update(q)`: if the stored state is still `σ`, it is now `q`'s (`σ'`), the caller's
   `P σ ={⊤ ∖ N}=∗ P σ' ∗ Ψ` run (`wGhost_push`, `_write`, `_vote`, `_raise`); else an error
   (`ErrWitnessStateModified`, or another), the shift handed back. The error is a pointer error
