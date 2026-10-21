@@ -101,6 +101,30 @@ invariants and predicates, and no lemma that a complete etcd system's adequacy d
   `ownRaftGhost`), `RawNode.Bootstrap`, `RestartNode` -- `md = false` is the only carrier of
   `γ.reDyn = none`, so removing it adds that fact to their linked specs and to the server's
   start path: the fact moves, it does not go. Tried and reverted (2026-10-21).
+- **Simple-configuration statements retired** where the caller can take the `C` spec
+  (`becomeFollower`, `switchToConfig`, `ProgressTracker.VoterNodes`, `confchange.Restore`; net
+  -190 lines). Kept: `raft.applyConfChange.specS`/`spec_simple`, a shared derivation for three
+  static callers (`wp_rn_raft_applyConfChange`, `RawNode.ApplyConfChange`'s two static arms),
+  which feed its `ApplyCCOk` to `applyCCOk_step` and `rawNode_applyCC_reseal` and reseal through
+  the static `ownRaftPhys`: it goes with that predicate, not before.
+- **Next: the static `ownRaftPhys`** (scoped 2026-10-21, not started; about 3-4 hours, rebuilds
+  all of raft and the server). It is `ownRaftPhysG (ownTracker cfg) cfg` (`InvRaftPhys.lean`,
+  `ownRaftPhysDef`), a second sealed predicate beside `ownRaftPhysCV`, held only as a view:
+  `ownRawNode` itself holds `ownRaftPhysCV cf` in both modes, and `ownRawNode_static_open`
+  converts for the static callers (`rawNode_applyCC_reseal`, `ownRawNode_borrow_in`,
+  `wp_rn_raft_applyConfChange`, `RawNode.ApplyConfChange`), beside `rawNodeFresh` (`InvBoot`),
+  `RestartNode`, `RawNode.Bootstrap`, and the specs `newRaft.spec`/`raft.loadState.spec`. Every
+  static interface lemma is still used (`ownRaftPhys_intro` 5 uses, `_eq` 6, `_log_at` 6,
+  `_progress_dom`/`_size` 5, `_log_same` 5, `_tracker_same` 3, `_toC'` 14; `ownTracker` 21 with
+  `_intro`/`_progress_map`; `raft.wp_load_raftLog` 8, `wp_load_Term`/`wp_load_id`/
+  `wp_store_Term`/`wp_store_Vote`), so nothing goes by deletion alone. The route: redefine
+  `ownRaftPhys cfg r id s` as the sealed alias of `ownRaftPhysC (CfgM.simple cfg (domSet
+  s.progress \ cfg)) r id s`, so that `ownRaftPhys_toC`/`toC'` are `rfl`, `ownRaftPhysDef` and
+  the non-`C` `ownTracker` body go, and each static lemma is reproved from its `C` counterpart
+  with its statement unchanged (no caller moves but `ownRaftPhys_intro`'s, which pass an
+  `ownTracker`: `ownTracker_toC` at the call); then `applyConfChange.specS`, `ApplyCCOk` and
+  `SwitchOk` can follow at their callers, and `ownTracker` with its lemmas
+  (`InvTracker.lean`) once `newRaft`'s tracker is built as `ownTrackerC`.
 
 **Adequacy coverage** (`Link.lean` theorems reached by a closed theorem -- `putget_safe`,
 `putget3_safe`, `linkv_safe`, `linkv3_safe`, `linkv3p_safe`, `linkvtxn_safe`, `watch_safe`,
