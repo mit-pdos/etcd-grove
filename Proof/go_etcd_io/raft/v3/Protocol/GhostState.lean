@@ -813,12 +813,13 @@ their raft positions (entry `k` of `L` has index `k + 1`). `raftCommitInv` holds
 half of the ghost variable `reRLog`, always at the global committed log; raft cannot move it
 without the client.
 
-What moves it is a deposited **persistent atomic update**: for an entry `e` with the client
-data `d` (`entDataIs γ e (some d)`), the update of the proposal of `d` (`propAu γ d Q`); for an
-entry of raft's own (a leader's empty entry, a refused conf change's replacement, a conf-change
-entry: `entDataIs γ e none`), the standing `noopAu γ` the client gave at allocation. Both are
-fired by the ghost commit (`commit_extend`), at **every** committed entry -- every occurrence of
-`d` -- with the log before it; their results are persistent (`□ Q L`). The entry is raft's
+What moves it is a deposited **atomic update**: for an entry `e` with the client data `d`
+(`entDataIs γ e (some d)`), the update of the proposal of `d` (`propAu1 γ d Q`, fired at most
+once: a proposal is appended once, its ticket travelling with it); for an entry of raft's own (a
+leader's empty entry, a refused conf change's replacement, a conf-change entry: `entDataIs γ e
+none`), the standing persistent `noopAu γ` the client gave at allocation. Both are fired by the
+ghost commit (`commit_extend`), at the committed entry, with the log before it; their results are
+persistent (`□ Q L`). The entry is raft's
 choice: the updates bind it with `∀∀` and hand the client its data (`entDataIs`). A read's
 update (`readAu γ Qr`) leaves the log as it is: it is fired at the deposit (`read_deposit`) and
 then at every commit after it, at the new log, whatever the request's read index turns out to
@@ -907,7 +908,7 @@ instance rdFresh_timeless (γ : RaftNames) (c : List w8) :
 since D21 M6, the ticket's name `γt`). -/
 def isProp (γ : RaftNames) (d : List w8) (γq : GName)
     (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop((∃ (γt : GName) (b : Bool), d ↪[γ.reProps]□ ((γq, γt, b) : PropRec)) ∗
+  iprop((∃ γt : GName, d ↪[γ.reProps]□ ((γq, γt) : PropRec)) ∗
     savedPredOwn γq DFrac.discard Q)
 
 instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
@@ -917,8 +918,8 @@ instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
 theorem isProp_deposited (γ : RaftNames) (d : List w8) (γq : GName)
     (Q : List EntryM → IProp GF) : ⊢ isProp (GF := GF) γ d γq Q -∗ deposited γ d := by
   unfold isProp deposited
-  iintro ⟨⟨%γt, %b, #H⟩, -⟩
-  iexists (γq, γt, b); iexact H
+  iintro ⟨⟨%γt, #H⟩, -⟩
+  iexists (γq, γt); iexact H
 
 /-- The client's handle on its deposited read: the update's result predicate. -/
 def isRead (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : IProp GF :=
@@ -951,9 +952,9 @@ instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
     Persistent (readAu (GF := GF) γ Qr) := by
   unfold readAu; infer_instance
 
-/-- A proposal's update (see the section header): persistent; raft chooses the entry `e` (a
-normal entry holding the bytes `d`, `entDataIs`); fired at every committed
-occurrence, with the log before it. The entry's index is its position in the committed log
+/-- A proposal's update, persistent: a client's convenience (the register's), which it deposits as
+the update fired at most once (`propAu_one`); raft chooses the entry `e` (a normal entry holding
+the bytes `d`, `entDataIs`). The entry's index is its position in the committed log
 (entry `k` has index `k + 1`; 2026-10-16, stage R7, for the server's contract). -/
 def propAu (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
@@ -965,10 +966,9 @@ instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → I
     Persistent (propAu (GF := GF) γ d Q) := by
   unfold propAu; infer_instance
 
-/-- **A proposal's update fired at most once** (2026-10-19, D21 M6, D20 (b)): `propAu` but not
-persistent. A proposal deposited once (`propOnce`, its ticket travelling with it) is appended at
-one index, so it occurs at most once in the committed log, and raft fires its update at most
-once (`fire_one`). -/
+/-- **A proposal's update** (2026-10-19, D21 M6, D20 (b)), fired at most once: a proposal (its
+ticket travelling with it, `propTk`) is appended at one index, so it occurs at most once in the
+committed log, and raft fires its update at most once (`fire_one`). -/
 def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
@@ -980,12 +980,6 @@ theorem propAu_one (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
     propAu (GF := GF) γ d Q ⊢ propAu1 γ d Q := by
   unfold propAu propAu1
   exact intuitionistically_elim
-
-/-- The update a deposit takes (D21 M6): fired at most once if deposited `once`, persistent
-otherwise. -/
-def propAuM (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (once : Bool) :
-    IProp GF :=
-  if once then propAu1 γ d Q else propAu γ d Q
 
 /-- The standing update for raft's own entries (see the section header): the client gives it
 at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
@@ -1021,30 +1015,6 @@ theorem readAu_fire (γ : RaftNames) (Qr : List EntryM → IProp GF) (l : List E
 /-- Firing a proposal's update at an entry `e` holding its data, at the next index: the raft
 half of the client's log, at `l`, moves to `l ++ [e]` with the client's half, and the result
 at `l` comes out. -/
-theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
-    (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
-    ⊢ propAu γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
-      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
-  iintro #Hau #He Hv
-  unfold propAu
-  ihave Hacc := aupd_aacc $$ Hau
-  unfold atomic_acc
-  imod Hacc with Hacc
-  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-  icases Hacc with ⟨%L', HcL, Hclose⟩
-  unfold rLog
-  ihave %Heq := ghostVar_agree γ.reRLog l (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
-  subst Heq
-  imod ghostVar_update_halves (l ++ [e]) γ.reRLog l l $$ Hv HcL with ⟨Hv, HcL⟩
-  icases Hclose with ⟨-, Hcomm⟩
-  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
-  imod Hcomm $$ %e [HcL] with HQ
-  · iframe HcL He
-    ipureintro; exact Hidx
-  imodintro
-  iframe Hv HQ
-
-/-- Firing an update fired at most once (D21 M6), as `propAu_fire`. -/
 theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
     (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
     ⊢ propAu1 γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
@@ -1101,14 +1071,13 @@ instance propOcc_persistent (γ : RaftNames) (d : List w8) (l : List EntryM) :
   unfold propOcc; infer_instance
 
 /-- A proposal slot, for the committed log `l`: the result predicate (tied to `p.1`), its
-results at every occurrence of `d` in `l` (with the log before it), and the update: persistent
-(`p.2.2 = false`), or (D21 M6, deposited once) fired at most once -- not yet, or `d` occurs in
-`l`. -/
+results at every occurrence of `d` in `l` (with the log before it), and the update, fired at
+most once (D21 M6): not yet, or `d` occurs in `l`. -/
 def propSlot (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
   iprop(∃ Q : List EntryM → IProp GF, savedPredOwn p.1 DFrac.discard Q ∗
     □ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
          □ Q (l.take m)) ∗
-    (if p.2.2 then iprop(propAu1 γ d Q ∨ propOcc γ d l) else propAu γ d Q))
+    (propAu1 γ d Q ∨ propOcc γ d l))
 
 /-- A proposal slot's results (persistent; D21 M6: the slot, holding an update fired at most
 once, is not). -/

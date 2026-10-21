@@ -681,14 +681,15 @@ theorem rLog_committed (γ : RaftNames) (L : List EntryM) (E : CoPset)
   unfold rLog
   iframe HrL HPc
 
-/-- Depositing a proposal's persistent atomic update (2026-10-14, stage R: no later credit, no
-ticket), for a data never deposited before (its fresh token). The client gets the slot's handle.
-No committed entry holds the data yet (`ods_not_fresh`), so the slot starts with no result. -/
+/-- Depositing a proposal's atomic update (2026-10-14, stage R: no later credit), for a data
+never deposited before (its fresh token). The client gets the slot's handle and (D21 M6) the
+proposal's ticket. No committed entry holds the data yet (`ods_not_fresh`), so the slot starts
+with no result. -/
 theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
-    (Q : List EntryM → IProp GF) (once : Bool) :
+    (Q : List EntryM → IProp GF) :
     ↑raftN ⊆ E →
-    ⊢ raftCommitInv γ -∗ propFresh γ d -∗ propAuM γ d Q once ={E}=∗
-      ∃ γq, isProp γ d γq Q ∗ (if once then propTk γ d else propMulti γ d) := by
+    ⊢ raftCommitInv γ -∗ propFresh γ d -∗ propAu1 γ d Q ={E}=∗
+      ∃ γq, isProp γ d γq Q ∗ propTk γ d := by
   intro HE
   iintro #Hinv Hfr Hau
   ihave #Hri := raftCommitInv_reg γ $$ Hinv
@@ -721,8 +722,8 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
   imod saved_pred_alloc Q DFrac.discard trivial with ⟨%γq, #Hsp⟩
   -- (2026-10-19, D21 M6) the proposal's ticket
   imod dghostVar_alloc (GF := GF) (none : Option w64) with ⟨%γt, Htk⟩
-  imod ghost_map_insert_persist d ((γq, γt, once) : PropRec) HRd $$ Hra with ⟨Hra, #Hfrag⟩
-  ihave Hslot : propSlot γ d ((γq, γt, once) : PropRec) P $$ [Hau]
+  imod ghost_map_insert_persist d ((γq, γt) : PropRec) HRd $$ Hra with ⟨Hra, #Hfrag⟩
+  ihave Hslot : propSlot γ d ((γq, γt) : PropRec) P $$ [Hau]
   · unfold propSlot
     iexists Q
     iframe Hsp
@@ -733,12 +734,7 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
       ihave %Hoe := entDataIs_agree γ e o (some d) $$ He' He
       subst Hoe
       exact absurd (List.mem_of_getElem? Ho) Hnf
-    unfold propAuM
-    cases once
-    · simp only [Bool.false_eq_true, ↓reduceIte] at *
-      iexact Hau
-    · simp only [↓reduceIte] at *
-      ileft; iexact Hau
+    ileft; iexact Hau
   imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
   · inext
     iexists P
@@ -750,7 +746,7 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
     iframe Hq2
     unfold regsAt propsOwn
     inext
-    iexists Std.insert R d ((γq, γt, once) : PropRec), RR
+    iexists Std.insert R d ((γq, γt) : PropRec), RR
     iframe Hreads Hnoop Hra
     iapply (BigSepM.bigSepM_insert (Φ := fun d (p : PropRec) =>
       iprop(propSlot (GF := GF) γ d p P ∗ propFresh γ d)) HRd).2
@@ -761,18 +757,10 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
   unfold isProp
   iframe Hsp
   isplitr
-  · iexists γt, once; iexact Hfrag
-  cases once
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    unfold propMulti
-    iexists ((γq, γt, false) : PropRec)
-    iframe Hfrag
-    ipureintro; rfl
-  · simp only [↓reduceIte]
-    unfold propTk
-    iexists ((γq, γt, true) : PropRec)
-    iframe Hfrag Htk
-    ipureintro; rfl
+  · iexists γt; iexact Hfrag
+  unfold propTk
+  iexists ((γq, γt) : PropRec)
+  iframe Hfrag Htk
 
 /-- Collecting (2026-10-14, stage R): at every committed occurrence of `d` -- an entry `e` at
 position `m` of a committed log `L` holding `d` --, the update's result at the log before it
@@ -785,7 +773,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
       ▷ ▷ □ Q (L.take m) := by
   intro HE Hm
   unfold isProp
-  iintro #Hinv ⟨⟨%γt, %b, #Hfrag⟩, #Hsp⟩ #HL #He
+  iintro #Hinv ⟨⟨%γt, #Hfrag⟩, #Hsp⟩ #HL #He
   ihave #Hri := raftCommitInv_reg γ $$ Hinv
   ihave #Hli := raftCommitInv_log γ $$ Hinv
   have HE1 := raftRegN_of HE
@@ -805,7 +793,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
   icases (BigSepM.bigSepM_lookup_acc (Φ := fun d (p : PropRec) =>
       iprop(▷ (propSlot (GF := GF) γ d p P ∗ propFresh γ d))) HRd).1 $$ Hs with ⟨Hsl, Hsback⟩
-  ihave Hsl := (later_mono (sep_mono_left (propSlot_res γ d ((γq, γt, b) : PropRec) P))) $$ Hsl
+  ihave Hsl := (later_mono (sep_mono_left (propSlot_res γ d ((γq, γt) : PropRec) P))) $$ Hsl
   icases Hsl with ⟨⟨Hsl, #Hslot⟩, Hfr⟩
   ihave Hs := Hsback $$ [Hsl Hfr]
   · inext; iframe Hsl Hfr

@@ -110,7 +110,7 @@ discharged", D10): raft's committed log is the full log from index 1 (`rLog`, th
 `isCommitted`, its prefixes), the server's view is what follows its start index `ai0` after the
 log `pre` it started with (`uint.Z ai0 = |pre|`, `srvRaftLogInv`): `srvRLog γ L := rLog γ.raft
 (srvLogOf γ L)`, `srvLogOf γ L = (pre ++ L).map toM`. The updates keep the server's shape (the
-KV invariant builds them, `KVLemmas.lean`) and the conversion lemmas (`srvPropAu_to_propAu`,
+KV invariant builds them, `KVLemmas.lean`) and the conversion lemmas (`srvPropAu1_to_propAu1`,
 `srvNoopAu_to_noopAu`, `srvReadAu_to_readAu`) turn them into raft's, of the lifted predicate
 `srvLift γ Q` (the server's `Q` on the entries after `pre`); the witnesses are theorems
 (`srvPropWits_of_raft`, `srvReadWit_of_raft`, by raft's `prop_collect`/`read_collect`). The
@@ -394,8 +394,8 @@ instance srvPropAu_persistent (γ : ServerRaftNames) (d : List w8)
   unfold srvPropAu; infer_instance
 
 /-- **The proposer's update for `d`, fired at most once** (2026-10-19, D21 M6, D20 (b)):
-`srvPropAu` but not persistent. The server deposits each request once (raft's `propOnce`: its
-ticket travels with the proposal), so raft fires it at most once (`fire_one`). -/
+`srvPropAu` but not persistent. Raft proposes each proposal once (its ticket travels with the
+proposal), so raft fires it at most once (`fire_one`). -/
 def srvPropAu1 (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
@@ -426,18 +426,16 @@ def srvNoopAu (γ : ServerRaftNames) : IProp GF :=
 instance srvNoopAu_persistent (γ : ServerRaftNames) : Persistent (srvNoopAu (GF := GF) γ) := by
   unfold srvNoopAu; infer_instance
 
-/-- What `Propose` takes for `d` (`propArg`): a first proposal's fresh token and update, or a
-retry's `srvDeposited`. Since 2026-10-19 (D21 M6) a first proposal is deposited once (raft's
-`propOnce`), with an update fired at most once; a retry needs `d` deposited not once
-(`propMulti`), which the server never does. -/
-def srvPropArg (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF)
-    (fresh : Bool) : IProp GF :=
-  if fresh then iprop(srvPropFresh γ d ∗ srvPropAu1 γ d Q) else propMulti γ.raft d
+/-- What `Propose` takes for `d` (`propArg`): its fresh token and its update, fired at most once
+(D21 M6). (Until 2026-10-21 also a retry's, which the server never makes.) -/
+def srvPropArg (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
+    IProp GF :=
+  iprop(srvPropFresh γ d ∗ srvPropAu1 γ d Q)
 
-/-- What it gives back (`propRes`): `d` deposited, and a first proposal's handle. -/
-def srvPropRes (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF)
-    (fresh : Bool) : IProp GF :=
-  iprop(srvDeposited γ d ∗ if fresh then srvIsProp γ d Q else iprop(True))
+/-- What it gives back (`propRes`): `d` deposited, and the proposal's handle. -/
+def srvPropRes (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
+    IProp GF :=
+  iprop(srvDeposited γ d ∗ srvIsProp γ d Q)
 
 /-- **The proposals' witnesses** (persistent; the contract's: raft's proof records every firing):
 for a deposited proposal of `d` with result `Q` and an entry `e` of data `d` (not empty: raft
@@ -847,52 +845,6 @@ theorem srvLogOf_index (γ : ServerRaftNames) (L : List EntryModel) (e : EntryM)
   simp only [EntryModel.ofM]
   push_cast at Hidx ⊢
   omega
-
-/-- **A proposal's update, as raft's** (of the lifted predicate). -/
-theorem srvPropAu_to_propAu (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
-    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropAu γ d Q -∗ propAu γ.raft d (srvLift γ Q) := by
-  iintro #Hinv #Hau
-  icases srvRaftLogInv_facts γ $$ Hinv with %Hf
-  obtain ⟨Hai0, -⟩ := Hf
-  unfold propAu
-  iintro !>
-  iauintro
-  unfold atomic_acc
-  iunfold srvPropAu at Hau
-  ihave Hacc := aupd_aacc $$ Hau
-  unfold atomic_acc
-  imod Hacc with Hacc
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
-  icases Hacc with ⟨%L, HL, Hcl⟩
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  imodintro
-  iexists srvLogOf γ L
-  iunfold srvRLog at HL
-  iframe HL
-  isplit
-  · iintro HL
-    icases Hcl with ⟨Habort, -⟩
-    imod Habort $$ [HL] with -
-    · iunfold srvRLog; iexact HL
-    imodintro
-    itrivial
-  · iintro %e ⟨HL, #He, %Hidx⟩
-    icases Hcl with ⟨-, Hcommit⟩
-    ihave He := entDataIs_prop γ.raft e (some d) $$ He
-    iunfold propDataIs at He
-    icases He with ⟨%Hed, -⟩
-    obtain ⟨Hed, -, Het⟩ := Hed
-    imod Hcommit $$ %(EntryModel.ofM e) [HL] with #HQ
-    · isplitr
-      · ipureintro
-        refine ⟨?_, ?_, srvLogOf_index γ L e Hai0 Hidx⟩
-        · simp only [EntryModel.ofM]; exact Het
-        · simp only [EntryModel.ofM]; exact Hed
-      iunfold srvRLog
-      rw [srvLogOf_snoc, EntryModel.toM_ofM]
-      iexact HL
-    imodintro
-    iapply srvLift_of_box γ Q L $$ HQ
 
 /-- **A proposal's update fired at most once, as raft's** (D21 M6). -/
 theorem srvPropAu1_to_propAu1 (γ : ServerRaftNames) (d : List w8)
@@ -2041,14 +1993,14 @@ read-only, that leaves raft's configuration as it is (`ccRaftOk`, raft's static 
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
-        (data : List w8) (Q : List EntryModel → IProp GF) (fresh : Bool),
+        (data : List w8) (Q : List EntryModel → IProp GF),
       -- (2026-10-16, stage R7b, B3) non-empty data: raft's `node.Propose` wants it (D6: an empty
       -- proposal would be a leader's own entry); the server's request marshals to a non-empty
       -- string (`irrWireOf`, `processInternalRaftRequestOnce`)
-      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q fresh }}
+      {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ ⌜data ≠ []⌝ ∗ srvPropArg γ data Q }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
-      {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh ∗ applyErrIs err }}) ∗
+      {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}) ∗
     □ (∀ (c : GoInterface) (cm : CCV1M), ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
       {{ ownCCI c DFrac.discard (some (.v1 cm)) }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))

@@ -885,24 +885,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- What `Node.Propose` takes for its data `d` (`fresh`: the first proposal of `d`, with
-its fresh token and the client's persistent atomic update (2026-10-14, stage R); otherwise a
-retry, with `d` deposited). Since 2026-10-19 (D21 M6) a first proposal is deposited `once`
-(proposed once: its ticket goes with it, so it is appended once) or not; a retry needs `d`
-deposited not once (`propMulti`). A proposal deposited once takes an update fired at most once
-(`propAuM`). -/
-def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool)
-    (once : Bool) : IProp GF :=
-  if fresh then iprop(propFresh γ d ∗ propAuM γ d Q once) else propMulti γ d
+/-- What `Node.Propose` takes for its data `d`: its fresh token and the client's atomic update
+(2026-10-14, stage R), fired at most once (D21 M6: `d` is proposed once, its ticket going with
+it, so it is appended once). (Until 2026-10-21 also a retry of a deposited `d`, proposed any
+number of times, `propMulti`: the register's, which no longer retries.) -/
+def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+  iprop(propFresh γ d ∗ propAu1 γ d Q)
 
-/-- What it gives back: `d` deposited, for a first proposal the handle on the update's
-results (2026-10-14, stage R: persistent, no ticket), and (D21 M6) whether it is proposed
-once. -/
-def propRes (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) (fresh : Bool)
-    (once : Bool) : IProp GF :=
-  iprop(deposited γ d ∗
-    (if fresh then iprop(∃ γq, isProp γ d γq Q) else iprop(True)) ∗
-    (if fresh && once then propOnce γ d else propMulti γ d))
+/-- What it gives back: `d` deposited and the handle on the update's results (2026-10-14,
+stage R: persistent). -/
+def propRes (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+  iprop(deposited γ d ∗ ∃ γq, isProp γ d γq Q)
 
 -- (2026-10-16, stage R5, D6) `propDataInv_alloc`, `propData_register` and `propData_heap` are
 -- gone with the proposed slices: an entry's data, a read context, is its bytes.
@@ -921,61 +914,30 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 the entry `propEntryM data` holds the bytes, which must not be empty (`Hne`: an empty one would
 be a leader's own entry); no slice to record.) -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
-    (data : List w8) (Q : List EntryM → IProp GF) (fresh once : Bool) (E : CoPset)
+    (data : List w8) (Q : List EntryM → IProp GF) (E : CoPset)
     (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) :
-    ⊢ isNode γ id n -∗ propArg γ.raft data Q fresh once ={E}=∗
+    ⊢ isNode γ id n -∗ propArg γ.raft data Q ={E}=∗
       propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) ∗
-      propRes γ.raft data Q fresh once := by
+      propRes γ.raft data Q := by
   iintro #Hnode Harg
   open_node Hnode
-  have Htk : entTk (GF := GF) γ.raft (propEntryM data) =
-      iprop(propTk γ.raft data ∨ propMulti γ.raft data) := by
+  have Htk : entTk (GF := GF) γ.raft (propEntryM data) = propTk γ.raft data := by
     unfold entTk; rw [if_pos ⟨rfl, Hne⟩]; rfl
   rw [Htk]
-  ihave Hres : |={E}=> (propTk γ.raft data ∨ propMulti γ.raft data) ∗
-      propRes γ.raft data Q fresh once $$ [Harg]
-  · unfold propArg propRes
-    cases fresh with
-    | false =>
-      simp only [Bool.false_eq_true, ↓reduceIte, Bool.false_and]
-      icases Harg with #Hm
-      imodintro
-      isplitr; · iright; iexact Hm
-      isplitr; · iapply propMulti_deposited $$ Hm
-      iframe Hm
-    | true =>
-      simp only [↓reduceIte, Bool.true_and]
-      icases Harg with ⟨Hfr, Hau⟩
-      imod prop_deposit γ.raft E data Q once HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp, Hk⟩
-      ihave #Hdep := isProp_deposited $$ Hp
-      cases once with
-      | false =>
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        icases Hk with #Hm
-        imodintro
-        isplitr; · iright; iexact Hm
-        iframe Hdep Hm
-        iexists γq; iexact Hp
-      | true =>
-        simp only [↓reduceIte]
-        icases propTk_once γ.raft data $$ Hk with ⟨Hk, #Ho⟩
-        imodintro
-        isplitl [Hk]; · ileft; iexact Hk
-        iframe Hdep Ho
-        iexists γq; iexact Hp
-  imod Hres with ⟨Htk, Hres⟩
-  ihave #Hdep : deposited γ.raft data $$ [Hres]
-  · unfold propRes
-    icases Hres with ⟨#Hd, -⟩
-    iexact Hd
+  unfold propArg propRes
+  icases Harg with ⟨Hfr, Hau⟩
+  imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp, Htk⟩
+  ihave #Hdep := isProp_deposited $$ Hp
   imodintro
-  iframe Hres Htk
-  unfold propData
-  iexists some data
-  unfold propDataIs
   isplitr
-  · ipureintro; exact ⟨rfl, Hne, rfl⟩
-  iexact Hdep
+  · unfold propData
+    iexists some data
+    unfold propDataIs
+    isplitr
+    · ipureintro; exact ⟨rfl, Hne, rfl⟩
+    iexact Hdep
+  iframe Htk Hdep
+  iexists γq; iexact Hp
 
 /-- A `ReadState`'s context and `readOk` of it (2026-10-13). A client that compares the bytes
 with its own context's (its `readReq γ c Lc`) learns `readOk` of its read (`readOk_prefix`).

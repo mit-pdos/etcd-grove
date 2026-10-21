@@ -26,6 +26,8 @@ def main():
     ap.add_argument("--prefix", default="", help="only files below this path")
     ap.add_argument("--json", help="write the merged data to this file")
     ap.add_argument("--reuse", help="read the merged data from this file instead of running Lean")
+    ap.add_argument("--assume-built", action="store_true",
+                    help="skip the up-to-date check (read the .olean files as they are)")
     a = ap.parse_args()
     prog = "etc/dead-decls.py"
     if a.reuse:
@@ -34,7 +36,8 @@ def main():
     else:
         env = dict(os.environ)
         env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
-        pr.check_built(prog, env)
+        if not a.assume_built:
+            pr.check_built(prog, env)
         decls = {}
         for mods in pr.lean_runs():
             r = subprocess.run(pr.lake("env", "lean", "--run", "etc/dead-decls.lean",
@@ -44,11 +47,12 @@ def main():
                 sys.exit(f"{prog}: etc/dead-decls.lean failed:\n{r.stderr[-2000:]}")
             for line in r.stdout.splitlines():
                 o = json.loads(line)
-                p = decls.get(o["name"])
+                k = o["module"] + " " + o["name"]
+                p = decls.get(k)
                 if p:
                     o["link"] = o["link"] or p["link"]
                     o["results"] = o["results"] or p["results"]
-                decls[o["name"]] = o
+                decls[k] = o
         if a.json:
             with open(a.json, "w") as f:
                 json.dump(decls, f)

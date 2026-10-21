@@ -32,13 +32,14 @@ def modOf (env : Environment) (n : Name) : Name :=
 
 /-- The declaration an auxiliary constant belongs to: the nearest enclosing constant with a
 source range (as `etc/tcb-report.lean`'s `rootOf`, private names kept). -/
-partial def ownerOf (env : Environment) (n : Name) : Option Name :=
+partial def ownerOf (env : Environment) (n : Name) (m : Name := modOf env n) : Option Name :=
   match n with
   | .anonymous => none
   | _ =>
-    if (env.find? n).isSome && (declRangeExt.find? env n (level := .private)).isSome then
+    if (env.find? n).isSome && modOf env n == m &&
+        (declRangeExt.find? env n (level := .private)).isSome then
       some n
-    else ownerOf env n.getPrefix
+    else ownerOf env n.getPrefix m
 
 def isProject (parts : List Name) (env : Environment) (n : Name) : Bool :=
   let m := modOf env n
