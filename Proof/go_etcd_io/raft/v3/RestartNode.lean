@@ -35,7 +35,7 @@ theorem RestartNode.wp_proof
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
   intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 Hcw0
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 Hcw
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -65,7 +65,7 @@ theorem RestartNode.wp_proof
   wp_auto
   -- (D17d) `NewRawNode`'s `InitialState` premise at `R = emp`: the `□` closure gives nothing back
   wp_apply wp_NewRawNode c cv lok si σ hs csm iprop(emp) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28 Hcw0
+    P11 P12 P13 P14 P15 P16 P18 P19 P20 P21 P22 P23 P24 P28 (Hcw.imp_right (fun h => h.1))
     $$ [$Hc $Hlg $Hsto $Hown] as %rn %err ⟨-, %s0, Hfresh0, %Herr⟩
   · iintro %Φ %ss' Hs HK
     iapply Hinit $$ Hs
@@ -76,7 +76,7 @@ theorem RestartNode.wp_proof
   -- the node closed with the ghost state, in the mode `md` (2026-10-16, stage R8b: `NewRawNode`
   -- leaves it open, `rawNodeFresh`)
   -- (2026-10-19, D21 M2r) out of the no-snapshot mode: leader transfer on
-  icases rawNodeFresh_xf_off _ _ _ _ _ _ s0 $$ Hfresh0 with ⟨%s, Hfresh⟩
+  icases rawNodeFresh_xf_off _ _ _ _ _ _ _ s0 $$ Hfresh0 with ⟨%s, Hfresh⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
@@ -91,7 +91,6 @@ theorem RestartNode.wp_proof
         cfg := cfgState (GMap.listToSet csm.Voters') ∅ } s :=
     ⟨fun h => by rw [Hpvoff]; exact P10 h, by rw [Hgh], by rw [Ht0, Hgh]; exact Int.le_refl _,
       fun h => by rw [Hr] at h; cases h⟩
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
   icases ownRaftPhysC_sdr _ rnv.raft' cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
   -- (D19i part 1) the floor at most `applying`, which is `applied` (`0`)
   icases ownRaftPhysC_log_same _ rnv.raft' cv.ID' s $$ Hphys with ⟨HL, Hback0⟩
@@ -109,20 +108,32 @@ theorem RestartNode.wp_proof
       iunfold rnInit at Hghost
       ihave #Hsdrf : sdrOk (GF := GF) rnv.raft' RNMode.static $$ []
       · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro h; cases h
-      ihave Hphys := ownRaftPhysC_toS $$ Hphys
-      ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' cv.ID' s $$ [Hphys]
-      · rw [P25]; iexact Hphys
-      iapply ownRawNode_intro_static γ rn cv.ID'
+      -- (2026-10-20, witness support) at the conf state's configuration, its witness the cluster's
+      have Hcw' : (cfgW (GMap.listToSet csm.Voters') csm.Witness').wit = W64 0 ∨
+          (cfgW (GMap.listToSet csm.Voters') csm.Witness').wit = γ.reWit :=
+        Hcw.imp_right (fun h => h.2.1)
+      have Htrk0 := TrackedOk.of_sub (P := ∅) (GMap.empty_subseteq _)
+        (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) (γ := γ) (id := cv.ID')
+      have Htrk : TrackedOk γ (cfgW (GMap.listToSet csm.Voters') csm.Witness') cv.ID' :=
+        TrackedOk.of_eq (by rw [cfgW_voters, CfgM.voters_simple, P25])
+          (by
+            show (∅ : GSet w64) = ∅ \ γ.reCfg
+            apply GMap.set_eq; intro k
+            rw [GMap.elem_of_difference]
+            exact ⟨fun h => absurd h (GMap.not_elem_of_empty _), fun h => h.1⟩) Htrk0
+      ihave Hphys : ownRaftPhysCV (cfgW (GMap.listToSet csm.Voters') csm.Witness')
+          (cfgW (GMap.listToSet csm.Voters') csm.Witness').voters rnv.raft' cv.ID' s $$ [Hphys]
+      · iexact Hphys
+      iapply ownRawNode_intro_staticC γ rn cv.ID'
           { delivered := [], unpersisted := [], steps := [], term := W64 0,
             storage := interface.ok si, mode := .static,
             cfg := cfgState (GMap.listToSet csm.Voters') ∅ }
-          s initPState rnv sv hprev [] rfl Hrel
+          s initPState (cfgW (GMap.listToSet csm.Voters') csm.Witness') rnv sv hprev [] rfl Hrel
           (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26) Hasync
           Hdlen0 (by rw [Hun]) Hsn trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
-          (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
-            (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
+          (by rw [P25]; rfl) rfl rfl Hcw' Htrk
           (by unfold NsLink; rw [Hgh, Hns0]; exact ⟨rfl, rfl⟩)
           (by rw [Hrel.1]; unfold PSubOk; intro h; exfalso; simp [initPState, proleRole] at h)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap [] Hcommitted []
@@ -147,6 +158,11 @@ theorem RestartNode.wp_proof
         constructor
         · rintro ⟨h1, h2⟩; exact absurd h1 h2
         · intro h; exact absurd h (GMap.not_elem_of_empty _)
+      -- (2026-10-20, witness support) no witness in the dynamic mode
+      have Hw0 : csm.Witness' = W64 0 := Hcw.resolve_right (fun h => by cases h.2.2)
+      ihave Hphys : ownRaftPhysC (CfgM.simple (GMap.listToSet csm.Voters')
+          (domSet s.progress \ GMap.listToSet csm.Voters')) rnv.raft' cv.ID' s $$ [Hphys]
+      · rw [Hdiff, ← cfgW_zero, ← Hw0]; iexact Hphys
       ihave Hghost : ownStepGhost γ
           (RNMode.toG (.dyn dec (cfgState (GMap.listToSet csm.Voters') ∅) h0 h1)
             ⟨0, cfgState (GMap.listToSet csm.Voters') ∅, []⟩)

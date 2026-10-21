@@ -80,8 +80,10 @@ abbrev RestartNode.spec : Prop :=
   (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  -- (2026-10-20, witness support) the conf state without a witness
-  csm.Witness' = W64 0 →
+  -- (2026-10-20, witness support) the conf state without a witness, or, in the static mode, with
+  -- the cluster's witness (`γ.reWit`) among its voters
+  (csm.Witness' = W64 0 ∨
+    (csm.Witness' ∈ csm.Voters' ∧ csm.Witness' = γ.reWit ∧ md = .static)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)

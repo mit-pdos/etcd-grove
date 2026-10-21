@@ -745,7 +745,10 @@ theorem ownTrackerC_votes (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
 /-- The new tracker: the old tally and bound, the new configuration and `Progress` objects. -/
 theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
-    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) (hw : c.wit = W64 0)
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62)
+    -- (2026-10-20, witness support) a configuration with a witness is not joint (`Hwj`; until
+    -- then `c.wit = 0`)
+    (Hwj : c.wit ≠ W64 0 → c.outgoing = ∅)
     {ep : EpochM} :
     ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗ ownConfigC c cfgv prsm prs pvs -∗
       ownEpochNWm tv.Epoch' ep -∗
@@ -754,7 +757,7 @@ theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : 
   iunfold ownConfigC at Hnew
   iNamed Hnew
   iapply ownTrackerC_intro c { tv with Config' := cfgv, Progress' := prsm } votes prs pvs
-    Hinv Hdom Hflags Hsize Hmi Hnw (fun h => absurd hw h) $$ Hvotes Hprsm Hprogs Hcfg [Hepoch]
+    Hinv Hdom Hflags Hsize Hmi Hnw Hwj $$ Hvotes Hprsm Hprogs Hcfg [Hepoch]
   iapply ownEpochNWm_ok $$ Hepoch
 
 /-- `ownConfigV` is `ownConfigC` at its simple configuration (the learners the tracked ids

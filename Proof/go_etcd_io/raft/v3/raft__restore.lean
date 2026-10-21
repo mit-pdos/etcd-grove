@@ -28,6 +28,7 @@ public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.go_etcd_io.raft.v3.InvApplyConfC
 public import Proof.go_etcd_io.raft.v3.LemmasSendRD
 public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import Proof.go_etcd_io.raft.v3.InvRestoreC
 
 @[expose] public section
 
@@ -112,92 +113,6 @@ private theorem restore_prs_size (cl : CSLists) (Hvnd : cl.voters.Nodup) (Hlnd :
   have : (0 : Int) ≤ cl.learnersNext.length := by omega
   omega
 
-/-- What `confchange.Restore` builds for a `ConfState` denoting `c`, as `switchToConfig` takes
-it (`ownConfigC`): its `Progress` values are some `pvs` whose learner flags are `c`'s. -/
-private theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)
-    (prs : GMap w64 Loc) (Hinv : CfgInv (cfgStateC c))
-    (Hdom : domSet prs = domSet (cfgStateC c).prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62)
-    (P : w64 → Progress → Prop)
-    (HP : ∀ k p, P k p → (cfgStateC c).prs !! k = some p.learner ∧ p.witness = false)
-    (H0 : W64 0 ∉ domSet prs) (hw : c.wit = W64 0) :
-    ⊢ ownCfgCC (GF := GF) cfgv (DFrac.own 1) c -∗ prsm ↦$□ prs -∗
-      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜P k p⌝) -∗
-      ∃ pvs, ownConfigC c cfgv prsm prs pvs := by
-  iintro Hc #Hprsm Hprogs
-  ihave Hprogs : ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress (GF := GF) pr p ∗
-      ⌜(cfgStateC c).prs !! k = some p.learner ∧ p.witness = false⌝) $$ [Hprogs]
-  · iapply BigSepM.bigSepM_mono ?_ $$ Hprogs
-    intro k pr _
-    iintro ⟨%p, Hp, %Hpk⟩
-    iexists p
-    iframe Hp
-    ipureintro; exact HP k p Hpk
-  icases bigSepM_exist_sepM2 prs
-    (fun k pr (p : Progress) => iprop(ownProgress (GF := GF) pr p ∗
-      ⌜(cfgStateC c).prs !! k = some p.learner ∧ p.witness = false⌝))
-    $$ Hprogs with ⟨%pvs, Hprogs⟩
-  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
-  icases BigSepM2.bigSepM2_sep_eqv.1 $$ Hprogs with ⟨Hprogs, Hfl⟩
-  ihave %Hfl := BigSepM2.bigSepM2_pure_intro $$ Hfl
-  -- the learner flags of `pvs` are the configuration's
-  have Htf : trkFlags pvs = (cfgStateC c).prs := by
-    apply GMap.map_eq; intro k
-    rw [trkFlags_lookup]
-    cases hp : pvs !! k with
-    | some p =>
-      obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
-        ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
-      exact (Hfl k pr p hpr hp).1.symm
-    | none =>
-      cases hc : (cfgStateC c).prs !! k with
-      | none => rfl
-      | some b =>
-        exfalso
-        have hk : k ∈ domSet prs := by
-          rw [Hdom, GMap.elem_of_dom', GMap.mem_iff, hc]; rfl
-        rw [GMap.elem_of_dom', GMap.mem_iff] at hk
-        have h2 : (pvs !! k).isSome = true := (Hiff k).1 hk
-        rw [hp] at h2
-        exact absurd h2 (by decide)
-  iexists pvs
-  unfold ownConfigC
-  iframe Hc Hprsm Hprogs
-  ipureintro
-  refine ⟨?_, ?_, ?_, Hsz, ?Hw⟩
-  case Hw =>
-    -- no witness (2026-10-19; a snapshot's configuration is witness-free in the model)
-    rw [hw]
-    apply WitP.zero.2
-    intro k p hp
-    obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
-      ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [hp]; rfl))
-    exact ⟨(Hfl k pr p hpr hp).2, ne0_of_dom H0 hpr⟩
-  · rw [Htf]; exact Hinv
-  · rw [Hdom]
-    apply GMap.set_eq; intro k
-    rw [GMap.elem_of_dom']
-    simp only [cfgStateC, CfgM.ids]
-    rw [cfgFlags_mem, GMap.elem_of_union]
-  · intro k p hp
-    have h1 : (cfgStateC c).prs !! k = some p.learner := by
-      rw [← Htf, trkFlags_lookup, hp]; rfl
-    simp only [cfgStateC] at h1
-    rw [cfgFlags_lookup] at h1
-    by_cases hv : k ∈ c.voters
-    · rw [ite_eq_left hv] at h1
-      have hl : k ∉ c.learners := by
-        intro hl
-        obtain ⟨ho, hi, -⟩ := Hinv.2.2.1 k hl
-        unfold CfgM.voters at hv
-        rcases (GMap.elem_of_union _ _ _).1 hv with h | h
-        · exact hi h
-        · exact ho h
-      rw [← Option.some.inj h1]; simp [hl]
-    · rw [ite_eq_right hv] at h1
-      by_cases hl : k ∈ c.learners
-      · rw [ite_eq_left hl] at h1; rw [← Option.some.inj h1]; simp [hl]
-      · rw [ite_eq_right hl] at h1; cases h1
-
 /-- `restore`'s `found` search has not met `id` in the first `k` of its three sets
 (`[Voters, Learners, VotersOutgoing]`). -/
 private def FoundBefore (cl : CSLists) (id : w64) (k : Nat) : Prop :=
@@ -248,8 +163,6 @@ private theorem found_slice_acc (sv sl so : GoSlice) (dq : DFrac) (cl : CSLists)
     · ipureintro; exact ⟨rfl, rfl⟩
     iintro Ho; iframe
 
-private theorem ownCfgCC_cast (cfgv : tracker.Config) (dq : DFrac) (c1 c2 : CfgM) (h : c1 = c2) :
-    ownCfgCC (GF := GF) cfgv dq c1 ⊢ ownCfgCC cfgv dq c2 := h ▸ .rfl
 
 set_option hygiene false in
 /-- The snapshot closed again (`ownSnapE`) from its parts and its conf state `Hcs` (`csOptA`). -/
@@ -574,8 +487,9 @@ theorem raft.restore.wp_proof
     ihave Hcfg := ownCfgCC_cast cfgv _
       (csCfgM sv.Metadata'.ConfState'.VotersOutgoing' sv.Metadata'.ConfState'.Voters' sv.Metadata'.ConfState'.Learners' sv.Metadata'.ConfState'.LearnersNext' sv.Metadata'.ConfState'.AutoLeave')
       (snapCfg sv sv.Metadata'.ConfState'.lists) rfl $$ Hcfg
-    icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _ (fun _ _ h => h)
-      (restore_prs_no0 _ Hwf prs _ Hprs) rfl $$ Hcfg Hprsm Hprogs
+    icases ownConfigC_of_restore (snapCfg sv sv.Metadata'.ConfState'.lists) cfgv prsm prs Hinv Hprs Hsz' _
+      (fun _ _ h => ⟨h.1, by rw [h.2]; simp [snapCfg, csCfgM]⟩)
+      (restore_prs_no0 _ Hwf prs _ Hprs) $$ Hcfg Hprsm Hprogs
       with ⟨%pvs, Hnew⟩
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 Htv0wit
@@ -593,7 +507,7 @@ theorem raft.restore.wp_proof
         with ⟨%tv1, Htrkf, Hold, Hback2⟩
     icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1, #Hep1⟩
     ihave #Hep1 := ownEpochOk_nw' (CfgM.simple_wit _ _) $$ Hep1
-    wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs rfl
+    wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs (.inl rfl)
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
         (fun h => absurd (Hrole1.symm.trans h) (by decide))

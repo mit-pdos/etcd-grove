@@ -45,7 +45,7 @@ the two halves of `p.Voters` through the array field, then `p.Learners` and
 theorem tracker.ProgressTracker.ConfState.wp_proof
     (wp_MajorityConfig_Slice : quorum.MajorityConfig.Slice.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.ConfState.spec (GF := GF) (hG := hG) := by
-  intro c trk tv t hw
+  intro c trk tv t
   obtain ⟨votes, prs, pvs, ep⟩ := t
   wp_start as ⟨Htrk, Hown⟩
   iapply wp_fupd
@@ -128,36 +128,77 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   ihave Hcfg := ownCfgCC_intro tv.Config' (DFrac.own 1) c vin vout Harr Hal Hwit $$ Hin Hout Hl Hln
   -- raft v3.7: `&pb.ConfState{..., AutoLeave: new(p.AutoLeave)}`; the `AutoLeave` cell is
   -- allocated (`«$v4»`), and the struct (`«$r0»`, raft#168: into the local `cs`)
-  -- raft#168: `if p.Witnesses[0] != 0 {...}`, `if p.Witnesses[1] != 0 {...}`: both `0`, the
-  -- fields stay `nil` (`notes/pr-verify/raft-168.md`)
+  -- raft#168: `if p.Witnesses[0] != 0 { cs.Witness = new(p.Witnesses[0]) }` (2026-10-20, witness
+  -- support: the incoming witness, `0` for none), `if p.Witnesses[1] != 0 {...}`: `0`, unset
+  ihave %Hpn := typedPointsto_not_null $$ «$v4»
+  imod cellRO_alloc _ _ $$ «$v4» with #cA
+  let csv : Loc → raftpb.ConfState := fun pw =>
+    { state' := zeroValDef, Voters' := sl0, Learners' := sl2, VotersOutgoing' := sl1,
+      LearnersNext' := sl3, AutoLeave' := «$v4_ptr», Witness' := pw, WitnessOutgoing' := null,
+      unknownFields' := slice.nil, sizeCache' := 0 }
+  wp_join iprop(∃ pw : Loc, trk ↦ tv ∗ (⌜pw = null ∧ c.wit = W64 0⌝ ∨ pw ↦ c.wit) ∗
+      cs_ptr ↦ «$r0_ptr» ∗
+      «$r0_ptr» ↦ csv pw ∗ p_ptr ↦ trk) at next
+    with [Htrk cs «$r0» p] as ⟨%pw, Htrk, cW, cs, «$r0», p⟩
+  · icases (Access.access
+        (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
+          tv.Config'.Witnesses')
+        (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
+          tv.Config'.Witnesses')
+        (P := trk ↦ tv)) $$ Htrk with ⟨HW, Htrkback⟩
+    icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ c.wit (by decide) (by rw [Hwit.1]; rfl)
+      $$ HW with ⟨Hw0, Hwback⟩
+    by_cases hw : c.wit = W64 0
+    · rw [hw]
+      wp_auto
+      ihave HW := Hwback $$ Hw0
+      ihave Htrk := Htrkback $$ HW
+      wp_join_done
+      iexists null
+      iframe Htrk cs «$r0» p
+      ileft; ipureintro; exact ⟨rfl, rfl⟩
+    · wp_auto
+      rw [decide_eq_false hw]
+      icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hr0nn⟩
+      iStructNamed «$r0»
+      obtain ⟨rp, hrp⟩ : ∃ rp, rp = «$r0_ptr» := ⟨_, rfl⟩
+      subst hrp
+      wp_auto
+      ihave HW := Hwback $$ Hw0
+      ihave Htrk := Htrkback $$ HW
+      isplitr
+      · ipureintro; rfl
+      iexists «$r0_ptr»
+      iframe Htrk cs p
+      isplitl [«$r0»]
+      · iright; iexact «$r0»
+      iapply typedPointsto_combine _ _ _ Hr0nn
+      simp only [TypedPointsto.typedPointstoDef, csv]
+      iframe
+  ihave cW : iprop(|==> cellRO (GF := GF) pw c.wit) $$ [cW]
+  · icases cW with (%H | H)
+    · imodintro; unfold cellRO; ileft; ipureintro; exact ⟨H.1, H.2⟩
+    · iapply cellRO_alloc $$ H
+  imod cW with #cW
   icases (Access.access
       (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
         tv.Config'.Witnesses')
       (A' := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Witnesses"] ↦
         tv.Config'.Witnesses')
       (P := trk ↦ tv)) $$ Htrk with ⟨HW, Htrkback⟩
-  icases array_acc_same' _ (sint.Z (W64 0)) _ _ _ (W64 0) (by decide) (by rw [Hwit.1, hw]; rfl)
-    $$ HW with ⟨Hw0, Hwback⟩
-  wp_auto
-  ihave HW := Hwback $$ Hw0
-  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit.1, hw]; rfl)
+  icases array_acc_same' _ (sint.Z (W64 1)) _ _ _ (W64 0) (by decide) (by rw [Hwit.1]; rfl)
     $$ HW with ⟨Hw1, Hwback⟩
   wp_auto
   ihave HW := Hwback $$ Hw1
   ihave Htrk := Htrkback $$ HW
   rw [← Hal]
   -- the fresh struct (hidden fields zero) into its ownership predicate (InvPb, stage R1)
-  ihave %Hpn := typedPointsto_not_null $$ «$v4»
-  imod cellRO_alloc _ _ $$ «$v4» with #cA
-  imod csPts_of_struct «$r0_ptr»
-    { state' := zeroValDef, Voters' := sl0, Learners' := sl2, VotersOutgoing' := sl1,
-      LearnersNext' := sl3, AutoLeave' := «$v4_ptr», Witness' := null, WitnessOutgoing' := null,
-      unknownFields' := slice.nil, sizeCache' := 0 }
-    (ConfStateM.mk xs0 xs2 xs1 xs3 tv.Config'.AutoLeave' (W64 0)) ⊤ rfl
-    $$ [«$r0» Hsl0 Hsl2 Hsl1 Hsl3 cA] with «$r0»
+  imod csPts_of_struct «$r0_ptr» (csv pw)
+    (ConfStateM.mk xs0 xs2 xs1 xs3 tv.Config'.AutoLeave' c.wit) ⊤ rfl
+    $$ [«$r0» Hsl0 Hsl2 Hsl1 Hsl3 cA cW] with «$r0»
   · iframe
-    iframe cA
-    isplitl <;> (simp only; unfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
+    iframe cA cW
+    simp only; unfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   rw [show decide (_ ≠ null) = true from decide_eq_true Hpn]
   imodintro
   iapply HΦ

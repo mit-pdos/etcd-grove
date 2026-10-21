@@ -59,6 +59,8 @@ theorem RawNode.Bootstrap.wp_proof
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
+  rw [cfgW_zero]
+  ihave Hphys := ownRaftPhysC_toS (cfg := ∅) (lrn := ∅) $$ Hphys
   obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
   ihave %Hplen := ownSlice_len $$ Hpeers

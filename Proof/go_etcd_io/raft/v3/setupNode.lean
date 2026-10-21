@@ -41,13 +41,13 @@ theorem setupNode.wp_proof
     exact Hpvne (List.eq_nil_of_length_eq_zero h0)
   wp_apply wp_NewRawNode c cv lok si σ hs csm R P1 P2 P3 P4 P5 P6 P7 P8 P9 P11 P12 P13 P14
     P15 P16 (by rw [Q1]; exact List.nodup_nil) (by rw [Q1]; exact List.not_mem_nil)
-    (by rw [Q1]; decide) Q2 Q3 Q4 Q5 Hfl0 Hcw0
+    (by rw [Q1]; decide) Q2 Q3 Q4 Q5 Hfl0 (.inl Hcw0)
     $$ [$Hc $Hlg $Hsto $Hown $Hinit] as %rn %err ⟨HR, %s, Hfresh, %Herr⟩
   subst Herr
   wp_auto
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
-  ihave Hfresh' : rawNodeFresh rn cv.ID' si ∅ cv.StepDownOnRemoval' cv.PreVote' s $$ [Hfresh]
-  · rw [← Hfresh0]; iexact Hfresh
+  ihave Hfresh' : rawNodeFresh rn cv.ID' si ∅ (W64 0) cv.StepDownOnRemoval' cv.PreVote' s $$ [Hfresh]
+  · rw [← Hfresh0, ← Hcw0]; iexact Hfresh
   wp_apply wp_RawNode_Bootstrap γ rn cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps ctxs
     bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
     $$ [$Hfresh' $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hnscap] as %err2 ⟨%Herr2, Hrn, Hpeers⟩

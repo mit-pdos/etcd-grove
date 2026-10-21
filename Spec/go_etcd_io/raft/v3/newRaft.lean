@@ -82,6 +82,7 @@ tracked ids `GMap.listToSet csm.Voters'`.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvRestore
 public import Spec.go_etcd_io.raft.v3.Config__validate
 
 @[expose] public section
@@ -161,8 +162,8 @@ abbrev newRaft.spec : Prop :=
   csm.AutoLeave' = false →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  -- (2026-10-20, witness support) the conf state without a witness
-  csm.Witness' = W64 0 →
+  -- (2026-10-20, witness support) the conf state's witness, if any, one of its voters
+  (csm.Witness' = W64 0 ∨ csm.Witness' ∈ csm.Voters') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
@@ -172,7 +173,9 @@ abbrev newRaft.spec : Prop :=
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) }}
     (App (Val #(functions newRaft [])) (Val #c))
   {{ (r : Loc) (s : NState) (cv' : Config), RET #r;
-      R ∗ ownRaftPhys (GMap.listToSet csm.Voters') r cv.ID' s ∗
+      -- (2026-10-20, witness support) at the conf state's configuration: its voters, its witness
+      -- (`cfgW`; until then `ownRaftPhys (GMap.listToSet csm.Voters')`, the witness-free one)
+      R ∗ ownRaftPhysC (cfgW (GMap.listToSet csm.Voters') csm.Witness') r cv.ID' s ∗
       -- the `Config`, `validate`d (2026-10-09): `NewRawNode` reads it after
       c ↦ cv' ∗ ⌜cv'.AsyncStorageWrites' = cv.AsyncStorageWrites'⌝ ∗
       ⌜NStateWf s ∧

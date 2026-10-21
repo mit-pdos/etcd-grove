@@ -64,7 +64,7 @@ abbrev RawNode.Bootstrap.spec : Prop :=
   (∀ p ∈ pv, p.IsWitness' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       -- the node `NewRawNode` built on an empty conf state, open
-      rawNodeFresh rn id si ∅ sdr pre s ∗
+      rawNodeFresh rn id si ∅ (W64 0) sdr pre s ∗
       -- the peers, their contexts, and `Marshal` at their conf changes (`InvBoot.lean`)
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       -- this node's ghost state at the bootstrap state, and the committed boot log

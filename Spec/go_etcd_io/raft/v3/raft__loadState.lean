@@ -34,18 +34,21 @@ because `ownRaftPhys` did not record its state.)
 
 raft v3.7 (2026-10-15, stage R4): `hs` is a `*pb.HardState` read through its getters, the
 caller's read-only `hsRO hp hs` (`newRaft` passes `InitialState`'s, after `IsEmptyHardState`
-said it is not empty, so not `nil`). -/
+said it is not empty, so not `nil`).
+
+(2026-10-20, witness support) At any configuration (`ownRaftPhysCV c V`; until then
+`ownRaftPhys cfg`): `newRaft` installs a witness conf state's. -/
 abbrev raft.loadState.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (hp : Loc) (hs : HardStateM),
+  ∀ (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (hp : Loc) (hs : HardStateM),
   uint.Z s.logst.committed ≤ uint.Z hs.Commit' ∧ uint.Z hs.Commit' ≤ uint.Z (logLast s.logst) →
   -- the term does not move back (2026-10-10, `raft.wp_store_Term`); `newRaft` loads the
   -- persisted state into a struct at term `0`
   uint.Z s.term ≤ uint.Z hs.Term' →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s ∗
       "#Hhs" ∷ hsRO hp hs }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"loadState")) (Val #hp))
   {{ RET #();
-      ownRaftPhys cfg r id
+      ownRaftPhysCV c V r id
         { s with term := hs.Term', vote := hs.Vote',
                  logst := { s.logst with committed := hs.Commit' } } }}
 

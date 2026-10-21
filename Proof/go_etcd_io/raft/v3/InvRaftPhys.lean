@@ -1908,6 +1908,75 @@ theorem ownRaftPhys_intro_trk (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
   isplitr; · iapply ownAsked_nil
   ipureintro; simp
 
+/-- `ownRaftPhys_intro_trk` at any configuration `c` (2026-10-20, witness support: `newRaft`'s
+witness configuration): the struct, its witness queue empty, left open at its tracker, with the
+wand that seals it at `c` (`ownTrackerC c`, `Hvoter` at `V`). -/
+theorem ownRaftPhysC_intro_trk (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (rv : raft) (msgs msgsAA : List QMsg) (lok : GoInterfaceOk)
+    (Hwn : rv.witnessMsgs' = slice.nil ∧ rv.witnessVoteAsked' = map.nil) :
+    rv.id' = id →
+    rv.Term' = s.term →
+    rv.Vote' = s.vote →
+    rv.lead' = s.lead →
+    rv.state' = stateW64 s.role →
+    rv.step' = s.stepfn →
+    rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
+    rv.disableProposalForwarding' = false →
+    rv.disableConfChangeValidation' = false →
+    rv.checkQuorum' = s.cq →
+    rv.isLearner' = s.isLearner →
+    rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
+    rv.pendingConfIndex' = s.pci →
+    rv.stepDownOnRemoval' = s.sdr →
+    id ≠ W64 0 →
+    0 < sint.Z rv.electionTimeout' →
+    rv.logger' = interface.ok lok →
+    rv.raftLog' = s.log →
+    (s.ticking = true → TickFnOk r rv.tick') →
+    (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
+    s.gh.outlb ≤ msgs.length + msgsAA.length →
+    (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
+    (s.role ≠ .follower → id ∈ V) →
+    LogNsOk s →
+    XfOk s (msgs ++ msgsAA) →
+    ⊢ raftOwn (GF := GF) r rv -∗
+      isLogger lok -∗
+      ownRaftLog rv.raftLog' s.logst -∗
+      rv.msgs' ↦* msgs.map QMsg.loc -∗
+      ownSliceCap Loc rv.msgs' (DFrac.own 1) -∗
+      rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc -∗
+      ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) -∗
+      ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
+      outboxRel s.outbox msgs msgsAA [] -∗
+      NsCap s.gh.ns s.logst.storage -∗
+      r.[raft, go!"trk"] ↦ rv.trk' ∗
+        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTrackerC c tv' ⟨s.votes, prs', pvs', s.ep⟩ -∗
+           ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
+           ownRaftPhysCV c V r id { s with progress := prs', prvals := pvs' }) := by
+  intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
+    HnoLearner HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
+    Hgh_out Hgh_unst Hvoter Hnsl Hxf
+  iintro Hr #Hlogger Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox #Hnscap
+  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
+  iframe Hf
+  iintro %tv' %prs' %pvs' Hf Htrk %Hok
+  ihave Hr := Hback $$ %tv' Hf
+  iapply ownRaftPhysCV_intro c V r id { s with progress := prs', prvals := pvs' }
+      { rv with trk' := tv' } msgs msgsAA lok []
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst Hvoter Hok Hnsl Hxf
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox %Hwn [] Hnscap
+  unfold witOwn
+  iexists []
+  simp only [Hwn]
+  isplitr; · ipureintro; rfl
+  isplitr; · iapply ownWQueue_nil
+  isplitr; · iapply ownAsked_nil
+  ipureintro; simp
+
 end reconfig
 
 /-! ### `ownRaftPhysC`: the equivalence with `ownRaftPhys` and the accessors (2026-10-13) -/

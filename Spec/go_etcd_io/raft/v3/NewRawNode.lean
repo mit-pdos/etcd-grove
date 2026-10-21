@@ -130,8 +130,8 @@ abbrev NewRawNode.spec : Prop :=
   csm.AutoLeave' = false →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
-  -- (2026-10-20, witness support) the conf state without a witness
-  csm.Witness' = W64 0 →
+  -- (2026-10-20, witness support) the conf state's witness, if any, one of its voters
+  (csm.Witness' = W64 0 ∨ csm.Witness' ∈ csm.Voters') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `InitialState` in `newRaft`'s shape (stage R4, D7): the hard state
@@ -148,7 +148,8 @@ abbrev NewRawNode.spec : Prop :=
       R ∗
       -- (2026-10-16, stage R8b) the node open, at the conf state's voters (`InvBoot.lean`)
       ∃ s : NState,
-        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval' cv.PreVote' s ∗
+        rawNodeFresh rn cv.ID' si (GMap.listToSet csm.Voters') csm.Witness' cv.StepDownOnRemoval'
+          cv.PreVote' s ∗
         ⌜err = interface.nil⌝ }}
 
 end spec

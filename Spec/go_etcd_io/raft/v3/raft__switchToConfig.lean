@@ -134,9 +134,10 @@ ls, os, lns, c.autoLeave⟩ true`), with the same permutation facts on its lists
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-  -- (2026-10-20, witness support) **`NoWitReconf`** (`raft.applyConfChange`'s): with a witness,
-  -- `maybeStartNewSubterm(false, true)`, with the CC model's witness changes (not yet)
-  c.wit = W64 0 →
+  -- (2026-10-20, witness support) **`NoWitReconf`** (`raft.applyConfChange`'s) at a leader: there,
+  -- with a witness, `maybeStartNewSubterm(false, true)` (not covered); elsewhere a witness
+  -- configuration that is not joint (`newRaft`'s, from a witness conf state)
+  (c.wit = W64 0 ∨ (s.role ≠ .leader ∧ c.outgoing = ∅)) →
   (s.role = .leader →
     (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ (id ∉ c.voters ∧ s.sdr = true)) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c.voters) →
@@ -160,7 +161,7 @@ abbrev raft.switchToConfig.spec : Prop :=
       (Val #cfgv)) (Val #prsm))
   {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
       ownRaftPhysCV c c.voters r id s' ∗
-      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave (W64 0)) true ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave c.wit) true ∗
       ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
         lns ≡ₚ elements c.learnersNext⌝ ∗
       ⌜SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id }
@@ -200,7 +201,7 @@ theorem raft.switchToConfig.spec_simple
   intro cfg r id s tv0 cfgv prsm prs pvs Hlead Hcand Hpok
   iintro %Φ ⟨#Hpkg, Htrkf, Hback, Hvotes, %Hmi, #Hepoch, Hnew⟩ HΦ
   ihave Hnew := ownConfigV_toC _ _ _ _ _ $$ Hnew
-  iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv0 cfgv prsm prs pvs rfl
+  iapply H (CfgM.simple cfg (domSet prs \ cfg)) r id s tv0 cfgv prsm prs pvs (.inl rfl)
       (fun hl => .inl (by rw [CfgM.voters_simple]; exact Hlead hl))
       (fun hc => by rw [CfgM.voters_simple]; exact Hcand hc) Hpok
     $$ [$Hpkg $Htrkf Hback $Hvotes $Hepoch $Hnew]

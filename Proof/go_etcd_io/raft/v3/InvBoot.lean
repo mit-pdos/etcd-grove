@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import Proof.go_etcd_io.raft.v3.InvRestore
 
 @[expose] public section
 
@@ -54,11 +55,13 @@ keeps them: `asyncStorageWrites` unset, `prevSoftSt` and `prevHardSt` read-only,
 empty. `RestartNode` closes it (`ownRawNode`, with the ghost state); `Bootstrap` installs the
 peers first. (2026-10-19, D21 M2r) Leader transfer `xf` (`NGhost.xf`): off as `newRaft` builds
 it (`true`, the default), on after `rawNodeFresh_xf_off` (`RestartNode`'s). -/
-def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (w : w64) (sdr : Bool)
     (pre : Bool) (s : NState) (xf : Bool := true) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
     "Hrn" ∷ rawNodeOwn rn rnv ∗
-    "Hphys" ∷ ownRaftPhys V rnv.raft' id s ∗
+    -- (2026-10-20, witness support) at the voters `V` and the witness `w` (`cfgW`; until then
+    -- `ownRaftPhys V`, `w = 0`)
+    "Hphys" ∷ ownRaftPhysC (cfgW V w) rnv.raft' id s ∗
     "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
     "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
     "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
@@ -77,7 +80,7 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
     "%Hdom" ∷ ⌜domSet s.progress = V⌝)
 
 /-- Closing `rawNodeFresh`: the pure facts first, the resources in the order of the definition. -/
-theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (w : w64) (sdr : Bool)
     (pre : Bool) (s : NState) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
     (Hasync : rnv.asyncStorageWrites' = false) (Hrel : NStateRel s initPState)
     (Hterm0 : s.term = W64 0 ∧ s.vote = W64 0 ∧ s.role = .follower ∧ s.outbox = [] ∧
@@ -88,11 +91,11 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
       s.logst.snap = none ∧ s.logst.storage = interface.ok si)
     (Hgh : s.gh = {}) (Hpvoff : s.prevote = pre) (Hsdr : s.sdr = sdr)
     (Hdom : domSet s.progress = V) :
-    ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhys V rnv.raft' id s -∗
+    ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhysC (cfgW V w) rnv.raft' id s -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      rawNodeFresh rn id si V sdr pre s := by
+      rawNodeFresh rn id si V w sdr pre s := by
   iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
   unfold rawNodeFresh
   iexists rnv, sv, hprev
@@ -103,15 +106,15 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
 
 /-- (2026-10-19, D21 M2r) Leader transfer turned on in a fresh node (a ghost step,
 `ownRaftPhys_xf_off`): `RestartNode`'s, out of the no-snapshot mode. -/
-theorem rawNodeFresh_xf_off (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+theorem rawNodeFresh_xf_off (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (w : w64) (sdr : Bool)
     (pre : Bool) (s : NState) :
-    rawNodeFresh (GF := GF) rn id si V sdr pre s ⊢
-      ∃ s', rawNodeFresh rn id si V sdr pre s' false := by
+    rawNodeFresh (GF := GF) rn id si V w sdr pre s ⊢
+      ∃ s', rawNodeFresh rn id si V w sdr pre s' false := by
   iintro H
   iunfold rawNodeFresh at H
   icases H with ⟨%rnv, %sv, %hprev, H⟩
   iNamed H
-  ihave Hphys := ownRaftPhys_xf_off V rnv.raft' id s (by rw [Hgh]) $$ Hphys
+  ihave Hphys := ownRaftPhysC_xf_off (cfgW V w) rnv.raft' id s (by rw [Hgh]) $$ Hphys
   iexists { s with gh := { s.gh with xf := false } }
   iunfold rawNodeFresh
   iexists rnv, sv, hprev

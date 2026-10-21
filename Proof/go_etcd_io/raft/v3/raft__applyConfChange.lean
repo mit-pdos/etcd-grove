@@ -122,7 +122,7 @@ theorem raft.applyConfChange.wp_proof
       ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.ep %s.logst Hlf Hf Ht Hlog %Hgh
         %(Hok.of_fields rfl rfl rfl)
       iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' hw'
+    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' (.inl hw')
         (fun hl => by
           by_cases hin : id ∈ c'.cfg.voters
           · exact .inl ⟨hin, Hmk⟩
@@ -134,6 +134,7 @@ theorem raft.applyConfChange.wp_proof
       as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
     · ipureintro; exact Hmi
     try wp_auto
+    rw [hw'] at *
     iapply HΦ $$ %cs %xs %os %ls %lns %s'
     iframe Hphys Hcc Hcs
     ipureintro
@@ -186,7 +187,7 @@ theorem raft.applyConfChange.wp_proof
           ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.ep %s.logst Hlf Hf Ht Hlog %Hgh
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' hw'
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' (.inl hw')
             (fun hl => by
               by_cases hin : id ∈ c'.cfg.voters
               · exact .inl ⟨hin, Hmk⟩
@@ -198,6 +199,7 @@ theorem raft.applyConfChange.wp_proof
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
         try wp_auto
+        rw [hw'] at *
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
         iframe Hphys Hcc Hcs
         ipureintro
@@ -238,7 +240,7 @@ theorem raft.applyConfChange.wp_proof
           ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.ep %s.logst Hlf Hf Ht Hlog %Hgh
             %(Hok.of_fields rfl rfl rfl)
           iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
-        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' hw'
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs' (.inl hw')
             (fun hl => by
               by_cases hin : id ∈ c'.cfg.voters
               · exact .inl ⟨hin, Hmk⟩
@@ -250,6 +252,7 @@ theorem raft.applyConfChange.wp_proof
           as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hcs0, %Hsw⟩
         · ipureintro; exact Hmi
         try wp_auto
+        rw [hw'] at *
         iapply HΦ $$ %cs %xs %os %ls %lns %s'
         iframe Hphys Hcc Hcs
         ipureintro

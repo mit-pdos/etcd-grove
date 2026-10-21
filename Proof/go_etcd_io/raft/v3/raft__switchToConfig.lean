@@ -63,7 +63,9 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_Epoch_HasWitness : tracker.Epoch.HasWitness.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs hw Hlead Hcand Hpok
+  intro c r id s tv0 cfgv prsm prs pvs hwo Hlead Hcand Hpok
+  have Hwj : c.wit ≠ W64 0 → c.outgoing = ∅ := fun h => (hwo.resolve_left h).2
+  have hwl : s.role = .leader → c.wit = W64 0 := fun hl => hwo.resolve_right (fun h => h.1 hl)
   wp_start as H
   iNamed H
   wp_auto
@@ -77,7 +79,7 @@ theorem raft.switchToConfig.wp_proof
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi hw $$ Hvotes Hnew Hepoch
+  ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi Hwj $$ Hvotes Hnew Hepoch
   ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk %Hpok
   -- from here on the state is `s0`, and `s1` once `r.isLearner` is stored
   generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
@@ -90,7 +92,8 @@ theorem raft.switchToConfig.wp_proof
   wp_join at next with [Hphys r]
   · wp_apply raft.wp_load_stateC $$ Hphys as Hphys
     by_cases Hl0 : s0.role = .leader
-    · rw [show stateW64 s0.role = W64 2 by rw [Hl0]; rfl]
+    · have hw : c.wit = W64 0 := hwl (Hrole0 ▸ Hl0)
+      rw [show stateW64 s0.role = W64 2 by rw [Hl0]; rfl]
       wp_auto
       icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tvw, Htrkf, Htrk, Hback⟩
       icases ownTrackerC_witnesses $$ Htrk with ⟨%Hwit, Htrk⟩
@@ -128,7 +131,7 @@ theorem raft.switchToConfig.wp_proof
   wp_raft_logC
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
-  wp_apply wp_ProgressTracker_ConfState _ _ _ _ hw $$ [$Htrkf $Htrk]
+  wp_apply wp_ProgressTracker_ConfState _ _ _ _ $$ [$Htrkf $Htrk]
     as %cs %xs %os %ls %lns ⟨Htrkf, Htrk, Hcs, %Hcs0⟩
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`
@@ -191,7 +194,7 @@ theorem raft.switchToConfig.wp_proof
       iNamed Hcs
       ihave %Hxlen := ownSlice_len $$ Hv
       wp_auto
-      ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave (W64 0)) true
+      ihave Hcs : csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave c.wit) true
         $$ [HV Hv HL Hl HO Ho HN Hn HA HW HWO]
       · iunfold csPts
         iexists sv, sl, so, sn, pa, pw, pwo
@@ -213,7 +216,7 @@ theorem raft.switchToConfig.wp_proof
           by cases s1; simp [sendMsgs]⟩
       try wp_auto
       -- `if r.maybeCommit() { r.bcastAppend() } else { r.trk.Visit(...maybeSendAppend...) }`
-      have hwmc : c.wit = W64 0 := hw
+      have hwmc : c.wit = W64 0 := hwl Hl
       wp_apply wp_raft_maybeCommit c r id s1 Hl1 $$ [$Hphys] as %b %N %ws ⟨Hphys, %HN⟩
       -- no witness (`NoWitReconf`), so no request to the witness
       have Hws : ws = [] := HN.2.1 hwmc

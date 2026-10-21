@@ -1416,6 +1416,50 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
 
+/-- `ownRawNode_intro_static` at any non-joint configuration `c` of the ghost state's voters
+(2026-10-20, witness support: `RestartNode` at a witness conf state, `cfgW`), its witness none or
+the cluster's (the static `ghostRestM`), the struct at `c`. -/
+theorem ownRawNode_intro_staticC (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (s : NState) (ps : PState) (c : CfgM) (rnv : RawNode) (sv : SoftState) (hprev : HardStateM)
+    (steps : List Loc)
+    (Hm : rs.mode = .static)
+    (Hrel : NStateRel s ps) (Hin : id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
+    (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
+    (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
+    (Hstok : StepsOk s rs.steps)
+    (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+    (Hrnfl : RNFl rs s)
+    (Hci : c.incoming = γ.reCfg) (Hco : c.outgoing = ∅) (Hal : c.autoLeave = false)
+    (Hcw : c.wit = W64 0 ∨ c.wit = γ.reWit)
+    (Htrk : TrackedOk γ c id)
+    (Hnl : NsLink γ s)
+    (Hps : PSubOk (toPState s)) :
+    ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
+      ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
+      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
+      pendList γ id steps rs.steps -∗
+      isCommitted γ rs.delivered -∗
+      storedRecs γ s.logst.prev s.logst.stored -∗
+      ownRawNode γ rn id rs := by
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  obtain ⟨rfl, Hwf⟩ := Hrel
+  ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, []⟩) c id s $$ [Hghost]
+  · rw [Hm]
+    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
+    iframe Hghost
+    isplitr
+    · ipureintro; exact Hnl
+    isplitr
+    · ipureintro; exact Hps
+    ipureintro; exact ⟨⟨Hci, Hco, Hst⟩, Htrk, Hcw⟩
+  iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) Hal Hasync Hdlen
+    Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
 theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗

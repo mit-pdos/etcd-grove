@@ -44,7 +44,6 @@ theorem NewRawNode.wp_proof
     Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hfl0 Hcw0
     $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
   try wp_auto
   wp_apply wp_softState _ r cv.ID' s $$ Hphys as Hphys
   -- `prevSoftSt` points to a `SoftState` nobody writes again
@@ -67,12 +66,11 @@ theorem NewRawNode.wp_proof
     rw [Hapg0] at H1
     have := uint_Z_nonneg s.logst.applied
     word
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
   iapply HΦ $$ %«$r0_ptr» %interface.nil
   iframe HR
   iexists s
   isplitl [«$r0» Hphys]
-  · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') cv.StepDownOnRemoval'
+  · iapply rawNodeFresh_intro «$r0_ptr» cv.ID' si (GMap.listToSet csm.Voters') csm.Witness' cv.StepDownOnRemoval'
         cv.PreVote' s _ _ _ ?_ Hrel ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hrst, Hrpd⟩
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
           Hsn, Hsg⟩

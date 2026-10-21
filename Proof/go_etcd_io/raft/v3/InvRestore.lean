@@ -559,6 +559,171 @@ theorem restoreM_cfgInv {vo v l ln : List w64} {al : Bool} {s : CCState}
       obtain ⟨rfl, h⟩ := checkedM_some H
       exact h
 
+/-- A voters-only configuration with the incoming witness `wc` (2026-10-20, witness support):
+`Restore`'s state as it replays a witness conf state's voters. -/
+def stW (V : GSet w64) (wc : w64) : CCState :=
+  { cfg := { cfgM V ∅ with wit := wc }, prs := cfgFlags V ∅ }
+
+/-- The configuration of the voters `V` with the incoming witness `w` (`0` for none), not joint,
+no learner (2026-10-20, witness support): what `newRaft` installs from a witness conf state
+(`stW V w`'s). -/
+def cfgW (V : GSet w64) (w : w64) : CfgM := { CfgM.simple V ∅ with wit := w }
+
+theorem stW_cfg (V : GSet w64) (w : w64) : (stW V w).cfg = cfgW V w := rfl
+
+theorem cfgW_zero (V : GSet w64) : cfgW V (W64 0) = CfgM.simple V ∅ := rfl
+
+theorem cfgW_voters (V : GSet w64) (w : w64) : (cfgW V w).voters = V := by
+  exact CfgM.voters_simple V ∅
+
+theorem stW_zero (V : GSet w64) : stW V (W64 0) = cfgState V ∅ := rfl
+
+/-- `Simple([AddNode id])` on `stW V wc`, `id` neither the witness nor `0`: `id` joins. -/
+theorem simpleM_stW_addNode (V : GSet w64) (wc id : w64) (hid : id ≠ W64 0) (hw : id ≠ wc) :
+    simpleM [addNodeCC id] (stW V wc) = some (stW (<[id := ()]> V) wc) := by
+  have hL : id ∉ (∅ : GSet w64) := GMap.not_elem_of_empty _
+  have Hmv : makeVoterM id (stW V wc) = stW (<[id := ()]> V) wc := by
+    unfold makeVoterM
+    split
+    · simp only [stW, cfgM]
+      rw [GMap.delete_empty, cfgFlags_insert_voter V ∅ id hL]
+    · simp only [initProgressM, stW, cfgM, Bool.false_eq_true, ↓reduceIte]
+      rw [cfgFlags_insert_voter V ∅ id hL]
+  have Hmo : makeVoterO id (stW V wc) = some (makeVoterM id (stW V wc)) := by
+    unfold makeVoterO
+    rw [if_neg]
+    rintro ⟨-, h, -⟩
+    exact hw h
+  have Hinv : ∀ V', CfgInv (stW V' wc) := fun V' =>
+    cfgInv_cfgState V' ∅ (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+  have Happ : applyM [addNodeCC id] (stW V wc) = some (stW (<[id := ()]> V) wc) := by
+    have hid' : (addNodeCC id).NodeId' ≠ W64 0 := hid
+    simp only [applyM, applyAll, applyOne, ite_eq_right hid', ↓reduceIte, Option.bind_some]
+    rw [Hmo, Hmv]
+    try simp only [Option.bind_some]
+    rw [ite_eq_right (show (stW (<[id := ()]> V) wc).cfg.incoming ≠ ∅ from
+      gset_insert_ne_empty V id)]
+  have Hcl : clearAutoLeave (stW V wc) = stW V wc := rfl
+  unfold simpleM
+  rw [Hcl, ite_eq_right (fun h => h (Hinv V)), ite_eq_right (fun h => h rfl), Happ]
+  simp only
+  rw [ite_eq_right (show ¬ SymdiffTooBig (stW V wc).cfg.incoming
+    (stW (<[id := ()]> V) wc).cfg.incoming from not_symdiffTooBig_insert V id)]
+  simp [checkedM, Hinv]
+
+/-- `Simple([AddWitness w])` on `stW V 0`, `w` new and not `0`: `w` joins as the witness. -/
+theorem simpleM_stW_addWitness (V : GSet w64) (w : w64) (hw0 : w ≠ W64 0) (hwV : w ∉ V) :
+    simpleM [addWitnessCC w] (stW V (W64 0)) = some (stW (<[w := ()]> V) w) := by
+  have hL : w ∉ (∅ : GSet w64) := GMap.not_elem_of_empty _
+  have hprs : w ∉ (stW V (W64 0)).prs := by
+    show w ∉ cfgFlags V ∅
+    rw [cfgFlags_mem]; rintro (h | h)
+    · exact hwV h
+    · exact hL h
+  have Hmw : makeWitnessM w (stW V (W64 0)) = some (stW (<[w := ()]> V) w) := by
+    unfold makeWitnessM
+    rw [if_neg (fun h => h.1 rfl), if_pos hprs]
+    simp only [initWitnessM, stW, cfgM, Option.some.injEq]
+    rw [cfgFlags_insert_voter V ∅ w hL]
+  have Hinv : ∀ V' wc, CfgInv (stW V' wc) := fun V' wc =>
+    cfgInv_cfgState V' ∅ (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+  have Happ : applyM [addWitnessCC w] (stW V (W64 0)) = some (stW (<[w := ()]> V) w) := by
+    have hid' : (addWitnessCC w).NodeId' ≠ W64 0 := hw0
+    simp only [applyM, applyAll, applyOne, ite_eq_right hid',
+      show (W32 4 : w32) ≠ W32 0 by decide, show (W32 4 : w32) ≠ W32 3 by decide,
+      show (W32 4 : w32) ≠ W32 1 by decide, show (W32 4 : w32) ≠ W32 2 by decide,
+      ↓reduceIte, Option.bind_some]
+    rw [Hmw]
+    try simp only [Option.bind_some]
+    rw [ite_eq_right (show (stW (<[w := ()]> V) w).cfg.incoming ≠ ∅ from
+      gset_insert_ne_empty V w)]
+  have Hcl : clearAutoLeave (stW V (W64 0)) = stW V (W64 0) := rfl
+  unfold simpleM
+  rw [Hcl, ite_eq_right (fun h => h (Hinv V _)), ite_eq_right (fun h => h rfl), Happ]
+  simp only
+  rw [ite_eq_right (show ¬ SymdiffTooBig (stW V (W64 0)).cfg.incoming
+    (stW (<[w := ()]> V) w).cfg.incoming from not_symdiffTooBig_insert V w)]
+  simp [checkedM, Hinv]
+
+/-- The voters of a witness conf state, one `Simple` each (`AddWitness` for `w`), from `stW V wc`:
+`l` without repetition, no `0`, none in `V`; the witness, if met, met at `wc = 0`. -/
+theorem simpleFold_voterCC (l : List w64) (w : w64) (V : GSet w64) (wc : w64)
+    (Hnd : l.Nodup) (H0 : ∀ x ∈ l, x ≠ W64 0 ∧ x ∉ V) (Hwc : wc = W64 0 ∨ (wc = w ∧ w ∉ l)) :
+    ∃ V', (∀ k, k ∈ V' ↔ k ∈ V ∨ k ∈ l) ∧
+      simpleFold (l.map (voterCC w)) (stW V wc) = some (stW V' (if w ∈ l then w else wc)) := by
+  induction l generalizing V wc with
+  | nil => exact ⟨V, fun k => by simp, by simp [simpleFold]⟩
+  | cons x xs ih =>
+    obtain ⟨hx0, hxV⟩ := H0 x (by simp)
+    have Hnd' := (List.nodup_cons.mp Hnd)
+    have H0' : ∀ y ∈ xs, y ≠ W64 0 ∧ y ∉ (<[x := ()]> V : GSet w64) := by
+      intro y hy
+      refine ⟨(H0 y (List.mem_cons_of_mem _ hy)).1, fun h => ?_⟩
+      rcases (gset_mem_insert V x y).1 h with h | h
+      · subst h; exact Hnd'.1 hy
+      · exact (H0 y (List.mem_cons_of_mem _ hy)).2 h
+    by_cases hxw : x = w
+    · subst hxw
+      have hwc : wc = W64 0 := Hwc.resolve_right (fun h => h.2 (by simp))
+      subst hwc
+      obtain ⟨V', HV', Hf⟩ := ih (<[x := ()]> V) x Hnd'.2 H0' (.inr ⟨rfl, Hnd'.1⟩)
+      refine ⟨V', fun k => ?_, ?_⟩
+      · rw [HV', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
+      · simp only [List.map_cons, simpleFold]
+        rw [show voterCC x x = addWitnessCC x by unfold voterCC; simp,
+          simpleM_stW_addWitness V x hx0 hxV, Option.bind_some, Hf]
+        simp [Hnd'.1]
+    · have hxwc : x ≠ wc := by
+        rintro rfl
+        rcases Hwc with h | h
+        · exact hx0 h
+        · exact hxw h.1
+      have Hwc' : wc = W64 0 ∨ (wc = w ∧ w ∉ xs) :=
+        Hwc.imp_right (fun h => ⟨h.1, fun hm => h.2 (List.mem_cons_of_mem _ hm)⟩)
+      obtain ⟨V', HV', Hf⟩ := ih (<[x := ()]> V) wc Hnd'.2 H0' Hwc'
+      refine ⟨V', fun k => ?_, ?_⟩
+      · rw [HV', gset_mem_insert, List.mem_cons]; simp only [or_assoc, or_comm]
+      · simp only [List.map_cons, simpleFold]
+        rw [show voterCC w x = addNodeCC x by unfold voterCC; rw [if_neg hxw],
+          simpleM_stW_addNode V wc x hx0 hxwc, Option.bind_some, Hf]
+        have : (w ∈ x :: xs) ↔ w ∈ xs := by
+          simp only [List.mem_cons]; exact ⟨fun h => h.resolve_left (Ne.symm hxw), .inr⟩
+        simp only [this]
+
+/-- **`Restore` of a witness conf state** (2026-10-20, witness support): the voters `v` (no
+repetition, no `0`) with the witness `w` among them or `0`, nothing else: the configuration of
+the voters with the incoming witness `w`. -/
+theorem restoreM_wit (v : List w64) (w : w64) (al : Bool) (Hnd : v.Nodup) (H0 : W64 0 ∉ v)
+    (Hw : w = W64 0 ∨ w ∈ v) :
+    restoreM [] v [] [] al w = some (stW (GMap.listToSet v) w) := by
+  obtain ⟨V', HV', Hf⟩ := simpleFold_voterCC v w ∅ (W64 0) Hnd
+    (fun x hx => ⟨fun h => H0 (h ▸ hx), GMap.not_elem_of_empty _⟩) (.inl rfl)
+  have eV : V' = GMap.listToSet v := GMap.set_eq fun k => by
+    rw [HV', GMap.elem_of_list_to_set]
+    exact ⟨fun h => h.elim (fun h' => absurd h' (GMap.not_elem_of_empty _)) id, .inr⟩
+  subst eV
+  unfold restoreM restoreSimpleOps restoreInCC
+  simp only [↓reduceIte, List.map_nil, List.nil_append, List.append_nil]
+  rw [show cfgState ∅ ∅ = stW ∅ (W64 0) from rfl, Hf]
+  congr 2
+  split
+  · rfl
+  · rename_i h; exact (Hw.resolve_right h).symm
+
+/-- `stW`'s configuration with its flags (`cfgStateC`) is `stW`. -/
+theorem cfgStateC_cfgW (V : GSet w64) (w : w64) : cfgStateC (cfgW V w) = stW V w := by
+  unfold cfgStateC
+  rw [cfgW_voters]
+  rfl
+
+/-- The tracked ids of `stW V w` are the voters. -/
+theorem domSet_stW (V : GSet w64) (w : w64) : domSet (stW V w).prs = V := by
+  apply GMap.set_eq; intro k
+  rw [GMap.elem_of_dom']
+  show k ∈ cfgFlags V ∅ ↔ _
+  rw [cfgFlags_mem]
+  exact ⟨fun h => h.elim id (fun h' => absurd h' (GMap.not_elem_of_empty _)), .inl⟩
+
 end model
 
 end EtcdGrove
