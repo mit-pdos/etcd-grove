@@ -140,3 +140,14 @@ func Main() {
 		panic("kv: porcupine rejected the store's trace")
 	}
 }
+
+// MainWitness is Main on a cluster of two regular voters and a witness (StartClusterWitness:
+// voters 1 and 2, the witness 3, which runs no replica): 4 clients of 25 operations each, on
+// random replicas, traced with a counter clock and checked by porcupine; it panics unless
+// porcupine answers Ok. Nothing changes the cluster's configuration.
+func MainWitness() {
+	kvs := StartClusterWitness([]uint64{1, 2}, 3)
+	if Check(kvs, lintest.CounterClock(), 4, 25) != porcupine.Ok {
+		panic("kv: porcupine rejected the store's trace")
+	}
+}

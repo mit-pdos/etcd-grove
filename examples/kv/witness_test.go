@@ -19,6 +19,10 @@ func TestWitnessCheck(t *testing.T) {
 	}
 }
 
+func TestMainWitnessPasses(t *testing.T) {
+	MainWitness()
+}
+
 // TestWitnessNodeDown runs voters 1 and 2 and the witness 3, with the transport dropping
 // every message to or from replica 2 while it is down: the leader then commits with the
 // witness, and replica 2, back, catches up.

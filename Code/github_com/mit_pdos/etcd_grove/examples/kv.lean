@@ -117,6 +117,9 @@ noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/kv.Main"
 
+noncomputable def MainWitness [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/kv.MainWitness"
+
 noncomputable def deliverable [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/kv.deliverable"
 
@@ -514,6 +517,38 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (Val #(W64 3))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v2")))])))))
   (App (App (Val (GoInstruction (FuncResolve StartCluster []))) (Val #())) (Var "$a0")))
+  (Let "kvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Var "kvs"))
+  (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock []))) (Val #())) (Val #()))
+  (Let "$a2" (Val #(W64 4))
+  (Let "$a3" (Val #(W64 25))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve Check []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))) (Val _root_.Perennial.github_com.anishathalye.porcupine.Ok)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"kv: porcupine rejected the store's trace")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Pair (Var "kvs") (Var "$r0"))))))))))
+
+/-- MainWitness is Main on a cluster of two regular voters and a witness (StartClusterWitness:
+    voters 1 and 2, the witness 3, which runs no replica): 4 clients of 25 operations each, on
+    random replicas, traced with a counter clock and checked by porcupine; it panics unless
+    porcupine answers Ok. Nothing changes the cluster's configuration.
+
+    go: check.go:148:6 -/
+noncomputable def MainWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(W64 1))
+  (Let "$v1" (Val #(W64 2))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint64 (Var "$v1")))]))))
+  (Let "$a1" (Val #(W64 3))
+  (App (App (App (Val (GoInstruction (FuncResolve StartClusterWitness []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "kvs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType KV.ty))))) (Var "kvs"))
@@ -2639,6 +2674,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Gen_unfold : FuncUnfold Gen [] Gen.impl
   Check_unfold : FuncUnfold Check [] Check.impl
   Main_unfold : FuncUnfold Main [] Main.impl
+  MainWitness_unfold : FuncUnfold MainWitness [] MainWitness.impl
   deliverable_unfold : FuncUnfold deliverable [] deliverable.impl
   deliver_unfold : FuncUnfold deliver [] deliver.impl
   tick_unfold : FuncUnfold tick [] tick.impl
@@ -2678,6 +2714,7 @@ attribute [instance] Assumptions.Input_instance
   Assumptions.Gen_unfold
   Assumptions.Check_unfold
   Assumptions.Main_unfold
+  Assumptions.MainWitness_unfold
   Assumptions.deliverable_unfold
   Assumptions.deliver_unfold
   Assumptions.tick_unfold
