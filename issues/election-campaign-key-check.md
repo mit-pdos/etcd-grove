@@ -1,5 +1,5 @@
 ---
-upstream: known
+upstream: not-filing
 checked: 2026-10-21
 links:
   - etcd-io/etcd#11051 issue closed: same bug (Campaign returns nil after the prior keys go though its own key was deleted); closed by the stale bot, never fixed
@@ -7,6 +7,11 @@ links:
   - etcd-io/etcd#21165 pr open: Campaign resigns on any waitDeletes error; same lines, not this bug (textual conflict)
 candidate: issues/upstream/election-campaign-key-check/
 ---
+
+> **Not filing** (2026-10-21, the user's decision): `Campaign` returning nil gives no guarantee
+> that the caller leads, since the session can always expire right before it returns; the
+> guarantee is fencing on the key's create revision (`Proclaim`, `Leader()`), which fails
+> correctly in the schedules below. The sibling-`Election` trigger is a misuse of one session.
 
 # Election.Campaign returns nil after its key was deleted while it waited
 
