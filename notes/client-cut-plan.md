@@ -1,8 +1,9 @@
 # Plan: cuts between clients and members in `linkv3p`, and recovery from them
 
-Status: done (2026-10-21; K0, K1, K3 on branch `client-cut`, merged into `lean`; K4 on branch
-`failover`): K2 dropped (the bridge is part of the network, its code not verified:
-`notes/decisions.md` D26, the user's decision); K4, failover, done (D27). `linkv3p_safe` now covers client-member cuts and recovery at the same member.
+Status: done (2026-10-21; K0, K1, K3 on branch `client-cut`, K4 on branch `failover`, both merged
+into `lean`): K2 dropped (the bridge is part of the network, its code not verified:
+`notes/decisions.md` D26, the user's decision); K4, failover, done (D27). `linkv3p_safe` now covers
+client-member cuts, recovery at the same member, and clients of every member (failover).
 
 ## Goal
 

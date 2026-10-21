@@ -394,7 +394,7 @@ of the stages follows.
 
 
 
-## Client-member cuts in linkv3p (2026-10-21, branch `client-cut`, merged into `lean`; K4, failover, on branch `failover`)
+## Client-member cuts in linkv3p (2026-10-21, branches `client-cut` and `failover`, merged into `lean`)
 
 `notes/client-cut-plan.md`: the schedule of `linkv3p`'s `Main` also cuts and mends the link
 between each client and its member, through a copy of etcd's integration tests' bridge
