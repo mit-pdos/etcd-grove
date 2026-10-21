@@ -19,8 +19,8 @@ linkv3p_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer E
 # `newClient`: the client's `New` (linked in the client's `Link.lean`)
 client_v3_New: @
 linkv3p_newClient: client_v3_New
-# `startBridge`: `net.Listen` and the bridge's `New` (linked in the bridge's `Link.lean`)
-bridge_New: @
+# `startBridge`: `net.Listen` and the bridge's `New` (the bridge's trust-boundary axioms, D26)
+bridge_New:
 linkv3p_startBridge: net_Listen bridge_New
 # `partitioner`: `peerStep` over etcd's partition hooks and the member id (linked in the server's
 # `Link.lean`), `clientStep` over the bridge's `Blackhole`, `Unblackhole`, `DropConnections`
@@ -28,9 +28,9 @@ EtcdServer__MemberID: @
 EtcdServer__CutPeer: @
 EtcdServer__MendPeer: @
 linkv3p_peerStep: EtcdServer__MemberID EtcdServer__CutPeer EtcdServer__MendPeer
-bridge__Blackhole: @
-bridge__Unblackhole: @
-bridge__DropConnections: @
+bridge__Blackhole:
+bridge__Unblackhole:
+bridge__DropConnections:
 linkv3p_clientStep: bridge__Blackhole bridge__Unblackhole bridge__DropConnections
 linkv3p_partitioner: linkv3p_peerStep linkv3p_clientStep
 # `Apply` over linkvtxn's; `Check` over the driver's `Run` and `CounterClock`, linkvtxn's `Model`

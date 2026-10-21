@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/startBridge.lean`. Lean-first (no Rocq
-counterpart). `net.Listen` at `addr`; on success, the listener given up to a relay to `client`
-(the forwarding fact `grpc.relay`, D26), and the bridge on it (`bridge.New`).
+counterpart). `net.Listen` at `addr`; on success, the bridge on the listener to `client`
+(`bridge.New`, whose trust-boundary spec gives `forwards`, D26).
 -/
 module
 
@@ -31,8 +31,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 theorem startBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_New : bridge.New.spec (GF := GF) (hG := hG)) :
     startBridge.spec (GF := GF) (hG := hG) := by
-  intro addr client Htb
-  wp_start as ⟨Hfree, Htok⟩
+  intro addr client
+  wp_start as Hfree
   ihave #Pbr : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge
     $$ []
   · iPkgInit
@@ -41,10 +41,8 @@ theorem startBridge.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   · iframe; ipureintro; rfl
   icases Hr with (⟨%Herr, Hl⟩ | %Herr)
   · subst Herr
-    imod grpc.relay l addr client $$ Hl with ⟨%lo, %Hlo, #Hrl, #Hfw⟩
-    subst Hlo
     wp_auto
-    wp_apply wp_New client lo Htb $$ [Htok] as %br ⟨Hob, Htok⟩
+    wp_apply wp_New client addr l $$ [Hl] as %br ⟨Hob, #Hfw⟩
     · iframe #; iframe
     iapply HΦ
     iframe

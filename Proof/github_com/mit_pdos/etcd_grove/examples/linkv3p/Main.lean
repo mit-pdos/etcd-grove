@@ -7,8 +7,7 @@ served: the logger; the three peer URL slices and the initial cluster's map; the
 the cluster and its members (`cluster3_alloc`, the ids in the names' order, the client's `etcdKV`
 at the first member's names); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`); the servers' slice; `startBridge` for each member's client address
-(the thread token passed along; the bridge owned, and its address serving the member's,
-`forwards`) and the bridges' slice (2026-10-21, `notes/client-cut-plan.md`); `newClient` to each
+(the bridge owned, and its address serving the member's, `forwards`) and the bridges' slice (2026-10-21, `notes/client-cut-plan.md`); `newClient` to each
 bridge (at a watch environment the clients never use); the partitioner forked on the schedule
 (every member's `srvNetMember`, every bridge owned and not blackholed); the instance's invariant at the cluster's start store (linkvtxn's
 `linkvInv_alloc_boot`, at the first member's names, the others' by `linkvInv_congr`), so each
@@ -66,9 +65,8 @@ theorem Main.wp_proof
     (wp_partitioner : partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb1 Hrb48 HrbN Hck Haf Hbuq
+  intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
     Hnoc Hms hAs H0 H31 Hops Hmul
-  have Htb : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, #Hsched, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
@@ -213,7 +211,7 @@ theorem Main.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hsrvs with #Hsrvs
   -- the three bridges, each to its member's client address
-  wp_apply (wp_startBridge bridgeAddr₁ clientAddr₁ Htb1) $$ [Hba₁ Htok] as %br₁ %berr₁ ⟨Htok, Hbr₁⟩
+  wp_apply (wp_startBridge bridgeAddr₁ clientAddr₁) $$ [Hba₁] as %br₁ %berr₁ Hbr₁
   · iframe
   icases Hbr₁ with (⟨%Hberr, Hob₁, #Hfw₁⟩ | %Hberr)
   rotate_left
@@ -224,7 +222,7 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hberr
   wp_auto
-  wp_apply (wp_startBridge bridgeAddr₂ clientAddr₂ Htb1) $$ [Hba₂ Htok] as %br₂ %berr₂ ⟨Htok, Hbr₂⟩
+  wp_apply (wp_startBridge bridgeAddr₂ clientAddr₂) $$ [Hba₂] as %br₂ %berr₂ Hbr₂
   · iframe
   icases Hbr₂ with (⟨%Hberr, Hob₂, #Hfw₂⟩ | %Hberr)
   rotate_left
@@ -235,7 +233,7 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hberr
   wp_auto
-  wp_apply (wp_startBridge bridgeAddr₃ clientAddr₃ Htb1) $$ [Hba₃ Htok] as %br₃ %berr₃ ⟨Htok, Hbr₃⟩
+  wp_apply (wp_startBridge bridgeAddr₃ clientAddr₃) $$ [Hba₃] as %br₃ %berr₃ Hbr₃
   · iframe
   icases Hbr₃ with (⟨%Hberr, Hob₃, #Hfw₃⟩ | %Hberr)
   rotate_left

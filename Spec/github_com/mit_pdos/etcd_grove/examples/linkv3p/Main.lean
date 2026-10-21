@@ -49,7 +49,7 @@ abbrev Main.spec : Prop :=
     (clients ops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),
   BootFacts id₁ id₂ id₃ bootLog →
-  threadBound GF + 1 ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

@@ -9,7 +9,6 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
-public import Perennial.Proof.time.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -144,8 +143,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk rfc6724policyTable.init (by mem_tac))
   wp_apply (opaqueInitsOk confVal.init (by mem_tac))
   wp_apply (opaqueInitsOk netdns.init (by mem_tac))

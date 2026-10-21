@@ -1,8 +1,8 @@
 # Plan: cuts between clients and members in `linkv3p`, and recovery from them
 
-Status: in progress (2026-10-21, branch `client-cut`, worktree `/shared/etcd-grove-cc`): K0, K2 and
-K3 done; K1 drafted (`notes/decisions.md` D26) and awaiting the user's approval, on which K2 and K3
-rest; K4 not started. `linkv3p_safe` now covers client-member cuts and recovery at the same member.
+Status: in progress (2026-10-21, branch `client-cut`, worktree `/shared/etcd-grove-cc`): K0, K1 and
+K3 done; K2 dropped (the bridge is part of the network, its code not verified: `notes/decisions.md`
+D26, the user's decision); K4 not started. `linkv3p_safe` now covers client-member cuts and recovery at the same member.
 
 ## Goal
 
@@ -157,7 +157,7 @@ therefore mend every blackhole for the test to finish. That affects only the tes
   (`issues/etcd-bridge-blackhole-twice-panic.md`, reproduced by
   `third_party/bridge/bridge_test.go`). Since `Main`'s theorem is for every schedule, linkv3p's
   `partitioner` records which bridges are blackholed and skips a second `Blackhole`
-  (`clientStep`'s `holed`). K2's `Blackhole` spec takes the bridge unblackholed.
+  (`clientStep`'s `holed`). The bridge's `Blackhole` spec (D26) takes the bridge unblackholed.
 - `linkv3p.go`: three bridge addresses (`127.0.0.1:2385{1,2,3}`), `startBridge`, the clients dial
   the bridges, `Step.Kind` (`PeerCut`, `PeerMend`, `ClientBlackhole`, `ClientUnblackhole`,
   `ClientDrop`), `peerStep`/`clientStep` under `partitioner`. Re-translated, `gen-init` rerun.
@@ -198,19 +198,18 @@ therefore mend every blackhole for the test to finish. That affects only the tes
   under which `grpcServes b` gives `grpcServes a`.
 - Write the decision down (`notes/decisions.md`), as D21j's, and ask.
 
-**Drafted (2026-10-21), not yet approved: `notes/decisions.md` D26.** The plan's forwarding fact
-("a listener at `a`, given up, serves what `b` serves") is unsound alone, since byte-agnostic
-`Read`/`Write` specs would let a program write invented replies. D26 instead proposes a relay:
-connections accepted at `a` are paired with ones dialed to `b`, and each direction writes a prefix
-of what it read. `Proof/net/InvRelay.lean` holds the forwarding fact `grpc.relay`, the relay's
-predicates and the specs of `Accept`, `Listener.Close`, `Conn.Close`, `Read`, `Write` and the
-pairing; `net.Dial` and `io.Copy` (to `io.Discard`) are `Spec`/`Proof` pairs. `net.Conn` is
-translated as an interface (`Code/net.toml`, which now imports `time`), so the bridge's
-connection fields load and store without the axiomatized type's `sorry`; that moved `net`'s
-initializer and the examples' package tables (regenerated), and nothing else (the full build
-passes but for linkv3p's three proofs, as before).
+**Decided (2026-10-21): `notes/decisions.md` D26, the bridge as part of the network.** A first
+draft, carried out through K3, specified a relay (16 axioms over `net`'s connections, so that the
+bridge's proof could show it only relays) and proved the bridge. The user's question: why prove the
+bridge at all? The network model already lets every attempt fail, so `linkv3p_safe` covered
+client-member failures before the bridge; the bridge is test infrastructure that only makes them
+happen. So the bridge's calls linkv3p makes (`New`, `Blackhole`, `Unblackhole`,
+`DropConnections`) have trust-boundary specs over one axiomatized predicate (`bridgeAt`), `New`'s
+giving the forwarding fact: 5 axioms (`Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`).
+The relay specs, the bridge's proofs and `net.Conn`'s translation were removed (in the branch's
+history, K1-K3's commits).
 
-### K2. The bridge proved
+### K2. The bridge proved (dropped: D26)
 
 Its functions: `newBridge`, `serveListen` (the accept loop; `pausec` and `stopc`), `serveConn`
 (two copy goroutines and a local `WaitGroup`), `ioCopy` (the copy loop and the blackhole
@@ -221,7 +220,8 @@ connection map under `mu`; the `WaitGroup`'s counter with thread tokens (as Pere
 `WaitGroup` spec takes since `105fb79f5`). A lock invariant holds the map and the three channels'
 states. The bridge holds no gRPC resource: its specs say nothing about the bytes.
 
-**Done (2026-10-21).** `Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`: `Defs.lean`
+**Done (2026-10-21), then removed with D26's decision** (what follows is what the proof took,
+kept for the record). `Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`: `Defs.lean`
 (the protocol), `Lemmas.lean`, and the proofs of the functions linkv3p calls and their callees:
 `New`, `newBridge`, `serveListen`, `serveConn`, `ioCopy`, `bridgeConn.Close`/`close`,
 `dialer.Dial`, `Blackhole`, `Unblackhole`, `DropConnections` (11 of the package's 14 functions;
@@ -268,13 +268,15 @@ from `heapPointsto_valid`).
   verified).
 
 **Done (2026-10-21).** `peerStep` (the old loop body), `clientStep`, `startBridge` (`net.Listen`,
-`grpc.relay`, `bridge.New`: the bridge owned and `forwards bridgeAddr clientAddr`), `partitioner`
-over both, `Main` (the clients at the bridges' addresses, `clientOk`'s registrations through
-`isGrpcRpc_forwards`), `Adequacy` (nine addresses; the run bound `n + 3 ≤ 2 ^ 31`) and `Results`.
-Gates: `lake build` (5952 jobs), every `gen-link` mode, `goose --check`, `gen-init --check`,
-`tcb-report --check` (the baseline gains exactly D26's 16 axioms: 537 axioms, 2 sorries) and every
-collection (`linkv3p.txt`: 463 -> 479 axioms, exactly D26's; no other collection moves),
-`verified-code.py` (linkv3p 9 of 9 functions; the bridge 11 of 14).
+`bridge.New`: the bridge owned and `forwards bridgeAddr clientAddr`), `partitioner` over both,
+`Main` (the clients at the bridges' addresses, `clientOk`'s registrations through
+`isGrpcRpc_forwards`), `Adequacy` (nine addresses; the run bound unchanged, `n + 2 ≤ 2 ^ 31`) and
+`Results`. Gates (after D26's decision): `lake build` (5931 jobs), every `gen-link` mode (the
+`--bridge` mode removed), `goose --check`, `gen-init --check`, `tcb-report --check` (the baseline:
+526 axioms, 2 sorries, D26's 5 axioms over the merge base's) and every collection (`linkv3p.txt`:
+463 -> 468, exactly D26's; no other collection moves), `verified-code.py` (linkv3p 9 of 9
+functions; the bridge's 14 translated, none verified: its 4 assumed specs are linked in
+linkv3p's `Link.lean`, which the script counts under linkv3p's project).
 
 ### K4. Failover (D-C4)
 

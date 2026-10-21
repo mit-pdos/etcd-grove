@@ -1,7 +1,7 @@
 /-
-`(*bridge).Unblackhole()` (`third_party/bridge/bridge.go`): under the mutex, closes every
-registered connection (waiting for its copy goroutines), empties the map and makes a new
-`blackholec`. Lean-first (no Rocq counterpart).
+`b.Unblackhole()` (`third_party/bridge/bridge.go`; `notes/client-cut-plan.md` K1): a trust-boundary spec, the
+bridge's code is not verified (`Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/Defs.lean`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -28,11 +28,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assump
 
 /-- **`b.Unblackhole()`**, blackholed or not: it returns, the bridge not blackholed. -/
 abbrev bridge.Unblackhole.spec : Prop :=
-  ∀ (b : Loc) (γ : BridgeNames) (addr : GoString) (h : Bool),
+  ∀ (b : Loc) (addr : GoString) (h : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗
-      isBridge b γ addr ∗ bridgeHoled γ h }}
+      bridgeAt b addr h }}
     (App (Val (b @!! go.GoType.PointerType bridge.bridge.ty @!! go!"Unblackhole")) (Val #()))
-  {{ RET #(); bridgeHoled γ false }}
+  {{ RET #(); bridgeAt b addr false }}
 
 end spec
 

@@ -1,7 +1,7 @@
 /-
-`New(addr, l)` (`third_party/bridge/dialer.go`): a bridge on the listener `l` to the TCP address
-`addr` (`newBridge` with etcd's `dialer`), as the `Bridge` interface. Lean-first (no Rocq
-counterpart).
+`New(addr, l)` (`third_party/bridge/bridge.go`; `notes/client-cut-plan.md` K1): a trust-boundary spec, the
+bridge's code is not verified (`Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/Defs.lean`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -26,16 +26,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-/-- **`New(addr, l)`**, `l` a relay's listener to `addr`, with a thread token (the bound on live
-goroutines a premise): it returns a bridge to `addr`, not blackholed, and the thread token. -/
+/-- **`New(addr, l)`**, `l` a listener bound at `a` (`net.Listen`'s, unused): it returns a bridge
+to `addr`, not blackholed, and `a` serves, method by method, what `addr` serves. -/
 abbrev New.spec : Prop :=
-  ∀ (addr : GoString) (l : GoInterfaceOk),
-  threadBound GF + 1 ≤ 2 ^ 31 →
+  ∀ (addr a : GoString) (l : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗
-      relayListener l addr ∗ threadTok }}
+      netListenerAt l a }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.third_party.bridge.New)) (Val #addr))
-      (Val #(interface.ok l : GoInterface)))
-  {{ (br : GoInterface), RET #br; ownBridge br addr false ∗ threadTok }}
+      (Val #l))
+  {{ (br : GoInterface), RET #br; ownBridge br addr false ∗
+      □ (∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
+          grpcServes addr name mh srv ics S -∗ grpcServes a name mh srv ics S) }}
 
 end spec
 

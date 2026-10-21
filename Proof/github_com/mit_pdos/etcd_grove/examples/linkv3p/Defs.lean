@@ -18,7 +18,7 @@ linkv3's. So the cluster's list (`ids`: the bootstrap log's order, one conf chan
 
 **What a started member gives** (`memberServed`) and **what a client's `Apply` takes**
 (`clientOk`) are at the end, with **what a bridge's start gives** (`forwards`: the bridge's
-address serves what the member's does, `Proof/net/InvRelay.lean`'s `grpc.relay`).
+address serves what the member's does, from the bridge's trust-boundary spec of `New`, D26).
 -/
 module
 
@@ -67,7 +67,7 @@ abbrev clientAddr₁ : GoString := go!"127.0.0.1:23831"
 abbrev clientAddr₂ : GoString := go!"127.0.0.1:23832"
 abbrev clientAddr₃ : GoString := go!"127.0.0.1:23833"
 
-/-- The bridges' addresses (each a relay to a member's client address, which its client dials;
+/-- The bridges' addresses (each a bridge to a member's client address, which its client dials;
 `notes/client-cut-plan.md`). -/
 abbrev bridgeAddr₁ : GoString := go!"127.0.0.1:23851"
 abbrev bridgeAddr₂ : GoString := go!"127.0.0.1:23852"
@@ -183,7 +183,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
-gives, from the forwarding fact `grpc.relay`). -/
+gives, from the bridge's trust-boundary spec of `New`). -/
 def forwards (a b : GoString) : IProp GF :=
   iprop(□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
     grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S)

@@ -11988,79 +11988,67 @@ linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's s
 unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
 repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.
 
-## D26: the bridge's trust boundary: relayed bytes, and the forwarding fact (2026-10-21 · proposed, asked of the user; `notes/client-cut-plan.md` K1)
+## D26: the bridge is part of the network: trust-boundary specs, its code not verified (2026-10-21 · decided by the user; `notes/client-cut-plan.md` K1)
 
 **Problem.** linkv3p's clients reach their members through a copy of etcd's test bridge
-(`third_party/bridge`, D-C1 of the plan): a TCP proxy that accepts at a bridge address `a`, dials
-the member's client address `b` once per accepted connection, and copies bytes both ways (or
-drops them: `Blackhole`; or closes the connections: `DropConnections`, `Unblackhole`). The
-client's results need `isGrpcRpc a name Spec` (the registrations at the address it dials), and
-the members give `isGrpcRpc b name Spec`. Perennial has no network model, and gRPC's wire
-protocol is not modeled: the step from `b` to `a` cannot be proved, it is a trust-boundary fact.
-The bridge's own code (goroutines, channels, a mutex, a map, a `WaitGroup`) is to be proved (K2),
-over specs of `net`'s and `io`'s calls it makes, which are names-only here: `Listener.Accept`,
-`Listener.Close`, `net.Dial`, `Conn.Read`, `Conn.Write`, `Conn.Close`, `io.Copy(io.Discard, c)`.
-
-**What the forwarding fact may not be.** The plan's first form, "a listener bound at `a`, given
-up, makes `a` serve what `b` serves", is **unsound**: the listener's connections could then be
-used by any code, and a byte-agnostic `Write` spec would let it write any reply, which a client
-at `a` would take as a successful run of `b`'s handler (`grpcInvokerOk`'s `nil` branch gives the
-`Spec`'s `Φ`). Equally, an injected request would reach `b`'s handler with no client's
-precondition behind it. The fact is true only of a program that *relays*: every connection
-accepted at `a` paired with one connection dialed to `b`, and the bytes written each way a prefix
-of the bytes read from the other end. So the fact must come with specs of `Read` and `Write` that
-enforce that.
+(`third_party/bridge`): a TCP proxy that accepts at a bridge address `a`, dials the member's client
+address `b` once per accepted connection, and copies bytes both ways, or drops them (`Blackhole`),
+or closes the connections (`DropConnections`, `Unblackhole`). The client's results need
+`isGrpcRpc a name Spec` (the registrations at the address it dials); the members give
+`isGrpcRpc b name Spec`. Perennial has no network model and gRPC's wire protocol is not modeled, so
+the step from `b` to `a` is a trust-boundary fact either way.
 
 **Options.**
 
-- (a) **Relayed bytes** (recommended). The ghost state of a relay `γ` (from `a` to `b`) holds, for
-  each connection direction a copying thread owns, the bytes read from the source and written to
-  the destination; `Write` requires the bytes written to stay a prefix of the bytes read. The
-  axioms:
-  - `grpc.relay`: `netListenerAt l a ⊢ |==> ∃ γ, relayListener γ l b ∗ □ (∀ name mh srv ics S,
-    grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S)`. The listener is given up
-    (no one else serves at `a`); what `a` then serves is `b`'s, method by method.
-  - `relayListener γ l b` (persistent): `l.Accept()` returns a connection `c` with `netConn c`
-    (persistent: `Close` from any thread, any number of times, as Go's `net.Conn` allows) and the
-    exclusive `relayFresh γ c`, or an error; `l.Close()` returns, from any thread.
-  - `net.Dial("tcp", b)` returns a connection `d` with `netConn d` and `netDialed d b`, or an error.
-  - `relayPair`: `relayListener γ l b ∗ relayFresh γ c ∗ netDialed d b ⊢ |==> relayDir γ c d [] []
-    ∗ relayDir γ d c [] []`: the two directions of a bridged connection, one per copying thread.
-  - `relayDir γ s t rd wr` (exclusive): `s.Read(buf)` (through `io.Reader`) returns `n` and an
-    error, the buffer's first `n` bytes the new ones, `rd` extended by them; `t.Write(buf)` of
-    bytes `bs` with `wr ++ bs` a prefix of `rd` returns `nw`, `wr` extended by the first `nw` of
-    `bs`; `io.Copy(io.Discard, s)` returns, `rd` extended, `wr` unchanged.
-  The fact is true of the bridge, and the bridge's proof shows it (its copy loop writes exactly
-  what it read; the blackhole branch only reads). Why the fact holds of gRPC: an HTTP/2
-  connection is a byte stream with length-prefixed frames; a prefix of a peer's bytes is what a
-  slow or cut connection delivers anyway; a unary call succeeds only on a complete response
-  message and the trailers' `grpc-status: 0` (`END_STREAM`), so a cut response surfaces as the
-  attempt's error, which `grpcInvokerOk` allows (with or without the handler having run); a
-  request is handed to the handler only complete, and at most once (D21j: no byte is duplicated
-  by a relay). The `:authority` the client sends names `a`, which etcd's server ignores (no TLS,
-  no per-authority routing).
-- (b) The bridge axiomatized whole: `New`, `Blackhole`, ... return; `New` gives the forwarding.
-  Fewer axioms, but the bridge's goroutines and its `Blackhole`-twice panic
-  (`issues/etcd-bridge-blackhole-twice-panic.md`) would be outside the theorem.
+- (a) **The bridge proved, over relay specs of `net`.** The forwarding fact (`grpc.relay`: a
+  listener bound at `a`, given up to a relay to `b`, serves what `b` serves) is unsound with
+  byte-agnostic `Read`/`Write` specs: a program could write any reply, which a client at `a` would
+  take as a run of `b`'s handler. So the fact comes with specs that enforce relaying: each accepted
+  connection paired with one dialed to `b`, and the bytes written each way a prefix of those read.
+  16 axioms (`relayListener`, `relayFresh`, `relayDir`, `netDialed`, `netConnOk`, `Accept`,
+  `Read`, `Write`, `Close`s, the pairing, `net.Dial`, `io.Copy` to `io.Discard`), `net.Conn`
+  translated as an interface, and the bridge's 11 functions proved.
+- (b) **The bridge as part of the network** (chosen). The bridge is test infrastructure, a
+  stand-in for the network, which the proof already lets fail: each attempt of
+  `ClientConn.Invoke` is a run of the handler served or an error (`InvGrpc.lean`). So
+  `linkv3p_safe` held for every pattern of client-member failures before the bridge; the bridge
+  only makes the test produce them. Proving its code would show that a 229-line test helper
+  relays faithfully and does not panic, which strengthens nothing the theorem says about etcd. Its
+  calls get trust-boundary specs: 5 axioms.
 - (c) No proxy: a "cut" is `cli.Close()` and recovery a new client. No new trust, but no call is
   ever cut by the network.
 
-**Proposal: (a).** It keeps the bridge in the program (its panics, its locking and its
-`WaitGroup` proved), and the forwarding fact says only what a relay that never alters, reorders,
-duplicates or invents bytes guarantees.
+**Decision: (b)** (the user, 2026-10-21, after (a) had been carried out on branch `client-cut`:
+"why does the bridge need be spec-ed and proven at all? can't be modeled as part of the inside of
+the network?"). The bridge runs in the program's process (the partitioner calls it), so it cannot
+leave the program: Perennial's adequacy covers every thread. Its specs
+(`Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`):
 
-**Trust base (estimate).** +1 the forwarding fact (`grpc.relay`); +4 predicates (`relayListener`,
-`relayFresh`, `relayDir`, `netDialed`, with `netConn`), each axiomatized with the specs above
-(`Accept`, `Listener.Close`, `Read`, `Write`, `Conn.Close`, `relayPair`, `relayDir`'s
-persistence of `netConn`); `net.Dial` and `io.Copy` (to `io.Discard`) as `Spec`/`Proof` pairs.
-`linkv3p.txt` gains these and nothing else.
+- `bridgeAt b addr h` (exclusive, axiomatized): `b` is a bridge to `addr`, blackholed if `h`; its
+  goroutines run on their own, without panicking (its wait group counts one goroutine per live
+  connection, far below `2^31`).
+- `New(addr, l)`, `l` a listener bound at `a` (`netListenerAt`): a bridge to `addr`, not
+  blackholed, and `a` serves what `addr` serves, method by method (the forwarding fact).
+- `Blackhole` of a bridge not blackholed (a second one panics:
+  `issues/etcd-bridge-blackhole-twice-panic.md`): blackholed. `Unblackhole`: not blackholed.
+  `DropConnections`: unchanged.
 
-**Status.** Proposed 2026-10-21 while the user was away, with the instruction to keep going, and
-carried out on branch `client-cut` (K2 and K3: the bridge proved over these specs, `linkv3p_safe`
-re-closed over the bridges); still to be approved. A different choice changes the bridge's
-`net` calls and `startBridge`. As stated: `Proof/net/InvRelay.lean` (`grpc.relay`, the relay's
-predicates, `relay.Accept`, `relay.ListenerClose`, `net.ConnClose`, `relay.pair`, `relay.Read`,
-`relay.Write`), `Spec/net/Dial.lean` and `Spec/io/Copy.lean` with their axioms: 16 axioms in all,
-which `etc/tcb-collections/linkv3p.txt` gains and nothing else. `net.Conn` is translated as an
-interface (`Code/net.toml`), which removes nothing from any trust base (its axiomatized type was
-reached by no result).
+Why the forwarding fact holds of the bridge and gRPC: the bridge only copies bytes, so each side
+receives a prefix of what the other sent, which is what a slow or cut connection delivers anyway;
+an HTTP/2 connection is a byte stream with length-prefixed frames; a unary call succeeds only on a
+complete response and the trailers' `grpc-status: 0`, so a cut response surfaces as the attempt's
+error (`grpcInvokerOk` allows it, with or without the handler having run); a request reaches the
+handler only complete, and at most once (D21j: the bridge duplicates no byte). The `:authority`
+the client sends names `a`, which etcd's server ignores (no TLS, no per-authority routing).
+
+**What it costs.** The bridge's code is trusted: a bug in it that altered bytes would make the
+fact false (porcupine would likely see it in the test, the theorem would not). The
+`Blackhole`-twice panic was found reading the code; the spec's premise records it.
+
+**Trust base.** `etc/tcb-collections/linkv3p.txt` gains 5 axioms (`bridgeAt`, `New.wp_proof`,
+`bridge.Blackhole.wp_proof`, `bridge.Unblackhole.wp_proof`, `bridge.DropConnections.wp_proof`) and
+nothing else; the bridge's functions count as assumed in `etc/verified-code.py`. (a)'s
+`Proof/net/InvRelay.lean`, `net.Dial`/`io.Copy` specs, `net.Conn` translation and the bridge's
+proofs were removed; they are in the branch's history (`client-cut` K1-K3, commits `28168a5756`
+to `9abbdac478`) if a proof of the bridge is ever wanted.
+

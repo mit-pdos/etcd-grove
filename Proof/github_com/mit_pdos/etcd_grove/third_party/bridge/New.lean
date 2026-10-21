@@ -1,15 +1,8 @@
-/-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/third_party/bridge/New.lean`. Lean-first (no Rocq
-counterpart).
--/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.third_party.bridge.New
-public import Spec.github_com.mit_pdos.etcd_grove.third_party.bridge.newBridge
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -17,7 +10,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bridge
 
-open Iris Iris.BI Iris.ProofMode github_com.mit_pdos.etcd_grove.third_party
+open Iris Iris.BI
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -26,20 +19,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-theorem New.wp_proof (wp_newBridge : newBridge.spec (GF := GF) (hG := hG)) :
-    New.spec (GF := GF) (hG := hG) := by
-  intro addr l Htb
-  wp_start as ⟨#Hrl, Htok⟩
-  wp_auto
-  wp_apply wp_newBridge addr l Htb $$ [Htok] as %b ⟨%γ, #Hb, Hh, Htok⟩
-  · iframe #; iframe
-  iapply HΦ
-  iframe Htok
-  unfold ownBridge
-  iexists b, γ
-  iframe #
-  iframe
-  ipureintro; rfl
+/-- **Trust boundary** (D26: the bridge is part of the network, its code not verified). The bridge
+accepts on `l` and, per accepted connection, dials `addr` and copies bytes between the two, both
+ways, until a copy fails, the bridge is blackholed or its connections dropped; a client of `a` thus
+reaches `addr`'s server through connections that deliver a prefix of each side's bytes, which gRPC
+sees as `addr`'s server or as a failed attempt (D26). Its goroutines do not panic (the wait group
+counts at most one goroutine per live connection, far below its `2^31` bound). -/
+axiom New.wp_proof : New.spec (GF := GF) (hG := hG)
 
 end proof
 

@@ -77,7 +77,7 @@ theorem clientStep.wp_proof
     iprop(∃ addr : GoString, bridge.ownBridge (GF := GF) br addr h)) Hbr_lookup Hh_lookup) $$ Hown
     with ⟨⟨%addr, Hob⟩, Hback⟩
   iunfold bridge.ownBridge at Hob
-  icases Hob with ⟨%bp, %γ, %Hbrv, #Hb, Hh⟩
+  icases Hob with ⟨%bp, %Hbrv, Hh⟩
   subst Hbrv
   wp_if_destruct
   · -- a blackhole, unless the bridge is blackholed
@@ -87,7 +87,7 @@ theorem clientStep.wp_proof
     (try wp_auto)
     cases h
     · (try wp_auto)
-      wp_apply (wp_Blackhole bp γ addr) $$ [Hh] as Hh
+      wp_apply (wp_Blackhole bp addr) $$ [Hh] as Hh
       · iframe #; iframe
       (try wp_auto)
       simp only [hAh, _root_.and_self, ↓reduceIte]
@@ -103,8 +103,7 @@ theorem clientStep.wp_proof
       iapply Hall
       iexists addr
       iunfold bridge.ownBridge
-      iexists bp, γ
-      iframe #
+      iexists bp
       iframe
       ipureintro; rfl
     · (try wp_auto)
@@ -117,14 +116,13 @@ theorem clientStep.wp_proof
       iapply Hall
       iexists addr
       iunfold bridge.ownBridge
-      iexists bp, γ
-      iframe #
+      iexists bp
       iframe
       ipureintro; rfl
   (try wp_auto)
   wp_if_destruct
   · -- an unblackhole
-    wp_apply (wp_Unblackhole bp γ addr h) $$ [Hh] as Hh
+    wp_apply (wp_Unblackhole bp addr h) $$ [Hh] as Hh
     · iframe #; iframe
     (try wp_auto)
     simp only [hAh, _root_.and_self, ↓reduceIte]
@@ -140,13 +138,12 @@ theorem clientStep.wp_proof
     iapply Hall
     iexists addr
     iunfold bridge.ownBridge
-    iexists bp, γ
-    iframe #
+    iexists bp
     iframe
     ipureintro; rfl
   · -- a drop
-    wp_apply (wp_DropConnections bp γ addr) $$ []
-    · iframe #
+    wp_apply (wp_DropConnections bp addr h) $$ [Hh] as Hh
+    · iframe #; iframe
     (try wp_auto)
     iapply HΦ
     iexists hs
@@ -157,8 +154,7 @@ theorem clientStep.wp_proof
     iapply Hall
     iexists addr
     iunfold bridge.ownBridge
-    iexists bp, γ
-    iframe #
+    iexists bp
     iframe
     ipureintro; rfl
 

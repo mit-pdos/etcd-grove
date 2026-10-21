@@ -1,6 +1,7 @@
 /-
-`(*bridge).Blackhole()` (`third_party/bridge/bridge.go`): closes `blackholec` under the mutex, so
-that every copy loop drops what it reads from then on. Lean-first (no Rocq counterpart).
+`b.Blackhole()` (`third_party/bridge/bridge.go`; `notes/client-cut-plan.md` K1): a trust-boundary spec, the
+bridge's code is not verified (`Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/Defs.lean`).
+Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -25,15 +26,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
-/-- **`b.Blackhole()`** of a bridge that is not blackholed (the owner's flag `false`: a second
-`Blackhole` would close a closed channel, `issues/etcd-bridge-blackhole-twice-panic.md`): it
-returns, the bridge blackholed. -/
+/-- **`b.Blackhole()`** of a bridge that is not blackholed (a second `Blackhole` closes a closed
+channel, `issues/etcd-bridge-blackhole-twice-panic.md`): it returns, the bridge blackholed. -/
 abbrev bridge.Blackhole.spec : Prop :=
-  ∀ (b : Loc) (γ : BridgeNames) (addr : GoString),
+  ∀ (b : Loc) (addr : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗
-      isBridge b γ addr ∗ bridgeHoled γ false }}
+      bridgeAt b addr false }}
     (App (Val (b @!! go.GoType.PointerType bridge.bridge.ty @!! go!"Blackhole")) (Val #()))
-  {{ RET #(); bridgeHoled γ true }}
+  {{ RET #(); bridgeAt b addr true }}
 
 end spec
 

@@ -9,6 +9,10 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.New
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Blackhole
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.http.Serve
@@ -25,7 +29,6 @@ public import Proof.net.Listen
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
-public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
@@ -67,6 +70,22 @@ variable [NaInvG GF]
 theorem EtcdServer.wp_RaftHandler :
     EtcdGrove.EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.EtcdServer.RaftHandler.wp_proof
+
+theorem bridge.wp_New :
+    EtcdGrove.bridge.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.New.wp_proof
+
+theorem bridge.bridge.wp_Blackhole :
+    EtcdGrove.bridge.bridge.Blackhole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.bridge.Blackhole.wp_proof
+
+theorem bridge.bridge.wp_DropConnections :
+    EtcdGrove.bridge.bridge.DropConnections.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.bridge.DropConnections.wp_proof
+
+theorem bridge.bridge.wp_Unblackhole :
+    EtcdGrove.bridge.bridge.Unblackhole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.bridge.Unblackhole.wp_proof
 
 theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=

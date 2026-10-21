@@ -41,7 +41,7 @@ links: []
 - **How the proof handles it**: `third_party/bridge` stays upstream's file. `examples/linkv3p`'s
   `partitioner` (a schedule may blackhole a bridge any number of times: its theorem is "for
   every schedule") records which bridges are blackholed and skips a second `Blackhole`
-  (`clientStep`'s `holed`). The bridge's spec of `Blackhole`
-  (`Spec/github_com/mit_pdos/etcd_grove/third_party/bridge/bridge__Blackhole.lean`) takes the
-  bridge unblackholed (the owner's flag `bridgeHoled γ false`) as its premise, and `clientStep`'s
-  proof meets it from `holed[a]`.
+  (`clientStep`'s `holed`). The bridge's trust-boundary spec of `Blackhole`
+  (`Spec/github_com/mit_pdos/etcd_grove/third_party/bridge/bridge__Blackhole.lean`; the bridge's
+  code is not verified, `notes/decisions.md` D26) takes the bridge unblackholed
+  (`bridgeAt b addr false`) as its premise, and `clientStep`'s proof meets it from `holed[a]`.

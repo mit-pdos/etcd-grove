@@ -1,8 +1,7 @@
 /-
 `startBridge(addr, client)` (`examples/linkv3p/linkv3p.go`; `notes/client-cut-plan.md` K0/K3): a
-listener at `addr` (`net.Listen`), given up to a relay to `client` (the forwarding fact
-`grpc.relay`, `Proof/net/InvRelay.lean`), and the bridge on it (`bridge.New`). Lean-first (no Rocq
-counterpart).
+listener at `addr` (`net.Listen`) and the bridge on it to `client` (`bridge.New`, a trust-boundary
+spec: the bridge is part of the network, D26). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -25,17 +24,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 
-/-- **`startBridge(addr, client)`**, the address `addr` the program's (`netAddrFree`), with a
-thread token: it returns the token and either the bridge to `client` (owned, not blackholed) with
-`addr` serving what `client` serves (`forwards`), or a non-nil error. -/
+/-- **`startBridge(addr, client)`**, the address `addr` the program's (`netAddrFree`): it returns
+either the bridge to `client` (owned, not blackholed) with `addr` serving what `client` serves
+(`forwards`), or a non-nil error. -/
 abbrev startBridge.spec : Prop :=
   ∀ (addr client : GoString),
-  threadBound GF + 1 ≤ 2 ^ 31 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
-      netAddrFree (GF := GF) addr ∗ threadTok }}
+      netAddrFree (GF := GF) addr }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge)) (Val #addr))
       (Val #client))
-  {{ (br err : GoInterface), RET (PairV #br #err); threadTok ∗
+  {{ (br err : GoInterface), RET (PairV #br #err);
       ((⌜err = GoInterface.nil⌝ ∗ bridge.ownBridge br client false ∗ forwards addr client) ∨
         ⌜err ≠ GoInterface.nil⌝) }}
 
