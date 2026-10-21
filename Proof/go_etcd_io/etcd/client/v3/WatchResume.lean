@@ -31,10 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- A create without start-read needs nothing. -/
 theorem startOk_false (V : WEnv GF) (rev : w64) : ⊢ startOk V false rev := by
-  unfold startOk mvcc.startRead
-  isplitl
-  · ileft; ipureintro; rfl
-  · ileft; ipureintro; rfl
+  unfold startOk
+  ileft; ipureintro; rfl
 
 /-- What a promised completeness says of the watch's start revision. -/
 theorem cplCond_rev {sr : Bool} {o : OpFull} {rev : w64} (h : cplCond sr o rev = true) :

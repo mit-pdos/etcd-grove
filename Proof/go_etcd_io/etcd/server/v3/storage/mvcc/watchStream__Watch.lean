@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF := GF) (hG := hG)) :
     mvcc.watchStream.Watch.spec (GF := GF) (hG := hG) := by
-  intro ws wa P γ ctx cd id key endk fcs k e fs startRev sr
-  wp_start as ⟨Hws, #Hctx, #Hk, #He, #Hfcs, #Hfs, HPR, HPT, %Hsr0, #Hsrp⟩
+  intro ws wa P γ ctx cd id key endk fcs k e fs startRev
+  wp_start as ⟨Hws, #Hctx, #Hk, #He, #Hfcs, #Hfs, HPR, HPT, %Hsr0⟩
   obtain ⟨Hsr, Hid0⟩ := Hsr0
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
@@ -173,7 +173,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
         rcases hstep with ⟨h0, -⟩ | ⟨h0, -⟩
         · exact absurd rfl h0
         · intro h; rw [h] at h0; revert h0; decide
-      wp_apply Hwatch $$ [$HCR $HPR $HPT $Hreg $Hsrp] as %w %c
+      wp_apply Hwatch $$ [$HCR $HPR $HPT $Hreg] as %w %c
         ⟨%hwnn, #HIW, #HOC, #Hcspec, HCR, HPR, ⟨%lo, #HIWF⟩, %Hbnd, #HWS, ⟨Hids, #Hia, Hit⟩⟩
       · iframe #
         ipureintro; exact ⟨Hsr, hidm⟩

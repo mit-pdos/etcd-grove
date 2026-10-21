@@ -88,8 +88,9 @@ structure CreateReqM where
   prevKv : Bool
   watchId : w64
   fragment : Bool
-  /-- (K2e-6; ghost, not on the wire) the client's start revision was read from the store: the
-  request comes with `mvcc.startRead` (`watchUp`), the watcher registered with it. -/
+  /-- (ghost, not on the wire) the client promises the watch's completeness (`cplCond`, the
+  client's): the server no longer reads it (W2 of `notes/watch-cut-plan.md`: a progress
+  notification is above every watcher's first revision, by `progressIfSync`'s guard). -/
   sr : Bool := false
 
 /-- **A `*pb.WatchRequest`** as the server reads it: its oneof. `other` is a request the server
@@ -483,7 +484,7 @@ def ctrlWatcher (γ : mvcc.WsNames) (γo : mvcc.WsStreamNames) (req : WatchReqM)
       iprop(∃ (w : Loc) (r : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
         ⌜createRangeOk c m.watchId r⌝ ∗ mvcc.watcherIs γ w r fcs lo ∗
         fcs ↦*□ ([] : List GoFunc) ∗
-        (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw ∗ ⌜γw.sr = c.sr⌝) ∗
+        (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta γ w γw) ∗
         mvcc.idAssigned γo m.watchId w ∗ mvcc.idTok γo m.watchId ∗
         ∃ (l : List mvcc.RespM) (n : Nat), mvcc.streamSentLb γo l ∗ mvcc.streamRegAt γo w n ∗
           ⌜n ≤ l.length⌝)

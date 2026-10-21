@@ -783,12 +783,11 @@ theorem cmpl_cov (V : WEnv GF) (Dm : List v3rpc.WatchRespM) (x : mvcc.RespM)
       (pre.filter (fun y => decide (y.w = w))).filter (fun y => decide (y.evs ≠ [])))
     (hlo1 : 1 ≤ lo) :
     mvcc.covFact (GF := GF) V.R.γ γc pre w x.rev ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
-      fcs ↦*□ ([] : List GoFunc) ∗
-      (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = true⌝) ⊢
+      fcs ↦*□ ([] : List GoFunc) ⊢
       ∃ (Lc : mvcc.Log) (dd p : Nat), mvcc.evLog (GF := GF) V.R.γ.st Lc ∗
         ⌜x.rev = W64 (p : Int) ∧ p < 2 ^ 63 ∧ evsOf Dm w = mvcc.watchEvents Lc rg lo dd ∧
           p + 1 ≤ dd ∧ (dd ≤ p + 1 ∨ dd ≤ lo) ∧ (dd ≤ Lc.length ∨ dd ≤ lo) ∧ lo ≤ p + 1⌝ := by
-  iintro ⟨#Hcf, #Hw, #Hfcs, ⟨%γw1, #Hm1, %Hsr⟩⟩
+  iintro ⟨#Hcf, #Hw, #Hfcs⟩
   iunfold mvcc.covFact at Hcf
   icases Hcf with ⟨%γw, %r, %fcs', %D, %L, %d, #Hm, -, #Hf, #HL, #HDf, %HD⟩
   iunfold mvcc.watcherIs at Hw
@@ -799,10 +798,9 @@ theorem cmpl_cov (V : WEnv GF) (Dm : List v3rpc.WatchRespM) (x : mvcc.RespM)
     · iexact Hf0
     · iexact Hf
   obtain ⟨rfl, rfl⟩ := Hag
-  iunfold mvcc.watcherMeta at Hm Hm0 Hm1
+  iunfold mvcc.watcherMeta at Hm Hm0
   ihave %Hmeq := ghostMapElem_agree _ _ _ _ _ _ $$ Hm Hm0
-  ihave %Hmeq1 := ghostMapElem_agree _ _ _ _ _ _ $$ Hm Hm1
-  subst Hmeq Hmeq1
+  subst Hmeq
   ihave %Hkeep : ⌜∀ dl ∈ D, dl.2 = dl.1⌝ $$ []
   · iintro %dl %hdl
     icases HDf $$ %dl %hdl with ⟨%fs, Hfi, %Hdl⟩
@@ -817,7 +815,7 @@ theorem cmpl_cov (V : WEnv GF) (Dm : List v3rpc.WatchRespM) (x : mvcc.RespM)
     unfold mvcc.filtered
     simp
   obtain ⟨h1, h2, h3, h4, h5, -, h7⟩ := HD
-  have hlo' : (γw.lo : Int) ≤ sint.Z x.rev + 1 := h7 Hsr
+  have hlo' : (γw.lo : Int) ≤ sint.Z x.rev + 1 := h7
   rw [Hlo.1] at h2 h3 h5 hlo'
   have hx0 : 0 ≤ sint.Z x.rev := by omega
   iexists L, d, (sint.Z x.rev).toNat

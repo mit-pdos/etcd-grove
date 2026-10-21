@@ -302,19 +302,15 @@ def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.Crea
 
 /-! ## One watch: its request and its substream -/
 
-/-- **A watch's start** (persistent; K2e-6, K2e-7d): for a watch registered with `sr`, its start
-revision was read from the server's store (`mvcc.startRead`) and etcd had reached the revision
-before it. -/
+/-- **A watch's start** (persistent; K2e-7d): for a watch registered with `sr` (a promised
+completeness), etcd had reached the revision before its start. (Until W2 of
+`notes/watch-cut-plan.md`, 2026-10-21, also mvcc's `startRead`, which the server no longer needs.) -/
 def startOk (V : WEnv GF) (sr : Bool) (rev : w64) : IProp GF :=
-  iprop(mvcc.startRead V.R.γ sr rev ∗ (⌜sr = false⌝ ∨ etcdReached (EM := V.EM) (rev - W64 1)))
+  iprop(⌜sr = false⌝ ∨ etcdReached (EM := V.EM) (rev - W64 1))
 
 instance startOk_persistent (V : WEnv GF) (sr : Bool) (rev : w64) :
     Persistent (startOk V sr rev) := by
   unfold startOk; infer_instance
-
-theorem startOk_read (V : WEnv GF) (sr : Bool) (rev : w64) :
-    startOk V sr rev ⊢ mvcc.startRead V.R.γ sr rev := by
-  unfold startOk; iintro ⟨#H, -⟩; iexact H
 
 /-- **A watch's values** (fixed when `run` takes its request): the request's model (`o`, the start
 revision `rev`), its context (`ctx`, `cs`), its `watchRequest`'s fields (`key`, `ed` the range end,
@@ -347,8 +343,8 @@ structure WsPrm (GF : BundledGFunctors) where
   /-- the substream's goroutine has stopped for good (a one-shot flag: `false`, owned by the
   goroutine while it runs; `true`, read-only, published by its `donec`) -/
   γx : GName
-  /-- (K2e-6) the watch's start revision was read from the server's store (`mvcc.startRead`):
-  its create request says so (`CreateReqM.sr`) -/
+  /-- the watch promises its completeness (`cplCond`): its create request says so
+  (`CreateReqM.sr`, ghost) -/
   sr : Bool
   /-- (D25) the status of `recvc`'s positions: a ghost map from a position to whether a goroutine
   of the substream started there (`true`, `lifeStart`) or `run` sent a response there that is not

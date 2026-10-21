@@ -95,7 +95,7 @@ def regFacts (V : WEnv GF) (γs : StreamNames) (Dm : List v3rpc.WatchRespM) (P :
     (X : w64) (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) : IProp GF :=
   iprop(⌜v3rpc.createRangeOk (createOfB P B) X rg⌝ ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
     fcs ↦*□ ([] : List GoFunc) ∗
-    (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = B.srr⌝) ∗ regSnap γs Dm w ∗
+    (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw) ∗ regSnap γs Dm w ∗
     ∃ (γo : mvcc.WsStreamNames) (γa : GName), streamAuxIs γs (v3rpc.auxOf γo γa) ∗
       mvcc.idAssigned γo X w)
 
@@ -795,7 +795,7 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (h
   icases Hrc with ⟨#Hcf, -, -, #Hrr⟩
   ihave #Hcfw := Hcf $$ %w %hwc
   iunfold regFacts at Hrf
-  icases Hrf with ⟨%Hcr, #Hwi, #Hfcs, ⟨%γw, #Hmw, %Hsr⟩, -, -⟩
+  icases Hrf with ⟨%Hcr, #Hwi, #Hfcs, -, -, -⟩
   obtain ⟨hsr, hrev1, hcov, hstart, hid⟩ := cpl_facts V P B X rg hok hcplP hcpl hB Hcr
   ihave %Hlo := cpl_lo V w rg fcs lo B.rr hstart hrev1 $$ Hwi
   ihave #Hwi' := Hwi
@@ -803,9 +803,8 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (h
   icases Hwi' with ⟨%γw0, %C0, -, #Hwfix, -, -, -⟩
   ihave %Hfe := Hfwd $$ %w %rg %fcs Hwfix
   have hfe := Hfe (by rw [hid]; exact hX1) (by rw [hid]; exact hlive) (by rw [hid]; exact hxid)
-  ihave ⟨%Lc, %dd, %p, #HLc, %Hcc⟩ := cmpl_cov V L x γc pre w rg fcs lo hfe (by omega) $$ [Hcfw Hwi Hfcs Hmw]
+  ihave ⟨%Lc, %dd, %p, #HLc, %Hcc⟩ := cmpl_cov V L x γc pre w rg fcs lo hfe (by omega) $$ [Hcfw Hwi Hfcs]
   · iframe Hcfw Hwi Hfcs
-    iexists γw; iframe Hmw; ipureintro; rw [Hsr, hsr]
   obtain ⟨hpx, hp63, hE, hd1, hd2, hd3, hlop⟩ := Hcc
   have hdd : dd = p + 1 := by omega
   subst hdd
@@ -814,7 +813,7 @@ theorem prog_cmpl (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (h
   · iframe Hc Hax Hsl0 Hrr
   obtain ⟨q, hqc, hqp⟩ := Hq
   iunfold startOk at Hso
-  icases Hso with ⟨-, (%hf | #Hr0)⟩
+  icases Hso with (%hf | #Hr0)
   · rw [hsr] at hf; cases hf
   ihave #Hpos : chanPos γs x $$ []
   · unfold chanPos

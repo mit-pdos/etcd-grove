@@ -92,16 +92,9 @@ theorem resumeF_evless (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (L : mvcc.Lo
   iright
   have hp : resumePos r = r.hdrRev := by simp [resumePos, hr]
   rw [hp]
-  unfold startOk mvcc.startRead
-  isplitl
-  · iright; iright; ileft
-    iexists L
-    iframe HL
-    ipureintro
-    have : sint.Z (r.hdrRev + W64 1) ≤ sint.Z r.hdrRev + 1 := by word
-    omega
-  · iright
-    iapply etcdReached_mono (EM := V.EM) r.hdrRev (r.hdrRev + W64 1 - W64 1) (by word) $$ Hre
+  unfold startOk
+  iright
+  iapply etcdReached_mono (EM := V.EM) r.hdrRev (r.hdrRev + W64 1 - W64 1) (by word) $$ Hre
 
 /-- **The resume fact of a response with events**, the last at a revision `j` of a delivered
 log (released: `relLb`, the log's length). -/
@@ -114,17 +107,9 @@ theorem resumeF_events (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (e : EvModel
   iright
   have hp : resumePos r = e.rev := by simp [resumePos, hlast]
   rw [hp]
-  unfold startOk mvcc.startRead
-  isplitl
-  · iright; iright; iright
-    iexists n
-    iframe Hn
-    ipureintro
-    rw [he]
-    have : sint.Z (W64 (j : Int) + W64 1) = (j : Int) + 1 := by word
-    omega
-  · iright
-    iapply etcdReached_mono (EM := V.EM) e.rev (e.rev + W64 1 - W64 1) (by word) $$ Hre
+  unfold startOk
+  iright
+  iapply etcdReached_mono (EM := V.EM) e.rev (e.rev + W64 1 - W64 1) (by word) $$ Hre
 
 /-- **The resume fact of a response with events, delivered**: the events (`r.events`, made of the
 mvcc events `evs`) end the watcher's delivered events of a delivered log `L` (released,

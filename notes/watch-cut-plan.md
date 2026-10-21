@@ -195,6 +195,24 @@ settles Q4, so linkv3p's translation and proofs are untouched. One run under `-r
   (`memberServed`).
 - Check the lagging-member case (Q3).
 
+**W2a done (2026-10-21): the resume needs nothing of the member it reaches.**
+- mvcc no longer takes the client's `startRead`. A watcher's ghost bit `now` (was `sr`, chosen by
+  the client) is set by the server: a watch from now (start revision `0`). Its first revision is
+  then within the notified log (`srBelow`, unchanged in form).
+- Any other watcher starts at its start revision, and `progressIfSync`'s guard (`rev < w.startRev`:
+  no progress notification) bounds it: the loop records, per watcher, `now ∨ lo ≤ rev`.
+- So a response's coverage bound is unconditional (`covFact`, `covEntry`: `lo ≤ rev + 1`).
+  `startRead`, `startRead_le`, `wlogQ_lb_valid`, `WatchParams.SR` and `watch`'s `sr` binder are
+  gone, and so are the client's `startOk_read`, `startRead_of_etcdRead` and the `γw.sr = c.sr`
+  links. `startOk` keeps only its client half: etcd had reached the revision before the start.
+- The lagging-member case (Q3) is covered by the same guard.
+- Specs of verified functions changed: `watchableStore.watch` and `watchStream.Watch` lose a premise
+  (stronger). Trust base unchanged (530 axioms, 2 sorries).
+
+**W2b done: the lifting lemma.** `kv_cert_cmp` and `kv_cert_rev` (`etcdserver/KVCertCmp.lean`):
+two members' certified logs of more than two revisions are in prefix order, so they agree at every
+revision both have. Not yet used: W3 imports it.
+
 ### W3. The client: the watch over several members
 
 - `WEnv` without a fixed server: the shared names, and the members' addresses.

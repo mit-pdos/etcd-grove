@@ -520,7 +520,11 @@ runs it (the plan's Q4); linkv3p's translation and proofs are untouched.
 The lifting lemma, scoped (the plan's section): small, but the boundary is per member (D30 (b)),
 and a resume at a lagging member needs a cluster-wide `startRead` case (W2). The examples'
 `go.mod` files now replace etcd by the translation's pin `b3c29bc17` (they were at `8a24be2a3`,
-before the watch-resume fixes F1–F4). D30 approved; W1 (carrying it out) with W2.
+before the watch-resume fixes F1–F4). D30 approved. W2a done: mvcc's progress bound comes from etcd's own guard
+(`progressIfSync`'s `rev < w.startRev`), so a watch's create needs nothing of the member it reaches
+(`startRead` removed; the watcher's bit `now` is the server's). W2b done: the lifting lemma
+(`kv_cert_cmp`, `KVCertCmp.lean`). Next: W2c (linkv3p's members serve the watch stream), then W1
+(D30's specs) and W3.
 
 ## Read retries (2026-10-21, branch `read-retry`)
 

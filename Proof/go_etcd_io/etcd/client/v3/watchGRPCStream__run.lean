@@ -478,9 +478,7 @@ theorem watchGRPCStream.run.wp_proof
         · iframe
           unfold v3rpc.watchUp
           iframe
-          isplitr
-          · ipureintro; simp [v3rpc.watchReqOk, createOf]
-          dsimp only; iframe; simp only [createOf]; iapply client.startOk_read $$ Hsrd0
+          ipureintro; simp [v3rpc.watchReqOk, createOf]
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
             cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗ ⌜client.addCase S L' si si⌝ ∗
             client.upAtOpt γs si (client.createOfP P)) $$ [Hres]
@@ -791,7 +789,7 @@ theorem watchGRPCStream.run.wp_proof
               □ (⌜m.canceled = false⌝ -∗ ∃ (w : Loc) (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat),
                 ⌜v3rpc.createRangeOk c m.watchId rg⌝ ∗ mvcc.watcherIs V.R.γ w rg fcs lo ∗
                 fcs ↦*□ ([] : List GoFunc) ∗
-                (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw ∗ ⌜γw.sr = c.sr⌝) ∗
+                (∃ γw : mvcc.WatcherNames, mvcc.watcherMeta V.R.γ w γw) ∗
                 ∃ (γo : mvcc.WsStreamNames) (γa : GName), streamAuxIs γs (v3rpc.auxOf γo γa) ∗
                   mvcc.idAssigned γo m.watchId w)) $$ [Hcw Hids]
           · cases hcan : m.canceled
@@ -1126,8 +1124,8 @@ theorem watchGRPCStream.run.wp_proof
                   isplitr
                   · ipureintro; exact Hcrg
                   isplitr
-                  · icases Hws with ⟨%γw', #Hm', %Hsr'⟩
-                    iexists γw'; iframe Hm'; ipureintro; exact Hsr'
+                  · icases Hws with ⟨%γw', #Hm'⟩
+                    iexists γw'; iframe Hm'
                   iexists γo', γa'
                   iframe Hax' Hias
                 icases client.reg_post_dead V γs P B HB S.Dm m m.watchId w rg fcs lo sent C C2 b wr
@@ -1420,8 +1418,8 @@ theorem watchGRPCStream.run.wp_proof
                 isplitr
                 · ipureintro; exact Hcrg
                 isplitr
-                · icases Hws with ⟨%γw', #Hm', %Hsr'⟩
-                  iexists γw'; iframe Hm'; ipureintro; exact Hsr'
+                · icases Hws with ⟨%γw', #Hm'⟩
+                  iexists γw'; iframe Hm'
                 iexists γo', γa'
                 iframe Hax' Hias
               ihave Hpend : iprop(|==> client.cur2Pend V γs (S.Dm ++ [m]) P B m.watchId w rg lo sent
@@ -1610,10 +1608,7 @@ theorem watchGRPCStream.run.wp_proof
           · iframe
             unfold v3rpc.watchUp
             iframe
-            isplitr
-            · ipureintro; simp [v3rpc.watchReqOk, createOf]
-            dsimp only; iframe
-            simp only [createOf]; iapply client.startOk_read $$ HsoB2
+            ipureintro; simp [v3rpc.watchReqOk, createOf]
           ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),
               cliSendTok (Req := v3rpc.pbWatchRequest) γs L' ∗
               ⌜(L' = S1.L ∧ si = none ∧ si = none) ∨
@@ -2773,10 +2768,7 @@ theorem watchGRPCStream.run.wp_proof
         · iframe
           unfold v3rpc.watchUp
           iframe
-          isplitr
-          · ipureintro; simp [v3rpc.watchReqOk, createOf]
-          dsimp only; iframe
-          simp only [createOf]; iapply client.startOk_read $$ HsoB2
+          ipureintro; simp [v3rpc.watchReqOk, createOf]
         have hne2 : (S.reconnect l').l.dropWhile (fun y => decide (y = null)) ≠ [] := by
           intro e0; rw [e0] at hhd; simp at hhd
         ihave ⟨%L', %si, Hstok, %Hcase, Hupi⟩ : iprop(∃ (L' : List v3rpc.WatchReqM) (si : Option Nat),

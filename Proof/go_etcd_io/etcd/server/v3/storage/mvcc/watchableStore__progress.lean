@@ -31,7 +31,7 @@ theorem mvcc.watchableStore.progress.wp_proof
   wp_start as ⟨#Hws, #Hiw, HR⟩
   ihave #Hiw' := Hiw
   simp only [mvcc.storeWatchParams]
-  icases Hiw' with ⟨%γw, %r, %fcs, #Hmeta, #Hfix, %Hsr⟩
+  icases Hiw' with ⟨%γw, %r, %fcs, #Hmeta, #Hfix, %Hsr, %Hnow⟩
   have Hrid := Hsr.2
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
@@ -51,7 +51,9 @@ theorem mvcc.watchableStore.progress.wp_proof
         isplitr
         · iexists γw, r, fcs
           iframe #
-          ipureintro; exact Hsr
+          isplitr
+          · ipureintro; exact Hsr
+          ipureintro; exact Hnow
         iexists γw, r, fcs
         iframe #
         isplitr

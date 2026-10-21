@@ -297,7 +297,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
             iframe Hm Hf Hlb0 Hwf Hreg
             ipureintro
             rw [hrev]
-            refine ⟨?_, Or.inl ?_, fun _ => ?_⟩
+            refine ⟨?_, Or.inl ?_, ?_⟩
             · show _ ≤ (((sint.Z stw.minRev).toNat : Nat) : Int); omega
             · show (((sint.Z stw.minRev).toNat : Nat) : Int) ≤ _; omega
             · show ((γw.lo : Nat) : Int) ≤ _; omega

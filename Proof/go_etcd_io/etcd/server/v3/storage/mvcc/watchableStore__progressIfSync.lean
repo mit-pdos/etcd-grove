@@ -89,7 +89,8 @@ theorem mvcc.cov_entry_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64
     (w : Loc) (γw' : mvcc.WatcherNames) (hok : mvcc.WsOk σ) (hsy : (σ.Ws !! w).isSome)
     (hC : C.length ≤ σ.Lmu.length) (hrev : sint.Z rev + 1 ≤ (C.length : Int))
     (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1)
-    (hsrb : σ.srBelow σ.Lmu.length) :
+    (hsrb : σ.srBelow σ.Lmu.length)
+    (hg : ∀ γw, σ.M !! w = some γw → γw.now = true ∨ (γw.lo : Int) ≤ sint.Z rev) :
     □ ([∗map] w ↦ st ∈ σ.ST, mvcc.memberFacts (GF := GF) γ σ w st) ∗ mvcc.watcherMeta γ w γw' ⊢
       ∃ c : mvcc.CovArg, ⌜c.w = w ∧ σ.M !! w = some c.γw ∧ σ.E !! w = some (c.evsw, c.d)⌝ ∗
         mvcc.covEntry γ γw'.wc rev c := by
@@ -118,8 +119,10 @@ theorem mvcc.cov_entry_synced (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64
   ipureintro
   have h1 : σ.Lmu.length ≤ d := (Nat.max_le.1 hd).2
   have : (C.length : Int) ≤ (d : Int) := by exact_mod_cast Nat.le_trans hC h1
-  refine ⟨rfl, by simp only; omega, ?_, fun h => by
-    have := hsrb w γw HMw h; simp only; omega⟩
+  refine ⟨rfl, by simp only; omega, ?_, by
+    rcases hg γw HMw with hn | hl
+    · have := hsrb w γw HMw hn; simp only; omega
+    · simp only; omega⟩
   simp only at hb ⊢
   rcases hb with hb | hb
   · left; omega
@@ -132,7 +135,8 @@ theorem mvcc.cov_entries (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C 
     (hrev : sint.Z rev + 1 ≤ (C.length : Int))
     (hsb : σ.syncedBelow σ.Lmu.length) (hrevE : (σ.Lmu.length : Int) ≤ sint.Z rev + 1)
     (hsrb : σ.srBelow σ.Lmu.length) :
-    ∀ W : List Loc, (∀ w ∈ W, (σ.Ws !! w).isSome) →
+    ∀ W : List Loc, (∀ w ∈ W, (σ.Ws !! w).isSome ∧
+      ∀ γw, σ.M !! w = some γw → γw.now = true ∨ (γw.lo : Int) ≤ sint.Z rev) →
     □ ([∗map] w ↦ st ∈ σ.ST, mvcc.memberFacts (GF := GF) γ σ w st) ∗
       □ (∀ w : Loc, ⌜w ∈ W⌝ -∗ ∃ γw' : mvcc.WatcherNames, mvcc.watcherMeta γ w γw' ∗ ⌜γw'.wc = γc⌝) ⊢
       ∃ cs : List mvcc.CovArg, mvcc.covPre γ γc rev cs ∗ ⌜cs.map mvcc.CovArg.w = W ∧
@@ -146,8 +150,8 @@ theorem mvcc.cov_entries (γ : mvcc.WsNames) (σ : mvcc.WsState) (rev : w64) (C 
   | w :: W, hW => by
     iintro ⟨#HF, #HM⟩
     icases HM $$ %w %List.mem_cons_self with ⟨%γw', #Hm, %Hwc⟩
-    icases mvcc.cov_entry_synced γ σ rev C w γw' hok (hW w List.mem_cons_self) hC hrev hsb hrevE hsrb
-      $$ [$HF $Hm] with ⟨%c, %hc, #Hc⟩
+    icases mvcc.cov_entry_synced γ σ rev C w γw' hok (hW w List.mem_cons_self).1 hC hrev hsb hrevE
+      hsrb (hW w List.mem_cons_self).2 $$ [$HF $Hm] with ⟨%c, %hc, #Hc⟩
     irevert Hc; rw [Hwc]; iintro #Hc
     icases mvcc.cov_entries γ σ rev C γc hok hC hrev hsb hrevE hsrb W
       (fun x hx => hW x (List.mem_cons_of_mem _ hx)) $$ [] with ⟨%cs, #Hcs, %hcs⟩
@@ -323,7 +327,8 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
       "Hrd" ∷ mvcc.storeReader st γ.st ∗ "rev" ∷ rev_ptr ↦ r ∗
       "HΦ" ∷ (∀ b : Bool, m ↦${dq} M ∗ CS ∗ mvcc.watchReader s st γ -∗ Φ #b) ∗ "HCS" ∷ CS ∗
       "%Hi" ∷ ⌜0 ≤ i ∧ ∀ (j : Nat) (id : w64) (w : Loc), j < i.toNat → keys[j]? = some id →
-        M !! id = some w → (σ.Ws !! w).isSome⌝)) $$ Hm
+        M !! id = some w → (σ.Ws !! w).isSome ∧
+          ∀ γw, σ.M !! w = some γw → γw.now = true ∨ (γw.lo : Int) ≤ sint.Z r⌝)) $$ Hm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [w s responseWatchID watchers Hrl Hdx HP Hrel Hrd rev HΦ HCS]
   · iexists _
@@ -376,7 +381,15 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · simp only [Option.isSome_map, hsy]
       ihave #Hiw := HM $$ %key %u %Hu
       simp only [mvcc.storeWatchParams]
-      icases Hiw with ⟨⟨%γw, %rr, %fcs, #Hmeta, #Hfix, %Hsr⟩, -⟩
+      icases Hiw with ⟨⟨%γw, %rr, %fcs, #Hwm, #Hfix, %Hsr, %Hnow⟩, -⟩
+      -- (W2) the watcher's names, in the lock's map
+      iunfold mvcc.watchStoreBody at HP
+      iNamed HP
+      iunfold mvcc.watcherMeta at Hwm
+      ihave %Hlk := ghost_map_lookup $$ Hmeta Hwm
+      ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
+          [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
+      · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
       ihave #Hfix' := Hfix
       iunfold mvcc.watcherFixed at Hfix'
       icases Hfix' with ⟨%Hnn, %ks, %es, -, -, -, -, #HsR, -, -⟩
@@ -413,10 +426,16 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
           subst this
           rw [Hkey] at hk; cases hk
           rw [Hu] at hm; cases hm
-          exact hsy
+          refine ⟨hsy, fun γw' hγ => ?_⟩
+          rw [Hlk] at hγ; cases hγ
+          -- (W2) a watcher not from now starts at its start revision, at most `rev` (the guard)
+          cases hn : γw.now
+          · right; have := Hnow hn; omega
+          · left; rfl
   iintro HP' Hm
   iNamed HP'
-  have hall : ∀ id w, M !! id = some w → (σ.Ws !! w).isSome := by
+  have hall : ∀ id w, M !! id = some w → (σ.Ws !! w).isSome ∧
+      ∀ γw, σ.M !! w = some γw → γw.now = true ∨ (γw.lo : Int) ≤ sint.Z r := by
     intro id w hw
     obtain ⟨j, hj⟩ := List.getElem?_of_mem ((Hkset id).2 (by rw [hw]; rfl))
     have hjl : j < keys.length := (List.getElem?_eq_some_iff.1 hj).1
@@ -461,7 +480,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     have hw : c.w ∈ mvcc.dedupL (keys.filterMap (M !! ·)) := by
       rw [← Hcsw]; exact List.mem_map.2 ⟨c, hc, rfl⟩
     obtain ⟨id, -, hid⟩ := List.mem_filterMap.1 (mvcc.mem_dedupL.1 hw)
-    have hl : σ.live c.w := Or.inl (hall id c.w hid)
+    have hl : σ.live c.w := Or.inl (hall id c.w hid).1
     exact ⟨hl, (Hcsf c hc).1, (Hcsf c hc).2, Hok.live_st _ hl⟩
   have hcsnd : (cs.map mvcc.CovArg.w).Nodup := by rw [Hcsw]; exact mvcc.nodup_dedupL _
   ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
@@ -490,7 +509,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     iintro %i %key %u ⟨%Hkey, %Hu⟩ HP'
     iNamed HP'
     wp_auto
-    have hsy := hall key u Hu
+    have hsy := (hall key u Hu).1
     iunfold mvcc.watchStoreBody at HP
     iNamed HP
     have hlive : σ.live u := Or.inl hsy

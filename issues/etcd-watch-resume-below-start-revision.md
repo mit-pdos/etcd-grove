@@ -45,6 +45,14 @@ links: []
 - **Possible fixes**: move the resume revision only forward (the fork's fix: `else if
   wr.Header.Revision+1 > nextRev`); or keep `max(nextRev, initReq's original rev)` at the resumed
   create.
+- **Reachability against etcd's own server** (noted 2026-10-21, `notes/watch-cut-plan.md`): step 1
+  does not happen as written. Since upstream `973847aa24` (2025-06-26, "Skip sending progress
+  notification for watch with starting revision in the future"; in both pins), `progressIfSync`
+  sends no progress notification while a watcher of the stream has a start revision above the
+  store's (`if rev < w.startRev { return false }`). The reproduction uses a fake server. Whether
+  another ordering reaches it (a progress broadcast to a substream the server has not registered
+  yet, as in `issues/etcd-watch-progress-before-created.md`) is unchecked. The client fix stays
+  harmless either way, and the proof now relies on the guard, not on the client's start read (W2).
 - **Found**: 2026-10-20, designing the resume revision's invariant (D25, stage S1b: after a
   progress notification `rev - 1` must be at least the contract's position, which for a watch from
   a future revision is its start minus one, above the notification's revision).
