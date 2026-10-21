@@ -42,11 +42,11 @@ theorem raftLog.restore.wp_proof
   iNamed Hlog
   icases isLoggerVal_open _ $$ Hl_logger with ⟨%lg, %Hlg, #Hlgr⟩
   wp_auto
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetTerm pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetTerm_S pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
@@ -54,8 +54,8 @@ theorem raftLog.restore.wp_proof
   try wp_auto
   rw [Hlg]
   wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   try wp_auto
   icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip Hsip

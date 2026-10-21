@@ -45,6 +45,7 @@ theorem raftLog.snapshot.wp_proof
     ihave #Hp2 := Hpksn
     iunfold pendKsn at Hp2
     icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk⟩
+    ihave #Hsv := ownSnapS_M _ _ _ $$ Hsv
     ihave %Hnn := (show ownSnapM (GF := GF) lv.unstable'.snapshot' DFrac.discard sv ⊢
       ⌜lv.unstable'.snapshot' ≠ null⌝ by iintro H; iNamed H; ipureintro; exact Hnn) $$ Hsv
     rw [decide_eq_false Hnn]

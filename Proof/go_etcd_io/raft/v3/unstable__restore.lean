@@ -36,12 +36,13 @@ theorem unstable.restore.wp_proof
   icases Hun with ⟨%uv, Hun⟩
   iNamed Hun
   wp_auto
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hsp] as %pm ⟨Hm, Hmback⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hsp] as %pm ⟨Hm, Hmback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ihave Hsp := Hmback $$ Hm
   iapply wp_fupd
-  wp_apply wp_proto_CloneSnapshot.1 sp dq sv $$ [$Hsp] as %p' ⟨Hsp, Hc⟩
-  imod ownSnapM_persist _ _ _ $$ Hc with #Hc
+  wp_apply wp_proto_CloneSnapshot.2.2.2 sp dq sv $$ [$Hsp] as %p' ⟨Hsp, Hc⟩
+  imod ownSnapS_persist _ _ _ $$ Hc with #Hc
+  ihave #HcM := ownSnapS_M _ _ _ $$ Hc
   imodintro
   iapply HΦ
   iframe Hsp
@@ -50,7 +51,7 @@ theorem unstable.restore.wp_proof
   · iapply entsPts_nil
   · iapply (ownSnap_Some _ _).2
     iexists sv
-    iframe Hc
+    iframe HcM
     ipureintro; exact ⟨rfl, rfl⟩
   · unfold pendKsn
     imodintro

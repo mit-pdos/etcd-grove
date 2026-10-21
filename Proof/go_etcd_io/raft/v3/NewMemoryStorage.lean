@@ -133,6 +133,7 @@ theorem NewMemoryStorage.wp_proof
   iapply wp_fupd
   wp_apply wp_EnsureSnapshot.1 null none $$ [] as %sp ⟨Hsp, -⟩
   · simp only [snapOpt]; ipureintro; trivial
+  ihave Hsp := ownSnapS_W _ _ _ $$ Hsp
   simp only [Option.getD_none]
   ihave Hsp := ownSnapW_E $$ Hsp
   ihave Hsp := ownSnapE_weaken $$ Hsp

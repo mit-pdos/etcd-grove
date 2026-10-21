@@ -13939,3 +13939,69 @@ that raft's log can hold its pending snapshot as set and the `Ready` hand out a 
 protobuf-go: `Clone` deep-copies, and a set message field stays set in the copy (what the spec's
 existing clauses already state of `Metadata` and `ConfState`). A stronger trusted statement, no new
 axiom. Approved by the user; carried out with S-r.
+
+## D22 S-d4 items 3-4 carried out: the floor after a restore; the log's snapshot set (2026-10-21)
+
+Items 3 and 4 of "D22 S-d4 carried out". Trust base unchanged (538 axioms, 2 sorries; the
+`proto.Clone` axiom restated, as approved); every collection's `--check` passes unchanged; no closed
+theorem's statement changed.
+
+**Item 3: the floor after a restore** (paths under `Proof/go_etcd_io/raft/v3/`).
+- *A deviation: a ghost field.* The design's conjunct (`applying ≤` what the storage holds, with a
+  snapshot pending, the storage neither lent nor at the pending snapshot) is kept by every step the
+  design counted, but not by `appliedSnap`'s `appliedTo` after a **second restore**: there the
+  storage is at the snapshot the `Ready` handed out (`logAbsorbSnap`'s miss), the pending snapshot is
+  a later one, and `appliedTo` moves `applying` to the handed-out snapshot's index -- true of the
+  storage, but `raftLog.appliedTo` cannot see that the storage holds that much. So `LogState.sxt`
+  (ghost, `Defs.lean`): a lower bound of what the storage holds while a snapshot is pending, set to
+  `applying` by `restore` (`logRestore`: kept if it was already a bound and above `applying`) and to
+  the snapshot's index by the absorption (`logAbsorbSnap`). `FlOk`'s fifth conjunct is
+  `StorExtOk σ ls` (`InvRaftlog.lean`): with a snapshot pending and the storage not lent, `sxt ≤
+  σ.prev.index + |storApp σ σ.pend|` and `applying ≤ sxt` (the design's antecedent `sat = false`
+  dropped: at the pending snapshot `sxt` is its index, `applying ≤` it by `LoanOk`, and a `Ready`
+  there, which clears `sat`, changes neither). `storExt_of_inv` derives what a restore needs.
+- *The link to the snapshot handed out.* `RawNode.Advance` steps the node's own responses between
+  the absorption and the acknowledgement, whose frames (`NetFrame`, `LocalFrame`) say nothing of
+  `sxt`; the ghost mirror `NGhost.snp` (the snapshot handed out) survives them. So `SnpOk` gains
+  `SnpExt g ls`: with the storage back, `k.index ≤ sxt` while a snapshot is pending, and `k.index ≤
+  applying` once it is dropped and `appliedSnap`'s window has ended. Kept by `SnpOk.of_fields`
+  (`hx`, by default the fields are the same), `SnpOk.keep` (`SnpKeep` names `sxt`, `aps`,
+  `applying`), `SnpOk.restore` (premise: outside `appliedSnap`'s window), `SnpExt.raise`
+  (`appliedTo`).
+- *Premises* (all discharged by the callers from what they have): `raftLog.appliedTo` and
+  `raft.appliedTo` past `applying` with a snapshot pending only up to `sxt` (and `raft.appliedTo` in
+  `appliedSnap`'s window only past the snapshot handed out); `raftLog.acceptApplying` hands nothing
+  out with a snapshot pending (`acceptReady`: `rdSnapRel`'s `L = none` has no snapshot pending);
+  `raft.appliedSnap` and `raft.Step`'s snapshot acknowledgement: `sv.index ≤ sxt` with a snapshot
+  pending and the storage back, and the snapshot handed out at most `sv`'s (`RawNode.Advance` gives
+  both from `SnpExt` and `NGhost.snp`); `ownRaftLog_absorb_snap`: `applying ≤` the snapshot the
+  storage is back at (`LoanOk`).
+- *Result.* `ownRaftLog_raise_floor` takes `lent = false` in place of `snap = none` (the design's
+  `sat = false` is not needed: `applying ≤ sxt` holds at the pending snapshot too, `logAbsorbSnap`);
+  `ownRawNode_raise_floor` drops `psnap = false` (`slent = none` gives `lent = false`, `LoanOk`/`SnpOk`);
+  `advance_complete` raises the floor after every `Ready` without a snapshot; `reqWit γ (some k)` is
+  the floor witness alone (its second case gone; `reqWit_none` keeps its signature, its premise
+  unused, so the server's `NodeBridge` is unchanged).
+
+**Item 4: the log's pending snapshot set, the `Ready`'s half set.**
+- `proto.CloneSnapshot.spec` (trust boundary) gains the approved fourth clause: the clone of an
+  `ownSnapS` snapshot is `ownSnapS`, owned (the original back). A restated spec: the axiom count is
+  unchanged (`etc/tcb-report.py --check`).
+- `ownSnapS`'s conf state is `csSet` (`InvPbSnapSet.lean`): set at the snapshot's fraction **or read-only
+  for good** -- `raft.restore` freezes the restored snapshot's conf state (`EnsureConfState`'s `#Hcf`),
+  so the half it gives the log has its conf state at `□`. New: `csSet_A`, `smPtsS_W`, `ownSnapS_W`,
+  `_split`, `_persist`, the persistence instances, `ownSnapS_of_struct`, `ownSnapS_rest_of_parts`
+  (the split `raft.restore` makes), and the getters `wp_Snapshot_GetMetadata_S`,
+  `wp_SnapshotMetadata_GetIndex_S`/`GetTerm_S` over the fields (`InvPbSnapSet` now imports
+  `LemmasSendRD`).
+- `EnsureSnapshot`'s and `EnsureSnapshotMetadata`'s owned triples return `ownSnapS`/`smPtsS` (the proof
+  tracks the `Index`/`Term` pointers it allocates); their five callers that want `ownSnapW` take
+  `ownSnapS_W`.
+- The chain: `handleSnapshot` (its `EnsureSnapshot`) → `raft.restore` (takes `ownSnapS`; its post
+  still `ownSnapE`) → `raftLog.restore` → `unstable.restore` (both take and return `ownSnapS`), whose
+  clone (the fourth clause) the log keeps as `pendKsn`'s `ownSnapS p □ sv` (`ownSnap`'s `ownSnapM`
+  from it); `unstable.nextSnapshot`'s clone (the fourth clause again) and
+  `raftLog.nextUnstableSnapshot` are `ownSnapS`; `readyWithoutAccept` splits it (`ownSnapS_split`),
+  the node's half forgotten to `ownSnapM` (`rdSnapRel`, `lentPend`), the application's half `ownSnapS`
+  (`rdSnapOut`, `readySnapData`): what `MemoryStorage.ApplySnapshot` takes (`snapArg`'s second case).
+  `raftLog.snapshot` reads `pendKsn` through `ownSnapS_M`.

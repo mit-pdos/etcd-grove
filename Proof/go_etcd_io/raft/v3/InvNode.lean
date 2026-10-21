@@ -626,7 +626,7 @@ theorem rsDlv_none {rs : RNState} (h : rs.slent = none) : rsDlv rs = rs.delivere
 and the entries `es` to append, and in place of the right to append them (and of `rd.Snapshot`
 `nil`) the snapshot -- at a node that takes snapshots (`snapIn`, so outside the no-snapshot mode
 and in the static mode: what a client that never delivers a `MsgSnap`, or is in the no-snapshot
-or the dynamic mode, refutes, `readyDataL_none`) -- half of it (`ownSnapM l.ptr ½`, `rdSnapOut`;
+or the dynamic mode, refutes, `readyDataL_none`) -- half of it (`ownSnapS l.ptr ½`, every pointer field set, `rdSnapOut`;
 the node's queued acknowledgement shares the pointer), the committed log up to it (`isCommitted
 l.dlv`, `LoanOut`: `|l.dlv|` its index, extending `d`), the storage itself (`readyOut`: nothing
 pending, at the loan's floor) and the snapshot's certificate in the storage's registry. The
@@ -649,7 +649,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     readyIdx γ.raft d ce es ∗
     -- the snapshot, at a node that takes snapshots
     ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ γ.mode = .static⌝ ∗
-    ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
+    -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
+    ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
       l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧

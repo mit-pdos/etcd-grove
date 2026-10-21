@@ -37,7 +37,8 @@ abbrev unstable.nextSnapshot.spec : Prop :=
       (⌜p = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
         ⌜us.snap = some sid ∧ us.sip = false ∧ snapId sv = sid ∧
           snapTrip sv sv.Metadata'.ConfState'.lists ∈ us.ksn⌝ ∗
-        ownSnapM p (DFrac.own 1) sv) }}
+        -- (D22 S-d4 item 4) every pointer field set
+        ownSnapS p (DFrac.own 1) sv) }}
 
 end spec
 

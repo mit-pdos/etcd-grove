@@ -116,6 +116,7 @@ out here.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvStorage
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 public import Proof.go_etcd_io.raft.v3.InvLogger
 public import Proof.go_etcd_io.raft.v3.SpecResults
 
@@ -325,7 +326,9 @@ of them (`K`, the log's `ksn`) -- what `raftLog.snapshot` returns of it, the sna
 points to with the lists behind its `ConfState`, is in `K`. -/
 def pendKsn (p : Loc) (snap : Option entryID) (K : List SnapTrip) : IProp GF :=
   iprop(□ ∀ (sid : entryID), ⌜snap = some sid⌝ -∗ ∃ (sv : SnapshotM),
-    ownSnapM p DFrac.discard sv ∗ ⌜snapId sv = sid⌝ ∗
+    -- (D22 S-d4 item 4) every pointer field set: `raft.restore`'s `EnsureSnapshot`, kept by the
+    -- clone (`proto.CloneSnapshot.spec`'s fourth clause)
+    ownSnapS p DFrac.discard sv ∗ ⌜snapId sv = sid⌝ ∗
     ⌜snapTrip sv sv.Metadata'.ConfState'.lists ∈ K⌝)
 
 instance pendKsn_pers (p : Loc) (snap : Option entryID) (K : List SnapTrip) :
@@ -1329,14 +1332,14 @@ theorem ownRaftLog_absorb (l : Loc) (ls : LogState) (σa : StorState) :
   iapply lentStor_close Hlt; iexact HStorage
 
 /-- (D19i part 1) **Raising the floor** to `x`, between the floor and `applying`, with nothing
-unpersisted and the storage neither lent nor at a pending snapshot: the storage's floor law
+unpersisted and the storage not lent: the storage's floor law
 (`isStorageWith`'s `Hfloor`) gives the application the witness `storFloor` (its right to compact
 and snapshot up to `x`). With no snapshot pending the storage holds the log up to
 `offsetInProgress` (`LogPersistOk`), past `applying` (`FlOk`), so up to `x`; with one (restored
 since the last `Ready`, D22 S-d4 item 3) it holds the log up to `applying` (`StorExtOk`). -/
 theorem ownRaftLog_raise_floor (l : Loc) (ls : LogState) (x : w64)
     (Hx : uint.Z ls.fl ≤ uint.Z x ∧ uint.Z x ≤ uint.Z ls.applying)
-    (Hunp : ls.unpersisted = []) (Hlnt : ls.lent = false) (Hsat0 : ls.sat = false) :
+    (Hunp : ls.unpersisted = []) (Hlnt : ls.lent = false) :
     ⊢ ownRaftLog (GF := GF) l ls ==∗
       ownRaftLog l { ls with fl := x } ∗ storFloor ls.storage x := by
   iintro H

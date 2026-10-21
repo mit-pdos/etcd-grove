@@ -2560,14 +2560,9 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iNamed H
   icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
   icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
-  have Hsn0 := (Hloan.2.1 Hsl).1
   have Hlnt : s.logst.lent = false := by rw [Hgh0.1.2.1, Hloan.1, Hsl]; rfl
-  have Hsat0 : s.logst.sat = false := by
-    cases h : s.logst.sat
-    · rfl
-    · exact absurd Hsn0 (Hgh0.1.2.2.2.1 (.inr h))
   imod ownRaftLog_raise_floor s.log s.logst s.logst.applying ⟨Hflb.1, Int.le_refl _⟩
-    (Hunp ▸ Hunp0) Hlnt Hsat0 $$ Hlog with ⟨Hlog, Hfw⟩
+    (Hunp ▸ Hunp0) Hlnt $$ Hlog with ⟨Hlog, Hfw⟩
   ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
