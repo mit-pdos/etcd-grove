@@ -8,6 +8,8 @@ links:
   - etcd-io/etcd#22189 issue open: the same nil read tx of a closed backend, from `Maintenance/Status` during shutdown; not this path
   - etcd-io/etcd#22190 pr open: the fix of #22189 (`StorageVersion` only); does not fix this
   - etcd-io/etcd#14256 issue closed: the same `Tx.Bucket` stack from watch at shutdown (3.4)
+  - etcd-io/etcd#22608 issue open: the same class in mvcc (`store.hash` racing with `Restore` replacing the backend); fixed by #22609
+  - etcd-io/etcd#22609 pr merged: holds mvcc's `s.mu` across `Hash`'s use of the backend; does not touch the auth store
 candidate: issues/upstream/etcd-auth-snapshot-closed-backend-panic/
 ---
 
@@ -17,9 +19,12 @@ candidate: issues/upstream/etcd-auth-snapshot-closed-backend-panic/
   It needs auth enabled; the rest is normal operation: a lagging member catches up by a
   snapshot while clients send it requests. Reproduced end to end by an integration test, at the
   pin (7 of 10 runs) and on upstream `main` (3 of 3). The fix (below) is to close the old backend
-  last. With it the test passes 6 of 6 runs at the pin and 3 of 3 on `main`.
-- **Where**: at the etcd pin of `etc/goose.py` (`8a24be2a3`; upstream `main` `6782f5229` has
-  the same code, at `server.go:1083-1111`):
+  last. With it the test passes 6 of 6 runs at the pin and 3 of 3 on `main`. The upstream
+  candidate (`issues/upstream/etcd-auth-snapshot-closed-backend-panic/`, off `main` `bf9cadf04`)
+  calls the permission check directly in its test (fails 20 of 20 runs on disk, and under
+  `-race`) and also guards `as.be`, which the reorder alone leaves racy.
+- **Where**: at the etcd pin of `etc/goose.py` (`8a24be2a3`; upstream `main` `bf9cadf04` has
+  the same code, at `server.go:1082-1111`):
   - `server/etcdserver/server.go:1011-1159` (`applySnapshot`): `s.be = newbe` (`:1093`), then
     `go oldbe.Close()` (`:1100-1110`), then `s.restoreAlarms()` (`:1112`, which ends with a
     `ForceCommit` of the new backend: an fsync), and only then
@@ -94,7 +99,9 @@ candidate: issues/upstream/etcd-auth-snapshot-closed-backend-panic/
     closing backend. If the commit loop has stopped, `ForceCommit`'s `batchTx.commit(false)` begins
     a new bolt transaction: a `Fatal` (`failed to begin tx`) if the db is closed, or a write
     transaction that is never committed, which `db.Close` then waits on. `Hash` on a closed db
-    returns an error.
+    returns an error. Upstream etcd-io/etcd#22609 (merged, in `main` `bf9cadf04`) now runs the
+    `ForceCommit` under `s.mu`; its `Hash` still reads the old backend after `s.mu` is released,
+    which on a closed db is that error.
   - The maintenance `Snapshot` RPC (`v3rpc/maintenance.go:141,146`) takes `ms.bg.Backend()` twice
     and uses each result after `bemu` is released. `ReadStorageVersion(…ReadTx())` on a reset read
     tx is the same nil-tx panic. `Snapshot()` on a stopped backend has the same `begin` problem.

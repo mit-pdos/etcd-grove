@@ -1,42 +1,45 @@
-Title: Member with auth enabled panics on a serializable read while it restores a snapshot from the leader
+Title: Member with auth enabled panics on a permission check while it restores a snapshot from the leader
 
 ### What happened?
 
-With auth enabled, a member that has fallen behind the leader crashes on an ordinary client read:
+With auth enabled, a member that has fallen behind the leader crashes in the permission check of a read:
 
 1. A follower is cut off from the other members while the leader commits enough writes to compact its log past the follower.
-2. A client authenticated as `root` keeps sending serializable `Get`s to the follower, from 32 goroutines.
-3. Once the follower reconnects, the leader sends it a snapshot. While the follower restores the snapshot, one of the `Get`s panics the follower's process (output trimmed):
+2. Goroutines keep calling the follower's `AuthStore().IsRangePermitted` for `root`, the check of every serializable `Range`.
+3. Once the follower reconnects, the leader sends it a snapshot. While the follower restores the snapshot, one of the checks panics (output trimmed):
 
 ```
-panic: runtime error: invalid memory address or nil pointer dereference
-[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0xc86d13]
-
-goroutine 2260 [running]:
+panic: runtime error: invalid memory address or nil pointer dereference [recovered, repanicked]
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0xc86ff3]
 go.etcd.io/bbolt.(*Tx).Bucket(...)
 	/home/ubuntu/go/pkg/mod/go.etcd.io/bbolt@v1.5.0/tx.go:112
-go.etcd.io/etcd/server/v3/storage/backend.(*baseReadTx).UnsafeRange(0x292ac61c8190, {0x1dd9b70, 0x1e6e528}, {0x292ac8d80860, 0x4, 0x8}, {0x0, 0x0, 0x0}, 0x0)
+go.etcd.io/etcd/server/v3/storage/backend.(*baseReadTx).UnsafeRange(0x28c2a190a0f0, {0x1dda048, 0x1e6e528}, {0x28c2a23c4ac0, 0x4, 0x8}, {0x0, 0x0, 0x0}, 0x0)
 	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/server/storage/backend/read_tx.go:103 +0x233
-go.etcd.io/etcd/server/v3/auth.(*authStore).isOpPermitted(0x292ac653c200, {0x292ac74ce5cc, 0x4}, 0x4, {0x292ac71a2bf0, 0x3, 0x8}, {0x0, 0x0, 0x0}, ...)
+go.etcd.io/etcd/server/v3/storage/schema.unsafeGetUser(0x28c2a1925200, {0x72d5541ff200, 0x28c2a190a0f0}, {0x10057f0, 0x4})
+	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/server/storage/schema/auth_users.go:57 +0x9d
+go.etcd.io/etcd/server/v3/storage/schema.(*authReadTx).UnsafeGetUser(0x28c2a153afa8?, {0x10057f0?, 0x4?})
+	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/server/storage/schema/auth_users.go:53 +0x4d
+go.etcd.io/etcd/server/v3/auth.(*authStore).isOpPermitted(0x28c2a156ba00, {0x10057f0, 0x4}, 0x4, {0x28c2a3d82a9c, 0x3, 0x3}, {0x0, 0x0, 0x0}, ...)
 	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/server/auth/store.go:883 +0x4af
-go.etcd.io/etcd/server/v3/etcdserver.(*EtcdServer).Range(0x292ac613dc08, {0x1dd9940, 0x292ac6e95680}, 0x292ac874fae0)
-	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/server/etcdserver/v3_server.go:151 +0xcc5
-FAIL	go.etcd.io/etcd/tests/v3/integration	1.076s
+go.etcd.io/etcd/server/v3/auth.(*authStore).IsRangePermitted(0x3?, 0x1b99c00?, {0x28c2a3d82a9c?, 0x3?, 0x3?}, {0x0?, 0x0?, 0x0?})
+	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/server/auth/store.go:906 +0x4e
+go.etcd.io/etcd/tests/v3/integration.TestV3AuthRangePermittedDuringSnapshotRestore.func1()
+	/home/ubuntu/etcd-fixes/etcd-auth-snapshot-closed-backend-panic/tests/integration/v3_auth_test.go:705 +0xd9
 ```
 
-This can happen to any member with auth enabled that restores a snapshot from the leader while a client sends it serializable reads.
+Serializable `Get`s from a client authenticated as `root` instead crash the follower the same way, from `kvServer.Range`, in 19 of 20 runs. This can happen to any member with auth enabled that restores a snapshot while clients send it serializable reads.
 
 ### What did you expect to happen?
 
-The follower should answer every serializable `Get` sent during the snapshot restore, or return an error, and keep running.
+The follower should answer every permission check and serializable `Get` during the snapshot restore, and keep running.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestV3AuthSerializableGetDuringSnapshotRestore`](https://github.com/upamanyus/etcd/blob/fix/etcd-auth-snapshot-closed-backend-panic/tests/integration/v3_auth_test.go#L672-L717) on branch [`upamanyus/etcd:fix/etcd-auth-snapshot-closed-backend-panic`](https://github.com/upamanyus/etcd/tree/fix/etcd-auth-snapshot-closed-backend-panic), off `main` (6782f5229). From `tests/`, `go test ./integration -run TestV3AuthSerializableGetDuringSnapshotRestore -count=1` panics as above: on `main`, in 10 of 10 runs with the temporary directories on ext4, 5 of 10 on tmpfs.
+Integration test: [`TestV3AuthRangePermittedDuringSnapshotRestore`](https://github.com/upamanyus/etcd/blob/fix/etcd-auth-snapshot-closed-backend-panic/tests/integration/v3_auth_test.go#L673-L718) on branch [`upamanyus/etcd:fix/etcd-auth-snapshot-closed-backend-panic`](https://github.com/upamanyus/etcd/tree/fix/etcd-auth-snapshot-closed-backend-panic), off `main` (bf9cadf04). From `tests/`, `go test ./integration -run TestV3AuthRangePermittedDuringSnapshotRestore -count=1` panics as above on `main` in 20 of 20 runs, with or without `-race` (with `TMPDIR` on tmpfs, 12 of 20 without `-race`).
 
 ### Anything else we need to know?
 
-I reproduced the crash with serializable `Get`s only; watch creation, lease keep-alives, `Authenticate` and maintenance requests to the restoring member check permissions the same way and may crash it too (not tested).
+Watch creation, lease keep-alives, `Authenticate` and maintenance requests check permissions the same way and may crash the member too (not tested).
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
@@ -44,7 +47,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-`main` (6782f5229), go1.27.2 linux/amd64; the reproduction is an integration test, with the members in the test process.
+`main` (bf9cadf04), go1.27.3 linux/amd64; the integration test only, no binaries.
 
 </details>
 
