@@ -27,7 +27,10 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
 /-- **`New(addr, l)`**, `l` a listener bound at `a` (`net.Listen`'s, unused): it returns a bridge
-to `addr`, not blackholed, and `a` serves, method by method, what `addr` serves. -/
+to `addr`, not blackholed, and `a` serves, method by method, what `addr` serves; and (D29,
+2026-10-21) `a` is refusal-free if `addr` is: the bridge relays bytes, so a status from `addr`
+reaches the client unchanged, and a cut's (a blackhole's, a dropped connection's) errors are
+grpc's own. -/
 abbrev New.spec : Prop :=
   ∀ (addr a : GoString) (l : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗
@@ -36,7 +39,8 @@ abbrev New.spec : Prop :=
       (Val #l))
   {{ (br : GoInterface), RET #br; ownBridge br addr false ∗
       □ (∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-          grpcServes addr name mh srv ics S -∗ grpcServes a name mh srv ics S) }}
+          grpcServes addr name mh srv ics S -∗ grpcServes a name mh srv ics S) ∗
+      ⌜noRefusalAt addr → noRefusalAt a⌝ }}
 
 end spec
 

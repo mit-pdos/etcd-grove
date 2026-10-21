@@ -12407,7 +12407,7 @@ collection whose results go through `clientv3.New` (`dialSetupOpts`' proof cover
 branch whether a configuration takes it or not); `grpc.KeepaliveEnforcementPolicy.wp_proof` in
 linkv3p's only (its members' servers).
 
-## D29: refusal-free members: a write is never retried (2026-10-21 · asked of the user; `notes/read-retry-plan.md` R2)
+## D29: refusal-free members: a write is never retried (2026-10-21 · approved by the user; `notes/read-retry-plan.md` R2)
 
 **Problem.** A production client keeps the default retries (`MaxUnaryRetries` unset: 100), so
 a read that fails with `Unavailable` is retried on the next member (`notes/read-retry-plan.md`,
@@ -12474,6 +12474,25 @@ refusal-freedom is assumed (choice (P) of R1, chosen by the user), and the rest 
      `err.Error()`, an error of the server's own and not one of the six strings. (The watch
      stream's cancel reasons use the same strings, but a stream is not a unary call.)
 
+**Carried out (R2, 2026-10-21).** As above, with two pieces the implementation needed:
+
+- `rpctypes.errDesc_etcdError` (an axiom, `Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean`):
+  an `EtcdError`'s description is its `desc`. This is item 1's "a non-status error's description is
+  its `Error()`" for `EtcdError`, whose `Error()` is `e.desc`. The opaque `errDesc` cannot state it
+  by itself (WPs are not functional). The client's `shouldRefreshToken` compares `EtcdError`s.
+- **The bridge** (D26's trust-boundary spec of `bridge.New`, restated): the bridge's address is
+  refusal-free if the member's is (`forwards` gains `⌜noRefusalAt b → noRefusalAt a⌝`). The
+  bridge relays bytes, so a member's status arrives unchanged, and a cut's errors are grpc's own.
+  linkv3p's clients dial the bridges, so the fact has to pass through them.
+
+The members' axiom is `etcd_noRefusal` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/
+NoRefusal.lean`). Its premises are the server's request view (`isServerReq s E ρ`, whose raft log
+invariant has the static membership policy, `srvCCPolicy`) with `E.authOn = false`, the quota
+wrapper over its KV service, and the gRPC server `gs` with the KV registrations and the listener
+at `addr`, the facts `etcd_kv_started` takes. `errDesc`, `refusalDescs` and `noRefusal` are in
+`Proof/go_etcd_io/etcd/cache/v3/Base.lean`, beside `statusErrOk`, and `noRefusalAt` is in
+`InvGrpc.lean`.
+
 **What it buys.** The client proves (R4): `isSafeRetry`, `isSafeRetryMutableRPC` and
 `shouldRefreshToken` return `true` for a `nonRepeatable` call only on a refusal. So on a
 connection to refusal-free members, the interceptor sends a write once and takes its ordinary
@@ -12486,6 +12505,7 @@ axiom, an off mode for the request side's auth, and error identity through the r
 (R1). The learner and auth parts can be proved later. That would leave the axiom only "the server's
 other errors are not refusals".
 
-**Trust base.** +1 axiom (the members'), and restated specs of four existing axioms and
-initializer axioms (`status.FromError`, `errors.IsStatusErr`, `grpc.ClientConn.Invoke` through
-`grpcInvokerOk`, rpctypes' `Init` axioms). linkv3p's collection gains the new axiom.
+**Trust base.** +2 axioms (the members', `etcd_noRefusal`, and `rpctypes.errDesc_etcdError`), and
+restated specs of existing axioms (`status.FromError`, `errors.IsStatusErr`,
+`grpc.ClientConn.Invoke` through `grpcInvokerOk`, rpctypes' `Init` axioms, `bridge.New`).
+linkv3p's collection gains the new axioms.

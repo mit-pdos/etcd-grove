@@ -197,6 +197,24 @@ the attempt's error is `noRefusal` on a connection to `noRefusalAt` addresses, a
 says the members are `noRefusalAt`. R3 shrinks to stating the members' axiom from `startMember`'s
 facts.
 
+**Done (2026-10-21; D29 approved).** The boundary is in place:
+
+- `errDesc`, `refusalDescs` and `noRefusal` are in `cache/v3/Base.lean`.
+- `status.FromError`'s `Message()` returns `errDesc err`, and for a non-status error its
+  `Error()` does too.
+- `errors.Is` returns `true` only for equal descriptions.
+- rpctypes' facts give the refusals' descriptions and each `errStringToError` entry's description
+  (`etc/gen-init.py`).
+- `rpctypes.errDesc_etcdError` (a new axiom) says an `EtcdError`'s description is its `desc`.
+- `noRefusalAt` and the attempt contract's new error clause are in `InvGrpc.lean`.
+- The bridge carries refusal-freedom (`bridge.New`'s spec, `forwards`).
+- `etcd_noRefusal` (a new axiom) is in `v3rpc/NoRefusal.lean`.
+
+The proofs that read the restated specs are adapted by pattern only (`ErrorDesc`, `Error`,
+`shouldRefreshToken`, `isSafeRetry`, the interceptor, `startBridge`). `lake build` fails only in
+linkv3p's `newClient` (since R0). `etc/tcb-report.py --check`, which needs a full build, waits
+until R5.
+
 ### R3. The server
 
 - The unary interceptor, the KV handlers' error paths, `v3rpc.Server`'s registration giving

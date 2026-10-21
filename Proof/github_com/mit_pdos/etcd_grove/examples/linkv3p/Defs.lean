@@ -183,10 +183,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
-gives, from the bridge's trust-boundary spec of `New`). -/
+gives, from the bridge's trust-boundary spec of `New`), and (D29) `a` is refusal-free if `b` is. -/
 def forwards (a b : GoString) : IProp GF :=
-  iprop(□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
-    grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S)
+  iprop((□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
+    grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S) ∗
+    ⌜noRefusalAt b → noRefusalAt a⌝)
 
 instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) a b) := by
   unfold forwards; infer_instance
@@ -196,6 +197,7 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
     forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
+  icases Hf with ⟨#Hf, -⟩
   unfold isGrpcRpc
   icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
   iexists mh, srv, ics, S

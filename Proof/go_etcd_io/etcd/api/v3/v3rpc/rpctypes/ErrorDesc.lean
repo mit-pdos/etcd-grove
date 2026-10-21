@@ -31,7 +31,7 @@ theorem rpctypes.ErrorDesc.wp_proof
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_FromError err $$ [$Hst $Hok] as %s %ok ⟨%Hnil, #HCode, #HMsg⟩
+  wp_apply wp_FromError err $$ [$Hst $Hok] as %s %ok ⟨%Hnil, #HCode, #HMsg, -⟩
   cases ok
   · wp_auto
     cases err with
@@ -44,7 +44,7 @@ theorem rpctypes.ErrorDesc.wp_proof
       iapply HΦ
       itrivial
   · wp_auto
-    wp_apply HMsg as %msg
+    wp_apply HMsg
     iapply HΦ
     itrivial
 

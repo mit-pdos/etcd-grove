@@ -629,6 +629,12 @@ theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp
     context.isContext (GF := GF) ci cd ⊢ ctxOk ci cd := by
   iintro #H; unfold ctxOk; ileft; iexact H
 
+/-- **The server at `addr` never answers with a refusal** (opaque; D29, 2026-10-21): no status it
+sends has a description among `refusalDescs`. Established by the trust-boundary axiom of etcd's
+members (`etcd_noRefusal`), carried by the network's relays (linkv3p's `forwards`), and read by the
+attempt contract (`grpcInvokerOk`). -/
+opaque noRefusalAt : GoString → Prop
+
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
 connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
 of the connection with `Spec` (`isGrpcRpcs`; D27, 2026-10-21: the attempt goes to one of them),
@@ -647,7 +653,14 @@ handler. True of grpc-go: an attempt is one HTTP/2 stream, its request written o
 transparent retry re-sends only a stream the server never handed to its application
 (`REFUSED_STREAM`, a `GOAWAY` past the stream), and etcd's client configures no retry policy and
 no hedging. This restates what the axiom `grpc.ClientConn.Invoke` promises (through this
-definition); no axiom is added. -/
+definition); no axiom is added.
+
+Since 2026-10-21 (D29, the user's choice) the error is not a refusal (`noRefusal`: its
+description is none of `refusalDescs`, the descriptions after which etcd's client resends a write)
+when every address of the connection is refusal-free (`noRefusalAt`). True of grpc-go: a status
+the server sends is forwarded unchanged (`grpc-status`, `grpc-message`), and grpc's own errors
+carry grpc's messages (neither of the old balancer's two strings occurs in grpc v1.84's sources;
+the four etcd strings are etcd's). Again a restatement of `grpc.ClientConn.Invoke`'s promise. -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -660,7 +673,8 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
     {{ (err : GoInterface), RET #err; Req.send inp m ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            Rep.own out)) }})
+            Rep.own out ∗
+            ⌜(∀ a ∈ addrs, noRefusalAt a) → go_etcd_io.etcd.cache.v3.noRefusal err⌝)) }})
 
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :
     Persistent (grpcInvokerOk (GF := GF) conn addrs inv) := by

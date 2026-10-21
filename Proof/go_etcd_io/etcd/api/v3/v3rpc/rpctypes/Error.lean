@@ -86,7 +86,7 @@ theorem rpctypes.Error.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, ⟨%mref, %m, #Hmg, #Hm, #Hmv⟩, %Hty, -⟩
+  icases Hri with ⟨-, -, -, ⟨%mref, %m, #Hmg, #Hm, #Hmv, -⟩, %Hty, -⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with
     | nil => exact absurd rfl Hne
@@ -106,7 +106,7 @@ theorem rpctypes.Error.wp_proof
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
     ihave #Hv := Hmv $$ %d %v %hk
-    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg⟩
+    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg, -⟩
     cases ok
     · obtain ⟨ve, rfl⟩ : ∃ ve, v = GoInterface.ok ve := by
         cases v with
@@ -126,7 +126,7 @@ theorem rpctypes.Error.wp_proof
       ipureintro
       exact fun hc => rpctypes_etcdError_clientErr Hty _ hc _
     · wp_auto
-      wp_apply HMsg as %msg
+      wp_apply HMsg
       wp_apply HCode
       iapply HΦ
       isplitr

@@ -37,7 +37,7 @@ theorem Client.shouldRefreshToken.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, -, -, ⟨%xUE, #HUE⟩, ⟨%xIA, #HIA⟩, ⟨%xAO, #HAO⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, ⟨%xUE, #HUE, -⟩, ⟨%xIA, #HIA, -⟩, ⟨%xAO, #HAO, -⟩, -⟩
   iunfold retryOptsAt at Ho
   icases Ho with ⟨%ov, #Hov, #Hovk⟩
   icases options_fields_ro o ov $$ Hov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩

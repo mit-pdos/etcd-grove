@@ -235,7 +235,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, Hout⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, Hout, %Hnr⟩)
       · subst He
         (try wp_auto)
         wp_for_post

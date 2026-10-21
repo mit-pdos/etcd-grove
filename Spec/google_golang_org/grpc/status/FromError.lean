@@ -39,7 +39,12 @@ now `statusCode err`, an opaque function (a refinement grpc meets).
 
 (2026-10-14, unit P3a) It had no premise, which is false: for an `err` whose `Error()` or
 `GRPCStatus()` panics, `FromError` panics; nothing said the result's `Message()` returns either
-(`rpctypes.Error` and `ErrorDesc` call it). -/
+(`rpctypes.Error` and `ErrorDesc` call it).
+
+(2026-10-21, D29) `s.Message()` returns the error's description (`errDesc err`; it returned some
+string), and when the error is not a status error (`ok = false`) its `Error()` returns the
+description too: grpc's `FromError` builds `Unknown` with `err.Error()` as the message for an error
+without a status. A refinement grpc meets, as `statusCode` was. -/
 abbrev status.FromError.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err }}
@@ -49,9 +54,12 @@ abbrev status.FromError.spec : Prop :=
       □ (∀ Φ : val → IProp GF, ▷ Φ #(statusCode err) -∗
         WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Code"))
           (Val #())) {{ Φ }}) ∗
-      □ (∀ Φ : val → IProp GF, ▷ (∀ msg : GoString, Φ #msg) -∗
+      □ (∀ Φ : val → IProp GF, ▷ Φ #(errDesc err) -∗
         WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Message"))
-          (Val #())) {{ Φ }}) }}
+          (Val #())) {{ Φ }}) ∗
+      □ (∀ e : GoInterfaceOk, ⌜ok = false ∧ err = GoInterface.ok e⌝ → ∀ Φ : val → IProp GF,
+        ▷ Φ #(errDesc err) -∗
+        WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }}) }}
 
 end spec
 
