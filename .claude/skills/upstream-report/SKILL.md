@@ -94,7 +94,14 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
      it, do not change the helper's signature; add a small helper for what the caller needs, its doc in the
      package's terms, and check both at the caller (`IsVoter(r.id) && IsSingleton()`, as the etcd-io/raft#536 review
      asked instead of `IsSingleton(id)`).
-   - A comment only when it says why (an ordering that matters), never what the code does.
+   - Fix the root cause, not its symptoms at the callers: when a helper's result contradicts its name or doc comment
+    (its informal spec), fix the helper so that it meets that spec, once, if every caller wants the corrected
+    result, rather than working around it in each caller that is hit (etcd-io/etcd#22615 fixed
+    `IsDefaultOrdering` itself, one change fixing two bugs, where our #22616 and the `rangestream` candidate
+    patched two callers). Read every caller first; this differs from the `IsSingleton` case above, where the
+    helper did what it said and a caller needed more. Before settling on a fix, list the candidate layers and
+    fixes in `meta.md`, "If a reviewer asks", and say why the chosen one is the one a maintainer would pick.
+  - A comment only when it says why (an ordering that matters), never what the code does.
    - Try the simplest alternative first (reorder, one more condition); if it fails, run it and record why in
      `meta.md`, "If a reviewer asks", with the other alternatives and costs; do not research more for it.
 8. **Verify**: check out the tests commit (the new tests fail) and the fix commit (they pass, the module's tests
