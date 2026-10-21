@@ -136,6 +136,55 @@ literal has no `MaxUnaryRetries`, and `clientKVOnce` needs one attempt. It build
   the client's connection (`clientOk`, D27's `anySpec`).
 - If the server's facts are out of reach, stop and ask: the two-client fallback, or a premise.
 
+**Done (2026-10-21): the server's side is out of reach at D-RR1's cost; stopped and asked.**
+Each refusal at its source:
+
+- **The learner refusal** (`newUnaryInterceptor`, verified: `IsMemberExist(MemberID()) &&
+  IsLearner()`). `EtcdServer.IsLearner` is an axiom returning any boolean
+  (`EtcdServer__IsLearner.lean`). The membership model owns each member's `IsLearner` field with
+  any value (`membership.memberIs`), and records only that the local member stays in the map
+  (`rcLocalIn`). Excluding the refusal needs the local member's flag `false` in the model (from
+  bootstrap's members, kept by the conf changes the server takes, `ccApplyOk`: an `AddNode` of a
+  voter) and a stronger `IsLearner` axiom (it returns that flag): a model change and a change to a
+  trust-boundary spec. Medium.
+- **The auth errors at apply** (`ErrAuthOldRevision`, `ErrUserEmpty`, `ErrPermissionDenied`):
+  **in reach.** The apply side's auth store has a mode (`apply.isAuthStore … on`, unit T1).
+  `NewAuthStore` gives `on = false` on a fresh backend, where the permission checks return `nil`
+  and `AuthEnable` is never called.
+- **`ErrInvalidAuthToken` at the request side** (`AuthInfoFromCtx`, before the proposal or the
+  read). Its contract (`isReqAuth`, `InvRequest.lean:2463`) returns any `applyErrIs` error, and the
+  real store's spec any of five auth errors (`authErrIs`). It has no off mode: the store's
+  `enabled` field is any boolean (`enabledP`). Adding one, with `enabled` tied to the apply side's
+  `on`, is small to medium.
+- **Error identity, the large part.** Even with both sources excluded, the handler contract would
+  have to say *which* error it returns. The client tells a refusal by its description
+  (`rpctypes.Error` looks the status message up), so the server would have to say that the
+  message of every error it answers is not a refusal's. Today the server's errors are described
+  by structure, not identity: `applyErrIs` (an error tree, a safe map key whose `Error()`
+  returns, 77 files, 176 uses), `srvErrIs`, `kvOut`'s error side (`∃ e, A.err q e`, with the
+  returned error unrelated to `e`), and `togRPCError`'s result (non-nil). `togRPCError`'s default
+  case sends `err.Error()` as the message (`codes.Unknown`), so the property is about the
+  messages of every error the request path can return: the raft node's, the backend's, the wait
+  registry's, the context's, many of them from axioms whose specs would each have to name their
+  messages. Large, and it touches many trust-boundary specs.
+
+So D-RR1 as planned (proved refusal-freedom) costs far more than the rest of the plan. The
+choices:
+
+- **(P) A premise on the server, as an axiom (recommended).** `noRefusalAt addr` for a member
+  booted as a voter of a new cluster, with authentication off, is a trust-boundary axiom about
+  the server (D29). Code inspection backs it. The refusal descriptions come only from
+  `togRPCError`'s map entries for `auth.ErrInvalidAuthToken`, `ErrAuthOldRevision` and
+  `ErrUserEmpty`, and from the interceptor's learner branch. The auth errors are returned only
+  with authentication enabled (`AuthInfoFromCtx`, `isOpPermitted`: `if !as.IsAuthEnabled() {
+  return nil, nil }`), and the learner branch only at a learner. A wrapped error has a longer
+  message, and grpc's own errors have grpc's messages. The client's side (R4) and the attempt
+  contract's error side are as planned. The server's KV results stay proved. The learner and
+  auth parts can be proved at their sources later, which would shrink the axiom to error identity
+  alone.
+- **(T) Two clients**: no trust-base change, but not the production pattern.
+- **(F) The full proof**: error messages through the server's request path, as above.
+
 ### R2. The trust boundary (asked of the user)
 
 - `etcdRefusal`; `noRefusalAt`; the attempt contract's error side; the handler contract's
