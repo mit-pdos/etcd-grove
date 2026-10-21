@@ -1,7 +1,7 @@
 # Which issues matter most to etcd's developers
 
-A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20; upstream
-states as of 2026-10-20): the order in which we would bring the
+A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20, the
+watch-resume findings re-ranked 2026-10-21; upstream states as of 2026-10-20): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -77,9 +77,13 @@ before any public issue.
    [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) (the same cause):
    the client library panics on a send to a closed channel (for Kubernetes, the API server).
    etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it, with
-   [etcd-watch-resume-stale-canceled-id](etcd-watch-resume-stale-canceled-id.md): the fix keeps
-   the canceled substream's id, which after a reconnect can delete the resumed watch that reuses
-   it (a one-line addition to the PR: reset the id).
+   [etcd-watch-resume-stale-canceled-id](etcd-watch-resume-stale-canceled-id.md), which must go
+   with it: the fix keeps the canceled substream's id, so after a reconnect a resumed watch that
+   reuses the id is deleted by the old substream's teardown: it silently gets no more events, its
+   channel never closes, and `Close` can hang (the last substream). The worst failure a watch can
+   have (a cache or controller on it keeps a stale view), not in `main` today but introduced by
+   the PR as it stands (and by our fork's K0 until F1); reproduced within 5 to 54 trials. A
+   one-line addition to the PR: reset the id.
 8. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)**: the retry
    interceptor can resend a `Put`/`Txn`/`Delete` after a `Canceled` status, applying the write
    twice. Less reachable than the file suggests (mostly through proxies or load balancers).
@@ -154,6 +158,21 @@ their low 16 bits),
 (a canceled `KeepAlive` closes another caller's channel after an `ErrNoLeader` stream end; test and
 one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, marked stale).
 
+Two of the watch client's resume-path findings (2026-10-20, D25), in this order, which is by how
+likely a deployment is to hit them rather than by severity alone:
+[etcd-watch-close-hang-refused-create](etcd-watch-close-hang-refused-create.md) (after the server
+refuses a watch's create, as auth's permission denied does, a `Close` at the wrong moment hangs
+forever; a hang, not a wrong result, but its preconditions are ordinary: auth enabled and a
+`Close`; reproduced 3 of 3; small fix) and
+[etcd-watch-resume-below-start-revision](etcd-watch-resume-below-start-revision.md) (a wrong
+result, the one upstream watch bug here that delivers wrong data: after a reconnect a watch
+delivers events below the `WithRev` it asked for, silently, so a caller using the start revision
+as a checkpoint re-processes old events; but it needs a start revision in the future of the
+store's, which is unusual (watches start at the current revision + 1 or at a past one; Kubernetes'
+watch cache does neither), plus a progress notification before that revision and a transient
+stream failure; reproduced deterministically against a fake server only, not on a cluster;
+one-line fix with a test).
+
 ## Filed by us
 
 Issues and PRs by `upamanyus` (or `upamanyus-agent`), checked against GitHub 2026-10-20. Ranked by
@@ -205,23 +224,14 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
-- **[etcd-watch-close-hang-refused-create](etcd-watch-close-hang-refused-create.md)**: after the
-  server refuses a watch's create (auth's permission denied), a `Close` before `run` takes the
-  refused substream's teardown post hangs forever. A hang, not a wrong result; small fix.
-
-- **[etcd-watch-resume-below-start-revision](etcd-watch-resume-below-start-revision.md)**: a watch
-  from a future revision with progress notifications can, after a reconnect, deliver events below
-  its start revision. Needs a future start revision, progress, and a transient stream failure.
-  One-line fix with a test.
+- **[etcd-watch-resume-nil-watch-chan](etcd-watch-resume-nil-watch-chan.md)**: a watch canceled
+  while the client reconnects can be handed a nil `WatchChan` (a receive blocks forever); needs
+  the caller's goroutine to be late by a whole reconnect. Small fix with a test.
 
 - **[etcd-watch-resume-waitgroup-overflow](etcd-watch-resume-waitgroup-overflow.md)**: a reconnect
   with 2^31 or more watches on one stream panics in `waitCancelSubstreams` (an `int32` wait-group
   counter given `len(w.resuming)` at once). Out of reach in practice (2^31 goroutines); one-line
   fix, no test possible.
-
-- **[etcd-watch-resume-nil-watch-chan](etcd-watch-resume-nil-watch-chan.md)**: a watch canceled
-  while the client reconnects can be handed a nil `WatchChan` (a receive blocks forever); needs
-  the caller's goroutine to be late by a whole reconnect. Small fix with a test.
 
 - **Leasing** ([leasing-evictrange-key](leasing-evictrange-key.md),
   [leasing-wait-rescind-no-delete](leasing-wait-rescind-no-delete.md),
