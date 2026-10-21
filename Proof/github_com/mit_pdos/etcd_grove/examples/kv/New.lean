@@ -27,7 +27,7 @@ variable [KVStor GF]
 
 theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
-  intro γr γn id n st send op c0 c1
+  intro γr γn id n st send c0
   wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, #Hsend⟩
   wp_auto
   wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mK HK
@@ -66,9 +66,9 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   · unfold isReplica
     simp only [named]
     iframe #
-    ipureintro; exact ⟨Hraft, Hstor, Hmd.2.2.2.2.2⟩
+    ipureintro; exact ⟨Hraft, Hstor, Hmd.2.2.1⟩
   wp_apply wp_fork $$ [Hdlv Hreq kv HK applied HA Hncfg]
-  · wp_apply wp_run γr ⟨γn⟩ «$r0_ptr» id n st send op c0 c1
+  · wp_apply wp_run γr ⟨γn⟩ «$r0_ptr» id n st send c0
       $$ [$Hpkg $Hrep Hdlv Hreq kv HK applied HA Hncfg]
     · iframe #
       isplitr

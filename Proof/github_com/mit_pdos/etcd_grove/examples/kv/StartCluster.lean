@@ -3,8 +3,9 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`. Le
 Rocq counterpart).
 
 The cluster bring-up of the register's `Main` (until 2026-10-19), at any storage registry
-(`[KVStor GF]`): raft's ghost state for the voters `1, 2, 3` (in the dynamic mode of the
-cluster's one configuration change, `RemoveMember(3)`: `opR`, `c0R`, `c1R`, `ccOkR`) with the
+(`[KVStor GF]`): raft's ghost state for the voters `1, 2, 3` (2026-10-21, D22 S-r: in the static
+mode, admitting no configuration change, `ownRaftGhost_alloc_snap`; from stage N until then in the
+dynamic mode of the cluster's one change, `RemoveMember(3)`) with the
 store's invariant (`rkvInv_alloc`, which gives the client's half at the empty store), the term
 budget, then a first loop over the voters (`NewStorage`, `RestartNode` into `peers` and
 `storages`), the transfer budget and the `send` closure (`deliver`), and a second loop that
@@ -151,78 +152,17 @@ theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
   rw [h, GMap.size_empty] at this
   omega
 
-/-! ## The cluster's configuration change (2026-10-15, stage N): removing replica 3
+/-! ## The cluster's mode (2026-10-21, D22 S-r): static, no configuration change
 
-Every conf-change entry of the cluster is `RemoveMember(3)`'s (`ccOkR`, raft's `reCCOk`): the
-change `opR` removes voter 3 from `c0R` (the voters 1, 2, 3), giving `c1R` (1, 2), and changes
-nothing at `c1R`. -/
+(From stage N, 2026-10-15, until D22 S-r the dynamic mode of `RemoveMember(3)`.) -/
 
-/-- The change `RemoveMember(3)` proposes, as `AsV2` makes it. -/
-abbrev opR : CCOp := ccV2Of (.v1 (rmCC (W64 3)))
+/-- The conf-change bytes the cluster admits: none. -/
+def ccOkS (_ty : w32) (_bs : List w8) : Prop := False
 
-/-- The cluster's initial configuration: the voters 1, 2, 3. -/
-abbrev c0R : CCState := cfgState (GMap.listToSet clusterIds) ∅
-
-/-- The configuration after the removal: the voters 1, 2. -/
-abbrev c1R : CCState := cfgState (GMap.delete (W64 3) (GMap.listToSet clusterIds)) ∅
-
-/-- The conf-change bytes the cluster admits: `RemoveMember(3)`'s. -/
-def ccOkR (ty : w32) (bs : List w8) : Prop :=
-  ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = opR
-
-theorem clusterIds_size3 : GMap.size (GMap.listToSet clusterIds) = 3 := by
-  rw [GMap.size_eq_length _ clusterIds clusterIds_nodup]
-  · rfl
-  intro k
-  rw [listToSet_constMap, constMap_lookup_isSome]
-
-theorem three_mem : W64 3 ∈ GMap.listToSet clusterIds := by
-  rw [GMap.elem_of_list_to_set]; decide
-
-theorem three_nmem : W64 3 ∉ (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) := by
-  rw [GMap.elem_of_gset, GMap.lookup_delete]; simp
-
-theorem delete3_ne : (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) ≠ ∅ := by
-  intro h
-  have h1 : W64 1 ∈ (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) := by
-    rw [GMap.elem_of_gset, GMap.lookup_delete_ne _ (by decide), ← GMap.elem_of_gset,
-      GMap.elem_of_list_to_set]
-    decide
-  rw [h] at h1
-  exact GMap.not_elem_of_empty _ h1
-
-theorem delete3_size : GMap.size (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) < 2 ^ 62 := by
-  have : GMap.size (GMap.delete (W64 3) (GMap.listToSet clusterIds) : GSet w64) ≤
-      GMap.size (GMap.listToSet clusterIds) := by
-    apply GMap.subseteq_size
-    rw [GMap.elem_of_subseteq]
-    intro x hx
-    rw [GMap.elem_of_gset] at hx ⊢
-    by_cases hk : W64 3 = x
-    · subst hk; rw [GMap.lookup_delete] at hx; cases hx
-    · rw [GMap.lookup_delete_ne _ hk] at hx; exact hx
-  rw [clusterIds_size3] at this
-  omega
-
-theorem c0R_ok : CfgOk c0R :=
-  cfgOk_cfgState _ clusterIds_ne (by rw [clusterIds_size3]; decide)
-
-theorem c0R_good : CCGood c0R := ccGood_cfgState _
-
-theorem opR_step0 : ccStepB opR c0R = some c1R :=
-  ccStepB_removeVoter _ (rmCC (W64 3)) rfl (by unfold rmCC; word) three_mem delete3_ne
-    (by rw [clusterIds_size3]; decide)
-
-theorem opR_step1 : ccStepB opR c1R = some c1R :=
-  ccStepB_removeAbsent _ (rmCC (W64 3)) rfl (by unfold rmCC; word) three_nmem delete3_ne
-    delete3_size
-
-/-- A replica's node, in the cluster's dynamic mode, is at the cluster's conf changes. -/
-theorem kvCC_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkR)
-    (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good)
-    (Hns : γn.raft.reNoXfer = false) : KVCC γn opR c0R c1R :=
-  ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl,
-    Hns⟩
+/-- A replica's node, in the cluster's static mode. -/
+theorem kvStat_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkS) (Hmd : γn.mode = .static)
+    (Hns : γn.raft.reNoXfer = false) (Hsn : γn.snapIn = false) : KVStat γn :=
+  ⟨Hmd, fun ty bs h => by rw [Hok] at h; exact h, Hns, Hsn⟩
 
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
@@ -271,8 +211,9 @@ def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
       nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     nodeDriver γn id n [] hsZero ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     id ↪[γr.seq] W64 0 ∗
-    -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
-    ⌜KVCC γn opR c0R c1R⌝ ∗ nodeCfg γn 0 c0R)
+    -- (2026-10-15, stage N; static since D22 S-r) the node's mode and the driver's view of its
+    -- configuration
+    ⌜KVStat γn⌝ ∗ nodeCfg γn 0 (cfgState (GMap.listToSet clusterIds) ∅))
 
 theorem StartCluster.wp_proof
     (wp_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG))
@@ -302,11 +243,14 @@ theorem StartCluster.wp_proof
   -- store's invariant, the client's half of the store's state and the sequence-number tokens,
   -- allocated from the client's share once raft's names exist: the store builds the standing
   -- update for raft's own entries (`kv_noopAu`)
-  imod raft_dyn_alloc (GF := GF) ⊤ (ccDecOf opR) c0R c0R_ok (GMap.listToSet clusterIds) ccOkR
+  -- (2026-10-21, D22 S-r) in the static mode, admitting no conf change (until then
+  -- `raft_dyn_alloc`, the dynamic mode of `RemoveMember(3)`)
+  imod ownRaftGhost_alloc_snap (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
+    ccOkS (fun _ _ => True)
     (fun γ => iprop(∃ γr : RKVNames, ⌜γr.raft = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
       ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s)))
-    (by rw [GMap.elem_of_list_to_set]; decide) $$ []
-    with ⟨%γ, %Hcfg', #Hcinv, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩, Hghosts, #Hc0,
+    clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide) $$ []
+    with ⟨%γ, %Hcfg', #Hcinv, #Hc0, Hghosts, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩,
       -, #HrdI⟩
   · unfold allocClient
     iintro %γ0 %_ #_ HcL Hfresh HrdF
@@ -319,22 +263,21 @@ theorem StartCluster.wp_proof
     iexists γr0
     iframe Hreg0 Hval0 Hseqs0
     ipureintro; rfl
-  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2.1
+  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.1
   -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
-  have Hnx := Hcfg'.2.2.2
-  have Hdyn := Hcfg'.1
-  have HccOk := Hcfg'.2.1
+  have Hnx := Hcfg'.2.2.2.1
+  have HccOk := Hcfg'.2.2.1
   -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
   -- own receipts)
   imod budget_alloc (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb0⟩
   rw [listToSet_constMap]
   ihave Hghosts := bigSepM_constMap clusterIds () clusterIds_nodup
-    (fun id _ => ownRaftGhostR (GF := GF) γ (ccDecOf opR) c0R id (rinit c0R)) $$ Hghosts
+    (fun id _ => ownRaftGhost (GF := GF) γ id initPState) $$ Hghosts
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
   subst Hγr
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
-    (Φ := fun _ id => ownRaftGhostR (GF := GF) γr.raft (ccDecOf opR) c0R id (rinit c0R))
+    (Φ := fun _ id => ownRaftGhost (GF := GF) γr.raft id initPState)
     (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := clusterIds)).2 $$ [Hghosts Hseqs]
   · iframe Hghosts Hseqs
   -- the nodes
@@ -345,7 +288,7 @@ theorem StartCluster.wp_proof
       "Hdone" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
         ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr bud id nd st) ∗
       "Htodo" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k),
-        ownRaftGhostR γr.raft (ccDecOf opR) c0R id (rinit c0R) ∗ id ↪[γr.seq] W64 0) ∗
+        ownRaftGhost γr.raft id initPState ∗ id ↪[γr.seq] W64 0) ∗
       "%Hdom" ∷ ⌜∀ id, id ∈ clusterIds.drop (sint.nat k) → M !! id = none ∧ S !! id = none⌝)
     $$ [i id HmP HmS Htodo]
   · iexists W64 0, _, ∅, ∅
@@ -396,13 +339,10 @@ theorem StartCluster.wp_proof
     -- (2026-10-19, D21 M2r) leader transfer on: (D22 S-a) the allocation's
     -- (`RaftNames.reNoXfer`, until then out of the no-snapshot mode: nothing committed)
     have HnsR : γr.raft.reNoXfer = false := Hnx
-    ihave Hghost : rnInit γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) id0
-        (GMap.listToSet clusterIds) $$ [Hghost]
+    ihave Hghost : rnInit γr.raft .static id0 (GMap.listToSet clusterIds) $$ [Hghost]
     · iunfold rnInit
-      isplitr
-      · ipureintro; exact ⟨Hdyn, rfl⟩
       iexact Hghost
-    wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
+    wp_apply (wp_RestartNode γr.raft .static
       bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
       (kv.kvConfState clusterIds) false
@@ -414,7 +354,7 @@ theorem StartCluster.wp_proof
       (fun _ => rfl) rfl (fun h => by cases h))
       $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hcl]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
-    obtain ⟨Hr, Hb, Hs, Hmd, -, rfl⟩ := Hnd
+    obtain ⟨Hr, Hb, Hs, Hmd, Hsn, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
     have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
     rw [Hdrop] at Hnd'
@@ -471,7 +411,7 @@ theorem StartCluster.wp_proof
         isplitr
         · iexists ms, γs
           iframe Hrec
-        ipureintro; exact kvCC_cluster γn (by rw [Hr]; exact HccOk) Hmd (by rw [Hr]; exact HnsR)
+        ipureintro; exact kvStat_cluster γn (by rw [Hr]; exact HccOk) Hmd (by rw [Hr]; exact HnsR) Hsn
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
@@ -540,7 +480,7 @@ theorem StartCluster.wp_proof
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       wp_apply wp_map_lookup1 go.uint64 _ mS S id0 DFrac.discard $$ HmS as -
       simp only [HMl, HSl, Option.getD_some]
-      wp_apply (wp_New γr γn id0 n st _ opR c0R c1R)
+      wp_apply (wp_New γr γn id0 n st _ (cfgState (GMap.listToSet clusterIds) ∅))
           $$ [Hnode Hseq Hncfg]
       · iframe Hreg Hnode Hsrec Hc0 Hseq Hncfg
         isplitr

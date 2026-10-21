@@ -54,8 +54,9 @@ theorem KV.run.wp_proof
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id n st send op c0 c1
-  wp_start as ⟨#Hrep, %Hcc, Hncfg, Hdrv, Hrun, #Hsend⟩
+  intro γr γp r id n st send c0
+  wp_start as ⟨#Hrep, %Hst, Hncfg, Hdrv, Hrun, #Hsend⟩
+  have Hsn : γp.node.snapIn = false := Hst.2.2.2
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'
   iNamed Hrep'
@@ -68,15 +69,15 @@ theorem KV.run.wp_proof
   wp_auto
   wp_apply wp_node_Ready γp.node id n $$ [$HisNode] as %ch #Hch
   ihave IH : iprop(∃ (ds : List EntryM) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
-      (a : w64) (ca : Nat) (cfg : CCState) (p : HardStateM),
+      (a : w64) (p : HardStateM),
       "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ nodeDriver γp.node id n ds p ∗ "Hrun" ∷ runOwn γr r ds ∗
       "pending" ∷ pending_ptr ↦ pv ∗ "Hpv" ∷ pv ↦* ps ∗
       "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
       "Hps" ∷ ([∗list] v ∈ ps, rsOk γr.raft v) ∗
       "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝ ∗
-      "Hncfg" ∷ nodeCfg γp.node ca cfg ∗ "%Hrc" ∷ ⌜RunCfg ds ds.length ca cfg c0 c1⌝)
+      "Hncfg" ∷ nodeCfg γp.node 0 c0)
     $$ [rd Hdrv Hrun pending applied Hncfg]
-  · iexists [], _, _, [], _, 0, c0, hsZero
+  · iexists [], _, _, [], _, hsZero
     iframe
     isplitl []
     · iapply ownSlice_nil
@@ -85,12 +86,10 @@ theorem KV.run.wp_proof
     isplitl []
     · iapply (BigSepL.bigSepL_nil).2; iempintro
     ipureintro
-    refine ⟨by simp; rfl, Nat.le_refl _, NoConfIn_empty _ _, .inl rfl⟩
+    simp; rfl
   wp_for IH
-  -- (D22 S-d4) no snapshot `Ready`: the node is in the dynamic mode
-  have Hdy : γp.node.mode.isDyn = true := by
-    obtain ⟨⟨h0, h1, hm⟩, -⟩ := Hcc; rw [hm]; rfl
-  wp_apply node_ready_receive_ns γp.node id n ch ds p (.inr (.inl Hdy)) $$ [$Hch $Hdrv]
+  -- (D22 S-d4) no snapshot `Ready`: the node takes no `MsgSnap` (`snapIn` off)
+  wp_apply node_ready_receive_ns γp.node id n ch ds p (.inr (.inr Hsn)) $$ [$Hch $Hdrv]
     as %rdv' ⟨%ce, %es, %msgs, %p', Hdata, Hbusy⟩
   ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es p' $$ Hbusy
   unfold readyData
@@ -162,22 +161,18 @@ theorem KV.run.wp_proof
   icases entsPts_elim _ _ _ $$ Hce with ⟨%cls, #Hce, #Hceb⟩
   ihave %Hcelen := ownSlice_len $$ Hce
   ihave %Hcebl := entsBig_length $$ Hceb
-  ihave IHa : iprop(∃ (k : w64) (ev : Loc) (a' : w64) (ca' : Nat) (cfg' : CCState),
+  ihave IHa : iprop(∃ (k : w64) (ev : Loc) (a' : w64),
       "i" ∷ i_ptr ↦ k ∗ "e" ∷ e_ptr ↦ ev ∗ "Hrun" ∷ runOwn γr r (ds ++ ce.take (sint.nat k)) ∗
       "applied" ∷ applied_ptr ↦ a' ∗
       "%Ha" ∷ ⌜uint.Z a' ≤ ((ds ++ ce.take (sint.nat k)).length : Int)⌝ ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ce.length : Int)⌝ ∗
-      -- (2026-10-15, stage N) the configuration, as the conf entries applied so far left it
-      "Hncfg" ∷ nodeCfg γp.node ca' cfg' ∗
-      "%Hrc" ∷ ⌜RunCfg (ds ++ ce) (ds ++ ce.take (sint.nat k)).length ca' cfg' c0 c1⌝)
-    $$ [i e Hrun applied Hncfg]
-  · iexists W64 0, _, a, ca, cfg
-    iframe i e applied Hncfg
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ce.length : Int)⌝)
+    $$ [i e Hrun applied]
+  · iexists W64 0, _, a
+    iframe i e applied
     simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.append_nil]
     iframe Hrun
     ipureintro
-    refine ⟨Ha, by constructor <;> word, Hrc.1,
-      NoConfIn_prefix (List.prefix_append _ _) (Nat.le_refl _) Hrc.2.1, Hrc.2.2⟩
+    refine ⟨Ha, by constructor <;> word⟩
   wp_for IHa
   wp_if_destruct
   · have Hlt : sint.nat k < ce.length := by word
@@ -192,118 +187,45 @@ theorem KV.run.wp_proof
     ihave #Hc1 := isCommitted_mono γp.node.raft (ds ++ ce.take (sint.nat k) ++ [en]) (ds ++ ce)
       (by rw [List.append_assoc, ← Htk]; exact List.prefix_append_right_inj _ |>.mpr (List.take_prefix _ _))
       $$ Hcomm
-    -- (2026-10-15, stage N) the entry's data: a conf-change entry carries `op`
+    -- the entry's data: (D22 S-r) in the static mode a normal entry's, no conf change
     imod node_entry_data γp.node id n (ds ++ ce.take (sint.nat k)) en ⊤ CoPset.subseteq_top
       $$ HisNode Hc1 with ⟨%o, #Ho⟩
-    have Hpos : (ds ++ ce)[(ds ++ ce.take (sint.nat k)).length]? = some en := by
-      rw [List.getElem?_append_right (by simp only [List.length_append, List.length_take]; omega)]
-      simp only [List.length_append, List.length_take]
-      rw [show ds.length + min (sint.nat k) ce.length - ds.length = sint.nat k by omega]
-      exact Hen
-    have Hlen : (ds ++ ce.take (sint.nat k)).length < (ds ++ ce).length := by
-      simp only [List.length_append, List.length_take]; omega
-    -- `if e.GetType() == pb.EntryConfChange { ... r.node.ApplyConfChange(&cc) }`
+    ihave %Hty0 := kvStat_type0 γp.node Hst en o $$ Ho
+    -- `if e.GetType() == pb.EntryConfChange { ... }`: not taken
     wp_apply wp_Entry_GetType.1 ln DFrac.discard en $$ [$Hpbinit $Hent] as -
-    wp_join iprop(∃ (ca'' : Nat) (cfg'' : CCState), nodeCfg γp.node ca'' cfg'' ∗
-        ⌜RunCfg (ds ++ ce) ((ds ++ ce.take (sint.nat k)).length + 1) ca'' cfg'' c0 c1⌝ ∗
-        e_ptr ↦ ln ∗ r_ptr ↦ r)
-      at next with [Hncfg e r] as ⟨%ca'', %cfg'', Hncfg, %Hrc', e, r⟩
-    · by_cases Hty1 : en.Type' = W32 1
-      · rw [decide_eq_true Hty1]
-        ihave %Hm := kvCC_confData γp.node op c0 c1 Hcc en o Hty1 $$ Ho
-        obtain ⟨m, Hm, Hop⟩ := Hm
-        wp_auto
-        -- `proto.Unmarshal(e.GetData(), &cc)`: the bytes decode (the error is nil)
-        wp_apply wp_Entry_GetData.1 ln DFrac.discard en $$ [$Hpbinit $Hent] as %ds1 ⟨#Hds1, -⟩
-        wp_apply wp_proto_UnmarshalConfChange ds1 en.Data' DFrac.discard cc_ptr _
-          $$ [$Hprotoinit $Hds1 $cc] as %err ⟨-, Hres⟩
-        rw [Hm]
-        icases Hres with ⟨%Herr, Hown⟩
-        imod ownCCV1_persist $$ Hown with #Hown
-        try wp_auto
-        -- `r.node.ApplyConfChange(&cc)`: the next conf entry's change, `op`
-        have Hpre : ∀ dec c0' h0' h1', γp.node.mode = .dyn dec c0' h0' h1' →
-            DynCCPreOp dec (ds ++ ce) ca' cfg' (ccV2Of (.v1 m))
-              (ds ++ ce.take (sint.nat k)).length en c1 := by
-          intro dec c0' h0' h1' hm'
-          obtain ⟨⟨h0, h1, hm⟩, -, Hs0, Hs1, Hal, -⟩ := Hcc
-          rw [hm] at hm'
-          cases hm'
-          refine ⟨Hrc.1, Hlen, Hpos, .inl Hty1, Hrc.2.1, ?_, ?_, Hal⟩
-          · show some op = some (ccV2Of (.v1 m)); rw [Hop]
-          · rw [Hop]; rcases Hrc.2.2 with rfl | rfl
-            · exact Hs0
-            · exact Hs1
-        have Hnst : γp.node.mode ≠ .static := by
-          obtain ⟨⟨h0, h1, hm⟩, -⟩ := Hcc; rw [hm]; intro h; cases h
-        ihave Hcci : ownCCI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr)
-            DFrac.discard (some (.v1 m)) $$ []
-        · simp only [ownCCI]
-          iexists cc_ptr
-          iframe Hown
-          ipureintro; rfl
-        wp_apply wp_node_ApplyConfChange γp.node id n
-            (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr) (.v1 m)
-            (ds ++ ce) ca' cfg' (ds ++ ce.take (sint.nat k)).length en c1
-            (fun h => absurd h Hnst) Hpre
-          $$ [$Hraftinit $HisNode $Hcci Hncfg] as %csp %cs ⟨-, Hpost⟩
-        · iright
-          iframe Hncfg
-          iexact Hdlb
-        icases Hpost with (⟨%Hs, -⟩ | ⟨-, Hncfg, -⟩)
-        · exact absurd Hs Hnst
-        try wp_auto
-        wp_join_done
-        iexists (ds ++ ce.take (sint.nat k)).length + 1, c1
-        iframe Hncfg e r
-        ipureintro
-        exact ⟨Nat.le_refl _, NoConfIn_empty _ _, .inr rfl⟩
-      · rw [decide_eq_false Hty1]
-        ihave %Hnc := kvCC_notConf γp.node op c0 c1 Hcc en o $$ Ho
-        wp_auto
-        wp_join_done
-        iexists ca', cfg'
-        iframe Hncfg e r
-        ipureintro
-        refine ⟨by have := Hrc.1; omega, ?_, Hrc.2.2⟩
-        intro j x hj1 hj2 hx
-        by_cases hj : j < (ds ++ ce.take (sint.nat k)).length
-        · exact Hrc.2.1 j x hj1 hj hx
-        · have hj' : j = (ds ++ ce.take (sint.nat k)).length := by omega
-          subst hj'
-          rw [Hpos] at hx
-          cases hx
-          exact Hnc Hty1
+    rw [decide_eq_false (show ¬ en.Type' = W32 1 by rw [Hty0]; intro h; revert h; word)]
+    wp_auto
     rw [Hraft]
     wp_apply wp_apply γr γp r id n st (ds ++ ce.take (sint.nat k)) ln en
       $$ [$Hpkg $Hrep $Hrun $Hent $Hc1] as Hrun
     wp_for_post
     iframe
-    iexists k + W64 1, ln, a' + W64 1, ca'', cfg''
+    iexists k + W64 1, ln, a' + W64 1
     rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word, Htk, List.append_assoc]
     iframe
     ipureintro
     have Hl : ((ds ++ (ce.take (sint.nat k) ++ [en])).length : Int) =
         ((ds ++ ce.take (sint.nat k)).length : Int) + 1 := by simp; omega
-    refine ⟨?_, ?_, ?_⟩
+    refine ⟨?_, ?_⟩
     · rw [Hl]; word
     · constructor <;> word
-    · rw [← List.append_assoc, List.length_append, List.length_singleton]; exact Hrc'
   · have Hfull : sint.nat k = ce.length := by word
-    rw [Hfull, List.take_of_length_le (by omega)] at Ha Hrc ⊢
+    rw [Hfull, List.take_of_length_le (by omega)] at Ha ⊢
     -- the reads whose index is applied, answered
     wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ vs) (DFrac.own 1) a' Ha
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
     -- (D22 S-d4) the receipt for a `Ready` without a snapshot
     ihave Hrcpt : advReceipt γp.node.stor es none $$ [Hrcpt]
     · simp only [advReceipt]; iexact Hrcpt
-    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' p' none (fun _ => Hrc.2.1)
+    have Hnd : γp.node.mode.isDyn = true → NoConfIn (ds ++ ce) 0 (ds ++ ce).length := by
+      intro h; rw [Hst.1] at h; cases h
+    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es 0 c0 p' none Hnd
       $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg, -⟩
     wp_for_post
     iframe
-    iexists ds ++ ce, rdv', rest, ps', a', ca', cfg', p'
+    iexists ds ++ ce, rdv', rest, ps', a', p'
     iframe
-    ipureintro; exact ⟨Ha, Hrc⟩
+    ipureintro; exact Ha
 
 end proof
 

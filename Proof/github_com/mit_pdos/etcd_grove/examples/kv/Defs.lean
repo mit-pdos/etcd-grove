@@ -404,7 +404,7 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = kvStorIface st⌝ ∗
-    -- (2026-10-19, D21 M2r) leader transfer on (`KVCC`; D22 S-a: `RaftNames.reNoXfer`, until
+    -- (2026-10-19, D21 M2r) leader transfer on (`KVStat`; D22 S-a: `RaftNames.reNoXfer`, until
     -- then out of raft's no-snapshot mode)
     "%Hns" ∷ ⌜γp.node.raft.reNoXfer = false⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
@@ -474,43 +474,29 @@ def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
 
 end ghost
 
-/-! ## The cluster's configuration changes (2026-10-15, stage N)
+/-! ## The cluster's mode (2026-10-21, D22 S-r; from 2026-10-15, stage N, until then dynamic)
 
-The replicas' nodes are in raft's dynamic mode: the voters change by the conf-change entries
-their `run`s apply (`node.ApplyConfChange`, before the `Advance` that acknowledges them). A pure
-decoder (`CCDec`) cannot read an entry's bytes, so the cluster's conf changes are fixed in
-advance: every conf-change entry carries the change `op` (raft's `reCCOk`, at allocation), and
-the decoder answers `op` (`ccDecOf`). `op` applies at the initial configuration `c0`, giving
-`c1`, and again at `c1`, giving `c1` (a removal of a voter: removing it again is nothing); so
-the configuration a replica's node is at is `c0` or `c1` (`RunCfg`). -/
+The replicas' nodes are in raft's **static** mode, where a node takes snapshots (D22 S-d4:
+`NodeNames.snapIn` needs it): the voters are the cluster's for good, and the cluster admits no
+configuration change (raft's `reCCOk` refuses every bytes, at allocation), so no committed entry
+is a conf change (`kvStat_type0`) and `run`'s `ApplyConfChange` branch is dead. From stage N to
+D22 S-r the cluster was in the dynamic mode of one change, `RemoveMember(3)`'s (`KVCC`, `RunCfg`,
+the conf-change branch of `run` live); a dynamic node takes no `MsgSnap`. `RemoveMember`'s spec
+stays generic (`CCAllowed`), for a cluster that admits the change. -/
 
 section ccfg
 variable [FfiSyntax]
 
-/-- The decoder of a cluster whose conf-change entries all carry the change `op`. -/
-def ccDecOf (op : CCOp) : CCDec := fun _ _ => some op
-
-/-- A replica's node in the dynamic mode of a cluster whose conf changes are all `op` (see
-the section header). -/
-def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
-  (∃ h0 h1, γn.mode = .dyn (ccDecOf op) c0 h0 h1) ∧
-  (∀ ty bs, γn.raft.reCCOk ty bs →
-    ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
-  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
-  -- (2026-10-19, D21 M2r) leader transfer on (`node.TransferLeadership`'s premise); (D22 S-a)
-  -- `RaftNames.reNoXfer`, until then out of raft's no-snapshot mode (a cluster without a
-  -- bootstrap log)
-  γn.raft.reNoXfer = false
+/-- A replica's node in the cluster's static mode (see the section header): no conf change
+admitted, leader transfer on (`node.TransferLeadership`'s premise; D22 S-a: `RaftNames.reNoXfer`). -/
+def KVStat (γn : NodeNames) : Prop :=
+  γn.mode = .static ∧ (∀ ty bs, ¬ γn.raft.reCCOk ty bs) ∧ γn.raft.reNoXfer = false ∧
+  -- the node takes no `MsgSnap` yet (`NodeNames.snapIn`; S-r's item 5 turns it on)
+  γn.snapIn = false
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/
 def rmCC (id : w64) : CCV1M := { type := W32 1, nodeId := id, context := [], id := W64 0 }
-
-/-- What `run` knows of its node's configuration, at the committed log `D` applied up to
-position `len`: the configuration index `ca` of the last conf change applied, past which `D`
-has no conf entry before `len`, and the configuration, `c0` or `c1`. -/
-def RunCfg (D : List EntryM) (len ca : Nat) (cfg c0 c1 : CCState) : Prop :=
-  ca ≤ len ∧ NoConfIn D ca len ∧ (cfg = c0 ∨ cfg = c1)
 
 end ccfg
 
