@@ -28,7 +28,7 @@ In both cases node 2 should end with the snapshot's configuration, which already
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestRawNodeSnapshotDuringConfChangeApply`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-snapshot-during-apply-stale-confchange/rawnode_test.go#L718-L764) on branch [`upamanyus/etcd-raft:fix/raft-snapshot-during-apply-stale-confchange`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-snapshot-during-apply-stale-confchange), off `main` (638f42739). On `main` it fails as above.
+Unit test: [`TestRawNodeSnapshotDuringConfChangeApply`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-snapshot-during-apply-stale-confchange/rawnode_test.go#L718-L764) on branch [`upamanyus/etcd-raft:fix/raft-snapshot-during-apply-stale-confchange`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-snapshot-during-apply-stale-confchange), off `main` (1931ff5be). On `main` it fails as above.
 
 ### Anything else we need to know?
 
@@ -38,6 +38,6 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-`main` (638f42739), go1.26.9 linux/amd64.
+`main` (1931ff5be), go1.26.9 linux/amd64.
 
 </details>
