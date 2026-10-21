@@ -105,6 +105,28 @@ are configured with moves to the default.
   `Put`s it forwards, and one cut in flight must give at most one forwarded copy.
 - `go test -race`.
 
+**Done (2026-10-21).** `newClient` has the default retries (`MaxUnaryRetries` unset). The tests
+record whether each operation is a read (a `Get` or a `List`: a `Range`). Findings:
+
+- **No read failed**, in 3 runs of the package (one under `-race`). A read held by a cut is retried
+  once the cut's connection closes, on the next member. `cutRun` now checks that no read fails.
+  Only writes fail: 1 to 5 per run of `TestFailover`, 0 to 3 of `TestClientCuts`, where each
+  client has one bridge and a held read waits for the unblackhole.
+- `TestFailover` with retries saw one failure in a run where, before, the other clients' stalls
+  failed too: those stalls were reads, now retried. Its phases are driven by **stalls** (a failed
+  operation, or one that took more than 5s, which is a keepalive close's) instead of failures; a
+  failure alone could be missing from a run. `TestClientCuts` checks for a cut operation through
+  client 1 (a failure, or a read held over the unblackhole).
+- **`TestWriteOnce`** (the probe): 3 workers put distinct keys through Main's clients for 20s,
+  while member 1's bridge is blackholed for 15s and member 2's connections are dropped every
+  second. Each key's version must be 1, so no put was applied twice. In 4 runs, 16,000 to 60,000
+  puts each: 6 to 8 failed, and every key had version 1. Of the failed puts, a few were applied
+  anyway (in flight when the connection closed); none was resent.
+- `TestMainRun`'s comment: a read at an isolated member is retried at the next member.
+
+The translation is regenerated. linkv3p's `newClient` proof no longer builds: the configuration's
+literal has no `MaxUnaryRetries`, and `clientKVOnce` needs one attempt. It builds again at R5.
+
 ### R1. Audit (notes only)
 
 - Each refusal's source in the server, with the facts its exclusion needs: `IsLearner`'s spec, auth

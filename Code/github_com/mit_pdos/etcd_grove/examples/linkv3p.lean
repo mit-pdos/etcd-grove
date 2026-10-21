@@ -495,11 +495,13 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))))))
 
-/-- newClient connects a one-attempt client to the members (through their bridges) at eps, each
-    attempt to one of them: a write is sent at most once, so the cluster applies it at most once
-    (decision D21i). Keepalive closes a connection that stops answering (notes/keepalive-plan.md).
+/-- newClient connects a client with the default retries to the members (through their bridges)
+    at eps, each attempt to one of them: a read that fails with Unavailable is retried, on the next
+    member; a write is retried only after a refusal (a learner's, an authentication error), which
+    these members never send, so it is sent at most once (notes/read-retry-plan.md). Keepalive
+    closes a connection that stops answering (notes/keepalive-plan.md).
 
-    go: linkv3p.go:230:6 -/
+    go: linkv3p.go:232:6 -/
 noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"
@@ -508,10 +510,9 @@ noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "__p" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v2" (Val #(W64 1))
-  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Second)))
-  (Let "$v4" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val _root_.Perennial.time.Second)))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"MaxUnaryRetries")) (ElementExpression go.uint (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v4")))])))))))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Second)))
+  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val _root_.Perennial.time.Second)))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3")))]))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.New []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -522,7 +523,7 @@ noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
     connects three clients to the three bridges (each client to every bridge: failover), starts the partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
     error from a step before Check ends Main without a check (the specs allow every step to fail).
 
-    go: linkv3p.go:246:6 -/
+    go: linkv3p.go:247:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"

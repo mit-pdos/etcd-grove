@@ -224,14 +224,15 @@ func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration)
 		timeout)
 }
 
-// newClient connects a one-attempt client to the members (through their bridges) at eps, each
-// attempt to one of them: a write is sent at most once, so the cluster applies it at most once
-// (decision D21i). Keepalive closes a connection that stops answering (notes/keepalive-plan.md).
+// newClient connects a client with the default retries to the members (through their bridges)
+// at eps, each attempt to one of them: a read that fails with Unavailable is retried, on the next
+// member; a write is retried only after a refusal (a learner's, an authentication error), which
+// these members never send, so it is sent at most once (notes/read-retry-plan.md). Keepalive
+// closes a connection that stops answering (notes/keepalive-plan.md).
 func newClient(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
-		Endpoints:       eps,
-		Logger:          lg,
-		MaxUnaryRetries: 1,
+		Endpoints: eps,
+		Logger:    lg,
 		// keepalive pings every 10s (grpc's floor) while calls are in flight; a ping not answered
 		// within 2s closes the connection, so a silently cut member's calls fail and the balancer
 		// moves on (production values are larger: Kubernetes' API server uses 30s and 10s)
