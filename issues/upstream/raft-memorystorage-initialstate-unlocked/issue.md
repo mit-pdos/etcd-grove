@@ -6,17 +6,17 @@ With the race detector on (`go test -race`): one goroutine calls `SetHardState` 
 
 ```
 WARNING: DATA RACE
-Write at 0x00c000330008 by goroutine 10:
+Write at 0x00c00012e1e8 by goroutine 10:
   go.etcd.io/raft/v3.(*MemoryStorage).SetHardState()
       .../storage.go:140 +0x92
   go.etcd.io/raft/v3.TestStorageInitialStateConcurrent.func1()
-      .../storage_test.go:287 +0x171
+      .../storage_test.go:285 +0xe4
 
-Previous read at 0x00c000330008 by goroutine 9:
+Previous read at 0x00c00012e1e8 by goroutine 9:
   go.etcd.io/raft/v3.(*MemoryStorage).InitialState()
-      .../storage.go:133 +0x476
+      .../storage.go:133 +0x433
   go.etcd.io/raft/v3.TestStorageInitialStateConcurrent()
-      .../storage_test.go:289 +0x30d
+      .../storage_test.go:287 +0x2cb
 --- FAIL: TestStorageInitialStateConcurrent (0.00s)
     testing.go:1712: race detected during execution of test
 ```
@@ -29,7 +29,7 @@ This affects any application that calls `InitialState`, directly or by creating 
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestStorageInitialStateConcurrent`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-memorystorage-initialstate-unlocked/storage_test.go#L279-L292) on branch [`upamanyus/etcd-raft:fix/raft-memorystorage-initialstate-unlocked`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-memorystorage-initialstate-unlocked), off `main` (1931ff5be). On `main`, `go test -race -run TestStorageInitialStateConcurrent .` fails as above, in every run.
+Unit test: [`TestStorageInitialStateConcurrent`](https://github.com/upamanyus/etcd-raft/blob/fix/raft-memorystorage-initialstate-unlocked/storage_test.go#L279-L291) on branch [`upamanyus/etcd-raft:fix/raft-memorystorage-initialstate-unlocked`](https://github.com/upamanyus/etcd-raft/tree/fix/raft-memorystorage-initialstate-unlocked), off `main` (1931ff5be). On `main`, `go test -race -run TestStorageInitialStateConcurrent .` fails as above, in every run.
 
 ### Anything else we need to know?
 

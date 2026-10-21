@@ -11,7 +11,9 @@ with a writer; no client request reaches it (raft calls `InitialState` once, in 
 - **Target**: etcd-io/raft, `main` (the same code in release-3.7; release-3.6 also takes no lock in
   `InitialState`, which there only reads)
 - **Branch**: `fix/raft-memorystorage-initialstate-unlocked` in `~/etcd-fixes/raft-memorystorage-initialstate-unlocked`,
-  two commits: 140bcca adds the test, which fails there under `-race`; 7ee97a9 is the fix.
+  two commits: ecb890e `raft: test InitialState concurrent with SetHardState` adds the test, which fails there
+  under `-race`; 15190e3 `raft: take the lock in MemoryStorage.InitialState` is the fix (body: "Reading the initial
+  state did not hold the mutex that guards the storage.").
 - **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-21, the merge of #536)
 - **State**: draft (not pushed, not filed).
 - **Changelog**: none. A race fix in a stable release's code, like etcd-io/raft#441 (the analogous
@@ -52,12 +54,21 @@ Candidate layers and fixes:
    the counter and the `EnsureConfState` write at once. No caller holds the lock when calling `InitialState`
    (`newRaft` calls it through the `Storage` interface; no other caller in the module), so no deadlock.
 2. **Also return copies** (`proto.Clone` of the hard state and the `ConfState`, as `Snapshot` and `CreateSnapshot`
-   clone the snapshot). Not needed for this race: after `InitialState` returns, `MemoryStorage` never mutates the
-   objects it handed out. `SetHardState` replaces the pointer (and stores the caller's object uncloned, so the hard
-   state is shared by design); `CreateSnapshot` and `ApplySnapshot` replace `ConfState` by a fresh clone; and the
-   `AutoLeave` write of `EnsureConfState` happens at most once per stored `ConfState`, now under the lock and before
-   it is shared (later calls find `AutoLeave` non-nil, as #441 relies on). Cloning would add allocations and change
-   aliasing behavior for no reported race; a follow-up if maintainers want `Snapshot`-style isolation.
+   clone the snapshot). Not needed: with the lock, the pointers `InitialState` returns do not race with later
+   storage writes, because `MemoryStorage` never mutates in place an object it has handed out. `hardState` is a
+   `*pb.HardState` that `SetHardState` replaces (it stores the caller's object uncloned, so the hard state is
+   shared with the application by design); `ApplySnapshot` replaces `ms.snapshot` by a clone and `CreateSnapshot`
+   replaces `Metadata.ConfState` by a clone (it mutates `Metadata.Index`/`Term` in place, but `InitialState` returns
+   only the `ConfState`); the stored `ConfState` is never shared before `InitialState` or `Snapshot` (which returns
+   a clone) has run `EnsureConfState` on it under the lock, so the one in-place write, `AutoLeave` when nil,
+   happens before any caller holds the pointer, and later `EnsureConfState` calls only read it (#441, merged as
+   fe48d373, made `EnsureSnapshot`/`EnsureSnapshotMetadata` stop reassigning non-nil fields for the same reason;
+   `EnsureConfState` already writes only when nil). raft's one caller, `newRaft`, only reads the returned values
+   (`confchange.Restore`, `loadState`). Checked by a throwaway `-race` stress test (not on the branch, via
+   `-overlay`): `CreateSnapshot` with a `ConfState` whose `AutoLeave` is nil, `Snapshot` and `SetHardState` in a
+   loop against two goroutines calling `InitialState` and reading, cloning and marshalling the returned values,
+   then `ApplySnapshot`: no race in 3 runs with the fix. So no test can show a pointer race, and cloning would
+   add allocations and change aliasing for nothing.
 3. **Stop `InitialState` writing** (ensure a local copy instead of the stored `ConfState`, #441's style of not
    reassigning). Still needs the lock for the `hardState` read and the counter, so it cannot replace (1); with
    the lock, the write is harmless. #441 changed `Ensure*` because `ApplySnapshot` wrote the *caller's* object, which
@@ -67,16 +78,31 @@ Candidate layers and fixes:
 
 The simplest alternative (1) was tried first and works; nothing else was needed.
 
+Other methods: every other exported method of `MemoryStorage` takes the mutex before touching a field (`Append`
+checks only `len(entries)`, its argument, before locking); `lastIndex`/`firstIndex` are called under it.
+`InitialState` was the only gap.
+
+Does CI see the test? The test fails only under `-race`. raft's CI does run with it: `.github/workflows/
+test_amd64.yaml` runs target `linux-amd64-unit-4-cpu-race`, which `test_template.yaml` maps to `RACE='true'
+./scripts/test.sh` (`PASSES='unit'`), whose `run_unit_tests` passes `--race`; `scripts/test.sh` also defaults to
+`--race` on amd64 (so `make test` does too). The 386 job runs without it, where the test passes vacuously.
+
 ## Verification (go1.26.9 linux/amd64, 2026-10-21)
 
-- Tests commit 140bcca: `go test -race -count=1 -run TestStorageInitialStateConcurrent .` FAIL ("race detected
+- Tests commit ecb890e: `go test -race -count=1 -run TestStorageInitialStateConcurrent .` FAIL ("race detected
   during execution of test"; write in `SetHardState` storage.go:140, read in `InitialState` storage.go:133); a
   `-race` test binary run 20 times: 20 failures. Without `-race` it passes (the test asserts only through the race
-  detector; raft's `scripts/test.sh` runs with `--race` by default).
-- Fix commit 7ee97a9: the test passes (20/20 runs); `go test -race -count=1 ./...` ok (raft, confchange, quorum,
+  detector; raft's CI runs it with `-race`, above).
+- Fix commit 15190e3: `go test -race -count=20 -run TestStorageInitialStateConcurrent .` ok; `go test -race -count=1 ./...` ok (raft, confchange, quorum,
   raftpb, rafttest, tracker); `gofmt -l .` empty; `go vet ./...` clean.
+- `check.py`: one WARN, the issue names `InitialState`; kept, as it is the exported `Storage` method the
+  application calls and the symptom is about.
 
 ## Review
+
+Revised 2026-10-21 (maintainer pass): the test's goroutine sends `SetHardState`'s error on a channel instead of
+calling `require` off the test goroutine (`FailNow` must run on it), as `node_test.go` does; the doc comment
+shortened; the fix commit's body in words. Fix unchanged (the lock is the whole root cause, item 2 above).
 
 By hand: the only change is the lock; every caller of `InitialState` (only `newRaft`) checked; no comment or doc
 claims `InitialState` runs unlocked. Side observation, not checked for reachability and not recorded as a finding:
