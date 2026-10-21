@@ -11,8 +11,8 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   leader messages; not demonstrated in a full cluster or on etcd. On etcd-io/raft `main`
   638f42739 also with a real leader `raft` (a temporary test, 2026-10-18,
   `issues/upstream/raft-snapshot-during-apply-stale-confchange/meta.md`, which also records why the
-  candidate's first fix, ignoring the snapshot, was replaced: it made the leader's resend depend on
-  `ReportSnapshot`).
+  candidate's earlier fixes were replaced: ignoring the snapshot made the leader's resend depend on
+  `ReportSnapshot`; deferring it (2026-10-18) can make the leader send it twice, measured 2026-10-21).
 - **Where** (etcd-io/raft at `40f8be730b18`):
   - `node.go:380-445` (`node.run`): while it waits for `Advance` (`advancec != nil`) it still
     steps the messages it receives (`case m := <-n.recvc: r.Step(m)`); `doc.go:110` ("when
@@ -143,8 +143,12 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   restored snapshot's index (`TestConfChangeLagSnapshotDuringApply`). Without tracking:
   refuse to restore a snapshot while `applying > applied` (the follower answers as for an
   ignored snapshot and the leader retries, only after `ReportSnapshot`), at the cost of delaying
-  catch-up; or, the candidate's fix (2026-10-18), keep the `MsgSnap` while `applying > applied`
-  and step it again when `appliedTo` brings `applied` to `applying` (no resend needed).
+  catch-up; keep the `MsgSnap` while `applying > applied` and step it again when `appliedTo` brings
+  `applied` to `applying` (2026-10-18; the leader sends the snapshot again if the follower answers
+  a probe meanwhile, or if the term changes); or, the candidate's fix (2026-10-21), restore at once
+  but keep the configuration the restore replaced while the older entries are being applied,
+  apply the `ApplyConfChange` calls made meanwhile to it and return its `ConfState`, and hand
+  out no newer entries until then (with `AsyncStorageWrites`, so that no call can be for one).
   Another (2026-10-21, not tried): switch raft's configuration to the snapshot's at `appliedSnap` instead
   of at `restore`; without `AsyncStorageWrites` that needs no copy and no index, with it the snapshot can be
   acknowledged before the older entries, the same ordering gap that diverges the state machine
