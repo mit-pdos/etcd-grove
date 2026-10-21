@@ -415,6 +415,10 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
   have HnP : m.Type' ≠ MsgProp := by not_net
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.dyn ⟨rs.capplied, rs.cfg, fp⟩) $$ Hphys with ⟨%Hpf, Hphys⟩
+  -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)
+  icases ownRaftPhysC_persistRel cf rnv.raft' id s $$ Hphys with ⟨%Hpr, Hphys⟩
+  icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh0, Hphys⟩
+  have Hrel := fun h => Hpr.2 (ack_snap_sip Hloan Hgh0.1.2 h)
   wp_apply Hok.raftStep Hpvoff Htrm Hmtc Htn Hb1 (Hrnfl.1 Hflw) (fun h => Hnl.2.1.trans (Hxt h)) (wp_raft_Step cf _ γ _ id s ml m ents ctx sn rsp)
       Hwf
     (GMode.Pre.of_facts Hpf Hns (by not_net)) (fun h => absurd h Hns)
@@ -438,12 +442,13 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     iintro %h
     exact absurd h Hns
   simp only [HnP]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, -⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, -, %Htrc,
+    -⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by not_net) Hns; subst e1
   have e2 := Hcc Hns; subst c'
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hns (by not_net) (fun h => absurd h (by not_net))
-  obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm Hns
+  obtain ⟨Ht1, -, Ht3, Hip4, Ht5, Hpcs⟩ := Htm Hns
   have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
       (if m.Type' = MsgTimeoutNow then 1 else 0) := by
     intro hpr
@@ -464,7 +469,15 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       · rw [ite_eq_right h] at h1
         have := Int.max_le.2 ⟨Htc0, Hmtc'⟩; omega
   have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
-  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+  -- (D22 S-d3b) the acknowledgement's facts across the step: a `MsgApp`'s truncation, at an entry of
+  -- its leader's log (`ackInv_app`), or `offsetInProgress` not moved back
+  ihave #Hstr' : ackInv γ { rs with term := s'.term } s' $$ []
+  · by_cases Happ : m.Type' = MsgApp
+    · ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Happ]; exact mtypeOf_MsgApp)
+      rw [isMessage_absMsg_ctx γ .app m ents ctx (And.intro (by decide) (by decide))]
+      ihave #Hents := isMessage_app_leadFull γ m ents $$ Hm'
+      iapply ackInv_app γ rfl Hstok Ht1 Hpv Hsn Hsd (Htrc Happ) Hrel Hpr.1 $$ Hstrecs Hents
+    · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 Happ) $$ Hstrecs
   iapply HΦ $$ %err %s'.term
   isplitl
   · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps Hwf'
@@ -472,7 +485,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       Hstok' rfl (by rw [Hsg]; exact Hstor)
       (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-      (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha)
+      (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
   ipureintro
   rw [Htrm]
@@ -681,7 +694,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     · imodintro
       iintro %Hc
       simp [MsgProp, MsgSnap] at Hc
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %_, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %_, -, -, Herr⟩
   ihave #Hstep : stepErr err $$ [Herr]
   · unfold stepErr
     icases Herr with (%Hnil | ⟨-, #Hpd⟩)
@@ -697,8 +710,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   have e2 := Hcc (by msg_ne'); subst c'
   obtain ⟨Hfr', Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne')) (.inl Hty)
   have Hap' := Hap (fun Hc => by rw [Hty] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)
-  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hfr'.2.2.2.2.1
-    Hfr'.2.2.2.2.2.1 $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr'.1]; exact Int.le_refl _)
+    Hfr'.2.2.2.2.1 Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.1 Hfr'.2.1 $$ Hstrecs
   iapply HΦ
   isplitl
   rotate_left
@@ -714,7 +727,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (Int.le_trans Hrs_clb Hc)
     (RNFl.keep Hrnfl Hfr'.2.2.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.2 Hap')
     (Hloan.keep Hfr'.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.1 Hfr'.2.2.2.2.2.2.2.2.2.2.1 Hfr'.2.2.2.2.2.1
-      Hfr'.2.2.1 Hap')
+      Hfr'.2.2.1 Hap' Hc)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
 
 end step
@@ -901,7 +914,7 @@ theorem wp_applyConf_dyn
         rnv.stepsOnAdvance' ↦* steps ∗
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         lentPend rs.slent (pendList γ id steps rs.steps) ∗
-        isCommitted γ rs.delivered ∗ storedRecsP γ rs.psnap s.logst.prev s.logst.stored ∗
+        isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
         loanCom γ rs.slent ∗ ownCCV2 cc dq ccm ∗ £ 1 }}
       (App (Val (rnv.raft' @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
@@ -1024,8 +1037,8 @@ theorem wp_applyConf_dyn
       simp only; rw [hm]; rfl]
     iexact Hghost
   obtain ⟨Hwf', Ht', Hpv', Hgh', Hls', Hc', Hrl'⟩ := applyCCOkC_frame Hok Hwf
-  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored (by rw [Hls'])
-    (by rw [Hls']) $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Ht']; exact Int.le_refl _)
+    (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']; exact Int.le_refl _) $$ Hstrecs
   imodintro
   iapply HΦ $$ %cs %xs %os %ls %lns
   iframe Hch Hcs
@@ -1039,7 +1052,7 @@ theorem wp_applyConf_dyn
         by rw [Hgh', Ht']; exact Hpvoff.2.2.1, fun h => by rw [Hgh', Ht']; exact Hpvoff.2.2.2 (Hrl' h)⟩
       (by rw [Hgh']; exact Hrs_out) (by rw [Hgh']; exact Hrs_unst) (Int.le_trans Hrs_clb Hc')
       (by unfold RNFl; rw [Hls']; exact Hrnfl)
-      (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']))
+      (Hloan.keep Hgh' (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) (by rw [Hls']) Hc')
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc
   ipureintro; exact Hcs0
 
@@ -1082,7 +1095,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       lentPend rs.slent (pendList γ id steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
-      storedRecsP γ rs.psnap s.logst.prev s.logst.stored -∗
+      ackInv γ rs s -∗
       loanCom γ rs.slent -∗
       -- (D22 S-b′3) the storage's certificate link
       certLink γ s.logst.storage -∗ £ 1 ={⊤}=∗
@@ -1106,14 +1119,15 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   ihave %Hst0 := ownRaftGhost_static γ id _ $$ Hghost
   imod ownRaftGhost_step_0 γ _ (CfgStatic.simple γ _ Hst0) id Htrk' 0 (by decide) _ _ Hst
     $$ Hrc0 Hlc Hghost with Hghost
-  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hprev Hstored $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Htm]; exact Int.le_refl _)
+    Hprev Hsnap' Hstored (by rw [Hls]; exact Int.le_refl _) $$ Hstrecs
   iapply ownRawNode_intro_static γ rn id rs s' (toPState s') rnv sv hprev steps Hm ⟨rfl, Hwf'⟩ Hin Hasync
     (by rw [Happ]; exact Hdlen) (by rw [Hunp']; exact Hunp) (by rw [Hsnap']; exact Hsnap)
     (stepsOk_mono_le s s' _ (by rw [Htm]; exact Int.le_refl _) ⟨Hprev, Hstored⟩ Hc Happ (tc_le_of_gh Hgh) Hstok)
     (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (Hpvoff.keep rfl rfl Hpv Hgh Htm Hro)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
     (by unfold RNFl; rw [Hls]; exact Hrnfl)
-    (Hloan.keep Hgh (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]))
+    (Hloan.keep Hgh (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) (by rw [Hls]) Hc)
     Htrk' (by unfold NsLink; rw [Hgh]; exact Hnl)
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstr' Hloanc Hcl'
 

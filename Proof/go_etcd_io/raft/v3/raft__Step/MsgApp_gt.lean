@@ -74,7 +74,9 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
+        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt
   wp_start as H
   iNamed H
@@ -125,7 +127,8 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iframe Hphys
   ipureintro
   refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ?_, rfl,
-    app_frame Hty Happ (NetFrame.refl _) (Int.le_of_lt Hgt) (Int.le_max_right _ _)⟩
+    and_assoc.mp ⟨app_frame Hty Happ (NetFrame.refl _) (Int.le_of_lt Hgt) (Int.le_max_right _ _),
+    trunc_handle_app Happ rfl rfl⟩⟩
   refine ⟨[absMsg .app m ents] ++ [absMsg .app m ents], ?_, ?_⟩
   · intro m' Hm'; simpa using Hm'
   · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))

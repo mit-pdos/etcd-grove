@@ -12,10 +12,11 @@ Specified for the messages of replication and leader election (`NetMsgOk`): `Msg
 `node.go`, whose `run` steps them all) leader transfer, `MsgTimeoutNow` and an unstamped
 `MsgTransferLeader` (`TransferLeadership`'s), and the local `MsgForgetLeader`,
 `MsgUnreachable`, `MsgSnapStatus`; (2026-10-17) pre-vote; (2026-10-20, D22 S-c) a leader's
-`MsgSnap`, in the static mode, outside the cluster's no-snapshot mode and with no `Ready`
-outstanding, its snapshot as `raft.Step` takes it (`"#Hsnap"`: the index bound,
-`absSnap`); afterwards a snapshot may be pending (`RNState.psnap`), which `Ready` and `Advance`
-do not hand out until stage S-d (`notes/decisions.md`, "D22 S-c carried out") -- not a
+`MsgSnap`, in the static mode, outside the cluster's no-snapshot mode (D22 S-c to S-d3a: with no
+`Ready` outstanding; since D22 S-d3b, 2026-10-21, also between a `Ready` and its `Advance`, a
+snapshot `Ready`'s included), its snapshot as `raft.Step` takes it (`"#Hsnap"`: the index bound,
+`absSnap`); afterwards a snapshot may be pending (`RNState.psnap`), which the next `Ready` hands
+out (`notes/decisions.md`, "D22 S-c carried out", "D22 S-d3b carried out") -- not a
 `MsgTransferLeader` a follower forwarded (stamped:
 `raft.Step` takes it only of a receiver that is no follower with a leader at its term,
 `RestMsgOk`, a fact of the receiver's state no message carries) -- with what the transport
@@ -104,10 +105,11 @@ abbrev RawNode.Step.spec : Prop :=
   -- then the no-snapshot mode's flag)
   (st.msg.Type' = MsgTransferLeader → γ.reNoXfer = false) →
   -- (2026-10-20, D22 S-c) a snapshot only outside the cluster's no-snapshot mode, where no node
-  -- sends one (`NsLink`, `raft.Step`'s premise), and with no `Ready` outstanding: a restore
-  -- replaces the log's boundary, which a queued `MsgStorageAppendResp` acknowledges against
-  -- (`PendingOk`; a snapshot between `Ready` and `Advance` is stage S-d's)
-  (st.msg.Type' = MsgSnap → γ.reNoSnap = false ∧ rs.steps = []) →
+  -- sends one (`NsLink`, `raft.Step`'s premise). (D22 S-c to S-d3a also with no `Ready`
+  -- outstanding, `rs.steps = []`: a restore replaces the log's boundary, which a queued
+  -- `MsgStorageAppendResp` acknowledges against; since D22 S-d3b, 2026-10-21, the node keeps what
+  -- the acknowledgement's miss after a restore needs, `ackInv`.)
+  (st.msg.Type' = MsgSnap → γ.reNoSnap = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       -- (2026-10-16, stage R5) the message, taken for good as `raft.Step` takes it (until then

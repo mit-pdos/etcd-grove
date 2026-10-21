@@ -91,7 +91,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term
-        "%Hsf" ∷ ⌜SnapStep m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgSnap_gt _P _Q c r id s ml m sn ctx rs ents scfg sv Hnsf Hty Hto Hterm Hfnz Hfid
