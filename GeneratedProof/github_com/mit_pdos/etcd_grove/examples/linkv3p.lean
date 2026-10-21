@@ -14,6 +14,8 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.grpc
+public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.net
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.time

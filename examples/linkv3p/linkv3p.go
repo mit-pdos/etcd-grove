@@ -34,6 +34,8 @@ import (
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -134,7 +136,11 @@ func startMember(name string, peer types.URLs, peerAddr string, client string,
 		return nil, err
 	}
 	s.Start()
-	gs := v3rpc.Server(s, nil, nil)
+	// the clients' keepalive pings allowed every 5s, as etcd's embed does with its default
+	// GRPCKeepAliveMinTime (grpc's own default refuses a ping more often than every 5 minutes)
+	gs := v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+		MinTime: 5 * time.Second,
+	}))
 	go gs.Serve(cl)
 	return s, nil
 }
@@ -220,12 +226,17 @@ func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration)
 
 // newClient connects a one-attempt client to the members (through their bridges) at eps, each
 // attempt to one of them: a write is sent at most once, so the cluster applies it at most once
-// (decision D21i).
+// (decision D21i). Keepalive closes a connection that stops answering (notes/keepalive-plan.md).
 func newClient(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
 		Endpoints:       eps,
 		Logger:          lg,
 		MaxUnaryRetries: 1,
+		// keepalive pings every 10s (grpc's floor) while calls are in flight; a ping not answered
+		// within 2s closes the connection, so a silently cut member's calls fail and the balancer
+		// moves on (production values are larger: Kubernetes' API server uses 30s and 10s)
+		DialKeepAliveTime:    10 * time.Second,
+		DialKeepAliveTimeout: 2 * time.Second,
 	})
 }
 

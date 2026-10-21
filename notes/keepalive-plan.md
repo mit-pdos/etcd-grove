@@ -1,6 +1,6 @@
 # Plan: keepalive in the client's configuration, and failover on a silent partition
 
-Status: proposed (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`). Follows
+Status: in progress (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`): KA0 done. Follows
 `notes/client-cut-plan.md` (K4, failover; `notes/decisions.md` D27).
 
 ## Goal
@@ -107,6 +107,30 @@ its check that some call through client 1 failed already holds earlier. To be me
 - Confirm by a test that, without the enforcement policy, a client with a 10-second keepalive
   gets `GOAWAY too_many_pings` within a minute (the finding behind D-KA2; a note, not an issue:
   it is a configuration of ours, not a bug of etcd's).
+
+**Done (2026-10-21).** `startMember` passes `grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy
+{MinTime: 5 * time.Second})`; `newClient` sets `DialKeepAliveTime: 10s`, `DialKeepAliveTimeout: 2s`
+(grpc is now a direct dependency of linkv3p's module). Findings:
+
+- **Without the policy the pings are refused**: a probe (grpc's health service, a client with a
+  10-second keepalive, a stream kept open) saw its stream cut after 31s with `GOAWAY
+  ENHANCE_YOUR_CALM "too_many_pings"`; with the 5-second policy the stream lived to its 45-second
+  deadline. A configuration of ours (etcd's `embed` sets the policy), not an issue.
+- **Each client finds the cut member on its own.** A client pings only while it has calls in
+  flight (`PermitWithoutStream: false`, which etcd's server requires: its policy counts a ping on
+  an idle connection as a strike). A client's idle connection to the blackholed member is not
+  probed, and stays READY until a call is sent on it; that call hangs 2 to 12 seconds (2 if the
+  connection has not read for 10 seconds already), then fails, and from then on the balancer
+  skips it (a re-dial is never READY: grpc waits for the server's preface). So a silent partition
+  costs each client one stall, and the workers that picked that client stall with it: in the runs,
+  one to three closes, at 12s, 14s to 24s.
+- `TestFailover` (blackhole alone, 45s): every failure during the cut ended between 12s and 24s,
+  and then each client served thousands of operations through the other two members; 4 runs of 4
+  passed (15 to 35 seconds each). `TestClientCuts` (its 3-second blackhole is shorter than the
+  keepalive) and `TestMainRun` unchanged. `go test -race` passes.
+
+Until KA2 and KA3, linkv3p's `startMember` and `newClient` proofs do not build (the server option
+and the configuration's new fields; the translation and package tables regenerated).
 
 ### KA1. The trust boundary (asked of the user)
 
