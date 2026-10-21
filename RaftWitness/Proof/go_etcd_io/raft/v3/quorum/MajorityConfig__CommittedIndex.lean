@@ -11,8 +11,8 @@ map.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
-public import Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
+public import RaftWitness.Spec.slices.Sort
 
 @[expose] public section
 

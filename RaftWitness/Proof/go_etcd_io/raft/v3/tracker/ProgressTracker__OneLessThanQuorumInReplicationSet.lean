@@ -3,11 +3,11 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/ProgressTracker__OneLessThanQuorumInRe
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
-public import Spec.go_etcd_io.raft.v3.tracker.Epoch__ReplicateToWitness
-public import Spec.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
-public import Spec.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Epoch__ReplicateToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
 
 @[expose] public section
 

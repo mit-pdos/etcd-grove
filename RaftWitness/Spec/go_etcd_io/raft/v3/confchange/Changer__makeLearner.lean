@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvConfchange
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvConfchange
 
 @[expose] public section
 

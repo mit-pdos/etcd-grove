@@ -8,13 +8,13 @@ owned by `msgOwn_lit` (`LemmasSendR.lean`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__commitTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendRB
 
 @[expose] public section
 

@@ -3,10 +3,10 @@ Port of election_proof/proof_MemoryStorage__Term.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 

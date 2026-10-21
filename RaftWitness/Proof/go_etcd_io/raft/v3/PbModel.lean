@@ -36,7 +36,7 @@ them: they are the trust boundary's (`pbMsg`, `InvPb.lean`).
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Code.go_etcd_io.raft.v3
+public import RaftWitness.Code.go_etcd_io.raft.v3
 
 @[expose] public section
 

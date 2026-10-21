@@ -1,7 +1,7 @@
 /- Port of election_proof/proof_ProgressTracker__RecordVote.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
 
 @[expose] public section
 

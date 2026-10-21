@@ -1,11 +1,11 @@
 /- Lean-first (no Rocq counterpart), 2026-10-13; 2026-10-15 (stage N): the dynamic mode. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
-public import Proof.go_etcd_io.raft.v3.LemmasNodeR
-public import Proof.go_etcd_io.raft.v3.FrameH
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasNodeR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 

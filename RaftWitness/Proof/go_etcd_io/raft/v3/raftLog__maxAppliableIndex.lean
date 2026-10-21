@@ -3,7 +3,7 @@
 Lean notes: Rocq's `wp_min2_uint64` is `InvTracker.lean`'s. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
 
 @[expose] public section
 

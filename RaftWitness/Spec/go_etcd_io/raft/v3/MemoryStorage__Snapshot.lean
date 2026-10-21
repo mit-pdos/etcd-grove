@@ -11,7 +11,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 

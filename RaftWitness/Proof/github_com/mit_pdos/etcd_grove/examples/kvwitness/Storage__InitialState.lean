@@ -1,13 +1,13 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/Storage__InitialState.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/Storage__InitialState.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the two fresh structs, every cell `nil`, are
 frozen (`hsRO_of_struct`, `csPts_of_struct_ro`): the hard state is the zero record, the conf state
 the voters.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage__InitialState
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
 
 @[expose] public section
 
@@ -17,7 +17,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -26,7 +26,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG := hG) := by
@@ -90,6 +90,6 @@ theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

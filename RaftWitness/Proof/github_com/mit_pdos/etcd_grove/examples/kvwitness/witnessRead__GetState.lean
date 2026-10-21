@@ -1,10 +1,10 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/witnessRead__GetState.lean`. Lean-first (2026-10-20,
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/witnessRead__GetState.lean`. Lean-first (2026-10-20,
 witness support).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.witnessRead__GetState
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead__GetState
 
 @[expose] public section
 
@@ -12,7 +12,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -21,7 +21,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 theorem witnessRead.GetState.wp_proof : witnessRead.GetState.spec (GF := GF) (hG := hG) := by
   intro r s P p σ
@@ -33,6 +33,6 @@ theorem witnessRead.GetState.wp_proof : witnessRead.GetState.spec (GF := GF) (hG
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

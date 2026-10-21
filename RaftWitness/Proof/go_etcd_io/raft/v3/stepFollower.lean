@@ -3,17 +3,17 @@ Port of election_proof/proof_stepFollower.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.stepFollower
-public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raft__hup
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import RaftWitness.Spec.go_etcd_io.raft.v3.stepFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hup
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 
 @[expose] public section
 

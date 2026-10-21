@@ -2,7 +2,7 @@
 `stepLeader`'s conf-change refusal log line calls on the decoded conf change. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

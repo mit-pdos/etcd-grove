@@ -35,25 +35,25 @@ branches').
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHup
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVoteResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgProp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgApp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgAppResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeatResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgBeat
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgCheckQuorum
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVote
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageAppendResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgRest
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgHup
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVote
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVoteResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgProp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgApp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgAppResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeatResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgBeat
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgCheckQuorum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVote
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageAppendResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgRest
 
 @[expose] public section
 

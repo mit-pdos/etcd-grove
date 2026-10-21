@@ -3,7 +3,7 @@ Port of election_proof/spec_ProgressTracker__TallyVotes.v (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 

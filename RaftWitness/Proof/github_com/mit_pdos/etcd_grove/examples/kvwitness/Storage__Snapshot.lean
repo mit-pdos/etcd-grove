@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/Storage__Snapshot.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/Storage__Snapshot.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the snapshot's emptiness is read through
 `GetMetadata`/`GetIndex` on the fresh clone `MemoryStorage.Snapshot` returns; the error
 `ErrSnapshotTemporarilyUnavailable` is not `nil` (`isInitialized`, raft's package fact), so a `nil`
@@ -7,10 +7,10 @@ error comes with the clone.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage__Snapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 
 @[expose] public section
 
@@ -20,7 +20,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -29,7 +29,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem Storage.Snapshot.wp_proof
@@ -82,6 +82,6 @@ theorem Storage.Snapshot.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

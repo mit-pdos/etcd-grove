@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/Message__GetReject.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
 
 @[expose] public section
 

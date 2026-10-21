@@ -3,9 +3,9 @@ Port of election_proof/proof_raft__poll.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__RecordVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
 
 @[expose] public section
 

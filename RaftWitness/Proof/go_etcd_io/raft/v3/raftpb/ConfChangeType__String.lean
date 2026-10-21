@@ -5,7 +5,7 @@ spec for the reading of `raft.pb.go` it encodes.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
 
 @[expose] public section
 

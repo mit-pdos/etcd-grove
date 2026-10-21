@@ -1,6 +1,6 @@
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
 
 @[expose] public section
 

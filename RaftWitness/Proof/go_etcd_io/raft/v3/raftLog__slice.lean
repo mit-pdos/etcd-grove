@@ -11,13 +11,13 @@ raft v3.7 (stage R3, 2026-10-15): the slices are `[]*pb.Entry`, held as `entsRO`
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__slice
-public import Spec.go_etcd_io.raft.v3.raftLog__mustCheckOutOfBounds
-public import Spec.go_etcd_io.raft.v3.unstable__slice
-public import Spec.go_etcd_io.raft.v3.limitSize
-public import Spec.go_etcd_io.raft.v3.entsSize
-public import Spec.go_etcd_io.raft.v3.extend
-public import Proof.go_etcd_io.raft.v3.LemmasRaftlogR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__slice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__mustCheckOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__slice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.limitSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.entsSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.extend
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRaftlogR
 
 @[expose] public section
 

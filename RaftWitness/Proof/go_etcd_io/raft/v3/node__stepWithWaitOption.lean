@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.context.ErrDone
 
 @[expose] public section

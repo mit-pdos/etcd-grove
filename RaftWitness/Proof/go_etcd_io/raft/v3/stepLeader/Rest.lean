@@ -24,43 +24,43 @@ fields through the getters it takes as hypotheses; joins over a getter carry `"H
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.stepLeader
-public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__sendAppend
-public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
-public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
-public import Spec.go_etcd_io.raft.v3.raft__appendEntry
-public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
-public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeDecrTo
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeProbe
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__CanBumpCommit
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__FreeLE
-public import Spec.go_etcd_io.raft.v3.raftLog__findConflictByTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__firstIndex
-public import Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
-public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
-public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
-public import Spec.go_etcd_io.raft.v3.readOnly__maybeAdvance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.stepLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeDecrTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeProbe
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__CanBumpCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__FreeLE
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__findConflictByTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__recvAck
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__maybeAdvance
 -- (2026-10-13) leader transfer
-public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
-public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 -- (2026-10-13) the `MsgProp` branch, with the conf-change loop
-public import Proof.go_etcd_io.raft.v3.LemmasStepR
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasStepR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 -- (2026-10-15, raft v3.7) the message's getters
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetRejectHint
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetRejectHint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 
 @[expose] public section
 
@@ -70,6 +70,16 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-- (2026-10-20) A state's code is `1` only for `replicate` and `2` only for `snapshot` (proved
+here once, out of the proofs' large contexts, where `simp_all` took a second each time). -/
+private theorem prstateW64_ne_replicate {st : PRState} (h : st ≠ .replicate) :
+    prstateW64 st ≠ W64 1 := by
+  cases st <;> simp_all [prstateW64]
+
+private theorem prstateW64_ne_snapshot {st : PRState} (h : st ≠ .snapshot) :
+    prstateW64 st ≠ W64 2 := by
+  cases st <;> simp_all [prstateW64]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -213,37 +223,37 @@ theorem wp_stepLeader_noop
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   have Hres : LeaderNonpropResultC c id s m ents ctx s := Or.inl ⟨Hty, rfl⟩
-  rcases Hty with Hl | Hl | Hl | Hl | Hl
-  all_goals
-    first
-    | simp only [Hl, MsgVoteResp] | simp only [Hl, MsgApp] | simp only [Hl, MsgHeartbeat]
-    | simp only [Hl, MsgPreVoteResp] | simp only [Hl, MsgReadIndexResp]
-    wp_auto
+  -- (2026-10-20) neither switch has an arm for the five types: each is joined, the type split
+  -- inside it, so that the rest of the function is verified once
+  wp_join at next with [Hm]
+  · rcases Hty with Hl | Hl | Hl | Hl | Hl <;>
+      simp only [Hl, MsgVoteResp, MsgApp, MsgHeartbeat, MsgPreVoteResp, MsgReadIndexResp] <;>
+      wp_auto <;> wp_join_done
+  wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, -, Htrk⟩
+  try wp_auto
+  ihave Hphys := Hback $$ Htrkf Htrk
+  wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
+    m.From' _ $$ Hprs with -
+  wp_if_destruct
+  · -- no `Progress` for the sender: `Debugf`, return
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-    icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-    icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, -, Htrk⟩
-    try wp_auto
-    ihave Hphys := Hback $$ Htrkf Htrk
-    wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
-      m.From' _ $$ Hprs with -
-    wp_if_destruct
-    · -- no `Progress` for the sender: `Debugf`, return
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_raft_logC
-      iapply HΦ
-      iframe Hphys
-      ipureintro
-      exact ⟨rfl, Hres⟩
-    · wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
-      first
-      | simp only [Hl, MsgVoteResp] | simp only [Hl, MsgApp] | simp only [Hl, MsgHeartbeat]
-      | simp only [Hl, MsgPreVoteResp]
-      wp_auto
-      iapply HΦ
-      iframe Hphys
-      ipureintro
-      exact ⟨rfl, Hres⟩
+    wp_raft_logC
+    iapply HΦ
+    iframe Hphys
+    ipureintro
+    exact ⟨rfl, Hres⟩
+  · wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+    wp_join at next with [Hm]
+    · rcases Hty with Hl | Hl | Hl | Hl | Hl <;>
+        simp only [Hl, MsgVoteResp, MsgApp, MsgHeartbeat, MsgPreVoteResp, MsgReadIndexResp] <;>
+        wp_auto <;> wp_join_done
+    iapply HΦ
+    iframe Hphys
+    ipureintro
+    exact ⟨rfl, Hres⟩
 
 /-- (2026-10-13) The result of the five types `stepLeader` was extended to last, for a
 state reached without touching anything but `lt`, the outbox and `Progress` values. -/
@@ -351,42 +361,43 @@ theorem wp_stepLeader_report
   have Hres0 : LeaderNonpropResultC c id s m ents ctx s := rest_res_self c id s m ents ctx Hty'
   wp_auto
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
-  rcases Hty with Hl | Hl <;> simp only [Hl, MsgUnreachable, MsgSnapStatus] <;> wp_auto
-  all_goals
-    icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-    icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-    icases ownTrackerC_prvals_dom c tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
-    dsimp only at Hdom Hpdom
-    wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-    try wp_auto
-    ihave Hphys := Hback $$ Htrkf Htrk
-    wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
-      m.From' _ $$ Hprs with -
-  all_goals
-    rcases Hlk : s.progress !! m.From' with _ | pr
-    · simp only [Option.getD_none]
-      wp_auto
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
-      wp_raft_logC
-      iapply HΦ $$ %interface.nil %s
-      iframe Hphys
-      ipureintro
-      exact ⟨rfl, Hres0⟩
-    simp only [Option.getD_some]
-    obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! m.From' = some p := by
-      rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
-    ihave Hphys := ownRaftPhys_prvals_self c r id s $$ Hphys
-    icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
-    iNamed Hpa
-    ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
-    wp_if_destruct
-    · exact absurd rfl Hnn
-    wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
-    simp only [Hl, MsgUnreachable, MsgSnapStatus]
+  -- (2026-10-20) the first switch has an arm for neither type: joined, the type split inside
+  -- it, so that what follows up to the second switch is verified once
+  wp_join at next with [Hm]
+  · rcases Hty with Hl | Hl <;> simp only [Hl, MsgUnreachable, MsgSnapStatus] <;> wp_auto <;>
+      wp_join_done
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+  icases ownTrackerC_prvals_dom c tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
+  dsimp only at Hdom Hpdom
+  wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+  try wp_auto
+  ihave Hphys := Hback $$ Htrkf Htrk
+  wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
+    m.From' _ $$ Hprs with -
+  rcases Hlk : s.progress !! m.From' with _ | pr
+  · simp only [Option.getD_none]
     wp_auto
-    have Habs' := (progressAbs_Some _ _ _).1 Habs
-    have Hst := Habs'.2.1
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
+    wp_raft_logC
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨rfl, Hres0⟩
+  simp only [Option.getD_some]
+  obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! m.From' = some p := by
+    rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
+  ihave Hphys := ownRaftPhys_prvals_self c r id s $$ Hphys
+  icases ownRaftPhys_pr_at c r id s s.prvals m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨%Hok, %Hnw, Hpa, Hpback⟩
+  iNamed Hpa
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
+  wp_if_destruct
+  · exact absurd rfl Hnn
+  wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
+  have Habs' := (progressAbs_Some _ _ _).1 Habs
+  have Hst := Habs'.2.1
+  rcases Hty with Hl | Hl <;> simp only [Hl, MsgUnreachable, MsgSnapStatus] <;> wp_auto <;>
     rw [Hst]
   · -- `MsgUnreachable`: `if pr.State == StateReplicate { pr.BecomeProbe() }`
     ihave Hpa := ownProgress_intro pr _ p $$ Hpv Hinfl %Habs
@@ -404,8 +415,7 @@ theorem wp_stepLeader_report
         iexists progressBecomeProbe p
         iframe
         ipureintro; rfl
-      · have Hne : prstateW64 p.state ≠ W64 1 := by
-          cases h : p.state <;> simp_all [prstateW64]
+      · have Hne : prstateW64 p.state ≠ W64 1 := prstateW64_ne_replicate Hrep
         simp only [show (prstateW64 p.state = W64 1) = False from eq_false Hne, decide_false]
         wp_auto
         ihave Hphys := Hpback $$ %p Hpa %(by first | rfl | simp) %(by prok)
@@ -426,8 +436,7 @@ theorem wp_stepLeader_report
   · -- `MsgSnapStatus`: only a peer receiving a snapshot
     by_cases Hsn : p.state = .snapshot
     rotate_left
-    · have Hne : prstateW64 p.state ≠ W64 2 := by
-        cases h : p.state <;> simp_all [prstateW64]
+    · have Hne : prstateW64 p.state ≠ W64 2 := prstateW64_ne_snapshot Hsn
       simp only [show (prstateW64 p.state = W64 2) = False from eq_false Hne, decide_false]
       wp_auto
       ihave Hphys := Hpback $$ %p [Hpv Hinfl] %(by first | rfl | simp) %(by prok)
@@ -596,86 +605,107 @@ theorem wp_stepLeader_transfer
   wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
   wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
   -- `if lastLeadTransferee != None`: the same transferee is kept (return), another one is
-  -- aborted; either way the state is `s` with no transfer
-  by_cases Hlt0 : s.lt = W64 0
-  -- none in progress
-  rw [decide_eq_true Hlt0]
-  wp_auto
-  ihave Hphys := ownRaftPhysC_eq c r id s { s with lt := W64 0 }
-    (by cases s; simp_all) $$ Hphys
-  rotate_left
-  rw [decide_eq_false Hlt0]
-  wp_auto
-  by_cases Hsame : s.lt = m.From'
-  · rw [decide_eq_true Hsame]
+  -- aborted; either way the state is `s` with no transfer. (2026-10-20) Joined: every case
+  -- falls through at `{ s with lt := W64 0 }` or returns `nil` at `s`, so that the rest is
+  -- verified once
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ r_ptr ↦ r ∗ pr_ptr ↦ pr ∗
+        msgPtsC ml dq dqe cap ⟨m, ents, sn, ctx, rs⟩ ∗ leadTransferee_ptr ↦ m.From' ∗
+        lastLeadTransferee_ptr ↦ s.lt ∗ ownRaftPhysCV c c.voters r id { s with lt := W64 0 }) ∨
+      (⌜v = returnVal #interface.nil⌝ ∗ ownRaftPhysCV c c.voters r id s))) at next with [-HΦ]
+  · by_cases Hlt0 : s.lt = W64 0
+    · -- none in progress
+      rw [decide_eq_true Hlt0]
+      wp_auto
+      ihave Hphys := ownRaftPhysC_eq c r id s { s with lt := W64 0 }
+        (by cases s; simp_all) $$ Hphys
+      ileft
+      iframe
+      ipureintro; rfl
+    rw [decide_eq_false Hlt0]
     wp_auto
+    by_cases Hsame : s.lt = m.From'
+    · rw [decide_eq_true Hsame]
+      wp_auto
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+      wp_raft_logC
+      iright
+      iframe
+      ipureintro; rfl
+    rw [decide_eq_false Hsame]
+    wp_auto
+    wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_raft_logC
+    ileft
+    iframe
+    ipureintro; rfl
+  iintro (⟨%Hv, r, pr, Hm, leadTransferee, lastLeadTransferee, Hphys⟩ | ⟨%Hv, Hphys⟩)
+  rotate_left
+  · -- the same transferee: `nil`, the state unchanged
+    subst Hv
+    wp_auto
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
     exact ⟨rfl, rest_res_self c id s m ents ctx Hty'⟩
-  rw [decide_eq_false Hsame]
+  subst Hv
   wp_auto
-  wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
+  -- `if leadTransferee == r.id`: ignored
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  by_cases Hself : m.From' = id
+  · rw [decide_eq_true Hself]
+    wp_auto
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_raft_logC
+    iapply HΦ $$ %interface.nil %_
+    ihave Hphys := ownRaftPhysC_eq c r id _
+      { sendMsgs { s with lt := W64 0 } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
+      $$ Hphys
+    iframe Hphys
+    ipureintro
+    exact ⟨rfl, Hres0 _⟩
+  rw [decide_eq_false Hself]
+  wp_auto
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC
-  all_goals
-    -- `if leadTransferee == r.id`: ignored
+  wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
+  wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself (by exact Hxo) $$ Hphys as Hphys
+  -- `if pr.Match == r.raftLog.lastIndex()`
+  icases ownRaftPhysC_pr c r id _ m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  iNamed Hpa
+  wp_auto
+  ihave Hphys := Hpback $$ [Hpv Hinfl]
+  · iapply ownProgress_intro $$ Hpv Hinfl %Habs
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+  ihave Hphys := Hlogback $$ Hlog
+  wp_if_destruct
+  · -- caught up: `MsgTimeoutNow` now
+    wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself (by exact Hxo) $$ [$Hphys] as Hphys
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    by_cases Hself : m.From' = id
-    · rw [decide_eq_true Hself]
-      wp_auto
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      wp_raft_logC
-      iapply HΦ $$ %interface.nil %_
-      ihave Hphys := ownRaftPhysC_eq c r id _
-        { sendMsgs { s with lt := W64 0 } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
-        $$ Hphys
-      iframe Hphys
-      ipureintro
-      exact ⟨rfl, Hres0 _⟩
-    rw [decide_eq_false Hself]
-    wp_auto
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_raft_logC
-    wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
-    wp_apply raft.wp_store_leadTransferee_toC c r id _ m.From' Hself (by exact Hxo) $$ Hphys as Hphys
-    -- `if pr.Match == r.raftLog.lastIndex()`
-    icases ownRaftPhysC_pr c r id _ m.From' pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
-    iNamed Hpa
-    wp_auto
-    ihave Hphys := Hpback $$ [Hpv Hinfl]
-    · iapply ownProgress_intro $$ Hpv Hinfl %Habs
-    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
-    wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-    ihave Hphys := Hlogback $$ Hlog
-    wp_if_destruct
-    · -- caught up: `MsgTimeoutNow` now
-      wp_apply wp_raft_sendTimeoutNow c r id _ m.From' Hself (by exact Hxo) $$ [$Hphys] as Hphys
-      wp_apply raft.wp_load_idC $$ Hphys as Hphys
-      wp_raft_logC
-      iapply HΦ $$ %interface.nil %_
-      ihave Hphys := ownRaftPhysC_eq c r id _
-        { sendMsgs { s with lt := m.From' } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
-        $$ Hphys
-      iframe Hphys
-      ipureintro
-      exact ⟨rfl, Hres0 _⟩
-    · -- behind: an append
-      wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
-        $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
-      iapply HΦ $$ %interface.nil %_
-      ihave Hphys := ownRaftPhysC_eq c r id _
-        { sendMsgs { s with lt := m.From' } ms with prvals := pvs } (by cases s; simp [sendMsgs])
-        $$ Hphys
-      iframe Hphys
-      ipureintro
-      exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm⟩
+    iapply HΦ $$ %interface.nil %_
+    ihave Hphys := ownRaftPhysC_eq c r id _
+      { sendMsgs { s with lt := m.From' } [] with prvals := s.prvals } (by cases s; simp [sendMsgs])
+      $$ Hphys
+    iframe Hphys
+    ipureintro
+    exact ⟨rfl, Hres0 _⟩
+  · -- behind: an append
+    wp_apply wp_raft_sendAppend c r id _ m.From' Hself (by exact Hfcfg) (by exact Hlead)
+      $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    iapply HΦ $$ %interface.nil %_
+    ihave Hphys := ownRaftPhysC_eq c r id _
+      { sendMsgs { s with lt := m.From' } ms with prvals := pvs } (by cases s; simp [sendMsgs])
+      $$ Hphys
+    iframe Hphys
+    ipureintro
+    exact ⟨rfl, rest_res c id s m ents ctx _ ms pvs Hty' Hms Hmm⟩
 
 set_option maxHeartbeats 1600000 in
 /-- **`MsgBeat`**: `bcastHeartbeat`, return. -/
@@ -1229,7 +1259,9 @@ theorem wp_stepLeader_appresp
         iapply ownProgress_intro $$ Hpv Hinfl %Habs
     iintro ⟨%cb, %Hv, %Hcb, Hpa, m, Hm, pr⟩
     subst Hv
-    ihave Hphys := Hpback $$ %(progressMaybeUpdate p m.Index') Hpa %(by first | rfl | simp) %(by prok)
+    -- (2026-10-20) `prok`'s last alternative, directly: its first ones fail slowly here (9s)
+    ihave Hphys := Hpback $$ %(progressMaybeUpdate p m.Index') Hpa %(by first | rfl | simp)
+      %(by intro Hl; exact (Hok Hl).maybeUpdate Hnw (Hidx Hrej))
     have Hx : prvalsMatch s.prvals !! m.From' = some p.matched := by
       simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs]; rfl
     have Hmm2 : prvalsMatch (<[m.From' := progressMaybeUpdate p m.Index']> pvs1) =
@@ -1774,8 +1806,7 @@ theorem wp_stepLeader_appresp
         (replSends_prvals id s _ ms).1 Hms, ?_⟩)⟩))))⟩
       rw [Hmm, ← Hmm2, ← Hpvs3]
       exact prvalsMatch_insert_same _ _ p2 _ Hpvs2' HM3
-    · have Hne : prstateW64 p2.state ≠ W64 1 := by
-        cases h : p2.state <;> simp_all [prstateW64]
+    · have Hne : prstateW64 p2.state ≠ W64 1 := prstateW64_ne_replicate Hrep
       simp only [show (prstateW64 p2.state = W64 1) = False from eq_false Hne, decide_false]
       wp_auto
       ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp) %(by prok)

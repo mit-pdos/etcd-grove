@@ -3,9 +3,9 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__checkAndCopy.lean`. Lean-f
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
-public import Spec.go_etcd_io.raft.v3.tracker.Config__Clone
-public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Config__Clone
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
 
 @[expose] public section
 

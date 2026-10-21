@@ -3,11 +3,11 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/ReplicationSet__String.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__String
-public import Spec.slices.Sort
-public import Spec.strconv.FormatUint
-public import Spec.fmt.Sprintf
-public import Spec.strings.Join
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__String
+public import RaftWitness.Spec.slices.Sort
+public import RaftWitness.Spec.strconv.FormatUint
+public import RaftWitness.Spec.fmt.Sprintf
+public import RaftWitness.Spec.strings.Join
 
 @[expose] public section
 

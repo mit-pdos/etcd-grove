@@ -7,9 +7,9 @@ raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.go_etcd_io.raft.v3.raft__sendAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendAppend
 
 @[expose] public section
 

@@ -9,20 +9,20 @@ capacity, which goes to `maybeAppend`. The scalars are read by the getters; each
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
-public import Spec.go_etcd_io.raft.v3.logSliceFromMsgApp
-public import Spec.go_etcd_io.raft.v3.raftLog__maybeAppend
-public import Spec.go_etcd_io.raft.v3.raftLog__term
-public import Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__findConflictByTerm
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.logSliceFromMsgApp
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maybeAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__findConflictByTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendRB
 
 @[expose] public section
 

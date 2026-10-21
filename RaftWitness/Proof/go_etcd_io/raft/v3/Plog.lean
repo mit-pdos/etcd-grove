@@ -24,7 +24,7 @@ Lean notes: Rocq's `l !! k` on lists is `l[k]?`, `list.last` is `List.getLast?`,
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Proof.go_etcd_io.raft.v3.PbModel
+public import RaftWitness.Proof.go_etcd_io.raft.v3.PbModel
 
 @[expose] public section
 

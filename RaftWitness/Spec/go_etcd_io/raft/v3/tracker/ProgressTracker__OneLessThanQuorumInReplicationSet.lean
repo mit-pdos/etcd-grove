@@ -4,8 +4,8 @@
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
 
 @[expose] public section
 

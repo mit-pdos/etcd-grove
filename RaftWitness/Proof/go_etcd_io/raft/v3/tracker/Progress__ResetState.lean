@@ -3,8 +3,8 @@ Port of `election_proof/proof_Progress__ResetState.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__ResetState
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__reset
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__ResetState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__reset
 
 @[expose] public section
 

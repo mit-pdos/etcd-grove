@@ -5,7 +5,7 @@ argument; `proto.Clone`, in-place sorts, `AutoLeave` normalized, `proto.Equal`; 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

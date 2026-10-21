@@ -3,8 +3,8 @@ Port of `election_proof/proof_unstable__nextSnapshot.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__nextSnapshot
-public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__nextSnapshot
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 

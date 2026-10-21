@@ -1,7 +1,7 @@
 /- `traceChangeConfEvent`, Lean-first (2026-10-13). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceChangeConfEvent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceChangeConfEvent
 
 @[expose] public section
 

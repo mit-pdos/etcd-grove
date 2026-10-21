@@ -13,7 +13,7 @@ good as the one a `Storage` lends raft (`csPts cs □ ⟨voters, [], [], [], fal
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -30,7 +30,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- The conf state the store's `InitialState` returns: the voters, and (2026-10-20, W4) the
@@ -41,7 +41,7 @@ abbrev kvConfState (voters : List w64) (w : w64 := W64 0) : ConfStateM :=
 /-- See the file header. -/
 abbrev Storage.InitialState.spec : Prop :=
   ∀ (s : Loc) (vsl : GoSlice) (voters : List w64) (w : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
       s.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ voters ∗
       -- (2026-10-20, witness support) the cluster's witness (`0`: none; W4: any)
       s.[RStorage, go!"witness"] ↦□ w }}
@@ -52,6 +52,6 @@ abbrev Storage.InitialState.spec : Prop :=
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

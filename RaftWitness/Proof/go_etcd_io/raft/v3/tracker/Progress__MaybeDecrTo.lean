@@ -3,7 +3,7 @@ Port of election_proof/proof_Progress__MaybeDecrTo.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeDecrTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeDecrTo
 
 @[expose] public section
 

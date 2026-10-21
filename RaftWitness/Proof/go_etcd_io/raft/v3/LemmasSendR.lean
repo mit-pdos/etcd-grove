@@ -4,7 +4,7 @@ changes, `newRaft`): building the messages raft sends.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
 
 @[expose] public section
 

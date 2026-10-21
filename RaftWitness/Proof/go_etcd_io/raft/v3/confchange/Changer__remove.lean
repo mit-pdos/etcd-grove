@@ -3,10 +3,10 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__remove.lean`. Lean-first (
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
-public import Spec.go_etcd_io.raft.v3.confchange.nilAwareDelete
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__remove
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.nilAwareDelete
 
 @[expose] public section
 

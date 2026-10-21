@@ -3,8 +3,8 @@ Port of `election_proof/proof_entsSize.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.entsSize
-public import Spec.google_golang_org.protobuf.proto.SizeEntry
+public import RaftWitness.Spec.go_etcd_io.raft.v3.entsSize
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.SizeEntry
 
 @[expose] public section
 

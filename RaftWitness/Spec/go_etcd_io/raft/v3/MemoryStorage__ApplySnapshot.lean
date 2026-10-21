@@ -2,7 +2,7 @@
 Rocq counterpart); raft v3.7 (stage R3, 2026-10-15): the snapshot is a pointer, taken owned. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 

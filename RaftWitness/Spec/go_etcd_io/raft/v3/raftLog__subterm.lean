@@ -4,7 +4,7 @@ an index. Lean-first (2026-10-20).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 

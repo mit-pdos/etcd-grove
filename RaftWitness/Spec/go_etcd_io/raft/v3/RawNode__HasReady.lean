@@ -3,7 +3,7 @@ Port of `election_proof/spec_RawNode__HasReady.v` (857d09190).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 

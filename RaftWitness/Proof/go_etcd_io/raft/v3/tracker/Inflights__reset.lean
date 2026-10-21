@@ -3,7 +3,7 @@ Port of election_proof/proof_Inflights__reset.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__reset
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__reset
 
 @[expose] public section
 

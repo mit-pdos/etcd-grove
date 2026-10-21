@@ -19,18 +19,18 @@ self-addressed response, `msgOwn_lit` with the `Context` bytes for a request; it
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.LemmasWitnessR
-public import Spec.go_etcd_io.raft.v3.raft__campaign
-public import Spec.go_etcd_io.raft.v3.raft__becomeCandidate
-public import Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.voteRespMsgType
-public import Spec.go_etcd_io.raft.v3.raft__promotable
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.slices.Sort
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitnessR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__campaign
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.voteRespMsgType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__promotable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

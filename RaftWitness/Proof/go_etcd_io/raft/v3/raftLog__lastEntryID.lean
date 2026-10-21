@@ -3,9 +3,9 @@ Port of `election_proof/proof_raftLog__lastEntryID.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
 
 @[expose] public section
 

@@ -11,10 +11,10 @@ states are equal.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Model
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.copyMap
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.within
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.hashMap
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Model
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.copyMap
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.within
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.hashMap
 
 @[expose] public section
 
@@ -24,7 +24,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -34,7 +34,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 theorem Model.wp_proof
     (wp_copyMap : copyMap.spec (GF := GF) (hG := hG))
@@ -87,10 +87,10 @@ theorem Model.wp_proof
     isplitr
     · ipureintro; exact ⟨trivial, nofun⟩
     unfold stepSpec
-    iintro %v %s %i %o
+    iintro %k %v %s %i %o
     iintro !> %Φ' Hpre HΦ'
     simp only [kvS]
-    icases Hpre with ⟨#Hrep, %Hio⟩
+    icases Hpre with ⟨-, #Hrep, %Hio⟩
     obtain ⟨⟨x, rfl⟩, str, rfl⟩ := Hio
     unfold kvRep
     icases Hrep with ⟨%l, %m, %Hv, #Hl, %Hm⟩
@@ -195,7 +195,7 @@ theorem Model.wp_proof
   isplitr
   · -- Equal
     unfold equalSpec
-    iintro %v %w %s %t
+    iintro %k %j %v %w %s %t
     iintro !> %Φ' Hpre HΦ'
     simp only [kvS]
     icases Hpre with ⟨#Hv, #Hw⟩
@@ -233,7 +233,7 @@ theorem Model.wp_proof
         | none => rfl
   iright
   unfold hashSpec
-  iintro %v %s
+  iintro %k %v %s
   iintro !> %Φ' Hv HΦ'
   simp only [kvS]
   unfold kvRep
@@ -246,6 +246,6 @@ theorem Model.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

@@ -24,10 +24,10 @@ The ghost state `raft.Step` keeps, in either mode (2026-10-14, reconfiguration s
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.StepLemmasR
-public import Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
-public import Proof.go_etcd_io.raft.v3.SnapConf
-public import Proof.go_etcd_io.raft.v3.PSubOk
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmasR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
+public import RaftWitness.Proof.go_etcd_io.raft.v3.SnapConf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.PSubOk
 
 @[expose] public section
 

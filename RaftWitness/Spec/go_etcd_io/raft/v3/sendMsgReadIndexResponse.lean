@@ -34,8 +34,8 @@ scalars `m` and entries `ents` as before.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 
 @[expose] public section
 

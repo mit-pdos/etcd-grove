@@ -3,7 +3,7 @@ Port of election_proof/proof_raftLog__zeroTermOnOutOfBounds.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
 
 @[expose] public section
 

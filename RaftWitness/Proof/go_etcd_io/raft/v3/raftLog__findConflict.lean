@@ -3,12 +3,12 @@ Port of `election_proof/proof_raftLog__findConflict.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__findConflict
-public import Spec.go_etcd_io.raft.v3.pbEntryID
-public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__term
-public import Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__findConflict
+public import RaftWitness.Spec.go_etcd_io.raft.v3.pbEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__matchTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
 
 @[expose] public section
 

@@ -3,22 +3,22 @@ Port of election_proof/proof_stepCandidate.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.stepCandidate
-public import Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
-public import Spec.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
-public import Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
-public import Proof.go_etcd_io.raft.v3.LemmasWitnessR
-public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
-public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
-public import Spec.go_etcd_io.raft.v3.raft__campaign
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
+public import RaftWitness.Spec.go_etcd_io.raft.v3.stepCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__pollAndReportDiff
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitnessR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__campaign
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
 
 @[expose] public section
 

@@ -8,17 +8,17 @@ the caller); the leader's `len(cs.Voters)` opens it for the field load and folds
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
-public import Spec.go_etcd_io.raft.v3.traceConfChangeEvent
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ConfState
-public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
-public import Spec.go_etcd_io.raft.v3.raft__bcastAppend
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
-public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__switchToConfig
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceConfChangeEvent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
 
 @[expose] public section
 

@@ -3,8 +3,8 @@ Port of election_proof/proof_ProgressTracker__TallyVotes.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
 
 @[expose] public section
 

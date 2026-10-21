@@ -10,7 +10,7 @@ only caller's) the out-of-bounds `0` would not compare equal anyway.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

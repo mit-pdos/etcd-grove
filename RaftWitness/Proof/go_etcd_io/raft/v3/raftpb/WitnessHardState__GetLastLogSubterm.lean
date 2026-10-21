@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/WitnessHardState__GetLastLogSubterm.lea
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogSubterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogSubterm
 
 @[expose] public section
 

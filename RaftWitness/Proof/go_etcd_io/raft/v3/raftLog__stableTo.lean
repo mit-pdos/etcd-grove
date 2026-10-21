@@ -3,8 +3,8 @@
 Lean notes: `stable_hit_unstable` is the private `stableHit_unstable`. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__stableTo
-public import Spec.go_etcd_io.raft.v3.unstable__stableTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__stableTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__stableTo
 
 @[expose] public section
 

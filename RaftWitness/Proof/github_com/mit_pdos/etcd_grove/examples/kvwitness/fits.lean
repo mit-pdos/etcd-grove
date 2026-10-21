@@ -1,12 +1,12 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/fits.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/fits.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the batch is a `[]*pb.Entry` (`entsPts`);
 `es[0].GetIndex()` loads the first pointer and reads its index through the getter.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.fits
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.fits
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 
@@ -14,7 +14,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -23,7 +23,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem fits.wp_proof (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
@@ -86,6 +86,6 @@ theorem fits.wp_proof (wp_Entry_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF)
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

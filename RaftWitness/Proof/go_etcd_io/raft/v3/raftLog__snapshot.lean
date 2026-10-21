@@ -3,8 +3,8 @@ Port of election_proof/proof_raftLog__snapshot.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__snapshot
-public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__snapshot
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 

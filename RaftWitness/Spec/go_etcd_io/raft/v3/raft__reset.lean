@@ -7,7 +7,7 @@ Lean notes: the type of Rocq's untyped binder `pvs` is written out
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

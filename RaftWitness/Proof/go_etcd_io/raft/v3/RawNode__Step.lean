@@ -4,15 +4,15 @@ raft v3.7 (2026-10-16, stage R5): the message is a pointer, its type and sender 
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__Step
-public import Spec.go_etcd_io.raft.v3.raft__Step
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.IsLocalMsg
-public import Spec.go_etcd_io.raft.v3.IsResponseMsg
-public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsResponseMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 -- `Step.commit_mono`
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

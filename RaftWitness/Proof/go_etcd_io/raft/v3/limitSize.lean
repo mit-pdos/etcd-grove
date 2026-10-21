@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_limitSize.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.limitSize
-public import Spec.google_golang_org.protobuf.proto.SizeEntry
+public import RaftWitness.Spec.go_etcd_io.raft.v3.limitSize
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.SizeEntry
 
 @[expose] public section
 

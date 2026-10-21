@@ -6,7 +6,7 @@ interface value it returns is the read's (`*witnessRead`); it never fails.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.DefsWitness
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.DefsWitness
 
 @[expose] public section
 
@@ -14,7 +14,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -23,11 +23,11 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 abbrev WitnessStore.GetWitnessState.spec : Prop :=
   ∀ (s : Loc) (P : WHS → IProp GF) (N : Namespace) (Ψ : WHS → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isWStore s P ∗ (∀ σ, P σ ={⊤ \ ↑N}=∗ P σ ∗ Ψ σ) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗ isWStore s P ∗ (∀ σ, P σ ={⊤ \ ↑N}=∗ P σ ∗ Ψ σ) }}
     (App (Val (s @!! go.GoType.PointerType rWStoreTy @!! go!"GetWitnessState")) (Val #()))
   {{ (sv : GoInterface) (err : GoInterface), RET (PairV #sv #err);
       ⌜err = interface.nil⌝ ∗ ∃ (r p : Loc) (σ : WHS),
@@ -35,6 +35,6 @@ abbrev WitnessStore.GetWitnessState.spec : Prop :=
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

@@ -12,7 +12,7 @@ learner is no voter, a staged learner is an outgoing voter and no incoming one. 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.CCApply
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCApply
 
 @[expose] public section
 

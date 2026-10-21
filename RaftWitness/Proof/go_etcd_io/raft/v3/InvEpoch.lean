@@ -14,7 +14,7 @@ and `excl`. The protocol's names for half 0 (`Protocol/StepC.lean`, branch raft-
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 

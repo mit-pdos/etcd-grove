@@ -142,7 +142,7 @@ by `infer_instance`. A multiple return `(#li, #interface.nil)` is `PairV #li
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 

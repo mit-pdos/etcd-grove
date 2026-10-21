@@ -48,10 +48,10 @@ until the retarget the caller's read-only slices, `ownCSL`). The `section result
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.Plog
-public import Proof.go_etcd_io.raft.v3.InvRestore
-public import Proof.go_etcd_io.raft.v3.SpecResults
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Plog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestore
+public import RaftWitness.Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
 

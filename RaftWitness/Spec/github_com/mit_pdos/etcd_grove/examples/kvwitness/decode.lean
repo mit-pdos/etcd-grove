@@ -5,7 +5,7 @@ or a key length past the end.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 
 @[expose] public section
 
@@ -13,7 +13,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -23,7 +23,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- `decode`'s results on `d`. -/
 def decodeRet (d : List w8) : val :=
@@ -35,12 +35,12 @@ def decodeRet (d : List w8) : val :=
 /-- See the file header. -/
 abbrev decode.spec : Prop :=
   ∀ (b : GoSlice) (d : List w8) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ b ↦*{dq} d }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.decode)) (Val #b))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗ b ↦*{dq} d }}
+    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvwitness.decode)) (Val #b))
   {{ RET (decodeRet d); b ↦*{dq} d }}
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

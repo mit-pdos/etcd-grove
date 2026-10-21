@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/StartCluster.lean`. Lean-first (no
 Rocq counterpart).
 
 The cluster bring-up of the register's `Main` (until 2026-10-19), at any storage registry
@@ -17,21 +17,21 @@ no `AutoLeave`: `al = false`, which `RestartNode.spec` admits since stage R6b).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.StartCluster
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.NewStorage
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.New
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliver
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.tick
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Debugf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Errorf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Infof
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Warningf
-public import Spec.go_etcd_io.raft.v3.RestartNode
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KVStorageInstance
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Alloc
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.StartLemmas
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.StartCluster
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.NewStorage
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage__InitialState
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage__Snapshot
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.New
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.deliver
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.tick
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Debugf
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Errorf
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Infof
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Warningf
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RestartNode
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.KVStorageInstance
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Alloc
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.StartLemmas
 
 @[expose] public section
 
@@ -39,7 +39,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -48,7 +48,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The cluster's voters. -/
 def clusterIds : List w64 := [W64 1, W64 2, W64 3]
@@ -183,12 +183,12 @@ def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
     ⌜KVCC γn opR c0R c1R⌝ ∗ nodeCfg γn 0 c0R)
 
 theorem StartCluster.wp_proof
-    (wp_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG))
-    (wp_InitialState : kv.Storage.InitialState.spec (GF := GF) (hG := hG))
-    (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
-    (wp_New : kv.New.spec (GF := GF) (hG := hG))
-    (wp_deliver : kv.deliver.spec (GF := GF) (hG := hG))
-    (wp_tick : kv.tick.spec (GF := GF) (hG := hG))
+    (wp_NewStorage : kvwitness.NewStorage.spec (GF := GF) (hG := hG))
+    (wp_InitialState : kvwitness.Storage.InitialState.spec (GF := GF) (hG := hG))
+    (wp_Snapshot : kvwitness.Storage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_New : kvwitness.New.spec (GF := GF) (hG := hG))
+    (wp_deliver : kvwitness.deliver.spec (GF := GF) (hG := hG))
+    (wp_tick : kvwitness.tick.spec (GF := GF) (hG := hG))
     (wp_Debugf : quietLogger.Debugf.spec (GF := GF) (hG := hG))
     (wp_Errorf : quietLogger.Errorf.spec (GF := GF) (hG := hG))
     (wp_Infof : quietLogger.Infof.spec (GF := GF) (hG := hG))
@@ -310,7 +310,7 @@ theorem StartCluster.wp_proof
     wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
       bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
-      (kv.kvConfState clusterIds)
+      (kvwitness.kvConfState clusterIds)
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
@@ -513,6 +513,6 @@ end reg
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

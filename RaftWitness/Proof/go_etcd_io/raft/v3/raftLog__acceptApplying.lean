@@ -7,8 +7,8 @@ either value of the flag); the size and the limit are in `LogState`, so they sur
 the call. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__acceptApplying
-public import Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__acceptApplying
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
 
 @[expose] public section
 

@@ -13,7 +13,7 @@ store's `ownStorage`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -30,13 +30,13 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev Storage.Snapshot.spec : Prop :=
   ∀ (s ms : Loc) (γs : MemStorNames) (σ : StorState) (esu : GoInterface) (n : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
       s.[RStorage, go!"MemoryStorage"] ↦□ ms ∗ ownMemoryStorage ms γs σ ∗
       globalAddr ErrSnapshotTemporarilyUnavailable ↦□ esu ∗
       -- (D19i part 1) what the caller knows of the storage's compaction
@@ -57,6 +57,6 @@ abbrev Storage.Snapshot.spec : Prop :=
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

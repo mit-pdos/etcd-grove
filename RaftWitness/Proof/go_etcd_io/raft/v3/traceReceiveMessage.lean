@@ -3,7 +3,7 @@ Port of `election_proof/proof_traceReceiveMessage.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceReceiveMessage
 
 @[expose] public section
 

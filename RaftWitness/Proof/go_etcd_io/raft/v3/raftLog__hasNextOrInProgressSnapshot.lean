@@ -1,7 +1,7 @@
 /- Port of election_proof/proof_raftLog__hasNextOrInProgressSnapshot.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressSnapshot
 
 @[expose] public section
 

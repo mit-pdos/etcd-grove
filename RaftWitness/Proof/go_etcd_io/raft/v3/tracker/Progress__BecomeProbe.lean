@@ -6,8 +6,8 @@ Lean notes: the framework's Rocq `wp_max2_uint64` has no Lean counterpart; it is
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeProbe
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__ResetState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeProbe
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__ResetState
 
 @[expose] public section
 

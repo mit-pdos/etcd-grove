@@ -82,13 +82,13 @@ DecidableEq`. (`hs_empty_abs`'s port `hsEmptyAbs` had no user and is gone, 2026-
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
 -- (2026-10-14, reconfiguration stage B7 part 2) the ghost modes
-public import Proof.go_etcd_io.raft.v3.StepGhostMode
-public import Proof.go_etcd_io.raft.v3.SnapConf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepGhostMode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.SnapConf
 -- (2026-10-16, stage R5) `StepMsg`, `RestMsgOk` for `NetMsgOk`; `ccV2Of` for `DynCCPre`
-public import Spec.go_etcd_io.raft.v3.raft__Step
-public import Proof.go_etcd_io.raft.v3.CCApply
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCApply
 
 @[expose] public section
 

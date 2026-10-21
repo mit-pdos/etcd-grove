@@ -6,8 +6,8 @@ result.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.hashMap
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.hashString
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.hashMap
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.hashString
 
 @[expose] public section
 
@@ -17,7 +17,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -27,7 +27,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 theorem hashMap.wp_proof (wp_hashString : hashString.spec (GF := GF) (hG := hG)) :
     hashMap.spec (GF := GF) (hG := hG) := by
@@ -73,6 +73,6 @@ theorem hashMap.wp_proof (wp_hashString : hashString.spec (GF := GF) (hG := hG))
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

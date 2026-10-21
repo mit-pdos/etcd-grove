@@ -3,12 +3,12 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
-public import Spec.google_golang_org.protobuf.proto.MarshalConfChange
-public import Spec.google_golang_org.protobuf.proto.MarshalConfChangeV2
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.MarshalConfChange
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.MarshalConfChangeV2
 
 @[expose] public section
 

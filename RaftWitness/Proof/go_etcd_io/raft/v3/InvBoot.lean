@@ -24,10 +24,10 @@ The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `no
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
-public import Proof.go_etcd_io.raft.v3.InvRestore
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestore
 
 @[expose] public section
 

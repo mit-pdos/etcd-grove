@@ -6,8 +6,8 @@ update, so while the goal is still a `WP`): the storage's pending batch becomes
 `nextUnstable ls`, and the right to append it is the postcondition's `appendRight`. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__acceptUnstable
-public import Spec.go_etcd_io.raft.v3.unstable__acceptInProgress
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__acceptUnstable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__acceptInProgress
 
 @[expose] public section
 

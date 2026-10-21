@@ -4,7 +4,7 @@ bytes field, nil-safe. Lean-first (raft v3.7 retarget, stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/joint.lean`. Lean-first (no Rocq co
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.joint
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.joint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoing
 
 @[expose] public section
 

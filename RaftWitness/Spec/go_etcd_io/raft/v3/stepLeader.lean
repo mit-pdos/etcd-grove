@@ -99,16 +99,16 @@ copies `ents'` whose `Data` slices were fresh, `EntsDataCopy`, and the data byte
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
-public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
-public import Proof.go_etcd_io.raft.v3.WAppSentStep
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__appendEntry
-public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import RaftWitness.Proof.go_etcd_io.raft.v3.WAppSentStep
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
 -- read-index (2026-10-12)
-public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
-public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import RaftWitness.Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 
 @[expose] public section
 

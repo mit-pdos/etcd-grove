@@ -4,8 +4,8 @@ Lean notes: Perennial's `wp_map_for_range` hands the map's points-to back after 
 loop, as Rocq's (`iIntros "HP Hm"`); the postcondition needs it (`ownIdsetOpt m ids`). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
-public import Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
+public import RaftWitness.Spec.slices.Sort
 
 @[expose] public section
 

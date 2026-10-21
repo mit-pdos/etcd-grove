@@ -4,8 +4,8 @@ configuration): the witnesses read `[c.wit, 0]` (`raft.wp_load_trk_witnessC'`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
-public import Proof.go_etcd_io.raft.v3.LemmasWitnessR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__getWitnessVoteRequestReadiness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitnessR
 
 @[expose] public section
 

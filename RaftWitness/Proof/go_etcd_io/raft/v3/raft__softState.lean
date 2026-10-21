@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__softState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__softState
 
 @[expose] public section
 

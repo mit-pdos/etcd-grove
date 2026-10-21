@@ -66,10 +66,10 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Plog
-public import Proof.go_etcd_io.raft.v3.CCModel
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Plog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCModel
 public import Perennial.Std.Word.LittleEndian
-public import Proof.go_etcd_io.raft.v3.ProjSimps
+public import RaftWitness.Proof.go_etcd_io.raft.v3.ProjSimps
 
 @[expose] public section
 

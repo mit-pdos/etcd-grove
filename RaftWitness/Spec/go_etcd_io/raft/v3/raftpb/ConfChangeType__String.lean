@@ -11,7 +11,7 @@ types only); etcd-grove's `fmt.Errorf` axiom (`Spec/fmt/Errorf.lean`) admits an 
 module
 
 public import Spec.fmt.Errorf
-public import Code.go_etcd_io.raft.v3.raftpb
+public import RaftWitness.Code.go_etcd_io.raft.v3.raftpb
 
 @[expose] public section
 

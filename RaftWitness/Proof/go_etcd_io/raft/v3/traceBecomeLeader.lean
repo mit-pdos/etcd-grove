@@ -3,7 +3,7 @@ Port of election_proof/proof_traceBecomeLeader.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceBecomeLeader
 
 @[expose] public section
 

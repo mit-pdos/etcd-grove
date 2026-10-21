@@ -1,11 +1,11 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Spec.go_etcd_io.raft.v3.raft__tickElection
-public import Spec.go_etcd_io.raft.v3.raft__promotable
-public import Spec.go_etcd_io.raft.v3.raft__pastElectionTimeout
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__tickElection
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__promotable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__pastElectionTimeout
 
 @[expose] public section
 

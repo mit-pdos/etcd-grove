@@ -5,7 +5,7 @@ this repository has a spec; see the spec file for the statement.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.DescribeConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.DescribeConfChange
 
 @[expose] public section
 

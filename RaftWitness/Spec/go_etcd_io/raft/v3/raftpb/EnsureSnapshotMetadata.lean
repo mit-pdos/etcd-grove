@@ -4,7 +4,7 @@ retarget, stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 

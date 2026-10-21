@@ -4,9 +4,9 @@ acknowledgements): building the messages the node layer steps.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 

@@ -21,11 +21,11 @@ it was: the closure's invariant is that the `Progress` values are the state's.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
+public import RaftWitness.Proof.go_etcd_io.raft.v3.stepLeader.Rest
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
 
 @[expose] public section
 

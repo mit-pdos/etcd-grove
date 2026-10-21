@@ -3,10 +3,10 @@ Port of `election_proof/proof_lockedRand__Intn.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.lockedRand__Intn
-public import Spec.math.big.NewInt
-public import Spec.crypto.rand.Int
-public import Spec.math.big.Int__Int64
+public import RaftWitness.Spec.go_etcd_io.raft.v3.lockedRand__Intn
+public import RaftWitness.Spec.math.big.NewInt
+public import RaftWitness.Spec.crypto.rand.Int
+public import RaftWitness.Spec.math.big.Int__Int64
 
 @[expose] public section
 

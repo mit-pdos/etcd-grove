@@ -22,7 +22,7 @@ The message predicates of the raft layer (raft v3.7 retarget, stage R4: `notes/d
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 

@@ -8,8 +8,8 @@ Lean notes: Rocq's `wp_max2_uint64` is stepped by hand (`wp_func_call`, `wp_call
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__appliedTo
-public import Spec.go_etcd_io.raft.v3.raftLog__appliedTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__appliedTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__appliedTo
 
 @[expose] public section
 

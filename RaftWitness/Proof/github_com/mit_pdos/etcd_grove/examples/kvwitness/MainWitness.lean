@@ -1,14 +1,14 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/MainWitness.lean`. Lean-first
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/MainWitness.lean`. Lean-first
 (2026-10-20, W4): `Main`'s (`Main.lean`), on `StartClusterWitness([]uint64{1, 2}, 3)`.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.MainWitness
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.StartClusterWitness
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Check
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.MainWitness
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.StartClusterWitness
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Alloc
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Alloc
 
 @[expose] public section
 
@@ -18,7 +18,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -34,11 +34,11 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 theorem MainWitness.wp_proof
-    (wp_StartClusterWitness : ∀ [KVStor GF], kv.StartClusterWitness.spec (GF := GF) (hG := hG))
-    (wp_Check : ∀ [KVStor GF], kv.Check.spec (GF := GF) (hG := hG))
+    (wp_StartClusterWitness : ∀ [KVStor GF], kvwitness.StartClusterWitness.spec (GF := GF) (hG := hG))
+    (wp_Check : ∀ [KVStor GF], kvwitness.Check.spec (GF := GF) (hG := hG))
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG)) :
     MainWitness.spec (GF := GF) (hG := hG) := by
   intro Hrb
@@ -72,6 +72,6 @@ theorem MainWitness.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

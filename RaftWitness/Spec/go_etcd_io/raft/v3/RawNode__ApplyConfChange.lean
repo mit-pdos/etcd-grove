@@ -63,11 +63,11 @@ those on the slices' contents before (the voters `xs`, learners `ls`, outgoing `
 learners `lns`, now `cs`'s fields; "empty" was `len = 0`, now `= []`). `cc` is given back. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
-public import Proof.go_etcd_io.raft.v3.InvApplyConf
-public import Proof.go_etcd_io.raft.v3.InvRawnodeC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeC
 -- `ApplyCCOkC`
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
 
 @[expose] public section
 

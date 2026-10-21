@@ -3,9 +3,9 @@ Port of election_proof/proof_unstable__maybeFirstIndex.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__maybeFirstIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeFirstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 
 @[expose] public section
 

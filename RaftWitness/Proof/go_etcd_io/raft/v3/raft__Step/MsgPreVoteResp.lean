@@ -14,9 +14,9 @@ sn, ctx, rs⟩`, its getters' specs `PB` (`ElectionLemmas.lean`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp_gt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp_eq
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp_lt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp_gt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp_eq
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp_lt
 
 @[expose] public section
 

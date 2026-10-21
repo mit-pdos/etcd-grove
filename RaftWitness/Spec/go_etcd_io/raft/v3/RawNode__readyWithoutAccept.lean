@@ -7,7 +7,7 @@ Lean notes: as `RawNode.Ready.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 

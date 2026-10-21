@@ -16,7 +16,7 @@ section variable `c` as its second.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 

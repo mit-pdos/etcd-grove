@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/Entry__GetIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 

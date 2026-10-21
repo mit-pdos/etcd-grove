@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/Entry__GetData.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 
 @[expose] public section
 

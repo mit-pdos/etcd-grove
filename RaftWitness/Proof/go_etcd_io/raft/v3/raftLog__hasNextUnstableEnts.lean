@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_raftLog__hasNextUnstableEnts.v (857d09190). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableEnts
-public import Spec.go_etcd_io.raft.v3.raftLog__nextUnstableEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__nextUnstableEnts
 
 @[expose] public section
 

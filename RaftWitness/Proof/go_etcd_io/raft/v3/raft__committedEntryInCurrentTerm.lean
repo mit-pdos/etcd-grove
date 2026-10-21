@@ -6,9 +6,9 @@ The commit index is within the log (`ownRaftLog_committed`), so `term` answers i
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__term
-public import Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
 
 @[expose] public section
 

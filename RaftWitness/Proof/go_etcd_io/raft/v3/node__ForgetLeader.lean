@@ -1,10 +1,10 @@
 /- Lean-first (no Rocq counterpart), 2026-10-13. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasNodeR
-public import Spec.go_etcd_io.raft.v3.node__step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__ForgetLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasNodeR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__step
 
 @[expose] public section
 

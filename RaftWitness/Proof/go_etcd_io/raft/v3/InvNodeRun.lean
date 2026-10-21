@@ -26,12 +26,12 @@ handed out owned).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
-public import Spec.go_etcd_io.raft.v3.raft__Step
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
-public import Proof.go_etcd_io.raft.v3.InvRawnodeC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeC
 -- `Step.commit_mono`
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

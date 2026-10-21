@@ -76,13 +76,13 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftlog
-public import Proof.go_etcd_io.raft.v3.InvWitnessOut
-public import Proof.go_etcd_io.raft.v3.InvTracker
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Proof.go_etcd_io.raft.v3.InvLogger
-public import Proof.go_etcd_io.raft.v3.InvMisc
-public import Proof.go_etcd_io.raft.v3.LemmasRaftlogW
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftlog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessOut
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTracker
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvLogger
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvMisc
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRaftlogW
 
 @[expose] public section
 

@@ -6,13 +6,13 @@ response literal and touches nothing.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasMiscR
-public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
-public import Proof.go_etcd_io.raft.v3.FrameH
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMiscR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import RaftWitness.Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 

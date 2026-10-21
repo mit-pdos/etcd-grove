@@ -6,8 +6,8 @@ Lean notes: the type of Rocq's untyped binder `tv` is written out
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

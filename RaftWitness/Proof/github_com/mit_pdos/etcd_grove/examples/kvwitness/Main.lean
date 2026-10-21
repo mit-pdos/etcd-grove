@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/Main.lean`. Lean-first (no Rocq
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/Main.lean`. Lean-first (no Rocq
 counterpart).
 
 `StartCluster` and `Check` are specified at any storage registry (`∀ [KVStor GF]`): the proof
@@ -11,11 +11,11 @@ is not taken. `receiptBound GF ≤ 2^63` gives `StartCluster`'s `≤ 2^64 - 2` a
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Main
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.StartCluster
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Check
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Main
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.StartCluster
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Alloc
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Alloc
 
 @[expose] public section
 
@@ -25,7 +25,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -41,11 +41,11 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 theorem Main.wp_proof
-    (wp_StartCluster : ∀ [KVStor GF], kv.StartCluster.spec (GF := GF) (hG := hG))
-    (wp_Check : ∀ [KVStor GF], kv.Check.spec (GF := GF) (hG := hG))
+    (wp_StartCluster : ∀ [KVStor GF], kvwitness.StartCluster.spec (GF := GF) (hG := hG))
+    (wp_Check : ∀ [KVStor GF], kvwitness.Check.spec (GF := GF) (hG := hG))
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro Hrb
@@ -81,6 +81,6 @@ theorem Main.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

@@ -10,11 +10,11 @@ field alike), so the old proof's `append([]uint64(nil), s...)` lemmas are gone.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
-public import Spec.slices.Sort
-public import Spec.google_golang_org.protobuf.proto.CloneConfState
-public import Spec.google_golang_org.protobuf.proto.EqualConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
+public import RaftWitness.Spec.slices.Sort
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.EqualConfState
 
 @[expose] public section
 

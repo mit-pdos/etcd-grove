@@ -8,10 +8,10 @@ raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
 
 @[expose] public section
 

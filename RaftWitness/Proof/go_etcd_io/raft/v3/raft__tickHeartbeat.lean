@@ -1,10 +1,10 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 
 @[expose] public section
 

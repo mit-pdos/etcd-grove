@@ -35,8 +35,8 @@ raft v3.7 (2026-10-16, stage R5): `confChangeToMsg` returns a `*pb.Message`, own
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
-public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 
 @[expose] public section
 

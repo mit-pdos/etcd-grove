@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/WitnessHardState__GetReplicationSetOutg
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
 
 @[expose] public section
 

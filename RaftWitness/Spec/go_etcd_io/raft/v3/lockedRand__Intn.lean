@@ -3,7 +3,7 @@ Port of election_proof/spec_lockedRand__Intn.v (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvBig
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvBig
 
 @[expose] public section
 

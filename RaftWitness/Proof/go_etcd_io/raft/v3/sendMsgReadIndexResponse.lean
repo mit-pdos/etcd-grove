@@ -13,13 +13,13 @@ heartbeats then carry the context of the queue with the request (`hbCtx_recvAck`
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
-public import Spec.go_etcd_io.raft.v3.readOnly__addRequest
-public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
-public import Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.sendMsgReadIndexResponse
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__addRequest
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__recvAck
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
 
 @[expose] public section
 

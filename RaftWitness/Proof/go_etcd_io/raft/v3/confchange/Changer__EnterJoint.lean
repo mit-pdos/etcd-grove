@@ -3,15 +3,15 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__EnterJoint.lean`. Lean-fir
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
-public import Spec.go_etcd_io.raft.v3.confchange.joint
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__err
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.confchange.outgoingPtr
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__apply
-public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.joint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__err
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoingPtr
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__apply
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
 
 @[expose] public section
 

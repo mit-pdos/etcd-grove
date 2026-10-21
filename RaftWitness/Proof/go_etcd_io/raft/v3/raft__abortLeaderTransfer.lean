@@ -3,7 +3,7 @@ Port of election_proof/proof_raft__abortLeaderTransfer.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 
 @[expose] public section
 

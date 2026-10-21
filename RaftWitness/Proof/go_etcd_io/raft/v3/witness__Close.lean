@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__Close.lean` (2026-10-20, witness supp
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__Close
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__Close
 
 @[expose] public section
 

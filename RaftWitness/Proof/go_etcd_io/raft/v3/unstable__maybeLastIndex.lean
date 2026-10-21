@@ -1,9 +1,9 @@
 /- Port of election_proof/proof_unstable__maybeLastIndex.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__maybeLastIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeLastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 
 @[expose] public section
 

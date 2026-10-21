@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/deliver.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/deliver.lean`. Lean-first (no
 Rocq counterpart).
 
 raft v3.7 (2026-10-16, stage R6b): each message is a `*pb.Message` the `Ready` handed out owned
@@ -15,12 +15,12 @@ for good (`stepP_deliverable`), while raft's own object stays as `Ready` handed 
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliver
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.transfers__take
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
-public import Spec.go_etcd_io.raft.v3.node__Step
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.deliver
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.transfers__take
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.deliverable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 
 @[expose] public section
 
@@ -30,7 +30,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -39,7 +39,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [StorageModel GF]
 
 set_option hygiene false in
@@ -204,6 +204,6 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

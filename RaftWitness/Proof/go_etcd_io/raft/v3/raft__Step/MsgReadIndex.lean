@@ -15,9 +15,9 @@ Proof structure, not specification: only `Proof/raft__Step.lean` may import this
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.Base
-public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
-public import Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
 
 @[expose] public section
 

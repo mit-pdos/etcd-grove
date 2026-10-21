@@ -3,9 +3,9 @@ Port of election_proof/proof_raft__hasUnappliedConfChanges.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__hasUnappliedConfChanges
-public import Spec.go_etcd_io.raft.v3.raftLog__scan
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hasUnappliedConfChanges
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__scan
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 
 @[expose] public section
 

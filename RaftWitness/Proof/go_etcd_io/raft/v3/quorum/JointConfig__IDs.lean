@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/quorum/JointConfig__IDs.lean`. Lean-first (no 
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 
 @[expose] public section
 

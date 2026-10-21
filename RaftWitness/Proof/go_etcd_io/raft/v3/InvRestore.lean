@@ -21,7 +21,7 @@ joint path passes it to `EnterJoint`); `csCfgM` says so.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.CCApplyC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCApplyC
 
 @[expose] public section
 

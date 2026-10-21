@@ -81,9 +81,9 @@ tracked ids `GMap.listToSet csm.Voters'`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.InvRestore
-public import Spec.go_etcd_io.raft.v3.Config__validate
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.Config__validate
 
 @[expose] public section
 

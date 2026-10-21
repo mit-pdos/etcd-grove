@@ -3,9 +3,9 @@ Port of election_proof/proof_raftLog__maybeCommit.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__maybeCommit
-public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maybeCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__matchTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__commitTo
 
 @[expose] public section
 

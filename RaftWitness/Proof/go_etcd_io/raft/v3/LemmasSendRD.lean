@@ -6,7 +6,7 @@ lend the nested objects and do not say which pointer they return).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
 
 @[expose] public section
 

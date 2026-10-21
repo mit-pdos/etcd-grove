@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/checkAndReturn.lean`. Lean-first (n
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
-public import Spec.go_etcd_io.raft.v3.confchange.checkInvariants
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.checkInvariants
 
 @[expose] public section
 

@@ -3,13 +3,13 @@ Proof of `(*raftLog).subterm` (`log.go:314`, witness support). Lean-first (2026-
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__subterm
-public import Spec.go_etcd_io.raft.v3.raftLog__firstIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__slice
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetSubterm
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__subterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__slice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetSubterm
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 

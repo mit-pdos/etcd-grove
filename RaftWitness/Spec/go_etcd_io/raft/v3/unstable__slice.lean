@@ -5,7 +5,7 @@ Lean notes: Rocq's `Z.to_nat` is `Int.toNat`; `subslice` is Perennial's
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 

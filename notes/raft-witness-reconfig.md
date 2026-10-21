@@ -111,7 +111,7 @@ and an election both need it, through `W2`'s own check or a regular majority), a
 
 ## The model checker
 
-`issues/raft-witness-reconfig-model/` (`model.py`, `README.md`, logs in `runs/`). Validated: the
+`notes/raft-witness-reconfig-model/` (`model.py`, `README.md`, logs in `runs/`). Validated: the
 witness vote rule without its replication-set check (`norscheck`) fails leader completeness at
 depth 8 (BFS) and in random walks; without raft's campaign guard (`lag-cand`, no witness) the
 walks find raft's known lagging-candidate violation.

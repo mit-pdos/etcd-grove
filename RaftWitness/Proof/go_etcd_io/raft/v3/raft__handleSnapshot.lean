@@ -10,16 +10,16 @@ reply `&pb.Message{To: m.From, Type: MsgAppResp.Enum(), Index: new(...)}` shares
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
-public import Spec.go_etcd_io.raft.v3.raft__restore
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendRB
 
 @[expose] public section
 

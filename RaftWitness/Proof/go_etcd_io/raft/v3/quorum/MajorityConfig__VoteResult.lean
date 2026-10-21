@@ -8,7 +8,7 @@ directly (its `wp_MajorityConfig_len` and `wp_MajorityConfig_nil_len`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
 
 @[expose] public section
 

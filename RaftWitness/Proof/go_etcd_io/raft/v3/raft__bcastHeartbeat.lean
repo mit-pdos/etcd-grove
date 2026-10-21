@@ -5,9 +5,9 @@ raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
-public import Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
-public import Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__bcastHeartbeatWithCtx
 
 @[expose] public section
 

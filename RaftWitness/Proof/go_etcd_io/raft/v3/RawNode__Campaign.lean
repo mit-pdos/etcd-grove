@@ -4,12 +4,12 @@ raft v3.7 (2026-10-16, stage R5): the message is a fresh `&pb.Message{Type: MsgH
 built as `msgIn` (`msgOwn_lit0`, `msgOwn_to_msgIn`) and given to `Step` for good. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__Campaign
-public import Spec.go_etcd_io.raft.v3.raft__Step
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Campaign
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 -- `Step.commit_mono`
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

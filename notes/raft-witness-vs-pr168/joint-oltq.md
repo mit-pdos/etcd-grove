@@ -34,7 +34,7 @@ responders lie in it. With both halves of odd size this elects a leader without 
 
 Reproduction: `TestWitnessJointOutgoingOnlyReplication` (`witness_joint_test.go` in the fork; it
 fails at `9ed005d46`: "node 2 elected in term 2 without the entry 5 (term 1) node 1 committed"), and
-the model checker's directed trace `issues/raft-witness-reconfig-model/traces/joint-oltq.txt`
+the model checker's directed trace `notes/raft-witness-reconfig-model/traces/joint-oltq.txt`
 (`runs/t1-joint-oltq-replay.txt`: leader completeness violated). The model's earlier runs missed
 it: their joint changes applied one change, so one half was always of even size, where the
 acknowledgements and the votes must meet.

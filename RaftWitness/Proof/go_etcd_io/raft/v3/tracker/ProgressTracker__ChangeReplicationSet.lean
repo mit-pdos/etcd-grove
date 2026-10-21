@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/ProgressTracker__ChangeReplicationSet.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ChangeReplicationSet
-public import Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ChangeReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
 
 @[expose] public section
 

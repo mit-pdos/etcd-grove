@@ -1,4 +1,4 @@
-module github.com/mit-pdos/etcd-grove/examples/kv
+module github.com/mit-pdos/etcd-grove/examples/kvwitness
 
 go 1.26
 

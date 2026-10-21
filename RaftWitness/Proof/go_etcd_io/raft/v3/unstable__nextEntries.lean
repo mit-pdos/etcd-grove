@@ -3,7 +3,7 @@ Port of `election_proof/proof_unstable__nextEntries.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__nextEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__nextEntries
 
 @[expose] public section
 

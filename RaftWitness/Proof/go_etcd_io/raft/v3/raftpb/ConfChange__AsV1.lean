@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChange__AsV1.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
 
 @[expose] public section
 

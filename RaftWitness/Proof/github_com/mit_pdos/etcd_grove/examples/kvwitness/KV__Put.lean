@@ -1,11 +1,11 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__Put.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__Put.lean`. Lean-first (no
 Rocq counterpart).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__Put
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__do
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__Put
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__do
 
 @[expose] public section
 
@@ -13,7 +13,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -22,10 +22,10 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
-theorem KV.Put.wp_proof (wp_do : kv.KV.do.spec (GF := GF) (hG := hG)) :
+theorem KV.Put.wp_proof (wp_do : kvwitness.KV.do.spec (GF := GF) (hG := hG)) :
     KV.Put.spec (GF := GF) (hG := hG) := by
   intro γr γp r key val Ψ Hkey Hval
   wp_start as ⟨#Hreg, Hau⟩
@@ -38,6 +38,6 @@ theorem KV.Put.wp_proof (wp_do : kv.KV.do.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

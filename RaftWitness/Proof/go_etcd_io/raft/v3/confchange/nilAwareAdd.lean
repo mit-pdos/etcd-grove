@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/nilAwareAdd.lean`. Lean-first (no R
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
 
 @[expose] public section
 

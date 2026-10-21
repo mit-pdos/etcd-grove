@@ -3,11 +3,11 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__processNoUpdate.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__processNoUpdate
-public import Spec.go_etcd_io.raft.v3.witness__isHealthy
-public import Spec.go_etcd_io.raft.v3.witness__processMessageWithOlderTerm
-public import Spec.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
-public import Proof.go_etcd_io.raft.v3.LemmasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__processNoUpdate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__isHealthy
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__processMessageWithOlderTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitness
 
 @[expose] public section
 

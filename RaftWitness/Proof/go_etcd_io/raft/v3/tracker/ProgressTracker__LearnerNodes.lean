@@ -3,8 +3,8 @@
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__LearnerNodes
-public import Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__LearnerNodes
+public import RaftWitness.Spec.slices.Sort
 
 @[expose] public section
 

@@ -1,10 +1,10 @@
 /- Port of election_proof/proof_unstable__restore.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__restore
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 

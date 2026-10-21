@@ -4,9 +4,9 @@ proof inlined it in `RawNode.acceptReady`'s).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.newStorageApplyRespMsg
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newStorageApplyRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 
 @[expose] public section
 

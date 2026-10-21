@@ -15,7 +15,7 @@ Lean notes: As for `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 

@@ -15,7 +15,7 @@ apart).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 

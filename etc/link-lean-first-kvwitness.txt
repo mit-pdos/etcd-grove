@@ -1,0 +1,86 @@
+# The functions linked in `RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/Link.lean`
+# (the key-value store on the witness raft, the parallel tree RaftWitness/; all Lean-first: no
+# Rocq counterpart), read by `etc/gen-link.py --kvwitness`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# raft's functions the store calls, linked in raft's `Link.lean` (raft v3.7, stage R6b:
+# the getters of raftpb's pointer messages, the `Enum` of a conf-change type, and the
+# trust-boundary `proto.Unmarshal` into a `*pb.ConfChange`, which replaces gogoproto's
+# `ConfChange.Unmarshal`).
+NewMemoryStorage: @
+MemoryStorage__Snapshot: @
+MemoryStorage__Append: @
+node__Propose: @
+node__ReadIndex: @
+node__TransferLeadership: @
+node__Ready: @
+node__Advance: @
+RestartNode: @
+node__Step: @
+node__ApplyConfChange: @
+node__ProposeConfChange: @
+proto_UnmarshalConfChange: @
+node__Tick: @
+raftpb_Entry__GetType: @
+raftpb_Entry__GetData: @
+raftpb_Entry__GetIndex: @
+raftpb_Message__GetType: @
+raftpb_Message__GetTerm: @
+raftpb_Message__GetFrom: @
+raftpb_Message__GetTo: @
+raftpb_Snapshot__GetMetadata: @
+raftpb_SnapshotMetadata__GetIndex: @
+raftpb_ConfChangeType__Enum: @
+# (2026-10-20, W4) the witness proxy
+witness__Process: @
+NewWitness: @
+# the porcupine driver's functions the store's test calls, linked in lintest's `Link.lean`
+Run: @
+CounterClock: @
+# the store (examples/kvwitness/kv.go)
+encode:
+decode:
+fits: raftpb_Entry__GetIndex
+NewStorage: NewMemoryStorage
+Storage__InitialState:
+Storage__Snapshot: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
+KV__apply: decode raftpb_Entry__GetType raftpb_Entry__GetData
+KV__do: encode node__Propose
+KV__Put: KV__do
+KV__Get: KV__do
+KV__Append: KV__do
+KV__Read: encode node__ReadIndex
+KV__TransferLeadership: node__TransferLeadership
+KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
+KV__answer: decode
+KV__witnessDeliver: witness__Process kvwitness_deliverable node__Step
+NewWitnessStore:
+WitnessStore__GetWitnessState:
+WitnessStore__Close:
+witnessRead__GetState:
+witnessRead__Update:
+KV__run: fits KV__apply KV__answer node__Ready node__Advance MemoryStorage__Append proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData KV__witnessDeliver
+kvwitness_newKV: KV__run
+kvwitness_New: kvwitness_newKV
+# the cluster driver (examples/kvwitness/cluster.go)
+kvwitness_quietLogger__Debugf:
+kvwitness_quietLogger__Errorf:
+kvwitness_quietLogger__Infof:
+kvwitness_quietLogger__Warningf:
+kvwitness_deliverable: raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo
+kvwitness_transfers__take:
+kvwitness_deliver: kvwitness_deliverable kvwitness_transfers__take node__Step raftpb_Message__GetType raftpb_Message__GetTo
+kvwitness_tick: node__Tick
+kvwitness_copyIDs:
+kvwitness_StartClusterWitness: kvwitness_copyIDs NewMemoryStorage Storage__InitialState Storage__Snapshot kvwitness_newKV kvwitness_deliver kvwitness_tick kvwitness_quietLogger__Debugf kvwitness_quietLogger__Errorf kvwitness_quietLogger__Infof kvwitness_quietLogger__Warningf RestartNode NewWitnessStore WitnessStore__GetWitnessState WitnessStore__Close witnessRead__GetState witnessRead__Update NewWitness
+kvwitness_StartCluster: NewStorage Storage__InitialState Storage__Snapshot kvwitness_New kvwitness_deliver kvwitness_tick kvwitness_quietLogger__Debugf kvwitness_quietLogger__Errorf kvwitness_quietLogger__Infof kvwitness_quietLogger__Warningf RestartNode
+# the randomized linearizability test (examples/kvwitness/check.go)
+kvwitness_copyMap:
+kvwitness_within:
+kvwitness_hashString:
+kvwitness_hashMap: kvwitness_hashString
+kvwitness_Model: kvwitness_copyMap kvwitness_within kvwitness_hashMap
+kvwitness_Gen:
+kvwitness_Check: Run kvwitness_Model kvwitness_Gen KV__Get KV__Put KV__Append
+kvwitness_Main: kvwitness_StartCluster kvwitness_Check CounterClock
+kvwitness_MainWitness: kvwitness_StartClusterWitness kvwitness_Check CounterClock

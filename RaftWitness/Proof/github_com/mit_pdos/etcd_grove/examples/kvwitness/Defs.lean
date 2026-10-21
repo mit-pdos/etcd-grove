@@ -69,15 +69,15 @@ what the getters of a `*pb.Entry` return), as raft's ghost state has them since 
 
 ## The storage
 
-`*kv.Storage` is a raft `Storage` (`KVStorageInstance.lean`): the instance of
+`*kvwitness.Storage` is a raft `Storage` (`KVStorageInstance.lean`): the instance of
 `StorageModel` for the store (`kvStorageModel`), given a registry (`KVStor`: a
 ghost map from a `Storage` struct to its `MemoryStorage` and that storage's ghost names,
 whose authority is in `kvStorInv`) so that a storage's tokens are of its own names.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
-public import Proof.go_etcd_io.raft.v3.InvWitnessIfaceT
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Base
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessIfaceT
 
 @[expose] public section
 
@@ -92,14 +92,14 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's `Storage` struct (not raft's `Storage` interface). -/
-abbrev RStorage [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.Storage
+abbrev RStorage [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage
 /-- The store's replica struct, `KV`. -/
-abbrev RKV [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.KV
+abbrev RKV [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.KV
 
 abbrev rStorageTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.Storage.ty
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage.ty
 abbrev rKVTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.KV.ty
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.KV.ty
 
 /-! ## The storage registry and the storage model -/
 
@@ -129,7 +129,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- The storage `s` is the `MemoryStorage` `ms` with the names `γs` (persistent). -/
@@ -251,7 +251,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- The client's half of the store's state `m`: half of the history's ghost variable, at a
@@ -405,7 +405,7 @@ def lockInv (γr : RKVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
 /-- Replica `id` at `r`, on node `n`, with the storage `st` (persistent). -/
 def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=
   iprop(
-    "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
+    "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
     "#Hid" ∷ r.[RKV, go!"id"] ↦□ id ∗
     "#Hnode" ∷ r.[RKV, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
     "#Hst" ∷ r.[RKV, go!"storage"] ↦□ st ∗

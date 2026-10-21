@@ -6,7 +6,7 @@ ported in stage R4), over `EntryM`; `maybeAppend` uses it.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 

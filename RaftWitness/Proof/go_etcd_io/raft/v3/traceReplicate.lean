@@ -3,7 +3,7 @@ Port of election_proof/proof_traceReplicate.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceReplicate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceReplicate
 
 @[expose] public section
 

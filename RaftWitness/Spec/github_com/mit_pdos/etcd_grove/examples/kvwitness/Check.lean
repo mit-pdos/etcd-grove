@@ -11,7 +11,7 @@ against the model (`applySpec`; `Check.lean` says how).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.ModelDefs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.ModelDefs
 public import Proof.github_com.anishathalye.porcupine.Defs
 
 @[expose] public section
@@ -20,7 +20,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -30,7 +30,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- See the file header. -/
@@ -41,15 +41,15 @@ abbrev Check.spec : Prop :=
   rs ≠ [] →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ context.isClosedchanInit ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗ context.isClosedchanInit ∗
       ksl ↦*□ rs ∗ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗ rkvVal γr kvEmpty ∗
       lintest.clockSpec clockVal Eclk clock ∗ clockVal t0 }}
-    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.Check)) (Val #ksl)) (Val #clock)) (Val #clients))
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvwitness.Check)) (Val #ksl)) (Val #clock)) (Val #clients))
       (Val #ops))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok"⌝ }}
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

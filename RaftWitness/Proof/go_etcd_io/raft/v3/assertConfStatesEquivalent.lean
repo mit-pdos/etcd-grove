@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_assertConfStatesEquivalent.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
 
 @[expose] public section
 

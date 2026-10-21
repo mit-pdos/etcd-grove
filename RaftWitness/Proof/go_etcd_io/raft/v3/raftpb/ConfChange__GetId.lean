@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChange__GetId.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 
 @[expose] public section
 

@@ -4,7 +4,7 @@ raft v3.7 retarget; the old proof stepped through it inline in `RawNode.acceptRe
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 

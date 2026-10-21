@@ -3,11 +3,11 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/checkInvariants.lean`. Lean-first (
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.checkInvariants
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
-public import Spec.go_etcd_io.raft.v3.confchange.joint
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.checkInvariants
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.joint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
 
 @[expose] public section
 

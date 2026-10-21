@@ -20,26 +20,26 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Proof.go_etcd_io.raft.v3.StepLemmasR
-public import Proof.go_etcd_io.raft.v3.StepGhostMode
-public import Spec.go_etcd_io.raft.v3.raft__Step
-public import Spec.go_etcd_io.raft.v3.raft__hup
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.voteRespMsgType
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.stepCandidate
-public import Spec.go_etcd_io.raft.v3.stepFollower
-public import Spec.go_etcd_io.raft.v3.stepLeader
-public import Spec.go_etcd_io.raft.v3.traceReceiveMessage
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.go_etcd_io.raft.v3.raftLog__isUpToDate
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmasR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepGhostMode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hup
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.voteRespMsgType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.stepCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.stepFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.stepLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceReceiveMessage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__isUpToDate
 -- the storage acknowledgements (2026-10-05)
-public import Spec.go_etcd_io.raft.v3.raftLog__stableTo
-public import Spec.go_etcd_io.raft.v3.raft__appliedTo
-public import Spec.go_etcd_io.raft.v3.raft__reduceUncommittedSize
-public import Spec.go_etcd_io.raft.v3.entsSize
-public import Spec.go_etcd_io.raft.v3.payloadsSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__stableTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__appliedTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__reduceUncommittedSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.entsSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.payloadsSize
 
 @[expose] public section
 

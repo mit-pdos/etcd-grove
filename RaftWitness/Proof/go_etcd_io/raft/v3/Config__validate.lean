@@ -3,8 +3,8 @@ Port of election_proof/proof_Config__validate.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.Config__validate
-public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import RaftWitness.Spec.go_etcd_io.raft.v3.Config__validate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 
 @[expose] public section
 

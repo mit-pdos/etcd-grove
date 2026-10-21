@@ -25,7 +25,7 @@ half is in the votes table, `votesTbl`). Each path of `witness.Process` is one l
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Refinement
 
 @[expose] public section
 

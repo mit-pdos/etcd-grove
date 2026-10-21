@@ -1,9 +1,9 @@
 /- Port of election_proof/proof_ProgressTracker__Committed.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Committed
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
-public import Spec.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Committed
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
 
 @[expose] public section
 

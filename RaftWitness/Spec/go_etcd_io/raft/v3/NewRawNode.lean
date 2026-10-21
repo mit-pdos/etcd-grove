@@ -30,12 +30,12 @@ Lean notes: like `RawNode.Propose.spec`, the section fixes `hlc := HasLC.hasLC` 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
-public import Proof.go_etcd_io.raft.v3.InvBoot
-public import Spec.go_etcd_io.raft.v3.newRaft
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvBoot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newRaft
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 -- `rinit` (2026-10-14, reconfiguration stage B7 part 2)
-public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 
 @[expose] public section
 

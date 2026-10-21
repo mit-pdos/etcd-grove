@@ -26,9 +26,9 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat_gt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat_lt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat_eq
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat_gt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat_lt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgHeartbeat_eq
 
 @[expose] public section
 

@@ -12,9 +12,9 @@ of that history (`wSt`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvWitnessGhost
-public import Spec.go_etcd_io.raft.v3.witness__Close
-public import Spec.go_etcd_io.raft.v3.NewWitness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessGhost
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__Close
+public import RaftWitness.Spec.go_etcd_io.raft.v3.NewWitness
 
 @[expose] public section
 

@@ -8,8 +8,8 @@ budget (`termLB`): the witness's answers it steps into its node are within it, a
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvWitnessIface
-public import Proof.go_etcd_io.raft.v3.InvWitnessOut
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessIface
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessOut
 
 @[expose] public section
 

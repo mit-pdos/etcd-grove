@@ -3,10 +3,10 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__initProgress.lean`. Lean-f
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.tracker.NewInflights
-public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.NewInflights
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
 
 @[expose] public section
 

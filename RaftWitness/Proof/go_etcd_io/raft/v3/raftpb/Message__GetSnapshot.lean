@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/Message__GetSnapshot.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
 
 @[expose] public section
 

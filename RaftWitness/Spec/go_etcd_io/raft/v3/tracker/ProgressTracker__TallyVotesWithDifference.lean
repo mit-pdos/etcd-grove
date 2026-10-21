@@ -3,8 +3,8 @@ New in etcd-io/raft#168 (share witness), Lean-first (`notes/pr-verify/raft-168.m
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
 
 @[expose] public section
 

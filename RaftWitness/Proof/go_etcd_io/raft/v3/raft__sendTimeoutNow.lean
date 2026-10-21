@@ -4,10 +4,10 @@ raft v3.7 (stage R4): the message `&pb.Message{To: new(to), Type: pb.MsgTimeoutN
 built owned (`msgOwn_lit0`, `LemmasSendR.lean`) and handed to `send`. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

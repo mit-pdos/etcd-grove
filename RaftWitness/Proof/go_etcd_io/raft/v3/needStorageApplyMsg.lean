@@ -3,7 +3,7 @@ Port of `election_proof/proof_needStorageApplyMsg.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.needStorageApplyMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.needStorageApplyMsg
 
 @[expose] public section
 

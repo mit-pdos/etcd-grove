@@ -3,7 +3,7 @@
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__Clone
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__Clone
 
 @[expose] public section
 

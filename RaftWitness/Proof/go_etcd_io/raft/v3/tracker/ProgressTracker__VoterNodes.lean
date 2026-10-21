@@ -3,9 +3,9 @@ Port of `election_proof/proof_ProgressTracker__VoterNodes.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
-public import Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
+public import RaftWitness.Spec.slices.Sort
 
 @[expose] public section
 

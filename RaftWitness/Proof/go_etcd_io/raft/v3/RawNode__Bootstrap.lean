@@ -1,14 +1,14 @@
 /- Lean-first (no Rocq counterpart). See `Spec/go_etcd_io/raft/v3/RawNode__Bootstrap.lean`. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__Bootstrap
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
-public import Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
-public import Spec.go_etcd_io.raft.v3.raftLog__append
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
-public import Proof.go_etcd_io.raft.v3.LemmasMiscR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Bootstrap
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__append
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMiscR
 
 @[expose] public section
 

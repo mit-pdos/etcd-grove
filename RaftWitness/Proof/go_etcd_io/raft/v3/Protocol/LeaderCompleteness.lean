@@ -14,7 +14,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.StepGhost
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepGhost
 
 @[expose] public section
 

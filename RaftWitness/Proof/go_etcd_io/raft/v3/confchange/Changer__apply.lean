@@ -5,16 +5,16 @@ read through `GetNodeId`/`GetType`.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__apply
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeVoter
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeWitness
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__apply
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeVoter
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__remove
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.fmt.Errorf
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__String
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 
 @[expose] public section
 

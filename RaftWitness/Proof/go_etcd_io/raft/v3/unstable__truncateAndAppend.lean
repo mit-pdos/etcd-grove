@@ -5,9 +5,9 @@ Lean notes: Rocq's `wp_slice_append_persistent` is Perennial's
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend
-public import Spec.go_etcd_io.raft.v3.unstable__slice
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__slice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 

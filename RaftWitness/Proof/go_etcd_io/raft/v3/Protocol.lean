@@ -10,8 +10,8 @@ before them.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Model
-public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
-public import Proof.go_etcd_io.raft.v3.Protocol.GhostState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Model
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Ghost
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.GhostState
 
 @[expose] public section

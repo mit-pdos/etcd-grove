@@ -1,8 +1,8 @@
 /- Port of election_proof/spec_Progress__SentEntries.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
 
 @[expose] public section
 

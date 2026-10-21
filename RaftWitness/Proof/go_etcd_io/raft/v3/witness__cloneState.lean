@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__cloneState.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__cloneState
-public import Proof.go_etcd_io.raft.v3.LemmasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__cloneState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitness
 
 @[expose] public section
 

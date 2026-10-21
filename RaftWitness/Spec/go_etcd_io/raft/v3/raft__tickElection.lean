@@ -12,7 +12,7 @@ Lean notes: like `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and ha
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
 
 @[expose] public section
 

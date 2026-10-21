@@ -6,17 +6,17 @@ specs.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvWitness
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetState
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogSubterm
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLead
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSet
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLastLogSubterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLead
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetReplicationSetOutgoing
 
 @[expose] public section
 

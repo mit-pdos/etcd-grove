@@ -8,17 +8,17 @@ owns it (`msgOwn_of_struct`); `send`'s `SnapOut` is the snapshot at its own conf
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__maybeSendSnapshot
-public import Spec.go_etcd_io.raft.v3.raftLog__snapshot
-public import Spec.go_etcd_io.raft.v3.raftLog__firstIndex
-public import Spec.go_etcd_io.raft.v3.IsEmptySnap
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeSnapshot
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeSendSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__snapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

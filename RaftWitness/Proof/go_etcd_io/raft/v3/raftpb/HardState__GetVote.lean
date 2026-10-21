@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/HardState__GetVote.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
 
 @[expose] public section
 

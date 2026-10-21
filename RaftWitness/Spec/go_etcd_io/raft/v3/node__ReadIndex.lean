@@ -27,7 +27,7 @@ rather than the proposed slice.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 
 @[expose] public section

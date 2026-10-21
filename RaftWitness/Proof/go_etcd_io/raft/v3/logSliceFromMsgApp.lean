@@ -3,11 +3,11 @@ Port of election_proof/proof_logSliceFromMsgApp.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
-public import Spec.go_etcd_io.raft.v3.logSliceFromMsgApp
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.logSliceFromMsgApp
 
 @[expose] public section
 

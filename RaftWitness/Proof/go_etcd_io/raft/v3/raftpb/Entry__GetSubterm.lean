@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/Entry__GetSubterm.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetSubterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetSubterm
 
 @[expose] public section
 

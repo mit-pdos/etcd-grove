@@ -3,9 +3,9 @@ Port of `election_proof/proof_unstable__stableTo.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__stableTo
-public import Spec.go_etcd_io.raft.v3.unstable__maybeTerm
-public import Spec.go_etcd_io.raft.v3.unstable__shrinkEntriesArray
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__stableTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__shrinkEntriesArray
 
 @[expose] public section
 

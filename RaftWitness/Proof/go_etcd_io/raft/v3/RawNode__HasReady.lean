@@ -15,16 +15,16 @@ fresh read-only `*pb.HardState`, `hsRO`), compared with `prevHardSt` (`hsRO`) as
 struct's view is opened only for the log and the queues (`rest`). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__HasReady
-public import Spec.go_etcd_io.raft.v3.SoftState__equal
-public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import Spec.go_etcd_io.raft.v3.isHardStateEqual
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableSnapshot
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableEnts
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextCommittedEnts
-public import Spec.go_etcd_io.raft.v3.raft__softState
-public import Spec.go_etcd_io.raft.v3.raft__hardState
-public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__HasReady
+public import RaftWitness.Spec.go_etcd_io.raft.v3.SoftState__equal
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptyHardState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.isHardStateEqual
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextCommittedEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__softState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hardState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 
 @[expose] public section
 

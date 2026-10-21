@@ -2,15 +2,15 @@
 
 # The store's closed adequacy theorem, linked (2026-10-19)
 
-`kv_adequate`: `Adequacy.lean`'s `kv_adequate_of` applied to the linked result `kv.wp_Main`
+`kv_adequate`: `Adequacy.lean`'s `kv_adequate_of` applied to the linked result `kvwitness.wp_Main`
 (`Link.lean`: `Main`'s proof with every callee's linked, the store's, raft's, lintest's and
 porcupine's); `kv_witness_adequate`, the same for `MainWitness` (2026-10-21, W4). A separate
 file so that `Adequacy.lean` builds without the store's proofs.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Adequacy
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Link
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Adequacy
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Link
 
 @[expose] public section
 
@@ -31,7 +31,7 @@ variable [go_gctx : GoGlobalContext]
 /-- `Main`'s linked result at `kvGF` (whose `NaInvG` slot porcupine's results take). -/
 theorem kv_wp_Main_kvGF : kvMainSpec := by
   intros
-  exact kv.wp_Main
+  exact kvwitness.wp_Main
 
 /-- **Porcupine never rejects the store's trace** (`kv_adequate_of`, `Adequacy.lean`, with
 `Main`'s linked result): every real execution of `kvProgram` (the store package's
@@ -40,7 +40,7 @@ linearizability test and panics unless porcupine answers `Ok`) from a fresh stat
 thread, of `n < 2^63` steps: the main thread's result, if any, is `#()`; no thread is stuck; no
 thread has ended in a panic. -/
 theorem kv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -55,7 +55,7 @@ theorem kv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
 /-- `MainWitness`'s linked result at `kvGF`. -/
 theorem kv_wp_MainWitness_kvGF : kvMainWitnessSpec := by
   intros
-  exact kv.wp_MainWitness
+  exact kvwitness.wp_MainWitness
 
 /-- **Porcupine never rejects the trace of the store with a witness** (`kv_witness_adequate_of`,
 `Adequacy.lean`, with `MainWitness`'s linked result): every real execution of
@@ -64,7 +64,7 @@ cluster of two voters and a witness, runs the randomized linearizability test an
 porcupine answers `Ok`) from a fresh state with one thread, of `n < 2^63` steps: the main
 thread's result, if any, is `#()`; no thread is stuck; no thread has ended in a panic. -/
 theorem kv_witness_adequate [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)

@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_ProgressTracker__ConfState.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ConfState
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 
 @[expose] public section
 

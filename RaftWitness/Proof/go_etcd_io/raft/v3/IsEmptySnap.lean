@@ -3,9 +3,9 @@ Port of election_proof/proof_IsEmptySnap.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptySnap
 
 @[expose] public section
 

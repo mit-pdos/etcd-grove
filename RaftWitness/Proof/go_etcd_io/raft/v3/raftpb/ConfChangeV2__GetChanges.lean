@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeV2__GetChanges.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__GetChanges
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__GetChanges
 
 @[expose] public section
 

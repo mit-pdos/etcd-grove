@@ -78,7 +78,7 @@ Lean notes: Rocq's tuple `(prev, ents, ss)` in the ghost variable is the record
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvStorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvStorage
 
 @[expose] public section
 

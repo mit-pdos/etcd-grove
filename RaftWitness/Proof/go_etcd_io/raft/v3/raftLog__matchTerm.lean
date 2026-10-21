@@ -3,8 +3,8 @@ Port of election_proof/proof_raftLog__matchTerm.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__matchTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
 
 @[expose] public section
 

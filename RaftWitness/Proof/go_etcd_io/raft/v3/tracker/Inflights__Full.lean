@@ -3,7 +3,7 @@ Port of `election_proof/proof_Inflights__Full.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
 
 @[expose] public section
 

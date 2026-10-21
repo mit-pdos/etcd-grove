@@ -5,8 +5,8 @@ A2), Lean-first: the same statements with `StepC c` for `Step cfg`, the voters o
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.StepLemmas
-public import Proof.go_etcd_io.raft.v3.Protocol.StepC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepC
 
 @[expose] public section
 

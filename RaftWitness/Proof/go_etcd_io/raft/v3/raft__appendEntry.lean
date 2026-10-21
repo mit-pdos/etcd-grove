@@ -10,15 +10,15 @@ untouched. The self-acknowledgement is built owned (`msgOwn_lit0`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__appendEntry
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raft__increaseUncommittedSize
-public import Spec.go_etcd_io.raft.v3.traceReplicate
-public import Spec.go_etcd_io.raft.v3.raftLog__append
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Spec.google_golang_org.protobuf.proto.CloneEntry
-public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__increaseUncommittedSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceReplicate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__append
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneEntry
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendRB
 public import Proof.ReceiptTactics
 
 @[expose] public section

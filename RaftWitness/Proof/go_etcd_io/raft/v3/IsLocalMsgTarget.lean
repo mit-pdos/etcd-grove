@@ -3,7 +3,7 @@ Port of `election_proof/proof_IsLocalMsgTarget.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
 
 @[expose] public section
 

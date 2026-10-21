@@ -3,8 +3,8 @@ Port of election_proof/proof_MemoryStorage__LastIndex.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
 
 @[expose] public section
 

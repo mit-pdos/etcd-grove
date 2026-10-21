@@ -6,7 +6,7 @@ Lean notes: `prstate.t` is `PRState`, `prstate_w64` is `prstateW64`,
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 

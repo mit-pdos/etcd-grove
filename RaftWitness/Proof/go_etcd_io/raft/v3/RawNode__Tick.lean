@@ -1,10 +1,10 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__Tick
-public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Tick
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
 -- `Step.commit_mono`
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

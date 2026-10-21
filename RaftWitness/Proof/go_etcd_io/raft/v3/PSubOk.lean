@@ -12,7 +12,7 @@ predicate.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.StepR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepR
 
 @[expose] public section
 

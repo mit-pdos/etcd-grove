@@ -1,11 +1,11 @@
 /- `MemoryStorage.Append` (`storage.go:280`), proved 2026-10-10 (Lean-first). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__firstIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
-public import Proof.go_etcd_io.raft.v3.InvRaftlog
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftlog
 
 @[expose] public section
 

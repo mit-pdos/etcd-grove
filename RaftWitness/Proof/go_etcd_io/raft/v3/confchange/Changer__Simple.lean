@@ -3,14 +3,14 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__Simple.lean`. Lean-first (
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
-public import Spec.go_etcd_io.raft.v3.confchange.joint
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__err
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__apply
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.go_etcd_io.raft.v3.confchange.symdiff
-public import Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__checkAndCopy
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.joint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__err
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__apply
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.symdiff
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.checkAndReturn
 
 @[expose] public section
 

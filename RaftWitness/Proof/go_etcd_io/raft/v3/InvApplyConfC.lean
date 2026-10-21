@@ -14,8 +14,8 @@ Raft v3.7 retarget (stage R4): the heap section only; the model (`section model`
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvApplyConf
-public import Proof.go_etcd_io.raft.v3.CCApplyC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCApplyC
 
 @[expose] public section
 

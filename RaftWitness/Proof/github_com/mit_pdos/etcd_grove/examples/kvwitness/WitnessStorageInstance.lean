@@ -10,10 +10,10 @@ nothing.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore__GetWitnessState
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore__Close
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.witnessRead__GetState
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.witnessRead__Update
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore__GetWitnessState
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore__Close
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead__GetState
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead__Update
 
 @[expose] public section
 
@@ -29,7 +29,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The store's witness storage at `s`, as a raft `WitnessStorage` interface value. -/
 def kvWStoreIface (s : Loc) : GoInterface :=
@@ -37,10 +37,10 @@ def kvWStoreIface (s : Loc) : GoInterface :=
 
 /-- A read of the store is the contract's `WitnessState` of the state it saw. -/
 theorem wRead_isWState
-    (wp_GetState : kv.witnessRead.GetState.spec (GF := GF) (hG := hG))
-    (wp_Update : kv.witnessRead.Update.spec (GF := GF) (hG := hG))
+    (wp_GetState : kvwitness.witnessRead.GetState.spec (GF := GF) (hG := hG))
+    (wp_Update : kvwitness.witnessRead.Update.spec (GF := GF) (hG := hG))
     (r s : Loc) (N : Namespace) (P : WHS → IProp GF) (p : Loc) (σ : WHS) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness -∗
       isWRead r s P p σ -∗
       isWState (interface.mkOk (go.GoType.PointerType rWReadTy) #r) N P σ := by
   iintro #Hpkg #Hr
@@ -69,12 +69,12 @@ theorem wRead_isWState
 
 /-- **The store's witness storage is a raft `WitnessStorage`**, at any `P` and `N`. -/
 theorem kvWStore_isWitnessStorage
-    (wp_GetWitnessState : kv.WitnessStore.GetWitnessState.spec (GF := GF) (hG := hG))
-    (wp_Close : kv.WitnessStore.Close.spec (GF := GF) (hG := hG))
-    (wp_GetState : kv.witnessRead.GetState.spec (GF := GF) (hG := hG))
-    (wp_Update : kv.witnessRead.Update.spec (GF := GF) (hG := hG))
+    (wp_GetWitnessState : kvwitness.WitnessStore.GetWitnessState.spec (GF := GF) (hG := hG))
+    (wp_Close : kvwitness.WitnessStore.Close.spec (GF := GF) (hG := hG))
+    (wp_GetState : kvwitness.witnessRead.GetState.spec (GF := GF) (hG := hG))
+    (wp_Update : kvwitness.witnessRead.Update.spec (GF := GF) (hG := hG))
     (s : Loc) (N : Namespace) (P : WHS → IProp GF) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness -∗
       isWStore s P -∗ isWitnessStorage (kvWStoreIface s) N P := by
   iintro #Hpkg #Hw
   unfold isWitnessStorage kvWStoreIface

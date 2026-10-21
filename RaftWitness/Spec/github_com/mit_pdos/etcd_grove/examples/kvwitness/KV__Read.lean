@@ -14,7 +14,7 @@ operation credit too.)
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 
 @[expose] public section
 
@@ -22,7 +22,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -32,20 +32,20 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.Read.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (key : List w8) (L0 : List (List w8)),
   (key.length : Int) < 2 ^ 61 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
       isKV γr γp r ∗ rdCred γr.raft 1 ∗ kvLb γr L0 }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"Read")) (Val #key))
   {{ (x : List w8), RET #x; ∃ L, kvLb γr L ∗ ⌜L0 <+: L ∧ x = kvFold L key⌝ }}
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

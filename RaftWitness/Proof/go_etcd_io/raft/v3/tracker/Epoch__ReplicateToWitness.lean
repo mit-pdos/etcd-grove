@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/Epoch__ReplicateToWitness.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Epoch__ReplicateToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Epoch__ReplicateToWitness
 
 @[expose] public section
 

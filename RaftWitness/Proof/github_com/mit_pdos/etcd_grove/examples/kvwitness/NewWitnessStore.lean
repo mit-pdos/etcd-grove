@@ -1,10 +1,10 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/NewWitnessStore.lean`. Lean-first
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/NewWitnessStore.lean`. Lean-first
 (2026-10-20, witness support).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.NewWitnessStore
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.NewWitnessStore
 
 @[expose] public section
 
@@ -12,7 +12,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -21,7 +21,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The zero state, frozen, then the mutex with its invariant. -/
 theorem NewWitnessStore.wp_proof : NewWitnessStore.spec (GF := GF) (hG := hG) := by
@@ -54,6 +54,6 @@ theorem NewWitnessStore.wp_proof : NewWitnessStore.spec (GF := GF) (hG := hG) :=
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

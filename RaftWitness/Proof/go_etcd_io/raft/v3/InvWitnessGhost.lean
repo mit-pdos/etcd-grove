@@ -15,8 +15,8 @@ vote granted (`wGhost_vote`).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__Process
-public import Proof.go_etcd_io.raft.v3.Protocol.Witness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__Process
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Witness
 
 @[expose] public section
 

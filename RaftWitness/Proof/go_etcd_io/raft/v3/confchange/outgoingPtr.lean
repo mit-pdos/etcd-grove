@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/outgoingPtr.lean`. Lean-first (no R
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.outgoingPtr
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoingPtr
 
 @[expose] public section
 

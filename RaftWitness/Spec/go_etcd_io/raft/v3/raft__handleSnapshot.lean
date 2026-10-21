@@ -30,8 +30,8 @@ retarget the read-only slices, `ownCSL`). Every reply shares `m`'s `From` cell.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__restore
-public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 
 @[expose] public section
 

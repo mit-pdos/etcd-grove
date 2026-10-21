@@ -13,9 +13,9 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_lt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_eq_novote
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_eq_voted
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_lt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_eq_novote
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_eq_voted
 
 @[expose] public section
 

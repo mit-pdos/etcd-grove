@@ -5,9 +5,9 @@ application's (the application's triple).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
-public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 

@@ -5,7 +5,7 @@ Lean notes: `bool_decide (…)` is `decide (…)`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

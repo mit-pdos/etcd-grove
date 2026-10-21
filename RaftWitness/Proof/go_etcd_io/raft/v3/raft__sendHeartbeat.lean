@@ -6,11 +6,11 @@ Commit: new(commit), Context: ctx}`, built owned (`msgOwn_lit`, `LemmasSendR.lea
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__send
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__SentCommit
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__send
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__SentCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

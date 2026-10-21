@@ -39,9 +39,9 @@ term (`budget_alloc_boot`, `InvNode.lean`: a budget allocated for a new cluster;
 with `termLB bud term`). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
-public import Proof.go_etcd_io.raft.v3.InvBoot
-public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvBoot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.NewRawNode
 
 @[expose] public section
 

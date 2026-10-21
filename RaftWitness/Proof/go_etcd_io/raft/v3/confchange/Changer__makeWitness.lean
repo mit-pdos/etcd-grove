@@ -3,9 +3,9 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__makeWitness.lean`. Lean-fi
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeWitness
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
 public import Spec.fmt.Errorf
 
 @[expose] public section

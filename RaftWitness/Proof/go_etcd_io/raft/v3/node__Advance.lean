@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__Advance
-public import Proof.go_etcd_io.raft.v3.InvAdvance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Advance
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvAdvance
 
 @[expose] public section
 

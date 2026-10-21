@@ -1,7 +1,7 @@
 /- `MemoryStorage.SetHardState` (`storage.go:127`), proved 2026-10-12 (Lean-first). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 
 @[expose] public section
 

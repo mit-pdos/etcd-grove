@@ -33,7 +33,7 @@ context's list `cl` is the message state's `ctx`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

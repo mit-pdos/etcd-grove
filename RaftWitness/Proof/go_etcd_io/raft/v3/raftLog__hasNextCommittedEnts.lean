@@ -1,9 +1,9 @@
 /- Port of election_proof/proof_raftLog__hasNextCommittedEnts.v (857d09190). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextCommittedEnts
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressSnapshot
-public import Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextCommittedEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
 
 @[expose] public section
 

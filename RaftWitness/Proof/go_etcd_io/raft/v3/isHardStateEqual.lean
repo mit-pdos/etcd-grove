@@ -3,8 +3,8 @@ Port of `election_proof/proof_isHardStateEqual.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.isHardStateEqual
-public import Proof.go_etcd_io.raft.v3.LemmasMiscR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.isHardStateEqual
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMiscR
 
 @[expose] public section
 

@@ -13,7 +13,7 @@ Proof structure, not specification: only `Proof/raft__Step.lean` may import this
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
 
 @[expose] public section
 
@@ -146,16 +146,26 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     · -- stale: dropped
       rw [decide_eq_true Hlt]
       wp_auto
+      -- `(r.checkQuorum || r.preVote) && (MsgHeartbeat || MsgApp)` is false whichever way the
+      -- flags go: the condition is joined at `false` (`wp_join`), so the rest of the arm is
+      -- verified once, not once per flag case
+      wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+      · wp_drive _Q
+        cq_split _Q
+        -- where the type test ran, its last disjunct (`MsgApp`) is the value left
+        all_goals first
+          | wp_join_done
+          | (isplitr
+             · ipureintro; rw [decide_eq_false (by w32_ne)]
+             iframe)
+      try wp_auto
       wp_drive _Q
-      cq_split _Q
-      all_goals
-        wp_drive _Q
-        wp_raft_logC
-        iapply HΦ $$ %interface.nil %s
-        iframe Hphys
-        ipureintro
-        exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
-          NetFrame.refl _, TermStep.refl _ _⟩
+      wp_raft_logC
+      iapply HΦ $$ %interface.nil %s
+      iframe Hphys
+      ipureintro
+      exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+        NetFrame.refl _, TermStep.refl _ _⟩
     · -- the current term
       have Hteq : m.Term' = s.term := by word
       rw [decide_eq_false Hlt]

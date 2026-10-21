@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTracker
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTracker
 
 @[expose] public section
 

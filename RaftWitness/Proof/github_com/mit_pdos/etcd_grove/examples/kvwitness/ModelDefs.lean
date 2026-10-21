@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The store's porcupine model (2026-10-19)
 
-`examples/kv/check.go`'s `Model()` is the store's sequential specification as a porcupine model,
+`examples/kvwitness/check.go`'s `Model()` is the store's sequential specification as a porcupine model,
 and `Check` runs the lintest driver (`examples/lintest`) on it, with the store's operations as
 the library (`apply`) and random traffic (`Gen`) as the inputs. This file holds what their specs
 are stated over.
@@ -33,7 +33,7 @@ half of the store (`rkvVal γr`, `Defs.lean`) by an invariant.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Defs
 
 @[expose] public section
@@ -45,13 +45,13 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 
 /-- The test's input struct. -/
-abbrev KVInput [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.Input
+abbrev KVInput [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.Input
 
 section model
 variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
@@ -61,7 +61,7 @@ abbrev kvMapTy : go.GoType := go.GoType.MapType go.string go.string
 
 /-- The boxed `Input` `x` (`any(x)`). -/
 abbrev boxIn (x : KVInput) : GoInterface :=
-  interface.mkOk github_com.mit_pdos.etcd_grove.examples.kv.Input.ty #x
+  interface.mkOk github_com.mit_pdos.etcd_grove.examples.kvwitness.Input.ty #x
 
 /-- The boxed string `s`. -/
 abbrev boxS (s : GoString) : GoInterface := interface.mkOk go.string #s
@@ -97,7 +97,7 @@ end model
 section inj
 variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable [GoSemanticsFunctions] [go.CoreSemantics]
-variable [ta : github_com.mit_pdos.etcd_grove.examples.kv.Input.TypeAssumptions]
+variable [ta : github_com.mit_pdos.etcd_grove.examples.kvwitness.Input.TypeAssumptions]
 
 theorem boxS_inj (a b : GoString) : boxS a = boxS b ↔ a = b := by
   constructor
@@ -127,7 +127,7 @@ theorem boxIn_inj (x y : KVInput) : boxIn x = boxIn y ↔ x = y := by
     have hr := pureDet_result (ta.get_Replica x) (ta.get_Replica y) h
     simp only [Expr.Val.injEq] at hk hK hv hr
     cases x; cases y
-    simp only [KVInput, github_com.mit_pdos.etcd_grove.examples.kv.Input.mk.injEq]
+    simp only [KVInput, github_com.mit_pdos.etcd_grove.examples.kvwitness.Input.mk.injEq]
     exact ⟨go.intoVal_inj hk, go.intoVal_inj hK, go.intoVal_inj hv, go.intoVal_inj hr⟩
   · rintro rfl; rfl
 
@@ -170,7 +170,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- A state value (see the file header; persistent). -/
 def kvRep (v : GoInterface) (s : KVMap) : IProp GF :=
@@ -183,7 +183,7 @@ instance kvRep_persistent (v : GoInterface) (s : KVMap) : Persistent (kvRep (GF 
 /-- The store's porcupine model specification (see the file header). -/
 def kvS : ModelSpec GF KVMap where
   M := kvM
-  rep := kvRep
+  rep _ := kvRep
   ioOk i o := iprop(⌜(∃ x, i = boxIn x) ∧ ∃ str, o = boxS str⌝)
   ioOk_pers _ _ := by infer_instance
 
@@ -195,6 +195,6 @@ abbrev kvInOk (i : GoInterface) : IProp GF :=
 
 end defs
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

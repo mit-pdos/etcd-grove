@@ -1,14 +1,14 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__RemoveMember.lean`.
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__RemoveMember.lean`.
 Lean-first (no Rocq counterpart), 2026-10-15 (stage N). raft v3.7 (2026-10-16, stage R6b): the
 change is a fresh `&pb.ConfChange{Type: ConfChangeRemoveNode.Enum(), NodeId: new(id)}`, its two
 cells frozen (`cellRO_alloc`), owned (`ownCCV1_of_struct`), passed as a `ConfChangeI`.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__RemoveMember
-public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__RemoveMember
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
 
 @[expose] public section
 
@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -25,7 +25,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem KV.RemoveMember.wp_proof
@@ -75,6 +75,6 @@ theorem KV.RemoveMember.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

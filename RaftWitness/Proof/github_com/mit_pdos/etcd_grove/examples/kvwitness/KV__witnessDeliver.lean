@@ -1,14 +1,14 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__witnessDeliver.lean`. Lean-first
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__witnessDeliver.lean`. Lean-first
 (2026-10-20, witness support; the witness case 2026-10-20, W4).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__witnessDeliver
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
-public import Spec.go_etcd_io.raft.v3.node__Step
-public import Spec.go_etcd_io.raft.v3.witness__Process
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Cluster
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__witnessDeliver
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.deliverable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__Process
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Cluster
 
 @[expose] public section
 
@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -25,7 +25,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [StorageModel GF]
 
 theorem KV.witnessDeliver.wp_proof
@@ -151,6 +151,6 @@ theorem KV.witnessDeliver.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

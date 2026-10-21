@@ -92,7 +92,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.StepC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepC
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat

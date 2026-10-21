@@ -3,8 +3,8 @@ Port of election_proof/proof_raftLog__firstIndex.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__firstIndex
-public import Spec.go_etcd_io.raft.v3.unstable__maybeFirstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeFirstIndex
 
 @[expose] public section
 

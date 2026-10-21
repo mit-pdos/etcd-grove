@@ -1,10 +1,10 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/encode.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/encode.lean`. Lean-first (no
 Rocq counterpart).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.encode
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.encode
 
 @[expose] public section
 
@@ -12,7 +12,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -21,7 +21,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- `encode`'s spec, for a key and a value whose lengths sum to less than `2^62`: then the
 capacity `25 + len(key) + len(val)` does not overflow an `int`. (Until 2026-10-19 `encode.spec`
@@ -29,8 +29,8 @@ bounded each by `2^62` only, which lets the sum overflow, making `make` panic in
 unprovable; it bounds each by `2^61` now.) -/
 theorem encode.wp_proof_sum : ∀ (replica seq : w64) (kind : w8) (key val : List w8),
     (key.length : Int) + (val.length : Int) < 2 ^ 62 →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv }}
-      (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.encode))
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness }}
+      (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kvwitness.encode))
         (Val #replica)) (Val #seq)) (Val #kind)) (Val #key)) (Val #val))
     {{ (b : GoSlice), RET #b; b ↦* encodeOp replica seq kind key val ∗
         ownSliceCap w8 b (DFrac.own 1) }} := by
@@ -124,6 +124,6 @@ theorem encode.wp_proof : encode.spec (GF := GF) (hG := hG) := by
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

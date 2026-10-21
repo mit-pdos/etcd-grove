@@ -18,8 +18,8 @@ first checks `m != nil` (`msgPtsC_nn`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
-public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 
@@ -91,27 +91,32 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn20 : decide (m.Type' = W32 20) = false := decide_eq_false (by rw [Hty]; w32_ne)
-  wp_cq_pv
-  -- with `checkQuorum` or pre-vote on the type test runs and is false
-  all_goals try (wp_gets; rw [Hn8]; try wp_auto; wp_gets; rw [Hn3]; try wp_auto)
-  all_goals
-    wp_gets
-    rw [Hn17]
-    try wp_auto
-    wp_gets
-    rw [Hn20]
-    try wp_auto
-    wp_gets
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_gets
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-    wp_gets
-    wp_raft_logC
-    iapply HΦ $$ %interface.nil %s
-    iframe Hphys
-    ipureintro
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
-      RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
+  -- `(r.checkQuorum || r.preVote) && (m.Type == MsgHeartbeat || m.Type == MsgApp)` is false
+  -- whichever way the flags go: the condition is joined at `false` (`wp_join`), so the rest
+  -- of the arm is verified once, not once per flag case
+  wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+  · wp_cq_pv
+    -- with `checkQuorum` or pre-vote on the type test runs and is false
+    all_goals try (wp_gets; rw [Hn8]; try wp_auto; wp_gets; rw [Hn3]; try wp_auto)
+    all_goals wp_join_done
+  try wp_auto
+  wp_gets
+  rw [Hn17]
+  try wp_auto
+  wp_gets
+  rw [Hn20]
+  try wp_auto
+  wp_gets
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_gets
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_gets
+  wp_raft_logC
+  iapply HΦ $$ %interface.nil %s
+  iframe Hphys
+  ipureintro
+  exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
+    RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

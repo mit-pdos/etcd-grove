@@ -5,11 +5,11 @@ share: the quiet logger is a raft `Logger`, maps of a list's keys, and list lemm
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Debugf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Errorf
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Infof
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Warningf
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Cluster
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Debugf
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Errorf
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Infof
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger__Warningf
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Cluster
 
 @[expose] public section
 
@@ -17,7 +17,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -26,7 +26,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- `quietLogger{}` is a raft `Logger`. -/
 theorem qLogger_isLogger
@@ -130,6 +130,6 @@ theorem take_succ_of_getElem? (l : List w64) (n : Nat) (x : w64) (h : l[n]? = so
 
 end lemmas
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

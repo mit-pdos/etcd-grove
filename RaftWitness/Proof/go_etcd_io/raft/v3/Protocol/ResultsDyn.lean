@@ -32,8 +32,8 @@ shortcut not modelled; it is now `StepR.readSingle`/`readReleaseSingle`, the fix
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

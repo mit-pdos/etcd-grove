@@ -3,7 +3,7 @@
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.mapAckIndexer__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.mapAckIndexer__AckedIndex
 
 @[expose] public section
 

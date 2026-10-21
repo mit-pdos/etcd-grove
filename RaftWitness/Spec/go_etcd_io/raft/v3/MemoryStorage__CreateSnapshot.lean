@@ -3,7 +3,7 @@ Rocq counterpart); raft v3.7 (stage R3, 2026-10-15): pointers, the storage's sna
 place, clones in and out. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 

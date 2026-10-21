@@ -7,23 +7,24 @@ group G4b): the `*pb.Message`/`*pb.Entry` getters the body reads the message thr
 as a second argument (`_Q`), which the dispatch builds from `raft.Step.wp_proof`'s hypotheses. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.Base
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetContext
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 
 @[expose] public section
 
@@ -157,38 +158,67 @@ end StepProof
 end base
 
 
-open Lean Elab Tactic in
-/-- Run the tactic text `s`, parsed at the call site (so its names, `Hm`, `Hphys`, `Hty`, are
-the caller's hypotheses). -/
-meta def StepProof.evalTacticString (s : String) : TacticM Unit := do
-  match Parser.runParserCategory (← getEnv) `tactic s with
-  | .ok stx => evalTactic stx
-  | .error e => throwError "evalTacticString: {e}"
-
 /-- The getters `wp_get` tries. -/
 meta def StepProof.msgGetters : List String :=
   ["GetType", "GetTerm", "GetFrom", "GetTo", "GetIndex", "GetLogTerm", "GetCommit", "GetReject"]
 
 open Lean Elab Tactic in
 /-- One read of the message `"Hm"` at the head of the goal, by whichever scalar getter it is,
-through `Q : raft.Step.ReplPbPostulates`; then `rw [Hty]` and `wp_auto` where they apply. -/
+through `Q : raft.Step.ReplPbPostulates`; then `rw [Hty]` and `wp_auto` where they apply. The
+getter is the one the next redex calls (`Dispatch.lean`); where that is not a getter call, each
+is tried. -/
 elab "wp_get " q:ident : tactic => do
-  let alts := StepProof.msgGetters.map fun g =>
-    s!"(wp_apply {q.getId}.{g}.1 $$ [$Hm] as Hm)"
+  let alts := match ← StepProof.nextMethod? with
+    | some g => if StepProof.msgGetters.contains g then [g] else StepProof.msgGetters
+    | none => StepProof.msgGetters
+  let alts := alts.map fun g => s!"(wp_apply {q.getId}.{g}.1 $$ [$Hm] as Hm)"
   StepProof.evalTacticString ("first " ++ String.intercalate " " (alts.map ("| " ++ ·)))
   StepProof.evalTacticString "try rw [Hty]"
   StepProof.evalTacticString "try wp_auto"
 
 open Lean Elab Tactic in
-/-- `Step`'s straight-line reads: the message's scalar getters (`wp_get`), and the raft fields the
-preamble and its logging read (`id`, `Term`, `checkQuorum`, `preVote`, `Vote`, `lead`), with
-`rw [Hty]; wp_auto` to take the type tests; as long as one applies. -/
-elab "wp_drive " q:ident : tactic => do
+/-- `wp_drive`'s search: every alternative in turn, as long as one applies. -/
+elab "wp_drive_any " q:ident : tactic => do
   let loads := ["idC", "TermC", "checkQuorumC", "preVoteC", "VoteC", "leadC"].map fun f =>
     s!"(wp_apply raft.wp_load_{f} $$ Hphys as Hphys; try wp_auto)"
   let alts := s!"(wp_get {q.getId})" :: loads ++ ["(rw [Hty]; wp_auto)"]
   StepProof.evalTacticString
     ("repeat (first " ++ String.intercalate " " (alts.map ("| " ++ ·)) ++ ")")
+
+open Lean Elab Tactic in
+/-- `Step`'s straight-line reads: the message's scalar getters (`wp_get`), and the raft fields the
+preamble and its logging read (`id`, `Term`, `checkQuorum`, `preVote`, `Vote`, `lead`), with
+`rw [Hty]; wp_auto` to take the type tests; as long as one applies. Each step is the one the next
+redex asks for (`Dispatch.lean`: a getter call, a load of one of the six fields, else the type
+test); where that step fails, `wp_drive_any` takes over from there. -/
+elab "wp_drive " q:ident : tactic => do
+  let loads := [("id", "idC"), ("Term", "TermC"), ("checkQuorum", "checkQuorumC"),
+    ("preVote", "preVoteC"), ("Vote", "VoteC"), ("lead", "leadC")]
+  let mut fuel := 1000
+  while fuel > 0 do
+    fuel := fuel - 1
+    let step? : Option String ← do
+      if let some g ← StepProof.nextMethod? then
+        if StepProof.msgGetters.contains g then
+          pure (some s!"(wp_apply {q.getId}.{g}.1 $$ [$Hm] as Hm; try rw [Hty]; try wp_auto)")
+        else pure none
+      else if let some f ← StepProof.nextField? then
+        pure ((loads.lookup f).map fun l =>
+          s!"(wp_apply raft.wp_load_{l} $$ Hphys as Hphys; try wp_auto)")
+      else pure none
+    let saved ← saveState
+    match step? with
+    | some s =>
+      try StepProof.evalTacticString s
+      catch _ =>
+        saved.restore
+        StepProof.evalTacticString s!"wp_drive_any {q.getId}"
+        return
+    | none =>
+      try StepProof.evalTacticString "(rw [Hty]; wp_auto)"
+      catch _ =>
+        saved.restore
+        return
 
 set_option hygiene false in
 /-- (2026-10-17, `CheckQuorum` on) after `wp_drive` has loaded `r.checkQuorum` in `Step`'s

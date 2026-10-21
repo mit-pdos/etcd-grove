@@ -5,7 +5,7 @@ Lemmas of the proofs of `raftLog`'s reads (raft v3.7 retarget, stage R3): the sl
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftlog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftlog
 
 @[expose] public section
 

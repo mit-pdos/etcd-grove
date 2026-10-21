@@ -18,9 +18,9 @@ Raft v3.7 (2026-10-16, stage R5): the same composition; the messages handed out 
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__Ready
-public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
-public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Ready
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__acceptReady
 
 @[expose] public section
 

@@ -14,12 +14,12 @@ model (`restoreM`, `InvRestore.lean`) on the pair held as `ownCCSt`; the stateme
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Restore
-public import Spec.go_etcd_io.raft.v3.confchange.toConfChangeSingle
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
-public import Spec.go_etcd_io.raft.v3.confchange.chain
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.toConfChangeSingle
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.chain
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
 
 @[expose] public section
 

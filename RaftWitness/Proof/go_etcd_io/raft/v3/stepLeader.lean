@@ -4,9 +4,9 @@ branches of `stepLeader/Rest.lean` and `stepLeader/MsgProp.lean` (raft v3.7, sta
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.stepLeader.Rest
-public import Proof.go_etcd_io.raft.v3.stepLeader.MsgProp
-public import Proof.go_etcd_io.raft.v3.stepLeader.CheckQuorum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.stepLeader.Rest
+public import RaftWitness.Proof.go_etcd_io.raft.v3.stepLeader.MsgProp
+public import RaftWitness.Proof.go_etcd_io.raft.v3.stepLeader.CheckQuorum
 
 @[expose] public section
 

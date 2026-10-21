@@ -7,8 +7,8 @@ hands out (D8, `readyDq`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

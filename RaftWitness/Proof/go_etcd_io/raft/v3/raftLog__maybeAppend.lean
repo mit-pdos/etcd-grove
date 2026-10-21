@@ -3,12 +3,12 @@ Port of election_proof/proof_raftLog__maybeAppend.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__maybeAppend
-public import Proof.go_etcd_io.raft.v3.LemmasRaftlogW
-public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__findConflict
-public import Spec.go_etcd_io.raft.v3.raftLog__append
-public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maybeAppend
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRaftlogW
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__matchTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__findConflict
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__append
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__commitTo
 
 @[expose] public section
 

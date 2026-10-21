@@ -1,7 +1,7 @@
 /- Port of election_proof/proof_traceInitState.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceInitState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceInitState
 
 @[expose] public section
 

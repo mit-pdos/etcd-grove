@@ -3,7 +3,7 @@ Port of `election_proof/proof_traceBecomeFollower.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceBecomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceBecomeFollower
 
 @[expose] public section
 

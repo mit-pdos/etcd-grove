@@ -15,8 +15,8 @@ a change with `NodeId = 0`, which `Changer.apply` skips (`ccApplyM_single_noop`)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Proof.go_etcd_io.raft.v3.CCModel
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCModel
 
 @[expose] public section
 

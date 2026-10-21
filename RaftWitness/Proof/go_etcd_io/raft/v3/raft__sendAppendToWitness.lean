@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/raft__sendAppendToWitness.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
-public import Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNonWitnessVoterSlice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNonWitnessVoterSlice
 
 @[expose] public section
 

@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__err.lean`. Lean-first (no 
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__err
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__err
 
 @[expose] public section
 

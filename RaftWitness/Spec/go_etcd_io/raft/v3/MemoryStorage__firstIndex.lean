@@ -6,7 +6,7 @@ ghost state, so the section has the extra variable `[AllG GF]` (porting guide,
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 

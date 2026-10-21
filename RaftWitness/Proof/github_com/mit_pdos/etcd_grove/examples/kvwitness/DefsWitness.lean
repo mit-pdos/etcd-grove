@@ -20,8 +20,8 @@ the proof of `witness.Process`), so it is a premise of the store's construction
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
-public import Proof.go_etcd_io.raft.v3.InvWitnessStorage
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessStorage
 
 @[expose] public section
 
@@ -36,13 +36,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's witness storage struct and one read of it. -/
-abbrev RWStore [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore
-abbrev RWRead [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.witnessRead
+abbrev RWStore [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore
+abbrev RWRead [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead
 
 abbrev rWStoreTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore.ty
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore.ty
 abbrev rWReadTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.witnessRead.ty
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead.ty
 
 section wstore
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -121,7 +121,7 @@ theorem whsRO_agree (p : Loc) (σ1 σ2 : WHS) :
   cases σ1; cases σ2
   simp_all
 
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The store's lock invariant: the state stored, read-only, and its ghost counterpart. -/
 def wStoreLock (s : Loc) (P : WHS → IProp GF) : IProp GF :=

@@ -4,9 +4,9 @@ Lean notes: Rocq's `commit_ok` (a Prop-valued definition) is `CommitOk`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
 
 @[expose] public section
 

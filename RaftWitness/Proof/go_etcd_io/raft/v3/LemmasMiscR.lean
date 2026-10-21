@@ -11,11 +11,11 @@ stage R4 phase 3, group G1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
 
 @[expose] public section
 

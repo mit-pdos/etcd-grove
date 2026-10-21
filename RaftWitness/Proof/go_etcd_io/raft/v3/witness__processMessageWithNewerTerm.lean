@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__processMessageWithNewerTerm.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
 
 @[expose] public section
 

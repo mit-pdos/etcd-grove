@@ -1,13 +1,13 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__do.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__do.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): `Node.Propose` wants the data frozen and
 non-empty (D6); an encoding is at least 25 bytes.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__do
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.encode
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__do
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.encode
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
 
 @[expose] public section
 
@@ -15,7 +15,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -24,11 +24,11 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem KV.do.wp_proof
-    (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
+    (wp_encode : kvwitness.encode.spec (GF := GF) (hG := hG))
     (wp_node_Propose : node.Propose.spec (GF := GF) (hG := hG)) :
     KV.do.spec (GF := GF) (hG := hG) := by
   intro γr γp r kind key val Ψ Hkey Hval
@@ -168,6 +168,6 @@ theorem KV.do.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

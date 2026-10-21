@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/WitnessHardState__GetLead.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLead
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.WitnessHardState__GetLead
 
 @[expose] public section
 

@@ -2,7 +2,7 @@
 2026-10-13 (reconfiguration stage A1), Lean-first. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 

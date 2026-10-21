@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvWitnessStorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessStorage
 
 @[expose] public section
 

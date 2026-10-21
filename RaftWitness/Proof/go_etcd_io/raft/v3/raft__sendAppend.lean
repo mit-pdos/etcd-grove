@@ -5,8 +5,8 @@ raft v3.7 (stage R4): compiles as ported (imports only).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__sendAppend
-public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 
 @[expose] public section
 

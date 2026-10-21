@@ -7,8 +7,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine or lintest;
-               repeatable; default: all).
+  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, lintest,
+               raft-witness or kvwitness; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -24,9 +24,10 @@ every non-standard-library Go path the translation reaches to the empty root
 (modules `Code.<pkg>`, `GeneratedProof.<pkg>`; standard-library packages stay
 `Perennial.*`, Perennial's).  A project's `parts` translate more of its packages into a
 module root of their own (`<root>/Code/`, configured by `<root>/Code/**.toml`), and a project
-may itself translate into such a root (`root`): for a Go path two sources translate (none
-now; until stage R6 of the raft v3.7 retarget, 2026-10-16, etcd's raft dependency in
-`EtcdDeps/` and the raft proof's parallel tree `Raft37/`, both raft's path).
+may itself translate into such a root (`root`): for a Go path two sources translate (now raft's
+witness experiment, the parallel tree `RaftWitness/` of projects raft-witness and kvwitness; until
+stage R6 of the raft v3.7 retarget, 2026-10-16, etcd's raft dependency in `EtcdDeps/` and the raft
+proof's parallel tree `Raft37/`, both raft's path).
 Without --check, the generated `.lean` files under `{Code,GeneratedProof}/`
 (in the subdirectories the project owns) are replaced by fresh output.  The Goose
 configuration (`*.toml`, next to the code) is input and is never touched.
@@ -89,8 +90,9 @@ class Project:
     local: str = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
-    # a project whose Go paths another project also translates (none now; raft v3.7 was
-    # one, the parallel tree `Raft37/` the raft proof was ported into).
+    # a project whose Go paths another project also translates (raft-witness and kvwitness,
+    # the parallel tree `RaftWitness/`; raft v3.7 was one, the parallel tree `Raft37/` the
+    # raft proof was ported into).
     root: str = ""
 
     @property
@@ -524,6 +526,50 @@ PROJECTS = [
         # the driver, and an instance of it (a counter under a mutex, its model)
         packages=[".", "./counter"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
+    ),
+    Project(
+        name="raft-witness",
+        # The witness experiment (notes/raft-witness.md; a candidate implementation of
+        # etcd-io/raft#133, not merged upstream): branch raft-witness-goose-lean of the etcd
+        # fork, etcd-io/raft#168 rebased onto raft37-goose-lean-a1 (project raft's pin) with
+        # the fixes of notes/raft-witness-vs-pr168.md, at 99cb9e2d9 (a witness shared by both
+        # halves of a joint configuration is sent an entry only if both replicate to it;
+        # notes/raft-witness-reconfig.md). Translated into the parallel tree RaftWitness
+        # (modules RaftWitness.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports;
+        # the same packages as project raft, configured by RaftWitness/Code/**.toml.
+        repo="https://github.com/upamanyus/etcd",
+        rev="99cb9e2d98d40d423aa7e7ec1f12f0877a45570e",
+        root="RaftWitness",
+        # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
+        lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org="],
+        packages=[
+            ".",
+            "go.etcd.io/raft/v3/confchange",
+            "go.etcd.io/raft/v3/quorum",
+            "go.etcd.io/raft/v3/raftpb",
+            "go.etcd.io/raft/v3/tracker",
+        ],
+        owned=[os.path.join("go_etcd_io", "raft")],
+        counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="kvwitness",
+        # The key-value store example (project kv) on the witness raft (project raft-witness):
+        # a cluster of two voters and an in-process witness (`StartClusterWitness`, `MainWitness`;
+        # notes/raft-witness.md, "W4"). A Go module of this repository whose go.mod replaces
+        # go.etcd.io/raft/v3 by the fork at raft-witness's pin (keep the two in step), and
+        # lintest and porcupine by this repository's copies. Translated into RaftWitness, its
+        # raft the raft-witness project's, lintest and porcupine the main tree's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "kvwitness"),
+        root="RaftWitness",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/kvwitness=RaftWitness",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftWitness",
+                    "google.golang.org=", "github.com/anishathalye/porcupine="],
+        # the store; not its command (cmd/kvcheck), which only runs it
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kvwitness")],
     ),
 ]
 

@@ -1,9 +1,9 @@
 /- Proof of `Spec/go_etcd_io/raft/v3/node__ProposeConfChange.lean`, Lean-first (2026-10-13). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
-public import Spec.go_etcd_io.raft.v3.confChangeToMsg
-public import Spec.go_etcd_io.raft.v3.node__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confChangeToMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Step
 
 @[expose] public section
 

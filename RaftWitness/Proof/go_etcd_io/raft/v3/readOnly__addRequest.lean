@@ -4,7 +4,7 @@ Lean notes: Rocq's `wp_slice_append_persistent` is Perennial's
 `wp_slice_append_persistent` (`Golang/Theory/Slice.lean`). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.readOnly__addRequest
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__addRequest
 
 @[expose] public section
 

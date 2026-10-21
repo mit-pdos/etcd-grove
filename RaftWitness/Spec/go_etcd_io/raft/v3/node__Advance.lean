@@ -12,7 +12,7 @@ and snapshot its storage up to what it applied, before `run`'s `rn.Advance` move
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 

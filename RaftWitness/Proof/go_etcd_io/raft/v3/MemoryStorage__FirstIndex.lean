@@ -3,8 +3,8 @@ Port of election_proof/proof_MemoryStorage__FirstIndex.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__firstIndex
 
 @[expose] public section
 

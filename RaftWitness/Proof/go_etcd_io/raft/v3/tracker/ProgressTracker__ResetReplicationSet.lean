@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/ProgressTracker__ResetReplicationSet.l
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetReplicationSet
 
 @[expose] public section
 

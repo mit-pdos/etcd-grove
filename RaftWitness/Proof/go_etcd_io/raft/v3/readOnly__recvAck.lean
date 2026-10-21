@@ -5,7 +5,7 @@ case split on the comparison), as Perennial's own `wp_readOnly_recvAck`
 (`v3_proof/readonly.lean`) does. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__recvAck
 
 @[expose] public section
 

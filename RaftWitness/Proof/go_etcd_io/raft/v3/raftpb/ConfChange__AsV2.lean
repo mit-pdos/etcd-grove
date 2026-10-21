@@ -3,10 +3,10 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChange__AsV2.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetNodeId
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetNodeId
 
 @[expose] public section
 

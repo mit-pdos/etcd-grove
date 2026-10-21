@@ -14,9 +14,9 @@ files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
 -/
 module
 
-public import Code.go_etcd_io.raft.v3
-public import GeneratedProof.go_etcd_io.raft.v3
-public import GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import RaftWitness.Code.go_etcd_io.raft.v3
+public import RaftWitness.GeneratedProof.go_etcd_io.raft.v3
+public import RaftWitness.GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import Perennial.Code.reflect
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.context

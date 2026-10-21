@@ -6,8 +6,8 @@ Rocq's `w8_absurd` is `decide` on the two `VoteResult` constants.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
 
 @[expose] public section
 

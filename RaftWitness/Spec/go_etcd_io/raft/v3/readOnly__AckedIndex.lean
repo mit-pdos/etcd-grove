@@ -5,7 +5,7 @@ Lean notes: Rocq's `default (W64 0) x` is `x.getD (W64 0)`, and
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

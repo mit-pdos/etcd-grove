@@ -6,8 +6,8 @@ keeps a snapshot's conf state pointer while the snapshot stays its owner's
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbLog
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
 
 @[expose] public section
 

@@ -8,7 +8,7 @@ applied index), answer the reads whose index is applied (`answer`), `Advance`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 
 @[expose] public section
 
@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -25,14 +25,14 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- See the file header. -/
 abbrev KV.run.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) (send : GoFunc)
     (op : CCOp) (c0 c1 : CCState) (wi : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ isReplica γr γp r id n st ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗ isReplica γr γp r id n st ∗
       -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
       -- `op` (`KVCC`), and the driver's view of its configuration, the initial one; (2026-10-20,
       -- W4) or in the static mode of a cluster that admits no conf change (`KVCCS`)
@@ -46,6 +46,6 @@ abbrev KV.run.spec : Prop :=
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

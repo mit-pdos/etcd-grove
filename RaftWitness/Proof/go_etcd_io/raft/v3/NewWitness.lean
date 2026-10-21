@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/NewWitness.lean` (2026-10-20, witness support,
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.NewWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.NewWitness
 
 @[expose] public section
 

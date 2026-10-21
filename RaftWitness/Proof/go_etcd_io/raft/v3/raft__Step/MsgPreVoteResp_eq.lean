@@ -24,8 +24,8 @@ first checks `m != nil`, `msgPtsC_nn`) and handed to `r.step` whole (the `stepX`
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
-public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 

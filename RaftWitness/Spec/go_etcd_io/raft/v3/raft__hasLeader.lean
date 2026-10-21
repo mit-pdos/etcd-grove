@@ -8,7 +8,7 @@ not tracked (it only arms `run`'s proposal channel).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 

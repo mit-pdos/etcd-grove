@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_raft__increaseUncommittedSize.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__increaseUncommittedSize
-public import Spec.go_etcd_io.raft.v3.payloadsSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__increaseUncommittedSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.payloadsSize
 
 @[expose] public section
 

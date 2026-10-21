@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/nilAwareDelete.lean`. Lean-first (n
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.nilAwareDelete
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.nilAwareDelete
 
 @[expose] public section
 

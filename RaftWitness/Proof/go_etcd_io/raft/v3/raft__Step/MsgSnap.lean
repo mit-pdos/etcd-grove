@@ -27,9 +27,9 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap_gt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap_lt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap_eq
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap_gt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap_lt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgSnap_eq
 
 @[expose] public section
 

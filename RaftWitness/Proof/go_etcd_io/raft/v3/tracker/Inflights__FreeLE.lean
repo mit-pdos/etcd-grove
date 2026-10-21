@@ -1,7 +1,7 @@
 /- Port of election_proof/proof_Inflights__FreeLE.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__FreeLE
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__FreeLE
 
 @[expose] public section
 

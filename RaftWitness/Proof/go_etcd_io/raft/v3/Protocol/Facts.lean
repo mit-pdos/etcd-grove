@@ -24,8 +24,8 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
-public import Proof.go_etcd_io.raft.v3.Protocol.Witness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Refinement
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Witness
 
 @[expose] public section
 

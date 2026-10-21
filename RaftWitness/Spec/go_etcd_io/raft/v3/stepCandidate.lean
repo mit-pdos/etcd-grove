@@ -39,11 +39,11 @@ Lean notes:
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
-public import Proof.go_etcd_io.raft.v3.StepLemmas
-public import Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmas
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
 
 @[expose] public section
 

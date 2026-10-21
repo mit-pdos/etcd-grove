@@ -7,14 +7,14 @@ Lean notes: the Rocq section-local `reset_inv` and its three lemmas are the priv
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__reset
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.go_etcd_io.raft.v3.tracker.NewInflights
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.newReadOnly
-public import Spec.go_etcd_io.raft.v3.raft__resetRandomizedElectionTimeout
-public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__reset
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.NewInflights
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newReadOnly
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__resetRandomizedElectionTimeout
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 
 @[expose] public section
 

@@ -8,7 +8,7 @@ Lean notes: Rocq's `Progress__BecomeProbeⁱᵐᵖˡ` is the Lean generated code
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 

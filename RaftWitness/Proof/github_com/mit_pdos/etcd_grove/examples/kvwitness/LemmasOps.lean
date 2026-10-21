@@ -9,7 +9,7 @@ The replica's Go map `kv` (`runOwn`, `Defs.lean`: a key it lacks has the value `
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Base
 
 @[expose] public section
 

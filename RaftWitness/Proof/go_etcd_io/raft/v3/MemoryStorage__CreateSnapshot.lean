@@ -1,16 +1,16 @@
 /- `MemoryStorage.CreateSnapshot` (`storage.go:230`), proved 2026-10-12 (Lean-first). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
-public import Spec.google_golang_org.protobuf.proto.CloneConfState
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
 
 @[expose] public section
 

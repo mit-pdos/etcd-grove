@@ -3,7 +3,7 @@ Port of `election_proof/spec_MustSync.v` (857d09190).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

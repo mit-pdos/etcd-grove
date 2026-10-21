@@ -3,7 +3,7 @@ Port of election_proof/proof_matchAckIndexer__AckedIndex.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.matchAckIndexer__AckedIndex
 
 @[expose] public section
 

@@ -28,15 +28,15 @@ step lemmas (`StepGhostMode`) are imported so the build checks them.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Link
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Link
 -- `MemoryStorage` meets the `Storage` contract (stage R3)
-public import Proof.go_etcd_io.raft.v3.MemstorageInstance
+public import RaftWitness.Proof.go_etcd_io.raft.v3.MemstorageInstance
 -- the protocol model's results (stage R1: the model ported)
-public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepGhostMode
 -- the witness proxy at W2's ghost state and as a `Witness` (witness support, W3b)
-public import Proof.go_etcd_io.raft.v3.InvWitnessIface
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitnessIface
 
 @[expose] public section
 

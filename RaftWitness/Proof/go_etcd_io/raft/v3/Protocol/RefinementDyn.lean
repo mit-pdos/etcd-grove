@@ -28,8 +28,8 @@ message's knowledge and supplies them.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
-public import Proof.go_etcd_io.raft.v3.Protocol.StepRInv
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Refinement
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepRInv
 
 @[expose] public section
 

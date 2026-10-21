@@ -3,7 +3,7 @@ Port of `election_proof/proof_ProgressTracker__ResetVotes.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
 
 @[expose] public section
 

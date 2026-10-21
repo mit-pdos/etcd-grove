@@ -3,7 +3,7 @@ Port of election_proof/proof_readOnly__heartbeatCtx.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
 
 @[expose] public section
 

@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/Epoch__HasWitness.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
 
 @[expose] public section
 

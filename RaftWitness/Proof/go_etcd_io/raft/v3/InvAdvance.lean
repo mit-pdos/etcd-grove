@@ -7,7 +7,7 @@ the send follow Perennial's handshake idiom (`Handshake.lean`'s `handshake_recei
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNode
 
 @[expose] public section
 

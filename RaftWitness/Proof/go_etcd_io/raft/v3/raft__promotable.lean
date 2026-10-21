@@ -3,8 +3,8 @@ Port of `election_proof/proof_raft__promotable.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__promotable
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__promotable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressSnapshot
 
 @[expose] public section
 

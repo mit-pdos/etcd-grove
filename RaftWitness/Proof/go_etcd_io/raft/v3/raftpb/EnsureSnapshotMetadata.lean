@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/EnsureSnapshotMetadata.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshotMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshotMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
 
 @[expose] public section
 

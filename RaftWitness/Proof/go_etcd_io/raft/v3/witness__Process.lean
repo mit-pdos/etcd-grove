@@ -3,14 +3,14 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__Process.lean` (2026-10-20, witness su
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__Process
-public import Spec.go_etcd_io.raft.v3.witness__processNoUpdate
-public import Spec.go_etcd_io.raft.v3.witness__cloneState
-public import Spec.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
-public import Spec.go_etcd_io.raft.v3.witness__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.witness__handleAppend
-public import Spec.go_etcd_io.raft.v3.witness__handleVote
-public import Proof.go_etcd_io.raft.v3.LemmasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__Process
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__processNoUpdate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__cloneState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__processMessageWithNewerTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleVote
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitness
 
 @[expose] public section
 

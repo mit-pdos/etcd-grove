@@ -3,7 +3,7 @@ Port of election_proof/proof_readOnly__AckedIndex.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.readOnly__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.readOnly__AckedIndex
 
 @[expose] public section
 

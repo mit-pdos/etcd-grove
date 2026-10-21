@@ -3,10 +3,10 @@ Port of `election_proof/proof_raftLog__append.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__append
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__append
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 

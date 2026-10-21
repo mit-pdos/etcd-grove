@@ -50,12 +50,12 @@ the retarget the read-only slices, `ownCSL`); "`Entries`/`Context` `nil`" is `en
 module
 
 -- read-index (2026-10-12): `addReadState`
-public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
-public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
-public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleSnapshot
 -- (2026-10-13) `HupOk`, for `MsgTimeoutNow`
-public import Spec.go_etcd_io.raft.v3.raft__hup
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hup
 
 @[expose] public section
 

@@ -25,7 +25,7 @@ shift of the caller's on `P` at its linearization point (an atomic update reduce
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvWitness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvWitness
 
 @[expose] public section
 

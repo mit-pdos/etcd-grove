@@ -28,7 +28,7 @@ Lean-first: pure, no ghost state. The paper proof this file founds is
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.CCApply
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCApply
 
 @[expose] public section
 

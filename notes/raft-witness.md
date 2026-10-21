@@ -3,6 +3,24 @@
 Branch `raft-witness` (this repository), fork branch `raft-witness-goose-lean` of
 `upamanyus/etcd` (raft). Started 2026-10-19.
 
+**Where it lives (since 2026-10-21).** The work was done in place, on the main raft and kv trees
+of branch `raft-witness`; to land it in `lean` without changing the main proofs, it moved into
+the parallel tree `RaftWitness/` (CLAUDE.md, "Layout"): the files named below as
+`Proof/go_etcd_io/raft/...`, `Spec/go_etcd_io/raft/...` (or by their names in the raft proof,
+`Protocol/LeaderCompleteness.lean`, `InvWitnessIfaceT.lean`, ...) are under
+`RaftWitness/{Proof,Spec}/go_etcd_io/raft/`, modules `RaftWitness.Proof.go_etcd_io.raft.v3.*`;
+`examples/kv` with a witness is `examples/kvwitness` (its own Go module, the Go package path
+`github.com/mit-pdos/etcd-grove/examples/kvwitness`, its proofs under
+`RaftWitness/{Proof,Spec}/github_com/mit_pdos/etcd_grove/examples/kvwitness/`); the
+translations are `etc/goose.py`'s projects `raft-witness` and `kvwitness`, the Links
+`etc/gen-link.py --raft-witness`/`--kvwitness`, the trust base
+`etc/tcb-collections/raft-witness.txt`; the model checker is
+`notes/raft-witness-reconfig-model/` (it was under `issues/`, but the defects it found are of an
+unmerged PR, `issues/README.md`). `examples/kv` and the main raft are `lean`'s, without a
+witness. The server's, putget's, putget3's and linkv's witness-free adjustments of W1 (the
+`subterm` field of the server's `EntryModel`, the `IsWitness = false` premises) were not kept:
+those trees use the main raft.
+
 ## What #133 is
 
 etcd-io/raft#133 proposes an "extended Raft" for clusters of regular servers plus at most one

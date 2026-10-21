@@ -3,11 +3,11 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__makeLearner.lean`. Lean-fi
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__remove
-public import Spec.go_etcd_io.raft.v3.confchange.outgoing
-public import Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__initProgress
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__remove
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.outgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.nilAwareAdd
 public import Spec.fmt.Errorf
 
 @[expose] public section

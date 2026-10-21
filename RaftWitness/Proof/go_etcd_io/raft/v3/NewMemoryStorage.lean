@@ -1,9 +1,9 @@
 /- `NewMemoryStorage` (`storage.go:113`), proved 2026-10-10 (Lean-first). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.NewMemoryStorage
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.NewMemoryStorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 

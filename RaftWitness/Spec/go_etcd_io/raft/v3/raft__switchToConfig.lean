@@ -9,9 +9,9 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 -- `CommitOk`
-public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeCommit
 
 @[expose] public section
 

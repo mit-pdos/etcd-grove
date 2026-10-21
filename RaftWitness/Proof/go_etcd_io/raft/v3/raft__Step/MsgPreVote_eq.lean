@@ -24,8 +24,8 @@ join carries the message); the answer is a fresh `*pb.Message` sharing the reque
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
-public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.prevote_lemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 

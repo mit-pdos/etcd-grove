@@ -1,12 +1,12 @@
 /- `MemoryStorage.InitialState` (`storage.go:121`), proved 2026-10-12 (Lean-first). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetConfState
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
-public import Proof.go_etcd_io.raft.v3.LemmasConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasConfState
 
 @[expose] public section
 

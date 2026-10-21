@@ -8,11 +8,11 @@ data (`propRegister`) and `entData_cc`/`ccEntsOk_cc` are pure.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
-public import Spec.go_etcd_io.raft.v3.confChangeToMsg
-public import Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confChangeToMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
 -- `Step.commit_mono`
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
 
 @[expose] public section
 

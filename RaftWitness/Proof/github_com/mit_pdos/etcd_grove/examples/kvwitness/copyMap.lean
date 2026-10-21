@@ -6,7 +6,7 @@ visited so far, and nothing else; at the end every key of `m` was visited.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.copyMap
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.copyMap
 
 @[expose] public section
 
@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -26,7 +26,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 theorem copyMap.wp_proof : copyMap.spec (GF := GF) (hG := hG) := by
   intro l m dq
@@ -92,6 +92,6 @@ theorem copyMap.wp_proof : copyMap.spec (GF := GF) (hG := hG) := by
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

@@ -3,12 +3,12 @@ Port of election_proof/proof_unstable__maybeTerm.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__maybeTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import Spec.go_etcd_io.raft.v3.unstable__maybeLastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeLastIndex
 
 @[expose] public section
 

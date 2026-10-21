@@ -27,7 +27,7 @@ determinism at these inputs, a trust-boundary premise discharged where the node 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvBoot
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvBoot
 
 @[expose] public section
 

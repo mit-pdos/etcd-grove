@@ -3,8 +3,8 @@ New in etcd-io/raft#168, Lean-first: the proof of `TallyVotes` with the new join
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResultWithDifference
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotesWithDifference
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResultWithDifference
 
 @[expose] public section
 

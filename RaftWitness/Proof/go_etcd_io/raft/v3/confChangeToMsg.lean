@@ -7,13 +7,13 @@ allocated by the slice literal (`wp_slice_literal_ex`), its data the frozen byte
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confChangeToMsg
-public import Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
-public import Proof.go_etcd_io.raft.v3.InvPbMsg
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confChangeToMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPbMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 

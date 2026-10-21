@@ -4,7 +4,7 @@ value (`p := new(EntryType); *p = x; return p`). Lean-first (raft v3.7 retarget,
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

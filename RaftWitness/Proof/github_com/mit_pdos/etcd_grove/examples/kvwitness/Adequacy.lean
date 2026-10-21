@@ -2,7 +2,7 @@
 
 # Adequacy of the store's linearizability test (2026-10-19)
 
-A closed theorem about the operational semantics of `Main()` (`examples/kv/check.go`), with no
+A closed theorem about the operational semantics of `Main()` (`examples/kvwitness/check.go`), with no
 Iris in its statement: the program `initialize'(); Main()` -- the store package's
 initialization (which initializes its dependencies, raft, lintest, porcupine and `context`
 among them, then the package) followed by `Main` -- started from a fresh state (no package
@@ -21,7 +21,7 @@ concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `
 (threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, which also
 gives `context`'s `isClosedchanInit`) and `Main`'s spec. This file proves it from `Main.spec`
 as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the linked result
-`kv.wp_Main` (`Link.lean`): `kv_adequate`.
+`kvwitness.wp_Main` (`Link.lean`): `kv_adequate`.
 
 The same for `MainWitness()` (2026-10-21, W4: the cluster of two voters and a witness,
 `StartClusterWitness([]uint64{1, 2}, 3)`, then the same test): `kv_witness_adequate_of`, from
@@ -35,16 +35,16 @@ The same for `MainWitness()` (2026-10-21, W4: the cluster of two voters and a wi
   non-atomic invariants, not in Perennial's `allG`); `kvGF` has a slot for it (11), so the
   instance is concrete and the theorem assumes none.
 - **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
-  `GoLocalContext`, `go.Semantics`, the package assumptions `kv.Assumptions` (every name's
+  `GoLocalContext`, `go.Semantics`, the package assumptions `kvwitness.Assumptions` (every name's
   translated body or Perennial's trusted model, the struct layouts, recursively for the
   imports), and raft's initialization premises: `context`'s two method-set facts
   (`ErrorStringIsError`, `DeadlineExceededIsError`) and the model of `log.New` (`log.NewModel`).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Init
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Main
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.MainWitness
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Init
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Main
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.MainWitness
 public import Proof.runtime.Threads
 public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
 
@@ -106,15 +106,15 @@ section pkgs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The post-initialization predicate of every package the store (transitively) imports, and
 of the store itself: what `ownInitializing` hands out for an initialized package. The entries
 of `context` and of the packages that import it, but raft (porcupine, lintest, the store),
 also carry `context.isClosedchanInit` (`Init.lean`). -/
 def pkgInitTable : List (GoString × IProp GF) :=
-  [(pkg_id.github_com.mit_pdos.etcd_grove.examples.kv,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
+  [(pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness,
+      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
         context.isClosedchanInit)),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest,
       iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
@@ -165,7 +165,7 @@ def getIsPkgInit (s : GoString) : IProp GF :=
   ((pkgInitTable (GF := GF)).lookup s).getD iprop(True)
 
 theorem getIsPkgInit_kv :
-    github_com.mit_pdos.etcd_grove.examples.kv.KVInitTable (getIsPkgInit (GF := GF)) := by
+    github_com.mit_pdos.etcd_grove.examples.kvwitness.KVInitTable (getIsPkgInit (GF := GF)) := by
   refine ⟨rfl, rfl, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_,
     ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩ <;>
   repeat' (first | exact True.intro | apply And.intro | rfl)
@@ -182,13 +182,13 @@ and every package assumptions: what `Main.wp_proof` gives, the hypothesis of
 `kv_adequate_of`. -/
 abbrev kvMainSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC kvGF] [go.Semantics]
-    [github_com.mit_pdos.etcd_grove.examples.kv.Assumptions],
-    kv.Main.spec (GF := kvGF) (hG := hG)
+    [github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions],
+    kvwitness.Main.spec (GF := kvGF) (hG := hG)
 
 /-- The store's program: the package's initialization, then `Main()`. -/
 def kvProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.kv.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.kv.Main) #()
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.kvwitness.Main) #()
 
 /-- **Porcupine never rejects the store's trace**, from `Main`'s spec (`wp_Main`, at every
 `HeapGS` of `kvGF` and every semantics): every real execution of `kvProgram` (the store package's initialization,
@@ -203,7 +203,7 @@ assumptions (the translated bodies behind the store's and its imports' names), `
 method-set facts and the model of `log.New`. No instance is assumed for the ghost state: the
 bundle `kvGF` provides iris-lean's non-atomic invariants (`NaInvG`). -/
 theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (wp_Main : kvMainSpec)
@@ -243,7 +243,7 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   imodintro
   unfold kvProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.kv.wp_initialize' _
+  wp_apply (github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _
     getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
   wp_apply (wp_Main Hbound) $$ [Hpkg Hcc]
   · iframe #
@@ -253,20 +253,20 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
 /-- `MainWitness`'s spec at `kvGF`, the hypothesis of `kv_witness_adequate_of`. -/
 abbrev kvMainWitnessSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC kvGF] [go.Semantics]
-    [github_com.mit_pdos.etcd_grove.examples.kv.Assumptions],
-    kv.MainWitness.spec (GF := kvGF) (hG := hG)
+    [github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions],
+    kvwitness.MainWitness.spec (GF := kvGF) (hG := hG)
 
 /-- The store's program with a witness: the package's initialization, then `MainWitness()`. -/
 def kvProgramWitness [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.kv.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.kv.MainWitness) #()
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.kvwitness.MainWitness) #()
 
 /-- **Porcupine never rejects the trace of the store with a witness**, from `MainWitness`'s
 spec: `kv_adequate_of` for `kvProgramWitness` (the store package's initialization, then
 `MainWitness()`: the cluster of the voters `1`, `2` and the witness `3` in raft's static mode,
 the same randomized test, and a panic unless porcupine answers `Ok`). -/
 theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (wp_MainWitness : kvMainWitnessSpec)
@@ -306,7 +306,7 @@ theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     itrivial
   imodintro
   unfold kvProgramWitness
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.kv.wp_initialize' _
+  wp_apply (github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _
     getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
   wp_apply (wp_MainWitness Hbound) $$ [Hpkg Hcc]
   · iframe #

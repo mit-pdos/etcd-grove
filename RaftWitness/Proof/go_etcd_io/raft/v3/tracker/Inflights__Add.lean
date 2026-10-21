@@ -3,9 +3,9 @@ Port of election_proof/proof_Inflights__Add.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__Add
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
-public import Spec.go_etcd_io.raft.v3.tracker.Inflights__grow
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__Add
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__Full
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Inflights__grow
 
 @[expose] public section
 

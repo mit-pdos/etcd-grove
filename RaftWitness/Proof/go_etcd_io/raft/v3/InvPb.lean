@@ -56,9 +56,9 @@ the model records of `PbModel.lean` as indices:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
-public import Proof.go_etcd_io.raft.v3.CCModel
-public import Proof.go_etcd_io.raft.v3.ProjSimps
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCModel
+public import RaftWitness.Proof.go_etcd_io.raft.v3.ProjSimps
 
 @[expose] public section
 

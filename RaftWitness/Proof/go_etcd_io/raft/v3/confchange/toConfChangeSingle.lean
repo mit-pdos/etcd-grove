@@ -5,10 +5,10 @@ fresh `*pb.ConfChangeSingle` made read-only.)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.toConfChangeSingle
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetWitness
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetWitnessOutgoing
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.toConfChangeSingle
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetWitnessOutgoing
 
 @[expose] public section
 

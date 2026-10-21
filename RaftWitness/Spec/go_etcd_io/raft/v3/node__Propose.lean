@@ -28,7 +28,7 @@ raft v3.7 (2026-10-16, stage R5): the message is a fresh `*pb.Message` whose one
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 
 @[expose] public section

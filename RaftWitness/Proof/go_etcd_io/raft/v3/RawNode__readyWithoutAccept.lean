@@ -26,15 +26,15 @@ messages are read through `GetTo` (each one's ownership looked up in the queue's
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.LemmasReadyR
-public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
-public import Spec.go_etcd_io.raft.v3.raftLog__nextUnstableEnts
-public import Spec.go_etcd_io.raft.v3.raftLog__nextCommittedEnts
-public import Spec.go_etcd_io.raft.v3.SoftState__equal
-public import Spec.go_etcd_io.raft.v3.isHardStateEqual
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableSnapshot
-public import Spec.go_etcd_io.raft.v3.MustSync
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasReadyR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__nextUnstableEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__nextCommittedEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.SoftState__equal
+public import RaftWitness.Spec.go_etcd_io.raft.v3.isHardStateEqual
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableSnapshot
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MustSync
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 
 @[expose] public section
 

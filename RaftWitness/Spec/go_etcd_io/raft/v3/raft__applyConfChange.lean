@@ -4,9 +4,9 @@ change that leaves the configuration unchanged; since stage A2 (2026-10-13) for 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvApplyConf
-public import Proof.go_etcd_io.raft.v3.InvApplyConfC
-public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConfC
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__switchToConfig
 
 @[expose] public section
 

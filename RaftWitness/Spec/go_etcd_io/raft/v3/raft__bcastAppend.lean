@@ -5,7 +5,7 @@ out; `send_msgs s ms <| nstate.prvals := pvs |>` is `{ sendMsgs s ms with prvals
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

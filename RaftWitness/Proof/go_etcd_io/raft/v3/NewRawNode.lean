@@ -7,9 +7,9 @@ record `csm`); `prevHardSt` is `r.hardState()`, a fresh read-only hard state (`h
 here until then). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.NewRawNode
-public import Spec.go_etcd_io.raft.v3.raft__softState
-public import Spec.go_etcd_io.raft.v3.raft__hardState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.NewRawNode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__softState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hardState
 
 @[expose] public section
 

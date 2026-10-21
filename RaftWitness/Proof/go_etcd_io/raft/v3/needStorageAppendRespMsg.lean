@@ -4,9 +4,9 @@ proof inlined it in `RawNode.acceptReady`'s).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.needStorageAppendRespMsg
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressUnstableEnts
-public import Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import RaftWitness.Spec.go_etcd_io.raft.v3.needStorageAppendRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressUnstableEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptySnap
 
 @[expose] public section
 

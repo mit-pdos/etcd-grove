@@ -3,9 +3,9 @@ Port of election_proof/proof_pbEntryID.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.pbEntryID
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.pbEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 

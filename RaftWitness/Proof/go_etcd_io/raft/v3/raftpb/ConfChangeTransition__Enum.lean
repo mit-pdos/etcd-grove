@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeTransition__Enum.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeTransition__Enum
 
 @[expose] public section
 

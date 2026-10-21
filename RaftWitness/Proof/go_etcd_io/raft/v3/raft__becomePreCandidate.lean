@@ -3,8 +3,8 @@ Port of election_proof/proof_raft__becomePreCandidate.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomePreCandidate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetVotes
 
 @[expose] public section
 

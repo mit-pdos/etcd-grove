@@ -115,9 +115,9 @@ out here.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvStorage
-public import Proof.go_etcd_io.raft.v3.InvLogger
-public import Proof.go_etcd_io.raft.v3.SpecResults
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvStorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvLogger
+public import RaftWitness.Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
 

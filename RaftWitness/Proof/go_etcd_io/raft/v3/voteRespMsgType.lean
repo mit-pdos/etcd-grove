@@ -3,7 +3,7 @@ Port of `election_proof/proof_voteRespMsgType.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.voteRespMsgType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.voteRespMsgType
 
 @[expose] public section
 

@@ -8,8 +8,8 @@ replication set.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
-public import Proof.go_etcd_io.raft.v3.Protocol.StepR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepR
 
 @[expose] public section
 

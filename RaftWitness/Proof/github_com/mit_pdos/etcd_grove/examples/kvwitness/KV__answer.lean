@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__answer.lean`.
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__answer.lean`.
 Lean-first (no Rocq counterpart).
 
 A read state whose index is at most `applied` (so at most `|ap|`) and whose context decodes
@@ -11,9 +11,9 @@ the reader, which knows the log its deposit was made at, turns it into `readP`).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.decode
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__answer
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.decode
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
 
 @[expose] public section
 
@@ -21,7 +21,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -30,10 +30,10 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
-theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
+theorem KV.answer.wp_proof (wp_decode : kvwitness.decode.spec (GF := GF) (hG := hG)) :
     KV.answer.spec (GF := GF) (hG := hG) := by
   intro γr γp r id n st ap psl ps dq applied Happ
   wp_start as ⟨#Hrep, Hrun, Hpsl, #Hps⟩
@@ -219,6 +219,6 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

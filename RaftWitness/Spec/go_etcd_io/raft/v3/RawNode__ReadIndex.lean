@@ -37,7 +37,7 @@ Lean notes: as `RawNode.Propose.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
 

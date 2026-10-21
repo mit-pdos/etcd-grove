@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart, 2026-10-13). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__BasicStatus
-public import Spec.go_etcd_io.raft.v3.getBasicStatus
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__BasicStatus
+public import RaftWitness.Spec.go_etcd_io.raft.v3.getBasicStatus
 
 @[expose] public section
 

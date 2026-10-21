@@ -3,11 +3,11 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__handleVote.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__handleVote
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
-public import Proof.go_etcd_io.raft.v3.LemmasWitness
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetReject
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

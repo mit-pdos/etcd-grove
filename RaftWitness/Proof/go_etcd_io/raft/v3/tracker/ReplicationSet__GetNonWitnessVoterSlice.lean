@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/ReplicationSet__GetNonWitnessVoterSlic
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNonWitnessVoterSlice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__GetNonWitnessVoterSlice
 
 @[expose] public section
 

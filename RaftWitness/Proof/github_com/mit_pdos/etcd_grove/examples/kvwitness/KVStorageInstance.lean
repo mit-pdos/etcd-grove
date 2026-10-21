@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# `*kv.Storage` meets raft's `Storage` contract (2026-10-10; raft v3.7, 2026-10-16, stage R6b)
+# `*kvwitness.Storage` meets raft's `Storage` contract (2026-10-10; raft v3.7, 2026-10-16, stage R6b)
 
 A registered store storage (`kvStorRec s ms γs`) is a raft `Storage` under the
 store's storage model (`kvStorageModel`, `Defs.lean`): `isStorage (kvStorIface s)`,
@@ -35,8 +35,8 @@ collection each.
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage__Snapshot
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Storage__InitialState
 
 @[expose] public section
 
@@ -55,7 +55,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 include sem in
@@ -114,9 +114,9 @@ theorem kvStorCut_intro (s ms : Loc) (γs : MemStorNames) (n : Int) :
 
 /-- **The store's storage is a raft `Storage`.** -/
 theorem kvStorage_isStorage
-    (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_Snapshot : kvwitness.Storage.Snapshot.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness -∗
       kvStorRec (GF := GF) s ms γs -∗ isStorage (kvStorIface s) := by
   iintro #Hpkg #Hrec
   ihave #Hrec' := Hrec
@@ -279,16 +279,16 @@ of `newRaft`'s): a fresh empty hard state (`hsOpt`) and the voters' conf state, 
 good, its `AutoLeave` cell unset (`al = false`: the store sets none; 2026-10-16, stage R6b,
 raft's specs admit either), the owner's state unchanged. -/
 theorem kvStorage_initialState
-    (wp_InitialState : kv.Storage.InitialState.spec (GF := GF) (hG := hG))
+    (wp_InitialState : kvwitness.Storage.InitialState.spec (GF := GF) (hG := hG))
     (s : Loc) (vsl : GoSlice) (voters : List w64) (σ : StorState) (w : w64 := W64 0) :
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness -∗
       s.[RStorage, go!"voters"] ↦□ vsl -∗ vsl ↦*□ voters -∗
       s.[RStorage, go!"witness"] ↦□ w -∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (kvStorIface s) { σ with ss := ss' } -∗
            (∀ (hp cs : Loc) (al : Bool), ownStorage (kvStorIface s) { σ with ss := ss' } -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (kv.kvConfState voters w) al -∗
+            csPts cs DFrac.discard (kvwitness.kvConfState voters w) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType rStorageTy) go!"InitialState" #s))
              (Val #())) {{ Φ }}) := by

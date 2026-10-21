@@ -3,8 +3,8 @@ Port of `election_proof/proof_MustSync.v` (857d09190).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.LemmasMiscR
-public import Spec.go_etcd_io.raft.v3.MustSync
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMiscR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MustSync
 
 @[expose] public section
 

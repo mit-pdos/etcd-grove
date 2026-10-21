@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The cluster driver's predicates (2026-10-11)
 
-`examples/kv/cluster.go`: `StartCluster` builds a cluster of three replicas of the store over
+`examples/kvwitness/cluster.go`: `StartCluster` builds a cluster of three replicas of the store over
 raft's `Node`, connected in process by `deliver`, each node driven by a `tick` goroutine;
 `Main` (`check.go`) runs the randomized linearizability test on it (`ModelDefs.lean`).
 
@@ -39,7 +39,7 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
 
 @[expose] public section
 
@@ -55,11 +55,11 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's `quietLogger` type. -/
 abbrev qLoggerTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.quietLogger.ty
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger.ty
 
 /-- `quietLogger{}`. -/
-abbrev qLoggerV [FfiSyntax] : github_com.mit_pdos.etcd_grove.examples.kv.quietLogger :=
-  github_com.mit_pdos.etcd_grove.examples.kv.quietLogger.mk
+abbrev qLoggerV [FfiSyntax] : github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger :=
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.quietLogger.mk
 
 /-- `quietLogger{}` as a `raft.Logger`. -/
 def qLogger [FfiSyntax] [GoGlobalContext] : GoInterfaceOk := interface.mk qLoggerTy #qLoggerV
@@ -89,17 +89,17 @@ def ticksN : Nat := 2 ^ 20
 def timeoutsN : Nat := 2 ^ 20
 
 /-- The store's `transfers` struct. -/
-abbrev RTransfers [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.transfers
+abbrev RTransfers [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.transfers
 
 abbrev rTransfersTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  github_com.mit_pdos.etcd_grove.examples.kv.transfers.ty
+  github_com.mit_pdos.etcd_grove.examples.kvwitness.transfers.ty
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [StorageModel GF]
 
 /-- The node `nd` is node `id` of the cluster's raft ghost state `γ` and term budget `bud`

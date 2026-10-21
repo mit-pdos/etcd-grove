@@ -6,7 +6,7 @@ Lean notes: Rocq's `let s1 := … in` in a lemma statement is inlined.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 

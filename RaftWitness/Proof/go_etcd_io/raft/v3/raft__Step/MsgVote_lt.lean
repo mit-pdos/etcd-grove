@@ -21,7 +21,7 @@ is a fresh `*pb.Message` sharing the request's `From` (granted: and `Term`) cell
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 
@@ -99,40 +99,43 @@ theorem wp_Step_MsgVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_gets
   rw [decide_eq_true Hlt0]
   wp_auto
-  -- with `checkQuorum` or pre-vote on the type test runs: not MsgHeartbeat, not MsgApp
-  wp_gets
-  wp_cq_pv
-  -- pre-vote on: not MsgHeartbeat, not MsgApp
-  all_goals try
-    (wp_gets
-     rw [decide_eq_false (show (MsgSt.mk m ents sn ctx rs).msg.Type' ≠ W32 8 by
-       show m.Type' ≠ _; rw [Hty]; w32_ne)]
-     try wp_auto
-     wp_gets
-     rw [decide_eq_false (show (MsgSt.mk m ents sn ctx rs).msg.Type' ≠ W32 3 by
-       show m.Type' ≠ _; rw [Hty]; w32_ne)]
-     try wp_auto)
+  -- `(r.checkQuorum || r.preVote) && (m.Type == MsgHeartbeat || m.Type == MsgApp)` is false
+  -- whichever way the flags go (a `MsgVote` is neither): the condition is joined at `false`
+  -- (`wp_join`), so the rest of the arm is verified once, not once per flag case
+  wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+  · wp_gets
+    wp_cq_pv
+    -- pre-vote on: not MsgHeartbeat, not MsgApp
+    all_goals try
+      (wp_gets
+       rw [decide_eq_false (show (MsgSt.mk m ents sn ctx rs).msg.Type' ≠ W32 8 by
+         show m.Type' ≠ _; rw [Hty]; w32_ne)]
+       try wp_auto
+       wp_gets
+       rw [decide_eq_false (show (MsgSt.mk m ents sn ctx rs).msg.Type' ≠ W32 3 by
+         show m.Type' ≠ _; rw [Hty]; w32_ne)]
+       try wp_auto)
+    all_goals wp_join_done
   -- not a MsgPreVote
-  all_goals wp_gets
-  all_goals rw [decide_eq_false (show m.Type' ≠ W32 17 by rw [Hty]; w32_ne)]
-  all_goals try wp_auto
+  wp_gets
+  rw [decide_eq_false (show m.Type' ≠ W32 17 by rw [Hty]; w32_ne)]
+  try wp_auto
   -- not a MsgStorageAppendResp either, so the message is just logged
-  all_goals wp_gets
-  all_goals rw [decide_eq_false (show m.Type' ≠ W32 20 by rw [Hty]; w32_ne)]
-  all_goals try wp_auto
-  all_goals
-    wp_gets
-    wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    wp_gets
-    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-    wp_gets
-    wp_raft_logC
-    -- nothing was sent and nothing changed: dropping is `StepC.refl`
-    iapply HΦ $$ %interface.nil %s
-    iframe Hphys
-    ipureintro
-    exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
-      keep_frame rfl rfl rfl rfl rfl⟩
+  wp_gets
+  rw [decide_eq_false (show m.Type' ≠ W32 20 by rw [Hty]; w32_ne)]
+  try wp_auto
+  wp_gets
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_gets
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_gets
+  wp_raft_logC
+  -- nothing was sent and nothing changed: dropping is `StepC.refl`
+  iapply HΦ $$ %interface.nil %s
+  iframe Hphys
+  ipureintro
+  exact ⟨Hwf, ⟨[], fun _ H => absurd H List.not_mem_nil, StepCD.frame (stepCF_drop c id _) (RFrame.refl _)⟩, rfl,
+    keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

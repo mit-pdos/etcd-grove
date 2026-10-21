@@ -1,11 +1,11 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.StartNode
-public import Spec.go_etcd_io.raft.v3.setupNode
-public import Spec.go_etcd_io.raft.v3.node__run
-public import Proof.go_etcd_io.raft.v3.InvNodeRun
-public import Proof.go_etcd_io.raft.v3.InvAdvance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.StartNode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.setupNode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__run
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeRun
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvAdvance
 
 @[expose] public section
 

@@ -1,10 +1,10 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/witnessRead__Update.lean`. Lean-first (2026-10-20,
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/witnessRead__Update.lean`. Lean-first (2026-10-20,
 witness support).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.witnessRead__Update
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead__Update
 
 @[expose] public section
 
@@ -12,7 +12,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -21,7 +21,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- Under the lock, the state stored is compared with the read's by identity: the same, it is
 the read's state (`whsRO_agree`), the caller's shift runs and `q` is stored; else the error. -/
@@ -72,6 +72,6 @@ theorem witnessRead.Update.wp_proof : witnessRead.Update.spec (GF := GF) (hG := 
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

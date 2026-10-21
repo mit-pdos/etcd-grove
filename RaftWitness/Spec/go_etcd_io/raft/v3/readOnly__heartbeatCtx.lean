@@ -5,7 +5,7 @@ Lean notes: Rocq's `u64_le` is `u64Le`, `own_slice_cap w8 sl (DfracOwn 1)` is
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

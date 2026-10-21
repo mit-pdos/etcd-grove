@@ -11,13 +11,13 @@ entry (`entOwn_of_struct`) and frozen (`entOwn_freeze`), its one-element slice h
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__becomeLeader
-public import Spec.go_etcd_io.raft.v3.raft__reset
-public import Spec.go_etcd_io.raft.v3.traceBecomeLeader
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__reset
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceBecomeLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

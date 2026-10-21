@@ -3,9 +3,9 @@ Port of election_proof/proof_raft__becomeFollower.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.raft__reset
-public import Spec.go_etcd_io.raft.v3.traceBecomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__reset
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceBecomeFollower
 
 @[expose] public section
 

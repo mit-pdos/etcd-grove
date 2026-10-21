@@ -6,13 +6,13 @@ raft v3.7 (2026-10-16, stage R5): the conf change is a pointer (`ownCCI`): a `*C
 `*pb.ConfState` (`csPts cs 1 … true`), handed to the caller. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.RawNode__ApplyConfChange
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__ApplyConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 -- `rawNode_applyCC_reseal`
-public import Proof.go_etcd_io.raft.v3.InvNodeRun
-public import Proof.go_etcd_io.raft.v3.InvRawnodeC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeRun
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeC
 
 @[expose] public section
 

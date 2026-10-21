@@ -59,7 +59,7 @@ B3").
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
 
 @[expose] public section
 

@@ -6,7 +6,7 @@ stepped into (`wp_func_call; wp_call`) and its `if` split with `wp_if_destruct`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__MaybeUpdate
 
 @[expose] public section
 

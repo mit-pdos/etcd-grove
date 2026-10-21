@@ -1,7 +1,7 @@
 /- Port of election_proof/proof_unstable__mustCheckOutOfBounds.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.unstable__mustCheckOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__mustCheckOutOfBounds
 
 @[expose] public section
 

@@ -3,7 +3,7 @@ Port of `election_proof/proof_newLogWithSize.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.newLogWithSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newLogWithSize
 
 @[expose] public section
 

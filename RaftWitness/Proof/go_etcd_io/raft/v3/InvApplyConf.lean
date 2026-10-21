@@ -21,11 +21,11 @@ Raft v3.7 retarget (stage R4): the heap section only; the model (`section model`
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.InvConfchange
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
-public import Proof.go_etcd_io.raft.v3.CCApply
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvConfchange
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.CCApply
 
 @[expose] public section
 

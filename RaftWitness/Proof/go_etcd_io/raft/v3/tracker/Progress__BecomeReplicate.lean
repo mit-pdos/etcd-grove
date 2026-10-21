@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_Progress__BecomeReplicate.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__ResetState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__BecomeReplicate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__ResetState
 
 @[expose] public section
 

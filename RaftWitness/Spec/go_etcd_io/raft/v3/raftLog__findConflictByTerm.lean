@@ -5,8 +5,8 @@ Lean notes: Rocq's `(#i', #t')` is `PairV #i' #t'`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
-public import Proof.go_etcd_io.raft.v3.Plog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 

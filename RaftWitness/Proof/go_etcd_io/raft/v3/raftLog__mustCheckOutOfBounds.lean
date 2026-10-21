@@ -1,9 +1,9 @@
 /- Port of election_proof/proof_raftLog__mustCheckOutOfBounds.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__mustCheckOutOfBounds
-public import Spec.go_etcd_io.raft.v3.raftLog__firstIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__mustCheckOutOfBounds
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 
 @[expose] public section
 

@@ -8,7 +8,7 @@ Rocq's `(#s, #interface.nil)` is `PairV #s #interface.nil`; `` `prefix_of` `` is
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvMemstorage
 
 @[expose] public section
 

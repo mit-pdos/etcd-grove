@@ -4,8 +4,8 @@ New in etcd-io/raft#168, Lean-first: the proof of `MajorityConfig.CommittedIndex
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
-public import Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__OneLessThanQuorum
+public import RaftWitness.Spec.slices.Sort
 
 @[expose] public section
 

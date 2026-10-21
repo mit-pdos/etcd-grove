@@ -3,8 +3,8 @@ Port of election_proof/proof_raftLog__scan.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__scan
-public import Spec.go_etcd_io.raft.v3.raftLog__slice
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__scan
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__slice
 
 @[expose] public section
 

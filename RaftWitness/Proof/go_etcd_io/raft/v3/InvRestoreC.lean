@@ -5,8 +5,8 @@ conf state, possibly with a witness). Until 2026-10-20 private to `raft__restore
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
-public import Proof.go_etcd_io.raft.v3.InvRestore
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestore
 
 @[expose] public section
 

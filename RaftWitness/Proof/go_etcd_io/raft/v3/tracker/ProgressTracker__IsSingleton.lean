@@ -3,7 +3,7 @@
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
 
 @[expose] public section
 

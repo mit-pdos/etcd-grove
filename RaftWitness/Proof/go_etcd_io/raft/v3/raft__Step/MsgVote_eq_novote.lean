@@ -37,7 +37,7 @@ is a fresh `*pb.Message` sharing the request's `From` (granted: and `Term`) cell
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ElectionLemmas
 
 @[expose] public section
 

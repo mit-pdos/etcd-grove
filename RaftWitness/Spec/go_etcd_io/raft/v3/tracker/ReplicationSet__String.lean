@@ -3,8 +3,8 @@
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvEpoch
-public import Proof.go_etcd_io.raft.v3.InvStorage
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvEpoch
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvStorage
 
 @[expose] public section
 

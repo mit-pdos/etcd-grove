@@ -3,7 +3,7 @@ Port of election_proof/proof_traceCommit.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceCommit
 
 @[expose] public section
 

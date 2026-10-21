@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raft__sendHeartbeatToWitness.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendHeartbeatToWitness
 
 @[expose] public section
 

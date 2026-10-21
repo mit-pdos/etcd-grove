@@ -7,8 +7,8 @@ before the loop), Rocq's `cur`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.slices.Sort
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
+public import RaftWitness.Spec.slices.Sort
 
 @[expose] public section
 

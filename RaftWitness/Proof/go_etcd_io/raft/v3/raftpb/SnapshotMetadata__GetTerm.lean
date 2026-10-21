@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/SnapshotMetadata__GetTerm.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
 
 @[expose] public section
 

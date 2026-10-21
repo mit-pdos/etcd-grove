@@ -26,7 +26,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Ghost
 public import Perennial.Ghost.GhostVar
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd

@@ -30,7 +30,7 @@ name it) is a `tracker.Config` abstractly.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Model
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Model
 
 @[expose] public section
 

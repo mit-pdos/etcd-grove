@@ -5,7 +5,7 @@ Lean notes: Rocq's `(#snap, #err)` is `PairV #snap #err`; `global_addr` is
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 

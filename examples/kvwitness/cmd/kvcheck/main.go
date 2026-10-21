@@ -1,8 +1,8 @@
 // Command kvcheck runs the replicated key-value store's randomized linearizability test:
 // a cluster of replicas connected in process, clients running random Puts, Gets and
 // Appends on random replicas, and porcupine's check of the trace. With no flags it runs
-// kv.Main, the program the proof is about (Proof/github_com/mit_pdos/etcd_grove/examples/
-// kv/Adequacy.lean: its porcupine check never fails). The flags run larger tests.
+// kv.Main, the program the proof is about (RaftWitness/Proof/github_com/mit_pdos/etcd_grove/
+// examples/kvwitness/Adequacy.lean: its porcupine check never fails). The flags run larger tests.
 //
 //	go run ./cmd/kvcheck                       # kv.Main
 //	go run ./cmd/kvcheck -clients 16 -ops 200 -rounds 10 -clock monotonic
@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/anishathalye/porcupine"
-	"github.com/mit-pdos/etcd-grove/examples/kv"
+	kv "github.com/mit-pdos/etcd-grove/examples/kvwitness"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 

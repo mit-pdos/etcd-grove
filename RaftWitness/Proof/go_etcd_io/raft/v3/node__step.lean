@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__step
-public import Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__stepWithWaitOption
 
 @[expose] public section
 

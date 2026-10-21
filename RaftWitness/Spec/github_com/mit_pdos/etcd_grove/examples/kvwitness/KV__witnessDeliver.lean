@@ -11,7 +11,7 @@ legitimate, to the node, from the witness and within the budget, so `Node.Step` 
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Defs
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Defs
 
 @[expose] public section
 
@@ -19,7 +19,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
@@ -28,12 +28,12 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [StorageModel GF]
 
 abbrev KV.witnessDeliver.spec : Prop :=
   ∀ (r : Loc) (rd : Ready) (wi : GoInterface) (γn : NodeNames) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
       r.[RKV, go!"witness"] ↦□ wi ∗ kvWitRes γn id wi ∗
       r.[RKV, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
       isNode γn id n ∗ readyWit γn id rd }}
@@ -43,6 +43,6 @@ abbrev KV.witnessDeliver.spec : Prop :=
 
 end spec
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

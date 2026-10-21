@@ -29,20 +29,20 @@ is read with `GetIndex` through its read-only pointer (`entsRO_lookup`).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.LemmasReadyR
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
-public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
-public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import Spec.go_etcd_io.raft.v3.needStorageApplyRespMsg
-public import Spec.go_etcd_io.raft.v3.raftLog__acceptUnstable
-public import Spec.go_etcd_io.raft.v3.entsSize
-public import Spec.go_etcd_io.raft.v3.raftLog__acceptApplying
-public import Spec.go_etcd_io.raft.v3.traceReady
-public import Spec.go_etcd_io.raft.v3.needStorageAppendRespMsg
-public import Spec.go_etcd_io.raft.v3.newStorageAppendRespMsg
-public import Spec.go_etcd_io.raft.v3.newStorageApplyRespMsg
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasReadyR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__acceptReady
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptyHardState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.needStorageApplyRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__acceptUnstable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.entsSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__acceptApplying
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceReady
+public import RaftWitness.Spec.go_etcd_io.raft.v3.needStorageAppendRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newStorageAppendRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newStorageApplyRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 
 @[expose] public section
 

@@ -4,8 +4,8 @@ Lemmas of group G2 (fork B: `appendEntry`, `handleAppendEntries`, `handleHeartbe
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 
 @[expose] public section
 

@@ -5,7 +5,7 @@ Lemmas of `node.run`'s proof (raft v3.7 retarget, stage R5): the removed-node ch
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/tracker/scopedAckIndexer__AckedIndex.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.scopedAckIndexer__AckedIndex
 
 @[expose] public section
 

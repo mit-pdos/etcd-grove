@@ -8,7 +8,7 @@ effect; `isLogger` is that contract, as triples a client supplies (no axiom).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Defs
 
 @[expose] public section
 

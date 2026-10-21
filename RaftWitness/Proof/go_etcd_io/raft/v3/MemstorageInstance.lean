@@ -30,7 +30,7 @@ application before the run: `ghost_map_alloc_empty`). The registry's authority i
 application's, not an invariant's: registering a storage (`memStorReg_register`) needs its
 pointer absent from the map, which the application knows of the map it holds (nothing
 physical of a `MemoryStorage` is left over for an invariant to keep, as the key-value store's registry
-keeps half of its own struct's field; `Proof/github_com/mit_pdos/etcd_grove/examples/kv/
+keeps half of its own struct's field; `Proof/github_com/mit_pdos/etcd_grove/examples/kvwitness/
 Defs.lean`). A wrong registration is harmless: `ownStorage` then cannot be established for
 that storage (its real names disagree).
 
@@ -49,7 +49,7 @@ own premise: the batch's last index at most `2^61`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Link
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
 

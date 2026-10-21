@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeV2__GetContext.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__GetContext
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__GetContext
 
 @[expose] public section
 

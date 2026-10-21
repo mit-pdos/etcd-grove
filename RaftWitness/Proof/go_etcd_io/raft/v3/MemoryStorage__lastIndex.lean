@@ -3,9 +3,9 @@ Port of `election_proof/proof_MemoryStorage__lastIndex.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 
 @[expose] public section
 

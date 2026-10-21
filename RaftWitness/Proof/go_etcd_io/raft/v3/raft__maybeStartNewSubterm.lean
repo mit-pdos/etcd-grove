@@ -9,13 +9,13 @@ one (`preceipt_zero`). The `HasWitness` log lines print the replication sets
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
-public import Spec.go_etcd_io.raft.v3.raft__appendEntry
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetReplicationSet
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ChangeReplicationSet
-public import Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
-public import Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__String
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeStartNewSubterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__appendEntry
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ResetReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ChangeReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Epoch__HasWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ReplicationSet__String
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
 
 @[expose] public section
 

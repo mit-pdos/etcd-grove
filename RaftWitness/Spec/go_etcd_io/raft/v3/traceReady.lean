@@ -3,7 +3,7 @@ Port of `election_proof/spec_traceReady.v` (857d09190).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
 
 @[expose] public section
 

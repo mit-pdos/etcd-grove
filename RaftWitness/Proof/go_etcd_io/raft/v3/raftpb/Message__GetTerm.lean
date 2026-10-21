@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/Message__GetTerm.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 
 @[expose] public section
 

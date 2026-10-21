@@ -1,13 +1,13 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__Step
-public import Spec.go_etcd_io.raft.v3.IsLocalMsg
-public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
-public import Spec.go_etcd_io.raft.v3.node__step
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Proof.go_etcd_io.raft.v3.LemmasNodeR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasNodeR
 
 @[expose] public section
 

@@ -10,7 +10,7 @@ translated and stays assumed (`Spec/rand_Int.lean`), stated over the same predic
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Defs
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Defs
 public import Perennial.Proof.math.big
 
 @[expose] public section

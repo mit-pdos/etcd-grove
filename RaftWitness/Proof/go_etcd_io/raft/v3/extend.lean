@@ -3,7 +3,7 @@ Port of `election_proof/proof_extend.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.extend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.extend
 
 @[expose] public section
 

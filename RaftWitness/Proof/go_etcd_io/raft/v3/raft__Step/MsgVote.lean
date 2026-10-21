@@ -17,8 +17,8 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_gt
-public import Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_le
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_gt
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.MsgVote_le
 
 @[expose] public section
 

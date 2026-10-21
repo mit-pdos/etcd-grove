@@ -3,11 +3,11 @@ Port of `election_proof/proof_raft__loadState.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
-public import Spec.go_etcd_io.raft.v3.raft__loadState
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetVote
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__loadState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 
 @[expose] public section
 

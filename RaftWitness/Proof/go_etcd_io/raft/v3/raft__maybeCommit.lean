@@ -3,14 +3,14 @@ Port of election_proof/proof_raft__maybeCommit.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
-public import Spec.go_etcd_io.raft.v3.traceCommit
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Committed
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
-public import Spec.go_etcd_io.raft.v3.raftLog__maybeCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__maybeCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Committed
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__OneLessThanQuorumInReplicationSet
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__maybeCommit
 
-public import Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
-public import Spec.go_etcd_io.raft.v3.raftLog__subterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendAppendToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__subterm
 
 @[expose] public section
 

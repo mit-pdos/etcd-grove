@@ -5,8 +5,8 @@ Lean notes: Rocq's `array_acc_same` (`v3_proof/readonly.v`) is `InvTracker.lean`
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__CommittedIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
 
 @[expose] public section
 

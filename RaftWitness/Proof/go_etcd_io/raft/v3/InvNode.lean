@@ -71,15 +71,15 @@ channel carries one).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnodeReady
 -- (2026-10-16, stage R5) `netStepTypes`, `NetMsgOk`, `DynCCPreOp`, `propEntryM` are
 -- `InvRawnode.lean`'s (until then `RawNode__Step`'s, `RawNode__Propose`'s,
 -- `RawNode__ApplyConfChange`'s)
 public import Perennial.Golang.Theory.Chan.Idioms.Handshake
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 public import Perennial.Ghost.MonoNat
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Perennial.Ghost.MonoList
 
 @[expose] public section

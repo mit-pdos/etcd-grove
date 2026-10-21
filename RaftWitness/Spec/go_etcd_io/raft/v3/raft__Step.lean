@@ -40,17 +40,17 @@ Nothing of the message is given back.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 -- `StableOk`, for `MsgStorageAppendResp` (2026-10-05)
-public import Proof.go_etcd_io.raft.v3.InvReadylog
-public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvReadylog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 -- `SnapScope`, for `MsgSnap`
-public import Spec.go_etcd_io.raft.v3.raft__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__restore
 -- (2026-10-14, stage B7) the ghost modes
-public import Proof.go_etcd_io.raft.v3.StepGhostMode
-public import Proof.go_etcd_io.raft.v3.StepLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepGhostMode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmas
 -- `MsgBeat`
-public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 -- `bytes.wp_Equal`, for the `MsgVote` branch's `Context` comparison.
 public import Perennial.Proof.bytes
 

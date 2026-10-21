@@ -3,7 +3,7 @@ Port of `election_proof/proof_SoftState__equal.v` (857d09190).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.SoftState__equal
+public import RaftWitness.Spec.go_etcd_io.raft.v3.SoftState__equal
 
 @[expose] public section
 

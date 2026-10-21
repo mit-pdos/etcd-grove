@@ -3,7 +3,7 @@ Port of election_proof/proof_newReadOnly.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.newReadOnly
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newReadOnly
 
 @[expose] public section
 

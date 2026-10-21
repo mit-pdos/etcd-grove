@@ -4,7 +4,7 @@ support).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvEpoch
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvEpoch
 
 @[expose] public section
 

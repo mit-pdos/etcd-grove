@@ -13,7 +13,7 @@ that uses it. Rocq's `case_decide … w32_ne` chains are the macro `mtype_simp`
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.Base
 
 @[expose] public section
 

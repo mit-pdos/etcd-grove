@@ -14,8 +14,8 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
-public import Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.raft__Step.ReplLemmas
 
 @[expose] public section
 

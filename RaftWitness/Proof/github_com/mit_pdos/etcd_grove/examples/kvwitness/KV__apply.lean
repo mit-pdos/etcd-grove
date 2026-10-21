@@ -1,17 +1,17 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__apply.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__apply.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): the entry is read through its getters
 (`GetType`, `GetData`: the record's type and a read-only slice of its bytes, D6).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.decode
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.LemmasOps
-public import Proof.go_etcd_io.raft.v3.FrameH
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__apply
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.decode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.LemmasOps
+public import RaftWitness.Proof.go_etcd_io.raft.v3.FrameH
 
 @[expose] public section
 
@@ -19,7 +19,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -28,7 +28,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 set_option hygiene false in
@@ -116,7 +116,7 @@ local macro "apply_rest" : tactic => `(tactic| (
       iapply Hfin $$ %Kn %HvalN HmK HK HmA HA
   ))
 
-theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
+theorem KV.apply.wp_proof (wp_decode : kvwitness.decode.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     KV.apply.spec (GF := GF) (hG := hG) := by
@@ -300,6 +300,6 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

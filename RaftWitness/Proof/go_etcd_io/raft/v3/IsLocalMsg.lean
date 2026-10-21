@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Spec.go_etcd_io.raft.v3.IsLocalMsg
-public import Spec.go_etcd_io.raft.v3.isMsgInArray
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.isMsgInArray
 
 @[expose] public section
 

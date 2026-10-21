@@ -1,9 +1,9 @@
 /- Port of election_proof/proof_raftLog__commitTo.v. -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__commitTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 
 @[expose] public section
 

@@ -1,8 +1,8 @@
 /- Port of election_proof/proof_payloadSize.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.payloadSize
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import RaftWitness.Spec.go_etcd_io.raft.v3.payloadSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 
 @[expose] public section
 

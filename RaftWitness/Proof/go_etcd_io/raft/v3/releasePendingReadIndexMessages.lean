@@ -13,8 +13,8 @@ loop) that the first `k` are answered (`readRespondAll` of the first `k` of `pen
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
-public import Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
 
 @[expose] public section
 

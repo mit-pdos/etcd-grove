@@ -5,13 +5,13 @@ raft v3.7 (stage R4): `cc` is a `*pb.ConfChangeV2` (`ownCCV2`), read by `LeaveJo
 folds it back after the changer. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__LeaveJoint
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint
-public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__LeaveJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
 
 @[expose] public section
 

@@ -4,12 +4,12 @@ proof inlined it in `RawNode.acceptReady`'s, for a log with unstable entries onl
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.newStorageAppendRespMsg
-public import Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressUnstableEnts
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.go_etcd_io.raft.v3.IsEmptySnap
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasRawnodeR
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newStorageAppendRespMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__hasNextOrInProgressUnstableEnts
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRawnodeR
 
 @[expose] public section
 

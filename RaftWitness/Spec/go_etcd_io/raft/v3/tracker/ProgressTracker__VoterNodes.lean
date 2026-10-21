@@ -7,7 +7,7 @@ Lean notes: Rocq leaves the type of `tv` implicit; it is written out
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvTrackerC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 

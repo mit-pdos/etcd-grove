@@ -40,8 +40,8 @@ getters (`logSliceFromMsgApp`); every reply shares `m`'s `From` cell (`To: m.Fro
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.Plog
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Plog
 
 @[expose] public section
 

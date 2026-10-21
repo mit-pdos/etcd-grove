@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__Read.lean`.
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__Read.lean`.
 Lean-first (no Rocq counterpart).
 
 Under the lock, a new sequence number mints the read's context and its fresh token for raft's
@@ -13,10 +13,10 @@ a committed log at least that long (`readAns`, `KV.answer`), which extends `Lc`
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__Read
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.encode
-public import Spec.go_etcd_io.raft.v3.node__ReadIndex
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__Read
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.encode
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__ReadIndex
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
 
 @[expose] public section
 
@@ -24,7 +24,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -33,11 +33,11 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem KV.Read.wp_proof
-    (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
+    (wp_encode : kvwitness.encode.spec (GF := GF) (hG := hG))
     (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG)) :
     KV.Read.spec (GF := GF) (hG := hG) := by
   intro γr γp r key L0 Hkey
@@ -150,6 +150,6 @@ theorem KV.Read.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

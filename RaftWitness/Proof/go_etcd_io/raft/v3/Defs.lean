@@ -20,8 +20,8 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Base
-public import Proof.go_etcd_io.raft.v3.Protocol
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Base
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol
 
 @[expose] public section
 

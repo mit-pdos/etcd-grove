@@ -3,12 +3,12 @@ Port of election_proof/proof_raft__hup.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__hup
-public import Spec.go_etcd_io.raft.v3.raft__campaign
-public import Spec.go_etcd_io.raft.v3.raft__promotable
-public import Spec.go_etcd_io.raft.v3.raft__hasUnappliedConfChanges
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hup
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__campaign
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__promotable
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hasUnappliedConfChanges
 -- `step_campaignState`; Rocq's `postulates_raft__hup.v` imports `step_lemmas` too
-public import Proof.go_etcd_io.raft.v3.StepLemmas
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmas
 
 @[expose] public section
 

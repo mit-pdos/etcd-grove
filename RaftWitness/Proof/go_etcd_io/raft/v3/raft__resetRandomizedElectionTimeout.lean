@@ -3,8 +3,8 @@ Port of election_proof/proof_raft__resetRandomizedElectionTimeout.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__resetRandomizedElectionTimeout
-public import Spec.go_etcd_io.raft.v3.lockedRand__Intn
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__resetRandomizedElectionTimeout
+public import RaftWitness.Spec.go_etcd_io.raft.v3.lockedRand__Intn
 
 @[expose] public section
 

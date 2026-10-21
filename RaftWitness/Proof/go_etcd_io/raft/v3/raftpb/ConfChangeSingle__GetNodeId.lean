@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeSingle__GetNodeId.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
 
 @[expose] public section
 

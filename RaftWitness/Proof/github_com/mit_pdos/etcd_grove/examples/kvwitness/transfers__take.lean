@@ -1,11 +1,11 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/transfers__take.lean`.
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/transfers__take.lean`.
 Lean-first (no Rocq counterpart), 2026-10-13.
 -/
 module
 
 public import Proof.ReceiptTactics
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.transfers__take
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.transfers__take
 
 @[expose] public section
 
@@ -13,7 +13,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -22,7 +22,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [StorageModel GF]
 
 theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := by
@@ -66,6 +66,6 @@ theorem transfers.take.wp_proof : transfers.take.spec (GF := GF) (hG := hG) := b
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

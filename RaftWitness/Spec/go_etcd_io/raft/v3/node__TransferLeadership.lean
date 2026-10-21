@@ -12,7 +12,7 @@ with a `MsgTimeoutNow` or an append to the transferee. Until stage R7a specified
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 
 @[expose] public section

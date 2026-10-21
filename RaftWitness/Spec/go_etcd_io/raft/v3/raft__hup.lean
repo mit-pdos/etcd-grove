@@ -6,9 +6,9 @@ raft v3.7 (2026-10-15, stage R1/R4): the `section results` (`HupOk`, `HupGuard`,
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Proof.go_etcd_io.raft.v3.StepLemmasC
-public import Proof.go_etcd_io.raft.v3.SpecResults
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmasC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.SpecResults
 
 @[expose] public section
 

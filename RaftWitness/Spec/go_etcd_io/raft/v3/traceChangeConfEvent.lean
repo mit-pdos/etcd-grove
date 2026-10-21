@@ -1,7 +1,7 @@
 /- `traceChangeConfEvent` (`state_trace_nop.go`), Lean-first (2026-10-13). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
 

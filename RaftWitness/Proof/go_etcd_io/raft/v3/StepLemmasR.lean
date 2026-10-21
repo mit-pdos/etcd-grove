@@ -35,10 +35,10 @@ file is the bridge.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.StepLemmasC
-public import Proof.go_etcd_io.raft.v3.Protocol.StepR
-public import Proof.go_etcd_io.raft.v3.SpecResults
-public import Proof.go_etcd_io.raft.v3.WAppSentStep
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmasC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.StepR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.SpecResults
+public import RaftWitness.Proof.go_etcd_io.raft.v3.WAppSentStep
 
 @[expose] public section
 

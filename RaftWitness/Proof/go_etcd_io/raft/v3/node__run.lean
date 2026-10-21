@@ -10,22 +10,22 @@ getters (`GetType`, `GetFrom`); `confc` carries a `*pb.ConfChangeV2` (`ownCCV2 v
 whole (`confstateP`); a `Ready`'s messages are handed out (`QMsg`, D8). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvAdvance
-public import Spec.go_etcd_io.raft.v3.node__run
-public import Spec.go_etcd_io.raft.v3.RawNode__HasReady
-public import Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
-public import Spec.go_etcd_io.raft.v3.RawNode__acceptReady
-public import Spec.go_etcd_io.raft.v3.RawNode__Advance
-public import Spec.go_etcd_io.raft.v3.RawNode__Tick
-public import Spec.go_etcd_io.raft.v3.raft__Step
-public import Spec.go_etcd_io.raft.v3.raft__hasLeader
-public import Spec.go_etcd_io.raft.v3.IsResponseMsg
-public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
-public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
-public import Proof.go_etcd_io.raft.v3.InvNodeRun
-public import Proof.go_etcd_io.raft.v3.LemmasRunR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvAdvance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__run
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__HasReady
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__acceptReady
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Advance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__Tick
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__Step
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__hasLeader
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsResponseMsg
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__applyConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeRun
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasRunR
 
 @[expose] public section
 

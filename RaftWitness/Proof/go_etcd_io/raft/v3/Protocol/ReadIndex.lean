@@ -17,7 +17,7 @@ the event history").
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
 
 @[expose] public section
 

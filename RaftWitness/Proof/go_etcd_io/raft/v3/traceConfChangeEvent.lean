@@ -3,7 +3,7 @@ Port of election_proof/proof_traceConfChangeEvent.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.traceConfChangeEvent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceConfChangeEvent
 
 @[expose] public section
 

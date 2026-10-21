@@ -1,7 +1,7 @@
 /- Port of election_proof/proof_Progress__CanBumpCommit.v. -/
 module
 
-public import Spec.go_etcd_io.raft.v3.tracker.Progress__CanBumpCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.Progress__CanBumpCommit
 
 @[expose] public section
 

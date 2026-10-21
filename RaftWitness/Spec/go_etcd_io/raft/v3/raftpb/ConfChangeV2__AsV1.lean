@@ -4,7 +4,7 @@ receiver, a nil `*ConfChange` where gogoproto's returned the zero value; stage R
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

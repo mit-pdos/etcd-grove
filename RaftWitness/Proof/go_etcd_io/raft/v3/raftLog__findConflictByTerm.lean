@@ -3,8 +3,8 @@ Port of election_proof/proof_raftLog__findConflictByTerm.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__findConflictByTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__findConflictByTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
 
 @[expose] public section
 

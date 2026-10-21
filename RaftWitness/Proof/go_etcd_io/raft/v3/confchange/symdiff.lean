@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/confchange/symdiff.lean`. Lean-first (no Rocq 
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.symdiff
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.symdiff
 
 @[expose] public section
 

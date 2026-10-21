@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__run.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/KV__run.lean`. Lean-first (no
 Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): a `Ready`'s entries and committed entries
 are read-only entry pointers (`entsRO`), its messages owned pointers (`sendSpec`), its read
 states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its hard state `hsOpt`
@@ -9,21 +9,21 @@ states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its har
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__witnessDeliver
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__run
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.fits
-public import Spec.go_etcd_io.raft.v3.node__Ready
-public import Spec.go_etcd_io.raft.v3.node__Advance
-public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__witnessDeliver
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__run
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__apply
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__answer
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.fits
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Ready
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Advance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 -- (2026-10-15, stage N) conf changes
-public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
-public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
-public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KVStorageInstance
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import RaftWitness.Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.Lemmas
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.kvwitness.KVStorageInstance
 
 @[expose] public section
 
@@ -31,7 +31,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -40,13 +40,13 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 theorem KV.run.wp_proof
-    (wp_fits : kv.fits.spec (GF := GF) (hG := hG))
-    (wp_apply : kv.KV.apply.spec (GF := GF) (hG := hG))
-    (wp_answer : kv.KV.answer.spec (GF := GF) (hG := hG))
+    (wp_fits : kvwitness.fits.spec (GF := GF) (hG := hG))
+    (wp_apply : kvwitness.KV.apply.spec (GF := GF) (hG := hG))
+    (wp_answer : kvwitness.KV.answer.spec (GF := GF) (hG := hG))
     (wp_node_Ready : node.Ready.spec (GF := GF) (hG := hG))
     (wp_node_Advance : node.Advance.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Append : MemoryStorage.Append.spec (GF := GF) (hG := hG))
@@ -54,7 +54,7 @@ theorem KV.run.wp_proof
     (wp_node_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
-    (wp_witnessDeliver : kv.KV.witnessDeliver.spec (GF := GF) (hG := hG)) :
+    (wp_witnessDeliver : kvwitness.KV.witnessDeliver.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
   intro γr γp r id n st send op c0 c1 wi
   wp_start as ⟨#Hrep, %Hcc, Hncfg, Hdrv, Hrun, #Hsend, #HwF, Hwres⟩
@@ -316,6 +316,6 @@ theorem KV.run.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

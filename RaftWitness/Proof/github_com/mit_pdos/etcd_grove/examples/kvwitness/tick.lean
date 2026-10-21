@@ -1,12 +1,12 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/tick.lean`. Lean-first (no
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/tick.lean`. Lean-first (no
 Rocq counterpart).
 -/
 module
 
 public import Proof.ReceiptTactics
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.tick
-public import Spec.go_etcd_io.raft.v3.node__Tick
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.tick
+public import RaftWitness.Spec.go_etcd_io.raft.v3.node__Tick
 public import Perennial.Proof.time
 
 @[expose] public section
@@ -15,7 +15,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -24,7 +24,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [StorageModel GF]
 
 theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
@@ -58,6 +58,6 @@ theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

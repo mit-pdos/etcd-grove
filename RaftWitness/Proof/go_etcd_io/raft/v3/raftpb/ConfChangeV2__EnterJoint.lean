@@ -3,8 +3,8 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeV2__EnterJoint.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__GetTransition
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__GetTransition
 
 @[expose] public section
 

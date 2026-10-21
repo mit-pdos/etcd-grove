@@ -3,8 +3,8 @@ Port of election_proof/proof_raftLog__isUpToDate.v.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__isUpToDate
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__isUpToDate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 
 @[expose] public section
 

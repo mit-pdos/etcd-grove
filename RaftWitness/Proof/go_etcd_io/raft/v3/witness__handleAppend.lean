@@ -3,12 +3,12 @@ Proof of `Spec/go_etcd_io/raft/v3/witness__handleAppend.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.witness__handleAppend
-public import Spec.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
-public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Proof.go_etcd_io.raft.v3.LemmasWitness
-public import Proof.go_etcd_io.raft.v3.LemmasSendR
-public import Proof.go_etcd_io.raft.v3.InvEpoch
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleAppend
+public import RaftWitness.Spec.go_etcd_io.raft.v3.witness__handleAppendNoUpdate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasWitness
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendR
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvEpoch
 
 @[expose] public section
 

@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # The key-value store: package initialization and the pure model (2026-10-10; the store,
 2026-10-19)
 
-`examples/kv/kv.go` has no package-level variable (`opPut`, `opGet`, `opAppend`, `maxIndex`
+`examples/kvwitness/kv.go` has no package-level variable (`opPut`, `opGet`, `opAppend`, `maxIndex`
 and `maxSeq` are constants), so its package fact is `True`; the packages it imports have
 theirs (Perennial's `context`, `encoding/binary`, `sync`; etcd-grove's raft and `raftpb`,
 `Proof/go_etcd_io/raft/v3/Base.lean`; the porcupine driver's and porcupine's).
@@ -21,8 +21,8 @@ answers its key's value after it (`dkey`). The client log holds each operation o
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Link
-public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.kv
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Link
+public import RaftWitness.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.kvwitness
 public import Perennial.Proof.encoding.binary
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
@@ -38,25 +38,25 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-namespace github_com.mit_pdos.etcd_grove.examples.kv
+namespace github_com.mit_pdos.etcd_grove.examples.kvwitness
 
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 instance isPkgInit_inst :
-    IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv :=
+    IsPkgInit (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness :=
   define_is_pkg_init iprop(True)
 instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv :=
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness :=
   build_get_is_pkg_init_wf
 
 end init
 
-end github_com.mit_pdos.etcd_grove.examples.kv
+end github_com.mit_pdos.etcd_grove.examples.kvwitness
 
 namespace EtcdGrove
 

@@ -14,21 +14,21 @@ and `assertConfStatesEquivalent`; the halves are put back together at the end.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__restore
-public import Proof.go_etcd_io.raft.v3.LemmasConfState
-public import Spec.go_etcd_io.raft.v3.raftLog__matchTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.go_etcd_io.raft.v3.raftLog__commitTo
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__restore
-public import Spec.go_etcd_io.raft.v3.tracker.MakeProgressTracker
-public import Spec.go_etcd_io.raft.v3.confchange.Restore
-public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
-public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
-public import Proof.go_etcd_io.raft.v3.InvApplyConfC
-public import Proof.go_etcd_io.raft.v3.LemmasSendRD
-public import Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
-public import Proof.go_etcd_io.raft.v3.InvRestoreC
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__restore
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasConfState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__matchTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__commitTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.MakeProgressTracker
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__switchToConfig
+public import RaftWitness.Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConfC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.LemmasSendRD
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.EnsureConfState
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestoreC
 
 @[expose] public section
 

@@ -3,11 +3,11 @@ Port of `election_proof/proof_raftLog__restore.v`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__restore
-public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import Spec.go_etcd_io.raft.v3.unstable__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__restore
 
 @[expose] public section
 

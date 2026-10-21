@@ -6,10 +6,10 @@ Lean notes: the Rocq `Local Lemma term_at_visible` is the private theorem
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftLog__term
-public import Spec.go_etcd_io.raft.v3.unstable__maybeTerm
-public import Spec.go_etcd_io.raft.v3.raftLog__firstIndex
-public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__term
+public import RaftWitness.Spec.go_etcd_io.raft.v3.unstable__maybeTerm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__firstIndex
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 
 @[expose] public section
 

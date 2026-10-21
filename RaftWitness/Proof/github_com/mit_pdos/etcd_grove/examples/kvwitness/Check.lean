@@ -14,12 +14,12 @@ invariant).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Check
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Model
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Gen
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__Get
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__Put
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__Append
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Check
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Model
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.Gen
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__Get
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__Put
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.KV__Append
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.Run
 
 @[expose] public section
@@ -30,7 +30,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine
@@ -40,7 +40,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 variable [KVStor GF]
 
 /-- The invariant's namespace: the store's client half, with the driver's copy. -/
@@ -281,6 +281,6 @@ theorem Check.wp_proof
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

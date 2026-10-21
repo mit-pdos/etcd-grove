@@ -19,7 +19,7 @@ raft v3.7"), on top of `InvPb.lean`:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

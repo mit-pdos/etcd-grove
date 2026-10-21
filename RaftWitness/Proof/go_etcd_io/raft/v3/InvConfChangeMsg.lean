@@ -12,7 +12,7 @@ the model's entries (`EntryM`), whose `Data'` is the entry's bytes (D6).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPb
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvPb
 
 @[expose] public section
 

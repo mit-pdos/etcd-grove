@@ -16,8 +16,8 @@ raft v3.7 (2026-10-16, stage R5, D6): the entry holds the conf change's bytes, s
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvNodeCtx
-public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvNodeCtx
+public import RaftWitness.Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Perennial.Proof.context
 
 @[expose] public section

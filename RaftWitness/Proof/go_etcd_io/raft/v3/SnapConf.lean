@@ -27,8 +27,8 @@ cs.Learners' _ l`, ...), which the specs relate to the Go value; `al` is `cs.Aut
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRestore
-public import Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestore
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.CfgOverlap
 
 @[expose] public section
 

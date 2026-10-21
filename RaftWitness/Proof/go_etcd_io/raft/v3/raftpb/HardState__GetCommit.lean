@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/HardState__GetCommit.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
 
 @[expose] public section
 

@@ -14,7 +14,7 @@ Lean notes: like `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and ha
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__tickElection
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__tickElection
 
 @[expose] public section
 

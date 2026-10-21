@@ -23,8 +23,8 @@ previous hard state is a read-only `*pb.HardState`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
-public import Proof.go_etcd_io.raft.v3.InvApplyConfC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvApplyConfC
 
 @[expose] public section
 

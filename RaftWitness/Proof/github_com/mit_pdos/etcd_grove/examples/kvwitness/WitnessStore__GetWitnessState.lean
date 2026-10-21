@@ -1,10 +1,10 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/WitnessStore__GetWitnessState.lean`. Lean-first (2026-10-20,
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kvwitness/WitnessStore__GetWitnessState.lean`. Lean-first (2026-10-20,
 witness support).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.WitnessStore__GetWitnessState
+public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore__GetWitnessState
 
 @[expose] public section
 
@@ -12,7 +12,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace kv
+namespace kvwitness
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -21,7 +21,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- Under the lock: the caller's shift on the state stored, and a read of it (its two fields
 never written: persistent). -/
@@ -61,6 +61,6 @@ theorem WitnessStore.GetWitnessState.wp_proof :
 
 end proof
 
-end kv
+end kvwitness
 end EtcdGrove
 end Perennial

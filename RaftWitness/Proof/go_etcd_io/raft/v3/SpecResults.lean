@@ -18,8 +18,8 @@ came from, ported with the log and raft layers (stages R3/R4), import this one a
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.StepLemmasC
-public import Proof.go_etcd_io.raft.v3.InvRestore
+public import RaftWitness.Proof.go_etcd_io.raft.v3.StepLemmasC
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestore
 
 @[expose] public section
 

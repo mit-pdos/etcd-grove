@@ -10,8 +10,8 @@ the Rocq binder `from` is `src` (`from` is a Lean keyword), as in
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResultWithDifference
 
 @[expose] public section
 

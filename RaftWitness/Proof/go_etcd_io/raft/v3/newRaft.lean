@@ -9,24 +9,24 @@ hard state, its `hsRO` (a `nil` pointer holds the empty one).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.newRaft
-public import Spec.go_etcd_io.raft.v3.Config__validate
-public import Spec.go_etcd_io.raft.v3.newLogWithSize
-public import Spec.go_etcd_io.raft.v3.tracker.MakeProgressTracker
-public import Spec.go_etcd_io.raft.v3.newReadOnly
-public import Spec.go_etcd_io.raft.v3.traceInitState
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.go_etcd_io.raft.v3.confchange.Restore
-public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
-public import Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
-public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
-public import Spec.go_etcd_io.raft.v3.raft__loadState
-public import Spec.go_etcd_io.raft.v3.raftLog__appliedTo
-public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
-public import Spec.fmt.Sprintf
-public import Spec.strings.Join
-public import Proof.go_etcd_io.raft.v3.InvRestoreC
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newRaft
+public import RaftWitness.Spec.go_etcd_io.raft.v3.Config__validate
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newLogWithSize
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.MakeProgressTracker
+public import RaftWitness.Spec.go_etcd_io.raft.v3.newReadOnly
+public import RaftWitness.Spec.go_etcd_io.raft.v3.traceInitState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.Restore
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__switchToConfig
+public import RaftWitness.Spec.go_etcd_io.raft.v3.assertConfStatesEquivalent
+public import RaftWitness.Spec.go_etcd_io.raft.v3.IsEmptyHardState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__loadState
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__appliedTo
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import RaftWitness.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
+public import RaftWitness.Spec.fmt.Sprintf
+public import RaftWitness.Spec.strings.Join
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRestoreC
 
 @[expose] public section
 

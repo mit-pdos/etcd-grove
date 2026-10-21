@@ -73,9 +73,9 @@ message is a `MsgReadIndex` iff its abstraction is a `readIndex`, `msgAbs_rdCoun
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import RaftWitness.Proof.go_etcd_io.raft.v3.InvRawnode
 -- `ownRaftGhost_drain` (2026-10-13)
-public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
+public import RaftWitness.Proof.go_etcd_io.raft.v3.Protocol.Refinement
 
 @[expose] public section
 

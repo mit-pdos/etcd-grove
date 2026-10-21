@@ -3,7 +3,7 @@ Proof of `Spec/confchange_incoming.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.confchange.incoming
+public import RaftWitness.Spec.go_etcd_io.raft.v3.confchange.incoming
 
 @[expose] public section
 

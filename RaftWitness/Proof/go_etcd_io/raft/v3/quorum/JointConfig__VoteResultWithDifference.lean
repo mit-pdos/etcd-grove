@@ -4,7 +4,7 @@ New in etcd-io/raft#168 (share witness), Lean-first: the proof of `JointConfig.V
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResultWithDifference
+public import RaftWitness.Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResultWithDifference
 
 @[expose] public section
 

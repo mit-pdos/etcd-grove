@@ -3,7 +3,7 @@ Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfState__GetLearnersNext.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetLearnersNext
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetLearnersNext
 
 @[expose] public section
 

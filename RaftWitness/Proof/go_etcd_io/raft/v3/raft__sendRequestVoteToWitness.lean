@@ -3,9 +3,9 @@ Proof of `Spec/go_etcd_io/raft/v3/raft__sendRequestVoteToWitness.lean`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
-public import Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
-public import Spec.go_etcd_io.raft.v3.raftLog__subterm
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raft__sendRequestVoteToWitness
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
+public import RaftWitness.Spec.go_etcd_io.raft.v3.raftLog__subterm
 
 @[expose] public section
 
