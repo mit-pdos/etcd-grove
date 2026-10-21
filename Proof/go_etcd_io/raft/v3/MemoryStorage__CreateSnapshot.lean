@@ -183,6 +183,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   -- the storage's snapshot, made whole in place
   wp_apply wp_EnsureSnapshot.1 sp0 (some sv0) $$ [Hsnap0] as %r ⟨Hr, %Hrsp⟩
   · simp only [snapOpt]; iexact Hsnap0
+  ihave Hr := ownSnapS_W _ _ _ $$ Hr
   ihave Hr := ownSnapW_E $$ Hr
   have Hr : r = sp0 := Hrsp Hsp0nn
   subst r

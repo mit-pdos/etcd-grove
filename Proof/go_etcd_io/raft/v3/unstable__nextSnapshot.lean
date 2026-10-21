@@ -37,13 +37,13 @@ theorem unstable.nextSnapshot.wp_proof
     iunfold pendKsn at Hpk
     icases Hpk $$ %sid %Hs with ⟨%sv, #Hsv, %Hid, %Hin⟩
     ihave %Hnn : ⌜uv.snapshot' ≠ null⌝ $$ [Hsv]
-    · iunfold ownSnapM at Hsv; iNamed Hsv; ipureintro; exact Hnn
+    · iunfold ownSnapS at Hsv; iNamed Hsv; ipureintro; exact Hnn
     simp only [Hnn, _root_.decide_false]
     wp_auto
     rcases Hsip : us.sip <;> wp_auto
-    · wp_apply wp_proto_CloneSnapshot.1 _ DFrac.discard sv $$ [$Hsv] as %p' ⟨-, Hc⟩
+    · wp_apply wp_proto_CloneSnapshot.2.2.2 _ DFrac.discard sv $$ [$Hsv] as %p' ⟨-, Hc⟩
       -- the clone is not `nil`
-      iunfold ownSnapM at Hc
+      iunfold ownSnapS at Hc
       icases Hc with ⟨%ds, %pm, %uf, %Hnn', Hc⟩
       iapply HΦ
       isplitl [Hu Hents_cap Hents]
@@ -55,7 +55,7 @@ theorem unstable.nextSnapshot.wp_proof
       iexists sid, sv
       isplitr
       · ipureintro; exact ⟨Hs, rfl, Hid, Hin⟩
-      iunfold ownSnapM
+      iunfold ownSnapS
       iexists ds, pm, uf
       isplitr
       · ipureintro; exact Hnn'

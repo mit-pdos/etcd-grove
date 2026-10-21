@@ -539,7 +539,12 @@ abbrev raft.Step.spec : Prop :=
      (∀ sv, sn = some sv →
         snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
         uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-        md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader)) ∧
+        md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+        -- (D22 S-d4 item 3) with a snapshot pending and the storage back, the storage holds the
+        -- log up to the acknowledged snapshot (`LogState.sxt`; `appliedSnap` moves `applying` there)
+        (s.logst.snap ≠ none → s.logst.lent = false →
+          uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+        (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index')) ∧
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →

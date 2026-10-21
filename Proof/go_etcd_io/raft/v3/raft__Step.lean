@@ -807,14 +807,14 @@ theorem raft.Step.wp_proof
     · -- (D22 S-d2) with a snapshot: `appliedSnap` (after `stableTo` in the current-term arm),
       -- invisible to the protocol, in the static mode
       subst Hsv
-      obtain ⟨Hhit, Hle', Hdyn, Hal⟩ := Hsnp sv rfl
+      obtain ⟨Hhit, Hle', Hdyn, Hal, Hsxp, Hkxp⟩ := Hsnp sv rfl
       have Hmd : md = .static := by
         cases md with
         | static => rfl
         | dyn => simp [GMode.isDyn] at Hdyn
       subst Hmd
       wp_apply (wp_Step_MsgStorageAppendResp_snap P Q c r id s ml m sv ctx rs ents HtyA Hhit Hle'
-          Hal Hle Hstok Hghoff Hwf)
+          Hal Hle Hstok Hghoff Hwf Hsxp Hkxp)
         $$ [$Hphys $Hmi] as %err ⟨Hphys, %Herr⟩
       obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
       have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv } = toPState s := by

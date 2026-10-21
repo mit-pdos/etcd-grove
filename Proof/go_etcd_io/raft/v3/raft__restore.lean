@@ -273,10 +273,13 @@ theorem raft.restore.wp_proof
   obtain ⟨Hscope, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
-  icases ownSnapE_open _ _ _ $$ Hsnap with ⟨%pm, %pc, Hrest, Hcs⟩
-  iunfold snapRest at Hrest
-  iNamed Hrest
-  obtain ⟨Hspn, Hpmn⟩ := Hnn
+  -- (D22 S-d4 item 4) the snapshot, every pointer field set, opened into its parts
+  iunfold ownSnapS at Hsnap
+  icases Hsnap with ⟨%ds, %pm, %uf, %Hspn, HD, Hd, HM, Hm, #Hpb⟩
+  iunfold smPtsS at Hm
+  icases Hm with ⟨%pc, %pi, %pt, %ufm, %Hnnm, HC, Hcs, HI, #cI, HT, #cT, #Hpbm⟩
+  obtain ⟨Hpmn, HpcS, Hpin, Hptn⟩ := Hnnm
+  ihave Hcs := csSet_A _ _ _ $$ Hcs
   wp_auto
   wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
   wp_apply wp_SnapshotMetadata_GetIndex_field pm pi _ _ Hpmn $$ [$HI $cI] as HI
@@ -509,23 +512,19 @@ theorem raft.restore.wp_proof
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh1, Hlogback⟩
     -- (D22 S-d3a) the restore past the commit index keeps what the log says of the snapshot the
     -- last `Ready` handed out (`SnpOk`)
+    icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq1, Hlog⟩
     have Hsnp1 : SnpOk s.gh (logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists)) :=
-      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega)
-    ihave Hrest : snapRest sp pm pc (DFrac.own 1) sv $$ [HD Hd HM HC HI HT]
-    · iunfold snapRest
-      iexists ds, pi, pt, uf, ufm
-      iframe
-      iframe cI cT Hpb Hpbm
-      ipureintro; exact ⟨Hspn, Hpmn⟩
-    icases snapRest_split sp pm pc (DFrac.own (Qp.half 1)) (DFrac.own (Qp.half 1)) sv $$ [Hrest]
-      with ⟨HrA, HrB⟩
-    · rw [DFrac.op_own, Qp.half_add_half]; iexact Hrest
-    ihave HsA : ownSnapM sp (DFrac.own (Qp.half 1)) sv $$ [HrA]
-    · iapply ownSnapM_of_rest
-      iframe HrA
-      iunfold csOptA; iright; iright; iexact Hcf
+      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
+    -- (D22 S-d4 item 4) the log's half set (its conf state read-only, `Hcf`)
+    icases ownSnapS_rest_of_parts sp pm pc pi pt ds uf ufm (DFrac.own (Qp.half 1))
+        (DFrac.own (Qp.half 1)) sv Hspn Hpmn HpcS Hpin Hptn $$ [HD Hd HM HC HI HT]
+      with ⟨HsA, HrB⟩
+    · rw [DFrac.op_own, Qp.half_add_half]
+      iframe HD Hd HM HC HI HT
+      iframe cI cT Hpb Hpbm Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
         (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
+    ihave HsA := ownSnapS_M _ _ _ $$ HsA
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)

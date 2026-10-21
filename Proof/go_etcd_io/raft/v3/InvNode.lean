@@ -626,7 +626,7 @@ theorem rsDlv_none {rs : RNState} (h : rs.slent = none) : rsDlv rs = rs.delivere
 and the entries `es` to append, and in place of the right to append them (and of `rd.Snapshot`
 `nil`) the snapshot -- at a node that takes snapshots (`snapIn`, so outside the no-snapshot mode
 and in the static mode: what a client that never delivers a `MsgSnap`, or is in the no-snapshot
-or the dynamic mode, refutes, `readyDataL_none`) -- half of it (`ownSnapM l.ptr ½`, `rdSnapOut`;
+or the dynamic mode, refutes, `readyDataL_none`) -- half of it (`ownSnapS l.ptr ½`, every pointer field set, `rdSnapOut`;
 the node's queued acknowledgement shares the pointer), the committed log up to it (`isCommitted
 l.dlv`, `LoanOut`: `|l.dlv|` its index, extending `d`), the storage itself (`readyOut`: nothing
 pending, at the loan's floor) and the snapshot's certificate in the storage's registry. The
@@ -649,7 +649,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     readyIdx γ.raft d ce es ∗
     -- the snapshot, at a node that takes snapshots
     ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ γ.mode = .static⌝ ∗
-    ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
+    -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
+    ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
       l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
@@ -745,36 +746,25 @@ def reqOf (L : Option SnapLoan) (ds : List EntryM) : Option Nat :=
   | some _ => none
 
 /-- (D22 S-d4) What `run` answers the request with (`advInv`'s `RcvCommit`, `node.Advance`'s
-post): for `some k` the floor's witness at `k` -- unless a snapshot was restored since the `Ready`
-(a node that takes snapshots: `snapIn`, so outside the no-snapshot mode and in the static mode),
-whose pending snapshot shadows the storage, and the floor is not raised (`ownRawNode_raise_floor`
-needs the storage to hold the log up to `applying`, which the log records only with no snapshot
-pending) -- for `none` nothing. -/
+post): for `some k` the floor's witness at `k` (D22 S-d4 item 3: also when a snapshot was restored
+since the `Ready`, `StorExtOk`), for `none` nothing. -/
 def reqWit (γ : NodeNames) : Option Nat → IProp GF
   | none => iprop(True)
-  | some k => iprop((∃ x : w64, storFloor γ.stor x ∗ ⌜(k : Int) ≤ uint.Z x⌝) ∨
-      ⌜γ.snapIn = true ∧ γ.raft.reNoSnap = false ∧ γ.mode = .static⌝)
+  | some k => iprop(∃ x : w64, storFloor γ.stor x ∗ ⌜(k : Int) ≤ uint.Z x⌝)
 
 instance reqWit_persistent (γ : NodeNames) (q : Option Nat) :
     Persistent (reqWit (GF := GF) γ q) := by
   cases q <;> unfold reqWit <;> infer_instance
 
-/-- (D22 S-d4) The floor's witness after a `Ready` without a snapshot, for a client that cannot be
-handed a snapshot (`readyDataL_none`'s cases). -/
+/-- (D22 S-d4) The floor's witness after a `Ready` without a snapshot. (Until D22 S-d4 item 3 it
+needed a client that cannot be handed a snapshot, `H`, now unused.) -/
 theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
-    (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    (_H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
     reqWit (GF := GF) γ (reqOf none ds) ⊢
       ∃ x : w64, storFloor γ.stor x ∗ ⌜(ds.length : Int) ≤ uint.Z x⌝ := by
   iintro Hw
   unfold reqOf reqWit
-  icases Hw with (Hw | %Hs)
-  · iexact Hw
-  exfalso
-  obtain ⟨H1, H2, H3⟩ := Hs
-  rcases H with h | h | h
-  · rw [h] at H2; cases H2
-  · rw [H3] at h; cases h
-  · rw [h] at H1; cases H1
+  iexact Hw
 
 /-- The tick channel: one credit per buffered tick. -/
 def tickInv (γ : NodeNames) : IProp GF :=
@@ -848,8 +838,8 @@ over the channel's states (`advInv`), in place of a handshake's fixed reply:
 (D22 S-d4, 2026-10-21) After a snapshot `Ready` (the loan `L`, in `rof`) the receipt is the storage
 at the snapshot (`snapReceipt`), which `RawNode.Advance` takes: it passes to `run` in `advRet`
 (`loanRet`), nothing is absorbed, no floor raised, and the request is `none` (`reqOf`). After one
-without, a snapshot restored since (`RNState.psnap`) shadows the storage: the receipt is absorbed,
-the floor not raised, and the answer is `reqWit`'s second case.
+without, the receipt is absorbed and the floor raised, also when a snapshot was restored since
+(`RNState.psnap`; D22 S-d4 item 3, `StorExtOk`).
 
 In Perennial's channel model a receiver's `RcvPending` is entered only by the sender that meets
 it, in the same step as `SndCommit` (`wp_TrySend_blocking`'s `RcvWait` case; a waiting offer a

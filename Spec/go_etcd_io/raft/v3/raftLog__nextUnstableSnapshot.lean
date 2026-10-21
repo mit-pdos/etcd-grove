@@ -34,7 +34,7 @@ abbrev raftLog.nextUnstableSnapshot.spec : Prop :=
       (⌜p = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
         ⌜ls.snap = some sid ∧ ls.sip = false ∧ snapId sv = sid ∧
           snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∧ 0 < uint.Z sid.index'⌝ ∗
-        ownSnapM p (DFrac.own 1) sv) }}
+        ownSnapS p (DFrac.own 1) sv) }}
 
 end spec
 

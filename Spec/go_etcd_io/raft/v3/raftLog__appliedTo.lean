@@ -34,6 +34,9 @@ abbrev raftLog.appliedTo.spec : Prop :=
   -- (D19i part 1) past `applying` only below `offsetInProgress` (`ownRaftLog`'s `FlOk`; D22
   -- S-d1b: with a snapshot pending too)
   (uint.Z ls.applying < uint.Z i → uint.Z i < uint.Z ls.inprogress) →
+  -- (D22 S-d4 item 3) with a snapshot pending and the storage not lent, past `applying` only up to
+  -- what the storage holds (`LogState.sxt`, `StorExtOk`)
+  (ls.snap ≠ none → ls.lent = false → uint.Z ls.applying < uint.Z i → uint.Z i ≤ uint.Z ls.sxt) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLogW l ls }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"appliedTo")) (Val #i))
       (Val #size))

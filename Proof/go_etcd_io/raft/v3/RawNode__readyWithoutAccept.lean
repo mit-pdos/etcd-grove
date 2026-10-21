@@ -300,7 +300,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       (⌜bsn = false ∧ SN = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
         ⌜s.logst.snap = some sid ∧ s.logst.sip = false ∧ snapId sv = sid ∧
           snapTrip sv sv.Metadata'.ConfState'.lists ∈ s.logst.ksn ∧ 0 < uint.Z sid.index'⌝ ∗
-        ownSnapM SN (DFrac.own 1) sv))
+        ownSnapS SN (DFrac.own 1) sv))
     with [rd Hlog r Hf_raftLog] as ⟨%SN, rd, Hlog, r, Hf_raftLog, Hsnarm⟩
   · iexists null
     iframe
@@ -598,9 +598,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
             rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega
           have he := h.eq_of_length (by omega)
           rw [he]; exact List.prefix_refl _
-      icases ownSnapM_split SN (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) svs $$ [Hsvo]
+      icases ownSnapS_split SN (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) svs $$ [Hsvo]
         with ⟨Hsv1, Hsv2⟩
       · rw [dfrac_half_half]; iexact Hsvo
+      -- (D22 S-d4 item 4) the node keeps its half as a snapshot, the application's half set
+      ihave Hsv1 := ownSnapS_M _ _ _ $$ Hsv1
       iexists some ⟨SN, svs, s.logst.fl, fp0⟩
       simp only [rdSnapRel, rdSnapOut]
       iframe Hsv1 Hsv2 Hfp0

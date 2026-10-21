@@ -40,6 +40,7 @@ private theorem wp_EnsureSnapshot_arg
   · subst Hdq
     wp_apply wp_EnsureSnapshot.1 sp (some sv) $$ [Hs] as %r ⟨Hr, %Hrsp⟩
     · simp only [snapOpt]; iexact Hs
+    ihave Hr := ownSnapS_W _ _ _ $$ Hr
     ihave Hr := ownSnapW_E $$ Hr
     have Hr' : r = sp := Hrsp Hnn
     subst Hr'

@@ -1048,7 +1048,8 @@ def rdSnapOut (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : List EntryM)
     (L : Option SnapLoan) : IProp GF :=
   match L with
   | none => iprop(⌜rd.Snapshot' = null⌝)
-  | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
+  -- (D22 S-d4 item 4) the application's half set: `MemoryStorage.ApplySnapshot` takes it
+  | some l => iprop(ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
       ⌜LoanOut rs rd ce es l⌝)
 
 /-- (D22 S-d3a) What a `Ready` hands the application for the storage: the right to append the batch

@@ -68,23 +68,17 @@ theorem raft.handleSnapshot.wp_proof
   wp_apply wp_GetSnapshot.1 $$ [$Hm] as %ps ⟨Hsnap, Hmback⟩
   ihave %Hps : ⌜ps ≠ null⌝ $$ [Hsnap]
   · simp only [snapOpt]; iunfold ownSnapM at Hsnap; iNamed Hsnap; ipureintro; exact Hnn
+  -- (D22 S-d4 item 4) every pointer field set
   wp_apply wp_EnsureSnapshot.1 $$ [$Hsnap] as %sp ⟨Hsnap, %Hsp⟩
-  ihave Hsnap := ownSnapW_E $$ Hsnap
   obtain rfl := Hsp Hps
   simp only [Option.getD_some]
-  wp_apply wp_Snapshot_GetMetadata_E $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
-  icases smPts_not_null $$ Hmd with ⟨%Hpm, Hmd⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm _ _ $$ [Hmd] as Hmd
-  · iunfold smOpt; iright; iexact Hmd
-  ihave Hsnap := Hsback $$ [Hmd]
-  · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
-  wp_apply wp_Snapshot_GetMetadata_E $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
-  icases smPts_not_null $$ Hmd with ⟨%Hpm, Hmd⟩
-  wp_apply wp_SnapshotMetadata_GetTerm pm _ _ $$ [Hmd] as Hmd
-  · iunfold smOpt; iright; iexact Hmd
-  ihave Hsnap := Hsback $$ [Hmd]
-  · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
-  wp_auto
+  wp_apply wp_Snapshot_GetMetadata_S $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm _ _ $$ [$Hmd] as Hmd
+  ihave Hsnap := Hsback $$ Hmd
+  wp_apply wp_Snapshot_GetMetadata_S $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
+  wp_apply wp_SnapshotMetadata_GetTerm_S pm _ _ $$ [$Hmd] as Hmd
+  ihave Hsnap := Hsback $$ Hmd
+  try wp_auto
   wp_apply wp_raft_restore c _ _ _ sp sv cl Hrole Hvotes Hcl Hscope Hns
     $$ [$Hphys $Hsnap $Hcert] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
   ihave Hm := Hmback $$ [Hsnap]

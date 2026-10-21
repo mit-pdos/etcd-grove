@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.appliedTo.wp_proof
     (wp_raftLog_appliedTo : raftLog.appliedTo.spec (GF := GF) (hG := hG)) :
     raft.appliedTo.spec (GF := GF) (hG := hG) := by
-  intro c r id s index size Hidx Hipo Hal0 Hsa Hapsb
+  intro c r id s index size Hidx Hipo Hal0 Hsa Hapsb Hsx Hkx
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -53,16 +53,22 @@ theorem raft.appliedTo.wp_proof
     wp_apply raft.wp_load_raftLogCW $$ Hphys as Hphys
     icases ownRaftPhysCVW_log_atQ c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
     first
-      | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) Hipo $$ [$Hlog] as Hlog
+      | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) Hipo Hsx $$ [$Hlog] as Hlog
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega)
-          (fun h => absurd Hapl (Int.not_le.2 h)) $$ [$Hlog] as Hlog
+          (fun h => absurd Hapl (Int.not_le.2 h)) (fun _ _ h => absurd Hapl (Int.not_le.2 h))
+          $$ [$Hlog] as Hlog
     ihave Hlog := ownRaftLogW_quietW _ _ $$ Hlog %(⟨Hsa, by
       cases h : s.logst.aps
       · rfl
       · have := Hapsb h
         simp only [Bool.true_and, decide_eq_false_iff_not]
         omega⟩)
-    ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
+    ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
+        (hx := fun h => SnpExt.raise h rfl rfl rfl (by simp only; rw [w64Max_spec]; omega)
+          (fun ha k hk => by
+            have := Hkx ha k hk
+            simp only; rw [w64Max_spec]
+            first | omega | (simp only [decide_eq_true_eq, decide_eq_false_iff_not] at *; omega))))
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     -- `r.trk.Config.AutoLeave`: off, or the node is no leader (`Hal0`) -- the rest is dead
     icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htback⟩

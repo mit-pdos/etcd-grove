@@ -52,6 +52,12 @@ abbrev raft.appliedTo.spec : Prop :=
   -- `sapp` window. The result is quiet.
   s.logst.sapp = false →
   (s.logst.aps = true → uint.Z s.logst.prev.index' ≤ uint.Z index) →
+  -- (D22 S-d4 item 3) with a snapshot pending and the storage not lent, past `applying` only up to
+  -- what the storage holds (`raftLog.appliedTo`'s premise; `appliedSnap` after a second restore)
+  (s.logst.snap ≠ none → s.logst.lent = false → uint.Z s.logst.applying < uint.Z index →
+    uint.Z index ≤ uint.Z s.logst.sxt) →
+  -- and in `appliedSnap`'s window, past the snapshot handed out (`SnpExt`)
+  (s.logst.aps = true → ∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z index) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCVW c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appliedTo")) (Val #index))

@@ -657,6 +657,7 @@ theorem RawNode.acceptReady.wp_proof
     wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
       ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega,
         by show uint.Z s.logst.applying ≤ _; omega, Hend⟩
+      (fun h => absurd (show s.logst.snap = none from (Hrdp.1 HL).2) h)
       $$ [Hlog] as Hlog
     · iframe Hlog
     isplitr
@@ -704,7 +705,16 @@ theorem RawNode.acceptReady.wp_proof
   have HsnpN : SnpOk { s.gh with outlb := 0, unst := false, slent := L.isSome, snp := loanTrip L }
       (logAcceptApplying (logAcceptUnstable ls0) ce sz) := by
     obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, -⟩ := Haf
-    refine ⟨by rw [a5, Hf_lent], fun k hk => ?_, fun h => ?_, fun h => ?_⟩
+    refine ⟨by rw [a5, Hf_lent], fun k hk => ?_, fun h => ?_, fun h => ?_, fun k hk hlt => ?_⟩
+    rotate_right
+    · -- (D22 S-d4 item 3) a snapshot handed out lends the storage
+      exfalso
+      cases hl : L with
+      | none => rw [hl] at hk; cases hk
+      | some l =>
+        have : (logAcceptApplying (logAcceptUnstable ls0) ce sz).lent = true := by
+          rw [a5, Hf_lent, hl]; rfl
+        rw [this] at hlt; cases hlt
     · cases hl : L with
       | none => rw [hl] at hk; cases hk
       | some l =>

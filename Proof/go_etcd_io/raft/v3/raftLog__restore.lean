@@ -42,11 +42,11 @@ theorem raftLog.restore.wp_proof
   iNamed Hlog
   icases isLoggerVal_open _ $$ Hl_logger with ⟨%lg, %Hlg, #Hlgr⟩
   wp_auto
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hsnap] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetTerm pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetTerm_S pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
@@ -54,8 +54,8 @@ theorem raftLog.restore.wp_proof
   try wp_auto
   rw [Hlg]
   wp_apply Logger.wp_logf lg _ _ _ (by decide) $$ Hlgr
-  wp_apply wp_Snapshot_GetMetadata.1 sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hm] as Hm
+  wp_apply wp_Snapshot_GetMetadata_S sp dq sv $$ [$Hback] as %pm ⟨Hm, Hback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm dq _ $$ [$Hm] as Hm
   ispecialize Hback $$ Hm
   try wp_auto
   icases raftLog_lend_unstable l { lv with committed' := sv.Metadata'.Index' } ls Hip Hsip
@@ -79,7 +79,19 @@ theorem raftLog.restore.wp_proof
       ⟨Hpend.1, fun h => by simp [logRestore] at h⟩
       ⟨Hfl.1, Hfl.2.1, by
         show uint.Z ls.applying < uint.Z (sv.Metadata'.Index' + W64 1)
-        have := Happlying.2; word, Hfl.2.2.2⟩
+        have := Happlying.2; word, Hfl.2.2.2.1, fun _ hl => by
+        have Ha := storExt_of_inv Hstore Hoffset Hipb Hpersist Hpend Hfl hl
+        show uint.Z (if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt
+            else ls.applying) ≤ _ ∧
+          uint.Z ls.applying ≤
+            uint.Z (if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt
+              else ls.applying)
+        split
+        · rename_i hc
+          obtain ⟨hs, hle⟩ := hc
+          have := Hfl.2.2.2.2 (by intro h; rw [h] at hs; cases hs) hl
+          exact ⟨this.1, hle⟩
+        · exact ⟨Ha, Int.le_refl _⟩⟩
       (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
       (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩

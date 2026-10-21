@@ -944,7 +944,10 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md 
         (∀ sv, sn = some sv →
           snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
           uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
-          md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader)) ∧
+          md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+          (s.logst.snap ≠ none → s.logst.lent = false →
+            uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+          (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index')) ∧
         uint.Z m.Term' ≤ uint.Z s.term ∧
         (m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
           StableOk (ackLog s.logst sn) (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
@@ -2547,9 +2550,9 @@ is handed over) gets the storage's floor witness, the application's right to com
 up to it, and the node is marked raised (`RNState.flw`) until `Advance` moves `applied` there. -/
 theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hunp0 : rs.unpersisted = [])
-    -- (2026-10-20, D22 S-c) no snapshot pending: none restored since the last `Ready`, and
-    -- (D22 S-d3a) none lent (the storage is the application's then)
-    (Hps : rs.psnap = false) (Hsl : rs.slent = none) :
+    -- (D22 S-d3a) no snapshot lent (the storage is the application's then); since D22 S-d4 item 3
+    -- a snapshot restored since the last `Ready` may be pending (`StorExtOk`)
+    (Hsl : rs.slent = none) :
     ⊢ ownRawNode (GF := GF) γ rn id rs ==∗
       ownRawNode γ rn id { rs with flw := true } ∗
       ∃ x : w64, ⌜uint.Z x = (rs.delivered.length : Int)⌝ ∗ storFloor rs.storage x := by
@@ -2557,8 +2560,9 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iNamed H
   icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
   icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  have Hlnt : s.logst.lent = false := by rw [Hgh0.1.2.1, Hloan.1, Hsl]; rfl
   imod ownRaftLog_raise_floor s.log s.logst s.logst.applying ⟨Hflb.1, Int.le_refl _⟩
-    (Hunp ▸ Hunp0) (Hsnap (.inl ⟨Hps, Hsl⟩)) $$ Hlog with ⟨Hlog, Hfw⟩
+    (Hunp ▸ Hunp0) Hlnt $$ Hlog with ⟨Hlog, Hfw⟩
   ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
