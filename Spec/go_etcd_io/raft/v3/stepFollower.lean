@@ -85,48 +85,6 @@ def readForward (id lead : w64) (m : MessageM) (ents : List EntryM)
   Msg.mkV .readIndex (if m.From' = W64 0 then id else m.From') lead (W64 0) m.Reject' m.Index'
     m.LogTerm' m.Commit' m.RejectHint' ents [] cl
 
-/-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
-`ErrProposalDropped` (the postcondition then says `err` is that global's value;
-otherwise `err = nil`). -/
-def FollowerStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
-    (m : MessageM)
-    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
-    (cl : List w8 := []) : Prop :=
-  if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
-  else if m.Type' = MsgProp then
-    if s.lead = W64 0 then dropped = true ∧ s' = s
-    else dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl]
-  else if m.Type' = MsgApp then
-    dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
-  else if m.Type' = MsgHeartbeat then
-    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
-  else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
-    m.Type' = MsgCheckQuorum then
-    dropped = false ∧ s' = s
-  else if m.Type' = MsgSnap then
-    dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
-  else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
-  -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
-  else if m.Type' = MsgReadIndex then
-    dropped = false ∧
-    (if s.lead = W64 0 then s' = s
-     else s' = sendMsgs s [readForward id s.lead m ents cl])
-  else if m.Type' = MsgReadIndexResp then
-    dropped = false ∧
-    (match ents with
-     | [e] => s' = addReadState s m.Index' e.Data'
-     | _ => s' = s)
-  -- (2026-10-13) `ForgetLeader` clears the leader (the read-only option is `Safe`);
-  -- a leader-transfer request is forwarded to the leader, or dropped without one, and
-  -- carries nothing the model sees; the local reports have no arm; `MsgTimeoutNow`
-  -- campaigns (`hup(campaignTransfer)`), with the voters `cfg` (until 2026-10-13 written
-  -- `domSet s.progress`, equal to it before learners were tracked)
-  else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
-  else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
-    dropped = false ∧ s' = s
-  else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOk cfg id s s'
-  else False
-
 /-- `FollowerStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with
 the configuration `c'` the node is at afterwards: `c` itself, except after a `MsgSnap` that
 `restore` installs, which moves it to the snapshot's (since 2026-10-14, stage A3; since B8 the
