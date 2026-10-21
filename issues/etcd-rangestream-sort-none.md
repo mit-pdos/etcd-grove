@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#22615 pr open: would fix this bug without saying so: it fixes #22612 (etcd-range-sort-none-limit) by making IsDefaultOrdering false for a non-key target with NONE, so checkRangeStreamRequest rejects these requests, as this candidate's fix does
   - etcd-io/etcd#21631 pr merged: related, not this bug (the RangeStream server, whose IsDefaultOrdering check is the defect)

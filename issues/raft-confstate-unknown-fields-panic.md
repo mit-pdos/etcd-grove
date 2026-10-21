@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/raft#423 pr merged: removed gogoproto.nullable from ConfState; not about unknown fields
   - etcd-io/raft#432 pr merged: passes ConfState as a pointer; not about unknown fields

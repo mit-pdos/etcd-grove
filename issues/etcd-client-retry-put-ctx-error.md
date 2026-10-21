@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#18424 issue closed: same root cause (ahrtr named the isContextError retry branch as unsafe for writes); closed not planned, maintainers judged it unreachable because ErrCanceled had no gRPC mapping
   - etcd-io/etcd#21122 pr merged: related, not this bug; added the errors.ErrCanceled -> codes.Canceled mapping (2026-02), which makes the branch reachable from the server, against #18424's reasoning

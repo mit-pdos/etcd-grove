@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-19
+checked: 2026-10-21
 links:
   - etcd-io/etcd#17223 issue closed: the same nil read tx (`UnsafeRange` on a closed backend), reached at shutdown; closed by #17757 and gRPC's GracefulStop draining handlers, which do not cover a snapshot install
   - etcd-io/etcd#21873 pr closed: the same class (a holder of `s.be` using it across applySnapshot's swap and close), for `monitorKVHash`; not merged

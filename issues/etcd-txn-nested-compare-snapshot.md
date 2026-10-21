@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#8102 pr merged: related, not this bug (introduced nested txns; does not document when a nested guard is evaluated)
 ---

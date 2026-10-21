@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - kubernetes/kubernetes#84865 pr merged: introduced the panic in component-base's featuregate (2019, "should not silently return false"); documented on `(*featureGate).Enabled` only, the interface comment kept, as in component-base's master today
   - etcd-io/etcd#18062 pr merged: copied component-base's featuregate into etcd's `pkg/featuregate` with the same interface comment; the panic not discussed

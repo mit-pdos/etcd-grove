@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#10907 pr merged: related, not this bug (added RoleAdd's empty-name check, the only name check besides UserAdd's; no length bound)
 ---

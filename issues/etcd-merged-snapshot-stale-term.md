@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-19
+checked: 2026-10-21
 links:
   - etcd-io/etcd#7470 issue closed: a different bug in the same merge (`createMergedSnapshotMessage` looked up the snapshot's term in a possibly compacted raft log, a panic); not the message's term
   - etcd-io/etcd#7513 pr merged: the fix of #7470 (the snapshot's term from `etcdProgress.appliedt`), which is the code this finding is about

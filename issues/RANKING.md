@@ -1,7 +1,7 @@
 # Which issues matter most to etcd's developers
 
 A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20; upstream
-states as of 2026-10-20): the order in which we would bring the
+states as of 2026-10-21): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -111,9 +111,12 @@ before any public issue.
     stamped with its old term but carrying data of a newer term, which a follower still at the old
     term installs; with a gap of two terms, a leader of the term in between can panic (`need
     non-empty snapshot`). Needs a stall longer than an election timeout, two followers past
-    compaction and a partition; the etcd half reproduced with the real apply loop, the panic in
-    raft from hand-built messages, not end to end. Fix a few lines (tested). Searched upstream
-    2026-10-19: not reported (raft#47 states the invariant).
+    compaction and a partition (5 or more members, asymmetric); the etcd half reproduced with the
+    real apply loop, the panic in raft from hand-built messages, not end to end. With a gap of one
+    term no wrong result was found (one untraced consequence: a `--force-new-cluster` restart of
+    that follower writes log terms that go down); no wrong commit was found with any gap. Fix a few
+    lines (merge only at the message's term; tested; the verified fork carries it). Searched
+    upstream 2026-10-19: not reported (raft#47 states the invariant).
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
@@ -147,7 +150,7 @@ one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, ma
 
 ## Filed by us
 
-Issues and PRs by `upamanyus` (or `upamanyus-agent`), checked against GitHub 2026-10-20. Ranked by
+Issues and PRs by `upamanyus` (or `upamanyus-agent`), checked against GitHub 2026-10-21. Ranked by
 what is left to do:
 
 1. **[raft-readindex-removed-leader](raft-readindex-removed-leader.md)**: fixed, etcd-io/raft#536
@@ -236,16 +239,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [raft-joiner-empty-confstate](raft-joiner-empty-confstate.md),
   [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) (a mixed-version
   panic, hypothetical until a field is added).
-- **A Raft invariant broken, no wrong result found**:
-  [etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md) (2026-10-19). `applyAll`
-  merges a queued `MsgSnap` of an old leader's term with content applied later, so a follower
-  still at that term ends with a last log term above its own term. It needs 5 or more members, a
-  stalled fsync on the leader, two followers lagging past compaction and an asymmetric partition.
-  Reproduced at raft level with an emulation of etcd's pipeline, and the merge with etcd's real
-  `applyAll`; not end to end. The only consequence found is untraced: a `--force-new-cluster`
-  restart of that follower writes log terms that go down. The fix is a few lines (merge only at
-  the message's term), and the verified fork carries it for the proof. Searched upstream: not
-  reported.
 - **Model or documentation only**: [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md),
   [raft-ready-messages-read-after-handout](raft-ready-messages-read-after-handout.md),
   [raft-step-writes-caller-message](raft-step-writes-caller-message.md),

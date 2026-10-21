@@ -1,6 +1,6 @@
 ---
 upstream: reported
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#22614 issue open: this bug, reported 2026-10-19
   - etcd-io/etcd#22408 pr open: related, not this bug (the same getWatchLoop retry path: back-off and GetTimeout are never read; still open, not in main 22cc5d9ac)

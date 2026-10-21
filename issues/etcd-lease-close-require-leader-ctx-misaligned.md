@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#22081 issue open: same bug (ka.ctxs[newIdx] for ka.ctxs[i] in closeRequireLeader), reported 2026-07-12; no maintainer review yet
   - etcd-io/etcd#22087 pr open: same fix (ctxs[i]) with a regression test, fixes #22081; marked stale 2026-10-12, not approved; upstream main still has ctxs[newIdx]

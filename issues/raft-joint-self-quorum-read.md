@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/raft#536 pr merged: related, not this bug: the removed-leader fix; its first version (`IsSingleton(id)`, via `VoteResult`) also fixed this, the merged form (`IsVoter(r.id) && IsSingleton()`, after review) does not, so `{1}&&{1}` still waits
   - etcd-io/raft#535 pr merged: related, not this bug: moved the single-voter shortcut into `sendMsgReadIndexResponse` (the singleton-stale fix), still `IsSingleton()`

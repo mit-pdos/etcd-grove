@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - anishathalye/porcupine#11 issue closed: related, not this bug (a user's Step mutated its state; the origin of the documented "purely functional" model contract this finding cites)
 ---
