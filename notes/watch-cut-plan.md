@@ -1,6 +1,6 @@
 # Plan: watches across a cut (linkv3p)
 
-Status: W0 done (2026-10-21, branch `watch-cut`); next W1. Follows `notes/read-retry-plan.md` (D29),
+Status: W0 done, the lifting lemma scoped (2026-10-21, branch `watch-cut`); next W1. Follows `notes/read-retry-plan.md` (D29),
 `notes/keepalive-plan.md` (D28) and `notes/client-cut-plan.md` (D26, D27), whose "Later" section
 lists this item.
 
@@ -99,6 +99,54 @@ member, because the stream changes members. Two ways:
   Either check "the revisions increase, and every `wk/` put's reply revision has its event"
   instead of "gapless", or run the watch workload alone in its own run of Main.
 - To be decided at W0 by what the Go test shows. Running it alone is the simpler proof.
+
+## The lifting lemma, scoped (2026-10-21)
+
+**The lemma is in reach and small.** Its pieces exist:
+- A watch event's log is `evLog`: sealed and certified (`certOk`) at the member's store.
+- `kv_cert_read` (`KVLemmas.lean`): a certified log has at most two revisions or is
+  `kvModel γk A` of a committed prefix `A` (`srvRLogLb`).
+- `srvRLogLb_prefix`: two committed prefixes are comparable, at the raft names all members share.
+- `kvRaftOf_prefix`: the model grows with the raft log.
+- The members' KV names agree on everything `kvModel` reads (`c0`, `ch0`, `log0`;
+  `putget3/Alloc.lean`). Only the certificate map `cok` is per member.
+- So two members' certified logs are in prefix order, and a revision's events agree across members.
+  About a hundred lines.
+
+**But "every member meets one shared spec" (Q1(a)) does not work.** The watch stream's spec
+(`watchDn`) is about the member's own mvcc ghost state: watcher registrations, the notified log
+(`notifiedLb`), the released revisions (`relLb`), the channel's coverage (`covFact`), and the header
+member id. The client's resume proof uses all of it. None of it can be stated cluster-wide.
+- Q1 is therefore (b): `NewStream` over `addrs` returns a stream to **some** member of the list,
+  with that member's registered spec. This is also what gRPC does: a stream lives on one
+  subconnection.
+- The lemma is what lets the client join epochs served by different members into one history (Q2
+  (i), used in W3, not at the boundary).
+
+**The resume at another member needs a server-side change (W2).**
+- A resumed create carries `startRead γ sr rev` at the member that receives it: a member-local lower
+  bound (`idxCert`, `notifiedLb` or `relLb` of that member's store). For a watch with a promised
+  completeness (`cplCond`: `sr = true`) the client must provide it.
+- After a failover the client knows only the previous member's facts. A lagging member has not
+  reached `rev`, so no member-local bound exists.
+- etcd's server guards this case itself. `progressIfSync` sends no progress notification to a
+  watcher whose start revision is above the store's (`if rev < w.startRev { return false }`),
+  upstream since `973847aa24` and in the pinned code. So a lagging member never reports progress
+  below the resumed start.
+- The plan for W2: give `startRead` a cluster-wide case, "a certified log of some member reaches
+  `rev`" (the lemma). Then re-prove mvcc's guarantee (`covFact`'s `sr = true → lo ≤ rev + 1`) from
+  the guard rather than from `startRead_le`. If the guard alone suffices, `startRead` may be
+  dropped altogether. Size: medium, in mvcc's watch proofs.
+
+**A side finding: the examples' Go tests do not run the verified watch client.**
+- Every example's `go.mod` pins the etcd fork at `8a24be2a3`. That is before the four watch-resume
+  fixes F1–F4 that the translation's pin `b3c29bc17` carries, and that pin is not pushed (no remote
+  branch contains it).
+- W0's run therefore exercised the unfixed resume path. It passed, since no transient error hit a
+  closing or canceled substream.
+- With the server's guard, the F3 scenario (`issues/etcd-watch-resume-below-start-revision.md`)
+  looks unreachable against etcd's own server: its reproduction uses a fake server. To check, and
+  to note in the issue.
 
 ## Stages
 
