@@ -14,7 +14,14 @@ uses v1 conf changes only, so there the outcome is a wrong configuration on one 
   three commits: ca5cc04 adds the test, which fails there; 5b24f1e is the fix (`raft.go`, 17 lines added); da0e9bf
   adds the changelog entry. Rebuilt 2026-10-18 with a new fix (deferring the snapshot; it replaces 5acb532, which
   ignored it, and 7982f54, the same changelog commit on top of it), Force-pushed 2026-10-19 to `upamanyus/etcd-raft` (replacing c65d182b8); the issue's test link (`#L718-L764`) checked on GitHub: the test, doc comment to closing brace.
-- **Base**: upstream `main` 638f42739b77572b5708eb0d8a776a272ade71ed (2026-10-16)
+- **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-19, the merge of #536). Rebased
+  2026-10-21 from 638f42739 (old head `da0e9bf`, kept as local `backup/raft-snapshot-during-apply-stale-confchange-v1`):
+  a016d92 (test), bfbb745 (fix), 48dafe8 (changelog; its conflict with #535's `pull/TODO` entry in
+  `CHANGELOG-3.8.md` resolved by keeping both lines). The test fails at a016d92 (`expected: []uint64{0x1, 0x2, 0x3}`,
+  `actual: []uint64{0x1, 0x2, 0x3, 0x4}`) and passes at bfbb745; `go test -race ./...`, `gofmt -l`, `go vet` clean.
+  The PR's `raft.go` permalinks moved 8 lines (same code); the test's lines are unchanged. Not yet force-pushed: the
+  fork still has `da0e9bf`; push with
+  `git -C ~/etcd-fixes/raft-snapshot-during-apply-stale-confchange push --force-with-lease=fix/raft-snapshot-during-apply-stale-confchange:da0e9bf origin fix/raft-snapshot-during-apply-stale-confchange`
 - **State**: draft (2026-10-18)
 - **Upstream issue**: —
 - **PR**: — (then replace `pull/TODO` in the changelog commit's `CHANGELOG/CHANGELOG-3.8.md` entry with its number)
