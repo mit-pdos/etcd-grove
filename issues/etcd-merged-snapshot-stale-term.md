@@ -201,19 +201,21 @@ candidate: issues/upstream/etcd-merged-snapshot-stale-term/
      and neither is `s.Term()` (the applied entry's term).
   3. Restamp `m.Term` with the term the content is committed at. Not sound: the sender need not
      be leader at that term.
+  4. Drop the queued message when `appliedt > m.Term` (the snapshot would be newer than the message), in
+     `applyAll`, with no new field. raft's own `MsgSnap` keeps `m.Term ≥` its snapshot's term (etcd-io/raft#47),
+     and this restores that; it does not exclude the second shape, whose snapshot term is `≤ m.Term`.
 
-  The upstream candidate (`issues/upstream/etcd-merged-snapshot-stale-term/`, 2026-10-19) is fix 1
-  with `m.Term >= raftTerm` in place of `==`: it drops only a message of a term raft has left.
-  The raft goroutine can run Readys ahead of the apply jobs (the run loop schedules a job as soon
-  as it receives the batch), so job `k` can take a `MsgSnap` that raft made in a later Ready, at a
-  term newer than batch `k`'s `raftTerm`. Fix 1 with `==` drops that message without a
-  `ReportSnapshot`, and the leader's progress for that peer stays in `StateSnapshot` until the
-  next term change (a liveness loss, found by code reading, not reproduced). Merging it is sound:
-  the data applied up to batch `k` is committed at a term `≤ raftTerm < m.Term`, in the log of
-  the leader of `m.Term`. The same goes for `raftTerm = 0` before the first non-empty HardState
-  after a restart. Whether the fork moves to `>=` is the user's decision: the proof's `.snap`
-  clause would then need content committed at a term `≤ m.Term` in the term-`m.Term` leader's log,
-  not at `m.Term` itself.
+  The upstream candidate (`issues/upstream/etcd-merged-snapshot-stale-term/`) is fix 4 (2026-10-21; until then it
+  was fix 1 with `m.Term >= raftTerm`). Upstream has no invariant the second shape breaks (the receiver's last log
+  term stays `≤` its term and its log is a prefix of the committed log), so the one-condition fix is the one a
+  maintainer would merge; the candidate's `meta.md` lists the others. Dropping is live: `appliedt > m.Term` means
+  raft has already left `m.Term` and reset every peer's progress, so no leader waits for the message. The fork
+  keeps fix 1 with `==`, which the proof's `.snap` clause (content committed at `m.Term`) needs. With `==` the fork
+  can drop a message raft made in a later Ready at a newer term than the job's batch (the raft goroutine runs ahead
+  of the apply jobs), without a `ReportSnapshot`, leaving the leader's progress for that peer in `StateSnapshot`
+  until the next term change (a liveness loss, found by code reading, not reproduced); `>=` would avoid it, and
+  whether the fork moves to `>=` is the user's decision (the `.snap` clause would then need content committed at a
+  term `≤ m.Term` in the term-`m.Term` leader's log).
 - **Found**: 2026-10-19, by stage S-0 of the snapshot track (T-S). The plan's `.snap` clause was
   checked against what `applyAll` sends (`notes/snapshot-path-s0.md`, part 1). The reproduction
   was written the same day. Building it showed that the step-down has to happen inside the stall,

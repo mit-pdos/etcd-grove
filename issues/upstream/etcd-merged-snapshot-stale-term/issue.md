@@ -24,7 +24,7 @@ A `MsgSnap` of term 1 should carry a snapshot of term at most 1, as the `MsgSnap
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestMergedSnapshotTerm`](https://github.com/upamanyus/etcd/blob/fix/etcd-merged-snapshot-stale-term/server/etcdserver/server_test.go#L759-L855) on branch [`upamanyus/etcd:fix/etcd-merged-snapshot-stale-term`](https://github.com/upamanyus/etcd/tree/fix/etcd-merged-snapshot-stale-term), off `main` (6782f5229). On `main` it fails as above, in 20 runs of 20.
+Unit test: [`TestMergedSnapshotTerm`](https://github.com/upamanyus/etcd/blob/fix/etcd-merged-snapshot-stale-term/server/etcdserver/server_test.go#L759-L855) on branch [`upamanyus/etcd:fix/etcd-merged-snapshot-stale-term`](https://github.com/upamanyus/etcd/tree/fix/etcd-merged-snapshot-stale-term), off `main` (bf9cadf04). On `main` it fails as above, in 20 runs of 20.
 
 ### Anything else we need to know?
 
@@ -36,7 +36,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-`main` (6782f5229), go1.27.2 linux/amd64; the reproduction is a unit test, run without binaries.
+`main` (bf9cadf04), go1.27.3 linux/amd64; the reproduction is a unit test, run without binaries.
 
 </details>
 
