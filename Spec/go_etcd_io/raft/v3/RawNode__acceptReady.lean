@@ -41,18 +41,21 @@ stores `rd.HardState` in `prevHardSt` when not empty; the queued acknowledgement
 messages (`newStorageAppendRespMsg`, `newStorageApplyRespMsg`), the apply acknowledgement's
 `Entries` the committed entries' slice.) (D22l, 2026-10-20: `prevHardSt`'s record moves to
 `phsNext rs.phs h`, `h` the `Ready`'s hard state, `hsOpt rd.HardState' h`, which the caller
-names.) -/
+names.) (D22 S-d3a, 2026-10-21) With a snapshot (`L`): the acknowledgement queued shares the
+`Ready`'s snapshot, the snapshot is in progress, and the node records the loan (`RNState.slent`);
+either way no snapshot is restored since this `Ready` (`psnap` off). -/
 abbrev RawNode.acceptReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg) (h : HardStateM),
+    (ce es : List EntryM) (ms : List QMsg) (h : HardStateM) (L : Option SnapLoan),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true ∗
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms true L ∗
       "#Hh" ∷ hsOpt rd.HardState' h }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"acceptReady")) (Val #rd))
   {{ (steps : List Pending), RET #();
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
-                  outlb := 0, unst := false, phs := phsNext rs.phs h } }}
+                  outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
+                  slent := L } }}
 
 end spec
 

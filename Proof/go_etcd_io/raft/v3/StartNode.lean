@@ -106,7 +106,7 @@ theorem StartNode.wp_proof
       unfold runCfg
       iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl, rfl⟩
+      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl, rfl, rfl⟩
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩

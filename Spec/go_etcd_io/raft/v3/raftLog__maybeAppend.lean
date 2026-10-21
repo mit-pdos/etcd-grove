@@ -106,7 +106,9 @@ abbrev raftLog.maybeAppend.spec : Prop :=
             ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored ∧
             ls'.storage = ls.storage ∧ ls'.fl = ls.fl⌝ ∗
       -- (2026-10-10) entries still to be handed out stay so (`NGhost.unst`)
-      ⌜ls'.snap = ls.snap ∧ (nextUnstable ls ≠ [] → nextUnstable ls' ≠ [])⌝ }}
+      ⌜ls'.snap = ls.snap ∧ (nextUnstable ls ≠ [] → nextUnstable ls' ≠ []) ∧
+        -- (D22 S-d3a) and the ghost fields `SnpOk` reads
+        SnpKeep ls ls'⌝ }}
 
 end spec
 

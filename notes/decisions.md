@@ -13580,3 +13580,75 @@ and the miss of `stableTo` (item 1's argument: stale arm on a term change, else 
 `snapReceipt`, `netP` without `Type ≠ MsgSnap`, `runCfg` without `psnap = false`, `dlv`/`dlm` over
 the jump; the floor raised to `applying` at a snapshot `Ready` (item 1); the kv example keeps
 passing no `MsgSnap` (its `netP` conjunct moved to its own network invariant) until S-r.
+
+## D22 S-d3a carried out: a snapshot `Ready` through `RawNode` (no second restore) (2026-10-21)
+
+The `RawNode` layer takes a snapshot `Ready` and its acknowledgement; `node.go` still steps no
+`MsgSnap` (`runCfg`'s `psnap = false`, now with `slent = none`) until S-d4, and `RawNode.Step`
+still takes a `MsgSnap` only with an empty queue (S-d3b). Deviations from "D22 S-d3 designed
+precisely", item 2:
+
+- **The snapshot is split, not read-only.** The queued acknowledgement is a `msgIn` at
+  `DFrac.own 1` (as every queued message: `raft.Step` takes it so), and it shares `rd.Snapshot`'s
+  pointer, so the clone cannot be handed out read-only. It is split ½ application / ½ node:
+  `lentPend (some l) P := ownSnapM l.ptr ½ l.snap ∗ (ownSnapM l.ptr 1 l.snap -∗ P)` stands for the
+  queue (`ownRawNode`'s `Hpend`), the acknowledgement built as that wand
+  (`msgPtsC_store_Snapshot`); the application returns its half with its receipt at `Advance`
+  (`loanRet`, `snapReceipt`: the half, and the storage at the snapshot). **S-r must give
+  `MemoryStorage.ApplySnapshot` a spec on a ½-owned snapshot** (its fields are only read; Go's
+  sharing is race-free there because the node does not touch the message until `Advance`).
+- **No `rst` flag, no `Hdlen` disjunction: a loan.** `RNState.psnap` now means "restored since
+  the last `Ready`" (set by `RawNode.Step`'s `MsgSnap`, cleared by `acceptReady`), which is the
+  records gate (`storedRecsP`) the design wanted `rst` for. The `Ready`'s snapshot is a loan
+  `RNState.slent : Option SnapLoan` (`ptr`, `snap`, `fl`, `dlv`: the committed log up to the
+  snapshot, `isCommitted` in `loanCom`), with `LoanOk rs s` (the mirror `NGhost.snp`, the log at
+  the pending snapshot, the queue `pre ++ [appendAck t e (some l.snap)]` with `pre` the node's own
+  responses, `psnap = false`, `psnap = true → steps = []`). `delivered` and `Hdlen` stay as they
+  were until `Advance`, which sets `delivered := l.dlv` (`advRS`).
+- **Frames carry no `lent`/`sip`/`sat`/`ksn`**: a ghost mirror `NGhost.slent`/`NGhost.snp` with
+  `SnpOk g ls` inside `GhLogOk` (`InvRaftlog.lean`, section `snpok`), kept by every log step
+  (`SnpOk.keep`, `.restore`, `.stableSnap`, `.appliedTo`, `.stableTo`, `.ackL`).
+- `SipOk` gained a second conjunct: a pending snapshot not handed out has nothing in progress
+  after it and `applying` at most its index (`SipOk.applying_lt`, `_ltW`).
+- `ownRawNode_raise_floor` and `ownRawNode_appended` keep `psnap = false` and gain `slent = none`
+  (the storage is the application's while lent); removing `psnap = false` from the floor needs a
+  storage-extent invariant (S-d4).
+- `ApplyConfChange`'s detached result (`ownRawNodeC`) keeps the queue as `lentPend o …`.
+- New: `raftLog.nextUnstableSnapshot`'s spec and proof; `needStorageAppendRespMsg`/
+  `newStorageAppendRespMsg` over `snapOpt rd.Snapshot' dq o`; `Pending.appendAck t (last : Option
+  entryID) (sn : Option SnapshotM)`; `RawNode.Advance` takes `loanRet rs`, premise
+  `slent = none → unpersisted = []`, post `ownRawNode (advRS rs t ca)`; `readyWithoutAccept`/
+  `Ready` post the loan `L` (`rdSnapOut`, `readyOut`, `psnap = false → L = none`); `acceptReady`
+  post `psnap := false, slent := L`; `HasReady` and `readyWithoutAccept` without `psnap = false`.
+
+**Stopped after S-d3a; S-d3b and S-d4 designed on its structure.** S-d4 needs S-d3b (`node.go`
+steps network messages between `acceptReady` and `Advance`, when the queue is not empty), and
+S-d3b is a protocol argument of its own (below), so neither was started.
+
+- *S-d3b, the second restore.* (1) `RawNode.Step`: drop `rs.steps = []` for a `MsgSnap`;
+  `LoanOk`'s fourth conjunct (`psnap = true → steps = []`) goes, and its third (`slent = some l
+  → …`) becomes a disjunction: the log at `l` as now (`snap = snapId l.snap`, `stored =
+  unpersisted`, `psnap = false`), or a later snapshot `s2` restored (`psnap = true`, `snap = some
+  s2`, `l.snap.index ≤ committed < s2.index` -- `SnpOk.restore` already gives the mirror's half: the
+  restored one is not the lent one), with the facts of the miss below; `LoanOk.step` then takes
+  a `MsgSnap` with a loan (`raft.Step`'s `MsgSnap` post must say the log restored or not, and that
+  a restore found `!matchTerm(s2)` -- a new `SnapStep` conjunct). (2) `Advance`'s lent arm with
+  the restore: the receipt is absorbed with `sat = false` (`logAbsorbSnap`: `snap ≠ l`), so
+  `snapHit = sat` holds as `false = false`, `ackSnapLog` is `stableTo` then nothing
+  (`logStableSnap` misses); its premise `StableOk (ackLog ls (some l.snap)) id` is the miss: if
+  the term moved since the `Ready` the arm is the stale one (`m.Term < r.Term`, no `stableTo`);
+  within the term, `id.index ≤ s2.index` misses on `offset = s2.index + 1`, and `id.index >
+  s2.index` with a matching term would, by Log Matching between the records of `stored` (the
+  storage's, `storedRecs`, with the `Ready`'s base) and the term's leader's log (which every
+  `MsgApp`/`MsgSnap` of the term carries), make the log agree with `stored` at `s2.index`, against
+  `restore`'s `!matchTerm(s2)`. (3) The post: `psnap` stays `true`, `slent := none`, `delivered :=
+  l.dlv`, and the next `Ready` hands out `s2`.
+- *S-d4, `node.go`.* `runCfg` without `psnap = false ∧ slent = none` (the node keeps the loan
+  through `runMid`/`advDep`/`advRet`), `netP` without `Type ≠ MsgSnap`; `readyData` with
+  `rdSnapOut` (`rd.Snapshot' = null`, or the snapshot's half and `isCommitted l.dlv`, with
+  `γ.raft.reNoSnap = false`) and `readyOut` (the append right, or the lent storage); `advanceP`
+  with `appendReceipt` or `loanRet`; `dlv`/`dlm` over the jump to `l.dlv` at `Advance` (`advRS`);
+  `ownRawNode_raise_floor` at a loan raises the floor only to `applying` (or waits for `Advance`),
+  since the storage is the application's; `ownRawNode_appended`'s `slent = none` premise is then
+  met by `advance_complete` only without a loan (with one, the receipt is `loanRet`, which
+  `Advance` takes). The kv example and the server keep passing no `MsgSnap` until S-r.

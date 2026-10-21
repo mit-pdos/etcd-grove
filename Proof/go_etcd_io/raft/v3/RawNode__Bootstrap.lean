@@ -276,8 +276,9 @@ theorem RawNode.Bootstrap.wp_proof
   ihave Hlog : ownRaftLog s1.log (logAppend s.logst bootLog) $$ [Hlog]
   · iExactEq Hlog; rw [Hs1ls, Hcont.1]
   ihave Hphys := Hlogback $$ %(logAppend s.logst bootLog) Hlog
-    %(⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h), (by intro h; rw [Hs1gh, Hgh] at h; cases h),
-      (by rw [Hs1ls]; rfl)⟩)
+    %(⟨⟨(by intro h; rw [Hs1gh, Hgh] at h; cases h),
+        (by have h := Hgh0.1.2; rw [Hs1ls] at h; exact h.of_fields rfl rfl rfl rfl rfl (Int.le_refl _))⟩,
+      (by intro h; rw [Hs1gh, Hgh] at h; cases h), (by rw [Hs1ls]; rfl)⟩)
     %(by intro h; rw [Hs1r] at h; cases h)
   generalize Hs2 : ({ s1 with logst := logAppend s.logst bootLog } : NState) = s2
   have Hs2ls : s2.logst = logAppend s.logst bootLog := by rw [← Hs2]
@@ -492,11 +493,15 @@ theorem RawNode.Bootstrap.wp_proof
         ⟨fun h => (by cases h), rfl, by simp only; rw [HNt]; exact Int.le_refl _,
           fun h => by simp only at h; rw [HNr] at h; cases h⟩
         (by simp only; rw [HNgh]) (by simp only; rw [HNgh]) (uint_Z_nonneg _) (HrnflB _ rfl)
+        -- (D22 S-d3a) no snapshot lent
+        ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ h => (by cases h)⟩,
+          fun l h => (by cases h), fun _ => rfl⟩
         (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
         Hnl0
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] []
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
     · iapply pendList_nil
     · iapply storedRecsP_intro; rw [HNls]; simp only [logAppend, Hsd]; iapply storedRecs_nil
+    · ipureintro; trivial
     · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
   · iexact Hpeers
 

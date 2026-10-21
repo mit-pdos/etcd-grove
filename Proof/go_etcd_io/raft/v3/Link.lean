@@ -155,6 +155,7 @@ public import Proof.go_etcd_io.raft.v3.raftLog__maybeCommit
 public import Proof.go_etcd_io.raft.v3.raftLog__mustCheckOutOfBounds
 public import Proof.go_etcd_io.raft.v3.raftLog__nextCommittedEnts
 public import Proof.go_etcd_io.raft.v3.raftLog__nextUnstableEnts
+public import Proof.go_etcd_io.raft.v3.raftLog__nextUnstableSnapshot
 public import Proof.go_etcd_io.raft.v3.raftLog__restore
 public import Proof.go_etcd_io.raft.v3.raftLog__scan
 public import Proof.go_etcd_io.raft.v3.raftLog__slice
@@ -1371,6 +1372,10 @@ theorem raftLog.wp_nextCommittedEnts [StorageModel GF] :
     raftLog.nextCommittedEnts.spec (GF := GF) (hG := hG) :=
   raftLog.nextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex raftLog.wp_slice
 
+theorem raftLog.wp_nextUnstableSnapshot [StorageModel GF] :
+    raftLog.nextUnstableSnapshot.spec (GF := GF) (hG := hG) :=
+  raftLog.nextUnstableSnapshot.wp_proof unstable.wp_nextSnapshot
+
 theorem wp_needStorageApplyMsg [StorageModel GF] :
     needStorageApplyMsg.spec (GF := GF) (hG := hG) :=
   needStorageApplyMsg.wp_proof
@@ -1536,7 +1541,7 @@ theorem RawNode.wp_ReadIndex [AllG GF] [StorageModel GF] :
 
 theorem RawNode.wp_readyWithoutAccept [AllG GF] [StorageModel GF] :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) :=
-  RawNode.readyWithoutAccept.wp_proof raftLog.wp_nextUnstableEnts raftLog.wp_nextCommittedEnts SoftState.wp_equal wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot wp_MustSync raftpb.Message.wp_GetTo
+  RawNode.readyWithoutAccept.wp_proof raftLog.wp_nextUnstableEnts raftLog.wp_nextCommittedEnts SoftState.wp_equal wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_nextUnstableSnapshot wp_MustSync raftpb.Message.wp_GetTo
 
 theorem RawNode.wp_acceptReady [AllG GF] [StorageModel GF] :
     RawNode.acceptReady.spec (GF := GF) (hG := hG) :=

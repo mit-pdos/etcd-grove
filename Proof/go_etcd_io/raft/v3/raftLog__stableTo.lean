@@ -154,12 +154,17 @@ theorem raftLog.stableTo.wp_proof
       simp only
       omega
     · -- (D22 S-d1b) a snapshot in progress: the relation, from the storage's
-      intro _
-      have Hipo : uint.Z (w64Max ls.inprogress (id.index' + W64 1)) - uint.Z (id.index' + W64 1)
-          = max (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') (k : Int) - (k : Int) := by
-        rw [w64Max_spec]; word
-      simp only [Huoff, Hipo]
-      exact Hps.1.rel
+      refine ⟨fun _ => ?_, fun Hs Hsp => ?_⟩
+      · have Hipo : uint.Z (w64Max ls.inprogress (id.index' + W64 1)) - uint.Z (id.index' + W64 1)
+            = max (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') (k : Int) - (k : Int) := by
+          rw [w64Max_spec]; word
+        simp only [Huoff, Hipo]
+        exact Hps.1.rel
+      · -- (D22 S-d3a) a pending snapshot is in progress here (the storage holds it, `sapp`)
+        exfalso
+        rcases Hsn0 with h | h
+        · exact Hs h
+        · rw [(Hsappi h).2.1] at Hsp; cases Hsp
     · simp only [Hk]
   · -- a miss: nothing changes
     rw [ite_eq_right Hh]

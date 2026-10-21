@@ -221,7 +221,8 @@ theorem newRaft.wp_proof
     HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s0]; decide)⟩ (by rw [HpDPF, Hdpf]) (by rw [HpDCC, Hdccv]) (by first | exact HpCQ | exact HpCQ.symm | rw [HpCQ]) rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
-    (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
+    (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _)
+    ⟨fun h => absurd h Bool.false_ne_true, SnpOk.of_quiet rfl rfl rfl rfl (fun _ h => by cases h)⟩
     (fun h => absurd rfl h) (LogNsOk.off rfl)
     -- (2026-10-19, D21 M2r) leader transfer off (the default), the queues empty
     (XfOk.nil (fun _ => rfl) (fun h => absurd h (by simp only [s0]; decide)))

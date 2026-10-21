@@ -45,9 +45,12 @@ local macro "early_return" e:term : tactic => `(tactic| (
   isplitl
   · iapply ownRawNode_intro γ rn id
       { rs with term := rs.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s cf fp rnv sv
-      hprev steps Hwf Hin Hal Hasync Hdlen Hunp (fun h => Hsnap (h.imp_left Hps')) Hstok Htrm Hstor Hpvoff
+      hprev steps Hwf Hin Hal Hasync Hdlen Hunp
+      (fun h => Hsnap (h.imp_left fun h' => ⟨Hps' h'.1, h'.2⟩)) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs'
+      (Hloan.step rs.term (fun h => (Hsnp (of_decide_eq_true h)).2) rfl
+        (fun _ => ⟨rfl, rfl, rfl, rfl, rfl⟩))
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs' Hloanc
   ipureintro
   refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
   split <;> omega))
@@ -211,12 +214,14 @@ theorem RawNode.Step.wp_proof
               { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' c' fp
               rnv sv hprev steps Hwf' Hin Hal'
               Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
-              (fun h => by rcases h with h | h <;> simp [Hs, Hst, RNMode.isDyn] at h)
+              (fun h => by rcases h with ⟨h, -⟩ | h <;> simp [Hs, Hst, RNMode.isDyn] at h)
               (by show StepsOk s' rs.steps; rw [Hst0]; trivial) rfl (by rw [Hsg]; exact Hstor)
               (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
               (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
               (RNFl.keep Hrnfl Hfl' (by rw [Hap']; exact Int.le_refl _) Ha)
-              $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+              (Hloan.step s'.term (fun _ => Hst0) Hgh
+                (fun h => absurd (Hloan.none_of_nil Hst0) h))
+              $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
         ipureintro
         rw [Htrm]
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
@@ -252,12 +257,14 @@ theorem RawNode.Step.wp_proof
             { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s' cf fp
             rnv sv hprev steps Hwf' Hin Hal
             Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp)
-            (fun h => by rw [Hsn]; exact Hsnap (h.imp_left Hps'))
+            (fun h => by rw [Hsn]; exact Hsnap (h.imp_left fun h' => ⟨Hps' h'.1, h'.2⟩))
             Hstok' rfl (by rw [Hsg]; exact Hstor)
             (Hpvoff.step rfl rfl Hpre Hgh Hle Hpcs (by not_net))
             (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
             (RNFl.keep Hrnfl Hfl' Hap' Ha)
-            $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+            (Hloan.step s'.term (fun h => absurd (of_decide_eq_true h) Hs) Hgh
+              (fun _ => ⟨Hsn, Hfl', Hsd, Hu, Ha⟩))
+            $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)

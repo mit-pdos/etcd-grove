@@ -38,6 +38,9 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
     reseal_raftLogW
   all_goals
     simp only [Hcm, Hap, Hapg, Hasz, Hamx] at *
+    -- (D22 S-d3a) `SipOk`: `applying` stays at most a pending snapshot's index
+    try (refine ⟨Hprel.1, ?_⟩; refine SipOk.applying_ltW (ls := ls) Hprel Hstore Hsappi Hoffset ?_
+         simp only [w64Max])
     first
       | rfl
       | omega

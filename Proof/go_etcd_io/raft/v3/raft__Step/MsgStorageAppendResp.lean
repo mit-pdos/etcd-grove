@@ -23,6 +23,27 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+section snplemmas
+variable [FfiSyntax]
+
+/-- (D22 S-d3a) `SnpOk` after `stableTo`, which keeps every field it reads. -/
+theorem SnpOk.stableTo {g : NGhost} {ls : LogState} (id : entryID) (H : SnpOk g ls) :
+    SnpOk g (logStableTo ls id) := by
+  unfold logStableTo; split
+  · exact H.of_fields rfl rfl rfl rfl rfl (Int.le_refl _)
+  · exact H
+
+/-- (D22 S-d3a) ... and the `sapp` window opened (`ackLog`). -/
+theorem SnpOk.ackL {g : NGhost} {ls : LogState} (sn : Option SnapshotM) (H : SnpOk g ls) :
+    SnpOk g (ackLog ls sn) := by
+  unfold ackLog; split
+  · exact H
+  · split
+    · exact H.of_fields rfl rfl rfl rfl rfl (Int.le_refl _)
+    · exact H
+
+end snplemmas
+
 section branches
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -150,7 +171,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
       wp_drive _Q
       wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-      icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, -, Hback⟩
+      icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %HghL, Hback⟩
       -- (D22 S-d1b) `stableTo` admits the acknowledgement's window (`ownRaftLogW`)
       icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq0, Hlog⟩
       ihave Hlog := ownRaftLog_toW _ _ $$ Hlog
@@ -160,7 +181,8 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
       have Hkp : LogNsKeep s (logStableTo s.logst ⟨m.LogTerm', m.Index'⟩) := fun _ =>
         ⟨(logStableTo_fields _ _).2.2.2.2.1, (logStableTo_fields _ _).2.2.1,
           logStableTo_storage _ _, by unfold logStableTo; split <;> exact Int.le_refl _⟩
-      ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkp (logStableTo_storage _ _))
+      ihave Hphys := Hback $$ %_ Hlog
+        %(LogGhOk.of_off Hghoff Hkp (SnpOk.stableTo _ HghL.1.2) (logStableTo_storage _ _))
         %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
       wp_apply wp_GetSnapshot_none _Q _ _ _ _ _ Hsn $$ [$Hm] as Hm
       try wp_auto
@@ -290,7 +312,7 @@ theorem ackOpen (c : CfgM) (r : Loc) (id : w64) (s : NState) (sv : SnapshotM)
   obtain ⟨h1, h2, h3, h4, h5, h6, -, -, -⟩ := ackLog_fields s.logst sv
   have Hkeep0 : LogNsKeep s (ackLog s.logst (some sv)) :=
     fun _ => ⟨h1, h5, h6, by rw [h4]; exact Int.le_refl _⟩
-  iapply Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkeep0 h6)
+  iapply Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkeep0 (SnpOk.ackL _ Hgh0.1.2) h6)
     %(fun _ => logLast_le_of_fields (by rw [h1]) (by rw [h2]) (by rw [h3]))
 
 set_option maxHeartbeats 1000000 in
@@ -450,7 +472,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
       wp_drive _Q
       ihave Hphys := ackOpen c r id s sv Hghoff $$ Hphys
       wp_apply raft.wp_load_raftLogCW $$ Hphys as Hphys
-      icases ownRaftPhysCVW_log_at c r id _ $$ Hphys with ⟨Hlog, -, Hback⟩
+      icases ownRaftPhysCVW_log_at c r id _ $$ Hphys with ⟨Hlog, %HghW, Hback⟩
       wp_apply _P.stableTo _ _ _ (Hstok Hmt Hi0) $$ [$Hlog] as Hlog
       obtain ⟨-, -, g3, g4, g5, -⟩ :=
         logStableTo_fields (ackLog s.logst (some sv)) ⟨m.LogTerm', m.Index'⟩
@@ -458,7 +480,8 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
           (logStableTo (ackLog s.logst (some sv)) ⟨m.LogTerm', m.Index'⟩) :=
         fun _ => ⟨g5, g3, logStableTo_storage _ _, by
           unfold logStableTo; split <;> exact Int.le_refl _⟩
-      ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_off Hghoff Hkeep1 (logStableTo_storage _ _))
+      ihave Hphys := Hback $$ %_ Hlog
+        %(LogGhOk.of_off Hghoff Hkeep1 (SnpOk.stableTo _ HghW.1.2) (logStableTo_storage _ _))
         %(fun _ => by rw [logLast_stableTo]; exact Int.le_refl _)
       wp_apply wp_GetSnapshot_some _Q _ _ _ _ _ sv rfl $$ [$Hm] as %ps ⟨%Hps, Hsv, Hmb⟩
       rw [decide_eq_false Hps]

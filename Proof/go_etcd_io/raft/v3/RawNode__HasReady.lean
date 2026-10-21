@@ -58,8 +58,8 @@ local macro "finish0" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
-    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc))
 
 set_option hygiene false in
 /-- Close the view, refold `ownRawNode` unchanged, return. -/
@@ -70,8 +70,8 @@ local macro "finish" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
-    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs))
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc))
 
 set_option hygiene false in
 /-- The one path that returns `false`: no queue is non-empty, no unstable entry is
@@ -98,10 +98,11 @@ local macro "finish_false" : tactic => `(tactic| (
   iright
   isplitr
   · ipureintro; rfl
-  ihave #Hstrecs0 := storedRecsP_elim γ Hps _ _ $$ Hstrecs
+  -- (D22 S-d3a) no snapshot to hand out: none pending, or the pending one in progress
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    (Hsnap (.inl Hps)) Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl ⟨Hout0, Hnu, Hrd0⟩
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs0))
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    ⟨Hout0, Hnu, Hrd0, Hsn.2 rfl⟩
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc))
 
 set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
@@ -154,7 +155,7 @@ theorem RawNode.HasReady.wp_proof
     (wp_raft_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_raft_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     RawNode.HasReady.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hps
+  intro γ rn id rs
   wp_start as H
   iNamed H
   iNamed Hrn

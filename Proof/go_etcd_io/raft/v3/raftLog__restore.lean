@@ -82,7 +82,10 @@ theorem raftLog.restore.wp_proof
         have := Happlying.2; word, Hfl.2.2.2⟩
       (fun h => List.mem_append_left _ (Hsksn h)) Hsip' (fun h => by simp [logRestore] at h)
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
-      (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩ (fun h => by simp [logRestore] at h)
+      (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩
+      ⟨(fun h => by simp [logRestore] at h), (fun _ _ => ⟨by rw [Hoff']; rfl, by
+        show uint.Z ls.applying ≤ uint.Z sv.Metadata'.Index'
+        have := Happlying.2; omega⟩)⟩
       (fun h => by simp [logRestore] at h) ?_ ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hkcert' Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,

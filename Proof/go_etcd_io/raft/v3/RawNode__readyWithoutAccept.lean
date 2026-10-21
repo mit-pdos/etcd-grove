@@ -33,6 +33,7 @@ public import Spec.go_etcd_io.raft.v3.raftLog__nextCommittedEnts
 public import Spec.go_etcd_io.raft.v3.SoftState__equal
 public import Spec.go_etcd_io.raft.v3.isHardStateEqual
 public import Spec.go_etcd_io.raft.v3.raftLog__hasNextUnstableSnapshot
+public import Spec.go_etcd_io.raft.v3.raftLog__nextUnstableSnapshot
 public import Spec.go_etcd_io.raft.v3.MustSync
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 
@@ -51,10 +52,10 @@ set_option linter.unusedSectionVars false
 section helpers
 variable [FfiSyntax]
 
-/-- The `Ready` `readyWithoutAccept` builds, field by field (`Snapshot` stays `nil`: no
-snapshot is pending). -/
-abbrev readyVal (sp hp : Loc) (rs ents ce msgs : GoSlice) (ms : Bool) : Ready :=
-  Ready.mk sp hp rs ents null ce msgs ms
+/-- The `Ready` `readyWithoutAccept` builds, field by field (D22 S-d3a: `Snapshot` `sn`, `nil`
+unless a snapshot is pending and not in progress). -/
+abbrev readyVal (sp hp : Loc) (rs ents : GoSlice) (sn : Loc) (ce msgs : GoSlice) (ms : Bool) : Ready :=
+  Ready.mk sp hp rs ents sn ce msgs ms
 
 end helpers
 
@@ -102,20 +103,23 @@ theorem RawNode.readyWithoutAccept.wp_proof
     (wp_isHardStateEqual : isHardStateEqual.spec (GF := GF) (hG := hG))
     (wp_raftLog_hasNextUnstableSnapshot :
       raftLog.hasNextUnstableSnapshot.spec (GF := GF) (hG := hG))
+    (wp_raftLog_nextUnstableSnapshot :
+      raftLog.nextUnstableSnapshot.spec (GF := GF) (hG := hG))
     (wp_MustSync : MustSync.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hlc := HasLC.hasLC)) :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs Hsteps0 Hunp0 Hps
+  intro γ rn id rs Hsteps0 Hunp0
   wp_start as H
   iNamed H
   iNamed Hrn
-  -- (2026-10-20, D22 S-c) no snapshot pending
-  have Hsnap := Hsnap (.inl Hps)
-  ihave #Hstrecs := storedRecsP_elim γ Hps _ _ $$ Hstrecs
+  -- (D22 S-d3a) no loan (the queue is empty): a pending snapshot was restored since the last
+  -- `Ready`, and is not in progress
+  have Hsl : rs.slent = none := Hloan.none_of_nil Hsteps0
   have HunpS : s.logst.unpersisted = [] := Hunp ▸ Hunp0
   -- the previous `SoftState`, as a record (no spec states it)
   obtain ⟨soft0, Hsoftv⟩ : ∃ soft0 : SoftSt, sv = softstateVal soft0 :=
     ⟨⟨sv.Lead', sv.RaftState'⟩, by cases sv; rfl⟩
+  ihave Hpend := lentPend_none_elim Hsl _ $$ Hpend
   ihave %Hlen0 := BigSepL2.bigSepL2_length $$ Hpend
   rw [Hsteps0] at Hlen0
   cases steps with
@@ -142,6 +146,14 @@ theorem RawNode.readyWithoutAccept.wp_proof
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
+  -- (D22 S-d3a) a pending snapshot: not in progress (no loan), the log after it all to hand out
+  icases ownRaftLog_snap_facts _ _ $$ Hlog with ⟨%Hsf, Hlog⟩
+  icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  icases ownRaftLog_snap_next _ _ $$ Hlog with ⟨%Hsnx, Hlog⟩
+  have Hsip0 : s.logst.sip = false := by
+    cases h : s.logst.sip
+    · rfl
+    · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.2.2 (.inl h))
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog
@@ -150,7 +162,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_call
   wp_auto
   rw [Hasync]
-  wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, -⟩
+  wp_apply wp_raftLog_nextCommittedEnts $$ [Hlog] as %sce %ce ⟨Hlog, #Hce, Hce_cap, %Hcepre, %Hcesn⟩
   · iframe Hlog
   have Hsoft_iff : (s.lead = sv.Lead' ∧ stateW64 s.role = sv.RaftState') ↔
       nodeSoftstate s = soft0 := by
@@ -166,7 +178,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   wp_call
   wp_auto
   wp_apply wp_SoftState_equal $$ [$softSt $Hsoft] as ⟨softSt, -⟩
-  wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp null slice.nil sents sce sl1 false ∗
+  wp_join iprop(∃ sp, rd_ptr ↦ readyVal sp null slice.nil sents null sce sl1 false ∗
       (if nodeSoftstate s = soft0 then iprop(⌜sp = null⌝)
        else sp ↦ softstateVal (nodeSoftstate s)))
     with [rd softSt] as ⟨%sp, rd, Hsoftp⟩
@@ -217,15 +229,22 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · intro H
       rw [H]; exact ⟨rfl, rfl, rfl⟩
   wp_join iprop(rd_ptr ↦ readyVal sp (if nodeHardstate s = hsAbs hprev then null else hp)
-      slice.nil sents sce sl1 false) with [rd hardSt] as rd
+      slice.nil sents null sce sl1 false) with [rd hardSt] as rd
   · rw [ite_pos' (Hhs_iff.1 Hif)]
     iexact rd
   · rw [ite_neg' (fun Hc => Hif (Hhs_iff.2 Hc))]
     iexact rd
   generalize HHP : (if nodeHardstate s = hsAbs hprev then null else hp) = HP
   -- (D22 S-b) the committed log handed out is within the commit index
-  have HceOk := ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩
-    (by omega) Hcepre
+  -- (D22 S-d3a) with a snapshot pending, no committed entries
+  have HceOk : CeOk s.logst ce := by
+    cases hs : s.logst.snap with
+    | none =>
+      exact ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 hs; omega, Hwf1.2.2⟩
+        (by omega) Hcepre
+    | some _ =>
+      rw [Hcesn (by rw [hs]; simp)]
+      intro e h; simp at h
   have Hn : ((rs.delivered ++ ce).length : Int) ≤ uint.Z s.logst.committed := by
     have Hac : uint.Z s.logst.applying ≤ uint.Z s.logst.committed := Hwf1.2.2
     rw [List.length_append, Hdlen]
@@ -274,12 +293,41 @@ theorem RawNode.readyWithoutAccept.wp_proof
       · ipureintro; exact Hn
   wp_apply wp_raftLog_hasNextUnstableSnapshot $$ [Hlog] as %bsn ⟨Hlog, %Hbsn⟩
   · iframe Hlog
-  rw [Hbsn.1 (.inl Hsnap)]
-  wp_auto
+  -- (D22 S-d3a) `if r.raftLog.hasNextUnstableSnapshot() { rd.Snapshot =
+  -- r.raftLog.nextUnstableSnapshot() }`: a fresh clone of a snapshot pending, not in progress
+  wp_join iprop(∃ SN, rd_ptr ↦ readyVal sp HP slice.nil sents SN sce sl1 false ∗
+      ownRaftLog s.log s.logst ∗ r_ptr ↦ rnv.raft' ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
+      (⌜bsn = false ∧ SN = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
+        ⌜s.logst.snap = some sid ∧ s.logst.sip = false ∧ snapId sv = sid ∧
+          snapTrip sv sv.Metadata'.ConfState'.lists ∈ s.logst.ksn ∧ 0 < uint.Z sid.index'⌝ ∗
+        ownSnapM SN (DFrac.own 1) sv))
+    with [rd Hlog r Hf_raftLog] as ⟨%SN, rd, Hlog, r, Hf_raftLog, Hsnarm⟩
+  · iexists null
+    iframe
+    ileft
+    ipureintro
+    exact ⟨by first | trivial | rfl, rfl⟩
+  · wp_apply wp_raftLog_nextUnstableSnapshot $$ [Hlog] as %p ⟨Hlog, %Hp, Hpv⟩
+    · iframe Hlog
+    icases Hpv with (%Hpn | ⟨%sid, %sv, %Hsv, Hsv⟩)
+    · exfalso
+      have := Hp.1 Hpn
+      rw [Hbsn] at this
+      cases this
+    try wp_auto
+    isplitr
+    · ipureintro; rfl
+    iexists p
+    iframe
+    iright
+    iexists sid, sv
+    iframe Hsv
+    ipureintro; exact Hsv
+  try wp_auto
   ihave %Hel := entsPts_len _ _ _ $$ Hents
   -- `if len(r.readStates) != 0 { rd.ReadStates = r.readStates }`
   wp_join iprop(rd_ptr ↦ readyVal sp HP (if s.rd.states = [] then slice.nil else rss)
-      sents sce sl1 false ∗ r_ptr ↦ rnv.raft' ∗
+      sents SN sce sl1 false ∗ r_ptr ↦ rnv.raft' ∗
       rnv.raft'.[raft, go!"readStates"] ↦ rss)
     with [rd r Hf_readStates] as ⟨rd, r, Hf_readStates⟩
   · first
@@ -342,7 +390,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   -- messages' ownership stays in `Hown2` (each one's `GetTo` reads it).
   ihave IH : iprop(∃ (n : w64) (msl : GoSlice) (mv : Loc),
       "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mv ∗
-      "rd" ∷ rd_ptr ↦ readyVal sp HP RS sents sce msl MS ∗
+      "rd" ∷ rd_ptr ↦ readyVal sp HP RS sents SN sce msl MS ∗
       "Hmsgs" ∷ msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))).map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc msl (DFrac.own 1) ∗
       "Hundo" ∷ (msl ↦* (ms1 ++ nonself id (ms2.take (sint.nat n))).map QMsg.loc -∗
@@ -443,7 +491,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
      Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
-    simp only [named, Bool.false_eq_true, ↓reduceIte]
+    simp only [named, rdyLog, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
       Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
     ipureintro
@@ -471,20 +519,25 @@ theorem RawNode.readyWithoutAccept.wp_proof
     outboxRelP_props _ _ _ _ Houtbox
   -- the committed entries handed out extend `delivered`: both are prefixes of the
   -- global committed log, and `delivered` is as long as the `applying` entries before `ce`
-  have Hpre := ready_committed_prefix fp0 (s.logst.sents ++ s.logst.uents) ce s.logst.prev
-    s.logst.committed s.logst.applying Hfp.1
-    ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩
-    (by simp only [List.length_append]; push_cast; omega) (by omega) Hcepre
-  ihave #Hcm' : isCommitted γ
-      ((fp0 ++ (s.logst.sents ++ s.logst.uents)).take (uint.Z s.logst.applying).toNat ++ ce)
-    $$ []
-  · rw [show (toPState s).commit = s.logst.committed from rfl,
-      show (toPState s).log = s.logst.sents ++ s.logst.uents from rfl]
-    iapply isCommitted_mono _ _ _ Hpre.1 $$ Hcm
-  ihave %Hagree := isCommitted_agree γ rs.delivered _ $$ Hdeliv Hcm'
-  have Hdeq := eq_of_prefix_or _ _ _ Hagree (Hdlen.trans Hpre.2.symm)
   ihave #Hdeliv' : isCommitted γ (rs.delivered ++ ce) $$ []
-  · rw [Hdeq]; iexact Hcm'
+  · cases hs : s.logst.snap with
+    | none =>
+      have Hpre := ready_committed_prefix fp0 (s.logst.sents ++ s.logst.uents) ce s.logst.prev
+        s.logst.committed s.logst.applying Hfp.1
+        ⟨by have := Hwf2.2 hs; omega, Hwf1.2.2⟩
+        (by simp only [List.length_append]; push_cast; omega) (by omega) Hcepre
+      ihave #Hcm' : isCommitted γ
+          ((fp0 ++ (s.logst.sents ++ s.logst.uents)).take (uint.Z s.logst.applying).toNat ++ ce)
+        $$ []
+      · rw [show (toPState s).commit = s.logst.committed from rfl,
+          show (toPState s).log = s.logst.sents ++ s.logst.uents from rfl]
+        iapply isCommitted_mono _ _ _ Hpre.1 $$ Hcm
+      ihave %Hagree := isCommitted_agree γ rs.delivered _ $$ Hdeliv Hcm'
+      have Hdeq := eq_of_prefix_or _ _ _ Hagree (Hdlen.trans Hpre.2.symm)
+      rw [Hdeq]; iexact Hcm'
+    | some _ =>
+      -- (D22 S-d3a) no committed entries with a snapshot pending
+      rw [Hcesn (by rw [hs]; simp), List.append_nil]; iexact Hdeliv
   -- `rd.SoftState`: `nil`, or the node's soft state, read-only
   ihave #Hrdsoft : iprop(⌜sp = null⌝ ∨ ∃ v : SoftState, sp ↦□ v) $$ []
   · iapply soft_or _ _ _ $$ Hsoftp
@@ -505,25 +558,85 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hmsgs_ok : iprop([∗list] q ∈ ms1 ++ nonself id ms2, isRaftMsg γ q.st) $$ []
   · iapply outboxRelP_isRaftMsgs γ (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hnsout
       (fun h => (Hxf.2 (Hnl.2.2.trans h)).2 (Hnl.2.1.trans h)) $$ Hout Hqc
-  iapply HΦ $$ %(readyVal sp HP RS sents sce msl MS) %ce %(nextUnstable s.logst)
-    %(ms1 ++ nonself id ms2) %s.rd.states %hrd
+  -- (D22 S-d3a) the snapshot handed out, if any: half of the clone to the application, half kept
+  -- for the acknowledgement; the loan (`SnapLoan`): the clone, the floor, the committed log up to
+  -- the snapshot (the full prefix below the log's boundary, `fp0`)
+  ihave Hsnl : iprop(∃ L : Option SnapLoan,
+      rdSnapRel γ rs (readyVal sp HP RS sents SN sce msl MS) ce L s ∗
+      rdSnapOut γ rs (readyVal sp HP RS sents SN sce msl MS) ce (nextUnstable s.logst) L ∗
+      ⌜rs.psnap = false → L = none⌝) $$ [Hsnarm]
+  · icases Hsnarm with (⟨%Hbf, %HSN⟩ | ⟨%sid, %svs, %Hsv, Hsvo⟩)
+    · have Hsn0 : s.logst.snap = none := by
+        rcases Hbsn.2 Hbf with h | h
+        · exact h
+        · rw [Hsip0] at h; cases h
+      iexists none
+      simp only [rdSnapRel, rdSnapOut]
+      ipureintro
+      exact ⟨⟨HSN, Hsn0⟩, HSN, fun _ => by trivial⟩
+    · obtain ⟨Hss, Hsp, Hsid, Hk, Hi0⟩ := Hsv
+      subst Hsid
+      obtain ⟨Hpv, Hse, Hnx, -, Hlt61, Hapl⟩ := Hsnx _ Hss Hsp
+      have Hce0 : ce = [] := Hcesn (by rw [Hss]; simp)
+      -- the committed log up to the snapshot: the full prefix below the boundary
+      have Hfl0 : (fp0.length : Int) = uint.Z (snapId svs).index' := by
+        rw [← Hpv]; exact Hfp.1
+      have Hcmle : uint.Z (snapId svs).index' ≤ uint.Z s.logst.committed := by
+        rw [← Hpv]; exact Hwf2.1.1
+      ihave #Hfp0 : isCommitted γ fp0 $$ []
+      · iapply isCommitted_mono γ fp0 _ ?_ $$ Hcm
+        have Hn : fp0.length ≤ (uint.Z (toPState s).commit).toNat := by
+          show fp0.length ≤ (uint.Z s.logst.committed).toNat; omega
+        rw [List.take_append, List.take_of_length_le Hn]
+        exact List.prefix_append _ _
+      ihave %Hag := isCommitted_agree γ rs.delivered fp0 $$ Hdeliv Hfp0
+      have Hdpre : rs.delivered <+: fp0 := by
+        rcases Hag with h | h
+        · exact h
+        · have Hle : fp0.length ≤ rs.delivered.length := h.length_le
+          have Hle2 : rs.delivered.length ≤ fp0.length := by
+            rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; omega
+          have he := h.eq_of_length (by omega)
+          rw [he]; exact List.prefix_refl _
+      icases ownSnapM_split SN (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) svs $$ [Hsvo]
+        with ⟨Hsv1, Hsv2⟩
+      · rw [dfrac_half_half]; iexact Hsvo
+      iexists some ⟨SN, svs, s.logst.fl, fp0⟩
+      simp only [rdSnapRel, rdSnapOut]
+      iframe Hsv1 Hsv2 Hfp0
+      ipureintro
+      have Hlen : fp0.length = (uint.Z svs.Metadata'.Index').toNat := by
+        have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl
+        omega
+      refine ⟨⟨by trivial, Hss, Hsp, Hk, Hi0, rfl, Hce0, Hdpre, Hlen, Hapl, Hnx⟩,
+        ⟨rfl, Hce0, Hdpre, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_⟩
+      · have := Hflb.1
+        show uint.Z s.logst.fl ≤ uint.Z (snapId svs).index'
+        omega
+      · show LogIndicesOk (snapId svs) (nextUnstable s.logst)
+        rw [Hnx, ← Hpv]; exact Hidx
+      · exact absurd (Hsnap (.inl ⟨h, Hsl⟩)) (by rw [Hss]; simp)
+  icases Hsnl with ⟨%L, Hrdz, Hsnapz, %Hpsn⟩
+  ihave Hphys := ownRaftPhysReady_lt0 cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false L.isSome
+    $$ Hphys
+  iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
+    %(ms1 ++ nonself id ms2) %s.rd.states %hrd %L
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap]
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz]
   · unfold ownRawNodeReady
     iexists s, cf, fp, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard
+      Hce_cap Hents Hrdhard Hrdz
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
-    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb,
+    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, HunpS, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff, Hrs_out,
+      Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-      ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
-      trivial, Hrdc, Hprc, Hnsout⟩
+      HceOk, by trivial, Hrdc, Hprc, Hnsout⟩
   isplitr
   · iexact Hce
   isplitr
@@ -542,10 +655,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · ipureintro; exact Hmsgs_term
   isplitr
   · iintro H1 H2 H3 H4
-    iapply ownRawNodeReady_abandon γ rn id rs (readyVal sp HP RS sents sce msl MS) ce
-      (nextUnstable s.logst) (ms1 ++ nonself id ms2) Hsteps0 Hunp0 $$ H1 H2 H3 H4
+    iapply ownRawNodeReady_abandon γ rn id rs (readyVal sp HP RS sents SN sce msl MS) ce
+      (nextUnstable s.logst) (ms1 ++ nonself id ms2) L Hsteps0 Hunp0 $$ H1 H2 H3 H4
+  isplitl [Hsnapz]
+  · iexact Hsnapz
   isplitr
-  · ipureintro; first | rfl | trivial
+  · ipureintro; exact Hpsn
   isplitr
   · iexact Hrdrs
   isplitr

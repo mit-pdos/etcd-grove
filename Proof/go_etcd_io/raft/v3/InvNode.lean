@@ -618,8 +618,8 @@ def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
       -- in its `advancec` arm, right before `Advance`
       rs.flw = false ∧
       -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`): `run` steps no `MsgSnap`
-      -- (`netP`) until stage S-d
-      rs.psnap = false⌝ ∗
+      -- (`netP`) until stage S-d; (D22 S-d3a) so none lent (`RNState.slent`)
+      rs.psnap = false ∧ rs.slent = none⌝ ∗
     monoListAuthOwn γ.dlm 1 rs.delivered ∗
     ∃ ca : Nat, dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, rs.cfg) ∗
       monoNatAuthOwn γ.cam 1 ca ∗ ⌜ca ≤ rs.capplied ∧ NoConfIn rs.delivered ca rs.capplied⌝)
