@@ -91,7 +91,13 @@ invariants and predicates, and no lemma that a complete etcd system's adequacy d
   `run`'s result handoff and `stepWithWaitOption` -- was scoped (about 15 files, `node__run`
   among them) and not taken; it cannot cover `ErrStopped` (`run` may have stepped the proposal).
   Follow-up: the register's own dedupe (`applied`, `firstOcc` in its invariant) is now
-  redundant and could go (Go and proof).
+  redundant and could go (Go and proof; about 70 uses in seven files).
+- **Not done: `ownRaftGhost`'s `md : Bool`.** It restates `γ.reDyn.isSome`, and within
+  `ownStepGhost` the mode is also `ghostRest`'s (`CfgStatic`'s `γ.reDyn = none`, the dynamic
+  configuration). But at the static allocation paths -- `NewRawNode`'s `rnInit` (a bare
+  `ownRaftGhost`), `RawNode.Bootstrap`, `RestartNode` -- `md = false` is the only carrier of
+  `γ.reDyn = none`, so removing it adds that fact to their linked specs and to the server's
+  start path: the fact moves, it does not go. Tried and reverted (2026-10-21).
 
 **Adequacy coverage** (`Link.lean` theorems reached by a closed theorem -- `putget_safe`,
 `putget3_safe`, `linkv_safe`, `linkv3_safe`, `linkv3p_safe`, `linkvtxn_safe`, `watch_safe`,
