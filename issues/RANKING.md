@@ -121,6 +121,20 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     (compare-only transactions), by inspection only, no reproduction yet; the fix is a one-line
     guard. Upstream not searched yet.
 
+Also to file (2026-10-21, the last scan of the current batch):
+[etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
+client-chosen id that a just-canceled watch used receives the canceled watch's buffered events, of
+another key; reproduced at upstream `main`, 80 of 80 runs; the auto-assigned-id variant is not
+reproduced; candidate drafted; it was listed here as "not reproduced" until 2026-10-21, which was
+wrong), [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialstate-unlocked.md)
+(a data race `-race` reports: `InitialState` reads and, in v3.7, writes `MemoryStorage`'s fields
+without its documented mutex; the fix takes the lock) and
+[etcd-alarm-store-snapshot-race](etcd-alarm-store-snapshot-race.md) (above). Not in the batch:
+[raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (liveness, a configuration nobody
+runs) and the conf-change validation panics (`raft-joint-empty-transition-panic`,
+`raft-unknown-transition-panic`: only the application's own proposals reach them, a trusted
+caller's precondition).
+
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
 [leasing-modify-uncached-once](leasing-modify-uncached-once.md) (every write of an uncached key
@@ -320,8 +334,7 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,
-  PR open), [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (not
-  reproduced), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
+  PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
   reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond),
   [etcd-watch-canceled-pending-retained](etcd-watch-canceled-pending-retained.md) (up to 128
