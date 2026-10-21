@@ -3,9 +3,15 @@ upstream: none
 checked: 2026-10-21
 links:
   - etcd-io/raft#354 issue open: related, not this bug (a rejected ConfChange becomes a silent no-op; same pendingConfIndex guard, no Advance/apply ordering)
+candidate: issues/upstream/etcd-leader-advance-before-applyconfchange/
 ---
 
 # etcdserver: the leader calls raft's Advance before its apply loop has applied a conf change, which lets raft accept an overlapping membership change
+
+**2026-10-21**: candidate `issues/upstream/etcd-leader-advance-before-applyconfchange/` (on hold until the raft
+documentation PR is accepted): `TestConfigChangeBlocksApply` run for a leader fails at etcd `main` 7ff040cb8 (the
+leader's raft loop calls `Advance` before its apply loop has applied the conf change); the fix makes the leader
+wait as followers do. Still no wrong result reproduced on an etcd cluster.
 
 **Status of this draft**: unconfirmed in etcd. The two ingredients are confirmed (the first by
 reading etcd's code, the second by a Go test on raft); the end-to-end violation has not been
