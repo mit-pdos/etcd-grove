@@ -48,7 +48,7 @@ module system").
 
 
 
-## Clean-up: unused declarations removed, every proposal once, adequacy coverage (2026-10-21, branch `clean-up`)
+## Clean-up: unused declarations removed, proposals registered once, adequacy coverage (2026-10-21, branch `clean-up`, merged into `lean`)
 
 The goal (the user, 2026-10-21): adequacy for all the raft/etcd code -- snapshots and
 reconfiguration included, not only what today's closed theorems call -- with simpler proofs,
