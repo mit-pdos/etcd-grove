@@ -139,8 +139,9 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
 
 /-- **What `Apply` and `Check` take of one client** (persistent): linkvtxn's `Apply.spec`'s
 premises for a client `cl` of some members `ms` (at least one; all three since 2026-10-21,
-failover, `notes/decisions.md` D27) -- `New`'s one-attempt client of their endpoints
-(`isNewClient`, `clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
+failover, `notes/decisions.md` D27) -- `New`'s client of their endpoints, with the default
+retries since 2026-10-21 (`isNewClient`; a write sent at most once, `clientWriteOnce`: the
+endpoints refusal-free, D29; until then configured for one attempt, `clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
 member's endpoint with that member's apply environment, read names and ids (`kvRegsAt`), and the
 instance's invariant at each member's KV names (the cluster's state, D21 M4: `linkvInv_congr`,
 `Alloc.lean`). A list of clients is a `[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and
@@ -148,7 +149,7 @@ instance's invariant at each member's KV names (the cluster's state, D21 M4: `li
 def clientOk (γ : linkvtxn.LinkvNames) (cl : Loc) : IProp GF :=
   iprop(∃ (ms : List (EtcdGrove.client.SrvAt GF)) (V : EtcdGrove.client.WEnv GF), ⌜ms ≠ []⌝ ∗
     isNewClient cl (ms.map EtcdGrove.client.SrvAt.addr) V ∗
-    clientKVOnce cl (ms.map EtcdGrove.client.SrvAt.addr) ∗
+    EtcdGrove.client.clientWriteOnce cl (ms.map EtcdGrove.client.SrvAt.addr) ∗
     ([∗list] sv ∈ ms, EtcdGrove.client.kvRegsAt sv) ∗
     ([∗list] sv ∈ ms, linkvtxn.linkvInv γ sv.γr.kv))
 

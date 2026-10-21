@@ -64,6 +64,7 @@ axiom mvcc.ReportEventReceived.wp_proof
 axiom promSrvMetrics
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom rand.Int63n.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom streamKeyFromCtx.wp_proof

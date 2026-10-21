@@ -113,6 +113,15 @@ instance writeOnce_persistent (api : Loc) (addrs : List GoString) :
     Persistent (writeOnce (GF := GF) api addrs) := by
   unfold writeOnce; infer_instance
 
+/-- **`New`'s client `cl` sends a write at most once** (persistent; D21 M6, D29): configured for
+one attempt (`clientKVOnce`), or a client of refusal-free members (any retry bound). -/
+def clientWriteOnce (cl : Loc) (addrs : List GoString) : IProp GF :=
+  iprop(clientKVOnce cl addrs ∨ ⌜∀ a ∈ addrs, noRefusalAt a⌝)
+
+instance clientWriteOnce_persistent (cl : Loc) (addrs : List GoString) :
+    Persistent (clientWriteOnce (GF := GF) cl addrs) := by
+  unfold clientWriteOnce; infer_instance
+
 /-- **A transaction through the `*txn` `tp` sent at most once** (D21 M6, D29): `writeOnce` of the
 `*kv` it was made from, or refusal-free members. -/
 def txnWriteOnce (tp : Loc) (addrs : List GoString) : IProp GF :=

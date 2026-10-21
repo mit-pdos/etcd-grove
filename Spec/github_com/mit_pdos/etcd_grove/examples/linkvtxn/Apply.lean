@@ -50,7 +50,7 @@ abbrev Apply.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn -∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 -∗
-    isNewClient cl (ms.map client.SrvAt.addr) V -∗ clientKVOnce cl (ms.map client.SrvAt.addr) -∗
+    isNewClient cl (ms.map client.SrvAt.addr) V -∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) -∗
     ([∗list] sv ∈ ms, client.kvRegsAt sv) -∗
     ([∗list] sv ∈ ms, linkvInv γ sv.γr.kv) -∗
     iprop(∀ i : GoInterface,

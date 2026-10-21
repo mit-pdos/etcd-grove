@@ -408,6 +408,7 @@ axiom reflect.ValueOf.wp_proof
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof

@@ -10,6 +10,7 @@ roots \bcache_(New|Get|Watch|Watch_delivery|WaitForRevision|WaitForNextResync|Cl
 axiom context.Err.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom time.Duration.String.wp_proof

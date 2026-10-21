@@ -88,6 +88,7 @@ axiom reflect.ValueOf.wp_proof
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof

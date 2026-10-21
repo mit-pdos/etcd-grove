@@ -40,7 +40,7 @@ abbrev call.spec : Prop :=
   ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl (ms.map client.SrvAt.addr) V ∗ clientKVOnce cl (ms.map client.SrvAt.addr) ∗
+      isNewClient cl (ms.map client.SrvAt.addr) V ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
       ([∗list] sv ∈ ms, client.kvRegsAt sv) ∗
       ([∧list] sv ∈ ms, callUpd sv.γr.kv i Q) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.call)) (Val #cl))

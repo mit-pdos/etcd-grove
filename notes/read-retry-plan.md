@@ -1,6 +1,6 @@
 # Plan: read retries, with the client's default configuration
 
-Status: planned (2026-10-21, branch `read-retry`). Follows `notes/keepalive-plan.md` (D28) and
+Status: done (2026-10-21, branch `read-retry`; D29 approved). Follows `notes/keepalive-plan.md` (D28) and
 `notes/client-cut-plan.md` (K4, failover, D27).
 
 ## Goal
@@ -278,6 +278,25 @@ gets it through `forwards`). `startMember` and `Main` build.
 - The gates: `lake build`, `etc/goose.py --check`, `etc/gen-init.py --check`, `etc/gen-link.py`,
   `etc/tcb-report.py --check` (D29's change to the axioms' statements), the collections, and
   `go test -race`.
+
+**Done (2026-10-21).**
+
+- **linkv3p.** `newClient`'s spec and proof drop `MaxUnaryRetries: 1` and `clientKVOnce`. `clientOk`
+  takes `clientWriteOnce` (`Failover.lean`: `clientKVOnce`, or refusal-free endpoints). `Main`
+  gets each bridge's address refusal-free from its member's (`memberServed`'s `noRefusalAt`)
+  through `forwards`.
+- **linkvtxn.** Its call specs (`Apply`, `call`, `callPut`, `callDel`, `callTxn`) take
+  `clientWriteOnce`, with `clientWriteOnce_api` to the `*kv`'s `writeOnce`. Its own program keeps
+  `MaxUnaryRetries: 1` (one member, nothing to fail over to), and `Check` passes the one-attempt
+  case.
+- **The gates.**
+  - `lake build` passes in full.
+  - `etc/goose.py --check`, `etc/gen-init.py --check` and the `Link.lean` files are unchanged.
+  - `etc/tcb-report.py --check`: +2 axioms (`etcd_noRefusal`, `rpctypes.errDesc_etcdError`; 530
+    axioms, 2 sorries), the baseline and 17 collections updated. `errDesc_etcdError` reaches
+    every collection through the retry interceptor; `etcd_noRefusal` reaches linkv3p's only.
+  - `go test -race` passes.
+- `linkv3p_safe`'s statement is unchanged; the clients it covers retry reads.
 
 ## Trust base (estimate)
 

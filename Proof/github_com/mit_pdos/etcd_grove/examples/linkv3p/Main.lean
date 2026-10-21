@@ -274,7 +274,7 @@ theorem Main.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  icases Hok₁ with ⟨%Hcerr, #Hnc₁, #Hone₁⟩
+  icases Hok₁ with ⟨%Hcerr, #Hnc₁⟩
   subst Hcerr
   wp_auto
   wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
@@ -288,7 +288,7 @@ theorem Main.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  icases Hok₂ with ⟨%Hcerr, #Hnc₂, #Hone₂⟩
+  icases Hok₂ with ⟨%Hcerr, #Hnc₂⟩
   subst Hcerr
   wp_auto
   wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
@@ -302,7 +302,7 @@ theorem Main.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  icases Hok₃ with ⟨%Hcerr, #Hnc₃, #Hone₃⟩
+  icases Hok₃ with ⟨%Hcerr, #Hnc₃⟩
   subst Hcerr
   wp_auto
   -- `clis := []*clientv3.Client{cli1, cli2, cli3}`
@@ -406,6 +406,30 @@ theorem Main.wp_proof
     iframe Hlinv₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
+  -- (D29) the bridges' addresses are refusal-free, as their members' are: every client's writes
+  -- are sent at most once, whatever its retry bound
+  ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
+  · iunfold forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
+  ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
+  · iunfold forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
+  ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
+  · iunfold forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
+  have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
+    intro a ha
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    rcases ha with rfl | rfl | rfl
+    · exact Hb₁
+    · exact Hb₂
+    · exact Hb₃
+  ihave #Hwo₁ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₁
+      [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
+  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  ihave #Hwo₂ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₂
+      [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
+  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  ihave #Hwo₃ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₃
+      [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
+  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
   ihave #Hok : ([∗list] cl ∈ [cl₁, cl₂, cl₃], clientOk γl cl) $$ []
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr

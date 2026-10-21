@@ -34,7 +34,7 @@ abbrev callDel.spec : Prop :=
   ∀ (key : GoString) (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl (ms.map client.SrvAt.addr) V ∗
-      clientKVOnce cl (ms.map client.SrvAt.addr) ∗
+      client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.deleteRange (linkv.delOp key)) Q) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.callDel)) (Val #cl))

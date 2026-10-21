@@ -2,7 +2,7 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/newClient.lean` (the partition
 plan's S3a, 2026-10-20). Lean-first (no Rocq counterpart). linkv3's `Main`'s `clientv3.New` step
 (`Proof/.../linkv3/Main.lean`): the endpoint slice literal, read-only; `New` over `clientCfgOk` of
-the configuration's literal (`MaxUnaryRetries: 1`, so `clientKVOnce`).
+the configuration's literal (the default retries since 2026-10-21, D29).
 -/
 module
 
@@ -37,7 +37,7 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   wp_auto
-  -- `clientv3.New(Config{Endpoints: eps, Logger: lg, MaxUnaryRetries: 1})`
+  -- `clientv3.New(Config{Endpoints: eps, Logger: lg, DialKeepAliveTime: ..., ...})`
   wp_apply (wp_New _ addrs V) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -51,10 +51,8 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
       · exact Hplain
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   · subst Hcerr
-    ihave #Hone := Hone $$ []
-    · ipureintro; trivial
     iapply HΦ
     ileft
     iframe #

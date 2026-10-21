@@ -478,6 +478,20 @@ theorem clientKVOnce_api (cl api : Loc) (addrs : List GoString) :
   subst Heq'
   iexact Honce
 
+/-- A write through `New`'s client sent at most once (D29): its `*kv`'s (`KV` field's). -/
+theorem clientWriteOnce_api (cl api : Loc) (addrs : List GoString) :
+    clientF cl go!"KV" ↦□
+        interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
+      client.clientWriteOnce (GF := GF) cl addrs ⊢ client.writeOnce api addrs := by
+  iintro ⟨#Hkvf, #Hw⟩
+  iunfold client.clientWriteOnce at Hw
+  iunfold client.writeOnce
+  icases Hw with (#Hone | %Hnr)
+  · ileft
+    iapply clientKVOnce_api cl api addrs $$ [Hkvf Hone]
+    iframe #
+  · iright; ipureintro; exact Hnr
+
 /-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` configured for one attempt,
 with an update fired at most once, one per member (see the file header). -/
 theorem client_Put_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
@@ -485,7 +499,7 @@ theorem client_Put_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (Q : KVState → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-        isNewClient cl (ms.map client.SrvAt.addr) V ∗ clientKVOnce cl (ms.map client.SrvAt.addr) ∗
+        isNewClient cl (ms.map client.SrvAt.addr) V ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.put (linkv.putOp key val)) Q) }}
@@ -498,10 +512,8 @@ theorem client_Put_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hregs, #Hst, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  ihave #Honce := clientKVOnce_api cl api _ $$ [Hkvf Hone]
+  ihave #Hwo := clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
-  ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ []
-  · iunfold client.writeOnce; ileft; iexact Honce
   ihave #Hrr := kvRegs_put ms $$ Hregs
   ihave #Hst' := srvStart_idx ms $$ Hst
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
@@ -534,7 +546,7 @@ theorem client_Delete_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (Q : KVState → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-        isNewClient cl (ms.map client.SrvAt.addr) V ∗ clientKVOnce cl (ms.map client.SrvAt.addr) ∗
+        isNewClient cl (ms.map client.SrvAt.addr) V ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.deleteRange (linkv.delOp key)) Q) }}
@@ -549,10 +561,8 @@ theorem client_Delete_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hregs, #Hst, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  ihave #Honce := clientKVOnce_api cl api _ $$ [Hkvf Hone]
+  ihave #Hwo := clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
-  ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ []
-  · iunfold client.writeOnce; ileft; iexact Honce
   ihave #Hrr := kvRegs_del ms $$ Hregs
   ihave #Hst' := srvStart_idx ms $$ Hst
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
@@ -595,21 +605,19 @@ theorem client_Txn_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-        isNewClient cl (ms.map client.SrvAt.addr) V ∗ clientKVOnce cl (ms.map client.SrvAt.addr) ∗
+        isNewClient cl (ms.map client.SrvAt.addr) V ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Txn")) (Val #(GoInterface.ok ci)))
     {{ (t : GoInterface), RET #t; ∃ tp : Loc,
         ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp⌝ ∗
         txnObjAt tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty ∗
-        ∃ api : Loc, txnKvIs tp api ∗ kvOnce api (ms.map client.SrvAt.addr) }} := by
+        client.txnWriteOnce tp (ms.map client.SrvAt.addr) }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hctx, #Hce⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  ihave #Honce := clientKVOnce_api cl api _ $$ [Hkvf Hone]
+  ihave #Hwo := clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
-  ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ []
-  · iunfold client.writeOnce; ileft; iexact Honce
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Txn_unfold.method_unfold]
   wp_pures
   wp_auto
@@ -620,8 +628,11 @@ theorem client_Txn_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   iframe Hobj
   isplitr
   · ipureintro; exact Ht
-  iexists api
-  iframe #
+  iunfold client.txnWriteOnce
+  iunfold client.writeOnce at Hwo
+  icases Hwo with (#Ho | %Hnr)
+  · ileft; iexists api; iframe #
+  · iright; ipureintro; exact Hnr
 
 /-- **`Commit()` of the model's transaction** through a client of the members `ms` (see the file
 header): its update by its kind, one per member. -/
@@ -633,7 +644,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp (ms.map client.SrvAt.addr) ci cd b ∗
         ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
-        (∃ api : Loc, txnKvIs tp api ∗ kvOnce api (ms.map client.SrvAt.addr)) ∗
+        client.txnWriteOnce tp (ms.map client.SrvAt.addr) ∗
         ([∧list] x ∈ ms, callUpd x.γr.kv (.txn cs t e) Q) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
@@ -729,8 +740,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     · iframe Hobj
       iframe #
       iright
-      isplitl [Hone]
-      · iunfold client.txnWriteOnce; ileft; iexact Hone
+      iframe Hone
       iexact Hau'
     iapply HΦ
     icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)

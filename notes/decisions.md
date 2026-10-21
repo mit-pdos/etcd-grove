@@ -12510,7 +12510,9 @@ axiom, an off mode for the request side's auth, and error identity through the r
 (R1). The learner and auth parts can be proved later. That would leave the axiom only "the server's
 other errors are not refusals".
 
-**Trust base.** +2 axioms (the members', `etcd_noRefusal`, and `rpctypes.errDesc_etcdError`), and
-restated specs of existing axioms (`status.FromError`, `errors.IsStatusErr`,
-`grpc.ClientConn.Invoke` through `grpcInvokerOk`, rpctypes' `Init` axioms, `bridge.New`).
-linkv3p's collection gains the new axioms.
+**Trust base.** +2 axioms (the members', `etcd_noRefusal`, and `rpctypes.errDesc_etcdError`: 530
+axioms, 2 sorries), and restated specs of existing axioms (`status.FromError`,
+`errors.IsStatusErr`, `grpc.ClientConn.Invoke` through `grpcInvokerOk`, `grpc.StaticMethod`,
+rpctypes' and `client/v3`'s initializer axioms, `bridge.New`). `errDesc_etcdError` is in every
+collection whose results go through the retry interceptor; `etcd_noRefusal` is in linkv3p's
+only.

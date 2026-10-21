@@ -65,6 +65,7 @@ axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Int63n.wp_proof
 axiom reflect.ValueOf.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom strconv.FormatBool.wp_proof
