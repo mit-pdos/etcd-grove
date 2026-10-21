@@ -12373,3 +12373,35 @@ statement is unchanged. A note on what failover covers in Go: a blackholed membe
 connection stays READY to grpc (no keepalive, `clientCfgOk`), so a call sent on it hangs until the
 connection closes; failover happens once the connection is gone (dropped, refused or closed) and a
 re-dial cannot complete, as in `TestFailover`'s blackhole-then-drop.
+## D28: keepalive, client and server, at the gRPC boundary (2026-10-21 · approved by the user; `notes/keepalive-plan.md` KA1)
+
+**Problem.** Production etcd clients configure gRPC keepalive (`Config.DialKeepAliveTime`), which is
+how a client fails over from a silently partitioned member (D27): the pings go unanswered, grpc
+closes the connection, and the balancer stops picking it. `clientCfgOk` excluded keepalive, because
+its dial option had no descriptor and so put the dial outside `grpc.NewClient`'s axiom. And a
+keepalive client needs the server to accept its pings: grpc's default server policy allows one
+ping every 5 minutes and answers faster ones with `GOAWAY too_many_pings` (confirmed by a probe,
+`notes/keepalive-plan.md` KA0), which etcd's `embed` avoids by setting
+`grpc.KeepaliveEnforcementPolicy(MinTime: GRPCKeepAliveMinTime, 5s by default)`.
+
+**Decision.** Two trust-boundary axioms, each the spec of an option constructor:
+
+- `grpc.WithKeepaliveParams(kp)`, any parameters, returns a dial option with the new descriptor
+  `.keepalive` (`GrpcDialOpt`, `InvDial.lean`), which sets no interceptor and no resolver
+  (`unaryIcsOf_keepalive`, `dialOk_keepalive`), so `grpc.NewClient`'s axiom covers a dial with it
+  unchanged.
+- `grpc.KeepaliveEnforcementPolicy(kep)` returns a `.neutral` server option (`grpcSrvOpt`), as
+  `MaxRecvMsgSize` and `MaxConcurrentStreams` do.
+
+Nothing else is asserted: what keepalive does at run time is close connections, and a closed
+connection fails the calls on it, which `ClientConn.Invoke`'s attempt (an error, nothing about
+whether the handler ran) and the stream specs (`cliStreamErr`) already allow. True of grpc-go
+v1.84: the client transport pings after `Time` without a read and, without an ACK within
+`Timeout`, closes with a connection error, failing every stream on it with `Unavailable`; it never
+re-sends a request, so an attempt still reaches at most one run of one handler (D21j). The server
+policy only decides when the server closes a connection, never which handler runs or what it is
+given.
+
+**Trust base.** +2 axioms (`grpc.WithKeepaliveParams.wp_proof`,
+`grpc.KeepaliveEnforcementPolicy.wp_proof`), in the collections whose results use them once the
+client's construction (KA2) and linkv3p's members (KA3) call them.

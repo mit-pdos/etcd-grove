@@ -1,6 +1,7 @@
 # Plan: keepalive in the client's configuration, and failover on a silent partition
 
-Status: in progress (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`): KA0 done. Follows
+Status: in progress (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`): KA0 and KA1
+done (D28 approved). Follows
 `notes/client-cut-plan.md` (K4, failover; `notes/decisions.md` D27).
 
 ## Goal
@@ -138,6 +139,10 @@ and the configuration's new fields; the translation and package tables regenerat
   the lemmas that `unaryIcsOf`, `streamOf` and `dialOk` ignore it.
 - `Spec/google_golang_org/grpc/KeepaliveEnforcementPolicy.lean` and its axiom (`.neutral`).
 - `notes/decisions.md` D28, and ask.
+
+**Done (2026-10-21; D28 approved).** `GrpcDialOpt.keepalive` with `unaryIcsOf_keepalive` and
+`dialOk_keepalive` (`InvDial.lean`); `Spec`/`Proof` pairs for `grpc.WithKeepaliveParams` and
+`grpc.KeepaliveEnforcementPolicy`.
 
 ### KA2. The client
 

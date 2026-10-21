@@ -15,11 +15,15 @@ proof holds a descriptor of is one of these:
 * `.streamInterceptor ic` (`WithStreamInterceptor(ic)`: sets `dopts.streamInt`; the last wins);
 * `.transportCreds` (`WithTransportCredentials(c)`: sets `dopts.copts.TransportCredentials`);
 * `.resolvers rbs` (`WithResolvers(rbs...)`: appends to `dopts.resolvers`, the builders `NewClient`
-  looks the target's scheme up in before grpc's global registry).
+  looks the target's scheme up in before grpc's global registry);
+* `.keepalive` (`WithKeepaliveParams(kp)`: sets `dopts.copts.KeepaliveParams`, since 2026-10-21,
+  `notes/decisions.md` D28): it sets no interceptor and no resolver; at run time the transport
+  pings and closes the connection when a ping goes unanswered, which fails the calls on it, as
+  `ClientConn.Invoke`'s and `NewStream`'s axioms already allow.
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
-keepalive parameters, per-RPC credentials, ...) has no descriptor: a dial that holds one is not
-covered (`clientv3.New`'s premises exclude `Config.DialOptions`,
-`issues/etcd-client-dialoptions-unary-interceptor.md`, and keepalive).
+per-RPC credentials, ...) has no descriptor: a dial that holds one is not covered
+(`clientv3.New`'s premises exclude `Config.DialOptions`,
+`issues/etcd-client-dialoptions-unary-interceptor.md`).
 
 **The unary chain** (`unaryIcsOf ds`): grpc's `chainUnaryClientInterceptors` runs `dopts.unaryInt`
 (the last `WithUnaryInterceptor`'s) first, then `dopts.chainUnaryInts`, which no descriptor sets:
@@ -64,6 +68,7 @@ inductive GrpcDialOpt where
   | streamInterceptor (ic : GoFunc)
   | transportCreds
   | resolvers (rbs : List GoInterface)
+  | keepalive
 
 /-- The unary interceptor a descriptor sets, if it sets one. -/
 def GrpcDialOpt.unaryOf : GrpcDialOpt → Option GoFunc
@@ -81,6 +86,12 @@ def unaryIcsOf (ds : List GrpcDialOpt) : List GoFunc :=
   match (ds.filterMap GrpcDialOpt.unaryOf).getLast? with
   | some ic => [ic]
   | none => []
+
+/-- Keepalive sets no unary interceptor. -/
+theorem unaryIcsOf_keepalive (ds : List GrpcDialOpt) :
+    unaryIcsOf (.keepalive :: ds) = unaryIcsOf ds := by
+  unfold unaryIcsOf
+  simp [List.filterMap_cons, GrpcDialOpt.unaryOf]
 
 end defs
 
@@ -117,6 +128,16 @@ resolver is `rb` (every `WithResolvers` of the dial gives `rb` alone, and one do
 def dialOk (ds : List GrpcDialOpt) (rb : GoInterface) : Prop :=
   (∀ si, GrpcDialOpt.streamInterceptor si ∈ ds → etcdStreamInterceptor si) ∧
     (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds
+
+
+/-- Keepalive sets no stream interceptor and no resolver: a dial with it is `NewClient`'s if the
+dial without it is. -/
+theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
+    dialOk ds rb → dialOk (.keepalive :: ds) rb := by
+  intro ⟨h1, h2, h3⟩
+  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3⟩
+  · simpa using h
+  · simpa using h
 
 end defs2
 
