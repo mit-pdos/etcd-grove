@@ -108,7 +108,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
-  obtain ⟨Hfr, Hap, -⟩ := Hloc (.inl rfl)
+  obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inl rfl)
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
   ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
     Hfr.2.2.2.2.2.1 $$ Hstrecs

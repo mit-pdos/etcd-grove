@@ -625,6 +625,8 @@ theorem raft.Step.wp_proof
     -- the storage acknowledgements (2026-10-05)
     (wp_raftLog_stableTo : raftLog.stableTo.spec (GF := GF) (hG := hG))
     (wp_raft_appliedTo : raft.appliedTo.spec (GF := GF) (hG := hG))
+    -- (D22 S-d2) a snapshot's acknowledgement
+    (wp_raft_appliedSnap : raft.appliedSnap.spec (GF := GF) (hG := hG))
     (wp_raft_reduceUncommittedSize : raft.reduceUncommittedSize.spec (GF := GF) (hG := hG))
     (wp_entsSize : entsSize.spec (GF := GF) (hG := hG))
     (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG))
@@ -646,7 +648,7 @@ theorem raft.Step.wp_proof
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨wp_raft_hup, wp_raft_becomeFollower, wp_voteRespMsgType, wp_raft_send, wp_stepCandidate,
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
-     wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
+     wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo, wp_raft_appliedSnap,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   have Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG) :=
     ⟨wp_Message_GetType, wp_Message_GetTerm, wp_Message_GetFrom, wp_Message_GetTo,
@@ -737,9 +739,11 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact fun _ => rfl
     isplitr
-    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩
+    · ipureintro
+      exact ⟨fun _ _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩,
+        fun h => absurd h (by rw [Hty]; w32_ne)⟩
     isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+    · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
     isplitr
     · ipureintro; exact fun _ => TermStep.of_local Hfr.1
     isplitr
@@ -758,36 +762,83 @@ theorem raft.Step.wp_proof
   -- below: their postcondition also says what is kept of the physical state
   -- (`LocalStepOk`, 2026-10-09)
   by_cases HtyA : m.Type' = MsgStorageAppendResp
-  · -- MsgStorageAppendResp: `stableTo`, invisible to the protocol.
-    obtain ⟨Hsn, Hle, Hstok, Hghoff⟩ := Hsar HtyA
-    wp_apply (wp_Step_MsgStorageAppendResp P Q c r id s ml m sn ctx rs ents HtyA Hsn Hle Hstok Hghoff Hwf)
-      $$ [$Hphys $Hmi]
-      as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
-    imod ghost_step_md0 γ md c id m s s' Hst
-      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
-        (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI) Hfr.1.nsst
-      $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
-    imodintro
-    iapply HΦ $$ %err %s' %c %md'
-    iframe Hphys Hghost
-    isplitr
-    · ipureintro; exact Hwf'
-    isplitr
-    · ipureintro; exact Hout
-    isplitr
-    · ipureintro; exact fun _ => rfl
-    isplitr
-    · ipureintro; exact fun _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩
-    isplitr
-    · ipureintro; exact fun _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
-    isplitr
-    · ipureintro; exact fun _ => TermStep.of_local Hfr.1
-    isplitr
-    · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
-        (by rw [HtyA]; w32_ne)
-    isplitr
-    · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
-    ileft; ipureintro; exact Herr
+  · obtain ⟨Hsnp, Hle, Hstok, Hghoff⟩ := Hsar HtyA
+    rcases Option.eq_none_or_eq_some sn with Hsn | ⟨sv, Hsv⟩
+    · -- MsgStorageAppendResp without a snapshot: `stableTo`, invisible to the protocol.
+      have Hstok' : m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
+          StableOk s.logst (entryID.mk m.LogTerm' m.Index') := by
+        intro a b; have := Hstok a b; rw [Hsn] at this; exact this
+      wp_apply (wp_Step_MsgStorageAppendResp_none P Q c r id s ml m sn ctx rs ents HtyA Hsn Hle
+          Hstok' Hghoff Hwf)
+        $$ [$Hphys $Hmi]
+        as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
+      imod ghost_step_md0 γ md c id m s s' Hst
+        (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
+          (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI) Hfr.1.nsst
+        $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+      imodintro
+      iapply HΦ $$ %err %s' %c %md'
+      iframe Hphys Hghost
+      isplitr
+      · ipureintro; exact Hwf'
+      isplitr
+      · ipureintro; exact Hout
+      isplitr
+      · ipureintro; exact fun _ => rfl
+      isplitr
+      · ipureintro
+        exact ⟨fun _ _ => ⟨Hfr.1, fun _ => Hfr.2, fun h => absurd h (by first | (rw [HtyA]; w32_ne) | (rw [Hty]; w32_ne))⟩,
+          fun _ sv h => absurd (Hsn.symm.trans h) (by simp)⟩
+      isplitr
+      · ipureintro; exact fun _ _ _ => ⟨Hfr.2, Hfr.1.2.2.2.1, Hfr.1.2.2.1, Hfr.1.2.2.2.2.1, Hfr.1.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.1, Hfr.1.2.2.2.2.2.2.2.2.2.2.2⟩
+      isplitr
+      · ipureintro; exact fun _ => TermStep.of_local Hfr.1
+      isplitr
+      · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
+          (by rw [HtyA]; w32_ne)
+      isplitr
+      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
+      ileft; ipureintro; exact Herr
+    · -- (D22 S-d2) with a snapshot: `appliedSnap` (after `stableTo` in the current-term arm),
+      -- invisible to the protocol, in the static mode
+      subst Hsv
+      obtain ⟨Hhit, Hle', Hdyn, Hal⟩ := Hsnp sv rfl
+      have Hmd : md = .static := by
+        cases md with
+        | static => rfl
+        | dyn => simp [GMode.isDyn] at Hdyn
+      subst Hmd
+      wp_apply (wp_Step_MsgStorageAppendResp_snap P Q c r id s ml m sv ctx rs ents HtyA Hhit Hle'
+          Hal Hle Hstok Hghoff Hwf)
+        $$ [$Hphys $Hmi] as %err ⟨Hphys, %Herr⟩
+      obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5⟩ := ackSnapLog_proto s.logst m s.term sv
+      have Hps : toPState { s with logst := ackSnapLog s.logst m s.term sv } = toPState s := by
+        simp only [toPState, Hp1, Hp2, Hp3]
+      imod ghost_step_static0 γ c id m s { s with logst := ackSnapLog s.logst m s.term sv }
+        (by rw [Hps]; exact (StepCF.refl _).toC) ⟨rfl, Hp4⟩ $$ Hlc Hghost Hrest
+        with ⟨%Hout, Hghost⟩
+      imodintro
+      iapply HΦ $$ %err %_ %c %GMode.static
+      iframe Hphys Hghost
+      isplitr
+      · ipureintro; exact Hwf
+      isplitr
+      · ipureintro; exact Hout
+      isplitr
+      · ipureintro; exact fun _ => rfl
+      isplitr
+      · ipureintro
+        exact ⟨fun h => absurd (h HtyA) (by simp), fun _ sv' h => by cases h; rfl⟩
+      isplitr
+      · ipureintro; exact fun _ _ h => absurd (h HtyA) (by simp)
+      isplitr
+      · ipureintro; exact fun _ => TermStep.of_term rfl (fun _ => Hp5)
+      isplitr
+      · ipureintro; exact RespStep.of_type (by rw [HtyA]; w32_ne) (by rw [HtyA]; w32_ne)
+          (by rw [HtyA]; w32_ne)
+      isplitr
+      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
+      ileft; ipureintro; exact Herr
   by_cases HtyB : m.Type' = MsgStorageApplyResp
   · -- MsgStorageApplyResp: `appliedTo`, invisible to the protocol.
     -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
@@ -809,7 +860,8 @@ theorem raft.Step.wp_proof
     · ipureintro; exact fun _ => rfl
     isplitr
     · ipureintro
-      exact fun _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB), fun _ => Happ2⟩
+      exact ⟨fun _ _ => ⟨Hfr.1, fun H => Hfr.2 (H HtyB), fun _ => Happ2⟩,
+        fun h => absurd h (by rw [HtyB]; w32_ne)⟩
     isplitr
     · ipureintro; exact fun _ h => absurd HtyB h
     isplitr
@@ -835,7 +887,9 @@ theorem raft.Step.wp_proof
       · ileft; ipureintro; exact Herr
       iframe Herr'
       ipureintro
-      exact ⟨Hwf', Href, fun h => absurd Hns h, fun Hl => by rcases Hl with h | h | h <;> contradiction,
+      exact ⟨Hwf', Href, fun h => absurd Hns h,
+        ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+         fun h => absurd h (by rw [Hns]; w32_ne)⟩,
         fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => Hsf⟩
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm'⟩
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
@@ -851,8 +905,9 @@ theorem raft.Step.wp_proof
     iframe Hphys Hghost Herr
     ipureintro
     -- `LocalStepOk` is about the three types handled above, `SnapStep` about the snapshot
-    exact ⟨Hwf', Href, Hc', fun Hl => by rcases Hl with h | h | h <;> contradiction,
-      fun h _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns⟩
+    exact ⟨Hwf', Href, Hc', ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+        fun h => absurd h HtyA⟩,
+      fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns⟩
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`
   have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>

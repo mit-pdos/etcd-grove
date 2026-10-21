@@ -13339,3 +13339,244 @@ needed. (Not a Go bug: unreachable by the argument above.)
   S-d1b alone: about S-c's size (the `lent` rewrite in 18 files, `LogStoreOk`/`Hpersist` in every
   log-changing proof: `append`, `stableTo`, `restore`, `absorb`, `handout`, `raise_floor`,
   `acceptUnstable`, `newLogWithSize`, `Bootstrap`).
+
+## D22 S-d1b carried out: the lent storage, the acknowledgement's windows, the persistence relation in progress (2026-10-21)
+
+The rest of S-d1 ("D22 S-d1 part 1 carried out", item 4), the log layer only; no `RawNode`,
+server or kv statement changed. Trust base unchanged (538 axioms, 2 sorries); every collection's
+`--check` passes unchanged.
+
+**1. The state.** `LogState.lent`, `.sapp`, `.aps : Bool := false` (`Defs.lean`; `logRestore` keeps
+`lent`, clears the other two). `ownRaftLog`'s storage is `lentStor ls.lent lv.storage' σ`
+(`InvRaftlog.lean`: `ownStorage`, or `True` while lent, the facts of `σ` kept as pure facts of the
+state it was lent at; `lentStor_open`/`_close`/`_lent`, `lent_false_of`, the macro `take_storage h`
+in a reader's `snap = none` branch, and `reseal_raftLog` closes it back from `Hlnt`), with three new
+conjuncts: `Hlent` (`lent → snap ≠ none`), `Hq` (`sapp = false ∧ aps = false`) and `Hprel`
+(`SipOk`: a snapshot in progress keeps the σ-free `LogPersistRel sents uents ipo stored`,
+`LogPersistOk`'s first two conjuncts against `stored`; `LogPersistOk.rel`, `LogPersistRel_full`).
+`ownRaftLog_intro` takes the three and the lent flag (`{lt}`, `ls.lent = lt`, so that `iapply …
+$$ HStorage` does not fix the state from the storage's hypothesis).
+
+**2. The windows: a second body, `ownRaftLogW`** (deviation from the design, which had every
+spec but the acknowledgement's take `sapp = false` as a premise). The design's confinement of
+`sapp` by premises cannot be discharged: `raft.appliedSnap` (S-d2) is called with the raft struct
+while the log is in the `sapp` window and calls `raft.appliedTo` in the `aps` window, so either
+the raft predicate admits the windows -- and then every raft-level reader of the log, hundreds of
+call sites, would need the premise -- or a second predicate does. So `ownRaftLog` is quiet (`Hq`,
+every reader's proof unchanged), and `ownRaftLogW` admits both: the same pieces, the storage
+relation and the facts kept with no snapshot pending at `snapV ls` (`if sapp then none else
+snap`: in the window the storage holds the snapshot, the stable part after it), `Hpapplied` as
+`snap = none → aps = false → …`, and `SappOk` (`snap = some prev`, in progress, not lent, nothing
+unpersisted, `σ.ss = prev`) in the `sapp` window. `ownRaftLog_toW`, `ownRaftLogW_quiet`
+(`_quietW` with the facts as a pure premise), `reseal_raftLogW`. On `ownRaftLogW`:
+`raftLog.stableTo` (`StableOk`'s hit: `snap = none ∨ sapp`), `raftLog.appliedTo` (its result's
+`aps := aps && decide (i < prev.index)`, and `logAppliedTo`'s likewise), the new
+`raftLog.stableSnapTo` (`Spec`/`Proof` `raftLog__stableSnapTo.lean`, linked, in `Results.lean`:
+premise `snapHit snap i ↔ sapp`, result `logStableSnap`: on the hit `snap := none, sip := false,
+sapp := false, aps := true`). Their callers today (`raft.Step`'s acknowledgement arm,
+`raft.appliedTo`, `newRaft`) convert around the call; S-d2 puts the raft layer's two functions on
+an `ownRaftPhysCVW`.
+
+**3. The lent storage** (`InvReadylog.lean`). `ownRaftLog_lend` (a snapshot pending, nothing
+unpersisted, not lent): the application gets `ownStorage ls.storage σ` with `σ.pend = []`, the
+log's floor and a sendable snapshot; the log is at `logHanded { ls with lent := true }` (the batch
+the `Ready` hands out recorded as unpersisted, which the application appends itself).
+`ownRaftLog_absorb_snap` (lent; the receipt `ownStorage ls.storage σr` with `σr.prev = σr.ss`,
+`σr.ents = ls.stored`, `σr.pend = []`, `σr.fl = ls.fl`, `σr`'s trip sendable): the log at
+`logAbsorbSnap ls σr.ss` -- not lent, nothing unpersisted, `sapp` when `σr.ss` is the snapshot in
+progress (the storage relation from `SipOk`), otherwise (a second restore) quiet with the storage
+shadowed. `ownRaftLog_absorb` (the entries' receipt) drops a token while lent.
+`raftLog.acceptUnstable` loses its premise `snap = none` (the snapshot is then in progress, and
+`SipOk` holds of `stored := sents ++ uents`).
+
+**4. Two invariants strengthened.** `FlOk`'s third conjunct, `applying < offsetInProgress`, holds
+with a snapshot pending too (it was `snap = none →`): a restore sets `offsetInProgress` past the
+new commit index, a truncating append cuts above `committed`, and it is what puts a snapshot
+`Ready`'s batch above the floor (`ownRaftLog_lend`) and what `stableSnapTo` re-establishes for no
+snapshot pending (the design's `snap = none ∨ sapp →` form of this conjunct is subsumed).
+`raftLog.appliedTo`, `raft.appliedTo` and `raftLog.acceptApplying` take their `… < inprogress`
+premises unconditionally (every caller had them). `unstable.maybeTerm`/`stableTo` take a pending
+snapshot below the offset (`sid.index < offset`; until now `offset = sid.index + 1`), true in the
+`sapp` window, where a stable part follows the snapshot. `ownRaftLog_stable_bound` (the stable
+part below `2^61`, from the storage or the pending snapshot) replaces the two read-outs that
+opened the storage unconditionally (`raft__appendEntry`, `InvRawnode`'s `ownRaftLog_last_bound`).
+
+**For S-d2-S-d4.** S-d2: `ownRaftPhysCVW` (the raft predicate's body over a log predicate) and its
+accessors; `raft.appliedTo` on it (`sapp = false`, `aps → prev.index ≤ index`); `raft.appliedSnap`;
+the receipt into `raft.Step`'s acknowledgement arm (absorbed there, before `stableTo`). S-d3: the
+`RawNode` lends at a snapshot `Ready` (`ownRaftLog_lend`) and carries the receipt to `Advance`'s
+step.
+
+## D22 S-d2 carried out: `raft.appliedSnap`; a snapshot's acknowledgement in both arms of `raft.Step` (2026-10-21)
+
+Stage S-d2 ("D22 S-d designed", the raft layer; "D22 S-d1b carried out", "For S-d2-S-d4"). Raft
+files only, and the `RawNode` lines the changed `raft.Step` spec forces; no server, kv or bbolt
+statement changed. Trust base unchanged (538 axioms, 2 sorries); every collection's `--check`
+passes unchanged.
+
+**1. An amendment to S-d1b: the receipt absorbed before the step, into a quiet state (`sat`).**
+S-d1b's `ownRaftLog_absorb_snap` left the log in the `sapp` window; absorbed in `RawNode.Advance`
+(where the entries' receipt is absorbed today, and where the design put it: "`ownRawNode_appended`
+takes `snapReceipt`") that would have the raft struct outside the quiet `ownRaftPhysCV` at
+`raft.Step`'s entry, and absorbed inside the arm it would make the receipt a spatial resource of
+`raft.Step`'s precondition (one more conjunct at its 37 call sites). Instead a quiet flag
+`LogState.sat` ("the storage is at the pending snapshot"; both bodies' `Hsat : sat → SatOk σ ls`:
+the snapshot in progress, not lent, nothing unpersisted, `σ.prev = σ.ss = prev`, `σ.ents =
+stored`, nothing pending): `ownRaftLog_absorb_snap` now returns the quiet log at `logAbsorbSnap`
+(which sets `sat`, not `sapp`), and the arm opens the window by a ghost step,
+`ownRaftLog_sapp : sat → ownRaftLog ls ⊢ ownRaftLogW { ls with sapp := true }` (the storage
+relation and `LogPersistOk` from `SatOk` and `SipOk`). `sat` is cleared by `logRestore`,
+`logAcceptUnstable`, `logStableSnap`'s hit and the lending (`ownRaftLog_lend` now at
+`logHanded { ls with lent := true, sat := false }`); the entries' absorption keeps it.
+
+**2. The raft struct in the windows: `ownRaftPhysCVW`** (`InvRaftPhys.lean`). The private body
+`ownRaftPhysG` takes the log predicate as a parameter (`ownRaftLog`, or `ownRaftLogW`);
+`ownRaftPhysCVW` is it at `ownRaftLogW`, sealed like `ownRaftPhysCV`, with the accessors the two
+functions on it and the arm need: `ownRaftPhysCV_toW`, `ownRaftPhysC_log_atW` (the quiet log out,
+put back in the windows), `ownRaftPhysCVW_log_at`, `ownRaftPhysCVW_log_atQ` (put back quiet: the
+struct is quiet again), `ownRaftPhysCVW_eq`, `raft.wp_load_raftLogCW`. Read-outs on the windowed
+log: `ownRaftLogW_struct`, `ownRaftLogW_snap_prev`.
+
+**3. `raft.appliedTo` on `ownRaftPhysCVW`** (`appliedSnap` calls it in its window): premises
+`sapp = false` and `aps → prev.index ≤ index` (so the window ends there), the result quiet. Its
+other caller, `Step`'s `MsgStorageApplyResp` arm, converts (`ownRaftPhysCV_toW`, the quiet facts
+from `ownRaftLog_quiet`).
+
+**4. `raft.appliedSnap`** (`Spec`/`Proof` `raft__appliedSnap.lean`, linked as `raft.Step`'s callee,
+in `Results.lean`): on `ownRaftPhysCVW`, the snapshot read at any fraction; premises the hit
+exactly in the `sapp` window, `aps = false`, the index at most the boundary (the pending
+snapshot, or an older one after a second restore: this gives `appliedTo`'s guard and its
+`offsetInProgress` bound), the auto-leave premise, and `LogGhOk`'s two ghost flags (`unst = false`,
+no pending snapshot in the no-snapshot mode); result `ownRaftPhysCV` at `logAppliedTo
+(logStableSnap ls i) i 0`.
+
+**5. `raft.Step`'s acknowledgement** (`Spec/raft__Step.lean`). New `ackLog ls sn` (with a snapshot
+and `sat`, the `sapp` window), `ackStableId m t` (the entry the arm's `stableTo` is called at, if
+it is), `ackSnapLog ls m t sv` (the log after the acknowledgement). The premise `sn = none` is
+replaced by `∀ sv, sn = some sv → snapHit snap sv.index = sat ∧ sv.index ≤ prev.index ∧
+md.isDyn = false ∧ auto-leave`, and `StableOk` is of `ackLog s.logst sn`. The postcondition:
+`Hlocal` is `((AppendResp → sn = none) → LocalStepOk …) ∧ (AppendResp → ∀ sv, sn = some sv → s'
+= { s with logst := ackSnapLog s.logst m s.term sv })`, `Hframe` takes `AppendResp → sn = none`.
+The dynamic mode is excluded (a premise; it takes no snapshot, `DynNoSnap`): its `rOf` reads
+`applied` and the pending snapshot, so no frame step of the dynamic model is one;
+`ghost_step_static0` (`raft__Step/Base.lean`) is the static ghost step from `StepC` alone.
+The branch (`wp_Step_MsgStorageAppendResp_snap`, beside the unchanged `_none`): `ackOpen` (the
+window opened on the struct, after the preamble's field loads, which are on `ownRaftPhysCV`),
+then in the current-term arm `stableTo` (on `ownRaftLogW`) and `appliedSnap`, in the stale arm
+`appliedSnap` alone; `wp_GetSnapshot_some`. `cq_split` names its `prevote` case (`Hpv`).
+
+**6. Consumers.** `NetMsgOk.raftStep` is generic in the mode (its continuation states the new
+premise); the eleven `Hframe` uses (`RawNode.{Step,Campaign,ReadIndex,TransferLeader,ForgetLeader,
+ReportSnapshot,ReportUnreachable,Advance}`, `tickElection`, `tickHeartbeat`, `InvNodeRun`) pass
+`AppendResp → sn = none` by the type, the five `Hlocal` uses take `.1`; `RawNode.Advance`'s
+acknowledgement passes its `sn = none` as before.
+
+**For S-d3** (the `RawNode`): `Ready` with a snapshot lends the storage (`ownRaftLog_lend`, with
+`acceptUnstable` now taking a pending snapshot); `Advance` absorbs the application's receipt
+(`ownRaftLog_absorb_snap`) and steps the acknowledgement with `Snapshot` set; it must supply
+`snapHit snap i = sat` (the main case: `sat` and the hit; after a second restore neither, since
+`s2.index > committed ≥ s1.index`), `i ≤ prev.index`, the static mode, and `StableOk (ackLog …)`:
+in the main case the hit is in the `sapp` window, with `stored` (`logAcceptUnstable`'s, the
+entries after the snapshot) agreeing with the log up to the acknowledged entry by
+`stored_agree`; after a second restore it must miss, by Log Matching ("D22 S-d1 part 1 carried
+out", item 3). The post is `ackSnapLog`'s log, which `ownRawNode` must re-establish (the delivered
+jump, `Hdlen`, `RNFl`/`FlOk`; "D22 S-d designed", S-d3).
+
+## D22 S-d3 designed precisely, not carried out: the `RawNode` over a snapshot `Ready`; stopped after S-d2 (2026-10-21)
+
+After S-d1b and S-d2 the log and raft layers take a snapshot through `Ready`/`Advance`; the
+`RawNode` layer still takes `psnap = false` (`HasReady`, `readyWithoutAccept`, `Ready`,
+`Advance`, `ownRawNode_raise_floor`) and `RawNode.Step` a `MsgSnap` only with `rs.steps = []`.
+A read of `rawnode.go` and the `RawNode` proofs against "D22 S-d designed" (S-d3) found it several
+times the planned size, with facts the design did not count (item 1); per the brief, stopped at a
+precise design (items 2-4), staged S-d3a (no second restore), S-d3b (the second restore), S-d4.
+No Lean change in this entry.
+
+**1. What the design did not count.**
+- *The acknowledgement is queued without entries too.* `acceptReady` queues it when
+  `needStorageAppendRespMsg` (`rawnode.go:210`): unstable entries **or** a non-empty snapshot;
+  `Index`/`LogTerm` are set only with unstable entries (`hasNextOrInProgressUnstableEnts`), so a
+  snapshot `Ready` with no entry after the snapshot queues `Index = 0`. `Pending.appendAck t last`
+  must become `appendAck t (last : Option entryID) (sn : Option SnapshotM)` (and `appendAckM`,
+  `pendSt`, `PendingOk`, `StepsOk`, `acceptReady`'s queue, `Advance`'s cases).
+- *The snapshot is shared.* `newStorageAppendRespMsg` stores `rd.Snapshot` itself in the queued
+  message (`m.Snapshot = rd.Snapshot`, `rawnode.go:349`), the pointer the application gets: the
+  clone `nextSnapshot` makes is fresh, so it is handed out read-only (`ownSnapM p DFrac.discard`)
+  to both; `raft.appliedSnap` already takes any fraction.
+- *The records gate.* `Hstrecs` is `storedRecsP γ rs.psnap prev stored` (records only while no
+  snapshot may be pending, S-c), but after a snapshot `Ready` the records hold again
+  (`ownRaftGhost_storedRecs` mints them for the new base, the snapshot), and the acknowledgement
+  needs them (`StableOk (ackLog …)` by `stored_agree`, as `stableOk_of_stored` now). The gate must
+  be its own flag, `RNState.rst` ("restored since the last `Ready`": set by `RawNode.Step`'s
+  `MsgSnap`, cleared by `acceptReady`), distinct from `psnap` ("a snapshot pending or in
+  progress": cleared by `Advance`'s acknowledgement on the hit).
+- *`Hdlen` between the `Ready` and `Advance`.* The delivered log jumps to the snapshot's prefix `A`
+  at the `Ready` (`|A| = sid.index`), while `applying` reaches it only at `Advance`'s
+  `appliedTo`: `Hdlen` (`|delivered| = applying`) becomes `|delivered| = applying ∨ (a queued
+  acknowledgement carries a snapshot of index `i` ∧ |delivered| = i ∧ applying ≤ i)`, which every
+  `RawNode` method's reseal carries (they keep both sides) and `Ready`/`Advance` establish.
+- *The floor raised past `applying`.* `node.go` raises the floor at `advancec` to the delivered
+  log's length (`advance_complete`), before `Advance`: with a snapshot `Ready` that is `sid.index >
+  applying`, which `FlOk` (`fl ≤ applying`) forbids. Either `FlOk` admits `fl ≤ i` while the
+  acknowledgement of a snapshot at `i` is queued (a log-layer change: a ghost `LogState.ackIdx`),
+  or S-d4 raises the floor to `applying` only for a snapshot `Ready` (no compaction right past it
+  until the next `Advance`; simpler, and what the design should take).
+- *The second restore is a term argument plus Log Matching, and needs a fact of the restore.*
+  With `s2` restored between `Ready(s1, es)` and `Advance`, the acknowledgement's `stableTo` must
+  miss (otherwise the next `Ready` hands out `s2` with entries after `id`, and the application's
+  `ApplySnapshot(s2)` then `Append` panics on "missing log entry", or loses the entries raft
+  thinks stable). It does: if the term moved since the `Ready`, the acknowledgement is stale
+  (`m.Term < r.Term`: the arm runs `appliedSnap` alone -- the ABA guard of
+  `newStorageAppendRespMsg`); within the same term every `MsgApp`/`MsgSnap` since is the term's
+  leader's, and a hit at `id` (`id.index > s2.index`, or it misses on `id.index < offset`) would
+  make `es` agree with that leader's log up to `id` (Log Matching between the records of `stored`
+  and of the log), hence at `s2.index` -- where the log, which a truncation within the term could
+  only have cut above `id` (same argument), still held `es`'s entry, so `restore`'s
+  `matchTerm(s2)` would have succeeded. The proof needs, from `raft.Step`'s `MsgSnap`, the fact
+  that the log at the restore did not match `s2` (`restore`'s `!matchTerm` exit: a `SnapStep`
+  conjunct to add), and the records of the log before the restore. Not a Go bug (checked through
+  the scenario of a slow snapshot application with a conflicting `MsgApp` from another leader:
+  the term moves, and the stale arm skips `stableTo`).
+
+**2. S-d3a: a snapshot `Ready`, no second restore** (`RawNode.Step` keeps `rs.steps = []` for a
+`MsgSnap`). Files: `InvRawnode.lean`, `InvRawnodeReady.lean`, `RawNode__{readyWithoutAccept,
+acceptReady,Ready,HasReady,Advance}.lean` and their specs; the other methods' reseals only
+(`Hdlen`'s new form, `rst`).
+- `readyWithoutAccept`/`Ready` drop `rs.psnap = false`; the snapshot branch: `nextUnstableSnapshot`
+  gives the clone (`unstable.nextSnapshot`'s spec: `snap = some sid ∧ sip = false`), handed out
+  read-only, `CommittedEntries = []` (`nextCommittedEnts`: `snap ≠ none → ce = []`), `Entries` the
+  unstable ones (`sents = []`), the delivered jump `A := (cprefix fp (toPState s)).take sid.index`
+  (`ownRaftGhost_cmt`, `isCommitted_mono`; `rs.delivered <+: A` by `isCommitted_agree`, since
+  `|delivered| = applying < sid.index`). Post: `rs.psnap = false → rd.Snapshot' = null` kept as a
+  conjunct (so `node.go` and its callers, at `psnap = false`, are unchanged), and otherwise
+  `∃ sv, ownSnapM rd.Snapshot' □ sv ∗ ⌜snapId sv = sid ∧ trip ∈ ksn ∧ the cert⌝ ∗ isCommitted γ A`.
+- `acceptReady` with a snapshot: `ownRaftLog_lend` in place of the hand-out (the application gets
+  `ownStorage rs.storage σ` and the facts of `σ`), `acceptUnstable` (no `snap = none` premise
+  since S-d1b; `sip := true`), the acknowledgement `appendAck t (last?) (some sv)` (term: the
+  node's; `PendingOk`: `t ≤ term`, `last` the last of `stored` if any, `sv.index = prev.index`,
+  `lent` or `sat`), no `acceptApplying`; `delivered := A`; `rst := false`.
+- `ownRawNode_appended` for the snapshot receipt (`snapReceipt rs sv σr`: `σr.prev = σr.ss = snapId
+  sv`, `σr.ents = es`, `σr.pend = []`, `σr.fl`, trip in `ksn`) by `ownRaftLog_absorb_snap`; the log
+  is then at `sat`.
+- `Advance` drops `psnap = false`: the acknowledgement's `raft.Step` premises (S-d2): `snapHit =
+  sat` (both true), `sv.index ≤ prev.index` (equal), the static mode (`Hsnap`: a snapshot only
+  statically), `StableOk (ackLog …)` by `stored_agree` in the `sapp` window; its post
+  `ackSnapLog` (`snap := none`, `applied = applying = sid.index = |delivered|`, `sip`, `lent`,
+  `sat`, `sapp`, `aps` off) re-establishes `ownRawNode` with `psnap := false`.
+- `HasReady` exact on `hasNextUnstableSnapshot` (S-d1 part 1); `ownRawNodeReady`/`Idle` with
+  `Hsnap` and `Hstrecs` as `ownRawNode`'s; `ownRawNode_raise_floor` without `psnap = false` (the
+  floor at most `applying`, item 1).
+
+**3. S-d3b: the second restore.** `RawNode.Step` drops `rs.steps = []` for a `MsgSnap`; the queued
+acknowledgement's `PendingOk` gains the snapshot case's form that survives a restore (`t ≤ term`,
+`sv.index ≤ committed`, and -- for the miss -- the term at the `Ready` and the records of `stored`
+with its base); `Advance` proves `snapHit = sat` (both false: `s2.index > committed ≥ s1.index`)
+and the miss of `stableTo` (item 1's argument: stale arm on a term change, else Log Matching with
+`SnapStep`'s new "the log did not match the snapshot at the restore" fact); `psnap` stays set
+(`s2` pending), `rst` set.
+
+**4. S-d4** as designed ("D22 S-d designed", S-d4): `readyData` with `rd.Snapshot' = null ∨
+(γ.raft.reNoSnap = false ∗ the snapshot and the lent storage)`, `advanceP`'s `appendReceipt` or
+`snapReceipt`, `netP` without `Type ≠ MsgSnap`, `runCfg` without `psnap = false`, `dlv`/`dlm` over
+the jump; the floor raised to `applying` at a snapshot `Ready` (item 1); the kv example keeps
+passing no `MsgSnap` (its `netP` conjunct moved to its own network invariant) until S-r.

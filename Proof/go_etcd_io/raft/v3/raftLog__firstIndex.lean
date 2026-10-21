@@ -64,6 +64,7 @@ theorem raftLog.firstIndex.wp_proof
     rw [Hstok]
     wp_auto
     obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
+    take_storage Hs
     wp_apply HFirstIndex $$ HStorage as %fi2 ⟨%Hfi2, #Hcut, HStorage⟩
     rw [← Hstok]
     iapply HΦ

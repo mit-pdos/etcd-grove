@@ -49,7 +49,7 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     unfold ownRaftLog
     iexists _, σ
     simp only [named, List.append_nil]
-    iframe Hl Hsto2 HStorage
+    iframe Hl Hsto2
     isplitr
     · ipureintro; apply BitVec.eq_of_toNat_eq; word
     isplitr
@@ -70,6 +70,9 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; exact Hidx
     isplitr
     · ipureintro; simp only [List.length_nil]; word
+    -- (D22 S-d1b) the storage, not lent
+    isplitl [HStorage]
+    · iapply lentStor_close (b := false) rfl; iexact HStorage
     isplitr
     · ipureintro; exact ⟨rfl, List.prefix_refl _, fun _ => rfl⟩
     isplitr
@@ -116,8 +119,17 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; rfl
     isplitr
     · ipureintro; exact ⟨Hpe, fun _ e0 He0 => by simp at He0⟩
-    ipureintro
-    refine ⟨Hfl0, by simp, fun _ => by word, fun e0 He0 => by simp [Hpe] at He0⟩
+    isplitr
+    · ipureintro
+      refine ⟨Hfl0, by simp, by word, fun e0 He0 => by simp [Hpe] at He0⟩
+    -- (D22 S-d1b) not lent, no window, no snapshot in progress
+    isplitr
+    · ipureintro; first | exact trivial | (intro h; cases h)
+    isplitr
+    · ipureintro; first | exact trivial | exact ⟨rfl, rfl⟩ | exact ⟨rfl, trivial⟩ | exact ⟨trivial, rfl⟩ | exact ⟨trivial, trivial⟩
+    isplitr
+    · ipureintro; first | exact trivial | (intro h; cases h)
+    ipureintro; first | exact trivial | (intro h; cases h)
   · ipureintro; word
 
 end proof

@@ -41,14 +41,14 @@ theorem raftLog.acceptApplying.wp_proof
     iapply HΦ
     reseal_raftLog
     all_goals (simp only [Hasz] at *; try omega)
-    all_goals (try exact ⟨Hfl.1, by have := Hfl.2.1; simp only; omega, fun Hs => Hi.2.2.2 Hs, Hfl.2.2.2⟩)
+    all_goals (try exact ⟨Hfl.1, by have := Hfl.2.1; simp only; omega, Hi.2.2.2, Hfl.2.2.2⟩)
     · intro h; cases h
   · -- under the limit: the log is re-sealed for `maxAppliableIndex`
     ihave Hlog : ownRaftLog l { ls with applying := i, apsize := ls.apsize + size }
       $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
       all_goals (simp only [Hasz, Hamx] at *; try omega)
-      all_goals (try exact ⟨Hfl.1, by have := Hfl.2.1; simp only; omega, fun Hs => Hi.2.2.2 Hs, Hfl.2.2.2⟩)
+      all_goals (try exact ⟨Hfl.1, by have := Hfl.2.1; simp only; omega, Hi.2.2.2, Hfl.2.2.2⟩)
     have Hb' : ¬ uint.Z ls.apmax ≤ uint.Z (ls.apsize + size) := by rw [← Hamx, ← Hasz]; exact Hif
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi ⟨Hlog, -⟩
     · iexact Hlog

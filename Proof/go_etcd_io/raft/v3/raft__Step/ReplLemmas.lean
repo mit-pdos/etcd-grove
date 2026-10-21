@@ -198,7 +198,7 @@ macro "cq_split " q:ident : tactic => `(tactic| (
   cases Hcq : s.cq <;> (try wp_auto) <;> (try wp_drive $q)
   all_goals try (
     have _ : s.cq = false := Hcq
-    cases s.prevote <;> (try wp_auto) <;> wp_drive $q)))
+    cases Hpv : s.prevote <;> (try wp_auto) <;> wp_drive $q)))
 
 end EtcdGrove
 end Perennial

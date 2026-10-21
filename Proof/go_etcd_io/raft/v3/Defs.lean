@@ -335,6 +335,27 @@ structure LogState [FfiSyntax] where
   to the application by a `Ready` (`acceptInProgress`), so `nextSnapshot` no longer returns it.
   `false` with no snapshot pending (`ownRaftLog`'s `Hsipn`); `restore` clears it. -/
   sip : Bool := false
+  /-- (D22 S-d1b, 2026-10-21) The storage is lent to the application (ghost): a `Ready` that hands
+  out a snapshot hands out the storage itself, for `ApplySnapshot` and the `Append` of the entries
+  after it (`ownRaftLog_lend`); `ownRaftLog` then holds no `ownStorage` (`lentStor`), which is
+  sound because raft reads no storage while a snapshot is pending. Only with a snapshot pending
+  (`Hlent`); the application's receipt ends it (`ownRaftLog_absorb_snap`). -/
+  lent : Bool := false
+  /-- (D22 S-d1b) The storage holds the pending snapshot and the entries after it (ghost): set by
+  the absorption of the application's receipt of the snapshot in progress, cleared by
+  `stableSnapTo`'s hit (and by `restore`). Only `ownRaftLogW` admits it (the acknowledgement's arm
+  of `raft.Step`, `raftLog.stableTo`, `raftLog.stableSnapTo`); `ownRaftLog` has it `false`. -/
+  sapp : Bool := false
+  /-- (D22 S-d1b) `raft.appliedSnap` between its two calls (ghost): `stableSnapTo` dropped the
+  snapshot, and `applied` is still below the boundary until `appliedTo` moves it there. Only
+  `ownRaftLogW` admits it; `ownRaftLog` has it `false`. -/
+  aps : Bool := false
+  /-- (D22 S-d2, 2026-10-21) The storage is at the pending snapshot (ghost): the application's
+  receipt of the snapshot in progress is absorbed (`ownRaftLog_absorb_snap`), so the storage holds
+  the snapshot and what the `Ready` asked it to store (`SatOk`). Set by the absorption only;
+  cleared by `restore`, a `Ready`'s `acceptUnstable` and `stableSnapTo`'s hit. Quiet: the
+  acknowledgement's arm turns it into the `sapp` window (`ownRaftLog_sapp`). -/
+  sat : Bool := false
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -912,7 +933,9 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 (its id, lists and `AutoLeave`) joins the ones the node may send (`ksn`). -/
 def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl, false⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl, false,
+   -- (D22 S-d1b) the storage stays lent, if it is; the storage no longer at the pending snapshot
+   ls.lent, false, false, false⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/

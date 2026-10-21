@@ -482,7 +482,7 @@ theorem RawNode.acceptReady.wp_proof
     rw [ite_pos' Hce0, List.append_nil]
     iframe Hrn Hsteps Hsteps_cap
     iapply pendList_nil
-  wp_apply wp_raftLog_acceptUnstable _ _ Hunp Hsnap $$ [Hlog] as Hlog
+  wp_apply wp_raftLog_acceptUnstable _ _ Hunp $$ [Hlog] as Hlog
   · iframe Hlog
   -- `if len(rd.CommittedEntries) > 0 { ... acceptApplying(ents[len(ents)-1].GetIndex(),
   -- entsSize(ents), applyUnstableEntries()) }`
@@ -526,7 +526,7 @@ theorem RawNode.acceptReady.wp_proof
       word
     wp_apply wp_raftLog_acceptApplying s.log (logAcceptUnstable s.logst) e.Index' sz' true
       ⟨by show uint.Z s.logst.applied ≤ _; omega, by show _ ≤ uint.Z s.logst.committed; omega,
-        by show uint.Z s.logst.applying ≤ _; omega, fun _ => Hend⟩
+        by show uint.Z s.logst.applying ≤ _; omega, Hend⟩
       $$ [Hlog] as Hlog
     · iframe Hlog
     isplitr
