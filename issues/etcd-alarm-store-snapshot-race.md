@@ -1,5 +1,7 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-10-21
+links: []
 ---
 
 # `applySnapshot` replaces `s.alarmStore` while gRPC and health goroutines read it (a data race)

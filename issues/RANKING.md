@@ -28,7 +28,8 @@ is allowed to send is a robustness bug, not a security issue, and does not go to
 on that ground alone. [etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md) (item
 1) takes the whole cluster down permanently; it crosses a permission line only with auth enabled,
 where a user allowed to write one key can crash every member. Whether it goes through the private
-process or publicly through etcd-io/etcd#22395 is the user's decision, pending.
+process or publicly through etcd-io/etcd#22395 was the user's decision: a security report
+(2026-10-21), to be safe and to try etcd's security process.
 
 ## Top tier: core guarantees or the cluster's availability, with the default configuration
 
@@ -71,7 +72,8 @@ process or publicly through etcd-io/etcd#22395 is the user's decision, pending.
    have (a cache or controller on it keeps a stale view), not in `main` today but introduced by
    the PR as it stands (and by our fork's K0 until F1); reproduced within 5 to 54 trials. A
    one-line addition to the PR: reset the id.
-6. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)**: the retry
+6. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)** (deferred,
+   2026-10-21: it turns on what at-most-once etcd's client promises, to take up separately): the retry
    interceptor can resend a `Put`/`Txn`/`Delete` after a `Canceled` status, applying the write
    twice. Less reachable than the file suggests (mostly through proxies or load balancers).
    etcd-io/etcd#18424 was closed as unreachable; the since-merged #21122 undercuts that, a reason
@@ -86,6 +88,7 @@ process or publicly through etcd-io/etcd#22395 is the user's decision, pending.
    partition). The documentation fix and etcd's five-line change are easy to argue for; claiming
    etcd is affected needs more evidence.
 8. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
+    (not in the current filing list, 2026-10-21: availability, the user prefers safety findings)
     (2026-10-19): the gRPC quota check keeps the backend it saw at startup, so after a member
     installs a leader's snapshot it judges writes by its old, closed backend; if that one was over
     the quota, every write through the member re-raises NOSPACE for the whole cluster, through
