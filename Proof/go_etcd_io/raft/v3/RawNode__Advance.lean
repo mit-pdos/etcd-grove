@@ -281,7 +281,7 @@ private theorem wp_step_pending
     · inext
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, -, %Hframe, %Hterm, %Hresp, -⟩
       have e2 := Hcc (by not_self); subst c'
-      have Hfr' := Hframe (by not_self) (by not_self)
+      have Hfr' := Hframe (by not_self) (by not_self) (fun h => absurd h (by not_self))
       have Htm := Hterm (by not_self)
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
@@ -321,7 +321,7 @@ private theorem wp_step_pending
       (by simp [StepMsg, stepMsgTypes, appendAckM])
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
+      (fun _ => ⟨(fun _ h => by cases h), Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne)) (fun h => absurd h (by msg_ne))
@@ -352,7 +352,7 @@ private theorem wp_step_pending
     · inext
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -⟩
       have e2 := Hcc (by msg_ne); subst c'
-      obtain ⟨Hfr, Hap, -⟩ := Hloc (.inr (.inl rfl))
+      obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun _ => rfl) (.inr (.inl rfl))
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro
@@ -400,7 +400,7 @@ private theorem wp_step_pending
     · inext
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Hstp, %Hcc, %Hloc, -⟩
       have e2 := Hcc (by msg_ne); subst c'
-      obtain ⟨Hfr, Hap, Happ⟩ := Hloc (.inr (.inr rfl))
+      obtain ⟨Hfr, Hap, Happ⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inr (.inr rfl))
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro

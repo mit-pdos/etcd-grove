@@ -112,6 +112,39 @@ theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : MessageM} {ents : List Ent
 def StepMsg [FfiSyntax] (m : MessageM) : Prop :=
   m.Type' ∈ stepMsgTypes
 
+/-! ### A snapshot's acknowledgement (D22 S-d2, 2026-10-21)
+
+The acknowledgement `RawNode.Advance` steps after a `Ready` that handed out a snapshot carries
+it (`newStorageAppendRespMsg`, `rawnode.go:266`: `Snapshot` set), and both arms of `Step` that
+take a `MsgStorageAppendResp` apply it (`appliedSnap`, after the `stableTo` of the entries the
+`Ready` also handed out, in the current-term arm). The application's receipt is absorbed before
+the step (`ownRaftLog_absorb_snap`: the storage at the pending snapshot, `sat`); the arm opens
+the `sapp` window from it (`ownRaftLog_sapp`). -/
+
+/-- The log the acknowledgement's `stableTo` sees: with a snapshot acknowledged and the storage
+at the pending snapshot, in the `sapp` window. -/
+def ackLog [FfiSyntax] (ls : LogState) (sn : Option SnapshotM) : LogState :=
+  match sn with
+  | none => ls
+  | some _ => if ls.sat then { ls with sapp := true } else ls
+
+/-- The entry the acknowledgement's `stableTo` is called at, if it is: in the current-term arm
+(`Term` `0` or the node's) with an `Index`. -/
+def ackStableId [FfiSyntax] (m : MessageM) (t : w64) : Option entryID :=
+  if (m.Term' = W64 0 ∨ m.Term' = t) ∧ m.Index' ≠ W64 0 then some ⟨m.LogTerm', m.Index'⟩
+  else none
+
+/-- The log after the acknowledgement of a snapshot `sv` at a node of term `t`: `stableTo` (if
+called) in the `sapp` window, then `appliedSnap`'s `stableSnapTo` and `appliedTo`. -/
+def ackSnapLog [FfiSyntax] (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) : LogState :=
+  logAppliedTo
+    (logStableSnap
+      (match ackStableId m t with
+       | some id => logStableTo (ackLog ls (some sv)) id
+       | none => ackLog ls (some sv))
+      sv.Metadata'.Index')
+    sv.Metadata'.Index' (W64 0)
+
 /-- What a `Step` of one of the messages `RawNode` steps itself leaves of the node's
 physical state beyond the protocol (2026-10-09): the term, the entries a `Ready` handed
 out that the application has not appended yet (`unpersisted`), the pending snapshot,
@@ -458,19 +491,26 @@ abbrev raft.Step.spec : Prop :=
      (m.From' = W64 0 ∨ m.From' = id)) →
   -- The two local acknowledgements `RawNode.Advance` steps (2026-10-05), as
   -- `acceptReady` builds them (`InvRawnode.lean`, `appendAckMsg`, `applyAckMsg`). A
-  -- `MsgStorageAppendResp` carries no snapshot (a pending snapshot is out of `Ready`'s
-  -- scope; `appliedSnap` is phase 2), is not from a later term (it would make the node
+  -- `MsgStorageAppendResp` (until D22 S-d2 carrying no snapshot) is not from a later term (it would make the node
   -- step down to a term no message brought), and -- when its `stableTo` runs (`Term`
   -- `0` or current, a nonzero `Index`) -- acknowledges only persisted entries
   -- (`StableOk`: Go compares only the term at `Index`). A `MsgStorageApplyResp` is
   -- local (`Term = 0`); its entries' last index is committed (the bound is in `"Hm"`,
   -- where the list is named).
+  -- (D22 S-d2, 2026-10-21) It may carry a snapshot (until then `sn = none`), the one the
+  -- storage is at if it is the pending one (`sat`; the application's receipt absorbed before
+  -- the step), at or below the log's boundary (the pending one, or older after a second restore),
+  -- in the static mode (the dynamic mode takes no snapshot), with `appliedTo`'s auto-leave
+  -- premise; the `StableOk` is of the log in the window the arm opens (`ackLog`).
   (m.Type' = MsgStorageAppendResp →
-     sn = none ∧
+     (∀ sv, sn = some sv →
+        snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
+        uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
+        md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader)) ∧
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →
-      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧
+      StableOk (ackLog s.logst sn) (entryID.mk m.LogTerm' m.Index')) ∧
      -- (2026-10-10) `stableTo` may hand out every unstable entry still to come
      -- (`NGhost.unst`): `RawNode.Advance` steps it only after `acceptReady` reset the flag
      s.gh.unst = false) →
@@ -588,9 +628,15 @@ abbrev raft.Step.spec : Prop :=
       "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
-      "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
-      -- for every other message but a snapshot, what is kept of the log (2026-10-09)
-      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → NetFrame s s'⌝ ∗
+      -- (D22 S-d2) but for a snapshot's acknowledgement, which moves the log as `ackSnapLog` says
+      -- and nothing else
+      "%Hlocal" ∷ ⌜((m.Type' = MsgStorageAppendResp → sn = none) → LocalStepOk m ents s s') ∧
+                   (m.Type' = MsgStorageAppendResp → ∀ sv, sn = some sv →
+                      s' = { s with logst := ackSnapLog s.logst m s.term sv })⌝ ∗
+      -- for every other message but a snapshot (and its acknowledgement), what is kept of the
+      -- log (2026-10-09)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →
+                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)

@@ -166,6 +166,7 @@ public import Proof.go_etcd_io.raft.v3.raftLog__zeroTermOnOutOfBounds
 public import Proof.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 public import Proof.go_etcd_io.raft.v3.raft__appendEntry
+public import Proof.go_etcd_io.raft.v3.raft__appliedSnap
 public import Proof.go_etcd_io.raft.v3.raft__appliedTo
 public import Proof.go_etcd_io.raft.v3.raft__applyConfChange
 public import Proof.go_etcd_io.raft.v3.raft__bcastAppend
@@ -1266,6 +1267,18 @@ theorem raft.wp_appliedTo [StorageModel GF] :
     raft.appliedTo.spec (GF := GF) (hG := hG) :=
   raft.appliedTo.wp_proof raftLog.wp_appliedTo
 
+theorem unstable.wp_stableSnapTo [StorageModel GF] :
+    unstable.stableSnapTo.spec (GF := GF) (hG := hG) :=
+  unstable.stableSnapTo.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_stableSnapTo [StorageModel GF] :
+    raftLog.stableSnapTo.spec (GF := GF) (hG := hG) :=
+  raftLog.stableSnapTo.wp_proof unstable.wp_stableSnapTo
+
+theorem raft.wp_appliedSnap [StorageModel GF] :
+    raft.appliedSnap.spec (GF := GF) (hG := hG) :=
+  raft.appliedSnap.wp_proof raftLog.wp_stableSnapTo raft.wp_appliedTo raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
 theorem raft.wp_reduceUncommittedSize [StorageModel GF] :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) :=
   raft.reduceUncommittedSize.wp_proof
@@ -1406,14 +1419,6 @@ theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
 
-theorem unstable.wp_stableSnapTo [StorageModel GF] :
-    unstable.stableSnapTo.spec (GF := GF) (hG := hG) :=
-  unstable.stableSnapTo.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem raftLog.wp_stableSnapTo [StorageModel GF] :
-    raftLog.stableSnapTo.spec (GF := GF) (hG := hG) :=
-  raftLog.stableSnapTo.wp_proof unstable.wp_stableSnapTo
-
 theorem raftpb.ConfChangeTransition.wp_Enum :
     raftpb.ConfChangeTransition.Enum.spec (GF := GF) (hG := hG) :=
   raftpb.ConfChangeTransition.Enum.wp_proof
@@ -1487,7 +1492,7 @@ theorem wp_NewRawNode [AllG GF] [StorageModel GF] :
 
 theorem raft.wp_Step [AllG GF] [StorageModel GF] :
     raft.Step.spec (GF := GF) (hG := hG) :=
-  raft.Step.wp_proof raft.wp_hup raft.wp_becomeFollower wp_voteRespMsgType raft.wp_send wp_stepCandidate wp_stepFollower wp_stepLeader wp_traceReceiveMessage raftLog.wp_lastEntryID raftLog.wp_isUpToDate raftLog.wp_stableTo raft.wp_appliedTo raft.wp_reduceUncommittedSize wp_entsSize wp_payloadsSize raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetIndex raftpb.Message.wp_GetCommit raftpb.Message.wp_GetReject raftpb.Message.wp_GetEntries raftpb.Message.wp_GetSnapshot raftpb.Message.wp_GetContext raftpb.Entry.wp_GetIndex raftpb.MessageType.wp_Enum
+  raft.Step.wp_proof raft.wp_hup raft.wp_becomeFollower wp_voteRespMsgType raft.wp_send wp_stepCandidate wp_stepFollower wp_stepLeader wp_traceReceiveMessage raftLog.wp_lastEntryID raftLog.wp_isUpToDate raftLog.wp_stableTo raft.wp_appliedTo raft.wp_appliedSnap raft.wp_reduceUncommittedSize wp_entsSize wp_payloadsSize raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetIndex raftpb.Message.wp_GetCommit raftpb.Message.wp_GetReject raftpb.Message.wp_GetEntries raftpb.Message.wp_GetSnapshot raftpb.Message.wp_GetContext raftpb.Entry.wp_GetIndex raftpb.MessageType.wp_Enum
 
 theorem RawNode.wp_Advance [AllG GF] [StorageModel GF] :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=

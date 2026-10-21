@@ -30,37 +30,38 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.appliedTo.wp_proof
     (wp_raftLog_appliedTo : raftLog.appliedTo.spec (GF := GF) (hG := hG)) :
     raft.appliedTo.spec (GF := GF) (hG := hG) := by
-  intro c r id s index size Hidx Hipo Hal0
+  intro c r id s index size Hidx Hipo Hal0 Hsa Hapsb
   wp_start as Hphys
   iNamed Hphys
   wp_auto
-  -- `oldApplied := r.raftLog.applied`
-  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
-  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcb, Hlog⟩
-  icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
-  icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
-  obtain ⟨Hcm, Hap⟩ := Hlv
+  -- `oldApplied := r.raftLog.applied` (D22 S-d2: the struct in the windows)
+  wp_apply raft.wp_load_raftLogCW $$ Hphys as Hphys
+  icases ownRaftPhysCVW_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
+  icases ownRaftLogW_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
+  obtain ⟨Hap, Hapl, Hapc, -, -⟩ := Hlv
   wp_auto
   ihave Hlog := Hlb $$ Hl
-  ihave Hphys := Hback $$ Hlog
+  ihave Hphys := Hback $$ %s.logst Hlog %Hgh0 %(fun _ => Int.le_refl _)
+  ihave Hphys := ownRaftPhysCVW_eq c r id _ s (by cases s; rfl) $$ Hphys
   rw [Hap]
   -- `max(index, oldApplied)`, as `w64Max`
   wp_func_call
   wp_call
   wp_if_destruct
   all_goals
-    -- `r.raftLog.appliedTo(newApplied, size)`
-    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
-    -- (D22 S-d1b) `raftLog.appliedTo` admits `appliedSnap`'s window (`ownRaftLogW`)
-    icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq0, Hlog⟩
-    ihave Hlog := ownRaftLog_toW _ _ $$ Hlog
+    -- `r.raftLog.appliedTo(newApplied, size)`: the window ends, the struct is quiet again
+    wp_apply raft.wp_load_raftLogCW $$ Hphys as Hphys
+    icases ownRaftPhysCVW_log_atQ c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
     first
       | wp_apply wp_raftLog_appliedTo _ _ index size (by omega) Hipo $$ [$Hlog] as Hlog
       | wp_apply wp_raftLog_appliedTo _ _ s.logst.applied size (by omega)
-          (fun h => absurd Hrw.2.1 (Int.not_le.2 h)) $$ [$Hlog] as Hlog
-    ihave Hlog := ownRaftLogW_quietW _ _ $$ Hlog %(⟨Hq0.1, by simp [Hq0.2]⟩)
+          (fun h => absurd Hapl (Int.not_le.2 h)) $$ [$Hlog] as Hlog
+    ihave Hlog := ownRaftLogW_quietW _ _ $$ Hlog %(⟨Hsa, by
+      cases h : s.logst.aps
+      · rfl
+      · have := Hapsb h
+        simp only [Bool.true_and, decide_eq_false_iff_not]
+        omega⟩)
     ihave Hphys := Hback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
       %(fun _ => logLast_le_of_fields rfl rfl rfl)
     -- `r.trk.Config.AutoLeave`: off, or the node is no leader (`Hal0`) -- the rest is dead

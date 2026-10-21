@@ -675,7 +675,7 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
 /-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
@@ -759,7 +759,7 @@ transfer's campaign, a pre-vote request only past term `0`): every premise up to
 vacuous at a type the network does not deliver. `k` is `raft.Step`'s spec at the message (what it
 takes after `RestMsgOk` is left in `X`). Shared by `RawNode.Step` (`RawNode__Step.lean`) and
 `run`'s step (`InvNodeRun.lean`, `wp_rn_raft_Step_net`). -/
-theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m : MessageM}
+theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md : GMode} {m : MessageM}
     {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8} {rsp : List Loc} {X : Prop}
     (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) (Hpv : RNPv rs s) (Htrm : rs.term = s.term)
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
@@ -790,9 +790,14 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
       (m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
       (m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0) →
       (m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id)) →
-      (m.Type' = MsgStorageAppendResp → sn = none ∧ uint.Z m.Term' ≤ uint.Z s.term ∧
+      (m.Type' = MsgStorageAppendResp →
+        (∀ sv, sn = some sv →
+          snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
+          uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
+          md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader)) ∧
+        uint.Z m.Term' ≤ uint.Z s.term ∧
         (m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
-          StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
+          StableOk (ackLog s.logst sn) (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
       (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
       (m.Type' = MsgReadIndex → m.Term' = W64 0) →
       (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →

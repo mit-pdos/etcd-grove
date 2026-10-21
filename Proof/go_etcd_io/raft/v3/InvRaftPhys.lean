@@ -1016,7 +1016,8 @@ variable (cfg : GSet w64)
 tracker predicate `T` and voter set `V` (2026-10-13, reconfiguration stage A1): `ownRaftPhys
 cfg` is it at `ownTracker cfg` and `cfg` (`ownRaftPhysDef`), `ownRaftPhysCV c c.voters` at
 `ownTrackerC c` and `c.voters`. -/
-private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V : GSet w64)
+private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
+    (L : Loc → LogState → IProp GF) (V : GSet w64)
     (r : Loc) (id : w64) (s : NState) : IProp GF :=
   iprop(∃ (rv : raft) (msgs msgsAA : List QMsg) (lok : GoInterfaceOk),
   -- the struct, `id` and `logger` shared (2026-10-10, `raftOwn`)
@@ -1052,7 +1053,9 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
   -- the log's state was quantified here, and the log went on loan with the tracker;
   -- until 2026-09-29 a slice `raftLog.slice` lent out was recorded in `logst.page`.)
   "%Hlogp" ∷ ⌜rv.raftLog' = s.log⌝ ∗
-  "Hlog" ∷ ownRaftLog rv.raftLog' s.logst ∗
+  -- (D22 S-d2) `L` is `ownRaftLog`, or `ownRaftLogW` in the acknowledgement's windows
+  -- (`ownRaftPhysCVW`)
+  "Hlog" ∷ L rv.raftLog' s.logst ∗
 
   -- outgoing messages. `send` routes vote/append *responses* to `msgsAfterAppend`
   -- and everything else to `msgs`; the model has a single outbox, so the
@@ -1140,7 +1143,7 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
 
 /-- The body of `ownRaftPhys`: `ownRaftPhysG` at the simple configuration's tracker. -/
 private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
-  ownRaftPhysG (ownTracker cfg) cfg r id s
+  ownRaftPhysG (ownTracker cfg) ownRaftLog cfg r id s
 
 /-- Physical ownership of the raft struct (see the file header).
 
@@ -1248,7 +1251,7 @@ leader between `switchToConfig`'s install of the new configuration and its `beco
 (`stepDownOnRemoval`), whose specs, with the field lemmas', are stated on `ownRaftPhysCV c V`. -/
 @[irreducible, no_expose] def ownRaftPhysCV (c : CfgM) (V : GSet w64) (r : Loc) (id : w64)
     (s : NState) : IProp GF :=
-  ownRaftPhysG (ownTrackerC c) V r id s
+  ownRaftPhysG (ownTrackerC c) ownRaftLog V r id s
 
 /-- Physical ownership of the raft struct at the configuration `c`: `Hvoter` at the voters of
 either half. An abbreviation, so that every lemma on `ownRaftPhysCV c V` applies. -/
@@ -1256,11 +1259,11 @@ abbrev ownRaftPhysC (c : CfgM) (r : Loc) (id : w64) (s : NState) : IProp GF :=
   ownRaftPhysCV c c.voters r id s
 
 private theorem ownRaftPhysCV_unseal (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) :
-    ownRaftPhysCV (GF := GF) c V r id s = ownRaftPhysG (ownTrackerC c) V r id s := by
+    ownRaftPhysCV (GF := GF) c V r id s = ownRaftPhysG (ownTrackerC c) ownRaftLog V r id s := by
   with_unfolding_all rfl
 
 private theorem ownRaftPhysCV_open (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysG (ownTrackerC c) V r id s := by
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysG (ownTrackerC c) ownRaftLog V r id s := by
   rw [ownRaftPhysCV_unseal]; iintro H; iexact H
 
 /-- Sealing `ownRaftPhysC`, as `ownRaftPhys_intro` (the same premises, the voter premise at
@@ -1319,6 +1322,82 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
   exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Htick, Hlogp, HmsgsAA_ok, Hout_term,
     Hgh_out, Hgh_unst, Hvoter, Hprok, Hnsl, Hxf, Hprevote,
     HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hsdr, Hid_nz, HelectionTimeout, Hlok⟩
+/-! ### The acknowledgement's windows at the raft layer (D22 S-d2, 2026-10-21)
+
+`ownRaftPhysCVW c V r id s` is `ownRaftPhysCV` with the log as `ownRaftLogW` (the windows `sapp`,
+`aps` admitted, `InvRaftlog.lean`): the state of the raft struct inside the arm of `Step` that
+steps a snapshot's acknowledgement, between the absorption of the application's receipt and
+`appliedSnap`'s `appliedTo`. Only `raft.appliedSnap` and `raft.appliedTo` are specified on it;
+the accessors are the few their proofs and that arm need. Sealed like `ownRaftPhysCV`. -/
+
+@[irreducible, no_expose] def ownRaftPhysCVW (c : CfgM) (V : GSet w64) (r : Loc) (id : w64)
+    (s : NState) : IProp GF :=
+  ownRaftPhysG (ownTrackerC c) ownRaftLogW V r id s
+
+private theorem ownRaftPhysCVW_unseal (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) :
+    ownRaftPhysCVW (GF := GF) c V r id s = ownRaftPhysG (ownTrackerC c) ownRaftLogW V r id s := by
+  with_unfolding_all rfl
+
+private theorem ownRaftPhysCVW_open (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCVW (GF := GF) c V r id s -∗ ownRaftPhysG (ownTrackerC c) ownRaftLogW V r id s := by
+  rw [ownRaftPhysCVW_unseal]; iintro H; iexact H
+
+/-- Sealing `ownRaftPhysCVW`, as `ownRaftPhysCV_intro` with the log as `ownRaftLogW`. -/
+theorem ownRaftPhysCVW_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : NState) (rv : raft)
+    (msgs msgsAA : List QMsg) (lok : GoInterfaceOk) :
+    rv.id' = id →
+    rv.Term' = s.term →
+    rv.Vote' = s.vote →
+    rv.lead' = s.lead →
+    rv.state' = stateW64 s.role →
+    rv.step' = s.stepfn →
+    rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
+    rv.disableProposalForwarding' = false →
+    rv.disableConfChangeValidation' = false →
+    rv.checkQuorum' = s.cq →
+    rv.isLearner' = s.isLearner →
+    rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
+    rv.pendingConfIndex' = s.pci →
+    rv.stepDownOnRemoval' = s.sdr →
+    id ≠ W64 0 →
+    0 < sint.Z rv.electionTimeout' →
+    rv.logger' = interface.ok lok →
+    rv.raftLog' = s.log →
+    (s.ticking = true → TickFnOk r rv.tick') →
+    (∀ m ∈ msgsAA, AAMsgOk id s.term m.st) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.term s.gh.tc m.st.msg) →
+    s.gh.outlb ≤ msgs.length + msgsAA.length →
+    (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
+    (s.role ≠ .follower → id ∈ V) →
+    PrvalsOk s →
+    LogNsOk s →
+    XfOk s (msgs ++ msgsAA) →
+    ⊢ raftOwn (GF := GF) r rv -∗
+      isLogger lok -∗
+      ownTrackerC c rv.trk' ⟨s.votes, s.progress, s.prvals⟩ -∗
+      ownRaftLogW rv.raftLog' s.logst -∗
+      rv.msgs' ↦* msgs.map QMsg.loc -∗
+      ownSliceCap Loc rv.msgs' (DFrac.own 1) -∗
+      rv.msgsAfterAppend' ↦* msgsAA.map QMsg.loc -∗
+      ownSliceCap Loc rv.msgsAfterAppend' (DFrac.own 1) -∗
+      ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
+      outboxRel s.outbox msgs msgsAA -∗
+      NsCap s.gh.ns s.logst.storage -∗
+      qSrcs s.logst.storage (msgs ++ msgsAA) -∗
+      ownRaftPhysCVW c V r id s := by
+  intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
+    HnoLearner HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
+    Hgh_out Hgh_unst Hvoter Hprok Hnsl Hxf
+  iintro Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox #Hnscap #Hscert
+  rw [ownRaftPhysCVW_unseal]; unfold ownRaftPhysG
+  iexists rv, msgs, msgsAA, lok
+  simp only [named]
+  iframe Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+  ipureintro
+  exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Htick, Hlogp, HmsgsAA_ok, Hout_term,
+    Hgh_out, Hgh_unst, Hvoter, Hprok, Hnsl, Hxf, Hprevote,
+    HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hsdr, Hid_nz, HelectionTimeout, Hlok⟩
+
 end proof
 
 set_option hygiene false in
@@ -1900,6 +1979,26 @@ set_option hygiene false in
 /-- `reseal` for `ownRaftPhysC`, at the configuration `c` and the state `s'`. -/
 local macro "resealC " c:term:max s:term:max : tactic =>
   `(tactic| (iapply ownRaftPhysCV_intro $c _ _ _ $s _ msgs msgsAA lok
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure)
+                $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert))
+
+set_option hygiene false in
+/-- (D22 S-d2) `iNamed_physC` for `ownRaftPhysCVW`. In this file only. -/
+local macro "iNamed_physCW " H:ident : tactic =>
+  `(tactic| (ihave $H:ident := ownRaftPhysCVW_open _ _ _ _ _ $$ $H:ident;
+             iunfold ownRaftPhysG at $H:ident;
+             icases $H:ident with ⟨%rv, %msgs, %msgsAA, %lok, $H:ident⟩;
+             iNamed $H:ident))
+
+set_option hygiene false in
+/-- (D22 S-d2) `resealC` for `ownRaftPhysCVW`. -/
+local macro "resealCW " c:term:max s:term:max : tactic =>
+  `(tactic| (iapply ownRaftPhysCVW_intro $c _ _ _ $s _ msgs msgsAA lok
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2830,6 +2929,116 @@ theorem ownRaftPhysC_log_same (r : Loc) (id : w64) (s : NState) :
   iintro Hlog
   ihave H := Hback $$ %s.logst Hlog %Hgh %(fun _ => Int.le_refl _)
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ H
+
+/-! #### The acknowledgement's windows (D22 S-d2, 2026-10-21): `ownRaftPhysCVW`'s accessors -/
+
+/-- A quiet raft struct is one with the windows admitted. -/
+theorem ownRaftPhysCV_toW (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysCVW c V r id s := by
+  iintro H
+  iNamed_physC H
+  ihave Hlog := ownRaftLog_toW _ _ $$ Hlog
+  resealCW c s
+
+/-- `ownRaftPhysC_log_at`, put back in the windows: for the acknowledgement's arm of `Step`, which
+opens the `sapp` window on the log (`ownRaftLog_sapp`) before its `stableTo`. -/
+theorem ownRaftPhysC_log_atW (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ownRaftLog s.log s.logst ∗ ⌜LogGhOk s s.logst⌝ ∗
+      (∀ ls', ownRaftLogW s.log ls' -∗ ⌜LogGhOk s ls'⌝ -∗
+        ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
+        ownRaftPhysCVW c V r id { s with logst := ls' }) := by
+  iintro H
+  iNamed_physC H
+  ihave Hlog : ownRaftLog (GF := GF) s.log s.logst $$ [Hlog]
+  · rw [← Hlogp]; iexact Hlog
+  iframe Hlog
+  isplitr
+  · ipureintro; exact ⟨Hgh_unst, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+  iintro %ls' Hlog %Hgh_unst' %Hle'
+  ihave #Hnscap := NsCap.of_keep Hgh_unst'.2.1 $$ Hnscap
+  ihave #Hscert : qSrcs (GF := GF) ls'.storage (msgs ++ msgsAA) $$ []
+  · rw [Hgh_unst'.2.2]; iexact Hscert
+  have Hnsl := Hnsl.of_ghOk Hgh_unst'
+  have Hgh_unst' := Hgh_unst'.1
+  ihave Hlog : ownRaftLogW (GF := GF) rv.raftLog' ls' $$ [Hlog]
+  · rw [Hlogp]; iexact Hlog
+  iapply ownRaftPhysCVW_intro c _ _ _ { s with logst := ls' } _ msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst' Hvoter (Hprok.mono_log Hle') Hnsl (by first | exact Hxf | exact Hxf.term_le Hle)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+
+/-- The log in the windows, put back at any state in them. -/
+theorem ownRaftPhysCVW_log_at (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCVW (GF := GF) c V r id s -∗
+      ownRaftLogW s.log s.logst ∗ ⌜LogGhOk s s.logst⌝ ∗
+      (∀ ls', ownRaftLogW s.log ls' -∗ ⌜LogGhOk s ls'⌝ -∗
+        ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
+        ownRaftPhysCVW c V r id { s with logst := ls' }) := by
+  iintro H
+  iNamed_physCW H
+  ihave Hlog : ownRaftLogW (GF := GF) s.log s.logst $$ [Hlog]
+  · rw [← Hlogp]; iexact Hlog
+  iframe Hlog
+  isplitr
+  · ipureintro; exact ⟨Hgh_unst, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+  iintro %ls' Hlog %Hgh_unst' %Hle'
+  ihave #Hnscap := NsCap.of_keep Hgh_unst'.2.1 $$ Hnscap
+  ihave #Hscert : qSrcs (GF := GF) ls'.storage (msgs ++ msgsAA) $$ []
+  · rw [Hgh_unst'.2.2]; iexact Hscert
+  have Hnsl := Hnsl.of_ghOk Hgh_unst'
+  have Hgh_unst' := Hgh_unst'.1
+  ihave Hlog : ownRaftLogW (GF := GF) rv.raftLog' ls' $$ [Hlog]
+  · rw [Hlogp]; iexact Hlog
+  iapply ownRaftPhysCVW_intro c _ _ _ { s with logst := ls' } _ msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst' Hvoter (Hprok.mono_log Hle') Hnsl (by first | exact Hxf | exact Hxf.term_le Hle)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+
+/-- The log in the windows, put back quiet: the struct is then quiet too. -/
+theorem ownRaftPhysCVW_log_atQ (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCVW (GF := GF) c V r id s -∗
+      ownRaftLogW s.log s.logst ∗ ⌜LogGhOk s s.logst⌝ ∗
+      (∀ ls', ownRaftLog s.log ls' -∗ ⌜LogGhOk s ls'⌝ -∗
+        ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
+        ownRaftPhysCV c V r id { s with logst := ls' }) := by
+  iintro H
+  iNamed_physCW H
+  ihave Hlog : ownRaftLogW (GF := GF) s.log s.logst $$ [Hlog]
+  · rw [← Hlogp]; iexact Hlog
+  iframe Hlog
+  isplitr
+  · ipureintro; exact ⟨Hgh_unst, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
+  iintro %ls' Hlog %Hgh_unst' %Hle'
+  ihave #Hnscap := NsCap.of_keep Hgh_unst'.2.1 $$ Hnscap
+  ihave #Hscert : qSrcs (GF := GF) ls'.storage (msgs ++ msgsAA) $$ []
+  · rw [Hgh_unst'.2.2]; iexact Hscert
+  have Hnsl := Hnsl.of_ghOk Hgh_unst'
+  have Hgh_unst' := Hgh_unst'.1
+  ihave Hlog : ownRaftLog (GF := GF) rv.raftLog' ls' $$ [Hlog]
+  · rw [Hlogp]; iexact Hlog
+  iapply ownRaftPhysCV_intro c _ _ _ { s with logst := ls' } _ msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst' Hvoter (Hprok.mono_log Hle') Hnsl (by first | exact Hxf | exact Hxf.term_le Hle)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox Hnscap Hscert
+
+theorem ownRaftPhysCVW_eq (r : Loc) (id : w64) (s1 s2 : NState) :
+    s1 = s2 → ⊢ ownRaftPhysCVW (GF := GF) c V r id s1 -∗ ownRaftPhysCVW c V r id s2 := by
+  intro H; subst H; iintro H; iexact H
+
+/-- The log's location, in the windows. -/
+theorem raft.wp_load_raftLogCW (r : Loc) (id : w64) (s : NState) :
+    {{ ownRaftPhysCVW (GF := GF) c V r id s }}
+      (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty))))
+        (Val #(r.[raft, go!"raftLog"])))
+    {{ RET #s.log; ownRaftPhysCVW c V r id s }} := by
+  iintro %Φ H HΦ
+  iNamed_physCW H
+  wp_apply wp_load_access _ rv.raftLog' _ (raftOwn_access_load_raftLog _ _) $$ Hr as Hr
+  rw [show (#rv.raftLog' : val) = #s.log by rw [Hlogp]]; iapply HΦ; resealCW c s
 
 /-- The ghost flag `unst` holds of the log (2026-10-10, `NGhost`), read out. -/
 theorem ownRaftPhysC_gh (r : Loc) (id : w64) (s : NState) :

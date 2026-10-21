@@ -276,6 +276,7 @@ namespace EtcdGrove
 #print axioms raft.wp_increaseUncommittedSize
 #print axioms raft.wp_reduceUncommittedSize
 #print axioms raft.wp_appliedTo
+#print axioms raft.wp_appliedSnap
 #print axioms raft.wp_maybeCommit
 #print axioms raft.wp_poll
 #print axioms readOnly.wp_heartbeatCtx

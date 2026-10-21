@@ -46,8 +46,14 @@ abbrev raft.appliedTo.spec : Prop :=
   -- recursive, which the link (one proof per function, callees' specs as hypotheses) does
   -- not express; a joint configuration entered with an explicit transition is in scope.
   (c.autoLeave = true → s.role ≠ .leader) →
+  -- (D22 S-d2, 2026-10-21) on the raft struct in the acknowledgement's windows
+  -- (`ownRaftPhysCVW`): `raft.appliedSnap` calls it in its own (`aps`: `stableSnapTo` dropped
+  -- the snapshot, `applied` below the boundary), which ends here, at the boundary; never in the
+  -- `sapp` window. The result is quiet.
+  s.logst.sapp = false →
+  (s.logst.aps = true → uint.Z s.logst.prev.index' ≤ uint.Z index) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
+      "Hphys" ∷ ownRaftPhysCVW c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appliedTo")) (Val #index))
       (Val #size))
   {{ RET #();

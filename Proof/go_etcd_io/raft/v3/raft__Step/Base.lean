@@ -37,6 +37,8 @@ public import Spec.go_etcd_io.raft.v3.raftLog__isUpToDate
 -- the storage acknowledgements (2026-10-05)
 public import Spec.go_etcd_io.raft.v3.raftLog__stableTo
 public import Spec.go_etcd_io.raft.v3.raft__appliedTo
+-- (D22 S-d2) a snapshot's acknowledgement
+public import Spec.go_etcd_io.raft.v3.raft__appliedSnap
 public import Spec.go_etcd_io.raft.v3.raft__reduceUncommittedSize
 public import Spec.go_etcd_io.raft.v3.entsSize
 public import Spec.go_etcd_io.raft.v3.payloadsSize
@@ -164,6 +166,8 @@ structure raft.Step.Postulates : Prop where
   -- the storage acknowledgements (2026-10-05)
   stableTo : raftLog.stableTo.spec (GF := GF) (hG := hG)
   appliedTo : raft.appliedTo.spec (GF := GF) (hG := hG)
+  -- (D22 S-d2, 2026-10-21) a snapshot's acknowledgement
+  appliedSnap : raft.appliedSnap.spec (GF := GF) (hG := hG)
   reduceUncommittedSize : raft.reduceUncommittedSize.spec (GF := GF) (hG := hG)
   entsSize : entsSize.spec (GF := GF) (hG := hG)
   payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)
@@ -404,6 +408,42 @@ theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : 
   · ipureintro; exact Hout
   unfold ownStepGhost
   iframe
+
+/-- (D22 S-d2, 2026-10-21) `ghost_step_md0` in the static mode, from the protocol step alone (a
+snapshot's acknowledgement, which moves `applied` and drops the pending snapshot, so that no frame
+step of the dynamic model's `rOf` is one; the dynamic mode takes no snapshot). -/
+theorem ghost_step_static0 (γ : RaftNames) (c : CfgM) (id : w64) (m : MessageM) (s s' : NState)
+    (Hstep : StepC c id (plogLastIndexZ (toPState s).base (toPState s).log) (toPState s) []
+      (toPState s'))
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
+    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) GMode.static.isDyn -∗
+      ghostRest γ .static c id s ={⊤}=∗
+      ⌜GMode.static.StepOut c id m s s' .static⌝ ∗ ownStepGhost γ .static c id s' := by
+  iintro Hlc Hg Hrest
+  ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hg
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc
+  imod rdCred_zero (GF := GF) γ with Hcr
+  iunfold ghostRest at Hrest
+  icases Hrest with ⟨%Hnl, Hrm, #Hcl⟩
+  ihave %HC : ⌜CfgStatic γ c ∧ TrackedOk γ c id⌝ $$ [Hrm]
+  · simp only [ghostRestM]; iexact Hrm
+  imod ownRaftGhost_stepC γ c HC.1 id HC.2 _ HB (toPState s) [] (toPState s') Hstep $$ Hrc []
+    [Hcr] [] Hlc Hg with Hg
+  · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iempintro
+  · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
+  · iapply msgsTks_nil
+  imodintro
+  isplitr
+  · ipureintro; exact ⟨rfl, _, [], Hstep⟩
+  unfold ownStepGhost
+  iframe Hg
+  iunfold ghostRest
+  isplitr
+  · ipureintro; unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
+  isplitr
+  · simp only [ghostRestM]; ipureintro; exact HC
+  rw [Hng.2]; iexact Hcl
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)

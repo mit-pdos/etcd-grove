@@ -441,7 +441,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have Hc := Href.commit_mono
   have e1 := Href.keep (by not_net) Hns; subst e1
   have e2 := Hcc Hns; subst c'
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hns (by not_net)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hns (by not_net) (fun h => absurd h (by not_net))
   obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm Hns
   have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
       (if m.Type' = MsgTimeoutNow then 1 else 0) := by
@@ -694,7 +694,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne') (by msg_ne'); subst e1
   have e2 := Hcc (by msg_ne'); subst c'
-  obtain ⟨Hfr', Hap, -⟩ := Hloc (.inl Hty)
+  obtain ⟨Hfr', Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne')) (.inl Hty)
   have Hap' := Hap (fun Hc => by rw [Hty] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)
   ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hfr'.2.2.2.2.1
     Hfr'.2.2.2.2.2.1 $$ Hstrecs

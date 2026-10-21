@@ -91,7 +91,7 @@ theorem RawNode.Campaign.wp_proof
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
   obtain ⟨Ht1, Ht2, -, -, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht2' := Ht2 rfl
   ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs

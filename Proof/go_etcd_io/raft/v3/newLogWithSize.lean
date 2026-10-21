@@ -127,6 +127,8 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · ipureintro; first | exact trivial | (intro h; cases h)
     isplitr
     · ipureintro; first | exact trivial | exact ⟨rfl, rfl⟩ | exact ⟨rfl, trivial⟩ | exact ⟨trivial, rfl⟩ | exact ⟨trivial, trivial⟩
+    isplitr
+    · ipureintro; first | exact trivial | (intro h; cases h)
     ipureintro; first | exact trivial | (intro h; cases h)
   · ipureintro; word
 

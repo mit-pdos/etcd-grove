@@ -222,7 +222,7 @@ theorem RawNode.Step.wp_proof
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
       have e1 := Href.keep (by not_net) Hs; subst e1
       have e2 := Hcc Hs; subst c'
-      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hs (by not_net)
+      obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr Hs (by not_net) (fun h => absurd h (by not_net))
       obtain ⟨Ht1, -, Ht3, -, Ht5, Hpcs⟩ := Htm Hs
       have Ht3' : m.Type' ≠ MsgPreVoteResp → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
           (if m.Type' = MsgTimeoutNow then 1 else 0) := by
