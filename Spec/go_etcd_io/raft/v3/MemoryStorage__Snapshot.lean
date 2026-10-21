@@ -79,7 +79,7 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
         -- floor, at an entry of the view
         ⌜((σ.prev.index' ≠ W64 0 ∨ 1 ≤ n) → sv.Metadata'.Index' ≠ W64 0) ∧
           ((snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-            sv.Metadata'.ConfState'.lists = σ.scs) ∨
+            sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
            (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
             uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
             uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
@@ -96,7 +96,7 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
       memSnapTok ms γs σ ∗
       ∃ (sv : SnapshotM), ownSnapW snap (DFrac.own 1) sv ∗
         ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-          sv.Metadata'.ConfState'.lists = σ.scs⌝ }})
+          sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat⌝ }})
 
 end spec
 

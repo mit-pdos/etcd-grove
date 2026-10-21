@@ -424,17 +424,25 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       md.SnapDyn γ sv scfg -∗
       isMessageC γ (absSnap m sv scfg) -∗
+      -- (D22 S-r, 2026-10-21) its data certificate, registered with its configuration's
+      snapDataOk γ sv.Metadata'.Index' sv.Data' -∗
       ▷ snapPost γ md c r id s m sn Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
-  iintro #Hinit Hphys Hghost Hrest Hmsg #Hsd #HmC HΦ
+  iintro #Hinit Hphys Hghost Hrest Hmsg #Hsd #HmC #Hdat HΦ
   ihave #Hm := isMessageC_isMessage γ _ $$ HmC
   -- (D22 S-b′3) the snapshot's certificate, registered in the storage's registry (`certLink`:
-  -- outside the no-snapshot mode, `storCertOk`)
+  -- outside the no-snapshot mode, `storCertOk`); (D22 S-r) with its data certificate
   ihave #Hcr : raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
-  · rw [← Hcl, show snapTrip sv scfg = msgSnapTrip (absSnap m sv scfg) from rfl]
+  · rw [← Hcl, show raftSnapCert (GF := GF) γ (snapTrip sv scfg) =
+      raftSnapCert γ (msgSnapTrip (absSnap m sv scfg)) from rfl]
     iapply isMessageC_snap_cert γ (absSnap m sv scfg) (by simp [absSnap, absSnapFrom]) $$ HmC
+  ihave #HcrD : raftSnapCertD γ (snapTrip sv sv.Metadata'.ConfState'.lists) $$ []
+  · unfold raftSnapCertD
+    isplitr
+    · iexact Hcr
+    · simp only [snapTrip, snapId]; iexact Hdat
   icases ghostRest_nsLink γ md c id s $$ Hrest with ⟨%Hnlk, Hrest⟩
   icases ghostRest_certLink γ md c id s $$ Hrest with ⟨#Hlink, Hrest⟩
   iunfold certLink at Hlink
@@ -442,7 +450,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   · exfalso; rw [← Hnlk.1, Hnsf] at Hns; cases Hns
   iunfold storCertOk at Hok
   icases Hok with ⟨-, #Hreg⟩
-  imod Hreg $$ %_ %⊤ %CoPset.subseteq_top Hcr with #Hcert
+  imod Hreg $$ %_ %⊤ %CoPset.subseteq_top HcrD with #Hcert
   -- (D22 S-b′4) the lists' scope and the mode's need, from the certificate
   ihave %Hlo : ⌜∀ x, scfg.Has x → SnapScope sv scfg⌝ $$ []
   · unfold raftSnapCert
@@ -901,11 +909,11 @@ theorem raft.Step.wp_proof
          fun h => absurd h (by rw [Hns]; w32_ne)⟩,
         fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => Hsf,
         fun h => absurd h (by rw [Hns]; w32_ne)⟩
-    icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm'⟩
+    icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm', #Hdat⟩
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
     have Hnsf : s.gh.ns = false := Hnsx Hns
     iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hidx Hsn Hcl Hnsf
-      $$ Hinit Hphys Hghost Hrest Hmi Hso Hm' HΦs
+      $$ Hinit Hphys Hghost Hrest Hmi Hso Hm' Hdat HΦs
   -- (D22 S-d3b, 2026-10-21) MsgApp: `dispatch_App`, with the truncation's mark (`AppTrunc`), which
   -- `stepPost` does not carry
   by_cases HtyApp : m.Type' = MsgApp

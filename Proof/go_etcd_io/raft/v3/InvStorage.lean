@@ -180,6 +180,10 @@ structure StorState [FfiSyntax] where
   snapshot a fresh storage holds. -/
   scs : CSLists := ⟨[], [], [], []⟩
   sal : Bool := false
+  /-- (2026-10-21, D22 S-r) The snapshot's data, so that its certificate (`StorState.trip`, the
+  registry's `storCert`) is of what the snapshot holds: `HSnapshot` hands it out with the
+  snapshot. `[]` for the empty snapshot a fresh storage holds. -/
+  sdat : List w8 := []
   /-- (D19i part 1, 2026-10-18) The **floor** raft has published: the application may compact
   the storage, and replace its snapshot, up to this index, never above it (`MemoryStorage.
   Compact`: "It is the application's responsibility to not attempt to compact an index greater
@@ -483,7 +487,7 @@ def isStorageWith (P : StorState → IProp GF)
              -- most the floor, at an entry of the view
              ((snapId sv = σ.ss ∧
                sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-               sv.Metadata'.ConfState'.lists = σ.scs) ∨
+               sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
               (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
                uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
                uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧

@@ -159,7 +159,7 @@ theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) 
     cases Hty'
   iintro Hm
   unfold isRaftMsg
-  icases Hm with ⟨-, -, %a, %Habs, #Hl⟩
+  icases Hm with ⟨-, -, ⟨%a, %Habs, #Hl⟩, -⟩
   unfold msgAbs at Habs
   rcases Habs with ⟨Hn, -⟩ | ⟨ty, Hty, -, rfl⟩ | ⟨sv, Hsn, -, -⟩
   · rw [Hty0] at Hn; cases Hn

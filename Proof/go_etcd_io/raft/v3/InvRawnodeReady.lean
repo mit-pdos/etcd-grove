@@ -562,7 +562,7 @@ snapshot is certified (`raftSnapCert`); vacuous in the no-snapshot mode. What a 
 the storage's registry (`qSrc`) through the certificate link (`qCert_of_src`). -/
 def qCert (γ : RaftNames) (q : QMsg) : IProp GF :=
   iprop(⌜γ.reNoSnap = true⌝ ∨ ⌜q.st.msg.Type' ≠ MsgSnap⌝ ∨ ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗
-    raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists))
+    raftSnapCertD γ (snapTrip sv sv.Metadata'.ConfState'.lists))
 
 instance qCert_pers (γ : RaftNames) (q : QMsg) : Persistent (qCert (GF := GF) γ q) := by
   unfold qCert; infer_instance
@@ -661,17 +661,30 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     · obtain ⟨a, h1, h2⟩ := hsub ms2 as2 Hf2 hm
       exact ⟨a, h1, fun x hx => Ho.symm.subset (List.mem_append_right _ (h2 x hx))⟩
   obtain ⟨a, Ha, Hin⟩ := Hex
-  iintro #Ho #Hqc
-  unfold isRaftMsg
-  isplitr
-  · ipureintro
+  have Hnsnap : γ.reNoSnap = true → q.st.msg.Type' ≠ MsgSnap := by
     intro hns hty
     rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, -, rfl⟩
     · rw [hty, mtypeOf_MsgSnap] at Hn; cases Hn
     · rw [hty, mtypeOf_MsgSnap] at Hty'; cases Hty'; exact Hne rfl
     · exact Hns hns _ (Hin (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) (by simp)) rfl
+  iintro #Ho #Hqc
+  unfold isRaftMsg
+  isplitr
+  · ipureintro; exact Hnsnap
   isplitr
   · ipureintro; exact Hsent
+  isplitr
+  rotate_left
+  · -- (D22 S-r) the data certificate: the queue's, from the storage's registry
+    unfold msgDat
+    iintro !> %sv0 %Hsv0
+    unfold qCert
+    iunfold raftSnapCertD at Hqc
+    icases Hqc with (%Hns' | %Hne | ⟨%sv, %Hsv, ⟨-, #Hd⟩⟩)
+    · exact absurd Hsv0.1 (Hnsnap Hns')
+    · exact absurd Hsv0.1 Hne
+    · rw [Hsv] at Hsv0; obtain rfl := Option.some.inj Hsv0.2
+      simp only [snapTrip, snapId]; iexact Hd
   iexists a
   isplitr
   · ipureintro; exact Ha
@@ -685,7 +698,8 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
     iapply isMessageC_intro $$ Hx
     -- (D22 S-b′3) the certificate: none but a snapshot's, the queue's
     unfold qCert
-    icases Hqc with (%Hns' | %Hne | ⟨%sv, %Hsv, #Hc⟩)
+    iunfold raftSnapCertD at Hqc
+    icases Hqc with (%Hns' | %Hne | ⟨%sv, %Hsv, ⟨#Hc, -⟩⟩)
     · iapply msgCert_of_ne
       exact Hns Hns' x (Hin x (by simp))
     · iapply msgCert_of_ne
@@ -699,8 +713,8 @@ theorem outboxRelP_isRaftMsg (γ : RaftNames) (o : List Msg) (ms1 ms2 : List QMs
       · cases h
         rw [Hsv] at Hs'; obtain rfl := Option.some.inj Hs'
         unfold msgCert; iright
-        rw [show msgSnapTrip (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists) =
-          snapTrip sv sv.Metadata'.ConfState'.lists from rfl]
+        rw [show raftSnapCert (GF := GF) γ (msgSnapTrip (absSnap q.st.msg sv sv.Metadata'.ConfState'.lists)) =
+          raftSnapCert γ (snapTrip sv sv.Metadata'.ConfState'.lists) from rfl]
         iexact Hc
 
 /-- The abstraction of a message `isRaftMsg` covers, for a type the model describes but a
@@ -710,7 +724,7 @@ theorem isRaftMsg_isMessage (γ : RaftNames) (st : MsgSt) (ty : MsgType)
     isRaftMsg (GF := GF) γ st ⊢ isMessage γ (absMsg ty st.msg st.ents st.ctx) := by
   iintro #H
   unfold isRaftMsg
-  icases H with ⟨-, -, %a, %Ha, #H⟩
+  icases H with ⟨-, -, ⟨%a, %Ha, #H⟩, -⟩
   rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', -, rfl⟩ | ⟨sv, Hs, -, -⟩
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
@@ -1067,7 +1081,7 @@ def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
   iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
     ∃ σr, ownStorage st σr ∗ ⌜σr.prev = snapId l.snap ∧ σr.ss = snapId l.snap ∧ σr.ents = es ∧
       σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave'⌝)
+      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
 
 /-- (D22 S-d3a) What `Advance` takes back: nothing, or the loan's receipt. -/
 def loanRet (rs : RNState) : IProp GF :=

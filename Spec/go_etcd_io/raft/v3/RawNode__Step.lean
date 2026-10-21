@@ -132,7 +132,9 @@ abbrev RawNode.Step.spec : Prop :=
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
              uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`, `raft.Step`'s)
-           isMessageC γ (absSnap st.msg sv scfg)) ∗
+           isMessageC γ (absSnap st.msg sv scfg) ∗
+           -- (D22 S-r, 2026-10-21) and its data certificate (`raft.Step`'s)
+           snapDataOk γ sv.Metadata'.Index' sv.Data') ∗
       -- (2026-10-13) a read-index request's read credit
       "Hcred" ∷ rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #ml))

@@ -490,7 +490,9 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
          ∃ (sv : SnapshotM) (scfg : CSLists),
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
              uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
-           isMessageC γ.raft (absSnap st.msg sv scfg)) ∗
+           isMessageC γ.raft (absSnap st.msg sv scfg) ∗
+           -- (D22 S-r, 2026-10-21) and its data certificate (the sender's `msgDat`)
+           snapDataOk γ.raft sv.Metadata'.Index' sv.Data') ∗
       termLB γ.bud st.msg.Term' ∗
       rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
       tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0))

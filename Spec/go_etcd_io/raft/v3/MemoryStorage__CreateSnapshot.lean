@@ -91,7 +91,8 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
         ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) ∗
         memSnapTok ms γs { σt with ss := entryID.mk t i,
                                    scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
-                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave' })) }}
+                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave',
+                                   sdat := bs })) }}
 
 end spec
 

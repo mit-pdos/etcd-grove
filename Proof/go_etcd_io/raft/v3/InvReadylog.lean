@@ -536,7 +536,7 @@ theorem ownRaftLog_lend (l : Loc) (ls : LogState) (Hunp0 : ls.unpersisted = [])
       ownRaftLog l (logHanded { ls with lent := true, sat := false }) ∗
       ∃ σ, ownStorage ls.storage σ ∗
         ⌜σ.pend = [] ∧ σ.fl = ls.fl ∧
-          (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn)⌝ := by
+          (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn)⌝ := by
   iintro Hlog
   iNamed Hlog
   ihave HStorage := lentStor_open Hlt0 _ _ $$ HStorage
@@ -654,7 +654,7 @@ struct outside the quiet predicate between `RawNode.Advance`'s absorption and it
 theorem ownRaftLog_absorb_snap (l : Loc) (ls : LogState) (σr : StorState)
     (Hlt : ls.lent = true)
     (Hr : σr.prev = σr.ss ∧ σr.ents = ls.stored ∧ σr.pend = [] ∧ σr.fl = ls.fl)
-    (Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal ∈ ls.ksn)
+    (Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal σr.sdat ∈ ls.ksn)
     -- (D22 S-d4 item 3) `applying` at most the snapshot the storage is at (the loan's, `LoanOk`)
     (Happ : uint.Z ls.applying ≤ uint.Z σr.prev.index') :
     ⊢ ownRaftLog (GF := GF) l ls -∗ ownStorage ls.storage σr -∗

@@ -287,10 +287,10 @@ instance ownSnap_pers (p : Loc) (snap : Option entryID) :
 /-- The snapshots a log built on the storage at `σ` may send at first (2026-10-15, stage S): the
 storage's, unless it is the empty one. -/
 def initKsn (σ : StorState) : List SnapTrip :=
-  if σ.ss.index' = W64 0 then [] else [SnapTrip.mk σ.ss σ.scs σ.sal]
+  if σ.ss.index' = W64 0 then [] else [SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat]
 
 theorem initKsn_mem (σ : StorState) (h : σ.ss.index' ≠ W64 0) :
-    SnapTrip.mk σ.ss σ.scs σ.sal ∈ initKsn σ := by
+    SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ initKsn σ := by
   unfold initKsn; rw [ite_eq_right h]; exact List.mem_singleton_self _
 
 /-- (D22 S-b′3, 2026-10-20) The storage's initial snapshot, if any, is certified in its registry:
@@ -757,7 +757,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
   -- (2026-10-15, stage S) the snapshots `raftLog.snapshot` may return are ones the node may
   -- send (`ksn`): the storage's, once it is not the empty one, and the pending one
-  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn⌝ ∗
+  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn⌝ ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   -- (D22 S-b′3, 2026-10-20) and each is certified in the storage's registry (`storCert`): the
   -- storage's from its own registry (`newRaft`'s premise), a restored one registered from its
@@ -842,7 +842,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     lv.storage' = ls.storage →
     PendLogOk σ ls →
     FlOk σ ls →
-    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
+    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn) →
     lv.unstable'.snapshotInProgress' = ls.sip →
     (ls.snap = none → ls.sip = false) →
     (ls.lent = true → ls.snap ≠ none) →
@@ -950,7 +950,7 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "HStorage" ∷ lentStor ls.lent lv.storage' σ ∗
   "%Hstore" ∷ ⌜LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents⌝ ∗
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
-  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn⌝ ∗
+  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn⌝ ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   "#Hkcert" ∷ ([∗list] k ∈ ls.ksn, storCert lv.storage' k) ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
@@ -1013,7 +1013,7 @@ theorem ownRaftLogW_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorStat
     lv.storage' = ls.storage →
     PendLogOk σ ls →
     FlOk σ ls →
-    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
+    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn) →
     lv.unstable'.snapshotInProgress' = ls.sip →
     (ls.snap = none → ls.sip = false) →
     (ls.lent = true → ls.snap ≠ none) →

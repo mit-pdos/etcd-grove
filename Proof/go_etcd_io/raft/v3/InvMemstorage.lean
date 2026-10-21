@@ -100,7 +100,7 @@ boundary and the snapshot are the same, and the entries are `σ`'s or, with a ba
 pending, `σ`'s with the batch appended; with nothing pending, exactly `σ`'s (D19i part 1: the
 contents may lag behind the view's floor). -/
 def MemView (σ σp : StorState) : Prop :=
-  σp.prev = σ.prev ∧ (σp.ss = σ.ss ∧ σp.scs = σ.scs ∧ σp.sal = σ.sal) ∧
+  σp.prev = σ.prev ∧ (σp.ss = σ.ss ∧ σp.scs = σ.scs ∧ σp.sal = σ.sal ∧ σp.sdat = σ.sdat) ∧
   (σp.ents = σ.ents ∨ (σ.pend ≠ [] ∧ σp.ents = storApp σ σ.pend)) ∧
   (σ.pend = [] → σp.ents = σ.ents)
 
@@ -115,7 +115,8 @@ lists behind its `ConfState`), nothing pending. (Since the v3.7 retarget, stage 
 snapshot's record and the lists its conf state's.) -/
 def memStorApplied (snap : SnapshotM) : StorState :=
   { prev := snapId snap, ents := [], ss := snapId snap, pend := [],
-    scs := snap.Metadata'.ConfState'.lists, sal := snap.Metadata'.ConfState'.AutoLeave' }
+    scs := snap.Metadata'.ConfState'.lists, sal := snap.Metadata'.ConfState'.AutoLeave',
+    sdat := snap.Data' }
 
 /-- The storage once `Compact(ci)` succeeded (2026-10-12): the boundary is `ci` at the
 term `t` (its entry's), the stored entries those after it. -/
@@ -226,19 +227,21 @@ theorem memView_entries (σ σp : StorState) (H : MemView σ σp) (lo hi : w64)
 /-- Two states with the same data: equal but for the floor. -/
 def DataEq (a b : StorState) : Prop :=
   a.prev = b.prev ∧ a.ents = b.ents ∧ a.ss = b.ss ∧ a.scs = b.scs ∧ a.sal = b.sal ∧
-    a.pend = b.pend
+    a.pend = b.pend ∧ a.sdat = b.sdat
 
-theorem DataEq.refl (a : StorState) : DataEq a a := ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+theorem DataEq.refl (a : StorState) : DataEq a a := ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem DataEq.symm {a b : StorState} (h : DataEq a b) : DataEq b a :=
-  ⟨h.1.symm, h.2.1.symm, h.2.2.1.symm, h.2.2.2.1.symm, h.2.2.2.2.1.symm, h.2.2.2.2.2.symm⟩
+  ⟨h.1.symm, h.2.1.symm, h.2.2.1.symm, h.2.2.2.1.symm, h.2.2.2.2.1.symm, h.2.2.2.2.2.1.symm,
+    h.2.2.2.2.2.2.symm⟩
 
 theorem DataEq.trans {a b c : StorState} (h1 : DataEq a b) (h2 : DataEq b c) : DataEq a c :=
   ⟨h1.1.trans h2.1, h1.2.1.trans h2.2.1, h1.2.2.1.trans h2.2.2.1, h1.2.2.2.1.trans h2.2.2.2.1,
-    h1.2.2.2.2.1.trans h2.2.2.2.2.1, h1.2.2.2.2.2.trans h2.2.2.2.2.2⟩
+    h1.2.2.2.2.1.trans h2.2.2.2.2.1, h1.2.2.2.2.2.1.trans h2.2.2.2.2.2.1,
+    h1.2.2.2.2.2.2.trans h2.2.2.2.2.2.2⟩
 
 theorem DataEq.fl (a : StorState) (x : w64) : DataEq { a with fl := x } a :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- A state's last index. -/
 def stLast (σ : StorState) : Int := uint.Z σ.prev.index' + (σ.ents.length : Int)
@@ -461,22 +464,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 instance storState_countable : Pos.Countable StorState :=
   .ofInjective (fun σ => Pos.Countable.encode
-      ((((((σ.prev, σ.ents), σ.ss), σ.pend),
-        (((σ.scs.voters, σ.scs.learners), σ.scs.outgoing), σ.scs.learnersNext)), σ.sal), σ.fl))
-    (fun ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _⟩ ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _⟩ h => by
+      (((((((σ.prev, σ.ents), σ.ss), σ.pend),
+        (((σ.scs.voters, σ.scs.learners), σ.scs.outgoing), σ.scs.learnersNext)), σ.sal), σ.sdat),
+        σ.fl))
+    (fun ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _, _⟩ ⟨_, _, _, _, ⟨_, _, _, _⟩, _, _, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩, rfl⟩ := h
+      obtain ⟨⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩, rfl⟩, rfl⟩ := h
       rfl)
 
 /-- (D22 S-b′2, 2026-10-20) For the certificate registry (`MemStorNames.cert`). -/
 instance snapTrip_countable : Pos.Countable SnapTrip :=
   .ofInjective (fun k => Pos.Countable.encode
-      ((k.sid, (((k.cl.voters, k.cl.learners), k.cl.outgoing), k.cl.learnersNext)), k.al))
-    (fun ⟨_, ⟨_, _, _, _⟩, _⟩ ⟨_, ⟨_, _, _, _⟩, _⟩ h => by
+      (((k.sid, (((k.cl.voters, k.cl.learners), k.cl.outgoing), k.cl.learnersNext)), k.al), k.dat))
+    (fun ⟨_, ⟨_, _, _, _⟩, _, _⟩ ⟨_, ⟨_, _, _, _⟩, _, _⟩ h => by
       have h := Pos.encode_inj h
       simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨rfl, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩ := h
+      obtain ⟨⟨⟨rfl, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩, rfl⟩ := h
       rfl)
 
 /-- (D22 S-b′2) An entry of the certificate registry: a snapshot, and whether the entry
@@ -487,7 +491,8 @@ abbrev CertKey := SnapTrip × Bool
 
 /-- What a registry entry certifies. -/
 def certCovers (e : CertKey) (k : SnapTrip) : Prop :=
-  if e.2 then e.1.sid.index' = k.sid.index' ∧ e.1.cl = k.cl ∧ e.1.al = k.al else e.1 = k
+  if e.2 then e.1.sid.index' = k.sid.index' ∧ e.1.cl = k.cl ∧ e.1.al = k.al ∧ e.1.dat = k.dat
+  else e.1 = k
 
 /-- The ghost names of a `MemoryStorage` (2026-10-10; until then one `GName`, of the
 ghost variable of its state): see the file header. -/
@@ -527,12 +532,12 @@ structure MemStorNames where
 records (its id and conf state), the rest fixed. -/
 def snapPart (σ : StorState) : StorState :=
   { prev := entryID.mk (W64 0) (W64 0), ents := [], ss := σ.ss, pend := [], scs := σ.scs,
-    sal := σ.sal }
+    sal := σ.sal, sdat := σ.sdat }
 
 theorem snapPart_inj {σ σ' : StorState} (h : snapPart σ = snapPart σ') :
-    σ.ss = σ'.ss ∧ σ.scs = σ'.scs ∧ σ.sal = σ'.sal := by
+    σ.ss = σ'.ss ∧ σ.scs = σ'.scs ∧ σ.sal = σ'.sal ∧ σ.sdat = σ'.sdat := by
   simp only [snapPart, StorState.mk.injEq] at h
-  exact ⟨h.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1⟩
+  exact ⟨h.2.2.1, h.2.2.2.2.1, h.2.2.2.2.2.1, h.2.2.2.2.2.2.1⟩
 
 /-- A key (D17d): an exclusive token. -/
 def memKey (γ : GName) : IProp GF := ghostVar γ 1 ()
@@ -607,14 +612,14 @@ def memSnapOwn (ms : Loc) (σ : StorState) : IProp GF :=
   "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦ sp ∗
   "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv ∗
   "%Hsnap_id" ∷ ⌜snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
-    sv.Metadata'.ConfState'.AutoLeave' = σ.sal⌝)
+    sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧ sv.Data' = σ.sdat⌝)
 
 /-- `memSnapOwn` reads only the snapshot's part of the state. -/
 theorem memSnapOwn_congr (ms : Loc) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
-    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) :
+    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) (h4 : σ'.sdat = σ.sdat) :
     memSnapOwn (GF := GF) ms σ ⊢ memSnapOwn ms σ' := by
   unfold memSnapOwn
-  rw [h1, h2, h3]
+  rw [h1, h2, h3, h4]
 
 /-! ### The snapshot under the lock, lent before the node starts (D17d, 2026-10-18)
 
@@ -682,7 +687,7 @@ def memCertAuth (γs : MemStorNames) : IProp GF :=
   monoListAuthOwn γs.cert 1 ([] : List CertKey)
 
 /-- The snapshot of the state `σ`, as the registry records it. -/
-def StorState.trip (σ : StorState) : SnapTrip := ⟨σ.ss, σ.scs, σ.sal⟩
+def StorState.trip (σ : StorState) : SnapTrip := ⟨σ.ss, σ.scs, σ.sal, σ.sdat⟩
 
 /-- (D22 S-b′2) The state's snapshot is empty or certified (persistent). -/
 def memSnapCertOk (γs : MemStorNames) (σ : StorState) : IProp GF :=
@@ -695,21 +700,21 @@ instance memSnapCertOk_persistent (γs : MemStorNames) (σ : StorState) :
 omit [StorageModel GF] package_sem in
 /-- `memSnapCertOk` reads only the snapshot's part of the state. -/
 theorem memSnapCertOk_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
-    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) :
+    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) (h4 : σ'.sdat = σ.sdat) :
     memSnapCertOk (GF := GF) γs σ ⊢ memSnapCertOk γs σ' := by
   unfold memSnapCertOk StorState.trip
-  rw [h1, h2, h3]
+  rw [h1, h2, h3, h4]
 
 omit [StorageModel GF] package_sem in
 /-- A snapshot record whose id, lists and `AutoLeave` are the state's: its certificate is the
 state's. -/
 theorem memSnapCertOk_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
     (h : snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
-      sv.Metadata'.ConfState'.AutoLeave' = σ.sal) :
+      sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧ sv.Data' = σ.sdat) :
     memSnapCertOk (GF := GF) γs σ ⊢
       ⌜sv.Metadata'.Index' = W64 0⌝ ∨ memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) := by
   have ht : snapTrip sv sv.Metadata'.ConfState'.lists = σ.trip := by
-    simp only [snapTrip, StorState.trip, h.1, h.2.1, h.2.2]
+    simp only [snapTrip, StorState.trip, h.1, h.2.1, h.2.2.1, h.2.2.2]
   have hi : sv.Metadata'.Index' = σ.ss.index' := by rw [← h.1]; rfl
   rw [ht, hi]
   unfold memSnapCertOk
@@ -719,11 +724,11 @@ omit [StorageModel GF] package_sem in
 /-- ... and conversely: a certificate of the snapshot record certifies the state. -/
 theorem memSnapCertOk_of_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
     (h : snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
-      sv.Metadata'.ConfState'.AutoLeave' = σ.sal) :
+      sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧ sv.Data' = σ.sdat) :
     memStorCert (GF := GF) γs (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢
       memSnapCertOk γs σ := by
   have ht : snapTrip sv sv.Metadata'.ConfState'.lists = σ.trip := by
-    simp only [snapTrip, StorState.trip, h.1, h.2.1, h.2.2]
+    simp only [snapTrip, StorState.trip, h.1, h.2.1, h.2.2.1, h.2.2.2]
   rw [ht]
   unfold memSnapCertOk
   iintro #H
@@ -859,7 +864,7 @@ def memCutInv (γs : MemStorNames) (σp : StorState) (c : entryID) : IProp GF :=
     "Hsq" ∷ ghostVar γs.sn memQ (snapPart S) ∗
     "%Hcok" ∷ ⌜CutOk σp c ∧ uint.Z c.index' ≤ uint.Z S.ss.index'⌝ ∗
     "%Hccap" ∷ ⌜uint.Z c.index' ≤ γs.cap⌝ ∗
-    "#Hsrel" ∷ (⌜S.ss = σp.ss ∧ S.scs = σp.scs ∧ S.sal = σp.sal⌝ ∨
+    "#Hsrel" ∷ (⌜S.ss = σp.ss ∧ S.scs = σp.scs ∧ S.sal = σp.sal ∧ S.sdat = σp.sdat⌝ ∨
       (⌜uint.Z σp.ss.index' < uint.Z S.ss.index' ∧ uint.Z σp.prev.index' ≤ uint.Z S.ss.index' ∧
           termAt σp.prev σp.ents S.ss.index' = some S.ss.term'⌝ ∗ memFlLb γs S.ss.index')))
 
@@ -1149,8 +1154,8 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
     have Hd := RaiseOnly.last Hpre HR HD.1 Hidle.2
     isplitr
     · ipureintro
-      obtain ⟨h1, h2, h3, h4, h5, -⟩ := Hd
-      exact ⟨h1.symm, ⟨h3.symm, h4.symm, h5.symm⟩, .inl h2.symm, fun _ => h2.symm⟩
+      obtain ⟨h1, h2, h3, h4, h5, -, h7⟩ := Hd
+      exact ⟨h1.symm, ⟨h3.symm, h4.symm, h5.symm, h7.symm⟩, .inl h2.symm, fun _ => h2.symm⟩
     isplitl [Hh Hw Hep]
     · iexists hist
       isplitr
@@ -1198,10 +1203,10 @@ theorem memView_agree (γs : MemStorNames) (σ σp : StorState) :
           simp only [List.getLast?_append, List.getLast?_singleton, Option.some_or] at HD
           exact (Option.some.inj HD.1).symm
       rcases HHd with h | h
-      · obtain ⟨h1, h2, h3, h4, h5, -⟩ := h
-        exact ⟨h1.symm, ⟨h3.symm, h4.symm, h5.symm⟩, .inl h2.symm, fun hp => absurd hp Hne⟩
+      · obtain ⟨h1, h2, h3, h4, h5, -, h7⟩ := h
+        exact ⟨h1.symm, ⟨h3.symm, h4.symm, h5.symm, h7.symm⟩, .inl h2.symm, fun hp => absurd hp Hne⟩
       · subst h
-        exact ⟨rfl, ⟨rfl, rfl, rfl⟩, .inr ⟨Hne, rfl⟩, fun hp => absurd hp Hne⟩
+        exact ⟨rfl, ⟨rfl, rfl, rfl, rfl⟩, .inr ⟨Hne, rfl⟩, fun hp => absurd hp Hne⟩
     isplitl [Hh Hep]
     · iexists H ++ [storAbsorb σ]
       isplitr

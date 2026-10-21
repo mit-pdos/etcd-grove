@@ -50,13 +50,13 @@ theorem MemoryStorage.InitialState.wp_proof
   iunfold memSnapHome at Hhome
   icases Hhome with ⟨%σp, Hsn, Hsnh, #Hcert1⟩
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
-  obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
-  ihave Hsn := memSnapOwn_congr ms σp σt Hs1 Hs2 Hs3 $$ Hsn
-  ihave #Hcertt := memSnapCertOk_congr γs σp σt Hs1 Hs2 Hs3 $$ Hcert1
+  obtain ⟨Hs1, Hs2, Hs3, Hs4⟩ := snapPart_inj Hag
+  ihave Hsn := memSnapOwn_congr ms σp σt Hs1 Hs2 Hs3 Hs4 $$ Hsn
+  ihave #Hcertt := memSnapCertOk_congr γs σp σt Hs1 Hs2 Hs3 Hs4 $$ Hcert1
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
   have Hcs : sv.Metadata'.ConfState' = storCS σt :=
-    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2
+    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2.1
   (try wp_auto)
   wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
   · iframe Hsnap
