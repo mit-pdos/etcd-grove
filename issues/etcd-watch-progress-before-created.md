@@ -19,9 +19,9 @@ candidate: issues/upstream/etcd-watch-progress-before-created/
   adds the reproduction as `TestWatchProgressBeforeCreatedRace`. A bounded drain
   (`len(sws.watchStream.Chan())` responses) was the first version; it passes the same tests, but
   Perennial's `Len` spec (`wp_Len`) only bounds the result, so the proof could not use it.
-- **Upstream candidate** (2026-10-19): branch `fix/etcd-watch-progress-before-created` off upstream `main`
-  `22cc5d9ac` (not pushed), with a deterministic integration test `TestV3WatchProgressBeforeCreated` over a raw
-  watch stream (fails 20 of 20 at the base) and the fix with a bounded drain (`len(Chan())` responses), which
+- **Upstream candidate** (2026-10-19; rebased 2026-10-21): branch `fix/etcd-watch-progress-before-created` off
+  upstream `main` `bf9cadf04` (not pushed), with a deterministic integration test `TestV3WatchProgressBeforeCreated`
+  over a raw watch stream (fails 20 of 20 at the base) and the fix with a bounded drain (`len(Chan())` responses), which
   upstream prefers to draining until empty; `issues/upstream/etcd-watch-progress-before-created/`.
 - **Status**: bug (a wrong result): a watch created from an old revision can receive, as its first
   response, a progress notification at a revision above events it has not received yet. A client
