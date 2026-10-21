@@ -27,7 +27,6 @@ public import GeneratedProof.go_etcd_io.raft.v3.chunk1
 public import GeneratedProof.go_etcd_io.raft.v3.chunk2
 public import GeneratedProof.go_etcd_io.raft.v3.chunk3
 public import GeneratedProof.go_etcd_io.raft.v3.chunk4
-public import GeneratedProof.go_etcd_io.raft.v3.chunk5
 
 @[expose] public section
 

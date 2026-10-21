@@ -1,0 +1,104 @@
+/- Port of election_proof/proof_unstable__slice.v. -/
+module
+
+public import Spec.go_etcd_io.raft.v3.unstable__slice
+public import Spec.go_etcd_io.raft.v3.unstable__mustCheckOutOfBounds
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- After the bounds check the whole body is one three-index slice expression. Goose
+renders `u.entries[a:b:b]` as `slice.fullSlice entries V a b b`, whose `cap` is
+`b - a` -- equal to its `len`, which is the `cap = len` the postcondition promises and
+which `raftLog.slice` needs so that `extend` reallocates. The ownership lemmas
+(`ownSlice_slice`) only speak about `slice.slice entries V a b`, whose `cap` is
+`entries.cap - a`; the two agree on pointer and length, so `ownSlice_same_ptr_len`
+(`InvRaftlog.lean`) carries the points-to across. That lemma needs a non-empty list,
+which is why the spec demands `lo < hi`. The entries are read-only (`ownUnstable`), so
+the sub-slice's points-to is split off a persistent one and nothing has to be given
+back. -/
+theorem unstable.slice.wp_proof
+    (wp_unstable_mustCheckOutOfBounds :
+      unstable.mustCheckOutOfBounds.spec (GF := GF) (hG := hG)) :
+    unstable.slice.spec (GF := GF) (hG := hG) := by
+  intro u us lo hi Hrange Hnw
+  obtain ⟨Hr1, Hr2, Hr3⟩ := Hrange
+  have Hrange' : uint.Z us.offset ≤ uint.Z lo ∧ uint.Z lo ≤ uint.Z hi ∧
+      uint.Z hi ≤ uint.Z us.offset + (us.ents.length : Int) := ⟨Hr1, by omega, Hr3⟩
+  wp_start as H
+  iNamed H
+  wp_auto
+  wp_apply wp_unstable_mustCheckOutOfBounds u us lo hi Hrange' Hnw
+    $$ [$Hun] as Hun
+  open_unstable
+  ihave #Hents := Hents
+  ihave %Hlen := entsPts_len $$ Hents
+  ihave Hents' := Hents
+  iunfold entsRO at Hents'
+  iunfold entsPts at Hents'
+  icases Hents' with ⟨%ls, #Hls, #Hb⟩
+  ihave %Hwf := ownSlice_wf $$ Hls
+  ihave %Hbl := entsBig_length $$ Hb
+  wp_auto
+  obtain ⟨Hlen1, Hlen2⟩ := Hlen
+  obtain ⟨-, Hwf⟩ := Hwf
+  have Hlenz : (us.ents.length : Int) = sint.Z uv.entries'.len := by
+    rw [Hlen1]; word
+  have Hlo' : sint.Z (lo - us.offset) = uint.Z lo - uint.Z us.offset := by word
+  have Hhi' : sint.Z (hi - us.offset) = uint.Z hi - uint.Z us.offset := by word
+  simp only [show (0 ≤ sint.Z (lo - us.offset) ∧
+      sint.Z (lo - us.offset) ≤ sint.Z (hi - us.offset) ∧
+      sint.Z (hi - us.offset) ≤ sint.Z (hi - us.offset) ∧
+      sint.Z (hi - us.offset) ≤ sint.Z uv.entries'.cap) = True from eq_true (by omega),
+    ↓reduceIte]
+  wp_auto
+  have Hsublen : (subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) us.ents).length
+      = sint.nat (hi - us.offset) - sint.nat (lo - us.offset) :=
+    subslice_length _ _ _ (by word)
+  have Hsublen' : (subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) ls).length
+      = sint.nat (hi - us.offset) - sint.nat (lo - us.offset) :=
+    subslice_length _ _ _ (by rw [Hbl]; word)
+  have Hne : subslice (sint.nat (lo - us.offset)) (sint.nat (hi - us.offset)) ls ≠ [] := by
+    intro Hc; rw [Hc] at Hsublen'; simp only [List.length_nil] at Hsublen'; word
+  have Hcap : sint.Z (slice.fullSlice uv.entries' Loc (lo - us.offset) (hi - us.offset)
+      (hi - us.offset)).len ≤ sint.Z (slice.fullSlice uv.entries' Loc (lo - us.offset)
+      (hi - us.offset) (hi - us.offset)).cap := by
+    simp only [slice.fullSlice]; omega
+  ihave ⟨-, #H2, -⟩ := (ownSlice_slice (lo - us.offset) (hi - us.offset) _ _ _
+    ⟨by omega, by omega, by omega⟩).1 $$ Hls
+  ihave Hs := ownSlice_same_ptr_len
+    (slice.slice uv.entries' Loc (lo - us.offset) (hi - us.offset))
+    (slice.fullSlice uv.entries' Loc (lo - us.offset) (hi - us.offset) (hi - us.offset))
+    _ _ Hne rfl rfl Hcap $$ H2
+  iapply HΦ
+  isplitl [Hu Hents_cap]
+  · close_unstable
+  isplitr
+  · iunfold entsRO; iunfold entsPts
+    iexists _
+    iframe Hs
+    iapply entsBig_subslice $$ Hb
+  ipureintro
+  refine ⟨?_, ?_, rfl, ?_⟩
+  · rw [Hsublen]; word
+  · intro e He
+    exact List.mem_of_mem_take (List.mem_of_mem_drop He)
+  · rw [← Hlo', ← Hhi']
+
+end proof
+
+end EtcdGrove
+end Perennial

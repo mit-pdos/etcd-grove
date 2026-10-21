@@ -126,9 +126,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode
     (hns : ρ.raft.raft.reNoSnap = true)
     -- (D21 M3) the storage's cap at least `1`
-    (hcap : 1 ≤ γw.γs.cap)
-    -- (2026-10-20, witness support) a cluster without a witness
-    (hnw : ρ.raft.raft.reWit = W64 0) :
+    (hcap : 1 ≤ γw.γs.cap) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
       rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
@@ -180,9 +178,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     iframe HL
     ipureintro
     rw [hai0]; exact Hc.1
-  isplitr
   · ipureintro; trivial
-  · ipureintro; rw [hraft]; exact hnw
 
 /-- **`start`'s construction premise from `NewServer`'s built part and the residual**
 (`srvBuilt`, `srvBuildGap`, `InvBuild.lean`): the rows the built part has without their KV parts

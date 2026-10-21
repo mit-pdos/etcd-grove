@@ -124,7 +124,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       rw [he] at hm
       simp only [Option.map_some, Option.some.injEq] at hm
       subst hm
-      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, hok, -⟩ := hk n e he
+      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, hok⟩ := hk n e he
       refine ⟨hi, ht, ?_, (hcc _ _ hok).1⟩
       unfold isConfChangeEncoding
       show (ccDecodeV1 e.Data').isSome = true
@@ -165,7 +165,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       rw [he] at hn
       simp only [Option.map_some, Option.some.injEq] at hn
       subst hn
-      obtain ⟨-, -, -, -, hok, -⟩ := hk n e he
+      obtain ⟨-, -, -, -, hok⟩ := hk n e he
       exact (hcc _ _ hok).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm

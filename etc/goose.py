@@ -109,15 +109,9 @@ PROJECTS = [
         # D21 M3): branch raft37-goose-lean-a1 of the etcd fork (raft37-goose-lean, 509271dac,
         # plus the second fix). (The raft proof was ported to it in a parallel tree, the module root Raft37,
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
-        # Since 2026-10-19 (branch raft-witness of this repository) witness support on top of
-        # it: branch raft-witness-goose-lean of the fork, etcd-io/raft#168 (#133's
-        # implementation) rebased onto raft37-goose-lean-a1, with the fixes of
-        # notes/raft-witness-vs-pr168.md (notes/raft-witness.md, "The Go code"); since 2026-10-20
-        # 99cb9e2d9, OneLessThanQuorumInReplicationSet's joint case (a witness shared by both halves
-        # is sent an entry only if both replicate to it; notes/raft-witness-reconfig.md).
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="99cb9e2d98d40d423aa7e7ec1f12f0877a45570e",
+        rev="c8217eb91ae5948182c1035ff0464b1e54b8f1d0",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         lean_roots=["go.etcd.io/raft/v3=", "google.golang.org="],

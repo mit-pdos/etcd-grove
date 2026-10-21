@@ -88,8 +88,6 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
   BootLogOk γ.reCCOk ps bootLog →
-  -- (2026-10-19, witness support) no peer is a witness (`StartNode.spec`)
-  (∀ p ∈ pv, p.IsWitness' = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,
@@ -107,7 +105,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
             ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
             memSnapTok bv.storage' γs memStorEmpty -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false (W64 0)) al -∗
+            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
              (Val #())) {{ Φ }}) ∗

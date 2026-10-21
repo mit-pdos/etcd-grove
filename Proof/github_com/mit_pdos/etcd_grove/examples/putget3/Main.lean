@@ -159,13 +159,13 @@ theorem Main.wp_proof
   -- the ghost state of the cluster and its members (`putget3_alloc`)
   imod (putget3_alloc id₁ id₂ id₃ bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂,
     %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hnw, hγn1, hγn2⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
-      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hnw hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
       (by simp [dir3]) Hlg Hck Haf Hbuq Hnoc) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -184,7 +184,7 @@ theorem Main.wp_proof
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
-      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hnw hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
       (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq Hnoc)
     $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
@@ -203,7 +203,7 @@ theorem Main.wp_proof
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
-      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hnw hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
       (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).2.1.symm,
         (id_ne id₁ id₂ id₃ bootLog Hbf).2.2.symm]) Hlg Hck Haf Hbuq Hnoc)
     $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃

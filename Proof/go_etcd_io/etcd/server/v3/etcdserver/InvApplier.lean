@@ -385,12 +385,12 @@ theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
   · iright; iexists c; iexact H
   · iright; iexists c
     iunfold csPts at H
-    icases H with ⟨%sv, %sl, %so, %sn, %pa, %pw, %pwo, H⟩
+    icases H with ⟨%sv, %sl, %so, %sn, %pa, H⟩
     iNamed H
     iunfold csPts
-    iexists sv, sl, so, sn, pa, pw, pwo
+    iexists sv, sl, so, sn, pa
     simp only [named]
-    iframe HV Hv HL Hl HO Ho HN Hn HA cA HW cW HWO cWO Hpb
+    iframe HV Hv HL Hl HO Ho HN Hn HA cA Hpb
     ipureintro; exact ⟨Hnn, fun h => by cases h⟩
 
 /-- (D19i part 1) `ep.confState`, the apply thread's: the field, and its value `epCsOk`. -/

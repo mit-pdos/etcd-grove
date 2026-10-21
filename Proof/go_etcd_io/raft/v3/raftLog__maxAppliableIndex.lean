@@ -1,0 +1,50 @@
+/- Port of election_proof/proof_raftLog__maxAppliableIndex.v (857d09190).
+
+Lean notes: Rocq's `wp_min2_uint64` is `InvTracker.lean`'s. -/
+module
+
+public import Spec.go_etcd_io.raft.v3.raftLog__maxAppliableIndex
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem raftLog.maxAppliableIndex.wp_proof :
+    raftLog.maxAppliableIndex.spec (GF := GF) (hG := hG) := by
+  intro l ls au
+  wp_start as H
+  iNamed H
+  iNamed Hlog
+  wp_auto
+  cases au
+  · wp_auto
+    wp_apply wp_min2_uint64
+    iapply HΦ
+    isplitl
+    · reseal_raftLog
+    ipureintro
+    simp only [w64Min_spec, logOffset, Bool.false_eq_true, ite_false, ← Hcm]
+    word
+  · wp_auto
+    iapply HΦ
+    isplitl
+    · reseal_raftLog
+    ipureintro
+    simp [Hcm]
+
+end proof
+
+end EtcdGrove
+end Perennial

@@ -6,7 +6,6 @@ public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_etcd_io.raft.v3.quorum
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import Perennial.GeneratedProof.slices
-public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.raft.v3.tracker
@@ -225,7 +224,6 @@ instance Progress_typed_pointsto :
     "MsgAppFlowPaused" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"MsgAppFlowPaused" l) v.MsgAppFlowPaused' dq ∗
     "Inflights" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"Inflights" l) v.Inflights' dq ∗
     "IsLearner" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsLearner" l) v.IsLearner' dq ∗
-    "IsWitness" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsWitness" l) v.IsWitness' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -379,22 +377,6 @@ instance Progress_access_store_IsLearner (l : Loc) (v : go_etcd_io.raft.v3.track
  by
   solve_pointsto_access_struct
 
-instance Progress_access_load_IsWitness (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsWitness" l) v.IsWitness' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsWitness" l) v.IsWitness' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance Progress_access_store_IsWitness (l : Loc) (v : go_etcd_io.raft.v3.tracker.Progress) (IsWitness' : Bool) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsWitness" l) v.IsWitness' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Progress go!"IsWitness" l) IsWitness' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsWitness' := IsWitness' } : go_etcd_io.raft.v3.tracker.Progress) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
 end def_
 end Progress
 
@@ -413,7 +395,6 @@ instance Config_typed_pointsto :
     "AutoLeave" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"AutoLeave" l) v.AutoLeave' dq ∗
     "Learners" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Learners" l) v.Learners' dq ∗
     "LearnersNext" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"LearnersNext" l) v.LearnersNext' dq ∗
-    "Witnesses" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Witnesses" l) v.Witnesses' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -487,155 +468,8 @@ instance Config_access_store_LearnersNext (l : Loc) (v : go_etcd_io.raft.v3.trac
  by
   solve_pointsto_access_struct
 
-instance Config_access_load_Witnesses (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Witnesses" l) v.Witnesses' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Witnesses" l) v.Witnesses' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance Config_access_store_Witnesses (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (Witnesses' : (GoArray w64 2)) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Witnesses" l) v.Witnesses' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Witnesses" l) Witnesses' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Witnesses' := Witnesses' } : go_etcd_io.raft.v3.tracker.Config) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
 end def_
 end Config
-
-namespace ReplicationSet
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
-
-instance ReplicationSet_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.ReplicationSet where
-  typedPointstoDef l v dq := iprop(
-    "Witness" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Witness" l) v.Witness' dq ∗
-    "Excluded" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Excluded" l) v.Excluded' dq ∗
-    "NonWitnessVoters" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"NonWitnessVoters" l) v.NonWitnessVoters' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance ReplicationSet_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.ReplicationSet go_etcd_io.raft.v3.tracker.ReplicationSet.underlying := by
-  solve_into_val_typed_struct
-
-instance ReplicationSet_access_load_Witness (l : Loc) (v : go_etcd_io.raft.v3.tracker.ReplicationSet) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Witness" l) v.Witness' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Witness" l) v.Witness' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance ReplicationSet_access_store_Witness (l : Loc) (v : go_etcd_io.raft.v3.tracker.ReplicationSet) (Witness' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Witness" l) v.Witness' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Witness" l) Witness' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Witness' := Witness' } : go_etcd_io.raft.v3.tracker.ReplicationSet) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance ReplicationSet_access_load_Excluded (l : Loc) (v : go_etcd_io.raft.v3.tracker.ReplicationSet) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Excluded" l) v.Excluded' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Excluded" l) v.Excluded' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance ReplicationSet_access_store_Excluded (l : Loc) (v : go_etcd_io.raft.v3.tracker.ReplicationSet) (Excluded' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Excluded" l) v.Excluded' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"Excluded" l) Excluded' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Excluded' := Excluded' } : go_etcd_io.raft.v3.tracker.ReplicationSet) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance ReplicationSet_access_load_NonWitnessVoters (l : Loc) (v : go_etcd_io.raft.v3.tracker.ReplicationSet) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"NonWitnessVoters" l) v.NonWitnessVoters' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"NonWitnessVoters" l) v.NonWitnessVoters' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance ReplicationSet_access_store_NonWitnessVoters (l : Loc) (v : go_etcd_io.raft.v3.tracker.ReplicationSet) (NonWitnessVoters' : GoMap) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"NonWitnessVoters" l) v.NonWitnessVoters' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ReplicationSet go!"NonWitnessVoters" l) NonWitnessVoters' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NonWitnessVoters' := NonWitnessVoters' } : go_etcd_io.raft.v3.tracker.ReplicationSet) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end ReplicationSet
-
-namespace Epoch
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
-
-instance Epoch_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.Epoch where
-  typedPointstoDef l v dq := iprop(
-    "Subterm" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"Subterm" l) v.Subterm' dq ∗
-    "ReplicationSet" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"ReplicationSet" l) v.ReplicationSet' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance Epoch_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.Epoch go_etcd_io.raft.v3.tracker.Epoch.underlying := by
-  solve_into_val_typed_struct
-
-instance Epoch_access_load_Subterm (l : Loc) (v : go_etcd_io.raft.v3.tracker.Epoch) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"Subterm" l) v.Subterm' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"Subterm" l) v.Subterm' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance Epoch_access_store_Subterm (l : Loc) (v : go_etcd_io.raft.v3.tracker.Epoch) (Subterm' : w64) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"Subterm" l) v.Subterm' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"Subterm" l) Subterm' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Subterm' := Subterm' } : go_etcd_io.raft.v3.tracker.Epoch) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance Epoch_access_load_ReplicationSet (l : Loc) (v : go_etcd_io.raft.v3.tracker.Epoch) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"ReplicationSet" l) v.ReplicationSet' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"ReplicationSet" l) v.ReplicationSet' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance Epoch_access_store_ReplicationSet (l : Loc) (v : go_etcd_io.raft.v3.tracker.Epoch) (ReplicationSet' : (GoArray go_etcd_io.raft.v3.tracker.ReplicationSet 2)) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"ReplicationSet" l) v.ReplicationSet' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Epoch go!"ReplicationSet" l) ReplicationSet' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReplicationSet' := ReplicationSet' } : go_etcd_io.raft.v3.tracker.Epoch) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end Epoch
 
 namespace ProgressTracker
 section def_
@@ -653,7 +487,6 @@ instance ProgressTracker_typed_pointsto :
     "Votes" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Votes" l) v.Votes' dq ∗
     "MaxInflight" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflight" l) v.MaxInflight' dq ∗
     "MaxInflightBytes" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"MaxInflightBytes" l) v.MaxInflightBytes' dq ∗
-    "Epoch" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Epoch" l) v.Epoch' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -743,81 +576,8 @@ instance ProgressTracker_access_store_MaxInflightBytes (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-instance ProgressTracker_access_load_Epoch (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Epoch" l) v.Epoch' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Epoch" l) v.Epoch' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance ProgressTracker_access_store_Epoch (l : Loc) (v : go_etcd_io.raft.v3.tracker.ProgressTracker) (Epoch' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Epoch" l) v.Epoch' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.ProgressTracker go!"Epoch" l) Epoch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Epoch' := Epoch' } : go_etcd_io.raft.v3.tracker.ProgressTracker) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
 end def_
 end ProgressTracker
-
-namespace scopedAckIndexer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.tracker.Assumptions]
-
-instance scopedAckIndexer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.tracker.scopedAckIndexer where
-  typedPointstoDef l v dq := iprop(
-    "indexer" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"indexer" l) v.indexer' dq ∗
-    "scope" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"scope" l) v.scope' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance scopedAckIndexer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.tracker.scopedAckIndexer go_etcd_io.raft.v3.tracker.scopedAckIndexer.underlying := by
-  solve_into_val_typed_struct
-
-instance scopedAckIndexer_access_load_indexer (l : Loc) (v : go_etcd_io.raft.v3.tracker.scopedAckIndexer) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"indexer" l) v.indexer' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"indexer" l) v.indexer' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance scopedAckIndexer_access_store_indexer (l : Loc) (v : go_etcd_io.raft.v3.tracker.scopedAckIndexer) (indexer' : go_etcd_io.raft.v3.quorum.AckedIndexer) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"indexer" l) v.indexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"indexer" l) indexer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexer' := indexer' } : go_etcd_io.raft.v3.tracker.scopedAckIndexer) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance scopedAckIndexer_access_load_scope (l : Loc) (v : go_etcd_io.raft.v3.tracker.scopedAckIndexer) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"scope" l) v.scope' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"scope" l) v.scope' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance scopedAckIndexer_access_store_scope (l : Loc) (v : go_etcd_io.raft.v3.tracker.scopedAckIndexer) (scope' : GoMap) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"scope" l) v.scope' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.scopedAckIndexer go!"scope" l) scope' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scope' := scope' } : go_etcd_io.raft.v3.tracker.scopedAckIndexer) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end scopedAckIndexer
 
 end go_etcd_io.raft.v3.tracker
 end

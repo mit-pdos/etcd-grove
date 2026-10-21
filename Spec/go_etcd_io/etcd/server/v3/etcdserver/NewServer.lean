@@ -144,9 +144,6 @@ abbrev NewServer.spec : Prop :=
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
   γ.reBoot.length ≤ 2 ^ 60 →
-  -- (2026-10-20, witness support) a cluster without a witness (`ownRaftGhost_alloc_boot`'s): raft's
-  -- static `ApplyConfChange` changes no witness configuration yet (NoWitReconf)
-  γ.reWit = W64 0 →
   -- (D21e (A), stage M4) the member's prefix in the cluster's claims is its member id's
   -- (`NewGenerator`'s `uint16(id) << 48`), and the claimers' facts at it are the server's
   -- (`srvFloorFact`, unit V2)

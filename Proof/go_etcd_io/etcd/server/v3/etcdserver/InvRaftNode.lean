@@ -195,7 +195,7 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
 statements' shape). -/
 def rnReadyP (_E : RNEnv GF) (γ : RNNames) (rd : Ready) : IProp GF :=
   letI : MemStorReg GF := ⟨γ.reg⟩
-  readyP γ.node γ.id rd
+  readyP γ.node rd
 
 /-- The driver, idle, handed the committed log `L` so far: raft's `nodeDriver` at `pre ++ L`,
 with the driver's view of the configuration (`nodeCfg`, which `Advance` takes and returns). -/
@@ -249,9 +249,7 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     □ (∀ L : List EntryModel, srvRLogLb E.γr.raft L -∗
         ⌜uint.Z E.γr.raft.ai0 + 1 + L.length < 2 ^ 64⌝ ={⊤}=∗ □ E.C L) ∗
     □ (∀ L : List EntryModel, E.C L -∗ srvRLogLb E.γr.raft L ∗ ⌜srvIdxOk E.γr.raft.ai0 L⌝) ∗
-    ⌜E.RQ = srvRQ E.γr.raft⌝ ∗
-    -- (2026-10-20, witness support) a cluster without a witness (raft's static `ApplyConfChange`)
-    ⌜γ.node.raft.reWit = W64 0⌝)
+    ⌜E.RQ = srvRQ E.γr.raft⌝)
 
 instance rnEnvOk_persistent (E : RNEnv GF) (γ : RNNames) : Persistent (rnEnvOk E γ) := by
   unfold rnEnvOk; infer_instance
@@ -296,7 +294,7 @@ theorem srvReadStateOk_of_raft (E : RNEnv GF) (γ : RNNames) (st : ReadStateM) (
       v.RequestCtx' ↦*□ st.RequestCtx' ⊢ srvReadStateOk E.γr.raft E.RQ v := by
   iintro ⟨#Henv, #Hinv, #Hst, %Hi, #Hctx⟩
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, -, -, -, -, -, %HRQ, -⟩
+  icases Henv with ⟨-, %Hn, -, -, -, -, -, %HRQ⟩
   obtain ⟨Hraft, -, -⟩ := Hn
   iunfold readStateOk at Hst
   icases Hst with ⟨%c, %Hc, #Hok⟩
@@ -517,7 +515,7 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (rd : 
   icases Hfits with %Hrb
   iunfold readyData at Hdata
   icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hmc, Hmt, ⟨%sts, #Hrs, #Hrsok⟩, ⟨%h, #Hhs⟩,
-    #Hss, %Hsnap, #Hri, -⟩
+    #Hss, %Hsnap, #Hri⟩
   -- (2026-10-18, D19b stage 5) the indices handed out, bounded by the receipt of the log's last
   iunfold readyIdx at Hri
   icases Hri with ⟨%Lx, #Hlr, %Hix⟩

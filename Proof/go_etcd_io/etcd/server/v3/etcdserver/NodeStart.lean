@@ -238,8 +238,6 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
     (ps.length : Int) ≤ 2 ^ 62 → cv.ID' ∈ ps → γ.reCfg = GMap.listToSet ps →
     γ.reBoot = bootLog → BootLogOk γ.reCCOk ps bootLog →
-    -- (2026-10-19, witness support) no peer is a witness (`StartNode.spec`)
-    (∀ p ∈ pv, p.IsWitness' = false) →
     -- the server's names: the raft names, the start log empty, the policy
     E.γr.raft.raft = γ → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 → srvCCPolicy E.γr.raft →
     -- (2026-10-19, D21 M3) in raft's no-snapshot mode, the storage at the cap `1`
@@ -261,7 +259,7 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
             ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
             memSnapTok bv.storage' γs memStorEmpty -∗
             hsOpt hp (HardStateM.mk (W64 0) (W64 0) (W64 0)) -∗
-            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false (W64 0)) al -∗
+            csPts cs DFrac.discard (ConfStateM.mk [] [] [] [] false) al -∗
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
              (Val #())) {{ Φ }}) ∗
@@ -342,7 +340,7 @@ theorem raftNode_of_StartNode (reg : GName)
   letI : MemStorReg GF := ⟨reg⟩
   intro E γ bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
     Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
-    HbootOk Hnwit HEγ HEpre HEai Hpol Hcap
+    HbootOk HEγ HEpre HEai Hpol Hcap
   iintro %Φ Hpre HΦ
   iNamed Hpre
   ihave #Hnscap : NsCap (GF := GF) γ.reNoSnap (memStorIface bv.storage') $$ []
@@ -351,7 +349,7 @@ theorem raftNode_of_StartNode (reg : GName)
     iapply memStorCap_intro bv.storage' γs 1 (Hcap h) $$ Hreg
   wp_apply (wp_bnr E γ bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
     Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
-    Hboot HbootOk Hnwit) $$ [Hb Hc Hsto Hpeers Hghost Htok]
+    Hboot HbootOk) $$ [Hb Hc Hsto Hpeers Hghost Htok]
     as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers,
       Htok⟩
   · iframe #; iframe Hb Hc Hsto Hpeers Hghost Htok
