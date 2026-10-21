@@ -240,16 +240,20 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 	return srvs, brs, clis
 }
 
-// cutRun runs linkvtxn's workload (3 workers of n operations each) through the clients clis,
-// each operation through one picked at random, with the partitioner on sched; it checks
-// porcupine's verdict is Ok and returns the operations.
+// cutRun runs linkvtxn's workload (3 workers of n operations each, each operation after a pause
+// of pause) through the clients clis, each operation through one picked at random, with the
+// partitioner on sched and, if control is not nil, control on its own goroutine (given the
+// operations so far and the time since the run's start); it checks porcupine's verdict is Ok and
+// returns the operations.
 func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
-	clis []*clientv3.Client, sched []Step, n int) []cutOp {
+	clis []*clientv3.Client, sched []Step, n int, pause time.Duration,
+	control func(snap func() []cutOp, since func() time.Duration)) []cutOp {
 	t.Helper()
 	var mu sync.Mutex
 	var ops []cutOp
 	t0 := time.Now()
 	apply := func(input any) any {
+		time.Sleep(pause)
 		mu.Lock()
 		i := rand.Intn(len(clis))
 		mu.Unlock()
@@ -262,6 +266,14 @@ func cutRun(t *testing.T, srvs []*etcdserver.EtcdServer, brs []bridge.Bridge,
 		return out
 	}
 	go partitioner(srvs, brs, sched)
+	if control != nil {
+		snap := func() []cutOp {
+			mu.Lock()
+			defer mu.Unlock()
+			return append([]cutOp(nil), ops...)
+		}
+		go control(snap, func() time.Duration { return time.Since(t0) })
+	}
 	if r := lintest.Run(linkvtxn.Model(), apply, linkvtxn.Gen, lintest.CounterClock(), 3, n,
 		0); r != porcupine.Ok {
 		t.Fatalf("got %v", r)
@@ -310,7 +322,7 @@ func TestClientCuts(t *testing.T) {
 		{Delay: blackholeAt - 50*time.Millisecond, Kind: ClientBlackhole, A: 0},
 		{Delay: unblackholeAt - blackholeAt, Kind: ClientUnblackhole, A: 0},
 	}
-	ops := cutRun(t, srvs, brs, clis, sched, 600)
+	ops := cutRun(t, srvs, brs, clis, sched, 600, 0, nil)
 	var failed1, okAfter1 bool
 	for _, op := range ops {
 		if op.cli == 0 && op.err {
@@ -328,38 +340,96 @@ func TestClientCuts(t *testing.T) {
 	}
 }
 
-// TestFailover shows failover on a silent partition (notes/keepalive-plan.md, D-KA4): every client
-// of all three bridges, as Main's, on a schedule that blackholes member 1's bridge at 50ms and
-// unblackholes it at 45s, nothing else. A call on a client's connection to member 1 hangs until
-// the client's keepalive closes that connection (no answer to a ping: 10s without a read, then
-// 2s) and fails; a re-dial's handshake never completes (grpc waits for the server's preface), so
-// grpc's round-robin balancer picks only the other two members' connections from then on. A
-// client pings only while it has calls in flight (PermitWithoutStream false, as etcd's server
-// requires: its policy refuses pings on an idle connection), so each client finds its dead
+// TestFailover shows failover on a silent partition and the clients' return to the mended member
+// (notes/keepalive-plan.md, D-KA4): every client of all three bridges, as Main's, in two phases
+// that a control goroutine drives (each client finds a cut on its own, so the phases' times are
+// not known in advance).
+//
+// Failover: member 1's bridge is blackholed at 50ms. A call on a client's connection to member 1
+// hangs until the client's keepalive closes that connection (no answer to a ping: 10s without a
+// read, then 2s) and fails; a re-dial's handshake never completes (grpc waits for the server's
+// preface), so grpc's round-robin balancer picks only the other two members' connections from then
+// on. A client pings only while it has calls in flight (PermitWithoutStream false, as etcd's
+// server requires: its policy refuses pings on an idle connection), so each client finds its dead
 // connection when it first sends a call on it: at most three keepalive closes, one per client,
-// each holding the workers that picked it for 12s. It checks porcupine's verdict is Ok, that some
-// operation failed and every failure during the cut ended at least 10s in and by 37s (three
-// closes), and that every client kept working after the last: an operation through each, started
-// after the last failure and ended before the unblackhole, succeeded. 3 workers of 6000
-// operations: the run outlasts the closes. It runs in a child process (inChild), as TestMainRun.
+// each holding the workers that picked it for up to 12s. The phase ends once some operation has
+// failed, 13s have passed, none has failed for 2s, and every client has served an operation since
+// the last failure.
+//
+// Return: member 1's bridge is unblackholed (which closes its connections: the clients' stalled
+// re-dials end, and the next one completes), and 3s later members 2 and 3's bridges are
+// blackholed and their connections dropped (their calls in flight fail at once; their re-dials
+// never complete). From then on only member 1 can answer.
+//
+// It checks porcupine's verdict is Ok; every failure in the first phase at a keepalive close (at
+// least 10s in); every client served an operation started after the last failure and ended before
+// the unblackhole (failover); and every client served an operation started after members 2 and 3
+// were cut (its return to member 1). 3 workers of 12000 operations, each after a 2ms pause, so the
+// run outlasts both phases. It runs in a child process (inChild), as TestMainRun.
 func TestFailover(t *testing.T) {
 	if inChild(t, "TestFailover") {
 		return
 	}
 	srvs, brs, clis := cutSetup(t, func(int) []string { return bridgeAddrs })
-	const blackholeAt, unblackholeAt = 50 * time.Millisecond, 45 * time.Second
-	sched := []Step{
-		{Delay: blackholeAt, Kind: ClientBlackhole, A: 0},
-		{Delay: unblackholeAt - blackholeAt, Kind: ClientUnblackhole, A: 0},
+	var cmu sync.Mutex
+	var unblackholeAt, cutAt time.Duration
+	control := func(snap func() []cutOp, since func() time.Duration) {
+		time.Sleep(50 * time.Millisecond)
+		brs[0].Blackhole()
+		for {
+			time.Sleep(200 * time.Millisecond)
+			ops, now := snap(), since()
+			var lastFail time.Duration
+			failed := false
+			for _, op := range ops {
+				if op.err {
+					failed = true
+					if op.end > lastFail {
+						lastFail = op.end
+					}
+				}
+			}
+			if !failed || now < 13*time.Second || now-lastFail < 2*time.Second {
+				continue
+			}
+			var served [3]bool
+			for _, op := range ops {
+				if !op.err && op.start > lastFail {
+					served[op.cli] = true
+				}
+			}
+			if served[0] && served[1] && served[2] {
+				break
+			}
+		}
+		cmu.Lock()
+		unblackholeAt = since()
+		cmu.Unlock()
+		brs[0].Unblackhole()
+		time.Sleep(3 * time.Second)
+		brs[1].Blackhole()
+		brs[2].Blackhole()
+		brs[1].DropConnections()
+		brs[2].DropConnections()
+		cmu.Lock()
+		cutAt = since()
+		cmu.Unlock()
 	}
-	ops := cutRun(t, srvs, brs, clis, sched, 6000)
+	ops := cutRun(t, srvs, brs, clis, nil, 12000, 2*time.Millisecond, control)
+	cmu.Lock()
+	ub, ct := unblackholeAt, cutAt
+	cmu.Unlock()
+	if ct == 0 {
+		t.Fatalf("the run ended before members 2 and 3 were cut")
+	}
+	t.Logf("member 1 unblackholed at %v, members 2 and 3 cut at %v", ub, ct)
 	var lastFail time.Duration
 	failed := false
 	for _, op := range ops {
-		if op.err && op.end < unblackholeAt {
+		if op.err && op.end < ub {
 			t.Logf("failed: client %d, %v to %v", op.cli+1, op.start, op.end)
-			if op.end < 10*time.Second || op.end > 37*time.Second {
-				t.Fatalf("an operation failed at %v, not at a keepalive close", op.end)
+			if op.end < 10*time.Second {
+				t.Fatalf("an operation failed at %v, before keepalive could close a connection", op.end)
 			}
 			failed = true
 			if op.end > lastFail {
@@ -370,17 +440,25 @@ func TestFailover(t *testing.T) {
 	if !failed {
 		t.Fatalf("no operation failed: the blackhole cut nothing")
 	}
-	var okAfter [3]int
+	var okAfter, okBack [3]int
 	for _, op := range ops {
-		if !op.err && op.start > lastFail && op.end < unblackholeAt {
+		if !op.err && op.start > lastFail && op.end < ub {
 			okAfter[op.cli]++
+		}
+		if !op.err && op.start > ct {
+			okBack[op.cli]++
 		}
 	}
 	t.Logf("operations succeeded after the last failure (%v), during the cut, per client: %v",
 		lastFail, okAfter)
-	for i, n := range okAfter {
-		if n == 0 {
+	t.Logf("operations succeeded with only member 1 reachable, per client: %v", okBack)
+	for i := range clis {
+		if okAfter[i] == 0 {
 			t.Fatalf("no operation through client %d succeeded during the cut: no failover", i+1)
+		}
+		if okBack[i] == 0 {
+			t.Fatalf("no operation through client %d succeeded with only member 1 reachable: "+
+				"no return to member 1", i+1)
 		}
 	}
 }

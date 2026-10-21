@@ -177,6 +177,14 @@ linkv3p, watchkv, cachekv: `dialSetupOpts`' proof now covers the branch, taken o
 `grpc.KeepaliveEnforcementPolicy.wp_proof` linkv3p's alone. `verified-code.py`: linkv3p 9 of 9,
 linkvtxn 46 of 46. `linkv3p_safe`'s statement is unchanged; it now covers clients with keepalive.
 
+**Reconnection (2026-10-21, after the merge).** `TestFailover` gained a second phase: once every
+client has failed over, member 1's bridge is unblackholed and, 3s later, members 2 and 3's bridges
+are blackholed and their connections dropped, so only member 1 can answer. Every client then
+served about 10,000 operations through member 1: the clients reconnect to a mended member. The
+phases are driven by a control goroutine (`cutRun`'s `control`), since each client's failover time
+varies (12s to 36s); the run is paced (2ms per operation) to outlast them. 3 runs passed (one under
+`-race`), 45 to 85 seconds each.
+
 ## Risks
 
 - **The ping floor makes the test slow** (about 15 seconds of partition). Acceptable; the other
