@@ -4,7 +4,7 @@
 persistent updates the server hands raft are built from the KV invariant (`kvInv`,
 `InvRequest.lean`), which they keep:
 
-- `kv_prop_au`: a proposal's (`srvPropAu`), for a request with no KV write, or a client's plain
+- `kv_prop_au`: a proposal's (`srvPropAu1`), for a request with no KV write, or a client's plain
   write (a put, a delete, a transaction: firing the client's `kvOpAu` at the commit, the state
   stepped by `kvOpStep`);
 - `kv_noop_au`: the standing update for raft's own entries (`srvNoopAu`);
@@ -168,10 +168,8 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
   · -- no KV write
     obtain ⟨hplain, hnw, -, hshape, hQr⟩ := Hno
     subst hQr
-    iapply srvPropAu_one
     imodintro
-    unfold srvPropAu
-    iintro !>
+    unfold srvPropAu1
     iauintro
     unfold atomic_acc
     iunfold kvInv at Hinv
@@ -218,10 +216,8 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     iunfold kvOpAu at Hau
     icases Hau with ⟨-, Hau⟩
     iunfold kvAu at Hau
-    iapply srvPropAu_one
     imodintro
-    unfold srvPropAu
-    iintro !>
+    unfold srvPropAu1
     iauintro
     unfold atomic_acc
     iunfold kvInv at Hinv

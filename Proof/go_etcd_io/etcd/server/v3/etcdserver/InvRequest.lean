@@ -17,7 +17,7 @@ field, the statement the verified `node.Propose` proves for the register
 (`Spec/go_etcd_io/raft/v3/node__Propose.lean`, `InvNode.lean`), restated over the server's own
 ghost names (`ServerRaftNames`): a first proposal of `data` (`fresh`, with its fresh token)
 deposits the client's atomic update `AU <{∃∃ L, srvCLog γ L}> <{srvCLog γ (L ++ [data]),
-COMM Q L}>` (`srvPropAu`), which raft fires when the data's first occurrence commits; the call
+COMM Q L}>` (`srvPropAu1`), which raft fires when the data's one occurrence commits; the call
 returns `srvDeposited γ data` and, for a fresh proposal, the ticket. The apply side's half of the
 contract (`batchCommitted`): the client entries of a batch raft hands the apply thread
 (`toApply`) are the committed client log's next entries (`srvCommittedLb`: a lower bound of the
@@ -360,31 +360,18 @@ instance srvIsProp_persistent (γ : ServerRaftNames) (d : List w8)
     (Q : List EntryModel → IProp GF) : Persistent (srvIsProp (GF := GF) γ d Q) := by
   unfold srvIsProp; infer_instance
 
-/-- **The proposer's persistent update for `d`** (2026-10-14, unit T1): fired by raft at **every**
-committed occurrence of `d` (an entry `e` raft appends, normal, with data `d`, at the next
-index; 2026-10-16, stage R7b: the entry's facts alone), its result persistent and of the log
-before the entry. -/
-def srvPropAu (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
-    IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
-          <{ ∀∀ (e : EntryModel),
-               ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
-               srvRLog γ (L ++ [e]), COMM □ Q L }>)
-
-/-- **The proposer's update for `d`, fired at most once** (2026-10-19, D21 M6, D20 (b)):
-`srvPropAu` but not persistent. Raft proposes each proposal once (its ticket travels with the
-proposal), so raft fires it at most once (`fire_one`). -/
+/-- **The proposer's update for `d`, fired at most once** (2026-10-19, D21 M6, D20 (b)): raft
+fires it at the committed entry `e` holding `d` (normal, at the next index; 2026-10-16, stage
+R7b: the entry's facts alone), its result persistent and of the log before the entry. Raft
+proposes each proposal once (its ticket travels with the proposal), so it fires it at most once
+(`fire_one`). (Until 2026-10-21 also a persistent form, `srvPropAu`, fired at every occurrence,
+which the server only weakened to this one.) -/
 def srvPropAu1 (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
   iprop(AU <{ ∃∃ (L : List EntryModel), srvRLog γ L }> @ ⊤ \ ↑srvRaftN, ∅
           <{ ∀∀ (e : EntryModel),
                ⌜e.typ = W32 0 ∧ e.data = d ∧ uint.Z e.index = uint.Z γ.ai0 + 1 + L.length⌝ ∗
                srvRLog γ (L ++ [e]), COMM □ Q L }>)
-
-theorem srvPropAu_one (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
-    srvPropAu (GF := GF) γ d Q ⊢ srvPropAu1 γ d Q := by
-  unfold srvPropAu srvPropAu1
-  exact intuitionistically_elim
 
 /-- An entry of raft's own: an empty normal entry, or a v1 conf change (what raft's
 `entDataIs … none` says under `srvCCPolicy`, at raft's configuration `cfg`). -/
