@@ -13481,3 +13481,102 @@ entries after the snapshot) agreeing with the log up to the acknowledged entry b
 `stored_agree`; after a second restore it must miss, by Log Matching ("D22 S-d1 part 1 carried
 out", item 3). The post is `ackSnapLog`'s log, which `ownRawNode` must re-establish (the delivered
 jump, `Hdlen`, `RNFl`/`FlOk`; "D22 S-d designed", S-d3).
+
+## D22 S-d3 designed precisely, not carried out: the `RawNode` over a snapshot `Ready`; stopped after S-d2 (2026-10-21)
+
+After S-d1b and S-d2 the log and raft layers take a snapshot through `Ready`/`Advance`; the
+`RawNode` layer still takes `psnap = false` (`HasReady`, `readyWithoutAccept`, `Ready`,
+`Advance`, `ownRawNode_raise_floor`) and `RawNode.Step` a `MsgSnap` only with `rs.steps = []`.
+A read of `rawnode.go` and the `RawNode` proofs against "D22 S-d designed" (S-d3) found it several
+times the planned size, with facts the design did not count (item 1); per the brief, stopped at a
+precise design (items 2-4), staged S-d3a (no second restore), S-d3b (the second restore), S-d4.
+No Lean change in this entry.
+
+**1. What the design did not count.**
+- *The acknowledgement is queued without entries too.* `acceptReady` queues it when
+  `needStorageAppendRespMsg` (`rawnode.go:210`): unstable entries **or** a non-empty snapshot;
+  `Index`/`LogTerm` are set only with unstable entries (`hasNextOrInProgressUnstableEnts`), so a
+  snapshot `Ready` with no entry after the snapshot queues `Index = 0`. `Pending.appendAck t last`
+  must become `appendAck t (last : Option entryID) (sn : Option SnapshotM)` (and `appendAckM`,
+  `pendSt`, `PendingOk`, `StepsOk`, `acceptReady`'s queue, `Advance`'s cases).
+- *The snapshot is shared.* `newStorageAppendRespMsg` stores `rd.Snapshot` itself in the queued
+  message (`m.Snapshot = rd.Snapshot`, `rawnode.go:349`), the pointer the application gets: the
+  clone `nextSnapshot` makes is fresh, so it is handed out read-only (`ownSnapM p DFrac.discard`)
+  to both; `raft.appliedSnap` already takes any fraction.
+- *The records gate.* `Hstrecs` is `storedRecsP γ rs.psnap prev stored` (records only while no
+  snapshot may be pending, S-c), but after a snapshot `Ready` the records hold again
+  (`ownRaftGhost_storedRecs` mints them for the new base, the snapshot), and the acknowledgement
+  needs them (`StableOk (ackLog …)` by `stored_agree`, as `stableOk_of_stored` now). The gate must
+  be its own flag, `RNState.rst` ("restored since the last `Ready`": set by `RawNode.Step`'s
+  `MsgSnap`, cleared by `acceptReady`), distinct from `psnap` ("a snapshot pending or in
+  progress": cleared by `Advance`'s acknowledgement on the hit).
+- *`Hdlen` between the `Ready` and `Advance`.* The delivered log jumps to the snapshot's prefix `A`
+  at the `Ready` (`|A| = sid.index`), while `applying` reaches it only at `Advance`'s
+  `appliedTo`: `Hdlen` (`|delivered| = applying`) becomes `|delivered| = applying ∨ (a queued
+  acknowledgement carries a snapshot of index `i` ∧ |delivered| = i ∧ applying ≤ i)`, which every
+  `RawNode` method's reseal carries (they keep both sides) and `Ready`/`Advance` establish.
+- *The floor raised past `applying`.* `node.go` raises the floor at `advancec` to the delivered
+  log's length (`advance_complete`), before `Advance`: with a snapshot `Ready` that is `sid.index >
+  applying`, which `FlOk` (`fl ≤ applying`) forbids. Either `FlOk` admits `fl ≤ i` while the
+  acknowledgement of a snapshot at `i` is queued (a log-layer change: a ghost `LogState.ackIdx`),
+  or S-d4 raises the floor to `applying` only for a snapshot `Ready` (no compaction right past it
+  until the next `Advance`; simpler, and what the design should take).
+- *The second restore is a term argument plus Log Matching, and needs a fact of the restore.*
+  With `s2` restored between `Ready(s1, es)` and `Advance`, the acknowledgement's `stableTo` must
+  miss (otherwise the next `Ready` hands out `s2` with entries after `id`, and the application's
+  `ApplySnapshot(s2)` then `Append` panics on "missing log entry", or loses the entries raft
+  thinks stable). It does: if the term moved since the `Ready`, the acknowledgement is stale
+  (`m.Term < r.Term`: the arm runs `appliedSnap` alone -- the ABA guard of
+  `newStorageAppendRespMsg`); within the same term every `MsgApp`/`MsgSnap` since is the term's
+  leader's, and a hit at `id` (`id.index > s2.index`, or it misses on `id.index < offset`) would
+  make `es` agree with that leader's log up to `id` (Log Matching between the records of `stored`
+  and of the log), hence at `s2.index` -- where the log, which a truncation within the term could
+  only have cut above `id` (same argument), still held `es`'s entry, so `restore`'s
+  `matchTerm(s2)` would have succeeded. The proof needs, from `raft.Step`'s `MsgSnap`, the fact
+  that the log at the restore did not match `s2` (`restore`'s `!matchTerm` exit: a `SnapStep`
+  conjunct to add), and the records of the log before the restore. Not a Go bug (checked through
+  the scenario of a slow snapshot application with a conflicting `MsgApp` from another leader:
+  the term moves, and the stale arm skips `stableTo`).
+
+**2. S-d3a: a snapshot `Ready`, no second restore** (`RawNode.Step` keeps `rs.steps = []` for a
+`MsgSnap`). Files: `InvRawnode.lean`, `InvRawnodeReady.lean`, `RawNode__{readyWithoutAccept,
+acceptReady,Ready,HasReady,Advance}.lean` and their specs; the other methods' reseals only
+(`Hdlen`'s new form, `rst`).
+- `readyWithoutAccept`/`Ready` drop `rs.psnap = false`; the snapshot branch: `nextUnstableSnapshot`
+  gives the clone (`unstable.nextSnapshot`'s spec: `snap = some sid ∧ sip = false`), handed out
+  read-only, `CommittedEntries = []` (`nextCommittedEnts`: `snap ≠ none → ce = []`), `Entries` the
+  unstable ones (`sents = []`), the delivered jump `A := (cprefix fp (toPState s)).take sid.index`
+  (`ownRaftGhost_cmt`, `isCommitted_mono`; `rs.delivered <+: A` by `isCommitted_agree`, since
+  `|delivered| = applying < sid.index`). Post: `rs.psnap = false → rd.Snapshot' = null` kept as a
+  conjunct (so `node.go` and its callers, at `psnap = false`, are unchanged), and otherwise
+  `∃ sv, ownSnapM rd.Snapshot' □ sv ∗ ⌜snapId sv = sid ∧ trip ∈ ksn ∧ the cert⌝ ∗ isCommitted γ A`.
+- `acceptReady` with a snapshot: `ownRaftLog_lend` in place of the hand-out (the application gets
+  `ownStorage rs.storage σ` and the facts of `σ`), `acceptUnstable` (no `snap = none` premise
+  since S-d1b; `sip := true`), the acknowledgement `appendAck t (last?) (some sv)` (term: the
+  node's; `PendingOk`: `t ≤ term`, `last` the last of `stored` if any, `sv.index = prev.index`,
+  `lent` or `sat`), no `acceptApplying`; `delivered := A`; `rst := false`.
+- `ownRawNode_appended` for the snapshot receipt (`snapReceipt rs sv σr`: `σr.prev = σr.ss = snapId
+  sv`, `σr.ents = es`, `σr.pend = []`, `σr.fl`, trip in `ksn`) by `ownRaftLog_absorb_snap`; the log
+  is then at `sat`.
+- `Advance` drops `psnap = false`: the acknowledgement's `raft.Step` premises (S-d2): `snapHit =
+  sat` (both true), `sv.index ≤ prev.index` (equal), the static mode (`Hsnap`: a snapshot only
+  statically), `StableOk (ackLog …)` by `stored_agree` in the `sapp` window; its post
+  `ackSnapLog` (`snap := none`, `applied = applying = sid.index = |delivered|`, `sip`, `lent`,
+  `sat`, `sapp`, `aps` off) re-establishes `ownRawNode` with `psnap := false`.
+- `HasReady` exact on `hasNextUnstableSnapshot` (S-d1 part 1); `ownRawNodeReady`/`Idle` with
+  `Hsnap` and `Hstrecs` as `ownRawNode`'s; `ownRawNode_raise_floor` without `psnap = false` (the
+  floor at most `applying`, item 1).
+
+**3. S-d3b: the second restore.** `RawNode.Step` drops `rs.steps = []` for a `MsgSnap`; the queued
+acknowledgement's `PendingOk` gains the snapshot case's form that survives a restore (`t ≤ term`,
+`sv.index ≤ committed`, and -- for the miss -- the term at the `Ready` and the records of `stored`
+with its base); `Advance` proves `snapHit = sat` (both false: `s2.index > committed ≥ s1.index`)
+and the miss of `stableTo` (item 1's argument: stale arm on a term change, else Log Matching with
+`SnapStep`'s new "the log did not match the snapshot at the restore" fact); `psnap` stays set
+(`s2` pending), `rst` set.
+
+**4. S-d4** as designed ("D22 S-d designed", S-d4): `readyData` with `rd.Snapshot' = null ∨
+(γ.raft.reNoSnap = false ∗ the snapshot and the lent storage)`, `advanceP`'s `appendReceipt` or
+`snapReceipt`, `netP` without `Type ≠ MsgSnap`, `runCfg` without `psnap = false`, `dlv`/`dlm` over
+the jump; the floor raised to `applying` at a snapshot `Ready` (item 1); the kv example keeps
+passing no `MsgSnap` (its `netP` conjunct moved to its own network invariant) until S-r.
