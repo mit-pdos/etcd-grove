@@ -122,7 +122,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
+        kvObjAt api [addr] ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
         isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
@@ -132,7 +132,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
           (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
+        EtcdGrove.client.kvWritesOk api [addr] E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
     {{ (q : Loc), RET #q;
@@ -155,7 +155,7 @@ theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoStri
                 ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
               ⌜err ≠ GoInterface.nil⌝ }}) }} := by
   iintro %Φ ⟨#Pr, #Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei, #Hnp⟩ HΦ
-  ihave #Hcl := isEtcdRecipesClient_of_kv cl w api addr s E γw γr cid mid kp hkp hAs $$ []
+  ihave #Hcl := isEtcdRecipesClient_of_kv cl w api [addr] s E γw γr cid mid kp hkp hAs $$ []
   · iframe #
   iapply (wp_NewQueue (EM := v3rpc.etcdModelOfServer E) cl kp) $$ []
   · iframe #

@@ -170,7 +170,7 @@ instance retryLeaseAt_persistent (rlc conn : Loc) : Persistent (retryLeaseAt (GF
 /-- **What the unary calls of the `*lessor` `l` read** (persistent): its `remote`, a
 `*retryLeaseClient` over a connection to the server at `addr`, and its call options (full, as
 `client.go` builds them), fixed since `NewLeaseFromLeaseClient`. -/
-def lessorRemoteAt (l : Loc) (addr : GoString) : IProp GF :=
+def lessorRemoteAt (l : Loc) (addr : List GoString) : IProp GF :=
   iprop(∃ (rlc conn : Loc) (sl : GoSlice),
     structFieldRef go_etcd_io.etcd.client.v3.lessor go!"remote" l ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty) #rlc :
@@ -178,7 +178,7 @@ def lessorRemoteAt (l : Loc) (addr : GoString) : IProp GF :=
     retryLeaseAt rlc conn ∗ isEtcdConn conn addr ∗
     structFieldRef go_etcd_io.etcd.client.v3.lessor go!"callOpts" l ↦□ sl ∗ callOptsAt sl)
 
-instance lessorRemoteAt_persistent (l : Loc) (addr : GoString) :
+instance lessorRemoteAt_persistent (l : Loc) (addr : List GoString) :
     Persistent (lessorRemoteAt (GF := GF) l addr) := by
   unfold lessorRemoteAt; infer_instance
 

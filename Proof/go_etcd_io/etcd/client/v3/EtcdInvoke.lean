@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`conn.Invoke(ctx, method, in, out, opts...)` on an etcd client's connection** (`isEtcdConn
 conn addr`: the retry interceptor installed), of any unary method registered with a spec
-(`isGrpcRpc addr method Spec`), for the request `in` (the sender's message at the model `m`,
+(`isGrpcRpcs addr method Spec`), for the request `in` (the sender's message at the model `m`,
 `Req.send`: marshaling writes its size cache) and a zero reply `out` (`Rep.blank`), with the
 caller's `□ ▷ Spec m Φ` (persistent: the request may be delivered several times, the retry
 interceptor's attempts; urpc's `wp_Client__Call_pred`). What it returns:
@@ -49,11 +49,11 @@ The request comes back (`Req.send inp m`), and the options (`callOptsOk`: none w
 memory) stay read-only. (Unit C1's axiom, with `isGrpcConn` for `isEtcdConn` and without
 `statusErrOk`; now `etcdConn_Invoke`, a theorem.) -/
 abbrev etcdConn.Invoke.spec : Prop :=
-  ∀ (conn : Loc) (addr method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+  ∀ (conn : Loc) (addr : List GoString) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
-      isGrpcRpc addr method Spec ∗ reqPre conn addr (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+      isGrpcRpcs addr method Spec ∗ reqPre conn addr (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))

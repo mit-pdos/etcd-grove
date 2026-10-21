@@ -265,7 +265,7 @@ theorem client_Get_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : Go
     (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice) (F : mvcc.Log)
     (Q : KVState → IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr (W64 0) ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗ mvcc.idxCert E.γ.idx F }}
@@ -282,7 +282,7 @@ theorem client_Get_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : Go
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_get_end_to_end api ep E γr (W64 0) cid mid ci cd key sl Q F) $$ [Hau]
+  wp_apply (client.client_get_end_to_end api [ep] E γr (W64 0) cid mid ci cd key sl Q F) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iexact Hau
@@ -307,7 +307,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : G
     (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (F : mvcc.Log)
     (Q : KVState → IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [withRangeM listTo] ∗
         committedAtLeast γr (W64 0) ∗
@@ -326,7 +326,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : G
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_range_end_to_end api ep E γr (W64 0) cid mid ci cd listFrom sl
+  wp_apply (client.client_range_end_to_end api [ep] E γr (W64 0) cid mid ci cd listFrom sl
       [withRangeM listTo] iprop(True) Q F) $$ [Hau] as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
@@ -360,8 +360,8 @@ theorem client_Put_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : Go
     (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
-        clientKVOnce cl ep ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+        clientKVOnce cl [ep] ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         kvOpAu1 γr.kv (.put (linkv.putOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
@@ -385,7 +385,7 @@ theorem client_Put_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : Go
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_put_end_to_end api ep E γr cid mid ci cd key val sl Q F) $$ [Hau]
+  wp_apply (client.client_put_end_to_end api [ep] E γr cid mid ci cd key val sl Q F) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iunfold client.putAuOk
@@ -415,8 +415,8 @@ theorem client_Delete_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep :
     (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
-        clientKVOnce cl ep ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+        clientKVOnce cl [ep] ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         kvOpAu1 γr.kv (.deleteRange (linkv.delOp key)) Q ∗ mvcc.idxCert E.γ.idx F }}
@@ -442,7 +442,7 @@ theorem client_Delete_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep :
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_delete_end_to_end api ep E γr cid mid ci cd key sl Q F) $$ [Hau]
+  wp_apply (client.client_delete_end_to_end api [ep] E γr cid mid ci cd key sl Q F) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iunfold client.putAuOk
@@ -481,13 +481,13 @@ theorem client_Delete_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep :
 configured for one attempt, fires its update at most once). -/
 theorem client_Txn_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString)
     (V : client.WEnv GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
-        clientKVOnce cl ep ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+        clientKVOnce cl [ep] ∗ ctxOk ci cd ∗ ctxErrClient ci cd }}
       (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Txn")) (Val #(GoInterface.ok ci)))
     {{ (t : GoInterface), RET #t; ∃ tp : Loc,
         ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp⌝ ∗
-        txnObjAt tp ep ci cd TxnBuild.empty ∗ ∃ api : Loc, txnKvIs tp api ∗ kvOnce api ep }} := by
+        txnObjAt tp [ep] ci cd TxnBuild.empty ∗ ∃ api : Loc, txnKvIs tp api ∗ kvOnce api [ep] }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hctx, #Hce⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
@@ -502,7 +502,7 @@ theorem client_Txn_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : Go
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Txn_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.v3.kv.wp_Txn api ep ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
+  wp_apply (client.v3.kv.wp_Txn api [ep] ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
   · iframe #
   iapply HΦ
   iexists tp
@@ -518,10 +518,10 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ep : Go
     (F : mvcc.Log) (Q : KVState → IProp GF) (cs : List (linkv.MCmp GoString GoString))
     (t e : List (linkv.MOp GoString GoString)) (hb : b.model = clientTxn cs t e)
     (hne : t ++ e ≠ []) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp ep ci cd b ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp [ep] ci cd b ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E γr γr cid mid) ∗
         committedAtLeast γr (W64 0) ∗ mvcc.idxCert E.γ.idx F ∗
-        (∃ api : Loc, txnKvIs tp api ∗ kvOnce api ep) ∗ callUpd γr.kv (.txn cs t e) Q }}
+        (∃ api : Loc, txnKvIs tp api ∗ kvOnce api [ep]) ∗ callUpd γr.kv (.txn cs t e) Q }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -547,7 +547,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ep : Go
     simp only [Bool.false_eq_true, ↓reduceIte]
     simp only [hwr, Bool.not_false] at hro
     have hser := txnSerializable_txnOf cs t e hne
-    wp_apply (client.client_txn_end_to_end tp ep E γr γr (W64 0) cid mid ci cd b F Q hp hin)
+    wp_apply (client.client_txn_end_to_end tp [ep] E γr γr (W64 0) cid mid ci cd b F Q hp hin)
       $$ [Hobj Hau] as %resp %err Hout
     · iframe Hobj
       iframe #
@@ -583,7 +583,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ep : Go
   · -- writing
     simp only [↓reduceIte]
     simp only [hwr, Bool.not_true] at hro
-    wp_apply (client.client_txn_end_to_end tp ep E γr γr (W64 0) cid mid ci cd b F Q hp hin)
+    wp_apply (client.client_txn_end_to_end tp [ep] E γr γr (W64 0) cid mid ci cd b F Q hp hin)
       $$ [Hobj Hau Hone] as %resp %err Hout
     · iframe Hobj
       iframe #

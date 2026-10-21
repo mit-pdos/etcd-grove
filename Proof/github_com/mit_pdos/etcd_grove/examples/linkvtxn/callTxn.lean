@@ -71,24 +71,24 @@ theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_If tp ep context.backgroundCtxVal cd TxnBuild.empty csl
+  wp_apply (client.v3.txn.wp_If tp [ep] context.backgroundCtxVal cd TxnBuild.empty csl
       (cs.map linkv.cmpOf)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp ep context.backgroundCtxVal cd _ tos (t.map clientOp)
+  wp_apply (client.v3.txn.wp_Then tp [ep] context.backgroundCtxVal cd _ tos (t.map clientOp)
       (t.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps t, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Else tp ep context.backgroundCtxVal cd _ eos (e.map clientOp)
+  wp_apply (client.v3.txn.wp_Else tp [ep] context.backgroundCtxVal cd _ eos (e.map clientOp)
       (e.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps e, rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp ep context.backgroundCtxVal cd
+  ihave Hobj : txnObjAt (GF := GF) tp [ep] context.backgroundCtxVal cd
       ⟨clientTxn cs t e, true, true, true⟩ $$ [Hobj]
   · iExactEq Hobj
     simp [TxnModel.empty, clientTxn]

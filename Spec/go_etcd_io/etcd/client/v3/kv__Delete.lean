@@ -27,14 +27,14 @@ unit V2): `kv.Do` of `OpDelete(key, opts...)` (options with transformers `gs` th
 `deleteCallOut` for the delete the server reads (`deleteWireOf`), for a spec `Spec` registered for
 `DeleteRange` and the caller's `Q`. -/
 abbrev kv.Delete.spec : Prop :=
-  ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull))
     (Spec : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Q : DelRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ opDeletePanics key gs ∧ (opDeleteModel key gs).t = W64 3⌝ ∗
-      isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
+      isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Spec ∗
       -- (2026-10-20, linkv-txn stage A) ordinary on a client configured for one attempt
       kvReqPre api addr (Spec (deleteWireOf (opDeleteModel key gs)) Q) }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!

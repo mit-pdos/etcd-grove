@@ -12326,3 +12326,40 @@ nothing else; the bridge's functions count as assumed in `etc/verified-code.py`.
 proofs were removed; they are in the branch's history (`client-cut` K1-K3, commits `28168a5756`
 to `9abbdac478`) if a proof of the bridge is ever wanted.
 
+## D27: a client of several endpoints: the gRPC boundary over a list of addresses (2026-10-21 · approved by the user; `notes/client-cut-plan.md` K4)
+
+**Problem.** Failover (the plan's D-C4): one etcd client configured with every member's endpoint,
+grpc's round-robin balancer sending each attempt to one of them. Until now the client's trust
+boundary resolved to one address for good: `grpcResolverAt rb scheme addr`, `grpcConn conn addr`,
+and `Invoke`'s attempt (`grpcInvokerOk conn addr`) ran the handler registered at `addr`;
+`clientCfgOk` took `Endpoints = [ep]`.
+
+**Decision.** The address becomes a list, from the trust boundary up; each old statement is the
+one-element case.
+
+- `grpcConn conn addrs ics dopts`, `grpcResolverAt rb scheme addrs`, `grpc.NewClient`'s axiom over
+  them; etcd's `etcdResolver_grpc` for any non-empty list of plain endpoints (`plainEndpoints`):
+  `Build`'s state is one `resolver.Endpoint` per endpoint, with the round-robin service config.
+- `Invoke`'s attempt (`grpcInvokerOk conn addrs`) takes the method registered at **every**
+  address (`isGrpcRpcs addrs name Spec := [∗ list] a ∈ addrs, isGrpcRpc a name Spec`) and runs the
+  handler of one of them, or errors. True of grpc-go: an attempt is one HTTP/2 stream on one
+  subchannel, the picker's (round-robin over the READY subchannels of the resolver's addresses;
+  with `WaitForReady`, the attempt waits for one). The request reaches at most one run of one
+  server's handler, as before (D21j).
+- Streams stay at one address: `ClientConn.NewStream`'s axiom (watches, the lease keep-alive)
+  takes `grpcConn conn [addr]`. This narrows that axiom; a watch over a client of several
+  endpoints is not covered.
+- The client carries the list: `clientCfgOk cfg eps`, `isNewClient cl eps V`, `isEtcdConn conn
+  addrs`, `kvObjAt api addrs`, `lessorAt l addrs` (its keep-alive specs at `[addr]`), and every unary
+  call's spec takes `isGrpcRpcs`. The client's specs were already generic in the method's `Spec`,
+  so no client proof changes beyond the types.
+
+**How failover uses it.** Each member's handler meets its own spec (its apply environment, its
+member id); a call through a client of the three endpoints passes the conjunction of the three
+(`∧`: the caller proves each from the same resources, the handler that runs uses one), and gets
+the reply of whichever member ran it. A handler meeting one member's spec meets the conjunction
+(the spec occurs only in the handler's precondition).
+
+**Trust base.** No axiom added or removed: `grpcConn`, `grpcResolverAt`, `grpc.NewClient`,
+`ClientConn.Invoke`, `ClientConn.Target` and `etcdResolver_grpc` change their statements (the old
+ones are the one-element case); `ClientConn.NewStream`'s narrows.

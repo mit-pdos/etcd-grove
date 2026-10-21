@@ -30,7 +30,7 @@ channel and an `ErrKeepAliveHalted` error. -/
 abbrev lessor.KeepAlive.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗ context.isContext ctx cd }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"KeepAlive")) (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err);

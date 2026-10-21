@@ -294,7 +294,7 @@ theorem Main.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_New _ clientAddr₁
+  wp_apply (wp_New _ [clientAddr₁]
       ⟨R, clientAddr₁, [], null, null, [], null⟩) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -305,7 +305,7 @@ theorem Main.wp_proof
       · iapply ownSlice_nil
       ipureintro
       refine ⟨?_, ?_⟩
-      · unfold plainEndpoint clientAddr₁; decide
+      · exact plainEndpoints_singleton _ (by unfold plainEndpoint clientAddr₁; decide)
       · simp [Hlg]
     ipureintro; exact Htb
   icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)

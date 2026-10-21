@@ -391,7 +391,7 @@ theorem Main.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_New _ go!"127.0.0.1:23831"
+  wp_apply (wp_New _ [go!"127.0.0.1:23831"]
       ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -402,7 +402,7 @@ theorem Main.wp_proof
       · iapply ownSlice_nil
       ipureintro
       refine ⟨?_, ?_⟩
-      · unfold plainEndpoint; decide
+      · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     ipureintro; exact Htb31
   icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
@@ -419,7 +419,7 @@ theorem Main.wp_proof
   · ipureintro; trivial
   -- the client's `Watcher`, with the watch server's facts (D19f), etcd's watch contract
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-    go!"127.0.0.1:23831" ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩ rfl
+    [go!"127.0.0.1:23831"] ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩ rfl
     $$ [Pcli Ppb Pctx Hnc HWF]
   · iframe #
   ihave #Hew := client.isEtcdWatcher_of_watcher wp_Watch

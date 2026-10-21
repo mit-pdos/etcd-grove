@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 the keep-alives past their deadline, until `donec` is closed; it returns then (or runs forever). -/
 abbrev lessor.deadlineLoop.spec : Prop :=
   ∀ (l : Loc) (addr : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"deadlineLoop")) (Val #()))
   {{ RET #(); True }}
 

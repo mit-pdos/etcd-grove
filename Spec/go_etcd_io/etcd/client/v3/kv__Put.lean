@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 change the operation's type), the
 error through `ContextError`: `putCallOut` for the put the server reads (`putWireOf`). -/
 abbrev kv.Put.spec : Prop :=
-  ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
     (Q : PutRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
-      isGrpcRpc addr go!"/etcdserverpb.KV/Put" Spec ∗
+      isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Spec ∗
       -- (2026-10-19, D21 M6) ordinary on a client configured for one attempt
       kvReqPre api addr (Spec (putWireOf (opPutModel key val gs)) Q) }}
     (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!

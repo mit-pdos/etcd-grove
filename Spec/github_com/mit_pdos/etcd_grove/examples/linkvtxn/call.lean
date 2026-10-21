@@ -40,7 +40,7 @@ abbrev call.spec : Prop :=
   ∀ (x : Input) (i : MI) (Q : KVState → IProp GF), decIn x = some i → GenIn x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl ep V ∗ clientKVOnce cl ep ∗
+      isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E γr cid mid) ∗

@@ -301,14 +301,14 @@ instance kvLeasedPutTodo_persistent (api : Loc) (E : apply.AEnv GF) :
 quiet or model context with `ctxErrClient`): `putResult`. 2026-10-15 (unit T2): a put with no
 lease with the caller's update `kvAnyAu` (etcd's `Put` spec over the whole state), one with a
 lease by the premise `kvLeasedPutTodo`. -/
-theorem kv_put_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem kv_put_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64)
     (pfx : GoString)
     (h : ¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
       op.Under pfx ∧ (opPutModel key val gs).t = W64 2) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
@@ -366,11 +366,11 @@ theorem kv_put_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF
 `kv.Put(context.TODO(), ...)` returns `putResult` (see the file header). Premises: the
 registration of etcd's `Put` at `addr`, the server's read side (`isServerRead`: the first
 certificate and `storeSmall`), and that `errors.As` can take `*rpctypes.EtcdError` (`hAs`). -/
-theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
         kvAnyAu E γw ∗ kvLeasedPutTodo api E ⊢
       isEtcdPutKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hlp⟩
@@ -384,14 +384,14 @@ theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
 /-- **A real `*kv` meets the clients' put contract at a context** (`isEtcdPutKV`) at the server's
 model, under the premise that every context's `Err()` returns client errors (`ctxErrClientAll`),
 for puts that stay puts (`t = 2`, as `isEtcdPutKVTodo`'s restriction): stated as the triple. -/
-theorem isEtcdPutKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdPutKV_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64)
     (h : ¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
       op.Under pfx ∧ (opPutModel key val gs).t = W64 2) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
         ctxErrClientAll ∗ context.isContext ctx cs ∗ optsAt sl gs ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
@@ -510,7 +510,7 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
 
 /-- **`kv.Delete` on a `*kv` over a connection to etcd's server, in the clients' model** (at a
 quiet or model context with `ctxErrClient`): `deleteResult`. -/
-theorem kv_delete_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem kv_delete_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64) (pfx : GoString)
     (h : ¬ opDeletePanics key gs ∧
@@ -518,7 +518,7 @@ theorem kv_delete_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
       (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Delete" (kvIfaceOf api).v))
@@ -566,12 +566,12 @@ theorem kv_delete_result (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
 
 /-- **A real `*kv` meets the recipes' delete contract** (`isEtcdDeleteKVTodo`) at the server's
 model: `kv.Delete(context.TODO(), ...)` returns `deleteResult` (see the file header). -/
-theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
         kvAnyAu E γw ⊢
       isEtcdDeleteKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hnp⟩
@@ -585,7 +585,7 @@ theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : ap
 /-- **A real `*kv` meets the clients' delete contract at a context** (`isEtcdDeleteKV`) at the
 server's model, under `ctxErrClientAll`, for deletes that stay deletes (`t = 3`) of a range end
 other than `[0]` (`isEtcdDeleteKVTodo`'s restrictions): stated as the triple. -/
-theorem isEtcdDeleteKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdDeleteKV_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (ctx : GoInterfaceOk)
     (cs : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (lo : w64)
@@ -594,7 +594,7 @@ theorem isEtcdDeleteKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.
       (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
         ctxErrClientAll ∗ context.isContext ctx cs ∗ optsAt sl gs ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Delete" (kvIfaceOf api).v))

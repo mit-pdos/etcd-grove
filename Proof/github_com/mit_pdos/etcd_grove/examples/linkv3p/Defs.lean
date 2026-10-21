@@ -145,7 +145,7 @@ names (the cluster's state, D21 M4: `linkvInv_congr`, `Alloc.lean`). A list of c
 def clientOk (γ : linkvtxn.LinkvNames) (cl : Loc) : IProp GF :=
   iprop(∃ (ep : GoString) (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
       (cid mid : w64),
-    isNewClient cl ep V ∗ clientKVOnce cl ep ∗
+    isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
     isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
     isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
     isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗

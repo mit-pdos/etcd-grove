@@ -39,7 +39,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **The `*txn` `tp` is a builder at the state `b`** (see the file header). -/
-def txnObjAt (tp : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+def txnObjAt (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) : IProp GF :=
   iprop(⌜tp ≠ null⌝ ∗ ∃ (api : Loc) (cosl csl ssl fsl : GoSlice) (cps sps fps : List Loc)
       (iw : Bool),
@@ -70,15 +70,15 @@ instance txnKvIs_persistent (tp api : Loc) : Persistent (txnKvIs (GF := GF) tp a
 /-- **A transaction's precondition on a `*txn`** (2026-10-20, linkv-txn stage A; `kvReqPre`'s,
 D21 M6): persistent, or ordinary on a builder made from a `*kv` over a connection configured for
 one attempt (`kvOnce`). -/
-def txnReqPre (tp : Loc) (addr : GoString) (P : IProp GF) : IProp GF :=
+def txnReqPre (tp : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
   iprop(□ ▷ P ∨ ((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addr) ∗ ▷ P))
 
-theorem txnReqPre_box (tp : Loc) (addr : GoString) (P : IProp GF) :
+theorem txnReqPre_box (tp : Loc) (addr : List GoString) (P : IProp GF) :
     (□ ▷ P : IProp GF) ⊢ txnReqPre tp addr P := by
   unfold txnReqPre; iintro #H; ileft; iexact H
 
 /-- A `*txn`'s precondition is its `*kv`'s (the `kv` fields' points-to agree). -/
-theorem txnReqPre_kv (tp api : Loc) (addr : GoString) (P : IProp GF) :
+theorem txnReqPre_kv (tp api : Loc) (addr : List GoString) (P : IProp GF) :
     txnKvIs tp api ∗ txnReqPre tp addr P ⊢ kvReqPre api addr P := by
   iintro ⟨#Hk, H⟩
   unfold txnReqPre kvReqPre

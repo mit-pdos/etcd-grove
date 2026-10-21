@@ -398,18 +398,19 @@ axiom grpcServes_persistent {GF : BundledGFunctors} [FfiSyntax] (addr name : GoS
 
 attribute [instance] grpcServes_persistent
 
-/-- **The client's connection `conn` reaches the server at `addr`, with the unary interceptors
+/-- **The client's connection `conn` reaches the servers at `addrs`, with the unary interceptors
 `ics` and the default call options `dopts`** (persistent; an axiomatized predicate: a fact about
-grpc's `*ClientConn` dialed to `addr`; unit P3a, it was `isGrpcConn conn addr`, the interceptors
-inside the boundary). `ics` is the chain `grpc.NewClient`/`Dial` compose
+grpc's `*ClientConn` dialed to a resolver of the addresses `addrs`; unit P3a, it was
+`isGrpcConn conn addr`, the interceptors inside the boundary; a list since 2026-10-21,
+`notes/decisions.md` D27: each attempt goes to one of them, grpc's balancer's choice). `ics` is the chain `grpc.NewClient`/`Dial` compose
 (`chainUnaryClientInterceptors`: `WithUnaryInterceptor`'s, then `WithChainUnaryInterceptor`'s, in
 order), `dopts` the `WithDefaultCallOptions`. -/
-axiom grpcConn {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addr : GoString)
+axiom grpcConn {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addrs : List GoString)
   (ics : List GoFunc) (dopts : List GoInterface) : IProp GF
 
-axiom grpcConn_persistent {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addr : GoString)
+axiom grpcConn_persistent {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (addrs : List GoString)
     (ics : List GoFunc) (dopts : List GoInterface) :
-  Persistent (grpcConn (GF := GF) conn addr ics dopts)
+  Persistent (grpcConn (GF := GF) conn addrs ics dopts)
 
 attribute [instance] grpcConn_persistent
 
@@ -439,6 +440,47 @@ def isGrpcRpc {Req Rep : ProtoMsg GF} (addr name : GoString) (Spec : GrpcSpec Re
 instance isGrpcRpc_persistent {Req Rep : ProtoMsg GF} (addr name : GoString)
     (Spec : GrpcSpec Req Rep) : Persistent (isGrpcRpc addr name Spec) := by
   unfold isGrpcRpc; infer_instance
+
+/-- **The method `name` of every server at `addrs` meets `Spec`** (persistent; D27): what a call
+on a connection to `addrs` needs, wherever grpc's balancer sends the attempt. Reducible, by
+recursion, so that at one address it is that address's `isGrpcRpc` (the one-endpoint clients' proofs
+frame it as such). -/
+@[reducible] def isGrpcRpcs {Req Rep : ProtoMsg GF} : List GoString → GoString → GrpcSpec Req Rep →
+    IProp GF
+  | [], _, _ => iprop(True)
+  | [a], name, Spec => isGrpcRpc a name Spec
+  | a :: b :: rest, name, Spec => iprop(isGrpcRpc a name Spec ∗ isGrpcRpcs (b :: rest) name Spec)
+
+instance isGrpcRpcs_persistent {Req Rep : ProtoMsg GF} (addrs : List GoString) (name : GoString)
+    (Spec : GrpcSpec Req Rep) : Persistent (isGrpcRpcs addrs name Spec) := by
+  induction addrs with
+  | nil => unfold isGrpcRpcs; infer_instance
+  | cons a rest ih =>
+    cases rest with
+    | nil => unfold isGrpcRpcs; infer_instance
+    | cons b bs => unfold isGrpcRpcs; infer_instance
+
+/-- One address's registration is the registrations at the one-element list. -/
+theorem isGrpcRpcs_singleton {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec : GrpcSpec Req Rep) : isGrpcRpc addr name Spec ⊣⊢ isGrpcRpcs [addr] name Spec := by
+  unfold isGrpcRpcs; exact .rfl
+
+/-- The registrations at a list, from each address's. -/
+theorem isGrpcRpcs_of_all {Req Rep : ProtoMsg GF} (addrs : List GoString) (name : GoString)
+    (Spec : GrpcSpec Req Rep) :
+    ([∗list] a ∈ addrs, isGrpcRpc a name Spec) ⊢ isGrpcRpcs addrs name Spec := by
+  induction addrs with
+  | nil => iintro -; unfold isGrpcRpcs; itrivial
+  | cons a rest ih =>
+    cases rest with
+    | nil => iintro H; iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)
+        (Φ := fun _ a => isGrpcRpc a name Spec)).1 $$ H
+    | cons b bs =>
+      iintro H
+      icases BigSepL.bigSepL_cons.1 $$ H with ⟨Ha, Hr⟩
+      unfold isGrpcRpcs
+      iframe Ha
+      iapply ih $$ Hr
 
 /-- A served method handler that meets `Spec` registers it. -/
 theorem isGrpcRpc_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val)
@@ -563,12 +605,13 @@ theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp
   iintro #H; unfold ctxOk; ileft; iexact H
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
-connection's interceptor chain; unit P3a): a call of a method registered at `addr` with `Spec`,
+connection's interceptor chain; unit P3a): a call of a method registered at every address `addrs`
+of the connection with `Spec` (`isGrpcRpcs`; D27, 2026-10-21: the attempt goes to one of them),
 for the request `inp` (`Req.send`, given back), into the reply `out` (owned, at any content:
 `Rep.own`), with call options grpc can apply (`grpcOptOk ps`: scalar, or peer options writing the
 buffers `ps`, owned and given back) and the caller's `▷ Spec m Φ`, returns
-* `nil`: a run of the handler served for the method on a copy of the request answered, and `out`
-  holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
+* `nil`: a run of the handler served for the method at one of `addrs` on a copy of the request
+  answered, and `out` holds the reply's copy of its response (`Rep.recv out m'`) with the run's `Φ m'`;
 * an error: a client error (`clientErr`: a leaf error, not an `EtcdError`; a gRPC status error)
   that grpc's `status` accepts (`statusErrOk`), and `out` back (`Rep.own`); nothing about whether
   the handler ran.
@@ -580,11 +623,11 @@ transparent retry re-sends only a stream the server never handed to its applicat
 (`REFUSED_STREAM`, a `GOAWAY` past the stream), and etcd's client configures no retry policy and
 no hedging. This restates what the axiom `grpc.ClientConn.Invoke` promises (through this
 definition); no axiom is added. -/
-def grpcInvokerOk (conn : Loc) (addr : GoString) (inv : GoFunc) : IProp GF :=
+def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ isGrpcRpc addr method Spec ∗ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+    {{ isGrpcRpcs addrs method Spec ∗ ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
@@ -594,8 +637,8 @@ def grpcInvokerOk (conn : Loc) (addr : GoString) (inv : GoFunc) : IProp GF :=
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             Rep.own out)) }})
 
-instance grpcInvokerOk_persistent (conn : Loc) (addr : GoString) (inv : GoFunc) :
-    Persistent (grpcInvokerOk (GF := GF) conn addr inv) := by
+instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :
+    Persistent (grpcInvokerOk (GF := GF) conn addrs inv) := by
   unfold grpcInvokerOk; infer_instance
 
 /-- **The interceptor chain `ics` over the final invoker `inv`** (unit P3a; grpc's
@@ -614,7 +657,7 @@ def chainWP (conn : Loc) : List GoFunc → GoFunc → val → val → val → va
       WP (interceptorCall ic ctx method req reply #conn inv' opts) {{ Ψ }})
 
 /-- An invoker that behaves as one meeting the attempt contract meets it. -/
-theorem grpcInvokerOk_of_wp (conn : Loc) (addr : GoString) (inv inv' : GoFunc) :
+theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (inv inv' : GoFunc) :
     grpcInvokerOk (GF := GF) conn addr inv ∗
       (□ ∀ (ctx' method' req' reply' opts' : val) (Ψ' : val → IProp GF),
         WP (invokerCall inv ctx' method' req' reply' #conn opts') {{ Ψ' }} -∗

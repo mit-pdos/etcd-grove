@@ -280,7 +280,7 @@ instance clientWatchVars_persistent : Persistent (clientWatchVars (GF := GF)) :=
 /-- **The facts about the server, the transport and the packages a watcher rests on, but the
 stub** (persistent; see the file header). -/
 def watchConnFacts (V : WEnv GF) : IProp GF :=
-  iprop(grpcConn V.conn V.addr V.ics [] ∗
+  iprop(grpcConn V.conn [V.addr] V.ics [] ∗
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗

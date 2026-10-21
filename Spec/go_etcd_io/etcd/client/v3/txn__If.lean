@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `t.If(cs...)` on a builder that has called none of `If`, `Then`, `Else` (else it panics): the
 comparisons' clones appended (`Cmp.Clone`), `cif` set; returns the builder as a `Txn`. -/
 abbrev txn.If.spec : Prop :=
-  ∀ (tp : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
       cmpsAt sl ms ∗ ⌜b.cif = false ∧ b.cthen = false ∧ b.celse = false⌝ }}

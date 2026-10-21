@@ -44,7 +44,7 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_New _ addr V) $$ [] as %cl %cerr Hcl
+  wp_apply (wp_New _ [addr] V) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -54,7 +54,7 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
       · iapply ownSlice_nil
       ipureintro
       refine ⟨?_, ?_⟩
-      · exact Hplain
+      · exact plainEndpoints_singleton _ Hplain
       · simp [Hlg]
     ipureintro; exact Htb
   icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)

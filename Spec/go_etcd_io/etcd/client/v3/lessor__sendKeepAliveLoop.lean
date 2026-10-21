@@ -28,7 +28,7 @@ forever). -/
 abbrev lessor.sendKeepAliveLoop.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (st : GoInterface) (γ : StreamNames)
     (Dn : Nat → (w64 × w64) → IProp GF) (cd : context.ContextDesc (IProp GF)) (L : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse
         (fun _ _ => iprop(True)) Dn cd ∗
       cliSendTok (Req := pbLeaseKeepAliveRequest) γ L }}

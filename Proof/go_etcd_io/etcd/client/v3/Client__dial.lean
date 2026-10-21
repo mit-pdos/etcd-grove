@@ -51,8 +51,13 @@ theorem Client.dial.wp_proof
     (wp_NewClient : grpc.NewClient.spec (GF := GF) (hG := hG))
     (wp_Sprintf : fmt.SprintfClientPtr.spec (GF := GF) (hG := hG)) :
     Client.dial.spec (GF := GF) (hG := hG) := by
-  intro c cfg cr sl rb esl ep
+  intro c cfg cr sl rb esl eps
   wp_start as ⟨#Hc, #Hcfg, %Hka, #Hdo, #Hatb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
+  obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
+    cases eps with
+    | nil => exact absurd rfl Hplain.1
+    | cons a l => exact ⟨a, l, rfl⟩
+  have Hp1 : plainEndpoint ep := Hplain.2 ep List.mem_cons_self
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -70,11 +75,11 @@ theorem Client.dial.wp_proof
   · ipureintro; exact DFrac.valid_discard
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   rw [ite_eq_left (by simp at Hlen; word)]
-  wp_apply wp_load_slice_index esl (sint.Z (W64 0)) [ep] DFrac.discard ep (by decide) $$ [$Hesl]
+  wp_apply wp_load_slice_index esl (sint.Z (W64 0)) (ep :: rest) DFrac.discard ep (by decide) $$ [$Hesl]
     as -
   · ipureintro; rfl
   wp_apply wp_authority ep as %a -
-  · ipureintro; exact Hplain
+  · ipureintro; exact Hp1
   wp_apply wp_slice_literal (V := GoInterface)
     [interface.mkOk go.string go_etcd_io.etcd.client.v3.internal.resolver.Schema,
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty) #c,
@@ -105,7 +110,7 @@ theorem Client.dial.wp_proof
     · intro rbs h
       simp at h
       exact h
-  wp_apply wp_NewClient tgt o2 _ rb etcdScheme ep Hdok $$ [$Hgrpc $Hrb] as %conn %err Hres
+  wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) Hdok $$ [$Hgrpc $Hrb] as %conn %err Hres
   · isplitr
     · iunfold dialOptsAt
       iexists _

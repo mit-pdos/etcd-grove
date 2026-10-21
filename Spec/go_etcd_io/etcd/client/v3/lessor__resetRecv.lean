@@ -28,7 +28,7 @@ send end given to a new `sendKeepAliveLoop`; the caller gets the client end with
 or a client error and a `nil` stream. -/
 abbrev lessor.resetRecv.spec : Prop :=
   ∀ (l : Loc) (addr : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       leaseKAStreamOk addr }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"resetRecv")) (Val #()))
   {{ (st err : GoInterface), RET (PairV #st #err);

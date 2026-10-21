@@ -35,8 +35,8 @@ abbrev callTxn.spec : Prop :=
   ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))
     (Q : KVState → IProp GF), decIn x = some (.txn cs t e) → t ++ e ≠ [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
-      clientKVOnce cl ep ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+      clientKVOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E γr γr cid mid) ∗
       callUpd γr.kv (.txn cs t e) Q }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.callTxn)) (Val #cl))

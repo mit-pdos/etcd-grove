@@ -61,7 +61,7 @@ theorem newClient.wp_proof
     (wp_getToken : Client.getToken.spec (GF := GF) (hG := hG))
     (wp_autoSync : Client.autoSync.spec (GF := GF) (hG := hG)) :
     newClient.spec (GF := GF) (hG := hG) := by
-  intro p cfg ep V
+  intro p cfg eps V
   wp_start as ⟨#Hp, #Hcfg, %HV⟩
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
@@ -119,9 +119,13 @@ theorem newClient.wp_proof
     word)]
   wp_auto
   ihave %Hel := ownSlice_len _ _ _ $$ Heps
-  wp_apply wp_resolverNew _ [ep] $$ [$Heps] as %r ⟨%Hrnn, Hro⟩
+  wp_apply wp_resolverNew _ eps $$ [$Heps] as %r ⟨%Hrnn, Hro⟩
   rw [decide_eq_false (show ¬ (sint.Z cfg.Endpoints'.len < sint.Z (W64 1)) by
-    simp at Hel; have : sint.Z (W64 1) = 1 := by decide
+    have : sint.Z (W64 1) = 1 := by decide
+    have hne : eps.length ≠ 0 := fun h => Hplain.1 (List.eq_nil_of_length_eq_zero h)
+    obtain ⟨h1, h2⟩ := Hel
+    rw [h1] at hne
+    unfold sint.nat at hne
     word)]
   wp_auto
   ipersist resolver
@@ -135,7 +139,7 @@ theorem newClient.wp_proof
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
-  wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil [ep] cfg.Endpoints' [ep]
+  wp_apply wp_SetEndpoints «$r0_ptr» «$v5_ptr» r slice.nil eps cfg.Endpoints' eps
     $$ [$epMu $Hguard $endpoints $resolver $Hro $Heps] as ⟨endpoints, Hro⟩
   ipersist endpoints
   ihave #Hrc : retryClientOk (GF := GF) «$r0_ptr» $$ []
@@ -148,7 +152,7 @@ theorem newClient.wp_proof
     ipureintro; intro h; exact absurd rfl h
   ihave #HDOpt : p.[go_etcd_io.etcd.client.v3.Config, go!"DialOptions"] ↦□ cfg.DialOptions' $$ []
   · iexact DialOptions
-  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' ep
+  wp_apply wp_dialWithBalancer «$r0_ptr» cfg GoInterface.nil r cfg.Endpoints' eps
     $$ [$Hrc $cfg $Hdo $authTokenBundle $creds $endpoints $Heps $resolver $Hro]
     as %conn %derr Hres
   · isplitr
@@ -170,7 +174,7 @@ theorem newClient.wp_proof
       isplitr
       · iexists _; iexact callOpts
       iexists _; iexact cfg
-    ihave #Hkv : clientKVAt (GF := GF) «$r0_ptr» ep $$ []
+    ihave #Hkv : clientKVAt (GF := GF) «$r0_ptr» eps $$ []
     · iunfold clientKVAt
       isplitr
       · ipureintro; exact Hcnn
@@ -180,8 +184,8 @@ theorem newClient.wp_proof
       iexists ic
       iframe Hgc Hic
     wp_apply wp_NewCluster «$r0_ptr» $$ [$Hcore] as %vc -
-    wp_apply wp_NewKV «$r0_ptr» ep $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi, #Hapi1⟩
-    wp_apply wp_NewLease «$r0_ptr» ep $$ [$Hcore $Hkv] as %vl ⟨%lp, %Hvl, #Hlp⟩
+    wp_apply wp_NewKV «$r0_ptr» eps $$ [$Hkv] as %vkv ⟨%api, %Hvkv, #Hapi, #Hapi1⟩
+    wp_apply wp_NewLease «$r0_ptr» eps $$ [$Hcore $Hkv] as %vl ⟨%lp, %Hvl, #Hlp⟩
     iunfold callOptsAt at Hdslok
     icases Hdslok with ⟨%cvs, #Hcvs, -, #Hcvok⟩
     have Htb := HV

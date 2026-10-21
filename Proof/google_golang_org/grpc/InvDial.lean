@@ -33,10 +33,11 @@ connection's stream interceptor is etcd's (`streamClientInterceptor`, `retry_int
 introduced only by the client's `streamClientInterceptor` axiom
 (`Spec/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean`).
 
-**The resolver** (`grpcResolverAt rb scheme addr`, exclusive, axiomatized): the resolver builder
-`rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the one address `addr`, for good:
+**The resolver** (`grpcResolverAt rb scheme addrs`, exclusive, axiomatized): the resolver builder
+`rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the addresses `addrs`, for good
+(a list since 2026-10-21, `notes/decisions.md` D27; one address until then):
 the resolver's state is grpc's once it is dialed with (`NewClient` takes it). etcd's
-`EtcdManualResolver` gives it for one plain endpoint (`client/v3/InvNew.lean`,
+`EtcdManualResolver` gives it for plain endpoints (`client/v3/InvNew.lean`,
 `etcdResolver_grpc`).
 -/
 module
@@ -92,10 +93,10 @@ client's `streamClientInterceptor` axiom; what grpc's `ClientConn.NewStream` axi
 connection's stream interceptor). -/
 axiom etcdStreamInterceptor [FfiSyntax] (si : GoFunc) : Prop
 
-/-- **The resolver builder `rb` resolves the scheme `scheme` to the address `addr`** (exclusive; an
+/-- **The resolver builder `rb` resolves the scheme `scheme` to the addresses `addrs`** (exclusive; an
 axiomatized predicate; see the file header). -/
-axiom grpcResolverAt {GF : BundledGFunctors} [FfiSyntax] (rb : GoInterface) (scheme addr : GoString) :
-  IProp GF
+axiom grpcResolverAt {GF : BundledGFunctors} [FfiSyntax] (rb : GoInterface) (scheme : GoString)
+  (addrs : List GoString) : IProp GF
 
 section defs2
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -45,7 +45,7 @@ abbrev Check.spec : Prop :=
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       context.isClosedchanInit ∗
-      isNewClient cl ep V ∗ clientKVOnce cl ep ∗
+      isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗

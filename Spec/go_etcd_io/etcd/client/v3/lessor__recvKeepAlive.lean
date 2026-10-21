@@ -27,7 +27,7 @@ not positive, else updates its deadlines and offers the response to each of its 
 (non-blocking); it returns. -/
 abbrev lessor.recvKeepAlive.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (resp : Loc) (m : w64 × w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       keepAliveRespMsg resp m }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"recvKeepAlive")) (Val #resp))
   {{ RET #(); True }}

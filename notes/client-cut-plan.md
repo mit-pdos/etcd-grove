@@ -280,6 +280,21 @@ linkv3p's `Link.lean`, which the script counts under linkv3p's project).
 
 ### K4. Failover (D-C4)
 
+**In progress (2026-10-21, branch `failover`, worktree `/shared/etcd-grove-fo`; `notes/decisions.md`
+D27, approved).** Stages:
+
+- **K4a, K4b (done):** the gRPC boundary over a list of addresses (`grpcConn conn addrs`,
+  `grpcResolverAt`, `NewClient`, `Invoke`'s attempt at one of them, `isGrpcRpcs`; streams at one
+  address) and the client over it (`clientCfgOk cfg eps`, `isNewClient cl eps V`, every unary call
+  at `isGrpcRpcs`; the lessor's keep-alive and the watcher at one address). The examples keep their
+  statements at `[ep]` (`isGrpcRpcs [a]` reduces to `isGrpcRpc a`). No axiom added or removed.
+- **K4c:** failover's end-to-end results: a call through a client of several members' endpoints,
+  each registering its own spec, at the conjunction of the specs; the reply is some member's.
+- **K4d:** linkvtxn's `Apply` (and its calls) for a client of several members; linkv3p's clients
+  each with the three bridges' addresses; `TestMainRun`/`TestClientCuts` with failover.
+
+The original stage:
+
 - The client over a list of endpoints (`clientCfgOk`, `newClient`, `dialWithBalancer`,
   `grpc.NewClient`'s restated axiom), the per-endpoint registrations, `kvObjAt` over the list.
 - linkvtxn's `Apply.spec`, or linkv3p's own, at "served by some member".

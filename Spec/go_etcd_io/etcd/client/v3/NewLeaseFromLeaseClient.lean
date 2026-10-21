@@ -28,7 +28,7 @@ and a non-nil client (its logger and call options, read-only): a new `*lessor` (
 channel, map, mutex and `Once`, `c.GetLogger()`, `c.callOpts`, and the stop context
 `WithCancel(WithRequireLeader(context.Background()))`), as a `Lease`. -/
 abbrev NewLeaseFromLeaseClient.spec : Prop :=
-  ∀ (rlc conn c : Loc) (addr : GoString) (d : time.Duration),
+  ∀ (rlc conn c : Loc) (addr : List GoString) (d : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
       isEtcdConn conn addr ∗ ⌜c ≠ null⌝ ∗ isClientLogger c ∗
       (∃ sl : GoSlice, clientF c go!"callOpts" ↦□ sl ∗ callOptsAt sl) }}

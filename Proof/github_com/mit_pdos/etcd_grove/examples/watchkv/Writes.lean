@@ -145,8 +145,8 @@ theorem client_Put_rev [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : G
     (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
-        clientKVOnce cl ep ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+        clientKVOnce cl [ep] ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         kvOpAu1 γr.kv (.put (client.putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
@@ -170,7 +170,7 @@ theorem client_Put_rev [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : G
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_put_end_to_end api ep E γr cid mid ci cd key val sl Q F) $$ [Hau]
+  wp_apply (client.client_put_end_to_end api [ep] E γr cid mid ci cd key val sl Q F) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iunfold client.putAuOk

@@ -136,7 +136,7 @@ variable [es_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **etcd's cache over etcd's client, end to end** (K3): `New(cl, pfx, opts...)` for a client
-`cl` whose `KV` field is a real `*kv` (`kvObjAt api addr`, over a connection to a server where
+`cl` whose `KV` field is a real `*kv` (`kvObjAt api [addr]`, over a connection to a server where
 etcd's `Range` is registered: `etcd_kv_served`) and whose `Watcher` field is etcd's client
 watcher (`isClientWatcher V w`, over the same server, `V.R.E = E`; `NewWatcher`'s result), for
 the watcher's prefix (not all `0xff`; non-empty by `watchConnFacts`), returns what `New` returns
@@ -149,7 +149,7 @@ theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (a
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api addr ∗
+        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗ kvObjAt api [addr] ∗
         clientKVAddr cl ↦□ GoInterface.ok (client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗ client.isClientWatcher V w ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
@@ -164,7 +164,7 @@ theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (a
     %Hcfg, %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_server client.v3.watcher.wp_Watch
     client.v3.watcher.wp_RequestProgress cl V w
-    api addr s E γr cid mid hE hff $$ []
+    api [addr] s E γr cid mid hE hff $$ []
   · iframe #
   iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
@@ -172,7 +172,7 @@ theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (a
   ipureintro; exact ⟨Hcfg, Hb⟩
 
 /-- **etcd's cache over `clientv3.New`'s client, end to end** (K3): `cache_end_to_end_client` for
-the client `clientv3.New(cfg)` returns (`isNewClient cl ep V`, `client_New`'s postcondition), its
+the client `clientv3.New(cfg)` returns (`isNewClient cl [ep] V`, `client_New`'s postcondition), its
 `KV` and `Watcher` fields from `New`'s result (`client.isEtcdClient_of_new`), given the watch
 server's facts at `ep` (`watchAddrFacts V`, `V.addr = ep`) and the KV's premises at `ep`. -/
 theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -184,7 +184,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl ep V ∗ watchAddrFacts V ∗
+        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isNewClient cl [ep] V ∗ watchAddrFacts V ∗
         isServerRead s E γr ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
         sortNamesOk ∗ client.kvAnyAu E γr ∗ cfgOptsAt sl gs ∗

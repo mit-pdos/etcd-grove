@@ -3,9 +3,10 @@
 `clientv3.New` (`client/v3/client.go`), down to the dial (`grpc.NewClient`,
 `Proof/google_golang_org/grpc/InvDial.lean`). Lean-first (no Rocq counterpart).
 
-**The configuration** (`clientCfgOk cfg ep`, the premise of `New`): one endpoint `ep`, plain
-(`host:port`: no `://`, not a `unix:`/`unixs:` socket, `plainEndpoint`), the address the server
-is served at; no TLS (`TLS` nil), no authentication (`Username`, `Password`, `Token` empty), no
+**The configuration** (`clientCfgOk cfg eps`, the premise of `New`): the endpoints `eps`, at least
+one, each plain (`host:port`: no `://`, not a `unix:`/`unixs:` socket, `plainEndpoint`), the
+addresses servers are served at (several since 2026-10-21, `notes/decisions.md` D27: each attempt
+goes to one of them); no TLS (`TLS` nil), no authentication (`Username`, `Password`, `Token` empty), no
 context of the caller's (`Context` nil: the client's context is `context.TODO()`'s child), a
 logger of the caller's (`Logger` non-nil: no default logger is built, `logutil`), the default call
 options (`MaxCallSendMsgSize`, `MaxCallRecvMsgSize` not positive), no keepalive pings
@@ -23,10 +24,10 @@ package initialization (item 8) proves them part of `clientv3`'s fact.
 
 **The resolver** (`etcdResolverOwn r eps`, exclusive, axiomatized): the client's
 `*EtcdManualResolver` `r` (`internal/resolver`, names only), not yet dialed, with the endpoints
-`eps`; `resolver.New` makes it, `SetEndpoints` sets them (axioms), and dialed with one plain
-endpoint it is grpc's resolver of the scheme `etcd-endpoints` to that address (`etcdResolver_grpc`,
-an axiom: `Build`'s initial state is `state()`'s, one `resolver.Endpoint` per endpoint at
-`endpoint.Interpret(ep)`, which is `ep` for a plain endpoint).
+`eps`; `resolver.New` makes it, `SetEndpoints` sets them (axioms), and dialed with plain
+endpoints it is grpc's resolver of the scheme `etcd-endpoints` to those addresses
+(`etcdResolver_grpc`, an axiom: `Build`'s initial state is `state()`'s, one `resolver.Endpoint` per
+endpoint at `endpoint.Interpret(ep)`, which is `ep` for a plain endpoint).
 
 **What `New` gives** (`isNewClient cl ep V`): the `*Client` `cl` with its connection to the server
 at `ep`, the client's (`clientKVAt`: `isEtcdConn`, the retry interceptor installed), its `KV` a
@@ -66,6 +67,14 @@ variable [ext : FfiSyntax]
 def plainEndpoint (ep : GoString) : Prop :=
   ¬ (go!"://" <:+: ep) ∧ ¬ (go!"unix:" <+: ep) ∧ ¬ (go!"unixs:" <+: ep)
 
+/-- **Plain endpoints** (D27, 2026-10-21: a client of several endpoints): at least one, each
+plain. -/
+def plainEndpoints (eps : List GoString) : Prop :=
+  eps ≠ [] ∧ ∀ ep ∈ eps, plainEndpoint ep
+
+theorem plainEndpoints_singleton (ep : GoString) : plainEndpoint ep → plainEndpoints [ep] := by
+  intro h; exact ⟨List.cons_ne_nil _ _, fun e he => by simp at he; subst he; exact h⟩
+
 /-- The scheme of etcd's manual resolver (`internal/resolver.Schema`). -/
 def etcdScheme : GoString := go!"etcd-endpoints"
 
@@ -90,13 +99,15 @@ abbrev clientF (cl : Loc) (f : GoString) : Loc :=
 
 end addrs
 
-/-- **etcd's resolver, dialed with one plain endpoint, resolves to it** (an axiom; see the file
+/-- **etcd's resolver, dialed with plain endpoints, resolves to them** (an axiom; see the file
 header): `EtcdManualResolver.Build` sets the manual resolver's initial state to `state()`, one
 endpoint per endpoint at `endpoint.Interpret(ep)` (`translateEndpoint`'s address: `ep` itself for
-a plain one), with the round-robin service config; its scheme is `Schema`. -/
+a plain one), with the round-robin service config (each attempt to one of them); its scheme is
+`Schema`. One plain endpoint until 2026-10-21 (`notes/decisions.md` D27). -/
 axiom etcdResolver_grpc {GF : BundledGFunctors} [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
-    (r : Loc) (ep : GoString) :
-  plainEndpoint ep → (etcdResolverOwn (GF := GF) r [ep] ⊢ grpcResolverAt (resolverIface r) etcdScheme ep)
+    (r : Loc) (eps : List GoString) :
+  plainEndpoints eps →
+    (etcdResolverOwn (GF := GF) r eps ⊢ grpcResolverAt (resolverIface r) etcdScheme eps)
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -162,16 +173,16 @@ instance clientCoreAt_persistent (c : Loc) : Persistent (clientCoreAt (GF := GF)
 
 /-- **`New`'s configuration premise** (persistent; see the file header): the configuration `cfg`
 of one plain endpoint `ep`. -/
-def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (ep : GoString) : IProp GF :=
-  iprop(cfg.Endpoints' ↦*□ [ep] ∗ cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
-    ⌜plainEndpoint ep ∧ cfg.TLS' = null ∧ cfg.Username' = [] ∧ cfg.Password' = [] ∧
+def clientCfgOk (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) : IProp GF :=
+  iprop(cfg.Endpoints' ↦*□ eps ∗ cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
+    ⌜plainEndpoints eps ∧ cfg.TLS' = null ∧ cfg.Username' = [] ∧ cfg.Password' = [] ∧
       cfg.Token' = [] ∧ cfg.Context' = GoInterface.nil ∧ cfg.Logger' ≠ null ∧
       sint.Z cfg.MaxCallSendMsgSize' ≤ 0 ∧ sint.Z cfg.MaxCallRecvMsgSize' ≤ 0 ∧
       sint.Z cfg.DialKeepAliveTime' ≤ 0 ∧ cfg.RejectOldCluster' = false ∧
       cfg.AutoSyncInterval' = W64 0⌝)
 
-instance clientCfgOk_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (ep : GoString) :
-    Persistent (clientCfgOk (GF := GF) cfg ep) := by
+instance clientCfgOk_persistent (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) :
+    Persistent (clientCfgOk (GF := GF) cfg eps) := by
   unfold clientCfgOk; infer_instance
 
 end defs

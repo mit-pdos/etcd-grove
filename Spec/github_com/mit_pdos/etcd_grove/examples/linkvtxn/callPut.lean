@@ -32,8 +32,8 @@ abbrev callPut.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (key val : GoString) (Q : KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
-      clientKVOnce cl ep ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
+      clientKVOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
       kvOpAu1 γr.kv (.put (linkv.putOp key val)) Q }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.callPut)) (Val #cl))

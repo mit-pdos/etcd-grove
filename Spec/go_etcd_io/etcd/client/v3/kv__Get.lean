@@ -28,14 +28,14 @@ back: `optsAtRes`; any sort option, checked against `etcdserverpb`'s enumeration
 `ContextError`: `rangeCallOut` for the range the server reads (`rangeWireOf`), for a spec `Spec`
 registered for `Range` and the caller's `Q`. -/
 abbrev kv.Get.spec : Prop :=
-  ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Spec : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse) (Q : RangeRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
       sortNamesIf (opGetModel key gs).base.sortSet ∗
       ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗
-      isGrpcRpc addr go!"/etcdserverpb.KV/Range" Spec ∗
+      isGrpcRpcs addr go!"/etcdserverpb.KV/Range" Spec ∗
       □ ▷ Spec (rangeWireOf (opGetModel key gs)) Q }}
     (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
