@@ -61,20 +61,22 @@ witness `hsWit` of a non-`nil` one: the node's term and commit index at the `Rea
 and the committed log handed out within the commit index.) (D22l, 2026-10-20: the witness is of
 `prevHardSt` as `acceptReady` leaves it, `phsNext rs.phs h`: for a `nil` `HardState` the node's
 hard state is `prevHardSt`'s, `RNState.phs`, so every `Ready` bounds its committed log by the
-witness of the last non-empty hard state handed out.) -/
+witness of the last non-empty hard state handed out.) (D22 S-d3a, 2026-10-21: **with a
+snapshot pending** too, until then a premise `rs.psnap = false`: the `Ready` then hands it out --
+`rd.Snapshot` a fresh clone, half of it the application's (`rdSnapOut`), with the committed log up
+to it, the loan `L` (`SnapLoan`); no committed entries -- and with no snapshot restored since the
+last `Ready` (`rs.psnap = false`) none, as until then.) -/
 abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
   rs.unpersisted = [] →
-  -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`; S-d hands one out)
-  rs.psnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))
       (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
-      (sts : List ReadStateM) (h : HardStateM), RET #rd;
-      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms ∗
+      (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan), RET #rd;
+      "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms false L ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗
@@ -88,13 +90,16 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Habandon" ∷ (rd.Messages' ↦* ms.map QMsg.loc -∗
                     ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
                     ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
-                    ownRawNodeReady γ rn id rs rd ce es ms -∗
+                    ownRawNodeReady γ rn id rs rd ce es ms false L -∗
                     ∃ (n : Nat) (u : Bool) (c : w64),
                       ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
                        (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
                          uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))⌝ ∗
                       ownRawNode γ rn id { rs with outlb := n, unst := u, clb := c }) ∗
-      "%Hsnapz" ∷ ⌜rd.Snapshot' = null⌝ ∗
+      -- (D22 S-d3a) the snapshot: none, or the loan's (until then `rd.Snapshot' = null`); none
+      -- with no snapshot restored since the last `Ready`
+      "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
+      "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
       -- the read states (2026-10-13)
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗

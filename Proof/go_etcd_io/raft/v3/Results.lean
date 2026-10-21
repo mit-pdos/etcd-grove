@@ -217,6 +217,7 @@ namespace EtcdGrove
 #print axioms raftLog.wp_stableSnapTo
 #print axioms raftLog.wp_hasNextOrInProgressSnapshot
 #print axioms raftLog.wp_hasNextUnstableSnapshot
+#print axioms raftLog.wp_nextUnstableSnapshot
 #print axioms raftLog.wp_nextUnstableEnts
 #print axioms raftLog.wp_hasNextUnstableEnts
 #print axioms raftLog.wp_maxAppliableIndex

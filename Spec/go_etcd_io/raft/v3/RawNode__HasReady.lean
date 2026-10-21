@@ -33,11 +33,11 @@ computed earlier and kept (`ownRawNodeIdle_ready`).
 Until 2026-10-09 the spec pinned `false` on the node's protocol state (`NState`: the
 soft state is the previous one, the hard state empty or the previous one, the outbox
 empty, every unstable entry handed out); that went with the previous `SoftState` and
-`HardState` from `RNState`, which no client-facing spec states. -/
+`HardState` from `RNState`, which no client-facing spec states. (D22 S-d3a, 2026-10-21) With a
+snapshot pending too (until then a premise `rs.psnap = false`): one not yet in progress makes it
+`true` (`hasNextUnstableSnapshot`). -/
 abbrev RawNode.HasReady.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
-  -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`; S-d hands one out)
-  rs.psnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"HasReady")) (Val #()))

@@ -72,21 +72,22 @@ out (`ms : List QMsg`, a response at half -- `acceptReady` read the other half, 
 the node's way back and is dropped with the queues: the application gets responses read-only,
 `issues/raft-ready-messages-read-after-handout.md`), the entries `entsRO`, the read states
 `readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOpt rd.HardState' h` (new). The
-`ReadState`s' contexts are bytes (D6), `readStateOk` over `ReadStateM`. -/
+`ReadState`s' contexts are bytes (D6), `readStateOk` over `ReadStateM`. (D22 S-d3a, 2026-10-21) With
+a snapshot pending (until then a premise `rs.psnap = false`): handed out with the storage itself,
+the loan `L` recorded (`RawNode.readyWithoutAccept.spec`, `RawNode.acceptReady.spec`). -/
 abbrev RawNode.Ready.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
   rs.unpersisted = [] →
-  -- (2026-10-20, D22 S-c) no snapshot pending (`RNState.psnap`; S-d hands one out)
-  rs.psnap = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Ready")) (Val #()))
   {{ (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
-      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending), RET #rd;
+      (sts : List ReadStateM) (h : HardStateM) (steps : List Pending) (L : Option SnapLoan), RET #rd;
       "Hrn" ∷ ownRawNode γ rn id
         { rs with delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
-                  outlb := 0, unst := false, phs := phsNext rs.phs h } ∗
+                  outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false,
+                  slent := L } ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
       "#Hents" ∷ entsRO rd.Entries' es ∗
@@ -101,7 +102,9 @@ abbrev RawNode.Ready.spec : Prop :=
       -- every message is of a term at most the node's at the call (2026-10-10)
       -- (2026-10-17; until then at most `rs.term`) within the term ceiling (a granted pre-vote)
       "%Hmsgs_term" ∷ ⌜∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc⌝ ∗
-      "%Hsnapz" ∷ ⌜rd.Snapshot' = null⌝ ∗
+      -- (D22 S-d3a) the snapshot: none, or the loan's (until then `rd.Snapshot' = null`)
+      "Hsnapz" ∷ rdSnapOut γ rs rd ce es L ∗
+      "%Hpsn" ∷ ⌜rs.psnap = false → L = none⌝ ∗
       -- the read states (2026-10-13)
       "#Hrs" ∷ readStatesPts rd.ReadStates' sts ∗
       "#Hrs_ok" ∷ ([∗list] st ∈ sts, readStateOk γ st) ∗
@@ -110,8 +113,9 @@ abbrev RawNode.Ready.spec : Prop :=
       -- (D22 S-b) a non-`nil` one is the node's: its witness (`hsWit`); (D22l) of `prevHardSt`
       -- after the `Ready` (`phsNext`)
       "#Hhsw" ∷ hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length ∗
-      -- the right to append `es` to the node's storage (2026-10-10)
-      "Happ" ∷ appendRight rs.storage es }}
+      -- the right to append `es` to the node's storage (2026-10-10); (D22 S-d3a) with a snapshot,
+      -- the storage itself (`readyOut`)
+      "Happ" ∷ readyOut rs.storage es L }}
 
 end spec
 

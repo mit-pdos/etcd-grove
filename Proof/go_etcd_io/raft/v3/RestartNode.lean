@@ -138,12 +138,16 @@ theorem RestartNode.wp_proof
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
+          -- (D22 S-d3a) no snapshot lent
+          ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ h => (by cases h)⟩,
+            fun l h => (by cases h), fun _ => rfl⟩
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           (by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] []
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] []
       · iapply pendList_nil
       · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
+      · ipureintro; trivial
       · rw [Hsg]; iexact Hcl
     | dyn dec c0 h0 h1 =>
       iunfold rnInit at Hghost
@@ -186,9 +190,13 @@ theorem RestartNode.wp_proof
           Hdlen0 (by rw [Hun]) (fun _ => Hsn) trivial
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
-          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted []
+          -- (D22 S-d3a) no snapshot lent
+          ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ h => (by cases h)⟩,
+            fun l h => (by cases h), fun _ => rfl⟩
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] []
       · iapply pendList_nil
       · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
+      · ipureintro; trivial
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   ipersist n
@@ -254,7 +262,7 @@ theorem RestartNode.wp_proof
       unfold runCfg
       iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl, rfl⟩
+      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl, rfl, rfl⟩
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩

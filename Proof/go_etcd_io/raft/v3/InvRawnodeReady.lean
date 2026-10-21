@@ -311,6 +311,31 @@ def readyDq (st : MsgSt) : DFrac :=
 /-- `msgsAfterAppend`'s messages to the node itself, which `acceptReady` queues. -/
 def isSelfQ (id : w64) (q : QMsg) : Bool := decide (q.st.msg.To' = id)
 
+/-- (D22 S-d3a, 2026-10-21) The log of a computed `Ready`: as it was, or once handed out (`h`) the
+batch recorded as the application's (`logHanded`) and, with a snapshot (`lt`), the storage lent
+(`ownRaftLog_lend`). -/
+def rdyLog (h lt : Bool) (ls : LogState) : LogState :=
+  if h then (if lt then logHanded { ls with lent := true, sat := false } else logHanded ls) else ls
+
+theorem rdyLog_false (lt : Bool) (ls : LogState) : rdyLog false lt ls = ls := rfl
+
+theorem rdyLog_none (h : Bool) (ls : LogState) :
+    rdyLog h false ls = if h then logHanded ls else ls := by
+  unfold rdyLog; cases h <;> rfl
+
+/-- (D22 S-d3a) What a snapshot `Ready` records of its loan (`SnapLoan`) at the node's state `s`:
+the snapshot pending and not in progress, a snapshot the node may send, past index `0`; the
+storage's floor; no committed entries handed out (`nextCommittedEnts`), the committed log up to the
+snapshot extending `delivered`, `applying` at most the snapshot's index; and the batch handed out
+the whole log after the snapshot (`ownRaftLog_snap_next`). -/
+def SnapRdy (rs : RNState) (ce : List EntryM) (l : SnapLoan) (s : NState) : Prop :=
+  s.logst.snap = some (snapId l.snap) ∧ s.logst.sip = false ∧
+  snapTrip l.snap l.snap.Metadata'.ConfState'.lists ∈ s.logst.ksn ∧
+  0 < uint.Z l.snap.Metadata'.Index' ∧ l.fl = s.logst.fl ∧ ce = [] ∧
+  rs.delivered <+: l.dlv ∧ l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
+  uint.Z s.logst.applying ≤ uint.Z l.snap.Metadata'.Index' ∧
+  nextUnstable s.logst = s.logst.sents ++ s.logst.uents
+
 end pure
 
 section rawnodeReady
@@ -705,7 +730,7 @@ others (`Hother`); `Hundo` takes the handed-out messages back (at `readyDq`) and
 slice and messages and the others' halves; the read states `readStatesPts`; `Hclose` as
 `ownRaftPhysC_view`'s, the outbox owned.) -/
 def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice)
-    (ms : List QMsg) (h : Bool) : IProp GF :=
+    (ms : List QMsg) (h : Bool) (lt : Bool := false) : IProp GF :=
   iprop(∃ (rsl sl1 sl2 : GoSlice) (ms1 ms2 : List QMsg),
     "#Hf_id" ∷ r.[raft, go!"id"] ↦□ id ∗
     "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
@@ -738,8 +763,9 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
                ([∗list] q ∈ ms1, qOwn q) ∗
                ([∗list] q ∈ ms2.filter (fun q => !isSelfQ id q),
                  msgOwn q.loc (DFrac.own (1 : Qp).half) q.st)) ∗
-    -- the log, after the storage's hand-out if `h` (2026-10-10, `ownRaftLog_handout`)
-    "Hlog" ∷ ownRaftLog s.log (if h then logHanded s.logst else s.logst) ∗
+    -- the log, after the storage's hand-out if `h` (2026-10-10, `ownRaftLog_handout`); (D22 S-d3a)
+    -- with a snapshot (`lt`), the storage itself lent (`ownRaftLog_lend`)
+    "Hlog" ∷ ownRaftLog s.log (rdyLog h lt s.logst) ∗
     "Hclose" ∷ (∀ (sl1' sl2' : GoSlice) (ms1' ms2' : List QMsg) (o : List Msg)
                   (ls' : LogState) (g : NGhost) (rs' : GoSlice) (rd' : RdState),
         r.[raft, go!"Term"] ↦ s.term -∗
@@ -758,13 +784,19 @@ def ownRaftPhysReady (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice
         ⌜∀ m ∈ ms2', AAMsgOk id s.term m.st⌝ -∗
         ⌜∀ m ∈ ms1' ++ ms2', OutTermOk s.term g.tc m.st.msg⌝ -∗
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
-        ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
+        ⌜GhLogOk g ls'⌝ -∗
         ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
         ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
         ⌜XfOk { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
         qSrcs ls'.storage (ms1' ++ ms2') -∗
         ownRaftLog s.log ls' -∗
         ownRaftPhysCV c c.voters r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
+
+/-- (D22 S-d3a) Before the hand-out, the lent flag is idle (`rdyLog false`). -/
+theorem ownRaftPhysReady_lt0 (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl : GoSlice)
+    (ms : List QMsg) (lt lt' : Bool) :
+    ownRaftPhysReady (GF := GF) c r id s msl ms false lt ⊢ ownRaftPhysReady c r id s msl ms false lt' := by
+  unfold ownRaftPhysReady rdyLog; exact .rfl
 
 /-! ### Read credits (see the file header) -/
 
@@ -990,6 +1022,73 @@ theorem softStateRO_of_opt (p : Loc) :
   iexists v.Lead', v.RaftState'
   iframe Lead RaftState
 
+/-- (D22 S-d3a, 2026-10-21) A computed `Ready`'s snapshot, as the node keeps it: none (`rd.Snapshot`
+`nil`, no snapshot pending), or the loan `l` (`SnapRdy`) with half of the snapshot (the
+application holds the other: the queued acknowledgement will share the pointer) and the committed
+log up to it. -/
+def rdSnapRel (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM) (L : Option SnapLoan)
+    (s : NState) : IProp GF :=
+  match L with
+  | none => iprop(⌜rd.Snapshot' = null ∧ s.logst.snap = none⌝)
+  | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
+      ⌜l.ptr = rd.Snapshot' ∧ SnapRdy rs ce l s⌝)
+
+/-- (D22 S-d3a, 2026-10-21) What the application learns of a `Ready`'s snapshot (`L`): none
+(`rd.Snapshot` `nil`), or the loan's -- half of the snapshot (`ApplySnapshot`'s; the queued
+acknowledgement shares the pointer), the committed log up to it (`isCommitted`, extending
+`delivered`), no committed entries, the snapshot's index past `0`, within the storage's bound and
+at least the floor the storage is lent at, and the entries handed out numbered right after it. -/
+def LoanOut (rs : RNState) (rd : Ready) (ce es : List EntryM) (l : SnapLoan) : Prop :=
+  l.ptr = rd.Snapshot' ∧ ce = [] ∧ rs.delivered <+: l.dlv ∧
+  l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
+  0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
+  uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es
+
+def rdSnapOut (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : List EntryM)
+    (L : Option SnapLoan) : IProp GF :=
+  match L with
+  | none => iprop(⌜rd.Snapshot' = null⌝)
+  | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
+      ⌜LoanOut rs rd ce es l⌝)
+
+/-- (D22 S-d3a) What a `Ready` hands the application for the storage: the right to append the batch
+(`appendRight`), or with a snapshot the storage itself, at a state with nothing pending and the
+loan's floor (`ownRaftLog_lend`). -/
+def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
+  match L with
+  | none => appendRight st es
+  | some l => iprop(∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝)
+
+/-- (D22 S-d3a) **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes:
+the half of the snapshot it was handed, and the storage at the snapshot -- its boundary and its
+own snapshot the loan's, its lists and `AutoLeave` the snapshot's, holding the entries `es` the
+`Ready` handed out after it, nothing pending, the floor it was lent at. What a `MemoryStorage`'s
+`ApplySnapshot` then `Append` give (stage S-r). -/
+def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
+  iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
+    ∃ σr, ownStorage st σr ∗ ⌜σr.prev = snapId l.snap ∧ σr.ss = snapId l.snap ∧ σr.ents = es ∧
+      σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
+      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave'⌝)
+
+/-- (D22 S-d3a) What `Advance` takes back: nothing, or the loan's receipt. -/
+def loanRet (rs : RNState) : IProp GF :=
+  match rs.slent with
+  | none => iprop(emp)
+  | some l => snapReceipt rs.storage l rs.unpersisted
+
+/-- (D22 S-d3a) The node after `Advance` (`RawNode.Advance.spec`): the queue stepped, the term `t`,
+the configuration index `ca`, the floor no longer raised; after a snapshot `Ready` also the loan
+returned, nothing unpersisted and the committed log handed out up to the snapshot. -/
+def advRS (rs : RNState) (t : w64) (ca : Nat) : RNState :=
+  match rs.slent with
+  | none => { rs with steps := [], term := t, capplied := ca, flw := false }
+  | some l => { rs with steps := [], term := t, capplied := ca, flw := false, slent := none,
+                        unpersisted := [], delivered := l.dlv }
+
+theorem advRS_none {rs : RNState} (t : w64) (ca : Nat) (h : rs.slent = none) :
+    advRS rs t ca = { rs with steps := [], term := t, capplied := ca, flw := false } := by
+  unfold advRS; rw [h]
+
 /-- The node between `readyWithoutAccept` and `acceptReady` (see the file header): the
 conjuncts of `ownRawNode γ rn id rs` at a state `s` with an empty queue and nothing
 unpersisted (`Ready`'s premises), the struct open with the outbox's messages handed out
@@ -1008,11 +1107,12 @@ read-only hard state (`Hrdhard`: `hardState()`'s fresh one, which `acceptReady` 
 (`Hce`, `Hents`), the committed entries' capacity a `[]*pb.Entry`'s; `prevHardSt` read-only
 (`Hhard`); the queue `[]*pb.Message`.) -/
 def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce es : List EntryM) (ms : List QMsg) (h : Bool := false) : IProp GF :=
+    (ce es : List EntryM) (ms : List QMsg) (h : Bool := false) (L : Option SnapLoan := none) :
+    IProp GF :=
   iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
-  "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h ∗
+  "Hphys" ∷ ownRaftPhysReady cf rnv.raft' id s rd.Messages' ms h L.isSome ∗
   "Hghost" ∷ ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
     (if h then { s with outbox := [] } else s) ∗
   "#Hsdrf" ∷ sdrOk rnv.raft' rs.mode ∗
@@ -1026,10 +1126,13 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* ([] : List Loc) ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-  "#Hstrecs" ∷ storedRecs γ s.logst.prev s.logst.stored ∗
+  -- (D22 S-d3a) as `ownRawNode`'s: no restore since the last `Ready`
+  "#Hstrecs" ∷ storedRecsP γ rs.psnap s.logst.prev s.logst.stored ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜s.logst.unpersisted = []⌝ ∗
-  "%Hsnap" ∷ ⌜s.logst.snap = none⌝ ∗
+  -- (D22 S-d3a) as `ownRawNode`'s (a snapshot may be pending), and no loan
+  "%Hsnap" ∷ ⌜(rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none⌝ ∗
+  "%Hloan" ∷ ⌜LoanOk rs s ∧ rs.slent = none⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
   "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
   "%Hpvoff" ∷ ⌜RNPv rs s⌝ ∗
@@ -1044,7 +1147,8 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "#Hrdsoft" ∷ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
   -- (D22l) with its witness (`phsWit`), for `prevHardSt`'s
   "#Hrdhard" ∷ (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd) ∗
-  "%Hrdz" ∷ ⌜rd.Snapshot' = null⌝ ∗
+  -- (D22 S-d3a) the `Ready`'s snapshot (until then `nil`): none, or the loan `L`
+  "Hrdz" ∷ rdSnapRel γ rs rd ce L s ∗
   "#Hrdrs" ∷ (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
     ⌜sts = [] → s.rd.states = []⌝) ∗
   "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
@@ -1059,12 +1163,27 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   -- `NsLink`): what the handed-out messages' `isRaftMsg` says
   "%Hnsout" ∷ ⌜γ.reNoSnap = true → ∀ x ∈ s.outbox, x.ty ≠ .snap⌝)
 
+/-- (D22 S-d3a) `loanCom` with no loan. -/
+theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
+    ⊢ loanCom (GF := GF) γ o := by
+  subst h; unfold loanCom; ipureintro; trivial
+
+/-- (D22 S-d3a) `lentPend` with no loan. -/
+theorem lentPend_none {o : Option SnapLoan} (h : o = none) (P : IProp GF) :
+    P ⊢ lentPend o P := by
+  subst h; exact .rfl
+
+/-- ... and out. -/
+theorem lentPend_none_elim {o : Option SnapLoan} (h : o = none) (P : IProp GF) :
+    lentPend o P ⊢ P := by
+  subst h; exact .rfl
+
 /-- The `Ready`'s `SoftState`, read-only for the application (`softStateRO`; 2026-10-16, stage R7a):
 from `Hrdsoft`, keeping the node. -/
 theorem ownRawNodeReady_softStateRO (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) :
-    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h ⊢
-      softStateRO rd.SoftState' ∗ ownRawNodeReady γ rn id rs rd ce es ms h := by
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (L : Option SnapLoan) :
+    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h L ⊢
+      softStateRO rd.SoftState' ∗ ownRawNodeReady γ rn id rs rd ce es ms h L := by
   iintro H
   ihave #Hss : softStateRO rd.SoftState' $$ [H]
   · iunfold ownRawNodeReady at H
@@ -1084,13 +1203,14 @@ committed entries are still the next ones (`ownRawNodeIdle_ready`): `node.go`'s 
 may then send it after all, as it does. The premises are `readyWithoutAccept`'s.
 Everything else `readyWithoutAccept` allocated (the `Ready` itself, the committed
 entries' slice) is dropped. (2026-10-16, stage R5: the messages handed out come back, at
-`readyDq`, with `rd.Messages`' slice and capacity: D8.) -/
+`readyDq`, with `rd.Messages`' slice and capacity: D8.) (D22 S-d3a, 2026-10-21) With a snapshot
+(`L`) too: the node's half of the clone is dropped, as the application's may be. -/
 theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan)
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = []) :
     ⊢ rd.Messages' ↦* ms.map QMsg.loc -∗ ownSliceCap Loc rd.Messages' (DFrac.own 1) -∗
       ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) -∗
-      ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms -∗
+      ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L -∗
       ∃ (n : Nat) (u : Bool) (c : w64),
         ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧
          (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
@@ -1100,6 +1220,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %c, %fp, %rnv, %sv, %hprev, H⟩
   iNamed H
+  iclear Hrdz
   iunfold ownRaftPhysReady at Hphys
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
@@ -1111,22 +1232,23 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   ihave Hob := outboxRel_join s.outbox ms1 ms2 $$ [Hown1 Hown2]
   · iframe Hown1 Hown2; ipureintro; exact Houtbox
   simp only [Bool.false_eq_true, ↓reduceIte]
-  let g : NGhost := { outlb := ms1.length + ms2.length,
-                      unst := decide (nextUnstable s.logst ≠ []), tc := s.gh.tc, ns := s.gh.ns, xf := s.gh.xf,
-                      bt := s.gh.bt }
+  ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
+  · iExactEq Hlog; rfl
+  let g : NGhost := { s.gh with outlb := ms1.length + ms2.length, unst := decide (nextUnstable s.logst ≠ []) }
   ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
     Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
     Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Hob %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
-    %(fun h => .inl (of_decide_eq_true h))
+    %(⟨fun h => .inl (of_decide_eq_true h), Hgh_unst.1.2⟩ : GhLogOk g s.logst)
     %(⟨rfl, fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, fun _ h => h⟩ :
       g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ ∀ m ∈ s.outbox, m ∈ s.outbox)
     %(fun _ => Int.le_refl _) %(Hxf.of_fields rfl rfl rfl rfl) Hscert Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
   · iapply isCommitted_mono γ rs.delivered (rs.delivered ++ ce) (List.prefix_append _ _)
       $$ Hcommitted
-  ihave Hpend : pendList γ id ([] : List Loc) rs.steps $$ []
-  · rw [Hsteps0]; iapply pendList_nil
+  ihave Hpend : lentPend rs.slent (pendList γ id ([] : List Loc) rs.steps) $$ []
+  · iapply lentPend_none Hloan.2; rw [Hsteps0]; iapply pendList_nil
+  ihave #Hlc := loanCom_none γ Hloan.2
   iexists ms1.length + ms2.length, decide (nextUnstable s.logst ≠ []), s.logst.committed
   isplitr
   · ipureintro
@@ -1141,12 +1263,11 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
               clb := s.logst.committed }
   let s' : NState := { s with outbox := s.outbox, logst := s.logst, gh := g }
   ihave Hghost := ownStepGhost_congr γ _ c id (s := s) (s' := s') rfl rfl rfl rfl $$ Hghost
-  ihave #Hstrecs := storedRecsP_intro γ rs.psnap _ _ $$ Hstrecs
   iapply ownRawNode_intro γ rn id rs' s' c fp rnv sv hprev [] Hwf Hin Hal Hasync Hdlen
-    (Hunp0.trans Hunp.symm) (fun _ => Hsnap) (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
+    (Hunp0.trans Hunp.symm) Hsnap (by show StepsOk _ rs.steps; rw [Hsteps0]; trivial) Htrm
     Hstor Hpvoff rfl rfl
-    (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc
 
 /-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
 stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,
@@ -1199,16 +1320,67 @@ theorem readyIdx_pure (ls : LogState) (d ce : List EntryM)
       push_cast
       rw [Int.toNat_of_nonneg Hapz]; omega
 
+/-- (D22 S-d3a) The log's part of a `Ready`'s hand-out: the right to append the batch
+(`ownRaftLog_handout`), or with a snapshot the storage itself (`ownRaftLog_lend`). -/
+theorem ownRaftLog_rdy_out (l : Loc) (ls : LogState) (es : List EntryM) (L : Option SnapLoan)
+    (st : Storage) (Hunp : ls.unpersisted = []) (Hes : es = nextUnstable ls)
+    (Hst : st = ls.storage) (Hn : L = none → ls.snap = none)
+    (Hs : ∀ l, L = some l → ls.snap ≠ none ∧ l.fl = ls.fl)
+    (Hlt : ∀ l, L = some l → ls.lent = false) :
+    ⊢ ownRaftLog (GF := GF) l ls ==∗ ownRaftLog l (rdyLog true L.isSome ls) ∗ readyOut st es L := by
+  iintro Hlog
+  cases L with
+  | none =>
+    imod ownRaftLog_handout _ _ Hunp (Hn rfl) $$ Hlog with ⟨Hlog, Happ⟩
+    imodintro
+    isplitl [Hlog]
+    · iExactEq Hlog; rfl
+    unfold readyOut
+    rw [Hes, Hst]; iexact Happ
+  | some lo =>
+    obtain ⟨Hsn, Hfl⟩ := Hs lo rfl
+    icases ownRaftLog_lend _ _ Hunp Hsn (Hlt lo rfl) $$ Hlog with ⟨Hlog, %σ, HSt, %Hσ⟩
+    imodintro
+    isplitl [Hlog]
+    · iExactEq Hlog; rfl
+    unfold readyOut
+    iexists σ
+    rw [Hst]
+    iframe HSt
+    ipureintro; exact ⟨Hσ.1, Hσ.2.1.trans Hfl.symm⟩
+
+/-- (D22 S-d3a) The pure facts of a computed `Ready`'s snapshot. -/
+theorem rdSnapRel_facts (γ : RaftNames) (rs : RNState) (rd : Ready) (ce : List EntryM)
+    (L : Option SnapLoan) (s : NState) :
+    rdSnapRel (GF := GF) γ rs rd ce L s ⊢
+      ⌜(L = none → rd.Snapshot' = null ∧ s.logst.snap = none) ∧
+        (∀ l, L = some l → l.ptr = rd.Snapshot' ∧ SnapRdy rs ce l s)⌝ ∗ rdSnapRel γ rs rd ce L s := by
+  cases L with
+  | none =>
+    simp only [rdSnapRel]
+    iintro %H
+    isplitr
+    · ipureintro; exact ⟨(fun _ => H), (fun _ h => by cases h)⟩
+    ipureintro; exact H
+  | some l =>
+    simp only [rdSnapRel]
+    iintro ⟨Hs, #Hc, %H⟩
+    isplitr
+    · ipureintro; exact ⟨(fun h => by cases h), (fun l' h => by cases h; exact H)⟩
+    iframe Hs Hc
+    ipureintro; exact H
+
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
 right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
 the atomic update of `readyc <- rd`, giving the right to the application with the `Ready`;
 `acceptReady` takes the node after it. Since 2026-10-13 also the drain of the abstract
 outbox (`Step.drain`, `ownRaftGhost_drain`), handing out with each message its read credit
-(one for a `MsgReadIndex`). -/
+(one for a `MsgReadIndex`). (D22 S-d3a, 2026-10-21) With a snapshot (`L`), the storage itself
+(`ownRaftLog_lend`, `readyOut`). -/
 theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) :
-    ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false ==∗
-      ownRawNodeReady γ rn id rs rd ce es ms true ∗ appendRight rs.storage es ∗
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) :
+    ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false L ==∗
+      ownRawNodeReady γ rn id rs rd ce es ms true L ∗ readyOut rs.storage es L ∗
       ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       -- (2026-10-19, D21 M6) and each proposal's tickets
       ([∗list] q ∈ ms, stTks γ q.st) ∗
@@ -1222,6 +1394,8 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   icases Hphys with ⟨%rsl, %sl1, %sl2, %ms1, %ms2, Hphys⟩
   iNamed Hphys
   simp only [Bool.false_eq_true, ↓reduceIte]
+  ihave Hlog : ownRaftLog s.log s.logst $$ [Hlog]
+  · iExactEq Hlog; rfl
   -- (2026-10-18, D19b stage 5) the indices handed out, from the log and the ghost state
   icases ownRaftLog_pure _ _ (LogIndicesOk s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
       uint.Z s.logst.prev.index' + (s.logst.sents.length : Int) + 1 ≤ uint.Z s.logst.inprogress ∧
@@ -1232,7 +1406,16 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     with ⟨%Hlf, Hlog⟩
   have Hri := readyIdx_pure s.logst rs.delivered ce Hlf.1 (by unfold logOffset; omega) Hlf.2.2.1
     Hlf.2.2.2 Hdlen Hceok
-  imod ownRaftLog_handout _ _ Hunp Hsnap $$ Hlog with ⟨Hlog, Happ⟩
+  -- the storage: the right to append the batch, or (a snapshot) the storage itself
+  icases rdSnapRel_facts γ rs rd ce L s $$ Hrdz with ⟨%Hrdp, Hrdz⟩
+  have Hlt0 : ∀ l, L = some l → s.logst.lent = false := by
+    intro l _
+    have h1 := Hgh_unst.1.2.1
+    rw [h1, Hloan.1.1, Hloan.2]; rfl
+  imod ownRaftLog_rdy_out s.log s.logst es L rs.storage Hunp Hes Hstor
+    (fun h => (Hrdp.1 h).2)
+    (fun l h => ⟨by rw [(Hrdp.2 l h).2.1]; simp, (Hrdp.2 l h).2.2.2.2.2.1⟩) Hlt0 $$ Hlog
+    with ⟨Hlog, Hout⟩
   iunfold ownStepGhost at Hghost
   icases Hghost with ⟨Hghost, Hrest⟩
   ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
@@ -1260,12 +1443,12 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     rw [show toPState { s with outbox := [] } = { toPState s with outbox := [] } from rfl]
     iexact Hghost
   imodintro
-  isplitr [Happ Hcr Htk]
+  isplitr [Hout Hcr Htk]
   · iunfold ownRawNodeReady
     iexists s, c, fp, rnv, sv, hprev
     simp only [named, ↓reduceIte]
     iframe Hrn Hghost Hout Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft
-      Hrdhard Hrdrs Hce Hce_cap Hents
+      Hrdhard Hrdrs Hce Hce_cap Hents Hrdz
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
@@ -1275,10 +1458,10 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       ipureintro
       exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, Hmslen⟩
     ipureintro
-    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrnfl, Hrdz, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
-  isplitl [Happ]
-  · rw [Hes, ← Hstor]; iexact Happ
+    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hloan, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+      Hrs_clb, Hrnfl, Hceok, Hes, Hrdc, Hprc, Hnsout⟩
+  isplitl [Hout]
+  · iexact Hout
   isplitl [Hcr]
   · iapply rdCred_msgs γ ms $$ Hcr
   isplitl [Htk]
@@ -1298,7 +1481,9 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
 
 `HasReady` returning `false` (`RawNode.HasReady.spec`) leaves the node as `ownRawNodeIdle`:
 `ownRawNode` at a state with no queued message, no unstable entry still to be handed out,
-no `ReadState` (2026-10-13), and so the lower bounds `outlb` and `unst` at their least (`ownRawNodeIdle_facts`). Its use:
+no `ReadState` (2026-10-13), (D22 S-d3a) no snapshot to hand out (none pending, or the pending one
+in progress), and so the lower bounds `outlb` and `unst` at their least
+(`ownRawNodeIdle_facts`). Its use:
 `node.go`'s `run` keeps a `Ready` it computed earlier armed when `HasReady` is `false`,
 and may send it; by the lower bounds that `Ready` held nothing but committed entries still
 the next ones, and possibly a stale `SoftState`/`HardState` (which only reset what
@@ -1306,7 +1491,8 @@ the next ones, and possibly a stale `SoftState`/`HardState` (which only reset wh
 `ownRawNodeReady` for it, so that `acceptReady` takes it. -/
 
 /-- See the section header. (2026-10-16, stage R5: `ownRawNode`'s conjuncts as they are now:
-`Hhard`, the queue `pendList`.) -/
+`Hhard`, the queue `pendList`.) (D22 S-d3a, 2026-10-21: `ownRawNode`'s, a snapshot pending in
+progress allowed.) -/
 def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF :=
   iprop(∃ (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
       (hprev : HardStateM) (steps : List Loc),
@@ -1322,12 +1508,13 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
-  "Hpend" ∷ pendList γ id steps rs.steps ∗
+  "Hpend" ∷ lentPend rs.slent (pendList γ id steps rs.steps) ∗
   "#Hdeliv" ∷ isCommitted γ rs.delivered ∗
-  "#Hstrecs" ∷ storedRecs γ s.logst.prev s.logst.stored ∗
+  "#Hstrecs" ∷ storedRecsP γ rs.psnap s.logst.prev s.logst.stored ∗
+  "#Hloanc" ∷ loanCom γ rs.slent ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
-  "%Hsnap" ∷ ⌜s.logst.snap = none⌝ ∗
+  "%Hsnap" ∷ ⌜(rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none⌝ ∗
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
   "%Htrm" ∷ ⌜rs.term = s.term⌝ ∗
   "%Hstor" ∷ ⌜rs.storage = s.logst.storage⌝ ∗
@@ -1336,9 +1523,11 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
   "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝ ∗
   "%Hrnfl" ∷ ⌜RNFl rs s⌝ ∗
+  "%Hloan" ∷ ⌜LoanOk rs s⌝ ∗
   -- nothing new: no queued message, no unstable entry still to be handed out, no
-  -- `ReadState` (2026-10-13)
-  "%Hidle" ∷ ⌜s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = []⌝)
+  -- `ReadState` (2026-10-13), no snapshot to hand out (D22 S-d3a)
+  "%Hidle" ∷ ⌜s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = [] ∧
+    (s.logst.snap = none ∨ s.logst.sip = true)⌝)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
@@ -1346,61 +1535,68 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hal : c.autoLeave = false)
     (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
-    (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
+    (Hunp : rs.unpersisted = s.logst.unpersisted)
+    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
-    (Hrnfl : RNFl rs s)
-    (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = []) :
+    (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s)
+    (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = [] ∧
+      (s.logst.snap = none ∨ s.logst.sip = true)) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
       rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      pendList γ id steps rs.steps -∗
+      lentPend rs.slent (pendList γ id steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
-      storedRecs γ s.logst.prev s.logst.stored -∗
+      storedRecsP γ rs.psnap s.logst.prev s.logst.stored -∗
+      loanCom γ rs.slent -∗
       ownRawNodeIdle γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc
   unfold ownRawNodeIdle
   iexists s, c, fp, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb, Hrnfl, Hidle⟩
+    Hrs_unst, Hrs_clb, Hrnfl, Hloan, Hidle⟩
 
 theorem ownRawNodeIdle_ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNode γ rn id rs := by
   iintro H
   iNamed H
-  ihave #Hstrecs := storedRecsP_intro γ rs.psnap _ _ $$ Hstrecs
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    (fun _ => Hsnap)
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
 
 /-- What the client sees of an idle node: the lower bounds at their least, and the commit
-index at most the committed log handed out (`applying`). -/
-theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+index at most the committed log handed out (`applying`). (D22 S-d3a) With no loan: no snapshot
+pending (`ownRawNodeIdle_nosnap`). -/
+theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (Hsl : rs.slent = none) :
     ⊢ ownRawNodeIdle (GF := GF) γ rn id rs -∗
       ⌜rs.outlb = 0 ∧ rs.unst = false⌝ ∗ ownRawNodeIdle γ rn id rs := by
   iintro H
   iNamed H
   icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh, Hphys⟩
+  have Hsn : s.logst.snap = none := by
+    rcases Hidle.2.2.2 with h | h
+    · exact h
+    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2 (.inl h))
   isplitr
   · ipureintro
     refine ⟨Hrs_out.trans Hidle.1, ?_⟩
     rw [Hrs_unst]
     cases Hu : s.gh.unst
     · rfl
-    · rcases Hgh.1 Hu with H | H
+    · rcases Hgh.1.1 Hu with H | H
       · exact absurd Hidle.2.1 H
-      · exact absurd Hsnap H
+      · exact absurd Hsn H
   iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp
-    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hidle
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hidle
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
 
 /-- Accepting, after all, a `Ready` computed earlier and abandoned (see the section
 header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted = []`) is
@@ -1415,7 +1611,7 @@ inside `Hundo`.) -/
 theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce : List EntryM) (sts : List ReadStateM) (hrd : HardStateM)
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = [])
-    (Hrdz : rd.Snapshot' = null)
+    (Hrdz0 : rd.Snapshot' = null)
     (Hce_ok : ∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z rs.clb ∧
       uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int)) :
     ⊢ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) -∗
@@ -1429,10 +1625,17 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] false := by
   iintro #Hrdsoft #Hrdh #Hrdw #Hce Hce_cap #Hents #Hcommitted #Hrsts H
   iNamed H
+  have Hsl : rs.slent = none := Hloan.none_of_nil Hsteps0
+  ihave Hpend := lentPend_none_elim Hsl _ $$ Hpend
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hpend
   have Hsteps_nil : steps = [] := by
     rw [Hsteps0] at Hlen; exact List.eq_nil_of_length_eq_zero Hlen
   subst Hsteps_nil
+  icases ownRaftPhysC_gh cf rnv.raft' id s $$ Hphys with ⟨%Hgh, Hphys⟩
+  have Hsn : s.logst.snap = none := by
+    rcases Hidle.2.2.2 with h | h
+    · exact h
+    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2 (.inl h))
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
@@ -1446,23 +1649,25 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       ⌜sts = [] → s.rd.states = []⌝) $$ []
   · iexists sts
     iframe Hrsts
-    ipureintro; intro _; exact Hidle.2.2
+    ipureintro; intro _; exact Hidle.2.2.1
   icases outboxRel_split _ _ _ $$ Houtbox with ⟨%Hob, Hown1, Hown2⟩
   icases (qOwns_self_split id ms2).1 $$ Hown2 with ⟨Hself, Hoth⟩
   icases (qOwns_other_halves id ms2).2 $$ Hoth with ⟨Hhalf, Hother⟩
   ihave #Hrdhard : iprop(∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd) $$ []
   · iexists hrd; iframe Hrdh Hrdw
+  ihave Hrdz : rdSnapRel γ rs rd ce none s $$ []
+  · unfold rdSnapRel; ipureintro; exact ⟨Hrdz0, Hsn⟩
   iunfold ownRawNodeReady
   iexists s, cf, fp, rnv, sv, hprev
   simp only [named, Bool.false_eq_true, ↓reduceIte]
   iframe Hrn Hghost Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs
-    Hce Hce_cap Hents Hrdhard
+    Hce Hce_cap Hents Hrdhard Hrdz
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
-      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hlog
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother
     isplitr
     · ipureintro; exact Hob
     isplitr
@@ -1482,14 +1687,17 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     isplitl [Hmsgs Hmsgs_cap Hown1 Hhalf]
     · iintro - - -
       iframe Hmsgs Hmsgs_cap Hown1 Hhalf
+    isplitl [Hlog]
+    · iExactEq Hlog; rfl
     iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
       Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 #Hsc' Hl
     iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
       %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob' %H1 %H2 %H3 %H4 %H5 %H6 %H7 Hsc' Hl
   ipureintro
-  refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
+  refine ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, ⟨Hloan, Hsl⟩, Htrm, Hstor, Hpvoff,
+    Hrs_out, Hrs_unst, Hrs_clb,
     ⟨Hrnfl.1, Int.not_lt.1 fun h => by
-      obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩, Hrdz,
+      obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
     fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _, List.nil_subperm, Hnsout⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He

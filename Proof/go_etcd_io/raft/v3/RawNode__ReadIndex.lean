@@ -163,8 +163,8 @@ theorem RawNode.ReadIndex.wp_proof
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) 
     (Hpvoff.step rfl rfl Hpre Hgh (by rw [Hterm]; exact Hpvoff.2.2.1) Hpcs (by msg_ne))
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha)
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha)
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
 
 end proof
 

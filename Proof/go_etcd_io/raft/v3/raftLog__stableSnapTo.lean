@@ -61,6 +61,7 @@ theorem raftLog.stableSnapTo.wp_proof
       | exact Hsksn
       | (intro h; simp only at h; rw [Hlnt] at h; cases h; done)
       | (intro h; simp at h; done)
+      | exact ⟨(fun h => by simp at h), (fun h => by simp at h)⟩
       | (simp only at Hip' ⊢; exact Hip')
       | (simp only at Hsip' ⊢; exact Hsip')
       | (rw [Huoff]; simp only [unstableOf] at Hoff; exact Hoffset)

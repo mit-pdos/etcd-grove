@@ -278,11 +278,20 @@ theorem raftLog.append.wp_proof
     -- (D22 S-d1b) a snapshot in progress: the relation survives the truncation, as the storage's
     -- does (`append_persistOk` at the state the storage will be at)
     have Hprel2 : SipOk (logTruncateAppend ls (e0 :: ents')) uv'.offset' := by
-      intro Hsp
-      obtain ⟨Hpre0, -⟩ := Hprel Hsp
-      obtain ⟨Hk1, Hk2, Hk3⟩ := Hk'
-      exact (append_persistOk { σ with ents := ls.stored, pend := [] } [] ls.sents ls.uents
-        ls.stored e0 ents' _ _ _ _ Hpre0 rfl (by omega) Hprev (by omega) Hk1 Hk2 Hk3).rel
+      refine ⟨fun Hsp => ?_, fun Hsn Hsp => ?_⟩
+      · obtain ⟨Hpre0, -⟩ := Hprel.1 Hsp
+        obtain ⟨Hk1, Hk2, Hk3⟩ := Hk'
+        exact (append_persistOk { σ with ents := ls.stored, pend := [] } [] ls.sents ls.uents
+          ls.stored e0 ents' _ _ _ _ Hpre0 rfl (by omega) Hprev (by omega) Hk1 Hk2 Hk3).rel
+      · -- (D22 S-d3a) a pending snapshot not handed out: still nothing in progress after it
+        obtain ⟨Hio, Hapl⟩ := Hprel.2 Hsn Hsp
+        have h0 : uint.Z ls.inprogress = uint.Z lv.unstable'.offset' := by rw [Hio]
+        have := Hk'.1
+        have := Hipb2.1
+        refine ⟨?_, Hapl⟩
+        show logTruncInprogress ls e0.Index' = uv'.offset'
+        apply uint_Z_inj.1
+        omega
     ihave Hlog : ownRaftLog l (logTruncateAppend ls (e0 :: ents'))
         $$ [Hl HStorage Hents Hents_cap]
     · iapply ownRaftLog_intro l { lv with unstable' := uv' } lv.storage' σ _ _

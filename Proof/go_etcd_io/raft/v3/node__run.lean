@@ -44,6 +44,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+omit [FfiInterp ffi] [FfiSemantics ext ffi] [StorageModel GF] in
+/-- A loop condition `wp_if_destruct` left as the value equation (D22 S-d3a), peeled. -/
+private theorem hif_pos {P : Prop} [Decidable P] (h : (#(decide P) : val) = #true) : P :=
+  of_decide_eq_true (GoGlobalContext.intoVal_inj_bool h)
+
+omit [FfiInterp ffi] [FfiSemantics ext ffi] [StorageModel GF] in
+private theorem hif_neg {P : Prop} [Decidable P] (h : ¬ ((#(decide P) : val) = #true)) : ¬ P :=
+  fun hp => h (by rw [decide_eq_true hp])
+
+set_option hygiene false in
+/-- Peel `Hif` if `wp_if_destruct` left it as the value equation. -/
+local macro "peel_hif" : tactic => `(tactic| first
+  | (replace Hif := hif_pos Hif
+     try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false, decide_eq_true Hif,
+       Bool.false_eq_true, ↓reduceIte]
+     try wp_auto)
+  | (replace Hif := hif_neg Hif
+     try simp only [if_decide_bool_eq_true, if_decide_bool_eq_false, decide_eq_false Hif,
+       Bool.false_eq_true, ↓reduceIte]
+     try wp_auto)
+  | skip)
+
 set_option maxHeartbeats 1000000 in
 theorem node.run.wp_proof
     (wp_RawNode_HasReady : RawNode.HasReady.spec (GF := GF) (hG := hG))
@@ -116,12 +138,17 @@ theorem node.run.wp_proof
       obtain ⟨Hst, Hsteps, Hunp⟩ := Hrs
       -- (2026-10-20, D22 S-c) no snapshot pending
       icases runCfg_psnap γ rs $$ Hcfg with ⟨%Hps, Hcfg⟩
-      wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs Hps $$ [$Hrn] as %b Hb
+      wp_apply wp_RawNode_HasReady γ.raft nv.rn' id rs $$ [$Hrn] as %b Hb
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
-        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp Hps $$ [$Hrn]
-          as %rd' %ce %es %ms %sts %hrd H
+        wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
+          as %rd' %ce %es %ms %sts %hrd %L H
         iNamed H
+        -- (D22 S-d3a) no snapshot restored, none handed out
+        have HL := Hpsn Hps
+        subst HL
+        iunfold rdSnapOut at Hsnapz
+        icases Hsnapz with %Hsnapz
         wp_join_done
         iexists nv.readyc', rd'
         iframe n readyc rd
@@ -565,6 +592,7 @@ theorem node.run.wp_proof
           wp_for IO
           wp_if_destruct
           all_goals try simp at Hif
+          all_goals peel_hif
           · -- an iteration: `sl` is `cs.Voters` or `cs.VotersOutgoing`
             have Hj01 : j = W64 0 ∨ j = W64 1 := by
               have := Hj.1; revert Hif; word
@@ -586,6 +614,7 @@ theorem node.run.wp_proof
             wp_for II
             wp_if_destruct
             all_goals try simp at Hif
+            all_goals peel_hif
             · obtain ⟨x, Hx⟩ : ∃ x, vs[(sint.Z j2).toNat]? = some x :=
                 ⟨_, List.getElem?_eq_getElem (by rw [Hvlen.1]; word)⟩
               have Hbnd2 : 0 ≤ sint.Z j2 ∧ sint.Z j2 < sint.Z v.len := ⟨Hj2, Hif⟩
@@ -743,6 +772,8 @@ theorem node.run.wp_proof
       ⟨%Hac, %rs, #Hlb', %Hrs, Hdlv, Hrof, Hcfg, Hst⟩
     subst Hac
     obtain ⟨Hstor, Hsteps, Hunp⟩ := Hrs
+    -- (D22 S-d3a) no snapshot lent (`runCfg`)
+    icases runCfg_slent γ rs $$ Hcfg with ⟨%Hsl0, Hcfg⟩
     -- the `Ready` to send, fresh or stale (then it holds no messages and no entries)
     ihave Hg : iprop(∃ (ce es : List EntryM) (ms : List QMsg),
         ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false ∗
@@ -762,7 +793,7 @@ theorem node.run.wp_proof
         iexists ce, es, ms
         iframe Hrn Hce Hcommitted Hents Hmsgs Hown Hmsgs_ok Hrsts Hhd
         ipureintro; exact Hfacts
-      · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs $$ Hrn with ⟨%Hidf, Hrn⟩
+      · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs Hsl0 $$ Hrn with ⟨%Hidf, Hrn⟩
         iunfold staleOk at Hstale
         icases Hstale with
           ⟨%ce, %es, %k, %hrd, #Hrdsoft, #Hrdh, #Hhsw, #Hce, Hce_cap, #Hcommitted, #Hents, #Hrsts,
@@ -808,7 +839,8 @@ theorem node.run.wp_proof
     icases ownRawNodeReady_softStateRO γ.raft nv.rn' id rs rdv' ce es ms false $$ Hrn
       with ⟨#Hss, Hrn⟩
     -- the append right goes with the `Ready`, and `rof` records it
-    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
+    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms none $$ Hrn with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
+    iunfold readyOut at Happ
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver
     imod runCfg_extend γ rs { rs with delivered := rs.delivered ++ ce } ce rfl rfl rfl rfl rfl $$ Hcfg
       with ⟨Hcfg, #Hdlb⟩
@@ -833,7 +865,20 @@ theorem node.run.wp_proof
     inext
     iintro -
     wp_auto
-    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id rs rdv' ce es ms h $$ [$Hrn $Hhh] as %steps Hrn
+    -- (D22 S-d3a) no snapshot restored (`runCfg`): none handed out
+    icases runCfg_psnap γ _ $$ Hcfg with ⟨%Hps0, Hcfg⟩
+    icases runCfg_slent γ _ $$ Hcfg with ⟨%Hsl0, Hcfg⟩
+    wp_apply wp_RawNode_acceptReady γ.raft nv.rn' id rs rdv' ce es ms h none $$ [$Hrn $Hhh]
+      as %steps Hrn
+    have Hrseq : ({ rs with
+          delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+          outlb := 0, unst := false, phs := phsNext rs.phs h, psnap := false, slent := none } :
+          RNState) =
+        { rs with
+          delivered := rs.delivered ++ ce, unpersisted := es, steps := steps,
+          outlb := 0, unst := false, phs := phsNext rs.phs h } := by
+      cases rs; simp only at Hps0 Hsl0; subst Hps0 Hsl0; rfl
+    rw [Hrseq]
     icases ownRawNode_async γ.raft nv.rn' id _ $$ Hrn with ⟨%rnv, Hrnown, %Hasync, Hrnback⟩
     wp_auto
     rw [Hasync]
@@ -895,9 +940,11 @@ theorem node.run.wp_proof
     -- (2026-10-15, stage N) A1, from the driver's
     icases runCfg_a1 γ { rs1 with flw := false } ca_d $$ Hcfg Hcamlb [] with ⟨%HA1, Hcfg⟩
     · ipureintro; exact HA
-    icases runCfg_psnap γ { rs1 with flw := false } $$ Hcfg with ⟨%Hps1, Hcfg⟩
-    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' Hunp1 Hunst1 HA1 Hps1
+    icases runCfg_slent γ { rs1 with flw := false } $$ Hcfg with ⟨%Hsl1, Hcfg⟩
+    wp_apply wp_RawNode_Advance γ.raft nv.rn' id rs1 rdv' (fun _ => Hunp1) Hunst1 HA1
       $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, %Hca⟩
+    · unfold loanRet; rw [show rs1.slent = none from Hsl1]; iempintro
+    rw [advRS_none (rs := rs1) t ca Hsl1]
     ihave Hcfg := runCfg_advance γ { rs1 with flw := false }
       { rs1 with steps := [], term := t, capplied := ca, flw := false }
       rfl rfl rfl rfl Hca HA1 $$ Hcfg

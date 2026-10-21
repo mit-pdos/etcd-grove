@@ -1011,7 +1011,7 @@ it after all, when `HasReady` reports nothing new: that is right only because wh
 the abandoned `Ready` held is still there (`ownRawNodeReady_abandon`, `RNState.outlb`).
 `ownRaftPhys` states both (`Hgh_out`, `Hgh_unst`); every step but a storage
 acknowledgement keeps them (`NetFrame`, `LocalFrame`). -/
-structure NGhost where
+structure NGhost [FfiSyntax] where
   outlb : Nat := 0
   unst : Bool := false
   /-- (2026-10-17, pre-vote at the `RawNode` layer) a term ceiling: every queued message is of a
@@ -1043,7 +1043,20 @@ structure NGhost where
   mode (`NsLink`: `RaftNames.reNoXfer`, which needs a bootstrap log, `reNoXfer_ok`). Until D22
   S-c the no-snapshot mode (`ns`) gave the term, so that `SentMsgOk` was of both modes. -/
   bt : Bool := false
-deriving DecidableEq
+  /-- (D22 S-d3a, 2026-10-21) **The storage lent**: a mirror of `LogState.lent` (`SnpOk`), which a
+  step keeps (`NetFrame`'s `s'.gh = s.gh`), so that the `RawNode` knows across the steps between a
+  snapshot's `Ready` and its `Advance` that the application holds the storage. Only the `RawNode`'s
+  ghost steps move it: a snapshot `Ready` sets it (`acceptReady`), the absorption of the
+  application's receipt clears it (`Advance`). -/
+  slent : Bool := false
+  /-- (D22 S-d3a) **The snapshot the last `Ready` handed out** (its trip), until the `Advance` that
+  steps its acknowledgement: while it is the pending one it is in progress and lent or absorbed
+  (`SnpOk`), and a snapshot in progress or absorbed has one recorded; it is a snapshot the node may
+  send (`ksn`) at most the commit index. Set by `acceptReady`, cleared by `Advance`. -/
+  snp : Option SnapTrip := none
+
+-- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
+noncomputable instance [FfiSyntax] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)
 
 
 

@@ -58,8 +58,8 @@ theorem RawNode.Tick.wp_proof
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) ⟨fun h => by rw [Hpre]; exact Hpvoff.1 h, by rw [Hgh]; exact Hpvoff.2.1,
           by rw [Hgh]; omega, fun hp => by rw [Hgh, Htpc hp]; exact Htc1⟩
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha)
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, Ht2⟩)

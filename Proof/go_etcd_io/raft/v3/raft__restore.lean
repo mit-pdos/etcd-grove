@@ -506,7 +506,11 @@ theorem raft.restore.wp_proof
     -- `r.raftLog.restore(s)`, on half of the snapshot: the other half keeps the pointers `pm` and
     -- `pc` (`cs`), for `confchange.Restore` and `assertConfStatesEquivalent`
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, -, Hlogback⟩
+    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh1, Hlogback⟩
+    -- (D22 S-d3a) the restore past the commit index keeps what the log says of the snapshot the
+    -- last `Ready` handed out (`SnpOk`)
+    have Hsnp1 : SnpOk s.gh (logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists)) :=
+      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega)
     ihave Hrest : snapRest sp pm pc (DFrac.own 1) sv $$ [HD Hd HM HC HI HT]
     · iunfold snapRest
       iexists ds, pi, pt, uf, ufm
@@ -524,7 +528,7 @@ theorem raft.restore.wp_proof
         (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
@@ -575,7 +579,7 @@ theorem raft.restore.wp_proof
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
-      %(LogGhOk.of_snap (by simp [logRestore]) Hns)
+      %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
       %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))
     generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole

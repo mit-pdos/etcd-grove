@@ -37,8 +37,8 @@ theorem newStorageAppendRespMsg.wp_proof
     (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     newStorageAppendRespMsg.spec (GF := GF) (hG := hG) := by
-  intro r id t l ls rd Hsn
-  wp_start as ⟨#Hid, Ht, Hrl, Hlog⟩
+  intro r id t l ls rd dq o Hne
+  wp_start as ⟨#Hid, Ht, Hrl, Hlog, Hsn⟩
   wp_auto
   rw [show raftpb.MsgStorageAppendResp = #((W32 20 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
@@ -60,17 +60,29 @@ theorem newStorageAppendRespMsg.wp_proof
   wp_apply wp_raftLog_hasNextOrInProgressUnstableEnts $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
   cases b
   · wp_auto
-    wp_apply wp_IsEmptySnap rd.Snapshot' (DFrac.own 1) none $$ [] as %b' ⟨%Hb', -⟩
-    · simp only [snapOpt]; ipureintro; exact Hsn
-    simp only [Option.elim] at Hb'
-    subst Hb'
-    wp_auto
-    have Hne : ¬ ls.uents ≠ [] := by simpa using Hb.symm
-    simp only [Hne, ↓reduceIte]
-    iapply HΦ
-    iframe
-    simp only [msgIn, show needsCap (appendAckM id t (entryID.mk (W64 0) (W64 0))) = false from rfl]
-    iexact Hm
+    have Hne' : ¬ ls.uents ≠ [] := by simpa using Hb.symm
+    simp only [Hne', ↓reduceIte]
+    wp_apply wp_IsEmptySnap rd.Snapshot' dq o $$ [$Hsn] as %b' ⟨%Hb', Hsn⟩
+    cases o with
+    | none =>
+      simp only [Option.elim] at Hb'
+      subst Hb'
+      wp_auto
+      iapply HΦ
+      iframe
+      iintro -
+      simp only [msgIn, show needsCap (appendAckM id t (entryID.mk (W64 0) (W64 0))) = false from rfl]
+      iexact Hm
+    | some sv =>
+      simp only [Option.elim, decide_eq_false (Hne sv rfl)] at Hb'
+      subst Hb'
+      icases msgPtsC_store_Snapshot _ _ _ _ $$ Hm with ⟨%pSn, HSn, Hback⟩
+      wp_auto
+      iapply HΦ
+      iframe
+      iintro Hs
+      simp only [msgIn, show needsCap (appendAckM id t (entryID.mk (W64 0) (W64 0))) = false from rfl]
+      iapply Hback $$ HSn Hs
   · wp_auto
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %e ⟨Hlog, %He⟩
     icases msgPtsC_store_Index _ _ _ _ $$ Hm with ⟨%pIx, HIx, Hback⟩
@@ -81,18 +93,31 @@ theorem newStorageAppendRespMsg.wp_proof
     icases msgPtsC_store_LogTerm _ _ _ _ $$ Hm with ⟨%pLt, HLt, Hback⟩
     wp_auto
     ihave Hm := Hback $$ %_ %e.term' HLt cLt
-    wp_apply wp_IsEmptySnap rd.Snapshot' (DFrac.own 1) none $$ [] as %b' ⟨%Hb', -⟩
-    · simp only [snapOpt]; ipureintro; exact Hsn
-    simp only [Option.elim] at Hb'
-    subst Hb'
-    wp_auto
-    have Hne : ls.uents ≠ [] := by simpa using Hb.symm
-    simp only [Hne, ne_eq, not_false_eq_true, ↓reduceIte, ← He]
-    iapply HΦ
-    iframe
-    simp only [msgIn, show needsCap (appendAckM id t e) = false from rfl]
-    simp only [appendAckM]
-    iexact Hm
+    have Hne' : ls.uents ≠ [] := by simpa using Hb.symm
+    simp only [Hne', ne_eq, not_false_eq_true, ↓reduceIte, ← He]
+    wp_apply wp_IsEmptySnap rd.Snapshot' dq o $$ [$Hsn] as %b' ⟨%Hb', Hsn⟩
+    cases o with
+    | none =>
+      simp only [Option.elim] at Hb'
+      subst Hb'
+      wp_auto
+      iapply HΦ
+      iframe
+      iintro -
+      simp only [msgIn, show needsCap (appendAckM id t e) = false from rfl]
+      simp only [appendAckM]
+      iexact Hm
+    | some sv =>
+      simp only [Option.elim, decide_eq_false (Hne sv rfl)] at Hb'
+      subst Hb'
+      icases msgPtsC_store_Snapshot _ _ _ _ $$ Hm with ⟨%pSn, HSn, Hback⟩
+      wp_auto
+      iapply HΦ
+      iframe
+      iintro Hs
+      simp only [msgIn, show needsCap (appendAckM id t e) = false from rfl]
+      simp only [appendAckM]
+      iapply Hback $$ HSn Hs
 
 end proof
 

@@ -101,7 +101,10 @@ theorem raftLog.acceptUnstable.wp_proof
     | exact ⟨Hfl.1, Hfl.2.1, by
         have := Hfl.2.2.1; simp only [logEnd, logLast]; word, Hfl.2.2.2⟩
     -- (D22 S-d1b) a snapshot now in progress: the storage will hold the whole log
-    | exact fun _ => LogPersistRel_full _ _ _
+    | exact ⟨fun _ => LogPersistRel_full _ _ _, fun hs hf => by
+        cases h : ls.snap with
+        | none => exact absurd h hs
+        | some _ => simp [h] at hf⟩
     | (intro h; cases h; done)
 
 end proof
