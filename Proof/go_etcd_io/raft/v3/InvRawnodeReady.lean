@@ -1127,7 +1127,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
   -- (D22 S-d3a) as `ownRawNode`'s: no restore since the last `Ready`
-  "#Hstrecs" ∷ storedRecsP γ rs.psnap s.logst.prev s.logst.stored ∗
+  "#Hstrecs" ∷ ackInv γ rs s ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜s.logst.unpersisted = []⌝ ∗
   -- (D22 S-d3a) as `ownRawNode`'s (a snapshot may be pending), and no loan
@@ -1510,7 +1510,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   "Hpend" ∷ lentPend rs.slent (pendList γ id steps rs.steps) ∗
   "#Hdeliv" ∷ isCommitted γ rs.delivered ∗
-  "#Hstrecs" ∷ storedRecsP γ rs.psnap s.logst.prev s.logst.stored ∗
+  "#Hstrecs" ∷ ackInv γ rs s ∗
   "#Hloanc" ∷ loanCom γ rs.slent ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
@@ -1551,7 +1551,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
       lentPend rs.slent (pendList γ id steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
-      storedRecsP γ rs.psnap s.logst.prev s.logst.stored -∗
+      ackInv γ rs s -∗
       loanCom γ rs.slent -∗
       ownRawNodeIdle γ rn id rs := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc
@@ -1584,7 +1584,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have Hsn : s.logst.snap = none := by
     rcases Hidle.2.2.2 with h | h
     · exact h
-    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2 (.inl h))
+    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2.1 (.inl h))
   isplitr
   · ipureintro
     refine ⟨Hrs_out.trans Hidle.1, ?_⟩
@@ -1635,7 +1635,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   have Hsn : s.logst.snap = none := by
     rcases Hidle.2.2.2 with h | h
     · exact h
-    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2 (.inl h))
+    · exact absurd (Hloan.2.1 Hsl).1 (Hgh.1.2.2.2.1 (.inl h))
   icases ownRaftPhysC_nsOut γ _ cf rnv.raft' id s $$ Hphys Hghost with ⟨%Hnsout, Hphys, Hghost⟩
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩

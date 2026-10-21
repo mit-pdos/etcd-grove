@@ -79,7 +79,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term (the node's)
-        "%Hsf" ∷ ⌜SnapStep m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hteq Hnl Hvotes
   wp_start as H
   iNamed H
@@ -130,7 +130,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     refine ⟨snapCfgOk_cases' Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
       ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl, by rw [HandleSnapResult.ns Hhs]; try simp [becomeFollower, resetTo, resetTo0],
       SnapStep.of_handle (t := { s with lead := m.From' }) rfl rfl rfl (Int.le_refl _)
-        (Int.le_max_left _ _) Hrole Hhs⟩
+        (Int.le_max_left _ _) Hrole Hhs, SnapLogStep.of_handle Hhs rfl Hteq.symm⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
     · exact stepCDS_handle_snap c c1 id s _ m sv scfg s1
@@ -163,7 +163,9 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by simp [becomeFollower, resetTo, resetTo0]) rfl
         (by simp [becomeFollower, resetTo, resetTo0])
         (by simp [becomeFollower, resetTo, resetTo0])
-        (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs⟩
+        (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs,
+      SnapLogStep.of_handle Hhs (by simp [becomeFollower, resetTo, resetTo0])
+        (by simp only [becomeFollower, resetTo, resetTo0]; exact Hteq.symm)⟩
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
@@ -201,7 +203,9 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by simp [becomeFollower, resetTo, resetTo0]) rfl
         (by simp [becomeFollower, resetTo, resetTo0])
         (by simp [becomeFollower, resetTo, resetTo0])
-        (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs⟩
+        (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs,
+      SnapLogStep.of_handle Hhs (by simp [becomeFollower, resetTo, resetTo0])
+        (by simp only [becomeFollower, resetTo, resetTo0]; exact Hteq.symm)⟩
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'

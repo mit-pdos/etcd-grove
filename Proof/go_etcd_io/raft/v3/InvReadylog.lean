@@ -465,8 +465,8 @@ theorem SnpOk.stableSnap {g : NGhost} {ls : LogState} (i : w64) (H : SnpOk g ls)
     SnpOk g (logStableSnap ls i) := by
   unfold logStableSnap
   split
-  · obtain ⟨H1, H2, -⟩ := H
-    refine ⟨H1, fun k hk => ?_, fun h => by simp at h⟩
+  · obtain ⟨H1, H2, -, -⟩ := H
+    refine ⟨H1, fun k hk => ?_, fun h => by simp at h, fun h => by simp at h⟩
     obtain ⟨-, Hb, Hc⟩ := H2 k hk
     exact ⟨fun h => by simp at h, Hb, Hc⟩
   · exact H

@@ -1828,7 +1828,10 @@ variable [FfiSyntax]
 (`NGhost.slent`, `NGhost.snp`): the storage lent exactly when `slent`; while the snapshot handed
 out (`snp`) is the pending one, it is in progress and the storage lent or at it (`sat`), and it is
 a snapshot the node may send (`ksn`) at most the commit index (so a later restore, past the commit
-index, is of another snapshot); and a snapshot in progress or absorbed has one recorded. A mirror
+index, is of another snapshot); and a snapshot in progress or absorbed has one recorded; (D22 S-d3b,
+2026-10-21) and the storage is at the pending snapshot (`sat`) only when that is the one handed out
+(an absorption after a second restore leaves it shadowed, `logAbsorbSnap`), and in progress only
+then. A mirror
 of the log's ghost fields in `NGhost`, which every step keeps (`NetFrame`, `LocalFrame`,
 `SnapStep`: `s'.gh = s.gh`), so that the `RawNode` knows them across the steps between a snapshot's
 `Ready` and its `Advance`. -/
@@ -1837,15 +1840,17 @@ def SnpOk (g : NGhost) (ls : LogState) : Prop :=
   (∀ k, g.snp = some k →
     (ls.snap = some k.sid → ls.sip = true ∧ (ls.lent = true ∨ ls.sat = true)) ∧
     k ∈ ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) ∧
-  (ls.sip = true ∨ ls.sat = true → g.snp ≠ none)
+  (ls.sip = true ∨ ls.sat = true → g.snp ≠ none) ∧
+  (ls.sip = true ∨ ls.sat = true → ∃ k, g.snp = some k ∧ ls.snap = some k.sid)
 
 /-- `SnpOk` of a log that keeps the fields it reads. -/
 theorem SnpOk.of_fields {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls)
     (hlt : ls'.lent = ls.lent) (hsn : ls'.snap = ls.snap) (hsip : ls'.sip = ls.sip)
     (hsat : ls'.sat = ls.sat) (hk : ls'.ksn = ls.ksn)
     (hcm : uint.Z ls.committed ≤ uint.Z ls'.committed) : SnpOk g ls' := by
-  obtain ⟨H1, H2, H3⟩ := H
-  refine ⟨hlt.trans H1, fun k hk' => ?_, fun h => H3 (by rw [← hsip, ← hsat]; exact h)⟩
+  obtain ⟨H1, H2, H3, H4⟩ := H
+  refine ⟨hlt.trans H1, fun k hk' => ?_, fun h => H3 (by rw [← hsip, ← hsat]; exact h),
+    fun h => by rw [hsn]; exact H4 (by rw [← hsip, ← hsat]; exact h)⟩
   obtain ⟨Ha, Hb, Hc⟩ := H2 k hk'
   refine ⟨fun h => ?_, hk ▸ Hb, Int.le_trans Hc hcm⟩
   rw [hsip, hsat, hlt]; exact Ha (hsn ▸ h)
@@ -1856,14 +1861,22 @@ theorem SnpOk.of_quiet {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent)
     (hk : ∀ k, g.snp = some k → k ∈ ls.ksn ∧ uint.Z k.sid.index' ≤ uint.Z ls.committed) :
     SnpOk g ls :=
   ⟨hlt, fun k h => ⟨(fun h' => by rw [hsn] at h'; cases h'), hk k h⟩,
-    (fun h => by rcases h with h | h <;> simp_all)⟩
+    (fun h => by rcases h with h | h <;> simp_all), fun h => by rcases h with h | h <;> simp_all⟩
+
+/-- (D22 S-d3b) `SnpOk` with nothing handed out, in progress, absorbed or lent (a snapshot may be
+pending: one restored after the last `Ready`). -/
+theorem SnpOk.of_none {g : NGhost} {ls : LogState} (hlt : ls.lent = g.slent)
+    (hsnp : g.snp = none) (hsip : ls.sip = false) (hsat : ls.sat = false) : SnpOk g ls :=
+  ⟨hlt, fun k h => (by rw [hsnp] at h; cases h),
+    (fun h => by rcases h with h | h <;> simp_all), fun h => by rcases h with h | h <;> simp_all⟩
 
 /-- (D22 S-d3a) `SnpOk` after a restore past the commit index: the snapshot restored is not the
 one handed out (at most the commit index), and is not in progress. -/
 theorem SnpOk.restore {g : NGhost} {ls : LogState} (k : SnapTrip) (H : SnpOk g ls)
     (Hgt : uint.Z ls.committed < uint.Z k.sid.index') : SnpOk g (logRestore ls k) := by
-  obtain ⟨H1, H2, -⟩ := H
-  refine ⟨H1, fun k0 hk0 => ?_, fun h => by simp [logRestore] at h⟩
+  obtain ⟨H1, H2, -, -⟩ := H
+  refine ⟨H1, fun k0 hk0 => ?_, fun h => by simp [logRestore] at h,
+    fun h => by simp [logRestore] at h⟩
   obtain ⟨-, Hb, Hc⟩ := H2 k0 hk0
   refine ⟨fun h => ?_, List.mem_append_left _ Hb, ?_⟩
   · exfalso
@@ -1886,6 +1899,25 @@ theorem SnpOk.keep {g : NGhost} {ls ls' : LogState} (H : SnpOk g ls) (hk : SnpKe
 theorem logTruncateAppend_snpKeep (ls : LogState) (ents : List EntryM) :
     SnpKeep ls (logTruncateAppend ls ents) := by
   cases ents <;> exact ⟨rfl, rfl, rfl, rfl⟩
+
+/-- (D22 S-d3b, 2026-10-21) **A truncation's mark**: `offsetInProgress` moved back to `i` by an append
+of `ents` (`raftLog.maybeAppend`'s conflict arm, `unstable.truncateAndAppend`): above the commit
+index, at an entry of the batch that the log did not have (`findConflict`'s index). What the
+`RawNode` needs to know of an in-progress batch a `MsgApp` cut (`ackLostW`, `InvRawnode.lean`). -/
+def TruncAt (ls : LogState) (ents : List EntryM) (i : w64) : Prop :=
+  uint.Z ls.committed < uint.Z i ∧
+  ∃ e ∈ ents, e.Index' = i ∧ ¬ PlogMatches ls.prev (ls.sents ++ ls.uents) (entId e)
+
+/-- `logTruncInprogress` moves `offsetInProgress` back only to the batch's first index. -/
+theorem logTruncInprogress_lt {ls : LogState} {f : w64}
+    (h : uint.Z (logTruncInprogress ls f) < uint.Z ls.inprogress) :
+    logTruncInprogress ls f = f := by
+  unfold logTruncInprogress at *
+  split at h
+  · split at h
+    · rw [if_pos ‹_›, if_pos ‹_›]
+    · omega
+  · omega
 
 end snpok
 

@@ -13652,3 +13652,63 @@ S-d3b is a protocol argument of its own (below), so neither was started.
   since the storage is the application's; `ownRawNode_appended`'s `slent = none` premise is then
   met by `advance_complete` only without a loan (with one, the receipt is `loanRet`, which
   `Advance` takes). The kv example and the server keep passing no `MsgSnap` until S-r.
+
+## D22 S-d3b carried out: a `MsgSnap` between a `Ready` and its `Advance`; the acknowledgement's miss (2026-10-21)
+
+`RawNode.Step` takes a `MsgSnap` with any queue (its premise `rs.steps = []` is gone: only
+`γ.reNoSnap = false`); `Advance` handles the acknowledgement after a restore, with or without a loan.
+Trust base unchanged (538 axioms, 2 sorries); every collection's `--check` passes unchanged; no
+server, kv, putget or putget3 statement changed (the server and the examples step no `MsgSnap`).
+
+**1. A deviation: the miss needs a fact of `MsgApp` too, not only of `restore`.** The design ("D22
+S-d3a carried out", S-d3b) took the restore's `!matchTerm(s2)` and the records of the log before it.
+That is not enough: between the `Ready` and the restore a `MsgApp` of the acknowledgement's term may
+cut the batch handed out (`stored`) below `s2`'s index, so that the log at the restore lacks `s2`
+while `stored` has it -- nothing in the state at the restore then excludes `stored` agreeing with
+`s2`, which (with the later log, by Log Matching) is what a hit needs. Raft's own argument is about
+the history: within the term only the term's leader changes the log, a truncation is at an entry
+the leader's log has and the log had not, and the snapshot is in that leader's log. So the node now
+keeps, for its queued acknowledgement, a witness of any such cut, minted by the step that cuts:
+- `raftLog.maybeAppend`/`raft.handleAppendEntries` (`TruncAt`): `offsetInProgress` moves back only
+  to a conflict, above the commit index, at an entry of the batch the log did not have; `raft.Step`'s
+  post `"%Htrunc"` (`AppTrunc`, MsgApp only: and at the message's term) -- carried by the MsgApp
+  branches (`stepPostT`, `finish_branchT`; `dispatch_App` moved before the `stepPost` conversion);
+- `raft.Step`'s `"%Hsnapfr"` gains `SnapLogStep` (the log kept, or `restore`'s third exit: at the
+  message's term, past the commit index, `!PlogMatches`, the log now the snapshot);
+- the leader's logs from the messages' `isMessage` (`isMessage_app_leadFull`,
+  `isMessage_snap_leadFull`: `leadFull` of the term, with the entries/the snapshot's entry in it).
+
+**2. `ackInv` replaces `Hstrecs`'s `storedRecsP`** (`InvRawnode.lean`). `Pending.appendAck t b e sn`
+records the `Ready`'s boundary `b` (`PendingOk`: `plogLast b stored = e`, and `1 ≤ t` with an entry:
+an acknowledgement of term `0` would be local, current whatever the term -- `acceptReady` gets it from
+the last entry's record, `isEntryR_term_nz`, and `TermsLe`, `ownRaftGhost_terms_le`). For the queued
+acknowledgement the node keeps `storedRecs γ b stored` and `ackArm`: no restore since (`prev = b`,
+the pending snapshot the `Ready`'s; at the term `t`, `ackLostW`: all of `stored` in progress, or a
+cut `c ≤ offsetInProgress` where a term-`t` `leadFull` disagrees with `stored`), or a restore past
+`b` (with an entry and at the term `t`, `ackBaseW`: `stored` lacks the boundary `p`'s term at `p`,
+and a term-`t` `leadFull` has `p`). Transport: `ackInv_keep` (every step but a truncating
+`MsgApp`'s or a restore: `offsetInProgress` not moved back, `TermStep`/`LocalFrame`), `ackInv_app`
+(`AppTrunc`, `persistRel_agree`: below `offsetInProgress` the log is `stored`'s prefix,
+`LogPersistRel` from `Hpersist` or `SipOk`, `ownRaftPhysC_persistRel`, `ack_snap_sip`),
+`ackInv_snap` (`nobase_core` from the cut, `nobase_core2` from an earlier mark; `leadFull_agree`).
+At `Advance`, after a restore, `stableHit_restored`/`stableHit_miss` (records of `stored` and of
+the log, `plog_match_down` down to the restored boundary) give `¬ StableHit`, so `StableOk`
+vacuously, for both the loan's acknowledgement (`wp_step_snapack`, now with the caller's
+`StableOk`; `ackSnapLog_facts_miss`: the restored snapshot stays pending, `applied`/`applying` at
+the lent one's index) and a plain one (`wp_step_pending`'s new premise `Hack`). `ackInv` and
+`ackArm` are `abbrev`s, so that `ownRawNode_intro` takes them at a record-updated state.
+
+**3. `LoanOk`** loses `psnap = false` and `psnap → steps = []`; the pending snapshot is the lent one
+or a later one restored past it (`l.index < s2.index`, with `psnap = true`), the lent one at most
+the commit index, the acknowledgement at the snapshot as boundary. `LoanOk.step` takes a restore;
+`LoanOk.keep` takes the commit index's monotonicity. **`SnpOk`** gains: in progress or absorbed only
+the snapshot handed out (`sip ∨ sat → snp = some k ∧ snap = some k.sid`), which `Advance` needs
+for a restored loan (`sat`, `sip` off); `SnpOk.of_none`.
+
+No Go bug: the miss is raft's own `newStorageAppendRespMsg` argument (the term in the
+acknowledgement), here carried through a restore.
+
+**For S-d4.** `node.go`'s `run` steps network messages with `r.Step` directly
+(`wp_rn_raft_Step_net`, which still takes `Type ≠ MsgSnap` and now carries `ackInv` across a
+`MsgApp`); S-d4 adds its `MsgSnap` case as `RawNode.Step`'s (`SnapLogStep`, `ackInv_snap`,
+`LoanOk.step`), then the rest as designed.

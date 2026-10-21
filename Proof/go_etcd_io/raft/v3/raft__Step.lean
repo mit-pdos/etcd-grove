@@ -102,7 +102,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ -∗
       isMessage γ (absMsg .app m ents) -∗
-      ▷ stepPost γ md c r id s m Φ -∗
+      ▷ stepPostT γ md c r id s m (AppTrunc m ents s) Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
@@ -134,10 +134,10 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
   wp_apply (wp_Step_MsgApp P Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
-      Hconf Hfv) $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+      Hconf Hfv) $$ [$Hphys $Hmsg] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm, %Htr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-  iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
-    (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hm Hghost Hrest Hphys
+  iapply finish_branchT γ md c r id s s' m _ recv err Φ (AppTrunc m ents s) Htr (Hdh s') Hwf'
+    Hrecv Hstep (fun _ => Hfr) (fun _ => Htm) (by resp_other) Hfr.nsst $$ Hm Hghost Hrest Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -478,7 +478,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ihave ⟨#Hlr, %HL⟩ := ownRaftGhost_lastRec γ id (toPState s) $$ Hghost
   imod lastRec_receipt γ _ $$ Hlr with #Hrc0
   imod ghost_stepCDS γ md c c1 id m Hty sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ _ HL
-      Hstep Hc1 ⟨Hng, Hsf.2.2.2.1⟩ $$ Hrc0 Hm Hall [Hz] [] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
+      Hstep Hc1 ⟨Hng, Hsf.1.2.2.2.1⟩ $$ Hrc0 Hm Hall [Hz] [] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
   · rw [Hcnt]; iexact Hz
   · iapply msgsTks_noprop γ recv (fun x hx => by rw [Hrecv x hx]; simp [absSnap, absSnapFrom])
   imodintro
@@ -488,10 +488,11 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   iframe Hphys Hghost
   ipureintro
   -- (2026-10-20, D22 S-c) the snapshot's frame and configuration (until then not claimed)
-  refine ⟨Hwf', Hout, by resp_other, ⟨Hsf, ?_⟩, Herr⟩
-  rcases Hc1 with h | h
-  · exact .inl h
-  · exact .inr ⟨sv, Hsn, by rw [h.1, Hcl], by rw [← Hcl]; exact h.2⟩
+  refine ⟨Hwf', Hout, by resp_other, ⟨Hsf.1, ?_, fun sv' h => ?_⟩, Herr⟩
+  · rcases Hc1 with h | h
+    · exact .inl h
+    · exact .inr ⟨sv, Hsn, by rw [h.1, Hcl], by rw [← Hcl]; exact h.2⟩
+  · rw [Hsn] at h; cases h; exact Hsf.2
 
 /-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
 private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := hG))
@@ -750,6 +751,8 @@ theorem raft.Step.wp_proof
     · ipureintro; resp_other
     isplitr
     · ipureintro; exact fun h => absurd h (by rw [Hty]; w32_ne)
+    isplitr
+    · ipureintro; exact fun h => absurd h (by rw [Hty]; w32_ne)
     icases Herr with (%Herr | #Hd)
     · ileft; ipureintro; exact Herr
     · iright; iframe Hd; ipureintro; exact Hty
@@ -798,6 +801,8 @@ theorem raft.Step.wp_proof
           (by rw [HtyA]; w32_ne)
       isplitr
       · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
+      isplitr
+      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
       ileft; ipureintro; exact Herr
     · -- (D22 S-d2) with a snapshot: `appliedSnap` (after `stableTo` in the current-term arm),
       -- invisible to the protocol, in the static mode
@@ -838,6 +843,8 @@ theorem raft.Step.wp_proof
           (by rw [HtyA]; w32_ne)
       isplitr
       · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
+      isplitr
+      · ipureintro; exact fun h => absurd h (by rw [HtyA]; w32_ne)
       ileft; ipureintro; exact Herr
   by_cases HtyB : m.Type' = MsgStorageApplyResp
   · -- MsgStorageApplyResp: `appliedTo`, invisible to the protocol.
@@ -871,6 +878,8 @@ theorem raft.Step.wp_proof
         (by rw [HtyB]; w32_ne)
     isplitr
     · ipureintro; exact fun h => absurd h (by rw [HtyB]; w32_ne)
+    isplitr
+    · ipureintro; exact fun h => absurd h (by rw [HtyB]; w32_ne)
     ileft; ipureintro; exact Herr
   by_cases Hns : m.Type' = MsgSnap
   · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"` (either mode since 2026-10-14,
@@ -890,12 +899,34 @@ theorem raft.Step.wp_proof
       exact ⟨Hwf', Href, fun h => absurd Hns h,
         ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
          fun h => absurd h (by rw [Hns]; w32_ne)⟩,
-        fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => Hsf⟩
+        fun h => absurd Hns h, fun h => absurd Hns h, Hresp', fun _ => Hsf,
+        fun h => absurd h (by rw [Hns]; w32_ne)⟩
     icases Hsnap $$ %Hns with ⟨%sv, %scfg, %Hsc, #Hso, #Hm'⟩
     obtain ⟨Hsn, Hcl, Hidx⟩ := Hsc
     have Hnsf : s.gh.ns = false := Hnsx Hns
     iapply dispatch_Snap P Q γ md c r id s ml m ents sn ctx rs sv scfg Φ Hwf Hns (Hsnapt Hns) Hidx Hsn Hcl Hnsf
       $$ Hinit Hphys Hghost Hrest Hmi Hso Hm' HΦs
+  -- (D22 S-d3b, 2026-10-21) MsgApp: `dispatch_App`, with the truncation's mark (`AppTrunc`), which
+  -- `stepPost` does not carry
+  by_cases HtyApp : m.Type' = MsgApp
+  · have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
+      Hpre.dynHyp Hns (fun h => absurd h HtyB) hmd HI
+    ihave HΦa : ▷ stepPostT γ md c r id s m (AppTrunc m ents s) Φ $$ [HΦ Hlc]
+    · inext
+      unfold stepPostT
+      iframe Hlc
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hfr', %Htm', %Hresp', %Htr,
+        Herr⟩
+      iapply HΦ $$ %err %s' %c' %md'
+      iframe Hphys Hghost Herr
+      ipureintro
+      exact ⟨Hwf', Href, Hc', ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
+          fun h => absurd h HtyA⟩,
+        fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun _ => Htr⟩
+    ihave #Hm' := Hmsg0 $$ %MsgType.app %(by rw [HtyApp]; exact mtypeOf_MsgApp) %(by decide)
+    rw [isMessage_absMsg_ctx γ .app m ents ctx (And.intro (by decide) (by decide))]
+    iapply dispatch_App P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf HtyApp (Happ HtyApp)
+      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦa
   ihave HΦ : ▷ stepPost γ md c r id s m Φ $$ [HΦ Hlc]
   · inext
     unfold stepPost
@@ -907,7 +938,7 @@ theorem raft.Step.wp_proof
     -- `LocalStepOk` is about the three types handled above, `SnapStep` about the snapshot
     exact ⟨Hwf', Href, Hc', ⟨fun _ Hl => by rcases Hl with h | h | h <;> contradiction,
         fun h => absurd h HtyA⟩,
-      fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns⟩
+      fun h _ _ => Hfr' h, Htm', Hresp', fun h => absurd h Hns, fun h => absurd h HtyApp⟩
   -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
   -- from `Hpre`
   have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
@@ -983,11 +1014,6 @@ theorem raft.Step.wp_proof
     iapply finish_branch γ md c r id s s' m _ recv err Φ (Hdh s') Hwf' Hrecv Hstep
       (fun _ => Hfr) (fun _ => Htm) Hresp Hfr.nsst $$ Hm' Hghost Hrest Hphys [] HΦ
     ileft; ipureintro; exact Herr
-  by_cases Hty : m.Type' = MsgApp
-  · -- MsgApp: `dispatch_App`.
-    ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Hty]; exact mtypeOf_MsgApp) %(And.intro (by decide) (by decide))
-    iapply dispatch_App P Q γ c r id s ml m ents sn ctx rs Φ md Hdh Hwf Hty (Happ Hty)
-      $$ Hinit Hphys Hghost Hrest Hmi Hm' HΦ
   by_cases Hty : m.Type' = MsgAppResp
   · -- MsgAppResp: `dispatch_AppResp`.
     ihave #Hm' := Hmsg $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp) %(And.intro (by decide) (by decide))

@@ -352,10 +352,43 @@ def SnapStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') ∧
   PreCandStep m s s'
 
+/-- (D22 S-d3b, 2026-10-21) **What a `MsgApp`'s step does to the in-progress entries**: it moves
+`offsetInProgress` back only by a truncation (`TruncAt`: above the commit index, at an entry of the
+message's batch the log did not have), and only at the message's term. With the leader's log the
+message carries (`isMessage`), this is what the `RawNode` keeps of a batch a `Ready` handed out
+that a `MsgApp` cut (`ackLostW`, `InvRawnode.lean`), for a later restore's Log Matching. -/
+def AppTrunc [FfiSyntax] (m : MessageM) (ents : List EntryM) (s s' : NState) : Prop :=
+  uint.Z s'.logst.inprogress < uint.Z s.logst.inprogress →
+  s'.term = m.Term' ∧ TruncAt s.logst ents s'.logst.inprogress
+
+/-- A step that keeps `offsetInProgress`. -/
+theorem AppTrunc.of_ip [FfiSyntax] {m : MessageM} {ents : List EntryM} {s s' : NState}
+    (h : s'.logst.inprogress = s.logst.inprogress) : AppTrunc m ents s s' :=
+  fun hl => absurd hl (by rw [h]; exact Int.lt_irrefl _)
+
 /-- A dropped snapshot's step. -/
 theorem SnapStep.refl [FfiSyntax] (m : MessageM) (s : NState) : SnapStep m s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
     fun h => ⟨rfl, .inl h⟩⟩
+
+/-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
+log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the
+log already has: the commit index fast-forwarded), or `restore`'s third exit -- at the message's
+term, past the commit index, of a snapshot whose last entry the log did not have (`!matchTerm`),
+the log now the snapshot alone. The `RawNode` needs the restore's facts for the acknowledgement of
+a `Ready` the restore came between (`ackBaseW`, `InvRawnode.lean`). -/
+def SnapLogStep [FfiSyntax] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Prop :=
+  (s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
+   s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents ∧
+   s'.logst.inprogress = s.logst.inprogress) ∨
+  (s'.term = m.Term' ∧ s'.logst.prev = snapId sv ∧ s'.logst.snap = some (snapId sv) ∧
+   s'.logst.sents ++ s'.logst.uents = [] ∧
+   uint.Z s.logst.committed < uint.Z sv.Metadata'.Index' ∧
+   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv))
+
+theorem SnapLogStep.refl [FfiSyntax] (sv : SnapshotM) (m : MessageM) (s : NState) :
+    SnapLogStep sv m s s :=
+  .inl ⟨rfl, rfl, rfl, rfl⟩
 
 /-- (2026-10-20, D22 S-c) The configuration after a `MsgSnap` holding the snapshot `sn`: `c`, or the
 one the snapshot's `ConfState` denotes (`snapCfg`), after a restore. -/
@@ -643,7 +676,11 @@ abbrev raft.Step.spec : Prop :=
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
       -- (2026-10-20, D22 S-c) for a snapshot, what is kept of the state and how the term moves
       -- (`SnapStep`), and the configuration afterwards (`SnapCfgOut`)
-      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut id sn c c'⌝ ∗
+      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut id sn c c' ∧
+                     -- (D22 S-d3b) and what it did to the log (`SnapLogStep`)
+                     ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
+      -- (D22 S-d3b, 2026-10-21) a `MsgApp`'s truncation's mark (`AppTrunc`)
+      "%Htrunc" ∷ ⌜m.Type' = MsgApp → AppTrunc m ents s s'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

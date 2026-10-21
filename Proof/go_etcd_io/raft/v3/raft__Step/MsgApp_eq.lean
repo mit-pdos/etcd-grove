@@ -75,7 +75,9 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
+        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hteq Hvotes
   wp_start as H
   iNamed H
@@ -122,7 +124,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
-      app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
+      and_assoc.mp ⟨app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _),
+      trunc_handle_app Happ rfl Hteq.symm⟩⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
       exact step_handle_app c id _ _ m ents s1 (adopt_follower s m.From' Hrole Hvs) Hto Hteq
@@ -149,7 +152,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
-      app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
+      and_assoc.mp ⟨app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _),
+      trunc_handle_app Happ rfl Hteq.symm⟩⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
       exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
@@ -182,7 +186,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
-      keep_frame rfl rfl rfl rfl rfl⟩
+      and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
     simp only [stepFuncOf]
@@ -206,7 +210,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
-      app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
+      and_assoc.mp ⟨app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _),
+      trunc_handle_app Happ rfl Hteq.symm⟩⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
       exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq

@@ -139,14 +139,14 @@ theorem RestartNode.wp_proof
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           -- (D22 S-d3a) no snapshot lent
-          ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ h => (by cases h)⟩,
-            fun l h => (by cases h), fun _ => rfl⟩
+          ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
+            fun l h => (by cases h)⟩
           (TrackedOk.of_sub (by rw [Hdom, P25]; exact GMap.subseteq_refl _)
             (by rw [P25]; exact (GMap.elem_of_list_to_set _ _).2 P26))
           (by unfold NsLink; rw [Hgh, Hns0, Hnx0]; exact ⟨rfl, rfl, rfl⟩)
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] [] []
       · iapply pendList_nil
-      · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
+      · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · rw [Hsg]; iexact Hcl
     | dyn dec c0 h0 h1 =>
@@ -191,11 +191,11 @@ theorem RestartNode.wp_proof
           (by rw [Ht0]) (by rw [Hsg]) Hrnpv (by rw [Hgh]) (by rw [Hgh])
           (uint_Z_nonneg _) (HrnflR _ rfl)
           -- (D22 S-d3a) no snapshot lent
-          ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ h => (by cases h)⟩,
-            fun l h => (by cases h), fun _ => rfl⟩
+          ⟨by rw [Hgh]; try rfl, fun _ => ⟨by rw [Hgh]; try rfl, fun _ _ _ _ h => (by cases h)⟩,
+            fun l h => (by cases h)⟩
           $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard0 Hsteps Hsteps_cap [] Hcommitted [] []
       · iapply pendList_nil
-      · iapply storedRecsP_intro; rw [Hsd]; iapply storedRecs_nil
+      · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩

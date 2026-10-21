@@ -84,13 +84,13 @@ theorem RawNode.ReportSnapshot.wp_proof
     simp [MsgSnap] at Hc
   have hP : (W32 11 : w32) ≠ MsgProp := by simp [MsgProp]
   simp only [hP]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
-  obtain ⟨Ht1, -, Ht3, -, -, Hpcs⟩ := Htm (by msg_ne)
+  obtain ⟨Ht1, -, Ht3, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
   simp only [H0] at Ht3
@@ -100,7 +100,7 @@ theorem RawNode.ReportSnapshot.wp_proof
     have h2 : uint.Z s'.term ≤ uint.Z s.term := by
       omega
     word
-  ihave #Hstr' := storedRecsP_eq γ _ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 (by msg_ne)) $$ Hstrecs
   icases Herr with (%Herr | ⟨%Hc', -⟩)
   · iapply HΦ
     simp only [named]
@@ -111,7 +111,7 @@ theorem RawNode.ReportSnapshot.wp_proof
       (Hpvoff.step rfl rfl Hpre Hgh (by rw [← Htrm', Htrm]; exact Hpvoff.2.2.1) Hpcs
           (by msg_ne))
       (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha)
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
       $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
     
   · exfalso; revert Hc'; msg_ne

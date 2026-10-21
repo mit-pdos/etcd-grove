@@ -103,7 +103,7 @@ private theorem stepsOk_selfBound (s : NState) (l : List Pending) :
       rcases List.mem_cons.1 Hm with h | h
       · cases h; exact H.1
       · exact IH H.2 pv t h
-    | appendAck tm e sn =>
+    | appendAck tm b e sn =>
       exact (stepsOk_ack_noself s _ rest (fun _ _ h => by cases h) H pv t
         ((List.mem_cons.1 Hm).resolve_left (fun h => by cases h))).elim
     | applyAck ce =>
@@ -149,7 +149,7 @@ private theorem termInv_step (s s1 s2 : NState) (p : Pending) (rest : List Pendi
       obtain ⟨Hr1, Heq⟩ := Hrole Hr
       have := Hpre1 Hr1
       rw [Heq]; exact this
-  | appendAck tm e sn =>
+  | appendAck tm b e sn =>
     have Ht : s2.term = s1.term := Hps
     refine ⟨by rw [Ht]; exact Hlo, by rw [Ht]; exact Hhi, fun ⟨pv, t, h⟩ => ?_,
       by rw [Ht]; exact Htc, Hpc2⟩
@@ -210,17 +210,18 @@ private theorem wp_step_pending
     (γ : RaftNames) (c : CfgM) (md : GMode) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (st : MsgSt) (p : Pending)
     (Hwf : NStateWf s) (Hok : PendingOk s p) (Hal : c.autoLeave = false)
-    -- (D22 S-d3a) an acknowledgement of no snapshot, with none pending (a snapshot's is
-    -- `wp_step_snapack`'s)
-    (Hsnap : ∀ t e sn, p = .appendAck t e sn → s.logst.snap = none ∧ sn = none)
+    -- (D22 S-d3a) an acknowledgement of no snapshot (a snapshot's is `wp_step_snapack`'s); (D22
+    -- S-d3b) its `StableOk` the caller's (`stableOk_of_stored`, or after a restore its miss,
+    -- `stableOk_restored`)
+    (Hack : ∀ t b e sn, p = .appendAck t b e sn → sn = none ∧
+      ∀ x, e = some x → (t = W64 0 ∨ t = s.term) → StableOk s.logst x)
     (Hunp : s.logst.unpersisted = [])
     (Hnw : ∀ pv t, p = .self pv t → s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)
     (Hghoff : s.gh.unst = false) (Hpf : PreFacts md.isDyn s)
     (Hpre : ∀ ce (m' : MessageM), p = .applyAck ce → m'.Type' = MsgStorageApplyResp →
       md.Pre m' ce s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        ownStepGhost γ md c id s ∗ msgIn ml DFrac.discard st ∗ pendingRel γ id st p ∗
-        storedRecs γ s.logst.prev s.logst.stored ∗ £ 1 }}
+        ownStepGhost γ md c id s ∗ msgIn ml DFrac.discard st ∗ pendingRel γ id st p ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (md' : GMode), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ownStepGhost γ md' c id s' ∗
@@ -239,7 +240,7 @@ private theorem wp_step_pending
          s'.logst.fl = s.logst.fl ∧ uint.Z s.logst.applied ≤ uint.Z s'.logst.applied ∧
          (∀ ce, p = .applyAck ce → ∀ e, ce.getLast? = some e →
             uint.Z e.Index' ≤ uint.Z s'.logst.applied)⌝ }} := by
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, #Hstr, Hlc⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hp, Hlc⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
   | self pv t =>
@@ -310,32 +311,25 @@ private theorem wp_step_pending
         · exact absurd h hnpv
       · -- a pre-vote response
         exact Hresp.2 (by simpa using hpv)
-  | appendAck t e sn =>
-    obtain ⟨Hsnap0, Hsn0⟩ := Hsnap t e sn rfl
+  | appendAck t b e sn =>
+    obtain ⟨Hsn0, Hsok0⟩ := Hack t b e sn rfl
     subst Hsn0
     unfold pendingRel
     icases Hp with ⟨%Hm, -⟩
     have Hm' : st = _ := Hm
     subst Hm'
-    obtain ⟨Hle, Hlast⟩ := Hok
-    iunfold ownStepGhost at Hghost
-    icases Hghost with ⟨Hghost, Hrest⟩
-    -- the acknowledged entry, if any (`Index` `0` otherwise: no `stableTo`): the last of what
-    -- the storage holds
-    icases stableOk_of_stored γ id s _ rfl Hsnap0 Hunp $$ Hstr Hghost
-      with ⟨%Hsok, Hghost⟩
-    ihave Hghost : ownStepGhost γ md c id s $$ [Hghost Hrest]
-    · iunfold ownStepGhost; iframe Hghost Hrest
+    obtain ⟨Hle, -⟩ := Hok
+    -- the acknowledged entry, if any (`Index` `0` otherwise: no `stableTo`): the caller's
     have Hsok' : (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Term' = W64 0 ∨
         (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Term' = s.term →
         (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Index' ≠ W64 0 →
         StableOk (ackLog s.logst none)
           ⟨(appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).LogTerm',
             (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Index'⟩ := by
-      intro _ hi
+      intro ht hi
       cases e with
       | none => exact absurd rfl hi
-      | some x => rw [← Hlast x rfl]; exact Hsok
+      | some x => exact Hsok0 x rfl ht
     iapply wp_raft_Step c md γ r id s ml (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) [] [] none []
       (by simp [StepMsg, stepMsgTypes, appendAckM])
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -431,62 +425,55 @@ private theorem wp_step_pending
         fun ce' h => by injection h with h; subst h; exact Happ rfl⟩
 
 /-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s acknowledgement** through `Step`'s spec, its receipt
-absorbed (the storage at the pending snapshot, `sat`): the `sapp` window, where its `stableTo`
-moves stable only what the storage holds (`stableOk_of_stored_ls`), then `appliedSnap`
-(`ackSnapLog`). Static mode only (a snapshot is taken in no other). -/
+absorbed: the storage at the pending snapshot (`sat`), in the `sapp` window, where its `stableTo`
+moves stable only what the storage holds (`stableOk_of_stored_ls`), or (D22 S-d3b) after a
+restore not (its `stableTo` misses, `stableOk_restored`); then `appliedSnap` (`ackSnapLog`). The
+acknowledgement's `StableOk` is the caller's (`Hsok`). Static mode only (a snapshot is taken in no
+other). -/
 private theorem wp_step_snapack
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (ml : Loc) (t : w64) (e : Option entryID) (sv : SnapshotM)
-    (Hwf : NStateWf s) (Hok : PendingOk s (.appendAck t e (some sv))) (Hal : c.autoLeave = false)
-    (Hsn : s.logst.snap = some (snapId sv)) (Hsat : s.logst.sat = true)
-    (Hpv : s.logst.prev = snapId sv) (Hunp : s.logst.unpersisted = [])
+    (ml : Loc) (t : w64) (b : entryID) (e : Option entryID) (sv : SnapshotM)
+    (Hwf : NStateWf s) (Hok : PendingOk s (.appendAck t b e (some sv))) (Hal : c.autoLeave = false)
+    (Hhit : snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat)
+    (Hle : uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index')
+    (Hsok : ∀ x, e = some x → (t = W64 0 ∨ t = s.term) → StableOk (ackLog s.logst (some sv)) x)
     (Hghoff : s.gh.unst = false) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         ownStepGhost γ .static c id s ∗
         msgIn ml DFrac.discard ⟨appendAckM id t (e.getD ⟨W64 0, W64 0⟩), [], some sv, [], []⟩ ∗
-        storedRecs γ s.logst.prev s.logst.stored ∗ £ 1 }}
+        £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (md' : GMode), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ownStepGhost γ md' c id s' ∗
         ⌜NStateWf s' ∧ md' = .static ∧
          s' = { s with
            logst := ackSnapLog s.logst (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) s.term sv }⌝ }} := by
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, #Hstr, Hlc⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hmin, Hlc⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  obtain ⟨Hle, Hlast⟩ := Hok
-  have Hak : ackLog s.logst (some sv) = { s.logst with sapp := true } := by
-    simp [ackLog, Hsat]
-  iunfold ownStepGhost at Hghost
-  icases Hghost with ⟨Hghost, Hrest⟩
-  icases stableOk_of_stored_ls γ id s (ackLog s.logst (some sv)) _
-      (by rw [Hak]; exact ⟨rfl, rfl, rfl⟩) rfl (.inr (by rw [Hak])) (by rw [Hak]; exact Hunp)
-    $$ Hstr Hghost with ⟨%Hsok, Hghost⟩
-  ihave Hghost : ownStepGhost γ .static c id s $$ [Hghost Hrest]
-  · iunfold ownStepGhost; iframe Hghost Hrest
+  obtain ⟨Hle0, -⟩ := Hok
   have Hsok' : (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Term' = W64 0 ∨
       (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Term' = s.term →
       (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Index' ≠ W64 0 →
       StableOk (ackLog s.logst (some sv))
         ⟨(appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).LogTerm',
           (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)).Index'⟩ := by
-    intro _ hi
+    intro ht hi
     cases e with
     | none => exact absurd rfl hi
-    | some x => rw [← Hlast x rfl]; exact Hsok
+    | some x => exact Hsok x rfl ht
   have Hsnp : ∀ sv', some sv = some sv' →
       snapHit s.logst.snap sv'.Metadata'.Index' = s.logst.sat ∧
       uint.Z sv'.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
       GMode.isDyn .static = false ∧ (c.autoLeave = true → s.role ≠ .leader) := by
     intro sv' hsv
     cases hsv
-    refine ⟨by rw [Hsn, Hsat]; simp [snapHit, snapId], by rw [Hpv]; exact Int.le_refl _, rfl,
-      fun h => by rw [Hal] at h; cases h⟩
+    exact ⟨Hhit, Hle, rfl, fun h => by rw [Hal] at h; cases h⟩
   iapply wp_raft_Step c .static γ r id s ml (appendAckM id t (e.getD ⟨W64 0, W64 0⟩)) [] [] (some sv) []
     (by simp [StepMsg, stepMsgTypes, appendAckM])
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (fun _ => ⟨Hsnp, Hle, Hsok', Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
+    (fun _ => ⟨Hsnp, Hle0, Hsok', Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     trivial (fun h => absurd h (by msg_ne))
@@ -610,6 +597,61 @@ private theorem loop_done_nat {n len : w64} {k : Nat} (h1 : ¬ sint.Z n < sint.Z
     sint.nat n = k := by
   word
 
+/-- (D22 S-d3b, 2026-10-21) **After a restore, the acknowledgement misses** (`stableHit_miss`): the
+records of what the storage holds after the `Ready`'s boundary `b` and of the log, at the restored
+boundary, without its entry in what the storage holds (`ackBaseW`). -/
+private theorem stableHit_restored (γ : RaftNames) (id : w64) (s : NState) {md : Bool}
+    (b : entryID) (Hbp : uint.Z b.index' < uint.Z s.logst.prev.index')
+    (Hnb : plogTermAt b s.logst.stored s.logst.prev.index' ≠ some s.logst.prev.term') :
+    ⊢ storedRecs γ b s.logst.stored -∗ ownRaftGhost (GF := GF) γ id (toPState s) md -∗
+      ⌜¬ StableHit s.logst (plogLast b s.logst.stored)⌝ ∗ ownRaftGhost γ id (toPState s) md := by
+  iintro #Hst Hg
+  icases ownRaftGhost_storedRecs_keep γ id (toPState s) $$ Hg with ⟨Hg, #Hlr⟩
+  unfold storedRecs
+  icases Hst with ⟨%HwL, #HrL⟩
+  icases Hlr with ⟨%HwF, #HrF⟩
+  icases logRecs_agree γ _ _ _ _ $$ HrL HrF with %HRA
+  iframe Hg
+  ipureintro
+  exact stableHit_miss HwL HwF HRA Hbp Hnb
+
+/-- (D22 S-d3b) What a snapshot's acknowledgement leaves of the log after a restore (`ackSnapLog`):
+the restored snapshot still pending (`stableSnapTo` misses), the `stableTo` missed (`Hmiss`),
+`applied` and `applying` at the acknowledged snapshot's index, the rest kept. -/
+theorem ackSnapLog_facts_miss (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM)
+    (Hhit : snapHit ls.snap sv.Metadata'.Index' = false) (Hsat : ls.sat = false)
+    (Hmiss : ∀ id', ackStableId m t = some id' → ¬ StableHit ls id')
+    (Hap : uint.Z ls.applying ≤ uint.Z sv.Metadata'.Index')
+    (Happ : uint.Z ls.applied ≤ uint.Z ls.applying) :
+    (ackSnapLog ls m t sv).snap = ls.snap ∧ (ackSnapLog ls m t sv).sip = ls.sip ∧
+    (ackSnapLog ls m t sv).sat = false ∧
+    (ackSnapLog ls m t sv).applying = sv.Metadata'.Index' ∧
+    (ackSnapLog ls m t sv).applied = sv.Metadata'.Index' ∧
+    (ackSnapLog ls m t sv).unpersisted = ls.unpersisted ∧
+    (ackSnapLog ls m t sv).prev = ls.prev ∧ (ackSnapLog ls m t sv).stored = ls.stored ∧
+    (ackSnapLog ls m t sv).storage = ls.storage ∧ (ackSnapLog ls m t sv).fl = ls.fl ∧
+    (ackSnapLog ls m t sv).committed = ls.committed ∧ (ackSnapLog ls m t sv).lent = ls.lent := by
+  have Hak : ackLog ls (some sv) = ls := by simp [ackLog, Hsat]
+  have Hmid : ackSnapLog ls m t sv = logAppliedTo ls sv.Metadata'.Index' (W64 0) := by
+    unfold ackSnapLog
+    cases hst : ackStableId m t with
+    | none =>
+      simp only [Hak]
+      rw [logStableSnap_miss ls _ Hhit]
+    | some id =>
+      simp only [Hak]
+      unfold logStableTo
+      rw [if_neg (Hmiss id hst), logStableSnap_miss ls _ Hhit]
+  rw [Hmid]
+  have Hmax1 : w64Max sv.Metadata'.Index' ls.applied = sv.Metadata'.Index' := by
+    apply uint_Z_inj.1
+    rw [w64Max_spec]; omega
+  have Hmax2 : w64Max ls.applying sv.Metadata'.Index' = sv.Metadata'.Index' := by
+    apply uint_Z_inj.1
+    rw [w64Max_spec]; omega
+  simp only [logAppliedTo, Hmax1, Hmax2, Hsat]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> first | rfl | trivial
+
 private theorem advRS_some {rs : RNState} (t : w64) (ca : Nat) {l : SnapLoan} (h : rs.slent = some l) :
     advRS rs t ca = { rs with steps := [], term := t, capplied := ca, flw := false, slent := none,
                               unpersisted := [], delivered := l.dlv } := by
@@ -627,15 +669,14 @@ theorem RawNode.Advance.wp_proof
   rotate_left
   · -- (D22 S-d3a) **after a snapshot `Ready`**: the application's receipt back, absorbed; the queue
     -- is the node's own responses, then the snapshot's acknowledgement
-    obtain ⟨Hsnp, Hss, Hfl0, Hstu, Hapl, Hdlp, Hdll, Hps0, pre, tA, eA, Hsteq, Hpre⟩ :=
-      Hloan.2.2.1 l hsl
+    obtain ⟨Hsnp, Hss, Hcm0, Hfl0, Hstu, Hapl, Hdlp, Hdll, pre, tA, eA, Hsteq, Hpre⟩ :=
+      Hloan.2.2 l hsl
+    -- (D22 S-d3b) the lent snapshot pending, or a later one restored past it (`LoanOk`)
+    have Hsnn : s.logst.snap ≠ none := by rcases Hss with h | ⟨_, h, -⟩ <;> rw [h] <;> simp
     have Hmd : rs.mode = .static := by
       cases hm : rs.mode with
       | static => rfl
-      | dyn _ _ _ _ =>
-        exfalso
-        have := Hsnap (.inr (by rw [hm]; rfl))
-        rw [Hss] at this; cases this
+      | dyn _ _ _ _ => exact absurd (Hsnap (.inr (by rw [hm]; rfl))) Hsnn
     have Hunst : s.gh.unst = false := by rw [← Hrs_unst]; exact Hunst0
     ihave #Hdl : isCommitted γ l.dlv $$ [Hloanc]
     · iExactEq Hloanc; unfold loanCom; rw [hsl]
@@ -658,7 +699,7 @@ theorem RawNode.Advance.wp_proof
     icases ownRaftLog_snap_facts _ _ $$ Hlog0 with ⟨%Hsf0, Hlog0⟩
     icases ownRaftLog_fl _ _ $$ Hlog0 with ⟨%Hflb0, Hlog0⟩
     ihave Hphys := Hback0 $$ Hlog0
-    have Hpv0 : s.logst.prev = snapId l.snap := (Hsf0.2.2.2 _ Hss).1
+    have Hpvs : ∀ sp, s.logst.snap = some sp → s.logst.prev = sp := fun sp h => (Hsf0.2.2.2 _ h).1
     -- the storage back: absorbed, the log at the snapshot (`sat`), the mirror's lent flag down
     obtain ⟨Hr1, Hr2, Hr3, Hr4, Hr5, Hr6, Hr7⟩ := Hσr
     icases ownRaftPhysC_log_at_snp cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
@@ -668,20 +709,25 @@ theorem RawNode.Advance.wp_proof
       intro _
       have := (Hgh0.1.2.2.1 _ Hsnp).2.1
       rw [Hr2, Hr6, Hr7]; exact this
-    have Hsip1 : s.logst.sip = true := ((Hgh0.1.2.2.1 _ Hsnp).1 Hss).1
     ihave HSt : ownStorage s.logst.storage σr $$ [HSt]
     · rw [← Hstor]; iexact HSt
     ihave Hlog := ownRaftLog_absorb_snap s.log s.logst σr Hlt
       ⟨Hr1.trans Hr2.symm, by rw [Hr3, Hunp, Hstu], Hr4, Hr5.trans Hfl0⟩ Hk $$ Hlog HSt
-    have Hsat0 : (logAbsorbSnap s.logst σr.ss).sat = true :=
-      (logAbsorbSnap_sat s.logst σr.ss).2 ⟨by rw [Hss, Hr2], Hsip1⟩
     have HghN : LogGhOk { s with gh := { s.gh with slent := false, snp := s.gh.snp } }
         (logAbsorbSnap s.logst σr.ss) := by
-      refine ⟨⟨fun _ => .inr (by show s.logst.snap ≠ none; rw [Hss]; simp), rfl,
-          fun k hk => ?_, fun _ => by show s.gh.snp ≠ none; rw [Hsnp]; simp⟩,
+      refine ⟨⟨fun _ => .inr Hsnn, rfl,
+          fun k hk => ?_, fun _ => by show s.gh.snp ≠ none; rw [Hsnp]; simp, fun h => ?_⟩,
         fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩
-      obtain ⟨a, b, c⟩ := Hgh0.1.2.2.1 k hk
-      exact ⟨fun h => ⟨(a h).1, .inr Hsat0⟩, b, c⟩
+      · obtain ⟨a, b, c⟩ := Hgh0.1.2.2.1 k hk
+        refine ⟨fun h => ⟨(a h).1, .inr ((logAbsorbSnap_sat s.logst σr.ss).2 ⟨?_, (a h).1⟩)⟩, b, c⟩
+        rw [Hsnp] at hk; cases hk
+        show s.logst.snap = some σr.ss
+        rw [Hr2]; exact h
+      · -- (D22 S-d3b) the storage at the pending snapshot only for the lent one
+        rcases h with h | h
+        · exact Hgh0.1.2.2.2.2 (.inl h)
+        · obtain ⟨Hs, -⟩ := (logAbsorbSnap_sat s.logst σr.ss).1 h
+          exact ⟨_, Hsnp, by show s.logst.snap = _; rw [Hs, Hr2]; rfl⟩
     ihave Hphys := Hback $$ %(logAbsorbSnap s.logst σr.ss) %false %s.gh.snp Hlog %HghN
       %(fun _ => Int.le_refl _)
     generalize Hs0 : ({ s with
@@ -731,7 +777,8 @@ theorem RawNode.Advance.wp_proof
                   (sint.nat n ≤ pre.length →
                     s1.logst.applying = s0.logst.applying ∧ s1.logst.snap = s0.logst.snap) ∧
                   (pre.length < sint.nat n →
-                    s1.logst.snap = none ∧ s1.logst.applying = l.snap.Metadata'.Index' ∧
+                    (rs.psnap = false → s1.logst.snap = none) ∧
+                    s1.logst.applying = l.snap.Metadata'.Index' ∧
                     s1.logst.applied = l.snap.Metadata'.Index' ∧ s1.logst.sip = false ∧
                     s1.logst.sat = false ∧ s1.logst.lent = false)⌝ ∗
         "%Hsg1" ∷ ⌜s1.logst.storage = s0.logst.storage ∧ s1.prevote = s0.prevote ∧ s1.gh = s0.gh⌝ ∗
@@ -783,9 +830,6 @@ theorem RawNode.Advance.wp_proof
       have HnS : sint.nat n + 1 = sint.nat (n + W64 1) := by word
       rw [HnS] at Hok1 Hsb1 Hti1 ⊢
       obtain ⟨Hpok, Hrest⟩ := stepsOk_cons _ _ _ Hok1
-      ihave #Hstr1 := storedRecsP_elim γ Hps0 _ _ $$ Hstrecs
-      ihave #Hstr1 := storedRecs_eq γ _ s1.logst.prev _ s1.logst.stored
-        (Hs1.2.1.trans Hs0f.2.2.2.1) (Hs1.2.2.1.trans Hs0f.2.2.2.2.1) $$ Hstr1
       by_cases Hnp : sint.nat n < pre.length
       · -- one of the node's own responses
         have Hpp : p ∈ pre := by
@@ -800,10 +844,10 @@ theorem RawNode.Advance.wp_proof
         icases ownRaftPhysC_preFacts cf rnv.raft' id s1 (dyn := false) (fun h => by cases h) $$ Hphys
           with ⟨%Hpf1, Hphys⟩
         wp_apply wp_step_pending wp_raft_Step γ cf .static rnv.raft' id s1 mm st (.self pv0 t0) Hwf1
-          Hpok Hal (fun _ _ _ h => by cases h) Hs1.1 Hnw1
+          Hpok Hal (fun _ _ _ _ h => by cases h) Hs1.1 Hnw1
           (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst) Hpf1
           (fun _ _ h => by cases h)
-          $$ [$Hphys $Hghost $Hmin $Hpm $Hstr1 $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+          $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
         obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
           Hfl2, Hap2, Hack2⟩ := Hst2
         have Hc12 := Hout2.commit_mono
@@ -834,7 +878,7 @@ theorem RawNode.Advance.wp_proof
           Hsteps1.2]
       · -- the snapshot's acknowledgement, last
         have Hne : sint.nat n = pre.length := by omega
-        have Hpe : p = .appendAck tA eA (some l.snap) := by
+        have Hpe : p = .appendAck tA (snapId l.snap) eA (some l.snap) := by
           rw [Hsteq, Hne] at Hp_lookup; simp at Hp_lookup; exact Hp_lookup.symm
         subst Hpe
         iunfold pendingRel at Hpm
@@ -845,65 +889,217 @@ theorem RawNode.Advance.wp_proof
         icases ownRaftPhysC_gh cf rnv.raft' id s1 $$ Hphys with ⟨%Hgh1, Hphys⟩
         have Hsnp1 : s1.gh.snp = some (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) := by
           rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hsnp
-        have Hsn1' : s1.logst.snap = some (snapId l.snap) := by
-          rw [Hsn1, Hs0f.2.2.1]; exact Hss
+        have Hsn1s : s1.logst.snap = s.logst.snap := by rw [Hsn1, Hs0f.2.2.1]
         have Hlt1 : s1.logst.lent = false := by
           rw [Hgh1.1.2.1, Hsg1.2.2]; exact Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
-        have Hsat1 : s1.logst.sat = true := by
-          rcases ((Hgh1.1.2.2.1 _ Hsnp1).1 Hsn1').2 with h | h
-          · rw [Hlt1] at h; cases h
-          · exact h
-        have Hpv1 : s1.logst.prev = snapId l.snap := by
-          rw [Hs1.2.1, Hs0f.2.2.2.1]; exact Hpv0
         icases ownRaftPhysC_logwf cf rnv.raft' id s1 $$ Hphys with ⟨%Hlw1, Hphys⟩
-        wp_apply wp_step_snapack wp_raft_Step γ cf rnv.raft' id s1 mm tA eA l.snap Hwf1 Hpok Hal
-          Hsn1' Hsat1 Hpv1 Hs1.1
-          (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
-          $$ [$Hphys $Hghost $Hmin $Hstr1 $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
-        obtain ⟨Hwf2, rfl, Hs2⟩ := Hst2
-        have Hl2 : s2.logst =
-            ackSnapLog s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term l.snap := by
-          rw [Hs2]
-        have Hg2 : s2.gh = s1.gh := by rw [Hs2]
-        have Ht2 : s2.term = s1.term := by rw [Hs2]
-        have Hpv2 : s2.prevote = s1.prevote := by rw [Hs2]
-        have Hr2 : s2.role = s1.role := by rw [Hs2]
-        obtain ⟨b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12⟩ :=
-          ackSnapLog_facts s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term
-            l.snap Hsn1' (by rw [Hap1, Hs0f.1]; exact Hapl) Hlw1.1
-        rw [← Hl2] at b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12
-        rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
-        wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (null : Loc)
-          $$ [Hsteps] with Hsteps
-        · iframe
-          ipureintro
-          constructor <;> word
-        wp_for_post
-        iframe
-        iexists n + W64 1, s2, steps1.set (sint.Z n).toNat (null : Loc), mm, n
-        iframe
-        ipureintro
+        -- (D22 S-d3b) the acknowledgement's facts (`ackInv`): the records of what the storage
+        -- holds after the lent snapshot, and the arm
+        have Hmem : Pending.appendAck tA (snapId l.snap) eA (some l.snap) ∈ rs.steps := by
+          rw [Hsteq]; simp
+        have HpoS := stepsOk_ack Hstok Hmem
+        icases Hstrecs $$ %tA %(snapId l.snap) %eA %(some l.snap) %Hmem with ⟨#Hstr0, #Harm⟩
+        ihave #Hstr1 : storedRecs γ (snapId l.snap) s1.logst.stored $$ []
+        · rw [Hs1.2.2.1, Hs0f.2.2.2.2.1]; iexact Hstr0
         have Hgt : pre.length < sint.nat (n + W64 1) := by rw [← HnS]; omega
         have Hdr : rs.steps.drop (sint.nat (n + W64 1)) = [] :=
           List.drop_eq_nil_of_le (by rw [Hlen2, ← HnS]; omega)
-        refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hwf2,
-          ⟨b6.trans Hs1.1, b7.trans Hs1.2.1, b8.trans Hs1.2.2.1,
-            fun h => absurd h (by omega), fun _ => ⟨b1, b4, b5, b2, b3, b12.trans Hlt1⟩⟩,
-          ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
-          by rw [b11]; exact Hc1,
-          by rw [Hdr]; trivial,
-          fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
-          termInv_step s0 s1 s2 _ _ Hok1 Hsb1 Hti1 (by rw [Ht2]; exact Int.le_refl _) Ht2
-            (fun h => ⟨Hr2 ▸ h, Ht2⟩),
-          by rw [b10]; exact Hfl1.1, ?_⟩
-        · rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
-            Hsteps1.2]
-        · rw [b5]
-          have := Hfl1.2
-          have := Hlw1.1
-          rw [Hap1, Hs0f.1] at this
-          have := Hapl
-          omega
+        iunfold ownStepGhost at Hghost
+        icases Hghost with ⟨Hg, Hgr⟩
+        rcases Hss with Hu | ⟨s2, Hs2, Hl2, Hps2⟩
+        · -- the lent snapshot still pending: the storage at it (`sat`), the `sapp` window
+          have Hsn1' : s1.logst.snap = some (snapId l.snap) := Hsn1s.trans Hu
+          have Hsat1 : s1.logst.sat = true := by
+            rcases ((Hgh1.1.2.2.1 _ Hsnp1).1 Hsn1').2 with h | h
+            · rw [Hlt1] at h; cases h
+            · exact h
+          have Hpv1 : s1.logst.prev = snapId l.snap := by
+            rw [Hs1.2.1, Hs0f.2.2.2.1]; exact Hpvs _ Hu
+          have Hak : ackLog s1.logst (some l.snap) = { s1.logst with sapp := true } := by
+            simp [ackLog, Hsat1]
+          ihave #Hstr2 : storedRecs γ s1.logst.prev s1.logst.stored $$ []
+          · rw [Hpv1]; iexact Hstr1
+          icases stableOk_of_stored_ls γ id s1 (ackLog s1.logst (some l.snap)) _
+              (by rw [Hak]; exact ⟨rfl, rfl, rfl⟩) rfl (.inr (by rw [Hak])) (by rw [Hak]; exact Hs1.1)
+            $$ Hstr2 Hg with ⟨%Hsok, Hg⟩
+          ihave Hghost : ownStepGhost γ .static cf id s1 $$ [Hg Hgr]
+          · iunfold ownStepGhost; iframe Hg Hgr
+          wp_apply wp_step_snapack wp_raft_Step γ cf rnv.raft' id s1 mm tA (snapId l.snap) eA l.snap
+            Hwf1 Hpok Hal (by rw [Hsn1', Hsat1]; simp [snapHit, snapId])
+            (by rw [Hpv1]; exact Int.le_refl _)
+            (fun x hx _ => by rw [← (Hpok.2 x hx).1, ← Hpv1]; exact Hsok)
+            (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
+            $$ [$Hphys $Hghost $Hmin $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+          obtain ⟨Hwf2, rfl, Hs2⟩ := Hst2
+          have Hl2 : s2.logst =
+              ackSnapLog s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term l.snap := by
+            rw [Hs2]
+          have Hg2 : s2.gh = s1.gh := by rw [Hs2]
+          have Ht2 : s2.term = s1.term := by rw [Hs2]
+          have Hpv2 : s2.prevote = s1.prevote := by rw [Hs2]
+          have Hr2 : s2.role = s1.role := by rw [Hs2]
+          obtain ⟨b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12⟩ :=
+            ackSnapLog_facts s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term
+              l.snap Hsn1' (by rw [Hap1, Hs0f.1]; exact Hapl) Hlw1.1
+          rw [← Hl2] at b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12
+          rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
+          wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (null : Loc)
+            $$ [Hsteps] with Hsteps
+          · iframe
+            ipureintro
+            constructor <;> word
+          wp_for_post
+          iframe
+          iexists n + W64 1, s2, steps1.set (sint.Z n).toNat (null : Loc), mm, n
+          iframe
+          ipureintro
+          refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hwf2,
+            ⟨b6.trans Hs1.1, b7.trans Hs1.2.1, b8.trans Hs1.2.2.1,
+              fun h => absurd h (by omega), fun _ => ⟨fun _ => b1, b4, b5, b2, b3, b12.trans Hlt1⟩⟩,
+            ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
+            by rw [b11]; exact Hc1,
+            by rw [Hdr]; trivial,
+            fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
+            termInv_step s0 s1 s2 _ _ Hok1 Hsb1 Hti1 (by rw [Ht2]; exact Int.le_refl _) Ht2
+              (fun h => ⟨Hr2 ▸ h, Ht2⟩),
+            by rw [b10]; exact Hfl1.1, ?_⟩
+          · rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
+              Hsteps1.2]
+          · rw [b5]
+            have := Hfl1.2
+            have := Hlw1.1
+            rw [Hap1, Hs0f.1] at this
+            have := Hapl
+            omega
+        · -- (D22 S-d3b) a later snapshot restored: the storage shadowed (`sat` off), the
+          -- acknowledgement's `stableTo` missing (`stableHit_restored`, the restore's mark)
+          have Hsn1' : s1.logst.snap = some s2 := Hsn1s.trans Hs2
+          have Hpv1 : s1.logst.prev = s2 := by rw [Hs1.2.1, Hs0f.2.2.2.1]; exact Hpvs _ Hs2
+          have Hne2 : ∀ k, s1.gh.snp = some k → s1.logst.snap = some k.sid → False := by
+            intro k hk hks
+            rw [Hsnp1] at hk; cases hk
+            rw [Hsn1'] at hks
+            simp only [Option.some.injEq, snapTrip, snapId] at hks
+            rw [hks] at Hl2; simp at Hl2
+          have Hsat1 : s1.logst.sat = false := by
+            cases h : s1.logst.sat
+            · rfl
+            · exfalso
+              obtain ⟨k, hk, hks⟩ := Hgh1.1.2.2.2.2 (.inr h)
+              exact Hne2 k hk hks
+          have Hsip1 : s1.logst.sip = false := by
+            cases h : s1.logst.sip
+            · rfl
+            · exfalso
+              obtain ⟨k, hk, hks⟩ := Hgh1.1.2.2.2.2 (.inl h)
+              exact Hne2 k hk hks
+          have Hak : ackLog s1.logst (some l.snap) = s1.logst := by simp [ackLog, Hsat1]
+          have Hbp1 : uint.Z (snapId l.snap).index' < uint.Z s1.logst.prev.index' := by
+            rw [Hpv1]; exact Hl2
+          ihave %Hnb : ⌜eA ≠ none ∧ s.term = tA →
+              plogTermAt (snapId l.snap) s1.logst.stored s1.logst.prev.index' ≠
+                some s1.logst.prev.term'⌝ $$ []
+          · unfold ackArm
+            icases Harm with (⟨%Hp, -⟩ | ⟨%Hbp, #Hb⟩)
+            · exfalso
+              have := Hpvs _ Hs2
+              rw [Hp.1] at this
+              rw [← this] at Hl2
+              simp [snapId] at Hl2
+            · by_cases hc : eA ≠ none ∧ s.term = tA
+              · ihave #Hb' := Hb $$ %hc
+                iunfold ackBaseW at Hb'
+                icases Hb' with ⟨%H, -⟩
+                ipureintro
+                intro _
+                rw [Hs1.2.1, Hs1.2.2.1, Hs0f.2.2.2.1, Hs0f.2.2.2.2.1]
+                exact H
+              · ipureintro; exact fun h => absurd h hc
+          ihave ⟨%Hmiss0, Hg⟩ : ⌜eA ≠ none ∧ s.term = tA →
+              ¬ StableHit s1.logst (plogLast (snapId l.snap) s1.logst.stored)⌝ ∗
+              ownRaftGhost γ id (toPState s1) (GMode.isDyn .static) $$ [Hg]
+          · by_cases hc : eA ≠ none ∧ s.term = tA
+            · icases stableHit_restored γ id s1 (snapId l.snap) Hbp1 (Hnb hc) $$ Hstr1 Hg
+                with ⟨%Hm, Hg⟩
+              iframe Hg; ipureintro; exact fun _ => Hm
+            · iframe Hg; ipureintro; exact fun h => absurd h hc
+          have Hts : s.term = s0.term := Hs0f.2.2.2.2.2.2.2.2.2.2.1.symm
+          have Hnh : ∀ x, eA = some x → (tA = W64 0 ∨ tA = s1.term) → ¬ StableHit s1.logst x := by
+            intro x hx ht
+            have h1 := Hpok.2 x hx
+            have Htn : tA = s1.term := ht.resolve_left (fun h => by have h2 := h1.2; rw [h] at h2; word)
+            have Hst : s.term = tA :=
+              ack_term_back HpoS.1 (by rw [Hts]; exact Hti1.1) Htn.symm
+            rw [← h1.1]
+            exact Hmiss0 ⟨by rw [hx]; simp, Hst⟩
+          have Hmiss : ∀ id', ackStableId (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term =
+              some id' → ¬ StableHit s1.logst id' := by
+            intro id' h
+            unfold ackStableId at h
+            split at h
+            · rename_i hc
+              cases h
+              cases hx : eA with
+              | none => simp [hx, appendAckM] at hc
+              | some x =>
+                simp only [hx, Option.getD_some, appendAckM] at hc ⊢
+                exact Hnh x hx hc.1
+            · cases h
+          ihave Hghost : ownStepGhost γ .static cf id s1 $$ [Hg Hgr]
+          · iunfold ownStepGhost; iframe Hg Hgr
+          have Hhit1 : snapHit s1.logst.snap l.snap.Metadata'.Index' = false := by
+            rw [Hsn1']
+            simp only [snapHit, decide_eq_false_iff_not]
+            intro h; rw [h] at Hl2; simp [snapId] at Hl2
+          wp_apply wp_step_snapack wp_raft_Step γ cf rnv.raft' id s1 mm tA (snapId l.snap) eA l.snap
+            Hwf1 Hpok Hal (by rw [Hhit1, Hsat1])
+            (by rw [Hpv1]; exact Int.le_of_lt Hl2)
+            (fun x hx ht => by rw [Hak]; exact fun h => absurd h (Hnh x hx ht))
+            (by rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1]; exact Hunst)
+            $$ [$Hphys $Hghost $Hmin $Hlc1] as %err %s2' %md2 ⟨Hphys, Hghost, %Hst2⟩
+          obtain ⟨Hwf2, rfl, Hs2'⟩ := Hst2
+          have Hl2' : s2'.logst =
+              ackSnapLog s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term l.snap := by
+            rw [Hs2']
+          have Hg2 : s2'.gh = s1.gh := by rw [Hs2']
+          have Ht2 : s2'.term = s1.term := by rw [Hs2']
+          have Hpv2 : s2'.prevote = s1.prevote := by rw [Hs2']
+          have Hr2 : s2'.role = s1.role := by rw [Hs2']
+          obtain ⟨b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12⟩ :=
+            ackSnapLog_facts_miss s1.logst (appendAckM id tA (eA.getD ⟨W64 0, W64 0⟩)) s1.term
+              l.snap Hhit1 Hsat1 Hmiss (by rw [Hap1, Hs0f.1]; exact Hapl) Hlw1.1
+          rw [← Hl2'] at b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12
+          rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
+          wp_apply wp_store_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (null : Loc)
+            $$ [Hsteps] with Hsteps
+          · iframe
+            ipureintro
+            constructor <;> word
+          wp_for_post
+          iframe
+          iexists n + W64 1, s2', steps1.set (sint.Z n).toNat (null : Loc), mm, n
+          iframe
+          ipureintro
+          refine ⟨by word, ⟨by rw [List.length_set]; exact Hsteps1.1, ?_⟩, Hwf2,
+            ⟨b6.trans Hs1.1, b7.trans Hs1.2.1, b8.trans Hs1.2.2.1,
+              fun h => absurd h (by omega),
+              fun _ => ⟨(fun h => by rw [Hps2] at h; cases h), b4, b5, b2.trans Hsip1, b3,
+                b12.trans Hlt1⟩⟩,
+            ⟨b9.trans Hsg1.1, Hpv2.trans Hsg1.2.1, Hg2.trans Hsg1.2.2⟩,
+            by rw [b11]; exact Hc1,
+            by rw [Hdr]; trivial,
+            fun pv t h => Hsb1 pv t (List.mem_cons_of_mem _ h),
+            termInv_step s0 s1 s2' _ _ Hok1 Hsb1 Hti1 (by rw [Ht2]; exact Int.le_refl _) Ht2
+              (fun h => ⟨Hr2 ▸ h, Ht2⟩),
+            by rw [b10]; exact Hfl1.1, ?_⟩
+          · rw [← HnS, List.drop_set_of_lt (by simp [sint.nat]), ← List.drop_drop, ← List.drop_drop,
+              Hsteps1.2]
+          · rw [b5]
+            have := Hfl1.2
+            have := Hlw1.1
+            rw [Hap1, Hs0f.1] at this
+            have := Hapl
+            omega
     · -- the loop is done: `stepsOnAdvance = stepsOnAdvance[:0]`
       have Hif' : ¬ sint.Z n < sint.Z rnv.stepsOnAdvance'.len := by
         first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
@@ -926,16 +1122,18 @@ theorem RawNode.Advance.wp_proof
       ihave Hphys := Hback1 $$ %s1.logst %false %none Hlog1
         %(⟨⟨fun h => (by
               rw [Hsg1.2.2, Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.2.1] at h; rw [Hunst] at h; cases h),
-            SnpOk.of_quiet (g := { s1.gh with slent := false, snp := none }) Hlt1 Hsn1 Hsip1 Hsat1
-              (by intro _ h; cases h)⟩,
+            SnpOk.of_none (g := { s1.gh with slent := false, snp := none }) Hlt1 rfl Hsip1 Hsat1⟩,
           fun _ => ⟨rfl, rfl, rfl, Int.le_refl _⟩, rfl⟩ :
           LogGhOk { s1 with gh := { s1.gh with slent := false, snp := none } } s1.logst)
         %(fun _ => Int.le_refl _)
       ihave Hghost := ownStepGhost_congr γ _ cf id (s := s1)
         (s' := { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } })
         rfl rfl rfl rfl $$ Hghost
-      ihave #Hstr1 := storedRecsP_eq γ rs.psnap _ s1.logst.prev _ s1.logst.stored
-        (Hs1.2.1.trans Hs0f.2.2.2.1) (Hs1.2.2.1.trans Hs0f.2.2.2.2.1) $$ Hstrecs
+      ihave #Hstr1 : ackInv γ { rs with
+              steps := [], term := s1.term, capplied := rs.capplied, flw := false, slent := none,
+              unpersisted := [], delivered := l.dlv }
+          { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } $$ []
+      · iapply ackInv_none; intro _ _ _ _ h; cases h
       have Htc1 : s1.gh.tc = s.gh.tc := by rw [Hsg1.2.2]; exact Hs0f.2.2.2.2.2.2.2.2.2.2.2.2.1
       have HrnflA : RNFl { rs with
               steps := [], term := s1.term, capplied := rs.capplied, flw := false, slent := none,
@@ -950,7 +1148,7 @@ theorem RawNode.Advance.wp_proof
               steps := [], term := s1.term, capplied := rs.capplied, flw := false, slent := none,
               unpersisted := [], delivered := l.dlv }
           { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } :=
-        ⟨rfl, fun _ => ⟨rfl, fun _ _ _ h => (by cases h)⟩, fun l h => (by cases h), fun _ => rfl⟩
+        ⟨rfl, fun _ => ⟨rfl, fun _ _ _ _ h => (by cases h)⟩, fun l h => (by cases h)⟩
       ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
           { s1 with logst := s1.logst, gh := { s1.gh with slent := false, snp := none } } $$ [Hghost]
       · rw [Hmd]; simp only [RNMode.toG]; iexact Hghost
@@ -968,7 +1166,10 @@ theorem RawNode.Advance.wp_proof
           sv hprev [] Hwf1 Hin Hal Hasync
           (by show l.dlv.length = _; rw [Hap1]; exact Hdll)
           Hs1.1.symm
-          (fun _ => Hsn1) trivial rfl
+          (fun h => by
+            rcases h with ⟨hp, -⟩ | hd
+            · exact Hsn1 hp
+            · simp [Hmd, RNMode.isDyn] at hd) trivial rfl
           (by show rs.storage = _; rw [Hsg1.1, Hs0f.2.2.2.2.2.1]; exact Hstor)
           (by
             refine ⟨fun h => by simp [Hmd, RNMode.isDyn] at h, by show rs.tc = s1.gh.tc; rw [Htc1]; exact Hpvoff.2.1, ?_, ?_⟩
@@ -1055,21 +1256,15 @@ theorem RawNode.Advance.wp_proof
     -- the next pending message
     list_elem steps (sint.nat n) as mm
     list_elem rs.steps (sint.nat n) as p
-    -- (D22 S-d3a) a queued message: no restore since the last `Ready`, so no snapshot pending
-    have Hps0 : rs.psnap = false := by
-      cases h : rs.psnap
-      · rfl
-      · have := Hloan.2.2.2 h
-        rw [this] at Hp_lookup; simp at Hp_lookup
-    have Hsnap0 : s.logst.snap = none := Hsnap (.inl ⟨Hps0, hsl⟩)
-    ihave #Hstrecs0 := storedRecsP_elim γ Hps0 _ _ $$ Hstrecs
-    have Hnoack : ∀ t e sn, p = .appendAck t e sn → sn = none := by
-      intro t e sn hp
+    -- no snapshot handed out, so no snapshot acknowledgement queued
+    have Hnoack : ∀ t b e sn, p = .appendAck t b e sn → sn = none := by
+      intro t b e sn hp
       cases sn with
       | none => rfl
       | some sv =>
         exfalso
-        exact (Hloan.none_noack hsl).2 t e sv (hp ▸ List.mem_of_getElem? Hp_lookup)
+        exact (Hloan.none_noack hsl).2 t b e sv (hp ▸ List.mem_of_getElem? Hp_lookup)
+    have Hpmem : p ∈ rs.steps := List.mem_of_getElem? Hp_lookup
     have Hmm1 : steps1[sint.nat n]? = some mm := by
       have H := congrArg (fun l => l[0]?) Hsteps1.2
       simp only [List.getElem?_drop, Nat.add_zero] at H
@@ -1093,8 +1288,69 @@ theorem RawNode.Advance.wp_proof
       intro pv t _ hr
       have := Hti1.2.2.2.2 hr
       omega
-    ihave #Hstr1 := storedRecs_eq γ _ s1.logst.prev _ s1.logst.stored Hs1.2.2.2.1 Hs1.2.2.2.2
-      $$ Hstrecs0
+    -- (D22 S-d3b) the acknowledgement's `StableOk`, at the state it is stepped at: with no restore
+    -- since the `Ready`, by Log Matching with what the storage holds (`stableOk_of_stored`); after
+    -- one, its miss (`stableHit_restored`, the restore's mark)
+    ihave ⟨%Hack, Hghost⟩ : ⌜∀ t b e sn, p = .appendAck t b e sn → sn = none ∧
+        ∀ x, e = some x → (t = W64 0 ∨ t = s1.term) → StableOk s1.logst x⌝ ∗
+        ownStepGhost γ (rs.mode.toG ⟨ca, rs.cfg, fp⟩) cf id s1 $$ [Hghost]
+    · cases hp : p with
+      | appendAck t b e sn =>
+        have Hmem : Pending.appendAck t b e sn ∈ rs.steps := hp ▸ Hpmem
+        have Hsn0 := Hnoack t b e sn hp
+        subst Hsn0
+        rw [hp] at Hpok
+        have HpoS := stepsOk_ack Hstok Hmem
+        icases Hstrecs $$ %t %b %e %none %Hmem with ⟨#Hr0, #Harm⟩
+        iunfold ownStepGhost at Hghost
+        icases Hghost with ⟨Hg, Hgr⟩
+        unfold ackArm
+        icases Harm with (⟨%Hp, -⟩ | ⟨%Hbp, #Hb⟩)
+        · -- no restore: the boundary the `Ready`'s, no snapshot pending
+          obtain ⟨Hpb, Hsnn⟩ := Hp
+          ihave #Hr1 : storedRecs γ s1.logst.prev s1.logst.stored $$ []
+          · rw [Hs1.2.2.2.1, Hs1.2.2.2.2, Hpb]; iexact Hr0
+          icases stableOk_of_stored γ id s1 _ rfl (by rw [Hs1.2.2.1]; exact Hsnn)
+              (Hs1.2.1.trans Hunp') $$ Hr1 Hg with ⟨%Hsok, Hg⟩
+          ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨ca, rs.cfg, fp⟩) cf id s1 $$ [Hg Hgr]
+          · iunfold ownStepGhost; iframe Hg Hgr
+          iframe Hghost
+          ipureintro
+          intro t' b' e' sn' h
+          cases h
+          refine ⟨rfl, fun x hx _ => ?_⟩
+          rw [← (Hpok.2 x hx).1, ← Hpb, ← Hs1.2.2.2.1]
+          exact Hsok
+        · -- a restore since: the acknowledgement misses
+          ihave ⟨%Hmiss0, Hg⟩ : ⌜e ≠ none ∧ s.term = t →
+              ¬ StableHit s1.logst (plogLast b s1.logst.stored)⌝ ∗
+              ownRaftGhost γ id (toPState s1) (rs.mode.toG ⟨ca, rs.cfg, fp⟩).isDyn $$ [Hg]
+          · by_cases hc : e ≠ none ∧ s.term = t
+            · ihave #Hb' := Hb $$ %hc
+              iunfold ackBaseW at Hb'
+              icases Hb' with ⟨%H, -⟩
+              ihave #Hr1 : storedRecs γ b s1.logst.stored $$ []
+              · rw [Hs1.2.2.2.2]; iexact Hr0
+              icases stableHit_restored γ id s1 b (by rw [Hs1.2.2.2.1]; exact Hbp)
+                  (by rw [Hs1.2.2.2.1, Hs1.2.2.2.2]; exact H) $$ Hr1 Hg with ⟨%Hm, Hg⟩
+              iframe Hg; ipureintro; exact fun _ => Hm
+            · iframe Hg; ipureintro; exact fun h => absurd h hc
+          ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨ca, rs.cfg, fp⟩) cf id s1 $$ [Hg Hgr]
+          · iunfold ownStepGhost; iframe Hg Hgr
+          iframe Hghost
+          ipureintro
+          intro t' b' e' sn' h
+          cases h
+          refine ⟨rfl, fun x hx ht Hhit => ?_⟩
+          have h1 := Hpok.2 x hx
+          have Htn : t = s1.term := ht.resolve_left (fun h => by have h2 := h1.2; rw [h] at h2; word)
+          have Hst : s.term = t := ack_term_back HpoS.1 Hti1.1 Htn.symm
+          rw [← h1.1] at Hhit
+          exact absurd Hhit (Hmiss0 ⟨by rw [hx]; simp, Hst⟩)
+      | self pv t =>
+        iframe Hghost; ipureintro; intro _ _ _ _ h; cases h
+      | applyAck ce =>
+        iframe Hghost; ipureintro; intro _ _ _ _ h; cases h
     icases ownRaftPhysC_preFacts cf rnv.raft' id s1
         (fun h => by rw [Hsg1.2.1]; exact Hpvoff.dyn ⟨ca, rs.cfg, fp⟩ h) $$ Hphys
       with ⟨%Hpf1, Hphys⟩
@@ -1117,7 +1373,7 @@ theorem RawNode.Advance.wp_proof
         intro ce m' hp hty
         subst hp
         refine ⟨Hpf1.1 (by rw [hm]; rfl),
-          fun _ => ⟨Hs1.2.2.1.trans Hsnap0, fun e He => ?_⟩,
+          fun _ => ⟨Hs1.2.2.1.trans (Hsnap (.inr (by rw [hm]; rfl))), fun e He => ?_⟩,
           fun h => absurd (hty.symm.trans h) (by simp [MsgStorageApplyResp, MsgProp])⟩
         have He' := (Hpok e He).2
         rw [Hs1.1] at He'
@@ -1127,9 +1383,9 @@ theorem RawNode.Advance.wp_proof
         · have := uint_nat_eq e.Index'; rw [Hdlen]; omega
     icases Hres with ⟨%Hpre1, Hghost⟩
     wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm st p Hwf1 Hpok Hal
-      (fun t e sn hp => ⟨Hs1.2.2.1.trans Hsnap0, Hnoack t e sn hp⟩) (Hs1.2.1.trans Hunp') Hnw1
+      Hack (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
-      $$ [$Hphys $Hghost $Hmin $Hpm $Hstr1 $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+      $$ [$Hphys $Hghost $Hmin $Hpm $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
     obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2, Hsg2', Hsg2'', Hrl2,
       Hfl2, Hap2, Hack2⟩ := Hst2
     have Hsg2 := And.intro Hsg2 (And.intro Hsg2' Hsg2'')
@@ -1190,8 +1446,9 @@ theorem RawNode.Advance.wp_proof
     have Hsub : subslice (sint.nat (W64 0)) (sint.nat (W64 0)) steps1 = [] := by
       simp [subslice]
     rw [Hsub]
-    ihave #Hstr1 := storedRecsP_eq γ rs.psnap _ s1.logst.prev _ s1.logst.stored Hs1.2.2.2.1
-      Hs1.2.2.2.2 $$ Hstrecs
+    ihave #Hstr1 : ackInv γ { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1
+        $$ []
+    · iapply ackInv_none; intro _ _ _ _ h; cases h
     -- (D19i part 1) the queue stepped, `applied` is at least `applying`, so at least the floor
     have Hdrop : rs.steps.drop (sint.nat n) = [] := by
       apply List.drop_eq_nil_of_le
@@ -1212,8 +1469,7 @@ theorem RawNode.Advance.wp_proof
        fun h => absurd Hge (by rw [Hs1.1] at h; omega)⟩
     have HloanA : LoanOk { rs with steps := [], term := s1.term, capplied := ca, flw := false } s1 :=
       ⟨by rw [Hsg1.2.2]; exact Hloan.1, fun h => ⟨by rw [Hsg1.2.2]; exact (Hloan.2.1 h).1,
-        fun _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h),
-        fun _ => rfl⟩
+        fun _ _ _ _ h => (by cases h)⟩, fun l h => (by simp only at h; rw [hsl] at h; cases h)⟩
     iapply HΦ $$ %s1.term %ca
     rw [advRS_none s1.term ca hsl]
     isplitl

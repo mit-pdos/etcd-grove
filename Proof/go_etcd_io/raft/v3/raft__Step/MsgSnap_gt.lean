@@ -75,7 +75,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) what is kept of the state, and the term (the message's)
-        "%Hsf" ∷ ⌜SnapStep m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hscope Hsn Hscl Hgt
   wp_start as H
   iNamed H
@@ -133,7 +133,9 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (by simp [becomeFollower, resetTo, resetTo0]) rfl
       (by simp [becomeFollower, resetTo, resetTo0])
       (by simp only [becomeFollower, resetTo, resetTo0]; omega)
-      (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs⟩
+      (by simp only [becomeFollower, resetTo, resetTo0]; omega) rfl Hhs,
+    SnapLogStep.of_handle Hhs (by simp [becomeFollower, resetTo, resetTo0])
+      (by simp [becomeFollower, resetTo, resetTo0])⟩
   · exact ⟨rfl, rfl⟩
   refine ⟨[absSnap m sv scfg] ++ [absSnap m sv scfg], ?_, ?_⟩
   · intro m' Hm'

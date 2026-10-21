@@ -60,7 +60,7 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-19, D21 M3) the no-snapshot mode kept
         "%Hng" ∷ ⌜s'.gh = s.gh⌝ ∗
         -- (2026-10-20, D22 S-c) nothing changes
-        "%Hsf" ∷ ⌜SnapStep m s s'⌝ }} := by
+        "%Hsf" ∷ ⌜SnapStep m s s' ∧ SnapLogStep sv m s s'⌝ }} := by
   intro Hty Hto Hterm Hwf Hlt
   wp_start as H
   iNamed H
@@ -92,7 +92,8 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
-      StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl, rfl, SnapStep.refl m s⟩
+      StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl, rfl, SnapStep.refl m s,
+      SnapLogStep.refl sv m s⟩
 
 end StepProof
 

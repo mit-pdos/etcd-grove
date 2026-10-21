@@ -153,7 +153,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   have Hsip0 : s.logst.sip = false := by
     cases h : s.logst.sip
     · rfl
-    · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.2.2 (.inl h))
+    · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.2.2.1 (.inl h))
   wp_auto
   wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
   · iframe Hlog

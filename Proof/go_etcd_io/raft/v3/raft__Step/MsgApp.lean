@@ -90,7 +90,9 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
+        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgApp_gt _P _Q c r id s ml m sn ctx rs ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
