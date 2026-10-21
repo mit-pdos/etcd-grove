@@ -42,7 +42,7 @@ raft).
 
 Reproduced (2026-10-21, upstream `main` 7ff040cb8, go1.27.1): `TestTxnCompareOnlyLinearizable` in
 `tests/integration/clientv3/txn_test.go` on the fix branch `fix/etcd-txn-empty-serializable`
-(`~/etcd-fixes/etcd-txn-empty-serializable`, test commit 1fb35aaba). A 3-member integration cluster; a
+(`~/etcd-fixes/etcd-txn-empty-serializable`, test commit bf3c1135b). A 3-member integration cluster; a
 follower partitioned from the others (`InjectPartition`); `Put(foo, bar)` through the leader returns at
 revision 2; then `Txn(ctx).If(Compare(Version("foo"), "=", 0)).Commit()` at the follower returns
 `Succeeded: true` at revision 1. The same txn with `Then(OpGet("foo"))` fails with `context deadline
@@ -68,7 +68,7 @@ get), and `linkvtxn.Apply`'s input premise says so (`GenIn`,
 `IsTxnSerializable` returns `false` when both lists are empty (a one-line guard), or `Txn` calls
 `LinearizableReadNotify` for a read-only transaction with no operations. `IsTxnSerializable` has one
 caller (`(*EtcdServer).Txn`), which wants the corrected answer, so the candidate fixes the helper
-(fix commit 8cf21d8e9; alternatives in the candidate's `meta.md`). `IsTxnReadonly`, also vacuously true,
+(fix commit e3010762c; alternatives in the candidate's `meta.md`). `IsTxnReadonly`, also vacuously true,
 is right (no writes) for both its callers.
 
 ## Found

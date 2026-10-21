@@ -3,7 +3,7 @@
 - **Finding**: `issues/etcd-txn-empty-serializable.md`
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-txn-empty-serializable` in `~/etcd-fixes/etcd-txn-empty-serializable`, two commits
-  (2026-10-21): 1fb35aaba adds the test, which fails there; 8cf21d8e9 is the fix. Not pushed; the issue's test link
+  (2026-10-21): bf3c1135b adds the test, which fails there; e3010762c is the fix. Not pushed; the issue's test link
   (`#L186-L208`, doc comment to closing brace) to be checked on GitHub after the push.
 - **Base**: upstream `main` 7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b (2026-10-21; `IsTxnSerializable` unchanged since
   fab3c8e70, 2016, which made it vacuously true)
@@ -11,9 +11,9 @@
 
 Commit messages (drafts for the user to rewrite):
 
-- `tests: test a compare-only txn at a partitioned member` (no body)
-- `etcdserver: serve a txn without operations linearizably`, body: "A txn with no operations asks for no
-  serializable read, so take the read index for it."
+- `tests: test that a txn without operations is linearizable` (no body)
+- `etcdserver: serve a txn without operations linearizably`, body: "A txn without operations still reads keys
+  in its comparisons, and asks for no serializable read."
 
 Push: `git -C ~/etcd-fixes/etcd-txn-empty-serializable push origin fix/etcd-txn-empty-serializable`
 
@@ -63,11 +63,11 @@ want the old local answer can add a serializable `Get`.
 
 ## Verification (go1.27.1 linux/amd64)
 
-- At the tests commit 1fb35aaba (`cd tests && go test ./integration/clientv3/ -run TestTxnCompareOnlyLinearizable
+- At the tests commit bf3c1135b (`cd tests && go test ./integration/clientv3/ -run TestTxnCompareOnlyLinearizable
   -count=1`): fails, `"1" is not greater than or equal to "2"`, `txn answered without the put (succeeded: true)`.
 - The issue's example (a temporary test, not committed, same setup; at the base): put revision 2; the compare-only
   txn `succeeded true, revision 1`; with `Then(OpGet("foo"))`, `context deadline exceeded`.
-- At the fix commit 8cf21d8e9: the test passes (1.31s); `cd tests && go test ./integration/clientv3/
+- At the fix commit e3010762c: the test passes (1.37s; `-count=10` passes, and fails 10 of 10 at the tests commit); `cd tests && go test ./integration/clientv3/
   ./integration/clientv3/concurrency/` ok; `go test ./integration/ -run TestV3Txn` ok; `cd server && go test
   ./etcdserver/...` ok; `gofmt -l` empty; `go vet ./etcdserver/txn/ ./etcdserver/` and `go vet
   ./integration/clientv3/` clean.
@@ -80,3 +80,21 @@ By hand: every caller of `IsTxnSerializable` (one) and `IsTxnReadonly` (two) rea
 behavior (the helper has no doc comment; `rpc.proto` says nothing about txn serializability). Learners reject `Txn`
 regardless (`isRPCSupportedForLearner`). The gRPC proxy forwards `Txn` as is. No non-test code in the repository sends
 an empty txn. No new bug found.
+
+Second pass (2026-10-21, maintainer review): no change to the condition or the test; a why comment on the guard
+(comparisons read keys; only a range can ask to be serializable) and rewritten commit messages.
+
+- Nested txns: a `RequestTxn` op has no `GetRequestRange`, so both `IsTxnSerializable` and `IsTxnReadonly` are
+  false and the txn goes through raft, whatever the nested txn holds. Checked at the tests commit with a temporary
+  test (`Then(OpTxn(nil, nil, nil))` at the partitioned follower): `context deadline exceeded`, not stale. No
+  recursion needed.
+- Every path: `IsTxnSerializable`'s only caller is `(*EtcdServer).Txn`; v3rpc's `kvServer.Txn` and the gRPC proxy's
+  `kvProxy.Txn` (which forwards through clientv3 and caches only range responses) both end there; learners reject
+  `Txn` (`isRPCSupportedForLearner`). `txn.Txn` uses only `IsTxnReadonly` (to choose the read mode). No test of
+  either helper exists in `server/etcdserver/txn/` (none added).
+- Condition: "no operations" equals "no range", since the helper is true only when every op is a serializable range.
+  A txn with a serializable range in one branch and none in the other stays serializable: the client marked part of
+  it serializable (alternative 4).
+- Test: the partitioned-member style of `ordering_util_test.go` and `connectivity/network_partition_test.go`
+  (`InjectPartition`, a 1 s client timeout); it accepts an error or a reply with the put, so the timeout only bounds
+  the run, never decides the result.
