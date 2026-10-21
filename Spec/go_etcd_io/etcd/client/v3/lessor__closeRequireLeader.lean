@@ -31,7 +31,7 @@ invariant pairs each channel with its context (`kaPaired`: `chs[i]` and `ctxs[i]
 copied with `ctxs[i]`, not with `ctxs[newIdx]`. -/
 abbrev lessor.closeRequireLeader.spec : Prop :=
   ∀ (l : Loc) (addr : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"closeRequireLeader")) (Val #()))
   {{ RET #(); True }}
 

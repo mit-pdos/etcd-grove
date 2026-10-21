@@ -27,12 +27,12 @@ for a spec `Spec` the server registered for the method and the caller's `Φ`: `I
 `"/etcdserverpb.KV/Txn"` with `grpc.StaticMethod()` before the options, into a new
 `*TxnResponse`: the call's answer (`txnCallOut`, the run's `Φ`); the request comes back. -/
 abbrev kVClient.Txn.spec : Prop :=
-  ∀ (kc conn : Loc) (addr : GoString) (Spec : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse)
+  ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse)
     (Φ : TxnRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.TxnRequest) (t : TxnModel) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Txn" Spec ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" Spec ∗
       reqPre conn addr (Spec t Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ txnReqAt req t ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Txn"))

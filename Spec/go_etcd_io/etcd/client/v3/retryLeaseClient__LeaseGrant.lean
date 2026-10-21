@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `addr`: `rlc.lc.LeaseGrant(ctx, in, append(opts, withRepeatablePolicy())...)` (the options' slice
 full, `len = cap`: the `append` reallocates): the call's answer (`leaseGrantCallOut`). -/
 abbrev retryLeaseClient.LeaseGrant.spec : Prop :=
-  ∀ (rlc conn : Loc) (addr : GoString)
+  ∀ (rlc conn : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseGrantRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
       □ ▷ Spec (req.TTL', req.ID') Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs }}
     (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!

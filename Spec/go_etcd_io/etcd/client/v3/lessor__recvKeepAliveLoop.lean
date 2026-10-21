@@ -29,7 +29,7 @@ is cancelled; then closes `donec` and every keep-alive, under the lock; it retur
 forever). -/
 abbrev lessor.recvKeepAliveLoop.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (dc : GoChan) (γd : ChanNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗
       lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd iprop(True) .Pending }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"recvKeepAliveLoop")) (Val #()))

@@ -28,7 +28,7 @@ configuration and logger, read-only: `clientCoreAt`, `clientKVAt`):
 `NewLeaseFromLeaseClient(RetryLeaseClient(c), c, c.cfg.DialTimeout + time.Second)`, a `*lessor`
 over the connection (`lessorAt`), as a `Lease`. -/
 abbrev NewLease.spec : Prop :=
-  ∀ (c : Loc) (addr : GoString),
+  ∀ (c : Loc) (addr : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c ∗
       clientKVAt c addr }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewLease)) (Val #c))

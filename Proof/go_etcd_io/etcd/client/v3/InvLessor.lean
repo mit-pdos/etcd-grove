@@ -242,7 +242,7 @@ def lessorInv (l : Loc) (γr : GName) : IProp GF :=
     lsF go!"loopErr" l ↦ e ∗ lessorReg (GF := GF) γr)
 
 /-- **The `*lessor` `l`** over a connection to `addr` (persistent; see the file header). -/
-def lessorAt (l : Loc) (addr : GoString) : IProp GF :=
+def lessorAt (l : Loc) (addr : List GoString) : IProp GF :=
   iprop(∃ (dc : GoChan) (γd : ChanNames) (sc : GoInterfaceOk)
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
@@ -254,7 +254,7 @@ def lessorAt (l : Loc) (addr : GoString) : IProp GF :=
     sync.isOnce (lsF go!"firstKeepAliveOnce" l) (ownBroadcastChan dc γd (iprop(True) : IProp GF) .Pending)
       iprop(True))
 
-instance lessorAt_persistent (l : Loc) (addr : GoString) :
+instance lessorAt_persistent (l : Loc) (addr : List GoString) :
     Persistent (lessorAt (GF := GF) l addr) := by
   unfold lessorAt; infer_instance
 

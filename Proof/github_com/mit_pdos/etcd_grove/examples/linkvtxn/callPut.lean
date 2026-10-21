@@ -32,16 +32,16 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
 theorem callPut.wp_proof : callPut.spec (GF := GF) (hG := hG) := by
-  intro _ cl ep V E γr cid mid hAs key val Q
-  wp_start as ⟨#Hcl, #Hone, #Hrpc, Hau⟩
+  intro _ cl ms V hAs key val Q
+  wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod (srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
-  wp_apply (client_Put_st cl ep V E γr cid mid context.backgroundCtxVal cd key val slice.nil Q
-      []) $$ [Hau] as %resp %err Hout
+  wp_apply (client_Put_st cl ms V context.backgroundCtxVal cd key val slice.nil Q) $$ [Hau]
+    as %resp %err Hout
   · iframe #
     iexact Hau
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)

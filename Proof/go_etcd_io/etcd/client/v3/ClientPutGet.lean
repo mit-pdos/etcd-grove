@@ -52,7 +52,7 @@ theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString
 theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
     (γr : ReadNames) (γf : GName) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putGetInv γr γf key val ∗ mvcc.idxCert E.γ.idx F }}
@@ -63,13 +63,14 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
             putReplied E γr F (putKeyOp key val) (fun _ => monoNatLbOwn γf 1) cid mid m) ∗
             monoNatLbOwn γf 1) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hrpc, #Hctx, #Hce, #Hopts, #Hinv, #HF⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hinv, #HF⟩ HΦ
+  ihave #Hrpc := (isGrpcRpcs_singleton ep _ _).1 $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_own api ep E γr γf cid mid ci cd key val sl F) $$ [] as %resp %err Hout
+  wp_apply (client_put_own api [ep] E γr γf cid mid ci cd key val sl F) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   iexact Hout
@@ -79,7 +80,7 @@ the `KV` field): `nil` and a reply whose first key-value's value is `val`; or an
 theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
     (γr : ReadNames) (γf : GName) (c cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         isGrpcRpc ep go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         putGetInv γr γf key val ∗ monoNatLbOwn γf 1 ∗ mvcc.idxCert E.γ.idx F }}
@@ -89,13 +90,14 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             ⌜m.kvs.head?.map EtcdKv.value = some val⌝) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hrpc, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hlb, #HF⟩ HΦ
+  iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hlb, #HF⟩ HΦ
+  ihave #Hrpc := (isGrpcRpcs_singleton ep _ _).1 $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_get_own api ep E γr γf c cid mid ci cd key val sl F) $$ [] as %resp %err Hout
+  wp_apply (client_get_own api [ep] E γr γf c cid mid ci cd key val sl F) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   iexact Hout

@@ -26,7 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`conn.NewStream(ctx, desc, method, opts...)`** on a connection with no default call options
-(`grpcConn conn addr ics []`, what etcd's client dials with: `isEtcdConn`), for a streaming method
+(`grpcConn conn [addr] ics []`, what etcd's client dials with, to one address: `isEtcdConn`; a
+connection to several addresses has no stream spec, D27), for a streaming method
 registered at `addr` (`isGrpcStream addr method Up Spec`), a context (`ctxOk`), a stream
 descriptor `desc` (read-only) of a client stream (`ClientStreams`; 2026-10-18, the axiom audit:
 for a server-streaming method with retries etcd's interceptor returns a
@@ -49,7 +50,7 @@ abbrev grpc.ClientConn.NewStream.spec : Prop :=
   ∀ (conn : Loc) (addr : GoString) (ics : List GoFunc) (method : GoString) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (desc : Loc) (opts : GoSlice) (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addr ics [] ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn [addr] ics [] ∗
       isGrpcStream addr method Up Spec ∗ ctxOk ctx cd ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}

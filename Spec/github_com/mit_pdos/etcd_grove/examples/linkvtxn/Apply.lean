@@ -14,10 +14,12 @@ the instance's invariant `linkvInv γ γr.kv` with the server's `etcdKV`: `Proof
 The mask `linkvE` is the server's invariants open where it fires a client's update and the
 instance's. The input is one `Gen` may return (`linkvInOk`: `GenIn`, its transactions not empty).
 
-Premises: what `New` returns for a client configured with `MaxUnaryRetries: 1` (`isNewClient`,
-`clientKVOnce`), the server's `Put`, `Range`, `DeleteRange` and `Txn` registered with etcd's
-specs at the client's endpoint (`etcd_kv_served`, at one read names `γr`), the instance's
-invariant, the packages' facts, and `errors.As`'s target (the client's context lemma). Stated
+Premises: what `New` returns for a client of the members `ms` (at least one; several since
+2026-10-21, failover, `notes/decisions.md` D27) configured with `MaxUnaryRetries: 1`
+(`isNewClient`, `clientKVOnce`), each member's `Put`, `Range`, `DeleteRange` and `Txn` registered
+with etcd's specs at its endpoint (`client.kvRegsAt`: `etcd_kv_served`'s, at the member's apply
+environment, read names and ids), the instance's invariant at each member's KV names, the packages'
+facts, and `errors.As`'s target (the client's context lemma). Stated
 under the cache package's assumptions, which the client's lemmas take.
 -/
 module
@@ -43,17 +45,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (γ : LinkvNames) (cl : Loc) (ep : GoString)
-    (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64),
-  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (γ : LinkvNames) (cl : Loc)
+    (ms : List (client.SrvAt GF)) (V : client.WEnv GF),
+  errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn -∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 -∗
-    isNewClient cl ep V -∗ clientKVOnce cl ep -∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) -∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) -∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (client.etcdDeleteSpec E γr cid mid) -∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (client.etcdTxnSpec E γr γr cid mid) -∗
-    linkvInv γ γr.kv -∗
+    isNewClient cl (ms.map client.SrvAt.addr) V -∗ clientKVOnce cl (ms.map client.SrvAt.addr) -∗
+    ([∗list] sv ∈ ms, client.kvRegsAt sv) -∗
+    ([∗list] sv ∈ ms, linkvInv γ sv.γr.kv) -∗
     iprop(∀ i : GoInterface,
       {{ linkvInOk i }} <<{ ∀∀ S, linkvState γ S }>>
         (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkvtxn.Apply)) (Val #cl))

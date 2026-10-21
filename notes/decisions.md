@@ -12318,3 +12318,148 @@ record names some deposit of its data spent at its index; two deposits of one `d
 one index (different terms), so results cannot be per deposit, and firing needs only that the
 named deposit has not fired (a fired one's index is within the log). `propIdx_agree` ("`d` has
 one index") is gone with the single deposit.
+
+## D26: the bridge is part of the network: trust-boundary specs, its code not verified (2026-10-21 · decided by the user; `notes/client-cut-plan.md` K1)
+
+**Problem.** linkv3p's clients reach their members through a copy of etcd's test bridge
+(`third_party/bridge`): a TCP proxy that accepts at a bridge address `a`, dials the member's client
+address `b` once per accepted connection, and copies bytes both ways, or drops them (`Blackhole`),
+or closes the connections (`DropConnections`, `Unblackhole`). The client's results need
+`isGrpcRpc a name Spec` (the registrations at the address it dials); the members give
+`isGrpcRpc b name Spec`. Perennial has no network model and gRPC's wire protocol is not modeled, so
+the step from `b` to `a` is a trust-boundary fact either way.
+
+**Options.**
+
+- (a) **The bridge proved, over relay specs of `net`.** The forwarding fact (`grpc.relay`: a
+  listener bound at `a`, given up to a relay to `b`, serves what `b` serves) is unsound with
+  byte-agnostic `Read`/`Write` specs: a program could write any reply, which a client at `a` would
+  take as a run of `b`'s handler. So the fact comes with specs that enforce relaying: each accepted
+  connection paired with one dialed to `b`, and the bytes written each way a prefix of those read.
+  16 axioms (`relayListener`, `relayFresh`, `relayDir`, `netDialed`, `netConnOk`, `Accept`,
+  `Read`, `Write`, `Close`s, the pairing, `net.Dial`, `io.Copy` to `io.Discard`), `net.Conn`
+  translated as an interface, and the bridge's 11 functions proved.
+- (b) **The bridge as part of the network** (chosen). The bridge is test infrastructure, a
+  stand-in for the network, which the proof already lets fail: each attempt of
+  `ClientConn.Invoke` is a run of the handler served or an error (`InvGrpc.lean`). So
+  `linkv3p_safe` held for every pattern of client-member failures before the bridge; the bridge
+  only makes the test produce them. Proving its code would show that a 229-line test helper
+  relays faithfully and does not panic, which strengthens nothing the theorem says about etcd. Its
+  calls get trust-boundary specs: 5 axioms.
+- (c) No proxy: a "cut" is `cli.Close()` and recovery a new client. No new trust, but no call is
+  ever cut by the network.
+
+**Decision: (b)** (the user, 2026-10-21, after (a) had been carried out on branch `client-cut`:
+"why does the bridge need be spec-ed and proven at all? can't be modeled as part of the inside of
+the network?"). The bridge runs in the program's process (the partitioner calls it), so it cannot
+leave the program: Perennial's adequacy covers every thread. Its specs
+(`Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`):
+
+- `bridgeAt b addr h` (exclusive, axiomatized): `b` is a bridge to `addr`, blackholed if `h`; its
+  goroutines run on their own, without panicking (its wait group counts one goroutine per live
+  connection, far below `2^31`).
+- `New(addr, l)`, `l` a listener bound at `a` (`netListenerAt`): a bridge to `addr`, not
+  blackholed, and `a` serves what `addr` serves, method by method (the forwarding fact).
+- `Blackhole` of a bridge not blackholed (a second one panics:
+  `issues/etcd-bridge-blackhole-twice-panic.md`): blackholed. `Unblackhole`: not blackholed.
+  `DropConnections`: unchanged.
+
+Why the forwarding fact holds of the bridge and gRPC: the bridge only copies bytes, so each side
+receives a prefix of what the other sent, which is what a slow or cut connection delivers anyway;
+an HTTP/2 connection is a byte stream with length-prefixed frames; a unary call succeeds only on a
+complete response and the trailers' `grpc-status: 0`, so a cut response surfaces as the attempt's
+error (`grpcInvokerOk` allows it, with or without the handler having run); a request reaches the
+handler only complete, and at most once (D21j: the bridge duplicates no byte). The `:authority`
+the client sends names `a`, which etcd's server ignores (no TLS, no per-authority routing).
+
+**What it costs.** The bridge's code is trusted: a bug in it that altered bytes would make the
+fact false (porcupine would likely see it in the test, the theorem would not). The
+`Blackhole`-twice panic was found reading the code; the spec's premise records it.
+
+**Trust base.** `etc/tcb-collections/linkv3p.txt` gains 5 axioms (`bridgeAt`, `New.wp_proof`,
+`bridge.Blackhole.wp_proof`, `bridge.Unblackhole.wp_proof`, `bridge.DropConnections.wp_proof`) and
+nothing else; the bridge's functions count as assumed in `etc/verified-code.py`. (a)'s
+`Proof/net/InvRelay.lean`, `net.Dial`/`io.Copy` specs, `net.Conn` translation and the bridge's
+proofs were removed; they are in the branch's history (`client-cut` K1-K3, commits `28168a5756`
+to `9abbdac478`) if a proof of the bridge is ever wanted.
+
+## D27: a client of several endpoints: the gRPC boundary over a list of addresses (2026-10-21 · approved by the user; `notes/client-cut-plan.md` K4)
+
+**Problem.** Failover (the plan's D-C4): one etcd client configured with every member's endpoint,
+grpc's round-robin balancer sending each attempt to one of them. Until now the client's trust
+boundary resolved to one address for good: `grpcResolverAt rb scheme addr`, `grpcConn conn addr`,
+and `Invoke`'s attempt (`grpcInvokerOk conn addr`) ran the handler registered at `addr`;
+`clientCfgOk` took `Endpoints = [ep]`.
+
+**Decision.** The address becomes a list, from the trust boundary up; each old statement is the
+one-element case.
+
+- `grpcConn conn addrs ics dopts`, `grpcResolverAt rb scheme addrs`, `grpc.NewClient`'s axiom over
+  them; etcd's `etcdResolver_grpc` for any non-empty list of plain endpoints (`plainEndpoints`):
+  `Build`'s state is one `resolver.Endpoint` per endpoint, with the round-robin service config.
+- `Invoke`'s attempt (`grpcInvokerOk conn addrs`) takes the method registered at **every**
+  address (`isGrpcRpcs addrs name Spec := [∗ list] a ∈ addrs, isGrpcRpc a name Spec`) and runs the
+  handler of one of them, or errors. True of grpc-go: an attempt is one HTTP/2 stream on one
+  subchannel, the picker's (round-robin over the READY subchannels of the resolver's addresses;
+  with `WaitForReady`, the attempt waits for one). The request reaches at most one run of one
+  server's handler, as before (D21j).
+- Streams stay at one address: `ClientConn.NewStream`'s axiom (watches, the lease keep-alive)
+  takes `grpcConn conn [addr]`. This narrows that axiom; a watch over a client of several
+  endpoints is not covered.
+- The client carries the list: `clientCfgOk cfg eps`, `isNewClient cl eps V`, `isEtcdConn conn
+  addrs`, `kvObjAt api addrs`, `lessorAt l addrs` (its keep-alive specs at `[addr]`), and every unary
+  call's spec takes `isGrpcRpcs`. The client's specs were already generic in the method's `Spec`,
+  so no client proof changes beyond the types.
+
+**How failover uses it.** Each member's handler meets its own spec (its apply environment, its
+member id); a call through a client of the three endpoints passes the conjunction of the three
+(`∧`: the caller proves each from the same resources, the handler that runs uses one), and gets
+the reply of whichever member ran it. A handler meeting one member's spec meets the conjunction
+(the spec occurs only in the handler's precondition).
+
+**Trust base.** No axiom added or removed: `grpcConn`, `grpcResolverAt`, `grpc.NewClient`,
+`ClientConn.Invoke`, `ClientConn.Target` and `etcdResolver_grpc` change their statements (the old
+ones are the one-element case); `ClientConn.NewStream`'s narrows.
+
+**Carried out** (2026-10-21, `notes/client-cut-plan.md` K4): `isGrpcRpcs` is defined by recursion,
+reducible, so at one address it is that address's `isGrpcRpc` and the one-endpoint examples' proofs
+frame it unchanged (their statements take `[ep]`). Failover's calls are
+`Proof/go_etcd_io/etcd/client/v3/Failover.lean` (one-attempt clients only: an update fired at most
+once, by the member reached). linkv3p's clients each have the three bridges; the closed theorem's
+statement is unchanged. A note on what failover covers in Go: a blackholed member's established
+connection stays READY to grpc (no keepalive, `clientCfgOk`), so a call sent on it hangs until the
+connection closes; failover happens once the connection is gone (dropped, refused or closed) and a
+re-dial cannot complete, as in `TestFailover`'s blackhole-then-drop.
+## D28: keepalive, client and server, at the gRPC boundary (2026-10-21 · approved by the user; `notes/keepalive-plan.md` KA1)
+
+**Problem.** Production etcd clients configure gRPC keepalive (`Config.DialKeepAliveTime`), which is
+how a client fails over from a silently partitioned member (D27): the pings go unanswered, grpc
+closes the connection, and the balancer stops picking it. `clientCfgOk` excluded keepalive, because
+its dial option had no descriptor and so put the dial outside `grpc.NewClient`'s axiom. And a
+keepalive client needs the server to accept its pings: grpc's default server policy allows one
+ping every 5 minutes and answers faster ones with `GOAWAY too_many_pings` (confirmed by a probe,
+`notes/keepalive-plan.md` KA0), which etcd's `embed` avoids by setting
+`grpc.KeepaliveEnforcementPolicy(MinTime: GRPCKeepAliveMinTime, 5s by default)`.
+
+**Decision.** Two trust-boundary axioms, each the spec of an option constructor:
+
+- `grpc.WithKeepaliveParams(kp)`, any parameters, returns a dial option with the new descriptor
+  `.keepalive` (`GrpcDialOpt`, `InvDial.lean`), which sets no interceptor and no resolver
+  (`unaryIcsOf_keepalive`, `dialOk_keepalive`), so `grpc.NewClient`'s axiom covers a dial with it
+  unchanged.
+- `grpc.KeepaliveEnforcementPolicy(kep)` returns a `.neutral` server option (`grpcSrvOpt`), as
+  `MaxRecvMsgSize` and `MaxConcurrentStreams` do.
+
+Nothing else is asserted: what keepalive does at run time is close connections, and a closed
+connection fails the calls on it, which `ClientConn.Invoke`'s attempt (an error, nothing about
+whether the handler ran) and the stream specs (`cliStreamErr`) already allow. True of grpc-go
+v1.84: the client transport pings after `Time` without a read and, without an ACK within
+`Timeout`, closes with a connection error, failing every stream on it with `Unavailable`; it never
+re-sends a request, so an attempt still reaches at most one run of one handler (D21j). The server
+policy only decides when the server closes a connection, never which handler runs or what it is
+given.
+
+**Trust base.** +2 axioms (528 axioms, 2 sorries). `grpc.WithKeepaliveParams.wp_proof` is in every
+collection whose results go through `clientv3.New` (`dialSetupOpts`' proof covers the keepalive
+branch whether a configuration takes it or not); `grpc.KeepaliveEnforcementPolicy.wp_proof` in
+linkv3p's only (its members' servers).

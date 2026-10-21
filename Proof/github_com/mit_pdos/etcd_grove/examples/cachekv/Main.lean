@@ -433,7 +433,7 @@ theorem Main.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_New _ go!"127.0.0.1:23851"
+  wp_apply (wp_New _ [go!"127.0.0.1:23851"]
       ⟨R, go!"127.0.0.1:23851", [], null, null, ckPfx, null⟩) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -444,7 +444,7 @@ theorem Main.wp_proof
       · iapply ownSlice_nil
       ipureintro
       refine ⟨?_, ?_⟩
-      · unfold plainEndpoint; decide
+      · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     ipureintro; exact Htb31
   icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)

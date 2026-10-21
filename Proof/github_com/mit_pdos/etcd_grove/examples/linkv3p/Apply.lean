@@ -83,10 +83,8 @@ theorem Apply.wp_proof (wp_Apply : linkvtxn.Apply.spec (GF := GF) (hG := hG)) :
   -- the client's premises, out of the list
   ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ c => clientOk (GF := GF) γ c) Hcl_lookup) $$ Hok
   iunfold clientOk at Hc
-  icases Hc with ⟨%ep, %V, %E, %γr, %cid, %mid, #Hncl, #Hone, #Hput, #Hrange, #Hdel, #Htxn,
-    #Hinv⟩
-  ihave #HA := wp_Apply γ cl ep V E γr cid mid hAs $$ Plkv Pcli Hncl Hone Hput Hrange Hdel
-    Htxn Hinv
+  icases Hc with ⟨%ms, %V, %hms, #Hncl, #Hone, #Hregs, #Hinvs⟩
+  ihave #HA := wp_Apply γ cl ms V hAs hms $$ Plkv Pcli Hncl Hone Hregs Hinvs
   -- `linkvtxn.Apply(cl, input)`, with the caller's update
   wp_bind (App (App (Val _) (Val _)) (Val _))
   iapply HA $$ %i Hin

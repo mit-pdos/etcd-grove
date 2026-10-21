@@ -253,14 +253,14 @@ an exact get and a non-empty prefix (see the file header). Premises: the registr
 `etcdserverpb`'s sort enumerations if the get sorts (`sortNamesIf`, 2026-10-20), and (unit W-M3)
 the client's updates at the read names at the ranges (`kvRangeAu E γr`, 2026-10-20: a linearizable get's floor is its read
 update's result, at the state of the log read). -/
-theorem kv_get_server_r (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
     (Hx : (opGetModel key gs).getExact) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗ kvRangeAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
@@ -462,14 +462,14 @@ an exact get and a non-empty prefix (see the file header). Premises: the registr
 `etcdserverpb`'s sort enumerations (`sortNamesOk`), and (unit W-M3) the client's updates at the
 read names (`kvAnyAu E γr`: a linearizable get's floor is its read update's result, at the state
 of the log read). -/
-theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem kv_get_server (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (lo : w64)
     (Hnp : ¬ opGetPanics gs) (Ht : (opGetModel key gs).t = W64 1)
     (Hx : (opGetModel key gs).getExact) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         sortNamesOk ∗ kvAnyAu E γr ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Get" (kvIfaceOf api).v))
@@ -488,11 +488,11 @@ theorem kv_get_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF
 /-- **A real `*kv` meets the recipes' get contract** (`isEtcdKVTodo`) at the server's model, for a
 non-empty prefix (see the file header): `kv_get_server` at `context.TODO()` (`todo_ctx`, given
 that `errors.As` can take `*rpctypes.EtcdError`, `hAs`). -/
-theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         sortNamesOk ∗ kvAnyAu E γr ⊢
       isEtcdKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany⟩
@@ -513,10 +513,10 @@ theorem isEtcdKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AE
 non-empty prefix: `kv_get_server` at any context (`ctxErrClientAll`: its `Err()` returns client
 errors), with no resource for the options; with the ranges' updates (`kvRangeAu`, 2026-10-20) and
 no sort enumerations (the cache's gets do not sort, `isEtcdKVE`). -/
-theorem isEtcdKVE_of_kv_r (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdKVE_of_kv_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ []) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         kvRangeAu E γr ∗ ctxErrClientAll ⊢
       isEtcdKVE (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hall⟩
@@ -537,6 +537,20 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
   iapply HΦ
   iframe Hres
   iapply errStrOk_of_statusErrOk $$ Hse
+
+/-- **A real `*kv` meets the cache's get contract** (`isEtcdKVE`, K3) at the server's model, for a
+non-empty prefix: `kv_get_server` at any context (`ctxErrClientAll`: its `Err()` returns client
+errors), with no resource for the options. -/
+theorem isEtcdKVE_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ []) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        sortNamesOk ∗ kvAnyAu E γr ∗ ctxErrClientAll ⊢
+      isEtcdKVE (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
+  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hall⟩
+  ihave #Hr := kvAnyAu_range E γr $$ Hany
+  iapply isEtcdKVE_of_kv_r api addr s E γr cid mid pfx hpfx
+  iframe #
 
 end proofs
 

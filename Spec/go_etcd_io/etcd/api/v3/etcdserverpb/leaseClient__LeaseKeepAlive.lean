@@ -31,7 +31,7 @@ abbrev leaseClient.LeaseKeepAlive.spec : Prop :=
   ∀ (lc conn : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
-      isEtcdConn conn addr ∗ leaseKAStreamOk addr ∗ leaseDescOk ∗ ctxOk ctx cd ∗
+      isEtcdConn conn [addr] ∗ leaseKAStreamOk addr ∗ leaseDescOk ∗ ctxOk ctx cd ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}
     (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseKeepAlive"))
       (Val #(GoInterface.ok ctx))) (Val #opts))

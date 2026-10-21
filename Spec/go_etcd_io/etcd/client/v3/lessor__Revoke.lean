@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 lease client; on success the reply itself (`(*LeaseRevokeResponse)(resp)`, read-only) with `Q` of
 it; otherwise `nil` and `ContextError(ctx, err)`. -/
 abbrev lessor.Revoke.spec : Prop :=
-  ∀ (l : Loc) (addr : GoString)
+  ∀ (l : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
-      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗ □ ▷ Spec id Q ∗
+      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗ □ ▷ Spec id Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
       (Val #(GoInterface.ok ctx))) (Val #id))

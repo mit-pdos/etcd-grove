@@ -52,6 +52,7 @@ axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof

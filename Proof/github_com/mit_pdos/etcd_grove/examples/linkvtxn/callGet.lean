@@ -38,22 +38,17 @@ theorem zero_val_Output :
 
 theorem callGet.wp_proof (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
     callGet.spec (GF := GF) (hG := hG) := by
-  intro _ cl ep V E γr cid mid hAs key Q
-  wp_start as ⟨#Hcl, #Hrpc, Hau⟩
+  intro _ cl ms V hAs key Q
+  wp_start as ⟨#Hcl, #Hregs, #Hau⟩
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
-  imod monoNatLbOwn_0 (GF := GF) γr.committed with #Hc0
-  ihave #Hc0' : committedAtLeast (GF := GF) γr (W64 0) $$ []
-  · iunfold committedAtLeast
-    iExactEq Hc0; rfl
+  imod (srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
-  wp_apply (client_Get_st cl ep V E γr cid mid context.backgroundCtxVal cd key slice.nil []
-      Q) $$ [Hau] as %resp %err Hout
+  wp_apply (client_Get_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ []
+    as %resp %err Hout
   · iframe #
-    iexact Hau
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | %Herr)
   · subst Herr
     obtain ⟨hkvs, hrev, hb⟩ := Hσ

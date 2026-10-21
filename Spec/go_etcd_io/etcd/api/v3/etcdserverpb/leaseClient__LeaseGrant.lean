@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `Invoke` of `"/etcdserverpb.Lease/LeaseGrant"` with `grpc.StaticMethod()` before the options,
 into a new `*LeaseGrantResponse`: the call's answer (`leaseGrantCallOut`); the request comes back. -/
 abbrev leaseClient.LeaseGrant.spec : Prop :=
-  ∀ (lc conn : Loc) (addr : GoString)
+  ∀ (lc conn : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Φ : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseGrantRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗
       □ ▷ Spec (req.TTL', req.ID') Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

@@ -205,11 +205,11 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`kv.Put(ctx, key, val)` by the client of `putGetInv`** (`client_put_end_to_end` at
 `putAu_of_putGetInv`): `nil`, the reply and the put's flag (`monoNatLbOwn γf 1`); or an error. -/
-theorem client_put_own (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_put_own (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (γf : GName) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putGetInv γr γf key val ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -248,11 +248,11 @@ theorem client_put_own (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : 
 /-- **`kv.Get(ctx, key)` after the client's put fired** (`client_get_end_to_end` at
 `getAu_of_putGetInv`, then `client_get_value`): `nil` and a reply whose first key-value's value is
 `val` (the get of `key` returns the put's value); or an error. -/
-theorem client_get_own (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_get_own (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (γf : GName) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         putGetInv γr γf key val ∗ monoNatLbOwn γf 1 ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!

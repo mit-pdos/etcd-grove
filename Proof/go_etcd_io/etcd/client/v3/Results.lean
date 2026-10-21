@@ -2086,12 +2086,12 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
 /-- **A put's update, as the client takes it** (2026-10-19, D21 M6, D21i): persistent (fired at
 each committed occurrence: any client), or fired at most once on a client configured for one
 attempt (`kvOnce`, `MaxUnaryRetries: 1`). Since 2026-10-20 (linkv-txn stage A) a delete's too. -/
-def putAuOk (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+def putAuOk (api : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     IProp GF :=
   iprop(□ kvOpAu1 γk op Q ∨ (kvOnce api addr ∗ kvOpAu1 γk op Q))
 
 /-- A persistent update is a put's update, its result persistent. -/
-theorem putAuOk_of_box (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
+theorem putAuOk_of_box (api : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp)
     (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ putAuOk api addr γk op (fun σ => iprop(□ Q σ)) := by
   iintro #H
@@ -2103,12 +2103,12 @@ theorem putAuOk_of_box (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
 /-- **A writing transaction's update, as the client takes it** (2026-10-20, linkv-txn stage A;
 `putAuOk`'s, on a `*txn`): persistent, or fired at most once on a builder made from a `*kv` over a
 connection configured for one attempt. -/
-def txnAuOk (tp : Loc) (addr : GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+def txnAuOk (tp : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     IProp GF :=
   iprop(□ kvOpAu1 γk op Q ∨ ((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addr) ∗ kvOpAu1 γk op Q))
 
 /-- A persistent update is a writing transaction's update, its result persistent. -/
-theorem txnAuOk_of_box (tp : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
+theorem txnAuOk_of_box (tp : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp)
     (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ txnAuOk tp addr γk op (fun σ => iprop(□ Q σ)) := by
   iintro #H
@@ -2130,11 +2130,11 @@ or an ordinary atomic update fired at most once (at the server's commit of the r
 client configured for one attempt; on an error it fired once or not at all (an update built over a
 prophecy of the call's outcome can learn which at the firing).
 Premises: the registration, the context's (`ctxErrClient`), the package's. -/
-theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
     (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putAuOk api addr γr.kv (.put (putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2205,11 +2205,11 @@ a client that knows the committed index `c` (`committedAtLeast γr c`; `0` is fr
 reply's message `m` with `rangeReplyOk` for the get of `key` the server decodes (the key alone, at
 the latest revision, linearizable: read after the read index, at a log extending the log applied
 through an index at least `c`); or an error and no reply. -/
-theorem client_get_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2274,11 +2274,11 @@ error and no reply. Since 2026-10-20 (linkv-txn stage A, as `client_put_end_to_e
 the update is `putAuOk`: persistent, or fired at most once on a client configured for one attempt;
 the reply gives `Q`, not `□ Q`; (linkv-txn stage F) any context a client call takes (`ctxOk`: `Background()`
 too). -/
-theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
+theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
         putAuOk api addr γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2353,12 +2353,12 @@ transaction met); or an error and no reply. Since 2026-10-20 (linkv-txn stage A)
 transaction's update is `txnAuOk`: persistent, or fired at most once on a builder over a client
 configured for one attempt; (stage B2) a linearizable read-only one may take a read update
 (`kvReadAu`), whose `□ Q` at the state of the log read `txnReplied` carries. -/
-theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
+theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (F : mvcc.Log) (Q : KVState → IProp GF) (hp : TxnModel.plain b.model)
     (hin : txnModelIn (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
         committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
           -- (2026-10-20, linkv-txn stage B2) a linearizable read-only one's read update
@@ -2455,11 +2455,11 @@ least the put's; the put's value if no later revision touched the key); or an er
 The get is linearizable: it asks the read index at the put's committed index (`appliedWit`'s `i`,
 `committedAtLeast γr i`), so the log it reads extends the log applied through some index at least
 `i` (`readLogOk`), which extends the put's (`appliedMono`). -/
-theorem client_get_after_put (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putReplyOk E γr Fp (putKeyOp key val) cid mid mp }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2602,12 +2602,12 @@ the whole state `kvReadAu γr.kv Q` (a linearizable range; or none, `Q` trivial)
 reply's message `m` with `rangeReplyOk` for the range the server decodes (`rangeWireOf`; at the
 latest revision, `rangeReply_state` gives `□ Q σ` of the state whose selection the reply is); or an
 error and no reply. Any context a client call takes (`ctxOk`; linkv-txn stage F). -/
-theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
+theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗ committedAtLeast γr c ∗
@@ -2853,7 +2853,7 @@ variable [EM : EtcdModel GF]
 of `LeaseGrant` and `LeaseRevoke` and serving the keep-alive stream meets `isEtcdLease`
 (`lessor.Grant`, `lessor.Revoke`, `lessor.KeepAlive` and its goroutines, linked). -/
 theorem client_lessor_isEtcdLease (l : Loc) (addr : GoString) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
@@ -2866,7 +2866,7 @@ under `client_lessor_isEtcdLease`'s premises. -/
 theorem client_new_isEtcdLeaseClient
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
@@ -3331,7 +3331,7 @@ theorem client_lessor_isEtcdLease_served [v3rpc.ServerMethodSets] (l : Loc) (add
     (lp q s : Loc) (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (S : IProp GF) (il im iu : GoFunc) (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdLeaseRegs (GF := GF) q, x ∈ regs) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
         leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -3361,7 +3361,7 @@ theorem client_new_isEtcdLeaseClient_served [v3rpc.ServerMethodSets] (cl : Loc) 
     (cid mid : w64) (S : IProp GF) (il im iu : GoFunc)
     (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdLeaseRegs (GF := GF) q, x ∈ regs) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

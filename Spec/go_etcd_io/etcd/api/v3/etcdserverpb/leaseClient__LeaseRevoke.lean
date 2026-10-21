@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `leaseClient.LeaseGrant`): `Invoke` of `"/etcdserverpb.Lease/LeaseRevoke"`: the call's answer
 (`leaseRevokeCallOut`); the request comes back. -/
 abbrev leaseClient.LeaseRevoke.spec : Prop :=
-  ∀ (lc conn : Loc) (addr : GoString)
+  ∀ (lc conn : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Φ : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseRevokeRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ leaseStubAt lc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
       □ ▷ Spec req.ID' Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (lc @!! go.GoType.PointerType etcdserverpb.leaseClient.ty @!! go!"LeaseRevoke"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

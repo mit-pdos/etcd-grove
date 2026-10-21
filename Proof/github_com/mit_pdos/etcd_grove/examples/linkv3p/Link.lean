@@ -9,14 +9,22 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.New
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Blackhole
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
+public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.http.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.clientStep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.peerStep
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Proof.net.Listen
 public import Proof.go_uber_org.zap.NewNop
@@ -64,9 +72,29 @@ theorem EtcdServer.wp_RaftHandler :
     EtcdGrove.EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.EtcdServer.RaftHandler.wp_proof
 
+theorem bridge.wp_New :
+    EtcdGrove.bridge.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.New.wp_proof
+
+theorem bridge.bridge.wp_Blackhole :
+    EtcdGrove.bridge.bridge.Blackhole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.bridge.Blackhole.wp_proof
+
+theorem bridge.bridge.wp_DropConnections :
+    EtcdGrove.bridge.bridge.DropConnections.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.bridge.DropConnections.wp_proof
+
+theorem bridge.bridge.wp_Unblackhole :
+    EtcdGrove.bridge.bridge.Unblackhole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bridge.bridge.Unblackhole.wp_proof
+
 theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
+
+theorem grpc.wp_KeepaliveEnforcementPolicy :
+    EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
 
 theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
@@ -90,19 +118,31 @@ theorem net.wp_Listen :
 
 theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve v3rpc.wp_Server grpc.Server.wp_Serve
+  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
+
+theorem wp_startBridge :
+    EtcdGrove.linkv3p.startBridge.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.startBridge.wp_proof net.wp_Listen bridge.wp_New
 
 theorem wp_newClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.newClient.wp_proof client.v3.clientv3.wp_New
 
+theorem wp_peerStep :
+    EtcdGrove.linkv3p.peerStep.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.peerStep.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_CutPeer EtcdServer.wp_MendPeer
+
+theorem wp_clientStep :
+    EtcdGrove.linkv3p.clientStep.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.clientStep.wp_proof bridge.bridge.wp_Blackhole bridge.bridge.wp_Unblackhole bridge.bridge.wp_DropConnections
+
 theorem wp_partitioner :
     EtcdGrove.linkv3p.partitioner.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.partitioner.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_CutPeer EtcdServer.wp_MendPeer
+  EtcdGrove.linkv3p.partitioner.wp_proof wp_peerStep wp_clientStep
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startMember wp_newClient wp_partitioner wp_Check
+  EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startMember wp_startBridge wp_newClient wp_partitioner wp_Check
 
 end links_hasLC
 

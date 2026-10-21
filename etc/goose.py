@@ -7,8 +7,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, lintest,
-               raft-witness or kvwitness; repeatable; default: all).
+  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, bridge,
+               lintest, raft-witness or kvwitness; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -514,6 +514,20 @@ PROJECTS = [
         lean_roots=["github.com/anishathalye/porcupine="],
         packages=["."],
         owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
+        name="bridge",
+        # etcd's integration tests' TCP bridge between a client and a member (tests/framework/
+        # integration/bridge.go at the etcd pin), vendored with an exported constructor
+        # (third_party/bridge/UPSTREAM.md): linkv3p's cuts between a client and its member
+        # (notes/client-cut-plan.md). Its imports are standard library: io, sync (Perennial's)
+        # and net (the etcd project's names, the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "bridge"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "third_party")],
     ),
     Project(
         name="lintest",

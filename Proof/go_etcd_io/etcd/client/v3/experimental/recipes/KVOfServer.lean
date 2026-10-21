@@ -47,15 +47,15 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **A real `*kv` meets the recipes' `KV` contracts** (`isRecipesKV`) at the server's model:
 gets, transactions, deletes and puts at `context.TODO()` (see the file header). -/
-theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isRecipesKV_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
         kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
@@ -80,7 +80,7 @@ theorem isRecipesKV_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
 the server's model: its `KV` field the `*kv` (`isRecipesKV_of_kv`), its `Watcher` field a watcher
 meeting the watcher contract (`isEtcdRangeWatcher`, whose channel may close: a premise here,
 discharged for etcd's client watcher by `isEtcdRangeWatcher_of_watcher`). -/
-theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString)
+theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : List GoString)
     (s : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
@@ -89,10 +89,10 @@ theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (ad
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
         isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w pfx ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
         EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
       isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx := by

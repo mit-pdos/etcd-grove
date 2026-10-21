@@ -28,12 +28,12 @@ lease client; on success a new `*LeaseGrantResponse` whose header, `ID` and `TTL
 (`resp.GetHeader()`; read-only) with `Q` of the reply; otherwise `nil` and `ContextError(ctx, err)`,
 a client error grpc's `status` accepts. -/
 abbrev lessor.Grant.spec : Prop :=
-  ∀ (l : Loc) (addr : GoString)
+  ∀ (l : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse)
     (Q : LeaseGrantRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (ttl : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAt l addr ∗
-      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (ttl, W64 0) Q ∗
+      isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseGrant" Spec ∗ □ ▷ Spec (ttl, W64 0) Q ∗
       ctxOk ctx cd ∗ ctxErrClient ctx cd }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
       (Val #(GoInterface.ok ctx))) (Val #ttl))

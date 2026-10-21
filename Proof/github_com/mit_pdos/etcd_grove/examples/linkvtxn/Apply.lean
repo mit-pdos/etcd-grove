@@ -56,8 +56,15 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_isWrite : isWrite.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ γ cl ep V E γr cid mid hAs
-  iintro #Hpkg #Pcli #Hcl #Hone #Hput #Hrange #Hdel #Htxn #Hinv
+  intro _ γ cl ms V hAs hne
+  iintro #Hpkg #Pcli #Hcl #Hone #Hregs #Hinvs
+  -- one member's invariant, for the commits made before the call
+  obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ ms := by
+    cases ms with
+    | nil => exact absurd rfl hne
+    | cons a l => exact ⟨a, List.mem_cons_self⟩
+  ihave #Hinv := (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => linkvInv γ sv.γr.kv) hs0)
+    $$ Hinvs
   iintro %i
   imodintro
   iintro %Φ %Hin HAU
@@ -91,16 +98,23 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iexact HAU
       ihave #Hc : callInv γ γc γt x ix (rs.headD (W64 0)) Φ $$ []
       · iunfold callInv; iexact Hci
-      ihave #Hau := read_ok_au γ γr.kv γc γt x ix hx hw (rs.headD (W64 0)) Φ $$ []
+      have hau := client.bigAndL_of_sep ms (callInv γ γc γt x ix (rs.headD (W64 0)) Φ)
+        (fun sv : client.SrvAt GF => linkvInv γ sv.γr.kv)
+        (fun sv : client.SrvAt GF => callUpd sv.γr.kv ix (readQ γc (rs.headD (W64 0))))
+        (fun sv _ => by
+          iintro ⟨#Hc, #Hi⟩
+          unfold callUpd
+          rw [hw]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iright
+          iapply read_ok_au γ sv.γr.kv γc γt x ix hx hw (rs.headD (W64 0)) Φ
+          iframe #)
+      ihave Hau := hau $$ []
       · iframe #
       (try wp_auto)
-      wp_apply (wp_call cl ep V E γr cid mid hAs x ix (readQ γc (rs.headD (W64 0))) hx Hgen) $$ []
+      wp_apply (wp_call cl ms V hAs x ix (readQ γc (rs.headD (W64 0))) hx Hgen) $$ [Hau]
         as %y Hy
       · iframe #
-        unfold callUpd
-        rw [hw]
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        iright
         iexact Hau
       unfold callRes
       rw [hw]
@@ -148,17 +162,27 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         ipureintro; exact ⟨x, _, rfl, rfl, Hgen.1⟩
     · -- the prophecy says error: commit now
       iapply fupd_wp
-      imod (read_err_commit γ γr.kv x ix hx hw Φ) $$ [HAU] with HΦ
+      imod (read_err_commit γ s0.γr.kv x ix hx hw Φ) $$ [HAU] with HΦ
       · iframe Hinv; iunfold linU; iexact HAU
       imodintro
+      have hau := client.bigAndL_of_sep ms (iprop(True) : IProp GF)
+        (fun sv : client.SrvAt GF => linkvInv γ sv.γr.kv)
+        (fun sv : client.SrvAt GF => callUpd sv.γr.kv ix (fun _ : KVState => iprop(True)))
+        (fun sv _ => by
+          iintro -
+          unfold callUpd
+          rw [hw]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          ileft; ipureintro; first | rfl | trivial)
+      ihave Hau := hau $$ []
+      · isplitl []
+        · itrivial
+        iexact Hinvs
       (try wp_auto)
-      wp_apply (wp_call cl ep V E γr cid mid hAs x ix (fun _ => iprop(True)) hx Hgen) $$ []
+      wp_apply (wp_call cl ms V hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [Hau]
         as %y Hy
       · iframe #
-        unfold callUpd
-        rw [hw]
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        ileft; ipureintro; first | rfl | trivial
+        iexact Hau
       icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
       · subst Hy
         wp_auto
@@ -184,14 +208,21 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         simp [Hxs, herr] at Hok
   · by_cases Hok : xs.head? = some true
     · -- the prophecy says `ok`: the update the server fires commits
-      ihave Hau := write_ok_au γ γr.kv x ix hx hi hw Φ $$ [HAU]
-      · iframe Hinv; iunfold linU; iexact HAU
+      have hau := client.bigAndL_of_sep ms (linU γ (boxIn x) Φ)
+        (fun sv : client.SrvAt GF => linkvInv γ sv.γr.kv)
+        (fun sv : client.SrvAt GF => callUpd sv.γr.kv ix (wQ x ix Φ))
+        (fun sv _ => by
+          iintro ⟨HU, #Hi⟩
+          unfold callUpd
+          rw [hw]
+          simp only [↓reduceIte]
+          iapply write_ok_au γ sv.γr.kv x ix hx hi hw Φ
+          iframe HU Hi)
+      ihave Hau := hau $$ [HAU]
+      · iframe Hinvs; iunfold linU; iexact HAU
       (try wp_auto)
-      wp_apply (wp_call cl ep V E γr cid mid hAs x ix (wQ x ix Φ) hx Hgen) $$ [Hau] as %y Hy
+      wp_apply (wp_call cl ms V hAs x ix (wQ x ix Φ) hx Hgen) $$ [Hau] as %y Hy
       · iframe #
-        unfold callUpd
-        rw [hw]
-        simp only [↓reduceIte]
         iexact Hau
       unfold callRes
       rw [hw]
@@ -230,18 +261,25 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           omega
     · -- the prophecy says error: commit now, the write pending
       iapply fupd_wp
-      imod (write_err_commit γ γr.kv x ix hx hi hw Φ) $$ [HAU] with ⟨%n, HΦ, Htok⟩
+      imod (write_err_commit γ s0.γr.kv x ix hx hi hw Φ) $$ [HAU] with ⟨%n, HΦ, Htok⟩
       · iframe Hinv; iunfold linU; iexact HAU
-      ihave Hau := write_pend_au γ γr.kv n ix $$ [Htok]
-      · iframe Hinv; iexact Htok
+      have hau := client.bigAndL_of_sep ms (pendTok (GF := GF) γ n ix)
+        (fun sv : client.SrvAt GF => linkvInv γ sv.γr.kv)
+        (fun sv : client.SrvAt GF => callUpd sv.γr.kv ix (fun _ : KVState => iprop(True)))
+        (fun sv _ => by
+          iintro ⟨Ht, #Hi⟩
+          unfold callUpd
+          rw [hw]
+          simp only [↓reduceIte]
+          iapply write_pend_au γ sv.γr.kv n ix
+          iframe Ht Hi)
+      ihave Hau := hau $$ [Htok]
+      · iframe Htok Hinvs
       imodintro
       (try wp_auto)
-      wp_apply (wp_call cl ep V E γr cid mid hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [Hau]
+      wp_apply (wp_call cl ms V hAs x ix (fun _ => iprop(True)) hx Hgen) $$ [Hau]
         as %y Hy
       · iframe #
-        unfold callUpd
-        rw [hw]
-        simp only [↓reduceIte]
         iexact Hau
       icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
       · subst Hy

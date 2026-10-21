@@ -905,7 +905,7 @@ abbrev txnIfaceOf (tp : Loc) : GoInterfaceOk :=
 
 /-- The builder's abstract state (`txnBuilderSpecX`'s `B`): the `*txn`'s fields at a quiet
 context, its operations plain. -/
-def txnB (tp : Loc) (addr : GoString) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) :
+def txnB (tp : Loc) (addr : List GoString) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) :
     IProp GF :=
   iprop(txnObjAt tp addr todoCtxVal cd b ∗ ⌜TxnModel.plain b.model⌝)
 
@@ -923,7 +923,7 @@ of the log it met, has no counterpart without an update): `txnCommitResultTok` f
 `etcdReached lo` under a prefix, with a client error; and, for the builder's commit with any
 result, `txnAnyResult`. -/
 def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw _γr : ReadNames) (_cid _mid : w64)
-    (addr : GoString) : IProp GF :=
+    (addr : List GoString) : IProp GF :=
   iprop(□ ∀ (tp : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild),
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ txn.txnReadonly (txnWireOf b.model) = false ∧
       ¬ TxnModel.leaseFree b.model⌝ -∗
@@ -938,7 +938,7 @@ def kvLeasedCommitTodo (E : apply.AEnv GF) (_γw _γr : ReadNames) (_cid _mid : 
      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
 
 instance kvLeasedCommitTodo_persistent (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
-    (addr : GoString) : Persistent (kvLeasedCommitTodo E γw γr cid mid addr) := by
+    (addr : List GoString) : Persistent (kvLeasedCommitTodo E γw γr cid mid addr) := by
   unfold kvLeasedCommitTodo; infer_instance
 
 /-- **`Commit()` on a real builder, its call** (at a floor `F`, the committed index `0`; a read-only
@@ -947,12 +947,12 @@ or a client error. 2026-10-15 (unit T2): with the caller's update `kvAnyAu` (etc
 the whole state). Unit W-M3: the update's result is the floor of a certified log `lf` (`kvAnyAu`):
 a writing transaction's at the write names, a linearizable read-only one's read update at the
 read names, none for a serializable one (which is not linearizable). -/
-theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
+theorem kv_txn_commit (tp : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (F lf : mvcc.Log) (hp : TxnModel.plain b.model) (hx : b.model.exactGets)
     (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.leaseFree b.model) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
         mvcc.idxCert E.γ.idx F ∗ mvcc.certOk E.γ lf ∗ kvAnyAu E γw ∗ kvAnyAu E γr }}
       (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -1048,11 +1048,11 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
 model (see the file header). Premises: the registration of etcd's `Txn` at `addr`, the server's
 read side (`isServerRead`), that `errors.As` can take `*rpctypes.EtcdError` (`hAs`), and that the
 client's errors are client errors as `errors.Is` sees them (`clientErrsIs`). -/
-theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
+        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
         clientErrsIs ∗ kvAnyAu E γw ∗ kvAnyAu E γr ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
       isEtcdTxnKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hcei, #Hnp, #Hnr, #Hlc⟩
@@ -1070,7 +1070,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
   -- the commit at a floor, for both `Commit` triples
   have hcommit : ∀ (b : TxnBuild) (lo : w64), b.model.Under pfx → b.model.exactGets →
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗ storeSmall E.γ ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗ storeSmall E.γ ∗
         kvAnyAu E γw ∗ kvAnyAu E γr ∗ kvLeasedCommitTodo E γw γr cid mid addr ⊢
       {{ txnB tp addr cd b ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
@@ -1230,12 +1230,12 @@ certified log, at the write names and at the read names, a linearizable read's) 
 T3, the
 clients' triples of a put and of a writing transaction with a lease (`kvLeasedPutTodo`,
 `kvLeasedCommitTodo`), which no server spec covers. -/
-def kvWritesOk (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
+def kvWritesOk (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (cid mid : w64) : IProp GF :=
   iprop(kvAnyAu E γw ∗ kvAnyAu E γr ∗ kvLeasedPutTodo api E ∗
     kvLeasedCommitTodo E γw γr cid mid addr)
 
-instance kvWritesOk_persistent (api : Loc) (addr : GoString) (E : apply.AEnv GF)
+instance kvWritesOk_persistent (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γw γr : ReadNames) (cid mid : w64) : Persistent (kvWritesOk api addr E γw γr cid mid) := by
   unfold kvWritesOk; infer_instance
 

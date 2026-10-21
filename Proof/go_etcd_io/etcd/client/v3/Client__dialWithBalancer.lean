@@ -37,8 +37,13 @@ theorem Client.dialWithBalancer.wp_proof
     (wp_WithResolvers : grpc.WithResolvers.spec (GF := GF) (hG := hG))
     (wp_dial : Client.dial.spec (GF := GF) (hG := hG)) :
     Client.dialWithBalancer.spec (GF := GF) (hG := hG) := by
-  intro c cfg cr r esl ep
-  wp_start as ⟨#Hc, #Hcfg, %Hka, #Hdo, #Hatb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+  intro c cfg cr r esl eps
+  wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Hcr, #Heps, #Hesl, %Hplain, #Hr, Hro⟩
+  obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
+    cases eps with
+    | nil => exact absurd rfl Hplain.1
+    | cons a l => exact ⟨a, l, rfl⟩
+  have Hp1 : plainEndpoint ep := Hplain.2 ep List.mem_cons_self
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_auto
@@ -47,11 +52,11 @@ theorem Client.dialWithBalancer.wp_proof
   subst Heq'
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl'
   rw [ite_eq_left (by simp at Hlen; word)]
-  wp_apply wp_load_slice_index esl' (sint.Z (W64 0)) [ep] (DFrac.own 1) ep (by decide) $$ [$Hesl']
+  wp_apply wp_load_slice_index esl' (sint.Z (W64 0)) (ep :: rest) (DFrac.own 1) ep (by decide) $$ [$Hesl']
     as -
   · ipureintro; rfl
   wp_apply wp_credentialsForEndpoint c ep cr $$ [$Hcr]
-  · ipureintro; exact Hplain
+  · ipureintro; exact Hp1
   wp_apply wp_slice_literal (V := GoInterface) [resolverIface r]
   isplitr
   · ipureintro; rfl
@@ -70,12 +75,10 @@ theorem Client.dialWithBalancer.wp_proof
     as %o2 ⟨Ho2, -, -⟩
   ipersist Ho2
   (try wp_auto)
-  ihave Hrb := etcdResolver_grpc (GF := GF) r ep Hplain $$ Hro
-  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl ep $$ [$Hc $Hcfg $Hdo $Hatb $Heps $Hesl $Hrb]
+  ihave Hrb := etcdResolver_grpc (GF := GF) r (ep :: rest) Hplain $$ Hro
+  wp_apply wp_dial c cfg cr o2 (resolverIface r) esl (ep :: rest) $$ [$Hc $Hcfg $Hdo $Hatb $Heps $Hesl $Hrb]
     as %conn %err Hres
   · isplitr
-    · ipureintro; exact Hka
-    isplitr
     · ipureintro; exact Hplain
     iunfold dialOptsAt
     iexists [o]

@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `NewKV(c)` on a `*Client` with a connection to `addr` (`clientKVAt`): a new `*kv` over a
 `*retryKVClient` on that connection, with the client's call options (`kvObjAt`), as a `KV`. -/
 abbrev NewKV.spec : Prop :=
-  ∀ (cl : Loc) (addr : GoString),
+  ∀ (cl : Loc) (addr : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAt cl addr }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewKV)) (Val #cl))
   {{ (v : GoInterface), RET #v; ∃ api : Loc,

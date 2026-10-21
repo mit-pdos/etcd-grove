@@ -31,7 +31,7 @@ abbrev retryLeaseClient.LeaseKeepAlive.spec : Prop :=
   ∀ (rlc conn : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
-      isEtcdConn conn addr ∗ leaseKAStreamOk addr ∗ ctxOk ctx cd ∗
+      isEtcdConn conn [addr] ∗ leaseKAStreamOk addr ∗ ctxOk ctx cd ∗
       opts ↦*□ vs ∗ ownSliceCap GoInterface opts (DFrac.own 1) ∗ streamCallOptsOk vs }}
     (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!
         go!"LeaseKeepAlive")) (Val #(GoInterface.ok ctx))) (Val #opts))

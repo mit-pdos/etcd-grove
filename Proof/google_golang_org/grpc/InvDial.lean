@@ -15,11 +15,15 @@ proof holds a descriptor of is one of these:
 * `.streamInterceptor ic` (`WithStreamInterceptor(ic)`: sets `dopts.streamInt`; the last wins);
 * `.transportCreds` (`WithTransportCredentials(c)`: sets `dopts.copts.TransportCredentials`);
 * `.resolvers rbs` (`WithResolvers(rbs...)`: appends to `dopts.resolvers`, the builders `NewClient`
-  looks the target's scheme up in before grpc's global registry).
+  looks the target's scheme up in before grpc's global registry);
+* `.keepalive` (`WithKeepaliveParams(kp)`: sets `dopts.copts.KeepaliveParams`, since 2026-10-21,
+  `notes/decisions.md` D28): it sets no interceptor and no resolver; at run time the transport
+  pings and closes the connection when a ping goes unanswered, which fails the calls on it, as
+  `ClientConn.Invoke`'s and `NewStream`'s axioms already allow.
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
-keepalive parameters, per-RPC credentials, ...) has no descriptor: a dial that holds one is not
-covered (`clientv3.New`'s premises exclude `Config.DialOptions`,
-`issues/etcd-client-dialoptions-unary-interceptor.md`, and keepalive).
+per-RPC credentials, ...) has no descriptor: a dial that holds one is not covered
+(`clientv3.New`'s premises exclude `Config.DialOptions`,
+`issues/etcd-client-dialoptions-unary-interceptor.md`).
 
 **The unary chain** (`unaryIcsOf ds`): grpc's `chainUnaryClientInterceptors` runs `dopts.unaryInt`
 (the last `WithUnaryInterceptor`'s) first, then `dopts.chainUnaryInts`, which no descriptor sets:
@@ -33,10 +37,11 @@ connection's stream interceptor is etcd's (`streamClientInterceptor`, `retry_int
 introduced only by the client's `streamClientInterceptor` axiom
 (`Spec/go_etcd_io/etcd/client/v3/Client__streamClientInterceptor.lean`).
 
-**The resolver** (`grpcResolverAt rb scheme addr`, exclusive, axiomatized): the resolver builder
-`rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the one address `addr`, for good:
+**The resolver** (`grpcResolverAt rb scheme addrs`, exclusive, axiomatized): the resolver builder
+`rb` (a `resolver.Builder`), for the scheme `scheme`, resolves to the addresses `addrs`, for good
+(a list since 2026-10-21, `notes/decisions.md` D27; one address until then):
 the resolver's state is grpc's once it is dialed with (`NewClient` takes it). etcd's
-`EtcdManualResolver` gives it for one plain endpoint (`client/v3/InvNew.lean`,
+`EtcdManualResolver` gives it for plain endpoints (`client/v3/InvNew.lean`,
 `etcdResolver_grpc`).
 -/
 module
@@ -63,6 +68,7 @@ inductive GrpcDialOpt where
   | streamInterceptor (ic : GoFunc)
   | transportCreds
   | resolvers (rbs : List GoInterface)
+  | keepalive
 
 /-- The unary interceptor a descriptor sets, if it sets one. -/
 def GrpcDialOpt.unaryOf : GrpcDialOpt → Option GoFunc
@@ -76,6 +82,12 @@ def unaryIcsOf (ds : List GrpcDialOpt) : List GoFunc :=
   | some ic => [ic]
   | none => []
 
+/-- Keepalive sets no unary interceptor. -/
+theorem unaryIcsOf_keepalive (ds : List GrpcDialOpt) :
+    unaryIcsOf (.keepalive :: ds) = unaryIcsOf ds := by
+  unfold unaryIcsOf
+  simp [List.filterMap_cons, GrpcDialOpt.unaryOf]
+
 end defs
 
 /-- **The dial option `o` does `d`** (an axiomatized property: introduced only by the axioms of
@@ -87,10 +99,10 @@ client's `streamClientInterceptor` axiom; what grpc's `ClientConn.NewStream` axi
 connection's stream interceptor). -/
 axiom etcdStreamInterceptor [FfiSyntax] (si : GoFunc) : Prop
 
-/-- **The resolver builder `rb` resolves the scheme `scheme` to the address `addr`** (exclusive; an
+/-- **The resolver builder `rb` resolves the scheme `scheme` to the addresses `addrs`** (exclusive; an
 axiomatized predicate; see the file header). -/
-axiom grpcResolverAt {GF : BundledGFunctors} [FfiSyntax] (rb : GoInterface) (scheme addr : GoString) :
-  IProp GF
+axiom grpcResolverAt {GF : BundledGFunctors} [FfiSyntax] (rb : GoInterface) (scheme : GoString)
+  (addrs : List GoString) : IProp GF
 
 section defs2
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -111,6 +123,16 @@ resolver is `rb` (every `WithResolvers` of the dial gives `rb` alone, and one do
 def dialOk (ds : List GrpcDialOpt) (rb : GoInterface) : Prop :=
   (∀ si, GrpcDialOpt.streamInterceptor si ∈ ds → etcdStreamInterceptor si) ∧
     (∀ rbs, GrpcDialOpt.resolvers rbs ∈ ds → rbs = [rb]) ∧ GrpcDialOpt.resolvers [rb] ∈ ds
+
+
+/-- Keepalive sets no stream interceptor and no resolver: a dial with it is `NewClient`'s if the
+dial without it is. -/
+theorem dialOk_keepalive (ds : List GrpcDialOpt) (rb : GoInterface) :
+    dialOk ds rb → dialOk (.keepalive :: ds) rb := by
+  intro ⟨h1, h2, h3⟩
+  refine ⟨fun si h => h1 si ?_, fun rbs h => h2 rbs ?_, List.mem_cons_of_mem _ h3⟩
+  · simpa using h
+  · simpa using h
 
 end defs2
 

@@ -604,15 +604,15 @@ theorem recipes_kv_of_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.
     (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
+        kvObjAt api [addr] ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
+        EtcdGrove.client.kvWritesOk api [addr] E γw γr cid mid ⊢
       isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx :=
-  isRecipesKV_of_kv api addr s E γw γr cid mid pfx hpfx hAs
+  isRecipesKV_of_kv api [addr] s E γw γr cid mid pfx hpfx hAs
 
 open go_etcd_io.etcd.server.v3.etcdserver in
 /-- A client over a real `*kv` meets the recipes' client contract at the server's model
@@ -622,7 +622,7 @@ theorem recipes_client_of_server (cl : Loc) (w : GoInterfaceOk) (api : Loc) (add
     (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
+        kvObjAt api [addr] ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
         isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w pfx ∗
@@ -631,9 +631,9 @@ theorem recipes_client_of_server (cl : Loc) (w : GoInterfaceOk) (api : Loc) (add
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid ⊢
+        EtcdGrove.client.kvWritesOk api [addr] E γw γr cid mid ⊢
       isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx :=
-  isEtcdRecipesClient_of_kv cl w api addr s E γw γr cid mid pfx hpfx hAs
+  isEtcdRecipesClient_of_kv cl w api [addr] s E γw γr cid mid pfx hpfx hAs
 
 open go_etcd_io.etcd.server.v3.etcdserver in
 /-- **The queue end to end** (`queue_vertical`). -/
@@ -642,7 +642,7 @@ theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoSt
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
+        kvObjAt api [addr] ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
         isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
@@ -652,7 +652,7 @@ theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoSt
           (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
+        EtcdGrove.client.kvWritesOk api [addr] E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
     {{ (q : Loc), RET #q;
@@ -692,7 +692,7 @@ theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api :
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
         isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
+        kvObjAt api [addr] ∗
         clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗
         client.isClientWatcher V w ∗
@@ -702,7 +702,7 @@ theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api :
           (EtcdGrove.client.etcdDeleteSpec E γw cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γw γr cid mid) ∗
         sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γw γr cid mid }}
+        EtcdGrove.client.kvWritesOk api [addr] E γw γr cid mid }}
       (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
         (Val #kp))
     {{ (q : Loc), RET #q;
