@@ -192,33 +192,6 @@ theorem msgPtsC_persist_els (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt)
   iframe
   iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcs Hpb
 
-/-- An owned message's `Entries` field, to replace its slice (the register's `deliver` copies it,
-`m.Entries = append([]*pb.Entry(nil), m.Entries...)`): the field, the slice's elements (the
-pointers `els` of the entries `ms.ents`), and the message back once a fresh slice holding the
-same pointers, with its capacity, is stored, at the new slice's fraction. -/
-theorem msgPtsC_store_Entries (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) :
-    msgPtsC (GF := GF) l (DFrac.own 1) dqe cap ms ⊢
-      ∃ (es : GoSlice) (els : List Loc),
-        l.[raftpb.Message, go!"Entries"] ↦ es ∗ es ↦*{dqe} els ∗
-        ([∗list] p;e ∈ els;ms.ents, entRO p e) ∗
-        (∀ (es' : GoSlice) (dqe' : DFrac),
-          l.[raftpb.Message, go!"Entries"] ↦ es' -∗ es' ↦*{dqe'} els -∗
-          ownSliceCap Loc es' (DFrac.own 1) -∗
-          msgPtsC l (DFrac.own 1) dqe' true ms) := by
-  iintro H
-  iNamed H
-  iclear Hes_cap
-  iexists es, els
-  iframe HEs Hes Hents
-  iintro %es' %dqe' HEs Hes Hcap
-  iunfold msgPtsC
-  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es', els, ps, cs, rs, uf
-  isplitr
-  · ipureintro; exact Hnn
-  simp only [named, ↓reduceIte]
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
-
 /-- A message's `Entries` and `Context` fields, read in place (the register's `deliverable`,
 `m.Entries != nil`, `m.Context == nil`): a `nil` slice holds no entries, no bytes. -/
 theorem msgPtsC_fields_acc (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) :

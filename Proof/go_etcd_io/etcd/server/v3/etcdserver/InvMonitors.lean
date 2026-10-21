@@ -81,10 +81,6 @@ def srvMonitorPermit (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
   iprop(isServerReq s E ρ ∗
     □ ∀ rq : apply.IRRModel, ⌜monitorReq rq⌝ -∗ reqPropOk ρ.kv rq (fun _ => iprop(True)))
 
-instance srvMonitorPermit_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    Persistent (srvMonitorPermit (GF := GF) s E ρ) := by
-  unfold srvMonitorPermit; infer_instance
-
 /-- The monitors' permission, from the server's request path. -/
 theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     isServerReq (GF := GF) s E ρ ⊢ srvMonitorPermit s E ρ := by
@@ -127,19 +123,6 @@ def srvMonitorsOff (s : Loc) : IProp GF :=
 
 instance srvMonitorsOff_persistent (s : Loc) : Persistent (srvMonitorsOff (GF := GF) s) := by
   unfold srvMonitorsOff; infer_instance
-
-/-- The monitors are off for a configuration with zero check intervals and a feature gate whose
-`CompactHashCheck` is off. -/
-theorem srvMonitorsOff_of (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (h1 : cfg.CorruptCheckTime' = W64 0) (h2 : cfg.DowngradeCheckTime' = W64 0) :
-    srvMonitorCfg (GF := GF) s cfg ∗ featureIs cfg.ServerFeatureGate' go!"CompactHashCheck" false ⊢
-      srvMonitorsOff s ∗ srvLgReader s := by
-  unfold srvMonitorCfg srvMonitorsOff
-  rw [h1, h2]
-  iintro ⟨⟨#Hc, #Hd, #Hf, Hl⟩, #Hfi⟩
-  iframe Hl Hc Hd
-  iexists cfg.ServerFeatureGate'
-  iframe Hf Hfi
 
 end defs
 

@@ -95,16 +95,6 @@ theorem HupGuard.precand {c : CfgM} {id : w64} {s s' : NState} (h : HupGuard c i
     · simp [campaignState, sendMsgs, becomeCandidate] at hp
     · simp [campaignState, sendMsgs, becomePrecandidate]
 
-/-- At a simple configuration, `HupOkC` is `HupOk`. -/
-theorem HupOkC.simple {cfg lrn : GSet w64} {id : w64} {s s' : NState}
-    (h : HupOkC (CfgM.simple cfg lrn) id s s') : HupOk cfg id s s' := by
-  refine ⟨h.1, ?_, h.2.2.1⟩
-  by_cases hne : cfg = ∅
-  · have hs : s' = s := h.2.2.2.1 (by
-      rw [CfgM.voters_simple, hne]; exact GMap.not_elem_of_empty _)
-    rw [hs]; exact fun _ => .refl _
-  · exact fun B => step_of_stepC (CfgM.simple cfg lrn) id B hne rfl (h.2.1 B)
-
 end hup_results
 
 /-! ## `restore`'s results (`Spec/go_etcd_io/raft/v3/raft__restore.lean`) -/

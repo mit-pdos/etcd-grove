@@ -100,14 +100,6 @@ theorem frames_length_lt {es : List Entry} {fs : List (Frame σ)} {n y : Nat}
   simp only [ids, List.length_cons, List.length_map, List.length_range] at this
   omega
 
-theorem curLoc_null {loc : Entry → Loc} {es : List Entry} {B : List Nat}
-    (hnn : ∀ e ∈ es, loc e ≠ null) {p : Nat} :
-    curLoc loc (rem es B) p = null ↔ (rem es B)[p]? = none := by
-  unfold curLoc
-  cases he : (rem es B)[p]? with
-  | none => simp
-  | some e => simp only [reduceCtorEq, iff_false]; exact hnn e (rem_get_mem he)
-
 theorem curLoc_some {loc : Entry → Loc} {l : List Entry} {p : Nat} {e : Entry}
     (h : l[p]? = some e) : curLoc loc l p = loc e := by
   simp [curLoc, h]

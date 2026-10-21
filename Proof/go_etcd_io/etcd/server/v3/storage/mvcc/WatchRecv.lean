@@ -734,29 +734,6 @@ theorem watch_tryrecv_au_alt (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (r
     simp only [Bool.false_eq_true, ↓reduceIte]
     iexact Hcons
 
-/-- **A snapshot of the channel's sent list** (unit W-K), from its invariant, with a later
-credit. -/
-theorem chan_sent_snapshot (γ : WsNames) (ch : Loc) (γc : WatchChanNames) :
-    ⊢ £ 1 -∗ inv watchN (watchChanInv (GF := GF) γ ch γc) ={⊤}=∗ ∃ l, chanSentLb γc l := by
-  iintro Hlc #Hinv
-  iinv Hinv with Hi Hclose
-  imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  iunfold watchChanInv at Hi
-  icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
-  iNamed Hi
-  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
-  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
-  · inext
-    iunfold watchChanInv
-    iexists s, sent, recv, vs, L
-    simp only [named]
-    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
-    iframe #
-    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
-  imodintro
-  iexists sent
-  iexact Hlb
-
 /-- **A snapshot after a registration** (K1b): the channel's sent list, at least as long as a
 registered watcher's registration index. -/
 theorem chan_sent_snapshot_reg (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (w : Loc) (n : Nat) :
@@ -783,35 +760,6 @@ theorem chan_sent_snapshot_reg (γ : WsNames) (ch : Loc) (γc : WatchChanNames) 
   iexists sent
   iframe Hlb
   ipureintro; exact Hn
-
-/-- **What the consumer received was sent** (unit W-K): its received list is a snapshot of the
-channel's sent list, with a later credit. -/
-theorem watch_sent_received (γ : WsNames) (ch : Loc) (γc : WatchChanNames) (rcv : List RespM) :
-    ⊢ £ 1 -∗ inv watchN (watchChanInv (GF := GF) γ ch γc) -∗ watchConsumer γc rcv ={⊤}=∗
-      watchConsumer γc rcv ∗ chanSentLb γc rcv := by
-  iintro Hlc #Hinv Hcons
-  iinv Hinv with Hi Hclose
-  imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  iunfold watchChanInv at Hi
-  icases Hi with ⟨%s, %sent, %recv, %vs, %L, Hi⟩
-  iNamed Hi
-  unfold watchConsumer
-  ihave %Heq := ghostVar_agree _ _ _ _ _ $$ Hcons Hrecv
-  subst Heq
-  icases mvcc.sentAuth_lb _ γc sent L $$ Hsentl with ⟨Hsentl, #Hlb⟩
-  iunfold chanSentLb at Hlb
-  ihave #Hlb' := monoListLbOwn_le (γ := γc.sentl) rcv Hpre $$ Hlb
-  imod Hclose $$ [Hch Hrecv Hregl Hcl Hreg Hws Hsentl] with -
-  · inext
-    iunfold watchChanInv
-    iexists s, sent, rcv, vs, L
-    simp only [named]
-    iframe Hch Hrecv Hregl Hcl Hreg Hws Hsentl
-    iframe #
-    ipureintro; exact ⟨Hpre, Hinfl, Hnd⟩
-  imodintro
-  iframe Hcons
-  unfold chanSentLb; iexact Hlb'
 
 end proof
 

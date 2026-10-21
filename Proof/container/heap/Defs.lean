@@ -53,10 +53,6 @@ def heapIface {A : Type} (h : GoInterfaceOk) (R : List A → IProp GF)
       {{ R xs ∗ E x a }} (App (Val #(methods h.ty go!"Push" h.v)) (Val #x))
       {{ RET #(); R (xs ++ [a]) }}))
 
-instance heapIface_persistent {A : Type} (h : GoInterfaceOk) (R : List A → IProp GF)
-    (E : GoInterface → A → IProp GF) : Persistent (heapIface h R E) := by
-  unfold heapIface; infer_instance
-
 end defs
 
 end heap

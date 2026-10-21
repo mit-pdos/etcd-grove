@@ -148,12 +148,6 @@ def deleteReqOk (o : OpFull) : Prop := deleteCheck o = none
 
 /-! ## The transaction check -/
 
-/-- The first error of a list of checks. -/
-def firstErr : List (Option CheckErr) → Option CheckErr
-  | [] => none
-  | some e :: _ => some e
-  | none :: es => firstErr es
-
 /-- The widest of a transaction's comparisons and branches (`checkTxnRequest`'s `opc`). -/
 def txnWidth (cs : List CmpModel) (ts es : List ReqOp) : Nat :=
   max cs.length (max ts.length es.length)

@@ -378,23 +378,6 @@ theorem applyEvents_latestRev_mem (cap : Nat) :
       · rename_i m hb
         left; rfl
 
-/-- `Apply` leaves the latest revision, or moves it to one of `applyRespRevs`. -/
-theorem applyResp_latestRev_mem (cap : Nat) (st : StoreState) (r : RespModel) :
-    (applyResp cap st r).1.latestRev = st.latestRev ∨
-      (applyResp cap st r).1.latestRev ∈ applyRespRevs st r := by
-  unfold applyResp applyRespRevs
-  split
-  · left; rfl
-  split
-  · left; rfl
-  split
-  · split
-    · left; rfl
-    · right; simp
-  split
-  · exact applyEvents_latestRev_mem cap _ _
-  · left; rfl
-
 /-- The revisions of the snapshots `applyEvents` appends are revisions of its events. -/
 theorem applyEventsSnaps_rev_mem :
     ∀ (evs : List EvModel) (m : KvMap) (h : w64 × KvMap), h ∈ applyEventsSnaps m evs →
@@ -473,11 +456,6 @@ theorem evs_dropWhile_gt (e : EvModel) (es : List EvModel) (hs : EvRevSorted (e 
     rcases List.mem_cons.1 hx with rfl | hx
     · exact hlt
     · exact Int.lt_of_lt_of_le hlt ((List.pairwise_cons.1 hsorted).1 x hx)
-
-theorem storeSnapKey_of_last (st : StoreState) (Y : w64) (m : KvMap)
-    (h : st.history.getLast? = some (Y, m)) (hY : 0 ≤ sint.Z Y) :
-    storeSnapKey st = sint.nat Y + 1 := by
-  simp [storeSnapKey, h, hY]
 
 theorem storeSnapKey_le (cap : Nat) (st : StoreState) (hinv : StoreInv cap st) :
     storeSnapKey st ≤ sint.nat st.latestRev + 1 := by
@@ -615,22 +593,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `TypeRepr` of the protobuf messages the store reads fields of (named and underlying
-types), straight from their
-`TypeAssumptions` (`type_repr_underlying`). Without these, the `StructFieldRef` step finds
-`TypeRepr` through the struct's `IntoValTyped` instance, which is built from the opaque
-`impl.MessageState`'s `sorry` instances ("axiomatized type"), putting them in the trust
-base for nothing. -/
-instance (priority := high) keyValue_typeRepr : TypeRepr mvccpb.KeyValue.ty mvccpb.KeyValue :=
-  go.type_repr_underlying (u := mvccpb.KeyValue.underlying)
-
-instance (priority := high) event_typeRepr : TypeRepr mvccpb.Event.ty mvccpb.Event :=
-  go.type_repr_underlying (u := mvccpb.Event.underlying)
-
-instance (priority := high) responseHeader_typeRepr :
-    TypeRepr etcdserverpb.ResponseHeader.ty etcdserverpb.ResponseHeader :=
-  go.type_repr_underlying (u := etcdserverpb.ResponseHeader.underlying)
-
 instance (priority := high) keyValue_typeRepr_u :
     TypeRepr mvccpb.KeyValue.underlying mvccpb.KeyValue :=
   go.type_repr_underlying (u := mvccpb.KeyValue.underlying)
@@ -699,10 +661,6 @@ instance snapCerts_persistent (E : w64 → KvMap → IProp GF) (hs : List (w64 �
 /-- Every revision of `rs` is certified by `R`. -/
 def revCerts (R : w64 → IProp GF) (rs : List w64) : IProp GF :=
   iprop(□ ∀ r, ⌜r ∈ rs⌝ -∗ R r)
-
-instance revCerts_persistent (R : w64 → IProp GF) (rs : List w64) :
-    Persistent (revCerts R rs) := by
-  unfold revCerts; infer_instance
 
 theorem snapCerts_cons (E : w64 → KvMap → IProp GF) (h : w64 × KvMap) (hs : List (w64 × KvMap)) :
     snapCerts E (h :: hs) ⊢ □ E h.1 h.2 ∗ snapCerts E hs := by
@@ -1017,17 +975,6 @@ def storeSeen (γ : StoreNames) (cap : Nat) (r0 : w64) (st : StoreState) : IProp
 instance storeSeen_persistent (γ : StoreNames) (cap : Nat) (r0 : w64) (st : StoreState) :
     Persistent (storeSeen (GF := GF) γ cap r0 st) := by
   unfold storeSeen; infer_instance
-
-/-- The package-level error variables (the cache's `ErrNotReady`, `rpctypes`'
-`ErrFutureRev`, `ErrCompacted`) hold fixed non-nil errors: `Base.lean`'s package facts. -/
-theorem errNotReady_init :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ⊢
-      ∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e := by
-  iintro #H
-  ihave Hci : (cacheInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ H
-  icases Hci with ⟨H, -, -, -⟩
-  iexact H
 
 end defs
 

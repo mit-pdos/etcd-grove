@@ -100,41 +100,10 @@ theorem kvOpStep_put_sorted (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwis
 /-- **A get changes nothing.** -/
 theorem kvOpStep_get (k : GoString) (σ : KVState) : kvOpStep (.range (getOp k)) σ = σ := rfl
 
-/-- **The server's answer to a get reads the store**: the first of the state's key-values of
-`k` (`client.srvRangeOk_getKey`'s answer) has the store's value at `k`. -/
-theorem absKV_get (k : GoString) (σ : KVState) :
-    ((σ.kvs.filter (fun v => decide (v.key = k))).head?).map EtcdKv.value = absKV σ k := by
-  unfold absKV mvcc.findKey
-  rw [List.head?_filter]
-
 /-- The empty state's store is the model's initial one. -/
 theorem absKV_empty (r : Nat) : absKV ⟨[], r⟩ = fun _ => none := rfl
 
 /-! ### The model's steps follow the server's -/
-
-/-- A put that returned `ok`: the configuration of the state after it. -/
-theorem cstep_putOk (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess)
-    (pend : List (GoString × GoString)) :
-    CStep ⟨absKV σ, pend⟩ (.put k v) .ok ⟨absKV (kvOpStep (.put (putOp k v)) σ), pend⟩ := by
-  rw [absKV_put k v σ hs]; exact .putOk _ k v
-
-/-- A failed put the server applied during the call: pending, then applied. -/
-theorem cstep_putErr_applied (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess)
-    (pend : List (GoString × GoString)) :
-    ∃ c₁, CStep ⟨absKV σ, pend⟩ (.put k v) .err c₁ ∧
-      Reach c₁ ⟨absKV (kvOpStep (.put (putOp k v)) σ), pend⟩ := by
-  refine ⟨_, .putErr _ k v, .single ?_⟩
-  rw [absKV_put k v σ hs]
-  have h := Silent.apply ⟨absKV σ, (k, v) :: pend⟩ k v List.mem_cons_self
-  simpa [List.erase_cons_head] using h
-
-/-- A get that returned the server's answer `kvs` (`client.srvRangeOk_getKey`'s). -/
-theorem cstep_getOk (k : GoString) (σ : KVState) (pend : List (GoString × GoString))
-    (kvs : List EtcdKv) (hkvs : kvs = σ.kvs.filter (fun v => decide (v.key = k))) :
-    CStep ⟨absKV σ, pend⟩ (.get k) (.okGet (kvs.head?.map EtcdKv.value))
-      ⟨absKV (kvOpStep (.range (getOp k)) σ), pend⟩ := by
-  rw [kvOpStep_get, hkvs, absKV_get]
-  exact .getOk _ k
 
 end kv
 

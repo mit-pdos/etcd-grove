@@ -371,21 +371,6 @@ instance isEtcdKvs_persistent (rev : w64) (pfx : GoString) (m : KvMap) :
     Persistent (isEtcdKvs (GF := GF) rev pfx m) := by
   unfold isEtcdKvs; infer_instance
 
-/-- Two maps that are etcd's state at the same revision have the same keys and contents. -/
-theorem isEtcdKvs_agree (rev : w64) (pfx : GoString) (m m' : KvMap) :
-    isEtcdKvs (GF := GF) rev pfx m ∗ isEtcdKvs rev pfx m' ⊢
-      ⌜m.map Prod.fst = m'.map Prod.fst⌝ ∗ ∃ s, kvValsAt m s ∗ kvValsAt m' s := by
-  unfold isEtcdKvs
-  iintro ⟨⟨%s, #Hs, %Hk, %-, #Hv⟩, ⟨%s', #Hs', %Hk', %-, #Hv'⟩⟩
-  ihave %Heq := etcdState_agree rev pfx s s' $$ [$Hs $Hs']
-  subst Heq
-  isplitr
-  · ipureintro; rw [Hk, Hk']
-  iexists s
-  isplitl []
-  · iexact Hv
-  · iexact Hv'
-
 omit EM in
 /-- The events `evs` (as the store reads them) are etcd's events `cs`, pointwise: the same type,
 key and revision, and each event's `*KeyValue` holds etcd's key-value (`kvValAt`). -/

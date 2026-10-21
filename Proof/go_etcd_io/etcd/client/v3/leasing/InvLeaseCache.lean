@@ -516,10 +516,6 @@ def entryFactsAt (pfx k : GoString) (st : LeaseCacheSt) : IProp GF :=
   | some e => entryFacts pfx k e
   | none => iprop(True)
 
-instance entryFactsAt_persistent (pfx k : GoString) (st : LeaseCacheSt) :
-    Persistent (entryFactsAt (GF := GF) pfx k st) := by
-  unfold entryFactsAt; split <;> infer_instance
-
 /-- **A fresh `*GetResponse`** `r` (not nil, allocated by the cache, owned by the caller): its `Header` a
 fresh copy of the fields `hm`, `More`, `Count`, and the key-value `kv` (if any) in a fresh
 `*KeyValue` (the contents of its slices read-only). -/

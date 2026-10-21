@@ -304,30 +304,6 @@ theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : MessageM)
     have := uint_nat_eq s.rd.ro.confirmed
     omega
 
-/-- The static mode's ghost update of a branch (a snapshot's, which the dynamic mode excludes):
-`recv` is the incoming message, some number of times, and that message is `isMessage`. -/
-theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
-    (ps ps' : PState) (a : Msg) (recv : List Msg)
-    (B : Int) (HB : B < 2 ^ 64)
-    (HC : CfgStatic γ c) (HT : TrackedOk γ c id) (Hrecv : ∀ m' ∈ recv, m' = a)
-    (Hstep : StepC c id B ps recv ps')
-    (Hna : a.ty ≠ .readIndex) (Hnp : a.ty ≠ .propose) :
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ £ 1 -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
-  iintro #Hrc #Hm Hlc Hg
-  have Hcnt : rdCount recv = 0 := by
-    unfold rdCount; rw [List.countP_eq_zero]
-    intro x hx; rw [Hrecv x hx]; simp [Hna]
-  imod rdCred_zero_upd (GF := GF) γ with Hz
-  ihave Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
-  · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
-      (fun k x hx => by
-        rw [Hrecv x (List.mem_of_getElem? hx)]
-        exact intuitionistically_elim))
-    iexact Hm
-  iapply ownRaftGhost_stepC γ c HC id HT B HB ps recv ps' Hstep $$ Hrc Hall [Hz] [] Hlc Hg
-  · rw [Hcnt]; iexact Hz
-  · iapply msgsTks_noprop γ recv (fun x hx => by rw [Hrecv x hx]; exact Hnp)
-
 /-- The one ghost update of a branch, in the mode `md`: `recv` is the incoming message, some
 number of times, and that message is `isMessage`; its read credit when it is a read-index
 request (`Hcr`). -/

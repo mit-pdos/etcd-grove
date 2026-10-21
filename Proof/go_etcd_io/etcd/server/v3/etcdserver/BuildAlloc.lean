@@ -55,31 +55,6 @@ private theorem buildMonoNatHalves (γ : GName) (n : Nat) :
   rw [Qp.half_add_half] at hf
   exact hf.1
 
-/-- **The read names, fresh**, at the raft names `raft` and the KV start values (`c0`, `ch0`,
-`log0`), the KV names' certificate map `cok` (the store's, chosen before `mvcc.New`), and the KV
-state's variable at `σ`. -/
-theorem srvReadNamesFresh_alloc (raft : ServerRaftNames) (c0 : w64) (ch0 : apply.Chain)
-    (log0 : mvcc.Log) (cok : GName) (ids : IdNames) (W : SrvWorkload) (σ : KVState) :
-    ⊢ |==> ∃ γr : ReadNames,
-      ⌜γr.raft = raft ∧ γr.kv.c0 = c0 ∧ γr.kv.ch0 = ch0 ∧ γr.kv.log0 = log0 ∧ γr.kv.cok = cok ∧
-        γr.kv.ids = ids ∧ γr.kv.wl = W⌝ ∗
-      srvReadNamesFresh (GF := GF) γr σ := by
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
-  imod ghostVar_alloc (GF := GF) ((null, ⟨γa, γa⟩) : Loc × NeedNames) with ⟨%γn, Hn⟩
-  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := mvcc.Log) with ⟨%γl, Hl⟩
-  imod ghostVar_alloc (GF := GF) false with ⟨%γp, Hp⟩
-  imod ghostVar_alloc (GF := GF) σ with ⟨%γst, Hst⟩
-  imod ghostVar_alloc (GF := GF) log0.length with ⟨%γhi, Hhi⟩
-  imodintro
-  iexists ⟨γa, γc, γn, γl, γp, raft, ⟨γst, c0, ch0, log0, cok, γhi, ids, W⟩⟩
-  isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
-  unfold srvReadNamesFresh
-  iframe Ha Hc Hl Hp Hst Hhi
-  iexists _
-  iexact Hn
-
 /-- Conf-change entries claim nothing (D19c). -/
 theorem entryClaims_conf (γi : IdNames) :
     ∀ l : List EntryModel, (∀ m ∈ l, m.typ ≠ W32 0) →
@@ -316,39 +291,6 @@ theorem srvMintInv_alloc (ρ : ReqNames) (E : CoPset) :
   imod srvRdFreshInv_alloc ρ.raft ρ.ids E $$ HR Hc with #Hrd
   iunfold srvMintInv
   iframe HP Hrd
-
-/-- **The apply protocol's invariant** over a fresh consistent index (its client half at `0`),
-with the backend's initial meta keys `m0`: the protocol's names, its invariant, the apply
-thread's half at nothing processed beyond `m0`'s index, the batch lock's half of the stored
-index's mirror and its token. -/
-theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (E : CoPset) :
-    ⊢ ciIdx (GF := GF) γci (W64 0) ={E}=∗ ∃ γA : ApplyNames, ⌜γA.ci = γci ∧ γA.m0 = m0⌝ ∗
-      inv applyN (consInv γA) ∗ applyThread γA ⟨W64 0, m0.1, m0.1, false⟩ ∗
-      ghostVar γA.mt (1 : Qp).half m0.1 ∗ token γA.pend := by
-  iintro Hk
-  imod ghostVar_alloc (GF := GF) (⟨W64 0, m0.1, m0.1, false⟩ : ApplyState) with ⟨%γst, Hst⟩
-  imod ghostVar_alloc (GF := GF) m0.1 with ⟨%γmt, Hmt⟩
-  imod ghostVar_alloc (GF := GF) false with ⟨%γwr, Hwr⟩
-  imod token_alloc (GF := GF) with ⟨%γpend, Htok⟩
-  icases buildGhostVarHalves γst _ $$ Hst with ⟨Hst1, Hst2⟩
-  icases buildGhostVarHalves γmt _ $$ Hmt with ⟨Hmt1, Hmt2⟩
-  imod inv_alloc applyN E (consInv (⟨γci, γst, γmt, γwr, γpend, m0⟩ : ApplyNames))
-    $$ [Hk Hst1 Hmt1 Hwr] with #Hinv
-  · inext
-    iunfold consInv
-    iexists ⟨W64 0, m0.1, m0.1, false⟩, m0.1, false
-    iframe Hk Hst1 Hmt1 Hwr
-    iunfold flightInv
-    ipureintro
-    refine ⟨fun h => absurd rfl h, fun _ => rfl, fun _ => rfl, ?_⟩
-    unfold stOk ciEff
-    simp
-  imodintro
-  iexists ⟨γci, γst, γmt, γwr, γpend, m0⟩
-  iframe Hinv Hmt2 Htok
-  isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
-  iunfold applyThread; iexact Hst2
 
 end alloc
 

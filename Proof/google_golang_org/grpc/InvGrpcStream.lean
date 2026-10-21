@@ -198,14 +198,6 @@ instance downLb_persistent {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep
     Persistent (downLb (GF := GF) γ L) := by
   unfold downLb; infer_instance
 
-/-- The `j`th response the server sent on the stream is `m` (persistent). -/
-def downAt {Rep : StreamMsg GF} (γ : StreamNames) (j : Nat) (m : Rep.M) : IProp GF :=
-  monoListIdxOwn γ.down j m
-
-instance downAt_persistent {Rep : StreamMsg GF} (γ : StreamNames) (j : Nat) (m : Rep.M) :
-    Persistent (downAt (GF := GF) γ j m) := by
-  unfold downAt; infer_instance
-
 /-- The server's handler returned after sending the responses `L`: the down queue is closed
 (persistent). -/
 def downClosed {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) : IProp GF :=
@@ -259,13 +251,6 @@ theorem cliRecvTok_lb {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) :
   iintro ⟨H1, #H2⟩
   iframe
   iframe #
-
-/-- What a lower bound of the down queue says of a position. -/
-theorem downLb_at {Rep : StreamMsg GF} (γ : StreamNames) (L : List Rep.M) (j : Nat) (m : Rep.M)
-    (h : L[j]? = some m) : downLb (GF := GF) γ L ⊢ downAt γ j m := by
-  unfold downLb downAt
-  iintro H
-  iapply (monoListIdxOwn_get (GF := GF) j m h) $$ H
 
 /-! ## The stream's errors -/
 
@@ -858,23 +843,6 @@ and takes one for each run); a run, or a goroutine of it, returns its copy when 
 (`grpcSlotPool_return`). -/
 def grpcSlotPool (S : IProp GF) : IProp GF :=
   inv grpcSlotN iprop(∃ k : Nat, [∗list] _x ∈ List.replicate k (), S)
-
-instance grpcSlotPool_persistent (S : IProp GF) : Persistent (grpcSlotPool S) := by
-  unfold grpcSlotPool; infer_instance
-
-/-- **A run returns its slot** to the pool. -/
-theorem grpcSlotPool_return (S : IProp GF) : ⊢ grpcSlotPool S -∗ S ={⊤}=∗ True := by
-  iintro #Hp HS
-  unfold grpcSlotPool
-  iinv Hp with ⟨%k, Hs⟩ Hclose
-  imod Hclose $$ [HS Hs] with -
-  · inext
-    iexists k + 1
-    simp only [List.replicate_succ]
-    iapply BigSepL.bigSepL_cons.2
-    iframe
-  imodintro
-  itrivial
 
 /-- **The stream method handler `mh` with the service `srv`, under the stream interceptor chain
 `ics`, meets `Spec` with the client's content `Up` and the per-run resource `S`** (persistent;

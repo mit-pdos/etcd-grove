@@ -123,10 +123,6 @@ def lessorGhost (lp : Loc) (γga : GName) (L : List w64) : GMap Bool LessorGV :=
 def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
   ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
 
-instance leaseFrag_timeless (γl : GName) (q : Qp) (L : List w64) :
-    Timeless (leaseFrag (GF := GF) γl q L) := by
-  unfold leaseFrag; infer_instance
-
 /-- The lessor of `γl` is at `lp`, its grant guard named `γga` (persistent: the ghost map's
 element `false`, discarded). -/
 def lessorPinG (γl : GName) (lp : Loc) (γga : GName) : IProp GF :=
@@ -299,9 +295,6 @@ def lessorRd (lp : Loc) (γl : GName) : IProp GF :=
 /-- **The lease owner's half** of the live set: holding it, `L` is the live set (the apply
 thread's). -/
 def leaseOwn (γl : GName) (L : List w64) : IProp GF := leaseFrag γl (1 : Qp).half L
-
-instance leaseOwn_timeless (γl : GName) (L : List w64) : Timeless (leaseOwn (GF := GF) γl L) := by
-  unfold leaseOwn; infer_instance
 
 /-- A reader slot of the lessor of `γl`, wherever it is (`lessorPin`). -/
 def lessorRdOf (γl : GName) : IProp GF :=

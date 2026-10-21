@@ -288,53 +288,6 @@ theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : 
   iframe Hlb
   ipureintro; exact Hle
 
-/-- **`kvAnyAu` from `etcdKV` in the client's invariant** (`kvClientInv`): the floor first
-(`kv_client_floor`), then every update opens the invariant, hands the state over, takes the
-stepped state back and moves the counter (`kvOpStep_rev`); the counter's lower bound gives the
-floor at the state the update fires at. -/
-theorem kvAnyAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName)
-    (hW : ∀ op, γ.kv.wl.writes op) :
-    srvKVInvs E γ ∗ kvClientInv γ γm ⊢ kvAnyAu (GF := GF) E γ := by
-  have Hm := kvClientN_mask
-  iintro ⟨#Hinvs, #Hinv⟩
-  iunfold kvAnyAu
-  iintro !> %op %l #Hc
-  imod kv_client_floor E γ γm l $$ Hinvs Hinv Hc with ⟨%n, #Hlb, %Hn⟩
-  imodintro
-  iunfold kvOpAu
-  isplitr
-  · ipureintro; exact hW op
-  iunfold kvAu
-  iintro !>
-  iauintro
-  unfold atomic_acc
-  iunfold kvClientInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, Hσ, Hmn⟩
-  ihave %Hv := monoNatLbOwn_valid γm 1 σ.rev n $$ Hmn Hlb
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-  iintro Hmask
-  iexists σ
-  iframe Hσ
-  isplit
-  · iintro Hσ
-    imod Hmask with -
-    imod Hclose $$ [Hσ Hmn] with -
-    · inext; iexists σ; iframe Hσ Hmn
-    imodintro
-    itrivial
-  · iintro Hσ
-    imod Hmask with -
-    imod (mono_nat_own_update (GF := GF) (γ := γm) (kvOpStep op σ).rev (kvOpStep_rev op σ))
-      $$ Hmn with ⟨Hmn, -⟩
-    imod Hclose $$ [Hσ Hmn] with -
-    · inext; iexists (kvOpStep op σ); iframe Hσ Hmn
-    imodintro
-    iintro !>
-    ipureintro
-    omega
-
 /-- **A range's update, with the floor of a certified log** (persistent; 2026-10-20, cachekv):
 `kvAnyAu` at the ranges only, what a get needs (`kv_get_server_r`). A workload always lets its
 clients deposit a range (`SrvWorkload.writes_range`), so a client whose workload lets it write
@@ -463,33 +416,6 @@ theorem storeSmall_of_read (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
   iunfold srvReadFieldsAt at Hsrd
   icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsm, -⟩
   iexact Hsm
-
-/-- **The state a read linearized at, in the clients' model** (2026-10-15, unit T2: how the
-abstract state `σ` meets the vertical slice's `EtcdModel` instance): a linearizable range's reply
-gives `□ Q σ` at the state `σ` of a certified log (`kvStateOf`), and that log's state at its last
-revision, restricted to any prefix, is etcd's state at `σ.rev` in the server's model
-(`etcdState_of_cert_last`): `etcdState (W64 σ.rev) pfx (txn.underPfx pfx σ.kvs)`, persistent and well
-formed. -/
-theorem rangeReply_etcdState (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (o : OpFull)
-    (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM) (pfx : GoString)
-    (hser : o.base.serializable = false) :
-    storeSmall E.γ ∗ rangeReplyOk E γr c F o cid mid Q m ⊢
-      ∃ σ : KVState, □ Q σ ∗
-        □ etcdState (self := v3rpc.etcdModelOfServer E) (W64 (σ.rev : Int)) pfx
-          (txn.underPfx pfx σ.kvs) ∗ ⌜EtcdStateWf pfx (txn.underPfx pfx σ.kvs)⌝ := by
-  iintro ⟨#Hsm, #H⟩
-  iunfold rangeReplyOk at H
-  simp only [hser, Bool.false_eq_true, ↓reduceIte]
-  icases H with ⟨%l, #Hcert, -, %Hl, -, #HQ⟩
-  obtain ⟨hlen, hlen', -⟩ := Hl
-  ihave ⟨#Hst, %Hwf⟩ := v3rpc.etcdState_of_cert_last E l pfx hlen hlen' $$ [$Hsm $Hcert]
-  iexists kvStateOf l
-  iframe HQ
-  have hr : W64 ((l.length : Int) - 1) = W64 (((kvStateOf l).rev : Nat) : Int) := by
-    unfold kvStateOf; simp only; congr 1; omega
-  rw [← hr, show (kvStateOf l).kvs = mvcc.stateAfter l from rfl]
-  iframe Hst
-  ipureintro; exact Hwf
 
 end floor
 

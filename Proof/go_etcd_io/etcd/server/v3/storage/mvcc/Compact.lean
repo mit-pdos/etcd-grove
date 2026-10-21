@@ -1427,25 +1427,6 @@ theorem IdxCRep.mono {cmax cmax' : Int} {evs : List Ev} {idx : IndexM} (h : IdxC
     obtain ⟨c, h0, h1, h2⟩ := h.2 k
     exact ⟨c, h0, Int.le_trans h1 hle, h2⟩⟩
 
-/-- The uncompacted index is a compacted one (every level `-1`). -/
-theorem IdxCRep.of_indexOf (log : Log) (hb : LogB log) {cmax : Int} (h : -1 ≤ cmax) :
-    IdxCRep cmax (evsOf log) (indexOf (evsOf log)) := by
-  refine ⟨indexOf_sorted _, fun k => ⟨-1, Int.le_refl _, h, ?_⟩⟩
-  unfold kiCompactO
-  rw [show ((-1 : Int)) = -1 from rfl, kiCompact_neg log hb k]
-  have hrep := (indexOf_rep (evsOf log)).2 k
-  cases hg : idxGet (indexOf (evsOf log)) k with
-  | none =>
-    rw [hg] at hrep
-    simp only [Option.getD_none] at hrep
-    rw [← hrep, kiIsEmpty_kiEmpty]; rfl
-  | some ki =>
-    rw [hg] at hrep
-    simp only [Option.getD_some] at hrep
-    have hmem := idxGet_some_mem (indexOf_sorted _) hg
-    have hh := indexOf_head' (evsOf log) (k, ki) hmem
-    rw [← hrep, (kiIsEmpty_false_of_head hh).1]; rfl
-
 /-- A key the index has: its key index of the events compacted at its level, not empty. -/
 theorem IdxCRep.get_some {cmax : Int} {evs : List Ev} {idx : IndexM} (h : IdxCRep cmax evs idx)
     {k : GoString} {ki : KeyIndex} (hg : idxGet idx k = some ki) :

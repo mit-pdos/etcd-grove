@@ -427,10 +427,6 @@ instance callInv_persistent (γ : LinkvNames) (γc γt : GName) (x : Input) (i :
 def readQ (γc : GName) (R : w64) (σ : KVState) : IProp GF :=
   iprop(⌜GoodKV σ⌝ ∗ (⌜σ.rev = uint.nat R⌝ → dghostVar γc DFrac.discard (some σ)))
 
-instance readQ_persistent (γc : GName) (R : w64) (σ : KVState) :
-    Persistent (readQ (GF := GF) γc R σ) := by
-  unfold readQ; infer_instance
-
 end defs
 
 /-! ## The steps -/

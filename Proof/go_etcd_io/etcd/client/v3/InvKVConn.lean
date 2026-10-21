@@ -230,14 +230,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `TypeRepr` of `clientv3.Client` straight from its `TypeAssumptions` (as `cache/v3/InvNew.lean`
-does under the cache's assumptions): without it, the `StructFieldRef` step of `c.conn` and
-`c.callOpts` (`RetryKVClient`, `NewKV`) finds `TypeRepr` through `Client`'s `IntoValTyped`,
-built from the `sorry` instances of its names-only fields' axiomatized types. -/
-instance (priority := high) clientC1_typeRepr :
-    TypeRepr go_etcd_io.etcd.client.v3.Client.ty go_etcd_io.etcd.client.v3.Client :=
-  go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
 instance (priority := high) clientC1_typeRepr_u :
     TypeRepr go_etcd_io.etcd.client.v3.Client.underlying go_etcd_io.etcd.client.v3.Client :=
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
@@ -730,11 +722,6 @@ theorem callOptsOk_app (vs ws : List GoInterface) :
   isplitl [H1]
   · iexact H1
   · iexact H2
-
-theorem callOptsOk_nil : ⊢ callOptsOk (GF := GF) [] := by
-  unfold callOptsOk
-  iapply BigSepL.bigSepL_nil.2
-  itrivial
 
 theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ callOptsOk [v] := by
   unfold callOptsOk

@@ -1028,14 +1028,6 @@ theorem idxSealed_pure (γ : IdxNames) (log : Log) :
   unfold idxSealed
   iintro ⟨-, %h, -⟩; ipureintro; exact h
 
-/-- **Two sealed logs of one length are one log.** -/
-theorem idxSealed_agree_len (γ : IdxNames) (log log' : Log) :
-    idxSealed (GF := GF) γ log ∗ idxSealed γ log' ⊢ ⌜log.length = log'.length → log = log'⌝ := by
-  refine (idxSealed_prefix γ log log').trans (pure_mono fun h hlen => ?_)
-  rcases h with h | h
-  · exact h.eq_of_length hlen
-  · exact (h.eq_of_length hlen.symm).symm
-
 /-- The empty log is sealed. -/
 theorem idxSealed_nil (γ : IdxNames) : ⊢ |==> idxSealed (GF := GF) γ [] := by
   unfold idxSealed
@@ -1080,17 +1072,6 @@ theorem idxWriter_seal (γ : IdxNames) (ilog : Log) (pend : List Change) (hne : 
   isplitl
   · ipureintro; exact Hwf.sealed
   ipureintro; rw [logCh_snoc]; exact Hsm
-
-/-- A sealed writer's pending revision is not empty. -/
-theorem idxWriterB_ne (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Bool) :
-    idxWriterB (GF := GF) γ ilog pend b ⊢ idxWriterB γ ilog pend b ∗ ⌜b = true → pend ≠ []⌝ := by
-  cases b
-  · iintro H; iframe H; ipureintro; intro h; cases h
-  · simp only [idxWriterB_true]
-    unfold idxWriterSealed
-    iintro ⟨Ha, Hn, %Hw, Hl⟩
-    iframe Ha Hn Hl
-    ipureintro; exact ⟨Hw, fun _ => Hw.2⟩
 
 /-- An empty pending revision is never sealed. -/
 theorem idxWriterB_nil (γ : IdxNames) (ilog : Log) (b : Bool) :
@@ -1138,14 +1119,6 @@ theorem idxCert_prefix (γ : IdxNames) (log log' : Log) :
   unfold idxCert
   iintro ⟨⟨-, -, -, Hl, -⟩, ⟨-, -, -, Hl', -⟩⟩
   iapply mono_list_lb_valid γ.log log log' $$ Hl Hl'
-
-/-- **Two certificates of logs of one length are of one log.** -/
-theorem idxCert_agree_len (γ : IdxNames) (log log' : Log) :
-    idxCert (GF := GF) γ log ∗ idxCert γ log' ⊢ ⌜log.length = log'.length → log = log'⌝ := by
-  refine (idxCert_prefix γ log log').trans (pure_mono fun h hlen => ?_)
-  rcases h with h | h
-  · exact h.eq_of_length hlen
-  · exact (h.eq_of_length hlen.symm).symm
 
 /-- The committed log (any part of its authority) extends every certificate's. -/
 theorem idxLogAuth_cert_prefix (γ : IdxNames) (q : Qp) (ilog log : Log) :

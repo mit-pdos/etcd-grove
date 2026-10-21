@@ -141,12 +141,6 @@ def LogIndicesOk [FfiSyntax] (prev : entryID) (ents : List EntryM) : Prop :=
 
 def EntryNormal : w32 := W32 0
 
-/-- Rocq `Forall_sublist_of`. -/
-theorem forall_sublist_of {A : Type _} (P : A → Prop) (l es : List A) :
-    (∀ e ∈ l, P e) → (∀ e, e ∈ es → e ∈ l) → ∀ e ∈ es, P e := by
-  intro Hl Hin e He
-  exact Hl e (Hin e He)
-
 /-- The state of an `unstable` struct as its specs speak of it (`ownUnstable`): the
 suffix's entries `ents`, which start at index `offset`; `inprogress`
 (`u.offsetInProgress`), below which they have been handed to the application; and the
@@ -281,10 +275,6 @@ def initKsn (σ : StorState) : List SnapTrip :=
 theorem initKsn_mem (σ : StorState) (h : σ.ss.index' ≠ W64 0) :
     SnapTrip.mk σ.ss σ.scs σ.sal ∈ initKsn σ := by
   unfold initKsn; rw [ite_eq_right h]; exact List.mem_singleton_self _
-
-theorem initKsn_zero (σ : StorState) (h : uint.Z σ.ss.index' = 0) : initKsn σ = [] := by
-  have : σ.ss.index' = W64 0 := by word
-  simp [initKsn, this]
 
 /-- The snapshots the node may send (2026-10-15, stage S): the pending snapshot, if any, is one
 of them (`K`, the log's `ksn`) -- what `raftLog.snapshot` returns of it, the snapshot `p`
@@ -912,17 +902,6 @@ theorem ownRaftLog_committed (l : Loc) (ls : LogState) :
   ownRaftLog_pure l ls _ fun _ _ _ _ _ _ Happlied Hpapplied Hcommitted _ _ =>
     ⟨⟨Happlied.1, Happlied.2, Hcommitted⟩, Hpapplied⟩
 
-/-- The pending snapshot's facts (`LogStoreOk`), read out without consuming the log:
-with a snapshot pending, the log starts at it with no stable part. `appendEntry` and
-`raftLog.restore`'s callers need the index bound. -/
-theorem ownRaftLog_snap (l : Loc) (ls : LogState) (sid : entryID) (Hs : ls.snap = some sid) :
-    ⊢ ownRaftLog (GF := GF) l ls -∗
-      ⌜ls.prev = sid ∧ ls.sents = [] ∧
-        (0 < uint.Z sid.index' ∧ uint.Z sid.index' < 2^61)⌝ ∗
-      ownRaftLog l ls :=
-  ownRaftLog_pure l ls _ fun _ _ _ _ Hstore _ _ _ _ _ _ => by
-    rw [Hs] at Hstore; exact Hstore
-
 omit [GoGlobalContext] in
 /-- An entry `Storage.Entries` hands back for a range ending at or below
 `unstable.offset` is an entry of the *visible* stable part `sents` (`isStorage`'s
@@ -1022,23 +1001,6 @@ theorem logTruncateAppend_cont (ls : LogState) (ents : List EntryM)
       simp only [logTruncInprogress, show ¬ (uint.Z e0.Index' < uint.Z ls.prev.index'
         + (ls.sents.length : Int) + (ls.uents.length : Int) + 1) by omega, ite_false]
     · simp only [decide_eq_false_iff_not]; omega
-
-/-- Read a slice's length as an `Int`, without consuming the slice. -/
-theorem slice_len_Z {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (s : GoSlice)
-    (vs : List V) (dq : DFrac) :
-    ⊢ s ↦*{dq} vs -∗ (⌜(vs.length : Int) = sint.Z s.len⌝ : IProp GF) := by
-  iintro H
-  icases ownSlice_len s dq vs $$ H with ⟨%H1, %H2⟩
-  ipureintro
-  rw [H1]; word
-
-/-- An entry slice's length as an `Int`, without consuming the slice. -/
-theorem ents_len_Z (s : GoSlice) (es : List EntryM) (dq : DFrac) :
-    ⊢ entsPts s dq es -∗ (⌜(es.length : Int) = sint.Z s.len⌝ : IProp GF) := by
-  iintro H
-  icases entsPts_len s dq es $$ H with ⟨%H1, %H2⟩
-  ipureintro
-  rw [H1]; word
 
 /-! ## Reading the log through `scan`
 

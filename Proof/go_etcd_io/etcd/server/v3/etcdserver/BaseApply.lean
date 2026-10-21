@@ -364,9 +364,6 @@ abbrev srvRaftInit : IProp GF :=
     -- wrapper's `rnRaftStatusOk`), allocated and initialized by the package's initializer
     sync.isMutex (globalAddr raftStatusMu) iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f))
 
-instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
-  unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance
-
 /-- The apply loop's part of the server's package facts (2026-10-13, the request path's unit 4b,
 `applyAll`): the metric `proposalsApplied` holds a fixed gauge (`Set`), and `schema.AllBuckets`
 (the buckets `VerifyBackendConsistency` checks; stated here rather than in `schema`'s facts, as

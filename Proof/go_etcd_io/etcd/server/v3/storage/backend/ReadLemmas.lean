@@ -272,20 +272,6 @@ theorem mapPart_split (cm : GoMap) (qm : Rat) (r : Qp) (M : GMap w64 Loc) (h : r
     rw [this]
     iintro H; iframe
 
-theorem mapPart_join (cm : GoMap) (qm : Rat) (r : Qp) (M : GMap w64 Loc) (h : 0 ≤ qm) :
-    mapPart (GF := GF) cm qm M ∗ cm ↦${DFrac.own r} M ⊢ mapPart cm (qm + r.val) M := by
-  have hr := r.2
-  unfold mapPart
-  rw [dif_pos (show 0 < qm + r.val by grind)]
-  by_cases h0 : 0 < qm
-  · rw [dif_pos h0, ← qp_add_mk _ h0]
-    iintro ⟨H1, H2⟩
-    iapply ownMap_combine; iframe
-  · rw [dif_neg h0]
-    have : (⟨qm + r.val, by grind⟩ : Qp) = r := Subtype.ext (by show qm + r.val = r.val; grind)
-    rw [this]
-    iintro ⟨_, H⟩; iexact H
-
 theorem tokPart_split (γ : BNames) (a : Rat) (r : Qp) (h : r.val ≤ a) :
     tokPart (GF := GF) γ a ⊢ tokPart γ (a - r.val) ∗ ghostVar γ.txa r () := by
   have hr := r.2
@@ -481,11 +467,6 @@ theorem kvsOutRd_of_kvsOut (rtx : Loc) (keys vals : GoSlice) (res : List Ent) :
   isplitl [Hka]
   · iapply rdSlices_of_slicesAre $$ Hka
   · iapply rdSlices_of_slicesAre $$ Hva
-
-theorem kvsOutRd_nil (rtx : Loc) : ⊢ kvsOutRd (GF := GF) rtx slice.nil slice.nil [] := by
-  iintro
-  iapply kvsOutRd_of_kvsOut
-  iapply kvsOut_nil_r
 
 /-! ## Fractions of a read buffer agree on its layout -/
 

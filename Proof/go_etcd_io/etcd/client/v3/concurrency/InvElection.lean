@@ -148,18 +148,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 ownership fact (`lockedAt`). -/
 def leaderAt (pfx key : GoString) (c R : w64) : IProp GF := lockedAt pfx key c R
 
-instance leaderAt_persistent (pfx key : GoString) (c R : w64) :
-    Persistent (leaderAt (GF := GF) pfx key c R) := by
-  unfold leaderAt; infer_instance
-
 /-- **A campaign that lost its key** (persistent): at `R`, under `pfx`, no key was created before
 `c`, but `key` is not there with create revision `c` (`LostState`). -/
 def campaignLost (pfx key : GoString) (c R : w64) : IProp GF :=
   iprop(∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜LostState key c s⌝)
-
-instance campaignLost_persistent (pfx key : GoString) (c R : w64) :
-    Persistent (campaignLost (GF := GF) pfx key c R) := by
-  unfold campaignLost; infer_instance
 
 /-- At revision `R`, `key` is present under `pfx` with create revision `c` and value `val`
 (persistent). -/
@@ -185,10 +177,6 @@ failed guard, or a `Resign`, leaves. -/
 def notLeaderAt (pfx key : GoString) (c R : w64) : IProp GF :=
   iprop(∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜¬ HasKeyAt key c s⌝)
 
-instance notLeaderAt_persistent (pfx key : GoString) (c R : w64) :
-    Persistent (notLeaderAt (GF := GF) pfx key c R) := by
-  unfold notLeaderAt; infer_instance
-
 /-- **The key-value `v` is the leader on `pfx` at `R`** (persistent; `LeaderKvState`). -/
 def leaderKvAt (pfx : GoString) (v : EtcdKv) (R : w64) : IProp GF :=
   iprop(∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜LeaderKvState v s⌝)
@@ -196,14 +184,6 @@ def leaderKvAt (pfx : GoString) (v : EtcdKv) (R : w64) : IProp GF :=
 instance leaderKvAt_persistent (pfx : GoString) (v : EtcdKv) (R : w64) :
     Persistent (leaderKvAt (GF := GF) pfx v R) := by
   unfold leaderKvAt; infer_instance
-
-theorem leaderKvAt_leaderAt (pfx : GoString) (v : EtcdKv) (R : w64) :
-    leaderKvAt (GF := GF) pfx v R ⊢ leaderAt pfx v.key v.createRev R := by
-  unfold leaderKvAt leaderAt lockedAt
-  iintro ⟨%s, #Hs, %Hl⟩
-  iexists s
-  iframe Hs
-  ipureintro; exact Hl.locked
 
 /-- **What an `Observe` response tells** (persistent): `v` is in etcd's state `s` at `R`, under
 `pfx`, and

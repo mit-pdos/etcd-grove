@@ -224,16 +224,6 @@ theorem RInv.full_length {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec
   unfold RState.full plogLastIndexZ
   rw [List.length_append]; push_cast; rw [H.full.1]
 
-/-- The configuration is a reachable one: `CfgOk` from the initial configuration's. -/
-theorem RInv.cfgOk {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
-    (h0 : CfgOk c0) : CfgOk r.cfg :=
-  cfgFold_ok H.cfg h0
-
-/-- A leader's I1 comes from its I3. -/
-theorem RInv.i1_of_i3 {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
-    (hl : r.p.role = .leader) : ConfI1 r.full (uint.nat r.p.commit) :=
-  ConfI1_of_drop_le (H.i3 hl).2 (Nat.le_trans H.applied_cidx H.cidx_commit)
-
 /-- A rule that moves none of the fields the invariant reads, and keeps the role (with
 `pci`) or makes a follower. -/
 theorem RInv.frame {dec : CCDec} {c0 : CCState} {r r' : RState} (H : RInv dec c0 r)
@@ -726,31 +716,6 @@ def AppKnow (r : RState) (m : Msg) : Prop :=
     (0 < uint.nat m.index → ∃ e, G[uint.nat m.index - 1]? = some e ∧ e.Term' = m.logterm) ∧
     LogMatchL r.full G
 
-/-- The sender's side: an `MsgApp` that `AppOk` allows and that carries the sender's commit
-index (`AppCommitEq`) has, for the sender's log up to the batch's end, I1 at its commit
-index. (Without the equality this is false: the file header.) -/
-theorem ConfI1_appOk {dec : CCDec} {c0 : CCState} {r : RState} {id : w64} {m : Msg}
-    (H : RInv dec c0 r) (hm : AppOk id r.p m) (hc : m.commit = r.p.commit) :
-    ConfI1 (r.full.take (uint.nat m.index) ++ m.entries) (uint.nat m.commit) := by
-  obtain ⟨_, _, _, _, ht, _, _, hpre, _, hnw⟩ := hm
-  obtain ⟨hb, _⟩ := plogTermAt_some_range _ _ _ _ ht
-  have hfl : (r.fp.length : Int) = uint.Z r.p.base.index' := H.full.1
-  have hin := rUnat_eq m.index
-  obtain ⟨t, ht'⟩ := hpre
-  have hnw1 : uint.Z (m.index + W64 1) = uint.Z m.index + 1 := by word
-  unfold plogFrom at ht'
-  rw [hnw1] at ht'
-  have hsplit : r.full = (r.full.take (uint.nat m.index) ++ m.entries) ++ t := by
-    have hk : uint.nat m.index = r.fp.length + (uint.Z m.index + 1 - uint.Z r.p.base.index' - 1).toNat := by
-      omega
-    unfold RState.full
-    rw [hk, List.take_length_add_append, List.append_assoc, List.append_assoc, ht',
-      List.take_append_drop]
-  rw [hc]
-  have := H.i1
-  rw [hsplit] at this
-  exact this.prefix
-
 theorem plogFindConflict_first (b : entryID) (es : List EntryM) :
     ∀ (ents : List EntryM) (d : Nat) (e : EntryM), ents[d]? = some e →
     ¬ PlogMatches b es (entId e) →
@@ -981,17 +946,6 @@ theorem RInv_stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : 
     | exact RInv_keep _ H rfl rfl rfl (Or.inr rfl)
     | exact RInv_keep _ H rfl rfl rfl (Or.inl rfl)
     | exact H.frame rfl rfl rfl rfl rfl rfl rfl rfl (Or.inl rfl)
-
-/-- A derivation that receives nothing keeps `RInv` with no message knowledge. -/
-theorem RInv_stepR_nil {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c0 : CCState}
-    {id : w64} {B : Int} (hAdm : ∀ l cs, Adm l cs → cfgFold dec c0 l = some cs)
-    {r r' : RState} (h : StepR Adm dec id B r [] r') (hB : B < 2 ^ 64) (H : RInv dec c0 r) :
-    RInv dec c0 r' :=
-  RInv_stepR hAdm h hB (fun _ _ hm => by simp at hm) H
-
-/-- The dynamic model's admissible configurations satisfy `RInv_stepR`'s premise. -/
-theorem AdmFold_fold (dec : CCDec) (c0 : CCState) :
-    ∀ l cs, AdmFold dec c0 l cs → cfgFold dec c0 l = some cs := fun _ _ h => h
 
 end inv
 

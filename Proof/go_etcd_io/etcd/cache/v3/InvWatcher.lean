@@ -482,14 +482,6 @@ theorem watcherOpen_closed_false (γ : WatcherNames) (sent sent' : List RespMode
   ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
   cases H
 
-theorem watcherClosed_agree (γ : WatcherNames) (s1 s2 : List RespModel) (c1 c2 : Option w64) :
-    watcherClosed (GF := GF) γ s1 c1 ∗ watcherClosed γ s2 c2 ⊢ ⌜s1 = s2 ∧ c1 = c2⌝ := by
-  unfold watcherClosed
-  iintro ⟨H1, H2⟩
-  ihave %H := dghostVar_agree _ _ _ _ _ $$ H1 H2
-  ipureintro
-  simpa using H
-
 /-- Once closed, the right to close is gone (in the invariant). -/
 theorem watcher_tok_closed_false (w : Loc) (γ : WatcherNames) (Pb : WatcherPub GF)
     (sent : List RespModel) (c : Option w64) :
@@ -906,20 +898,6 @@ theorem watcher_recv_au (w ch : Loc) (γ : WatcherNames) (pred : Option (GoStrin
       iframe
       iframe #
 
-/-- The consumer's `resp, ok := <-w.respCh` as a plain receive (see `watcher_recv_au`). -/
-theorem wp_watcher_receive (w ch : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool))
-    (Pb : WatcherPub GF) (received : List RespModel) :
-    ⊢ ∀ Φ : val → IProp GF,
-      isWatcher w γ pred Pb -∗ watcherRespChAddr w ↦□ ch -∗ watcherConsumer γ received -∗
-      (∀ (resp : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool),
-        watcherRecvResult γ Pb received resp ok -∗ Φ (PairV #resp #ok)) -∗
-      WP (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch)) {{ Φ }} := by
-  iintro %Φ #Hw #Hch' Hcons HΦ
-  ihave #Hc := isWatcher_isChan w ch γ pred Pb $$ [$Hw $Hch']
-  iapply chan.wp_receive ch γ.ch $$ Hc
-  iintro -
-  iapply watcher_recv_au w ch γ pred Pb received (fun v ok => Φ (PairV #v #ok)) $$ Hw Hch' Hcons HΦ
-
 /-- After the channel is closed (the consumer saw `!ok`), `w.cancelResp` holds the cancel
 response of the close: nil (`Stop`) or the compaction response of `Compact(rev)`. -/
 theorem wp_watcher_cancelResp (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool))
@@ -961,93 +939,6 @@ theorem wp_watcher_cancelResp (w : Loc) (γ : WatcherNames) (pred : Option (GoSt
   imod Hp with ⟨%p, #Hp, #Hc⟩
   wp_load
   iapply HΦ $$ Hc
-
-/-- What the consumer has received is a prefix of what the producer has sent. -/
-theorem watcher_received_prefix (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool))
-    (Pb : WatcherPub GF) (sent0 received0 : List RespModel) :
-    isWatcher (GF := GF) w γ pred Pb ∗ watcherOpen γ sent0 ∗ watcherConsumer γ received0 ⊢
-      |={⊤}=> watcherOpen γ sent0 ∗ watcherConsumer γ received0 ∗ ⌜received0 <+: sent0⌝ := by
-  iintro ⟨#Hw, Hopen, Hcons⟩
-  unfold isWatcher
-  iNamed Hw
-  iinv Hinv with >Hi Hclose
-  iNamed Hi
-  unfold watcherOpen watcherConsumer
-  icases Hopen with ⟨Hs, Hc⟩
-  icombine Hs Hsent gives % ⟨_, Heq1⟩
-  icombine Hcons Hrecv gives % ⟨_, Heq2⟩
-  subst sent recv
-  imod Hclose $$ [Hch Hsent Hrecv Hcl] with -
-  · inext
-    unfold watcherInv
-    iexists s, sent0, received0, vs, cl
-    simp only [named]
-    iframe
-    iframe #
-    ipureintro; exact ⟨Hpre, Hinfl, Hclosed⟩
-  imodintro
-  iframe
-  ipureintro; exact Hpre
-
-/-- Once closed after `sent0`, what the consumer has received is a prefix of `sent0`. -/
-theorem watcher_received_prefix_closed (w : Loc) (γ : WatcherNames)
-    (pred : Option (GoString → Bool)) (Pb : WatcherPub GF) (sent0 received0 : List RespModel)
-    (c0 : Option w64) :
-    isWatcher (GF := GF) w γ pred Pb ∗ watcherClosed γ sent0 c0 ∗ watcherConsumer γ received0 ⊢
-      |={⊤}=> watcherConsumer γ received0 ∗ ⌜received0 <+: sent0⌝ := by
-  iintro ⟨#Hw, #Hcl0, Hcons⟩
-  unfold isWatcher
-  iNamed Hw
-  iinv Hinv with >Hi Hclose
-  iNamed Hi
-  unfold watcherConsumer
-  icombine Hcons Hrecv gives % ⟨_, Heq2⟩
-  subst recv
-  rcases cl with _ | ⟨sc, c'⟩
-  · unfold watcherInvClosed watcherClosed
-    ihave %H := dghostVar_agree _ _ _ _ _ $$ Hcl Hcl0
-    cases H
-  unfold watcherInvClosed watcherClosed
-  icases Hcl with ⟨#Hcl1, Hs', %Hsc, Htok, Hrest⟩
-  ihave %Hag := dghostVar_agree _ _ _ _ _ $$ Hcl0 Hcl1
-  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
-  obtain ⟨rfl, rfl⟩ := Hag
-  subst Hsc
-  imod Hclose $$ [Hch Hsent Hrecv Hs' Htok Hrest] with -
-  · inext
-    unfold watcherInv
-    iexists s, sent0, received0, vs, some (sent0, c0)
-    simp only [named]
-    iframe
-    unfold watcherInvClosed watcherClosed
-    dsimp only
-    iframe
-    iframe #
-    ipureintro; exact ⟨Hpre, Hinfl, Hclosed, rfl⟩
-  imodintro
-  iframe
-  ipureintro; exact Hpre
-
-/-- The producer's view is exclusive (the invariant holds the other half of the log): two
-`watcherOpen γ` cannot both exist. (For the demux's `Register`: a watcher registered twice.) -/
-theorem watcherOpen_excl (w : Loc) (γ : WatcherNames) (pred : Option (GoString → Bool))
-    (Pb : WatcherPub GF) (sent1 sent2 : List RespModel) :
-    isWatcher (GF := GF) w γ pred Pb ∗ watcherOpen γ sent1 ∗ watcherOpen γ sent2 ⊢ |={⊤}=> False := by
-  iintro ⟨#Hw, Ho1, Ho2⟩
-  unfold isWatcher
-  iNamed Hw
-  iinv Hinv with >Hi Hclose
-  iNamed Hi
-  unfold watcherOpen
-  icases Ho1 with ⟨Hs1, -⟩
-  icases Ho2 with ⟨Hs2, -⟩
-  icombine Hs1 Hs2 as Hs12
-  ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ Hs12 Hsent
-  exfalso
-  obtain ⟨Hq, -⟩ := Hv
-  have h' : ((1 : Qp) + (1 : Qp).half).val ≤ (1 : Qp).val := Hq
-  simp at h'
-  grind
 
 /-! ## Freshness of a new watcher -/
 

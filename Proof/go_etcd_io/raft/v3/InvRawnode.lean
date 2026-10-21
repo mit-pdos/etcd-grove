@@ -195,13 +195,6 @@ def RNMode.toG : RNMode → RGh → GMode
 theorem RNMode.toG_isDyn (md : RNMode) (g : RGh) : (md.toG g).isDyn = md.isDyn := by
   cases md <;> rfl
 
-/-- The voters the node's quorums are taken in, as the client sees them: `γ.reCfg` in the
-static mode, the configuration in use in the dynamic one. -/
-def RNState.vcfg (γ : RaftNames) (rs : RNState) : CfgM :=
-  match rs.mode with
-  | .static => CfgM.simple γ.reCfg ∅
-  | .dyn .. => rs.cfg.cfg
-
 /-- No conf entry in a range of a prefix is none in the longer log. -/
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
     (hhi : hi ≤ D.length) (h : NoConfIn D lo hi) : NoConfIn F lo hi := by
@@ -533,12 +526,6 @@ theorem netStepTypes_stepMsg {m : MessageM} (h : m.Type' ∈ netStepTypes) : Ste
 A message a `Ready` hands out in the cluster's no-snapshot mode is `SentMsgOk` (`isRaftMsg`'s
 clause, `InvRaftPhys.lean`): at the node it is addressed to, every clause of `NetMsgOk` but for a
 forwarded proposal, which `node.Step` takes as `fwdP` (D21g (A)). -/
-
-theorem SentMsgOk.ne_snap {st : MsgSt} (H : SentMsgOk st) : st.msg.Type' ≠ MsgSnap := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
 
 theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) :
     st.msg.Type' ≠ MsgTimeoutNow := by
@@ -880,25 +867,6 @@ theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   refine ⟨fun hd h => ?_, Hb⟩
   have := Hpc h; rw [Hpv hd] at this; cases this
 
-/-- The dynamic mode's premises of a step of `raft.Step` (`GMode.Pre`) for a message that is
-no snapshot and no storage-apply acknowledgement, at a node with pre-vote off (2026-10-14,
-stage B7 part 2): no pre-candidate (`ownRaftPhysC_precand`), and for a proposal the log's
-room (`ownRaftPhysC_last_bound`). -/
-theorem ownRaftPhysC_pre (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
-    (md : GMode) (m : MessageM) (ents : List EntryM) (Hpv : md.isDyn = true → s.prevote = false)
-    (h1 : m.Type' ≠ MsgSnap) (h3 : m.Type' ≠ MsgStorageApplyResp) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜md.Pre m ents s⌝ ∗ ownRaftPhysCV c V r id s := by
-  iintro H
-  icases ownRaftPhysC_precand c r id s $$ H with ⟨%Hpc, H⟩
-  icases ownRaftPhysC_last_bound c r id s $$ H with ⟨%Hb, H⟩
-  iframe H
-  ipureintro
-  cases md with
-  | static => trivial
-  | dyn dec c0 h0 g =>
-    refine ⟨fun h => ?_, fun h => absurd h h3, fun _ => Hb⟩
-    have := Hpc h; rw [Hpv rfl] at this; cases this
-
 end proof
 
 section rawnode
@@ -943,15 +911,6 @@ def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
   unfold isRaftMsg; infer_instance
-
-/-- (2026-10-19, D21 M2r) In the cluster's no-snapshot mode a message a `Ready` handed out is
-`SentMsgOk`: at its destination `NetMsgOk.of_sent` (D21g (A)). -/
-theorem isRaftMsg_sent (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ st ⊢ ⌜SentMsgOk st⌝ := by
-  iintro H
-  unfold isRaftMsg
-  icases H with ⟨-, %H, -⟩
-  ipureintro; exact H hns
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
 records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of
@@ -1121,33 +1080,6 @@ scoped instance (priority := high) rawNodeOwn_access_store_stepsOnAdvance (l : L
   rawNodeOwn_access H_stepsOnAdvance
 
 end RawNodeOwnAccess
-
-/-- The configuration the struct is at has the voters the client sees (`RNState.vcfg`;
-2026-10-14, stage B7 part 2): `γ.reCfg` statically, the configuration in use dynamically. -/
-theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List EntryM) (c : CfgM)
-    (id : w64) (s : NState) :
-    ⊢ ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
-      ⌜c.incoming = (rs.vcfg γ).incoming ∧ c.outgoing = (rs.vcfg γ).outgoing⌝ ∗
-      ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s := by
-  iintro H
-  unfold RNState.vcfg
-  cases hm : rs.mode with
-  | static =>
-    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC⟩
-    iframe Hg
-    ipureintro
-    exact ⟨⟨HC.1.1, HC.1.2.1⟩, Hnl, HC⟩
-  | dyn dec c0 h0 _ =>
-    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC, Hr⟩
-    iframe Hg Hr
-    isplitr
-    · ipureintro
-      have hc := HC.2.1
-      exact ⟨by rw [← hc], by rw [← hc]⟩
-    ipureintro
-    exact ⟨Hnl, HC⟩
 
 /-- A node's committed prefix, with records, is a prefix of the global committed log (persistent;
 read off the ghost state's log ghost). -/

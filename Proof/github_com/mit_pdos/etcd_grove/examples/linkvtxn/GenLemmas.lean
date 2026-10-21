@@ -154,16 +154,6 @@ theorem thenOfL_subset (x : Input) : ∀ o ∈ thenOfL x, o = x.Then0' ∨ o = x
   simp only [List.mem_append] at ho
   rcases ho with (ho | ho) | ho <;> split at ho <;> simp_all
 
-theorem elseOfL_subset (x : Input) : ∀ o ∈ elseOfL x, o = x.Else0' := by
-  intro o ho
-  unfold elseOfL at ho
-  split at ho <;> simp_all
-
-theorem cmpsOfL_subset (x : Input) : ∀ c ∈ cmpsOfL x, c = x.Cmp0' := by
-  intro c hc
-  unfold cmpsOfL at hc
-  split at hc <;> simp_all
-
 end gen
 
 end linkvtxn

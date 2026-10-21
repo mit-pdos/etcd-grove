@@ -91,12 +91,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable (c : CfgM)
 
 
-/-- A list written back at the element it holds. -/
-private theorem list_set_self {A : Type} (l : List A) (i : Int) (x : A)
-    (H : l[i.toNat]? = some x) : l.set i.toNat x = l := by
-  obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 H
-  rw [← hget]; exact List.set_getElem_self hlt
-
 /-- One peer's `Progress`, borrowed out of a struct whose `Progress` values are `pvs`
 and given back at new values, keeping the state of the shape `{ s with prvals := _ }`
 (so that a run of writes does not pile up record updates). -/

@@ -186,15 +186,6 @@ local macro "not_self" : tactic => `(tactic| (
          MsgAppResp, MsgHeartbeatResp,MsgCheckQuorum, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
          MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc)))
 
-/-- The node's id is nonzero (the ghost state's `Hidnz`): a self-addressed response's
-`From`. -/
-private theorem ghost_id_nz (γ : RaftNames) (id : w64) (ps : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ ⌜id ≠ W64 0⌝ := by
-  unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  ipureintro; exact Hidnz
-
 /-- One pending message through `Step`'s spec, in the ghost mode `md` (2026-10-14, stage B7
 part 2; until then at the static configuration): the `MsgStorageAppendResp` acknowledges
 persisted entries (`StableOk`) because it acknowledges the last entry of what the storage

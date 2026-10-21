@@ -65,13 +65,6 @@ theorem changeKv_zero (r : w64) (b : List EtcdKv) (hb : b.Pairwise etcdKvLess) (
     cases b.find? (fun v => decide (v.key = k)) <;> rfl
   | del k => rfl
 
-/-- `changeKv` of a later change of `c :: cs` is that of `cs` from the state after `c`. -/
-theorem changeKv_succ (r : w64) (b : List EtcdKv) (c : Change) (cs : List Change) (i : Nat) :
-    changeKv r b (c :: cs) (i + 1) = changeKv r (applyChange r b c) cs i := by
-  unfold changeKv
-  simp only [List.getElem?_cons_succ, List.take_succ_cons]
-  rfl
-
 /-- **`evsOfRevM` one change at a time**. -/
 theorem evsOfRevM_cons (m : Nat) (b : List EtcdKv) (hb : b.Pairwise etcdKvLess) (c : Change)
     (cs : List Change) :
@@ -161,34 +154,6 @@ theorem watchEvents_mem_rev (log : Log) (rng : WatchRange) (a b : Nat) (ev : EvM
   unfold watchEvents at h
   obtain ⟨j, h1, h2, hj⟩ := (mem_logEvents log a b ev).1 (List.mem_filter.1 h).1
   exact ⟨j, h1, h2, evsOfRevM_modRev_sm j _ (stateAt_sorted _ _) _ ev hj⟩
-
-/-- **A block of watch events, cut at the revision `x`** (by the events' mod revisions): the
-watch events of `x` alone (revisions below `2 ^ 63`, so that `W64` is injective on them). -/
-theorem watchEvents_filter_rev (log : Log) (rng : WatchRange) (a b x : Nat) (hax : a ≤ x)
-    (hxb : x < b) (hb : b ≤ 2 ^ 63) :
-    (watchEvents log rng a b).filter (fun e => decide (e.kv.modRev = W64 (x : Int))) =
-      watchEvents log rng x (x + 1) := by
-  rw [watchEvents_append log rng hax (Nat.le_of_lt hxb),
-    watchEvents_append log rng (Nat.le_succ x) hxb, List.filter_append, List.filter_append]
-  have hoff : ∀ lo hi, (∀ j, lo ≤ j → j < hi → j ≠ x) → hi ≤ b →
-      (watchEvents log rng lo hi).filter (fun e => decide (e.kv.modRev = W64 (x : Int))) = [] := by
-    intro lo hi hne hhi
-    rw [List.filter_eq_nil_iff]
-    intro e he
-    obtain ⟨j, h1, h2, hj⟩ := watchEvents_mem_rev log rng lo hi e he
-    rw [hj]
-    simp only [decide_eq_true_eq]
-    intro h
-    exact hne j h1 h2 (W64_inj_of_lt (by omega) (by omega) h)
-  rw [hoff a x (fun j _ h => by omega) (by omega),
-    hoff (x + 1) b (fun j h _ => by omega) (Nat.le_refl _)]
-  rw [List.filter_eq_self.2]
-  · simp
-  · intro e he
-    obtain ⟨j, h1, h2, hj⟩ := watchEvents_mem_rev log rng x (x + 1) e he
-    have : j = x := by omega
-    subst this
-    simp [hj]
 
 /-- **The events between two consecutive cumulative blocks**: if the events received so far are
 `watchEvents log rng lo d0` and, with the next ones `evs`, `watchEvents log rng lo d1`, then

@@ -68,10 +68,6 @@ instance ownStopChan_Unknown_pers (ch : GoChan) γ (Q : IProp GF) :
     Persistent (ownStopChan ch γ Q .Unknown) := by
   unfold ownStopChan; infer_instance
 
-instance ownStopChan_Done_pers (ch : GoChan) γ (Q : IProp GF) :
-    Persistent (ownStopChan ch γ Q .Done) := by
-  unfold ownStopChan; infer_instance
-
 /-- **A receiver's view of `ch`** (persistent): closed once, never sent on, no content. -/
 def stopChan (ch : GoChan) : IProp GF :=
   iprop(∃ γ : ChanNames, ownStopChan ch γ iprop(True) .Unknown)
@@ -84,13 +80,6 @@ theorem ownStopChan_is_chan (ch : GoChan) (γ : ChanNames) (Q : IProp GF) (cl : 
   unfold ownStopChan isStopChanInternal
   iintro ⟨%γch, ⟨#His_ch, -⟩, -⟩
   iexact His_ch
-
-theorem ownStopChan_Unknown (ch : GoChan) (γ : ChanNames) (Q : IProp GF) (cl : Broadcast) :
-    ⊢ ownStopChan ch γ Q cl -∗ ownStopChan ch γ Q .Unknown := by
-  unfold ownStopChan
-  iintro ⟨%γch, #Hint, -⟩
-  iexists γch
-  iframe Hint
 
 /-- The closer's view gives a receiver's too. -/
 theorem ownStopChan_pending_unknown (ch : GoChan) (γ : ChanNames) (Q : IProp GF) :
@@ -157,76 +146,6 @@ theorem stop_chan_receive (ch : GoChan) (γ : ChanNames) (Q : IProp GF)
       · iexact Hinv
     · iexact Hs
   all_goals first | itrivial | (iexfalso; iexact Hs)
-
-/-- **A non-blocking receive** (a `select` with a `default`): the zero value and the done view
-once closed, else not ready (the view kept). -/
-theorem stop_chan_nonblocking_receive (ch : GoChan) (γ : ChanNames) (Q : IProp GF)
-    (Φ : Unit → Bool → IProp GF) (Φnotready : IProp GF) (cl : Broadcast) :
-    ⊢ ownStopChan ch γ Q cl -∗
-      ((match cl with
-        | .Unknown | .Done => iprop(□ Q ∗ ownStopChan ch γ Q .Done -∗ Φ () false)
-        | _ => iprop(True)) ∧
-       (match cl with
-        | .Unknown | .Pending => iprop(ownStopChan ch γ Q cl -∗ Φnotready)
-        | _ => iprop(True))) -∗
-      nonblockingRecvAuAlt γ Unit Φ Φnotready := by
-  iintro Hown HΦ
-  unfold ownStopChan
-  icases Hown with ⟨%γch, #Hint, Hown⟩
-  ihave #Hint' := Hint
-  unfold isStopChanInternal
-  icases Hint' with ⟨#His_ch, #Hinv⟩
-  unfold nonblockingRecvAuAlt
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  unfold stopChanInv
-  icases Hi with ⟨%st, Hch, Hs⟩
-  iexists st
-  iframe Hch
-  rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
-  all_goals dsimp only
-  case Buffered.nil =>
-    iintro Hch
-    imod Hmask with -
-    rcases cl with _ | _ | _
-    all_goals dsimp only
-    case Done =>
-      ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hown Hs
-      cases Hbad
-    all_goals
-      icases HΦ with ⟨-, HΦ⟩
-      imod Hclose $$ [Hch Hs] with -
-      · inext; iexists .Buffered []; dsimp only; iframe
-      imodintro
-      iapply HΦ
-      iexists γch
-      iframe Hint
-      try iframe
-  case Closed.nil =>
-    icases Hs with ⟨#HQ, #Hs⟩
-    iintro Hch
-    imod Hmask with -
-    rcases cl with _ | _ | _
-    all_goals dsimp only
-    case Pending =>
-      ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hown Hs
-      cases Hbad
-    all_goals
-      icases HΦ with ⟨HΦ, -⟩
-      imod Hclose $$ [Hch] with -
-      · inext; iexists .Closed []; dsimp only; iframe Hch
-        isplitl []
-        · imodintro; iexact HQ
-        · iexact Hs
-      imodintro
-      iapply HΦ
-      isplitl []
-      · imodintro; iexact HQ
-      iexists γch
-      iframe Hint Hs
-  all_goals (iexfalso; iexact Hs)
 
 /-- **The close**, by the closer, with `□ Q`. -/
 theorem stop_close_au (ch : GoChan) (γch : ChanNames) (Q : IProp GF) (Φ : IProp GF) :
@@ -356,45 +275,6 @@ theorem stop_chan_nonblocking_receive_done (ch : GoChan) (γ : ChanNames)
     imodintro
     iexact HΦ
   all_goals (iexfalso; iexact Hs)
-
-/-- **The close, by the closer, with the flag's names**: the closer's half of the flag (at
-`false`) becomes the flag discarded at `true` (what `run`'s shutdown hands `GoAttach`'s protocol). -/
-theorem stop_close_au_internal (ch : GoChan) (γ : ChanNames) (γch : BroadcastInternalNames)
-    (Q : IProp GF) (Φ : IProp GF) :
-    ⊢ isStopChanInternal ch γ γch Q -∗ dghostVar γch.doneGn (.own (1 : Qp).half) false -∗ □ Q -∗
-      ▷ (dghostVar γch.doneGn .discard true -∗ Φ) -∗ closeAu γ Unit Φ := by
-  iintro #Hint Hown #HQ HΦ
-  ihave #Hint' := Hint
-  unfold isStopChanInternal
-  icases Hint' with ⟨#His_ch, #Hinv⟩
-  unfold closeAu
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  unfold stopChanInv
-  icases Hi with ⟨%st, Hch, Hs⟩
-  iexists st
-  iframe Hch
-  rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
-  all_goals dsimp only
-  case Buffered.nil =>
-    iintro Hch
-    imod Hmask with -
-    imod dghostVar_update_halves true _ _ _ $$ Hown Hs with ⟨Hown, -⟩
-    imod dghostVar_persist _ _ _ $$ Hown with #Hown
-    imod Hclose $$ [Hch] with -
-    · inext; iexists .Closed []; dsimp only; iframe Hch
-      isplitl []
-      · imodintro; iexact HQ
-      · iexact Hown
-    imodintro
-    iapply HΦ $$ Hown
-  case Closed.nil =>
-    icases Hs with ⟨-, #Hs⟩
-    ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hown Hs
-    cases Hbad
-  all_goals first | itrivial | (iexfalso; iexact Hs)
 
 end proof
 

@@ -109,12 +109,6 @@ structure RdSt where
   win : Bool
   live : Bool
 
-instance kv_countable : Pos.Countable kv :=
-  countableOfLeftInverse (fun x : kv => (x.key', x.val')) (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
-
-instance bbPhys_countable : Pos.Countable BBPhys :=
-  countableOfLeftInverse (fun x : BBPhys => (x.buf, x.kvs)) (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
-
 instance rdSt_countable : Pos.Countable RdSt :=
   countableOfLeftInverse
     (fun x : RdSt => (x.rtx, x.wg, x.γw, x.γo, x.γt, x.idx, x.win, x.live))
@@ -210,10 +204,6 @@ abbrev plHookRO (γ : BNames) (f : GoFunc) : IProp GF := plHookAt γ DFrac.disca
 instance plHookRO_persistent (γ : BNames) (f : GoFunc) : Persistent (plHookRO (GF := GF) γ f) := by
   unfold plHookRO plHookAt; infer_instance
 
-instance plHookAt_timeless (γ : BNames) (dq : DFrac) (f : GoFunc) :
-    Timeless (plHookAt (GF := GF) γ dq f) := by
-  unfold plHookAt; infer_instance
-
 /-- The clients' half of the post-lock hook made read-only: the hook is `f` for good. -/
 theorem plHook_persist (γ : BNames) (f : GoFunc) : plHook (GF := GF) γ f ⊢ |==> plHookRO γ f := by
   unfold plHookRO plHook plHookAt
@@ -228,10 +218,6 @@ def wbTok (γ : BNames) : IProp GF := ownToks γ.wb 1
 state of the batch lock. -/
 def hkOwn (γ : BNames) (d : GMap (GoString × GoString) GoString) : IProp GF :=
   ghostVar γ.hkd (1 : Qp).half d
-
-instance hkOwn_timeless (γ : BNames) (d : GMap (GoString × GoString) GoString) :
-    Timeless (hkOwn (GF := GF) γ d) := by
-  unfold hkOwn; infer_instance
 
 /-- What a put of key `k` in bucket `n` needs and gives of the hook's own keys, the writer's
 contents being `S`: the client's half if `k` is a hook's own key, else nothing. -/

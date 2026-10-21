@@ -55,8 +55,6 @@ variable [sem : go.Semantics]
 /-- The `Options` at `l`, at fraction `dq`, has the fields `o`. -/
 axiom optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF
 
-@[instance] axiom optsAt_timeless (l : Loc) (dq : DFrac) (o : OptsM) :
-  Timeless (optsAt (GF := GF) l dq o)
 @[instance] axiom optsAt_discard_persistent (l : Loc) (o : OptsM) :
   Persistent (optsAt (GF := GF) l DFrac.discard o)
 

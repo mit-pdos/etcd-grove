@@ -35,14 +35,6 @@ theorem kiGetVal_pairs (ki : mvcc.KeyIndex) (atRev : w64) (e : GoInterface) :
   | none => exact ⟨_, _, _, _, rfl⟩
   | some r => obtain ⟨m, c, v⟩ := r; exact ⟨_, _, _, _, rfl⟩
 
-/-- Every key index of the tree (the index of some events) has a revision. -/
-theorem entries_not_empty (L : List mvcc.IdxEntry) (evs : List mvcc.Ev)
-    (h : mvcc.idxOfEntries L = mvcc.indexOf evs) : ∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false := by
-  intro z hz
-  have : (z.2.1, z.2.2) ∈ mvcc.indexOf evs := by
-    rw [← h]; unfold mvcc.idxOfEntries; exact List.mem_map_of_mem hz
-  exact (mvcc.kiIsEmpty_false_of_head (mvcc.indexOf_head' evs _ this)).1
-
 /-- Every key index of the tree (compacted, `IdxCRep`) has a revision. -/
 theorem entries_not_emptyC (L : List mvcc.IdxEntry) (evs : List mvcc.Ev) (cmax : Int)
     (h : mvcc.IdxCRep cmax evs (mvcc.idxOfEntries L)) : ∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false := by

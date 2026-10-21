@@ -109,10 +109,6 @@ def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
 def AdmFold (dec : CCDec) (c0 : CCState) (l : List EntryM) (cs : CCState) : Prop :=
   cfgFold dec c0 l = some cs
 
-/-- The static model's configurations: voters `V`, not joint (learners free). -/
-def StaticAdm (V : GSet w64) (_ : List EntryM) (cs : CCState) : Prop :=
-  cs.cfg.incoming = V ∧ cs.cfg.outgoing = ∅
-
 end state
 
 section model
@@ -489,29 +485,6 @@ end mono
 
 section static
 variable [FfiSyntax]
-
-/-- The configuration has the voters `V`, not joint. -/
-def StaticR (V : GSet w64) (r : RState) : Prop :=
-  r.cfg.cfg.incoming = V ∧ r.cfg.cfg.outgoing = ∅
-
-/-- A non-follower is a voter of `V`. -/
-def RoleVoter (id : w64) (V : GSet w64) (r : RState) : Prop :=
-  r.p.role ≠ .follower → id ∈ V
-
-theorem StaticR.voters {V : GSet w64} {r : RState} (h : StaticR V r) : r.cfg.cfg.voters = V := by
-  rw [CfgM.voters_of_out h.2, h.1]
-
-theorem StaticR.jquorum {V : GSet w64} {r : RState} (h : StaticR V r) (q : GSet w64) :
-    JQuorum r.cfg.cfg q ↔ JQuorum (CfgM.simple V ∅) q := by
-  unfold JQuorum; rw [h.1, h.2]; rfl
-
-theorem StaticR.jlost {V : GSet w64} {r : RState} (h : StaticR V r) (votes : GMap w64 Bool) :
-    JLost r.cfg.cfg votes ↔ JLost (CfgM.simple V ∅) votes := by
-  unfold JLost; rw [h.1, h.2]; rfl
-
-theorem StaticR.jquorumAcked {V : GSet w64} {r : RState} (h : StaticR V r) (f : w64 → w64)
-    (N : w64) : JQuorumAcked r.cfg.cfg f N ↔ JQuorumAcked (CfgM.simple V ∅) f N := by
-  unfold JQuorumAcked; simp only [h.jquorum]
 
 theorem preadRespondAll_role (id : w64) (s : PState) (qs : List ReadReq) :
     (preadRespondAll id s qs).role = s.role := by

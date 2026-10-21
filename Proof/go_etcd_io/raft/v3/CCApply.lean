@@ -168,49 +168,6 @@ theorem applyM_outgoing (ccs : List ConfChangeSingleM) (s s' : CCState)
     · cases h
     · simp only [Option.some.injEq] at h; subst h; exact applyAll_outgoing ccs s _ h1
 
-/-- A change whose model answer is the configuration it started from is a `Simple` one:
-`LeaveJoint` fails on a non-joint configuration, and `EnterJoint` answers a joint one. -/
-theorem ccApplyM_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
-    (t : raftpb.ConfChangeTransition) (ccs : List ConfChangeSingleM)
-    (H : ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn)) :
-    ¬ (t = W32 0 ∧ ccs = []) ∧ (∃ al, enterJointOf t ccs.length = some (al, false)) ∧
-      simpleM ccs (cfgState cfg lrn) = some (cfgState cfg lrn) := by
-  unfold ccApplyM at H
-  by_cases Hl : t = W32 0 ∧ ccs = []
-  · rw [ite_eq_left Hl] at H
-    unfold leaveJointM at H
-    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)),
-      ite_eq_left (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
-    cases H
-  rw [ite_eq_right Hl] at H
-  refine ⟨Hl, ?_⟩
-  rcases He : enterJointOf t ccs.length with _ | ⟨al, ok⟩
-  · rw [He] at H; cases H
-  rw [He] at H
-  cases ok
-  · exact ⟨⟨al, rfl⟩, H⟩
-  · exfalso
-    simp only at H
-    unfold enterJointM at H
-    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)), ite_eq_right (fun h => h rfl)] at H
-    by_cases Hin : (cfgState cfg lrn).cfg.incoming = ∅
-    · rw [ite_eq_left Hin] at H; cases H
-    rw [ite_eq_right Hin] at H
-    revert H
-    generalize Happ : applyM ccs _ = r
-    cases r with
-    | none => intro H; cases H
-    | some s1 =>
-      intro H
-      simp only [checkedM] at H
-      split at H
-      · simp only [Option.some.injEq] at H
-        have Hout := applyM_outgoing ccs _ s1 Happ
-        have h2 : s1.cfg.outgoing = (cfgState cfg lrn).cfg.outgoing := by rw [← H]
-        rw [h2] at Hout
-        exact Hin Hout.symm
-      · cases H
-
 /-- A single change with `NodeId = 0` and transition `Auto` (what `ConfChange.AsV2` makes of
 any `ConfChange` with `NodeId = 0`) leaves a non-empty configuration as it is:
 `Changer.apply` skips it. -/
@@ -404,60 +361,6 @@ theorem simpleM_cfgState_addLearner (V L : GSet w64) (id : w64) (hid : id ≠ W6
 with the same voters and some learners -- an `AddLearnerNode` or a `RemoveNode` of an id that
 is not a voter, an `UpdateNode`, or a change with `NodeId = 0`. -/
 
-/-- A change that keeps the voters `cfg`, whatever the learners. -/
-def CCVoterKeep (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
-    (ccs : List ConfChangeSingleM) : Prop :=
-  ∀ lrn : GSet w64, (∀ k, k ∈ lrn → k ∉ cfg) →
-    ∃ lrn' : GSet w64, (∀ k, k ∈ lrn' → k ∉ cfg) ∧
-      ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn')
-
-theorem CCNoop.voterKeep {cfg : GSet w64} {t : raftpb.ConfChangeTransition}
-    {ccs : List ConfChangeSingleM} (H : CCNoop cfg t ccs) : CCVoterKeep cfg t ccs :=
-  fun lrn Hd => ⟨lrn, Hd, H lrn Hd⟩
-
-/-- A change whose model answer is a non-joint configuration with the voters it started from
-is a `Simple` one (`ccApplyM_noop`, for any learners on either side). -/
-theorem ccApplyM_simple (cfg lrn lrn' : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
-    (t : raftpb.ConfChangeTransition) (ccs : List ConfChangeSingleM)
-    (H : ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn')) :
-    ¬ (t = W32 0 ∧ ccs = []) ∧ (∃ al, enterJointOf t ccs.length = some (al, false)) ∧
-      simpleM ccs (cfgState cfg lrn) = some (cfgState cfg lrn') := by
-  unfold ccApplyM at H
-  by_cases Hl : t = W32 0 ∧ ccs = []
-  · rw [ite_eq_left Hl] at H
-    unfold leaveJointM at H
-    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)),
-      ite_eq_left (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
-    cases H
-  rw [ite_eq_right Hl] at H
-  refine ⟨Hl, ?_⟩
-  rcases He : enterJointOf t ccs.length with _ | ⟨al, ok⟩
-  · rw [He] at H; cases H
-  rw [He] at H
-  cases ok
-  · exact ⟨⟨al, rfl⟩, H⟩
-  · exfalso
-    simp only at H
-    unfold enterJointM at H
-    rw [ite_eq_right (fun h => h (cfgInv_cfgState cfg lrn Hd)), ite_eq_right (fun h => h rfl)] at H
-    by_cases Hin : (cfgState cfg lrn).cfg.incoming = ∅
-    · rw [ite_eq_left Hin] at H; cases H
-    rw [ite_eq_right Hin] at H
-    revert H
-    generalize Happ : applyM ccs _ = r
-    cases r with
-    | none => intro H; cases H
-    | some s1 =>
-      intro H
-      simp only [checkedM] at H
-      split at H
-      · simp only [Option.some.injEq] at H
-        have Hout := applyM_outgoing ccs _ s1 Happ
-        have h2 : s1.cfg.outgoing = (cfgState cfg lrn').cfg.outgoing := by rw [← H]
-        rw [h2] at Hout
-        exact Hin Hout.symm
-      · cases H
-
 theorem cfgFlags_delete_learner (V L : GSet w64) (id : w64) (h : id ∉ V) :
     GMap.delete id (cfgFlags V L) = cfgFlags V (GMap.delete id L) := by
   apply GMap.map_eq; intro k
@@ -612,36 +515,6 @@ theorem ccApplyM_single (cfg lrn lrn' : GSet w64) (c : ConfChangeSingleM)
   rw [He]
   exact H
 
-/-- An `AddLearnerNode` of a non-voter keeps the voters (a no-op for `NodeId = 0`). -/
-theorem ccVoterKeep_addLearner (cfg : GSet w64) (Hne : cfg ≠ ∅) (c : ConfChangeSingleM)
-    (Hty : c.Type' = W32 3) (Hid : c.NodeId' ∉ cfg) : CCVoterKeep cfg (W32 0) [c] := by
-  intro lrn Hd
-  by_cases h0 : c.NodeId' = W64 0
-  · exact ⟨lrn, Hd, ccApplyM_single_noop cfg lrn Hd c h0 Hne⟩
-  have Hc : c = addLearnerCC c.NodeId' := by cases c; simp only at Hty; subst Hty; rfl
-  refine ⟨<[c.NodeId' := ()]> lrn, ?_, ccApplyM_single cfg lrn _ c ?_⟩
-  · intro k hk
-    rcases (gset_mem_insert lrn c.NodeId' k).1 hk with h | h
-    · subst h; exact Hid
-    · exact Hd k h
-  · rw [Hc]; exact simpleM_cfgState_addLearner cfg lrn _ h0 Hid Hne Hd
-
-/-- A `RemoveNode` of a non-voter keeps the voters (a no-op for `NodeId = 0` or an untracked
-id). -/
-theorem ccVoterKeep_removeLearner (cfg : GSet w64) (Hne : cfg ≠ ∅) (c : ConfChangeSingleM)
-    (Hty : c.Type' = W32 1) (Hid : c.NodeId' ∉ cfg) : CCVoterKeep cfg (W32 0) [c] := by
-  intro lrn Hd
-  by_cases h0 : c.NodeId' = W64 0
-  · exact ⟨lrn, Hd, ccApplyM_single_noop cfg lrn Hd c h0 Hne⟩
-  refine ⟨GMap.delete c.NodeId' lrn, ?_, ccApplyM_single cfg lrn _ c
-    (simpleM_cfgState_removeLearner cfg lrn c Hty h0 Hid Hne Hd)⟩
-  intro k hk
-  apply Hd k
-  rw [GMap.elem_of_gset] at hk ⊢
-  by_cases hkk : c.NodeId' = k
-  · subst hkk; rw [GMap.lookup_delete] at hk; cases hk
-  · rw [GMap.lookup_delete_ne _ hkk] at hk; exact hk
-
 
 /-- A change that keeps the voters `cfg` and only drops learners, whatever the learners: the
 scope of `RawNode.ApplyConfChange` (2026-10-13; until then `CCNoop`). Adding a learner is
@@ -656,15 +529,6 @@ def CCShrink (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
 theorem CCNoop.shrink {cfg : GSet w64} {t : raftpb.ConfChangeTransition}
     {ccs : List ConfChangeSingleM} (H : CCNoop cfg t ccs) : CCShrink cfg t ccs :=
   fun lrn Hd => ⟨lrn, GMap.subseteq_refl _, H lrn Hd⟩
-
-/-- A `RemoveNode` of a non-voter only drops learners. -/
-theorem ccShrink_removeLearner (cfg : GSet w64) (Hne : cfg ≠ ∅) (c : ConfChangeSingleM)
-    (Hty : c.Type' = W32 1) (Hid : c.NodeId' ∉ cfg) : CCShrink cfg (W32 0) [c] := by
-  intro lrn Hd
-  by_cases h0 : c.NodeId' = W64 0
-  · exact ⟨lrn, GMap.subseteq_refl _, ccApplyM_single_noop cfg lrn Hd c h0 Hne⟩
-  refine ⟨GMap.delete c.NodeId' lrn, GMap.delete_subseteq _ _, ccApplyM_single cfg lrn _ c
-    (simpleM_cfgState_removeLearner cfg lrn c Hty h0 Hid Hne Hd)⟩
 
 /-- The premise `raft.applyConfChange` takes, from a `CCShrink` change on a node tracking
 `domSet prs`: the new learners are among the old ones, so the bound on the tracked ids holds. -/

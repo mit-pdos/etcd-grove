@@ -411,15 +411,6 @@ def lessorCkptOk (l : GoInterface) : IProp GF :=
 instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
   unfold lessorCkptOk; infer_instance
 
-/-- **The compactor's `Run`** (names-only, a contract of `v3compactor.New`): it returns (it starts
-the compactor's goroutine). -/
-def compactorRunOk (c : GoInterface) : IProp GF :=
-  iprop(∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
-    □ ({{ True }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #())) {{ RET #(); True }}))
-
-instance compactorRunOk_persistent (c : GoInterface) : Persistent (compactorRunOk (GF := GF) c) := by
-  unfold compactorRunOk; infer_instance
-
 end transport
 
 end EtcdGrove

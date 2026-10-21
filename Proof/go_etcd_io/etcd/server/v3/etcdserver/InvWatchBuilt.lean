@@ -52,17 +52,6 @@ def srvWatchReaders (s : Loc) (E : apply.AEnv GF) (n : Nat) : IProp GF :=
     mvcc.isWatchableStore wsl E.s γw ∗ ⌜γw.st = E.γ⌝ ∗ mvcc.watchTokPool γw ∗
     [∗list] _x ∈ List.replicate n (), mvcc.watchReader wsl E.s γw)
 
-open Iris.ProofMode in
-/-- The reader slots' store is the one `srvWatchBuilt` names. -/
-theorem srvWatchReaders_built (s : Loc) (E : apply.AEnv GF) (n : Nat) :
-    srvWatchReaders (GF := GF) s E n ⊢ srvWatchBuilt s E := by
-  unfold srvWatchReaders
-  iintro ⟨%wsl, %γw, #Ha, #Hws, %Hγ, #Hp, -⟩
-  unfold srvWatchBuilt
-  iexists wsl, γw
-  iframe #
-  ipureintro; exact Hγ
-
 end defs
 
 end EtcdGrove

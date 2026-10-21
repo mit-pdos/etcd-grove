@@ -188,30 +188,6 @@ theorem ownNodes_fill (dq : DFrac) (ps : List Loc) (ts : List (Tree (V × K))) (
   refine Entails.trans ?_ (ownNodes_extract o c f less dq _ _ i p t hp ht).2
   rw [List.eraseIdx_set_eq, List.eraseIdx_set_eq]
 
-/-- Put a lent-out child back. -/
-theorem ownedNodeHole_fill (n : Loc) (is : List (V × K)) (cs : List (Tree (V × K))) (i : Nat)
-    (p : Loc) (t : Tree (V × K)) :
-    ownedNodeHole o c f less n is cs i p ∗ ownNode o c f less (DFrac.own 1) p t ⊢
-      ownedNode o c f less (DFrac.own 1) n (.node is (cs.set i t)) := by
-  unfold ownedNodeHole ownedNode
-  iintro ⟨⟨%ps, ⟨%hp, %hl'⟩, Hsh, Hns⟩, Hc⟩
-  have hi : i < ps.length := by
-    rcases List.getElem?_eq_some_iff.1 hp with ⟨h, _⟩; exact h
-  iexists ps
-  simp only [Tree.items_node, Tree.children_node]
-  iframe Hsh
-  have hset : ps.set i p = ps := by
-    apply List.ext_getElem?; intro j
-    by_cases hj : j = i
-    · subst hj
-      rw [List.getElem?_eq_getElem hi] at hp; cases hp
-      simp [hi]
-    · simp [Ne.symm hj]
-  rw [show ownNodes o c f less (DFrac.own 1) ps (cs.set i t) =
-      ownNodes o c f less (DFrac.own 1) (ps.set i p) (cs.set i t) by rw [hset]]
-  iapply ownNodes_fill o c f less _ ps cs i p t hi hl' $$ [Hc Hns]
-  iframe
-
 /-- The `less` field of a context (for `n.cow.less`). -/
 theorem isCow_less (cw : Loc) :
     isCow o cw f less ⊢

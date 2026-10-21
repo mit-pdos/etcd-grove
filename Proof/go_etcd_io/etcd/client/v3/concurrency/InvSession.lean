@@ -100,26 +100,9 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
-/-- `TypeRepr` of `clientv3.Client` and `zap.Logger` (named and underlying types), straight from
-their `TypeAssumptions`, as `InvNew.lean` does for `Client`: without these, a load of a client's
-field or of a `*zap.Logger` finds `TypeRepr` through the struct's `IntoValTyped` instance, built
-from the `sorry` instances ("axiomatized type") of names-only field types (`Client.cfg`, zap's
-`zapcore.Clock`, ...), putting them in the trust base for nothing. -/
-instance (priority := high) session_client_typeRepr :
-    TypeRepr go_etcd_io.etcd.client.v3.Client.ty go_etcd_io.etcd.client.v3.Client :=
-  go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
 instance (priority := high) session_client_typeRepr_u :
     TypeRepr go_etcd_io.etcd.client.v3.Client.underlying go_etcd_io.etcd.client.v3.Client :=
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
-instance (priority := high) session_zapLogger_typeRepr :
-    TypeRepr go_uber_org.zap.Logger.ty go_uber_org.zap.Logger :=
-  go.type_repr_underlying (u := go_uber_org.zap.Logger.underlying)
-
-instance (priority := high) session_zapLogger_typeRepr_u :
-    TypeRepr go_uber_org.zap.Logger.underlying go_uber_org.zap.Logger :=
-  go.type_repr_underlying (u := go_uber_org.zap.Logger.underlying)
 
 /-- The `SessionOption` closure `f` changes options modelled by `o` into `g o` (given a non-nil
 logger, which `WithTTL` may warn on). -/
@@ -127,10 +110,6 @@ def sessionOptSpec (f : GoFunc) (g : SessionOpts → SessionOpts) : IProp GF :=
   iprop(□ ∀ (p : Loc) (o : SessionOpts) (lg : Loc),
     {{ p ↦ o.val ∗ ⌜lg ≠ null⌝ }} (App (App (Val #f) (Val #p)) (Val #lg))
     {{ RET #(); p ↦ (g o).val }})
-
-instance sessionOptSpec_persistent (f : GoFunc) (g : SessionOpts → SessionOpts) :
-    Persistent (sessionOptSpec (GF := GF) f g) := by
-  unfold sessionOptSpec; infer_instance
 
 /-- The `[]SessionOption` slice `sl` (read-only) holds closures with the transformers `gs`. -/
 def sessOptsAt (sl : GoSlice) (gs : List (SessionOpts → SessionOpts)) : IProp GF :=

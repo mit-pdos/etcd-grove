@@ -36,22 +36,6 @@ theorem mapM_of_map_some (os : List OpFull) (ops : List TxnOp)
       simp only [List.map_cons, List.cons.injEq] at h
       simp [List.mapM_cons, h.1, ih ops h.2]
 
-theorem map_some_of_mapM (os : List OpFull) (ops : List TxnOp)
-    (h : os.mapM txnOpOf = some ops) : os.map txnOpOf = ops.map some := by
-  induction os generalizing ops with
-  | nil => simp at h; subst h; rfl
-  | cons o os ih =>
-    simp only [List.mapM_cons, Option.bind_eq_bind] at h
-    cases h1 : txnOpOf o with
-    | none => simp [h1] at h
-    | some a =>
-      cases h2 : os.mapM txnOpOf with
-      | none => simp [h1, h2] at h
-      | some b =>
-        simp [h1, h2] at h
-        subst h
-        simp [h1, ih b h2]
-
 theorem leavesL_append (a b : List OpT) : OpT.leavesL (a ++ b) = OpT.leavesL a ++ OpT.leavesL b := by
   induction a with
   | nil => rfl
@@ -180,19 +164,6 @@ theorem cmpsSetAt_cmpsAt (sl : GoSlice) (ms : List CmpModel) :
   iapply cmpSetAt_cmpAt
   iapply H $$ %i %c %m %Hc %Hm
 
-/-- `opListAtC` of plain operations does not depend on the capacity flag. -/
-theorem opListAtC_leaves (c : Bool) :
-    ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (os : List OpFull),
-      opListAtC (GF := GF) false vs (os.map OpT.leaf) ⊢ opListAtC c vs (os.map OpT.leaf)
-  | [], [] => by simp only [List.map_nil, opListAtC]; iintro -; itrivial
-  | [], _ :: _ => by simp only [List.map_cons, opListAtC]; iintro H; iexact H
-  | _ :: _, [] => by simp only [List.map_nil, opListAtC]; iintro H; iexact H
-  | v :: vs, o :: os => by
-    simp only [List.map_cons, opListAtC, opTAtC]
-    iintro ⟨H1, H2⟩
-    iframe H1
-    iapply opListAtC_leaves c vs os $$ H2
-
 
 theorem opListAtC_length (c : Bool) :
     ∀ (vs : List go_etcd_io.etcd.client.v3.Op) (ts : List OpT),
@@ -282,25 +253,6 @@ theorem opListAtC_append (c : Bool) :
     iframe H1
     iapply opListAtC_append c vs1 vs2 ts1 ts2 $$ [$H2 $H3]
 
-/-- Plain operations' `opsAt` as trees of plain operations (without the capacity flag). -/
-theorem opsAt_opListAtC (sl : GoSlice) (os : List OpFull) (ops : List TxnOp)
-    (h : os.map txnOpOf = ops.map some) :
-    opsAt (GF := GF) sl os ⊢ ∃ vs, sl ↦*□ vs ∗ opListAtC false vs (os.map OpT.leaf) := by
-  iintro H
-  ihave H' := opsAt_leaves sl os ops h $$ H
-  unfold opsTAt
-  iexact H'
-
-/-- An `opsOwn` slice, read-only. -/
-theorem opsOwn_opsAt (sl : GoSlice) (os : List OpFull) :
-    opsOwn (GF := GF) sl os ⊢ opsAt sl os ∗ ownSliceCap go_etcd_io.etcd.client.v3.Op sl (DFrac.own 1) := by
-  unfold opsOwn opsAt
-  iintro ⟨%vs, #Hsl, Hcap, %Hlen, #H⟩
-  iframe Hcap
-  iexists vs
-  iframe #
-  ipureintro; exact Hlen
-
 /-! ## Lists of values related elementwise (`opsAt`, `cmpsAt`) -/
 
 /-- The values `vs` and the models `os`, of the same length, related by `P` elementwise (the body
@@ -372,15 +324,6 @@ theorem opsAt_listRel (sl : GoSlice) (os : List OpFull) :
 theorem cmpsAt_listRel (sl : GoSlice) (ms : List CmpModel) :
     cmpsAt (GF := GF) sl ms ⊣⊢ ∃ cs, sl ↦*□ cs ∗ listRel cmpAt cs ms := by
   unfold cmpsAt listRel; exact .rfl
-
-theorem cmpsSetAt_listRel (sl : GoSlice) (ms : List CmpModel) :
-    cmpsSetAt (GF := GF) sl ms ⊣⊢ ∃ cs, sl ↦*□ cs ∗ listRel cmpSetAt cs ms := by
-  unfold cmpsSetAt listRel; exact .rfl
-
-theorem opsOwn_listRel (sl : GoSlice) (os : List OpFull) :
-    opsOwn (GF := GF) sl os ⊣⊢ ∃ vs, sl ↦*□ vs ∗
-      ownSliceCap go_etcd_io.etcd.client.v3.Op sl (DFrac.own 1) ∗ listRel opFullAt vs os := by
-  unfold opsOwn listRel; exact .rfl
 
 end defs
 

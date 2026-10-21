@@ -128,16 +128,6 @@ theorem waitcOnly_setWaitc (st : LeaseCacheSt) (k : GoString) (ch : GoChan) :
     · subst hkk; simp [hk]
     · simp [hkk]
 
-theorem waitcOnly_trans {a b c : LeaseCacheSt} (h1 : WaitcOnly a b) (h2 : WaitcOnly b c) :
-    WaitcOnly a c := by
-  obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8⟩ := h1
-  obtain ⟨b1, b2, b3, b4, b5, b6, b7, b8⟩ := h2
-  exact ⟨b1.trans a1, b2.trans a2, b3.trans a3, b4.trans a4, b5.trans a5, b6.trans a6,
-    b7.trans a7, fun k => (b8 k).trans (a8 k)⟩
-
-theorem waitcOnly_refl (a : LeaseCacheSt) : WaitcOnly a a :=
-  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, fun _ => rfl⟩
-
 /-- The entries `ents` differ from `st`'s in their waiter channels only. -/
 def WaitcOnlyEnts (st : LeaseCacheSt) (ents : GMap GoString LeaseEntry) : Prop :=
   ∀ k, (ents !! k).map (fun e => { e with waitc := null }) =
@@ -302,16 +292,6 @@ theorem sameFacts_evictKeySt (st : LeaseCacheSt) (key : GoString) (t : time.Time
   | none => exact ⟨fun k e' h => ⟨e', h, rfl, rfl, rfl⟩, fun f hf => Or.inl hf⟩
   | some en => exact sameFacts_freeze st key en hk _
 
-theorem evictKeySt_lis (st : LeaseCacheSt) (key : GoString) (t : time.Time) :
-    (evictKeySt st key t).lis = GMap.delete key st.lis := by
-  unfold evictKeySt
-  cases hk : st.entries !! key with
-  | none =>
-    simp only
-    rw [GMap.delete_notin]; · rfl
-    simp [LeaseCacheSt.lis, hk]
-  | some en => exact freeze_lis st key en _
-
 end pure
 
 section defs
@@ -404,22 +384,6 @@ theorem wp_emap_lookup (st : LeaseCacheSt) (key : GoString) (dq : DFrac)
     wp_apply wp_map_lookup1 $$ [$Hm] as Hm
     simp only [LeaseCacheSt.lis, GMap.lookup_fmap]
     iapply HΦ $$ Hm
-
-/-- **The entries' resources apart**, and the way back for new entries with the same
-`*leaseKey`s (the map and the other fields unchanged). -/
-theorem lcOwn_entries_acc (lc : Loc) (st : LeaseCacheSt) (dq : DFrac) :
-    lcOwn (GF := GF) lc st dq ⊢ ([∗map] _k ↦ e ∈ st.entries, entryOwn e dq) ∗
-      (∀ ents : GMap GoString LeaseEntry, ⌜SameLis st { st with entries := ents }⌝ -∗
-        ([∗map] _k ↦ e ∈ ents, entryOwn e dq) -∗ lcOwn lc { st with entries := ents } dq) := by
-  unfold lcOwn
-  iintro ⟨H1, H2, H3, H4, H5, #H6, Hents, #H8⟩
-  iframe Hents
-  iintro %ents %hsl Hents
-  have hl := sameLis_lis hsl
-  unfold emapOwn
-  simp only [hl]
-  iframe
-  iframe #
 
 /-- **The entries field, the map and the entries' resources apart**, and the way back for new
 entries with the same `*leaseKey`s. -/

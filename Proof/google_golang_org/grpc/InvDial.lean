@@ -69,11 +69,6 @@ def GrpcDialOpt.unaryOf : GrpcDialOpt → Option GoFunc
   | .unaryInterceptor ic => some ic
   | _ => none
 
-/-- The stream interceptor a descriptor sets, if it sets one. -/
-def GrpcDialOpt.streamOf : GrpcDialOpt → Option GoFunc
-  | .streamInterceptor ic => some ic
-  | _ => none
-
 /-- **The unary interceptor chain of a dial with the options `ds`** (see the file header): the
 last `WithUnaryInterceptor`'s, or none. -/
 def unaryIcsOf (ds : List GrpcDialOpt) : List GoFunc :=

@@ -11,8 +11,8 @@ and a `Results` module's.  A constant is used if a root's statement or proof rea
 through statements, definition bodies and proofs.
 
 One JSON object per line, for every user-facing declaration of this repository (an
-auxiliary constant -- `_proof_n`, `match_n`, an equation lemma -- counts as the
-declaration it belongs to) in the imported modules:
+auxiliary constant -- `_proof_n`, an equation lemma -- counts as the declaration it belongs
+to; a matcher `match_n` does not, being shared by the definitions with the same `match`) in the imported modules:
 
   {"name", "module", "line", "endLine", "kind", "link", "results"}
 
@@ -105,8 +105,13 @@ def main (args : List String) : IO UInt32 := do
   for (n, _) in env.constants.map₁.toList do
     if !isProject parts env n then continue
     let some o := ownerOf env n | continue
+    -- a matcher (`f.match_1`) is shared by every definition with the same `match`: reaching
+    -- it does not reach its owner
+    let shared := n != o && match n with
+      | .str _ s => s.startsWith "match_"
+      | _ => false
     let (a, b) := decls.getD o (false, false)
-    decls := decls.insert o (a || rl.contains n, b || rr.contains n)
+    decls := decls.insert o (a || (!shared && rl.contains n), b || (!shared && rr.contains n))
   let out ← IO.getStdout
   for (d, (a, b)) in decls.toList do
     let some ci := env.find? d | continue

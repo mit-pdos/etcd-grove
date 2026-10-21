@@ -425,11 +425,6 @@ theorem firstOcc_append_prefix (a b : List (Option (List w8))) :
     firstOcc a <+: firstOcc (a ++ b) := by
   unfold firstOcc; rw [List.foldl_append]; exact foldl_occStep_prefix _ _
 
-theorem firstOcc_take_prefix (ods : List (Option (List w8))) (n : Nat) :
-    firstOcc (ods.take n) <+: firstOcc ods := by
-  have := firstOcc_append_prefix (ods.take n) (ods.drop n)
-  rwa [List.take_append_drop] at this
-
 theorem mem_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) (d : List w8) :
     d ∈ b.foldl occStep L ↔ d ∈ L ∨ some d ∈ b := by
   induction b generalizing L with
@@ -504,18 +499,6 @@ theorem prefix_before_unique (L L0 L1 : List (List w8)) (d : List w8) (Hnd : L.N
 section pure
 variable [FfiSyntax]
 
-/-- `appendEntry`'s stamping loop: `es[k].Term = r.Term` and `es[k].Index = li+1+k`;
-nothing else about an entry changes (its `Type` and `Data` are the proposal's). (Moved here from `Defs.lean` on 2026-10-01: the model's
-`Step.win` and `Step.propose` stamp too.)
-
-An entry stamped at term `t` and index `i`: what a proposed (unstamped) entry `e0`
-becomes in the log (`stamp` is the same at `i = li + 1 + k`). And the list position of
-index `i` in a full log (from `base0`). -/
-def stampAt (e0 : EntryM) (t i : w64) : EntryM :=
-  { e0 with Term' := t, Index' := i }
-
-def pos (i : w64) : Nat := (uint.Z i - 1).toNat
-
 def stamp (tm li : w64) (k : Nat) (e : EntryM) : EntryM :=
   { e with Term' := tm, Index' := li + W64 1 + W64 k }
 
@@ -523,20 +506,6 @@ def stamp (tm li : w64) (k : Nat) (e : EntryM) : EntryM :=
 theorem plogLastIndexZ_nonneg (b : entryID) (es : List EntryM) :
     0 ≤ plogLastIndexZ b es := by
   unfold plogLastIndexZ; have := uint_Z_nonneg b.index'; omega
-
-omit [FfiSyntax] in
-theorem stamp_index_le (L : Int) (k : Nat) :
-    0 ≤ L → uint.Z (W64 L + W64 1 + W64 (k : Int)) ≤ L + 1 + k := by
-  intro HL
-  simp only [uint.Z, W64, BitVec.toNat_add, BitVec.toNat_ofInt]
-  omega
-
-omit [FfiSyntax] in
-theorem leader_index_le (L : Int) :
-    0 ≤ L → uint.Z (W64 L + W64 1 + W64 0) ≤ L + 1 := by
-  intro HL
-  have H := stamp_index_le L 0 HL
-  simpa using H
 
 omit [FfiSyntax] in
 theorem stamp_index_eq (L : Int) (k : Nat) :
@@ -591,11 +560,6 @@ theorem app_payload_from_log (b : entryID) (L : List EntryM) (t i : w64)
   simp only
   push_cast at this ⊢
   omega
-
-/-- The entry at index `i` of a log, if it is in the stored suffix. -/
-def plogEntryAt (b : entryID) (es : List EntryM) (i : w64) : Option EntryM :=
-  if uint.Z i ≤ uint.Z b.index' then none
-  else es[(uint.Z i - uint.Z b.index' - 1).toNat]?
 
 /-- `plogFindConflict` returns the index of the first entry that does not match, all
 before it matching. -/
@@ -813,13 +777,6 @@ theorem plogTermAt_some_entry (b : entryID) (es : List EntryM) (j t : w64) :
     have := Hwf _ _ He (by omega)
     apply uint_Z_inj.mp
     omega
-
-theorem plogEntryAt_lookup (b : entryID) (es : List EntryM) (j : w64) :
-    uint.Z b.index' < uint.Z j →
-    plogEntryAt b es j = es[(uint.Z j - uint.Z b.index' - 1).toNat]? := by
-  intro Hj
-  unfold plogEntryAt
-  rw [ite_eq_right (by omega)]
 
 /-- The last entry's term, in range. -/
 theorem plogTermAt_last_r (b : entryID) (es : List EntryM) :
@@ -1113,16 +1070,6 @@ def FullOk (b : entryID) (fp : List EntryM) : Prop :=
   PlogWf base0 fp ∧ plogLast base0 fp = b
 
 theorem base0_index : uint.Z (base0 : entryID).index' = 0 := rfl
-
-/-- Entry `k` of a committed log (well-formed from `base0`: `isCommitted_wf`, `Facts.lean`) has
-index `k + 1` (2026-10-16, stage R7: named for the server's contract). -/
-theorem isCommitted_index (L : List EntryM) (k : Nat) (e : EntryM) :
-    PlogWf base0 L → L[k]? = some e → uint.Z e.Index' = (k : Int) + 1 := by
-  intro Hwf Hk
-  have := Hwf k e Hk
-  rw [base0_index] at this
-  push_cast at this
-  omega
 
 theorem FullOk_base0 : FullOk base0 [] :=
   ⟨rfl, fun _ _ h => by simp at h, rfl⟩

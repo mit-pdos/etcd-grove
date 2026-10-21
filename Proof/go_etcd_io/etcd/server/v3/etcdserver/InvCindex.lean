@@ -129,14 +129,6 @@ theorem ciIdx_agree (γ : CINames) (k k0 : w64) :
   icombine H1 H2 gives %Heq
   ipureintro; exact Heq.2
 
-/-- The client's view and the invariant's half, updated together. -/
-theorem ciIdx_update (γ : CINames) (k k0 v : w64) :
-    ciIdx (GF := GF) γ k ⊢ ghostVar γ.idx (1 : Qp).half k0 ==∗
-      ciIdx γ v ∗ ghostVar γ.idx (1 : Qp).half v := by
-  unfold ciIdx
-  iintro H1 H2
-  iapply ghostVar_update_halves v $$ H1 H2
-
 /-- The index and term fields, with the invariant's half of the index's mirror. -/
 def ciInv (ci : Loc) (γ : CINames) : IProp GF :=
   iprop(∃ (k t : w64), ciIdxAddr ci ↦ k ∗ ghostVar γ.idx (1 : Qp).half k ∗ ciTermAddr ci ↦ t)
@@ -329,21 +321,6 @@ theorem acc_ite (c : Prop) [Decidable c] (A Ψ : IProp GF) :
   split
   · iapply HΨ $$ HA
   · iframe HA HΨ
-
-/-- Persistent values are readable with anything. -/
-theorem metaValsA_of_ro (Acc : IProp GF) (vs : GoSlice) (x : w64) (s : GoSlice)
-    (hx : x ≠ W64 0) :
-    vs ↦*□ [s] ∗ s ↦*□ u64Be x ⊢ metaValsA (GF := GF) Acc vs x := by
-  unfold metaValsA
-  simp only [hx, ↓reduceIte]
-  iintro ⟨#Hvs, #Hs⟩
-  iexists s
-  iframe Hvs
-  iintro !> HA
-  iexists DFrac.discard
-  iframe Hs
-  iintro -
-  iexact HA
 
 end defs
 

@@ -561,13 +561,6 @@ def nodeMaxO (lo : Option GoString) (e : Entry) (ro : Option GoString) : GoStrin
 theorem nodeMax_eq (l : RbT Entry) (e : Entry) (r : RbT Entry) :
     nodeMax l e r = nodeMaxO l.maxEnd e r.maxEnd := rfl
 
-/-- The rotations keep a subtree's max. -/
-theorem nodeMax_rotate (a b c : RbT Entry) (x y : Entry) (cx cy : RbColor) :
-    nodeMax a x (.node cy b y c) = nodeMax (.node cx a x b) y c := by
-  have := maxEnd_eq_of_inorder (.node cx a x (.node cy b y c)) (.node cy (.node cx a x b) y c)
-    (by simp)
-  simpa using this
-
 end entries
 
 end adt

@@ -93,10 +93,6 @@ def filtered (fs : List (EvM → Bool)) (evs : List EvM) : List EvM :=
 
 theorem filtered_nil (fs : List (EvM → Bool)) : filtered fs [] = [] := rfl
 
-theorem filtered_append (fs : List (EvM → Bool)) (a b : List EvM) :
-    filtered fs (a ++ b) = filtered fs a ++ filtered fs b := by
-  unfold filtered; rw [List.filter_append]
-
 theorem logEvents_empty (log : Log) {lo hi : Nat} (h : hi ≤ lo) : logEvents log lo hi = [] := by
   unfold logEvents; rw [show hi - lo = 0 by omega]; rfl
 
@@ -542,10 +538,6 @@ def relLb (γ : WsNames) (n : Nat) : IProp GF := monoNatLbOwn γ.rel n
 instance relLb_persistent (γ : WsNames) (n : Nat) : Persistent (relLb (GF := GF) γ n) := by
   unfold relLb; infer_instance
 
-theorem relLb_le (γ : WsNames) (n m : Nat) (h : m ≤ n) :
-    relLb (GF := GF) γ n ⊢ relLb γ m := by
-  unfold relLb; iintro H; iapply monoNatLbOwn_le m h $$ H
-
 /-- The events `evs` are the range's of the revisions `[lo, d)` of a watched log (`evLog`:
 sealed and certified; persistent; `d` past the log only for an empty range). -/
 def evsWf (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (d : Nat) : IProp GF :=
@@ -622,9 +614,6 @@ instance covFact_persistent (γ : WsNames) (γc : WatchChanNames) (pre : List Re
 channel's cancellation reason (`rsnFor`). -/
 def rsnW (γc : WatchChanNames) (w : Loc) : IProp GF :=
   iprop(∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs ∗ rsnFor γc.rsn r.id)
-
-instance rsnW_persistent (γc : WatchChanNames) (w : Loc) : Persistent (rsnW (GF := GF) γc w) := by
-  unfold rsnW; infer_instance
 
 /-- The completeness of a response of id `-1` (K1b): every watcher registered on the channel when
 it was sent (`x.regs`) is covered, or cancelled for its reason; and it has no events and its
@@ -941,30 +930,6 @@ theorem sentAuth_idx (γ : WsNames) (γc : WatchChanNames) (sent : List RespM) (
   unfold sentAuth
   iintro ⟨-, %RI, -, %HRI, -⟩
   ipureintro; exact HRI.2.2.2
-
-/-- Delivered up to `d'` at most `d`: a prefix of the events up to `d` (comparable logs). -/
-theorem watchEvents_mono_cmp {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRange) {lo d d' : Nat}
-    (h : d ≤ L.length ∨ d ≤ lo) (h' : d' ≤ L'.length ∨ d' ≤ lo) (hd : d' ≤ d) :
-    watchEvents L' r lo d' <+: watchEvents L r lo d := by
-  by_cases hlo : d' ≤ lo
-  · rw [watchEvents_empty _ _ hlo]; exact List.nil_prefix
-  · have h1 : d' ≤ L.length := by omega
-    rw [← watchEvents_cmp hc r (Or.inl h1) h', watchEvents_append L r (by omega) hd]
-    exact List.prefix_append _ _
-
-/-- **A later delivery is past an earlier one's revision** (comparable logs): if the events up to
-`d` are a prefix of those up to `d'`, the latter are those of the revisions up to some `d''` at
-least `d` (`d'`, or `d` when the two are the same events). -/
-theorem watchEvents_cover {L L' : Log} (hc : L <+: L' ∨ L' <+: L) (r : WatchRange) {lo d d' : Nat}
-    (h : d ≤ L.length ∨ d ≤ lo) (h' : d' ≤ L'.length ∨ d' ≤ lo)
-    (hp : watchEvents L r lo d <+: watchEvents L' r lo d') :
-    ∃ (L'' : Log) (d'' : Nat), watchEvents L' r lo d' = watchEvents L'' r lo d'' ∧
-      (d'' ≤ L''.length ∨ d'' ≤ lo) ∧ d ≤ d'' ∧ (L'' = L ∨ L'' = L') := by
-  by_cases hd : d ≤ d'
-  · exact ⟨L', d', rfl, h', hd, Or.inr rfl⟩
-  · have hq := watchEvents_mono_cmp hc r h h' (by omega)
-    have he := hp.eq_of_length (Nat.le_antisymm hp.length_le hq.length_le)
-    exact ⟨L, d, he.symm, h, Nat.le_refl _, Or.inl rfl⟩
 
 /-- **What a sender of a response of id `-1` says of the channel** (persistent; K1b;
 `watcher.send`): from its resource `CS` (lent), the channel's record of the registered watchers
@@ -1444,13 +1409,6 @@ theorem wlogQ_cert_prefix (γ : WsNames) (q : Qp) (L C : Log) :
   unfold wlogQ
   iintro ⟨⟨-, Ha⟩, Hc⟩
   iapply idxLogAuth_cert_prefix $$ [$Ha $Hc]
-
-theorem wlogQ_lb (γ : WsNames) (q : Qp) (L : Log) :
-    wlogQ (GF := GF) γ q L ⊢ wlogQ γ q L ∗ notifiedLb γ L := by
-  unfold wlogQ notifiedLb
-  iintro ⟨Ha, Hb⟩
-  ihave #Hlb := monoListLbOwn_get γ.wlog _ L $$ Ha
-  iframe Ha Hb Hlb
 
 /-- Every lower bound of the notified log is a prefix of the lock's. -/
 theorem wlogQ_lb_valid (γ : WsNames) (q : Qp) (L L' : Log) :

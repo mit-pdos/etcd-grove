@@ -46,13 +46,6 @@ def prevOf : List α → α → Option α
 /-- Both neighbours. -/
 def nb (l : List α) (x : α) : Option α × Option α := (prevOf l x, nextOf l x)
 
-theorem nextOf_not_mem {l : List α} {x : α} (h : x ∉ l) : nextOf l x = none := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    simp only [List.mem_cons, not_or] at h
-    simp only [nextOf, ite_eq_right (Ne.symm h.1), ih h.2]
-
 theorem prevOf_not_mem {l : List α} {x : α} (h : x ∉ l) : prevOf l x = none := by
   induction l with
   | nil => rfl

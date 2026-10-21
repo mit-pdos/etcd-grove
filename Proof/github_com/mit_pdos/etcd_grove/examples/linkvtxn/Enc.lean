@@ -147,7 +147,6 @@ theorem filterMap_length_le {α β : Type} (f : α → Option β) :
     simp only [List.filterMap_cons]
     split <;> simp <;> omega
 
-theorem w64_ne_0_1 : (W64 0 : w64) ≠ W64 1 := by decide
 theorem w64_3_ne_0 : (W64 3 : w64) ≠ W64 0 := by decide
 theorem w64_3_ne_1 : (W64 3 : w64) ≠ W64 1 := by decide
 theorem w64_3_ne_2 : (W64 3 : w64) ≠ W64 2 := by decide

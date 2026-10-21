@@ -88,39 +88,6 @@ theorem toPState_ready (s : NState) (ce : List EntryM) (sz : w64) :
   unfold readyNstate logAcceptApplying logAcceptUnstable toPState
   by_cases h : s.role = .leader <;> cases ce.getLast? <;> simp [h, rdNL]
 
-omit [FfiSyntax] in
-private theorem prefix_getElem? {α : Type _} {l1 l2 : List α} {i : Nat} {x : α}
-    (h : l1 <+: l2) (hx : l1[i]? = some x) : l2[i]? = some x := by
-  obtain ⟨t, rfl⟩ := h
-  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 hx).1]
-  exact hx
-
-/-- The last committed entry handed out is the one at `applying + len`, within
-`(applying, committed]`: what `acceptApplying` needs. -/
-theorem ready_ce_last (es ce : List EntryM) (prev : entryID) (cm apg : w64)
-    (e : EntryM)
-    (Hidx : LogIndicesOk prev es)
-    (Hle : uint.Z prev.index' ≤ uint.Z apg ∧ uint.Z apg ≤ uint.Z cm)
-    (Hnw : uint.Z cm + 1 < 2 ^ 64)
-    (Hce : ce <+: (plogFrom prev es (apg + W64 1)).take (uint.Z cm - uint.Z apg).toNat)
-    (Hl : ce.getLast? = some e) :
-    uint.Z apg < uint.Z e.Index' ∧ uint.Z e.Index' ≤ uint.Z cm ∧
-    uint.Z e.Index' = uint.Z apg + (ce.length : Int) := by
-  unfold plogFrom at Hce
-  have Hk : (uint.Z (apg + W64 1) - uint.Z prev.index' - 1).toNat
-      = (uint.Z apg - uint.Z prev.index').toNat := by word
-  rw [Hk] at Hce
-  obtain ⟨ce0, rfl⟩ := List.getLast?_eq_some_iff.1 Hl
-  have Hlen := Hce.length_le
-  simp only [List.length_append, List.length_singleton, List.length_take] at Hlen
-  have Hlk : (ce0 ++ [e])[ce0.length]? = some e := by simp
-  have H1 := prefix_getElem? Hce Hlk
-  rw [List.getElem?_take_of_lt (by omega), List.getElem?_drop] at H1
-  have H2 := Hidx _ _ H1
-  push_cast at H2
-  simp only [List.length_append, List.length_singleton]
-  omega
-
 /-- `StepsOk` of the acknowledgements `Ready` queues after the self-addressed
 responses. -/
 theorem ready_stepsOk (s' : NState) (t : w64) (last : entryID) (ce : List EntryM)
@@ -162,13 +129,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-theorem nstateRel_ready (s : NState) (ps : PState) (ce : List EntryM) (sz : w64) :
-    NStateRel s ps → NStateRel (readyNstate s ce sz)
-      { ps with outbox := [], rd := { ps.rd with states := [] } } := by
-  intro ⟨Hps, Hwf⟩
-  subst Hps
-  exact ⟨toPState_ready s ce sz, Hwf⟩
 
 
 theorem RawNode.acceptReady.wp_proof

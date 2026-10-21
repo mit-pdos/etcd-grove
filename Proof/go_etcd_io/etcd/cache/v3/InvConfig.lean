@@ -77,10 +77,6 @@ def cfgOptSpec (f : GoFunc) (g : Config → Config) : IProp GF :=
   iprop(□ ∀ (cp : Loc) (c : Config),
     {{ cp ↦ c }} (App (Val #f) (Val #cp)) {{ RET #(); cp ↦ g c }})
 
-instance cfgOptSpec_persistent (f : GoFunc) (g : Config → Config) :
-    Persistent (cfgOptSpec (GF := GF) f g) := by
-  unfold cfgOptSpec; infer_instance
-
 /-- The `[]Option` slice `sl` (read-only) holds closures with the transformers `gs`. -/
 def cfgOptsAt (sl : GoSlice) (gs : List (Config → Config)) : IProp GF :=
   iprop(∃ fs : List GoFunc, sl ↦*□ fs ∗ ⌜fs.length = gs.length⌝ ∗

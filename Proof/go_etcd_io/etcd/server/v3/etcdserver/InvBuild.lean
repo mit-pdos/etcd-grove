@@ -174,17 +174,6 @@ theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
   ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']
   exact absurd (Hag.trans Hst'.2) Hns
 
-/-- **The read names, fresh** (the caller's allocation, `srvReadNamesFresh_alloc`): the applied
-and committed indices' authorities at `0`, the read loop's notifier variable, the applied logs'
-empty map, the pending flag `false`, the KV state's variable at the state of the bootstrap log's
-model `σ` (its halves: the KV invariant's and the client's `etcdKV`), the certified length at the
-start log's (`hi`). -/
-def srvReadNamesFresh (γr : ReadNames) (σ : KVState) : IProp GF :=
-  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
-    (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
-    ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
-    ghostVar γr.kv.st 1 σ ∗ ghostVar γr.kv.hi 1 γr.kv.log0.length)
-
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
 client's `etcdKV` at raft's allocation (`srvRaftBoot_alloc`, `NewServerAlloc.lean`). -/
@@ -346,9 +335,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem envAgree_symm {E E' : apply.AEnv GF} (h : envAgree E E') : envAgree E' E :=
-  ⟨h.1.symm, h.2.1.symm, h.2.2.symm⟩
-
 /-- **`srvC` reads only the names** (D13a): two environments that agree on them give the same
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
@@ -361,23 +347,6 @@ theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x�
   funext L
   unfold srvC batchWaitOk entryWaitOk reqWaitR
   rw [hres]
-
-/-- The workload clause at agreeing environments. -/
-theorem clusterWorkloadOk_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (h : envAgree E E') :
-    clusterWorkloadOk (GF := GF) ρ E = clusterWorkloadOk ρ E' := by
-  obtain ⟨hi, hc, hr⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  unfold clusterWorkloadOk batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
-
-/-- The server's raft environment at agreeing environments. -/
-theorem srvEr_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) (h : envAgree E E') :
-    srvEr ρ E ai₀ c₀ x₀ bud = srvEr ρ E' ai₀ c₀ x₀ bud := by
-  unfold srvEr; rw [srvC_agree ρ E E' ai₀ c₀ x₀ h]
 
 end lemmas
 

@@ -57,12 +57,6 @@ theorem nodeVal_next (hd : Loc) (loc : Entry → Loc) (val : Entry → GoInterfa
       nodeVal hd loc val x (pn.1, n) := by
   cases x <;> rfl
 
-theorem nodeVal_prev (hd : Loc) (loc : Entry → Loc) (val : Entry → GoInterface) (x : Slot)
-    (pn : Option Slot × Option Slot) (p : Option Slot) :
-    ({ nodeVal hd loc val x pn with prev' := nbrLoc hd loc p } : node) =
-      nodeVal hd loc val x (p, pn.2) := by
-  cases x <;> rfl
-
 theorem nodeVal_next_some (hd : Loc) (loc : Entry → Loc) (val : Entry → GoInterface) (x : Slot)
     (pn : Option Slot × Option Slot) (n : Slot) :
     ({ nodeVal hd loc val x pn with next' := slotLoc hd loc n } : node) =

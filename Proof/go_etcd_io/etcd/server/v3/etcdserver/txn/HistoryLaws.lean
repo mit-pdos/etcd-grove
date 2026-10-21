@@ -62,11 +62,6 @@ theorem hl_sint_eq (x : w64) (h : uint.nat x < 2 ^ 63) : sint.Z x = (uint.nat x 
 theorem hl_succ (x : w64) (h : uint.nat x < 2 ^ 63) : uint.nat (x + W64 1) = uint.nat x + 1 := by
   word
 
-theorem hl_W64_ne (a b : Nat) (ha : a < 2 ^ 63) (hb : b < 2 ^ 63) (h : a ≠ b) :
-    W64 (a : Int) ≠ W64 (b : Int) := by
-  intro e; apply h; have := congrArg uint.nat e; rw [hl_nat_W64 a ha, hl_nat_W64 b hb] at this
-  exact this
-
 /-! ## The state at a revision, one revision at a time -/
 
 theorem stateAt_zero (log : Log) (h : 0 < log.length) :

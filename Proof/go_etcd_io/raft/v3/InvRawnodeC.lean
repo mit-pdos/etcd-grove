@@ -101,25 +101,6 @@ def CCApplies (cfg : GSet w64) (id : w64) (t : raftpb.ConfChangeTransition)
     ∃ c' : CCState, ccApplyM t ccs (cfgState cfg lrn) = some c' ∧
       (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 ∧ id ∈ c'.cfg.voters
 
-/-- A shrinking change (stage L's scope) applies, at a voter. -/
-theorem CCShrink.applies {cfg : GSet w64} {id : w64} {t : raftpb.ConfChangeTransition}
-    {ccs : List ConfChangeSingleM} (H : CCShrink cfg t ccs) (Hin : id ∈ cfg) :
-    CCApplies cfg id t ccs := by
-  intro lrn Hd Hsz
-  obtain ⟨lrn', Hl, Hm⟩ := H lrn Hd
-  refine ⟨_, Hm, ?_, ?_⟩
-  · have h1 : (cfgState cfg lrn').cfg.ids ⊆ cfg ∪ lrn := by
-      show (CfgM.simple cfg lrn').ids ⊆ _
-      unfold CfgM.ids; rw [CfgM.voters_simple]
-      rw [GMap.elem_of_subseteq]; intro k hk
-      rcases (GMap.elem_of_union _ _ _).1 hk with h | h
-      · exact GMap.elem_of_union_l _ h
-      · exact GMap.elem_of_union_r _ ((GMap.elem_of_subseteq _ _).1 Hl k h)
-    have h2 := GMap.subseteq_size h1
-    omega
-  · show id ∈ (CfgM.simple cfg lrn').voters
-    rw [CfgM.voters_simple]; exact Hin
-
 end model
 
 end EtcdGrove

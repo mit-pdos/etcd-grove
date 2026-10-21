@@ -115,21 +115,6 @@ instance rqRecOk_persistent (γ : RaftNames) (T : w64) (r : RqRec) :
     Persistent (rqRecOk (GF := GF) γ T r) := by
   unfold rqRecOk; split <;> infer_instance
 
-instance readReq_timeless (γ : RaftNames) (c : List w8) (Lc : List EntryM) :
-    Timeless (readReq (GF := GF) γ c Lc) := by
-  unfold readReq; infer_instance
-instance readOk_timeless (γ : RaftNames) (c : List w8) (i : w64) :
-    Timeless (readOk (GF := GF) γ c i) := by
-  unfold readOk; infer_instance
-
-instance doomed_timeless (γ : RaftNames) (T t' : w64) (q : GSet w64) :
-    Timeless (doomed (GF := GF) γ T t' q) := by
-  unfold doomed; infer_instance
-
-instance rqRecOk_timeless (γ : RaftNames) (T : w64) (r : RqRec) :
-    Timeless (rqRecOk (GF := GF) γ T r) := by
-  unfold rqRecOk; split <;> infer_instance
-
 /-- The registry of the read requests the leader `L` of `T` recorded, at least `recs`. -/
 def rqLb (γ : RaftNames) (L T : w64) (recs : List RqRec) : IProp GF :=
   iprop(∃ γl γq, ⌜γ.reRdq !! L = some γl⌝ ∗ T ↪[γl]□ γq ∗ monoListLbOwn γq recs)
@@ -137,10 +122,6 @@ def rqLb (γ : RaftNames) (L T : w64) (recs : List RqRec) : IProp GF :=
 instance rqLb_persistent (γ : RaftNames) (L T : w64) (recs : List RqRec) :
     Persistent (rqLb (GF := GF) γ L T recs) := by
   unfold rqLb; infer_instance
-instance rqLb_timeless (γ : RaftNames) (L T : w64) (recs : List RqRec) :
-    Timeless (rqLb (GF := GF) γ L T recs) := by
-  unfold rqLb; infer_instance
-
 /-- A follower `v`'s acknowledgement of the first `q` of the leader's records: none of them
 is doomed by a quorum containing `v`. -/
 def HbAckOk (v : w64) (q : Nat) (recs : List RqRec) : Prop :=
@@ -277,10 +258,6 @@ instance isMessage_persistent (γ : RaftNames) (m : Msg) :
     Persistent (isMessage (GF := GF) γ m) := by
   unfold isMessage; split <;> (try split) <;> infer_instance
 
-instance isMessage_timeless (γ : RaftNames) (m : Msg) :
-    Timeless (isMessage (GF := GF) γ m) := by
-  unfold isMessage; split <;> (try split) <;> infer_instance
-
 /-- An accepting `MsgAppResp` acknowledges an index within the leader's log (stage R8a, D11). -/
 theorem isMessage_appResp_ackIn (γ : RaftNames) (m : Msg) :
     m.ty = .appResp → m.reject = false →
@@ -375,10 +352,6 @@ instance leaderWit_persistent (γ : RaftNames) (id : w64) (s : PState) :
     Persistent (leaderWit (GF := GF) γ id s) := by
   unfold leaderWit; split <;> infer_instance
 
-instance leaderWit_timeless (γ : RaftNames) (id : w64) (s : PState) :
-    Timeless (leaderWit (GF := GF) γ id s) := by
-  unfold leaderWit; split <;> infer_instance
-
 /-- The terms a node has allocated a term log for: ones it has left behind, or the
 current one if it is leader in it. -/
 /- What a node's term map holds: `isTermLog`'s triple. -/
@@ -406,10 +379,6 @@ def leadLogOwn (_γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) : IProp
         leadFrags γt l0 s.log)
   | _ => iprop(True)
 
-instance leadLogOwn_timeless (γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) :
-    Timeless (leadLogOwn (GF := GF) γ s terms) := by
-  unfold leadLogOwn; split <;> infer_instance
-
 /-- A leader's `Match` values are backed by acknowledgements. -/
 def matchedOk (γ : RaftNames) (s : PState) : IProp GF :=
   match s.role with
@@ -419,10 +388,6 @@ def matchedOk (γ : RaftNames) (s : PState) : IProp GF :=
 instance matchedOk_persistent (γ : RaftNames) (s : PState) :
     Persistent (matchedOk (GF := GF) γ s) := by
   unfold matchedOk; split <;> infer_instance
-instance matchedOk_timeless (γ : RaftNames) (s : PState) :
-    Timeless (matchedOk (GF := GF) γ s) := by
-  unfold matchedOk; split <;> infer_instance
-
 /-- The log's shape: well-formed (in range), and `base ≤ commit ≤ lastIndex()`. -/
 def LogOk (s : PState) : Prop :=
   PlogWfR s.base s.log ∧
@@ -443,10 +408,6 @@ def ackOk (γ : RaftNames) (s : PState) (k : w64 × w64) : IProp GF :=
 instance ackOk_persistent (γ : RaftNames) (s : PState) (k : w64 × w64) :
     Persistent (ackOk (GF := GF) γ s k) := by
   unfold ackOk; infer_instance
-instance ackOk_timeless (γ : RaftNames) (s : PState) (k : w64 × w64) :
-    Timeless (ackOk (GF := GF) γ s k) := by
-  unfold ackOk; infer_instance
-
 def acksOk (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) : IProp GF :=
   match s.role with
   | .leader => iprop(True)
@@ -455,10 +416,6 @@ def acksOk (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) : IProp
 instance acksOk_persistent (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) :
     Persistent (acksOk (GF := GF) γ s acks) := by
   unfold acksOk; split <;> infer_instance
-instance acksOk_timeless (γ : RaftNames) (s : PState) (acks : GMap (w64 × w64) Unit) :
-    Timeless (acksOk (GF := GF) γ s acks) := by
-  unfold acksOk; split <;> infer_instance
-
 /-! ### The history invariants (2026-10-03, bound reworked 2026-10-05)
 
 `bnd s kl`: the terms whose leaders a node's histories (`hist`) may mention -- those
@@ -483,10 +440,6 @@ def klOk (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :
 instance klOk_persistent (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
     Persistent (klOk (GF := GF) γ id s kl) := by
   unfold klOk; split <;> infer_instance
-instance klOk_timeless (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) :
-    Timeless (klOk (GF := GF) γ id s kl) := by
-  unfold klOk; split <;> infer_instance
-
 /-- No term in a node's full log is above its own; a candidate has none of its own term
 either. -/
 def TermsLe (s : PState) (F : List EntryM) : Prop :=
@@ -507,10 +460,6 @@ def campOwn (γ : RaftNames) (id : w64) (s : PState) (F : List EntryM) : IProp G
 instance campOwn_persistent (γ : RaftNames) (id : w64) (s : PState)
     (F : List EntryM) : Persistent (campOwn (GF := GF) γ id s F) := by
   unfold campOwn; split <;> infer_instance
-instance campOwn_timeless (γ : RaftNames) (id : w64) (s : PState)
-    (F : List EntryM) : Timeless (campOwn (GF := GF) γ id s F) := by
-  unfold campOwn; split <;> infer_instance
-
 /-- Node `v`'s `k`-th vote-time log: it voted in `T` with full log `F`, knowing the leader
 of `T` iff `d` (so its histories then are bounded by `vbnd T d`). -/
 def vbnd (T : w64) (d : Bool) : Int := uint.Z T + (if d then 1 else 0)
@@ -630,10 +579,6 @@ def ownEvs (γ : RaftNames) (id T : w64) (acks : GMap (w64 × w64) Unit) : IProp
   iprop(∃ γe evs, ⌜γ.reEvs !! id = some γe⌝ ∗ monoListAuthOwn γe 1 evs ∗
     ⌜EvSorted evs ∧ (∀ e, e ∈ evs → uint.Z (aevTerm e) ≤ uint.Z T) ∧
       (∀ t i, Aev.ack t i ∈ evs → (acks !! (t, i)).isSome)⌝)
-
-instance ownEvs_timeless (γ : RaftNames) (id T : w64) (acks : GMap (w64 × w64) Unit) :
-    Timeless (ownEvs (GF := GF) γ id T acks) := by
-  unfold ownEvs; infer_instance
 
 theorem ownEvs_mono (γ : RaftNames) (id T T' : w64) (acks acks' : GMap (w64 × w64) Unit) :
     uint.Z T ≤ uint.Z T' → (∀ k, (acks !! k).isSome → (acks' !! k).isSome) →
@@ -792,17 +737,6 @@ instance committedJust_timeless (γ : RaftNames) (l : List EntryM) :
 instance committedJust_persistent (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
-
-/-- A justified committed log is well-formed from `base0`: entry `k` has index `k + 1`
-(`cq_full`; 2026-10-16, stage R7). -/
-theorem committedJust_wf (γ : RaftNames) (l : List EntryM) :
-    ⊢ committedJust (GF := GF) γ l -∗ ⌜PlogWf base0 l⌝ := by
-  unfold committedJust
-  iintro #H
-  icases H with (%H0 | ⟨%t, %n, %G, %ldr, #Hcq, %HlG, -, -⟩)
-  · ipureintro; rw [H0.1]; exact H0.2
-  · icases cq_full γ t n G $$ Hcq with ⟨%Hwf, -⟩
-    ipureintro; subst HlG; exact PlogWf_take _ _ _ Hwf
 
 def raftN : Namespace := nroot .@ "raft_commit"
 
@@ -1206,10 +1140,6 @@ def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
       ⌜c ≤ uint.nat s.commit⌝)
   | _ => iprop(True)
 
-instance lcmLead_timeless (s : PState) (lcm : GMap w64 GName) :
-    Timeless (lcmLead (GF := GF) s lcm) := by
-  unfold lcmLead; split <;> infer_instance
-
 theorem lcmLead_leader (s : PState) (lcm : GMap w64 GName) (h : s.role = .leader) :
     lcmLead (GF := GF) s lcm = iprop(∃ γc c, ⌜lcm !! s.term = some γc⌝ ∗
       monoNatAuthOwn γc 1 c ∗ ⌜c ≤ uint.nat s.commit⌝) := by
@@ -1225,10 +1155,6 @@ def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗
     ghostMapAuth γl 1 lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc) ∗
     ⌜LcmOk lcm s⌝ ∗ lcmLead s lcm)
-
-instance lcmOwn_timeless (γ : RaftNames) (id : w64) (s : PState) :
-    Timeless (lcmOwn (GF := GF) γ id s) := by
-  unfold lcmOwn; infer_instance
 
 /-- Across a step: a leader stays one only within its term, leaves a term only for a
 higher one, and the commit index does not move back. -/
@@ -1355,27 +1281,6 @@ theorem lcmOwn_commit (γ : RaftNames) (id : w64) (s s' : PState) (n : w64) :
     iexists γl, γc
     iframe Hfc Hlb
     ipureintro; exact Hγl
-
-/-- A leader of `T` holds every commit lower bound of its own `T` to its commit index. -/
-theorem lcmOwn_bound (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
-    s.role = .leader →
-    ⊢ lcmOwn (GF := GF) γ id s -∗ cmtLb γ id s.term n -∗ ⌜uint.Z n ≤ uint.Z s.commit⌝ := by
-  intro Hr
-  unfold lcmOwn cmtLb
-  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩ ⟨%γl', %γc', %Hγl', #Hfc', #Hlb⟩
-  rw [Hγl] at Hγl'; cases Hγl'
-  rw [lcmLead_leader s lcm Hr]
-  icases Hl with ⟨%γc, %c, %Hγc, Hac, %Hcle⟩
-  ihave #Hfc := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hγc $$ Hf
-  icases ghostMapElem_agree $$ Hfc Hfc' with %Heq
-  subst Heq
-  ihave %Hv := monoNatLbOwn_valid γc 1 c (uint.nat n) $$ Hac Hlb
-  ipureintro
-  have h1 : (uint.nat n : Int) = uint.Z n := by simp [uint.nat, uint.Z]
-  have h2 : (uint.nat s.commit : Int) = uint.Z s.commit := by simp [uint.nat, uint.Z]
-  have h3 : (uint.nat n : Int) ≤ c := by exact_mod_cast Hv.2
-  have h4 : (c : Int) ≤ uint.nat s.commit := by exact_mod_cast Hcle
-  omega
 
 /-- `lcmOwn_bound`, keeping the lower bounds. -/
 theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
@@ -1536,10 +1441,6 @@ def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
       ⌜∀ v a, s.rd.ro.acks !! v = some a → HbAckOk v (uint.nat a) recs⌝ ∗
       rdCred γ recs.length)
   | _ => iprop(⌜s.rd.ro = ⟨[], ∅, W64 0⟩⌝)
-
-instance rdLead_timeless (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) :
-    Timeless (rdLead (GF := GF) γ s rqm) := by
-  unfold rdLead rdCred; split <;> infer_instance
 
 theorem rdLead_nl (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) (h : s.role ≠ .leader) :
     rdLead (GF := GF) γ s rqm = iprop(⌜s.rd.ro = ⟨[], ∅, W64 0⟩⌝) := by
@@ -2134,19 +2035,6 @@ theorem matchedOk_eq (γ : RaftNames) (s1 s2 : PState) :
   intro H1 H2 H3
   unfold matchedOk; rw [H1, H2, H3]
   iintro H; iexact H
-
-theorem ownRaftGhost_excl (γ : RaftNames) (id : w64) (s1 s2 : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s1 md -∗ ownRaftGhost γ id s2 md -∗ False := by
-  -- the vote map is half the node's since 2026-10-05; the term-log map is whole
-  unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γ1, %v1, %k1, H1⟩ ⟨%γ2, %v2, %k2, H2⟩
-  icases H1 with ⟨_, _, _, _, _, _, _, _, ⟨%γm1, %t1, H1⟩, _⟩
-  icases H2 with ⟨_, _, _, _, _, _, _, _, ⟨%γm2, %t2, H2⟩, _⟩
-  icases H1 with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %Hn1, H1, _⟩
-  icases H2 with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %Hn2, H2, _⟩
-  rw [Hn1] at Hn2; cases Hn2
-  icases ghostMapAuth_valid_2 _ _ _ _ _ $$ H1 H2 with %Hq
-  exfalso; have := Hq.1; simp at this; grind
 
 /-- Everything in a node's outbox was legitimately put there. -/
 theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :

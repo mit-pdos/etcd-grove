@@ -94,8 +94,6 @@ theorem opPath_txn (s : List EtcdKv) (cs : List CmpModel) (ts es : List TxnOp) :
   simp only [opPath]
   cases cs.all (cmpHolds s) <;> rfl
 
-theorem opsPath_nil (s : List EtcdKv) : opsPath s [] = [] := by simp [opsPath]
-
 theorem opsPath_cons (s : List EtcdKv) (op : TxnOp) (ops : List TxnOp) :
     opsPath s (op :: ops) = opPath s op ++ opsPath s ops := by simp [opsPath]
 
@@ -173,17 +171,6 @@ theorem srvOp_txn (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (cs : List CmpM
         .txn (cs.all (cmpHolds s0)) (srvOps s0 r s (if cs.all (cmpHolds s0) then ts else es)).2) := by
   simp only [srvOp]
   cases cs.all (cmpHolds s0) <;> rfl
-
-/-- The server's run of the operations from the `i`-th on, at the state the first `i` left:
-the `i`-th's, then the rest's. -/
-theorem srvOps_drop (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (ops : List TxnOp) (i : Nat)
-    (op : TxnOp) (h : ops[i]? = some op) :
-    srvOps s0 r s (ops.drop i) =
-      ((srvOp s0 r s op).1 ++ (srvOps s0 r (applyChanges r s (srvOp s0 r s op).1) (ops.drop (i + 1))).1,
-        (srvOp s0 r s op).2 ::
-          (srvOps s0 r (applyChanges r s (srvOp s0 r s op).1) (ops.drop (i + 1))).2) := by
-  rw [List.drop_eq_getElem_cons (List.getElem?_eq_some_iff.1 h).1, srvOps_cons,
-    (List.getElem?_eq_some_iff.1 h).2]
 
 /-- The changes of a put, at the state `s`: the server's `putChangeOf`. -/
 theorem srvOp_putTxnOp (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (o : OpFull) :
@@ -503,16 +490,6 @@ theorem serializable_linearizable (t : TxnModel) : txnSerializable t = !t.linear
   unfold txnSerializable TxnModel.linearizable
   exact all_serGet _
 
-/-- A serializable transaction is read-only. -/
-theorem readonly_of_serializable (t : TxnModel) (h : txnSerializable t = true) :
-    txnReadonly t = true := by
-  unfold txnSerializable at h
-  unfold txnReadonly
-  rw [List.all_eq_true] at h ⊢
-  intro op hop
-  have := h op hop
-  cases op <;> simp_all [opIsSerGet, opIsGet]
-
 /-- The chosen branch of a read-only transaction has only gets. -/
 theorem readonly_branch (t : TxnModel) (h : txnReadonly t = true) (ok : Bool) :
     ∀ op ∈ t.branch ok, opIsGet op = true := by
@@ -522,19 +499,6 @@ theorem readonly_branch (t : TxnModel) (h : txnReadonly t = true) (ok : Bool) :
   apply h
   unfold TxnModel.branch at hop
   cases ok <;> simp_all
-
-/-- Gets make no change. -/
-theorem srvOps_gets (s0 : List EtcdKv) (r : w64) :
-    ∀ (s : List EtcdKv) (ops : List TxnOp), (∀ op ∈ ops, opIsGet op = true) →
-      (srvOps s0 r s ops).1 = []
-  | _, [], _ => by simp [srvOps]
-  | s, op :: ops, h => by
-    have hop := h op List.mem_cons_self
-    cases op with
-    | get o =>
-      simp only [srvOps, srvOp, List.nil_append]
-      exact srvOps_gets s0 r _ ops (fun x hx => h x (List.mem_cons_of_mem _ hx))
-    | _ => simp [opIsGet] at hop
 
 /-! ## Plain transactions (2026-10-15, unit T2)
 

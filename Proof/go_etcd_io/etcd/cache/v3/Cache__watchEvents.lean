@@ -70,10 +70,6 @@ theorem isProgressNotify_false_of_events {r : RespModel} (h : r.events ≠ []) :
   · rfl
   · exact absurd (isProgressNotify_events hp) h
 
-theorem isProgressNotify_false_of_created {r : RespModel} (h : r.created = true) :
-    r.isProgressNotify = false := by
-  unfold RespModel.isProgressNotify; simp [h]
-
 /-- `Broadcast`'s premise on the response. -/
 theorem watchCase_pre {pfx : GoString} {k k' : w64} {r : RespModel} (h : WatchCase pfx k k' r) :
     EvRevSorted r.events ∧ RespRevsBounded r := by

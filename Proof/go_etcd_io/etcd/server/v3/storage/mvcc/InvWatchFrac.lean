@@ -33,10 +33,6 @@ variable [sem : go.Semantics]
 
 /-! ## Generic -/
 
-include sem in
-theorem loc_injW : ∀ v1 v2 : Loc, (#v1 : val) = #v2 → v1 = v2 :=
-  fun _ _ h => go.intoVal_inj h
-
 theorem wFractional_equiv {Φ Ψ : Qp → IProp GF} (h : ∀ q, Φ q ⊣⊢ Ψ q) (hΨ : Fractional Ψ) :
     Fractional Φ where
   fractional p q :=
@@ -77,8 +73,6 @@ theorem wFractional_half {Φ : Qp → IProp GF} (h : Fractional Φ) :
   fractional p q := by rw [Qp_half_add]; exact h.fractional p.half q.half
 
 /-! ## Maps -/
-
-theorem unit_inj : ∀ v1 v2 : Unit, (#v1 : val) = #v2 → v1 = v2 := fun _ _ _ => rfl
 
 
 include sem in

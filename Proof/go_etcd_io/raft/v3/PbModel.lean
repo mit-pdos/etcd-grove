@@ -87,9 +87,6 @@ structure ConfChangeSingleM [FfiSyntax] where
   Type' : raftpb.ConfChangeType
   NodeId' : w64
 
-instance ConfChangeSingleM.zero_val [FfiSyntax] : ZeroVal ConfChangeSingleM :=
-  ⟨ConfChangeSingleM.mk zeroValDef zeroValDef⟩
-
 /-- A conf state as the model sees it: `GetVoters()`, `GetLearners()`, `GetVotersOutgoing()`,
 `GetLearnersNext()` (the lists behind the slices) and `GetAutoLeave()` of a `*pb.ConfState`. -/
 structure ConfStateM where
@@ -100,8 +97,6 @@ structure ConfStateM where
   LearnersNext' : List w64
   AutoLeave' : Bool
 
-instance ConfStateM.zero_val : ZeroVal ConfStateM := ⟨ConfStateM.mk [] [] [] [] false⟩
-
 /-- A snapshot's metadata as the model sees it: `GetConfState()` (a nil one reads as the zero
 record), `GetIndex()`, `GetTerm()` of a `*pb.SnapshotMetadata`. -/
 structure SnapshotMetadataM where
@@ -109,9 +104,6 @@ structure SnapshotMetadataM where
   ConfState' : ConfStateM
   Index' : w64
   Term' : w64
-
-instance SnapshotMetadataM.zero_val [FfiSyntax] : ZeroVal SnapshotMetadataM :=
-  ⟨SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) zeroValDef zeroValDef⟩
 
 /-- A snapshot as the model sees it: `GetData()` (the bytes) and `GetMetadata()` (a nil one
 reads as the zero record) of a `*pb.Snapshot`. -/
@@ -131,9 +123,6 @@ structure HardStateM where
   Vote' : w64
   Commit' : w64
 
-instance HardStateM.zero_val [FfiSyntax] : ZeroVal HardStateM :=
-  ⟨HardStateM.mk zeroValDef zeroValDef zeroValDef⟩
-
 /-- A read state as the model sees it (D6, stage R4): the Go struct `raft.ReadState`'s `Index`
 and the bytes of its `RequestCtx` (etcd matches read states by `bytes.Equal`, so the bytes are
 its identity). The fields are primed as the old Goose struct's were, so `⟨i, d⟩` ports. -/
@@ -141,9 +130,6 @@ structure ReadStateM where
   mk ::
   Index' : w64
   RequestCtx' : List w8
-
-instance ReadStateM.zero_val [FfiSyntax] : ZeroVal ReadStateM :=
-  ⟨ReadStateM.mk zeroValDef []⟩
 
 end EtcdGrove
 end Perennial

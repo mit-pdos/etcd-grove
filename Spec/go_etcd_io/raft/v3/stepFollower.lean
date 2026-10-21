@@ -169,22 +169,6 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
        dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
      else False)
 
-/-- At a simple configuration, `FollowerStepResultC`'s step is `FollowerStepResult`'s. -/
-theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}
-    {m : MessageM}
-    {ents : List EntryM} {sv : SnapshotM} {dropped : Bool} {s' : NState} {c' : CfgM}
-    {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
-    FollowerStepResult cfg scfg id s m ents sv dropped s' cl := by
-  obtain ⟨-, h⟩ := h
-  unfold FollowerStepResult
-  by_cases hT : m.Type' = MsgTimeoutNow
-  · simp [hT, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
-      MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
-      MsgUnreachable, MsgSnapStatus, MsgTimeoutNow] at h ⊢
-    exact ⟨h.1, h.2.1.simple⟩
-  · simp only [hT, ite_false] at h ⊢
-    exact h
-
 end results
 
 section spec

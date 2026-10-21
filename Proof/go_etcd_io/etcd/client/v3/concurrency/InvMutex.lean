@@ -105,10 +105,6 @@ created before `c` left at `R` (persistent; see `RecreatedState`). -/
 def keyRecreated (pfx key : GoString) (c R : w64) : IProp GF :=
   iprop(∃ s : List EtcdKv, □ etcdState R pfx s ∗ ⌜RecreatedState key c s⌝)
 
-instance keyRecreated_persistent (pfx key : GoString) (c R : w64) :
-    Persistent (keyRecreated (GF := GF) pfx key c R) := by
-  unfold keyRecreated; infer_instance
-
 /-- One direction of exclusion: a holder `(k2, c2)` at `R2` excludes, at any `a ≥ R2`, a key `k1`
 created before `c2`. -/
 theorem lockedAt_excludes_earlier (pfx k1 k2 : GoString) (c1 c2 R2 a : w64) (s : List EtcdKv)

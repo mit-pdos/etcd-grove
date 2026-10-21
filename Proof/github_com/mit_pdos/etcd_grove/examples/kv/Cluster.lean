@@ -85,9 +85,6 @@ def Deliverable [FfiSyntax] (st : MsgSt) : Prop :=
 /-- A node's ticks (`ticks`). -/
 def ticksN : Nat := 2 ^ 20
 
-/-- The `MsgTimeoutNow` the transport passes on (`timeouts`, 2026-10-13). -/
-def timeoutsN : Nat := 2 ^ 20
-
 /-- The store's `transfers` struct. -/
 abbrev RTransfers [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.transfers
 

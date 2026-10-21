@@ -43,19 +43,6 @@ variable [EM : EtcdModel GF]
 abbrev lessorIfaceOf (l : Loc) : GoInterfaceOk :=
   interface.mk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l
 
-/-- **`context`'s facts give `ctxErrTargets`** (as the read package states them). -/
-theorem ctxErrTargets_of [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] :
-    isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrTargets := by
-  iintro #Hp
-  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hp
-  iunfold EtcdGrove.errVarLeaf at HC
-  icases HC with ⟨%ec, #Hec, %Hlc, -⟩
-  icases HD with ⟨%ed, #Hed, %Hld, -⟩
-  unfold ctxErrTargets
-  isplitl
-  · iexists ec; iframe #; ipureintro; exact Hlc.1
-  · iexists ed; iframe #; ipureintro; exact Hld.2.2.2
-
 /-- **A `*lessor` meets the clients' lease contract** (see the file header). -/
 theorem isEtcdLease_of_lessor
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG))

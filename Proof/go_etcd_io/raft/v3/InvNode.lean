@@ -166,10 +166,6 @@ instance termLB_persistent (bud : BudgetNames) (t : w64) :
 instance budgetInv_timeless (bud : BudgetNames) : Timeless (budgetInv (GF := GF) bud) := by
   unfold budgetInv; infer_instance
 
-instance tickCred_timeless (bud : BudgetNames) (n : Nat) :
-    Timeless (tickCred (GF := GF) bud n) := by
-  unfold tickCred; infer_instance
-
 theorem tickCred_split (bud : BudgetNames) (a b : Nat) :
     tickCred (GF := GF) bud (a + b) ⊣⊢ tickCred bud a ∗ tickCred bud b := by
   unfold tickCred
@@ -803,13 +799,6 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
 
-/-- The committed log the driver was handed is a lower bound of `run`'s (2026-10-15). -/
-theorem nodeDriver_lb (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) :
-    ⊢ nodeDriver (GF := GF) γ id n ds -∗ dlvLb γ ds := by
-  iintro H
-  unfold nodeDriver
-  icases H with ⟨-, -, $, -⟩
-
 theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM) :
     ⊢ nodeDriverBusy (GF := GF) γ id n ds es -∗ dlvLb γ ds := by
   iintro H
@@ -962,30 +951,6 @@ theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List Entr
   open_node Hnode
   iapply committed_data γ.raft E l HE $$ Hcinv Hc
 
-/-- A proposed entry holds its data (2026-10-16, stage R5, D6: the bytes, on the record; until
-then its slice held them, read through the proposed slices' invariant). -/
-theorem node_entData_heap (γ : NodeNames) (id : w64) (n : Loc) (e : EntryM)
-    (d : List w8) (E : CoPset) :
-    ⊢ isNode (GF := GF) γ id n -∗ entDataIs γ.raft e (some d) ={E}=∗ ⌜e.Data' = d⌝ := by
-  iintro #Hnode #He
-  unfold entDataIs propDataIs
-  icases He with ⟨⟨%H, -⟩, -⟩
-  imodintro
-  ipureintro; exact H.1
-
-/-- Collecting a proposal's result (`prop_collect`), at the node: at a committed occurrence
-of its data, the result at the log before it (2026-10-14, stage R). -/
-theorem node_collect (γ : NodeNames) (id : w64) (n : Loc) (d : List w8) (γq : GName)
-    (Q : List EntryM → IProp GF) (L : List EntryM) (m : Nat) (e : EntryM)
-    (E : CoPset) (HE : ↑raftN ⊆ E) :
-    L[m]? = some e →
-    ⊢ isNode γ id n -∗ isProp γ.raft d γq Q -∗ isCommitted γ.raft L -∗
-      entDataIs γ.raft e (some d) ={E}=∗ ▷ ▷ □ Q (L.take m) := by
-  intro Hm
-  iintro #Hnode #Hp #Hc #He
-  open_node Hnode
-  iapply prop_collect γ.raft E d γq Q L m e HE Hm $$ Hcinv Hp Hc He
-
 /-- Depositing a read (`read_deposit`), at the node (2026-10-14, stage R). -/
 theorem node_read_deposit (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
     (Qr : List EntryM → IProp GF) (L0 : List EntryM) :
@@ -994,17 +959,6 @@ theorem node_read_deposit (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
   iintro #Hnode Hfr #Hau #HL0
   open_node Hnode
   iapply read_deposit γ.raft c Qr L0 $$ Hcinv Hfr Hau HL0
-
-/-- Collecting a read's result (`read_collect`), at the node (2026-10-14, stage R). -/
-theorem node_read_collect (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
-    (Qr : List EntryM → IProp GF) (i : w64) (L : List EntryM) (E : CoPset)
-    (HE : ↑raftN ⊆ E) :
-    uint.Z i ≤ (L.length : Int) →
-    ⊢ isNode γ id n -∗ readWit γ.raft c Qr i -∗ isCommitted γ.raft L ={E}=∗ ▷ ▷ □ Qr L := by
-  intro HiL
-  iintro #Hnode #Hw #HL
-  open_node Hnode
-  iapply read_collect γ.raft E c Qr i L HE HiL $$ Hcinv Hw HL
 
 end nodeprops
 

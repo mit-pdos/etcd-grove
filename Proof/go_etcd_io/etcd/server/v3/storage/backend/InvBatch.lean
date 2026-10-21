@@ -293,22 +293,10 @@ def batchLockedW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (win : Bool)
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ sync.ownMutex (muOf t) ∗
     batchPhys γ b t db st ∗ batchGhostW γ P st win ∗ ⌜sessWf P st⌝)
 
-theorem batchLockedW_locked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
-    batchLockedW (GF := GF) γ P b st false ⊢ batchLocked γ P b st := by
-  unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW
-  iintro H
-  iexact H
-
 theorem batchLocked_W (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
     batchLocked (GF := GF) γ P b st ⊢ batchLockedW γ P b st false := by
   unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW
   iintro H
-  iexact H
-
-theorem dghostVar_join {A : Type} [Pos.Countable A] (γ : GName) (dq1 dq2 : DFrac) (a : A) :
-    ⊢ dghostVar (GF := GF) γ dq1 a -∗ dghostVar γ dq2 a -∗ dghostVar γ (dq1 • dq2) a := by
-  iintro H1 H2
-  icombine H1 H2 as H
   iexact H
 
 /-! ## Paying for a commit -/

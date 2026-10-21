@@ -105,24 +105,6 @@ def schedLive (γ : SchedNames) : IProp GF :=
 instance schedLive_persistent (γ : SchedNames) : Persistent (schedLive (GF := GF) γ) := by
   unfold schedLive; infer_instance
 
-/-- **A scheduler that is never stopped** (persistent; mvcc's store's): untracked jobs only. -/
-def isScheduler (f : GoInterface) (γ : SchedNames) : IProp GF :=
-  iprop(isFifo f γ ∗ schedLive γ)
-
-instance isScheduler_persistent (f : GoInterface) (γ : SchedNames) :
-    Persistent (isScheduler (GF := GF) f γ) := by
-  unfold isScheduler; infer_instance
-
-/-- Giving up the stop token: the scheduler is never stopped. -/
-theorem schedLive_of_stopTok (γ : SchedNames) :
-    ⊢ schedStopTok (GF := GF) γ ==∗ schedLive γ := by
-  unfold schedStopTok schedLive
-  iintro ⟨%n, #Hn, H⟩
-  imod dghostVar_persist $$ H with #H
-  imodintro
-  iexists n
-  iframe Hn H
-
 /-- **The queue** (exclusive; the tracked jobs' scheduling goroutine's): the stop token's name,
 then the names of the tracked jobs' saved `Post`s in scheduling order, the first the initial
 `True` (`NewFIFOScheduler`). -/

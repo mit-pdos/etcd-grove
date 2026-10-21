@@ -42,16 +42,6 @@ voter's ghost state: the vote record from the vote table in `raftCommitInv`
 which `Step.commit` has, inside the invariant, and which is what lets the global
 committed log be extended there. -/
 
-omit [FfiSyntax] in
-theorem quorums_intersect_cfg (cfg q1 q2 : GSet w64) :
-    IsQuorum cfg q1 → IsQuorum cfg q2 → ∃ x, x ∈ q1 ∧ x ∈ q2 ∧ x ∈ cfg := by
-  intro Hq1 Hq2
-  have E1 : q1 ∩ cfg ∩ cfg = q1 ∩ cfg := by set_solver
-  have E2 : q2 ∩ cfg ∩ cfg = q2 ∩ cfg := by set_solver
-  obtain ⟨x, Hx1, Hx2⟩ := quorums_intersect cfg (q1 ∩ cfg) (q2 ∩ cfg)
-    (by unfold IsQuorum at *; rw [E1]; exact Hq1) (by unfold IsQuorum at *; rw [E2]; exact Hq2)
-  exact ⟨x, by set_solver, by set_solver, by set_solver⟩
-
 /-- A campaign log ends at its last entry. -/
 theorem camp_last (T : w64) (F0 : List EntryM) :
     CampOk T F0 →

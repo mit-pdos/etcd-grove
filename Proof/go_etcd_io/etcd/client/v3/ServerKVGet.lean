@@ -217,10 +217,6 @@ theorem zip_get_snd {α β : Type} (a : List α) (b : List β) (i : Nat) (e : α
     (h : (a.zip b)[i]? = some e) : b[i]? = some e.2 := by
   rw [List.getElem?_zip_eq_some] at h; exact h.2
 
-theorem zip_get_fst {α β : Type} (a : List α) (b : List β) (i : Nat) (e : α × β)
-    (h : (a.zip b)[i]? = some e) : a[i]? = some e.1 := by
-  rw [List.getElem?_zip_eq_some] at h; exact h.1
-
 section kvs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -541,20 +537,6 @@ theorem isEtcdKVE_of_kv_r (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEn
   iapply HΦ
   iframe Hres
   iapply errStrOk_of_statusErrOk $$ Hse
-
-/-- **A real `*kv` meets the cache's get contract** (`isEtcdKVE`, K3) at the server's model, for a
-non-empty prefix: `kv_get_server` at any context (`ctxErrClientAll`: its `Err()` returns client
-errors), with no resource for the options. -/
-theorem isEtcdKVE_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ []) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
-        sortNamesOk ∗ kvAnyAu E γr ∗ ctxErrClientAll ⊢
-      isEtcdKVE (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hsn, #Hany, #Hall⟩
-  ihave #Hr := kvAnyAu_range E γr $$ Hany
-  iapply isEtcdKVE_of_kv_r api addr s E γr cid mid pfx hpfx
-  iframe #
 
 end proofs
 
