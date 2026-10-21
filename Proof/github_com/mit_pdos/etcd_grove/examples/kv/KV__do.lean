@@ -112,17 +112,12 @@ theorem KV.do.wp_proof
   | ok i =>
     -- dropped: the replica stops
     wp_auto
-    wp_if_destruct
-    · ihave Hspin : iprop(True) $$ []
-      · itrivial
-      wp_for Hspin
-      wp_for_post
-      iframe
-    · exfalso; simp_all
+    ihave Hspin : iprop(True) $$ []
+    · itrivial
+    wp_for Hspin
+    wp_for_post
+    iframe
   | nil =>
-    wp_auto
-    wp_if_destruct
-    · exfalso; simp_all
     wp_auto_lc 2
     wp_apply +noauto wp_handoff_receive (t := go.string) γh ch (waitP γr d) iprop(True) iprop(False)
       false $$ [$Hho $Hcons] as %v %ok ⟨Hcons, Hgot⟩
