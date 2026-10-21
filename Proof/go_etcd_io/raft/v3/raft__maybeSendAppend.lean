@@ -193,6 +193,7 @@ local macro "msa_send" : tactic => `(tactic| (
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) $$ [Hphys Hm] as Hphys
   · iframe
+    iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`

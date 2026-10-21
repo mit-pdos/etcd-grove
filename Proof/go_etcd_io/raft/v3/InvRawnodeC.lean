@@ -44,10 +44,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A `RawNode` at the configuration `c`, physical state `s`, detached from the protocol (see
 the file header): `ownRawNode`'s memory without its ghost state. (2026-10-16, stage R5: the
-queue's messages owned, `Hpown`; the previous hard state read-only, `Hhard`.) -/
+queue's messages owned, `Hpown`; the previous hard state read-only, `Hhard`.) (D22 S-d3a,
+2026-10-21: with a snapshot lent, `o`, half of it and the queue once it is whole,
+`lentPend`.) -/
 def ownRawNodeC (c : CfgM) (rn : Loc) (id : w64) (s : NState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM) (steps : List Loc)
-      (ps : List Pending),
+      (ps : List Pending) (o : Option SnapLoan),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysCV c c.voters rnv.raft' id s ∗
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
@@ -55,19 +57,19 @@ def ownRawNodeC (c : CfgM) (rn : Loc) (id : w64) (s : NState) : IProp GF :=
   "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
-  "Hpown" ∷ ([∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn l DFrac.discard st))
+  "Hpown" ∷ lentPend o ([∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn l DFrac.discard st))
 
 theorem ownRawNodeC_intro (c : CfgM) (rn : Loc) (id : w64) (s : NState) (rnv : RawNode)
     (sv : SoftState) (hprev : HardStateM) (steps : List Loc) (ps : List Pending)
-    (Hasync : rnv.asyncStorageWrites' = false) :
+    (o : Option SnapLoan) (Hasync : rnv.asyncStorageWrites' = false) :
     ⊢ rawNodeOwn (GF := GF) rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      ([∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn l DFrac.discard st) -∗
+      lentPend o ([∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn l DFrac.discard st) -∗
       ownRawNodeC c rn id s := by
   iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap Hpown
   unfold ownRawNodeC
-  iexists rnv, sv, hprev, steps, ps
+  iexists rnv, sv, hprev, steps, ps, o
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap Hpown
   ipureintro; exact Hasync
@@ -82,6 +84,21 @@ theorem pendList_forget (γ : RaftNames) (id : w64) (steps : List Loc) (ps : Lis
   iintro ⟨%st, Hm, -⟩
   iexists st
   iexact Hm
+
+/-- (D22 S-d3a) ... with a snapshot lent. -/
+theorem lentPend_forget (γ : RaftNames) (id : w64) (o : Option SnapLoan) (steps : List Loc)
+    (ps : List Pending) :
+    ⊢ lentPend o (pendList (GF := GF) γ id steps ps) -∗
+      lentPend o ([∗list] _k ↦ l;_p ∈ steps;ps, ∃ st, msgIn (GF := GF) l DFrac.discard st) := by
+  cases o with
+  | none => exact pendList_forget γ id steps ps
+  | some l =>
+    simp only [lentPend]
+    iintro ⟨Hh, Hw⟩
+    iframe Hh
+    iintro Hs
+    ihave Hp := Hw $$ Hs
+    iapply pendList_forget γ id steps ps $$ Hp
 
 end rawnodeC
 

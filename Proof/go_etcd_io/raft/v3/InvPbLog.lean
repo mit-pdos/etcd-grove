@@ -202,7 +202,42 @@ instance hsOpt_persistent (p : Loc) (hs : HardStateM) : Persistent (hsOpt (GF :=
 theorem hsOpt_null : ⊢ hsOpt (GF := GF) null (HardStateM.mk (W64 0) (W64 0) (W64 0)) := by
   iunfold hsOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
 
+/-- (D22l) Two read-only hard states at one location agree. -/
+theorem hsRO_agree (p : Loc) (h1 h2 : HardStateM) :
+    hsRO (GF := GF) p h1 ∗ hsRO p h2 ⊢ ⌜h1 = h2⌝ := by
+  iintro ⟨H1, H2⟩
+  iNamedSuffix H1 "1"
+  iNamedSuffix H2 "2"
+  icombine HT1 HT2 gives %HT
+  icombine HV1 HV2 gives %HV
+  icombine HC1 HC2 gives %HC
+  subst HT HV HC
+  ihave %Ht := cellRO_agree (GF := GF) pt h1.Term' h2.Term' $$ [cT1 cT2]
+  · isplitl [] <;> iassumption
+  ihave %Hv := cellRO_agree (GF := GF) pv h1.Vote' h2.Vote' $$ [cV1 cV2]
+  · isplitl [] <;> iassumption
+  ihave %Hc := cellRO_agree (GF := GF) pc h1.Commit' h2.Commit' $$ [cC1 cC2]
+  · isplitl [] <;> iassumption
+  ipureintro
+  cases h1; cases h2
+  simp_all
+
+/-- (D22l) Two facts about the hard state at one pointer (`nil` or read-only) agree. -/
+theorem hsOpt_agree (p : Loc) (h1 h2 : HardStateM) :
+    hsOpt (GF := GF) p h1 ∗ hsOpt p h2 ⊢ ⌜h1 = h2⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold hsOpt at H1 H2
+  icases H1 with (⟨%Hp1, %Hh1⟩ | H1) <;> icases H2 with (⟨%Hp2, %Hh2⟩ | H2)
+  · ipureintro; rw [Hh1, Hh2]
+  · iunfold hsRO at H2; icases H2 with ⟨%pt, %pv, %pc, %uf, %Hnn, -⟩; exact absurd Hp1 Hnn
+  · iunfold hsRO at H1; icases H1 with ⟨%pt, %pv, %pc, %uf, %Hnn, -⟩; exact absurd Hp2 Hnn
+  · iapply hsRO_agree p h1 h2; iframe H1 H2
+
 /-! ### Read-only snapshots -/
+
+instance csOpt_persistent (p : Loc) (c : ConfStateM) :
+    Persistent (csOpt (GF := GF) p DFrac.discard c) := by
+  unfold csOpt ownCSM; infer_instance
 
 instance csOptA_persistent (p : Loc) (c : ConfStateM) :
     Persistent (csOptA (GF := GF) p DFrac.discard c) := by

@@ -10,7 +10,7 @@ upstream: unchecked
   already stepped while the first batch is processed, e.g. from a new leader) and the apply
   goroutine delayed for the few fsyncs of the second round inside a window of a few statements.
   Rare; found while designing the proof's invariant on the snapshot directory.
-- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, the pin of `etc/goose.py` on branch `raft-retarget`, where this was found):
+- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, where this was found; the same code at the pin of `etc/goose.py`, `2aed163b1`):
   - `server/etcdserver/raft.go:271-291` (`raftNode.start`, a batch with a snapshot): after
     `storage.Sync()`, `notifyc <- struct{}{}` (`:279`, the "snapshot persisted" signal), then
     `raftStorage.ApplySnapshot` and `r.storage.Release(raftSnap)` (`:286`); the second

@@ -46,26 +46,12 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
           < 2^61 + 2^63⌝ ∗
       ownRaftLog l ls := by
   iintro H0
+  -- (D22 S-d1b) the stable part's bound (the storage may be lent)
+  icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
   iNamed H0
-  ihave #Hsto : isStorage (GF := GF) lv.storage' $$ []
-  · iexact HisStorage
-  iunfold isStorage at Hsto
-  iunfold isStorageWith at Hsto
-  icases Hsto with ⟨%isv, #Hs⟩
-  iNamed Hs
-  icases Hbounded $$ %σ HStorage with ⟨%Hstb, HStorage⟩
   ihave %Hul := entsPts_len _ _ _ $$ Huents
   -- the stable part: below the storage's bound, or -- with a snapshot
   -- pending -- empty after a snapshot index below `2^61`
-  have Hsb : uint.Z ls.prev.index' + (ls.sents.length : Int) < 2^61 := by
-    unfold LogStoreOk at Hstore
-    split at Hstore
-    · obtain ⟨Hsp, Hstored, -⟩ := Hstore
-      have := Hstored.length_le
-      rw [Hsp] at Hstb
-      omega
-    · obtain ⟨rfl, Hs0, Hsid⟩ := Hstore
-      rw [Hs0, List.length_nil]; omega
   isplitr
   · ipureintro
     refine ⟨Hidx, ?_⟩
@@ -74,7 +60,7 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
@@ -378,6 +364,7 @@ theorem raft.appendEntry.wp_proof
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]

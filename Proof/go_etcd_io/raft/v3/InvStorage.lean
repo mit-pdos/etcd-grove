@@ -228,8 +228,15 @@ class StorageModel (GF : BundledGFunctors) [FfiSyntax] where
   storCap : Storage → Int → IProp GF
   storCap_persistent : ∀ st k, Persistent (storCap st k)
   storCut_cap : ∀ st n k, storCut st n ∗ storCap st k ⊢ ⌜n ≤ k⌝
+  /-- `storCert st k` (D22 S-b′2, 2026-10-20): the snapshot `k` (id, lists, `AutoLeave`) is
+  **certified** in the storage's own registry (persistent): every non-empty snapshot the storage
+  holds is, and `HSnapshot` hands it out with the snapshot. γ-free, as the rest of the model: what
+  a certificate *says* (`raftSnapCert γ k`) is tied to it by an invariant the application
+  allocates knowing raft's names (`storCertOk`, `SnapConf.lean`). -/
+  storCert : Storage → SnapTrip → IProp GF
+  storCert_persistent : ∀ st k, Persistent (storCert st k)
 
-export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap)
+export StorageModel (ownStorage appendTok appendedTok storCut storFloor storCap storCert)
 
 instance storCut_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
     (n : Int) : Persistent (storCut (GF := GF) st n) :=
@@ -242,6 +249,10 @@ instance storFloor_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (s
 instance storCap_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
     (k : Int) : Persistent (storCap (GF := GF) st k) :=
   StorageModel.storCap_persistent st k
+
+instance storCert_pers {GF : BundledGFunctors} [FfiSyntax] [StorageModel GF] (st : Storage)
+    (k : SnapTrip) : Persistent (storCert (GF := GF) st k) :=
+  StorageModel.storCert_persistent st k
 
 section termAt
 variable [FfiSyntax]
@@ -316,7 +327,7 @@ of the interface is shown to satisfy the contract by proving `isStorageWith` for
 own predicate (see `InvMemstorage.lean`). -/
 def isStorageWith (P : StorState → IProp GF)
     (AT DT : StorState → List EntryM → IProp GF) (CT : Int → IProp GF) (FW : w64 → IProp GF)
-    (st : Storage) :
+    (SC : SnapTrip → IProp GF) (st : Storage) :
     IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
@@ -476,7 +487,9 @@ def isStorageWith (P : StorState → IProp GF)
               (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
                uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
                uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-               termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝)) }}) ∗
+               termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
+           -- (D22 S-b′2, 2026-10-20) a non-empty one is certified in the storage's registry
+           (⌜sv.Metadata'.Index' = W64 0⌝ ∨ SC (snapTrip sv sv.Metadata'.ConfState'.lists)))) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
      pending append, for node.go"). The application appends a `Ready`'s entries on its own
      goroutine while raft keeps reading the storage. Two laws, ghost updates of the
@@ -506,11 +519,12 @@ def isStorageWith (P : StorState → IProp GF)
 /-- The contract against the abstract `ownStorage`: what every client of the interface
 assumes. -/
 def isStorage (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) (storCut st) (storFloor st) st
+  isStorageWith (ownStorage st) (appendTok st) (appendedTok st) (storCut st) (storFloor st)
+    (storCert st) st
 
 instance isStorageWith_pers (P : StorState → IProp GF)
     (AT DT : StorState → List EntryM → IProp GF) (CT : Int → IProp GF) (FW : w64 → IProp GF)
-    (st : Storage) : Persistent (isStorageWith P AT DT CT FW st) := by
+    (SC : SnapTrip → IProp GF) (st : Storage) : Persistent (isStorageWith P AT DT CT FW SC st) := by
   unfold isStorageWith; infer_instance
 
 instance isStorage_pers (st : Storage) : Persistent (isStorage (GF := GF) st) := by

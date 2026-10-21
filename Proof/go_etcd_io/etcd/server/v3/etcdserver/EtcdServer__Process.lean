@@ -49,12 +49,12 @@ theorem EtcdServer.Process.wp_proof
     (wp_SizeMessage : proto.SizeMessage.spec (GF := GF) (hG := hG))
     (wp_RecvAppendReq : v2stats.ServerStats.RecvAppendReq.spec (GF := GF) (hG := hG)) :
     EtcdServer.Process.spec (GF := GF) (hG := hG) := by
-  intro γn s id ctx cd ml
+  intro γn γd s id ctx cd ml
   wp_start as ⟨#Hok, #Hctx, Hlr, Hrecv⟩
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
     #Hsi, %HN⟩
-  obtain ⟨HNe, hns, hboot⟩ := HN
+  obtain ⟨HNe, hns, hboot, hnx⟩ := HN
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -68,7 +68,7 @@ theorem EtcdServer.Process.wp_proof
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats $$ []
   · iPkgInit
   iunfold netRecv at Hrecv
-  icases Hrecv with ⟨%sm, %sm', Hm, %Hw, #HP, HO⟩
+  icases Hrecv with ⟨%sm, %sm', Hm, %Hw, #HP, HO, #HS⟩
   obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, Hto⟩ := Hw
   wp_auto
   wp_apply wp_Logger s l $$ [Hlr] as ⟨-, Hlr⟩
@@ -107,13 +107,13 @@ theorem EtcdServer.Process.wp_proof
     (try wp_auto)
     (try wp_auto)
     -- `s.r.Step(ctx, m)`: raft's, of what the network delivered
-    ihave Hrecv : netRecv γn γ.id ml $$ [Hm HO]
+    ihave Hrecv : netRecv γn γ.id γd ml $$ [Hm HO]
     · iunfold netRecv
       iexists sm, sm'
-      iframe Hm HO HP
+      iframe Hm HO HP HS
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto⟩
-    imod (stepP_of_recv γn γ HNe hns hboot ml) $$ Hrecv with Hstep
+    imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
     have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
@@ -131,13 +131,13 @@ theorem EtcdServer.Process.wp_proof
     iexact Hlr
   · (try wp_auto)
     -- `s.r.Step(ctx, m)`: raft's, of what the network delivered
-    ihave Hrecv : netRecv γn γ.id ml $$ [Hm HO]
+    ihave Hrecv : netRecv γn γ.id γd ml $$ [Hm HO]
     · iunfold netRecv
       iexists sm, sm'
-      iframe Hm HO HP
+      iframe Hm HO HP HS
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto⟩
-    imod (stepP_of_recv γn γ HNe hns hboot ml) $$ Hrecv with Hstep
+    imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
     have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=

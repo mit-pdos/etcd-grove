@@ -41,7 +41,7 @@ Without it the `i >= offset` branch, after `maybeLastIndex` returned the snapsho
 index, could index `u.entries` out of bounds. -/
 abbrev unstable.maybeTerm.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt) (i : w64),
-  (∀ sid, us.snap = some sid → uint.Z us.offset = uint.Z sid.index' + 1) →
+  (∀ sid, us.snap = some sid → uint.Z sid.index' < uint.Z us.offset) →
   uint.Z us.offset + (us.ents.length : Int) < 2 ^ 64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us }}

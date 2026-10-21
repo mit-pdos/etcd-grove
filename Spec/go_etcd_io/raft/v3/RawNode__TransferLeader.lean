@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A leader transfer to `transferee` (`MsgTransferLeader`, local, `From: transferee`): at a follower forwarded to the leader, at a leader recorded (`leadTransferee`) with a `MsgTimeoutNow` or an append to the transferee; the node predicate is kept (the term unchanged). -/
 abbrev RawNode.TransferLeader.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (transferee : w64),
-  -- (2026-10-19, D21 M2r) outside the cluster's no-snapshot mode, where leader transfer is off
-  γ.reNoSnap = false →
+  -- (2026-10-19, D21 M2r) outside the cluster's no-transfer mode, where leader transfer is off
+  -- (D22 S-a: `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
+  γ.reNoXfer = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"TransferLeader")) (Val #transferee))

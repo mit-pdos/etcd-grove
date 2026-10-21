@@ -45,7 +45,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       · iexact Hsnap
       · iexact Hpksn
       · iexact Hlogger
-      · ipureintro; exact ⟨rfl, rfl⟩
+      · ipureintro; exact ⟨rfl, rfl, rfl⟩
     · exfalso; simp [He] at Hlen; word
   · wp_if_destruct
     · exfalso; apply He; apply List.eq_nil_of_length_eq_zero; word
@@ -69,7 +69,7 @@ theorem unstable.shrinkEntriesArray.wp_proof :
       · iexact Hsnap
       · iexact Hpksn
       · iexact Hlogger
-      · ipureintro; exact ⟨rfl, rfl⟩
+      · ipureintro; exact ⟨rfl, rfl, rfl⟩
     · iapply HΦ
       close_unstable
 

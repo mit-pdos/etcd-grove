@@ -97,6 +97,8 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
       ls'.prev = ls.prev ∧ ls'.stored = ls.stored ∧ ls'.storage = ls.storage ∧
       -- (D19i part 1) the floor
       ls'.fl = ls.fl) ∧
+     -- (D22 S-d3b) `offsetInProgress` moved back only by a truncation (`TruncAt`)
+     (uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress) ∧
      s' = sendMsgs { s with logst := ls' }
             [appResp id s dst false lastnewi (W64 0) (W64 0)])
   ∨

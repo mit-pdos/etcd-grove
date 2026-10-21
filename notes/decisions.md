@@ -11757,6 +11757,2351 @@ round trip, `newBackend`'s premise); closing the old backend while its read tran
 preference for the local route, for the reason given; D22g (A) adds a fork commit), and whether
 S-r (D22e (A)) is wanted before the server stages finish.
 
+## D22 S-0 carried out: D22a (A) fails; a fork check instead, and the plan amended (2026-10-19)
+
+Stage S-0 of T-S, a pen-and-paper check (no Lean change); the full write-up, with file:line
+references at the pins, is `notes/snapshot-path-s0.md`. Two results change the plan: D22a (A)
+does not work, and a second Go bug of finding 1's class, `issues/etcd-auth-…` (below). The rest
+amends D22c, D22h and stages S-b, S-d, S-h, S-j.
+
+**D22a (A) fails.** The facts it drops from the `.snap` clause, the snapshot's last entry in the
+term-`T` leader's log (`leadPrefix`, `lpfull`) and `commitIn … m.index m.term`, are not only used
+to derive `isCommitted`. The receiver's restore and fast-forward (`Protocol/Refinement.lean:
+2803-3075`) take from them its new `commitIn` at its term (`commitJ`'s `t ≤ tm`,
+`Protocol/Ghost.lean:2556`), its reply's `ackIn`/`hist`, "no ack of this term above the snapshot"
+(`ackAgree_term`), the new log's `TermsLe`, and `hist_replace`. In finding 2's stale case these
+are *false* of the receiver's state, and a later campaign breaks `CampOk`, the measure of Leader
+Completeness's induction (`LeaderCompleteness.lean:287`). The leader-prefix half alone could be
+replaced by Leader Completeness, but only given `commitIn` at `m.term`, which is exactly what the
+stale merged message lacks. Also: a merged snapshot whose last term is `≤ m.Term` but whose
+prefix was committed at a later term (the Figure 8 shape) breaks the same invariants, so a check
+on `appliedt ≤ m.Term` is not enough. Finding 2's code reading is right (no safety bug, no panic),
+refined: the receiver cannot lead at any term `≤ T'`; a stale heartbeat's `commitTo` is a no-op
+(the old leader's committed index is below the snapshot's).
+
+**D22a, restated.**
+- *(D) A fork check (new).* In `applyAll`, before `createMergedSnapshotMessage`
+  (`server.go:1002-1009`), send the merged snapshot only when raft, read after the batch
+  (`s.r.Status()`), is leader at `m.Term`. Raft's log at that moment is a leader prefix of `T`
+  holding the applied prefix, with its commit index `≥ appliedi`, so **the existing `.snap` clause
+  holds of the merged message unchanged**: no receiving proof, `StepC.snap*` or Leader
+  Completeness changes. The plan's objections to (B) do not apply: the fact is historical (as for
+  a raft-made `MsgSnap` still in flight after its leader stepped down), and the Figure 8 shape
+  needs the sender at a later term, which the check excludes. It must read raft's term: etcd's
+  `s.isLeader()` passes after a re-election at `T2 > T`, and `s.Term()` is the last applied entry's
+  term. Dropping the message costs no liveness (a node no longer leader at `T` has dropped the
+  peer's progress). Cost: one fork commit; a spec of `node.Status`/`getStatus` (today
+  `node__run.lean:917` models `<-n.status` as never taken); a lemma lowering `commitIn` to a smaller
+  index; `prev.index ≤ appliedi` (compaction stays at or below the applied index).
+- *(A″) Without a Go change:* a redesign of the protocol invariants (`TermsLe`, `CampOk` as
+  "`CampOk` or doomed", `commitJ`'s bound, the ack invariants, LC's induction). Very large, and
+  still needs raft's term at the sender.
+- *Recommendation:* (D). Asked of the user (a second fork commit beside D22g (A)).
+
+**D22b** is unchanged in substance (the configuration certificate on the message), but
+`raftSnapCert` (`SnapConf.lean:147`) predates D19p and lacks the tracked-bound conjunct
+`GMode.SnapOk` now has: S-b adds it.
+
+**D22c, amended.** The determinism claim holds for the buckets restore reads, every write going
+through applied entries, with seven exceptions (`notes/snapshot-path-s0.md`, part 2, (3)):
+`meta/confState` leads the consistent index and can be overwritten on the receiver by its own stale
+copy (nothing reads it); the compaction job's timing (`finishedCompactRev`, the key bucket's
+physical content); `meta/storageVersion`, written by each member's monitor; the lease TTL clamp
+(`minLeaseTTL`) and `RemainingTTL` under a member-local flag; legacy plaintext passwords hashed at
+apply with a random salt; `UpdateAttributes` against the in-memory member list. None applies to
+putget's workload. So: `dbImage` speaks of the key view, the meta *index* (not its term: restore
+never reads it) and the compaction keys, and leaves confState and `storageVersion` free;
+`bkRestAt i` is per bucket, under a premise "the members agree on `ElectionTicks`, `TickMs`,
+`checkpointPersist`" or for workloads without leases and auth (then the lease and auth buckets are
+the boot state, `bkFresh`'s content). `NewAuthStore`'s `authRevision = 1` is part of the boot state.
+
+**D22h, restated.** `srvWTAt`'s only consumer is M3's cap (`srvWTPool_bound`): it and the counter go
+with the cap in S-l. `srvWTPool` survives the jump but not the backend swap (it holds the *old*
+backend's write-back tokens; the monitor shares it): it is re-allocated per backend. The revision
+and change-count bounds do not go through the pool: they come from the index writer's receipts
+(`idxSealed`, `soleWriter`, `storage/mvcc/InvIndex.lean:970-1001`), which a restored index does not
+have. The committed log's length does not bound the changes (a txn has up to `putMax` of them). *(A)
+restated:* one cluster-level `⧗ (logCh (kvModel A))` in `kvInv`, paid by whoever first applies a
+change (or the proposer); a restore takes from it the bound for the image's log and re-makes the
+index's and store's token authorities.
+
+**D22j (new). The merged snapshot's ConfState.** `ep.confState` starts as `MemoryStorage`'s empty
+ConfState and changes only on a validated conf change; validation reads the `members` bucket, which
+is not modelled, so the proofs cannot exclude it staying empty (today only `epCsOk`). *(A)*
+`epConfState`'s content `∈ {empty, the static config}`, the merged message carrying either, and
+raft's `restore` `!found` exit described as a protocol rule (reply `MsgAppResp{Index: committed}`,
+ghost as `ownRaftGhost_step_stale`) instead of the premise `scfg.Has id`; *(B)* model `members`
+enough to prove the boot entries validate. *Recommendation:* (A).
+
+**D22k (new). The auth store across the swap**
+(`issues/etcd-auth-snapshot-closed-backend-panic.md`): `applySnapshot` starts `go oldbe.Close()`
+(`server.go:1100`) before `authStore.Recover(newbe)` (`:1121`), and permission checks on gRPC
+goroutines read the auth store's backend without a lock: a closed backend's nil read transaction is
+dereferenced, a panic that kills the member (auth on, a follower installing a snapshot). Same class,
+narrower windows: `store.hash()` reads `s.b` without `s.mu`; the maintenance `Snapshot` RPC keeps
+`s.Backend()`'s result. Reproduced at the pin and on upstream `main` (the issue's integration test); the issue's
+`fix.patch` (`go oldbe.Close()` after `Recover` and `cluster.SetBackend`) passes it. *(A)* a fork
+fix (`Recover` before the old backend's close) as D22g (A); *(B)* the auth contract only with auth
+off (it is off in the runs). **(A) adopted** (the user, 2026-10-19).
+
+**Stages, amended.**
+- **S-b** under (D): the clause unchanged; `isMessage_snap_recontent` from a leader handout given by
+  `node.Status`'s spec (or an etcd-side record of raft's term and role per `Ready`); the
+  `commitIn`-lowering lemma; `raftSnapCert`'s tracked bound; `restore`'s `!found` exit (D22j (A)).
+  Medium, as planned; under (A″) very large.
+- **S-c:** `node.run`'s status branch live if (D) goes through `node.Status`. `SnapScope`'s
+  `Index < 2^61` for a merged `appliedi` is a premise S-h discharges (D22h's bound).
+- **S-d:** both `MsgStorageAppendResp` snapshot arms (the lower-term one, `raft.go:1170-1180`, as
+  well as the equal-term one, `:1194-1201`; `InvRawnode.lean:792` relaxed for both); a second
+  restore between `Ready` and `Advance` is reachable (`node.run` steps `recvc` while waiting on
+  `advancec`; not a Go bug): a pending snapshot while the application holds the first's handout.
+- **S-h:** first, `applyRes` and `applyAll`'s post keep `at' = lastTerm`, `uint.Z ciEff = max c₀ ai`
+  (today only `ciJ`), and `epConfState`'s content; `applyConfChange.spec`'s post gives the node's
+  `confstateS` on success, the old ConfState on a validation failure; `store.Commit` saves the
+  consistent index (the protocol's `commit_save_au`). Then the (D) check (`node.Status`).
+- **S-j:** `s.be` is held `↦□` since D19i part 2 (`NewServer.lean:863-866`,
+  `InvStorageVersion.lean:16-18,70`), so the swap is unprovable as the stage stands: back to half
+  in `bemuP`, half the apply thread's (its sole writer, which reads it without `bemu`); the
+  storage-version monitor's contract over the backend current under `bemu`; `E`,
+  `applyBackend γ ci b` and `srvWTPool E.γ` per backend epoch (a ghost variable naming the current
+  backend). Larger than planned.
+- **S-k:** D22k beside D22g.
+
+*The user (2026-10-19):* D22g (A) and D22k (A), fork fixes, adopted; D22a (D) under discussion; the
+rest of D22b-j at their recommendations. S-a (D22i (A)) goes ahead meanwhile: it depends on none of
+them.
+
+## D22 S-a carried out: the no-transfer mode split from the no-snapshot mode (2026-10-19)
+
+D22i (A). `RaftNames` gains `reNoXfer : Bool` (no leader transfer; needs nothing of the boot log);
+`reNoSnap` keeps its meaning (`NGhost.ns`, the `MsgSnap` exclusion, `NsCap`, `reNoSnap_ok`).
+`NsLink γ s := s.gh.ns = γ.reNoSnap ∧ s.gh.xf = γ.reNoXfer`. Each fact is conditioned on what its
+proof needs:
+- `reNoXfer` alone: the `MsgTransferLeader` premises of `RawNode.Step`, `RawNode.TransferLeader`,
+  `node.TransferLeadership`, `netP`/`netP_local`.
+- `reNoSnap` alone: `isRaftMsg`'s `Type ≠ MsgSnap`, `NsCap`, the outbox without `.snap`;
+  `reNoSnap_ok` (the leader's last index past the boot log, `ownRaftGhost_noSnap_of_commit`, the
+  term past `0`).
+- **Both:** `SentMsgOk` (`isRaftMsg`'s clause, `isRaftMsg_sent`; inside `XfOk` as
+  `ns → term ≠ 0 ∧ (xf → ∀ m, SentMsgOk m)`). Its `sentTypes` exclude `MsgSnap` as well as
+  `MsgTimeoutNow`/`MsgTransferLeader`, and its stamped-term clause needs the node's term past `0`,
+  which comes from the boot log through `reNoSnap_ok` (a pre-vote rejection at term `0` carries
+  `Term: 0`).
+
+**For S-c (amends it):** `SentMsgOk` under `reNoXfer` alone needs `MsgSnap` admitted (in `sentTypes`
+or a clause of its own) and a term-past-`0` source independent of `reNoSnap` (a `reNoXfer_ok :
+reNoXfer = true → reBootRaw ≠ []`, every current no-transfer user having a boot log, or the term
+bound moved to a boot-log fact). Until then, turning `reNoSnap` off (S-l) loses the receiver's
+`NetMsgOk` source.
+
+Configurations as before: the server (`srvRaftBoot_alloc … true true`), putget and putget3 both
+flags on (`bootOk` gains `"%Hnoxfer"`, the examples' boot premises and `startMember.spec`
+`γ.reNoXfer = true`, `srvProcOk` too); kv both off (`ownRaftGhost_alloc_gen`/`raft_dyn_alloc` state
+`γ.reNoXfer = false`). Two lemmas lost a hypothesis (`ownRaftPhysC_set_ns` no `xf = true`,
+`ownRaftPhys(C)_xf_off` no `ns = false`); `rawNodeFresh_xf_off` became `rawNodeFresh_set_xf b`.
+35 files; trust base unchanged (525 axioms, 2 sorries; every collection's `--check` passes).
+
+## D22a decided: the merged snapshot sent only at its message's term (2026-10-19 · the user)
+
+The user's refinement of (D): no leadership check, only the term. The raft goroutine
+(`raftNode.start`) keeps the latest `rd.HardState.Term` it has seen and passes it with each batch
+(a new `toApply` field); `applyAll`'s `msgSnapC` branch merges and sends a `MsgSnap` only when that
+term equals `m.GetTerm()`, and drops it otherwise (the check at `createMergedSnapshotMessage`'s
+call, where the batch is at hand). A fork commit beside D22g's and D22k's; the finding is
+`issues/etcd-merged-snapshot-stale-term.md`.
+
+Why the term suffices (no `StateLeader` check, no `node.Status`): the message was made by raft as
+leader of `T = m.Term`, and terms only grow, so a term still `T` after the batch means the node was
+at `T` throughout. At term `T` only the leader of `T` (the node itself) changes its log and commit
+index; after a check-quorum step-down at `T` (`raft.go:1283`) both are frozen until a higher term
+(no other leader of `T`, a follower ignores `MsgAppResp`, a pre-vote keeps the term). So every
+applied entry was committed as the node knew it while leader at `T`: in leader `T`'s log, with
+`commitIn` at `T`, which is the existing `.snap` clause. Both shapes (content of a later term; a
+prefix committed by a later leader) need the node to learn a later term's commit, hence a later
+term. The recorded term is a bound at least as new as the batch: a `Ready` whose committed entries
+advance the commit index carries a `HardState` at the term raft knew them committed; it can lag
+raft's current term, which only makes the check drop more. A spurious drop while leader at `T`
+cannot happen: becoming leader at `T` changed the term in some `Ready` no later than the one that
+made the message.
+
+For the proof (S-b): from the batch's recorded term `= T`, the node's log is leader `T`'s and its
+commit within `T`'s commit facts, also for a node that stepped down at its term: check how the
+step-down rule ("`CheckQuorum` on: one model rule for a leader's step-down at its term") keeps the
+leader's records. The (A″) redesign is not needed.
+
+## D22g and D22k carried out: the quota over the current backend, the auth store's backend under a lock (2026-10-19)
+
+The etcd pin moves to the fork's `d52eec43e` (`goose-lean`: `8f793b820`, the gRPC quota;
+`d52eec43e`, the auth store's move before the old backend's close), both with their regression
+tests; `authStore.lockedReadTx` translated (`auth.toml`).
+- **The quota** (`v3rpc/InvQuota.lean`): `quotaAlarmerAt qa s` holds the server, the name, the
+  logger and `QuotaBackendBytes` read-only and `⌜backendUnderQuota⌝`; `check` builds its quota per
+  call (`newBackendQuota(s, name)`, reading `s.Backend()` under `bemu`) and spends and returns only
+  `quotaRd s` (an `lgMu` and a `bemu` reader slot). What the old contract carried for the alarm
+  (`isServerReq`, the id credit, the `leadTimeMu` slot, `E.RD`) is gone: the NOSPACE branch is
+  not reached. The constructors no longer call `newBackendQuota`/`MemberID`. Request slots
+  (`etcdGrpcSlot`, `etcdLeaseSlot`) carry `quotaRd s`; `srvServeBuilt` gains `K` `bemu` slots
+  (`NewServer` gives 64). `backendUnderQuota` moved from the check's caller into `quotaAlarmerAt`,
+  still a premise of the constructors. `v3rpc.Server`'s spec still passes one `bemu` slot nothing
+  needs (left to limit the ripple).
+- **The auth store** (`auth/InvAuth.lean`): `be` is no longer read-only; `authInv` holds
+  `isRWMutexGuard as.beMu (beP st R)` (the field and its `authBackendOk`), as `enabledMu` and
+  `rangePermCacheMu`; `authRd` gains a `beMu` reader slot; `lockedReadTx` (spec and proof) returns
+  the locked read transaction with its `UnsafeGetUser`/`RUnlock` contracts, used by
+  `isOpPermitted` and `IsAdminPermitted`. `beP` keeps one `R` for every backend `Recover`
+  installs: S-j/S-k revisit it when `R` is tied to a backend's reader slot.
+- `applySnapshot` needed no change (its proof is of the empty snapshot). Trust base unchanged (525
+  axioms, 2 sorries); the request-path collections (`cache-client`, `client`, `lease-served`,
+  `slice`) now list the existing `storage.NewBackendQuota` axiom (the quota built per request).
+
+**D22a carried out** (2026-10-19): the etcd pin at the fork's `de825d8c6` (`goose-lean`, after
+`d52eec43e`). `raftNode.start` keeps `raftTerm` (from `0`, set to `rd.HardState.GetTerm()` when the
+`HardState` is non-empty, before the `toApply` is built) and passes it in `toApply.raftTerm`;
+`applyAll` merges and sends a queued `MsgSnap` only when `m.GetTerm() == apply.raftTerm` (test
+`TestMergedSnapshotDroppedAtStaleTerm`: fails 3/3 without, passes 5/5 with `-race`). Starting at
+`0` drops nothing wrongly: a node must raise its term, which a `HardState` carries, before it can
+lead and make a `MsgSnap`. In the proof, `raftNode.start`'s loop invariant only carries the
+variable (`∃ rt, raftTerm_ptr ↦ rt`; `wp_hardStateAt_GetTerm` from raft's `wp_hsOpt_GetTerm`);
+`applyAll`'s `msgSnapC` branch stays dead (`Hnosnap`). For S-b: tie `raftTerm` to raft's term --
+raft's `readyP` exports that a non-empty `hs.term` is raft's term at that `Ready`, the loop
+invariant keeps a ghost "latest term handed out = `rt`", and `rnApP` gains `ap.raftTerm' = rt` with
+that witness. Trust base unchanged (525 axioms, 2 sorries).
+
+## D22 S-f carried out: the backend boundary of the snapshot path (2026-10-19)
+
+Stage S-f of T-S (D22c (A) as amended by S-0). Server and `storage` files only; no bbolt file, no
+raft file. `OpenSnapshotBackend` is translated with its body (`storage.toml`) and proved; the rest
+is vocabulary and six trust-boundary axioms. Nothing is wired into the sender or receiver yet.
+
+**Vocabulary** (no new axiom-declared predicate: all `opaque` or defined):
+- `backend/InvSnapshot.lean`: `snapOpen sp D` (the `*snapshot` open over bbolt's committed `D`),
+  `boltImage bs D` (bytes that are a bbolt file holding `D`), `pathOwn p` (the program's right to a
+  directory entry: the data directory's closed world, as `netAddrFree`; `os.Rename` onto `p` needs
+  it, so that no `fileHolds p` goes stale), `writerOk w Wr` (`io.Writer`'s contract by a predicate
+  of the bytes written), `viewAt γ vd` (the batch lock's quarter of the readers' view).
+- `storage/InvOpen.lean`: `dbOpensOk` (opaque `Prop`, an environment premise of D19a's first kind:
+  bbolt's `Open` succeeds on the files the server opens), `openLimit cfg`, `openPre` (what
+  `OpenBackend` needs besides `fileHolds`: as `backend.New`'s, plus the logger, the feature gate).
+- `snap/Defs.lean`: `isSnapshotter ss` (persistent: `□` of an opaque), `snapDBPath ss id` (opaque);
+  `config/Defs.lean`: `backendPathOf dataDir` (opaque).
+- `mvcc/Image.lean`: `keyImage log D` (`Key` bucket `= bucketMap log`, no compaction key in `meta`;
+  for S-g), `keyView_of_keyImage`, `dget_of_keyView`.
+- `etcdserver/InvImage.lean`: **`bkRestOf L n` / `bkRestAt L D`** (pure, per bucket of
+  `restBuckets`: lease, alarm, authUsers, authRoles empty; auth `authBoot = {authRevision ↦ 1}`;
+  members, members_removed, cluster `clusterBktOf n L`, opaque), stated for the server's workload
+  (no lease, auth or alarm request: `plainCover`), the form S-0 allowed instead of the
+  configuration-agreement premise; **`imageAt γk i L A D`** (`keyImage (kvModel γk A)`, stored index
+  `encMeta i`, stored term some `encMeta t`, `bkRestAt L`) and **`dbImage γ γk i D`** (persistent:
+  `imageAt` of a committed prefix `A`, `srvRLogLb γ A`, `i = ai0 + |A|`, `L = pre ++ A`). Lemmas:
+  `bkRestAt_boot`, `imageAt_keyView` (the opened backend's `bView` is the KV model's bucket),
+  `imageAt_metaIs` (`metaIs D (i, t)`: the receiver's `ApplyNames.m0`), `imageAt_of_snap` (the
+  modeled half from the snapshot's observation). The stored term is not specified (S-0 (2) (d)),
+  only that it decodes (the protocol's `MetaCI` needs one).
+
+**The axioms** (+6: 525 → 531; 2 sorries unchanged), each with what would discharge it in its
+docstring:
+1. `backend.backend.Snapshot` (backend's Link): commits, begins a read transaction outside the
+   batch lock, returns `snapOpen sp D`. Its pre carries the caller's **observation**: a resource `R`
+   it holds through the call and `Q` with `□ (R -∗ W -∗ Pk -∗ viewAt γ vd -∗ hkOwn γ d -∗ ⌜Q vd d⌝)`;
+   the post gives `Q (sData P D) (hkData P D)`. Why true: `D` is what the last bbolt commit before the
+   read transaction left (the call's own, a later `run`/`Unlock` commit, or the call's own finding
+   nothing pending, then the writer's contents committed and the read buffer empty), and at the
+   end of that commit its committer held `W ∗ Pk` and the lock's shares were at `C`. A plain
+   lin-point observation at `Begin` would be false (a write-back after the commit makes the view
+   differ from `C`), hence "at every commit". The model's `ownDB` is the batch lock's alone, so the
+   body (a `Begin(false)` outside the lock, a ticker goroutine) cannot be proved over it.
+2. `backend.snapshot.WriteTo` (backend's Link; bbolt's `Tx.WriteTo` promoted): through
+   `writerOk` only, bytes appended; `err = nil → boltImage bs D`.
+3. `os.Rename` (`Spec/os/`): `fileHolds src D ∗ pathOwn dst` to `fileHolds dst D ∗ pathOwn src`, or
+   an error (`fmt.argOk`) and nothing moved.
+4. `snap.Snapshotter.DBFilePath`: `snapDBPath ss id` or an error.
+5. `config.ServerConfig.BackendPath`: `backendPathOf c.DataDir` (needed by the translated body: one
+   more than the plan's +3 to +5).
+6. `storage.OpenBackend`: `fileHolds (backendPathOf cfg.DataDir) D ∗ openPre` to `newPost`. Not
+   provable as translated: its goroutine runs `newBackend`, whose spec (`backend.New`) may panic
+   (bbolt's `Open` failed), and a goroutine must not panic (`wp_fork`); the timer `select` alone
+   would be (`time.After` has a spec). Hence `dbOpensOk` in its pre.
+
+**`storage.OpenSnapshotBackend`** (server's Link, proved over 4-6, raft's `GetIndex` and
+`fmt.Errorf`): pre `isSnapshotter ss`, the snapshot's `Metadata` field and `smOpt`, `fileHolds
+(snapDBPath ss md.Index) D`, `pathOwn (backendPathOf cfg.DataDir)`, `openPre`; post `newPost γ P W
+Pk b D ∗ pathOwn (snapDBPath …)`, or an error with `nil` and the file and entry back. The config
+and snap package instances moved from the server's `BaseApply.lean` to `apply/Base.lean` (storage's
+is there and now imports them).
+
+**For S-h (the sender)**: after `KV().Commit()`, call `Snapshot` with `R` = the apply thread's
+resources and `Q vd d := keyView vd (bucketMap (kvModel γk A)) ∧ d's ci = encMeta ai ∧ ∃ t, d's
+term = encMeta t`: `W` (`lateW` → `writerRes`) holds `bucketView ½ (bucketMap ilog)` and `clog ½
+ilog`, `Pk` (`batchLockInv γA (metaTM γB P)`) the meta keys and `mt ½ mm.1`; `R` must pin `ilog =
+kvModel A` (the other half of `clog`, or a fact through it) and `mm.1 = ai` at every commit of the
+window (today `consInv` has only `mi ≤ k`: S-0's "`store.Commit` saves ci" amendment, e.g. the
+apply thread keeping a share of `mt` once its commit stored `k`). Then `imageAt_of_snap`. The
+unmodeled half (`bkRestAt (pre ++ A) D` and no compaction key) is **not derivable** (hook buckets
+the model does not track): S-h adds the D22c (A) determinism axiom (a snapshot of a member's
+backend at applied prefix `A`, plain workload, has them), +1. Also for S-h: `snapshot.Size`
+(promoted, names only) and `snapshot.Close` (translated; with `snapOpen` opaque it needs an axiom
+or `snapOpen` made concrete: fields, `rtxSnap`, `txLive`, the stop/done channels), and `writerOk`
+of the `io.Pipe` writer (`sint.Z n = k`, all bytes unless an error).
+
+**For S-i**: the transport's saved file: `boltImage bs D` bytes written by `SaveDBFrom` at
+`snapDBPath ss id` give `fileHolds (snapDBPath ss id) D` with `dbImage`; `isSnapshotter` from
+`snap.New` (bootstrap).
+
+**For S-j (the receiver)**: `OpenSnapshotBackend` needs `pathOwn (backendPathOf cfg.DataDir)` (a new
+conjunct of `bootOk`/bootstrap's contract: the server owns its data directory) and `dbOpensOk` (a
+new premise of `NewServer.spec`); the opened backend's `newPost` has `bView γ 1 (vData P (D, ∅))`,
+which `imageAt_keyView` turns into the store's key view (S-g's `restore` with `keyImage`); the
+consistent-index protocol of the new backend is named with `m0 = (i, t)` (`imageAt_metaIs`); the
+`Recover` axioms of lessor, auth and cluster take `bkRestAt` (`bkRestAt_boot`: the boot state's
+lease/auth/alarm buckets) — a sole-writer token per bucket of the new backend, as `bkFresh` is at
+boot, would be minted by them or by `OpenSnapshotBackend`'s post (not stated yet). `go oldbe.Close()`
+waits for the old backend's open snapshots (bbolt's `Close` takes the mmap lock): liveness only.
+`etc/tcb-collections/snapshot.txt` tracks the path (26 axioms, 0 sorries).
+
+## D22 S-b carried out: the merged snapshot's content minted; `!found` a protocol rule; the term's witness half-tied (2026-10-19)
+
+Stage S-b of T-S under D22a as carried out (`toApply.raftTerm`, fork `de825d8c6`). Items 3 and 5
+done, item 2 done in part (D22l below for the rest), item 4 (D22b) stopped at a design. Trust base
+unchanged (525 axioms, 2 sorries; every collection's `--check` passes).
+
+**Item 1, the step-down question** (answered by a read-only pass before this one; recorded here).
+`Step.stepDown` (`Protocol/Model.lean:2004`, `StepC.lean:653`, `StepR.stepDown`), ghost step
+`ownRaftGhost_step_stepDown` (`Protocol/Refinement.lean:4205`) -> `ownLogGhost_stepDown`
+(`Protocol/StepGhost.lean:735`), clears `Htlog` (the leader's term-log authority and `leadFrags`),
+so a stepped-down node's `ownLogGhost` has no "my log is a leader prefix of `T`"; it keeps
+`commitIn γ (fp ++ log) commit T`, `logRecs`, `FullOk`/`TermsLe`, `kl = some id` (`isWin γ id T
+q`), base, log and commit unchanged. "Log frozen after step-down" is not in the ghost, and **no
+step-down record is needed**: the node being at term `T` at the batch suffices, through the commit
+fact's justification (item 3). The planned "`commitIn`-lowering lemma" exists (`commitIn_le`,
+`Protocol/Ghost.lean:2739`), with `commitIn_move` (`:2810`).
+
+**Item 3: `isMessage_snap_recontent`** (`Proof/go_etcd_io/raft/v3/Protocol/SnapMint.lean`, new;
+`commitWit`/`hsWit` in `Protocol/CommitWit.lean`, new).
+- `commitWit γ T c := ∃ F, ⌜PlogWf base0 F⌝ ∗ logRecs γ base0 F ∗ commitIn γ F c T ∗
+  isCommitted γ (F.take c)`: what a node at term `T` with commit index `c` knows; every node holds
+  it of its own state (`ownRaftGhost_commitWit`).
+- `isMessage_snap_recontent γ E m c ai at_ A : ↑raftLogN ⊆ E → m.ty = .snap → m.index ≤ ai → ai ≤ c
+  → |A| = ai → A.getLast?.map Term' = some at_ → raftCommitInv γ -∗ isMessage γ m -∗ commitWit γ
+  m.term c -∗ isCommitted γ A ={E}=∗ isMessage γ {m with index := ai, logterm := at_}`: the `.snap`
+  clause unchanged (`GhostState.lean:242-256`), the metadata replaced. The leader log of `T` holding
+  `ai` comes from `commitJ` of the witness lowered to `ai` (`snap_leadLog`): the boot arm (the boot
+  log starts every leader log, `leadFull_boot`); a commit fact of `T` (its log is a `leadFull` of
+  `T`, the sender's by `isLeader_unique`); a commit fact of an earlier term (Leader Completeness,
+  `lc_core`, puts its entry at `n ≥ ai` in the sender's campaign log, so in the message's own
+  leader log: it needs the vote table, hence the fancy update opening `raftLogN`). Then
+  `commitIn_move`, `full_take_eq` (the committed prefix) and `isCommitted_agree` with `A` (so `at_`
+  is the leader log's term at `ai`).
+- **The two open points, resolved.** (i) *The base*: all leader prefixes of one term share their
+  base (`leadPrefix_base`, through `isTermLog_agree`: one base per term, whatever the leader does
+  during it), so the premise "`bL.index ≤ appliedi`" is stated on the message itself, `m.index ≤
+  ai` (the base is at most `m.index`, `plogTermAt_some_range`). S-h discharges it: the `MsgSnap`
+  raft made carries the storage's snapshot, which etcd creates at an applied index
+  (`CreateSnapshot` at `ep.appliedi`), at most the apply thread's current one. (ii) *`isSnapMeta`*:
+  the leader log's record at `ai` (`logRecs_lookup` of the full log at `ai - 1`, the entry's
+  `isEntryR`), `ai ≥ 1` from `A ≠ []`; no `baseOk` needed.
+
+**Item 5 (D22j): `restore`'s `!found` exit a protocol rule.** `raft.restore`'s exit when `r.id` is
+in none of the `ConfState`'s sets is proved (a `Warningf`, `false`; a `nil` `ConfState` reads as
+`EnsureConfState`'s fresh empty one, `wp_EnsureConfState_opt`, `LemmasConfState.lean`).
+`RestoreResult`/`HandleSnapResult` take the node id: the first case is "obsolete or not in the
+`ConfState`" (reply `MsgAppResp{Index: committed}`), the other two carry `cl.Has id`;
+`SnapRestores`/`SnapCfgOk` likewise. The model's `snapStale` (`Step`, `StepC`, `StepCF`, `StepR`)
+drops its `m.index ≤ s.commit`: a *refused* snapshot, with no condition, since the abstract message
+carries no `ConfState` lists to state `!found` on; its ghost step (`ownRaftGhost_step_snap_stale`,
+`commitIn_ackIn`) never read the condition. The premise `scfg.Has id` is gone from `raft.Step`'s
+`MsgSnap` clause, `stepFollower`, `stepCandidate`, `handleSnapshot` and `restore`; `StepCDS` no
+longer takes `id ∈ cn.ids` (the restore exit gives it; `snapCfg_ids` moved to `StepLemmasR.lean`).
+(A `word` call failing with "unknown free variable" in `raft__restore.lean` while the proof was
+broken was an error-recovery artifact, not a `word` bug: it went away with the proof fixed.)
+
+**Item 2, in part: the witness handed out with a non-empty `HardState`.**
+- Raft: `RawNode.readyWithoutAccept` and `RawNode.Ready` return `hsWit γ h (rs.delivered ++
+  ce).length` of the `Ready`'s hard state `h`: the zero record (`nil`), or `commitWit γ h.Term'
+  h.Commit'` with the committed log handed out within `h.Commit'` (`h` is `hardState()` of the node
+  then: `ownRaftGhost_commitWit`, `CeOk`). `node.run` carries it (`freshOk`, `staleOk`: the
+  witness as computed, its length over `rs.delivered`, which steps keep) into `readyData`'s hard
+  state, `∃ h, hsOpt rd.HardState' h ∗ hsWit γ.raft h (d ++ ce).length`.
+- Server: `rnReadyData` has `hsWit γ.node.raft hs.toM (rnLogOf γ (d ++ ce)).length`;
+  `raftNode.start`'s loop keeps `rnRtOk γ rt` (`rt = 0`, or `∃ c, commitWit γ.node.raft rt c`),
+  set from a non-empty `HardState` (non-empty is not the zero record, so the witness's second
+  case); `rnApP` carries `rnRtOk γ ap.raftTerm'`, read by `rnApP_rtOk` (`InvRaftNode.lean`).
+- **What is missing (D22l): the witness's `c` bounds the batch only for the `Ready` that set
+  `rt`.** A later batch whose `Ready` has a `nil` `HardState` keeps `rt`; its entries lie within
+  raft's commit index at that `Ready`, which equals the last *accepted* hard state's (`prevHardSt`:
+  a `nil` `HardState` means "unchanged since"), but the server does not know that this is the hard
+  state it recorded. `isMessage_snap_recontent` needs `c ≥ appliedi`.
+
+**D22l (new). Tying the recorded term to raft's `prevHardSt`.** The fact needed is, at every
+`Ready` with a `nil` `HardState`, "the node's current `(term, commit)` is the last non-empty
+`HardState` handed out". Only a ghost value the driver holds *between* `Ready`s can carry it, and
+`dlv` is the only one (run sends its half with `readyP` and the driver keeps one; `rof` goes back
+with `advanceP`).
+- *(A) `dlv` at `(delivered, phs)`*, `phs : HardStateM` the abstraction of `prevHardSt`. Raft:
+  `RNState.phs` (new; only `acceptReady` moves it, `phs := if h = 0 then phs else h`, as Go's
+  `IsEmptyHardState` check), `ownRawNode`'s `hprev` tied to it (`⌜rs.phs = hprev⌝`; the 43
+  `ownRawNode_intro`-style calls could take it as an `autoParam`), `readyWithoutAccept`/`Ready`
+  exporting `∃ hc, hsWit γ hc n ∗ ⌜(rd.HardState' = null → hc = rs.phs) ∧ (rd.HardState' ≠ null →
+  hc = h)⌝`, `hc` the node's current hard state; `node.run`'s `dlv` half at `(rs.delivered, rs.phs)`
+  (`headRest`, `runMid`, `advDep`, `advRet`), `readyP`/`advanceP`/`nodeDriver`/`nodeDriverBusy`
+  over the pair, `StartNode`/`RestartNode` allocating it at `NewRawNode`'s `hardState()`. A stale
+  `Ready` (abandoned, re-sent while `HasReady` is false) with a non-`nil` `HardState` must be shown
+  impossible: `HasReady` false means the current hard state is `prevHardSt`, while the stale one
+  was computed as different from it, and the hard state is monotone (term, the vote within a term,
+  commit); that needs abandon-time lower bounds in `RNState` for the term and the vote, as `clb` for
+  the commit index. Server: `rnDrv`/`rnBusy` over the pair, the loop invariant `rt = 0 ∨ (rt =
+  phs.Term' ∧ commitWit γ rt phs.Commit' ∧ |pre ++ L| ≤ phs.Commit')`, `rnApP` with the batch's log
+  within the witness's `c`. Large (raft's node layer, every `ownRawNode` variant); trust base
+  unchanged.
+- *(B) A fork change* recording raft's term otherwise (`Status()`): against D22a as decided (the
+  user's: the latest `HardState` term).
+- *Recommendation:* (A), a stage of its own before S-h (it gates S-h, not S-c/S-d).
+
+**Item 4 (D22b), stopped at a design.** `raftSnapCert` (`SnapConf.lean:147`) lacks `GMode.SnapOk`'s
+tracked bound, and the `.snap` clause carries no configuration certificate. Carrying it on the
+message ripples past S-b:
+- `Msg` carries only the `ConfState`'s `voters` (`Model.lean:129`); the certificate needs the four
+  lists and `AutoLeave` (27 `Msg.mkV` sites, `absSnapFrom`, `isMessage`'s users).
+- The *sender* must produce it: `maybeSendSnapshot` sends the storage's snapshot, whose lists raft
+  knows (`StorState.scs`/`sal`; `ownRaftLog`'s `Hsksn`: the storage's snapshot is in `ls.ksn`) but
+  of which nothing certifies the content. The certificate has to come from the application at
+  `MemoryStorage.CreateSnapshot`/`ApplySnapshot` (a premise of their specs, kept per snapshot in
+  raft's ghost state, as the unmerged `stage-s-msg-extension` did with `PState.snaps`), so from
+  etcd's `EtcdServer.snapshot`/`compactRaftLog` contracts and the examples' drivers.
+- **D22j interacts:** etcd's `ep.confState` may be the empty `ConfState`, of which no static
+  certificate (`voters = reCfg`) holds. Since item 5 a receiver refuses a snapshot that does not
+  name it, so the mode's facts are needed only for a restore: `raftSnapCert` with `SnapListsOk`
+  (true of the empty lists) and `GMode.SnapOk`'s parts under `cl.Has id` (statically the voters
+  `reCfg`, not joint, the ids tracked; dynamically A3), and `GMode.SnapOk` weakened the same way in
+  `raft.Step`'s premise (`ghost_stepCDSM` reads it only in the restore exit).
+- *Recommendation:* a stage of its own, **S-b′**, with or after S-c: the `Msg` extension and the
+  clause's certificate, the storage/application premise, `raft.Step` deriving `SnapScope` and
+  `md.SnapOk` from the message; `isMessage_snap_recontent` then also takes a certificate of
+  `(appliedi, appliedt, ep.confState)`, which S-h mints from `epConfState ∈ {empty, static}`.
+
+**For S-c, S-d, S-h.**
+- S-c: `raft.Step`'s `MsgSnap` clause no longer asks `scfg.Has id`; it still asks `SnapScope` and
+  `md.SnapOk` (until S-b′ premises, which the receiver's `NetMsgOk` must carry for `MsgSnap`).
+- S-d: `readyData`'s hard state carries `hsWit`; a `Ready` with `rd.Snapshot ≠ null` keeps it.
+  D22l (A) adds `RNState.phs` and the `dlv` pair: before or with S-d, since both touch
+  `readyWithoutAccept`/`acceptReady` and `node.run`'s invariants.
+- S-h: `isMessage_snap_recontent`'s premises are `raftCommitInv` (in `isNode`), the queued
+  message's `isMessage` (`rnMsgOk`'s `E.M`), `commitWit γ m.term c` with `c ≥ ep.appliedi` (from
+  `rnApP_rtOk` once D22l gives the bound; today only `∃ c`), `m.index ≤ ep.appliedi`, and the applied
+  committed prefix `A` with `ep.appliedt` its last term (S-0 part 2 (2)(b): not kept yet);
+  `SnapScope`'s `Index < 2^61` for `appliedi` stays S-h's (D22h).
+
+## D22 S-i carried out: the snapshot stream in the network contract (2026-10-20)
+
+Stage S-i of T-S (D21b's contract extended; S-f's vocabulary). `rafthttp` and `snap` stay
+names-only; `rafthttp.Transport.Start` is **restated** (no new declaration) and its started
+transport (`netTransport`, `api/rafthttp/Net.lean`) gains `SendSnapshot`. Trust base unchanged (531
+axioms, 2 sorries); the collections `putget` and `putget3` now list the existing predicate axiom
+`backend.fileHolds` (`Start`'s statement names the directory's files), every other collection unchanged.
+
+**The sender** (`SendSnapshot`, `transport.go:409-418`): `{{ snap.msgIs m ml rc ∗ netSnapBundle
+γn.N ml rc }} SendSnapshot(m) {{ True }}`.
+- `snap.msgIs m ml rc` (`snap/Defs.lean`, persistent, opaque `msgRO`): `m` is a `*snap.Message` of
+  `NewMessage(ml, rc, size)`, its fields read-only for good (`snap.Message` is an axiomatized type).
+  S-h's `NewMessage` axiom makes it; `GetTo`, `TotalSize` and `CloseNotify` (read by
+  `sendMergedSnap`, the last after `SendSnapshot`) read it. The transport sends at most once on
+  `closeC`, carrying nothing (`CloseWithError`, at once with `errMemberNotFound` for a missing
+  peer): S-h's `CloseNotify` axiom can state the channel at a `True` protocol.
+- `netSnapBundle N ml rc`: the raft message `msgOwn ml □ st` with its bundle (`□ N.P st ∗ N.O st`;
+  for the server `isRaftMsg`, so the `.snap` clause of `isMessage` once S-b/S-c give it outside the
+  no-snapshot mode), `st.msg.Type' = MsgSnap`, `st.snap = some sn`, and
+  `backend.readerStreams rc (boltImage · D) ∗ □ N.img sn.Metadata'.Index' D`.
+- `readerStreams r Φ` (`backend/InvSnapshot.lean`, opaque, exclusive): the right to read `r`, whose
+  complete streams (the bytes until `io.EOF`, no error before) satisfy `Φ`; the reader's half of
+  S-f's `writerOk`. S-h's `io.Pipe` axiom makes it: the pipe's reader returns `io.EOF` only after
+  the writer's `CloseWithError(nil)`, which `newSnapshotReaderCloser` calls only after `WriteTo`
+  succeeded (`boltImage bs D`): `Φ := boltImage · D` is the writer's close obligation.
+- `NetPayload` gains `img : w64 → Data → IProp` (persistent). The server's (`srvNet`) is
+  `srvImage γ i D` (`InvImage.lean`): `dbImage ⟨γ, [], 0⟩ γk i D` for some `γk` with
+  `NewServer.spec`'s start values (`c0 = 0`, `ch0 = alarmChain false false false`,
+  `log0 = [[], []]`). The KV names are per member (their ghost names) but `dbImage` reads only the
+  start values (`dbImage_kv_congr`), so `srvImage_of_dbImage`/`dbImage_of_srvImage` move between a
+  member's certificate and the network's, and `srvNet`'s signature (and the closed theorems'
+  allocations) did not change.
+- **`Send` takes no `MsgSnap`** (`netBundle` gains `Type' ≠ MsgSnap`): rafthttp routes a `MsgSnap`
+  given to `Send` to the pipeline (`peer.go:339-342`), which posts it to the *message* handler, so
+  `Process` would see a `MsgSnap` with no file saved and the receiver's promise below would be
+  false. The server's messages to `Send` are not snapshots (`srvEr`'s `srvMsgNoSnap`: the fork's
+  `processMessages` diverts each `MsgSnap` to `msgSnapC`); `srvMsgNet_bundle` now takes that
+  conjunct too (with the existing `msgOwn_type_agree`, moved up in `InvBuild.lean`).
+
+**The receiver: a member's snapshot directory** (`Net.lean`), an invariant the receiver allocates
+(`snapDir_alloc`, empty: a fresh data directory) and gives `Start`:
+`snapDirInv ss γd img Rm := ∃ M E, ghostMapAuth γd 1 E ∗ ⌜dom M ⊆ dom E⌝ ∗ ([∗map] i ↦ D ∈ M,
+fileHolds (snapDBPath ss i) D ∗ □ img i D) ∗ □ (∀ i ∈ E, snapSaved γd i) ∗ □ (∀ i ∈ E \ dom M,
+Rm i)`: `M` the `.snap.db` files present, `E` the indices ever saved (persistent elements
+`snapSaved γd i`), `Rm` the receiver's removal fact.
+- Why a map, not `fileHolds` handed to `Process`: `SaveDBFrom` **keeps an existing file** of the
+  index (`db.go:57-66`), so a second `MsgSnap` at the index brings no new file while the first
+  file's `fileHolds` (exclusive) is already the receiver's; and a file can be re-created after the
+  receiver renamed it away (a `MsgSnap` resent after `ReportSnapshot(Failure)`), so the per-index
+  fact cannot be a persistent `i ↦ D` either.
+- What `Process` gets (`netRecv γn id γd ml` gains `netSnapRecv γd st`): for a `MsgSnap`, `st.snap
+  = some sn` and `snapSaved γd sn.Metadata'.Index'`. Then the file is in `M` still, or the
+  receiver removed it (`Rm i`). S-j chooses `Rm` to exclude raft taking the snapshot, e.g.
+  "raft's committed index `≥ i`": a removal is of the snapshot being applied or of
+  `ReleaseSnapDBs`'s indices below a released one, and raft's `restore` drops a snapshot at or below
+  its committed index.
+- **What keeps the file**: only the receiver removes entries from `M`, each removal a ghost step
+  with `Rm i`: `OpenSnapshotBackend`'s rename (S-j opens the invariant and takes `fileHolds` and
+  the certificate out, `i` staying in `E`) and `ReleaseSnapDBs` (`snap/snapshotter.go:45-70`, from
+  `storage.Release`: only files of index *below* the released one; S-j's `Release` axiom removes
+  those from `M`). The transport only adds (at its rename, at an index absent from `M`) or does
+  nothing (a kept file: the index is in `E`). `SaveSnap`'s `.snap` files have other names.
+- `pathOwn` of a snapshot path: the transport creates `.snap.db` files, so S-j must not keep the
+  `pathOwn (snapDBPath …)` that `OpenSnapshotBackend` returns (dropped: the program renames nothing
+  onto a `.snap.db` path).
+- `netRaftOk γn id γd R r` and `EtcdServer.Process.spec` take `γd`; `stepP_of_recv` ignores the new
+  conjunct (the no-snapshot mode excludes `MsgSnap`); `srv_netRaftOk` holds at any `γd`.
+
+**`Start`, restated** (`Spec/.../rafthttp/Transport__Start.lean`): `∀ … γd Rm`; the pre gains
+`snap.isSnapshotter tv.Snapshotter' ∗ inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm)`,
+and `netRaftOk γn tv.ID' γd R tv.Raft'`. Its docstring says why the snapshot half is true of
+rafthttp (`snapshot_sender.go:66-199`, `http.go:208-330`, `db.go:37-90`): the envelope and the
+reader's bytes posted once in a chunked body, the exact-size reader erroring on a short or long
+stream, so a saved file is a complete stream of the sender's reader; `Process` called only after
+`SaveDBFrom` succeeded; the reports before the close.
+
+**`ReportSnapshot` at any time**: already in `netRaftOk` (from `True`, an `R` borrowed), proved by
+`srv_netRaftOk` from `EtcdServer.ReportSnapshot.spec`; `snapshotSender` calls it on the *sender's*
+`Raft`, the one given to its own `Start`: composes unchanged.
+
+**`Snapshotter` at `bootstrap`**: `bootOk` gains `"#Hss" ∷ snap.isSnapshotter bs.ss'`
+(`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`); `bootstrap` is a premise (its contract),
+so no constructor axiom (+0, not the plan's +1). `NewServer` allocates the directory at
+`Rm := True` (no removal yet) and passes `Hss` and the invariant to `Start`.
+
+**For S-h**: `SendSnapshot` through `s.r.transport` (the wrapper's `isRNTransport` has only
+`Send`/`Stop`: derive it from `transportStarted`'s `netTransport`, as `isRNTransport_of_net`);
+axioms `snap.NewMessage` (giving `snap.msgIs` and `closeC`'s protocol), `CloseNotify`, the
+promoted `GetTo`/`TotalSize`, `io.Pipe` (giving `writerOk pw Wr` with the close obligation and
+`readerStreams pr Φ`); the bundle's `□ srvImage γ i D` from `dbImage` by `srvImage_of_dbImage`.
+**For S-j**: `NewServer` must keep `inv snapDirN (snapDirInv bs.ss' γd …)` (allocated there, not yet
+stored) with a real `Rm`; at `applySnapshot` of index `i`, open the invariant, exclude `Rm i` from
+raft's having taken the snapshot, take `fileHolds (snapDBPath ss i) D` and `□ srvImage γ i D`
+(`dbImage_of_srvImage` at the member's KV names) out for `OpenSnapshotBackend`; `storage.Release`'s
+axiom removes the files below its index from `M`.
+
+## D22 S-g carried out: `restore` with data and the no-compaction token; `Restore` stopped on the store's fixed fields (D22m) (2026-10-19)
+
+Stage S-g of T-S. mvcc, storage and server files only (no raft, transport or bbolt file). Items
+1 and 5 done, item 4 (D22h) resolved by a different route than the plan's, item 2 translated and
+its token kept by `NewServer`, items 2 and 3's proofs stopped on a design question (D22m below).
+Trust base unchanged: 531 axioms, 2 sorries (the `restore` axiom restated, none added).
+
+**1. `mvcc.store.restore` restated for a `Key` bucket with data** (`Spec/.../mvcc/store__restore.lean`;
+the definitions at the end of `storage/mvcc/InvStore.lean`'s `reprs`): over the bucket of the log
+`[[], []] ++ R` (`bucketView γ q (bucketMap _)`, read-only), with `restoreLogOk R` (each revision of
+`R` has a change, so the restored `currentRev`, the last revision with an entry, is the log's last;
+`IdxWf` of the log; no put with a lease, so `keyToLease` stays empty and `s.le` is not called: the
+server's workload grants none), the index is rebuilt: `restoreIdxPre γ.idx R` (nothing for `R = []`,
+else the index writer at `[[], []]` and the other half of the committed log's authority) to
+`restoreIdxPost γ.idx R` (the writer, the authority and the certificate at the log); `currentRev`
+stored `|L| - 1` (with data the whole points-to is taken: `R.isEmpty = false → qc = 1`; for `R = []`
+the half `NewStore` holds, the old "no write" modelling); `compactMainRev` stays `-1`. `NewStore`
+instantiates it at `R = []` (`restoreLogOk_nil`), so its proof and spec moved only by the token below.
+`restoreLogOk_len`: a restored log has `2 ≤ |L| ≤ logCh L + 2`, the sole writer's `soleLog`.
+- *An unfinished compaction is excluded, not resumed*: `restore` consumes the backend's
+  no-compaction token (item 5). Resuming it (`compactLockfree`: `updateCompactRev`'s
+  `SetScheduledCompact` and `ForceCommit` on the batch transaction, a job on the new scheduler) needs
+  the compaction right (`compactRight`, the queue and `schedLive`) and a backend whose contract has the
+  compaction's calls (`storeCmp`, false of the real backend: `kbCmp kb := kb = none`); the server's
+  workload never compacts (`apply.dispatchOk`), so S-f's `keyImage` has neither key, and the real
+  backend's contract would have to model the `meta` keys first (D19l (v)'s remaining half).
+- *Not translated and proved instead*: `restore`'s body runs `restoreIntoIndex` on a goroutine fed
+  through a channel, `restoreChunk`'s `proto.Unmarshal` of every value (mvccpb's `KeyValue`, a
+  protobuf-go message: no spec here), `keyIndex.restore`/`restoreTombstone` (untranslated),
+  `kiCache` purging, `verify.Verify`, `setupMetricsReporter` (prometheus gauge funcs) and the
+  lessor's `Attach`; proving it is a unit of its own (the bucket's decoding against `bucketMap`'s
+  encoding, the index's history built per change). Faithfulness checked by hand: in an uncompacted
+  log a key's first bucket entry is its creation, so `ki.restore(created, rev, ver)` is `put` on a
+  fresh key index (`created = rev`, `ver = 1`), and later entries `put`/`tombstone` through
+  `kiCache` or `idx.KeyIndex`, as the model's index of `evsOf L`.
+
+**4. D22h, restated again: the restore pays for its own receipts.** `restoreIdxPost`'s writer holds
+`⧗ (logCh L)`, one time receipt per change of the image's log: each change is put into the index by
+counted steps of `restore`'s own goroutine (`restoreIntoIndex`: a channel receive and a `put`/
+`Insert` per change), whose receipts no one else holds (Perennial's `⧗` are exclusive tokens of
+distinct counted steps, `Receipts.lean`; an axiom may return the receipts of the steps it covers),
+the same argument as a write transaction's `treeIndex.Put`/`Tombstone` taking one per change. So the
+restored log, though made by other members' writes, satisfies `idxCert`'s and `idxSealed`'s
+`logCh log < receiptBound ≤ 2 ^ 48`, and the sole writer at the restored log is had from the
+certificate, a fresh revision budget (`ownTokAuth` of the new epoch with `2 ^ 63 - 3 - |L|` tokens,
+`|L| ≤ logCh L + 2 < 2 ^ 48 + 2`: `restoreLogOk_len`) and `soleLog`. **No cluster-level
+`⧗ (logCh (kvModel A))` in `kvInv`/`kvCertInv` is needed** for the index's and the store's bounds
+(S-0 (4)'s list: `idxSealed_small`, `soleWriter_small`, `srvApplyKV_small`, `entryOk_of_shape`,
+`storeSmall_of_receipts` all read the writer's receipts through `idxCert`/`idxSealed`). What remains
+of D22h is S-0's: `srvWTAt` and the counter go with M3's cap (S-l), and `srvWTPool` is re-allocated
+per backend over the new backend's `wbInit` write-back tokens (S-j).
+
+**5. `backendNoCompaction` removed** (D19l (v) (A)). The opaque `Prop` premise of `restore`,
+`NewStore`, `newWatchableStore`, `mvcc.New`, `NewServer.spec` (`%Hnocmp`) and the closed theorems
+(`putget_safe`, `putget3_safe`: their hypothesis `Hnoc` is gone) is replaced by a per-backend
+exclusive token `mvcc.bkNoCmp γB` (opaque, as `etcdserver.bkFresh`: the readers' view leaves out
+every bucket but `Key`, so the model cannot state the `meta` bucket's keys to the store; `kbNoCmp kb
+γb`, with `viewNoCmp γb` for mvcc's assumed backend, which no caller uses). It is given where the
+backend is opened over data of which it is true: for a new cluster's backend by `bootstrap`'s
+contract (`bootOk`'s `"Hncmp"`, beside the fresh buckets' `bkFresh`: a bbolt file created empty),
+for a received image by `storage.OpenBackend`'s axiom when the data has neither key
+(`mvcc.noCmpData D`, `keyImage_noCmp`; its post `newPost … ∗ (⌜noCmpData D⌝ -∗ bkNoCmp γ)`, threaded
+by `OpenSnapshotBackend`'s proof into its post). So on the snapshot path the fact is derived from the
+image (S-f's `keyImage`), not assumed; at boot it sits with `bootstrap`'s other claims about the
+fresh data directory. Not fewer opaque names (one `Prop` out, two token families in), but no
+premise of the closed theorems about the environment's compaction keys.
+
+**2. `store.Restore` translated** (`mvcc.toml`; `kvstore.go:292-314`), **not specified or proved;
+`NewServer` keeps the stop token.** `NewServer.spec`'s post gains `srvKVCloser srv E`
+(`etcdserver/InvWatchBuilt.lean`: the server's `kv` field's watchable store and its `mvcc.wsCloser`,
+which holds the inner store's `storeCloser`: `stopCloser` of `stopc`, `schedStopTok`, `compactQueue
+(-1)`); until now the success path dropped it (D19m (C)). The examples drop it (`-`).
+
+**2, 3: stopped. `Restore` cannot be specified over `isStore` (D22m, new; named D22l on its branch, renamed at the merge with S-b's D22l).** `isStore s γ` is
+persistent and holds `s.b`, `s.kvindex`, `s.fifoSched`, `s.stopc` as `↦□` (with `isKeyBackendG` of
+`b`, `isTreeIndex` of the index, `isFifo` of the scheduler, `storeRegd`, `hookP` and `idxCert γ.idx
+[[], []]`), and every predicate of the store's users is over one fixed `γ : StoreNames` (the index's,
+bucket's, committed log's, revision budget's, scheduler's names); the server's invariants hold
+`isStore` (and `isWatchableStore`) persistently. `Restore` stores to the four fields and its result
+needs a new index, backend instance, committed log, budget and scheduler: no spec of it over `isStore`
+is true, and no proof can write a `↦□` field. The same holds of `watchableStore.Restore` (it calls
+`store.Restore`), and its own part breaks the watch invariant `WsOk.st_flags` (`restore = false` of
+every watcher; Go sets it of every moved watcher, and `chooseAll`'s `minRev > curRev` branch then
+relies on it).
+- *(A) The store's epochs.* `StoreNames` split into the object's (`leases`, `cok`, `watchQ`, and a new
+  ghost variable `ep` naming the current epoch) and the epoch's (`idx`, `bucket`, `kb`, `clog`,
+  `revs`, `hook`, `hookFn`, `cmeta`, `fin`, `sch`). `isStore s σ` keeps the guards of `s.mu` and
+  `s.revMu` (the Go mutexes survive `Restore`); `muInv` and `revMuInv` hold a share of `ep` and of the
+  four fields, and the epoch's persistent facts (`epochOk s γ`: `isKeyBackendG`, `isTreeIndex`,
+  `isFifo`, `storeRegd`, `hookP`, `idxCert γ.idx [[], []]`), at the epoch `γ` the share names. The
+  watchable store's `s.mu` holds a share too (`syncWatchers` reads `s.store.b` and `currentRev` under
+  the watchable store's lock and `s.store.revMu`, not `s.store.mu`); `watchableStore.Restore` holds
+  both locks, so `store.Restore`'s spec takes the watchable store's share from its caller. Readers:
+  `storeReader s σ` becomes the two locks' slots and a ticket; each ticket's per-epoch tokens (the
+  index's reader slot, the backend's `rdTok`/`bOpen`) sit in an invariant at the current epoch, a
+  transaction checks them out at `RLock` (where it reads the epoch) and back in at `End`; `Restore`,
+  holding `s.mu` exclusively (no transaction open, every ticket's tokens in), swaps the pool for the
+  new epoch's (`newTreeIndex`'s slots, `newPost`'s `bkRTx`) and returns the old backend's (for
+  `oldbe.Close`). The writer: the new backend's batch lock holds `lateW` unregistered and `Restore`
+  does not lock it (`restore` reads through `ReadTx`), so the epoch's `writerRes` is deposited at the
+  epoch's first write transaction's `Unlock` (`store.Write`'s spec taking it from the sole writer
+  while the epoch is unregistered). `compactRight γ' (-1)` and `storeCloser s γ'` are re-made from the
+  new scheduler as at `NewStore`; the old `storeCloser` is spent by `close(s.stopc)` and
+  `fifoSched.Stop()` (`Scheduler.Stop`'s spec takes the stop token and the queue). Certificates
+  (`cok`) stay the object's: the restored log extends every certified one (the image is of a longer
+  committed prefix: `applySnapshot` panics on `snapi ≤ appliedi`). The watch side: `WsOk.st_flags`
+  relaxed to "an unsynced watcher may carry `restore = true`, its `minRev` at most `curRev + 1`",
+  `syncWatchers`' `chooseAll` proof using it, and `watchableStore.Restore`'s moves (`Ws` to `Wu`,
+  the flag set) against `isClientWatcher`'s delivered-up-to (unchanged: no event is delivered by a
+  move). Cost: every predicate over `γ : StoreNames` restated over `(σ, γ)`: the store's proofs
+  (mvcc, about 40 files), txn, apply (23), the request path and the cache's readers (14), the watch
+  store; very large, a stage of its own before S-j.
+- *(B) `store.Restore` an axiom over `isFifo` only* (D22d (B)): rejected in D22d, and now also false
+  as a spec over `isStore` (the fields).
+- *(C) S-j at a fresh store object* (the receiver builds a new `store` instead of restoring): not the
+  Go code.
+- *Recommendation:* (A), as stage S-g2 between S-g and S-j; S-j2 (`applySnapshot`) depends on it.
+
+**For S-j.** (1) `restore`'s data case wants `restoreLogOk R` of the image's log `kvModel γk A' =
+[[], []] ++ R` (lemmas from the KV model: its revisions are non-empty, well formed and bounded, and
+the plain workload's puts carry no lease), the index writer at `[[], []]` (from `newTreeIndex` and two
+`idxWriter_commit`s) and the whole `currentRev`. (2) The no-compaction token of the new backend:
+`OpenSnapshotBackend`'s post with `keyImage_noCmp` of `imageAt`'s `keyImage`. (3) The stop token:
+`NewServer`'s post `srvKVCloser srv E`; S-j threads it through `EtcdServer.Start` → `start` → `run`'s
+loop invariant (`isServerRun`, the apply thread's resources) → `applyAll` → `applySnapshot`, which
+gives it to `kv.Restore` and gets the new epoch's back. (4) The restored store's invariants: the
+writer at the image's log with its receipts (item 4), a fresh revision budget, the sole writer
+(`soleLog` from `restoreLogOk_len`), the new epoch's reader pool and compaction right (D22m (A)), and
+`srvWTPool` re-allocated over the new backend.
+
+## D22m decided: `Restore` axiomatized for now; the store's epochs after D22 (2026-10-20 · the user)
+
+The user: `store.Restore` and `watchableStore.Restore` are trust-boundary axioms for now (stated in
+S-j, where `applySnapshot` calls `kv.Restore`), and S-g2 (D22m (A), the store's epochs) is a future
+item, after track T-S is done. The axioms must be true of the Go code: `isStore` holds `b`,
+`kvindex`, `fifoSched` and `stopc` as `↦□`, which `Restore` writes, so a postcondition that keeps
+`isStore s γ` with the old fields, or that states new `↦□` facts of the same fields, is false or
+contradictory. S-j states them over what the apply thread owns at the swap (the kept
+`srvKVCloser`) and a fresh abstraction of the restored store (new names, its own predicate), and
+says which facts of the old store's users (readers holding the old `γ`) it does not give; if no
+true and usable form exists short of the epochs, S-j stops and reports.
+
+## D22 S-c carried out: `MsgSnap` at `RawNode.Step`; `SentMsgOk` of the no-transfer mode alone (2026-10-20)
+
+Stage S-c of T-S (the plan's S-c with S-0's and S-a's amendments). Raft files, and two server lines
+the raft specs force (`InvNet.lean`: `isRaftMsg`'s clause, `netP`'s new conjunct); no bbolt file.
+Trust base unchanged (531 axioms, 2 sorries); every collection's `--check` passes unchanged.
+
+**1. `SentMsgOk` under `reNoXfer` alone (S-a's amendment).**
+- `sentTypes` admits `MsgSnap`; `raft.send`'s snapshot case (c') proves `SentMsgOk` (a leader's,
+  stamped `Term: r.Term`, `To ≠ id` by `SendOk`). `SentMsgOk.ne_snap` is gone (false now); the
+  server takes "no `MsgSnap`" from `isRaftMsg`'s first clause (`reNoSnap`), as before.
+- **The term past `0`, from a flag of its own: `NGhost.bt`** ("past term `0` for good"). It cannot
+  be `xf`: `newRaft` builds every node with transfer off (`xf = true`, the default) at term `0`, so
+  `xf → term ≠ 0` is false there; nor `ns`, which S-l turns off. `XfOk s l := (xf → lt = 0 ∧ ∀ m,
+  mtypeOf ≠ none) ∧ (bt → term ≠ 0 ∧ (xf → ∀ m, SentMsgOk m))` (until now `ns` in `bt`'s place).
+  `bt` is off at `newRaft` and set with `xf` at `Bootstrap` (term `1`, empty outbox:
+  `ownRaftPhysC_set_bt`; `ownRaftPhys_set_ns … b bx` sets `ns := b, xf := bx, bt := bx`;
+  `ownRaftPhysC_set_ns` no longer asks the term and the empty outbox). `NsLink` gains `s.gh.bt =
+  γ.reNoXfer` (its `.2` is now `.2.1`).
+- `RaftNames.reNoXfer_ok : reNoXfer = true → reBootRaw ≠ []` (`noXfer_boot`), the plan's option
+  (a): every current no-transfer cluster has a boot log (`ownRaftGhost_alloc_boot` passes it;
+  `alloc_gen`, kv's, is at `false`). `RestartNode` (nothing committed) derives `reNoXfer = false`
+  (`ownRaftGhost_noXfer_of_commit`, as `noSnap_of_commit`).
+- `isRaftMsg γ st := ⌜reNoSnap → ≠ MsgSnap⌝ ∗ ⌜reNoXfer → SentMsgOk st⌝ ∗ …`; `isRaftMsg_sent γ hnx`
+  (no `hns`). The server's `stepP_of_recv` still uses `hns` for "not a snapshot" only.
+
+**2. The network types.** `netStepTypes` admits `MsgSnap`; `NetMsgOk`'s "from another node" clause
+lists it (`… ∨ Type = MsgSnap → From ≠ id`); `NetMsgOk.of_sent` covers it; `NetMsgOk.raftStep`
+gives `raft.Step`'s `MsgSnap` premise (`To`, `Term`, `From`).
+
+**3. `raft.Step`'s snapshot postcondition.** New conjunct `"%Hsnapfr" ∷ ⌜m.Type' = MsgSnap →
+SnapStep m s s' ∧ SnapCfgOut sn c c'⌝` (before `Herr`, so consumers' patterns gained a `-`):
+- `SnapStep` (`Spec/raft__Step.lean`): `NetFrame` minus the log's boundary and pending snapshot
+  (a restore sets both, `logRestore`), with `applied` kept, and the term as `TermStep`'s minus
+  `offsetInProgress` (a restore moves it to the snapshot's index + 1, back when the snapshot is
+  below the log's last index) plus `PreCandStep`. `SnapStep.of_handle` (`repl_lemmas.lean`) gets it
+  from `HandleSnapResult` on the follower state; the three term files return it.
+- `SnapCfgOut sn c c'`: `c`, or `snapCfg` of the message's snapshot.
+- The top-level dispatch now decides `MsgSnap` before the `stepPost` wrapper and hands
+  `dispatch_Snap` its own continuation `snapPost` (`Base.lean`).
+
+**4. A pending snapshot in `ownRawNode`: the split with S-d.** `RNState.psnap : Bool := false` ("a
+snapshot may be pending"); only `RawNode.Step` raises it (`psnap := psnap || decide (Type =
+MsgSnap)`), nothing clears it yet. `ownRawNode`: `Hsnap : psnap = false ∨ mode.isDyn = true →
+snap = none` (the dynamic mode takes no snapshot, `DynNoSnap`, so `ApplyConfChange`'s dynamic
+proof keeps its `snap = none`), `Hstrecs : storedRecsP γ psnap prev stored` (the records of what
+the storage holds, while no snapshot may be pending: a restore replaces `prev` by the snapshot's
+id, of which `stored` has no records; `storedRecsP_intro/_elim/_eq/_mono/_true`).
+`ownRawNodeReady`/`ownRawNodeIdle` keep the strict forms.
+- **In S-c:** `RawNode.Step` takes a `MsgSnap` (premises: `DynNoSnap` (static), `reNoSnap =
+  false`, `rs.steps = []`, and `"#Hsnap"`: the message's snapshot, `SnapScope`,
+  `GMode.SnapOk γ .static`, `isMessage (absSnap …)`; `"#Hmsg"` now asks `ty ≠ .snap`); every
+  method but those below keeps the flag (Tick, Propose, ProposeConfChange, Campaign, ReadIndex,
+  TransferLeader, ForgetLeader, the reports, ApplyConfChange, BasicStatus, `Step` again).
+- **Left to S-d (premises `rs.psnap = false`):** `HasReady`, `readyWithoutAccept`, `Ready`,
+  `Advance`, `ownRawNode_raise_floor` (handing out `rd.Snapshot`, `acceptReady` with a snapshot in
+  progress, `appliedSnap`, both `stableSnapTo`s, the two `MsgStorageAppendResp` snapshot arms, the
+  storage's `ApplySnapshot` handout, clearing `psnap`); `RawNode.Step`'s `rs.steps = []` for a
+  `MsgSnap` (a restore breaks a queued `MsgStorageAppendResp`'s `PendingOk`, which compares against
+  `prev`: the second restore between `Ready` and `Advance` of S-0 (c)); and **`node.Step`'s
+  `netP` admitting a `MsgSnap`**: it now says `Type ≠ MsgSnap` (D22 S-c), because `node.run`
+  calls `HasReady`/`readyWithoutAccept` right after a step, so a snapshot there needs S-d's
+  `Ready`. `runCfg` carries `rs.psnap = false` for `run` (`runCfg_psnap`). The receiver's network
+  bundle (`isMessage`'s `.snap` clause through `netP`) therefore reaches `RawNode.Step` but not yet
+  `node.Step`; the server (in the no-snapshot mode) supplies `netP`'s conjunct from `isRaftMsg`.
+
+**For S-b′, S-d, S-h, D22l.**
+- S-b′: `RawNode.Step`'s `"#Hsnap"` carries `SnapScope` and `GMode.SnapOk` as `raft.Step` does:
+  both go when the message carries the certificate (D22b; the design is "D22 S-b carried out", item 4).
+- S-d: remove the premises listed above; `ownRawNodeReady`/`Idle` need the pending snapshot (or its
+  absence) and `storedRecsP`; `netP`'s and `runCfg`'s conjuncts go with `node.run`'s snapshot path.
+- S-h: `isRaftMsg` gives `SentMsgOk` of a queued `MsgSnap` under `reNoXfer` alone, so the server's
+  `msgSnapC` messages carry the receiver's `NetMsgOk` once S-l turns `reNoSnap` off.
+- D22l: `readyWithoutAccept`/`Ready`/`HasReady` take `rs.psnap = false` (last premise), and
+  `runCfg`'s pure part is `mode ∧ capplied ∧ flw ∧ psnap` (`runCfg_extend`/`_advance` take a
+  defaulted `rs'.psnap = rs.psnap`).
+
+## D22 S-b′ designed: the configuration certificate on the message; stopped before the `Msg` extension (D22b, 2026-10-20)
+
+Stage S-b′ (D22b (A), S-b item 4's design), after S-c. Not carried out: it reaches past raft's
+message and receiver into the `Storage` contract (item 4 below), and one premise of S-b's design
+is false (item 1). No Lean change; the design, precise enough for an agent:
+
+**1. A false note (S-b, item 4).** "`raftSnapCert` with `SnapListsOk` (true of the empty lists)":
+`SnapListsOk`, like `SnapScope`, includes `CSWf`, whose first conjunct is `v ≠ []`; and
+`GMode.SnapOk .static` asks the voters to be `γ.reCfg`. Neither holds of etcd's empty `ConfState`
+(D22j). What saves the design is the order of `restore`'s exits (`raft.go:1857-1904`): obsolete,
+then `!found` (the `ConfState` names no node, D22j: it names none if empty), then `matchTerm`,
+then `confchange.Restore` -- the lists are read only once the node is found. So every list fact
+is needed only under `cl.Has id`: `raft.restore.spec`/`handleSnapshot.spec`/`raft.Step.spec` take
+`cl.Has id → SnapScope sv cl` (the `Index < 2^61` conjunct stays a premise, S-h's, D22h) and
+`GMode.SnapOk` under `cl.Has id` (S-b item 5 already weakened its uses: `ghost_stepCDSM` reads it
+in the restore exit only).
+
+**2. `Msg`** (`Protocol/Model.lean:129`): replace `voters : List w64` by `cl : CSLists` and add
+`al : Bool` (no user reads `Msg.voters` but `absSnapFrom`). Keep the 26 `Msg.mkV` sites: rename the
+constructor (`Msg.mkS`, 14 fields) and make `Msg.mkV` a `@[reducible]` def of it with `cl :=
+⟨voters, [], [], []⟩`, `al := false`, as `Msg.mk` already is of `mkV`; `absSnapFrom` builds with
+`mkS` from `sv`'s lists and `AutoLeave`. `msgSnapTrip m := ⟨⟨m.logterm, m.index⟩, m.cl, m.al⟩`.
+
+**3. The certificate.** `raftSnapCert γ k` (`SnapConf.lean:147`) restated:
+`⌜∀ x, k.cl.Has x → SnapListsOk k⌝ ∗ ⌜γ.reDyn = none → ∀ x, k.cl.Has x →
+GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧ (∀ T, γ.reTracked = some T →
+(k.cfgM).voters ∪ (k.cfgM).learners ⊆ T)⌝ ∗ □ (∀ x, ⌜k.cl.Has x⌝ -∗ dynamic A3, as now)` -- the
+tracked-bound conjunct `GMode.SnapOk` has (D19p), every part under `cl.Has` (an unconditional A3
+would be false of the empty `ConfState`: no fold gives the empty configuration), so true of the
+empty `ConfState` in either mode (`raftSnapCert_empty`). The
+`.snap` clause of `isMessage` (`GhostState.lean:242`) gains `raftSnapCert γ (msgSnapTrip m)`;
+`isMessage_snap_recontent` (S-b item 3) takes a certificate of the new content, which S-h mints
+from `epConfState ∈ {empty, static}` (D22j (A)): `raftSnapCert_empty` and `raftSnapCert_static`
+(the static configuration's lists).
+
+**4. The sender's certificates: two sources, and why the `Storage` contract changes.**
+`maybeSendSnapshot` sends what `raftLog.snapshot` returns: one of `ls.ksn` (the restored snapshots
+and the storage's, `Hsksn`) **or an application's snapshot at or below the floor**
+(`raftLog__snapshot.lean:81`, D19i part 1: `CreateSnapshot` changes the storage's snapshot under
+the application's token while raft holds its view). The first source can live in raft's γ-aware
+ghost (`ghostRest`: `[∗list] k ∈ s.logst.ksn, raftSnapCert γ k`; a restore appends the received
+message's certificate). The second cannot: raft's `ownRaftLog`, `isStorageWith` (a parameter of
+the development) and `MemoryStorage`'s ghost (`MemStorNames`, `StorState`) are γ-free, and nothing
+records the application's snapshot's lists' certificate. So: `isStorageWith` gains a persistent
+predicate `C : SnapTrip → IProp` that every snapshot the storage holds or returns satisfies
+(`HSnapshot`'s post: `C (snapTrip sv …)`); `MemoryStorage.CreateSnapshot`/`ApplySnapshot` take `C`
+of the new snapshot as a premise (the "certificate premise" of D22b; no client but `Link` today),
+kept in `MemoryStorage`'s invariant for its current snapshot; the empty initial snapshot's `C` is a
+premise of `NewMemoryStorage` (instantiated by `raftSnapCert_empty`). Raft instantiates `C :=
+raftSnapCert γ` where the storage meets the ghost (`NewRawNode`/`StartNode`/`RestartNode`'s
+`rawNodeFresh`, `ownRawNode`'s `Hstor`), so `maybeSendSnapshot` -- under `raft.Step`/`Tick`, with
+`ownStepGhost` at hand -- gets the certificate from either source and `raft.send`'s (c') case
+builds the message's `isMessage` with it.
+
+**5. The receiver.** `raft.Step`'s `"#Hsnap"` keeps `sn = some sv ∧ scfg = lists`, `isMessage
+(absSnap m sv scfg)` and `Index < 2^61`; `SnapScope`'s list part and `md.SnapOk` come from
+`isMessage_snap_cert` under `cl.Has id`, in `dispatch_Snap`'s restore exit. `RawNode.Step`'s
+`"#Hsnap"` (D22 S-c) shrinks the same way; S-d's `netP` then needs only the message's `isMessage`
+(the bundle) and the index bound.
+
+**Files** (estimate: larger than S-c): `Protocol/Model.lean`, `GhostState.lean`, the
+`isMessage_snap_*` lemmas (`Refinement.lean`), `Defs.lean` (`absSnapFrom`), `SnapConf.lean`,
+`StepGhostMode.lean`; `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`Step`'s
+snapshot premises; `maybeSendSnapshot`, `raft.send`; `InvStorage.lean` (`isStorageWith`'s `C`),
+`InvMemstorage.lean`, `MemstorageInstance.lean`, the `MemoryStorage` method specs, `raftLog.snapshot`;
+`NewRawNode`/`StartNode`/`RestartNode`/`Bootstrap` (the instantiation); the examples' and the
+server's storage allocations (`C` at the empty snapshot). Trust base unchanged (raft stages add no
+axiom).
+
+## D22 S-h carried out: the sender proved over its callees' contracts; the branch a lemma for S-l (2026-10-20)
+
+Stage S-h of T-S (the plan's S-h, S-0's amendments, D22a, S-b's, S-f's and S-i's lists for it).
+Server and storage/backend files, two `io` axiom files, snap axioms; no raft or bbolt file.
+
+**Translated** (`etcdserver.toml`, imports gain `io`): `createMergedSnapshotMessage`,
+`newSnapshotReaderCloser`, `sendMergedSnap`, `releaseDelayAfterSnapshot`. `backend.toml` imports
+`io` too, so the backend's `Snapshot` *interface* is translated (it was an axiomatized type, whose
+values could not be the `*snapshot` interface `backend.Snapshot.spec` returns: the server's
+`dbsnap` local is of it); its two `sorry -- axiomatized type` instances are gone.
+`snap.toml` imports `io` and raftpb, so `snap.Message` is a translated struct (its `TotalSize`
+field is read by `sendMergedSnap`; reading a field of the axiomatized type reached its two
+`sorry -- axiomatized type` instances, now gone; `Snapshotter` stays axiomatized). `etc/gen-init.py`
+rewrote the server's, backend's and snap's `Init.lean` (the `io` and raftpb inits). The server's
+link names raftpb's getter `raftpb_Message__GetTo` (snap's `Message__GetTo` shares the stem).
+
+**Proved** (server's Link):
+- `newSnapshotReaderCloser`: from half of an open snapshot, a reader whose complete streams are
+  bbolt images of its data (`readerStreams rc (boltImage · D)`), given for the other half (the
+  pipe's hand-over, below). The goroutine never panics: `WriteTo`, then `CloseWithError(err)` (a
+  nil `err` carries `boltImage bs D`, `WriteTo`'s post), then `Close` of the whole snapshot, which
+  returns nil, so `lg.Panic` is not reached.
+- `createMergedSnapshotMessage`: over `Logger`, `KV`, `newSnapshotReaderCloser`,
+  `proto.Clone` of a conf state (raft's axiom), the snapshot's `Size`, `snap.NewMessage`, and two
+  *contracts* in its precondition for its interface calls, `srvKVCommitOk kv RC RC'`
+  (`s.KV().Commit()`: `store.Commit` is names-only) and `srvBeSnapOk be RS RS' Qd`
+  (`s.be.Snapshot()`, with the caller's observation `Qd` of the snapshot's data;
+  `srvBeSnapOk_of_backend` derives it from `backend.Snapshot.spec` for the real backend). Post: the
+  merged message (`mergedMsg`: `msgIs`, `TotalSize` read-only, `closeC` a bag carrying nothing),
+  the raft message read-only with its snapshot replaced by `(c, snapi, snapt)` (`mergedSt`), `c`
+  the content of `ep.confState` (`csOpt`, cloned), the reader's streams of `D` with `Qd D`. It needs
+  the raft message **owned** (`msgOwn m (DFrac.own 1) st`: it writes `m.Snapshot`).
+- `sendMergedSnap`: `inflightSnapshots.Add(1)` (the count in an invariant, `srvInflight`, from
+  `NewServer`'s zero field), the log fields (`MemberID`, `GetTo`, `TotalSize`), `SendSnapshot`
+  through the started transport (`netTransport`'s, which takes `msgIs` and `netSnapBundle`), and
+  the `GoAttach` goroutine: `CloseNotify()`'s bag or `s.stopping`; on `ok`, `time.After(30s)` or
+  the stop; `Add(-1)`; the closing log line (`append` of the read-only fields with their capacity,
+  the goroutine's). The stop branch returns without releasing (as Go).
+- `compactRaftLog` (an axiom) restated: its pre gains `srvInflight s` (the body loads the atomic
+  and skips the compaction when it is not `0`; the contract had no permission for that load). The
+  post already allowed both outcomes; the cap is kept (S-l lifts it). `isServerApplyAll` and
+  `srvApplyAllBuilt` carry `srvInflight s`; `NewServer` allocates it.
+
+**The pipe's hand-over (why the snapshot is fractional).** In Go, `dbsnap.Size()` (the merged
+message's size, read by `createMergedSnapshotMessage` *after* `newSnapshotReaderCloser` started its
+goroutine) races with the goroutine's `snapshot.Close()`, and bbolt's `Tx.Size()` dereferences the
+transaction's `meta`, nil after `Rollback`. It is safe only because the goroutine's first action,
+`WriteTo`'s first meta-page `Write` (the transaction's `WriteFlag` is `0`: etcd never sets it),
+blocks on the unbuffered pipe until the transport reads, which is after `SendSnapshot`, after
+`Size`. The proof follows that order: `snapOpen` is now fractional (`snapOpenQ sp D γ q`, the
+persistent opaque `snapRO sp D γ` with a `ghostVar γ q ()` share: no ghost axiom), `WriteTo` and
+`Size` take any share, `Close` the whole; `io.Pipe` takes a hand-over `T` (the sender's half) and
+gives the reader's `readerStreams` only for it (a wand), and `CloseWithError` hands `T` to the
+writer once a `Write` has returned (`pipeW`'s flag, which `WriteTo`'s restated post sets: it calls
+`Write` at least once). Not a Go bug (no reachable panic at the pin; it would be if `WriteTo` could
+fail before its first `Write`, e.g. with a `WriteFlag` reopen failing).
+
+**The new trust-boundary axioms** (+7: 531 -> 538; 2 sorries unchanged), each with what would
+discharge it in its docstring:
+1. `io.Pipe` (`Spec/io/Pipe.lean`): the two ends, `writerOk` over `pipeW pw Φ T`, `T -∗
+   readerStreams pr Φ`.
+2. `io.PipeWriter.CloseWithError`: from `pipeW pw Φ T c bs` and `err = nil → Φ bs`, returns nil and
+   `T` if `c`.
+3. `snap.NewMessage`: `msgIs`, `TotalSize ↦□`, `closeC` a fresh bag at `True`.
+4. `snap.Message.CloseNotify`: `closeC`.
+5. `snap.Message.GetTo` (promoted, `snap.Message` axiomatized): some id.
+6. `backend.snapshot.Size` (bbolt's `Tx.Size`, promoted): a share given back.
+7. `backend.snapshot.Close` (translated, over the opaque `snapRO`): the whole, returns nil.
+Restated, no new declaration: `backend.snapshot.WriteTo` (a share; at least one `Write`;
+`writerOk`'s client predicate gains the flag), `compactRaftLog` (`srvInflight`).
+**Not added: the D22c determinism axiom** (a snapshot of a member's backend at the applied prefix
+`A` has `bkRestAt` and no compaction key). A true statement needs a witness tying the snapshot's
+`D` to *the server's* backend and its applied log: `snapRO`/`backend.Snapshot.spec` name no
+backend (`snapOpen` is per snapshot), and the boot contract's `bkFresh` tokens are consumed by the
+constructors; for any other backend the claim is false. Design for S-l/S-j: `backend.Snapshot`'s
+post gains a persistent `snapOf γB D` (D was a committed state of backend `γB`), the boot contract
+(`bootOk`, a premise) gives a persistent `srvRestSole γB` ("only this server's apply path writes
+`γB`'s rest buckets, under the plain workload"), and the axiom is `snapOf γB D ∗ srvRestSole γB ∗
+srvRLogLb γ A ∗ ⌜D's stored index = ai0 + |A|⌝ ⊢ ⌜bkRestAt (pre ++ A) D ∧ no compaction key⌝`; a
+received image's backend (S-j) gets its `srvRestSole` from the certificate.
+Why `io.Pipe` is an axiom: Perennial's `io` is names-only for `Pipe` (`Code/io.toml` translates
+`Reader`, `Writer` and the errors only).
+
+**`applyAll`'s `msgSnapC` branch: a lemma, not live.** `srvMergedBundle` (`SnapSendBundle.lean`):
+from raft's `MsgSnap` (`isRaftMsg`, `termLB`), `raftCommitInv`, `rnRtBound γ T ai` (a commit
+witness of the message's term with `c ≥ ai`: D22l's, an explicit premise), the applied committed
+prefix `A` (`|A| = ai`, last term `at`), `srvImage γ ai D` and the reader's streams, the merged
+message is `netSnapBundle (srvNet γ bud) ml rc`: raft's `isMessage_snap_recontent`, then
+`isMessage_snap_voters` (the `.snap` clause does not read `voters`, so the merged `ConfState` --
+`ep.confState`'s, empty or the static one -- needs no certificate today; S-b′'s certificate will),
+the read credit `0`, no tickets, no `SentMsgOk` (outside the no-snapshot mode: `isRaftMsg`'s first
+clause gives `reNoSnap = false`). `snapBranch_send` (`SnapSendBranch.lean`) composes it with the
+two specs: `{{ … }} s.sendMergedSnap(s.createMergedSnapshotMessage(m, at, ai, cs)) {{ … }}`. The
+branch in `applyAll`'s proof stays dead (`Hnosnap`): making it live needs D22l and the items
+below.
+
+**S-0's amendments.** Done: `applyEntries`' and `applyAll`'s posts and `applyRes` keep the
+applied term (`at'` the last applied entry's, or unchanged with no entry; `applyRes`: `A = [] ∨`
+`A`'s last term). Not done, as the sender does not need them yet: `uint.Z ciEff = max c₀ ai`
+(useful only with the observation below), `epConfState`'s content `∈ {empty, cfg}` and
+`applyConfChange.spec`'s post (the `.snap` clause ignores `voters`; S-b′ needs them), `store.Commit`
+saving ci (`store.Commit` is names-only: `srvKVCommitOk` abstracts it).
+
+**For S-l (making the branch live).**
+- The bag: `isRNMsgSnapC`'s predicate must carry the `MsgSnap` *owned* with its `srvMsgNet` facts
+  (`msgOwn m (DFrac.own 1) st ∗ isRaftMsg γ st ∗ termLB …`): raft's `Ready` already hands a
+  `MsgSnap` out at `DFrac.own 1` (`readyDq`), but `rnReadyData`'s conversion (`InvRaftNode.lean`,
+  `msgOwn_persist_fupd`) persists every message, and `processMessages` sends `rnMsgOk` (`msgAt`,
+  read-only) to `msgSnapC`. A server-only change.
+- `m.index ≤ ep.appliedi` (`sn0`'s index: raft's storage snapshot, made by `EtcdServer.snapshot`
+  at an applied index), `rnRtBound` (D22l), `isCommitted γ A` with `A`'s last term `ep.appliedt`
+  (`kvApplied`'s `srvRLogLb` and the kept term; `pre = []`, `ai0 = 0` for a fresh member).
+- The two contracts and their resources: `srvKVCommitOk` (translate `store.Commit`, its session
+  token `WT` and read token `RT`, `isKeyBackendG`'s `ForceCommit`), `srvBeSnapOk` from
+  `srvBeSnapOk_of_backend` with `bOpen`, a `wbTok` (two write-backs per merged snapshot from
+  `srvWTPool`, with D22h's per-backend pool) and the observation `R` (S-f's: the apply thread's
+  share of the store's `clog` and of the stored index, stored `= ai` at every commit of the
+  window: `consInv`'s `mi ≤ k` strengthened), then `imageAt_of_snap` and the determinism axiom
+  above for `□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)`.
+- `sendMergedSnap`'s: `netTransport γn tr` of `s.r.transport` with `γn.N = srvNet γ bud` (from
+  `transportStarted`, kept by `NewServer`), `srvInflight`, `s.stopping`, `GoAttach`'s resources.
+- **For S-j**: the receiver's stream is the pipe's, whose complete streams are images of `D`
+  (`readerStreams`, as S-i's `netSnapBundle` states).
+
+**Gotcha.** `wp_apply H` with `H` a local hypothesis holding a Hoare triple of an interface
+method (`methods ki.ty "Commit" ki.v`) ended the tactic block silently (an `unsolved goals` at
+`by`, no error at the call); `wp_bind (App (Val #(methods …)) (Val #())); iapply H $$ …; inext;
+iintro …` works (as `EtcdServer.start`'s `ClusterVersion`).
+
+## D22's environment assumptions approved (2026-10-20 · the user)
+
+Of the premises the closed theorems will take once S-j and S-l wire the receiver in (D19a's
+first kind, a named premise about the program's environment):
+1. **`dbOpensOk`** (`storage/InvOpen.lean`): bbolt's `Open` succeeds on the database files the
+   server opens after its start (no other process holds the file's lock, no I/O error); needed by
+   `OpenBackend`'s axiom, whose goroutine panics on a failed `Open`. Approved for now.
+2. **`pathOwn (backendPathOf DataDir)`** in `bootOk`: the server owns its backend file's path
+   (nothing else creates, renames or deletes a file there); needed by `OpenSnapshotBackend`'s
+   `os.Rename`. Approved for now.
+3. **The image's other buckets for a workload without leases or auth** (`bkRestAt`'s lease and
+   auth clauses at the boot state; S-l's determinism axiom with a sole-writer boot token): kept as
+   stated. It can be lifted later per bucket, without touching the rest of the snapshot proof (raft,
+   the key bucket and consistent index, the sender, the transport, the swap): `bkRestAt`'s clause
+   for the bucket becomes its model of the committed entries, with the determinism axiom and the
+   matching `Recover` axiom restated over it and the theorems' workload hypothesis relaxed. Leases
+   need the members to agree on `ElectionTicks`/`TickMs`/`checkpointPersist` (S-0's exceptions
+   4-5); auth's legacy plaintext passwords are hashed per member (exception 6), so its clause is
+   "equal up to password hashes". Useful once leases or auth are otherwise in the verified
+   workload (`noGrant`, auth off today, for reasons beyond snapshots).
+
+## D22 S-j2 carried out: stopped at the store's epochs; the environment premises threaded; two Go findings (2026-10-20)
+
+Stage S-j2 of T-S (`applySnapshot`, `server.go:1011-1159` at the pin `de825d8c6`, with D22k's
+reorder: `go oldbe.Close()` after `cluster.SetBackend`). Deliverables 1-3 (the non-empty spec, the
+backend swap, the callees) **stopped at a design**, under D22m's own stop condition; deliverable 4
+done; two Go findings filed. Trust base unchanged (538 axioms, 2 sorries); no raft, bbolt or
+`raftNode__start` file touched.
+
+**Why it stops: no true and usable `kv.Restore`, and the same for `applySnapshot`'s own writes.**
+- A Hoare triple `{P} e {Q}` is a claim about every state in which `P` holds, with any frame. The
+  server's invariants hold `isStore E.s E.γ` persistently (`srvWatchBuilt`'s `isWatchableStore`,
+  its `#Hst` and the inner store; the request path's `txn.isKV`), and `isStore` holds `s.b`,
+  `s.kvindex`, `s.fifoSched`, `s.stopc` as `↦□` (`storage/mvcc/InvStore.lean:2104-2123`).
+  `store.Restore` stores new values to all four (`kvstore.go:292-311`). A store to a location with
+  a discarded points-to anywhere has no `wp` (the heap's authoritative state cannot move at that
+  location while the fragment exists), so by the frame rule a triple for `kv.Restore` whose `P` can
+  hold beside `isStore` -- whatever `P` says, including D22m's "the kept `srvKVCloser` and a fresh
+  abstraction" -- is **false** in the model, and an axiom of it would assert `wp`s the semantics
+  refutes. A `P` that excludes `isStore` (the four fields owned) is true and unusable: no one holds
+  them. So D22m's condition is met: no true and usable form exists short of the epochs (D22m (A),
+  S-g2).
+- The same holds of three server fields `applySnapshot` writes itself, all held `↦□` for good
+  today: `s.be` (`server.go:1093`; half `↦□` since D19i part 2, `NewServer.lean:867-873`,
+  `srvSVRes`, `createMergedSnapshotMessage.spec`), `s.uberApply` (`:1163`; `srvFieldsAt`'s and
+  `srvApplyKV`'s `srvUberApplyAddr s ↦□`, `InvApplier.lean:485,533`, `InvBuild.lean:336`,
+  `InvStart.lean:73,200`) and `s.alarmStore` (`:2414` from `:1102`; `InvApplier.lean:489`,
+  `InvBuild.lean:243`, `InvStart.lean:77`). And every persistent predicate the apply thread shares
+  with the request path and the monitors is over one `(γA, ci, TM, E)` (`isServer`; `srvFieldsAt`'s
+  `⌜E.P = batchLockInv γ TM⌝`; `hookSpec γ ci TM`; `applyBackend γ ci b`; `srvWTPool E.γ`;
+  `srvSVRes s E.γ`; `isServerReq`'s `txn.isKV v.kv E.s E.γ`, `apply.isApplyLessor … E.γ E.P E.f`,
+  `apply.isAuthStore … E.γ E.P E.f …`), while after the swap the batch lock's invariant
+  (`batchLockInv γA' (metaTM d'.γB d'.P)` with `γA'.m0 = (i, t)`, `imageAt_metaIs`), the store's
+  per-epoch names (`kb = some d'`) and the write-back tokens are the new backend's. So even with
+  `kv.Restore` as a contract in `applySnapshot`'s precondition (S-h's `srvKVCommitOk` style) the
+  body's own stores are unprovable and the post cannot be stated over the fixed `E`. Considered and
+  not taken: that contract form (its instance is false today, and its proof would be redone over
+  the epochs).
+
+**The design for the rest** (S-g2 extended to the server, then S-j2), in order:
+1. *The store's epochs* (D22m (A), unchanged). `store.Restore`/`watchableStore.Restore` then take
+   the closer (`srvKVCloser`: `stopc`'s close, `schedStopTok`, `compactQueue`), the whole epoch
+   share (no transaction open: `Restore` holds `s.mu` and the watchable store's `s.mu`), the new
+   backend's key contract over `keyImage (kvModel γk A)` and its `bkNoCmp`; they give the new
+   epoch (`restoreIdxPost` at the image's log with its receipts, a fresh revision budget, the new
+   closer and compaction right) and the old backend's per-epoch tokens back. As axioms (D22m
+   decided) once true.
+2. *The server's epoch.* A record `SrvEpoch`: the backend `d : KBReal` with its `Pk`, the apply
+   protocol's names `γA` (`m0` the image's `(i, t)`, at boot `(0, 0)`), `TM`, the store epoch
+   (`kb = some d`), `E.P = batchLockInv γA (metaTM d.γB d.P)` and `E.f`, the write pool's counter,
+   the alarm store `a`, the uber-applier `ua`. A server ghost variable `γep` names the current one:
+   half in `bemuP`, which becomes `∃ e, srvBeAddr s ↦{q/2} srvBeIface e.d.be ∗ ghostVar γep (q/2) e
+   ∗ □ epochRO e` (`epochRO`: the epoch's persistent contracts, `isBackend`, `keySized`, the hook's
+   `plHookRO`), half the apply thread's with the other half of `s.be`'s points-to (`NewServer` stops
+   persisting it). The apply thread, `s.be`'s only writer, reads it without `bemu`, as Go does.
+   `isServer s γA ci TM E` splits into the object part (persistent: `lg`, `w`, `lessor`,
+   `firstCommit`, `cluster`, `quota`, `lgMu`, `memberID`, the atomics, the generator, raft's node)
+   and `srvEpochAt s e`, the apply thread's (not persistent): `srvUberApplyAddr s ↦ e.ua` with
+   `applierFor e.ua E(e)`, `srvAlarmStoreAddr s ↦ e.a` with `isAlarmStore`, `hookSpec e.γA ci e.TM`.
+   The request path keeps the object part and, per call, what it reads under a lock (`bemu`'s epoch
+   for `Backend()` and the quota; the store's epoch under `s.mu`, item 1).
+3. *The readers of `s.be`* (S-0 (5)). `Backend()` (`EtcdServer__Backend.lean`) returns some epoch's
+   backend with its `epochRO`, nothing about which epoch is current after `RUnlock`. The quota
+   (`v3rpc/InvQuota.lean`, D22g) already reads `s.Backend()` per check; `NewBackendQuota`'s axiom
+   must then speak of a backend of any epoch, possibly closed by the time `Size()` runs (a closed
+   backend's `Size()` returns its last value: no panic). The storage-version monitor
+   (`monitorStorageVersion`'s contract, `InvStorageVersion.lean`): `srvSVRes s` over the current
+   epoch, its per-epoch tokens (`bkRTx e.d` with the open share, one `wbTok` per session from the
+   epoch's pool) in an invariant `srvMonPool γep` keyed by the ghost variable: in its read-locked
+   session it holds a fraction of `γep` and takes them out; the swap (bemu's write side: both halves
+   of `γep`) exchanges the old epoch's pool for the new one's and gives the old tokens to the old
+   backend's closer. `applyAll`'s `VerifyBackendConsistency(s.Backend(), …)` (`server.go:981`):
+   the apply thread's epoch.
+4. *`srvWTPool` per epoch* (D22h): allocated at the swap over the new backend's `wbInit`
+   write-backs (`newPost`'s, through `OpenSnapshotBackend`), less the restore's own (the `Recover`s,
+   `restoreAlarms`, `SetTxPostLockInsideApplyHook`, as `bootOk`'s seven), under `receiptBound ≤ N' +
+   1` for the new budget `N'`: the closed theorems' `n + 7 ≤ wbInit` holds for every backend, since
+   `wbInit` is a constant. `srvWTAt` and the counter go with M3's cap (S-l), as D22h said.
+5. *The callees' axioms* (+6 to +8, each over the epoch and true of the Go code):
+   `lessor.Recover(b, rd)` over `lessorInv` (`le.b`, `le.rd` and the maps are under `le.mu`, owned
+   there: true as stated) with the new backend's `bkFresh "lease"` (`bkRestAt`'s lease clause: the
+   plain workload grants none) and `rd` the closure over the store's new epoch;
+   `authStore.Recover(be)` under `as.beMu`'s write side (D22k's lock), `beP`'s `R` re-made per epoch
+   (D22g/D22k: one `R` today for every backend), `bkFresh "auth"` from `bkRestAt`'s `authBoot`;
+   `RaftCluster.SetBackend` (`c.be` is not in `rcLockInv`; Go writes it without a lock and only the
+   apply goroutine reads it: it becomes the apply thread's field) and `RaftCluster.Recover`
+   (`UnsafeLoad` under the cluster's lock: `rcLockInv` re-established with the removed map empty and
+   `rcLocalIn`, from `clusterBktOf n L`, which must then say "the static members, the local one among
+   them, none removed"; opaque today); `Transport.RemoveAllPeers` (the started transport's peer set
+   emptied; the existing `AddPeer` axiom re-adds each member of `s.cluster.Members()` but this one).
+   Proved callees and what they need: `OpenSnapshotBackend` (S-f) `isSnapshotter` (`bootOk`'s
+   `Hss`, kept as `s.snapshotter ↦□`), the file and certificate (item 6), `pathOwn` (deliverable 4),
+   `openPre`; `consistIndex.SetBackend` moves `ciOwner` to the new backend; `restoreAlarms` needs the
+   new backend's `bkFresh "alarm"`; `NewUberApplier` over the new epoch; `oldbe.Close()` on its
+   goroutine: `backend.Close`'s spec with the old epoch's whole (the readers' tickets back from item
+   1's `Restore`, the monitor's from item 3's swap; a merged snapshot in flight holds its own
+   `snapOpenQ`, which bbolt's `Close` waits for: liveness only). S-h's deferred determinism axiom
+   (`snapOf γB D ∗ srvRestSole γB ∗ …`) gives the image's `bkRestAt`, from which a restated
+   `OpenSnapshotBackend` post mints the new backend's `bkFresh` tokens beside `bkNoCmp`.
+6. *`applySnapshot`'s spec for a non-empty snapshot* (deliverable 1's statement, for when the above
+   exist). **Pre:** `taSnapshotAddr ap ↦□ sp`, `sp ≠ null`, the snapshot's metadata read-only with
+   index `i`, term `t` and `ConfState` pointer `cs` (`csPts cs DFrac.discard c false`: the batch's
+   snapshot is a `proto.Clone`, `raft.go:229-231`); `ep` at `(a0, t0, cs0)` with `uint.Z a0 <
+   uint.Z i` (else `lg.Panic`, `server.go:1039-1047`); `taNotifycAddr ap ↦□ nc` whose first receive
+   gives `snapSaved γd i` and the content certificate S-d's `readyData` hands out with `rd.Snapshot
+   ≠ null` (a committed prefix `A`, `|A| = i`, its last term `t`); `inv snapDirN (snapDirInv ss γd
+   srvImg Rm)` with an `Rm` that `applySnapshot` can refute at `i` (below: not possible at the pin);
+   then `fileHolds (snapDBPath ss i) D` and `srvImage γ i D`, `dbImage_of_srvImage` at the member's
+   KV names; `pathOwn`, `⌜dbOpensOk⌝`, `srvKVCloser`, the apply thread's epoch `e` (item 2) and
+   `srvApplyRes`/`srvApplyKV`/`kvApplied` at `a0`. **Post:** `ep` at `(i, t, cs)` with `epCsOk cs`,
+   both snapshot indices `i`; a new epoch `e'` (the ghost variable moved under `bemu`'s write side)
+   with `srvApplyRes s ep e'.γA ci (srvBeIface e'.d.be) γr ⟨i, t, i, false⟩ i t cs i t` (`loopOk` at
+   `i`: `m0 = (i, t)`, `ciEff = i`), `srvApplyKV s E(e') γw x'` with `x'.log = kvModel γk A` (the
+   store restored at the image, `imageAt_keyView`), `kvApplied γ γk A x'` (the KV ghost `hi` moved to
+   `|kvModel A|` through `kvInv`, a certificate of the committed prefix minted there),
+   `appliedLogAt γr i (kvModel A)`, `srvAppliedOwn γr i`, the old backend's closer spent by the
+   goroutine, `pathOwn` back (the snapshot path's `pathOwn` dropped, S-i), the new `srvWTPool e'`.
+
+**Deliverable 4, done.** `storage.dbOpensOk` (approved, "D22's environment assumptions approved"
+(1)) is a premise of `NewServer.spec` (`"%Hdbo" ∷ ⌜storage.dbOpensOk⌝`; nothing consumes it until
+the snapshot path is wired in), so of `putget.Main.spec`, `putget3.Main.spec` and
+`putget3.startMember.spec` (`… → apply.backendUnderQuota → storage.dbOpensOk → …`), and of the
+closed theorems: `putget_adequate`/`putget_safe` and `putget3_adequate`/`putget3_safe` gain
+`(Hdbo : storage.dbOpensOk)` right after `(Hbuq : apply.backendUnderQuota)`. `bootOk` (approved
+(2)) gains `"Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir')`; it sits inside the
+closed theorems' `premises` (the bootstrap contract), so their statements' text is otherwise
+unchanged. `NewServer.spec`'s post returns it beside `srvKVCloser`; the examples drop both.
+Threading them (and `srvKVCloser`) through `Start` → `start` → `run` → `applyAll` →
+`applySnapshot` is left to S-j2 proper, whose apply-thread state changes shape with item 2.
+
+**Two Go findings.**
+- `issues/etcd-alarm-store-snapshot-race.md` (reproduced): `restoreAlarms` (`server.go:2414`, from
+  `applySnapshot`) assigns `s.alarmStore` unsynchronized while `Alarms()` (`:2441`) reads it from
+  the maintenance `Status` RPC and the `/health`, `/livez`, `/readyz` checks; the race detector
+  reports it in 4 of 5 runs of the issue's integration test at the pin; the effect is a stale or
+  empty alarm list for a moment. For the proof: once the field is the apply thread's (item 2), no
+  verified concurrent `Alarms()` is possible (a racy load is undefined in Perennial's semantics);
+  a fork fix (`atomic.Pointer`, or the swap under `bemu` with `Alarms()` under `RLock`) is needed
+  only if `Alarms` is verified.
+- `issues/etcd-release-snapdb-before-open.md` (code reading, not reproduced): the raft goroutine
+  sends `notifyc` before `raftStorage.ApplySnapshot` and `storage.Release` (`raft.go:279-286`), the
+  run loop schedules `applyAll` without holding the raft goroutine (`server.go:839-841`), so a
+  second snapshot `i' > i` handed out right after can `Release(i')` -- `ReleaseSnapDBs` removes every
+  `.snap.db` below `i'` -- before `applySnapshot(i)` has renamed `<i>.snap.db`: `DBFilePath` fails
+  and the member panics. **This decides `snapDirInv`'s `Rm`**: the removers of `i` are
+  `applySnapshot(i)` itself and `Release(i')` for `i' > i`, and at the pin nothing orders the second
+  before the first, so no `Rm` that `Release` can establish is refutable by `applySnapshot(i)`;
+  `Rm i := appliedAtLeast γr i` (refuted by `srvAppliedOwn γr a0`, `a0 < i`) is what the proof
+  wants, but `Release(i')` cannot show it for `i < j < i'`. *(A)* a fork fix (release the snapshot
+  files only up to the applied index: the apply goroutine calls `ReleaseSnapDBs` after
+  `applySnapshot`, or the raft goroutine waits for a second signal after the open); *(B)* keep the
+  code and make the case a premise (not of D19a's kinds: it is the program's own scheduling).
+  *Recommendation:* (A), asked of the user with S-j1.
+
+**For S-j1** (`raftNode.start`'s snapshot branch): `notifyc` is sent twice for a snapshot batch
+(after `Sync`, `raft.go:279`, then after the messages, `:309`/`:334`), cap 1, so `rnApP`'s
+`isUnitBag ap.notifyc'` must carry, for a non-empty snapshot, the first token's `snapSaved γd i`
+with S-d's content certificate (item 6's pre) and the second the existing one; `rnApP`'s
+`⌜ap.snapshot' = null⌝` becomes the disjunction; `raftStorage.ApplySnapshot` and `Release` run
+after the first send, concurrently with `applySnapshot`, and `Release`'s axiom and `Rm` wait on the
+`Release` decision above. **For S-l**: the closed theorems' new hypothesis is `storage.dbOpensOk`;
+`bootOk`'s `Hpath` is the bootstrap contract's; nothing else of S-l moved.
+
+## D22 D22l carried out: the term witness over later batches (2026-10-20)
+
+D22l (A) of "D22 S-b carried out", with one simplification: no stale-`Ready` lower bounds. Raft
+files and the server's raft-loop files only (`InvRaftNode.lean`, `NodeBridge.lean`,
+`NodeStart.lean`, `raftNode__start.lean`, `bootstrappedRaft__newRaftNode`'s spec); the kv example's
+driver (`KV__run`, `New`, `StartCluster`) follows the driver's new index. Trust base unchanged (531
+axioms, 2 sorries); every collection's `--check` passes unchanged.
+
+**Raft.**
+- `RNState.phs : HardStateM` (default the zero record, `hsZero`): `prevHardSt`'s value. Only
+  `acceptReady` moves it, to `phsNext rs.phs h` (`Protocol/CommitWit.lean`: `h` unless empty, Go's
+  `if !IsEmptyHardState(rd.HardState)`; `phsNext_empty`/`_ne`/`_zero`).
+- `ownRawNode`/`ownRawNodeReady`/`ownRawNodeIdle` keep `prevHardSt` as `prevHS γ p hprev rs.phs`
+  (`InvRawnode.lean`: `hsRO p hprev ∗ ⌜hprev = rs.phs⌝ ∗ phsWit γ hprev`, `phsWit γ h := h = 0 ∨
+  commitWit γ h.Term' h.Commit'`) in place of `hsRO`: one conjunct changed, so the 43
+  `ownRawNode_intro`-style calls are unchanged (they thread `Hhard`; `{rs with …}.phs` reduces).
+  `rawNodeFresh` records `hprev = hsZero` (`NewRawNode` on an empty storage; `prevHS_of_zero`
+  closes it at `RestartNode`/`Bootstrap`). `ownRawNodeReady`'s `Hrdhard` carries `phsWit` of the
+  `Ready`'s hard state (`ownRawNodeIdle_ready` takes it).
+- `readyWithoutAccept`/`Ready` hand out `hsWit γ (phsNext rs.phs h) (rs.delivered ++ ce).length`:
+  the witness of `prevHardSt` *after* the `Ready`. Non-empty `h`: the node's hard state, as S-b. A
+  `nil` `HardState` (`isHardStateEqual` true): the node's hard state is `hprev = rs.phs`, so the
+  committed log handed out is within `rs.phs.Commit'`, whose witness is `ownRawNode`'s `phsWit`.
+  An empty non-`nil` one (the node at the zero hard state): the log handed out is empty.
+  `acceptReady` takes `hsOpt rd.HardState' h` (caller-named, `hsOpt_agree`) and returns `phs :=
+  phsNext rs.phs h`.
+- **No stale-`Ready` lower bounds are needed** (the plan's "show a stale non-`nil` `HardState`
+  impossible"): the witness a `Ready` hands out is a persistent fact of the hard state *at its
+  computation*, and `rs.phs` does not move between its computation and its acceptance (only
+  `acceptReady` moves it), so an abandoned `Ready` re-sent later carries a witness that is still
+  right (`staleOk`/`freshOk` keep `hsWit γ (phsNext rs.phs hrd) …`); its `acceptReady` stores its
+  own hard state, whose `phsWit` it carries.
+- `node.go`: `dlv` is at `(delivered, phs)`, `rof` at `(d, ce, es, phs')`. `readyData γ rd d ce
+  es ms p p'` has `(∃ h, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗ hsWit γ.raft p' (d ++
+  ce).length`; `readyP` carries `p` (with `dlv`) and `p'` (with `rof`); `advanceP` the `dlv` half at
+  `(d ++ ce, p')`. `nodeDriver γ id n ds p`, `nodeDriverBusy γ id n ds es p'`, `node_ready_receive`
+  (`p` to `p'`), `node.Advance` (`p` kept); `StartNode`/`RestartNode` hand out `nodeDriver … []
+  hsZero`. `advDep`/`advRet`/`headRest`/`runMid`/`runPre` over the pairs.
+
+**Server.** `rnDrv γ L p`, `rnBusy γ d ce es p`, `rnReadyData E γ rd d ce es p p'` (raft's
+`p'`/`hsWit`), `isRaftNodeIfc`'s `Advance` for every `p`, `rn_ready_recv` (`p` to `p'`);
+`rnLoopTokP γ L p` and `rnLoopTok γ L := ∃ p, rnLoopTokP γ L p` (the callers' `rnLoopTok γn []`
+unchanged). `raftNode.start`'s loop invariant: `uint.Z rt = 0 ∨ rt = p.Term'` with
+`rnLoopTokP γ L' p` (was `rnRtOk γ rt`). After the `IsEmptyHardState` branch, `rt' = 0 ∨ rt' =
+p'.Term'` (`phsNext_toM_empty`/`_ne`), and `rnRtOk_of_hsWit` turns `hsWit γ p' n` into the batch's
+`rnRtOk`.
+
+**The final form (what S-h consumes).**
+`rnRtOk γ t n := ⌜uint.Z t = 0⌝ ∨ ∃ c, commitWit γ.node.raft t c ∗ ⌜n ≤ uint.Z c⌝`; `rnApP E γ i
+ap` carries `rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length`, `F ++ ce` the batch's log
+(`cum[i + 1]`, from the start log `γ.pre`); `rnApP_rtOk` gives `∃ F ce, monoListIdxOwn γ.cum (i +
+1) (F ++ ce) ∗ rnRtOk γ ap.raftTerm' (rnLogOf γ (F ++ ce)).length`. So for a batch with `raftTerm =
+T ≠ 0`: `commitWit γ T c` with `c ≥ |γ.pre ++ F ++ ce|`, raft's index of the batch's last entry;
+`applyAll`'s `ep.appliedi` after the batch is that index (S-h must state it of `applyAll`'s
+`ep`, through `cum`), so `c ≥ ep.appliedi` -- `isMessage_snap_recontent`'s `ai ≤ c`.
+
+## D22 S-d designed: a pending snapshot through `Ready`/`Advance`; stopped before the code (2026-10-20)
+
+Stage S-d (the plan's S-d with S-0's and S-c's amendments), after D22l. **Not carried out**: a
+read of the Go code at the pin found three facts the plan did not count, each a layer of its own
+below the `RawNode`, so the stage is several times the planned size. No Lean change; the design,
+precise enough for an agent, and a staging into four sub-stages that each build.
+
+**1. What the plan did not count.**
+- *`unstable.snapshotInProgress` is not modelled.* `UnstableSt`/`LogState` have the pending
+  snapshot (`snap`) but no in-progress flag; `nextSnapshot` (`log_unstable.go:110`) returns `nil`
+  once it is set, `acceptInProgress` (`:122`) sets it, `restore` (`:192`) and `stableSnapTo`
+  (`:185`) clear it; `readyWithoutAccept`'s `hasNextUnstableSnapshot`/`nextUnstableSnapshot` and
+  `HasReady` read it. Every `unstable`/`raftLog` spec that frames the struct must carry it.
+- *One acknowledgement does both `stableTo` and `appliedSnap`, in that order, with the snapshot
+  still pending.* A `Ready` hands out the snapshot **and** the entries a `MsgApp` appended after it
+  (between the restore and the `Ready`), so `newStorageAppendRespMsg` (`rawnode.go:266`) sets both
+  `Index`/`LogTerm` and `Snapshot`, and `Step`'s arm (`raft.go:1194-1201`) runs `stableTo` first:
+  the entries move stable while `unstable.snapshot` is still set. `StableOk` (`InvReadylog.lean`)
+  asks `snap = none` on a hit, and `LogStoreOk (some sid)` asks `sents = []`; both are false in
+  that window. The lower-term arm (`:1170-1180`) skips `stableTo` but not `appliedSnap`.
+- *`appliedSnap` is `stableSnapTo` then `appliedTo` (`raft.go:766-770`)*: between the two the log
+  has no pending snapshot (`stableSnapTo` cleared it) and `applied < prev.index`, so `ownRaftLog`'s
+  `Hpapplied` (`snap = none → prev.index ≤ applied`) is false at `raftLog.stableSnapTo`'s return.
+  (No Go bug: `hup` tests `promotable`, which reads `hasNextOrInProgressSnapshot`, before
+  `hasUnappliedConfChanges`, whose `scan` from `applied + 1` would otherwise hit `ErrCompacted`
+  and `Panicf`; checked at `raft.go:973-1019`, `1938-1941`.)
+
+**2. A simplification: lend the storage instead of a new hand-out law.** While `unstable.snapshot`
+is set, raft never calls the `Storage` (the existing shadowing argument, `LogStoreOk`'s doc:
+`firstIndex`/`lastIndex`/`term`/`slice`/`snapshot` all answer from `unstable`, `hasNextCommittedEnts`
+and `nextCommittedEnts` return early on `hasNextOrInProgressSnapshot`, `promotable` blocks a
+campaign), and the snapshot stays set from the restore through the `Ready` until the
+acknowledgement's `stableSnapTo`. So a `Ready` with `rd.Snapshot ≠ nil` can hand the application
+**the storage itself** (`ownStorage st σ`, `σ.pend = []`) instead of `appendRight`; the
+application runs `ApplySnapshot` (`MemoryStorage`: `memOwnStorage_at` gives `ownMemoryStorage`,
+its `memSnapTok` the application's) and its own hand-out/`Append`/absorb for `rd.Entries`, and
+returns `snapReceipt st sv es σ'`: `ownStorage st σ'` with `σ'.prev = σ'.ss = snapId sv`, `σ'.ents
+= es`, `σ'.scs`/`σ'.sal` the snapshot's lists, `σ'.pend = []`, `σ'.fl = σ.fl` (no new
+`StorageModel` field, no new law, `isStorageWith` unchanged; the plan's "hand-out protocol for
+`ApplySnapshot` beside `Hhandout`/`Habsorb`" is not needed). `MemoryStorage.ApplySnapshot`'s
+premises are met: `fl ≤ applying < committed < sid.index` (the restore's `!obsolete`), the
+application's snapshots at or below the floor (so no `ErrSnapOutOfDate`), and `sid.index ≤
+γs.cap` -- **the cap**: outside the no-snapshot mode a storage must be made with `cap = 2^64`
+(or the snapshot's index bounded by it: `LogStoreOk`'s `sid.index < 2^61` gives it with `cap ≥
+2^61`); in the mode no `MsgSnap` is stepped, so `cap = 1` users are unaffected.
+
+**3. The design, by layer** (paths under `Proof/go_etcd_io/raft/v3/` unless said otherwise).
+
+*S-d1, the log layer* (`InvRaftlog.lean`, `InvReadylog.lean`, the `unstable`/`raftLog` specs):
+- `UnstableSt.sip`, `LogState.sip : Bool := false` (`snapshotInProgress`), `ownUnstable`'s
+  `⌜uv.snapshotInProgress' = us.sip⌝`, `ownRaftLog`'s same and `⌜snap = none → sip = false⌝`;
+  `LogState.lent : Bool := false` (ghost: the storage is lent, `⌜lent → snap ≠ none ∧ sip⌝`;
+  `"HStorage" ∷ if lent then True else ownStorage …`, so the storage-reading proofs --
+  `raftLog__{term,slice,firstIndex,lastIndex,snapshot,hasNextCommittedEnts,nextCommittedEnts,
+  append,acceptApplying,findConflict,restore}`, `raft__{loadState,appendEntry}`, `newLogWithSize`
+  -- take `ownStorage` out where `snap = none`, hence `lent = false`); `LogState.aps : Bool :=
+  false` (ghost: `appliedSnap` between its two calls), `Hpapplied` as `snap = none → aps = false
+  → prev.index ≤ applied`, `ownRawNode` asking `aps = false` (every `RawNode` method returns
+  with it; only `raft.appliedSnap`'s proof sees it set).
+- Specs: `unstable.restore`/`raftLog.restore` set `sip := false`; `unstable.acceptInProgress`
+  `sip := sip || snap ≠ none`; `unstable.nextSnapshot` (`p ≠ nil ↔ snap ≠ none ∧ sip = false`, the
+  clone owned, with its `ksn` membership as now); `raftLog.hasNextUnstableSnapshot` exact
+  (`b = decide (snap ≠ none ∧ sip = false)`); `raftLog.acceptUnstable` without `snap = none`;
+  new `unstable.stableSnapTo`/`raftLog.stableSnapTo` (`logStableSnap ls i`: on `snap = some sid
+  ∧ sid.index = i`, `snap := none, sip := false, aps := true`, under the premise that the storage
+  is back at the snapshot, `lent = false ∧ σ.prev = σ.ss = sid`, which `ownRaftLog` records as a
+  pure fact of the state: `LogStoreOk (some sid)` gains a third case "applied": `σ.prev = sid ∧
+  sents <+: σ.ents ∧ (uents = [] → sents = σ.ents)`, the `none` case's shape at `sid`);
+  `logAppliedTo` clears `aps` when `index ≥ prev.index`. `StableOk` on a hit: `snap = none ∨
+  (snap = some sid ∧ applied-in-storage)`, plus `unpersisted = []` and the `stored` take as now.
+- `stored` with a snapshot: `logAcceptUnstable` sets it to the log after the snapshot (`sents ++
+  uents`, `prev = sid`), so `Hpersist`/`Hssnap` re-hold at `stableSnapTo` with `σ'` (`σ'.ss = sid
+  ≤ committed`, `plogTermAt sid _ sid.index = sid.term`).
+
+*S-d2, `raft`* : `raft.appliedSnap` (new spec and proof: `stableSnapTo`, then `appliedTo(i, 0)`,
+`applied := i`, `applying := max`), `raft.Step`'s `MsgStorageAppendResp` premise `sn = none`
+replaced by `sn = none ∨ (sn = some sv ∧ snapId sv = sid-or-older ∧ sv.index ≤ committed ∧
+storage applied)` for **both** arms (`raft__Step/MsgStorageAppendResp.lean`, the lower-term arm in
+`raft__Step/Resp_lt.lean`-style file), `InvRawnode.lean`'s `NetMsgOk.raftStep` (~792) relaxed for
+both; `SnapStep`/`LocalFrame` for the jump of `applied`.
+
+*S-d3, the `RawNode`* (`InvRawnode*.lean`, the `RawNode__*` specs):
+- `Pending.appendAck t last (si : Option w64)` (the snapshot's index the acknowledgement
+  carries), `appendAckM` with `Snapshot` (`pendSt`'s record gains the snapshot), `PendingOk`'s
+  `si ≤ committed`.
+- **The delivered jump.** At a `Ready` with a snapshot, `ce = []` (`nextCommittedEnts` returns
+  `nil`) and the committed prefix of length `sid.index = committed` is the ghost's (`cprefix`,
+  `ownRaftGhost_cmt`: no certificate needs storing): `readyWithoutAccept` hands out `A`,
+  `isCommitted γ A`, `|A| = sid.index`, `rs.delivered <+: A` (`isCommitted_agree`), and
+  `acceptReady` sets `delivered := A`. `Hdlen` becomes `|delivered| = applying ∨ ∃ i, appendAck _
+  _ (some i) ∈ steps ∧ |delivered| = i ∧ applying ≤ i` (restored by `Advance`'s `appliedTo`);
+  `RNFl` and `FlOk` allow the floor up to the acknowledged snapshot's index (`fl ≤ applying ∨
+  (snap ack pending ∧ fl ≤ i)`), so that node.go's raise at `advancec` (to `|delivered|`) stays
+  as stated (`advance_complete`'s `|ds| ≤ x`).
+- `ownRawNodeReady`/`ownRawNodeIdle`: `Hsnap` as `ownRawNode`'s, `storedRecsP` for the stored
+  records (`storedRecs γ sid es` after a snapshot `Ready`: the log's records after the base).
+- `readyWithoutAccept`/`Ready` drop `rs.psnap = false`; `rd.Snapshot' = null ∨ (rs.psnap = true ∧
+  ∃ sv, ownSnapM rd.Snapshot' 1 sv ∗ ⌜sip-free pending sid = snapId sv⌝ ∗ the content `A`)`;
+  `acceptReady` with a snapshot in progress (`sip := true`, the queued ack with `some sid.index`,
+  the storage lent: `lent := true`, the hand-out `ownStorage st σ` in place of `appendRight`);
+  `HasReady` exact on `hasNextUnstableSnapshot`; `Advance` without `psnap = false` (the ack's
+  `appliedSnap`); `ownRawNode_appended` takes `snapReceipt` when `lent`; `ownRawNode_raise_floor`
+  without `psnap = false`. **A second restore between `Ready` and `Advance`** (`node.run` steps
+  `recvc` while `advancec` is armed): `RawNode.Step` drops `rs.steps = []` for `MsgSnap`; the
+  queued ack's `PendingOk` must survive a restore: its `last`/`stored` comparison is vacuous with
+  the storage lent (`lent → …`), and its `si` stays `≤ committed` (the restore raises
+  `committed`); the application keeps `s1`'s hand-out; the ack's `stableSnapTo(s1.index)` misses
+  (`s2.index ≠ s1.index`) and `appliedTo(s1.index)` moves `applied` only; `s2` goes out with the
+  next `Ready`. `psnap` is then "a snapshot may be pending or in progress", cleared by `Advance`
+  when the ack's `stableSnapTo` hits.
+
+*S-d4, `node.go` and the callers*: `readyData` with `rd.Snapshot' = null ∨ (γ.raft.reNoSnap = false
+∗ the hand-out)` (so the server and putget/putget3, at `reNoSnap = true`, keep `rd.Snapshot' =
+null` exactly), `advanceP`'s `appendReceipt` or `snapReceipt`, `netP` without `Type ≠ MsgSnap`,
+`runCfg` without `psnap = false`, `dlv`/`dlm` over the jump (`A` extends `delivered`); the kv
+example (at `reNoSnap = false`) must then take a `Ready` with a snapshot, which its Go code ignores
+today: either S-r (its Go change) first, or its delivery (`deliver`) keeps passing no `MsgSnap`
+(`netP`'s conjunct moved to the example's own network invariant); the server untouched (its
+`raftNode.start` snapshot branch is S-j's, `reNoSnap = true` until S-l).
+
+**4. Staging and size.** S-d1 (the log layer: ~25 files, every `ownRaftLog` reseal), S-d2
+(`raft.appliedSnap`, the two arms), S-d3 (the `RawNode`: ~15 files, the jump), S-d4 (node.go and
+the callers). Each builds on its own (the `RawNode` specs keep `psnap = false` until S-d3).
+Estimate: larger than S-c and D22l together; trust base unchanged (raft stages add no axiom).
+**Order with S-b′:** S-b′'s certificate predicate on the storage contract (`isStorageWith`'s
+`C`) is what the lent storage's `ApplySnapshot` must preserve (the snapshot's certificate), so
+S-b′ before S-d is the cheaper order (S-d's `snapReceipt` then states `C` of the new snapshot).
+
+## D22 S-b′ part 1 carried out, the rest designed: the message's lists; the certificate's link to γ (2026-10-20)
+
+Stage S-b′ (D22b), after D22l and S-d's design (S-b′ before S-d is the cheaper order: "D22 S-d
+designed", item 4). **Part 1 carried out** (no statement elsewhere changed; trust base unchanged,
+531 axioms, 2 sorries; every collection unchanged):
+- `Msg`'s `voters : List w64` is `cl : CSLists` and `al : Bool` (a `snap`'s four `ConfState`
+  lists and `AutoLeave`; empty/`false` otherwise), the constructor `Msg.mkS`; `Msg.mkV` (the
+  twelve-field one, voters only) and `Msg.mk` are `@[reducible]` defs of it, so the 26 `Msg.mkV`
+  sites and every `simp [Msg.mkV]` are unchanged. `CSLists` moved from `Defs.lean` to
+  `Protocol/Model.lean` (with `DecidableEq`, for `Msg`'s). `absSnapFrom` carries the snapshot's
+  lists and `AutoLeave`; `msgSnapTrip m := ⟨⟨m.logterm, m.index⟩, m.cl, m.al⟩` (`Defs.lean`).
+
+**What "D22 S-b′ designed" left open, now settled: how a certificate the application makes
+reaches raft's γ.** Its item 4 had raft "instantiate `C := raftSnapCert γ` where the storage meets
+the ghost", but the storage is read under `ownRaftLog`/`ownRaftPhys`, which are γ-free (their
+storage clause is `isStorage lv.storage'`), so a γ-dependent `C` would have to become a parameter
+of `ownRaftLog`, `ownRaftPhys` and every spec over them. Instead a γ-free certificate and one
+γ-aware link:
+1. **`StorageModel.storCert : Storage → SnapTrip → IProp GF`** (persistent field). `HSnapshot`'s
+   success post adds `storCert st (snapTrip sv lists)`; `raftLog.snapshot`'s application
+   disjunct (`index ≤ fl`) carries it.
+2. **`MemoryStorage`**: `MemStorNames.cert : GName`, a mono list of trips (`memStorCert γs k`
+   its persistent lower bound holding `k`); the lock invariant keeps `memStorCert` of the current
+   non-empty snapshot; `CreateSnapshot`/`ApplySnapshot` take `memStorCert γs` of the new
+   snapshot's trip; `NewMemoryStorage` hands out the authority (`memCertAuth γs`, the
+   application's: it alone registers); the instance (`MemstorageInstance.lean`) has `storCert
+   (memStorIface ms) k := ∃ γs, memStorReg ms γs ∗ memStorCert γs k`; kv's
+   `KVStorageInstance.lean` the same through its `MemoryStorage`.
+3. **The link** `storCertOk γ st := □ ∀ k, storCert st k ={↑certN}=∗ raftSnapCert γ k`, from
+   an invariant the application allocates knowing γ: `inv certN (∃ L, monoListAuthOwn γs.cert ½
+   L ∗ [∗list] k ∈ L, raftSnapCert γ k)`, the other half its `memCertAuth`, registration
+   (`memCert_register : … -∗ raftSnapCert γ k ={↑certN}=∗ memStorCert γs k`) needing the
+   certificate. `rawNodeFresh`/`RestartNode`/`StartNode` take `storCertOk γ st` with the storage.
+4. **Raft.** `ownRaftPhys` (γ-free) gains of its outbox: every `snap` message's trip is in
+   `ls.ksn` or `storCert ls.storage` of it; only `raft.send`'s `MsgSnap` case adds one, with
+   `raftLog.snapshot`'s result as `maybeSendSnapshot`'s premise to it. `ghostRest` (γ-aware)
+   gains `[∗list] k ∈ s.logst.ksn, raftSnapCert γ k` and `storCertOk γ s.logst.storage`
+   (`ghostRest_keep` gains `ksn`/`storage` premises, `rfl` by default; a restore appends the
+   received message's trip with its certificate). The ghost steps that mint the outbox's
+   `isMessage` (`ghost_stepCD*`, `StepGhostMode.lean`, into `snapOk_message`) take, for each new
+   `snap` message, `raftSnapCert γ (msgSnapTrip m)`, from those two (opening `certN`).
+5. **The message**: `isMessage`'s `.snap` clause gains `raftSnapCert γ (msgSnapTrip m)` with
+   `raftSnapCert` restated as in "D22 S-b′ designed", item 3 (every list fact under `cl.Has x`,
+   the tracked bound; `raftSnapCert_empty`, `raftSnapCert_static`). The receiver: `raft.Step`'s
+   and `RawNode.Step`'s `"#Hsnap"` keep `sn = some sv ∧ scfg = lists`, `isMessage (absSnap m sv
+   scfg)` and `Index < 2^61`; `SnapScope`'s list part and `md.SnapOk` come from
+   `isMessage_snap_cert` under `scfg.Has id` in `dispatch_Snap`'s restore exit (`ghost_stepCDSM`
+   takes `md.SnapOk` under `cl.Has id`). `isMessage_snap_recontent` takes the new content's
+   certificate (S-h mints it from `epConfState ∈ {empty, static}`, `raftSnapCert_empty`/`_static`).
+6. **What the server's callers must supply** (S-h/S-j; nothing forced now): `EtcdServer.snapshot`
+   (an axiom; its body calls `CreateSnapshot`) must register its snapshot's trip (`ep.appliedi`,
+   `ep.appliedt`, `ep.confState`'s lists) with `memCert_register` and the certificate, which S-h
+   mints (`raftSnapCert_empty` for etcd's empty `ConfState`, `raftSnapCert_static` for the static
+   one); `raftNode.start`'s `ApplySnapshot` (dead at `rd.Snapshot = nil` until S-j) takes the
+   received snapshot's `memStorCert`, which S-d's lent storage hands out with the snapshot `Ready`
+   (registered by raft's `ghostRest` from the message's certificate). The server's
+   `NewMemoryStorage` (`NewServerAlloc.lean`) allocates the certificate invariant at its raft γ.
+
+**Staging of the rest.** S-b′2: items 1-3 (the storage contract, `MemoryStorage`, kv's instance;
+no raft use; `InvMemstorage.lean`'s lock and snapshot invariants, `MemoryStorage__{CreateSnapshot,
+ApplySnapshot,Snapshot}`, `NewMemoryStorage`); S-b′3: items 4-5's sender half (`ownRaftPhys`'s
+outbox, `ghostRest`, the ghost steps, `isMessage`); S-b′4: the receiver's premises shrink. Each
+builds on its own; trust base unchanged.
+
+## D22 S-b′2 carried out: the storage's certificate registry and its link to γ (2026-10-20)
+
+Items 1-3 of "D22 S-b′ part 1 carried out" (raft's storage contract, `MemoryStorage`, the kv
+store's instance); no raft proof uses the certificate yet. Trust base unchanged (538 axioms, 2
+sorries); every collection's `--check` passes unchanged.
+- **`StorageModel.storCert : Storage → SnapTrip → IProp GF`** (persistent). `isStorageWith` gains
+  a parameter `SC` (`isStorage` passes `storCert st`); `HSnapshot`'s success post adds
+  `⌜Index = 0⌝ ∨ SC (snapTrip sv lists)`. `raftLog.snapshot` drops it for now (S-b′3 hands it on).
+- **`MemoryStorage`**: `MemStorNames.cert`, a mono list of **`CertKey := SnapTrip × Bool`**
+  entries; `memStorCert γs k` (persistent) holds when an entry covers `k` (`certCovers`: the same
+  trip, or -- `true` -- every trip at that index with those lists and `AutoLeave`, whatever the
+  term). The any-term entry is a deviation from the design: `CreateSnapshot(i, cs, data)` reads
+  the term of `i` from the storage, which the application cannot name before the call, so its
+  premise is `□ ∀ t, memStorCert γs (trip at (t, i))` (`memCert_registerAny` gives it from `□ ∀
+  t, raftSnapCert γ …`, which for a static cluster -- etcd -- is a statement about the lists only).
+  The snapshot's home (`memSnapHome`) keeps `memSnapCertOk γs σp` (empty, or certified) of the
+  current snapshot: `memSnap_put` takes it; `ApplySnapshot` takes `memStorCert` of its snapshot's
+  trip; raft's `Snapshot` triple hands it out. `NewMemoryStorage` gives the empty registry's
+  authority (`memCertAuth γs`).
+- **The link** (`StepGhostMode.lean`, which now imports `InvStorage`): `raftCertN`, `storCertOk γ
+  st` (persistent; both directions: `storCert st k ={E}=∗ raftSnapCert γ k` and back, `↑raftCertN ⊆
+  E`). `MemstorageInstance.lean`: `memCertInv γ γs` (the authority with each entry's
+  `certElemOk`), `memCertInv_alloc` (from `memCertAuth`), `memCert_read`, `memCert_register`,
+  `memCert_registerAny`, `memStorCertOk_intro` (`memCertInv γ γs -∗ memStorReg ms γs -∗ storCertOk γ
+  (memStorIface ms)`); `memStorageModel`'s `storCert` is `memStorCertI` (`memStorCert_at`/`_intro`);
+  the registry tuple gains the name. `raftSnapCert_timeless` (`SnapConf.lean`).
+- kv: `kvStorCert` (`kvStorCert_at`/`_intro`), `memStorRec` with the name, `kv.Storage.Snapshot`'s
+  post with the certificate.
+
+**For S-b′3** (design refined, below "D22 S-b′3 carried out"): the server's storage comes from the
+boot contract (`bootOk`), which carries no `memCertAuth`, so the server cannot allocate
+`memCertInv`; raft's need for `storCertOk` is restricted to outside the no-snapshot mode.
+
+## D22 S-b′3 carried out: the certificate on the network message, from the storage's registry (2026-10-20)
+
+Items 4-5 of "D22 S-b′ part 1 carried out" (the sender half), with two deviations, both forced by
+what the proofs could carry. Raft files and the server/kv lines its specs force; no bbolt file.
+Trust base unchanged (538 axioms, 2 sorries); every collection's `--check` passes unchanged.
+
+**Deviation 1: the certificate is the network's, not the protocol outbox's.** The design put
+`raftSnapCert γ (msgSnapTrip m)` into `isMessage`'s `.snap` clause, minted by the ghost steps
+(`ghost_stepCD*` into `replOk_message`). That cannot be fed: a branch's model step is a `StepC`
+derivation (`trans`, `drain`), so `ownRaftGhost_stepC` would need a certificate for every
+message any intermediate state sends, which no premise on the final outbox gives. Instead
+`isMessage` is unchanged (so is every protocol proof, `isMessage_snap_recontent`,
+`isMessage_snap_lists`) and the certificate travels with the message on the network:
+- `Protocol/GhostState.lean`: `msgCert γ m := ⌜m.ty ≠ .snap⌝ ∨ raftSnapCert γ (msgSnapTrip m)`,
+  `isMessageC γ m := isMessage γ m ∗ msgCert γ m` (`isMessageC_isMessage`, `_snap_cert`,
+  `_intro`, `msgCert_of_ne`).
+- `isRaftMsg` (what a `Ready` hands out, the network bundle's payload) carries `isMessageC`; the
+  `Ready` attaches the certificate (below); `raft.Step`'s `"#Hsnap"` takes `isMessageC` of the
+  snapshot's abstraction (`RawNode.Step`'s likewise).
+- The moves the clause needed: `SnapTrip`, `msgSnapTrip`, `CSLists.Has`, `CSWf` to
+  `Protocol/Model.lean`; `csCfgM`, `SnapListsOk`, `SnapTrip.cfgM`, `raftSnapCert` to
+  `Protocol/Ghost.lean`. `raftSnapCert` restated as designed (every list fact under `k.cl.Has x`,
+  the tracked bound): `raftSnapCert_empty`, `raftSnapCert_static`.
+
+**Deviation 2: one source, the storage's registry.** The design had `ownRaftPhys` record "trip in
+`ls.ksn` or `storCert`", and `ghostRest` the certificates of `ksn`. Tracking `ksn` in `ghostRest`
+needs `ksn` kept by every frame (`NetFrame`/`LocalFrame`, ~50 files). Instead every snapshot raft
+may send is registered in the storage (γ-free `storCert`):
+- `ownRaftLog`'s `"#Hkcert"`: `[∗list] k ∈ ls.ksn, storCert lv.storage' k` (`ownRaftLog_intro`'s
+  new argument, `reseal_raftLog`); `newLogWithSize`/`newRaft` take `initKsnCert st σ` of the
+  storage's initial snapshot (`NewRawNode` derives it: an empty storage has none,
+  `initKsnCert_zero`); `raftLog.restore` takes the restored snapshot's `storCert`.
+- `raftLog.snapshot` returns `storCert ls.storage (snapTrip sv lists)` in both branches.
+- `ownRaftPhys`'s `"#Hscert"`: `qSrcs s.logst.storage (msgs ++ msgsAA)`, each queued message
+  `qSrc`/`tsSrc` (not a `MsgSnap`, or its snapshot certified); `raft.send` takes
+  `tsSrc s.logst.storage m.Type' sn` (`tsSrc_ne` at every other caller, `tsSrc_snap` from
+  `raftLog.snapshot`'s at `maybeSendSnapshot`); `LogGhOk` gains `ls'.storage = s.logst.storage`.
+- **The receive side registers**: `raft.Step`'s `dispatch_Snap` turns the message's certificate
+  into `storCert` through `certLink` (`storCertOk`'s second half) before the step, and passes it
+  down: `MsgSnap`/`_gt`/`_eq` (`"#Hcert"`), `stepFollower`/`stepCandidate` (`"#Hcert"` ∷ `tsSrc`;
+  every other caller `tsSrc_ne` via `notsnap_tac`), `handleSnapshot`, `raft.restore`,
+  `raftLog.restore`.
+- `ghostRest` gains `certLink γ s.logst.storage := ⌜γ.reNoSnap = true⌝ ∨ storCertOk γ st`
+  (`ghostRest_certLink`); `ghost_stepCD`/`CDS`, `finish_branch*`, `ghost_step_md*` take
+  `s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage` (`NetFrame.nsst`, `LocalFrame.nsst`);
+  `ghostRest_keep`/`ownStepGhost_congr` a defaulted `hst`; `ownStepGhost_dyn` returns it.
+- **The `Ready`**: `readyWithoutAccept`/`acceptReady` turn the queues' `qSrcs` into `qCerts`
+  (`qCert_of_src`, `qCerts_of_srcs`: a fancy update through `storCertOk`'s first half), and
+  `outboxRelP_isRaftMsg` builds `isRaftMsg`'s `isMessageC` with them; `ownRaftPhysReady` keeps
+  `Hscert`, its close takes the new queues'.
+- **Creation**: `RawNode.Bootstrap`, `setupNode`, `StartNode`, `RestartNode` take
+  `certLink γ (interface.ok si)`; `ownRawNode_intro_static` takes it, `ownRawNode_static_open`
+  returns it.
+
+**Who supplies `certLink`.** The server (no-snapshot mode): `certLink_noSnap` in `NewServer`
+(`Hnosnap.1`), threaded `NodeStartSpec` → `bootstrappedRaft.newRaftNode` → `StartNode`; nothing of
+`bootOk` or the closed theorems changed. The kv store (snapshots on): `NewStorage` returns
+`NewMemoryStorage`'s `memCertAuth`, `StartCluster` allocates `memCertInv γ γs` and gives
+`storCertOk` through `kvStorCertOk_intro`. `MemCertLink.lean` (new) holds the registry's
+invariant and its lemmas (moved from `MemstorageInstance.lean`, so that kv's instance can use
+them). Server: `srvMergedBundle`/`snapBranch_send` take the merged content's `raftSnapCert`
+(`snapBranch_send`: `□ ∀ c, csOpt cs □ c -∗ raftSnapCert γ ⟨⟨at, ai⟩, c.lists, c.AutoLeave⟩`;
+S-l mints it from `ep.confState`'s content with `raftSnapCert_empty`/`_static`);
+`isMessage_snap_lists` still holds (the certificate is not `isMessage`'s).
+
+## D22 S-b′4 carried out: the step's snapshot premises from the certificate (2026-10-20)
+
+Stage S-b′4 (after S-b′3, "D22 S-b′3 carried out"): `raft.Step`'s and `RawNode.Step`'s `"#Hsnap"`
+no longer take the snapshot's list scope or (statically) the mode's need; both come from the
+message's configuration certificate (`isMessageC`'s `raftSnapCert`), which states them only for
+lists that name a node (`k.cl.Has x`). Only the index bound (`< 2^61`, the transport's) and,
+dynamically, `GMode.SnapOk` are left as premises.
+
+- **The scope under `Has`.** `SnapScopeIf id sv cl := (cl.Has id → SnapScope sv cl) ∧ Index <
+  2^61` (`SpecResults.lean`, with `SnapScopeIf.of_scope`) replaces `SnapScope` in the premises of
+  `raft.restore`, `raft.handleSnapshot`, `stepFollower`/`stepCandidate`'s `MsgSnap` clauses and
+  `raft__Step/MsgSnap*.lean`. `restore` reads the lists only past its `!found` exit, so its proof
+  takes the scope out once `Hidv : CSLists.Has … id` is known; before, only the index bound is
+  used. The certificate's `SnapListsOk (snapTrip sv cl)` is `SnapScope sv cl` definitionally.
+- **The mode's need under `Has`.** `GMode.SnapOkIf γ id` (`StepGhostMode.lean`): statically
+  `⌜scfg.Has id → voters = reCfg ∧ outgoing = [] ∧ tracked bound⌝`, dynamically `GMode.SnapOk`;
+  `ghost_stepCDSM`/`ghost_stepCDS` take it, with `Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧
+  scfg.Has id)` (the restored configuration is one that names the node, `snapCfgOk_cases'`;
+  `MsgSnap`/`_eq`/`_gt`'s `"%Hc'"` say so). `GMode.SnapDyn` (static: `True`, dynamic: `SnapOk`) is
+  what `"#Hsnap"` still takes; `snapOkIf_of_cert` turns it and the certificate into `SnapOkIf`
+  (statically through `ownRaftGhost_mode`: the static mode is `γ.reDyn = none`, the premise of
+  the certificate's static conjunct).
+- **`SnapCfgOut id`** gains the restored lists' `Has id`, so `RawNode.Step` (whose `"#Hsnap"` now
+  takes only the index bound and `isMessageC`) gets the restored configuration's `outgoing = []`
+  from the certificate (`ownStepGhost_mode`, `isMessageC_snap_cert`), for its `Hal'`.
+- No server/kv change: their `"#Hsnap"` uses are at `reNoSnap = true` (no `MsgSnap` stepped) or
+  through `raft.Step`'s weaker premise. Trust base unchanged (538 axioms, 2 sorries); every
+  collection passes `--check`.
+
+## D22 S-d1 part 1 carried out: `snapshotInProgress` tracked; the rest of S-d redesigned (2026-10-20)
+
+Stage S-d1 ("D22 S-d designed", the log layer), its first part; the rest is not carried out: a
+closer read found that the design's window between the application's return of the lent storage
+and `stableSnapTo` needs more than a pure premise, and the precise design for it is below.
+
+**1. Carried out (builds, trust base unchanged: 538 axioms, 2 sorries).**
+- `UnstableSt.sip`, `LogState.sip : Bool := false` (`snapshotInProgress`); `ownUnstable`'s
+  `"%Hsip"` (`uv.snapshotInProgress' = us.sip`; `ownUnstable_open` puts it in the struct like the
+  offsets, `ownUnstable_intro`/`_reopen`/`_return` and the `close_unstable`/`lend_unstable`/
+  `reopen_unstable` macros carry it); `ownRaftLog`'s `"%Hsip"` (the field is `ls.sip`) and
+  `"%Hsipn"` (`snap = none → sip = false`), two new premises of `ownRaftLog_intro` after `Hsksn`.
+- Specs: `unstable.restore` (`sip := false`; `logRestore` too), `unstable.acceptInProgress`
+  (`sip := sip || snap.isSome`; `logAcceptUnstable` too), `unstable.nextSnapshot` exact (`p = null
+  ↔ snap = none ∨ sip`, the returned clone's case with `sip = false`),
+  `raftLog.hasNextUnstableSnapshot` exact (`(snap = none ∨ sip) ↔ b = false`); new
+  `unstable.stableSnapTo` (`Spec`/`Proof` `unstable__stableSnapTo.lean`: `snapHit snap i`, the
+  record `unstableSnapTo us i`, in `InvRaftlog.lean`), linked (`etc/link-lean-first-raft.txt`)
+  and in `Results.lean`. No caller changes beyond `readyWithoutAccept`'s `Hbsn.1 (.inl Hsnap)`.
+
+**2. What the design missed: the stable part while a snapshot is pending.** `raft.Step`'s
+`MsgStorageAppendResp` arm runs `stableTo(Index, LogTerm)` before `appliedSnap(Snapshot)`, and
+the acknowledgement of a `Ready` that handed out a snapshot `s1` and the entries `es` after it
+carries `Index` = `es`'s last: `stableTo` hits and moves entries stable **while `unstable.snapshot`
+is still set**. Every `ownRaftLog` read proof (`term`, `slice`: `maybeTerm` misses inside
+`(sid, offset)` and asks the storage) and `LogStoreOk (some sid)` assume the stable part is empty
+then. So a log state "snapshot pending, the storage holding it, a stable part after it" exists
+(between the two calls) that the design's pure `StableOk`/`stableSnapTo` premise ("the storage is
+back at the snapshot", stated on `ls`) does not describe: it needs a ghost record of the storage's
+being at the snapshot, and the persistence facts (`Hpersist`'s prefix relation) must hold across
+the pending snapshot from the `Ready` on (a `MsgApp` between `Ready` and `Advance` truncates and
+appends; today `Hpersist` is only kept with `snap = none`).
+
+**3. The second restore needs Log Matching, not a vacuous premise.** With `s2` restored between
+`Ready(s1, es)` and `Advance`, the acknowledgement's `stableTo(id)` (`id` = `es`'s last) must
+*miss*: were `id`'s term the new log's, Log Matching would make `es` agree with the leader's log
+up to `id`, hence at `s2.index` -- but `restore` ran past its `matchTerm(s2)` exit, so the log
+(holding `es` there, unless a conflicting `MsgApp` truncated it below `s2.index`, which Log
+Matching excludes likewise) disagreed at `s2.index`. Had it hit, `unstable` would keep `s2`
+pending with a stable part the storage holds only after `s1`, and the next `Ready`'s
+`ApplySnapshot(s2)` then `Append(entries after id)` would panic in `MemoryStorage.Append`
+("missing log entry"). So the `RawNode` discharges `StableOk` in this case by proving the miss
+(`stored_agree`-style, `InvRawnode.lean`), and no state "stable part over a shadowed storage" is
+needed. (Not a Go bug: unreachable by the argument above.)
+
+**4. The precise design for the rest of S-d1 (S-d1b) and its order.**
+- `LogState.lent : Bool := false` (the storage handed to the application: `"HStorage" ∷ if
+  ls.lent then True else ownStorage lv.storage' σ` -- 18 files name `HStorage`; each storage read
+  is under `snap = none`, so it takes `lent = false` from `⌜lent → snap ≠ none⌝` and rewrites) and
+  `LogState.sapp : Bool := false` (the storage at the pending snapshot: set only by the
+  absorption of the application's `snapReceipt`, cleared by `restore` and by `stableSnapTo`'s
+  hit). `LogStoreOk` takes `sapp`: `some sid` is `prev = sid ∧ bounds ∧ (if sapp then σ.prev = sid ∧
+  σ.ss = sid ∧ sents <+: σ.ents ∧ (uents = [] → sents = σ.ents) else sents = [])`, and the
+  `snap = none →` conjuncts that `stableSnapTo` must re-establish (`Hpersist`, `Hssnap`,
+  `PendLogOk.2`, `FlOk`'s third) become `snap = none ∨ sapp →`. To keep the read proofs as they
+  are, `sapp = true` is confined to the arm: every spec but `raftLog.stableTo`,
+  `raftLog.stableSnapTo`, `raftLog.appliedTo` (and `raft.appliedTo`/`appliedSnap`) takes
+  `ls.sapp = false` -- discharged in `raft.Step` by `ownRaftPhys` holding `sapp = false`, and in
+  the arm by the order (absorb, `stableTo`, `stableSnapTo`).
+- `Hpersist`'s σ-free part across a snapshot in progress: `LogPersistRel sents uents ipo stored
+  := (sents ++ uents.take ipo) <+: stored ∧ (ipo = |uents| → sents ++ uents = stored)`, kept
+  under `snap = none ∨ sip` (`append_persistOk` already proves it for an append; `restore`
+  makes it vacuous by `sip := false`; `acceptUnstable` with a snapshot sets `stored := sents ++
+  uents`, so it holds). The absorption lemma `ownRaftLog_absorb_snap` (receipt: `ownStorage st
+  σ'` with `σ'.prev = σ'.ss = sid`, `σ'.ents = stored`, `σ'.pend = []`, `σ'.fl = ls.fl`) needs it,
+  sets `lent := false`, `sapp := true` when the receipt's snapshot is the pending one, and
+  otherwise (a second restore) `lent := false`, `sapp := false` (the storage shadowed again).
+- `aps : Bool := false` and `Hpapplied` as `snap = none → aps = false → prev.index ≤ applied`;
+  `raftLog.stableSnapTo` (`logStableSnap ls i`: on `snapHit`, `snap := none, sip := false,
+  sapp := false, aps := true`; premise `snapHit → sapp`), `logAppliedTo` clearing `aps` at
+  `index ≥ prev.index`; `StableOk`'s hit: `(snap = none ∨ sapp) ∧ unpersisted = [] ∧ stored
+  take`.
+- Then S-d2 (`raft.appliedSnap`, both `MsgStorageAppendResp` arms, `raft.Step`'s premise `sn =
+  none ∨ the receipt absorbed`), S-d3 (the `RawNode`: the receipt travels in the queued
+  acknowledgement `Pending.appendAck t last (some i)` from `Advance`'s `appended` to its step;
+  the delivered jump; `acceptReady` lending the storage) and S-d4 as designed. Estimate for
+  S-d1b alone: about S-c's size (the `lent` rewrite in 18 files, `LogStoreOk`/`Hpersist` in every
+  log-changing proof: `append`, `stableTo`, `restore`, `absorb`, `handout`, `raise_floor`,
+  `acceptUnstable`, `newLogWithSize`, `Bootstrap`).
+
+## D22 S-d1b carried out: the lent storage, the acknowledgement's windows, the persistence relation in progress (2026-10-21)
+
+The rest of S-d1 ("D22 S-d1 part 1 carried out", item 4), the log layer only; no `RawNode`,
+server or kv statement changed. Trust base unchanged (538 axioms, 2 sorries); every collection's
+`--check` passes unchanged.
+
+**1. The state.** `LogState.lent`, `.sapp`, `.aps : Bool := false` (`Defs.lean`; `logRestore` keeps
+`lent`, clears the other two). `ownRaftLog`'s storage is `lentStor ls.lent lv.storage' σ`
+(`InvRaftlog.lean`: `ownStorage`, or `True` while lent, the facts of `σ` kept as pure facts of the
+state it was lent at; `lentStor_open`/`_close`/`_lent`, `lent_false_of`, the macro `take_storage h`
+in a reader's `snap = none` branch, and `reseal_raftLog` closes it back from `Hlnt`), with three new
+conjuncts: `Hlent` (`lent → snap ≠ none`), `Hq` (`sapp = false ∧ aps = false`) and `Hprel`
+(`SipOk`: a snapshot in progress keeps the σ-free `LogPersistRel sents uents ipo stored`,
+`LogPersistOk`'s first two conjuncts against `stored`; `LogPersistOk.rel`, `LogPersistRel_full`).
+`ownRaftLog_intro` takes the three and the lent flag (`{lt}`, `ls.lent = lt`, so that `iapply …
+$$ HStorage` does not fix the state from the storage's hypothesis).
+
+**2. The windows: a second body, `ownRaftLogW`** (deviation from the design, which had every
+spec but the acknowledgement's take `sapp = false` as a premise). The design's confinement of
+`sapp` by premises cannot be discharged: `raft.appliedSnap` (S-d2) is called with the raft struct
+while the log is in the `sapp` window and calls `raft.appliedTo` in the `aps` window, so either
+the raft predicate admits the windows -- and then every raft-level reader of the log, hundreds of
+call sites, would need the premise -- or a second predicate does. So `ownRaftLog` is quiet (`Hq`,
+every reader's proof unchanged), and `ownRaftLogW` admits both: the same pieces, the storage
+relation and the facts kept with no snapshot pending at `snapV ls` (`if sapp then none else
+snap`: in the window the storage holds the snapshot, the stable part after it), `Hpapplied` as
+`snap = none → aps = false → …`, and `SappOk` (`snap = some prev`, in progress, not lent, nothing
+unpersisted, `σ.ss = prev`) in the `sapp` window. `ownRaftLog_toW`, `ownRaftLogW_quiet`
+(`_quietW` with the facts as a pure premise), `reseal_raftLogW`. On `ownRaftLogW`:
+`raftLog.stableTo` (`StableOk`'s hit: `snap = none ∨ sapp`), `raftLog.appliedTo` (its result's
+`aps := aps && decide (i < prev.index)`, and `logAppliedTo`'s likewise), the new
+`raftLog.stableSnapTo` (`Spec`/`Proof` `raftLog__stableSnapTo.lean`, linked, in `Results.lean`:
+premise `snapHit snap i ↔ sapp`, result `logStableSnap`: on the hit `snap := none, sip := false,
+sapp := false, aps := true`). Their callers today (`raft.Step`'s acknowledgement arm,
+`raft.appliedTo`, `newRaft`) convert around the call; S-d2 puts the raft layer's two functions on
+an `ownRaftPhysCVW`.
+
+**3. The lent storage** (`InvReadylog.lean`). `ownRaftLog_lend` (a snapshot pending, nothing
+unpersisted, not lent): the application gets `ownStorage ls.storage σ` with `σ.pend = []`, the
+log's floor and a sendable snapshot; the log is at `logHanded { ls with lent := true }` (the batch
+the `Ready` hands out recorded as unpersisted, which the application appends itself).
+`ownRaftLog_absorb_snap` (lent; the receipt `ownStorage ls.storage σr` with `σr.prev = σr.ss`,
+`σr.ents = ls.stored`, `σr.pend = []`, `σr.fl = ls.fl`, `σr`'s trip sendable): the log at
+`logAbsorbSnap ls σr.ss` -- not lent, nothing unpersisted, `sapp` when `σr.ss` is the snapshot in
+progress (the storage relation from `SipOk`), otherwise (a second restore) quiet with the storage
+shadowed. `ownRaftLog_absorb` (the entries' receipt) drops a token while lent.
+`raftLog.acceptUnstable` loses its premise `snap = none` (the snapshot is then in progress, and
+`SipOk` holds of `stored := sents ++ uents`).
+
+**4. Two invariants strengthened.** `FlOk`'s third conjunct, `applying < offsetInProgress`, holds
+with a snapshot pending too (it was `snap = none →`): a restore sets `offsetInProgress` past the
+new commit index, a truncating append cuts above `committed`, and it is what puts a snapshot
+`Ready`'s batch above the floor (`ownRaftLog_lend`) and what `stableSnapTo` re-establishes for no
+snapshot pending (the design's `snap = none ∨ sapp →` form of this conjunct is subsumed).
+`raftLog.appliedTo`, `raft.appliedTo` and `raftLog.acceptApplying` take their `… < inprogress`
+premises unconditionally (every caller had them). `unstable.maybeTerm`/`stableTo` take a pending
+snapshot below the offset (`sid.index < offset`; until now `offset = sid.index + 1`), true in the
+`sapp` window, where a stable part follows the snapshot. `ownRaftLog_stable_bound` (the stable
+part below `2^61`, from the storage or the pending snapshot) replaces the two read-outs that
+opened the storage unconditionally (`raft__appendEntry`, `InvRawnode`'s `ownRaftLog_last_bound`).
+
+**For S-d2-S-d4.** S-d2: `ownRaftPhysCVW` (the raft predicate's body over a log predicate) and its
+accessors; `raft.appliedTo` on it (`sapp = false`, `aps → prev.index ≤ index`); `raft.appliedSnap`;
+the receipt into `raft.Step`'s acknowledgement arm (absorbed there, before `stableTo`). S-d3: the
+`RawNode` lends at a snapshot `Ready` (`ownRaftLog_lend`) and carries the receipt to `Advance`'s
+step.
+
+## D22 S-d2 carried out: `raft.appliedSnap`; a snapshot's acknowledgement in both arms of `raft.Step` (2026-10-21)
+
+Stage S-d2 ("D22 S-d designed", the raft layer; "D22 S-d1b carried out", "For S-d2-S-d4"). Raft
+files only, and the `RawNode` lines the changed `raft.Step` spec forces; no server, kv or bbolt
+statement changed. Trust base unchanged (538 axioms, 2 sorries); every collection's `--check`
+passes unchanged.
+
+**1. An amendment to S-d1b: the receipt absorbed before the step, into a quiet state (`sat`).**
+S-d1b's `ownRaftLog_absorb_snap` left the log in the `sapp` window; absorbed in `RawNode.Advance`
+(where the entries' receipt is absorbed today, and where the design put it: "`ownRawNode_appended`
+takes `snapReceipt`") that would have the raft struct outside the quiet `ownRaftPhysCV` at
+`raft.Step`'s entry, and absorbed inside the arm it would make the receipt a spatial resource of
+`raft.Step`'s precondition (one more conjunct at its 37 call sites). Instead a quiet flag
+`LogState.sat` ("the storage is at the pending snapshot"; both bodies' `Hsat : sat → SatOk σ ls`:
+the snapshot in progress, not lent, nothing unpersisted, `σ.prev = σ.ss = prev`, `σ.ents =
+stored`, nothing pending): `ownRaftLog_absorb_snap` now returns the quiet log at `logAbsorbSnap`
+(which sets `sat`, not `sapp`), and the arm opens the window by a ghost step,
+`ownRaftLog_sapp : sat → ownRaftLog ls ⊢ ownRaftLogW { ls with sapp := true }` (the storage
+relation and `LogPersistOk` from `SatOk` and `SipOk`). `sat` is cleared by `logRestore`,
+`logAcceptUnstable`, `logStableSnap`'s hit and the lending (`ownRaftLog_lend` now at
+`logHanded { ls with lent := true, sat := false }`); the entries' absorption keeps it.
+
+**2. The raft struct in the windows: `ownRaftPhysCVW`** (`InvRaftPhys.lean`). The private body
+`ownRaftPhysG` takes the log predicate as a parameter (`ownRaftLog`, or `ownRaftLogW`);
+`ownRaftPhysCVW` is it at `ownRaftLogW`, sealed like `ownRaftPhysCV`, with the accessors the two
+functions on it and the arm need: `ownRaftPhysCV_toW`, `ownRaftPhysC_log_atW` (the quiet log out,
+put back in the windows), `ownRaftPhysCVW_log_at`, `ownRaftPhysCVW_log_atQ` (put back quiet: the
+struct is quiet again), `ownRaftPhysCVW_eq`, `raft.wp_load_raftLogCW`. Read-outs on the windowed
+log: `ownRaftLogW_struct`, `ownRaftLogW_snap_prev`.
+
+**3. `raft.appliedTo` on `ownRaftPhysCVW`** (`appliedSnap` calls it in its window): premises
+`sapp = false` and `aps → prev.index ≤ index` (so the window ends there), the result quiet. Its
+other caller, `Step`'s `MsgStorageApplyResp` arm, converts (`ownRaftPhysCV_toW`, the quiet facts
+from `ownRaftLog_quiet`).
+
+**4. `raft.appliedSnap`** (`Spec`/`Proof` `raft__appliedSnap.lean`, linked as `raft.Step`'s callee,
+in `Results.lean`): on `ownRaftPhysCVW`, the snapshot read at any fraction; premises the hit
+exactly in the `sapp` window, `aps = false`, the index at most the boundary (the pending
+snapshot, or an older one after a second restore: this gives `appliedTo`'s guard and its
+`offsetInProgress` bound), the auto-leave premise, and `LogGhOk`'s two ghost flags (`unst = false`,
+no pending snapshot in the no-snapshot mode); result `ownRaftPhysCV` at `logAppliedTo
+(logStableSnap ls i) i 0`.
+
+**5. `raft.Step`'s acknowledgement** (`Spec/raft__Step.lean`). New `ackLog ls sn` (with a snapshot
+and `sat`, the `sapp` window), `ackStableId m t` (the entry the arm's `stableTo` is called at, if
+it is), `ackSnapLog ls m t sv` (the log after the acknowledgement). The premise `sn = none` is
+replaced by `∀ sv, sn = some sv → snapHit snap sv.index = sat ∧ sv.index ≤ prev.index ∧
+md.isDyn = false ∧ auto-leave`, and `StableOk` is of `ackLog s.logst sn`. The postcondition:
+`Hlocal` is `((AppendResp → sn = none) → LocalStepOk …) ∧ (AppendResp → ∀ sv, sn = some sv → s'
+= { s with logst := ackSnapLog s.logst m s.term sv })`, `Hframe` takes `AppendResp → sn = none`.
+The dynamic mode is excluded (a premise; it takes no snapshot, `DynNoSnap`): its `rOf` reads
+`applied` and the pending snapshot, so no frame step of the dynamic model is one;
+`ghost_step_static0` (`raft__Step/Base.lean`) is the static ghost step from `StepC` alone.
+The branch (`wp_Step_MsgStorageAppendResp_snap`, beside the unchanged `_none`): `ackOpen` (the
+window opened on the struct, after the preamble's field loads, which are on `ownRaftPhysCV`),
+then in the current-term arm `stableTo` (on `ownRaftLogW`) and `appliedSnap`, in the stale arm
+`appliedSnap` alone; `wp_GetSnapshot_some`. `cq_split` names its `prevote` case (`Hpv`).
+
+**6. Consumers.** `NetMsgOk.raftStep` is generic in the mode (its continuation states the new
+premise); the eleven `Hframe` uses (`RawNode.{Step,Campaign,ReadIndex,TransferLeader,ForgetLeader,
+ReportSnapshot,ReportUnreachable,Advance}`, `tickElection`, `tickHeartbeat`, `InvNodeRun`) pass
+`AppendResp → sn = none` by the type, the five `Hlocal` uses take `.1`; `RawNode.Advance`'s
+acknowledgement passes its `sn = none` as before.
+
+**For S-d3** (the `RawNode`): `Ready` with a snapshot lends the storage (`ownRaftLog_lend`, with
+`acceptUnstable` now taking a pending snapshot); `Advance` absorbs the application's receipt
+(`ownRaftLog_absorb_snap`) and steps the acknowledgement with `Snapshot` set; it must supply
+`snapHit snap i = sat` (the main case: `sat` and the hit; after a second restore neither, since
+`s2.index > committed ≥ s1.index`), `i ≤ prev.index`, the static mode, and `StableOk (ackLog …)`:
+in the main case the hit is in the `sapp` window, with `stored` (`logAcceptUnstable`'s, the
+entries after the snapshot) agreeing with the log up to the acknowledged entry by
+`stored_agree`; after a second restore it must miss, by Log Matching ("D22 S-d1 part 1 carried
+out", item 3). The post is `ackSnapLog`'s log, which `ownRawNode` must re-establish (the delivered
+jump, `Hdlen`, `RNFl`/`FlOk`; "D22 S-d designed", S-d3).
+
+## D22 S-d3 designed precisely, not carried out: the `RawNode` over a snapshot `Ready`; stopped after S-d2 (2026-10-21)
+
+After S-d1b and S-d2 the log and raft layers take a snapshot through `Ready`/`Advance`; the
+`RawNode` layer still takes `psnap = false` (`HasReady`, `readyWithoutAccept`, `Ready`,
+`Advance`, `ownRawNode_raise_floor`) and `RawNode.Step` a `MsgSnap` only with `rs.steps = []`.
+A read of `rawnode.go` and the `RawNode` proofs against "D22 S-d designed" (S-d3) found it several
+times the planned size, with facts the design did not count (item 1); per the brief, stopped at a
+precise design (items 2-4), staged S-d3a (no second restore), S-d3b (the second restore), S-d4.
+No Lean change in this entry.
+
+**1. What the design did not count.**
+- *The acknowledgement is queued without entries too.* `acceptReady` queues it when
+  `needStorageAppendRespMsg` (`rawnode.go:210`): unstable entries **or** a non-empty snapshot;
+  `Index`/`LogTerm` are set only with unstable entries (`hasNextOrInProgressUnstableEnts`), so a
+  snapshot `Ready` with no entry after the snapshot queues `Index = 0`. `Pending.appendAck t last`
+  must become `appendAck t (last : Option entryID) (sn : Option SnapshotM)` (and `appendAckM`,
+  `pendSt`, `PendingOk`, `StepsOk`, `acceptReady`'s queue, `Advance`'s cases).
+- *The snapshot is shared.* `newStorageAppendRespMsg` stores `rd.Snapshot` itself in the queued
+  message (`m.Snapshot = rd.Snapshot`, `rawnode.go:349`), the pointer the application gets: the
+  clone `nextSnapshot` makes is fresh, so it is handed out read-only (`ownSnapM p DFrac.discard`)
+  to both; `raft.appliedSnap` already takes any fraction.
+- *The records gate.* `Hstrecs` is `storedRecsP γ rs.psnap prev stored` (records only while no
+  snapshot may be pending, S-c), but after a snapshot `Ready` the records hold again
+  (`ownRaftGhost_storedRecs` mints them for the new base, the snapshot), and the acknowledgement
+  needs them (`StableOk (ackLog …)` by `stored_agree`, as `stableOk_of_stored` now). The gate must
+  be its own flag, `RNState.rst` ("restored since the last `Ready`": set by `RawNode.Step`'s
+  `MsgSnap`, cleared by `acceptReady`), distinct from `psnap` ("a snapshot pending or in
+  progress": cleared by `Advance`'s acknowledgement on the hit).
+- *`Hdlen` between the `Ready` and `Advance`.* The delivered log jumps to the snapshot's prefix `A`
+  at the `Ready` (`|A| = sid.index`), while `applying` reaches it only at `Advance`'s
+  `appliedTo`: `Hdlen` (`|delivered| = applying`) becomes `|delivered| = applying ∨ (a queued
+  acknowledgement carries a snapshot of index `i` ∧ |delivered| = i ∧ applying ≤ i)`, which every
+  `RawNode` method's reseal carries (they keep both sides) and `Ready`/`Advance` establish.
+- *The floor raised past `applying`.* `node.go` raises the floor at `advancec` to the delivered
+  log's length (`advance_complete`), before `Advance`: with a snapshot `Ready` that is `sid.index >
+  applying`, which `FlOk` (`fl ≤ applying`) forbids. Either `FlOk` admits `fl ≤ i` while the
+  acknowledgement of a snapshot at `i` is queued (a log-layer change: a ghost `LogState.ackIdx`),
+  or S-d4 raises the floor to `applying` only for a snapshot `Ready` (no compaction right past it
+  until the next `Advance`; simpler, and what the design should take).
+- *The second restore is a term argument plus Log Matching, and needs a fact of the restore.*
+  With `s2` restored between `Ready(s1, es)` and `Advance`, the acknowledgement's `stableTo` must
+  miss (otherwise the next `Ready` hands out `s2` with entries after `id`, and the application's
+  `ApplySnapshot(s2)` then `Append` panics on "missing log entry", or loses the entries raft
+  thinks stable). It does: if the term moved since the `Ready`, the acknowledgement is stale
+  (`m.Term < r.Term`: the arm runs `appliedSnap` alone -- the ABA guard of
+  `newStorageAppendRespMsg`); within the same term every `MsgApp`/`MsgSnap` since is the term's
+  leader's, and a hit at `id` (`id.index > s2.index`, or it misses on `id.index < offset`) would
+  make `es` agree with that leader's log up to `id` (Log Matching between the records of `stored`
+  and of the log), hence at `s2.index` -- where the log, which a truncation within the term could
+  only have cut above `id` (same argument), still held `es`'s entry, so `restore`'s
+  `matchTerm(s2)` would have succeeded. The proof needs, from `raft.Step`'s `MsgSnap`, the fact
+  that the log at the restore did not match `s2` (`restore`'s `!matchTerm` exit: a `SnapStep`
+  conjunct to add), and the records of the log before the restore. Not a Go bug (checked through
+  the scenario of a slow snapshot application with a conflicting `MsgApp` from another leader:
+  the term moves, and the stale arm skips `stableTo`).
+
+**2. S-d3a: a snapshot `Ready`, no second restore** (`RawNode.Step` keeps `rs.steps = []` for a
+`MsgSnap`). Files: `InvRawnode.lean`, `InvRawnodeReady.lean`, `RawNode__{readyWithoutAccept,
+acceptReady,Ready,HasReady,Advance}.lean` and their specs; the other methods' reseals only
+(`Hdlen`'s new form, `rst`).
+- `readyWithoutAccept`/`Ready` drop `rs.psnap = false`; the snapshot branch: `nextUnstableSnapshot`
+  gives the clone (`unstable.nextSnapshot`'s spec: `snap = some sid ∧ sip = false`), handed out
+  read-only, `CommittedEntries = []` (`nextCommittedEnts`: `snap ≠ none → ce = []`), `Entries` the
+  unstable ones (`sents = []`), the delivered jump `A := (cprefix fp (toPState s)).take sid.index`
+  (`ownRaftGhost_cmt`, `isCommitted_mono`; `rs.delivered <+: A` by `isCommitted_agree`, since
+  `|delivered| = applying < sid.index`). Post: `rs.psnap = false → rd.Snapshot' = null` kept as a
+  conjunct (so `node.go` and its callers, at `psnap = false`, are unchanged), and otherwise
+  `∃ sv, ownSnapM rd.Snapshot' □ sv ∗ ⌜snapId sv = sid ∧ trip ∈ ksn ∧ the cert⌝ ∗ isCommitted γ A`.
+- `acceptReady` with a snapshot: `ownRaftLog_lend` in place of the hand-out (the application gets
+  `ownStorage rs.storage σ` and the facts of `σ`), `acceptUnstable` (no `snap = none` premise
+  since S-d1b; `sip := true`), the acknowledgement `appendAck t (last?) (some sv)` (term: the
+  node's; `PendingOk`: `t ≤ term`, `last` the last of `stored` if any, `sv.index = prev.index`,
+  `lent` or `sat`), no `acceptApplying`; `delivered := A`; `rst := false`.
+- `ownRawNode_appended` for the snapshot receipt (`snapReceipt rs sv σr`: `σr.prev = σr.ss = snapId
+  sv`, `σr.ents = es`, `σr.pend = []`, `σr.fl`, trip in `ksn`) by `ownRaftLog_absorb_snap`; the log
+  is then at `sat`.
+- `Advance` drops `psnap = false`: the acknowledgement's `raft.Step` premises (S-d2): `snapHit =
+  sat` (both true), `sv.index ≤ prev.index` (equal), the static mode (`Hsnap`: a snapshot only
+  statically), `StableOk (ackLog …)` by `stored_agree` in the `sapp` window; its post
+  `ackSnapLog` (`snap := none`, `applied = applying = sid.index = |delivered|`, `sip`, `lent`,
+  `sat`, `sapp`, `aps` off) re-establishes `ownRawNode` with `psnap := false`.
+- `HasReady` exact on `hasNextUnstableSnapshot` (S-d1 part 1); `ownRawNodeReady`/`Idle` with
+  `Hsnap` and `Hstrecs` as `ownRawNode`'s; `ownRawNode_raise_floor` without `psnap = false` (the
+  floor at most `applying`, item 1).
+
+**3. S-d3b: the second restore.** `RawNode.Step` drops `rs.steps = []` for a `MsgSnap`; the queued
+acknowledgement's `PendingOk` gains the snapshot case's form that survives a restore (`t ≤ term`,
+`sv.index ≤ committed`, and -- for the miss -- the term at the `Ready` and the records of `stored`
+with its base); `Advance` proves `snapHit = sat` (both false: `s2.index > committed ≥ s1.index`)
+and the miss of `stableTo` (item 1's argument: stale arm on a term change, else Log Matching with
+`SnapStep`'s new "the log did not match the snapshot at the restore" fact); `psnap` stays set
+(`s2` pending), `rst` set.
+
+**4. S-d4** as designed ("D22 S-d designed", S-d4): `readyData` with `rd.Snapshot' = null ∨
+(γ.raft.reNoSnap = false ∗ the snapshot and the lent storage)`, `advanceP`'s `appendReceipt` or
+`snapReceipt`, `netP` without `Type ≠ MsgSnap`, `runCfg` without `psnap = false`, `dlv`/`dlm` over
+the jump; the floor raised to `applying` at a snapshot `Ready` (item 1); the kv example keeps
+passing no `MsgSnap` (its `netP` conjunct moved to its own network invariant) until S-r.
+
+## D22 S-d3a carried out: a snapshot `Ready` through `RawNode` (no second restore) (2026-10-21)
+
+The `RawNode` layer takes a snapshot `Ready` and its acknowledgement; `node.go` still steps no
+`MsgSnap` (`runCfg`'s `psnap = false`, now with `slent = none`) until S-d4, and `RawNode.Step`
+still takes a `MsgSnap` only with an empty queue (S-d3b). Deviations from "D22 S-d3 designed
+precisely", item 2:
+
+- **The snapshot is split, not read-only.** The queued acknowledgement is a `msgIn` at
+  `DFrac.own 1` (as every queued message: `raft.Step` takes it so), and it shares `rd.Snapshot`'s
+  pointer, so the clone cannot be handed out read-only. It is split ½ application / ½ node:
+  `lentPend (some l) P := ownSnapM l.ptr ½ l.snap ∗ (ownSnapM l.ptr 1 l.snap -∗ P)` stands for the
+  queue (`ownRawNode`'s `Hpend`), the acknowledgement built as that wand
+  (`msgPtsC_store_Snapshot`); the application returns its half with its receipt at `Advance`
+  (`loanRet`, `snapReceipt`: the half, and the storage at the snapshot). **S-r must give
+  `MemoryStorage.ApplySnapshot` a spec on a ½-owned snapshot** (its fields are only read; Go's
+  sharing is race-free there because the node does not touch the message until `Advance`).
+- **No `rst` flag, no `Hdlen` disjunction: a loan.** `RNState.psnap` now means "restored since
+  the last `Ready`" (set by `RawNode.Step`'s `MsgSnap`, cleared by `acceptReady`), which is the
+  records gate (`storedRecsP`) the design wanted `rst` for. The `Ready`'s snapshot is a loan
+  `RNState.slent : Option SnapLoan` (`ptr`, `snap`, `fl`, `dlv`: the committed log up to the
+  snapshot, `isCommitted` in `loanCom`), with `LoanOk rs s` (the mirror `NGhost.snp`, the log at
+  the pending snapshot, the queue `pre ++ [appendAck t e (some l.snap)]` with `pre` the node's own
+  responses, `psnap = false`, `psnap = true → steps = []`). `delivered` and `Hdlen` stay as they
+  were until `Advance`, which sets `delivered := l.dlv` (`advRS`).
+- **Frames carry no `lent`/`sip`/`sat`/`ksn`**: a ghost mirror `NGhost.slent`/`NGhost.snp` with
+  `SnpOk g ls` inside `GhLogOk` (`InvRaftlog.lean`, section `snpok`), kept by every log step
+  (`SnpOk.keep`, `.restore`, `.stableSnap`, `.appliedTo`, `.stableTo`, `.ackL`).
+- `SipOk` gained a second conjunct: a pending snapshot not handed out has nothing in progress
+  after it and `applying` at most its index (`SipOk.applying_lt`, `_ltW`).
+- `ownRawNode_raise_floor` and `ownRawNode_appended` keep `psnap = false` and gain `slent = none`
+  (the storage is the application's while lent); removing `psnap = false` from the floor needs a
+  storage-extent invariant (S-d4).
+- `ApplyConfChange`'s detached result (`ownRawNodeC`) keeps the queue as `lentPend o …`.
+- New: `raftLog.nextUnstableSnapshot`'s spec and proof; `needStorageAppendRespMsg`/
+  `newStorageAppendRespMsg` over `snapOpt rd.Snapshot' dq o`; `Pending.appendAck t (last : Option
+  entryID) (sn : Option SnapshotM)`; `RawNode.Advance` takes `loanRet rs`, premise
+  `slent = none → unpersisted = []`, post `ownRawNode (advRS rs t ca)`; `readyWithoutAccept`/
+  `Ready` post the loan `L` (`rdSnapOut`, `readyOut`, `psnap = false → L = none`); `acceptReady`
+  post `psnap := false, slent := L`; `HasReady` and `readyWithoutAccept` without `psnap = false`.
+
+**Stopped after S-d3a; S-d3b and S-d4 designed on its structure.** S-d4 needs S-d3b (`node.go`
+steps network messages between `acceptReady` and `Advance`, when the queue is not empty), and
+S-d3b is a protocol argument of its own (below), so neither was started.
+
+- *S-d3b, the second restore.* (1) `RawNode.Step`: drop `rs.steps = []` for a `MsgSnap`;
+  `LoanOk`'s fourth conjunct (`psnap = true → steps = []`) goes, and its third (`slent = some l
+  → …`) becomes a disjunction: the log at `l` as now (`snap = snapId l.snap`, `stored =
+  unpersisted`, `psnap = false`), or a later snapshot `s2` restored (`psnap = true`, `snap = some
+  s2`, `l.snap.index ≤ committed < s2.index` -- `SnpOk.restore` already gives the mirror's half: the
+  restored one is not the lent one), with the facts of the miss below; `LoanOk.step` then takes
+  a `MsgSnap` with a loan (`raft.Step`'s `MsgSnap` post must say the log restored or not, and that
+  a restore found `!matchTerm(s2)` -- a new `SnapStep` conjunct). (2) `Advance`'s lent arm with
+  the restore: the receipt is absorbed with `sat = false` (`logAbsorbSnap`: `snap ≠ l`), so
+  `snapHit = sat` holds as `false = false`, `ackSnapLog` is `stableTo` then nothing
+  (`logStableSnap` misses); its premise `StableOk (ackLog ls (some l.snap)) id` is the miss: if
+  the term moved since the `Ready` the arm is the stale one (`m.Term < r.Term`, no `stableTo`);
+  within the term, `id.index ≤ s2.index` misses on `offset = s2.index + 1`, and `id.index >
+  s2.index` with a matching term would, by Log Matching between the records of `stored` (the
+  storage's, `storedRecs`, with the `Ready`'s base) and the term's leader's log (which every
+  `MsgApp`/`MsgSnap` of the term carries), make the log agree with `stored` at `s2.index`, against
+  `restore`'s `!matchTerm(s2)`. (3) The post: `psnap` stays `true`, `slent := none`, `delivered :=
+  l.dlv`, and the next `Ready` hands out `s2`.
+- *S-d4, `node.go`.* `runCfg` without `psnap = false ∧ slent = none` (the node keeps the loan
+  through `runMid`/`advDep`/`advRet`), `netP` without `Type ≠ MsgSnap`; `readyData` with
+  `rdSnapOut` (`rd.Snapshot' = null`, or the snapshot's half and `isCommitted l.dlv`, with
+  `γ.raft.reNoSnap = false`) and `readyOut` (the append right, or the lent storage); `advanceP`
+  with `appendReceipt` or `loanRet`; `dlv`/`dlm` over the jump to `l.dlv` at `Advance` (`advRS`);
+  `ownRawNode_raise_floor` at a loan raises the floor only to `applying` (or waits for `Advance`),
+  since the storage is the application's; `ownRawNode_appended`'s `slent = none` premise is then
+  met by `advance_complete` only without a loan (with one, the receipt is `loanRet`, which
+  `Advance` takes). The kv example and the server keep passing no `MsgSnap` until S-r.
+
+## D22 S-d3b carried out: a `MsgSnap` between a `Ready` and its `Advance`; the acknowledgement's miss (2026-10-21)
+
+`RawNode.Step` takes a `MsgSnap` with any queue (its premise `rs.steps = []` is gone: only
+`γ.reNoSnap = false`); `Advance` handles the acknowledgement after a restore, with or without a loan.
+Trust base unchanged (538 axioms, 2 sorries); every collection's `--check` passes unchanged; no
+server, kv, putget or putget3 statement changed (the server and the examples step no `MsgSnap`).
+
+**1. A deviation: the miss needs a fact of `MsgApp` too, not only of `restore`.** The design ("D22
+S-d3a carried out", S-d3b) took the restore's `!matchTerm(s2)` and the records of the log before it.
+That is not enough: between the `Ready` and the restore a `MsgApp` of the acknowledgement's term may
+cut the batch handed out (`stored`) below `s2`'s index, so that the log at the restore lacks `s2`
+while `stored` has it -- nothing in the state at the restore then excludes `stored` agreeing with
+`s2`, which (with the later log, by Log Matching) is what a hit needs. Raft's own argument is about
+the history: within the term only the term's leader changes the log, a truncation is at an entry
+the leader's log has and the log had not, and the snapshot is in that leader's log. So the node now
+keeps, for its queued acknowledgement, a witness of any such cut, minted by the step that cuts:
+- `raftLog.maybeAppend`/`raft.handleAppendEntries` (`TruncAt`): `offsetInProgress` moves back only
+  to a conflict, above the commit index, at an entry of the batch the log did not have; `raft.Step`'s
+  post `"%Htrunc"` (`AppTrunc`, MsgApp only: and at the message's term) -- carried by the MsgApp
+  branches (`stepPostT`, `finish_branchT`; `dispatch_App` moved before the `stepPost` conversion);
+- `raft.Step`'s `"%Hsnapfr"` gains `SnapLogStep` (the log kept, or `restore`'s third exit: at the
+  message's term, past the commit index, `!PlogMatches`, the log now the snapshot);
+- the leader's logs from the messages' `isMessage` (`isMessage_app_leadFull`,
+  `isMessage_snap_leadFull`: `leadFull` of the term, with the entries/the snapshot's entry in it).
+
+**2. `ackInv` replaces `Hstrecs`'s `storedRecsP`** (`InvRawnode.lean`). `Pending.appendAck t b e sn`
+records the `Ready`'s boundary `b` (`PendingOk`: `plogLast b stored = e`, and `1 ≤ t` with an entry:
+an acknowledgement of term `0` would be local, current whatever the term -- `acceptReady` gets it from
+the last entry's record, `isEntryR_term_nz`, and `TermsLe`, `ownRaftGhost_terms_le`). For the queued
+acknowledgement the node keeps `storedRecs γ b stored` and `ackArm`: no restore since (`prev = b`,
+the pending snapshot the `Ready`'s; at the term `t`, `ackLostW`: all of `stored` in progress, or a
+cut `c ≤ offsetInProgress` where a term-`t` `leadFull` disagrees with `stored`), or a restore past
+`b` (with an entry and at the term `t`, `ackBaseW`: `stored` lacks the boundary `p`'s term at `p`,
+and a term-`t` `leadFull` has `p`). Transport: `ackInv_keep` (every step but a truncating
+`MsgApp`'s or a restore: `offsetInProgress` not moved back, `TermStep`/`LocalFrame`), `ackInv_app`
+(`AppTrunc`, `persistRel_agree`: below `offsetInProgress` the log is `stored`'s prefix,
+`LogPersistRel` from `Hpersist` or `SipOk`, `ownRaftPhysC_persistRel`, `ack_snap_sip`),
+`ackInv_snap` (`nobase_core` from the cut, `nobase_core2` from an earlier mark; `leadFull_agree`).
+At `Advance`, after a restore, `stableHit_restored`/`stableHit_miss` (records of `stored` and of
+the log, `plog_match_down` down to the restored boundary) give `¬ StableHit`, so `StableOk`
+vacuously, for both the loan's acknowledgement (`wp_step_snapack`, now with the caller's
+`StableOk`; `ackSnapLog_facts_miss`: the restored snapshot stays pending, `applied`/`applying` at
+the lent one's index) and a plain one (`wp_step_pending`'s new premise `Hack`). `ackInv` and
+`ackArm` are `abbrev`s, so that `ownRawNode_intro` takes them at a record-updated state.
+
+**3. `LoanOk`** loses `psnap = false` and `psnap → steps = []`; the pending snapshot is the lent one
+or a later one restored past it (`l.index < s2.index`, with `psnap = true`), the lent one at most
+the commit index, the acknowledgement at the snapshot as boundary. `LoanOk.step` takes a restore;
+`LoanOk.keep` takes the commit index's monotonicity. **`SnpOk`** gains: in progress or absorbed only
+the snapshot handed out (`sip ∨ sat → snp = some k ∧ snap = some k.sid`), which `Advance` needs
+for a restored loan (`sat`, `sip` off); `SnpOk.of_none`.
+
+No Go bug: the miss is raft's own `newStorageAppendRespMsg` argument (the term in the
+acknowledgement), here carried through a restore.
+
+**For S-d4.** `node.go`'s `run` steps network messages with `r.Step` directly
+(`wp_rn_raft_Step_net`, which still takes `Type ≠ MsgSnap` and now carries `ackInv` across a
+`MsgApp`); S-d4 adds its `MsgSnap` case as `RawNode.Step`'s (`SnapLogStep`, `ackInv_snap`,
+`LoanOk.step`), then the rest as designed.
+
+## D22 S-d4 designed precisely, not carried out: `node.go` over a snapshot `Ready`; stopped after S-d3b (2026-10-21)
+
+A read of `node.go`'s proofs (`node__run.lean`, `InvNodeRun.lean`, `InvNode.lean`, `InvAdvance.lean`)
+and their consumers (`examples/kv/KV__run.lean`, `Cluster.lean`; the server's `NodeBridge`,
+`InvRaftNode`; putget, putget3) against "D22 S-d3a carried out"'s S-d4 found it several times the
+planned size, with interface facts the design did not settle (item 1); per the brief, stopped at a
+precise design (item 2). No Lean change in this entry.
+
+**1. What the design did not count.**
+- *The kv example cannot refute a snapshot `Ready` by `reNoSnap`.* The design guards `readyData`'s
+  snapshot case by `γ.raft.reNoSnap = false`, which the server, putget and putget3 (`reNoSnap = true`)
+  refute; the kv example leaves `reNoSnap` free (it drops `MsgSnap` at delivery, `Deliverable`), so
+  it would face the case with nothing to refute it. A node-level flag is needed: whether the
+  application may deliver a `MsgSnap` at all.
+- *The loan's identity between `Ready` and `Advance`.* `RawNode.Advance` takes `loanRet rs`, the
+  receipt for the node's own `rs.slent`; the driver's `advanceP` must name the same loan: `run`'s
+  record of its last `Ready` (`rof`, now `(d, ce, es, p')`) must carry it.
+- *The floor at the `advancec` rendezvous.* `advance_complete` absorbs the driver's append receipt
+  and raises the floor (`ownRawNode_appended`, `ownRawNode_raise_floor`, both `slent = none`), and
+  `node.Advance` returns the floor's witness `storFloor γ.stor x`, `|ds| ≤ x`. With a loan the
+  storage is the application's: neither can run, and no invariant gives `|d| ≤ fl` (`FlOk` is
+  `fl ≤ applying`). Either `node.Advance`'s witness only after a `Ready` without a snapshot, or the
+  rendezvous raises the floor on the application's storage (its `Hfloor` law, `isStorageWith`) and
+  the lent log's `fl` and the loan's `fl` with it (a log-layer lemma for the lent state).
+- *The delivered jump in the driver's ghost state.* `RawNode.Advance` sets `delivered := l.dlv`
+  (`advRS`); `run`'s `dlm` authority (`runCfg`, over `rs.delivered`), the driver's `dlv` half and
+  lower bounds (`nodeDriverBusy`'s `ds = d ++ ce`) all follow `d ++ ce`, but a snapshot `Ready`'s
+  `CommittedEntries` are `[]` while the committed log handed out is `l.dlv`.
+- *The certificate for `ApplySnapshot`.* `MemoryStorage.ApplySnapshot` takes `memStorCert` of the
+  snapshot's trip; the `Ready` hands out none (`rdSnapOut`: the half snapshot, `isCommitted l.dlv`,
+  `LoanOut`). The log holds it (`ownRaftLog`'s `Hkcert`, `trip ∈ ksn` by `SnapRdy`).
+- *`run` steps with `r.Step`, not `RawNode.Step`*: `wp_rn_raft_Step_net` needs `RawNode.Step`'s
+  `MsgSnap` case again (S-d3b's `SnapLogStep`, `ackInv_snap`, `LoanOk.step`, the restored
+  configuration, `SnapCfgOut`).
+- *A stale `Ready` with a snapshot.* `run` keeps a computed `Ready` across steps when `HasReady`
+  turns false (`staleOk`, `ownRawNodeIdle`); with a snapshot that cannot happen (`HasReady` is true
+  while a snapshot is pending and not in progress), which `ownRawNodeReady_abandon` must record
+  (`unst`, whose `GhLogOk` already admits `snap ≠ none`).
+
+**2. The design** (paths under `Proof/go_etcd_io/raft/v3/` unless said otherwise).
+- `NodeNames.snapIn : Bool` (the application may deliver a `MsgSnap`), a parameter of `StartNode`/
+  `RestartNode`, requiring `snapIn = true → γ.raft.reNoSnap = false ∧ γ.mode = .static`; the server,
+  putget, putget3 and kv pass `false` and keep `γ.snapIn = false` with their `NodeNames`.
+- `netP`: `st.msg.Type' = MsgSnap → γ.snapIn = true`, and `RawNode.Step`'s `"#Hsnap"` (the snapshot
+  `sv`, its index below `2^61`, `isMessageC γ (absSnap …)`), `#Hmsg` at `ty ≠ .snap`; kv's
+  `stepP_deliverable` proves the new conjunct vacuously.
+- `wp_rn_raft_Step_net` without `Hns`: its `MsgSnap` case as `RawNode.Step`'s.
+- `runCfg`: `γ.snapIn = false → rs.psnap = false ∧ rs.slent = none` (`runCfg_psnap`/`_slent` take
+  the flag); and `dlm`'s authority over `rs.delivered`, or with a loan over `l.dlv` (extended at
+  the `Ready`, `runCfg_extend`), equal to `rs.delivered` again after `Advance` (`advRS`).
+- `readyData γ rd d dj ce es ms p p'` with the committed log handed out after the `Ready` `dj`
+  (`d ++ ce`, or `l.dlv` with a snapshot), and the snapshot part: `L = none`: `⌜rd.Snapshot' = null⌝ ∗
+  appendRight γ.stor es`; `L = some l`: `⌜γ.snapIn = true⌝ ∗ rdSnapOut` (half the snapshot,
+  `isCommitted l.dlv`, `LoanOut`) ∗ `readyOut` (the storage, `ownStorage γ.stor σ`, `σ.pend = []`,
+  `σ.fl = l.fl`) ∗ `storCert γ.stor (snapTrip l.snap …)` (from `Hkcert`, new accessor).
+  `readyP`'s `rof` record gains `L`; `nodeDriverBusy`'s `ds := dj`.
+- `advanceP`: the receipt for `rof`'s `L`: `appendReceipt γ.stor es`, or `snapReceipt γ.stor l es`.
+- `advance_complete`/`advDep`/`advRet`: without a loan as now; with one the receipt passes to `run`
+  (`advRet` holds `loanRet rs`), nothing absorbed, the floor not raised (`flw` stays `false`), and
+  `node.Advance`'s floor witness only for `L = none` (`node.Advance`'s post: `L = none → ∃ x, …`);
+  the consumers at `snapIn = false` refute `L = some` and keep their witness.
+- `node__run`: the `readyc` arm with `L` (no `HL := Hpsn Hps` unless `snapIn = false`),
+  `acceptReady` at `L`; the `advancec` arm passes `advRet`'s `loanRet` to `RawNode.Advance` and
+  re-establishes `runCfg` over `advRS`; `ownRawNodeReady_abandon` keeps `unst` for a snapshot.
+- Consumers: `readyData`/`readyP`/`advanceP`'s new shape, refuted with `snapIn = false` (kv's
+  `KV__run`, the server's `NodeBridge`/`InvRaftNode`, putget/putget3's drivers), statements unchanged.
+
+**3. What S-r (snapshots in examples/kv) needs, given S-d3a/S-d3b and this design.** With `snapIn =
+true`, a `Ready` with `rd.Snapshot' ≠ nil` hands out half of the snapshot (`ownSnapM l.ptr ½`), the
+committed log up to it (`isCommitted l.dlv`, `|l.dlv| = l.index`), the storage itself
+(`ownStorage γ.stor σ`, nothing pending, the loan's floor) and the snapshot's certificate, with
+`rd.Entries` the whole log after the snapshot and no committed entries. The application runs
+`ApplySnapshot(rd.Snapshot)` then `Append(rd.Entries)` and returns at `Advance` the receipt
+`snapReceipt γ.stor l es`: the half snapshot and `ownStorage` at a state with `prev = ss = snapId
+l.snap`, `ents = es`, nothing pending, the floor `l.fl`, the snapshot's lists and `AutoLeave`.
+`MemoryStorage.ApplySnapshot`'s spec must take the snapshot at any fraction (it only reads it; today
+`ownSnapM sp (DFrac.own 1)`), with the storage's `cap` at least the snapshot's index (a cap of
+`2^64`: `LogStoreOk`'s `index < 2^61`) and `memStorCert` of its trip. Compaction is the existing
+`CreateSnapshot`/`Compact` over `memFloorTok` (the floor witness `node.Advance` returns after a
+`Ready` without a snapshot) and, for `CreateSnapshot`, `memStorCert` of the new snapshot's trip,
+which the application registers through `storCertOk` (`SnapConf.lean`: `raftSnapCert` of a prefix
+committed by `isCommitted`). The network rule: a `MsgSnap` is delivered (`netP`) only with `snapIn`,
+outside the no-snapshot mode, in the static mode, carrying its snapshot (index below `2^61`) and
+its certificate (`isMessageC`: `isRaftMsg` gives it at the sender).
+
+## D22 S-d4 carried out: `node.go` over a snapshot `Ready`; the floor after a restore left (2026-10-21)
+
+Stage S-d4 ("D22 S-d4 designed precisely"): `node.go` takes a `MsgSnap` from the network
+(`node.Step`, and `run`'s own `r.Step`) at a node that takes snapshots, and hands a snapshot `Ready`
+to the application -- half the snapshot, the committed log up to it, the storage itself and the
+snapshot's certificate -- taking the receipt back at `Advance`. And `MemoryStorage.ApplySnapshot`
+at any fraction. Trust base unchanged (538 axioms, 2 sorries); every collection's `--check` passes
+unchanged; the server's, putget's, putget3's and the kv example's closed theorems unchanged.
+
+**1. Carried out as designed** (paths under `Proof/go_etcd_io/raft/v3/`).
+- `NodeNames.snapIn : Bool := false`, a parameter `sn` of `StartNode` (premise `sn = true →
+  γ.reNoSnap = false`) and `RestartNode` (`… ∧ md = .static`); their post `γn.snapIn = sn`. The
+  server and the kv example pass `false`.
+- `netP`: `Type = MsgSnap → γ.snapIn = true` in place of `Type ≠ MsgSnap`; `#Hmsg` at `ty ≠ .snap`;
+  `RawNode.Step`'s `"#Hsnap"` (the snapshot, its index below `2^61`, `isMessageC`). The producers
+  (`netP_local`, `node.ReadIndex`, `stepWithWaitOption`, `stepP_split`, kv's `stepP_deliverable`,
+  the server's `stepP_of_recv`) prove the new conjuncts vacuously.
+- `wp_rn_raft_Step_net` (`InvNodeRun.lean`) without `Type ≠ MsgSnap`: premises `DynNoSnap` and
+  `Type = MsgSnap → reNoSnap = false`, the `"#Hsnap"` fact; its `MsgSnap` case is `RawNode.Step`'s
+  (`SnapLogStep`, `ackInv_snap`, `LoanOk.step`, `SnapCfgOut`); post `psnap := psnap || (Type =
+  MsgSnap)`, carried by `headRest_step` (`headRest_snapIn` gives the step's premises).
+- `runCfg` (`InvNode.lean`): `snapIn = false → psnap = false ∧ slent = none`, `snapIn = true →
+  reNoSnap = false ∧ mode = .static`, a loan's `dlv` extends `delivered`; `dlm`'s authority over
+  `rsDlv rs` (the loan's committed log while lent, `delivered` otherwise). `runCfg_extend` extends
+  it at the `Ready` to `dlvAfter delivered ce L`; `runCfg_advance` goes from `{ rs with flw :=
+  false }` to `advRS rs t ca` (with a loan `delivered := l.dlv`, which the authority is already
+  over); `runCfg_confc` in the dynamic mode (no loan there); `runCfg_snap` (for `runCfg_psnap`/
+  `_slent`).
+- The loan's identity: `run`'s record `rof` is `(d, ce, es, p', L)`; `readyP` names `L` and its
+  lower bound is of `dlvAfter d ce L`; `nodeDriverBusy … L` (`L := none` by default) with `ds =
+  dlvAfter d ce L`; `advanceP γ L` with `advReceipt γ.stor es L` (`appendReceipt`, or
+  `snapReceipt`).
+- The snapshot `Ready`'s data, `readySnapData` (`readyDataL … (some l)`; `readyDataL … none` is
+  `readyData`, unchanged): `readyData`'s messages, read states, hard and soft state and `readyIdx`;
+  `snapIn ∧ reNoSnap = false ∧ static`; half the snapshot and `isCommitted l.dlv`, with `LoanOut`'s
+  facts over `d`; and `readyOut γ.stor es (some l)`: the storage and **the snapshot's certificate**
+  `storCert γ.stor (snapTrip l.snap …)` -- added to `readyOut` (`InvRawnodeReady.lean`) at the
+  `RawNode` layer, so `RawNode.Ready`'s post has it too, from the log's `Hkcert` (`ownRaftLog_kcert`,
+  `SnapRdy`'s `ksn` membership).
+- The rendezvous after a snapshot `Ready` (`advance_complete`, `InvAdvance.lean`): the receipt passes
+  to `run` (`advRet`'s `loanRet rs`) for `RawNode.Advance`, nothing is absorbed and no floor raised.
+  `NodeNames.req` is an `Option Nat` (`reqOf L ds`: `none` asks for no floor), `run`'s answer
+  `reqWit` (`True` at `none`), and `node.Advance`'s post `reqWit γ (reqOf L ds)`.
+- A stale `Ready` with a snapshot: `ownRawNodeReady_abandon_keep` raises `unst` for one (`GhLogOk`
+  admits it: a snapshot is pending), `staleOk` keeps `Snapshot ≠ nil → unst`, so an idle node's stale
+  `Ready` has none; `run` recomputes the `Ready` (`HasReady` reports the pending snapshot).
+- For clients that cannot be handed a snapshot (raft's no-snapshot mode, the dynamic mode, or
+  `snapIn` off): `readyDataL_none`, `readyP_none`, `node_ready_receive_ns` (the old post) and
+  `reqWit_none` (the old floor witness).
+
+**2. Deviations from the design.**
+- *The flag does not refute alone; nothing threaded.* The design had the consumers keep
+  `γ.snapIn = false` with their names. A snapshot `Ready` carries `snapIn ∧ reNoSnap = false ∧
+  static` instead (`runCfg` the implication), so the kv example (dynamic mode, `KVCC`) and the
+  server (no-snapshot mode) refute it with what they know. For the server, `rnEnvOk` now records
+  `γ.node.raft.reNoSnap = true`, which its one establisher, `rnEnvOk_of_cluster`, has (`hns`); the
+  exported `isRaftNodeIfc_of_isNode`'s hypothesis is that much stronger, `NewServer.spec` and the
+  closed theorems are not. `StartNode`/`RestartNode`'s `γn.snapIn = sn` is for S-r.
+- *The floor after a restore since a `Ready` without a snapshot*, a case the design did not count.
+  A `MsgSnap` stepped between such a `Ready` and its `Advance` leaves a snapshot pending (`psnap`),
+  and `ownRawNode_raise_floor` needs none (the floor law asks the storage to hold the log up to the
+  new floor, which the log records, `Hpersist`, only with no snapshot pending). So the rendezvous
+  then absorbs the append receipt and raises no floor, and `reqWit γ (some k)` is the witness **or**
+  `snapIn ∧ reNoSnap = false ∧ static`, which the server and the kv example refute (`reqWit_none`):
+  their witness is unchanged. `ownRawNode_raise_floor` keeps `psnap = false` (and `slent = none`);
+  `ownRawNode_appended` never had `psnap = false`. Item 3 designs the rest.
+- *`ApplySnapshot` at a fraction needs every pointer field set, not just a fraction.*
+  `pb.EnsureSnapshot` writes each `nil` pointer field -- the metadata, its conf state, index and term,
+  the conf state's `AutoLeave` (`raftpb/util.go`) -- so the call only reads a snapshot whose every
+  pointer field is set: `ownSnapS` (new, `InvPbSnapSet.lean`; `ownSnapS_M` forgets it).
+  `MemoryStorage.ApplySnapshot.spec` takes `snapArg sp dq sv` (owned, or `ownSnapS` at any `dq`) and
+  gives `ownSnapM sp dq sv` back, with `memStorCert` of the trip and `index ≤ cap` as before;
+  `EnsureSnapshot.spec`/`EnsureSnapshotMetadata.spec` gained a second triple (a set snapshot at any
+  fraction: nothing written; their five callers take `.1`). The `Ready` hands out `ownSnapM ½`
+  (item 4).
+
+**3. Left, designed precisely: the floor after a restore** (for S-r, whose application may compact
+after any `Advance`). Add to `FlOk σ ls` the storage's extent, `ls.snap ≠ none → ls.lent = false →
+ls.sat = false → uint.Z ls.applying ≤ uint.Z σ.prev.index' + |storApp σ σ.pend|` (the storage, its
+pending batch absorbed, holds the log up to `applying`). It holds at a restore from `snap = none`
+(`LogPersistOk`: `storApp σ unpersisted = stored ⊇ sents ++ uents.take ipo`, up to `inprogress - 1 ≥
+applying`; `LogStoreOk none`: `σ.prev = prev`) and is kept by every step: the absorptions
+(`storAbsorb` keeps `storApp σ σ.pend`; after `logAbsorbSnap` the storage is at the lent snapshot,
+`applying ≤` its index by `LoanOk`), the restores (σ and `applying` unchanged), and
+`acceptApplying`/`appliedTo`, which need the premise `snap ≠ none → i ≤ applying` (their callers:
+`acceptReady`, which hands out no committed entries while a snapshot is pending, `CeOk`; `raft.Step`'s
+`MsgStorageApplyResp`, whose index is the queued `applyAck`'s, at most `applying`: a `PendingOk` fact
+to add). Then `ownRaftLog_raise_floor` takes `lent = false ∧ sat = false` (from `slent = none` by
+`LoanOk`/`SnpOk`) in place of `snap = none`, `ownRawNode_raise_floor` drops `psnap = false`,
+`advance_complete` raises the floor in both cases, and `reqWit`'s second case goes. About twelve
+`FlOk` constructions (`InvReadylog.lean` ×3, `InvRaftlog.lean`'s absorb/raise,
+`raftLog__{append,restore,appliedTo,acceptApplying,acceptUnstable,stableTo,stableSnapTo}`,
+`newLogWithSize`) and the two premises' callers.
+
+**4. Left, designed: the `Ready`'s snapshot set** (for S-r's `ApplySnapshot` of the half it is
+handed). The pending snapshot is set in Go (`handleSnapshot` restores `pb.EnsureSnapshot(m.Snapshot)`),
+and `proto.Clone` keeps set fields; the proof has neither: the log holds `ownSnapM p □ sv`
+(`ownSnapDef`, `pendKsn`) and `proto.CloneSnapshot.spec` (a trust-boundary spec) keeps `ownSnapM`/
+`ownSnapW` only. So: `EnsureSnapshot`'s owned triple returns `ownSnapS` (it sets every field; a
+proof change), `raft.restore`/`raftLog.restore`/`unstable.restore` take and the log holds
+`ownSnapS p □ sv` (`ownSnap_Some` and `pendKsn` give `ownSnapM` by `ownSnapS_M` to their readers),
+and `proto.CloneSnapshot.spec` a fourth triple, `ownSnapS` to `ownSnapS` -- a stronger statement at
+the trust boundary, to approve as such -- so that `nextSnapshot`'s clone, and the `Ready`'s half, are
+`ownSnapS`.
+
+No Go bug: the restore-meanwhile case is safe in Go (the storage holds the log up to `applying`,
+item 3's invariant), and `ApplySnapshot`'s `EnsureSnapshot` writes nothing to a `Ready`'s snapshot,
+which is set.
+
+**For S-r (snapshots in `examples/kv`).** The kv example is in the dynamic mode, where raft takes
+no snapshot (`DynNoSnap`): S-r needs it in the static mode (or B8). Then, with `RestartNode … true`:
+- *Network*: deliver a `MsgSnap` to `node.Step` only at a `snapIn` node, with `netP`'s `"#Hsnap"`:
+  the message's snapshot (index below `2^61`) and `isMessageC γ (absSnap …)`, which the sender's
+  `isRaftMsg` gives.
+- *`node.Ready`* (`readySnapData`, `rd.Snapshot ≠ nil`): `ownSnapM l.ptr ½ l.snap`, `isCommitted
+  l.dlv` with `|l.dlv| = index`, no committed entries, `rd.Entries` the log after the snapshot
+  (`LogIndicesOk (snapId l.snap) es`), the storage `ownStorage γ.stor σ` (`σ.pend = []`, `σ.fl =
+  l.fl ≤ index`) and `storCert γ.stor (snapTrip l.snap lists)`; the driver busy at `l.dlv` with the
+  loan `L = some l`.
+- *The application*: `ApplySnapshot(rd.Snapshot)` (its spec: `snapArg` -- the half as `ownSnapS`,
+  item 4 --, `memStorCert` from `storCert` by the storage instance, `index ≤ cap`: a storage made
+  with `cap ≥ 2^61`), then `Append(rd.Entries)` (its own append token on the storage it holds), then
+  `node.Advance` with `advReceipt γ.stor es (some l)` = `snapReceipt`: the half back and `ownStorage`
+  at `prev = ss = snapId l.snap`, `ents = es`, nothing pending, `fl = l.fl`, the snapshot's lists and
+  `AutoLeave`. `node.Advance` then gives no floor (`reqWit γ none`).
+- *Compaction*: after a `Ready` without a snapshot `node.Advance` gives `reqWit γ (some |ds|)`: the
+  floor's witness `storFloor γ.stor x ≥ |ds|` -- or, at a `snapIn` node, nothing if a snapshot was
+  restored meanwhile (item 3 removes that case); with it `CreateSnapshot` (`memFloorTok` from the
+  floor witness, `memStorCert` of the new snapshot's trip at any term, registered through
+  `storCertOk`: `raftSnapCert` of a prefix committed by `isCommitted`) and `Compact`.
+
+## `proto.Clone` of a set snapshot approved (2026-10-21 · the user)
+
+S-d4's item 4: `proto.CloneSnapshot.spec` (the trust-boundary spec of protobuf-go's `proto.Clone`
+at a `*raftpb.Snapshot`, `Spec/google_golang_org/protobuf/proto/CloneSnapshot.lean`) may gain a
+third clause, the clone of a snapshot whose pointer fields are all set (`ownSnapS`) is set too, so
+that raft's log can hold its pending snapshot as set and the `Ready` hand out a snapshot
+`MemoryStorage.ApplySnapshot` accepts (it writes nil fields, `EnsureSnapshot`). True of
+protobuf-go: `Clone` deep-copies, and a set message field stays set in the copy (what the spec's
+existing clauses already state of `Metadata` and `ConfState`). A stronger trusted statement, no new
+axiom. Approved by the user; carried out with S-r.
+
+## D22 S-d4 items 3-4 carried out: the floor after a restore; the log's snapshot set (2026-10-21)
+
+Items 3 and 4 of "D22 S-d4 carried out". Trust base unchanged (538 axioms, 2 sorries; the
+`proto.Clone` axiom restated, as approved); every collection's `--check` passes unchanged; no closed
+theorem's statement changed.
+
+**Item 3: the floor after a restore** (paths under `Proof/go_etcd_io/raft/v3/`).
+- *A deviation: a ghost field.* The design's conjunct (`applying ≤` what the storage holds, with a
+  snapshot pending, the storage neither lent nor at the pending snapshot) is kept by every step the
+  design counted, but not by `appliedSnap`'s `appliedTo` after a **second restore**: there the
+  storage is at the snapshot the `Ready` handed out (`logAbsorbSnap`'s miss), the pending snapshot is
+  a later one, and `appliedTo` moves `applying` to the handed-out snapshot's index -- true of the
+  storage, but `raftLog.appliedTo` cannot see that the storage holds that much. So `LogState.sxt`
+  (ghost, `Defs.lean`): a lower bound of what the storage holds while a snapshot is pending, set to
+  `applying` by `restore` (`logRestore`: kept if it was already a bound and above `applying`) and to
+  the snapshot's index by the absorption (`logAbsorbSnap`). `FlOk`'s fifth conjunct is
+  `StorExtOk σ ls` (`InvRaftlog.lean`): with a snapshot pending and the storage not lent, `sxt ≤
+  σ.prev.index + |storApp σ σ.pend|` and `applying ≤ sxt` (the design's antecedent `sat = false`
+  dropped: at the pending snapshot `sxt` is its index, `applying ≤` it by `LoanOk`, and a `Ready`
+  there, which clears `sat`, changes neither). `storExt_of_inv` derives what a restore needs.
+- *The link to the snapshot handed out.* `RawNode.Advance` steps the node's own responses between
+  the absorption and the acknowledgement, whose frames (`NetFrame`, `LocalFrame`) say nothing of
+  `sxt`; the ghost mirror `NGhost.snp` (the snapshot handed out) survives them. So `SnpOk` gains
+  `SnpExt g ls`: with the storage back, `k.index ≤ sxt` while a snapshot is pending, and `k.index ≤
+  applying` once it is dropped and `appliedSnap`'s window has ended. Kept by `SnpOk.of_fields`
+  (`hx`, by default the fields are the same), `SnpOk.keep` (`SnpKeep` names `sxt`, `aps`,
+  `applying`), `SnpOk.restore` (premise: outside `appliedSnap`'s window), `SnpExt.raise`
+  (`appliedTo`).
+- *Premises* (all discharged by the callers from what they have): `raftLog.appliedTo` and
+  `raft.appliedTo` past `applying` with a snapshot pending only up to `sxt` (and `raft.appliedTo` in
+  `appliedSnap`'s window only past the snapshot handed out); `raftLog.acceptApplying` hands nothing
+  out with a snapshot pending (`acceptReady`: `rdSnapRel`'s `L = none` has no snapshot pending);
+  `raft.appliedSnap` and `raft.Step`'s snapshot acknowledgement: `sv.index ≤ sxt` with a snapshot
+  pending and the storage back, and the snapshot handed out at most `sv`'s (`RawNode.Advance` gives
+  both from `SnpExt` and `NGhost.snp`); `ownRaftLog_absorb_snap`: `applying ≤` the snapshot the
+  storage is back at (`LoanOk`).
+- *Result.* `ownRaftLog_raise_floor` takes `lent = false` in place of `snap = none` (the design's
+  `sat = false` is not needed: `applying ≤ sxt` holds at the pending snapshot too, `logAbsorbSnap`);
+  `ownRawNode_raise_floor` drops `psnap = false` (`slent = none` gives `lent = false`, `LoanOk`/`SnpOk`);
+  `advance_complete` raises the floor after every `Ready` without a snapshot; `reqWit γ (some k)` is
+  the floor witness alone (its second case gone; `reqWit_none` keeps its signature, its premise
+  unused, so the server's `NodeBridge` is unchanged).
+
+**Item 4: the log's pending snapshot set, the `Ready`'s half set.**
+- `proto.CloneSnapshot.spec` (trust boundary) gains the approved fourth clause: the clone of an
+  `ownSnapS` snapshot is `ownSnapS`, owned (the original back). A restated spec: the axiom count is
+  unchanged (`etc/tcb-report.py --check`).
+- `ownSnapS`'s conf state is `csSet` (`InvPbSnapSet.lean`): set at the snapshot's fraction **or read-only
+  for good** -- `raft.restore` freezes the restored snapshot's conf state (`EnsureConfState`'s `#Hcf`),
+  so the half it gives the log has its conf state at `□`. New: `csSet_A`, `smPtsS_W`, `ownSnapS_W`,
+  `_split`, `_persist`, the persistence instances, `ownSnapS_of_struct`, `ownSnapS_rest_of_parts`
+  (the split `raft.restore` makes), and the getters `wp_Snapshot_GetMetadata_S`,
+  `wp_SnapshotMetadata_GetIndex_S`/`GetTerm_S` over the fields (`InvPbSnapSet` now imports
+  `LemmasSendRD`).
+- `EnsureSnapshot`'s and `EnsureSnapshotMetadata`'s owned triples return `ownSnapS`/`smPtsS` (the proof
+  tracks the `Index`/`Term` pointers it allocates); their five callers that want `ownSnapW` take
+  `ownSnapS_W`.
+- The chain: `handleSnapshot` (its `EnsureSnapshot`) → `raft.restore` (takes `ownSnapS`; its post
+  still `ownSnapE`) → `raftLog.restore` → `unstable.restore` (both take and return `ownSnapS`), whose
+  clone (the fourth clause) the log keeps as `pendKsn`'s `ownSnapS p □ sv` (`ownSnap`'s `ownSnapM`
+  from it); `unstable.nextSnapshot`'s clone (the fourth clause again) and
+  `raftLog.nextUnstableSnapshot` are `ownSnapS`; `readyWithoutAccept` splits it (`ownSnapS_split`),
+  the node's half forgotten to `ownSnapM` (`rdSnapRel`, `lentPend`), the application's half `ownSnapS`
+  (`rdSnapOut`, `readySnapData`): what `MemoryStorage.ApplySnapshot` takes (`snapArg`'s second case).
+  `raftLog.snapshot` reads `pendKsn` through `ownSnapS_M`.
+
+## D22 S-r carried out: the Go change of `examples/kv` made and tested (side branch); the proof designed, not carried out (2026-10-21)
+
+Stage S-r ("D22e (A)"; the user's design of 2026-10-21). The Go change is made and tested (below);
+it is **not** committed with this entry: re-translated, it changes `KV.run`, `deliverable` and
+`deliver` and adds six functions, and the proof that would have to come with it (items (1)-(5)) is
+several times the size of S-d4, the data certificate (3) alone a change to the `Storage` model
+(below). Per the brief: S-d4 items 3-4 committed, S-r stopped at this design. The Go change is kept,
+untranslated, on a side branch (`worktree-agent-a7bb8e7cea7f035db-sr-go`, one commit on top of this
+entry's): committing it here would leave `etc/goose.py --check` failing, or the proofs of the
+re-translated functions missing.
+
+### The Go change (examples/kv, tested)
+
+- `KV.run` installs a `Ready`'s snapshot (`rd.Snapshot != nil`) before appending its entries:
+  `decodeState(rd.Snapshot.GetData())` replaces `r.kv` and `r.applied` (under `r.mu`), the applied
+  index jumps to the snapshot's, then `r.storage.ApplySnapshot(rd.Snapshot)`. Data that does not
+  decode stops the replica (`for {}`; unreachable: every snapshot is a replica's).
+- After `Advance`, every `snapEvery = 100` applied entries: `CreateSnapshot(applied,
+  &pb.ConfState{Voters: r.storage.voters}, encodeState(r.kv, r.applied))` and `Compact(applied -
+  snapMargin)` (`snapMargin = 10`, below the floor `Advance` raises to `applied`). **Not after a
+  configuration change** (`reconf`, set when the replica applies one): the brief's "conf state of
+  the fixed voters" is the configuration only until then, so a replica that has applied
+  `RemoveMember`'s change takes no more snapshots (a snapshot it installs is of an index before any
+  configuration change: every snapshot is taken at one). Without this, a dynamic cluster (the
+  `TestRemoveMember` one) could install a snapshot with the wrong configuration -- a bug the brief's
+  design would have put in the example, found while writing it; not an issue of the verified code.
+- `encodeState`/`decodeState`: the key count, each key and value length-prefixed, in increasing
+  byte order of the keys (`less`, an insertion sort `sortStrings`), then the applied operations the
+  same way; `decodeState` refuses trailing bytes. A function of the state, whatever Go's map order.
+- `deliverable` admits `MsgSnap` (a term, a snapshot of index below `maxIndex`, `From ≠ 0`, `From ≠
+  To`, no context); `deliver`'s wire copy clones the snapshot (`proto.Clone`: the receiver's
+  `EnsureSnapshot` writes unset fields).
+- An operation of a replica that commits inside a snapshot the replica installs is not answered
+  (its `do` waits: partial correctness, documented).
+- Tests (`kv_test.go`): `TestEncodeState` (round trip, determinism, refusals), `TestDeliverable`'s
+  `MsgSnap` cases, `TestSnapshotCatchUp` (replica 3 cut off, 250 operations, the others compact; healed,
+  a `MsgSnap` is delivered to 3, which serves the latest values and applies its own operations
+  after). `go test ./...` and `go test -race ./...` pass (`-count=10` of the catch-up and porcupine
+  tests under `-race` too). `etc/goose.py --check --project kv` translates it without error.
+
+### The proof, designed
+
+(1) **The porcupine cluster in the static mode.** `StartCluster` allocates the raft ghost state
+with `raft_dyn_alloc` (dynamic mode, for `RemoveMember`). A static variant `StartClusterS` (or a
+mode parameter): `ownRaftGhost_alloc_boot`-style allocation with `reNoSnap = false`, `RestartNode …
+(sn := true)` (S-d4: `snapIn` needs the static mode), `New`/`KV.run` specs over `γn.mode = .static`
+in place of `KVCC`; `KV.run`'s conf-change branch refuted: in the static mode no conf-change entry
+is committed (`node_entry_data`'s static case: every entry's data is a client operation or empty,
+as no `ProposeConfChange` is issued: `Main`/`Gen` call only `Put`/`Get`/`Append`/`Read`/
+`TransferLeadership`). `RemoveMember.spec` stays over the dynamic mode; `TransferLeadership` is
+mode-generic already.
+
+(2) **The replica's state across an install.** `runOwn γr r ds` (the store's map and applied table
+as of the committed prefix `ds` it applied) jumps to the loan's `l.dlv` (`isCommitted`, `|l.dlv| =
+index`; S-d4's `readySnapData`); `nodeDriverBusy … (some l)` already follows `dlvAfter`. The
+applied counter is `|l.dlv|`.
+
+(3) **The data certificate**, the large part. Raft's snapshot certificates are about the trip
+`(id, lists, AutoLeave)` (`SnapTrip`, `raftSnapCert`, the storage's registry `storCert` with
+`CertKey`, `memCertInv`'s `certElemOk`); nothing records a snapshot's `Data`, and the storage model
+(`StorState`) has no data. Design:
+- a class `SnapData GF` (as `StorageModel`): `dataOk : RaftNames → entryID → List w8 → IProp GF`,
+  persistent -- the application's predicate, fixed by the instance, raft generic in it;
+- `StorState.sdat` (the storage's snapshot's data), kept by `MemoryStorage`'s model: `Snapshot`
+  returns a snapshot with `Data' = σ.sdat`, `CreateSnapshot(i, cs, data)` sets it, `ApplySnapshot`
+  sets it from the snapshot; the storage's registry entries carry it (`CertKey := SnapTrip × Bool ×
+  List w8`, `certCovers` checks it), `certElemOk γ e` adds `dataOk γ e.sid e.data`;
+- `raftSnapCert γ k` stays the configuration's; the message's `.snap` content carries
+  `dataOk γ (snapId sv) sv.Data'` beside it (`isMessageC`), established by raft's sender from the
+  storage's registry (`raftLog.snapshot` returns the storage's snapshot, `Hsksn` and `Hkcert`
+  extended with the data), and given to the receiver: `raft.restore` registers it (`Hcert`), the log's
+  `pendKsn` records the data, and `readySnapData` hands out `dataOk γ (snapId l.snap) l.snap.Data'`;
+- the application mints it at `CreateSnapshot` (the registry's direction `raftSnapCert`/`dataOk` →
+  `storCert`, `storCertOk`), and reads it at install.
+- kv's instance: `dataOk γ sid d := ∃ L, isCommitted γ L ∗ ⌜L.length = sid.index ∧ d =
+  encodeStateM (kvFold (firstOcc (dataOf L))) (appliedOf L)⌝` -- the replicated state of the
+  committed prefix of that length (`runOwn`'s own relation). Minted at `CreateSnapshot(applied, …)`
+  from `runOwn γr r ds` (`ds` committed, `|ds| = applied`); at install, `isCommitted_agree` of `L`
+  and `l.dlv` (same length) gives `L = l.dlv`, so the decoded state is `runOwn`'s at `l.dlv`.
+Cost: the `Storage` model (`StorState`, `MemoryStorage`'s six specs and their proofs, the registry),
+raft's sender and receiver certificate paths (S-b′2..S-b′4's files), `pendKsn`, `readySnapData`, and
+the server's `NodeBridge`/`InvRaftNode` instance (`dataOk` trivial for etcd until S-j: its merged
+snapshot's content is the backend's, D22c).
+
+(4) **Encoding lemmas.** `encodeStateM`/`decodeStateM` over the model (sorted keys, `less` the
+lexicographic order of bytes), `decodeStateM (encodeStateM m a) = some (m, a)`, and the specs of the
+six Go functions (`putBytes`/`getBytes`/`less`/`sortStrings`/`encodeState`/`decodeState`: Goose maps
+iterated as `range`, the sort a permutation into sorted order).
+
+(5) **`kv_porcupine_safe`**, statement unchanged: `Main` over `StartClusterS`; the replica's
+invariants (`rkvInv`, `kvLb`) are about raft's committed log, which a snapshot install does not
+change, so the client side is untouched; `KV.run` re-proved with (2)-(4) and `MemoryStorage`'s
+`ApplySnapshot` (`snapArg`'s set half, `memStorCert` from the `Ready`'s `storCert`, `index ≤ cap`:
+the store's storages are made with `cap ≥ 2^61`), `CreateSnapshot` (`memFloorTok` from `node.Advance`'s
+floor witness, now unconditional, item 3) and `Compact`.
+
 ## D23: watchkv's watch path: the workload record, the watch run slots, the plan fixed at start (2026-10-20)
 
 **Problem.** `watch_safe` (the closed theorem of `examples/watchkv`: a prefix watch from revision

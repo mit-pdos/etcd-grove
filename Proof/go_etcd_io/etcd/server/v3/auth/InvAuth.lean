@@ -7,8 +7,11 @@ P2)".
 **The store** `as` (`authInv as R`, persistent):
 - `revision`, an atomic (`Revision()` loads it; `commitRevision`/`setRevision`, the admin side,
   add to or store it): its points-to in an invariant of its own;
-- `lg`, `be`, `tokenProvider`: read-only (written by `NewAuthStore`; `be` also by `Recover`,
-  which is left out, as the lessor's `le.b`);
+- `lg`, `tokenProvider`: read-only (written by `NewAuthStore`);
+- `beMu` (an `RWMutex`, since the fork's d52eec43e, D22k (A)) guards the backend `be` with its
+  contract (`beP`): `Recover` (names-only) writes it under the write lock, the permission checks
+  read it under a read lock (`lockedReadTx`), so a check's read transaction is of the backend
+  current when it was locked (the server closes a replaced backend only after `Recover`);
 - `enabledMu` (an `RWMutex`) guards `enabled` (`enabledP`);
 - `rangePermCacheMu` (an `RWMutex`) guards the permission cache `rangePermCache` (`cacheP`): a
   map from user name to a `*unifiedRangePermissions` whose two interval trees (`readPerms`,
@@ -27,8 +30,8 @@ P2)".
   only).
 
 **The readers** (`authRd as R`): `IsAuthEnabled` read-locks `enabledMu` and the permission checks
-also `rangePermCacheMu`, each needing a reader slot (`sync.ownRWMutex`: Perennial bounds an
-`RWMutex`'s readers), and the backend's read transaction needs `R`.
+also `rangePermCacheMu` and `beMu`, each needing a reader slot (`sync.ownRWMutex`: Perennial bounds
+an `RWMutex`'s readers), and the backend's read transaction needs `R`.
 -/
 module
 
@@ -154,17 +157,31 @@ instance tokenProviderOk_persistent (tp : GoInterface) :
     Persistent (tokenProviderOk (GF := GF) tp) := by
   unfold tokenProviderOk; infer_instance
 
+/-- What `beMu` guards at `q`: the backend `be`, with its contract (`Recover` replaces it under
+the write lock). -/
+def beP (st : Loc) (R : IProp GF) (q : Qp) : IProp GF :=
+  iprop(∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own q} be ∗ authBackendOk be R)
+
+/-- **A locked read transaction** `tx` for the read resource `R` (what `lockedReadTx` returns):
+its held token `H`, which `UnsafeGetUser(name)` keeps and `RUnlock()` turns back into `R`. -/
+def authReadTxLocked (tx : GoInterface) (R : IProp GF) : IProp GF :=
+  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ H : IProp GF, H ∗
+    □ (∀ name : GoString,
+      {{ H }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
+      {{ (u : Loc), RET #u; H }}) ∗
+    □ ({{ H }} (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #())) {{ RET #(); R }}))
+
 /-- The invariant of `revision` (an atomic). -/
 def revInv (st : Loc) : IProp GF :=
   iprop(∃ r : w64, aF go!"revision" st ↦ r)
 
 /-- **The auth store** at `as` (persistent), its backend's read resource `R`: the atomic
-`revision`'s invariant, the read-only `lg` (not nil), `be` and `tokenProvider` with their
-contracts, and the guards of its two locks. -/
+`revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` with its contract, and
+the guards of its three locks (`beMu`'s holds `be` with its contract). -/
 def authInv (st : Loc) (R : IProp GF) : IProp GF :=
   iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st) ∗
     (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
-    (∃ be : AuthBackend, aF go!"be" st ↦□ be ∗ authBackendOk be R) ∗
+    sync.isRWMutexGuard (aF go!"beMu" st) (beP st R) ∗
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st) ∗
     sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st))
@@ -180,9 +197,13 @@ def enabledRd (st : Loc) : IProp GF :=
 def cacheRd (st : Loc) : IProp GF :=
   sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st)
 
+/-- A reader slot of `beMu` (`lockedReadTx`). -/
+def beRd (st : Loc) (R : IProp GF) : IProp GF :=
+  sync.ownRWMutex (aF go!"beMu" st) (beP st R)
+
 /-- **A permission check's reader resource**: a slot of each lock and the backend's `R`. -/
 def authRd (st : Loc) (R : IProp GF) : IProp GF :=
-  iprop(enabledRd st ∗ cacheRd st ∗ R)
+  iprop(enabledRd st ∗ cacheRd st ∗ beRd st R ∗ R)
 
 /-- `err` is `nil` or one of the error variables the request side returns. -/
 def authErrIs (err : GoInterface) : IProp GF :=

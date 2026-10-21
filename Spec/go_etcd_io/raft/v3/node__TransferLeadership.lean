@@ -35,9 +35,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev node.TransferLeadership.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (lead transferee : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  -- (2026-10-19, D21 M2r) outside the cluster's no-snapshot mode, where leader transfer is off
-  -- (`NGhost.xf`; etcd's server, in that mode, never transfers leadership)
-  γ.raft.reNoSnap = false →
+  -- (2026-10-19, D21 M2r) outside the cluster's no-transfer mode, where leader transfer is off
+  -- (`NGhost.xf`; etcd's server, in that mode, never transfers leadership; D22 S-a:
+  -- `RaftNames.reNoXfer`, until then the no-snapshot mode's flag)
+  γ.raft.reNoXfer = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
       (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))

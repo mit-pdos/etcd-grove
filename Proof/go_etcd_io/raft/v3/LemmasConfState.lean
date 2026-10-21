@@ -49,6 +49,37 @@ theorem wp_EnsureConfState_freeze
     · iframe Hc; ipureintro; intro _; rfl
     iapply HΦ; iexact Hcs
 
+/-- (D22 S-b, D22j, 2026-10-19) `EnsureConfState` on a snapshot's nested conf state held at `1`,
+`nil` or not (`restore`'s `!found` exit: a `nil` `ConfState` names no node): a conf state with the
+same record (`nil`'s is the zero one) and its `AutoLeave` set, frozen read-only for good (`pc`
+itself when non-`nil`, `wp_EnsureConfState_freeze`; a fresh one for `nil`), and the snapshot's
+nested conf state back as `csOptA` (for non-`nil`, its third case). -/
+theorem wp_EnsureConfState_opt
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG))
+    (pc : Loc) (c : ConfStateM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ csOptA pc (DFrac.own 1) c }}
+      (App (Val #(functions raftpb.EnsureConfState [])) (Val #pc))
+    {{ (q : Loc), RET #q; csPts q DFrac.discard c true ∗ csOptA pc (DFrac.own 1) c ∗
+        ⌜pc ≠ null → q = pc⌝ }} := by
+  iintro %Φ ⟨#Hinit, Hc⟩ HΦ
+  icases csOptA_nn _ _ _ $$ Hc with ⟨Hc, %Hpc⟩
+  rcases Hpc with ⟨Hp, Hc0⟩ | Hpc
+  · subst Hp Hc0
+    iapply wp_fupd
+    wp_apply wp_EnsureConfState.2 as %q Hcs
+    imod csPts_persist _ _ _ _ $$ Hcs with #Hcs
+    imodintro
+    iapply HΦ
+    iframe Hcs Hc
+    ipureintro; intro h; exact absurd rfl h
+  · wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc c Hpc $$ [Hc] as #Hcs
+    · iexact Hc
+    iapply HΦ
+    iframe Hcs
+    isplitr
+    · iunfold csOptA; iright; iright; iexact Hcs
+    ipureintro; intro _; rfl
+
 end lemmas
 
 end EtcdGrove

@@ -54,7 +54,7 @@ theorem EtcdServer.applyAll.wp_proof
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, #Hwtf, #Hwt, #Hmscf, ⟨%γc, %Pm, #Hmscb, #Hnosnap⟩, #Hsc,
-    ⟨%stg, #Hstgf, #Hstgc⟩, -⟩
+    ⟨%stg, #Hstgf, #Hstgc⟩, -, -⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, ⟨%g, #Hg, #Hgs⟩, ⟨%bsl, #Hbsl⟩⟩
@@ -77,7 +77,7 @@ theorem EtcdServer.applyAll.wp_proof
   · iframe #; iframe
   iunfold srvFS at Hfs
   icases Hfs with ⟨%sf1, Hsf1⟩
-  obtain ⟨hok', hai', hci'⟩ := Hpost
+  obtain ⟨hok', hai', hci', hat'⟩ := Hpost
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Htok]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst
@@ -144,7 +144,7 @@ theorem EtcdServer.applyAll.wp_proof
       · iexact HWA'
       isplitl [HKV Hka]
       · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-      ipureintro; exact ⟨hok', hai', hci'⟩
+      ipureintro; exact ⟨hok', hai', hci', hat'⟩
     iapply BigAndL.bigAndL_nil.2
     itrivial
   ileft
@@ -222,7 +222,7 @@ theorem EtcdServer.applyAll.wp_proof
     · iexact HWA'
     isplitl [HKV Hka]
     · iexists x'; iframe HKV Hlog' Hka; ipureintro; exact Hx'
-    ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
+    ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci', hat'⟩
 
 end proof
 

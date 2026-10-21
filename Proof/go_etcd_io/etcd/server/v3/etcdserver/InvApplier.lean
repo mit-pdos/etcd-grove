@@ -353,6 +353,27 @@ instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance
 
+/-- (D22 S-h, 2026-10-20; S-0's amendment) **The applied term after a batch** `es` applied from the
+term `at0`: unchanged if no entry was applied, else the last applied entry's (`applyEntries`
+sets `ep.appliedt` only for a non-empty batch). -/
+def termAfter (at0 : w64) (es : List EntryModel) (at' : w64) : Prop :=
+  (es = [] ∧ at' = at0) ∨ es.getLast?.map EntryModel.term = some at'
+
+/-- (D22 S-h) **`at'` is the last term of the applied log `A`**, if any (`applyRes`'s). -/
+def lastTermIs (A : List EntryModel) (at' : w64) : Prop :=
+  A = [] ∨ A.getLast?.map EntryModel.term = some at'
+
+theorem lastTermIs_append {A es : List EntryModel} {t t' : w64} (h1 : lastTermIs A t)
+    (h2 : termAfter t es t') : lastTermIs (A ++ es) t' := by
+  unfold lastTermIs termAfter at *
+  rcases h2 with ⟨rfl, rfl⟩ | h2
+  · simpa using h1
+  · right
+    rw [List.getLast?_append]
+    cases hl : es.getLast? with
+    | none => rw [hl] at h2; simp at h2
+    | some e => rw [hl] at h2; simpa using h2
+
 -- `resultOk ar` (the server's, until the apply package's unit 3): `apply.resultErrOk`
 -- (`apply/InvUber.lean`), the same definition, which `apply.Apply`'s spec returns.
 

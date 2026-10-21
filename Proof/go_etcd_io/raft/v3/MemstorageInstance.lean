@@ -50,6 +50,7 @@ own premise: the batch's last index at most `2^61`.
 module
 
 public import Proof.go_etcd_io.raft.v3.Link
+public import Proof.go_etcd_io.raft.v3.MemCertLink
 
 @[expose] public section
 
@@ -83,15 +84,15 @@ class MemStorReg (GF : BundledGFunctors) where
 
 /-- A storage's names, as the registry records them. -/
 abbrev MemStorNamesRec :=
-  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
+  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
+  (γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
 
 theorem MemStorNames.rec_inj (γs1 γs2 : MemStorNames) (h : γs1.tuple = γs2.tuple) : γs1 = γs2 := by
   cases γs1; cases γs2
   simp only [MemStorNames.tuple, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   rfl
 
 section model
@@ -179,6 +180,12 @@ theorem memStorCut_capI (st : Storage) (n k : Int) :
   icases memStorCut_cap γs n $$ Hc with %Hn
   ipureintro; omega
 
+/-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: the `MemoryStorage`'s, of
+its names. -/
+def memStorCertI (st : Storage) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames), ⌜st = memStorIface ms⌝ ∗ memStorReg ms γs ∗
+    memStorCert γs k)
+
 /-- The storage model of an application whose `Storage`s are bare `MemoryStorage`s. -/
 instance memStorageModel : StorageModel GF where
   ownStorage := memOwnStorage
@@ -191,6 +198,33 @@ instance memStorageModel : StorageModel GF where
   storCap := memStorCapI
   storCap_persistent := fun st k => by unfold memStorCapI; infer_instance
   storCut_cap := memStorCut_capI
+  storCert := memStorCertI
+  storCert_persistent := fun st k => by unfold memStorCertI; infer_instance
+
+omit package_sem in
+theorem memStorCert_at (ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ storCert (memStorIface ms) k -∗ memStorCert γs k := by
+  iintro #Hreg Hc
+  ihave Hc : memStorCertI (memStorIface ms) k $$ [Hc]
+  · iexact Hc
+  unfold memStorCertI
+  icases Hc with ⟨%ms', %γs', %Hst, #Hreg', Hc⟩
+  have := memStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases memStorReg_agree ms γs γs' $$ Hreg Hreg' with %H
+  subst H
+  iexact Hc
+
+omit package_sem in
+theorem memStorCert_intro (ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ memStorReg (GF := GF) ms γs -∗ memStorCert γs k -∗ storCert (memStorIface ms) k := by
+  iintro #Hreg Hc
+  ihave H : memStorCertI (memStorIface ms) k $$ [Hc]
+  · unfold memStorCertI
+    iexists ms, γs
+    iframe Hreg Hc
+    ipureintro; rfl
+  iexact H
 
 omit package_sem in
 /-- (2026-10-19, D21 M3) A registered `MemoryStorage` at a cap at most `k` is capped at `k`. -/
@@ -308,6 +342,30 @@ theorem memStorage_Append (ms : Loc) (γs : MemStorNames) (p : List EntryM) (s :
   iexact Hrec
 
 end model
+
+section certLink
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable [MemStorReg GF]
+
+/-- A registered `MemoryStorage` whose registry is tied to `γ` meets `storCertOk γ`. -/
+theorem memStorCertOk_intro (γ : RaftNames) (ms : Loc) (γs : MemStorNames) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ memStorReg ms γs -∗ storCertOk γ (memStorIface ms) := by
+  iintro #Hinv #Hreg
+  unfold storCertOk
+  isplit
+  · iintro !> %k %E %hE #Hc
+    ihave #Hc := memStorCert_at ms γs k $$ Hreg Hc
+    iapply memCert_read γ γs k E hE $$ Hinv Hc
+  · iintro !> %k %E %hE #Hk
+    imod memCert_register γ γs k E hE $$ Hinv Hk with #Hc
+    imodintro
+    iapply memStorCert_intro ms γs k $$ Hreg Hc
+
+end certLink
 
 end EtcdGrove
 end Perennial

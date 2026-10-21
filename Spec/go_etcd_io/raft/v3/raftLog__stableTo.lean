@@ -29,13 +29,19 @@ The premise `StableOk` is what keeps `ownRaftLog`'s storage relation: the entrie
 stable are persisted (nothing left unpersisted, and the storage holds the log up to
 `id`: `stored`; until 2026-10-10 `id.index < offsetInProgress`) and no snapshot is
 pending. Go checks only the term at `id.index`, so this is a real premise -- see
-`StableOk`. -/
+`StableOk`.
+
+(D22 S-d1b, 2026-10-21) On `ownRaftLogW`: the acknowledgement of a snapshot's `Ready` moves the
+entries after the snapshot stable while the snapshot is still pending, in the `sapp` window (the
+storage holds the snapshot and those entries); `StableOk` admits that window for a hit. A caller
+outside it converts (`ownRaftLog_toW`, `ownRaftLogW_quiet`: `logStableTo` keeps both windows'
+flags). -/
 abbrev raftLog.stableTo.spec : Prop :=
   ∀ (l : Loc) (ls : LogState) (id : entryID),
   StableOk ls id →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLogW l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"stableTo")) (Val #id))
-  {{ RET #(); ownRaftLog l (logStableTo ls id) }}
+  {{ RET #(); ownRaftLogW l (logStableTo ls id) }}
 
 end spec
 

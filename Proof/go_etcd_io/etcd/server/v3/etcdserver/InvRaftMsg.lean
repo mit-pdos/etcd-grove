@@ -167,6 +167,24 @@ theorem wp_msgAt_GetType (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (h
   iapply HΦ
   itrivial
 
+/-- `p.GetTerm()` of a hard state at `hs` (nil: the empty one) is `hs.term`. -/
+theorem wp_hardStateAt_GetTerm
+    (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG)) :
+    ∀ (p : Loc) (hs : HardStateModel),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ hardStateAt p hs }}
+      (App (Val (p @!! go.GoType.PointerType raftpb.HardState.ty @!! go!"GetTerm")) (Val #()))
+    {{ RET #hs.term; True }} := by
+  intro p hs
+  iintro %Φ ⟨#Hi, #H⟩ HΦ
+  iunfold hardStateAt at H
+  iapply wp_hsOpt_GetTerm wp_GetTerm p hs.toM $$ [$Hi $H]
+  inext
+  iintro -
+  ispecialize HΦ $$ []
+  · itrivial
+  iExactEq HΦ
+  rfl
+
 /-- `p.GetCommit()` of a hard state at `hs` (nil: the empty one) is `hs.commit`. -/
 theorem wp_hardStateAt_GetCommit
     (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG)) :

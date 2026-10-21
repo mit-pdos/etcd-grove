@@ -36,7 +36,7 @@ abbrev KV.run.spec : Prop :=
       -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
       -- `op` (`KVCC`), and the driver's view of its configuration, the initial one
       ⌜KVCC γp.node op c0 c1⌝ ∗ nodeCfg γp.node 0 c0 ∗
-      nodeDriver γp.node id n [] ∗ runOwn γr r [] ∗
+      nodeDriver γp.node id n [] hsZero ∗ runOwn γr r [] ∗
       sendSpec send γp.node }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"run")) (Val #send))
   {{ RET #(); True }}

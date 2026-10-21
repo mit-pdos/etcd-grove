@@ -97,6 +97,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (2026-10-19, D21 M3) `StartNode.spec`'s: in raft's no-snapshot mode, the storage never
       -- compacted past index `1`
       "#Hnscap" ∷ NsCap γ.reNoSnap (memStorIface bv.storage') ∗
+      -- (D22 S-b′3, 2026-10-20) `StartNode.spec`'s: the storage's certificate link (none needed in
+      -- the no-snapshot mode)
+      "#Hclk" ∷ certLink γ (memStorIface bv.storage') ∗
       -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
       "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
@@ -131,7 +134,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
           γw.node = γn ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
           γw.γs = γs ∧ γw.reg = reg⌝ ∗
         -- raft's node
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
+        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗

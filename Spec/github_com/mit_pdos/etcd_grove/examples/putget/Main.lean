@@ -14,7 +14,7 @@ panic, so the `Get` that returned `nil` returned the `Put`'s value (D18's monoto
 logic's thread bound and the time-receipt bounds (the adequacy theorem's choices: `threadBound GF ≤
 2 ^ 31`, `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`); the named workload and effect premises of the
 server's construction (`ckptEffectsOk`, `authRecordsFit`,
-`apply.backendUnderQuota`, `mvcc.backendNoCompaction`); Go's method sets of the gRPC service values
+`apply.backendUnderQuota`, `storage.dbOpensOk`); Go's method sets of the gRPC service values
 (`v3rpc.ServerMethodSets`) and that `errors.As` takes `*rpctypes.EtcdError` as a target.
 The method-set classes `ErrorStringLeaf` and `context.ErrorStringIsError`, which make `io.EOF`'s
 package fact the server's `eofVar` (`v3rpc.eofVar_of_init`; until 2026-10-20, when Perennial's `io`
@@ -51,8 +51,7 @@ abbrev Main.spec : Prop :=
     (N : Nat) (id : w64) (bootLog : List EntryM),
   BootFacts id bootLog →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget ∗
       netAddrFree (GF := GF) go!"127.0.0.1:23790" ∗ threadTok ∗ premises N id bootLog }}

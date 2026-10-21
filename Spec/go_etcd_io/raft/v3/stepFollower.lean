@@ -93,7 +93,7 @@ at `c` (`HupOkC`). -/
 def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
+  (if m.Type' = MsgSnap then SnapCfgOk id c s sv scfg c'
    else c' = c) ∧
   (if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
      else if m.Type' = MsgProp then
@@ -208,7 +208,7 @@ abbrev stepFollower.spec : Prop :=
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id ∧
+     SnapScopeIf id sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
      s.gh.ns = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -216,7 +216,10 @@ abbrev stepFollower.spec : Prop :=
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
       -- forwarded proposal and the response to a heartbeat carry)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-               ⟨m, ents, sn, cl, rs⟩ }}
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
+      -- (`handleSnapshot`'s; `tsSrc_ne` for any other type)
+      "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn }}
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗

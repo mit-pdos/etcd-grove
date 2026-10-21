@@ -55,7 +55,9 @@ at the etcd pin):
   within bbolt's value bound (`authRecordsFit`, a named workload premise).
 * The reader resource `RD` is a reader slot of the store's `enabledMu` (a `sync.RWMutex`, made by
   `NewAuthStore`): the lock's slots, one per reader (D14i, 2026-10-17: the request path's and the
-  apply thread's each hold one; the Go `RWMutex` panics only beyond `2 ^ 30` readers). -/
+  apply thread's each hold one; the Go `RWMutex` panics only beyond `2 ^ 30` readers); likewise of
+  `rangePermCacheMu` and (the fork's d52eec43e, D22k (A)) of `beMu`, under which the permission
+  checks take their read transaction (`lockedReadTx`) and `Recover` replaces `be`. -/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
     (W Pk : IProp GF) (qo : Qp),

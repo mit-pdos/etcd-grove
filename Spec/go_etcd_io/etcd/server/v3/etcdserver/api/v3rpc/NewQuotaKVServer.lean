@@ -28,25 +28,24 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`NewQuotaKVServer(s)`**: a `KVServer` holding a `*quotaKVServer` (`quotaKVServerAt`) over
-`NewKVServer(s)`'s `*kvServer` (`kvServerIs`), with a quota from `newBackendQuota(s, "kv")`, the
-alarmer `s` and its member id; the reader slots come back. -/
+`NewKVServer(s)`'s `*kvServer` (`kvServerIs`), with the alarmer `{s, "kv"}` (since the fork's
+8f793b820, D22g (A): each check builds its quota over the current backend; until then a quota from
+`newBackendQuota(s, "kv")` built here, and the member id). The server's logger and quota fields and
+the workload premise `backendUnderQuota` go into `quotaAlarmerAt`, for the checks. -/
 abbrev v3rpc.NewQuotaKVServer.spec : Prop :=
-  ∀ (s : Loc) (A : v3rpc.KVAns GF) (n : w64) (lg : Loc) (qb mid : w64),
+  ∀ (s : Loc) (A : v3rpc.KVAns GF) (n : w64) (lg : Loc) (qb : w64),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ v3rpc.raftKV s A ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ v3rpc.raftKV s A ∗
       structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"MaxTxnOps"
         (structFieldRef EtcdServer go!"Cfg" s) ↦□ n ∗
-      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
-      srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb ∗ srvBemuReader s ∗
-      srvMemberIDAddr s ↦□ mid }}
+      srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ qb }}
     (App (Val (@! v3rpc.NewQuotaKVServer)) (Val #s))
   {{ (kv : GoInterface), RET #kv; ∃ (q p : Loc) (cid mid' : w64),
       ⌜kv = interface.mkOk (go.GoType.PointerType v3rpc.quotaKVServer.ty) #q⌝ ∗
       v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType v3rpc.kvServer.ty, #p⟩ s ∗
-      v3rpc.kvServerIs p s A cid mid' n ∗ srvLgReader s ∗ srvBemuReader s }}
+      v3rpc.kvServerIs p s A cid mid' n }}
 
 end spec
 

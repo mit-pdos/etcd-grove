@@ -292,6 +292,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
         (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Heq0)))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [Hphys Hresp] as Hphys
   · iframe
+    iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   wp_gets
   rw [Hty]
   try wp_auto
@@ -351,6 +352,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
         (Int.le_refl _))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne)) $$ [Hphys Hresp] as Hphys
   · iframe
+    iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
@@ -423,6 +425,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
          $$ [Hphys Hresp]
        · iframe Hphys Hresp
+         iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
     | (have _h : $grant = false := rfl
        wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys
@@ -452,6 +455,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
          $$ [Hphys Hresp]
        · iframe Hphys Hresp
+         iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
     try wp_auto
     -- not a `MsgVote`: no vote recorded
@@ -482,6 +486,8 @@ macro "prevote_resp_dispatch" : tactic =>
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]
+      ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+      · iapply tsSrc_ne; notsnap_tac
       wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -490,8 +496,8 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys; rw [ite_eq_right Hnp]; iexact Hm
+        $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
@@ -505,6 +511,8 @@ macro "prevote_resp_dispatch" : tactic =>
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
       simp only [stepFuncOf]
+      ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+      · iapply tsSrc_ne; notsnap_tac
       wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
@@ -515,8 +523,8 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys; rw [ite_eq_right Hnp]; iexact Hm
+        $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
           (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres
@@ -561,6 +569,8 @@ macro "prevote_resp_dispatch" : tactic =>
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
+      ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+      · iapply tsSrc_ne; notsnap_tac
       wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
@@ -571,8 +581,8 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-        $$ [Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys; rw [ite_eq_right Hnp]; iexact Hm
+        $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inr Hrole)
           (Hvoter (by rw [Hrole]; decide)) Hnw Hwf Hres

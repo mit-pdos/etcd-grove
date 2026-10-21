@@ -29,8 +29,7 @@ the victims' wake-up channel, the stop channel), the post-lock hook recorded, th
 the initial log (`watchWriter`: the certificate, every revision token and its half of the
 notified log), every watch token (`watchToks`: a registration costs one), every reader slot of the two stores' locks (`watchReader`), the right to close the
 stop channel (`stopCloser`) and the inner store (`storeCloser`), and the zero wait group (for
-`New`). The backend records no compaction (`backendNoCompaction`, `NewStore`'s premise; D19l
-(v)), and the inner store's closer holds its scheduler's stop token (D19m (C), 2026-10-18). The lessor's `SetRangeDeleter` takes the deleter closure as an opaque value (its later
+`New`). The backend records no compaction (`kbNoCmp`, `NewStore`'s; D19l (v) (A), D22 S-g), and the inner store's closer holds its scheduler's stop token (D19m (C), 2026-10-18). The lessor's `SetRangeDeleter` takes the deleter closure as an opaque value (its later
 calls of it are outside the model, as in `NewStore`). The index's names `γi` and the
 certificate map's `γok` are the caller's, fresh, and the map's authority is handed back
 (2026-10-16, D13a: the etcd server chooses them before `newRaftNode`, and its KV certificates'
@@ -38,10 +37,10 @@ invariant takes the authority). -/
 abbrev mvcc.newWatchableStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (γi : mvcc.IdxNames) (γok : GName),
-  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → mvcc.backendNoCompaction →
+  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
-      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}

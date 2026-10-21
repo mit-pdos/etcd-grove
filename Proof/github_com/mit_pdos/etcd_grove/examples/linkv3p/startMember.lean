@@ -84,7 +84,7 @@ theorem startMember.wp_proof
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
     Φs γn
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hnoc Hms
+    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     Hslot⟩
   iunfold bootPremise at Hboot
@@ -137,7 +137,7 @@ theorem startMember.wp_proof
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
       · unfold cfgOk; simp
       · exact ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
     isplitr
@@ -161,10 +161,10 @@ theorem startMember.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hnoc
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, #Hnm, -⟩)
   · -- `NewServer` failed: the error returned
     cases err with
@@ -212,7 +212,7 @@ theorem startMember.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
@@ -228,7 +228,7 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- the member up (putget3's `memberUp`, as linkv3's `startMember` returns it), in the form
   -- linkv3's `Main` takes it apart to serve the member
-  ihave Hup : memberUp srv ρ E₀ lg $$ [Hgo Hlg3 Hrslots Hwpi Hbemu Hlts Hlgs Hrds Hsts]
+  ihave Hup : memberUp srv ρ E₀ lg $$ [Hgo Hlg3 Hrslots Hwpi Hbemu Hlts Hlgs Hrds Hsts Hbms]
   · iunfold memberUp
     iexists E, _, γw
     iframe
@@ -238,7 +238,7 @@ theorem startMember.wp_proof
   iclear Hreq Hrd Hwb Hsf
   iunfold memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
@@ -273,8 +273,9 @@ theorem startMember.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := EtcdGrove.client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := EtcdGrove.client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]

@@ -36,7 +36,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **What the inbound path reads of the server `s`**, member `id` (persistent; see the file
 header), in the network `γn` whose payload is the server's (`srvNet` at the node's raft and budget names), the
-cluster in raft's no-snapshot mode, booted from a non-empty log. -/
+cluster in raft's no-snapshot mode, booted from a non-empty log, and (2026-10-19, D22 S-a) in its
+no-transfer mode (`RaftNames.reNoXfer`, until then the no-snapshot mode's). -/
 def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ (l c st : Loc) (γ : RNNames),
     srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗ srvMemberIDAddr s ↦□ id ∗ ⌜γ.id = id⌝ ∗
@@ -44,7 +45,7 @@ def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
     srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗
     rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) ∗
     ⌜γn.N = srvNet γ.node.raft γ.node.bud ∧ γ.node.raft.reNoSnap = true ∧
-      γ.node.raft.reBoot ≠ []⌝)
+      γ.node.raft.reBoot ≠ [] ∧ γ.node.raft.reNoXfer = true⌝)
 
 instance srvProcOk_persistent (γn : NetNames GF) (s : Loc) (id : w64) :
     Persistent (srvProcOk (GF := GF) γn s id) := by
@@ -73,29 +74,32 @@ theorem isRaftMsg_isMessages (γ : RaftNames) (st : MsgSt) (Hns : st.msg.Type' �
   · rw [Hty] at Hn; cases Hn
   · rw [Hty] at Hty'; cases Hty'
     simp only [Option.toList_some]
-    iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl
+    ihave #Hx := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hl
+    iapply isMessageC_isMessage $$ Hx
   · exact absurd (mtypeOf_Snap _ Hsn) Hns
 
 /-- **A delivered message is what `node.Step` takes** (see the file header): at the node `γ.id`
 whose network payload is the server's. -/
 theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     (HN : γn.N = srvNet γ.node.raft γ.node.bud) (hns : γ.node.raft.reNoSnap = true)
-    (hboot : γ.node.raft.reBoot ≠ []) (ml : Loc) :
-    netRecv (GF := GF) γn γ.id ml ⊢ |==> stepP γ.node γ.id ml := by
+    (hboot : γ.node.raft.reBoot ≠ [])
+    -- (2026-10-19, D22 S-a) `SentMsgOk` is of the no-transfer mode (D22 S-a to S-c: of both)
+    (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
+    netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by
   obtain ⟨N, g, dir⟩ := γn
   simp only at HN
   subst HN
   iintro Hr
   iunfold netRecv at Hr
   simp only [srvNet]
-  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩⟩
+  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩, -⟩
   obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto⟩ := Hw
   icases HP with ⟨#Hrm, #Htl⟩
   ihave %Hns := isRaftMsg_not_snap γ.node.raft hns st $$ Hrm
   ihave #Hrm' := Hrm
   iunfold isRaftMsg at Hrm'
   icases Hrm' with ⟨-, %Hsent0, -⟩
-  have Hsent := Hsent0 hns
+  have Hsent := Hsent0 hnx
   have Htn := SentMsgOk.ne_timeoutNow Hsent
   ihave #Hmsgs := isRaftMsg_isMessages γ.node.raft st Hns $$ Hrm
   -- the copy's state is the message's but for its responses
@@ -136,9 +140,20 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · ipureintro
       exact NetMsgOk.of_sent Hsent Hto Hp
     isplitr
-    · ipureintro; exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent)⟩
+    · ipureintro
+      exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent),
+        fun h => absurd h Hns⟩
+    -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
+    isplitr
+    · imodintro
+      iintro %ty %Hty %_Hne
+      iapply Hmsgs $$ %ty %Hty
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h Hns
     simp only [ite_eq_right Htn]
-    iframe Hmsgs Htl HO Htc
+    iframe Htl HO Htc
 
 end lemmas
 
