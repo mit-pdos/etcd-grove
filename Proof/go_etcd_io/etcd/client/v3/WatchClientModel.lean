@@ -105,10 +105,6 @@ theorem gOk_init : gOk RunSt.init ∅ := by
 
 /-! ## Watch ids -/
 
-/-- The control responses of the id `X`. -/
-abbrev ctrlOf (L : List WatchRespM) (X : w64) : List WatchRespM :=
-  L.filter (fun m => decide (m.src = none ∧ m.watchId = X))
-
 /-- **`idLive` one response on**: a control response of the id decides; any other leaves it. -/
 theorem idLive_snoc (L : List WatchRespM) (m : WatchRespM) (X : w64) :
     idLive (L ++ [m]) X =

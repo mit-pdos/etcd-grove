@@ -47,14 +47,6 @@ def SnapConfOk (dec : CCDec) (c0 : CCState) (pre : List EntryM)
     (vo v l ln : List w64) (al : Bool) : Prop :=
   CSWf vo v l ln ∧ ∃ s, cfgFold dec c0 pre = some s ∧ csCfgM vo v l ln al = s.cfg
 
-/-- The application's obligation on a snapshot at index `i` with that `ConfState`, the
-application having applied the entries `applied` (from index 1): the snapshot is of an applied
-prefix, and its `ConfState` is that prefix's configuration. -/
-def SnapObl (dec : CCDec) (c0 : CCState) (applied : List EntryM) (i : w64)
-    (vo v l ln : List w64) (al : Bool) : Prop :=
-  uint.nat i ≤ applied.length ∧
-  SnapConfOk dec c0 (applied.take (uint.nat i)) vo v l ln al
-
 /-- The states a fold reaches from a reachable one are reachable (`CCGood`). -/
 theorem cfgFoldFrom_good {dec : CCDec} {pre : List EntryM} {s s' : CCState}
     {l : List EntryM} (h : CCGood s) (H : cfgFoldFrom dec pre s l = some s') :
@@ -96,24 +88,6 @@ theorem cfgStateC_of_good {s : CCState} (h : CCGood s) : cfgStateC s.cfg = s := 
     unfold cfgStateC
     rw [CCGood.flags h]
 
-/-- `Restore` of a `ConfState` that A3 holds of answers the prefix's configuration. -/
-theorem SnapConfOk.restoreM_eq {dec : CCDec} {c0 : CCState} {pre : List EntryM}
-    {vo v l ln : List w64} {al : Bool} (H : SnapConfOk dec c0 pre vo v l ln al)
-    (Hg : CCGood c0) :
-    ∃ s, cfgFold dec c0 pre = some s ∧ restoreM vo v l ln al = some s := by
-  obtain ⟨Hwf, s, Hf, Hc⟩ := H
-  refine ⟨s, Hf, ?_⟩
-  rw [restoreM_wf vo v l ln al Hwf, Hc, cfgStateC_of_good (cfgFold_good Hg Hf)]
-
-/-- The obligation gives the snapshot's index within the applied entries and `Restore`'s
-answer, the configuration of the applied prefix up to it. -/
-theorem SnapObl.restoreM_eq {dec : CCDec} {c0 : CCState} {applied : List EntryM}
-    {i : w64} {vo v l ln : List w64} {al : Bool} (H : SnapObl dec c0 applied i vo v l ln al)
-    (Hg : CCGood c0) :
-    uint.nat i ≤ applied.length ∧ ∃ s, cfgFold dec c0 (applied.take (uint.nat i)) = some s ∧
-      restoreM vo v l ln al = some s :=
-  ⟨H.1, H.2.restoreM_eq Hg⟩
-
 end model
 
 /-! ### The certificate, stated on the ghost records (2026-10-15, stage S)
@@ -130,29 +104,8 @@ is not done yet is carrying the certificate from those records to the receiving 
 section cert
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
-/-- `SnapScope`'s facts of a snapshot's lists and index. -/
-def SnapListsOk (k : SnapTrip) : Prop :=
-  CSWf k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext ∧
-  k.cl.voters.Nodup ∧ k.cl.learners.Nodup ∧ k.cl.outgoing.Nodup ∧ k.cl.learnersNext.Nodup ∧
-  (k.cl.voters.length + k.cl.learners.length + k.cl.outgoing.length +
-    k.cl.learnersNext.length : Int) ≤ 2 ^ 62 ∧
-  (k.cl.outgoing = [] → k.al = false) ∧
-  uint.Z k.sid.index' < 2 ^ 61
-
-/-- The configuration a snapshot's lists denote. -/
-def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
-  csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
-
-/-- See above. -/
-def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
-  iprop(⌜SnapListsOk k⌝ ∗
-    ⌜γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = []⌝ ∗
-    □ (∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List EntryM), logRecs γ base0 fp -∗
-        ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
-
-instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
-    Persistent (raftSnapCert (GF := GF) γ k) := by
-  unfold raftSnapCert; infer_instance
+-- (D22 S-b′3, 2026-10-20) `SnapListsOk`, `SnapTrip.cfgM` and `raftSnapCert` are
+-- `Protocol/Ghost.lean`'s
 
 end cert
 

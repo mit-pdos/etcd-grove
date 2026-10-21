@@ -1,14 +1,16 @@
 /-
 `Main(clients, ops, sched)` (`examples/linkv3p/linkv3p.go`; the partition plan's S3b, 2026-10-20):
 three etcd members started in process and served (`startMember`, on linkv3p's names and ports), a
-one-attempt client connected to each (`newClient`), the partitioner forked on the schedule
-`sched` (`go partitioner(srvs, sched)`: the links between members cut and mended as its steps say,
-any steps), and `Check(clis, clients, ops, 0)` (linkvtxn's KV workload since 2026-10-20, linkv's
+bridge to each member's client address (`startBridge`, etcd's test bridge), three one-attempt
+clients each connected to all three bridges (`newClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
+partitioner(srvs, brs, sched)`: the links between members cut and mended, and the links between
+each client and its member blackholed, unblackholed or dropped, as its steps say, any steps;
+`notes/client-cut-plan.md`), and `Check(clis, clients, ops, 0)` (linkvtxn's KV workload since 2026-10-20, linkv's
 before; each operation through a random member), with a panic if porcupine reports the history `Illegal`. Lean-first (no Rocq
 counterpart).
 
-**The triple:** from the package's `isPkgInit`, the right to listen on the six addresses
-(`netAddrFree`, D19d), the schedule read-only (`sched ↦*□ steps`, for *every* list of steps), the
+**The triple:** from the package's `isPkgInit`, the right to listen on the nine addresses
+(`netAddrFree`, D19d: the members' peer and client addresses, the bridges'), the schedule read-only (`sched ↦*□ steps`, for *every* list of steps), the
 main thread's token and `Main`'s named premises (`linkv3p.premises`: putget3's at linkv3p's
 configuration, `Proof/.../linkv3p/Defs.lean`), `Main(clients, ops, sched)` does not panic and
 returns `Ok` (the check ran: the history is linearizable) or `Unknown` (a step before the check
@@ -49,7 +51,7 @@ abbrev Main.spec : Prop :=
   BootFacts id₁ id₂ id₃ bootLog →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
+  storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
@@ -57,7 +59,8 @@ abbrev Main.spec : Prop :=
       netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
       netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
       netAddrFree (GF := GF) clientAddr₂ ∗ netAddrFree (GF := GF) clientAddr₃ ∗
-      sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ bootLog }}
+      netAddrFree (GF := GF) bridgeAddr₁ ∗ netAddrFree (GF := GF) bridgeAddr₂ ∗
+      netAddrFree (GF := GF) bridgeAddr₃ ∗ sched ↦*□ steps ∗ threadTok ∗ premises N id₁ id₂ id₃ bootLog }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.Main)) (Val #clients))
       (Val #ops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

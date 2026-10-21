@@ -33,12 +33,12 @@ theorem node.Propose.wp_proof
     (wp_node_stepWait : node.stepWait.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Propose.spec (GF := GF) (hG := hG) := by
-  intro γ id n data_sl data Q fresh once ctx cd
+  intro γ id n data_sl data Q ctx cd
   wp_start as ⟨#Hnode, #Hctx, #Hdata, %Hne, Harg⟩
   wp_auto
   -- the proposal's ghost work (2026-10-10): the update deposited
-  imod node_propose_ghost γ id n data Q fresh once ⊤ CoPset.subseteq_top Hne $$ Hnode Harg
-    with ⟨#Hent, Htk, Hres⟩
+  imod node_propose_ghost γ id n data Q ⊤ CoPset.subseteq_top Hne $$ Hnode Harg
+    with ⟨#Hent, Htk⟩
   rw [show raftpb.MsgProp = #((W32 2 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   wp_apply wp_MessageType_Enum (W32 2) as %pty Hpty
@@ -82,7 +82,6 @@ theorem node.Propose.wp_proof
   iintro %err #Herr
   wp_auto
   iapply HΦ
-  iframe Hres
   iexact Herr
 
 end proof

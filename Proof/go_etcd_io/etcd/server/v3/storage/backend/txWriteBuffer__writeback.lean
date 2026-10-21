@@ -66,12 +66,6 @@ theorem wbMerge_lookup_none {W R : GMap w64 (List Ent)} {id : w64}
   rw [show W.lookup id = none from h]
   rfl
 
-theorem entsSorted_le_one (es : List Ent) (h : es.length ≤ 1) : entsSorted es := by
-  unfold entsSorted
-  match es, h with
-  | [], _ => exact List.Pairwise.nil
-  | [_], _ => exact List.pairwise_singleton _ _
-
 end backend
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend

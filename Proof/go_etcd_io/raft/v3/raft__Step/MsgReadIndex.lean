@@ -112,6 +112,8 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun _ => ⟨Hterm, Hlok Hrole⟩)
@@ -120,7 +122,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_readIndex _ _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -161,6 +163,8 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact this
   · -- a candidate (a pre-candidate is one too) ignores it
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun Hc => by
@@ -171,7 +175,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inl Hty) Hres
     subst s1
@@ -291,6 +295,8 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact .trans _ _ _ _ _ H1 H2
   · -- a candidate (a pre-candidate is one too) ignores it
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) s.logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun Hc => by
@@ -301,7 +307,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inl Hty) Hres
     subst s1

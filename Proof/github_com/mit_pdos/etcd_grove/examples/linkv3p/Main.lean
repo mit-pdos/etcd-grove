@@ -6,11 +6,13 @@ linkv3's `Main` (`Proof/.../linkv3/Main.lean`) at linkv3p's configuration, with 
 served: the logger; the three peer URL slices and the initial cluster's map; the ghost state of
 the cluster and its members (`cluster3_alloc`, the ids in the names' order, the client's `etcdKV`
 at the first member's names); `startMember` for each member, the thread token passed along
-(`memberServed`'s `srvGoRes`); the servers' slice; `newClient` to each member (at a watch
-environment the clients never use); the partitioner forked on the schedule (every member's
-`srvNetMember`); the instance's invariant at the cluster's start store (linkvtxn's
+(`memberServed`'s `srvGoRes`); the servers' slice; `startBridge` for each member's client address
+(the bridge owned, and its address serving the member's, `forwards`) and the bridges' slice (2026-10-21, `notes/client-cut-plan.md`); the endpoints' slice and `newClient` of it for each
+client (every bridge: failover, D27; at a watch environment the clients never use); the partitioner forked on the schedule
+(every member's `srvNetMember`, every bridge owned and not blackholed); the instance's invariant at the cluster's start store (linkvtxn's
 `linkvInv_alloc_boot`, at the first member's names, the others' by `linkvInv_congr`), so each
-client has linkvtxn's `Apply.spec`'s premises (`clientOk`); `Check(clis, clients, ops, 0)`, which returns `Ok`
+client has linkvtxn's `Apply.spec`'s premises (`clientOk`: the three members at their bridges'
+addresses, each member's registrations through `isGrpcRpc_forwards`); `Check(clis, clients, ops, 0)`, which returns `Ok`
 (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error ends `Main` with
 `Unknown`.
 -/
@@ -20,6 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
+public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Boot
 public import Spec.go_uber_org.zap.NewNop
@@ -57,13 +60,14 @@ set_option maxRecDepth 8192 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_startMember : startMember.spec (GF := GF) (hG := hG))
+    (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
     (wp_newClient : newClient.spec (GF := GF) (hG := hG))
     (wp_partitioner : partitioner.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
-    Hnoc Hms hAs H0 H31 Hops Hmul
-  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, #Hsched, Htok, #Hprem⟩
+    Hdbo Hms hAs H0 H31 Hops Hmul
+  wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, #Hsched, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
   -- `context`'s `closedchan`, from its package's facts
@@ -79,7 +83,10 @@ theorem Main.wp_proof
     github_com.mit_pdos.etcd_grove.examples.linkv3p.peerAddr3,
     github_com.mit_pdos.etcd_grove.examples.linkv3p.clientAddr1,
     github_com.mit_pdos.etcd_grove.examples.linkv3p.clientAddr2,
-    github_com.mit_pdos.etcd_grove.examples.linkv3p.clientAddr3]
+    github_com.mit_pdos.etcd_grove.examples.linkv3p.clientAddr3,
+    github_com.mit_pdos.etcd_grove.examples.linkv3p.bridgeAddr1,
+    github_com.mit_pdos.etcd_grove.examples.linkv3p.bridgeAddr2,
+    github_com.mit_pdos.etcd_grove.examples.linkv3p.bridgeAddr3]
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the peer URLs and the initial cluster's map, read-only from here on (D19r (F))
@@ -132,15 +139,15 @@ theorem Main.wp_proof
   -- which is the names'; the client's `etcdKV` at `linkv3p-1`'s names)
   imod (cluster3_alloc id₁ id₂ id₃ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₁,
     %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members, each served
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hnoc Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -152,14 +159,14 @@ theorem Main.wp_proof
   wp_auto
   iunfold memberServed at Hup₁
   icases Hup₁ with ⟨%E₁', %γw₁, %cid₁, %mid₁, %HE₁, #Hreq₁, #Hrd₁, Hgo₁,
-    #Hnm₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁⟩
+    #Hnm₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁⟩
   iunfold srvGoRes at Hgo₁
   icases Hgo₁ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hnoc Hms)
+      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -172,14 +179,14 @@ theorem Main.wp_proof
   wp_auto
   iunfold memberServed at Hup₂
   icases Hup₂ with ⟨%E₂', %γw₂, %cid₂, %mid₂, %HE₂, #Hreq₂, #Hrd₂, Hgo₂,
-    #Hnm₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂⟩
+    #Hnm₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂⟩
   iunfold srvGoRes at Hgo₂
   icases Hgo₂ with ⟨-, Htok⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hnoc Hms)
+      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -192,7 +199,7 @@ theorem Main.wp_proof
   wp_auto
   iunfold memberServed at Hup₃
   icases Hup₃ with ⟨%E₃', %γw₃, %cid₃, %mid₃, %HE₃, #Hreq₃, #Hrd₃, Hgo₃,
-    #Hnm₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃⟩
+    #Hnm₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, %Hnr₃⟩
   iunfold srvGoRes at Hgo₃
   icases Hgo₃ with ⟨-, Htok⟩
   iclear Hb₁ Hb₂ Hb₃ Hcom Hq₁ Hq₂ Hq₃ Hu₁ Hu₂ Hu₃ Hcm Hpeer₁ Hpeer₂ Hpeer₃ Hpm
@@ -203,9 +210,62 @@ theorem Main.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hsrvs with #Hsrvs
-  -- the three clients
-  wp_apply (wp_newClient clientAddr₁ lg (noWatch E₁' clientAddr₁) Htb Hlg
-      (by unfold plainEndpoint clientAddr₁; decide)) $$ [] as %cl₁ %cerr₁ Hcl₁
+  -- the three bridges, each to its member's client address
+  wp_apply (wp_startBridge bridgeAddr₁ clientAddr₁) $$ [Hba₁] as %br₁ %berr₁ Hbr₁
+  · iframe
+  icases Hbr₁ with (⟨%Hberr, Hob₁, #Hfw₁⟩ | %Hberr)
+  rotate_left
+  · cases berr₁ with
+    | nil => exact absurd rfl Hberr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  subst Hberr
+  wp_auto
+  wp_apply (wp_startBridge bridgeAddr₂ clientAddr₂) $$ [Hba₂] as %br₂ %berr₂ Hbr₂
+  · iframe
+  icases Hbr₂ with (⟨%Hberr, Hob₂, #Hfw₂⟩ | %Hberr)
+  rotate_left
+  · cases berr₂ with
+    | nil => exact absurd rfl Hberr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  subst Hberr
+  wp_auto
+  wp_apply (wp_startBridge bridgeAddr₃ clientAddr₃) $$ [Hba₃] as %br₃ %berr₃ Hbr₃
+  · iframe
+  icases Hbr₃ with (⟨%Hberr, Hob₃, #Hfw₃⟩ | %Hberr)
+  rotate_left
+  · cases berr₃ with
+    | nil => exact absurd rfl Hberr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  subst Hberr
+  wp_auto
+  -- `brs := []bridge.Bridge{br1, br2, br3}`
+  wp_apply wp_slice_literal (V := GoInterface) (l := [br₁, br₂, br₃])
+  try (isplitr; (ipureintro; rfl))
+  iintro %brsp ⟨Hbrs, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  imod ownSlice_persist _ _ _ $$ Hbrs with #Hbrs
+  -- `eps := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}`: every client of every bridge
+  -- (failover, 2026-10-21, D27)
+  wp_apply wp_slice_literal (V := GoString) (l := [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃])
+  try (isplitr; (ipureintro; rfl))
+  iintro %epsp ⟨Heps, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  imod ownSlice_persist _ _ _ $$ Heps with #Heps
+  have hpl : plainEndpoints [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := by
+    refine ⟨by simp, fun e he => ?_⟩
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at he
+    rcases he with rfl | rfl | rfl <;> (unfold plainEndpoint; decide)
+  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+      (noWatch E₁' bridgeAddr₁) Htb Hlg hpl) $$ [] as %cl₁ %cerr₁ Hcl₁
+  · iframe #
   icases Hcl₁ with (Hok₁ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -214,11 +274,12 @@ theorem Main.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  icases Hok₁ with ⟨%Hcerr, #Hnc₁, #Hone₁⟩
+  icases Hok₁ with ⟨%Hcerr, #Hnc₁⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_newClient clientAddr₂ lg (noWatch E₂' clientAddr₂) Htb Hlg
-      (by unfold plainEndpoint clientAddr₂; decide)) $$ [] as %cl₂ %cerr₂ Hcl₂
+  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+      (noWatch E₁' bridgeAddr₁) Htb Hlg hpl) $$ [] as %cl₂ %cerr₂ Hcl₂
+  · iframe #
   icases Hcl₂ with (Hok₂ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -227,11 +288,12 @@ theorem Main.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  icases Hok₂ with ⟨%Hcerr, #Hnc₂, #Hone₂⟩
+  icases Hok₂ with ⟨%Hcerr, #Hnc₂⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_newClient clientAddr₃ lg (noWatch E₃' clientAddr₃) Htb Hlg
-      (by unfold plainEndpoint clientAddr₃; decide)) $$ [] as %cl₃ %cerr₃ Hcl₃
+  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+      (noWatch E₁' bridgeAddr₁) Htb Hlg hpl) $$ [] as %cl₃ %cerr₃ Hcl₃
+  · iframe #
   icases Hcl₃ with (Hok₃ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -240,7 +302,7 @@ theorem Main.wp_proof
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  icases Hok₃ with ⟨%Hcerr, #Hnc₃, #Hone₃⟩
+  icases Hok₃ with ⟨%Hcerr, #Hnc₃⟩
   subst Hcerr
   wp_auto
   -- `clis := []*clientv3.Client{cli1, cli2, cli3}`
@@ -250,7 +312,7 @@ theorem Main.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Hclis with #Hclis
-  -- `go partitioner(srvs, sched)`: every member's place in the network
+  -- `go partitioner(srvs, brs, sched)`: every member's place in the network
   ihave #Hmem : ([∗list] s ∈ [s₁, s₂, s₃], ∃ id : w64, srvNetMember γn s id) $$ []
   · iapply (BigSepL.bigSepL_cons
       (Φ := fun _ s => iprop(∃ id : w64, srvNetMember (GF := GF) γn s id))).2
@@ -266,9 +328,27 @@ theorem Main.wp_proof
     · iexists id₃; iexact Hnm₃
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  wp_apply wp_fork $$ []
-  · wp_apply (wp_partitioner γn _ sched [s₁, s₂, s₃] steps) $$ []
+  -- every bridge owned, not blackholed
+  ihave Hobs : ([∗list] br ∈ [br₁, br₂, br₃], ∃ addr : GoString, bridge.ownBridge br addr false)
+    $$ [Hob₁ Hob₂ Hob₃]
+  · iapply (BigSepL.bigSepL_cons
+      (Φ := fun _ br => iprop(∃ addr : GoString, bridge.ownBridge (GF := GF) br addr false))).2
+    isplitl [Hob₁]
+    · iexists clientAddr₁; iexact Hob₁
+    iapply (BigSepL.bigSepL_cons
+      (Φ := fun _ br => iprop(∃ addr : GoString, bridge.ownBridge (GF := GF) br addr false))).2
+    isplitl [Hob₂]
+    · iexists clientAddr₂; iexact Hob₂
+    iapply (BigSepL.bigSepL_cons
+      (Φ := fun _ br => iprop(∃ addr : GoString, bridge.ownBridge (GF := GF) br addr false))).2
+    isplitl [Hob₃]
+    · iexists clientAddr₃; iexact Hob₃
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  wp_apply wp_fork $$ [Hobs]
+  · wp_apply (wp_partitioner γn _ _ sched [s₁, s₂, s₃] [br₁, br₂, br₃] steps) $$ [Hobs]
     all_goals (try (iframe #))
+    all_goals (try iframe)
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
   -- the instance's invariant, at the cluster's start store (empty), for every member's names
@@ -279,22 +359,99 @@ theorem Main.wp_proof
   · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂ hwl₂]; iexact Hlinv
   ihave #Hlinv₃ : linkvtxn.linkvInv γl ρ₃.rd.kv $$ []
   · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃ hwl₃]; iexact Hlinv
+  -- every client's members: the three, at their bridges' addresses
+  let ms : List (EtcdGrove.client.SrvAt GF) :=
+    [⟨bridgeAddr₁, E₁', ρ₁.rd, cid₁, mid₁⟩, ⟨bridgeAddr₂, E₂', ρ₂.rd, cid₂, mid₂⟩,
+      ⟨bridgeAddr₃, E₃', ρ₃.rd, cid₃, mid₃⟩]
+  have hms : ms.map EtcdGrove.client.SrvAt.addr = [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := rfl
+  ihave #Hregs : ([∗list] sv ∈ ms, EtcdGrove.client.kvRegsAt sv) $$ []
+  · iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold EtcdGrove.client.kvRegsAt
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₁ HTxn₁]; iframe #
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold EtcdGrove.client.kvRegsAt
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₂ HTxn₂]; iframe #
+    iapply BigSepL.bigSepL_cons.2
+    isplitr
+    · iunfold EtcdGrove.client.kvRegsAt
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+      isplitr
+      · iapply isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
+      iapply isGrpcRpc_forwards $$ [Hfw₃ HTxn₃]; iframe #
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  ihave #Hinvs : ([∗list] sv ∈ ms, linkvtxn.linkvInv γl sv.γr.kv) $$ []
+  · iapply BigSepL.bigSepL_cons.2
+    iframe Hlinv
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hlinv₂
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hlinv₃
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  -- (D29) the bridges' addresses are refusal-free, as their members' are: every client's writes
+  -- are sent at most once, whatever its retry bound
+  ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
+  · iunfold forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
+  ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
+  · iunfold forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
+  ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
+  · iunfold forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
+  have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
+    intro a ha
+    simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    rcases ha with rfl | rfl | rfl
+    · exact Hb₁
+    · exact Hb₂
+    · exact Hb₃
+  ihave #Hwo₁ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₁
+      [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
+  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  ihave #Hwo₂ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₂
+      [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
+  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  ihave #Hwo₃ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₃
+      [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
+  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
   ihave #Hok : ([∗list] cl ∈ [cl₁, cl₂, cl₃], clientOk γl cl) $$ []
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists clientAddr₁, noWatch E₁' clientAddr₁, E₁', ρ₁.rd, cid₁, mid₁
+      iexists ms, noWatch E₁' bridgeAddr₁
+      rw [hms]
       iframe #
+      ipureintro; simp [ms]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists clientAddr₂, noWatch E₂' clientAddr₂, E₂', ρ₂.rd, cid₂, mid₂
+      iexists ms, noWatch E₁' bridgeAddr₁
+      rw [hms]
       iframe #
+      ipureintro; simp [ms]
     iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr
     · iunfold clientOk
-      iexists clientAddr₃, noWatch E₃' clientAddr₃, E₃', ρ₃.rd, cid₃, mid₃
+      iexists ms, noWatch E₁' bridgeAddr₁
+      rw [hms]
       iframe #
+      ipureintro; simp [ms]
     iapply BigSepL.bigSepL_nil.2
     itrivial
   -- `Check(clis, clients, ops, 0)`

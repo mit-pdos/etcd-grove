@@ -82,11 +82,6 @@ theorem descRange_append (l1 l2 : List (V × K)) (a b : Option K) :
     descRange lt (l1 ++ l2) a b = descRange lt l2 a b ++ descRange lt l1 a b := by
   unfold descRange; rw [List.filter_append, List.reverse_append]
 
-theorem ascRange_cons (x : V × K) (l : List (V × K)) (a b : Option K) :
-    ascRange lt (x :: l) a b =
-      (if ascIn lt a b x.2 then [x] else []) ++ ascRange lt l a b := by
-  unfold ascRange; by_cases h : ascIn lt a b x.2 <;> simp [h]
-
 theorem descRange_cons (x : V × K) (l : List (V × K)) (a b : Option K) :
     descRange lt (x :: l) a b =
       descRange lt l a b ++ (if descIn lt a b x.2 then [x] else []) := by

@@ -128,7 +128,7 @@ theorem unstable.stableTo.wp_proof
                 offset := id.index' + W64 1,
                 inprogress := w64Max us.inprogress (id.index' + W64 1) } $$ [Hu Hents_cap] as Hun
   · iapply ownUnstable_intro $$ Hu Hents_cap Hents2 Hsnap Hpksn Hlogger
-    ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   iapply HΦ
   isplitl [Hun]
   · iexact Hun

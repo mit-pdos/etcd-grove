@@ -25,12 +25,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `rlc.LeaseRevoke(ctx, in, opts...)` (as `retryLeaseClient.LeaseGrant`): the call's answer
 (`leaseRevokeCallOut`). -/
 abbrev retryLeaseClient.LeaseRevoke.spec : Prop :=
-  ∀ (rlc conn : Loc) (addr : GoString)
+  ∀ (rlc conn : Loc) (addr : List GoString)
     (Spec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse)
     (Q : LeaseRevokeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.LeaseRevokeRequest) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryLeaseAt rlc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.Lease/LeaseRevoke" Spec ∗
       □ ▷ Spec req.ID' Q ∗ ctxOk ctx cd ∗ inp ↦ req ∗
       opts ↦*□ vs ∗ ⌜opts.len = opts.cap⌝ ∗ callOptsOk vs }}
     (App (App (App (Val (rlc @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.retryLeaseClient.ty @!!

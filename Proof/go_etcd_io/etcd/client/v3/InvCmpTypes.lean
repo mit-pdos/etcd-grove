@@ -28,17 +28,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-instance (priority := high) cmpTypes_client_typeRepr :
-    TypeRepr go_etcd_io.etcd.client.v3.Client.ty go_etcd_io.etcd.client.v3.Client :=
-  go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
 instance (priority := high) cmpTypes_client_typeRepr_u :
     TypeRepr go_etcd_io.etcd.client.v3.Client.underlying go_etcd_io.etcd.client.v3.Client :=
   go.type_repr_underlying (u := go_etcd_io.etcd.client.v3.Client.underlying)
-
-instance (priority := high) cmpTypes_compare_typeRepr :
-    TypeRepr etcdserverpb.Compare.ty etcdserverpb.Compare :=
-  go.type_repr_underlying (u := etcdserverpb.Compare.underlying)
 
 instance (priority := high) cmpTypes_compare_typeRepr_u :
     TypeRepr etcdserverpb.Compare.underlying etcdserverpb.Compare :=

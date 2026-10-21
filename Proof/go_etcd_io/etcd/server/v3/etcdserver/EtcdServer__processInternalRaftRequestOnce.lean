@@ -227,18 +227,16 @@ local macro "piro_tail" : tactic => `(tactic| (
     (try wp_auto)
     rw [Hni]
     (try wp_auto)
-    wp_apply HPropose $$ %cctx %_ %dsl %bs %Qr %true [Hpf Hau] as %perr Hpres
+    wp_apply HPropose $$ %cctx %_ %dsl %bs %Qr [Hpf Hau] as %perr Hpres
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
       isplitr
       · ipureintro; exact Hbsne (by simp [apply.withHeader])
       iunfold srvPropArg
-      simp only [↓reduceIte]
       iframe Hpf Hau
     (try wp_auto)
     iunfold srvPropRes at Hpres
-    isimp only [↓reduceIte] at Hpres
     icases Hpres with ⟨⟨#Hdep, #HisP⟩, #HaE⟩
     iunfold waitRecv at Hrecv
     icases Hrecv with ⟨#Hho, Hcons⟩

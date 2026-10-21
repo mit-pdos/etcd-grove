@@ -94,6 +94,8 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
+  ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).logst.storage m.Type' sn $$ []
+  · iapply tsSrc_ne; notsnap_tac
   wp_apply _P.stepFollower c ∅ r id
       ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -102,7 +104,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       (fun _ => ⟨Hcommit, Hfid⟩)
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+    $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
   obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]

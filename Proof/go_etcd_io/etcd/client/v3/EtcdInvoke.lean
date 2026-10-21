@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`conn.Invoke(ctx, method, in, out, opts...)` on an etcd client's connection** (`isEtcdConn
 conn addr`: the retry interceptor installed), of any unary method registered with a spec
-(`isGrpcRpc addr method Spec`), for the request `in` (the sender's message at the model `m`,
+(`isGrpcRpcs addr method Spec`), for the request `in` (the sender's message at the model `m`,
 `Req.send`: marshaling writes its size cache) and a zero reply `out` (`Rep.blank`), with the
 caller's `□ ▷ Spec m Φ` (persistent: the request may be delivered several times, the retry
 interceptor's attempts; urpc's `wp_Client__Call_pred`). What it returns:
@@ -49,11 +49,11 @@ The request comes back (`Req.send inp m`), and the options (`callOptsOk`: none w
 memory) stay read-only. (Unit C1's axiom, with `isGrpcConn` for `isEtcdConn` and without
 `statusErrOk`; now `etcdConn_Invoke`, a theorem.) -/
 abbrev etcdConn.Invoke.spec : Prop :=
-  ∀ (conn : Loc) (addr method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+  ∀ (conn : Loc) (addr : List GoString) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
-      isGrpcRpc addr method Spec ∗ reqPre conn addr (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+      isGrpcRpcs addr method Spec ∗ reqPre conn addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
@@ -74,10 +74,10 @@ theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG 
   intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
   iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
   iunfold reqPre at Hpre
-  icases Hpre with (#Hpre | ⟨#Hconn, Hpre⟩)
+  icases Hpre with (#Hpre | ⟨#Hconn, Hpre⟩ | ⟨%Hw, Hpre⟩)
   · -- any number of attempts
     iunfold isEtcdConn at Hconn0
-    icases Hconn0 with ⟨%ic, #Hgc, #Hic⟩
+    icases Hconn0 with ⟨%ic, #Hgc, #Hic, -⟩
     iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
       (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
       (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
@@ -107,6 +107,27 @@ theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG 
     iapply Hic $$ [Hsend Hblank Hpre] HΨ
     iframe #
     iframe
+  · -- (2026-10-21, D29) a write on a refusal-free connection, with scalar call options: never
+    -- retried
+    iunfold isEtcdConn at Hconn0
+    icases Hconn0 with ⟨%ic, #Hgc, -, #Hic⟩
+    iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
+      (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
+      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
+    iframe #
+    iintro %inv %opts' #Hinv #Hopts'
+    simp only [List.nil_append, chainWP]
+    iintro %inv' #Hinv'
+    ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
+    · iframe #
+    iunfold etcdInterceptorOkW at Hic
+    iunfold etcdInterceptorOkM at Hic
+    iapply Hic $$ [Hsend Hblank Hpre] HΨ
+    iframe #
+    iframe
+    simp only [modePre]
+    iframe
+    ipureintro; exact Hw
 
 end spec
 

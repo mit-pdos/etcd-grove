@@ -339,20 +339,20 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
                              post=f'∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦ GoInterface.ok e ∗ {CV3}.errorStringSpec e',
                              pat='⟨%e@, H@, #S@⟩'),
         'errStringToError': dict(doc='/-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/',
-                                 post=f'∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.statusErrOk v)',
-                                 pat='⟨%mref@, %m@, H@, #M@, #S@⟩'),
-        'ErrUserEmpty': dict(doc='/-- `ErrUserEmpty = Error(ErrGRPCUserEmpty)` (`error.go`): an `EtcdError`. -/',
-                             post='∃ x : EtcdError, globalAddr ErrUserEmpty ↦ interface.mkOk EtcdError.ty #x',
-                             pat='⟨%x@, H@⟩'),
-        'ErrInvalidAuthToken': dict(doc='/-- `ErrInvalidAuthToken = Error(ErrGRPCInvalidAuthToken)` (`error.go`): an `EtcdError`. -/',
-                             post='∃ x : EtcdError, globalAddr ErrInvalidAuthToken ↦ interface.mkOk EtcdError.ty #x',
-                             pat='⟨%x@, H@⟩'),
-        'ErrAuthOldRevision': dict(doc='/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`. -/',
-                             post='∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x',
-                             pat='⟨%x@, H@⟩'),
-        'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, ...)` (`error.go`): a `*status.Error`, a pointer error. -/',
-                             post='∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝',
-                             pat='⟨%e@, H@, %P@⟩'),
+                                 post=f'∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → {CV3}.statusErrOk v) ∗ ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → {CV3}.errDesc v = k⌝',
+                                 pat='⟨%mref@, %m@, H@, #M@, #S@, %D@⟩'),
+        'ErrUserEmpty': dict(doc='/-- `ErrUserEmpty = Error(ErrGRPCUserEmpty)` (`error.go`): an `EtcdError`, with `ErrGRPCUserEmpty`\'s description (D29). -/',
+                             post='∃ x : EtcdError, globalAddr ErrUserEmpty ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: user name is empty"⌝',
+                             pat='⟨%x@, H@, %D@⟩'),
+        'ErrInvalidAuthToken': dict(doc='/-- `ErrInvalidAuthToken = Error(ErrGRPCInvalidAuthToken)` (`error.go`): an `EtcdError`, with `ErrGRPCInvalidAuthToken`\'s description (D29). -/',
+                             post='∃ x : EtcdError, globalAddr ErrInvalidAuthToken ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: invalid auth token"⌝',
+                             pat='⟨%x@, H@, %D@⟩'),
+        'ErrAuthOldRevision': dict(doc='/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`, with `ErrGRPCAuthOldRevision`\'s description (D29). -/',
+                             post='∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc\' = go!"etcdserver: revision of auth store is old"⌝',
+                             pat='⟨%x@, H@, %D@⟩'),
+        'ErrGRPCNotSupportedForLearner': dict(doc='/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29). -/',
+                             post=f'∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜{CV3}.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝',
+                             pat='⟨%e@, H@, %P@, %D@⟩'),
         # (item 1, the client lease, 2026-10-18: the lessor's keep-alive loop compares a stream's
         # error with it, `errors.Is`)
         'ErrNoLeader': dict(doc='/-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/',
@@ -369,7 +369,8 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
             '  cases Heq',
             '  iexact SErrFutureRev'] + FIN_PRE[:6] + [
             'imodintro', 'unfold go_etcd_io.etcd.cache.v3.rpctypesInit', 'iframe #',
-            'ipureintro', 'refine ⟨?_, by assumption⟩',
+            'ipureintro',
+            'refine ⟨by assumption, ?_, by assumption, by assumption, by assumption, by assumption, by assumption⟩',
             'exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩'],
 )
 
@@ -385,9 +386,9 @@ backoff function returns; the trust-boundary axiom `defaultOptions_init`), and i
     alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
                  'noPrefixEnd': 'GoSlice'},
     custom={'defaultOptions': dict(
-        doc='/-- `defaultOptions = &options{..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`\'s float arithmetic and `rand.Float64`, which do not panic). -/',
-        post=f'∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ {CV3}.backoffOk ov.backoffFunc\'',
-        pat='⟨%dp@, %ov@, H@, #P@, #S@⟩')},
+        doc='/-- `defaultOptions = &options{retryPolicy: nonRepeatable, ..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`\'s float arithmetic and `rand.Float64`, which do not panic), with the policy `nonRepeatable` (`W8 1`, `retry.go`\'s `iota`; D29). -/',
+        post=f'∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ {CV3}.backoffOk ov.backoffFunc\' ∗ ⌜ov.retryPolicy\' = W8 1⌝',
+        pat='⟨%dp@, %ov@, H@, #P@, #S@, %R@⟩')},
     before={'defaultWaitForReady': [
         'wp_apply wp_slice_literal (l := [W8 0])', 'isplitr', '· ipureintro; rfl',
         'iintro %snp ⟨Hsnp, -⟩', 'try wp_auto'],
@@ -591,7 +592,7 @@ _C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOpt
                  'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
                  'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
-                 'ipureintro', 'exact PdefaultCallOpts'])
+                 'ipureintro', 'exact ⟨RdefaultOptions, PdefaultCallOpts⟩'])
 
 _S = SPECIAL['go_etcd_io.etcd.server.v3.storage.schema']
 _S['custom'] = {

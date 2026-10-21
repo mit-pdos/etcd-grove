@@ -137,6 +137,10 @@ caller's precondition).
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
+[raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md)
+(with `AsyncStorageWrites`, the documented thread model lets entries be applied on top of a later
+snapshot: a diverged state machine; reproduced, but etcd does not enable the option; fixed by the
+`raft-snapshot-during-apply-stale-confchange` candidate),
 [leasing-modify-uncached-once](leasing-modify-uncached-once.md) (every write of an uncached key
 committed twice; deterministic, one condition, but see leasing below),
 [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) (leases outlive
@@ -267,10 +271,14 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   lightly maintained, our etcd-io/etcd#20704 was closed by the stale bot, and someone else's #21869
   (the same fix as `leasing-evictrange-key`) was closed under the AI-contribution policy. If
   filed again, one umbrella issue with small PRs rather than six issues.
-- **A test hook**: [etcd-rafthttp-cutpeer-twice-remote-panic](etcd-rafthttp-cutpeer-twice-remote-panic.md):
+- **Test hooks**: [etcd-rafthttp-cutpeer-twice-remote-panic](etcd-rafthttp-cutpeer-twice-remote-panic.md):
   a second `CutPeer` of a *remote* (a member that joined an existing cluster) panics, "close of
   closed channel"; only the integration tests' partition injection calls it, a two-line
   idempotence fix with a test. Searched upstream 2026-10-21: not reported.
+  [etcd-bridge-blackhole-twice-panic](etcd-bridge-blackhole-twice-panic.md)
+  (2026-10-21): the same for the integration tests' bridge, a second `Blackhole` (and the panic
+  leaves the bridge's mutex held); no upstream test reaches it, the fix is the guard
+  `UnpauseConnections` already has.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-newauthstore-nil-tp](etcd-auth-newauthstore-nil-tp.md),

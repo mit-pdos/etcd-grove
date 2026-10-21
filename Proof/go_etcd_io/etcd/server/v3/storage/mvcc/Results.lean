@@ -113,7 +113,6 @@ its `Q`, `End` takes `P` back, `writeView.Put`/`DeleteRange` take the critical-s
 (`csContract`) and return `Post`. The results above are stated at any `P f`; the statements
 before the hook are the instance `P := True`, `f` a no-op (`csContract_noHook`). A caller's
 view of the hook agrees with the store's (`hookIs_agree_lc`, a later credit spent). -/
-#print axioms Perennial.EtcdGrove.mvcc.csContract_noHook
 #print axioms Perennial.EtcdGrove.mvcc.hookIs_agree_lc
 
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
@@ -129,15 +128,11 @@ watcher's first revision on, in revision order (`watchRecvOk_cert`), exactly tho
 watcher with no filters (`watchGuarantee_unfiltered`), each response's revision at or above its
 events' and a response with events carrying the watcher's id (`watchRecvOk_revs`). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_watch_receive
-#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_cert
-#print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
-#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
 
 /-! What the watch client reads (unit W-M, `WatchRecv.lean`, `InvWatchStream.lean`): the events
 received for a watcher are at or above its first revision, which is its start revision unless
 that is `0` (`watchRecvOk_startRev`, from `watchEvents_rev_ge`); an id a stream assigned names one
 watcher (`idAssigned_agree`). -/
-#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_startRev
 #print axioms Perennial.EtcdGrove.mvcc.watchEvents_rev_ge
 #print axioms Perennial.EtcdGrove.mvcc.idAssigned_agree
 
@@ -153,7 +148,6 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
-#print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact_le
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_neg
 #print axioms Perennial.EtcdGrove.mvcc.kiCompactO_step
 #print axioms Perennial.EtcdGrove.mvcc.IdxCRep.step
@@ -258,13 +252,13 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
     (f : GoFunc) (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit')
-    (hrb : receiptBound GF ≤ 2 ^ 48) (hnc : mvcc.backendNoCompaction) :
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
         backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
         mvcc.keySized d.γB d.P d.be ∗
-        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.lateReg d.gx ∗
+        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.bkNoCmp d.γB ∗ mvcc.lateReg d.gx ∗
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
@@ -298,7 +292,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf hcfg hrb hnc
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf hcfg hrb
 
 /-- **The store's backend contract of the real backend, linked** (`storeBackend_of_backend` with
 the backend's results): every store of the instance `d` (unit N4, D14b: before the post-lock hook

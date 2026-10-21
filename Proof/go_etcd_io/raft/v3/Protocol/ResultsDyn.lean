@@ -66,7 +66,9 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     W64 0 ∉ ids →
     ⊢ allocClient E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) C -∗
       |={E}=> ∃ γ : RaftNames,
-        ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming⌝ ∗
+        ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧
+          -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
+          γ.reNoXfer = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗ C γ ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0)) ∗
         -- (2026-10-15, stage N) as `ownRaftGhost_alloc`: the empty committed log, every read
@@ -82,7 +84,7 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
   iexists γ
   isplitr
   · ipureintro
-    refine ⟨?_, Hγ.2.2, Hγ.1⟩
+    refine ⟨?_, Hγ.2.2.1, Hγ.1, Hγ.2.2.2⟩
     unfold RaftNames.dyn; rw [Hγ.2.1]; simp [DynCfg.all_self]
   iframe Hinv HC Hc0 Hcr Hcri
   iapply BigSepM.bigSepM_impl $$ Hn
@@ -97,108 +99,6 @@ theorem raft_dyn_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     iapply (BigSepL.bigSepL_nil).2; iempintro
   iintro %h
   exfalso; exact absurd h (by simp [initPState])
-
-/-- **Log agreement** (state machine safety) of the dynamic model: the committed prefixes of
-any two nodes are prefixes of one another. -/
-theorem raft_dyn_committed_agree (γ : RaftNames) (dec : CCDec) (c0 : CCState)
-    (id1 id2 : w64) (r1 r2 : RState) :
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      ⌜r1.full.take (uint.nat r1.p.commit) <+: r2.full.take (uint.nat r2.p.commit) ∨
-        r2.full.take (uint.nat r2.p.commit) <+: r1.full.take (uint.nat r1.p.commit)⌝ := by
-  iintro H1 H2
-  unfold ownRaftGhostR
-  icases H1 with ⟨Hg1, %HI1, #Hfr1, -⟩
-  icases H2 with ⟨Hg2, %HI2, #Hfr2, -⟩
-  iunfold ownRaftGhost at Hg1 Hg2
-  icases Hg1 with ⟨%γv1, %voted1, %kl1, Hg1⟩
-  icases Hg2 with ⟨%γv2, %voted2, %kl2, Hg2⟩
-  iNamed Hg1
-  icases ownLogGhost_cmt γ id1 r1.p kl1 $$ Hlg with ⟨%fp1, %Hf1, #Hfrc1, #Hc1⟩
-  iNamed Hg2
-  icases ownLogGhost_cmt γ id2 r2.p kl2 $$ Hlg with ⟨%fp2, %Hf2, #Hfrc2, #Hc2⟩
-  icases FullOk_unique γ r1.p.base fp1 r1.fp Hf1 HI1.full $$ Hfrc1 Hfr1 with %He1
-  icases FullOk_unique γ r2.p.base fp2 r2.fp Hf2 HI2.full $$ Hfrc2 Hfr2 with %He2
-  subst He1 He2
-  icases isCommitted_agree γ _ _ $$ Hc1 Hc2 with %H
-  ipureintro
-  unfold cprefix at H
-  rw [toNat_uZ, toNat_uZ] at H
-  exact H
-
-/-- Election safety of the dynamic model: two leaders of a term are one node (the winners
-table). -/
-theorem raft_dyn_election_safety (γ : RaftNames) (dec : CCDec) (c0 : CCState)
-    (id1 id2 : w64) (r1 r2 : RState) :
-    r1.p.role = .leader → r2.p.role = .leader → r1.p.term = r2.p.term →
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      ⌜id1 = id2⌝ := by
-  intro Hl1 Hl2 Ht
-  iintro H1 H2
-  unfold ownRaftGhostR
-  icases H1 with ⟨Hg1, -⟩
-  icases H2 with ⟨Hg2, -⟩
-  ihave #Hle1 : isLeader γ id1 r2.p.term $$ [Hg1]
-  · rw [← Ht]; iapply ownRaftGhost_isLeader γ id1 r1.p Hl1 $$ Hg1
-  ihave #Hle2 := ownRaftGhost_isLeader γ id2 r2.p Hl2 $$ Hg2
-  iapply isLeader_unique γ id1 id2 r2.p.term $$ Hle1 Hle2
-
-/-- The `ReadState`s of a node of the dynamic model (the ones `StepR.takeReads`, i.e.
-`acceptReady`, hands out with the `Ready`), each `readStateOk`: persistent facts copied out of
-the ghost state's `rdOwn` (as `ownRaftGhost_readStates` in the static mode). -/
-theorem raft_dyn_read_states (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
-    (r : RState) :
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id r -∗ [∗list] st ∈ r.p.rd.states, readStateOk γ st := by
-  iintro H
-  unfold ownRaftGhostR
-  icases H with ⟨Hg, -⟩
-  iunfold ownRaftGhost at Hg
-  icases Hg with ⟨%γv, %voted, %kl, Hg⟩
-  iNamed Hg
-  iunfold rdOwn at Hrd
-  icases Hrd with ⟨%γl, %rqm, -, -, -, -, -, #Hst0, -⟩
-  iexact Hst0
-
-/-- **The read-index guarantee** of the dynamic model: a `ReadState{Index: i, RequestCtx}` that
-a node `id1` holds (and hands out), whose context a client registered when it created the
-read knowing the committed log `Lc` (`readReq γ st.RequestCtx' Lc`; D6: the context is its
-bytes, until then a slice the client registered with bytes `c`),
-promises that the committed prefix of any node `id2` whose commit index is at least `i` extends
-`Lc`: applying up to `i` reads a state at least as new as the request. (`readOk_prefix` uses
-only the agreement of committed logs, `isCommitted_agree`, which the dynamic mode keeps.) -/
-theorem raft_dyn_read_index (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id1 id2 : w64)
-    (r1 r2 : RState) (st : ReadStateM) (Lc : List EntryM) :
-    st ∈ r1.p.rd.states → uint.Z st.Index' ≤ uint.Z r2.p.commit →
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      readReq γ st.RequestCtx' Lc -∗
-      ⌜Lc <+: r2.full.take (uint.nat r2.p.commit)⌝ := by
-  intro Hin Hle
-  iintro H1 H2 #Hrq
-  ihave #Hsts := raft_dyn_read_states γ dec c0 id1 r1 $$ H1
-  ihave #Hst := (BigSepL.bigSepL_mem (Φ := fun st => readStateOk (GF := GF) γ st) Hin) $$ Hsts
-  iunfold readStateOk at Hst
-  icases Hst with ⟨%c, %Hpd', #Hok⟩
-  subst Hpd'
-  unfold ownRaftGhostR
-  icases H2 with ⟨Hg2, %HI2, #Hfr2, -⟩
-  iunfold ownRaftGhost at Hg2
-  icases Hg2 with ⟨%γv2, %voted2, %kl2, Hg2⟩
-  iNamed Hg2
-  icases ownLogGhost_cmt γ id2 r2.p kl2 $$ Hlg with ⟨%fp2, %Hf2, #Hfrc2, #Hc2⟩
-  icases FullOk_unique γ r2.p.base fp2 r2.fp Hf2 HI2.full $$ Hfrc2 Hfr2 with %He2
-  subst He2
-  have Hfl := HI2.full_length
-  have Hcl := HI2.commit_last
-  unfold RState.full at Hfl
-  clear HI2
-  have Hlen : uint.Z st.Index' ≤ ((cprefix r2.fp r2.p).length : Int) := by
-    unfold cprefix
-    rw [List.length_take]
-    word
-  icases readOk_prefix γ st.RequestCtx' st.Index' Lc (cprefix r2.fp r2.p) Hlen $$ Hok Hrq Hc2 with %H
-  ipureintro
-  unfold cprefix at H
-  rw [toNat_uZ] at H
-  exact H
 
 end ghost
 

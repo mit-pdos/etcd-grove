@@ -9,7 +9,7 @@ member's names, with that member's start log `[[], []]` (what `linkvInv_alloc_bo
 the other two members' KV names agreeing with the first's in state variable and workload (what
 `linkvInv_congr` takes: the instance's invariant, allocated at the first member's names, is the
 other members' too, D21 M4). linkv3p's `Main` calls it with its members in `bootstrap`'s order,
-`[id₁, id₂, id₃]` (`Defs.lean`), and connects a client to each.
+`[id₁, id₂, id₃]` (`Defs.lean`), and connects three clients, each to every member (failover, D27).
 -/
 module
 
@@ -47,7 +47,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
+        γ.reNoXfer = true ∧ γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         ρ₁.rd.kv.wl = putgetWorkload ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
         ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl⌝ ∗
@@ -87,7 +87,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       rfl Hbf.boot Hpol Hbf.idLow Hbf.idLow0)
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
       #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hc0, hch, hlog, hiss, hwl⟩ := Hγ
   have Hpol' : srvCCPolicy ⟨γ, [], W64 0⟩ := by
     intro ty d h
     simp only at h ⊢
@@ -141,7 +141,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
   isplitr
   · ipureintro
-    exact ⟨hcfg, hdyn, hcc, hboot, htr, Hγn.1, Hγn.2, by rw [hlog₁, hlog], by rw [hwl₁, hwl],
+    exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hlog₁, hlog], by rw [hwl₁, hwl],
       by rw [hst₂, hst₁], by rw [hwl₂, hwl₁], by rw [hst₃, hst₁], by rw [hwl₃, hwl₁]⟩
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModel ρ₁.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by

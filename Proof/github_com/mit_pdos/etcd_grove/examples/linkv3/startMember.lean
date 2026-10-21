@@ -46,7 +46,7 @@ theorem startMember.wp_proof
     (wp_Serve : net.http.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀ Φs γn
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hnoc
+    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨Haddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, Hslot⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
@@ -91,7 +91,7 @@ theorem startMember.wp_proof
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
       · unfold cfgOk; simp
       · exact ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
     isplitr
@@ -115,10 +115,10 @@ theorem startMember.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hnoc
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, #Hnm, -⟩)
   · -- `NewServer` failed: the error returned
     cases err with
@@ -154,7 +154,7 @@ theorem startMember.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩

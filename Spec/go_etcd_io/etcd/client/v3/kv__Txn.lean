@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 (`ctxErrClient`, for `Commit`'s `ContextError`): a new `*txn` as a `Txn`, a builder in its empty
 state (`txnObjAt`), made from `api` (`txnKvIs`; 2026-10-20, linkv-txn stage A). -/
 abbrev kv.Txn.spec : Prop :=
-  ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
       ctxOk ci cd ∗ ctxErrClient ci cd }}
     (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Txn"))

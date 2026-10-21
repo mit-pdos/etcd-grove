@@ -12,7 +12,7 @@ postcondition (`v3rpc/ServeFromStart.lean`). Lean-first (no Rocq counterpart).
   (`isWatchableStore`), the progress interval's field (owned: `NewWatchServer` writes it), a
   reader slot of `bemu` (`v3rpc.Server`'s), and `K` reader slots each of `leadTimeMu`, `lgMu`,
   the auth store (`E.RD`) and the store (`mvcc.storeReader`), which `NewServer`'s proof dropped
-  until D19g.
+  until D19g, and of `bemu` (the quota checks', which read the current backend: D22g (A)).
 * `replicate_takeN`, `replicate_sepL`: splitting and pairing replicated resources.
 -/
 module
@@ -45,26 +45,6 @@ theorem replicate_takeN (P : IProp GF) (n M : Nat) (h : n ≤ M) :
   iintro H
   icases BigSepL.bigSepL_append.1 $$ H with ⟨H1, H2⟩
   iframe H1 H2
-
-/-- `n` copies of `P` and `n` of `Q` are `n` of `P ∗ Q`. -/
-theorem replicate_sepL (P Q : IProp GF) (n : Nat) :
-    ([∗list] _x ∈ List.replicate n (), P) ∗ ([∗list] _x ∈ List.replicate n (), Q) ⊢
-      [∗list] _x ∈ List.replicate n (), iprop(P ∗ Q) := by
-  induction n with
-  | zero =>
-    iintro -
-    rw [List.replicate_zero]
-    iapply BigSepL.bigSepL_nil.2
-    itrivial
-  | succ n ih =>
-    rw [List.replicate_succ]
-    iintro ⟨HP, HQ⟩
-    icases BigSepL.bigSepL_cons.1 $$ HP with ⟨HP1, HP⟩
-    icases BigSepL.bigSepL_cons.1 $$ HQ with ⟨HQ1, HQ⟩
-    iapply BigSepL.bigSepL_cons.2
-    iframe HP1 HQ1
-    iapply ih
-    iframe HP HQ
 
 /-- Each of `n` copies of `P` gives `Q`. -/
 theorem replicate_mono (P Q : IProp GF) (n : Nat) (h : P ⊢ Q) :
@@ -128,7 +108,8 @@ def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : go_etcd_io.etcd.server.v3
     ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate K (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate K (), mvcc.storeReader E.s E.γ))
+    ([∗list] _x ∈ List.replicate K (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
 
 end defs
 

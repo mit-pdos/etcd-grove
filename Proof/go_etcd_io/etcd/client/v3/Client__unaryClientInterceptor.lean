@@ -69,10 +69,10 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_start as ⟨#Hc, #Hsl, #Hros⟩
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, ⟨%dp, %dov, #Hdp, #Hdov, #Hdbf⟩, -⟩
+  icases Hci with ⟨-, ⟨%dp, %dov, #Hdp, #Hdov, #Hdbf, %Hdpol⟩, -⟩
   wp_auto
   ipersist c
-  wp_apply_raw wp_reuse dp sl ros ks dov.max' $$ []
+  wp_apply_raw wp_reuse dp sl ros ks dov.max' true $$ []
   · iframe #
     unfold retryOptsMax
     iexists dov
@@ -82,7 +82,14 @@ theorem Client.unaryClientInterceptor.wp_proof
       iexact Hdbf
     ipureintro; rfl
   inext
-  iintro %io #Hio
+  iintro %io ⟨#Hio, %-, #Hiopol⟩
+  -- (D29) the interceptor's options keep the default policy, `nonRepeatable`
+  ihave #Hiop : retryOptsPol io (W8 1) $$ []
+  · iapply Hiopol $$ %rfl
+    unfold retryOptsPol
+    iexists dov
+    iframe #
+    ipureintro; exact Hdpol
   wp_pures
   wp_alloc intOpts_ptr as intOpts
   wp_pures
@@ -94,18 +101,32 @@ theorem Client.unaryClientInterceptor.wp_proof
   -- (2026-10-19, D21 M6) both modes: any precondition persistent, or an ordinary one when the
   -- retry bound is at most `1` (one attempt)
   iapply etcdInterceptorOkM_split _ (∀ mx, uint.Z (maxAfter mx ks) ≤ 1)
-  iintro !> %once %Honce
+  iintro !> %md %Honce
   unfold etcdInterceptorOkM
   iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
     %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
-  ihave Hpre : iprop(if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) $$ [Hpre]
-  · unfold laterHid; iexact Hpre
+  -- (D29) one attempt's precondition (`.one`, `.write`) or any number's (`.any`)
+  obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
+  ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) ∗
+      ⌜md = AttemptMode.write → (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]
+  · subst hon
+    cases md
+    · unfold modePre laterHid
+      simp only [bne_self_eq_false, Bool.false_eq_true, ↓reduceIte]
+      iframe Hpre; ipureintro; intro h; cases h
+    · unfold modePre laterHid
+      simp only [show (AttemptMode.one != AttemptMode.any) = true from rfl, ↓reduceIte]
+      iframe Hpre; ipureintro; intro h; cases h
+    · unfold modePre laterHid
+      simp only [show (AttemptMode.write != AttemptMode.any) = true from rfl, ↓reduceIte]
+      icases Hpre with ⟨Hpre, %Hw⟩
+      iframe Hpre; ipureintro; intro _; exact Hw
   ihave Hout := Rep.blank_own out $$ Hblank
   (try wp_auto)
   wp_apply wp_withVersion ctx cd $$ [$Hctx] as %c' ⟨%ci, %vsv, %Hc', #Hctx'⟩
   subst Hc'
   (try wp_auto)
-  wp_apply wp_filter opts vs $$ [$Hopts $Hok] as %g %r ⟨%gs, %ros', Hg, Hgc, %Hgs, Hr, #Hros'⟩
+  wp_apply wp_filter opts vs $$ [$Hopts $Hok] as %g %r ⟨%gs, %ros', Hg, Hgc, %Hgs, Hr, #Hros', %Hnone⟩
   (try wp_auto)
   wp_apply wp_Peer p_ptr as %pv %Hpv
   wp_apply wp_slice_literal (V := GoInterface) [pv]
@@ -117,8 +138,8 @@ theorem Client.unaryClientInterceptor.wp_proof
   ipersist Hg'
   ipersist Hr
   ihave #Hros'' := optApplyMax_of_retryApplyOks ros' $$ Hros'
-  wp_apply wp_reuse io r ros' (ros'.map fun _ => (none : Option w64)) (maxAfter dov.max' ks) $$ []
-    as %co #Hcom
+  wp_apply wp_reuse io r ros' (ros'.map fun _ => (none : Option w64)) (maxAfter dov.max' ks) false
+      $$ [] as %co ⟨#Hcom, %Hco0, -⟩
   · iframe #
   have Hopt : ∀ w ∈ gs ++ [pv], grpcOptOk [p_ptr] w := by
     intro w hw
@@ -133,7 +154,22 @@ theorem Client.unaryClientInterceptor.wp_proof
   ihave #Hco' := Hcom
   iunfold retryOptsMax at Hco'
   icases Hco' with ⟨%cov, #Hcov, #Hcovk, %Hcovm⟩
-  have Hcovb : once = true → uint.Z cov.max' ≤ 1 := fun h => by rw [Hcovm]; exact Honce h _
+  have Hcovb : md = AttemptMode.one → uint.Z cov.max' ≤ 1 := fun h => by
+    rw [Hcovm]; exact Honce h _
+  -- (D29) a write's call options are scalars: its options are the interceptor's, `nonRepeatable`
+  ihave %Hcovpol : ⌜md = AttemptMode.write → cov.retryPolicy' = W8 1⌝ $$ []
+  · cases md
+    · ipureintro; intro h; cases h
+    · ipureintro; intro h; cases h
+    · have Hcoio : co = io := Hco0 (Hnone (Hw rfl).2)
+      subst Hcoio
+      iunfold retryOptsPol at Hiop
+      icases Hiop with ⟨%ov2, #Hov2, %Hp2⟩
+      icombine Hcov Hov2 gives %Heq
+      subst Heq
+      ipureintro; intro _; exact Hp2
+  ihave #Hcop : retryOptsPol co cov.retryPolicy' $$ []
+  · unfold retryOptsPol; iexists cov; iframe #; ipureintro; first | rfl | trivial
   icases options_fields_ro co cov $$ Hcov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
   iunfold grpcInvokerOk at Hinv
   (try wp_auto)
@@ -159,6 +195,8 @@ theorem Client.unaryClientInterceptor.wp_proof
     · iright; iframe #; ipureintro; exact He
   have Hmax0 := Hif
   ihave IHL : iprop(∃ (a : w64) (le : GoInterface),
+      -- (D29) a write is never retried: its first attempt is its only one
+      "%Hwa" ∷ ⌜md = AttemptMode.write → a = W64 0⌝ ∗
       "attempt" ∷ attempt_ptr ↦ a ∗ "lastErr" ∷ lastErr_ptr ↦ le ∗ "Hsend" ∷ Req.send inp m ∗
       "Hout" ∷ Rep.own out ∗ "Hpb" ∷ grpcPeerBuf p_ptr ∗
       "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le)) ∗
@@ -167,6 +205,8 @@ theorem Client.unaryClientInterceptor.wp_proof
     $$ [attempt lastErr Hsend Hout Hpb Hpre]
   · iexists W64 0, GoInterface.nil
     simp only [named]
+    isplitr
+    · ipureintro; intro _; first | rfl | trivial
     iframe
     isplitr
     · ileft; itrivial
@@ -211,7 +251,18 @@ theorem Client.unaryClientInterceptor.wp_proof
       · iframe #; ipureintro; exact Hlgn
       -- the attempt: (D21 M6) with an ordinary precondition, the first and only one (the retry
       -- bound at most `1`)
-      have Hlt1 : once = true → a = W64 0 := fun h => by have := Hcovb h; word
+      have Hlt1 : once = true → a = W64 0 := fun h => by
+        by_cases hw : md = AttemptMode.write
+        · exact Hwa hw
+        · have h1 : md = AttemptMode.one := by
+            subst hon
+            cases md with
+            | any => exact absurd h (by decide)
+            | one => rfl
+            | write => exact absurd rfl hw
+          have := Hcovb h1
+          clear Hw Hcovpol Hwa hon Hnone Hco0 Honce Hcovb h1 hw
+          word
       ihave ⟨Hsp, Hp⟩ : iprop(▷ Spec m Φ' ∗
           (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
           $$ [Hp]
@@ -235,7 +286,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, Hout⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, Hout, %Hnr⟩)
       · subst He
         (try wp_auto)
         wp_for_post
@@ -291,6 +342,11 @@ theorem Client.unaryClientInterceptor.wp_proof
           iframe
           iexists a + W64 1, GoInterface.ok ei
           simp only [named]
+          isplitr
+          · -- (D29) a write's policy is `nonRepeatable`, which returned above
+            ipureintro; intro hw; exfalso
+            have := Hcovpol hw
+            simp_all
           iframe
           iright
           iframe #
@@ -324,12 +380,17 @@ theorem Client.unaryClientInterceptor.wp_proof
           iframe
           iexists a + W64 1, GoInterface.ok ei
           simp only [named]
+          isplitr
+          · -- (D29) a write's policy is `nonRepeatable`, which returned above
+            ipureintro; intro hw; exfalso
+            have := Hcovpol hw
+            simp_all
           iframe
           iright
           iframe #
           ipureintro; exact ⟨Hne, Hce⟩
       (try wp_auto)
-      wp_apply wp_shouldRefresh c (GoInterface.ok ei) co $$ [$Hc $Hco $Hse] as %b2 -
+      wp_apply wp_shouldRefresh c (GoInterface.ok ei) co $$ [$Hc $Hco $Hse] as %b2 %Hb2
       · ipureintro; exact ⟨Hne, Hce⟩
       cases b2
       rotate_left
@@ -364,12 +425,18 @@ theorem Client.unaryClientInterceptor.wp_proof
           iframe
           iexists a + W64 1, GoInterface.ok ei
           simp only [named]
+          isplitr
+          · -- (D29) a refresh follows an auth refusal, which a refusal-free connection never sends
+            ipureintro; intro hw; exfalso
+            rcases Hnr (Hw hw).1 with h | h
+            · exact Hne h
+            · exact h (Hb2 rfl)
           iframe
           iright
           iframe #
           ipureintro; exact ⟨Hne, Hce⟩
       (try wp_auto)
-      wp_apply wp_isSafeRetry c (GoInterface.ok ei) co $$ [$Hc $Hco $Hse] as %b3 -
+      wp_apply wp_isSafeRetry c (GoInterface.ok ei) co cov.retryPolicy' $$ [$Hc $Hco $Hse $Hcop] as %b3 %Hb3
       · ipureintro; exact ⟨Hne, Hce⟩
       cases b3
       · (try wp_auto)
@@ -384,6 +451,14 @@ theorem Client.unaryClientInterceptor.wp_proof
         iframe
         iexists a + W64 1, GoInterface.ok ei
         simp only [named]
+        isplitr
+        · -- (D29) a write is retried only after a refusal
+          ipureintro; intro hw; exfalso
+          rcases Hb3 rfl with h | h
+          · rcases Hnr (Hw hw).1 with h' | h'
+            · exact Hne h'
+            · exact h' h
+          · rw [Hcovpol hw] at h; simp at h
         iframe
         iright
         iframe #

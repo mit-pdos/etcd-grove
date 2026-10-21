@@ -4,7 +4,7 @@
 persistent updates the server hands raft are built from the KV invariant (`kvInv`,
 `InvRequest.lean`), which they keep:
 
-- `kv_prop_au`: a proposal's (`srvPropAu`), for a request with no KV write, or a client's plain
+- `kv_prop_au`: a proposal's (`srvPropAu1`), for a request with no KV write, or a client's plain
   write (a put, a delete, a transaction: firing the client's `kvOpAu` at the commit, the state
   stepped by `kvOpStep`);
 - `kv_noop_au`: the standing update for raft's own entries (`srvNoopAu`);
@@ -77,12 +77,6 @@ theorem plainEntry_of_data (W : SrvWorkload) (e : EntryModel) (d : List w8) (rq 
   cases h
   exact hp
 
-/-- The next entry of a consecutive log is above every index the log reached. -/
-theorem srvIdxOk_last (ai0 : w64) (L : List EntryModel) (e : EntryModel)
-    (h : srvIdxOk ai0 (L ++ [e])) : uint.Z e.index = uint.Z ai0 + 1 + L.length := by
-  have := (h.2 L.length e (by simp)).1
-  exact this
-
 /-- The KV invariant's pure facts, one entry on (`hpl`: the entry plain). -/
 theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryModel)
     (e : EntryModel)
@@ -146,52 +140,6 @@ theorem noop_claim (γi : IdNames) (cfg : GSet w64) (e : EntryModel) (h : srvNoo
   · exact Or.inr hd
   · left; rw [ht]; decide
 
-/-- **The KV invariant and the client's `etcdKV`, allocated** (2026-10-15, unit T2): from the
-server's half of raft's committed log at the start (empty), a start log not empty and a start
-consistent index at most the start index, the KV invariant at the base chain with auth disabled
-and the client's half of the state at the start log's state; at the workload `W` (D19q). -/
-theorem kvInv_alloc (γ : ServerRaftNames) (c0 : w64) (log0 : mvcc.Log) (cok hi : GName)
-    (ids : IdNames) (W : SrvWorkload) (E : CoPset) (hc0 : uint.Z c0 ≤ uint.Z γ.ai0)
-    (h0 : log0 ≠ []) :
-    ⊢ srvRLog (GF := GF) γ [] ={E}=∗ ∃ st : GName,
-      kvInv γ ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩ ∗
-      etcdKV ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩
-        (kvStateOf log0) := by
-  iintro HL
-  imod ghostVar_alloc (GF := GF) (kvStateOf log0) with ⟨%st, Hv⟩
-  have hs : ⊢ ghostVar (GF := GF) st 1 (kvStateOf log0) -∗
-      ghostVar st (1 : Qp).half (kvStateOf log0) ∗ ghostVar st (1 : Qp).half (kvStateOf log0) := by
-    have := ghostVar_split (GF := GF) st (kvStateOf log0) (1 : Qp).half (1 : Qp).half
-    rw [Qp.half_add_half] at this
-    exact this
-  icases hs $$ Hv with ⟨Hv1, Hv2⟩
-  imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
-      srvRLog γ L ∗ ghostVar st (1 : Qp).half
-        (kvStateOf
-          (kvModel ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩ L)) ∗
-      ⌜plainLog W L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z c0 ≤ uint.Z γ.ai0 + L.length ∧
-        apply.alarmChain false false false = apply.alarmChain false false false ∧ log0 ≠ []⌝ ∗
-      kvWork γ.raft.reCfg ⟨st, c0, apply.alarmChain false false false, log0, cok, hi, ids, W⟩ L))
-    $$ [HL Hv1] with #Hinv
-  · inext
-    iexists []
-    iframe HL
-    isplitl [Hv1]
-    · simp only [kvModel, kvRaftOf_nil]; iexact Hv1
-    isplitr
-    · ipureintro
-      refine ⟨fun m hm => by simp at hm, srvIdxOkW_nil _, by simpa using hc0, rfl, h0⟩
-    iunfold kvWork
-    isplitr
-    · ipureintro; exact ⟨fun m hm => by simp at hm, fun m hm => by simp at hm⟩
-    iapply BigSepL.bigSepL_nil.2
-    itrivial
-  imodintro
-  iexists st
-  isplitl []
-  · iunfold kvInv; iexact Hinv
-  iunfold etcdKV; iexact Hv2
-
 /-- **A proposal's update, from the KV invariant** (see the file header): since D19c
 (2026-10-18) for data claimed under the request's id (`idClaim`), which the invariant keeps with
 the request's shape (`reqPropOk`'s `rqShape`). -/
@@ -220,10 +168,8 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
   · -- no KV write
     obtain ⟨hplain, hnw, -, hshape, hQr⟩ := Hno
     subst hQr
-    iapply srvPropAu_one
     imodintro
-    unfold srvPropAu
-    iintro !>
+    unfold srvPropAu1
     iauintro
     unfold atomic_acc
     iunfold kvInv at Hinv
@@ -270,10 +216,8 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     iunfold kvOpAu at Hau
     icases Hau with ⟨-, Hau⟩
     iunfold kvAu at Hau
-    iapply srvPropAu_one
     imodintro
-    unfold srvPropAu
-    iintro !>
+    unfold srvPropAu1
     iauintro
     unfold atomic_acc
     iunfold kvInv at Hinv
@@ -573,17 +517,6 @@ theorem readQs_get (gs : List GName) (L : List EntryModel) (n : Nat) (g : GName)
 /-- `dispatchKind` ignores the header. -/
 theorem dispatchKind_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
     apply.dispatchKind (apply.withHeader rq hm) = apply.dispatchKind rq := rfl
-
-/-- Whether a request that is no write is covered depends only on its kind and its auth fields
-(`needAdminPermission`, D19k). -/
-theorem plainReq_of_kind (rq rq' : apply.IRRModel) (hk : apply.dispatchKind rq' = apply.dispatchKind rq)
-    (hna : apply.needAdminPermission rq' = apply.needAdminPermission rq)
-    (hnw : ¬ writeKind (apply.dispatchKind rq)) (hp : plainCover rq) : plainCover rq' := by
-  unfold writeKind at hnw
-  unfold plainCover at hp ⊢
-  rw [hk, hna]
-  revert hp hnw
-  cases apply.dispatchKind rq <;> simp
 
 /-- **A proposal's permission carries to the request the wire decodes.** -/
 theorem reqPropOk_wire (γk : KVNames) (rq rq' : apply.IRRModel) (hm : apply.HeaderModel)

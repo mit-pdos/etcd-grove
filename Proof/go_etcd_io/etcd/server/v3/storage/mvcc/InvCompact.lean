@@ -105,10 +105,6 @@ def compactDone (s : Loc) (γ : StoreNames) (rev : Int) : IProp GF :=
   iprop(compactedAt γ rev ∨ storeStopped s ∨
     ∃ cd : context.ContextDesc (IProp GF), context.ContextClosed cd.Done_gn)
 
-instance compactDone_persistent (s : Loc) (γ : StoreNames) (rev : Int) :
-    Persistent (compactDone (GF := GF) s γ rev) := by
-  unfold compactDone; infer_instance
-
 /-- **The receive right** on a channel closed once with `Q` (persistent: Perennial's broadcast
 idiom). -/
 def compactChan (ch : GoChan) (Q : IProp GF) : IProp GF :=

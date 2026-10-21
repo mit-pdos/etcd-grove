@@ -315,10 +315,6 @@ whether the predicate `p` holds of it. -/
 def walkFnSpec (f : GoFunc) (p : Rev → Bool) : IProp GF :=
   iprop(□ ∀ r : Revision, {{ True }} (App (Val #f) (Val #r)) {{ RET #(p (revOf r)); True }})
 
-instance walkFnSpec_persistent (f : GoFunc) (p : Rev → Bool) :
-    Persistent (walkFnSpec (GF := GF) f p) := by
-  unfold walkFnSpec; infer_instance
-
 /-- The triple of an effectful function given to `walk` (`doCompact`'s closure writes the
 `available` map): on a revision for which the predicate `p` holds it returns true and keeps the
 resource `R`; on one where `p` fails it returns false, turning `R` into `Q` of that revision

@@ -30,11 +30,17 @@ abbrev reuseOrNewWithCallOptions.spec : Prop :=
   ∀ (o : Loc) (sl : GoSlice) (ros : List go_etcd_io.etcd.client.v3.retryOption)
     -- (2026-10-19, D21 M6) the options' retry bounds (`optApplyMax`): the bound after is the
     -- last `withMax`'s, or `mx`'s
-    (ks : List (Option w64)) (mx : w64),
+    (ks : List (Option w64)) (mx : w64)
+    -- (2026-10-21, D29) whether every option keeps the retry policy
+    (kp : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      retryOptsMax o mx ∗ sl ↦*□ ros ∗ [∗list] ro;k ∈ ros;ks, optApplyMax ro.applyFunc' k }}
+      retryOptsMax o mx ∗ sl ↦*□ ros ∗ [∗list] ro;k ∈ ros;ks, optApplyMax ro.applyFunc' k kp }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.reuseOrNewWithCallOptions)) (Val #o)) (Val #sl))
-  {{ (o' : Loc), RET #o'; retryOptsMax o' (maxAfter mx ks) }}
+  {{ (o' : Loc), RET #o'; retryOptsMax o' (maxAfter mx ks) ∗
+      -- (D29) no options: the options themselves; options keeping the policy keep it
+      ⌜ros = [] → o' = o⌝ ∗
+      □ (⌜kp = true⌝ -∗ ∀ p : go_etcd_io.etcd.client.v3.retryPolicy,
+          retryOptsPol o p -∗ retryOptsPol o' p) }}
 
 end spec
 

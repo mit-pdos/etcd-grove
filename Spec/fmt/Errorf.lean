@@ -59,31 +59,6 @@ def fmt.argsOk : List GoInterface → IProp GF
   | [] => iprop(True)
   | a :: xs => iprop(fmt.argOk a ∗ fmt.argsOk xs)
 
-/-- An argument of a predeclared basic type is `fmt.argOk`. -/
-theorem fmt.argOk_of_ArgWf (ii : GoInterfaceOk) (h : _root_.Perennial.fmt.ArgWf ii) :
-    ⊢ fmt.argOk (GF := GF) (interface.ok ii) := by
-  simp only [fmt.argOk]
-  iintro
-  ileft
-  ipureintro
-  exact h
-
-/-- An error whose `Error()` returns a known string (as `errors.wp_New` gives) is
-`fmt.argOk`. -/
-theorem fmt.argOk_of_Error (err : GoInterfaceOk) (msg : GoString) :
-    iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-        WP (App (Val #(methods err.ty go!"Error" err.v)) (Val #())) {{ Φ }}) ⊢
-      fmt.argOk (GF := GF) (interface.ok err) := by
-  simp only [fmt.argOk]
-  iintro #H
-  iright; ileft
-  unfold fmt.stringMethodSpec
-  imodintro
-  iintro %Φ HΦ
-  iapply H
-  inext
-  iapply HΦ
-
 /-- The argument of a one-element `fmt.ArgsWf` list is `fmt.ArgWf`. -/
 theorem fmt.argWf_of_argsWf {ii : GoInterfaceOk}
     (h : _root_.Perennial.fmt.ArgsWf [interface.ok ii]) : _root_.Perennial.fmt.ArgWf ii :=

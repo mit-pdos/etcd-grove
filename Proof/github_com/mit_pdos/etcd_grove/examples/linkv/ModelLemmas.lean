@@ -527,11 +527,6 @@ theorem cloInv_done (gs : List GCfg) (n : Nat) (out : List GCfg) (hI : CloInv gs
   exact ⟨⟨fun g hg => (h1 g hg).1, fun g₀ hg₀ c hr => hc g₀ (h2 g₀ hg₀) c hr⟩, hc,
     fun g hg => (h1 g hg).2⟩
 
-/-- The representation of a closed list is closed. -/
-theorem setOf_closed {gs : List GCfg} (hc : GClosed gs) : (setOf gs).Closed := by
-  rintro c c' ⟨g, hg, he⟩ hr
-  exact hc g hg c' (he.reach.trans hr)
-
 /-! ## `step` -/
 
 theorem lookupL_absStore (es : List kvEntry) (k : GoString) :

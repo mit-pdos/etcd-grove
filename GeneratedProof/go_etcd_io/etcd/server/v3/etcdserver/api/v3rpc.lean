@@ -1209,9 +1209,8 @@ variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumpti
 instance quotaAlarmer_typed_pointsto :
     TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer where
   typedPointstoDef l v dq := iprop(
-    "q" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"q" l) v.q' dq ∗
-    "a" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"a" l) v.a' dq ∗
-    "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"id" l) v.id' dq ∗
+    "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"s" l) v.s' dq ∗
+    "name" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"name" l) v.name' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1221,51 +1220,35 @@ instance quotaAlarmer_into_val_typed :
     IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer.underlying := by
   solve_into_val_typed_struct
 
-instance quotaAlarmer_access_load_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (dq : DFrac) :
+instance quotaAlarmer_access_load_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"q" l) v.q' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"q" l) v.q' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"s" l) v.s' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance quotaAlarmer_access_store_q (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (q' : go_etcd_io.etcd.server.v3.storage.Quota) :
+instance quotaAlarmer_access_store_s (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (s' : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"q" l) v.q' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"q" l) q' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with q' := q' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"s" l) s' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-instance quotaAlarmer_access_load_a (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (dq : DFrac) :
+instance quotaAlarmer_access_load_name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"a" l) v.a' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"a" l) v.a' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance quotaAlarmer_access_store_a (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (a' : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Alarmer) :
+instance quotaAlarmer_access_store_name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (name' : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"a" l) v.a' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"a" l) a' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with a' := a' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance quotaAlarmer_access_load_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"id" l) v.id' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance quotaAlarmer_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (id' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"id" l) id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer go!"name" l) name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

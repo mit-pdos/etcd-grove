@@ -46,9 +46,6 @@ theorem initLe_refl (σ : GMap GoString Bool) : initLe σ σ := fun _ h => h
 theorem initLe_empty (σ : GMap GoString Bool) : initLe ∅ σ := by
   intro p h; simp at h
 
-theorem initLe_trans {σ1 σ2 σ3 : GMap GoString Bool} (h1 : initLe σ1 σ2) (h2 : initLe σ2 σ3) :
-    initLe σ1 σ3 := fun p h => h2 p (h1 p h)
-
 /-- Starting a package not initialized keeps the initialized ones. -/
 theorem initLe_start {σ0 σ : GMap GoString Bool} {p : GoString} (h : initLe σ0 σ)
     (hσ : (σ !! p).getD false = false) : initLe σ0 (<[p := false]> σ) := by

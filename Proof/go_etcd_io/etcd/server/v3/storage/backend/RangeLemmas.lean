@@ -101,13 +101,6 @@ theorem swap_getElem?' {α : Type} (l : List α) (i j : Nat) (x y : α)
   · have : (l.set i y).set j x = (l.set j x).set i y := List.set_comm _ _ hij
     rw [this, swap_getElem? l i j x y hx hy k]
 
-theorem swapIdx_lt {i j k n : Nat} (hi : i < n) (hj : j < n) (hk : k < n) : swapIdx i j k < n := by
-  unfold swapIdx; split
-  · exact hj
-  · split
-    · exact hi
-    · exact hk
-
 /-! ## `dropWhile`, `takeWhile` and `bbRange` -/
 
 /-- `dropWhile` drops the first `m` elements if they satisfy `p` and the next does not. -/

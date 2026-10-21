@@ -119,49 +119,6 @@ theorem stepC_record_then_win (id : w64) (s : PState) (m : Msg) (mt : GMap w64 w
   .trans _ _ _ _ _ (StepC.recordVote m s Hty Hto Hterm Hrole)
     (StepC.win _ mt ms Hrole Hq Hnw Hmt Hms Hsn)
 
-omit [GoGlobalContext] [GoSemanticsFunctions] in
-/-- Recording a vote response and then losing, at `c`. -/
-theorem stepC_record_then_lose (id : w64) (s : PState) (m : Msg)
-    (Hty : m.ty = .voteResp) (Hto : m.dst = id) (Hterm : m.term = s.term)
-    (Hrole : s.role = .candidate)
-    (Hq : JLost c (recordVote s.votes m.src (!m.reject))) :
-    StepC c id B s ([m] ++ [])
-      (pbecomeFollower { s with votes := recordVote s.votes m.src (!m.reject) } s.term (W64 0)) :=
-  .trans _ _ _ _ _ (StepC.recordVote m s Hty Hto Hterm Hrole) (StepC.lose _ Hrole Hq)
-
-omit [GoGlobalContext] [GoSemanticsFunctions] in
-/-- Dropping a message, at `c`. -/
-theorem stepC_drop (id : w64) (s : PState) : StepC c id B s [] s := .refl s
-
-omit [GoGlobalContext] [GoSemanticsFunctions] in
-/-- Stepping down and then answering a vote request, at `c`. -/
-theorem stepC_stepdown_then_vote (id : w64) (s : PState) (m : Msg)
-    (Hty : m.ty = .vote) (Hto : m.dst = id) (Hfrom : m.src ≠ W64 0)
-    (Hlt : uint.Z s.term < uint.Z m.term)
-    (Hutd : plogUpToDate s.base s.log (entryID.mk m.logterm m.index) = true) :
-    StepC c id B s ([m] ++ [m])
-      (psendMsgs { pbecomeFollower s m.term (W64 0) with vote := m.src }
-        [Msg.plain .voteResp id m.src m.term false]) := by
-  have Hne : m.term ≠ s.term := by intro Heq; rw [Heq] at Hlt; omega
-  have Hh := StepC.higherTerm (c := c) (B := B) m s Hlt Hto (by rw [Hty]; simp [fromLeader])
-  rw [Hty] at Hh
-  simp only [fromLeader] at Hh
-  refine .trans _ _ _ _ _ Hh ?_
-  exact StepC.grantVote (c := c) (id := id) m (pbecomeFollower s m.term (W64 0)) Hty Hto
-    Hfrom rfl (Or.inr ⟨by simp [pbecomeFollower, Hne], rfl⟩) Hutd
-
-omit [GoGlobalContext] [GoSemanticsFunctions] in
-/-- Stepping down and then declining, at `c`. -/
-theorem stepC_stepdown_then_reject (id : w64) (s : PState) (m : Msg)
-    (Hty : m.ty = .vote) (Hto : m.dst = id) (Hlt : uint.Z s.term < uint.Z m.term) :
-    StepC c id B s ([m] ++ [m])
-      (psendMsgs (pbecomeFollower s m.term (W64 0))
-        [Msg.plain .voteResp id m.src m.term true]) := by
-  have Hh := StepC.higherTerm (c := c) (B := B) m s Hlt Hto (by rw [Hty]; simp [fromLeader])
-  rw [Hty] at Hh
-  simp only [fromLeader] at Hh
-  exact .trans _ _ _ _ _ Hh (StepC.rejectVote m _ Hty Hto)
-
 end step_lemmasC
 
 end EtcdGrove

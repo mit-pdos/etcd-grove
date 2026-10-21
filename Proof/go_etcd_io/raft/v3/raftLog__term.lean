@@ -89,13 +89,14 @@ theorem raftLog.term.wp_proof
     rw [Hse, List.length_nil, Int.natCast_zero, Int.add_zero] at Hoffset
     exact Hoffset
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
   iNamed Hsto
   lend_unstable
-  wp_apply wp_unstable_maybeTerm _ (unstableOf lv ls) _ Hsoff Hnw $$ [$Hun]
+  wp_apply wp_unstable_maybeTerm _ (unstableOf lv ls) _
+    (fun sid h => by have := Hsoff sid h; simp only [unstableOf]; omega) Hnw $$ [$Hun]
     as %t %ok ⟨Hun, %Hok, %Hokt⟩
   reopen_unstable
   cases ok with
@@ -206,15 +207,16 @@ theorem raftLog.term.wp_proof
     | none =>
     clear Hnotin Hnotsnap Hsoff Hnw Hok Hokt Hoffset Hstok Happlied Hpapplied Hcommitted
       Hidx Hnowrap Hb1 Hb2 Hfi Hli Hcm Hap Hstore Hssnap
-      Hapg Hip Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
+      Hapg Hip Hsip Hsipn Hasz Hamx Hipb Hpersist Happlying Hpaused Huoff Hstor Hpend Hfl Hsksn
+      Hlent Hq Hprel Hsat
     iclear HisStorage HLastIndex HFirstIndex HTerm HEntries Hbounded HSnapshot Hhandout Habsorb
       Hl_logger
-      Hu_logger Husnap Hpksn Hcut Hfloor
+      Hu_logger Husnap Hpksn Hkcert Hcut Hfloor
     clear lv uv' isv fi li σ
     iNamed Hlog
     wp_auto
     ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
     · unfold isStorage; iexact HisStorage
     unfold isStorageWith
     icases Hsto with ⟨%isv, #Hsto⟩
@@ -222,6 +224,7 @@ theorem raftLog.term.wp_proof
     rw [Hstok]
     obtain ⟨Hsp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
     have Hstlen := Hstored.length_le
+    take_storage Hs
     wp_apply HTerm $$ %σ %i %errCompacted [$HStorage] as %t2 %err2 ⟨Ht2, HStorage⟩
     · isplitr
       · ipureintro; rw [Hsp]; omega

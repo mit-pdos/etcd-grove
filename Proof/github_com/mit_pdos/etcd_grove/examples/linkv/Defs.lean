@@ -140,15 +140,6 @@ def cfgOwn (c : kvConfig) (g : GCfg) : IProp GF := iprop(c.kv' ↦*□ g.kv ∗ 
 instance cfgOwn_persistent (c : kvConfig) (g : GCfg) : Persistent (cfgOwn (GF := GF) c g) := by
   unfold cfgOwn; infer_instance
 
-/-- A Go state value represents `S` (see the file header). -/
-def stRep (v : GoInterface) (S : KVSet GoString GoString) : IProp GF :=
-  iprop(∃ (sl : GoSlice) (cs : List kvConfig) (gs : List GCfg),
-    ⌜v = boxSt sl ∧ GOk gs S⌝ ∗ sl ↦*□ cs ∗ [∗list] c;g ∈ cs;gs, cfgOwn c g)
-
-instance stRep_persistent (v : GoInterface) (S : KVSet GoString GoString) :
-    Persistent (stRep (GF := GF) v S) := by
-  unfold stRep; infer_instance
-
 /-- `stRep`, with every configuration's lengths bounded by `n` (`Bounded n`). -/
 def stRepB (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) : IProp GF :=
   iprop(∃ (sl : GoSlice) (cs : List kvConfig) (gs : List GCfg),
@@ -158,14 +149,6 @@ def stRepB (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) : IProp GF 
 instance stRepB_persistent (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) :
     Persistent (stRepB (GF := GF) n v S) := by
   unfold stRepB; infer_instance
-
-theorem stRepB_stRep (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) :
-    stRepB (GF := GF) n v S ⊢ stRep v S := by
-  unfold stRepB stRep
-  iintro ⟨%sl, %cs, %gs, ⟨%hv, %hok, -⟩, Hs, Hcs⟩
-  iexists sl, cs, gs
-  iframe
-  ipureintro; exact ⟨hv, hok⟩
 
 /-- **The model's specification** (see the file header). -/
 def linkvS : github_com.anishathalye.porcupine.ModelSpec GF (KVSet GoString GoString) where

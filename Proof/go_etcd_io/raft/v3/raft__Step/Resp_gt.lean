@@ -102,6 +102,8 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
       stepFuncOf .follower from rfl]
     simp only [stepFuncOf]
+    ihave #Hsrc0 : tsSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).logst.storage m.Type' sn $$ []
+    · iapply tsSrc_ne; notsnap_tac
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -110,7 +112,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      $$ [$Hphys Hm] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      $$ [$Hphys Hm $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
     · iapply msgIn_nonprop (by rw [Hty]; w32_ne) $$ Hm
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]

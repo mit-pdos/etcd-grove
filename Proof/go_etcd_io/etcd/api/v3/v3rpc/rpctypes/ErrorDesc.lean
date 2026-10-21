@@ -31,22 +31,22 @@ theorem rpctypes.ErrorDesc.wp_proof
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_FromError err $$ [$Hst $Hok] as %s %ok ⟨%Hnil, #HCode, #HMsg⟩
+  wp_apply wp_FromError err $$ [$Hst $Hok] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr⟩
   cases ok
   · wp_auto
     cases err with
     | nil => exact absurd (Hnil rfl) (by simp)
     | ok e =>
-      iunfold statusErrOk at Hok
-      ihave ⟨#HE, -⟩ := Hok $$ %e %rfl
-      iunfold errorStringSpec at HE
-      wp_apply HE as %str
+      -- (D29) not a status error: its `Error()` is its description
+      have hpe : false = false ∧ GoInterface.ok e = GoInterface.ok e := ⟨rfl, rfl⟩
+      ihave #HE := HErr $$ %e %hpe
+      wp_apply HE
       iapply HΦ
-      itrivial
+      ipureintro; rfl
   · wp_auto
-    wp_apply HMsg as %msg
+    wp_apply HMsg
     iapply HΦ
-    itrivial
+    ipureintro; rfl
 
 end proof
 

@@ -30,22 +30,30 @@ theorem needStorageAppendRespMsg.wp_proof
       raftLog.hasNextOrInProgressUnstableEnts.spec (GF := GF) (hG := hG))
     (wp_IsEmptySnap : IsEmptySnap.spec (GF := GF) (hG := hG)) :
     needStorageAppendRespMsg.spec (GF := GF) (hG := hG) := by
-  intro r l ls rd Hsn
-  wp_start as ⟨Hrl, Hlog⟩
+  intro r l ls rd dq o Hne
+  wp_start as ⟨Hrl, Hlog, Hsn⟩
   wp_auto
   wp_apply wp_raftLog_hasNextOrInProgressUnstableEnts $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
   cases b
   · wp_auto
-    wp_apply wp_IsEmptySnap rd.Snapshot' (DFrac.own 1) none $$ [] as %b' ⟨%Hb', -⟩
-    · simp only [snapOpt]; ipureintro; exact Hsn
-    simp only [Option.elim] at Hb'
-    subst Hb'
+    wp_apply wp_IsEmptySnap rd.Snapshot' dq o $$ [$Hsn] as %b' ⟨%Hb', Hsn⟩
     rw [← Hb]
-    simp only [Bool.not_true]
-    iapply HΦ
-    iframe
+    cases o with
+    | none =>
+      simp only [Option.elim] at Hb'
+      subst Hb'
+      simp only [Bool.not_true, Option.isSome_none, Bool.or_false]
+      iapply HΦ
+      iframe
+    | some sv =>
+      simp only [Option.elim, decide_eq_false (Hne sv rfl)] at Hb'
+      subst Hb'
+      simp only [Bool.not_false, Option.isSome_some, Bool.or_true]
+      iapply HΦ
+      iframe
   · wp_auto
     rw [← Hb]
+    simp only [Bool.true_or]
     iapply HΦ
     iframe
 

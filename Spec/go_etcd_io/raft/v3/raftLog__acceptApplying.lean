@@ -39,7 +39,11 @@ abbrev raftLog.acceptApplying.spec : Prop :=
   uint.Z ls.applied ≤ uint.Z i ∧ uint.Z i ≤ uint.Z ls.committed ∧
   -- (D19i part 1) `applying` does not move back (the floor is at most it), and stays below
   -- `offsetInProgress` (`FlOk`: `acceptReady` accepts the unstable entries first)
-  uint.Z ls.applying ≤ uint.Z i ∧ (ls.snap = none → uint.Z i < uint.Z ls.inprogress) →
+  -- (D22 S-d1b, 2026-10-21: with a snapshot pending too)
+  uint.Z ls.applying ≤ uint.Z i ∧ uint.Z i < uint.Z ls.inprogress →
+  -- (D22 S-d4 item 3) with a snapshot pending nothing is handed out for applying (`acceptReady`:
+  -- `nextCommittedEnts` is empty then), so `applying` stays within what the storage holds
+  (ls.snap ≠ none → uint.Z i ≤ uint.Z ls.applying) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"acceptApplying"))
       (Val #i)) (Val #size)) (Val #au))

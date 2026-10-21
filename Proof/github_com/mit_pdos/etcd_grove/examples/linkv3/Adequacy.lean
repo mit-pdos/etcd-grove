@@ -77,7 +77,7 @@ theorem linkv3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3.BootFacts id₁ id₂ id₃ bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -140,7 +140,7 @@ theorem linkv3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := linkv3.wp_Main (GF := linkvGF) n id₁ id₂ id₃ bootLog clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Htok]
   · iframe; iframe #

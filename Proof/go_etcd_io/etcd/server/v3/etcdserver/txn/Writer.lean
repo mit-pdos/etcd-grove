@@ -54,14 +54,6 @@ theorem kvWriter_len (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) :
   iframe Hsw Hw
   ipureintro; exact h
 
-/-- The writer of a plain store is the sole writer. -/
-theorem kvWriter_plain (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (h : γ.watchQ = false) :
-    soleWriter (GF := GF) γ log ⊢ kvWriter s γ log := by
-  unfold kvWriter
-  iintro Hsw
-  iframe Hsw
-  iapply wlogOwn_plain s γ log h
-
 end writer
 
 end txn

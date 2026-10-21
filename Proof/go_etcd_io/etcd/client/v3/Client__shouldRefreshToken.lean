@@ -3,6 +3,7 @@ Proof of `Spec/go_etcd_io/etcd/client/v3/Client__shouldRefreshToken.lean` (unit 
 -/
 module
 
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrDesc
 public import Spec.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
 public import Spec.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
 public import Spec.errors.IsStatusErr
@@ -37,7 +38,7 @@ theorem Client.shouldRefreshToken.wp_proof
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, -, -, ⟨%xUE, #HUE⟩, ⟨%xIA, #HIA⟩, ⟨%xAO, #HAO⟩, -⟩
+  icases Hri with ⟨-, -, -, -, -, ⟨%xUE, #HUE, %HdUE⟩, ⟨%xIA, #HIA, %HdIA⟩, ⟨%xAO, #HAO, %HdAO⟩, -⟩
   iunfold retryOptsAt at Ho
   icases Ho with ⟨%ov, #Hov, #Hovk⟩
   icases options_fields_ro o ov $$ Hov with ⟨#Hrp, #Hmax, #Hbf, #Hra⟩
@@ -47,31 +48,34 @@ theorem Client.shouldRefreshToken.wp_proof
   wp_auto
   wp_if_destruct
   rotate_left
-  · iapply HΦ; itrivial
-  wp_apply wp_rpctypes_Error err $$ [$Hse] as %e1 ⟨%Hne1, #Hse1, -⟩
+  · iapply HΦ; ipureintro; intro h; cases h
+  wp_apply wp_rpctypes_Error err $$ [$Hse] as %e1 ⟨%Hne1, #Hse1, -, %Hd1⟩
   · ipureintro; exact Hne
-  wp_apply (wp_Is e1 _ (Or.inl ⟨xUE, rfl⟩)) $$ [$Herrs $Hse1] as %b1 -
+  wp_apply (wp_Is e1 _ (Or.inl ⟨xUE, rfl⟩)) $$ [$Herrs $Hse1] as %b1 %Hb1
   cases b1
   · wp_auto
     wp_if_destruct
     rotate_left
-    · wp_apply wp_rpctypes_Error err $$ [$Hse] as %e2 ⟨%Hne2, #Hse2, -⟩
+    · wp_apply wp_rpctypes_Error err $$ [$Hse] as %e2 ⟨%Hne2, #Hse2, -, %Hd2⟩
       · ipureintro; exact Hne
-      wp_apply (wp_Is e2 _ (Or.inl ⟨xIA, rfl⟩)) $$ [$Herrs $Hse2] as %b2 -
+      wp_apply (wp_Is e2 _ (Or.inl ⟨xIA, rfl⟩)) $$ [$Herrs $Hse2] as %b2 %Hb2
       cases b2
       · wp_auto
-        wp_apply wp_rpctypes_Error err $$ [$Hse] as %e3 ⟨%Hne3, #Hse3, -⟩
+        wp_apply wp_rpctypes_Error err $$ [$Hse] as %e3 ⟨%Hne3, #Hse3, -, %Hd3⟩
         · ipureintro; exact Hne
-        wp_apply (wp_Is e3 _ (Or.inl ⟨xAO, rfl⟩)) $$ [$Herrs $Hse3] as %b3 -
-        iapply HΦ; itrivial
+        wp_apply (wp_Is e3 _ (Or.inl ⟨xAO, rfl⟩)) $$ [$Herrs $Hse3] as %b3 %Hb3
+        iapply HΦ; ipureintro; intro h
+        rw [← Hd3, Hb3 h, rpctypes.errDesc_etcdError, HdAO]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
       · wp_auto
-        iapply HΦ; itrivial
-    · iapply HΦ; itrivial
+        iapply HΦ; ipureintro; intro _
+        rw [← Hd2, Hb2 rfl, rpctypes.errDesc_etcdError, HdIA]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+    · iapply HΦ; ipureintro; intro h; cases h
   · wp_auto
     cases atb
     all_goals
       wp_auto
-      iapply HΦ; itrivial
+      iapply HΦ; ipureintro; intro _
+      rw [← Hd1, Hb1 rfl, rpctypes.errDesc_etcdError, HdUE]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
 
 end proof
 

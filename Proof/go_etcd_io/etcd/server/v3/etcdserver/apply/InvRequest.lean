@@ -346,9 +346,6 @@ instance leaseRevokeIs_persistent (l : Loc) (id : w64) : Persistent (leaseRevoke
 instance alarmRequestIs_persistent (a : Loc) (am : AlarmModel) : Persistent (alarmRequestIs (GF := GF) a am) := by
   unfold alarmRequestIs; infer_instance
 
-instance checkpointIs_persistent (c : Loc) (cm : CheckpointModel) : Persistent (checkpointIs (GF := GF) c cm) := by
-  unfold checkpointIs; infer_instance
-
 instance leaseCheckpointIs_persistent (l : Loc) (cms : List CheckpointModel) : Persistent (leaseCheckpointIs (GF := GF) l cms) := by
   unfold leaseCheckpointIs checkpointIs; infer_instance
 

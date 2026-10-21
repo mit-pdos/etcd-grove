@@ -9,7 +9,7 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   (`CheckQuorum: true` and `PreVote` as `cfg` sets it, both covered by the raft start result since
   2026-10-17; until then `NewServer.spec` required `cfg.PreVote` off). On success the bootstrapped record carries `bootOk`:
   - the records `NewServer` reads (`b`, `b.storage`, `b.storage.backend`, `b.storage.wal`,
-    `b.cluster`, `b.raft`);
+    `b.cluster`, `b.raft`) and (D22 S-i) the snapshotter `b.ss` (`snap.isSnapshotter`);
   - `b.raft` with `NodeStartSpec`'s premises on it (the raft config valid, `CheckQuorum`/
     `PreVote` either way, the fresh registered `MemoryStorage`, the peers and the bootstrap log, the
     `InitialState` closure, `Marshal` at the peers' conf changes) and the cluster's
@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 
 @[expose] public section
 
@@ -136,6 +137,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
     "Hbw" ∷ sto.wal' ↦ bw ∗ "Hbc" ∷ bs.cluster' ↦ bc ∗ "Hbv" ∷ bs.raft' ↦ bv ∗
+    -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
+    -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
+    "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' ≠ W64 0 ∧
       ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
@@ -155,6 +159,9 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- compacted past index `1`, which the mode needs (`StartNode`'s `NsCap`). (D19p to D21 M3: a
     -- one-member cluster, `"%Hone"`, raft's tracked bound this node alone.)
     "%Hnosnap" ∷ ⌜γ.reNoSnap = true ∧ γs.cap = 1⌝ ∗
+    -- (2026-10-19, D22 S-a) and raft's no-transfer mode (`RaftNames.reNoXfer`, until then the
+    -- no-snapshot mode's), which with it gives the receiver's `NetMsgOk` (`SentMsgOk`)
+    "%Hnoxfer" ∷ ⌜γ.reNoXfer = true⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
@@ -236,6 +243,14 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
     "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
     "Hfal" ∷ bkFresh d.γB go!"alarm" ∗
+    -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
+    -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s)
+    "Hncmp" ∷ mvcc.bkNoCmp d.γB ∗
+    -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
+    -- assumptions approved") the backend file's directory entry is the server's: nothing else
+    -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
+    -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
+    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
     -- the error paths' close
     "#Hclose" ∷ □ ({{ True }}
       (App (Val (b @!! go.GoType.PointerType bootstrappedServer.ty @!! go!"Close")) (Val #()))
@@ -380,7 +395,7 @@ theorem isRNTransport_of_net (γn : NetNames GF) (E : RNEnv GF) (tr : GoInterfac
     ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N m) -∗ netTransport γn tr -∗ isRNTransport E tr := by
   iintro #HM #Htr
   iunfold netTransport at Htr
-  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop⟩
+  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, -⟩
   iunfold isRNTransport
   iexists ti
   isplitr
@@ -410,15 +425,6 @@ def lessorCkptOk (l : GoInterface) : IProp GF :=
 
 instance lessorCkptOk_persistent (l : GoInterface) : Persistent (lessorCkptOk (GF := GF) l) := by
   unfold lessorCkptOk; infer_instance
-
-/-- **The compactor's `Run`** (names-only, a contract of `v3compactor.New`): it returns (it starts
-the compactor's goroutine). -/
-def compactorRunOk (c : GoInterface) : IProp GF :=
-  iprop(∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
-    □ ({{ True }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #())) {{ RET #(); True }}))
-
-instance compactorRunOk_persistent (c : GoInterface) : Persistent (compactorRunOk (GF := GF) c) := by
-  unfold compactorRunOk; infer_instance
 
 end transport
 

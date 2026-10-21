@@ -52,6 +52,7 @@ axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.Peer.wp_proof
 axiom grpc.StaticMethod.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
@@ -87,9 +88,11 @@ axiom reflect.ValueOf.wp_proof
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof

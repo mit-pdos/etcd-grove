@@ -811,25 +811,6 @@ def putResult (pfx : GoString) (lo : w64) (op : TxnOp) (err : GoInterface) : IPr
       txnStates pfx r s (runTxn r s (putTxn op)).2.1 (txnWrote (runTxn r s (putTxn op)).2.2) ∗
       etcdRevToken r))
 
-/-- **The client's puts** (`clientv3.KV`'s `Put(ctx, key, val, opts...)`; a definition, the
-assumption a caller makes of `client.KV`, as `isEtcdDeleteKV` for `Delete`): for options with
-which `OpPut` does not panic and which make a put a transaction can run (`txnOpOf`), of a key
-under `pfx`, the result is `putResult` (linearizable, as `Delete` and `Commit`).
-`client/v3/experimental/recipes`' addition (the first plain put a verified client makes). -/
-def isEtcdPutKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
-  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key val : GoString)
-      (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64),
-    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
-        ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
-          op.Under pfx⌝ }}
-      (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok ctx)))
-        (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})
-
-instance isEtcdPutKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
-    Persistent (isEtcdPutKV (GF := GF) kv pfx) := by
-  unfold isEtcdPutKV; infer_instance
-
 /-! ## The client at `context.TODO()` (`client/v3/experimental/recipes`' addition) -/
 
 omit EM in
@@ -878,24 +859,6 @@ def kvGetResultR (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : Go
 instance kvGetResultR_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc)
     (err : GoInterface) : Persistent (kvGetResultR (GF := GF) pfx lo o resp err) := by
   unfold kvGetResultR; split <;> infer_instance
-
-/-- `kvGetResult` gives `kvGetResultR`. -/
-theorem kvGetResult_R (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
-    kvGetResult (GF := GF) pfx lo o resp err ⊢ kvGetResultR pfx lo o resp err := by
-  unfold kvGetResult kvGetResultR
-  iintro (%H | ⟨%H, %r, %m, #Hrev, #Hkvs, #Hr, -, %Hp, Hif⟩)
-  · ileft; ipureintro; exact H
-  · iright
-    isplitr
-    · ipureintro; exact H
-    iexists r
-    iframe Hrev Hr
-    isplitr
-    · ipureintro; exact Hp
-    split
-    · iexists m
-      iframe Hkvs Hif
-    · iexact Hif
 
 /-- **`isEtcdKV` at `context.TODO()`** (a definition, the assumption a caller makes of
 `client.KV`): `kv.Get(context.TODO(), key, opts...)`, for a get etcd's server answers as the model

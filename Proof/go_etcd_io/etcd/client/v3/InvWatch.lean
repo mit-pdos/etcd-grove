@@ -168,10 +168,6 @@ def srvProgressAllAnswers (R : v3rpc.WSrv GF) : IProp GF :=
   iprop(□ ∀ (γs : StreamNames) (j : Nat) (m : v3rpc.WatchRespM), v3rpc.mvccOk γs R.γ j m -∗
     ⌜m.watchId = W64 (-1)⌝ -∗ ∃ i : Nat, v3rpc.upAtW γs i .progress)
 
-instance srvProgressAllAnswers_persistent (R : v3rpc.WSrv GF) :
-    Persistent (srvProgressAllAnswers R) := by
-  unfold srvProgressAllAnswers; infer_instance
-
 /-- **(S3) A response with events carries an id the stream assigned to its watcher** (persistent;
 every create being auto-id, `watchReqOk`; a premise until unit W-M2, now a theorem:
 `srvEventIdsAssigned_holds`). -/
@@ -280,7 +276,7 @@ instance clientWatchVars_persistent : Persistent (clientWatchVars (GF := GF)) :=
 /-- **The facts about the server, the transport and the packages a watcher rests on, but the
 stub** (persistent; see the file header). -/
 def watchConnFacts (V : WEnv GF) : IProp GF :=
-  iprop(grpcConn V.conn V.addr V.ics [] ∗
+  iprop(grpcConn V.conn [V.addr] V.ics [] ∗
     isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗

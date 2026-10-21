@@ -56,78 +56,6 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section results
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- The `MsgVoteResp` case, as it was.
-
-The quorum facts are **part of the spec**, not incidental. Without them this triple is
-true but useless to its caller: `Step`'s `MsgVoteResp` branch has to justify the
-resulting `.leader` by `Step.win`, whose premise is `IsQuorum cfg (granted …)`, and no
-other `Step` rule produces a leader. `poll` establishes both facts; before 2026-09-16
-the proof dropped them on the floor and `won`/`lost` escaped as unconstrained booleans.
-`ms` is what `bcastAppend` broadcast on a win: what `ReplSends` allows, possibly
-nothing. `recordVote` does not touch the term, so `s1`'s term is `s`'s. -/
-def CandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : MessageM)
-    (s' : NState) : Prop :=
-  ∃ (won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress),
-    let votes' := recordVote s.votes m.From' (!m.Reject')
-    (won = true →
-       IsQuorum cfg (granted votes') ∧
-       -- the broadcast, judged at the new leader's state
-       ReplSends id (becomeLeader id { s with votes := votes' }) ms ∧
-       -- `Match` is what `becomeLeader`'s `reset` left
-       prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
-    (lost = true → ¬ IsQuorum cfg (cfg \ rejected votes')) ∧
-    s' = { voteRespResult id s m.From' m.Reject' won lost ms with prvals := pvs }
-
-/-- The `MsgPreVoteResp` case at a pre-candidate (2026-10-04), `prevoteRespResult`
-(`StepLemmas.lean`): `poll`'s facts as for `CandVoteRespResult`, and on a win the peers
-`campaign` sent its `MsgVote`s to. The protocol needs only the latter: winning a
-pre-vote proves nothing, it only starts the election (`step_prevoteRespResult`). -/
-def PrecandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : MessageM)
-    (s' : NState) : Prop :=
-  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
-    let votes' := recordVote s.votes m.From' (!m.Reject')
-    (won = true → IsQuorum cfg (granted votes') ∧ peers ≡ₚ elements (cfg \ {[id]})) ∧
-    (lost = true → ¬ IsQuorum cfg (cfg \ rejected votes')) ∧
-    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
-
-/-- What `stepCandidate` does with `m`, by type; `dropped` as in `FollowerStepResult`
-(`Spec/stepFollower.lean`). For `MsgApp` the `Progress` values `becomeFollower`'s
-`reset` leaves are `pvs` (unconstrained: a follower's are invisible to `toPState`). -/
-def CandidateStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
-    (m : MessageM)
-    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
-    (cl : List w8 := []) : Prop :=
-  if m.Type' = MsgVoteResp then
-    dropped = false ∧
-    (if s.role = .preCandidate then s' = s
-     else CandVoteRespResult cfg id s m s')
-  else if m.Type' = MsgProp then dropped = true ∧ s' = s
-  else if m.Type' = MsgApp then
-    dropped = false ∧
-    ∃ (pvs : GMap w64 Progress), HandleAppResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m ents s'
-  else if m.Type' = MsgHeartbeat then
-    dropped = false ∧
-    ∃ (pvs : GMap w64 Progress), s' = heartbeatResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m cl
-  else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
-    m.Type' = MsgCheckQuorum then
-    dropped = false ∧ s' = s
-  else if m.Type' = MsgSnap then
-    dropped = false ∧
-    ∃ (pvs : GMap w64 Progress), HandleSnapResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m sv scfg s'
-  else if m.Type' = MsgPreVoteResp then
-    dropped = false ∧
-    (if s.role = .preCandidate then PrecandVoteRespResult cfg id s m s'
-     else s' = s)
-  -- read-index (2026-10-12): no case, nothing happens
-  else if m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp then dropped = false ∧ s' = s
-  -- (2026-10-13) likewise; `MsgTimeoutNow` is logged and ignored
-  else if m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow ∨
-      m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
-  else False
-
 /-- `CandVoteRespResult` at the configuration `c` (2026-10-13, reconfiguration stage A2): `poll`'s
 facts are joint (`JQuorum`, `JLost`). -/
 def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
@@ -158,7 +86,7 @@ configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `M
 def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
+  (if m.Type' = MsgSnap then SnapCfgOk id c s sv scfg c'
    else c' = c) ∧
   (if m.Type' = MsgVoteResp then
        dropped = false ∧
@@ -188,51 +116,6 @@ def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m 
      else if m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow ∨
          m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
      else False)
-
-theorem CandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : MessageM}
-    {s' : NState} (hne : cfg ≠ ∅) (h : CandVoteRespResultC (CfgM.simple cfg L) id s m s') :
-    CandVoteRespResult cfg id s m s' := by
-  obtain ⟨won, lost, ms, pvs, h1, h2, h3⟩ := h
-  refine ⟨won, lost, ms, pvs, fun hw => ?_, fun hl => ?_, h3⟩
-  · obtain ⟨a, b, c⟩ := h1 hw
-    exact ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, b, c⟩
-  · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
-
-theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : MessageM}
-    {s' : NState} (hne : cfg ≠ ∅) (h : PrecandVoteRespResultC (CfgM.simple cfg L) id s m s') :
-    PrecandVoteRespResult cfg id s m s' := by
-  obtain ⟨won, lost, peers, pvs, h1, h2, h3⟩ := h
-  refine ⟨won, lost, peers, pvs, fun hw => ?_, fun hl => ?_, h3⟩
-  · obtain ⟨a, b⟩ := h1 hw
-    refine ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, ?_⟩
-    rw [CfgM.voters_simple] at b; exact b
-  · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
-
-theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}
-    {m : MessageM}
-    {ents : List EntryM} {sv : SnapshotM} {dropped : Bool} {s' : NState} {c' : CfgM}
-    {cl : List w8} (hne : cfg ≠ ∅)
-    (h : CandidateStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
-    CandidateStepResult cfg scfg id s m ents sv dropped s' cl := by
-  obtain ⟨-, h⟩ := h
-  unfold CandidateStepResult
-  by_cases hV : m.Type' = MsgVoteResp
-  · simp only [hV, ↓reduceIte] at h ⊢
-    refine ⟨h.1, ?_⟩
-    have h2 := h.2
-    split at h2
-    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
-    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
-  by_cases hP : m.Type' = MsgPreVoteResp
-  · simp [hP, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
-      MsgSnap, MsgPreVoteResp] at h ⊢
-    refine ⟨h.1, ?_⟩
-    have h2 := h.2
-    split at h2
-    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
-    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
-  simp only [hV, hP, ite_false] at h ⊢
-  exact h
 
 end results
 
@@ -309,7 +192,7 @@ abbrev stepCandidate.spec : Prop :=
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ scfg.Has id ∧ m.From' ≠ id ∧
+     SnapScopeIf id sv scfg ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
      s.gh.ns = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -317,7 +200,10 @@ abbrev stepCandidate.spec : Prop :=
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the
       -- response to a heartbeat carries)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-               ⟨m, ents, sn, cl, rs⟩ }}
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
+      -- (`handleSnapshot`'s; `tsSrc_ne` for any other type)
+      "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn }}
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗

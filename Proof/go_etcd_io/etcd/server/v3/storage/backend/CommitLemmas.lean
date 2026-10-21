@@ -165,18 +165,6 @@ theorem vData_free (P : BParams) (st : BSess) (hst : sessWf P st) (hn : st.ndel 
 theorem viewSame_of_freeOk {P : BParams} {st : BSess} (h : freeOk P st) : viewSame P st :=
   ⟨vData_free P st h.1 h.2.2.1 h.2.2.2.1, h.2.2.2.1⟩
 
-/-- A read buffer's empty (or absent) bucket is gone after its reset. -/
-theorem RBuf.reset_lookup_none {R : RBuf} {i : w64} (h : bkOf R.bks i = []) :
-    R.reset.bks.lookup i = none := by
-  unfold RBuf.reset bksReset
-  show ((R.bks.filter (fun _ es => !es.isEmpty)).fmap (fun _ => ([] : List Ent))).lookup i = none
-  rw [show ((R.bks.filter (fun _ es => !es.isEmpty)).fmap (fun _ => ([] : List Ent))).lookup i =
-    ((R.bks.lookup i).filter (fun es => !es.isEmpty)).map (fun _ => []) from rfl]
-  unfold bkOf at h
-  cases hl : R.bks.lookup i with
-  | none => rfl
-  | some es => rw [hl] at h; simp at h; subst h; rfl
-
 theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
     idsOk P (bksReset B) := by
   intro i es hi

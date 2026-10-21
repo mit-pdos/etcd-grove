@@ -148,12 +148,6 @@ def deleteReqOk (o : OpFull) : Prop := deleteCheck o = none
 
 /-! ## The transaction check -/
 
-/-- The first error of a list of checks. -/
-def firstErr : List (Option CheckErr) → Option CheckErr
-  | [] => none
-  | some e :: _ => some e
-  | none :: es => firstErr es
-
 /-- The widest of a transaction's comparisons and branches (`checkTxnRequest`'s `opc`). -/
 def txnWidth (cs : List CmpModel) (ts es : List ReqOp) : Nat :=
   max cs.length (max ts.length es.length)
@@ -338,32 +332,6 @@ def ReqOp.siblingSafeL : List ReqOp → Prop
   | [] => True
   | u :: us => (∀ v ∈ us, sibOk u v) ∧ ReqOp.siblingSafe u ∧ ReqOp.siblingSafeL us
 end
-
-/-- **What `checkIntervals` is for** (stated here; proved by unit 1, `CheckNodup.lean`:
-`intervalsOkCheckStmt_holds`, from `check_gives_nodup`): a branch `ops` that passes the gRPC
-layer's checks, `checkRequestOp` at some budget (`opsCheck n ops = none`: every put and delete key
-non-empty, at any depth) and `checkIntervals` (`intervalsOk`), with no from-key delete and no
-later-sibling delete of a nested put, run by the server at any state (`txn.srvOps`, whatever its
-comparisons choose), has distinct put keys, none of them deleted: the condition of the txn
-package's `keys_nodup_iff_check` (with `DelsPresent`, which the run gives, `NoDupKeysPerRev` of
-the transaction's revision). Without either exclusion it is false (the two issues). Unit 0
-stated it without `opsCheck` (`intervalsOkNoKeysStmt`), which is false too
-(`intervalsOkNoKeysStmt_false`): `checkIntervals`' affine order reads the empty key as +∞, so a
-put and a delete of `""` pass it; `kvServer.Txn` runs `checkTxnRequest` first. -/
-def intervalsOkCheckStmt : Prop :=
-  ∀ (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv) (r : w64),
-    ReqOp.toTxnOps ops = some tops → opsCheck n ops = none → ReqOp.noFromKeyDelL ops →
-    ReqOp.siblingSafeL ops → intervalsOk ops →
-    (txn.putKeysOf (txn.srvOps s0 r s tops).1).Nodup ∧
-      ∀ k ∈ txn.putKeysOf (txn.srvOps s0 r s tops).1, k ∉ txn.delKeysOf (txn.srvOps s0 r s tops).1
-
-/-- Unit 0's statement, without the keys checked: false (`intervalsOkNoKeysStmt_false`). -/
-def intervalsOkNoKeysStmt : Prop :=
-  ∀ (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv) (r : w64),
-    ReqOp.toTxnOps ops = some tops → ReqOp.noFromKeyDelL ops → ReqOp.siblingSafeL ops →
-    intervalsOk ops →
-    (txn.putKeysOf (txn.srvOps s0 r s tops).1).Nodup ∧
-      ∀ k ∈ txn.putKeysOf (txn.srvOps s0 r s tops).1, k ∉ txn.delKeysOf (txn.srvOps s0 r s tops).1
 
 end v3rpc
 end EtcdGrove

@@ -62,9 +62,6 @@ def rangeRespShow (resp : Loc) : IProp GF :=
     structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv)
 
-instance rangeRespShow_persistent (resp : Loc) : Persistent (rangeRespShow (GF := GF) resp) := by
-  unfold rangeRespShow; infer_instance
-
 theorem rangeResult_show (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull)
     (wt : Bool) : txn.rangeResult (GF := GF) resp err log rev o wt ⊢ rangeRespShow resp := by
   iunfold txn.rangeResult

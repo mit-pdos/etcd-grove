@@ -756,8 +756,6 @@ end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
 #print axioms Perennial.EtcdGrove.v3rpc.check_gives_nodup
-#print axioms Perennial.EtcdGrove.v3rpc.intervalsOkCheckStmt_holds
-#print axioms Perennial.EtcdGrove.v3rpc.intervalsOkNoKeysStmt_false
 #print axioms Perennial.EtcdGrove.v3rpc.checkRequestOp_nonempty
 #print axioms Perennial.EtcdGrove.v3rpc.checkTxnRequest_ok
 #print axioms Perennial.EtcdGrove.v3rpc.put_handler

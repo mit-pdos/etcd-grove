@@ -31,18 +31,19 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem clientv3.New.wp_proof (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
     clientv3.New.spec (GF := GF) (hG := hG) := by
-  intro cfg ep V
+  intro cfg eps V
   wp_start as ⟨#Hcfg, %HV⟩
   ihave #Hcfg' := Hcfg
   iunfold clientCfgOk at Hcfg'
-  icases Hcfg' with ⟨#Heps, -, -⟩
+  icases Hcfg' with ⟨#Heps, -, %Hpure⟩
   ihave %Hel := ownSlice_len _ _ _ $$ Heps
   wp_auto
   rw [decide_eq_false (show ¬ (cfg.Endpoints'.len = W64 0) by
-    intro h; rw [h] at Hel; have h0 := Hel.1; simp only [List.length_singleton] at h0; revert h0; decide)]
+    intro h; rw [h] at Hel; have h0 := Hel.1
+    exact Hpure.1.1 (List.eq_nil_of_length_eq_zero (by rw [h0]; rfl)))]
   wp_auto
   ipersist cfg
-  wp_apply wp_newClient cfg_ptr cfg ep V $$ [$cfg $Hcfg] as %cl %err Hres
+  wp_apply wp_newClient cfg_ptr cfg eps V $$ [$cfg $Hcfg] as %cl %err Hres
   · ipureintro; exact HV
   iapply HΦ
   iexact Hres

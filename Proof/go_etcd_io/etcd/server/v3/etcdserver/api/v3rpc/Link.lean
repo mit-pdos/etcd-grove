@@ -381,21 +381,13 @@ theorem wp_NewMaintenanceServer :
     EtcdGrove.v3rpc.NewMaintenanceServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewMaintenanceServer.wp_proof
 
-theorem storage.wp_NewBackendQuota :
-    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.storage.NewBackendQuota.wp_proof
-
-theorem wp_newBackendQuota :
-    EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newBackendQuota.wp_proof EtcdServer.wp_Logger EtcdServer.wp_Backend storage.wp_NewBackendQuota
-
 theorem wp_NewQuotaKVServer :
     EtcdGrove.v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.NewQuotaKVServer.wp_proof wp_NewKVServer wp_newBackendQuota EtcdServer.wp_MemberID
+  EtcdGrove.v3rpc.NewQuotaKVServer.wp_proof wp_NewKVServer
 
 theorem wp_NewQuotaLeaseServer :
     EtcdGrove.v3rpc.NewQuotaLeaseServer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.NewQuotaLeaseServer.wp_proof wp_NewLeaseServer wp_newBackendQuota EtcdServer.wp_MemberID
+  EtcdGrove.v3rpc.NewQuotaLeaseServer.wp_proof wp_NewLeaseServer
 
 theorem wp_SetProgressReportInterval :
     EtcdGrove.v3rpc.SetProgressReportInterval.spec (GF := GF) (hG := hG) :=
@@ -605,9 +597,17 @@ theorem wp_isClientCtxErr :
     EtcdGrove.v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.isClientCtxErr.wp_proof
 
+theorem storage.wp_NewBackendQuota :
+    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewBackendQuota.wp_proof
+
+theorem wp_newBackendQuota :
+    EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newBackendQuota.wp_proof EtcdServer.wp_Logger EtcdServer.wp_Backend storage.wp_NewBackendQuota
+
 theorem quotaAlarmer.wp_check :
     EtcdGrove.v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.quotaAlarmer.check.wp_proof
+  EtcdGrove.v3rpc.quotaAlarmer.check.wp_proof wp_newBackendQuota
 
 theorem quotaKVServer.wp_Put :
     EtcdGrove.v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG) :=

@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 transaction can run: `txnOpOf`, a get, a put or a delete): their requests (`Op.toRequestOp`)
 appended, `celse` set; returns the builder as a `Txn`. -/
 abbrev txn.Else.spec : Prop :=
-  ∀ (tp : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (sl : GoSlice) (os : List OpFull) (ops : List TxnOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
       opsAt sl os ∗ ⌜os.map txnOpOf = ops.map some ∧ b.celse = false⌝ }}

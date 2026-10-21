@@ -161,27 +161,27 @@ axiom ErrCompacted_init :
 /-- `errStringToError = map[string]error{...}` (`error.go`): a map whose values are `ErrGRPC*` errors, `status.Error(...)`s: `*status.Error`s, leaf errors whose `Error()`, `GRPCStatus()` and `Is` return. -/
 axiom errStringToError_init :
     {{ (True : IProp GF) }} (App (Val errStringToError.init) (Val #()))
-    {{ RET #(); ∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) }}
+    {{ RET #(); ∃ (mref : Loc) (m : GMap GoString GoInterface), globalAddr errStringToError ↦ mref ∗ mref ↦$□ m ∗ □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → go_etcd_io.etcd.cache.v3.statusErrOk v) ∗ ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → go_etcd_io.etcd.cache.v3.errDesc v = k⌝ }}
 
-/-- `ErrUserEmpty = Error(ErrGRPCUserEmpty)` (`error.go`): an `EtcdError`. -/
+/-- `ErrUserEmpty = Error(ErrGRPCUserEmpty)` (`error.go`): an `EtcdError`, with `ErrGRPCUserEmpty`'s description (D29). -/
 axiom ErrUserEmpty_init :
     {{ (True : IProp GF) }} (App (Val ErrUserEmpty.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrUserEmpty ↦ interface.mkOk EtcdError.ty #x }}
+    {{ RET #(); ∃ x : EtcdError, globalAddr ErrUserEmpty ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: user name is empty"⌝ }}
 
-/-- `ErrInvalidAuthToken = Error(ErrGRPCInvalidAuthToken)` (`error.go`): an `EtcdError`. -/
+/-- `ErrInvalidAuthToken = Error(ErrGRPCInvalidAuthToken)` (`error.go`): an `EtcdError`, with `ErrGRPCInvalidAuthToken`'s description (D29). -/
 axiom ErrInvalidAuthToken_init :
     {{ (True : IProp GF) }} (App (Val ErrInvalidAuthToken.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrInvalidAuthToken ↦ interface.mkOk EtcdError.ty #x }}
+    {{ RET #(); ∃ x : EtcdError, globalAddr ErrInvalidAuthToken ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: invalid auth token"⌝ }}
 
-/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`. -/
+/-- `ErrAuthOldRevision = Error(ErrGRPCAuthOldRevision)` (`error.go`): an `EtcdError`, with `ErrGRPCAuthOldRevision`'s description (D29). -/
 axiom ErrAuthOldRevision_init :
     {{ (True : IProp GF) }} (App (Val ErrAuthOldRevision.init) (Val #()))
-    {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x }}
+    {{ RET #(); ∃ x : EtcdError, globalAddr ErrAuthOldRevision ↦ interface.mkOk EtcdError.ty #x ∗ ⌜x.desc' = go!"etcdserver: revision of auth store is old"⌝ }}
 
-/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, ...)` (`error.go`): a `*status.Error`, a pointer error. -/
+/-- `ErrGRPCNotSupportedForLearner = status.Error(codes.FailedPrecondition, "etcdserver: rpc not supported for learner")` (`error.go`): a `*status.Error`, a pointer error, with that description (D29). -/
 axiom ErrGRPCNotSupportedForLearner_init :
     {{ (True : IProp GF) }} (App (Val ErrGRPCNotSupportedForLearner.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ }}
+    {{ RET #(); ∃ e : GoInterfaceOk, globalAddr ErrGRPCNotSupportedForLearner ↦ GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗ ⌜go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝ }}
 
 /-- `ErrNoLeader = Error(ErrGRPCNoLeader)` (`error.go`): an `EtcdError`. -/
 axiom ErrNoLeader_init :
@@ -384,7 +384,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCTimeoutWaitAppliedIndex.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCUnhealthy.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCCorrupt.init (by mem_tac))
-  wp_apply ErrGRPCNotSupportedForLearner_init as ⟨%eErrGRPCNotSupportedForLearner, HErrGRPCNotSupportedForLearner, %PErrGRPCNotSupportedForLearner⟩
+  wp_apply ErrGRPCNotSupportedForLearner_init as ⟨%eErrGRPCNotSupportedForLearner, HErrGRPCNotSupportedForLearner, %PErrGRPCNotSupportedForLearner, %DErrGRPCNotSupportedForLearner⟩
   wp_apply (opaqueInitsOk ErrGRPCBadLeaderTransferee.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCWrongDowngradeVersionFormat.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCInvalidDowngradeTargetVersion.init (by mem_tac))
@@ -393,7 +393,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrGRPCNoInflightDowngrade.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCCanceled.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrGRPCDeadlineExceeded.init (by mem_tac))
-  wp_apply errStringToError_init as ⟨%mreferrStringToError, %merrStringToError, HerrStringToError, #MerrStringToError, #SerrStringToError⟩
+  wp_apply errStringToError_init as ⟨%mreferrStringToError, %merrStringToError, HerrStringToError, #MerrStringToError, #SerrStringToError, %DerrStringToError⟩
   wp_apply (opaqueInitsOk ErrEmptyKey.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrKeyNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrValueProvided.init (by mem_tac))
@@ -420,7 +420,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrRootUserNotExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrRootRoleNotExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrUserAlreadyExist.init (by mem_tac))
-  wp_apply ErrUserEmpty_init as ⟨%xErrUserEmpty, HErrUserEmpty⟩
+  wp_apply ErrUserEmpty_init as ⟨%xErrUserEmpty, HErrUserEmpty, %DErrUserEmpty⟩
   wp_apply (opaqueInitsOk ErrUserNotFound.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrRoleAlreadyExist.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrRoleNotFound.init (by mem_tac))
@@ -430,8 +430,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ErrRoleNotGranted.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrPermissionNotGranted.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrAuthNotEnabled.init (by mem_tac))
-  wp_apply ErrInvalidAuthToken_init as ⟨%xErrInvalidAuthToken, HErrInvalidAuthToken⟩
-  wp_apply ErrAuthOldRevision_init as ⟨%xErrAuthOldRevision, HErrAuthOldRevision⟩
+  wp_apply ErrInvalidAuthToken_init as ⟨%xErrInvalidAuthToken, HErrInvalidAuthToken, %DErrInvalidAuthToken⟩
+  wp_apply ErrAuthOldRevision_init as ⟨%xErrAuthOldRevision, HErrAuthOldRevision, %DErrAuthOldRevision⟩
   wp_apply (opaqueInitsOk ErrInvalidAuthMgmt.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrClusterIDMismatch.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrClusterIdMismatch.init (by mem_tac))
@@ -502,7 +502,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold go_etcd_io.etcd.cache.v3.rpctypesInit
   iframe #
   ipureintro
-  refine ⟨?_, by assumption⟩
+  refine ⟨by assumption, ?_, by assumption, by assumption, by assumption, by assumption, by assumption⟩
   exact ⟨EtcdGrove.RpctypesEtcdErrorMethods.leaf, EtcdGrove.RpctypesEtcdErrorMethods.noGRPCStatus, EtcdGrove.RpctypesEtcdErrorMethods.noIs⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

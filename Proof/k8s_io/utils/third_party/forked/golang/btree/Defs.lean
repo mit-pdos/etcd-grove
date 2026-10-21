@@ -202,14 +202,6 @@ def ownedNode (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (dq : DFrac) (n
     (t : Tree (V × K)) : IProp GF :=
   iprop(∃ ps : List Loc, nodeShallow c dq n t.items ps ∗ ownNodes o c f less dq ps t.children)
 
-/-- An owned node (items `is`, children `cs`) whose child `i`, at `p`, is lent out: its
-`ownNode` is held separately (`mutableChild`). -/
-def ownedNodeHole (o : ItemOrder GF V K) (c f : Loc) (less : GoFunc) (n : Loc)
-    (is : List (V × K)) (cs : List (Tree (V × K))) (i : Nat) (p : Loc) : IProp GF :=
-  iprop(∃ ps : List Loc, ⌜ps[i]? = some p ∧ ps.length = cs.length⌝ ∗
-    nodeShallow c (DFrac.own 1) n is ps ∗
-    ownNodes o c f less (DFrac.own 1) (ps.eraseIdx i) (cs.eraseIdx i))
-
 /-- The item a removal is given: one with the key, for `Target.key`. -/
 def targetItem (o : ItemOrder GF V K) (tgt : Target K) (item : V) : IProp GF :=
   match tgt with

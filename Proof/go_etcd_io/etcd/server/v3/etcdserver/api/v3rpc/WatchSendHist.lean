@@ -101,14 +101,6 @@ theorem live_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Na
   rw [hI.split X, hI.noPend X (Or.inl ((hL X hX).2 hl)) (by simp), List.append_nil] at hk
   exact (List.mem_filter.1 hk).1
 
-/-- `sendHist_send`'s `hnew` for a response received and sent at once. -/
-theorem hnew_direct {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
-    {ids : w64 → Bool} {D : List WatchRespM} (hI : SendInv rcv S pend ids none)
-    (hL : ∀ X, X ≠ W64 (-1) → (ids X = true ↔ idLive D X)) (x : mvcc.RespM) :
-    ∀ (X : w64) (k : Nat), X ≠ W64 (-1) → idLive D X → k ∈ idxOf rcv X → k ∉ S → x.idx < k := by
-  intro X k hX hl hk hkS
-  exact absurd (live_sent hI hL X hX hl hk) hkS
-
 /-- The indices of an id, in order. -/
 theorem idxOf_sorted (rcv : List mvcc.RespM) (X : w64) : (idxOf rcv X).Pairwise (· < ·) := by
   unfold idxOf
@@ -159,20 +151,6 @@ theorem pend_not_sent {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → Lis
   | exact absurd rfl (hd n hf n hpm)
 
 /-! ## What a send says of the order -/
-
-/-- The received response at index `k` sent: it is among the sent ones. -/
-theorem sent_of_mem {rcv : List mvcc.RespM} {S : List Nat} {D : List WatchRespM}
-    (hD : D.filterMap WatchRespM.src = S.filterMap (fun n => rcv[n]?)) {k : Nat}
-    {x : mvcc.RespM} (hx : rcv[k]? = some x) (hk : k ∈ S) : ∃ m' ∈ D, m'.src = some x := by
-  have : x ∈ D.filterMap WatchRespM.src := by
-    rw [hD]; exact List.mem_filterMap.2 ⟨k, hk, hx⟩
-  exact List.mem_filterMap.1 this
-
-theorem mem_idxOf_of {rcv : List mvcc.RespM} {k : Nat} {x : mvcc.RespM} (hx : rcv[k]? = some x) :
-    k ∈ idxOf rcv x.id := by
-  unfold idxOf
-  rw [List.mem_filter, List.mem_range]
-  exact ⟨(List.getElem?_eq_some_iff.1 hx).1, by unfold idOf; simp [hx]⟩
 
 /-- **The sent responses with events of a watcher of the id `X`, by index**: those of the sent
 indices `S` whose indices of `X` are the first ones up to `n`. -/

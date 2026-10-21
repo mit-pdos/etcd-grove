@@ -41,7 +41,7 @@ theorem withBackoff.wp_proof :
   isplitr
   · unfold optionsOk
     iexact Hbf
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, fun _ => rfl⟩
 
 end proof
 

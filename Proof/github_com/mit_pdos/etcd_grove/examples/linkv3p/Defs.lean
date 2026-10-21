@@ -17,7 +17,8 @@ linkv3's. So the cluster's list (`ids`: the bootstrap log's order, one conf chan
 `[id₁, id₂, id₃]`, and `BootFacts` is putget3's in that order.
 
 **What a started member gives** (`memberServed`) and **what a client's `Apply` takes**
-(`clientOk`) are at the end.
+(`clientOk`) are at the end, with **what a bridge's start gives** (`forwards`: the bridge's
+address serves what the member's does, from the bridge's trust-boundary spec of `New`, D26).
 -/
 module
 
@@ -25,7 +26,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Inv
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.Failover
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
 
 @[expose] public section
 
@@ -60,10 +63,16 @@ abbrev peerAddr₁ : GoString := go!"127.0.0.1:23841"
 abbrev peerAddr₂ : GoString := go!"127.0.0.1:23842"
 abbrev peerAddr₃ : GoString := go!"127.0.0.1:23843"
 
-/-- The members' client addresses (each served, to its client). -/
+/-- The members' client addresses (each served, to its bridge). -/
 abbrev clientAddr₁ : GoString := go!"127.0.0.1:23831"
 abbrev clientAddr₂ : GoString := go!"127.0.0.1:23832"
 abbrev clientAddr₃ : GoString := go!"127.0.0.1:23833"
+
+/-- The bridges' addresses (each a bridge to a member's client address, which its client dials;
+`notes/client-cut-plan.md`). -/
+abbrev bridgeAddr₁ : GoString := go!"127.0.0.1:23851"
+abbrev bridgeAddr₂ : GoString := go!"127.0.0.1:23852"
+abbrev bridgeAddr₃ : GoString := go!"127.0.0.1:23853"
 
 /-- **The initial cluster's peer URLs, by name** (the map `Main` builds, `cluster`). -/
 def initURLs3 (k : GoString) : List _root_.Perennial.net.url.URL :=
@@ -106,7 +115,7 @@ def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (dir : w64 →
   iprop(□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
         (γ : RaftNames),
       ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.reCfg = GMap.listToSet ps ∧
-        γ.reDyn = none ∧ γ.reCCOk = putget3.ccOk ps ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true⌝ -∗
+        γ.reDyn = none ∧ γ.reCCOk = putget3.ccOk ps ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true⌝ -∗
       letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
@@ -129,20 +138,20 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
   unfold premises; infer_instance
 
 /-- **What `Apply` and `Check` take of one client** (persistent): linkvtxn's `Apply.spec`'s
-premises for a client `cl` of some member -- `New`'s one-attempt client (`isNewClient`,
-`clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its endpoint with that
-member's apply environment, read names and ids, and the instance's invariant at the member's KV
-names (the cluster's state, D21 M4: `linkvInv_congr`, `Alloc.lean`). A list of clients is a
-`[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and `Range`, linkv's invariant.) -/
+premises for a client `cl` of some members `ms` (at least one; all three since 2026-10-21,
+failover, `notes/decisions.md` D27) -- `New`'s client of their endpoints, with the default
+retries since 2026-10-21 (`isNewClient`; a write sent at most once, `clientWriteOnce`: the
+endpoints refusal-free, D29; until then configured for one attempt, `clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
+member's endpoint with that member's apply environment, read names and ids (`kvRegsAt`), and the
+instance's invariant at each member's KV names (the cluster's state, D21 M4: `linkvInv_congr`,
+`Alloc.lean`). A list of clients is a `[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and
+`Range`, linkv's invariant; until 2026-10-21, one member.) -/
 def clientOk (γ : linkvtxn.LinkvNames) (cl : Loc) : IProp GF :=
-  iprop(∃ (ep : GoString) (V : EtcdGrove.client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames)
-      (cid mid : w64),
-    isNewClient cl ep V ∗ clientKVOnce cl ep ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗
-    isGrpcRpc ep go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E γr γr cid mid) ∗
-    linkvtxn.linkvInv γ γr.kv)
+  iprop(∃ (ms : List (EtcdGrove.client.SrvAt GF)) (V : EtcdGrove.client.WEnv GF), ⌜ms ≠ []⌝ ∗
+    isNewClient cl (ms.map EtcdGrove.client.SrvAt.addr) V ∗
+    EtcdGrove.client.clientWriteOnce cl (ms.map EtcdGrove.client.SrvAt.addr) ∗
+    ([∗list] sv ∈ ms, EtcdGrove.client.kvRegsAt sv) ∗
+    ([∗list] sv ∈ ms, linkvtxn.linkvInv γ sv.γr.kv))
 
 instance clientOk_persistent (γ : linkvtxn.LinkvNames) (cl : Loc) :
     Persistent (clientOk (GF := GF) γ cl) := by
@@ -153,7 +162,8 @@ to what `Main` needs of it -- the server's request and read views (at its apply 
 agreeing with the stand-in `E₀`, auth off), the `GoAttach` resources with the thread token
 (`srvGoRes`), the member's place in the network (`srvNetMember`: what the partitioner's
 `CutPeer`/`MendPeer` take), and etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at its
-client address (`etcd_kv_started`), what its client's `Apply` takes. -/
+client address (`etcd_kv_started`), what its client's `Apply` takes, and (D29) that address
+refusal-free (`etcd_noRefusal`). -/
 def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (client : GoString) : IProp GF :=
   iprop(∃ (E : apply.AEnv GF) (γw : GName) (cid mid : w64),
@@ -164,9 +174,42 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     isGrpcRpc client go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
-    isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid))
+    isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
+    -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
+    ⌜noRefusalAt client⌝)
 
 end defs
+
+section forwards
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
+gives, from the bridge's trust-boundary spec of `New`), and (D29) `a` is refusal-free if `b` is. -/
+def forwards (a b : GoString) : IProp GF :=
+  iprop((□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
+    grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S) ∗
+    ⌜noRefusalAt b → noRefusalAt a⌝)
+
+instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) a b) := by
+  unfold forwards; infer_instance
+
+/-- A method registered at `b` is registered at an address that forwards to `b`. -/
+theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec : GrpcSpec Req Rep) :
+    forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec := by
+  iintro ⟨#Hf, #Hr⟩
+  iunfold forwards at Hf
+  icases Hf with ⟨#Hf, -⟩
+  unfold isGrpcRpc
+  icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  iexists mh, srv, ics, S
+  isplitl
+  · iapply Hf $$ %name %mh %srv %ics %S Hs
+  · iexact Hm
+
+end forwards
 
 end linkv3p
 end EtcdGrove

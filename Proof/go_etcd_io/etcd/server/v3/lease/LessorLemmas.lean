@@ -180,55 +180,6 @@ theorem listSwap_eq {A : Type} (xs : List A) (i j : Nat) (a b : A) (ha : xs[i]? 
     (hb : xs[j]? = some b) : listSwap xs i j = (xs.set i b).set j a := by
   unfold listSwap; rw [ha, hb]
 
-theorem listSwap_length {A : Type} (xs : List A) (i j : Nat) :
-    (listSwap xs i j).length = xs.length := by
-  unfold listSwap
-  split <;> simp
-
-theorem listSwap_map {A B : Type} (f : A → B) (xs : List A) (i j : Nat) :
-    (listSwap xs i j).map f = listSwap (xs.map f) i j := by
-  unfold listSwap
-  simp only [List.getElem?_map]
-  cases xs[i]? <;> cases xs[j]? <;> simp [List.map_set]
-
-/-- Swapping two positions permutes. -/
-theorem perm_swap_set {A : Type} (xs : List A) (i j : Nat) (hi : i < xs.length) (hj : j < xs.length) :
-    ((xs.set i xs[j]).set j xs[i]).Perm xs := by
-  classical
-  refine List.perm_iff_count.2 (fun c => ?_)
-  have hj' : j < (xs.set i xs[j]).length := by simpa using hj
-  rw [List.count_set hj', List.count_set hi]
-  have hle : ∀ k (hk : k < xs.length), (if xs[k] == c then 1 else 0) ≤ xs.count c := by
-    intro k hk
-    split
-    · rename_i h
-      have : xs[k] = c := by simpa using h
-      exact List.count_pos_iff.mpr (this ▸ List.getElem_mem hk)
-    · exact Nat.zero_le _
-  have h1 := hle i hi
-  have h2 := hle j hj
-  have hg : (xs.set i xs[j])[j] = xs[j] := by
-    rw [List.getElem_set]; split <;> simp_all
-  rw [hg]
-  revert h1 h2
-  generalize (if xs[i] == c then 1 else 0) = u
-  generalize (if xs[j] == c then 1 else 0) = w
-  intro h1 h2
-  omega
-
-/-- `listSwap` permutes. -/
-theorem listSwap_perm {A : Type} (xs : List A) (i j : Nat) : (listSwap xs i j).Perm xs := by
-  unfold listSwap
-  split
-  · rename_i a b ha hb
-    have hi : i < xs.length := (List.getElem?_eq_some_iff.mp ha).1
-    have hj : j < xs.length := (List.getElem?_eq_some_iff.mp hb).1
-    have hxa : xs[i] = a := (List.getElem?_eq_some_iff.mp ha).2
-    have hxb : xs[j] = b := (List.getElem?_eq_some_iff.mp hb).2
-    subst hxa hxb
-    exact perm_swap_set xs i j hi hj
-  · exact List.Perm.refl _
-
 end lemmas
 
 end lease

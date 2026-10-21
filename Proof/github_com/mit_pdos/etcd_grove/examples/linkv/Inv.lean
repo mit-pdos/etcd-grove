@@ -237,12 +237,6 @@ theorem callN_mask : (↑callN : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ �
   exact ⟨linkvN_mask p (nclose_subseteq _ _ p hp),
     fun h' => ndot_ne_disjoint linkvN (by decide : "call" ≠ "inv") p ⟨hp, h'⟩⟩
 
-theorem callN_top : (↑callN : CoPset) ⊆ ⊤ \ ↑linkvInvN := by
-  intro p hp
-  have := callN_mask p hp
-  rw [Iris.Std.LawfulSet.mem_diff] at this ⊢
-  exact ⟨CoPset.mem_full, this.2⟩
-
 theorem linkvE_mask' : ⊤ \ linkvE ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑linkvN := by
   intro p hp
   rw [Iris.Std.LawfulSet.mem_diff] at hp
@@ -271,12 +265,6 @@ theorem linkvE_mask_top : ⊤ \ linkvE ⊆ ⊤ \ ↑linkvInvN := by
   have := linkvE_mask p hp
   rw [Iris.Std.LawfulSet.mem_diff] at this ⊢
   exact ⟨CoPset.mem_full, this.2⟩
-
-theorem linkvE_mask_top_call : ⊤ \ linkvE ⊆ (⊤ \ ↑linkvInvN) \ ↑callN := by
-  intro p hp
-  have := linkvE_mask_call p hp
-  rw [Iris.Std.LawfulSet.mem_diff] at this ⊢
-  exact ⟨linkvE_mask_top p hp, this.2⟩
 
 /-- **The library's abstract state** (`lintest`'s `libState`; see the file header). -/
 def linkvState (γ : LinkvNames) (S : KVSet GoString GoString) : IProp GF :=
@@ -354,12 +342,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
-
-/-- A put's input. -/
-abbrev putIn (k v : GoString) : Input := ⟨true, k, v⟩
-
-/-- A get's input. -/
-abbrev getIn (k : GoString) : Input := ⟨false, k, go!""⟩
 
 /-- A call's output when it returned `ok` with nothing found (a put's). -/
 abbrev okOut : Output := ⟨false, false, go!""⟩

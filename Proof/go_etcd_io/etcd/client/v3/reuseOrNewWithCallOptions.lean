@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem reuseOrNewWithCallOptions.wp_proof :
     reuseOrNewWithCallOptions.spec (GF := GF) (hG := hG) := by
-  intro o sl ros ks mx
+  intro o sl ros ks mx kp
   wp_start as ⟨#Hmx, #Hsl, #Hros⟩
   ihave %Hsll := ownSlice_len $$ Hsl
   ihave %Hkl := BigSepL2.bigSepL2_length $$ Hros
@@ -39,7 +39,11 @@ theorem reuseOrNewWithCallOptions.wp_proof :
     have Hknil : ks = [] := by rw [Hnil] at Hkl; exact List.eq_nil_of_length_eq_zero Hkl.symm
     subst Hknil
     rw [show maxAfter mx [] = mx from rfl]
-    iexact Hmx
+    iframe Hmx
+    isplitr
+    · first | itrivial | (ipureintro; simp)
+    iintro !> %_ %p Hp
+    iexact Hp
   iunfold retryOptsMax at Hmx
   icases Hmx with ⟨%ov, #Hov, #Hok, %Hmx⟩
   wp_auto
@@ -47,13 +51,14 @@ theorem reuseOrNewWithCallOptions.wp_proof :
       (cv : go_etcd_io.etcd.client.v3.options),
       "i" ∷ i_ptr ↦ n ∗ "f" ∷ f_ptr ↦ fv ∗ "cp" ∷ «$r0_ptr» ↦ cv ∗ "#Hcv" ∷ optionsOk cv ∗
       "%Hcm" ∷ ⌜cv.max' = maxAfter mx (ks.take (sint.nat n))⌝ ∗
+      "%Hcp" ∷ ⌜kp = true → cv.retryPolicy' = ov.retryPolicy'⌝ ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ros.length : Int)⌝) $$ [i f «$r0»]
   · iexists W64 0, _, ov
     simp only [named]
     iframe
     iframe #
     ipureintro
-    refine ⟨?_, by constructor <;> word⟩
+    refine ⟨?_, by intros; first | trivial | rfl, by constructor <;> word⟩
     rw [show sint.nat (W64 0) = 0 from rfl]
     simp [maxAfter, Hmx]
   wp_for IH
@@ -63,16 +68,34 @@ theorem reuseOrNewWithCallOptions.wp_proof :
     ipersist cp
     wp_auto
     iapply HΦ
-    unfold retryOptsMax
+    have Hne : ros ≠ [] := by
+      intro h
+      apply Hif
+      rw [h] at Hsll
+      have := Hsll.1
+      simp only [List.length_nil] at this
+      word
+    isplitr
+    · unfold retryOptsMax
+      iexists cv
+      iframe #
+      ipureintro
+      rw [Hcm]
+      congr 1
+      apply List.take_of_length_le
+      rw [← Hkl]
+      have : sint.nat n = ros.length := by word
+      omega
+    isplitr
+    · ipureintro; intro h; exact absurd h Hne
+    iintro !> %Hkp %p Hp
+    unfold retryOptsPol
+    icases Hp with ⟨%ov', #Hov', %Hp⟩
+    icombine Hov Hov' gives %Heq
+    subst Heq
     iexists cv
     iframe #
-    ipureintro
-    rw [Hcm]
-    congr 1
-    apply List.take_of_length_le
-    rw [← Hkl]
-    have : sint.nat n = ros.length := by word
-    omega
+    ipureintro; rw [Hcp Hkp]; exact Hp
   wp_if_destruct
   rotate_left
   · exact absurd Hlt' Hif
@@ -84,12 +107,13 @@ theorem reuseOrNewWithCallOptions.wp_proof :
     obtain ⟨k, Hk⟩ : ∃ k, ks[sint.nat n]? = some k :=
       ⟨_, List.getElem?_eq_getElem (by rw [← Hkl]; exact Hlt)⟩
     ihave #Happ := BigSepL2.bigSepL2_lookup (Φ := fun _ (r : go_etcd_io.etcd.client.v3.retryOption) k =>
-      optApplyMax (GF := GF) r.applyFunc' k) Hro Hk $$ Hros
+      optApplyMax (GF := GF) r.applyFunc' k kp) Hro Hk $$ Hros
     wp_auto
     iunfold optApplyMax at Happ
     wp_apply Happ $$ %«$r0_ptr» %cv [cp] as Hcp
     · iframe #; iframe
-    icases Hcp with ⟨%cv', Hcp, #Hcv', %Hcv'm⟩
+    icases Hcp with ⟨%cv', Hcp, #Hcv', %Hcv'mp⟩
+    obtain ⟨Hcv'm, Hcv'p⟩ := Hcv'mp
     wp_for_post
     iframe
     iexists n + W64 1, ro, cv'
@@ -97,7 +121,7 @@ theorem reuseOrNewWithCallOptions.wp_proof :
     iframe
     iframe #
     ipureintro
-    refine ⟨?_, by constructor <;> word⟩
+    refine ⟨?_, fun h => (Hcv'p h).trans (Hcp h), by constructor <;> word⟩
     have Hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     rw [Hn1, Hcv'm, Hcm, List.take_add_one, Hk]
     simp [maxAfter, List.foldl_append]

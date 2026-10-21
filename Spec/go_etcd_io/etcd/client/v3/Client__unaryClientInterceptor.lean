@@ -35,12 +35,15 @@ abbrev Client.unaryClientInterceptor.spec : Prop :=
     -- (2026-10-19, D21 M6) the options' retry bounds (`optApplyMax`)
     (ks : List (Option w64)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ sl ↦*□ ros ∗
-      [∗list] ro;k ∈ ros;ks, optApplyMax ro.applyFunc' k }}
+      -- (2026-10-21, D29) keeping the retry policy
+      [∗list] ro;k ∈ ros;ks, optApplyMax ro.applyFunc' k true }}
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"unaryClientInterceptor")) (Val #sl))
   {{ (f : GoFunc), RET #f; etcdInterceptorOk f ∗
       -- (D21 M6) one attempt (the last `withMax` at most `1`): the request delivered once
-      (⌜∀ mx, uint.Z (maxAfter mx ks) ≤ 1⌝ -∗ etcdInterceptorOk1 f) }}
+      (⌜∀ mx, uint.Z (maxAfter mx ks) ≤ 1⌝ -∗ etcdInterceptorOk1 f) ∗
+      -- (D29) a write on a refusal-free connection, whatever the bound
+      etcdInterceptorOkW f }}
 
 end spec
 

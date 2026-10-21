@@ -41,7 +41,7 @@ theorem withMax.wp_proof :
   isplitr
   · unfold optionsOk at *
     iexact Hok
-  ipureintro; rfl
+  ipureintro; exact ⟨rfl, fun _ => rfl⟩
 
 end proof
 

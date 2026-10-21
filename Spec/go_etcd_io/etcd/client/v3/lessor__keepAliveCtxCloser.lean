@@ -34,7 +34,7 @@ pointer, not `WithValue`'s `&ctx`. -/
 abbrev lessor.keepAliveCtxCloser.spec : Prop :=
   ∀ (l : Loc) (addr : GoString) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (id : w64) (kd : GoChan) (γkd : ChanNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       context.isContext ctx cd ∗ ownBroadcastChan kd γkd iprop(True) .Unknown }}
     (App (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"keepAliveCtxCloser"))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #kd))

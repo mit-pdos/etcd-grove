@@ -178,9 +178,6 @@ theorem sorted_mid {A B : List (V × K)} {x : V × K} (hs : Sorted lt (A ++ x ::
   rw [sorted_append, sorted_cons] at hs
   exact ⟨fun a ha => hs.2.2 a ha x (by simp), hs.2.1.1⟩
 
-theorem not_lt_of_lt {o : StrictOrder lt} {a b : K} (h : lt a b) : ¬ lt b a :=
-  fun h' => o.irrefl _ (o.trans _ _ _ h h')
-
 theorem ne_of_lt' {o : StrictOrder lt} {a b : K} (h : lt a b) : a ≠ b := by
   rintro rfl; exact o.irrefl _ h
 

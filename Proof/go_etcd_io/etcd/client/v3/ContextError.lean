@@ -42,7 +42,7 @@ theorem ContextError.wp_proof
     · iapply statusErrOk_nil
   | ok ei =>
     wp_auto
-    wp_apply wp_rpctypes_Error (GoInterface.ok ei) $$ [$Hse] as %err1 ⟨%Hne1, #Hse1, %Hce1⟩
+    wp_apply wp_rpctypes_Error (GoInterface.ok ei) $$ [$Hse] as %err1 ⟨%Hne1, #Hse1, %Hce1, -⟩
     · ipureintro; simp
     have Hc1 := Hce1 (Herr (by simp))
     obtain ⟨e1, rfl⟩ : ∃ e1, err1 = GoInterface.ok e1 := by

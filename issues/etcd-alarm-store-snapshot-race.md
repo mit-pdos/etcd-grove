@@ -17,7 +17,7 @@ candidate: issues/upstream/etcd-alarm-store-snapshot-race/
   fields it sees partly initialized (an empty alarm map: no alarm). So `Status` and the `/health`
   checks can report a stale or empty alarm list for that moment. No crash found. The race itself
   is the bug: etcd's tests run with `-race`, and the code has no synchronization at all here.
-- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, the pin of `etc/goose.py` on branch `raft-retarget`, where this was found; upstream `main` has the same code):
+- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, where this was found; the same code at the pin of `etc/goose.py`, `2aed163b1`; upstream `main` has the same code):
   - `server/etcdserver/server.go:2409-2416` (`restoreAlarms`): `s.alarmStore = as`, with no lock,
     called by `applySnapshot` (`server.go:1102`) on the apply goroutine after `s.bemu.Unlock()`.
   - `server/etcdserver/server.go:2440-2442` (`Alarms`): `return s.alarmStore.Get(...)`, with no lock.

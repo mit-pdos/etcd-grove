@@ -32,7 +32,7 @@ theorem kVClient.Range.wp_proof
   intro kc conn addr Spec Q ctx cd inp req k e opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, #Hok⟩
   wp_auto
-  wp_apply wp_StaticMethod as %sm #Hsm
+  wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
   isplitr
   · ipureintro; rfl
@@ -58,7 +58,7 @@ theorem kVClient.Range.wp_proof
     ([sm] ++ vs)
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,
     show (pbRangeResponse (GF := GF)).ty = etcdserverpb.RangeResponse.ty from rfl] at hI
-  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
+  ihave Hpre' := reqPre_box conn addr ([sm] ++ vs) _ $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe

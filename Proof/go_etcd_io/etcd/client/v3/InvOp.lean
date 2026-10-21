@@ -396,10 +396,6 @@ def optSpecRes (f : GoFunc) (g : OpFull → OpFull) (R : IProp GF) : IProp GF :=
     {{ R ∗ opp ↦ op ∗ opFullAt op o }} (App (Val #f) (Val #opp))
     {{ (op' : go_etcd_io.etcd.client.v3.Op), RET #(); R ∗ opp ↦ op' ∗ opFullAt op' (g o) }})
 
-instance optSpecRes_persistent (f : GoFunc) (g : OpFull → OpFull) (R : IProp GF) :
-    Persistent (optSpecRes f g R) := by
-  unfold optSpecRes; infer_instance
-
 /-- The `[]OpOption` slice `sl` (read-only) holds closures with the transformers `gs`, each needing
 the resource `R` (`optSpecRes`). -/
 def optsAtRes (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF) : IProp GF :=

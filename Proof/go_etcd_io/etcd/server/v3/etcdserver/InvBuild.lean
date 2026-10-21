@@ -36,6 +36,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvNodeStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 
 @[expose] public section
 
@@ -92,7 +93,10 @@ payload, `NetPayload`): persistently, the protocol facts and the term bound (`is
 `SentMsgOk` clause gives the receiver's `NetMsgOk`, and `termLB`); once, the read credit of a
 `MsgReadIndex`, delivered at most once; any other message may be duplicated, its credit `0` anew.
 (2026-10-19, D21 M6, D20 (b)) and a forwarded `MsgProp`'s tickets (`stTks`), delivered at most
-once: the transport's at-most-once promise for a `once` message (`Transport.Start`, D21b). -/
+once: the transport's at-most-once promise for a `once` message (`Transport.Start`, D21b).
+(2026-10-19, D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh
+cluster's start): what the sender's backend snapshot gives (S-h) and the receiver's
+`OpenSnapshotBackend` reads (S-j). -/
 def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
   P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
   O st := iprop(rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ st)
@@ -109,19 +113,43 @@ def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
     unfold stTks
     rw [if_neg h2]
     iempintro
+  img i D := srvImage γ i D
+  img_pers i D := by infer_instance
 
-/-- A message raft hands the server, with its bundle, is one the network takes (`netBundle`). -/
+/-- Two read-only views of a message agree on its type. -/
+theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
+    msgOwn (GF := GF) m DFrac.discard st1 ∗ msgOwn m DFrac.discard st2 ⊢
+      ⌜st1.msg.Type' = st2.msg.Type'⌝ := by
+  simp only [msgOwn, msgPts, msgPtsC]
+  iintro ⟨⟨%pty1, %pto1, %pfr1, %pte1, %plt1, %pix1, %pco1, %pvo1, %prj1, %prh1, %es1, %els1,
+      %ps1, %cs1, %rs1, %uf1, -, #HTy1, #cTy1, -⟩,
+    ⟨%pty2, %pto2, %pfr2, %pte2, %plt2, %pix2, %pco2, %pvo2, %prj2, %prh2, %es2, %els2,
+      %ps2, %cs2, %rs2, %uf2, -, #HTy2, #cTy2, -⟩⟩
+  icombine HTy1 HTy2 gives %Heq
+  subst Heq
+  iunfold named at cTy1 cTy2
+  iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
+
+/-- A message raft hands the server, with its bundle, not a snapshot (D22 S-i: `Send` takes
+none), is one the network takes (`netBundle`). -/
 theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
-    srvMsgNet (GF := GF) γ bud m ⊢ netBundle (srvNet γ bud) m := by
-  iintro H
+    srvMsgNet (GF := GF) γ bud m ∗ srvMsgNoSnap m ⊢ netBundle (srvNet γ bud) m := by
+  iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, #Ht, Hc, Htk⟩
+  iunfold srvMsgNoSnap at Hns
+  icases Hns with ⟨%st', #Hm', %Hns⟩
+  ihave %Hty := msgOwn_type_agree m st st' $$ [Hm Hm']
+  · iframe Hm Hm'
   iunfold netBundle
   iexists st
   simp only [srvNet]
   iframe Hm Hc Htk
-  imodintro
-  iframe Hr Ht
+  isplitr
+  · imodintro
+    iframe Hr Ht
+  ipureintro
+  rw [Hty]; exact Hns
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
@@ -143,20 +171,6 @@ theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (st : Msg
   icases Hr with ⟨%H, -⟩
   ipureintro; exact H hns
 
-/-- Two read-only views of a message agree on its type. -/
-theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
-    msgOwn (GF := GF) m DFrac.discard st1 ∗ msgOwn m DFrac.discard st2 ⊢
-      ⌜st1.msg.Type' = st2.msg.Type'⌝ := by
-  simp only [msgOwn, msgPts, msgPtsC]
-  iintro ⟨⟨%pty1, %pto1, %pfr1, %pte1, %plt1, %pix1, %pco1, %pvo1, %prj1, %prh1, %es1, %els1,
-      %ps1, %cs1, %rs1, %uf1, -, #HTy1, #cTy1, -⟩,
-    ⟨%pty2, %pto2, %pfr2, %pte2, %plt2, %pix2, %pco2, %pvo2, %prj2, %prh2, %es2, %els2,
-      %ps2, %cs2, %rs2, %uf2, -, #HTy2, #cTy2, -⟩⟩
-  icombine HTy1 HTy2 gives %Heq
-  subst Heq
-  iunfold named at cTy1 cTy2
-  iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
-
 /-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is a
 `MsgSnap` (`isRNMsgSnapC`), which no message of `srvEr`'s is. -/
 theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
@@ -173,17 +187,6 @@ theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
   icases HM with ⟨%st, #Hst, %Hns⟩
   ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']
   exact absurd (Hag.trans Hst'.2) Hns
-
-/-- **The read names, fresh** (the caller's allocation, `srvReadNamesFresh_alloc`): the applied
-and committed indices' authorities at `0`, the read loop's notifier variable, the applied logs'
-empty map, the pending flag `false`, the KV state's variable at the state of the bootstrap log's
-model `σ` (its halves: the KV invariant's and the client's `etcdKV`), the certified length at the
-start log's (`hi`). -/
-def srvReadNamesFresh (γr : ReadNames) (σ : KVState) : IProp GF :=
-  iprop(monoNatAuthOwn γr.applied 1 0 ∗ monoNatAuthOwn γr.committed 1 0 ∗
-    (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
-    ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) ∗ ghostVar γr.pend 1 false ∗
-    ghostVar γr.kv.st 1 σ ∗ ghostVar γr.kv.hi 1 γr.kv.log0.length)
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
@@ -346,9 +349,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem envAgree_symm {E E' : apply.AEnv GF} (h : envAgree E E') : envAgree E' E :=
-  ⟨h.1.symm, h.2.1.symm, h.2.2.symm⟩
-
 /-- **`srvC` reads only the names** (D13a): two environments that agree on them give the same
 raft contract's `E.C`. -/
 theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
@@ -361,23 +361,6 @@ theorem srvC_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x�
   funext L
   unfold srvC batchWaitOk entryWaitOk reqWaitR
   rw [hres]
-
-/-- The workload clause at agreeing environments. -/
-theorem clusterWorkloadOk_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (h : envAgree E E') :
-    clusterWorkloadOk (GF := GF) ρ E = clusterWorkloadOk ρ E' := by
-  obtain ⟨hi, hc, hr⟩ := h
-  have hres : resultΨ (GF := GF) E = resultΨ E' := by
-    funext ρ' rq F x
-    unfold resultΨ resultIsW revMinted revTok mvcc.certOk
-    rw [hi, hc, hr]
-  unfold clusterWorkloadOk batchWaitOk entryWaitOk reqWaitR
-  rw [hres]
-
-/-- The server's raft environment at agreeing environments. -/
-theorem srvEr_agree (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) (h : envAgree E E') :
-    srvEr ρ E ai₀ c₀ x₀ bud = srvEr ρ E' ai₀ c₀ x₀ bud := by
-  unfold srvEr; rw [srvC_agree ρ E E' ai₀ c₀ x₀ h]
 
 end lemmas
 

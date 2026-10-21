@@ -26,11 +26,16 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `isSafeRetry(c, err, callOpts)` on the retry interceptor's client and a call's options, of a
 non-nil client error grpc's `status` accepts, returns some boolean. -/
 abbrev isSafeRetry.spec : Prop :=
-  ∀ (c : Loc) (err : GoInterface) (o : Loc),
+  ∀ (c : Loc) (err : GoInterface) (o : Loc) (p : go_etcd_io.etcd.client.v3.retryPolicy),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ retryClientOk c ∗ retryOptsAt o ∗ ⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗
-      statusErrOk err }}
+      statusErrOk err ∗
+      -- (2026-10-21, D29) the call's retry policy
+      retryOptsPol o p }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.isSafeRetry)) (Val #c)) (Val #err)) (Val #o))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      -- (D29) `true` only for a refusal, or for the repeatable policy (`W8 0`, a read's)
+      ⌜b = true → go_etcd_io.etcd.cache.v3.errDesc err ∈ go_etcd_io.etcd.cache.v3.refusalDescs ∨
+        p = W8 0⌝ }}
 
 end spec
 

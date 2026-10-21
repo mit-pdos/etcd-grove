@@ -27,18 +27,18 @@ required none), a put or a delete (unit V2), the method registered with a spec (
 of which the caller gives the request the server reads (`rangeWireOf o`, `putWireOf o`,
 `deleteWireOf o`) and its `Φ`; a transaction (`OpTxn`, `Op.toTxnRequest`) is not specified here
 (`kv.Txn`'s builder sends one: `txn.Commit`). -/
-def doRunOk (api : Loc) (addr : GoString) (o : OpFull) (Sp : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
+def doRunOk (api : Loc) (addr : List GoString) (o : OpFull) (Sp : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
     (Qp : PutRespM → IProp GF) (Sr : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse)
     (Qr : RangeRespM → IProp GF)
     (Sd : GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse)
     (Qd : DelRespM → IProp GF) : IProp GF :=
-  iprop((⌜o.t = W64 1⌝ ∗ sortNamesIf o.base.sortSet ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" Sr ∗
+  iprop((⌜o.t = W64 1⌝ ∗ sortNamesIf o.base.sortSet ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" Sr ∗
       □ ▷ Sr (rangeWireOf o) Qr) ∨
     -- (2026-10-19, D21 M6) a put's precondition ordinary on a client configured for one attempt
-    (⌜o.t = W64 2⌝ ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" Sp ∗
+    (⌜o.t = W64 2⌝ ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Sp ∗
       kvReqPre api addr (Sp (putWireOf o) Qp)) ∨
     -- (2026-10-20, linkv-txn stage A) a delete's too
-    (⌜o.t = W64 3⌝ ∗ isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
+    (⌜o.t = W64 3⌝ ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
       kvReqPre api addr (Sd (deleteWireOf o) Qd)))
 
 /-- **What `kv.Do` returns** for the `Op` `o`: a range's answer in the `get` field (an invalid
@@ -57,7 +57,7 @@ by `o` that is a range, a put or a delete: the request `op.toRangeRequest()`,
 `&pb.PutRequest{...}` or `&pb.DeleteRangeRequest{...}` through the retry client's `Range`, `Put`
 or `DeleteRange`, with the client's call options; `doOut`. -/
 abbrev kv.Do.spec : Prop :=
-  ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (api : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (opv : go_etcd_io.etcd.client.v3.Op) (o : OpFull)
     (Sp : GrpcSpec (GF := GF) pbPutRequest pbPutResponse) (Qp : PutRespM → IProp GF)
     (Sr : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse) (Qr : RangeRespM → IProp GF)

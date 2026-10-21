@@ -149,22 +149,6 @@ theorem kvM_step_box (s : KVMap) (x : KVInput) (o : GoString) :
 
 end inj
 
-/-- `Check`'s `apply` on the input `x`: the operation it runs is `kvNext` of its kind (a `Get`,
-a `Put`, or else an `Append`), and its answer is `inOut`. -/
-theorem inStep_kvNext [FfiSyntax] (x : KVInput) (s : KVMap) :
-    inStep x s = kvNext (if x.Kind' = opGetB then opGetB else if x.Kind' = opPutB then opPutB
-      else opAppendB) x.Key' x.Val' s := by
-  have h1 : opGetB ≠ opPutB := by decide
-  have h2 : opGetB ≠ opAppendB := by decide
-  have h3 : opAppendB ≠ opPutB := by decide
-  unfold inStep kvNext
-  by_cases hg : x.Kind' = opGetB
-  · rw [if_pos hg, if_pos hg, if_neg h1, if_neg h2]
-  · rw [if_neg hg, if_neg hg]
-    by_cases hp : x.Kind' = opPutB
-    · rw [if_pos hp, if_pos hp, if_pos rfl]
-    · rw [if_neg hp, if_neg hp, if_neg h3, if_pos rfl]
-
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

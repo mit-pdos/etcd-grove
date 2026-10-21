@@ -13,10 +13,12 @@ is its fold (`kvFold`, `Base.lean`: every key's value). A client holds `rkvVal �
 half, at a history whose fold is `m` (a ghost variable holds a countable value: the history,
 not the map). `Put`/`Get`/`Append` hand their atomic update over `rkvVal` to `do`, which mints
 the operation and keeps the update in the operation's slot (`opSlot`, with a later credit),
-and gives `Node.Propose` the persistent atomic update over raft's log that moves the store's
-log at every committed occurrence of the operation's datum (`kv_propAu`, `Lemmas.lean`): at
-the first, it opens `rkvInv`, runs the client's update from the slot and moves the history --
-the linearization point; at a later one (a retry, a redelivered proposal) only the log moves.
+registers the operation's datum with raft once (`node_prop_register`), and gives every
+`Node.Propose` of it -- a retry of a dropped proposal included -- a new atomic update over raft's
+log that moves the store's log at a committed occurrence of the datum (`kv_propAu`,
+`Lemmas.lean`; raft fires each at most once): at the first, it opens `rkvInv`, runs the client's
+update from the slot and moves the history -- the linearization point; at a later one (a retry,
+a redelivered proposal) only the log moves.
 The result -- the key's value after the operation -- stays in the slot until the client
 collects it with its ticket (`kv_collect`). The standing update for raft's own entries is the
 store's too (`kv_noopAu`, given at allocation).
@@ -108,17 +110,17 @@ class KVStor (GF : BundledGFunctors) where
   kvStorName : GName
 
 abbrev MemStorRec :=
-  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
+  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
 
 def memStorRec (ms : Loc) (γs : MemStorNames) : MemStorRec :=
-  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
+  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
 
 theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     memStorRec ms1 γs1 = memStorRec ms2 γs2 → ms1 = ms2 ∧ γs1 = γs2 := by
   intro h
   cases γs1; cases γs2
   simp only [memStorRec, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
 def kvStorN : Namespace := nroot.@"kv_storage"
@@ -173,6 +175,11 @@ def kvStorFloor (st : Storage) (x : w64) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
     memFloorTok ms γs x)
 
+/-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: its `MemoryStorage`'s. -/
+def kvStorCert (st : Storage) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
+    memStorCert γs k)
+
 /-- The store's storage model: every `Storage` is a registered store storage. -/
 instance kvStorageModel : StorageModel GF where
   ownStorage := kvOwnStorage
@@ -186,6 +193,8 @@ instance kvStorageModel : StorageModel GF where
   storCap := fun _ _ => iprop(False)
   storCap_persistent := fun _ _ => by infer_instance
   storCut_cap := fun _ _ _ => by iintro ⟨-, %H⟩; exact H.elim
+  storCert := kvStorCert
+  storCert_persistent := fun st k => by unfold kvStorCert; infer_instance
 
 /-- The registry: each registered storage keeps half of its `MemoryStorage` field here
 (so that a storage is registered once: a new one has the whole field). -/
@@ -317,10 +326,6 @@ def waitP (γr : RKVNames) (d : List w8) (v : List w8) : IProp GF :=
     ⌜ods[m]? = some (some d) ∧ d ∉ firstOcc (ods.take m) ∧
       v = kvFold (firstOcc (ods.take m) ++ [d]) (dkey d)⌝)
 
-instance waitP_persistent (γr : RKVNames) (d v : List w8) :
-    Persistent (waitP (GF := GF) γr d v) := by
-  unfold waitP; infer_instance
-
 /-- A lower bound on the store's history (see the file header; persistent). -/
 def kvLb (γr : RKVNames) (L : List (List w8)) : IProp GF :=
   iprop(∃ (l : List EntryM) (ods : List (Option (List w8))),
@@ -329,15 +334,6 @@ def kvLb (γr : RKVNames) (L : List (List w8)) : IProp GF :=
 instance kvLb_persistent (γr : RKVNames) (L : List (List w8)) :
     Persistent (kvLb (GF := GF) γr L) := by
   unfold kvLb; infer_instance
-
-/-- What a read of key `k` waiting with the lower bound `L0` learns with the value `v`: `v` is
-`k`'s value after a history extending `L0`. -/
-def readP (γr : RKVNames) (L0 : List (List w8)) (k v : List w8) : IProp GF :=
-  iprop(∃ L, kvLb γr L ∗ ⌜L0 <+: L ∧ v = kvFold L k⌝)
-
-instance readP_persistent (γr : RKVNames) (L0 : List (List w8)) (k v : List w8) :
-    Persistent (readP (GF := GF) γr L0 k v) := by
-  unfold readP; infer_instance
 
 /-- What the applier answers a read of the context `c` with (2026-10-14, stage R): a read
 index `i` of `c` (`readOk`), and the value `v` of `c`'s key after a committed log `ap` at least
@@ -349,10 +345,6 @@ def readAns (γr : RKVNames) (c : List w8) (v : List w8) : IProp GF :=
     readOk γr.raft c i ∗ isCommitted γr.raft ap ∗
     ([∗list] e;o ∈ ap;ods, entDataIs γr.raft e o) ∗
     ⌜uint.Z i ≤ (ap.length : Int) ∧ v = kvFold (firstOcc ods) (dkey c)⌝)
-
-instance readAns_persistent (γr : RKVNames) (c v : List w8) :
-    Persistent (readAns (GF := GF) γr c v) := by
-  unfold readAns; infer_instance
 
 /-- A read's entry in the lock's invariant: the context `c` minted at `(id, s)`, and the
 producer of its handoff channel (2026-10-14, stage R: the read's record comes with its
@@ -412,8 +404,9 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = kvStorIface st⌝ ∗
-    -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (`KVCC`): leader transfer on
-    "%Hns" ∷ ⌜γp.node.raft.reNoSnap = false⌝ ∗
+    -- (2026-10-19, D21 M2r) leader transfer on (`KVCC`; D22 S-a: `RaftNames.reNoXfer`, until
+    -- then out of raft's no-snapshot mode)
+    "%Hns" ∷ ⌜γp.node.raft.reNoXfer = false⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ rkvInv γr)
 
@@ -504,9 +497,10 @@ def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
   (∀ ty bs, γn.raft.reCCOk ty bs →
     ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
   ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
-  -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (a cluster without a bootstrap log), in
-  -- which leader transfer is on (`node.TransferLeadership`'s premise)
-  γn.raft.reNoSnap = false
+  -- (2026-10-19, D21 M2r) leader transfer on (`node.TransferLeadership`'s premise); (D22 S-a)
+  -- `RaftNames.reNoXfer`, until then out of raft's no-snapshot mode (a cluster without a
+  -- bootstrap log)
+  γn.raft.reNoXfer = false
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

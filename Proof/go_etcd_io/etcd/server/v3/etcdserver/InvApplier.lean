@@ -64,7 +64,6 @@ abbrev srvCfgAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"Cfg" s
 abbrev srvQuotaAddr (s : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"QuotaBackendBytes" (srvCfgAddr s)
 abbrev srvTermAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"term" s
-abbrev srvClusterFieldAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cluster" s
 abbrev srvLgMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lgMu" s
 abbrev srvMemberIDAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"memberID" s
 abbrev srvLeadAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lead" s
@@ -200,15 +199,6 @@ theorem applyStep_prefix (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV
     · split at hd
       · exact chainStep_prefix _ rq x.log o hd
       · rw [hd]; exact List.prefix_refl _
-
-/-- `applyEntryNormal`'s step extends the KV's log (2026-10-14, unit C2a). -/
-theorem entryStep_prefix (m : EntryModel) (v3 : Bool) (x x' : apply.ApplyKV)
-    (out : apply.ApplyOut) (h : entryStep m v3 x x' out) : x.log <+: x'.log := by
-  unfold entryStep at h
-  split at h
-  · obtain ⟨rfl, -⟩ := h; exact List.prefix_refl _
-  · obtain ⟨rq, id, -, -, h⟩ := h
-    exact applyStep_prefix rq v3 x x' out h
 
 /-- **What `apply` does to the KV with one entry** of a batch that starts at the consistent
 index `c`: a normal entry by `entryStep`, with `v3` iff it is above `c` (an entry at or below is
@@ -362,6 +352,27 @@ def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
 instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance
+
+/-- (D22 S-h, 2026-10-20; S-0's amendment) **The applied term after a batch** `es` applied from the
+term `at0`: unchanged if no entry was applied, else the last applied entry's (`applyEntries`
+sets `ep.appliedt` only for a non-empty batch). -/
+def termAfter (at0 : w64) (es : List EntryModel) (at' : w64) : Prop :=
+  (es = [] ∧ at' = at0) ∨ es.getLast?.map EntryModel.term = some at'
+
+/-- (D22 S-h) **`at'` is the last term of the applied log `A`**, if any (`applyRes`'s). -/
+def lastTermIs (A : List EntryModel) (at' : w64) : Prop :=
+  A = [] ∨ A.getLast?.map EntryModel.term = some at'
+
+theorem lastTermIs_append {A es : List EntryModel} {t t' : w64} (h1 : lastTermIs A t)
+    (h2 : termAfter t es t') : lastTermIs (A ++ es) t' := by
+  unfold lastTermIs termAfter at *
+  rcases h2 with ⟨rfl, rfl⟩ | h2
+  · simpa using h1
+  · right
+    rw [List.getLast?_append]
+    cases hl : es.getLast? with
+    | none => rw [hl] at h2; simp at h2
+    | some e => rw [hl] at h2; simpa using h2
 
 -- `resultOk ar` (the server's, until the apply package's unit 3): `apply.resultErrOk`
 -- (`apply/InvUber.lean`), the same definition, which `apply.Apply`'s spec returns.
@@ -748,25 +759,6 @@ theorem srvWTPool_alloc (γ : mvcc.StoreNames) (N : Nat) (E : CoPset)
     iframe
     ipureintro; omega
   · unfold srvWTAt; imodintro; rw [show uint.nat (W64 0) = 0 from rfl]; iexact Hlb
-
-/-- **One write token** off the budget, for a fresh time receipt. -/
-theorem srvWTPool_take (γ : mvcc.StoreNames) (γp : GName) :
-    ⊢ srvWTPool (GF := GF) γ γp -∗ ⧗ 1 ={⊤}=∗ mvcc.storeWT γ := by
-  iintro #Hp Hr
-  unfold srvWTPool
-  iinv Hp with ⟨%a, %n, >Ha, >Hn, >Hc, >%Hb⟩ Hclose
-  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
-  · iframe
-  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
-  icases txn.storeWTs_split γ n' $$ Hn with ⟨Ht, Hn⟩
-  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, -⟩
-  imod Hclose $$ [Ha Hn Hc] with -
-  · inext
-    iexists a + 1, n'
-    iframe
-    ipureintro; omega
-  imodintro
-  iexact Ht
 
 /-- (2026-10-19, D21 M3) **One write token for the entry at `v + 1`**: as `srvWTPool_take`, from
 the apply thread's lower bound at `v` to one at `v + 1`. -/

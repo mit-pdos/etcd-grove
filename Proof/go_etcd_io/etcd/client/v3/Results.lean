@@ -32,8 +32,8 @@ generator's `2 ^ 48 - 1` ids are assumed not to wrap).
 `quotaKVServer.Put` proved; its `Range`/`DeleteRange` are `p`'s, promoted), under the server's
 chain of transparent interceptors (`srvInterceptorsOk`: `newLogUnaryInterceptor`'s and
 `newUnaryInterceptor`'s, proved; grpc-prometheus's, assumed); a run's slot as the runtime holds it
-is `etcdGrpcSlot` (`etcdRunSlot`, a reader slot of `leadTimeMu` for the quota's alarm, the log
-interceptor's of `lgMu`).
+is `etcdGrpcSlot` (`etcdRunSlot`, the quota check's reader slots of `lgMu` and `bemu`
+(`v3rpc.quotaRd`), the log interceptor's of `lgMu`).
 
 **What the client learns** (`putReplyOk`, `rangeReplyOk`, `deleteReplyOk`, persistent): for a
 `Put`, the apply thread's application of the put the server decoded at the log the entry met, the
@@ -1216,10 +1216,11 @@ reader slot of `s.lgMu`, the metrics interceptor's and `newUnaryInterceptor`'s n
 def etcdIcRs (s : Loc) : List (IProp GF) := [srvLgReader s, iprop(True), iprop(True)]
 
 /-- **A run's slot, as grpc's runtime holds it** (unit P3b): the handlers' (`etcdRunSlot`), the
-quota wrapper's reader slot of `s.leadTimeMu` and auth reader resource `E.RD` (its NOSPACE alarm's
-`raftRequest`; `E.RD` since unit A2), and the interceptors' (`etcdIcRs`). -/
+quota check's reader slots of `s.lgMu` and `s.bemu` (`v3rpc.quotaRd`: its `newBackendQuota` over
+the current backend, D22g (A); until then a reader slot of `s.leadTimeMu` and `E.RD`, for its
+NOSPACE alarm's `raftRequest`), and the interceptors' (`etcdIcRs`). -/
 def etcdGrpcSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop((etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs s, R)
+  iprop((etcdRunSlot s E γr ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R)
 
 end defs
 
@@ -2034,22 +2035,22 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
   ihave #Ht := etcd_txnHandlerOk p s E ρ γr cid mid n $$ []
   · iframe #
   ihave #Hqt := v3rpc.quotaKV_txnHandlerOk_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpec E ρ.rd γr cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ E ρ
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
     (etcdRunSlot s E γr) $$ []
   · iframe #
   ihave #Hqp := v3rpc.quotaKV_putHandlerOk_of v3rpc.quotaKVServer.wp_Put (etcdPutSpec E ρ.rd cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ E ρ
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
     (etcdRunSlot s E γr) $$ []
   · iframe #
-  ihave #Hr' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD) (etcdRangeSpec E γr cid mid) $$ Hr
-  ihave #Hd' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD) (etcdDeleteSpec E ρ.rd cid mid) $$ Hd
+  ihave #Hr' := grpcHandlerOk_frame _ _ (v3rpc.quotaRd s) (etcdRangeSpec E γr cid mid) $$ Hr
+  ihave #Hd' := grpcHandlerOk_frame _ _ (v3rpc.quotaRd s) (etcdDeleteSpec E ρ.rd cid mid) $$ Hd
   ihave #Hqr := v3rpc.quotaKV_promotedHandlerOk (etcdRangeSpec E γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) go!"Range" inferInstance $$ [Hq Hr']
+    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"Range" inferInstance $$ [Hq Hr']
   · iframe #
   ihave #Hqd := v3rpc.quotaKV_promotedHandlerOk (etcdDeleteSpec E ρ.rd cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) go!"DeleteRange" inferInstance $$ [Hq Hd']
+    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"DeleteRange" inferInstance $$ [Hq Hd']
   · iframe #
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
@@ -2086,12 +2087,12 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
 /-- **A put's update, as the client takes it** (2026-10-19, D21 M6, D21i): persistent (fired at
 each committed occurrence: any client), or fired at most once on a client configured for one
 attempt (`kvOnce`, `MaxUnaryRetries: 1`). Since 2026-10-20 (linkv-txn stage A) a delete's too. -/
-def putAuOk (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+def putAuOk (api : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     IProp GF :=
   iprop(□ kvOpAu1 γk op Q ∨ (kvOnce api addr ∗ kvOpAu1 γk op Q))
 
 /-- A persistent update is a put's update, its result persistent. -/
-theorem putAuOk_of_box (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
+theorem putAuOk_of_box (api : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp)
     (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ putAuOk api addr γk op (fun σ => iprop(□ Q σ)) := by
   iintro #H
@@ -2103,12 +2104,12 @@ theorem putAuOk_of_box (api : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
 /-- **A writing transaction's update, as the client takes it** (2026-10-20, linkv-txn stage A;
 `putAuOk`'s, on a `*txn`): persistent, or fired at most once on a builder made from a `*kv` over a
 connection configured for one attempt. -/
-def txnAuOk (tp : Loc) (addr : GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+def txnAuOk (tp : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     IProp GF :=
   iprop(□ kvOpAu1 γk op Q ∨ ((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addr) ∗ kvOpAu1 γk op Q))
 
 /-- A persistent update is a writing transaction's update, its result persistent. -/
-theorem txnAuOk_of_box (tp : Loc) (addr : GoString) (γk : KVNames) (op : KVOp)
+theorem txnAuOk_of_box (tp : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp)
     (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ txnAuOk tp addr γk op (fun σ => iprop(□ Q σ)) := by
   iintro #H
@@ -2130,11 +2131,11 @@ or an ordinary atomic update fired at most once (at the server's commit of the r
 client configured for one attempt; on an error it fired once or not at all (an update built over a
 prophecy of the call's outcome can learn which at the firing).
 Premises: the registration, the context's (`ctxErrClient`), the package's. -/
-theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
     (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putAuOk api addr γr.kv (.put (putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2172,7 +2173,7 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
       · iexact Hau
       iintro %m Hm
       iexact Hm
-    · iright
+    · iright; ileft
       iframe Ho
       inext
       rw [Hw]
@@ -2205,11 +2206,11 @@ a client that knows the committed index `c` (`committedAtLeast γr c`; `0` is fr
 reply's message `m` with `rangeReplyOk` for the get of `key` the server decodes (the key alone, at
 the latest revision, linearizable: read after the read index, at a log extending the log applied
 through an index at least `c`); or an error and no reply. -/
-theorem client_get_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_get_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2274,11 +2275,11 @@ error and no reply. Since 2026-10-20 (linkv-txn stage A, as `client_put_end_to_e
 the update is `putAuOk`: persistent, or fired at most once on a client configured for one attempt;
 the reply gives `Q`, not `□ Q`; (linkv-txn stage F) any context a client call takes (`ctxOk`: `Background()`
 too). -/
-theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
+theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ mvcc.idxCert E.γ.idx F ∗
         putAuOk api addr γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2313,7 +2314,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv G
         · iexact Hnp
         iintro %m Hm
         iexact Hm
-      · iright
+      · iright; ileft
         iframe Ho
         inext
         unfold etcdDeleteSpec
@@ -2353,12 +2354,12 @@ transaction met); or an error and no reply. Since 2026-10-20 (linkv-txn stage A)
 transaction's update is `txnAuOk`: persistent, or fired at most once on a builder over a client
 configured for one attempt; (stage B2) a linearizable read-only one may take a read update
 (`kvReadAu`), whose `□ Q` at the state of the log read `txnReplied` carries. -/
-theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
+theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (F : mvcc.Log) (Q : KVState → IProp GF) (hp : TxnModel.plain b.model)
     (hin : txnModelIn (txnWireOf b.model)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec E γw γr cid mid) ∗
         committedAtLeast γr c ∗ mvcc.idxCert E.γ.idx F ∗
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧ Q = fun _ => iprop(True)⌝ ∨
           -- (2026-10-20, linkv-txn stage B2) a linearizable read-only one's read update
@@ -2420,7 +2421,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : GoString) (E : apply.AEnv GF) (
         iframe #
         iintro %m Hm
         iexact Hm
-      · iright
+      · iright; ileft
         iframe Ho
         inext
         unfold etcdTxnSpec
@@ -2455,11 +2456,11 @@ least the put's; the put's value if no later revision touched the key); or an er
 The get is linearizable: it asks the read index at the put's committed index (`appliedWit`'s `i`,
 `committedAtLeast γr i`), so the log it reads extends the log applied through some index at least
 `i` (`readLogOk`), which extends the put's (`appliedMono`). -/
-theorem client_get_after_put (api : Loc) (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames)
+theorem client_get_after_put (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (Fp : mvcc.Log) (mp : PutRespM) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putReplyOk E γr Fp (putKeyOp key val) cid mid mp }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
@@ -2602,12 +2603,12 @@ the whole state `kvReadAu γr.kv Q` (a linearizable range; or none, `Q` trivial)
 reply's message `m` with `rangeReplyOk` for the range the server decodes (`rangeWireOf`; at the
 latest revision, `rangeReply_state` gives `□ Q σ` of the state whose selection the reply is); or an
 error and no reply. Any context a client call takes (`ctxOk`; linkv-txn stage F). -/
-theorem client_range_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF)
+theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
     (Q : KVState → IProp GF) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        isGrpcRpcs addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗
         ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ ∗ committedAtLeast γr c ∗
@@ -2853,7 +2854,7 @@ variable [EM : EtcdModel GF]
 of `LeaseGrant` and `LeaseRevoke` and serving the keep-alive stream meets `isEtcdLease`
 (`lessor.Grant`, `lessor.Revoke`, `lessor.KeepAlive` and its goroutines, linked). -/
 theorem client_lessor_isEtcdLease (l : Loc) (addr : GoString) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
@@ -2866,7 +2867,7 @@ under `client_lessor_isEtcdLease`'s premises. -/
 theorem client_new_isEtcdLeaseClient
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (ep : GoString) (V : WEnv GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
@@ -3119,13 +3120,14 @@ def etcdLeaseRegs (q : Loc) : List (GoString × val × GoInterface) :=
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q)]
 
 /-- **A Lease run's slot, as grpc's runtime holds it**: the lessor contract's `S`, the quota
-wrapper's reader slot of `s.leadTimeMu` and auth reader resource `E.RD` (`LeaseGrant`'s alarm),
-the interceptors' (`etcdIcRs`); at `S := etcdRunSlot s E γr` it is the KV's `etcdGrpcSlot`. -/
-def etcdLeaseSlot (s : Loc) (E : apply.AEnv GF) (S : IProp GF) : IProp GF :=
-  iprop((S ∗ srvLeadTimeReader s ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs s, R)
+check's reader slots (`v3rpc.quotaRd`, `LeaseGrant`'s check; until D22g (A) a reader slot of
+`s.leadTimeMu` and `E.RD`, for its alarm), the interceptors' (`etcdIcRs`); at
+`S := etcdRunSlot s E γr` it is the KV's `etcdGrpcSlot`. -/
+def etcdLeaseSlot (s : Loc) (S : IProp GF) : IProp GF :=
+  iprop((S ∗ v3rpc.quotaRd s) ∗ [∗list] R ∈ etcdIcRs s, R)
 
 theorem etcdGrpcSlot_eq (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
-    etcdGrpcSlot (GF := GF) s E γr = etcdLeaseSlot s E (etcdRunSlot s E γr) := rfl
+    etcdGrpcSlot (GF := GF) s E γr = etcdLeaseSlot s (etcdRunSlot s E γr) := rfl
 
 /-- **The Lease methods as grpc runs them**, from the server's facts and the lessor contract
 (what `etcd_lease_served` and `etcd_kv_lease_served` serve). -/
@@ -3141,7 +3143,7 @@ theorem etcd_leaseMethodsOk [v3rpc.ServerMethodSets] (lp q s : Loc) (A : v3rpc.K
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ⊢
       [∗list] m ∈ etcdLeaseMethods q E,
-        grpcMethodOk m.handler m.srv [il, im, iu] (etcdLeaseSlot s E S) m.spec := by
+        grpcMethodOk m.handler m.srv [il, im, iu] (etcdLeaseSlot s S) m.spec := by
   iintro ⟨#Pv, #Ps, #Hsrv, #HNR, #Hat, #HL, #Hq, #Hil, #Him, #Hiu⟩
   ihave #Hg := etcd_leaseGrantHandlerOk lp s A cid mid E S $$ []
   · iframe #
@@ -3150,14 +3152,14 @@ theorem etcd_leaseMethodsOk [v3rpc.ServerMethodSets] (lp q s : Loc) (A : v3rpc.K
   ihave #Hqg := v3rpc.quotaLease_grantHandlerOk_of v3rpc.quotaLeaseServer.wp_LeaseGrant
     (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E)) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
-    E ρ S $$ []
+    S $$ []
   · iframe #
-  ihave #Hr' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD)
+  ihave #Hr' := grpcHandlerOk_frame _ _ (v3rpc.quotaRd s)
     (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E)) $$ Hr
   ihave #Hqr := v3rpc.quotaLease_revokeHandlerOk
     (etcdLeaseRevokeSpec (EM := v3rpc.etcdModelOfServer E)) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩
-    iprop(S ∗ srvLeadTimeReader s ∗ E.RD) $$ [Hq Hr']
+    iprop(S ∗ v3rpc.quotaRd s) $$ [Hq Hr']
   · iframe #
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
@@ -3194,7 +3196,7 @@ theorem etcd_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (lp q s : L
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
         grpcServerAt addr [il, im, iu] regs ∗
-        ([∗list] _x ∈ List.replicate N (), etcdLeaseSlot s E S) ⊢
+        ([∗list] _x ∈ List.replicate N (), etcdLeaseSlot s S) ⊢
       |={⊤}=> isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
           (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E)) ∗
         isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke"
@@ -3203,7 +3205,7 @@ theorem etcd_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (lp q s : L
   ihave #Hms := etcd_leaseMethodsOk lp q s A E ρ cid mid S il im iu $$ []
   · iframe #
   imod (grpc_serve_rpcs addr [il, im, iu] regs (etcdLeaseMethods q E)
-    (etcdLeaseSlot s E S) N (by simp only [etcdLeaseMethods, List.map]; decide)
+    (etcdLeaseSlot s S) N (by simp only [etcdLeaseMethods, List.map]; decide)
     (by
       intro x hx
       apply hregs
@@ -3259,22 +3261,22 @@ theorem etcd_kv_lease_served [v3rpc.ServerMethodSets] (addr : GoString) (p q lp 
   ihave #Ht := etcd_txnHandlerOk p s E ρ γr cid mid n $$ []
   · iframe #
   ihave #Hqt := v3rpc.quotaKV_txnHandlerOk_of v3rpc.quotaKVServer.wp_Txn (etcdTxnSpec E ρ.rd γr cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ E ρ
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
     (etcdRunSlot s E γr) $$ []
   · iframe #
   ihave #Hqp := v3rpc.quotaKV_putHandlerOk_of v3rpc.quotaKVServer.wp_Put (etcdPutSpec E ρ.rd cid mid) q s
-    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ E ρ
+    ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
     (etcdRunSlot s E γr) $$ []
   · iframe #
-  ihave #Hr' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD) (etcdRangeSpec E γr cid mid) $$ Hr
-  ihave #Hd' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD) (etcdDeleteSpec E ρ.rd cid mid) $$ Hd
+  ihave #Hr' := grpcHandlerOk_frame _ _ (v3rpc.quotaRd s) (etcdRangeSpec E γr cid mid) $$ Hr
+  ihave #Hd' := grpcHandlerOk_frame _ _ (v3rpc.quotaRd s) (etcdDeleteSpec E ρ.rd cid mid) $$ Hd
   ihave #Hqr := v3rpc.quotaKV_promotedHandlerOk (etcdRangeSpec E γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) go!"Range" inferInstance $$ [Hq Hr']
+    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"Range" inferInstance $$ [Hq Hr']
   · iframe #
   ihave #Hqd := v3rpc.quotaKV_promotedHandlerOk (etcdDeleteSpec E ρ.rd cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) go!"DeleteRange" inferInstance $$ [Hq Hd']
+    iprop(etcdRunSlot s E γr ∗ v3rpc.quotaRd s) go!"DeleteRange" inferInstance $$ [Hq Hd']
   · iframe #
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
@@ -3331,7 +3333,7 @@ theorem client_lessor_isEtcdLease_served [v3rpc.ServerMethodSets] (l : Loc) (add
     (lp q s : Loc) (A : v3rpc.KVAns GF) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64)
     (S : IProp GF) (il im iu : GoFunc) (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdLeaseRegs (GF := GF) q, x ∈ regs) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
         leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -3343,7 +3345,7 @@ theorem client_lessor_isEtcdLease_served [v3rpc.ServerMethodSets] (l : Loc) (add
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
         grpcServerAt addr [il, im, iu] regs ∗
-        ([∗list] _x ∈ List.replicate N (), etcdLeaseSlot s E S) ⊢
+        ([∗list] _x ∈ List.replicate N (), etcdLeaseSlot s S) ⊢
       |={⊤}=> isEtcdLease (EM := v3rpc.etcdModelOfServer E) (lessorIfaceOf l) := by
   iintro ⟨#Pc, Hl, #Hka, #Heof, #Hce, #Hct, Hsrv⟩
   imod (etcd_lease_served addr lp q s A E ρ cid mid S il im iu regs N hregs) $$ Hsrv
@@ -3361,7 +3363,7 @@ theorem client_new_isEtcdLeaseClient_served [v3rpc.ServerMethodSets] (cl : Loc) 
     (cid mid : w64) (S : IProp GF) (il im iu : GoFunc)
     (regs : List (GoString × val × GoInterface)) (N : Nat)
     (hregs : ∀ x ∈ etcdLeaseRegs (GF := GF) q, x ∈ regs) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
         leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -3373,7 +3375,7 @@ theorem client_new_isEtcdLeaseClient_served [v3rpc.ServerMethodSets] (cl : Loc) 
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
         grpcServerAt ep [il, im, iu] regs ∗
-        ([∗list] _x ∈ List.replicate N (), etcdLeaseSlot s E S) ⊢
+        ([∗list] _x ∈ List.replicate N (), etcdLeaseSlot s S) ⊢
       |={⊤}=> isEtcdLeaseClient (EM := v3rpc.etcdModelOfServer E) cl := by
   iintro ⟨#Pc, Hn, #Hka, #Heof, #Hce, #Hct, Hsrv⟩
   imod (etcd_lease_served ep lp q s A E ρ cid mid S il im iu regs N hregs) $$ Hsrv

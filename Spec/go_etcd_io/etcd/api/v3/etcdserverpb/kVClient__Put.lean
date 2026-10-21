@@ -27,13 +27,13 @@ for a spec `Spec` the server registered for the method and the caller's `Φ`: `I
 `"/etcdserverpb.KV/Put"` with `grpc.StaticMethod()` before the options, into a new
 `*PutResponse`: the call's answer (`putCallOut`, the run's `Φ`); the request comes back. -/
 abbrev kVClient.Put.spec : Prop :=
-  ∀ (kc conn : Loc) (addr : GoString) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
+  ∀ (kc conn : Loc) (addr : List GoString) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
     (Φ : PutRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.PutRequest) (k v : GoString) (opts : GoSlice)
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
-      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" Spec ∗
-      reqPre conn addr (Spec (putReqOp req k v) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
+      isEtcdConn conn addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Spec ∗
+      reqPre conn addr vs (Spec (putReqOp req k v) Φ) ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

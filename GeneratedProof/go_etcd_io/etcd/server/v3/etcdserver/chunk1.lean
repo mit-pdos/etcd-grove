@@ -47,6 +47,7 @@ public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
 public import GeneratedProof.net.http
@@ -949,6 +950,7 @@ instance toApply_typed_pointsto :
     "snapshot" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"snapshot" l) v.snapshot' dq ∗
     "notifyc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"notifyc" l) v.notifyc' dq ∗
     "raftAdvancedC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftAdvancedC" l) v.raftAdvancedC' dq ∗
+    "raftTerm" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftTerm" l) v.raftTerm' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1019,6 +1021,22 @@ instance toApply_access_store_raftAdvancedC (l : Loc) (v : go_etcd_io.etcd.serve
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftAdvancedC" l) v.raftAdvancedC' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftAdvancedC" l) raftAdvancedC' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raftAdvancedC' := raftAdvancedC' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_load_raftTerm (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftTerm" l) v.raftTerm' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftTerm" l) v.raftTerm' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance toApply_access_store_raftTerm (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.toApply) (raftTerm' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftTerm" l) v.raftTerm' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.toApply go!"raftTerm" l) raftTerm' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raftTerm' := raftTerm' } : go_etcd_io.etcd.server.v3.etcdserver.toApply) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

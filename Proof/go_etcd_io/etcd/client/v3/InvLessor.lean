@@ -242,7 +242,7 @@ def lessorInv (l : Loc) (γr : GName) : IProp GF :=
     lsF go!"loopErr" l ↦ e ∗ lessorReg (GF := GF) γr)
 
 /-- **The `*lessor` `l`** over a connection to `addr` (persistent; see the file header). -/
-def lessorAt (l : Loc) (addr : GoString) : IProp GF :=
+def lessorAt (l : Loc) (addr : List GoString) : IProp GF :=
   iprop(∃ (dc : GoChan) (γd : ChanNames) (sc : GoInterfaceOk)
       (scd : context.ContextDesc (IProp GF)) (lg : Loc) (d : time.Duration) (γr : GName),
     lsF go!"donec" l ↦□ dc ∗ ownBroadcastChan dc γd (iprop(True) : IProp GF) .Unknown ∗
@@ -254,7 +254,7 @@ def lessorAt (l : Loc) (addr : GoString) : IProp GF :=
     sync.isOnce (lsF go!"firstKeepAliveOnce" l) (ownBroadcastChan dc γd (iprop(True) : IProp GF) .Pending)
       iprop(True))
 
-instance lessorAt_persistent (l : Loc) (addr : GoString) :
+instance lessorAt_persistent (l : Loc) (addr : List GoString) :
     Persistent (lessorAt (GF := GF) l addr) := by
   unfold lessorAt; infer_instance
 
@@ -563,14 +563,6 @@ theorem kaPaired_get (γr : GName) (chs : List GoChan) (ctxs : List GoInterface)
   iintro #Hp
   unfold kaPaired
   iapply Hp $$ %i %ch %c %h1 %h2
-
-/-- **The pair at an index.** -/
-theorem kaPaired_lookup (γr : GName) (chs : List GoChan) (ctxs : List GoInterface) (i : Nat)
-    (h1 : i < chs.length) (h2 : i < ctxs.length) :
-    kaPaired (GF := GF) γr chs ctxs ⊢ kaReg γr (chs[i]'h1) (ctxs[i]'h2) := by
-  iintro #Hp
-  unfold kaPaired
-  iapply Hp $$ %i %(chs[i]'h1) %(ctxs[i]'h2) %(List.getElem?_eq_getElem h1) %(List.getElem?_eq_getElem h2)
 
 end lemmas
 

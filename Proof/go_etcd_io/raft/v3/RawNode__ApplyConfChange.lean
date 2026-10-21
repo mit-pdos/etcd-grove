@@ -54,9 +54,9 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply wp_ConfChange_AsV2 p dq m $$ [$Hc1] as %v2 ⟨Hc1, Hch⟩
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
           cs0 v2 m.asV2 (DFrac.own 1) Hpre s cf fp rnv sv hprev steps Hwf Hin
-          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
+          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
-          $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
+          $Hloanc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, -, Hcs, %Hcs0⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
@@ -78,9 +78,9 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply wp_ConfChangeV2_AsV2
       wp_apply wp_applyConf_dyn wp_raft_applyConfChange γ rn id rs dec c0 h0 h1 hm k0 e0
           cs0 p m dq Hpre s cf fp rnv sv hprev steps Hwf Hin
-          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
+          Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
         $$ [$Hrn $Hphys $Hghost $Hsdrf $Hsoft $Hhard $Hsteps $Hsteps_cap $Hpend $Hdeliv $Hstrecs
-          $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
+          $Hloanc $Hch $Hlc1] as %cs %xs %os %ls %lns ⟨Hrn, Hch, Hcs, %Hcs0⟩
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls os lns cs0.cfg.autoLeave)
       simp only [named]
@@ -98,7 +98,7 @@ theorem RawNode.ApplyConfChange.wp_proof
   have Hm := hm
   have Hap0 := Hap0 hm
   icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with
-    ⟨Hphys, Hghost, %Htrk, %Hnl⟩
+    ⟨Hphys, Hghost, %Htrk, %Hnl, #Hcl⟩
   have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
   have Hin := Hin Hm
   rcases o with m | m
@@ -120,9 +120,9 @@ theorem RawNode.ApplyConfChange.wp_proof
           id s v2 m.asV2 (DFrac.own 1) lrn' Hd' Hsz' Hn Hli2
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
+        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hok
         (trackedOk_shrink Htrk Hlp Hdom') Hnl
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]
@@ -182,10 +182,11 @@ theorem RawNode.ApplyConfChange.wp_proof
       isplitr
       · ipureintro; exact Hsh
       iexists (domSet s.progress \ γ.reCfg), c', s, s'
-      ihave Hpown := pendList_forget γ id steps rs.steps $$ Hpend
+      ihave Hpown := lentPend_forget γ id rs.slent steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
-      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps Hasync
-          $$ Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap Hpown
+      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps rs.slent Hasync
+          $$ Hrn Hphys Hsoft [Hhard] Hsteps Hsteps_cap Hpown
+        · iapply prevHS_hsRO $$ Hhard
       ipureintro
       exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
   · -- a `ConfChangeV2`: `AsV2` is itself
@@ -206,9 +207,9 @@ theorem RawNode.ApplyConfChange.wp_proof
           id s p m dq lrn' Hd' Hsz' Hn Hli2
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hcs, %Hcs0, %Hok, %Hdom'⟩
       imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv hprev steps Hm Hrel Hin Hasync Hdlen Hunp
-        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hok
+        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hok
         (trackedOk_shrink Htrk Hlp Hdom') Hnl
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc1 with Hrn
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hcl Hlc1 with Hrn
       try wp_auto
       iapply HΦ $$ %cs %(ConfStateM.mk xs ls [] [] false)
       simp only [named]
@@ -268,10 +269,11 @@ theorem RawNode.ApplyConfChange.wp_proof
       isplitr
       · ipureintro; exact Hsh
       iexists (domSet s.progress \ γ.reCfg), c', s, s'
-      ihave Hpown := pendList_forget γ id steps rs.steps $$ Hpend
+      ihave Hpown := lentPend_forget γ id rs.slent steps rs.steps $$ Hpend
       isplitl [Hrn Hphys Hsteps Hsteps_cap Hpown]
-      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps Hasync
-          $$ Hrn Hphys Hsoft Hhard Hsteps Hsteps_cap Hpown
+      · iapply ownRawNodeC_intro c'.cfg rn id s' rnv sv hprev steps rs.steps rs.slent Hasync
+          $$ Hrn Hphys Hsoft [Hhard] Hsteps Hsteps_cap Hpown
+        · iapply prevHS_hsRO $$ Hhard
       ipureintro
       exact ⟨HdL, Happ', Hcs0.1, Hcs0.2.1, Hcs0.2.2.1, Hcs0.2.2.2, rfl, Hok⟩
 

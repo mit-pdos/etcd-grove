@@ -111,12 +111,6 @@ theorem idPfx_or (pfx x : w64) (h : pfx &&& W64 (2 ^ 48 - 1) = W64 0) :
     rw [BitVec.getLsbD_eq_getElem hi]; exact hb
   · simp [e1, e2, hi, h48]; omega
 
-/-- An issued id has its generator's prefix. -/
-theorem idIssued_pfx (pfx s0 : w64) (k : Nat) (id : w64)
-    (h : pfx &&& W64 (2 ^ 48 - 1) = W64 0) (hi : idIssued pfx s0 k id) : idPfx id = pfx := by
-  obtain ⟨j, -, -, rfl⟩ := hi
-  exact idPfx_or pfx _ h
-
 /-- An id of a prefix that is not `0` is not `0`. -/
 theorem idutil_or_ne_zero (pfx x : w64) (h : pfx ≠ W64 0) : pfx ||| x ≠ W64 0 := by
   intro h'
@@ -178,8 +172,6 @@ theorem idutil_prefix_ne (m : w16) (h : m ≠ W16 0) : W64 (uint.Z m) <<< W64 48
   have : (W16 0).toNat = 0 := rfl
   rw [this]
   omega
-
-theorem idutil_prefix_zero : W64 (uint.Z (W16 0)) <<< W64 48 = W64 0 := by decide
 
 /-- A member's prefix as a number: its id's 16 low bits, shifted by 48. -/
 theorem idPfxOf_toNat (m : w16) : (idPfxOf m).toNat = m.toNat * 2 ^ 48 := by

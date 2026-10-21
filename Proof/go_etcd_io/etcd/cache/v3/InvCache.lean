@@ -60,18 +60,6 @@ def keyPredForRange (start end_ : GoString) : GoString → Bool :=
   else if end_ = [W8 0] then fromKeyPred start
   else rangePred start end_
 
-/-- `kvRange` (`snapshot.Range`, the store's `Get`) filters by `keyPredForRange`. -/
-theorem kvRange_eq_filter (start end_ : GoString) (m : KvMap) :
-    kvRange start end_ m = m.filter (fun e => keyPredForRange start end_ e.1) := by
-  unfold kvRange keyPredForRange exactKeyPred fromKeyPred rangePred
-  split <;> (try split) <;> rfl
-
-/-- An entry is in `kvRange start end m` iff it is in `m` and its key satisfies
-`keyPredForRange start end`. -/
-theorem mem_kvRange (start end_ : GoString) (m : KvMap) (e : KvEntry) :
-    e ∈ kvRange start end_ m ↔ e ∈ m ∧ keyPredForRange start end_ e.1 = true := by
-  rw [kvRange_eq_filter, List.mem_filter]
-
 /-! ## `bytes.Compare` -/
 
 theorem compareResult_lt (a b : GoString) :
@@ -275,10 +263,6 @@ instance TailOk_persistent (pfx : GoString) (last : Int) (cursor : w64) :
     Persistent (TailOk (GF := GF) pfx last cursor) := by
   unfold TailOk; infer_instance
 
-instance TailOk_timeless (pfx : GoString) (last : Int) (cursor : w64) :
-    Timeless (TailOk (GF := GF) pfx last cursor) := by
-  unfold TailOk; infer_instance
-
 /-- A cursor not past the last batch: `TailOk`, for free. -/
 theorem tailOk_of_le (pfx : GoString) (last : Int) (cursor : w64) (h : sint.Z cursor ≤ last) :
     ⊢ TailOk (GF := GF) pfx last cursor := by
@@ -295,10 +279,6 @@ instance WriterOk_persistent (pfx : GoString) (c : DemuxCore) :
     Persistent (WriterOk (GF := GF) pfx c) := by
   unfold WriterOk; infer_instance
 
-instance WriterOk_timeless (pfx : GoString) (c : DemuxCore) :
-    Timeless (WriterOk (GF := GF) pfx c) := by
-  unfold WriterOk; infer_instance
-
 /-- The pure part of `CursorOk`: the stream is initialized and its base is at or below `cursor`. -/
 def CursorPure (c : DemuxCore) (cursor : w64) : Prop :=
   c.minRev ≠ W64 0 ∧ c.base ≤ sint.Z cursor
@@ -310,10 +290,6 @@ def CursorOk (pfx : GoString) (c : DemuxCore) (cursor : w64) : IProp GF :=
 
 instance CursorOk_persistent (pfx : GoString) (c : DemuxCore) (cursor : w64) :
     Persistent (CursorOk (GF := GF) pfx c cursor) := by
-  unfold CursorOk; infer_instance
-
-instance CursorOk_timeless (pfx : GoString) (c : DemuxCore) (cursor : w64) :
-    Timeless (CursorOk (GF := GF) pfx c cursor) := by
   unfold CursorOk; infer_instance
 
 theorem cursorOk_pure (pfx : GoString) (c : DemuxCore) (cursor : w64) :
@@ -504,9 +480,6 @@ def cacheWgLoopRunning (cf : CacheFields) : IProp GF := iprop(cacheWgRunningOwed
 
 theorem cacheWg_mask : (↑cacheWgWGN : CoPset) ⊆ ⊤ \ ↑cacheWgN :=
   sync.wg_mask_ndot_ne nroot "cacheWaitGroup" "cacheWgCounter" (by decide)
-
-theorem cacheWgN_mask : (↑cacheWgN : CoPset) ⊆ ⊤ \ ↑cacheWgWGN :=
-  sync.wg_mask_ndot_ne nroot "cacheWgCounter" "cacheWaitGroup" (by decide)
 
 /-- The "open" token's fractions add up to at most `1`. -/
 theorem cacheOpen_excl (cf : CacheFields) (q : Qp) :
@@ -903,21 +876,6 @@ theorem cacheCert_prog (cf : CacheFields) (r : w64) :
 reached. -/
 def cacheBound (cf : CacheFields) (B : w64) : IProp GF :=
   iprop(monoNatAuthOwn cf.γb 1 (sint.nat B) ∗ etcdReached B ∗ ⌜0 ≤ sint.Z B⌝)
-
-/-- Under the authority `B`, every revision with a lower bound is at most `B`. -/
-theorem cacheBound_le (cf : CacheFields) (B r : w64) :
-    cacheBound (GF := GF) cf B ∗ cacheRev cf r ⊢ ⌜sint.Z r ≤ sint.Z B⌝ := by
-  unfold cacheBound cacheRev cacheBoundLb
-  iintro ⟨⟨Ha, -, %HB⟩, -, (%H | #H)⟩
-  · ipureintro; omega
-  · ihave %Hv := monoNatLbOwn_valid $$ Ha H
-    ipureintro
-    have h2 := Hv.2
-    by_cases h0 : 0 ≤ sint.Z r
-    · have e1 : ((sint.nat r : Nat) : Int) = sint.Z r := Int.toNat_of_nonneg h0
-      have e2 : ((sint.nat B : Nat) : Int) = sint.Z B := Int.toNat_of_nonneg HB
-      omega
-    · omega
 
 /-- Raise the revision bound to a revision `r` etcd has reached (or keep it), for a lower bound. -/
 theorem cacheBound_raise (cf : CacheFields) (B r : w64) :
@@ -1458,50 +1416,6 @@ def cacheGetResult (cf : CacheFields) (r0 : w64) (s : context.ContextDesc (IProp
     (⌜err = GoInterface.nil⌝ ∗ cacheGetOk cf r0 key o resp))
 
 end cache
-
-theorem pairwise_le_getLast {V : Type} {f : V → Int} {l : List V}
-    (h : l.Pairwise (fun a b => f a < f b)) {x y : V} (hx : x ∈ l) (hy : l.getLast? = some y) :
-    f x ≤ f y := by
-  obtain ⟨l', rfl⟩ := List.getLast?_eq_some_iff.1 hy
-  rcases List.mem_append.1 hx with hx | hx
-  · exact Int.le_of_lt ((List.pairwise_append.1 h).2.2 x hx y (List.mem_singleton_self _))
-  · rw [List.mem_singleton.1 hx]; exact Int.le_refl _
-
-/-- What `snapModel st rev = .ok r m` means: `(r, m)` is a snapshot of the history, at a revision
-at most `rev` (at most the latest revision for `rev = 0`), the greatest such; and (with
-`StoreInv`) at most the latest revision. The latest revision itself need not be `r` even for
-`rev = 0`: a progress notification moves it without a snapshot. -/
-theorem snapModel_ok_spec {cap : Nat} {st : StoreState} {rev r : w64} {m : KvMap}
-    (hinv : StoreInv cap st) (h : snapModel st rev = .ok r m) :
-    (r, m) ∈ st.history ∧ sint.Z r ≤ sint.Z st.latestRev ∧
-    sint.Z r ≤ sint.Z (if rev = W64 0 then st.latestRev else rev) ∧
-    ∀ h' ∈ st.history, sint.Z h'.1 ≤ sint.Z (if rev = W64 0 then st.latestRev else rev) →
-      sint.Z h'.1 ≤ sint.Z r := by
-  unfold snapModel at h
-  by_cases h0 : st.latestRev = W64 0
-  · rw [ite_eq_left h0] at h; cases h
-  rw [ite_eq_right h0] at h
-  by_cases hn : sint.Z rev < 0
-  · rw [ite_eq_left hn] at h; cases h
-  rw [ite_eq_right hn] at h
-  generalize hrev' : (if rev = W64 0 then st.latestRev else rev) = rev' at h ⊢
-  by_cases hf : sint.Z st.latestRev < sint.Z rev'
-  · rw [ite_eq_left hf] at h; cases h
-  rw [ite_eq_right hf] at h
-  cases hlast : (st.history.filter (fun x => decide (sint.Z x.1 ≤ sint.Z rev'))).getLast? with
-  | none => rw [hlast] at h; cases h
-  | some x =>
-    rw [hlast] at h
-    cases h
-    have hmem := List.mem_of_getLast? hlast
-    rw [List.mem_filter] at hmem
-    refine ⟨hmem.1, hinv.hist_le _ hmem.1, by simpa using hmem.2, ?_⟩
-    intro h' hh' hle
-    -- the last element of the filtered (sorted) history is its greatest
-    have hin : h' ∈ st.history.filter (fun x => decide (sint.Z x.1 ≤ sint.Z rev')) :=
-      List.mem_filter.2 ⟨hh', by simpa using hle⟩
-    exact pairwise_le_getLast (f := fun x : w64 × KvMap => sint.Z x.1)
-      (hinv.hist_sorted.filter _) hin hlast
 
 end EtcdGrove
 end Perennial

@@ -52,12 +52,6 @@ started at, `c₀`, at the applied index `ai`: unchanged, or both at most `ai`. 
 def ciJ (c c₀ ai : w64) : Prop :=
   c = c₀ ∨ (uint.Z c₀ ≤ uint.Z ai ∧ uint.Z c ≤ uint.Z ai)
 
-theorem srvIdxOk_prefix [FfiSyntax] (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B)) :
-    srvIdxOk ai₀ A := by
-  obtain ⟨h1, h2⟩ := h
-  refine ⟨by simp only [List.length_append] at h1; push_cast at h1; omega, fun n m hm => h2 n m ?_⟩
-  rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp hm).1]; exact hm
-
 /-- A batch after the log `A`: its indices are above `ai₀ + |A|`. -/
 theorem srvIdxOk_batch_above [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
@@ -251,13 +245,9 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap
     srvWTAt C.wt ai ∗
     ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
-      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap⌝)
-
-/-- The raft node contract's environment of the server: `E.C` is `srvC` (the rest is the raft
-wrapper's: messages, ticks, read names, read registrations). -/
-def srvRNEnv (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (M : Loc → IProp GF) (T : IProp GF) (γr : ReadNames) (RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, M, T, γr, RQ⟩
+      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
+      -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
+      lastTermIs A at'⌝)
 
 /-- **The compactor** (`s.compactor`, a `v3compactor.Compactor`, names-only: a trust-boundary
 contract): nil (no auto-compaction), or one whose `Pause` and `Resume` return. -/

@@ -232,6 +232,7 @@ axiom auth.NewTokenProvider.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
 axiom backend.optsAt
@@ -279,6 +280,11 @@ axiom bbolt.Tx.DB_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom bridge.New.wp_proof
+axiom bridge.bridge.Blackhole.wp_proof
+axiom bridge.bridge.DropConnections.wp_proof
+axiom bridge.bridge.Unblackhole.wp_proof
+axiom bridge.bridgeAt
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
@@ -292,6 +298,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
@@ -303,6 +310,7 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof
@@ -313,6 +321,7 @@ axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
@@ -409,6 +418,7 @@ axiom reflect.ValueOf.wp_proof
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof

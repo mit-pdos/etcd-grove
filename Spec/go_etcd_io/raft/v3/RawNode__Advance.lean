@@ -15,7 +15,7 @@ Lean notes: As for `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and 
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnode
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 
 @[expose] public section
 
@@ -75,21 +75,33 @@ client could establish: the proof covered only a queue without the node's own
 responses, for which `Step`'s spec asks facts nothing recorded (`Term ≠ 0`, no
 entries, a non-rejecting `MsgAppResp`, a term bound). They are recorded now:
 `ownRaftPhys` keeps them for `msgsAfterAppend` (`AAMsgOk`, `InvRaftPhys.lean`) and
-`Ready` hands them to the queue (`pendingRel`, `StepsOk`, `InvRawnode.lean`). -/
+`Ready` hands them to the queue (`pendingRel`, `StepsOk`, `InvRawnode.lean`).
+
+(D22 S-d3a, 2026-10-21) After a `Ready` that handed out a snapshot (`RNState.slent`): the
+application gives back the storage at the snapshot and its half of the snapshot (`loanRet`,
+`snapReceipt`); the node absorbs the storage and steps the acknowledgement, which drops the
+pending snapshot (`appliedSnap`: `stableSnapTo`, then `appliedTo` up to the snapshot's index), and
+hands the committed log up to the snapshot over (`advRS`). Until then a premise `rs.psnap = false`. -/
 abbrev RawNode.Advance.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
-  rs.unpersisted = [] →
+  -- (D22 S-d3a) the entries handed out appended, but after a snapshot `Ready`, whose receipt
+  -- (`loanRet`, the storage at the snapshot holding them) comes back here
+  (rs.slent = none → rs.unpersisted = []) →
   rs.unst = false →
   -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
   -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
   -- configuration index (`issues/raft-advance-before-applyconfchange.md`)
   (rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied rs.delivered.length) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hrn" ∷ ownRawNode γ rn id rs }}
+      "Hrn" ∷ ownRawNode γ rn id rs ∗
+      -- (D22 S-d3a, 2026-10-21) after a snapshot `Ready`, the application's receipt
+      "Hret" ∷ loanRet rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
-      -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised
-      ownRawNode γ rn id { rs with steps := [], term := t, capplied := ca, flw := false } ∗
+      -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised;
+      -- (D22 S-d3a) after a snapshot `Ready` the loan returned, the committed log handed out up to
+      -- the snapshot (`advRS`)
+      ownRawNode γ rn id (advRS rs t ca) ∗
       ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
       -- (2026-10-17; 2026-10-10 to 2026-10-17, with pre-vote off: `t = rs.term`) within the
       -- term ceiling

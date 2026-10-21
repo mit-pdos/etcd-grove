@@ -6,6 +6,7 @@ public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.linkvtxn
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lintest
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.third_party.bridge
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.client.v3
 public import GeneratedProof.go_etcd_io.etcd.server.v3.config
@@ -13,6 +14,8 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.grpc
+public import GeneratedProof.google_golang_org.grpc.keepalive
 public import GeneratedProof.net
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.time
@@ -43,7 +46,7 @@ instance Step_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.linkv3p.Step where
   typedPointstoDef l v dq := iprop(
     "Delay" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Delay" l) v.Delay' dq ∗
-    "Cut" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Cut" l) v.Cut' dq ∗
+    "Kind" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' dq ∗
     "A" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"A" l) v.A' dq ∗
     "B" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"B" l) v.B' dq ∗
     "_" ∷ True)
@@ -71,19 +74,19 @@ instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
-instance Step_access_load_Cut (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
+instance Step_access_load_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Cut" l) v.Cut' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Cut" l) v.Cut' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-instance Step_access_store_Cut (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (Cut' : Bool) :
+instance Step_access_store_Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (Kind' : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Cut" l) v.Cut' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Cut" l) Cut' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cut' := Cut' } : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) v.Kind' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.Step go!"Kind" l) Kind' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := Kind' } : github_com.mit_pdos.etcd_grove.examples.linkv3p.Step) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

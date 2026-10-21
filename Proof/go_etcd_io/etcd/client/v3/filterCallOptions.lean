@@ -38,6 +38,8 @@ theorem filterCallOptions.wp_proof :
       "%Hgs" ∷ ⌜∀ v ∈ gs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
         t ∈ grpcScalarOptTys⌝ ∗
       "#Hros" ∷ ([∗list] ro ∈ ros, retryApplyOk ro.applyFunc') ∗
+      "%Hnone" ∷ ⌜(∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
+        t ∈ grpcScalarOptTys) → ros = []⌝ ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (vs.length : Int)⌝) $$ [i opt grpcOptions retryOptions]
   · iexists W64 0, _, slice.nil, slice.nil, [], []
     simp only [named]
@@ -54,6 +56,8 @@ theorem filterCallOptions.wp_proof :
     · ipureintro; intro v hv; cases hv
     isplitl
     · iapply BigSepL.bigSepL_nil.2; itrivial
+    isplitl
+    · first | itrivial | (ipureintro; simp)
     ipureintro; constructor <;> word
   iunfold callOptsOk at Hvs
   wp_for IH
@@ -70,7 +74,7 @@ theorem filterCallOptions.wp_proof :
     icases Hco with (%Hsc | ⟨%ro, %Hvro, #Hap⟩)
     · obtain ⟨t, x, rfl, Ht⟩ := Hsc
       have Htne : t ≠ go_etcd_io.etcd.client.v3.retryOption.ty := by
-        simp only [grpcScalarOptTys, List.mem_cons, List.not_mem_nil, or_false] at Ht
+        simp only [grpcScalarOptTys, List.mem_cons, List.not_mem_nil, _root_.or_false] at Ht
         rcases Ht with rfl | rfl | rfl | rfl <;>
           (intro h
            simp [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty,
@@ -90,7 +94,7 @@ theorem filterCallOptions.wp_proof :
       iframe
       iframe #
       ipureintro
-      refine ⟨?_, by constructor <;> word⟩
+      refine ⟨?_, Hnone, by constructor <;> word⟩
       intro w hw
       rcases List.mem_append.1 hw with hw | hw
       · exact Hgs w hw
@@ -116,13 +120,26 @@ theorem filterCallOptions.wp_proof :
         iframe #
         iapply BigSepL.bigSepL_nil.2
         itrivial
+      isplitr
+      · -- a retry option among `vs`: not all scalar
+        ipureintro
+        intro hall
+        exfalso
+        obtain ⟨t, x, he, ht⟩ := hall _ (List.mem_of_getElem? Hv)
+        simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at he
+        obtain ⟨rfl, -⟩ := he
+        simp only [grpcScalarOptTys, List.mem_cons, List.not_mem_nil, _root_.or_false] at ht
+        rcases ht with h | h | h | h <;>
+          simp [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty,
+            google_golang_org.grpc.MaxSendMsgSizeCallOption.ty,
+            google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty, go_etcd_io.etcd.client.v3.retryOption.ty] at h
       ipureintro
       constructor <;> word
   · iapply HΦ
     iexists gs, ros
     iframe
     iframe #
-    ipureintro; exact Hgs
+    ipureintro; exact ⟨Hgs, Hnone⟩
 
 end proof
 

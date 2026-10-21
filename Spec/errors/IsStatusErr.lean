@@ -7,6 +7,11 @@
 `errors.wp_Is` needs a nil or pointer target and the error tree of `err` with its `Is` methods'
 specs; an `EtcdError` target is a struct (comparable: Go's `Is` compares `err == target`, which
 does not panic for a comparable target).
+
+(2026-10-21, D29) `true` only if the two errors have the same description (`errDesc`). True of Go:
+for a leaf error (`statusErrOk`: no `Unwrap`), `Is` is `err == target` or `err.Is(target)`; equal
+errors have equal descriptions; `*status.Error`'s `Is` compares the two statuses (`proto.Equal`),
+messages included; `EtcdError` has no `Is` (`==` compares `code` and `desc`).
 -/
 module
 
@@ -43,7 +48,7 @@ abbrev errors.IsStatusErr.spec : Prop :=
     ∃ tii, target = GoInterface.ok tii ∧ SafeMapKey (GF := GF) go.error target) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; ⌜b = true → errDesc err = errDesc target⌝ }}
 
 end spec
 

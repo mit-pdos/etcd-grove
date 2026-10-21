@@ -59,9 +59,6 @@ def ctxErrTyOk (g : GoString) : IProp GF :=
           [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) ∧
       e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝)
 
-instance ctxErrTyOk_persistent (g : GoString) : Persistent (ctxErrTyOk (GF := GF) g) := by
-  unfold ctxErrTyOk; infer_instance
-
 /-- **`context.Canceled`'s and `context.DeadlineExceeded`'s types** (a premise, as
 `ContextReadErrs`: Go's `*errorString` and `deadlineExceededError`, neither `rpctypes.EtcdError`,
 neither with a `GRPCStatus` method; method sets are uninterpreted in the semantics). -/

@@ -72,28 +72,12 @@ def rotateRight : RbT E → RbT E
   | node cy (node cx a x b) y d => node cx a x (node cy b y d)
   | t => t
 
-theorem inorder_rotateLeft (t : RbT E) : t.rotateLeft.inorder = t.inorder := by
-  unfold rotateLeft
-  split <;> simp
-
-theorem inorder_rotateRight (t : RbT E) : t.rotateRight.inorder = t.inorder := by
-  unfold rotateRight
-  split <;> simp
-
-/-- The number of nodes. -/
-theorem length_inorder_node (c : RbColor) (l : RbT E) (e : E) (r : RbT E) :
-    (node c l e r).inorder.length = l.inorder.length + r.inorder.length + 1 := by
-  simp; omega
-
 end RbT
 
 /-! ## The affine order, more -/
 
 theorem affCmp_pos_iff (a b : GoString) : affCmp a b > 0 ↔ affLt b a := by
   rw [← affCmp_neg_iff, affCmp_swap a b]; omega
-
-theorem affCmp_nonpos_iff (a b : GoString) : affCmp a b ≤ 0 ↔ ¬ affLt b a := by
-  rw [← affCmp_pos_iff]; omega
 
 theorem affCmp_nonneg_iff (a b : GoString) : affCmp a b ≥ 0 ↔ ¬ affLt a b := by
   rw [← affCmp_neg_iff]; omega
@@ -115,20 +99,7 @@ theorem affLt_of_lt_of_le {a b c : GoString} (h1 : affLt a b) (h2 : ¬ affLt c b
   · exact absurd h1 h2
   · exact absurd (affLt_trans h h1) h2
 
-theorem affLt_of_le_of_lt {a b c : GoString} (h1 : ¬ affLt b a) (h2 : affLt b c) : affLt a c := by
-  rcases affLt_trichotomy a c with h | rfl | h
-  · exact h
-  · exact absurd h2 h1
-  · exact absurd (affLt_trans h2 h) h1
-
 theorem not_affLt_empty (a : GoString) : ¬ affLt go!"" a := fun h => h.1 rfl
-
-/-- The tree's order puts the begins in order. -/
-theorem ivlLt_begin_le {x y : IvlS} (h : ivlLt x y) : ¬ affLt y.1 x.1 := by
-  rw [ivlLt_iff] at h
-  rcases h with h | ⟨h, -⟩
-  · exact affLt_asymm h
-  · rw [h]; exact affLt_irrefl _
 
 theorem ivlLt_ne {x y : IvlS} (h : ivlLt x y) : x ≠ y := by
   rintro rfl; exact ivlLt_irrefl x h
@@ -221,11 +192,6 @@ theorem ivtInsert_ivSorted (z : Entry) (L : List Entry) (hs : IvSorted L) :
       rcases (mem_ivtInsert z y ws).1 hy with rfl | hy
       · exact h
       · exact hs.1 y hy
-
-/-- Strictly sorted entries are sorted. -/
-theorem ivSorted_of_strict (L : List Entry) (h : L.Pairwise fun a b => ivlLt a.1 b.1) :
-    IvSorted L :=
-  h.imp ivlLt_asymm
 
 /-! ## The `max` augmentation -/
 

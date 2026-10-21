@@ -30,6 +30,7 @@ axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom proto.Clone.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom streamKeyFromCtx.wp_proof

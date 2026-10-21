@@ -223,6 +223,7 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.backend.Snapshot.wp_proof
 axiom backend.boltLogger
 axiom backend.boltLogger_persistent
 axiom backend.fileHolds
@@ -250,6 +251,9 @@ axiom backend.rtxSnap_persistent
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
+axiom backend.snapshot.Close.wp_proof
+axiom backend.snapshot.Size.wp_proof
+axiom backend.snapshot.WriteTo.wp_proof
 axiom backend.txBytes
 axiom backend.txBytes_acc
 axiom backend.txBytes_persistent
@@ -289,6 +293,12 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom bridge.New.wp_proof
+axiom bridge.bridge.Blackhole.wp_proof
+axiom bridge.bridge.DropConnections.wp_proof
+axiom bridge.bridge.Unblackhole.wp_proof
+axiom bridge.bridgeAt
+axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrAny.wp_proof
@@ -305,6 +315,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
@@ -327,6 +338,7 @@ axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.GenericServerStream.Context.wp_proof
 axiom grpc.GenericServerStream.Recv.wp_proof
 axiom grpc.GenericServerStream.Send.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof
@@ -337,6 +349,7 @@ axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
@@ -376,6 +389,8 @@ axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
+axiom io.Pipe.wp_proof
+axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -400,6 +415,7 @@ axiom net.http.Serve.wp_proof
 axiom netAddrFree
 axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
+axiom os.Rename.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom peer.Peer.String.wp_proof
@@ -444,6 +460,7 @@ axiom reflect.ValueOf.wp_proof
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schedule.Scheduler.Stop.wp_proof
@@ -452,6 +469,10 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
+axiom snap.Message.CloseNotify.wp_proof
+axiom snap.Message.GetTo.wp_proof
+axiom snap.NewMessage.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.Stable.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
@@ -459,6 +480,7 @@ axiom status.Errorf.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom streamKeyFromCtx.wp_proof

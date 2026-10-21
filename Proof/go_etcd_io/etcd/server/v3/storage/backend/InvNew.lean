@@ -50,14 +50,6 @@ instance hooksOk_persistent (P : BParams) (W Pk : BNames → IProp GF) (h : GoIn
     Persistent (hooksOk P W Pk h) := by
   unfold hooksOk; infer_instance
 
-/-- No hooks. -/
-theorem hooksOk_nil (P : BParams) (W Pk : BNames → IProp GF) :
-    ⊢ hooksOk (GF := GF) P W Pk GoInterface.nil := by
-  unfold hooksOk hooksSpec
-  iintro !> %γ %b %t - -
-  ileft
-  ipureintro; rfl
-
 /-- **What the constructor gives** for the backend `b` over bbolt's data `D`, its ghost names
 `γ`. -/
 def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (D : Data) :

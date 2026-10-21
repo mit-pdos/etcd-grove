@@ -185,6 +185,13 @@ private theorem foundBefore_three {cl : CSLists} {id : w64} (H : FoundBefore cl 
   · exact H 1 _ (by decide) rfl h
   · exact H 2 _ (by decide) rfl h
 
+/-- (D22 S-b) An id `found` meets in one of the three sets is one of the `ConfState`'s. -/
+private theorem found_has {cl : CSLists} {id : w64} {k : Nat} {L : List w64} (hk : k < 3)
+    (HL : [cl.voters, cl.learners, cl.outgoing][k]? = some L) (Hin : id ∈ L) : cl.Has id := by
+  rcases (show k = 0 ∨ k = 1 ∨ k = 2 by omega) with rfl | rfl | rfl <;>
+    simp only [List.getElem?_cons_zero, List.getElem?_cons_succ, Option.some.injEq] at HL <;>
+    subst HL <;> simp [CSLists.Has, Hin]
+
 /-- The `k`-th set `found` searches, lent out of the three. -/
 private theorem found_slice_acc (sv sl so : GoSlice) (dq : DFrac) (cl : CSLists) (k : Nat)
     (hk : k < 3) :
@@ -211,6 +218,10 @@ private theorem found_slice_acc (sv sl so : GoSlice) (dq : DFrac) (cl : CSLists)
     · ipureintro; exact ⟨rfl, rfl⟩
     iintro Ho; iframe
 
+/-- (D22 S-b) Once `found` meets `id`, `EnsureConfState`'s conf state `q` is the snapshot's `pc`:
+an implication kept opaque, so that `word` does not unfold it. -/
+private def FoundQ (cl : CSLists) (id : w64) (q pc : Loc) : Prop := cl.Has id → q = pc
+
 private theorem ownCfgCC_cast (cfgv : tracker.Config) (dq : DFrac) (c1 c2 : CfgM) (h : c1 = c2) :
     ownCfgCC (GF := GF) cfgv dq c1 ⊢ ownCfgCC cfgv dq c2 := h ▸ .rfl
 
@@ -231,9 +242,11 @@ local macro "snap_close" : tactic => `(tactic| (
 - `Index <= committed`: `false`;
 - `state != StateFollower`: dead (`s.role = .follower`);
 - the `found` search over `[Voters; Learners; VotersOutgoing]`: `id` is in one of them
-  (since 2026-10-14, stage B8; until then among the voters), so the inner loop breaks in some
-  set and the outer loop right after it (`FoundBefore`: no earlier set has it); the `!found`
-  arm is dead;
+  (since 2026-10-14, stage B8; until then among the voters): if it is, the inner loop breaks in
+  some set and the outer loop right after it (`FoundBefore`: no earlier set has it); if not
+  (D22 S-b, D22j: until then excluded by a premise), the three sets run out and the `!found` exit
+  logs a warning and returns `false` (`RestoreResult`'s first case). `EnsureConfState` of a `nil`
+  conf state is a fresh empty one, in which nothing is found (`wp_EnsureConfState_opt`);
 - `matchTerm(id)`: `lastEntryID`, an `Infof`, `commitTo(Index)` (in range: `Index` has
   a term in the log) and `false`;
 - otherwise `raftLog.restore(s)`; the tracker replaced by the empty one
@@ -254,15 +267,19 @@ theorem raft.restore.wp_proof
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG))
     (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro c r id s sp sv cl Hrole Hvotes Hcl Hidv Hscope Hns
+  intro c r id s sp sv cl Hrole Hvotes Hcl Hscope Hns
   subst Hcl
-  obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, Hidx61⟩ := Hscope
+  -- (D22 S-b′4) the scope only once the node is found; the index bound either way
+  obtain ⟨Hscope, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
-  icases ownSnapE_open _ _ _ $$ Hsnap with ⟨%pm, %pc, Hrest, Hcs⟩
-  iunfold snapRest at Hrest
-  iNamed Hrest
-  obtain ⟨Hspn, Hpmn⟩ := Hnn
+  -- (D22 S-d4 item 4) the snapshot, every pointer field set, opened into its parts
+  iunfold ownSnapS at Hsnap
+  icases Hsnap with ⟨%ds, %pm, %uf, %Hspn, HD, Hd, HM, Hm, #Hpb⟩
+  iunfold smPtsS at Hm
+  icases Hm with ⟨%pc, %pi, %pt, %ufm, %Hnnm, HC, Hcs, HI, #cI, HT, #cT, #Hpbm⟩
+  obtain ⟨Hpmn, HpcS, Hpin, Hptn⟩ := Hnnm
+  ihave Hcs := csSet_A _ _ _ $$ Hcs
   wp_auto
   wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
   wp_apply wp_SnapshotMetadata_GetIndex_field pm pi _ _ Hpmn $$ [$HI $cI] as HI
@@ -284,34 +301,37 @@ theorem raft.restore.wp_proof
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    exact .inl ⟨Hst, rfl, rfl⟩
+    exact .inl ⟨.inl Hst, rfl, rfl⟩
   rw [decide_eq_false Hst]
   wp_auto
   -- `r.state != StateFollower`: a follower
   wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   rw [Hrole, decide_eq_true (show stateW64 PRole.follower = W64 0 from rfl)]
   wp_auto
-  -- `cs := pb.EnsureConfState(s.GetMetadata().GetConfState())`: the snapshot's conf state, which
-  -- is set (it has `id`), its `AutoLeave` made non-`nil`
+  -- `cs := pb.EnsureConfState(s.GetMetadata().GetConfState())`: the snapshot's conf state, its
+  -- `AutoLeave` made non-`nil`; (D22 S-b, D22j) `nil` or not: a `nil` one is a fresh empty one,
+  -- in which the search below finds nothing
   wp_apply wp_Snapshot_GetMetadata_field sp pm _ Hspn $$ [$HM] as HM
   wp_apply wp_SnapshotMetadata_GetConfState_field pm pc _ Hpmn $$ [$HC] as HC
-  -- the conf state is not `nil` (it has `id`); `EnsureConfState` leaves it frozen with its
-  -- `AutoLeave` set (D7), as the snapshot keeps it (`csOptA`'s third case)
   icases csOptA_nn _ _ _ $$ Hcs with ⟨Hcs, %Hpcn⟩
-  replace Hpcn : pc ≠ null := by
-    rcases Hpcn with ⟨-, Hc0⟩ | Hpcn
-    · exfalso
-      rw [Hc0] at Hidv
-      simp [CSLists.Has, ConfStateM.lists] at Hidv
-    · exact Hpcn
   try wp_auto
-  wp_apply wp_EnsureConfState_freeze wp_EnsureConfState pc _ Hpcn $$ [Hcs] as #Hcf
+  wp_apply wp_EnsureConfState_opt wp_EnsureConfState pc _ $$ [Hcs] as %q ⟨#Hcfq, Hcs, %Hq⟩
   · iexact Hcs
+  -- once the search finds `id`, the conf state is the snapshot's own (a `nil` one has no ids)
+  -- (kept in the Iris context, out of `word`'s sight)
+  ihave Hfq : ⌜FoundQ sv.Metadata'.ConfState'.lists id q pc⌝ $$ []
+  · ipureintro
+    intro Hh
+    apply Hq
+    rcases Hpcn with ⟨-, Hc0⟩ | Hpcn
+    · exfalso; rw [Hc0] at Hh; simp [CSLists.Has, ConfStateM.lists] at Hh
+    · exact Hpcn
+  clear Hq Hpcn
   -- the `found` search over `[Voters; Learners; VotersOutgoing]`
-  ihave Hcs : csPts pc DFrac.discard sv.Metadata'.ConfState' true $$ []
-  · iexact Hcf
-  iunfold csPts at Hcs
-  icases Hcs with ⟨%csv, %csl, %cso, %csn, %cpa, %Hcnn, HcV, Hcv, HcL, Hcl', HcO, Hco, HcN, Hcn,
+  ihave Hcsq : csPts q DFrac.discard sv.Metadata'.ConfState' true $$ []
+  · iexact Hcfq
+  iunfold csPts at Hcsq
+  icases Hcsq with ⟨%csv, %csl, %cso, %csn, %cpa, %Hcnn, HcV, Hcv, HcL, Hcl', HcO, Hco, HcN, Hcn,
     HcA, #ccA, %Hcal, #Hcpb⟩
   wp_auto
   wp_apply wp_slice_literal
@@ -323,8 +343,8 @@ theorem raft.restore.wp_proof
   wp_auto
   ihave %Hrlen := ownSlice_len $$ Hrsl
   simp only [List.length_cons, List.length_nil] at Hrlen
-  -- the outer loop: no set before the current one has `id`; `id` is in one of the three
-  -- (`Hidv`), so the inner loop finds it in some set, breaking both
+  -- the outer loop: no set before the current one has `id`; the inner loop finds it in some set,
+  -- breaking both, or the three run out (the `!found` exit)
   ihave IH : (∃ (k : w64) (st : GoSlice),
       "i" ∷ i_ptr ↦ k ∗ "set" ∷ set_ptr ↦ st ∗ "found" ∷ found_ptr ↦ false ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3 ∧ FoundBefore sv.Metadata'.ConfState'.lists id (sint.Z k).toNat⌝) $$ [i set found]
@@ -335,13 +355,22 @@ theorem raft.restore.wp_proof
   obtain ⟨Hk0, Hk3, Hkb⟩ := Hk
   wp_if_destruct
   rotate_left
-  · -- the three sets ran out without `id`: impossible
-    exfalso
+  · -- (D22 S-b, D22j) the three sets ran out without `id`: the `!found` exit, `false`
     have Hk3' : (sint.Z k).toNat = 3 := by
       have : ¬ sint.Z k < 3 := by word
       omega
     rw [Hk3'] at Hkb
-    exact foundBefore_three Hkb Hidv
+    have Hnf : ¬ CSLists.Has sv.Metadata'.ConfState'.lists id := fun h => foundBefore_three Hkb h
+    -- the `Warningf`: `r.id`, `cs`
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    try wp_auto
+    wp_raft_logC
+    snap_close
+    iapply HΦ $$ %false %s
+    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
+    iframe Hphys Hsnap
+    ipureintro
+    exact .inl ⟨.inr Hnf, rfl, rfl⟩
   have Hk3' : (sint.Z k).toNat < 3 := by
     have : sint.Z k < 3 := by word
     omega
@@ -404,6 +433,17 @@ theorem raft.restore.wp_proof
     exact ⟨Hk2n, fun h => Hne h.symm⟩
   -- found: break the inner loop, then the outer one
   subst y
+  -- (D22 S-b) the node is one of the `ConfState`'s ids, so the conf state is the snapshot's
+  have Hidv : CSLists.Has sv.Metadata'.ConfState'.lists id :=
+    found_has Hk3' HLk (List.mem_of_getElem? Hy_lookup)
+  -- (D22 S-b′4) found: the scope of its lists
+  obtain ⟨Hwf, Hvnd, Hlnd, Hond, Hnnd, Hsz, Hal0, -⟩ := Hscope (by
+    first | exact Hidv | (rw [Hcl]; exact Hidv) | (subst Hcl; exact Hidv))
+  icases Hfq with %Hfq
+  have Hqp : pc = q := (Hfq Hidv).symm
+  subst Hqp
+  ihave #Hcf := Hcfq
+  iclear Hcs
   rw [decide_eq_true rfl]
   wp_auto
   icases Hback3 $$ HL with ⟨Hcv, Hcl', Hco⟩
@@ -461,7 +501,7 @@ theorem raft.restore.wp_proof
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    refine .inr (.inl ⟨by simp only [snapId]; omega, Hm, rfl, ?_⟩)
+    refine .inr (.inl ⟨by simp only [snapId]; omega, Hidv, Hm, rfl, ?_⟩)
     simp only [plogCommitTo, snapId] at *
     rw [ite_eq_left (by omega)]
   · rw [Hb, decide_eq_false Hm]
@@ -469,25 +509,25 @@ theorem raft.restore.wp_proof
     -- `r.raftLog.restore(s)`, on half of the snapshot: the other half keeps the pointers `pm` and
     -- `pc` (`cs`), for `confchange.Restore` and `assertConfStatesEquivalent`
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
-    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, -, Hlogback⟩
-    ihave Hrest : snapRest sp pm pc (DFrac.own 1) sv $$ [HD Hd HM HC HI HT]
-    · iunfold snapRest
-      iexists ds, pi, pt, uf, ufm
-      iframe
-      iframe cI cT Hpb Hpbm
-      ipureintro; exact ⟨Hspn, Hpmn⟩
-    icases snapRest_split sp pm pc (DFrac.own (Qp.half 1)) (DFrac.own (Qp.half 1)) sv $$ [Hrest]
-      with ⟨HrA, HrB⟩
-    · rw [DFrac.op_own, Qp.half_add_half]; iexact Hrest
-    ihave HsA : ownSnapM sp (DFrac.own (Qp.half 1)) sv $$ [HrA]
-    · iapply ownSnapM_of_rest
-      iframe HrA
-      iunfold csOptA; iright; iright; iexact Hcf
+    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh1, Hlogback⟩
+    -- (D22 S-d3a) the restore past the commit index keeps what the log says of the snapshot the
+    -- last `Ready` handed out (`SnpOk`)
+    icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq1, Hlog⟩
+    have Hsnp1 : SnpOk s.gh (logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists)) :=
+      Hgh1.1.2.restore _ (by simp only [snapTrip, snapId]; omega) Hq1.2
+    -- (D22 S-d4 item 4) the log's half set (its conf state read-only, `Hcf`)
+    icases ownSnapS_rest_of_parts sp pm pc pi pt ds uf ufm (DFrac.own (Qp.half 1))
+        (DFrac.own (Qp.half 1)) sv Hspn Hpmn HpcS Hpin Hptn $$ [HD Hd HM HC HI HT]
+      with ⟨HsA, HrB⟩
+    · rw [DFrac.op_own, Qp.half_add_half]
+      iframe HD Hd HM HC HI HT
+      iframe cI cT Hpb Hpbm Hcf
     wp_apply wp_raftLog_restore _ _ sp _ sv (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) $$ [$Hlog $HsA] as ⟨HsA, Hlog⟩
+        (by simp only [snapId]; omega) $$ [$Hlog $HsA $Hcert] as ⟨HsA, Hlog⟩
+    ihave HsA := ownSnapS_M _ _ _ $$ HsA
     icases ownSnapM_tie sp pm pc _ _ sv $$ [HsA HrB] with ⟨HrA, HcsA, HrB⟩
     · iframe
-    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns)
+    ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
       %(fun h => absurd (Hrole.symm.trans h) (by decide))
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
@@ -538,7 +578,7 @@ theorem raft.restore.wp_proof
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
-      %(LogGhOk.of_snap (by simp [logRestore]) Hns)
+      %(LogGhOk.of_snap (by simp [logRestore]) Hns Hsnp1)
       %(PrvalsOk.not_leader (fun h => absurd (Hrole.symm.trans h) (by decide)))
     generalize HS1 : ({ s with votes := ∅, progress := ∅, prvals := ∅, logst := logRestore s.logst (snapTrip sv sv.Metadata'.ConfState'.lists) } : NState) = s1
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
@@ -600,7 +640,7 @@ theorem raft.restore.wp_proof
     simp only [restoreCfg, ↓reduceIte]
     iframe Hphys Hsnap
     ipureintro
-    refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs,
+    refine .inr (.inr ⟨by simp only [snapId]; omega, Hidv, Hm, rfl, prs, pvs,
       learnerOfC (snapCfg sv sv.Metadata'.ConfState'.lists) id, ?_⟩)
     subst HS1
     obtain ⟨⟩ := s

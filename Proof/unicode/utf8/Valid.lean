@@ -49,8 +49,6 @@ instance (s : GoString) : Decidable (utf8Valid s) := by unfold utf8Valid; infer_
 /-- ASCII: every byte below `0x80`. -/
 def asciiStr (s : GoString) : Prop := ∀ b ∈ s, b.toNat < 0x80
 
-instance (s : GoString) : Decidable (asciiStr s) := by unfold asciiStr; infer_instance
-
 theorem utf8Valid_of_ascii : ∀ (s : GoString), asciiStr s → utf8Valid s
   | [], _ => rfl
   | b :: bs, h => by
@@ -59,13 +57,6 @@ theorem utf8Valid_of_ascii : ∀ (s : GoString), asciiStr s → utf8Valid s
     unfold utf8Valid at ih ⊢
     unfold utf8ValidB; rw [if_pos hb]
     exact ih
-
-theorem asciiStr_append {s t : GoString} (hs : asciiStr s) (ht : asciiStr t) :
-    asciiStr (s ++ t) := by
-  intro b hb
-  rcases List.mem_append.mp hb with h | h
-  · exact hs b h
-  · exact ht b h
 
 example : utf8Valid go!"Range" := by decide
 example : utf8Valid go!"é" := by decide

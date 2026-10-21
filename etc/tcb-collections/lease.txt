@@ -31,6 +31,7 @@ axiom grpcServesStream_persistent
 axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
+axiom rpctypes.errDesc_etcdError
 axiom status.FromError.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof

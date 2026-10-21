@@ -130,11 +130,6 @@ theorem vb_delete (σ : WsState) (hok : WsOk σ) (k : Nat) (B : GMap Loc EventBa
     obtain ⟨B2o, h2o, hw2o, -⟩ := hget j B2 w h2 hw2
     exact hok.v_one i j B1o B2o w h1o h2o hw1o hw2o
 
-/-- A cancel keeps the names (K2e-6). -/
-theorem cancelState_srBelow (σ : WsState) (wa : Loc) (st : WatcherSt) (Ws Wu : GMap Loc WatchRange)
-    (VB : List (GMap Loc EventBatch)) (N : Nat) (h : σ.srBelow N) :
-    (cancelState σ wa st Ws Wu VB).srBelow N := h
-
 /-- A cancel keeps the lock settled (it only removes a watcher). -/
 theorem cancelState_settled (σ : WsState) (hs : σ.settled) (wa : Loc) (st : WatcherSt)
     (Ws Wu : GMap Loc WatchRange) (VB : List (GMap Loc EventBatch))

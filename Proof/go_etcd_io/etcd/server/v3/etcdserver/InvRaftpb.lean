@@ -57,15 +57,6 @@ def ccIdOf [FfiSyntax] (bs : List w8) : w64 :=
   | some m => m.id
   | none => W64 0
 
-theorem isConfChangeEncoding_of_decode [FfiSyntax] {bs : List w8} {m : CCV1M}
-    (h : ccDecodeV1 bs = some m) : isConfChangeEncoding bs := by
-  unfold isConfChangeEncoding; rw [h]; rfl
-
-theorem isConfChangeEncoding_decode [FfiSyntax] {bs : List w8} (h : isConfChangeEncoding bs) :
-    ∃ m : CCV1M, ccDecodeV1 bs = some m := by
-  unfold isConfChangeEncoding at h
-  exact Option.isSome_iff_exists.mp h
-
 theorem ccIdOf_of_decode [FfiSyntax] {bs : List w8} {m : CCV1M} (h : ccDecodeV1 bs = some m) :
     ccIdOf bs = m.id := by
   unfold ccIdOf; rw [h]

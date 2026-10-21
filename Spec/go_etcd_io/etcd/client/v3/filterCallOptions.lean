@@ -34,7 +34,10 @@ abbrev filterCallOptions.spec : Prop :=
       ∃ (gs : List GoInterface) (ros : List go_etcd_io.etcd.client.v3.retryOption),
         g ↦* gs ∗ ownSliceCap GoInterface g (DFrac.own 1) ∗
         ⌜∀ v ∈ gs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys⌝ ∗
-        r ↦* ros ∗ [∗list] ro ∈ ros, retryApplyOk ro.applyFunc' }}
+        r ↦* ros ∗ ([∗list] ro ∈ ros, retryApplyOk ro.applyFunc') ∗
+        -- (2026-10-21, D29) scalar options only: no retry options
+        ⌜(∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧
+          t ∈ grpcScalarOptTys) → ros = []⌝ }}
 
 end spec
 

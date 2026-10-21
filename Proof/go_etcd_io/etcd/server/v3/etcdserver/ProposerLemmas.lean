@@ -21,9 +21,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
-theorem idN_mintN : (↑idN : CoPset) ⊆ ⊤ \ ↑srvMintN :=
-  mask_ndot_ne' nroot "idutil" "server_mint" (by decide)
-
 theorem idClusterN_mintN : (↑idClusterN : CoPset) ⊆ ⊤ \ ↑srvMintN :=
   mask_ndot_ne' nroot "idutil_cluster" "server_mint" (by decide)
 

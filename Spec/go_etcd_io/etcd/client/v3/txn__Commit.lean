@@ -26,10 +26,10 @@ Failure: fas}` (the transaction `txnWireOf b.model` on the wire) through the `*k
 client's `Txn`, for a spec `Spec` registered for `Txn` and the caller's `Q`, with the client's call options: the call's answer (`txnCallOut`; the error through
 `ContextError`, a client error). The builder is spent (its slices are now the request's). -/
 abbrev txn.Commit.spec : Prop :=
-  ∀ (tp : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (Spec : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse) (Q : TxnRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-      isGrpcRpc addr go!"/etcdserverpb.KV/Txn" Spec ∗
+      isGrpcRpcs addr go!"/etcdserverpb.KV/Txn" Spec ∗
       -- (2026-10-20, linkv-txn stage A) ordinary on a builder over a one-attempt connection
       txnReqPre tp addr (Spec (txnWireOf b.model) Q) }}
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))

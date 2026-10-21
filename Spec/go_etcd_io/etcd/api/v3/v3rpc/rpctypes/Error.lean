@@ -45,7 +45,9 @@ abbrev rpctypes.Error.spec : Prop :=
       ⌜err ≠ interface.nil⌝ ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error)) (Val #err))
   {{ (err' : GoError), RET #err'; ⌜err' ≠ interface.nil⌝ ∗ statusErrOk err' ∗
-      ⌜clientErr err → clientErr err'⌝ }}
+      ⌜clientErr err → clientErr err'⌝ ∗
+      -- (2026-10-21, D29) the description kept
+      ⌜errDesc err' = errDesc err⌝ }}
 
 end spec
 

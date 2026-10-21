@@ -423,23 +423,6 @@ theorem rangesOk_length_le (W : GMap Loc WatchRange) (L : List adt.Entry) (hL : 
   rw [GMap.size_eq_dom_list_length]
   exact hle
 
-/-- Adding a single-key member leaves the tree's entries as they are. -/
-theorem rangesOk_insert_key (W : GMap Loc WatchRange) (L : List adt.Entry) (wa : Loc)
-    (r : WatchRange) (hw : W !! wa = none) (he : r.end? = none) (hL : RangesOk W L) :
-    RangesOk (<[wa := r]> W) L := by
-  refine ⟨hL.1, fun ivl => ?_⟩
-  rw [hL.2 ivl]
-  constructor
-  · rintro ⟨w, r', e, hw', he', rfl⟩
-    refine ⟨w, r', e, ?_, he', rfl⟩
-    rw [GMap.lookup_insert_ne _ _ (fun h => by subst h; rw [hw] at hw'; cases hw')]
-    exact hw'
-  · rintro ⟨w, r', e, hw', he', rfl⟩
-    by_cases hww : w = wa
-    · subst hww; rw [GMap.lookup_insert] at hw'; cases hw'; rw [he] at he'; cases he'
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hww)] at hw'
-      exact ⟨w, r', e, hw', he', rfl⟩
-
 /-- Adding a range member whose interval the tree has (`L`), or gets (`L'`). -/
 theorem rangesOk_insert_range (W : GMap Loc WatchRange) (L L' : List adt.Entry) (wa : Loc)
     (r : WatchRange) (e : GoString) (hw : W !! wa = none) (he : r.end? = some e)
@@ -750,18 +733,6 @@ def ownWatcherGroup (wg : Loc) (W : GMap Loc WatchRange) (q : Qp := 1) : IProp G
     "%HL" ∷ ⌜RangesOk W L⌝ ∗
     "Hranges" ∷ [∗list] z ∈ L, rangeSet W z q)
 
-/-- An `IntervalValue` points-to (what the tree's `Find` and `Stab` lend) as its
-fields. -/
-theorem iv_split (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
-    (l ↦{dq} v : IProp GF) ⊢
-      l.[go_etcd_io.etcd.pkg.v3.adt.IntervalValue, go!"Ivl"] ↦{dq} v.Ivl' ∗
-        l.[go_etcd_io.etcd.pkg.v3.adt.IntervalValue, go!"Val"] ↦{dq} v.Val' := by
-  iintro H
-  icases typedPointsto_split _ _ _ $$ H with H
-  simp only [TypedPointsto.typedPointstoDef]
-  iNamed H
-  iframe Ivl Val
-
 /-- The range sets of the entries whose interval's members are unchanged. -/
 theorem rangeSets_congr (W W' : GMap Loc WatchRange) (L : List adt.Entry)
     (h : ∀ z ∈ L, ivlMembers W' z.1 = ivlMembers W z.1) :
@@ -855,14 +826,6 @@ theorem ownWatcherGroup_fixed (wg : Loc) (W : GMap Loc WatchRange) :
     iframe Hwg Hws Hfixed Hkm Hivt Hranges
     ipureintro; exact HL
   iexact Hfixed
-
-theorem ownWatcherGroup_not_null (wg : Loc) (W : GMap Loc WatchRange) :
-    ownWatcherGroup (GF := GF) wg W ⊢ ⌜wg ≠ null⌝ := by
-  iintro Hg
-  unfold ownWatcherGroup
-  icases Hg with ⟨%km, %ws, %t, %KM, %L, Hg⟩
-  iNamed Hg
-  iapply typedPointsto_not_null $$ Hwg
 
 /-- The members are distinct watchers: each one's fixed fields agree with any of its own. -/
 theorem ownWatcherGroup_member (wg : Loc) (W : GMap Loc WatchRange) (w : Loc) (r : WatchRange)

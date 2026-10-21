@@ -67,13 +67,6 @@ def ciKeys (P : BParams) : Prop :=
   P.has mvcc.metaBI ∧ P.HB schema.metaName = true ∧ 2 ≤ P.hookMax ∧
     P.HK schema.metaName schema.ciKeyBytes = true ∧ P.HK schema.metaName schema.termKeyBytes = true
 
-/-- A real instance of the store makes them so (its table having `Meta`, its hook's bound at
-least 2). -/
-theorem ciKeys_of (d : mvcc.KBReal) (hm : d.BT.lookup mvcc.metaBI.name = some mvcc.metaBI.id)
-    (hh : 2 ≤ d.hookMax) : ciKeys d.P :=
-  ⟨hm, by simp only [mvcc.KBReal.P]; decide, hh, by simp only [mvcc.KBReal.P]; decide,
-    by simp only [mvcc.KBReal.P]; decide⟩
-
 theorem ci_ne_term : schema.ciKeyBytes ≠ schema.termKeyBytes := by decide
 
 theorem ciKeys_hk {P : BParams} (hP : ciKeys P) {k : GoString}
@@ -187,10 +180,6 @@ abbrev btIface (t : Loc) : GoInterfaceOk := ⟨go.GoType.PointerType batchTxBuff
 keys, at contents whose meta keys are `m`. -/
 def metaTM (γ : BNames) (P : BParams) (m : MetaCI) : IProp GF :=
   iprop(∃ S : Data, hkOwn γ (hkData P S) ∗ ⌜metaIs S m⌝)
-
-instance metaTM_timeless (γ : BNames) (P : BParams) (m : MetaCI) :
-    Timeless (metaTM (GF := GF) γ P m) := by
-  unfold metaTM; infer_instance
 
 /-- The meta-keys resource agrees with the batch lock's state. -/
 theorem metaTM_agree (γ : BNames) {P : BParams} (hP : ciKeys P) (b : Loc) (st : BSess)

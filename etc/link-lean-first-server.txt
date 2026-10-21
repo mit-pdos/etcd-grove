@@ -143,7 +143,7 @@ EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentI
 HardState__GetTerm: @
 HardState__GetVote: @
 HardState__GetCommit: @
-Message__GetTo: @
+raftpb_Message__GetTo: @
 Message__GetFrom: @
 Message__GetType: @
 Snapshot__GetMetadata: @
@@ -162,8 +162,8 @@ raftNode__ReadState:
 raftNode__apply:
 raftNode__onStop:
 raftNode__stop:
-raftNode__processMessages: Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
-raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit Entry__GetType proto_Clone zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn
+raftNode__processMessages: raftpb_Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit HardState__GetTerm Entry__GetType proto_Clone zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn
 # raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
 raftNode__ReadIndex:
 #
@@ -398,11 +398,12 @@ auth_isOpenEnded:
 auth_checkKeyPoint: NewBytesAffinePoint
 auth_checkKeyInterval: auth_isOpenEnded NewBytesAffineInterval
 auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyInterval auth_checkKeyPoint
-auth_authStore__isOpPermitted: auth_authStore__IsAuthEnabled auth_authStore__Revision zap_Uint64 zap_ByteString zap_Error zap_Logger__Warn zap_String zap_Logger__Error auth_hasRootRole auth_authStore__isRangeOpPermitted
+auth_authStore__lockedReadTx:
+auth_authStore__isOpPermitted: auth_authStore__IsAuthEnabled auth_authStore__Revision zap_Uint64 zap_ByteString zap_Error zap_Logger__Warn zap_String zap_Logger__Error auth_hasRootRole auth_authStore__lockedReadTx auth_authStore__isRangeOpPermitted
 auth_authStore__IsPutPermitted: auth_authStore__isOpPermitted
 auth_authStore__IsRangePermitted: auth_authStore__isOpPermitted
 auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
-auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_hasRootRole
+auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx auth_hasRootRole
 auth_authStore__authInfoFromToken: auth_authStore__Revision
 auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
@@ -460,7 +461,7 @@ node__ReportSnapshot: @
 v2stats_ServerStats__RecvAppendReq:
 proto_SizeMessage:
 RaftCluster__IsIDRemoved:
-EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
+EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
@@ -483,3 +484,31 @@ backend__SetTxPostLockInsideApplyHook: @
 EtcdServer__restoreAlarms: schema_NewAlarmBackend v3alarm_NewAlarmStore
 EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
 etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode node__Ready node__Advance node__Tick node__ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket node__Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion MemoryStorage__Snapshot node__ApplyConfChange node__Step node__ReportUnreachable node__ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot
+# (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
+# storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
+# (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the
+# configuration's `BackendPath`; raft's metadata getter and `fmt.Errorf` are linked elsewhere (`@`).
+fmt_Errorf: @
+snap_Snapshotter__DBFilePath:
+os_Rename:
+config_ServerConfig__BackendPath:
+storage_OpenBackend:
+storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
+# (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
+# SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
+# and `sendMergedSnap` with their bodies; the trust boundary: `io.Pipe` and its writer's
+# `CloseWithError` (names-only in Perennial), snap's `NewMessage`, `CloseNotify` and the promoted
+# `GetTo` (snap is names-only); the backend snapshot's `WriteTo`, `Size` and `Close` and raft's
+# `proto.Clone` of a conf state are linked elsewhere (`@`).
+io_Pipe:
+io_PipeWriter__CloseWithError:
+snap_NewMessage:
+snap_Message__CloseNotify:
+snap_Message__GetTo:
+snapshot__WriteTo: @
+snapshot__Size: @
+snapshot__Close: @
+proto_CloneConfState: @
+newSnapshotReaderCloser: io_Pipe snapshot__WriteTo zap_Int64 go_humanize_Bytes zap_String zap_Logger__Info zap_Error zap_Logger__Warn io_PipeWriter__CloseWithError snapshot__Close
+EtcdServer__createMergedSnapshotMessage: EtcdServer__Logger EtcdServer__KV newSnapshotReaderCloser proto_CloneConfState snapshot__Size snap_NewMessage
+EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__String zap_String snap_Message__GetTo zap_Int64 go_humanize_Bytes zap_Logger__Info EtcdServer__GoAttach snap_Message__CloseNotify zap_Duration zap_Logger__Warn

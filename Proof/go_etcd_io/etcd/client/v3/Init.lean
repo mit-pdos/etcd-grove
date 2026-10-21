@@ -89,10 +89,10 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `defaultOptions = &options{..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`'s float arithmetic and `rand.Float64`, which do not panic). -/
+/-- `defaultOptions = &options{retryPolicy: nonRepeatable, ..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`'s float arithmetic and `rand.Float64`, which do not panic), with the policy `nonRepeatable` (`W8 1`, `retry.go`'s `iota`; D29). -/
 axiom defaultOptions_init :
     {{ (True : IProp GF) }} (App (Val defaultOptions.init) (Val #()))
-    {{ RET #(); ∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ go_etcd_io.etcd.cache.v3.backoffOk ov.backoffFunc' }}
+    {{ RET #(); ∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ go_etcd_io.etcd.cache.v3.backoffOk ov.backoffFunc' ∗ ⌜ov.retryPolicy' = W8 1⌝ }}
 
 /-- `defaultCallOpts = []grpc.CallOption{defaultWaitForReady, defaultMaxCallSendMsgSize, defaultMaxCallRecvMsgSize}` (`options.go`): grpc's `WaitForReady(true)`, `MaxCallSendMsgSize(...)`, `MaxCallRecvMsgSize(...)`, options holding only scalars (`FailFastCallOption`, `MaxSendMsgSizeCallOption`, `MaxRecvMsgSizeCallOption`). -/
 axiom defaultCallOpts_init :
@@ -203,7 +203,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply defaultBackoffWaitBetween_init as ⟨%ddefaultBackoffWaitBetween, HdefaultBackoffWaitBetween⟩
   wp_apply defaultBackoffJitterFraction_init as ⟨%fdefaultBackoffJitterFraction, HdefaultBackoffJitterFraction⟩
   wp_apply defaultCallOpts_init as ⟨%sldefaultCallOpts, %vsdefaultCallOpts, HdefaultCallOpts, #SdefaultCallOpts, %PdefaultCallOpts⟩
-  wp_apply defaultOptions_init as ⟨%dpdefaultOptions, %ovdefaultOptions, HdefaultOptions, #PdefaultOptions, #SdefaultOptions⟩
+  wp_apply defaultOptions_init as ⟨%dpdefaultOptions, %ovdefaultOptions, HdefaultOptions, #PdefaultOptions, #SdefaultOptions, %RdefaultOptions⟩
   -- translated initializer of valCtxCh))
   -- translated initializer of zeroTime))
   -- translated initializer of maxBackoff))
@@ -231,7 +231,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold go_etcd_io.etcd.cache.v3.clientv3Init
   iframe #
   ipureintro
-  exact PdefaultCallOpts
+  exact ⟨RdefaultOptions, PdefaultCallOpts⟩
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

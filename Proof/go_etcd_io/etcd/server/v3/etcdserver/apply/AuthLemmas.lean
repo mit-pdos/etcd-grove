@@ -33,51 +33,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-! ## The auth layer's KV methods: a rejection, or the inner applier's answer -/
 
-/-- **An auth rejection** of a KV request (the check failed, before any write): the outcome
-`.rejected .auth`, the log unchanged, `Pre` back, the `authInfo` returned to the chain's
-resources. -/
-theorem apply.auth_reject_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
-    (inner : GoInterface) (rq : IRRModel) (log : mvcc.Log) (R : apply.Outcome → IProp GF)
-    (Pre Q Post : IProp GF) (hk : apply.authChecks (dispatchKind rq) = true)
-    (hm : apply.authMayReject on rq) :
-    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      R (.rejected .auth) -∗ apply.kvOwn E log -∗ apply.authInfoOwn p -∗
-      apply.chainRes c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
-      apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log
-        R Pre Post := by
-  iintro #Happ HR Hkv Hinfo Hres Hcs
-  ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
-  iunfold apply.kvPost
-  iexists (.rejected .auth)
-  isplitr
-  · ipureintro
-    simp [apply.chainStep, hk, hm]
-  simp only [apply.Outcome.logAfter]
-  iframe HR Hkv
-  isplitl [Hinfo Hres]
-  · iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
-  iright; iexact HPre
-
-/-- **The inner applier's answer**, through the auth layer (its check passed). -/
-theorem apply.auth_pass_kvPost (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
-    (inner : GoInterface) (rq : IRRModel) (log : mvcc.Log) (R : apply.Outcome → IProp GF)
-    (Pre Post : IProp GF) :
-    structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
-      apply.kvPost E c inner rq log R Pre Post -∗ apply.authInfoOwn p -∗
-      apply.kvPost E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log
-        R Pre Post := by
-  iintro #Happ Hpost Hinfo
-  iunfold apply.kvPost at Hpost
-  iunfold apply.kvPost
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
-  iexists oc
-  iframe HR Hkv HPP
-  isplitr
-  · ipureintro
-    simp only [apply.chainStep]
-    split <;> simp [Hst]
-  iapply apply.chainRes_auth_in c p inner $$ Happ Hinfo Hres
-
 /-- `auth_reject_kvPost` with a floor (unit V2): a rejection meets any floor. -/
 theorem apply.auth_reject_kvPostF (E : apply.AEnv GF) (on : Bool) (c : apply.Chain) (p : Loc)
     (inner : GoInterface) (rq : IRRModel) (log F : mvcc.Log) (R : apply.Outcome → IProp GF)

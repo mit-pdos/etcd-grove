@@ -113,25 +113,6 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bo
   iintro - ⟨%Hpay, -⟩
   ipureintro; exact Hpay
 
-/-- `maybeAppend`'s `commitTo(min(committed, lastnewi))` panics if the log ends before
-it: it never does (`plogMaybeAppend_last`, from the batch's `AppPayloadOk`). -/
-theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool}
-    (lastnewi : w64) (es' : List EntryM) :
-    m.ty = .app →
-    m.dst = id →
-    uint.Z ps.term ≤ uint.Z m.term →
-    plogMaybeAppend ps.base ps.log
-      (entryID.mk m.logterm m.index) m.entries
-      = some (lastnewi, es') →
-    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
-      ⌜uint.Z lastnewi ≤ plogLastIndexZ ps.base es'⌝ := by
-  intro Hty Hto _ Happ
-  iintro Hown #Hm
-  icases app_recv_wf γ id ps m Hty Hto $$ Hown Hm with %Hp
-  obtain ⟨Hwf, Hnw⟩ := Hp
-  ipureintro
-  exact plogMaybeAppend_last _ _ _ _ _ _ Hwf Hnw Happ
-
 /-- `maybeAppend` panics if the first conflicting index is at or below the commit index
 (`ci ≤ l.committed`). Under `maybeAppend`'s caller's premise `committed ≤ m.Index` that is
 arithmetic: a conflict is the index of one of the batch's entries, which are at
@@ -171,50 +152,6 @@ nodes. Log Matching is proved (2026-10-02) from two nodes' ghost state. Leader
 Completeness and State Machine Safety are proved (2026-10-03) over the whole cluster:
 see the next subsection. -/
 
-/-- A node's log and its records. -/
-theorem ownRaftGhost_log (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜LogOk s⌝ ∗ logRecs γ s.base s.log := by
-  unfold ownRaftGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  iapply ownLogGhost_recs $$ Hlg
-
-/-- Log Matching: two logs that have the same term at an index agree on every entry up to
-it (above both bases). Proved since 2026-10-02 from the two logs' records alone
-(`logRecs_agree`, `plog_match_down`): entries at one (term, index) are one entry with one
-predecessor term, because the term log of that term's (unique) leader says so. -/
-theorem log_matching (γ : RaftNames) (id1 id2 : w64) (s1 s2 : PState) (i t : w64) :
-    plogTermAt s1.base s1.log i = some t →
-    plogTermAt s2.base s2.log i = some t →
-    ⊢ ownRaftGhost (GF := GF) γ id1 s1 -∗ ownRaftGhost γ id2 s2 -∗
-      ⌜∀ j : w64, uint.Z j ≤ uint.Z i →
-          uint.Z s1.base.index' < uint.Z j →
-          uint.Z s2.base.index' < uint.Z j →
-          plogEntryAt s1.base s1.log j =
-          plogEntryAt s2.base s2.log j⌝ := by
-  intro H1 H2
-  iintro Hs1 Hs2
-  icases ownRaftGhost_log γ id1 s1 $$ Hs1 with ⟨%Hok1, #Hr1⟩
-  icases ownRaftGhost_log γ id2 s2 $$ Hs2 with ⟨%Hok2, #Hr2⟩
-  obtain ⟨Hwf1, -, -⟩ := Hok1
-  obtain ⟨Hwf2, -, -⟩ := Hok2
-  icases logRecs_agree γ _ _ _ _ $$ Hr1 Hr2 with %HRA
-  ipureintro
-  intro j Hji Hb1 Hb2
-  have Hj := plog_match_down _ _ _ _ i Hwf1 Hwf2 HRA (by rw [H1]; rfl) (by rw [H1, H2]) j
-    (by omega) (by omega) Hji
-  have Hl1 := (plogTermAt_some_range _ _ _ _ H1).2
-  obtain ⟨tj, Htj⟩ : ∃ tj, plogTermAt s1.base s1.log j = some tj :=
-    Option.isSome_iff_exists.mp (plogTermAt_in_range _ _ _ ⟨by omega, by omega⟩)
-  obtain ⟨e1, He1, Hi1, Ht1⟩ := plogTermAt_some_entry _ _ _ _ Hwf1 Htj Hb1
-  rw [Hj] at Htj
-  obtain ⟨e2, He2, Hi2, Ht2⟩ := plogTermAt_some_entry _ _ _ _ Hwf2 Htj Hb2
-  rw [plogEntryAt_lookup _ _ _ Hb1, plogEntryAt_lookup _ _ _ Hb2, He1, He2]
-  have := uint_Z_lt j
-  obtain ⟨rfl, -⟩ := HRA _ _ _ _ He1 He2 (by omega) (by omega) (by rw [Ht1, Ht2])
-    (by rw [Hi1, Hi2])
-  rfl
-
 /-! ### The global committed log, from a node (2026-10-05)
 
 A node's committed prefix -- the first `commit` entries of its full log, the compacted
@@ -244,264 +181,12 @@ theorem ownRaftGhost_committed (γ : RaftNames) (id : w64) (s : PState) {md : Bo
   · ipureintro; exact Hf
   · iexact Hc
 
-/-- The entry at index `i` of a log, read in its full log. -/
-theorem entry_at_full (b : entryID) (fp es : List EntryM) (i : w64) :
-    FullOk b fp → uint.Z b.index' < uint.Z i →
-    plogEntryAt b es i = (fp ++ es)[(uint.Z i - 1).toNat]? := by
-  intro ⟨Hlen, _, _⟩ Hi
-  rw [plogEntryAt_lookup _ _ _ Hi, List.getElem?_append_right (by omega)]
-  congr 1; omega
-
-private theorem ownRaftGhost_committed_ok (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗
-      ∃ fp, ⌜FullOk s.base fp ∧ LogOk s⌝ ∗
-            isCommitted γ ((fp ++ s.log).take (uint.Z s.commit).toNat) := by
-  unfold ownRaftGhost ownLogGhost cprefix
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  iexists fp
-  isplitr
-  · ipureintro; exact ⟨Hfull.1, Hlog_ok⟩
-  · iexact Hcmt
-
-/-- **State Machine Safety**: two nodes agree on every index both have committed (above
-both compaction boundaries). Since 2026-10-05 over two nodes' ghost states, not the
-whole cluster: each node's committed prefix is a prefix of the global committed log
-(`ownRaftGhost_committed`, `isCommitted_agree`). -/
-theorem state_machine_safety (γ : RaftNames) (id1 : w64) (ps1 : PState) (id2 : w64)
-    (ps2 : PState) (i : w64) :
-    uint.Z i ≤ uint.Z ps1.commit →
-    uint.Z i ≤ uint.Z ps2.commit →
-    uint.Z ps1.base.index' < uint.Z i →
-    uint.Z ps2.base.index' < uint.Z i →
-    ⊢ ownRaftGhost (GF := GF) γ id1 ps1 -∗ ownRaftGhost γ id2 ps2 -∗
-      ⌜plogEntryAt ps1.base ps1.log i =
-        plogEntryAt ps2.base ps2.log i⌝ := by
-  intro Hi1 Hi2 Hb1 Hb2
-  iintro H1 H2
-  icases ownRaftGhost_committed_ok γ id1 ps1 $$ H1 with ⟨%fp1, %Hf1, #Hc1⟩
-  icases ownRaftGhost_committed_ok γ id2 ps2 $$ H2 with ⟨%fp2, %Hf2, #Hc2⟩
-  obtain ⟨Hf1, -, -, Hl1⟩ := Hf1
-  obtain ⟨Hf2, -, -, Hl2⟩ := Hf2
-  icases isCommitted_agree γ _ _ $$ Hc1 Hc2 with %Hp
-  ipureintro
-  rw [entry_at_full _ fp1 _ _ Hf1 Hb1, entry_at_full _ fp2 _ _ Hf2 Hb2]
-  have Hlen1 := Hf1.1
-  have Hlen2 := Hf2.1
-  unfold plogLastIndexZ at Hl1 Hl2
-  have Hk1 : (uint.Z i - 1).toNat < (uint.Z ps1.commit).toNat := by omega
-  have Hk2 : (uint.Z i - 1).toNat < (uint.Z ps2.commit).toNat := by omega
-  rw [← List.getElem?_take_of_lt (l := fp1 ++ ps1.log) Hk1,
-    ← List.getElem?_take_of_lt (l := fp2 ++ ps2.log) Hk2]
-  obtain ⟨x1, Hx1⟩ : ∃ x, ((fp1 ++ ps1.log).take (uint.Z ps1.commit).toNat)[(uint.Z i - 1).toNat]?
-      = some x := ⟨_, List.getElem?_eq_getElem (by rw [List.length_take, List.length_append]; omega)⟩
-  obtain ⟨x2, Hx2⟩ : ∃ x, ((fp2 ++ ps2.log).take (uint.Z ps2.commit).toNat)[(uint.Z i - 1).toNat]?
-      = some x := ⟨_, List.getElem?_eq_getElem (by rw [List.length_take, List.length_append]; omega)⟩
-  rw [Hx1, Hx2]
-  rcases Hp with Hp | Hp
-  · have := prefix_lookup_Some Hx1 Hp; rw [Hx2] at this; exact this.symm
-  · have := prefix_lookup_Some Hx2 Hp; rw [Hx1] at this; exact this
-
 /-! ### Leader Completeness (2026-10-03; over two nodes since 2026-10-05)
 
 An entry a node has committed, at a term no later than a leader's, is in the leader's
 log. The pivot argument (`lc_core`) needs the vote table, which is in the invariant: the
 statement is a fancy update. (Until 2026-10-05 it was stated over the whole cluster,
 `cluster_ghost`, because the pivot voter's records were in its own ghost state.) -/
-
-private theorem cq_lead (γ : RaftNames) (t n : w64) (G : List EntryM) :
-    ⊢ cq (GF := GF) γ t n G -∗ ⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G :=
-  cq_base γ t n G
-
-/-- A full log's committed prefix, at a term no later than a leader's, is in the leader's
-full log: in its campaign log by `lc_core` for an earlier term, in its log of the same
-term otherwise. -/
-theorem commitIn_leader (γ : RaftNames) (Fn : List EntryM) (c tm id2 : w64)
-    (ps2 : PState) :
-    ps2.role = .leader →
-    uint.Z tm ≤ uint.Z ps2.term →
-    PlogWf base0 Fn →
-    ⊢ votesTbl (GF := GF) γ -∗ ownRaftGhost γ id2 ps2 -∗ commitIn γ Fn c tm -∗
-      logRecs γ base0 Fn -∗
-      ∃ fp2, ⌜FullOk ps2.base fp2 ∧ PlogWf ps2.base ps2.log ∧
-               ∀ j : w64, uint.Z j ≤ uint.Z c →
-                 plogTermAt base0 Fn j = plogTermAt base0 (fp2 ++ ps2.log) j⌝ ∗
-        logRecs γ base0 (fp2 ++ ps2.log) := by
-  intro Hr2 Htm HwFn
-  iintro Htbl HS #Hc #HrFn
-  ihave #⟨%fp2, %F0, %Hp, #Hfr2, #Hr2', #Hl2, #Hc0, #Hfl2⟩ := node_leader γ id2 ps2 Hr2 $$ HS
-  obtain ⟨Hf2, Hw2, Hpre⟩ := Hp
-  ihave #HrF2 := logRecs_full γ ps2.base fp2 ps2.log Hf2 $$ Hfr2 Hr2'
-  have HwF2 := full_wf _ _ _ Hf2 Hw2
-  ihave #Hcj := commitIn_j γ _ _ _ $$ Hc
-  unfold commitJ
-  icases Hcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hcn⟩)
-  · -- (2026-10-16, stage R8b) a commit index within the bootstrap log, which both logs start
-    -- with (the records; the leader's by `leadFull_boot`)
-    obtain ⟨Hcb, Hct⟩ := H0
-    icases leadFull_boot γ ps2.term (fp2 ++ ps2.log) $$ Hfl2 with %Hb2
-    have HsFn : (plogTermAt base0 Fn c).isSome := by
-      rw [← Hct]
-      exact plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg c, by
-        unfold plogLastIndexZ; rw [base0_index]; omega⟩
-    obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp HsFn
-    have HcFn := (plogTermAt_some_range _ _ _ _ Hx).2
-    unfold plogLastIndexZ at HcFn; rw [base0_index] at HcFn
-    icases logRecs_boot_termAt γ Fn HwFn $$ HrFn with %HagN
-    icases logRecs_boot_termAt γ (fp2 ++ ps2.log) HwF2 $$ HrF2 with %Hag2
-    have Hlen2 := Hb2.1.length_le
-    iexists fp2
-    isplitr
-    · ipureintro
-      refine ⟨Hf2, Hw2, fun j Hj => ?_⟩
-      have := uint_Z_nonneg j
-      rw [← HagN j (by omega) (by omega), Hag2 j (by omega) (by omega)]
-    · iexact HrF2
-  obtain ⟨Hcn, Htt, HG⟩ := Hcn
-  icases cq_full γ t n G $$ Hq with ⟨%HwG, #HrG⟩
-  icases cq_lead γ t n G $$ Hq with ⟨%HGn, #HGl⟩
-  ihave %HF2n : ⌜plogTermAt base0 (fp2 ++ ps2.log) n = some t⌝ $$ [Htbl HS]
-  · by_cases Hne : t = ps2.term
-    · subst Hne
-      icases node_within γ id2 ps2 G Hr2 $$ HS HGl with %Hin
-      have HnG := (plogTermAt_some_range _ _ _ _ HGn).2
-      have HL := full_last_index _ _ ps2.log Hf2
-      icases leadFull_agree γ ps2.term G (fp2 ++ ps2.log) n (by rw [HGn]; rfl)
-        (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg n, by omega⟩)
-        $$ HGl Hfl2 with %Heq
-      ipureintro; rw [← Heq]; exact HGn
-    · icases isCamp_ok γ id2 ps2.term F0 $$ Hc0 with %Hcok
-      have Hne' : uint.Z t ≠ uint.Z ps2.term := fun h => Hne (uint_Z_inj.mp h)
-      have Hcl := camp_last _ _ Hcok
-      iapply lc_core γ ((uint.Z ps2.term).toNat + 1) ps2.term t n G id2 F0 (fp2 ++ ps2.log)
-        (by omega) (by omega) HwF2
-        (by rw [plogTermAt_prefix _ F0 _ _ Hpre (by rw [Hcl]; rfl)]; exact Hcl)
-        $$ Htbl Hq Hl2 Hc0 HrF2
-  have HsG : (plogTermAt base0 G c).isSome := full_term_at_some _ _ n (by rw [HGn]; rfl) Hcn
-  icases full_match γ G Fn c HwG HwFn HsG HG $$ HrG HrFn with %Hm1
-  icases full_match γ G (fp2 ++ ps2.log) n HwG HwF2 (by rw [HGn]; rfl) (by rw [HGn, HF2n])
-    $$ HrG HrF2 with %Hm2
-  iexists fp2
-  isplitr
-  · ipureintro
-    refine ⟨Hf2, Hw2, fun j Hj => ?_⟩
-    rw [← Hm1 j Hj, Hm2 j (by omega)]
-  · iexact HrF2
-
-/-- A node's full log, its commit fact and its records. -/
-theorem node_full (γ : RaftNames) (id : w64) (ps : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id ps -∗
-      ∃ fp, ⌜FullOk ps.base fp ∧ PlogWf ps.base ps.log ∧ LogOk ps⌝ ∗
-        logRecs γ base0 (fp ++ ps.log) ∗
-        commitIn γ (fp ++ ps.log) ps.commit ps.term := by
-  unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γv, %voted, %kl, H⟩
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  iexists fp
-  isplitr; · ipureintro; exact ⟨Hfull.1, Hfull.2.1, Hlog_ok⟩
-  isplitr
-  · iapply logRecs_full γ ps.base fp ps.log Hfull.1 $$ Hfrecs Hrecs
-  · iexact Hcommit
-
-/-- Entries of two full logs with records, at an index above both bases, that have the
-same term there, are the same entry. -/
-theorem full_entry_eq (γ : RaftNames) (b1 : entryID) (fp1 es1 : List EntryM)
-    (b2 : entryID) (fp2 es2 : List EntryM) (i : w64) :
-    FullOk b1 fp1 → FullOk b2 fp2 → PlogWf b1 es1 → PlogWf b2 es2 →
-    uint.Z b1.index' < uint.Z i → uint.Z b2.index' < uint.Z i →
-    (plogTermAt base0 (fp1 ++ es1) i).isSome →
-    plogTermAt base0 (fp1 ++ es1) i = plogTermAt base0 (fp2 ++ es2) i →
-    ⊢ logRecs (GF := GF) γ base0 (fp1 ++ es1) -∗ logRecs γ base0 (fp2 ++ es2) -∗
-      ⌜plogEntryAt b1 es1 i = plogEntryAt b2 es2 i⌝ := by
-  intro Hf1 Hf2 Hw1 Hw2 Hb1 Hb2 Hs Heq
-  iintro #H1 #H2
-  icases logRecs_agree γ _ _ _ _ $$ H1 H2 with %HRA
-  ipureintro
-  rw [full_term_at b1 fp1 es1 i Hf1 (by omega)] at Hs Heq
-  rw [full_term_at b2 fp2 es2 i Hf2 (by omega)] at Heq
-  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
-  have := uint_Z_lt i
-  obtain ⟨e1, He1, Hi1, Ht1⟩ := plogTermAt_some_entry _ _ _ _ (PlogWf_wfR _ _ Hw1) Hx Hb1
-  rw [Heq] at Hx
-  obtain ⟨e2, He2, Hi2, Ht2⟩ := plogTermAt_some_entry _ _ _ _ (PlogWf_wfR _ _ Hw2) Hx Hb2
-  rw [plogEntryAt_lookup _ _ _ Hb1, plogEntryAt_lookup _ _ _ Hb2, He1, He2]
-  have Hl1 := Hf1.1
-  have Hl2 := Hf2.1
-  have He1' : (fp1 ++ es1)[fp1.length + (uint.Z i - uint.Z b1.index' - 1).toNat]? = some e1 := by
-    rw [List.getElem?_append_right (by omega)]; simpa using He1
-  have He2' : (fp2 ++ es2)[fp2.length + (uint.Z i - uint.Z b2.index' - 1).toNat]? = some e2 := by
-    rw [List.getElem?_append_right (by omega)]; simpa using He2
-  obtain ⟨rfl, -⟩ := HRA _ _ _ _ He1' He2' (by rw [base0_index]; omega)
-    (by rw [base0_index]; omega) (by rw [Ht1, Ht2]) (by rw [Hi1, Hi2])
-  rfl
-
-/-- An entry of the stored log is a term of the full log there. -/
-theorem entry_term (b : entryID) (fp es : List EntryM) (i : w64) :
-    FullOk b fp → uint.Z b.index' < uint.Z i ∧ uint.Z i ≤ plogLastIndexZ b es →
-    (plogTermAt base0 (fp ++ es) i).isSome := by
-  intro Hf Hi
-  rw [full_term_at b fp es i Hf (by omega)]
-  exact plogTermAt_in_range _ _ _ ⟨by omega, Hi.2⟩
-
-theorem leader_completeness_tbl (γ : RaftNames) (id1 : w64) (ps1 : PState) (id2 : w64)
-    (ps2 : PState) (i : w64) (e : EntryM) :
-    uint.Z i ≤ uint.Z ps1.commit →
-    plogEntryAt ps1.base ps1.log i = some e →
-    ps2.role = .leader →
-    uint.Z ps1.term ≤ uint.Z ps2.term →
-    uint.Z ps2.base.index' < uint.Z i →
-    ⊢ votesTbl (GF := GF) γ -∗ ownRaftGhost γ id1 ps1 -∗ ownRaftGhost γ id2 ps2 -∗
-      ⌜plogEntryAt ps2.base ps2.log i = some e⌝ := by
-  intro Hic He Hr2 Hterm Hb2
-  iintro Htbl H1 H2
-  icases node_full γ id1 ps1 $$ H1 with ⟨%fp1, %Hp1, #Hr1, #Hc1⟩
-  obtain ⟨Hf1, Hw1, Hok1⟩ := Hp1
-  icases commitIn_leader γ (fp1 ++ ps1.log) ps1.commit ps1.term id2 ps2 Hr2 Hterm
-    (full_wf _ _ _ Hf1 Hw1) $$ Htbl H2 Hc1 Hr1 with ⟨%fp2, %Hp2, #Hr2'⟩
-  obtain ⟨Hf2, Hw2, Hagree⟩ := Hp2
-  have Hb1 : uint.Z ps1.base.index' < uint.Z i := by
-    unfold plogEntryAt at He
-    split at He
-    · cases He
-    · omega
-  obtain ⟨-, -, Hcl1⟩ := Hok1
-  icases full_entry_eq γ ps1.base fp1 ps1.log ps2.base fp2 ps2.log i Hf1 Hf2 Hw1 Hw2 Hb1 Hb2
-    (entry_term _ _ _ _ Hf1 ⟨Hb1, by omega⟩) (Hagree i Hic) $$ Hr1 Hr2' with %Heq
-  ipureintro; rw [← Heq]; exact He
-
-/-- **Leader Completeness**: an entry a node has committed, at a term no later than a
-leader's, is in the leader's log (above its compaction boundary; below it the leader's
-snapshot covers it). `Qed` since 2026-10-03, from `lc_core`; over two nodes since
-2026-10-05. -/
-theorem leader_completeness (γ : RaftNames) (E : CoPset) (id1 : w64) (ps1 : PState)
-    (id2 : w64) (ps2 : PState) (i : w64) (e : EntryM) :
-    ↑raftN ⊆ E →
-    uint.Z i ≤ uint.Z ps1.commit →
-    plogEntryAt ps1.base ps1.log i = some e →
-    ps2.role = .leader →
-    uint.Z ps1.term ≤ uint.Z ps2.term →
-    uint.Z ps2.base.index' < uint.Z i →
-    ⊢ ownRaftGhost (GF := GF) γ id1 ps1 -∗ ownRaftGhost γ id2 ps2 ={E}=∗
-      ownRaftGhost γ id1 ps1 ∗ ownRaftGhost γ id2 ps2 ∗
-      ⌜plogEntryAt ps2.base ps2.log i = some e⌝ := by
-  intro HE Hic He Hr2 Hterm Hb2
-  iintro H1 H2
-  ihave #Hinv := ownRaftGhost_inv γ id1 ps1 $$ H1
-  ihave #Hli := raftCommitInv_log γ $$ Hinv
-  have HE' := raftLogN_of HE
-  unfold raftLogInv raftLogInvBody
-  iinv Hli with ⟨%P, HP, Hj, >Htbl, Hrest⟩ Hclose
-  ihave #Hlc := leader_completeness_tbl γ id1 ps1 id2 ps2 i e Hic He Hr2 Hterm Hb2 $$ Htbl H1 H2
-  imod Hclose $$ [HP Hj Htbl Hrest] with -
-  · inext
-    iexists P
-    iframe
-  imodintro
-  iframe H1 H2 Hlc
 
 /-! ### Fresh terms at a leader (2026-10-05)
 
@@ -510,43 +195,6 @@ A leader of `t` has nothing in its term log past its last index
 proposal registry was keyed by `(term, index)` and registered at `Step.propose`, which
 used the first; it is now keyed by data and filled before the proposal leaves its node:
 "Depositing and collecting proposals" below.) -/
-
-/-- A leader's term log has nothing past its last index. -/
-theorem ownRaftGhost_term_fresh (γ : RaftNames) (id : w64) (s : PState)
-    (e : EntryM) :
-    s.role = .leader →
-    plogLastIndexZ s.base s.log < uint.Z e.Index' →
-    e.Term' = s.term →
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ isEntry γ e -∗ False := by
-  intro Hr Hi Ht
-  unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γv, %voted, %kl, H⟩ #He
-  iNamed H
-  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
-  iNamed H
-  have Hw : leaderWit (GF := GF) γ id s = isLeader γ id s.term := by
-    unfold leaderWit; rw [Hr]
-  rw [Hw]
-  unfold leadLogOwn
-  rw [Hr]
-  icases Htlog with ⟨%γt, %M, %l0, %Hγt, Ha, -, %Hdom, -⟩
-  unfold isEntry isEntryR isTermLog
-  icases He with ⟨%pt, (⟨%ldr, %γt', %b, %l0', %F0, #Hl', ⟨%γm', %Hγm', #Htf⟩, -, #Hfr, -⟩ | ⟨%Hb, -⟩)⟩
-  · rw [Ht]
-    icases isLeader_unique γ id ldr s.term $$ Hlead Hl' with %Hid
-    subst Hid
-    rw [Htname] at Hγm'
-    cases Hγm'
-    icases ghost_map_lookup $$ Hterms Htf with %Hlook
-    rw [Hγt] at Hlook
-    obtain ⟨⟨rfl, rfl⟩, rfl⟩ : (γt = γt' ∧ s.base = b) ∧ l0 = l0' := by simpa using Hlook
-    icases ghost_map_lookup $$ Ha Hfr with %HM
-    have := Hdom _ (by rw [HM]; rfl)
-    exact (by omega : False).elim
-  · -- (2026-10-16, stage R8b) a boot entry: no leader of its term `1`
-    rw [← Ht]
-    iexfalso
-    iapply isEntryR_boot_leader γ e pt e pt id rfl Hb $$ Hlead
 
 /-! ### Depositing and collecting proposals (2026-10-10)
 
@@ -639,26 +287,6 @@ theorem entsData_lookup (γ : RaftNames) (l : List EntryM) (ods : List (Option (
   iframe Hed
   ipureintro; exact Ho
 
-/-- A committed log is well-formed from `base0` (entry `k` has index `k + 1`,
-`isCommitted_index`): it is a prefix of the invariant's justified log (2026-10-16, stage R7,
-for the server's contract). -/
-theorem isCommitted_wf (γ : RaftNames) (E : CoPset) (L : List EntryM)
-    (HE : ↑raftLogN ⊆ E) :
-    ⊢ raftCommitInv γ -∗ isCommitted γ L ={E}=∗ ⌜PlogWf base0 L⌝ := by
-  iintro #Hinv #HL
-  ihave #Hli := raftCommitInv_log γ $$ Hinv
-  unfold raftLogInv raftLogInvBody logRest
-  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose
-  ihave %Hpre := isCommitted_prefix γ L P $$ HL HP
-  ihave %Hwf := committedJust_wf γ P $$ Hj
-  imod Hclose $$ [HP Htbl Hwt Hq1] with -
-  · inext
-    iexists P
-    iframe HP Hj Htbl Hwt Hds Hq1
-  imodintro
-  ipureintro
-  exact PlogWf_prefix _ _ _ Hpre Hwf
-
 /-- The client's log is raft's committed log: the client's half of `rLog` and the log half's
 quarter agree (the register's `reg_log_committed`, 2026-10-14, stage R; here since 2026-10-16,
 stage R7, shared with the server). -/
@@ -681,16 +309,16 @@ theorem rLog_committed (γ : RaftNames) (L : List EntryM) (E : CoPset)
   unfold rLog
   iframe HrL HPc
 
-/-- Depositing a proposal's persistent atomic update (2026-10-14, stage R: no later credit, no
-ticket), for a data never deposited before (its fresh token). The client gets the slot's handle.
-No committed entry holds the data yet (`ods_not_fresh`), so the slot starts with no result. -/
-theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
-    (Q : List EntryM → IProp GF) (once : Bool) :
+/-- **Registering `d` with the result predicate `Q`** (2026-10-21; the public ghost step a
+client takes before proposing `d`): for a data never registered before (its fresh token), the
+registry gets `d ↦ (γq, γd)`, `γq` naming `Q`, `γd` the (empty) map of `d`'s deposits. No
+committed entry holds `d` yet (`ods_not_fresh`), so the slot starts with no result. -/
+theorem prop_register (γ : RaftNames) (E : CoPset) (d : List w8)
+    (Q : List EntryM → IProp GF) :
     ↑raftN ⊆ E →
-    ⊢ raftCommitInv γ -∗ propFresh γ d -∗ propAuM γ d Q once ={E}=∗
-      ∃ γq, isProp γ d γq Q ∗ (if once then propTk γ d else propMulti γ d) := by
+    ⊢ raftCommitInv γ -∗ propFresh γ d ={E}=∗ propIs γ d Q := by
   intro HE
-  iintro #Hinv Hfr Hau
+  iintro #Hinv Hfr
   ihave #Hri := raftCommitInv_reg γ $$ Hinv
   ihave #Hli := raftCommitInv_log γ $$ Hinv
   have HE1 := raftRegN_of HE
@@ -719,13 +347,10 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
   icases Hds with ⟨%ods, #Hods⟩
   ihave %Hnf := ods_not_fresh γ P ods R d HRd $$ Hods Hra
   imod saved_pred_alloc Q DFrac.discard trivial with ⟨%γq, #Hsp⟩
-  -- (2026-10-19, D21 M6) the proposal's ticket
-  imod dghostVar_alloc (GF := GF) (none : Option w64) with ⟨%γt, Htk⟩
-  imod ghost_map_insert_persist d ((γq, γt, once) : PropRec) HRd $$ Hra with ⟨Hra, #Hfrag⟩
-  ihave Hslot : propSlot γ d ((γq, γt, once) : PropRec) P $$ [Hau]
-  · unfold propSlot
-    iexists Q
-    iframe Hsp
+  imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γd, HKa⟩
+  imod ghost_map_insert_persist d ((γq, γd) : PropRec) HRd $$ Hra with ⟨Hra, #Hfrag⟩
+  ihave Hslot : propSlot γ d ((γq, γd) : PropRec) P $$ [HKa]
+  · unfold propSlot propSlotRes
     isplitr
     · imodintro
       iintro %m %e %Hm #He
@@ -733,12 +358,11 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
       ihave %Hoe := entDataIs_agree γ e o (some d) $$ He' He
       subst Hoe
       exact absurd (List.mem_of_getElem? Ho) Hnf
-    unfold propAuM
-    cases once
-    · simp only [Bool.false_eq_true, ↓reduceIte] at *
-      iexact Hau
-    · simp only [↓reduceIte] at *
-      ileft; iexact Hau
+    iexists ∅
+    iframe HKa
+    iapply (BigSepM.bigSepM_empty (Φ := fun (_k : Nat) (γt : GName) =>
+      depSlot (GF := GF) γ d γq γt P)).2
+    iempintro
   imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
   · inext
     iexists P
@@ -750,42 +374,93 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
     iframe Hq2
     unfold regsAt propsOwn
     inext
-    iexists Std.insert R d ((γq, γt, once) : PropRec), RR
+    iexists Std.insert R d ((γq, γd) : PropRec), RR
     iframe Hreads Hnoop Hra
     iapply (BigSepM.bigSepM_insert (Φ := fun d (p : PropRec) =>
       iprop(propSlot (GF := GF) γ d p P ∗ propFresh γ d)) HRd).2
     iframe Hslot Hfr
     iexact Hs
   imodintro
-  iexists γq
-  unfold isProp
-  iframe Hsp
-  isplitr
-  · iexists γt, once; iexact Hfrag
-  cases once
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    unfold propMulti
-    iexists ((γq, γt, false) : PropRec)
-    iframe Hfrag
-    ipureintro; rfl
-  · simp only [↓reduceIte]
-    unfold propTk
-    iexists ((γq, γt, true) : PropRec)
-    iframe Hfrag Htk
-    ipureintro; rfl
+  unfold propIs
+  iexists ((γq, γd) : PropRec)
+  iframe Hfrag Hsp
+
+/-- A key no map holds. -/
+theorem GMap.exists_fresh_nat {V : Type} (K : GMap Nat V) : ∃ k, K !! k = none := by
+  obtain ⟨k, hk⟩ := Iris.Std.List.fresh K.domList
+  refine ⟨k, ?_⟩
+  cases h : K !! k with
+  | none => rfl
+  | some _ => exact absurd ((GMap.mem_dom_list K k).2 (by rw [h]; rfl)) hk
+
+/-- **Depositing a proposal of a registered `d`** (2026-10-21; `Propose`, before the proposal
+leaves the node): the client's update, with the predicate `d` was registered under, goes into a
+new deposit of `d`'s slot, whose ticket (`propTk`) travels with the proposal. -/
+theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
+    (Q : List EntryM → IProp GF) :
+    ↑raftN ⊆ E →
+    ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ propAu1 γ d Q ={E}=∗ propTk γ d := by
+  intro HE
+  iintro #Hinv #Hpi Hau
+  unfold propIs
+  icases Hpi with ⟨%p, #Hfrag, #Hsp⟩
+  ihave #Hri := raftCommitInv_reg γ $$ Hinv
+  have HE1 := raftRegN_of HE
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold propsOwn at Hprops
+  icases Hprops with ⟨>Hra, Hs⟩
+  icases ghost_map_lookup $$ Hra Hfrag with %HRd
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d (p : PropRec) =>
+      iprop(▷ (propSlot (GF := GF) γ d p l ∗ propFresh γ d))) HRd).1 $$ Hs with ⟨Hsl, Hsback⟩
+  icases Hsl with ⟨Hsl, Hfr⟩
+  iunfold propSlot at Hsl
+  icases Hsl with ⟨Hres, %K, >HKa, Hdeps⟩
+  obtain ⟨k, hk⟩ := GMap.exists_fresh_nat K
+  imod dghostVar_alloc (GF := GF) (none : Option w64) with ⟨%γt, Htk⟩
+  imod ghost_map_insert_persist k γt hk $$ HKa with ⟨HKa, #Hkf⟩
+  ihave Hs := Hsback $$ [Hres HKa Hdeps Hau Hfr]
+  · inext
+    iframe Hfr
+    unfold propSlot
+    iframe Hres
+    iexists Std.insert K k γt
+    iframe HKa
+    iapply (BigSepM.bigSepM_insert (Φ := fun (_k : Nat) (γt : GName) =>
+      depSlot (GF := GF) γ d p.1 γt l) hk).2
+    iframe Hdeps
+    unfold depSlot
+    ileft
+    iexists Q
+    iframe Hsp Hau
+  imod Hclose2 $$ [Hq2 Hreads Hra Hs] with -
+  · iexists l
+    iframe Hq2
+    unfold regsAt propsOwn
+    inext
+    iexists R, RR
+    iframe Hreads Hnoop Hra
+    iexact Hs
+  imodintro
+  unfold propTk
+  iexists p, k, γt
+  iframe Hfrag Hkf Htk
 
 /-- Collecting (2026-10-14, stage R): at every committed occurrence of `d` -- an entry `e` at
 position `m` of a committed log `L` holding `d` --, the update's result at the log before it
 (persistent, no ticket), under two laters (the invariant it is stored in; the saved predicate
 naming it). -/
-theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
+theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8)
     (Q : List EntryM → IProp GF) (L : List EntryM) (m : Nat) (e : EntryM) :
     ↑raftN ⊆ E → L[m]? = some e →
-    ⊢ raftCommitInv γ -∗ isProp γ d γq Q -∗ isCommitted γ L -∗ entDataIs γ e (some d) ={E}=∗
+    ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ isCommitted γ L -∗ entDataIs γ e (some d) ={E}=∗
       ▷ ▷ □ Q (L.take m) := by
   intro HE Hm
-  unfold isProp
-  iintro #Hinv ⟨⟨%γt, %b, #Hfrag⟩, #Hsp⟩ #HL #He
+  unfold propIs
+  iintro #Hinv ⟨%p, #Hfrag, #Hsp⟩ #HL #He
   ihave #Hri := raftCommitInv_reg γ $$ Hinv
   ihave #Hli := raftCommitInv_log γ $$ Hinv
   have HE1 := raftRegN_of HE
@@ -805,7 +480,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
   icases (BigSepM.bigSepM_lookup_acc (Φ := fun d (p : PropRec) =>
       iprop(▷ (propSlot (GF := GF) γ d p P ∗ propFresh γ d))) HRd).1 $$ Hs with ⟨Hsl, Hsback⟩
-  ihave Hsl := (later_mono (sep_mono_left (propSlot_res γ d ((γq, γt, b) : PropRec) P))) $$ Hsl
+  ihave Hsl := (later_mono (sep_mono_left (propSlot_res γ d p P))) $$ Hsl
   icases Hsl with ⟨⟨Hsl, #Hslot⟩, Hfr⟩
   ihave Hs := Hsback $$ [Hsl Hfr]
   · inext; iframe Hsl Hfr
@@ -824,13 +499,14 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γq : GName)
   imodintro
   inext
   iunfold propSlotRes at Hslot
-  icases Hslot with ⟨%Q', #Hsp', #Hres⟩
   obtain ⟨r, rfl⟩ := HLP
   have HmL := (List.getElem?_eq_some_iff.mp Hm).1
   have HmP : (L ++ r)[m]? = some e := by rw [List.getElem?_append_left HmL]; exact Hm
-  ihave #HQ' := Hres $$ %m %e %HmP He
+  ihave #HQr := Hslot $$ %m %e %HmP He
   rw [List.take_append_of_le_length (Nat.le_of_lt HmL)]
-  ihave #Heq := saved_pred_agree γq DFrac.discard DFrac.discard Q' Q (L.take m) $$ Hsp' Hsp
+  iunfold qRes at HQr
+  icases HQr with ⟨%Q', #Hsp', #HQ'⟩
+  ihave #Heq := saved_pred_agree p.1 DFrac.discard DFrac.discard Q' Q (L.take m) $$ Hsp' Hsp
   inext
   ihave Hiff := internalEq_iff _ _ $$ Heq
   icases Hiff with ⟨Hiff, -⟩
@@ -1347,14 +1023,16 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (D19p, 2026-10-18) the tracked bound, if any: the voters' superset, the static mode's
     (trk : Option (GSet w64)) (Htrk : ∀ T, trk = some T → cfg ⊆ T ∧ dyn = none)
     -- (2026-10-19, D21 M3) the no-snapshot mode, only with a bootstrap log
-    (ns : Bool) (Hns : ns = true → L ≠ []) :
+    (ns : Bool) (Hns : ns = true → L ≠ [])
+    -- (2026-10-19, D22 S-a) the no-transfer mode; (2026-10-20, D22 S-c) only with a bootstrap log
+    (nx : Bool) (Hnx : nx = true → L ≠ []) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) → (dyn = none ∨ L = []) →
     ⊢ allocClientGen E cfg dyn ccOk L C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
-          γ.reTracked = trk ∧ γ.reNoSnap = ns⌝ ∗
+          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1394,7 +1072,8 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
-        fun h he => Hns h (List.map_eq_nil_iff.1 he)⟩ :=
+        fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he)⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1507,7 +1186,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
   imodintro
   iexists γ0
-  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0]⟩
+  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1528,7 +1207,9 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     ⊢ allocClient E cfg dyn C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk⌝ ∗
+      -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧
+          γ.reNoXfer = false⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗
@@ -1539,34 +1220,12 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) Hcne Hnz (BootWf_nil _)
+    false (fun h => by cases h) false (fun h => by cases h) Hcne Hnz (BootWf_nil _)
     (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
-  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1⟩
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2⟩
   rw [initPState_eq]
-  iexact H
-
-theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) (C : RaftNames → IProp GF) :
-    -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
-    cfg ≠ ∅ →
-    W64 0 ∉ ids →
-    ⊢ allocClient E cfg none C -∗
-      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reCCOk = fun _ _ => True⌝ ∗
-        raftCommitInv (GF := GF) γ ∗
-        isCommitted γ [] ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
-        C γ ∗
-        -- (2026-10-13) every read credit
-        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hcne Hnz
-  iintro Hcl
-  imod ownRaftGhost_alloc_gen E cfg ids none (fun _ _ => True) C Hcne Hnz $$ Hcl
-    with ⟨%γ, %Hγ, H⟩
-  imodintro
-  iexists γ
-  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.2⟩
-  simp only [Option.isSome_none]
   iexact H
 
 /-! ### A new cluster's bootstrap log (2026-10-16, stage R8b, D12) -/
@@ -1623,8 +1282,9 @@ static mode, but every node at `bootPState bootLog` and the committed log `bootL
 the bootstrap log (2026-10-16, stage R8b). -/
 theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (C : RaftNames → IProp GF)
-    -- (2026-10-19, D21 M3) the no-snapshot mode (`RaftNames.reNoSnap`), or not
-    (ns : Bool) :
+    -- (2026-10-19, D21 M3) the no-snapshot mode (`RaftNames.reNoSnap`), or not; (D22 S-a) the
+    -- no-transfer mode (`RaftNames.reNoXfer`), or not
+    (ns nx : Bool) :
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     cfg = GMap.listToSet ps →
@@ -1632,7 +1292,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     ⊢ allocClientBoot E cfg ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reTracked = some cfg ∧ γ.reNoSnap = ns⌝ ∗
+          γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
@@ -1649,7 +1309,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
-    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) Hcne Hnz Hok.wf
+    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne) Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _) (Or.inl rfl)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
@@ -1671,41 +1331,6 @@ variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   unfold rdCred
   exact own_unit _
-
-/-- Taking a step that consumes a single known message, with its read credit (2026-10-13:
-one for a `MsgReadIndex`) and (2026-10-14, stage R) a later credit; (D19p, 2026-10-18) a step of
-`StepC` at a static configuration within the tracked bound (until then of `Step`). -/
-theorem ownRaftGhost_step_1c (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
-    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
-    (m : Msg) (s' : PState) :
-    StepC c id B s [m] s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗
-      msgTks γ m -∗ £ 1 -∗
-      ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id s' := by
-  intro Hstep
-  iintro #Hrc #Hm Hcr Htk Hlc Hown
-  iapply ownRaftGhost_stepC γ c HC id HT B HB s [m] s' Hstep $$ Hrc [] Hcr [Htk] Hlc Hown
-  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
-    iexact Hm
-  · iapply (msgsTks_singleton γ m).2; iexact Htk
-
-/-- Taking a step that consumes a single known message other than a `MsgReadIndex`. -/
-theorem ownRaftGhost_step_1 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
-    (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState)
-    (m : Msg) (s' : PState) :
-    m.ty ≠ .readIndex → m.ty ≠ .propose →
-    StepC c id B s [m] s' →
-    ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ m -∗ £ 1 -∗
-      ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id s' := by
-  intro Hty Htp Hstep
-  iintro #Hrc #Hm Hlc Hown
-  imod rdCred_zero (GF := GF) γ with Hcr
-  iapply ownRaftGhost_step_1c γ c HC id HT B HB s m s' Hstep $$ Hrc Hm [Hcr] [] Hlc Hown
-  · rw [rdCount_singleton, ite_eq_right Hty]
-    iexact Hcr
-  · rw [msgTks_nonprop γ m Htp]; iempintro
 
 /-- Taking a step that consumes nothing. -/
 theorem ownRaftGhost_step_0 (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
@@ -1730,33 +1355,6 @@ Every rule of `Step` keeps `commit` or raises it: `plogCommitTo` (`appAccept`,
 `commit < n` as a premise, and every other rule leaves it alone. `RawNode.Advance` needs
 it to carry a queued `MsgStorageApplyResp`'s "its entries are committed" across the
 steps before it. (Until 2026-10-09 `PstepCommitMono`, a premise of `Advance`'s spec.) -/
-
-theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {B : Int} {ps : PState}
-    {recv : List Msg} {ps' : PState} (H : Step cfg id B ps recv ps') :
-    uint.Z ps.commit ≤ uint.Z ps'.commit := by
-  induction H with
-  | refl => exact Int.le_refl _
-  | trans _ _ _ _ _ _ _ ih1 ih2 => omega
-  | appAccept => exact plogCommitTo_ge _ _
-  | heartbeat => exact plogCommitTo_ge _ _
-  | commit _ _ _ h => exact Int.le_of_lt h
-  | snapRestore _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
-  | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
-  | readAck m s N =>
-    obtain ⟨o, r, h⟩ := preadRespondAll_eq id
-      ({ s with rd := { s.rd with
-           ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
-      (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
-    rw [h]; exact Int.le_refl _
-  | readSingle m s =>
-    obtain ⟨o, r, h⟩ := preadRespondAll_eq id s [⟨s.commit, m.src, m.entries⟩]
-    rw [h]; exact Int.le_refl _
-  | readReleaseSingle s =>
-    obtain ⟨o, r, h⟩ := preadRespondAll_eq id ({ s with rd := { s.rd with pend := [] } })
-      (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩))
-    rw [h]; exact Int.le_refl _
-  | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
-      padoptLeader]
 
 end EtcdGrove
 end Perennial

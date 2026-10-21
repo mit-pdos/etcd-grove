@@ -21,10 +21,10 @@ is its trust base (in the build log); `etc/tcb-report.py --collection
 etc/tcb-collections/raft37.txt` reports on them. The tree replaces the old raft proof's when
 it reaches its results (`Proof/go_etcd_io/raft/v3/Results.lean`).
 
-Since stage R1 also the protocol model's results (`Protocol/ResultsDyn.lean`, `Protocol/Facts.lean`:
-safety under reconfiguration, election safety, the read index, log matching, state machine
-safety, leader completeness), ported from the old tree by a type rename; and the model-level
-step lemmas (`StepGhostMode`) are imported so the build checks them.
+Since stage R1 also the protocol model's allocation (`Protocol/ResultsDyn.lean`); the model-level
+safety results (log agreement, election safety, the read index, log matching, state machine
+safety, leader completeness) were removed on 2026-10-21 (branch `clean-up`): no linked result or
+closed theorem used them, the client-facing guarantees being the specs' atomic updates.
 -/
 module
 
@@ -189,6 +189,7 @@ namespace EtcdGrove
 #print axioms unstable.wp_stableTo
 #print axioms unstable.wp_shrinkEntriesArray
 #print axioms unstable.wp_restore
+#print axioms unstable.wp_stableSnapTo
 #print axioms unstable.wp_truncateAndAppend
 #print axioms unstable.wp_slice
 #print axioms unstable.wp_mustCheckOutOfBounds
@@ -213,8 +214,10 @@ namespace EtcdGrove
 #print axioms raftLog.wp_maybeAppend
 #print axioms raftLog.wp_restore
 #print axioms raftLog.wp_stableTo
+#print axioms raftLog.wp_stableSnapTo
 #print axioms raftLog.wp_hasNextOrInProgressSnapshot
 #print axioms raftLog.wp_hasNextUnstableSnapshot
+#print axioms raftLog.wp_nextUnstableSnapshot
 #print axioms raftLog.wp_nextUnstableEnts
 #print axioms raftLog.wp_hasNextUnstableEnts
 #print axioms raftLog.wp_maxAppliableIndex
@@ -238,7 +241,6 @@ namespace EtcdGrove
 #print axioms MemoryStorage.wp_Compact
 #print axioms MemoryStorage.wp_CreateSnapshot
 #print axioms MemoryStorage.wp_Append
-#print axioms is_Storage_MemoryStorage
 
 -- raft.go over pointer messages (stage R4); the old tree's raft-level results first
 #print axioms raft.wp_Step
@@ -274,6 +276,7 @@ namespace EtcdGrove
 #print axioms raft.wp_increaseUncommittedSize
 #print axioms raft.wp_reduceUncommittedSize
 #print axioms raft.wp_appliedTo
+#print axioms raft.wp_appliedSnap
 #print axioms raft.wp_maybeCommit
 #print axioms raft.wp_poll
 #print axioms readOnly.wp_heartbeatCtx
@@ -379,13 +382,6 @@ namespace EtcdGrove
 
 -- the protocol model (stage R1)
 #print axioms raft_dyn_alloc
-#print axioms raft_dyn_committed_agree
-#print axioms raft_dyn_election_safety
-#print axioms raft_dyn_read_states
-#print axioms raft_dyn_read_index
-#print axioms log_matching
-#print axioms state_machine_safety
-#print axioms leader_completeness
 
 end EtcdGrove
 end Perennial

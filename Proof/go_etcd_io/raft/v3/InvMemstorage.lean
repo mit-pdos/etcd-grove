@@ -150,16 +150,6 @@ theorem memSnapCreated_snapId (σ : StorState) (i t : w64) (oc : Option ConfStat
 
 theorem storCS_lists (σ : StorState) : (storCS σ).lists = σ.scs := rfl
 
-/-- A list between `H` and `H ++ [x]` in the prefix order is one of the two. -/
-theorem prefix_between {A : Type _} (H D : List A) (x : A) (H1 : H <+: D)
-    (H2 : D <+: H ++ [x]) : D = H ∨ D = H ++ [x] := by
-  have L1 := H1.length_le
-  have L2 := H2.length_le
-  simp only [List.length_append, List.length_singleton] at L2
-  by_cases h : D.length = H.length
-  · exact .inl (H1.eq_of_length h.symm).symm
-  · exact .inr (H2.eq_of_length (by simp; omega))
-
 /-- `storApp` agrees with the stored entries below the batch. -/
 theorem storApp_take (σ : StorState) (p : List EntryM) (m : Nat)
     (Hm : ∀ e0, p.head? = some e0 → (m : Int) ≤ uint.Z e0.Index' - uint.Z σ.prev.index' - 1)
@@ -479,6 +469,26 @@ instance storState_countable : Pos.Countable StorState :=
       obtain ⟨⟨⟨⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩, rfl⟩ := h
       rfl)
 
+/-- (D22 S-b′2, 2026-10-20) For the certificate registry (`MemStorNames.cert`). -/
+instance snapTrip_countable : Pos.Countable SnapTrip :=
+  .ofInjective (fun k => Pos.Countable.encode
+      ((k.sid, (((k.cl.voters, k.cl.learners), k.cl.outgoing), k.cl.learnersNext)), k.al))
+    (fun ⟨_, ⟨_, _, _, _⟩, _⟩ ⟨_, ⟨_, _, _, _⟩, _⟩ h => by
+      have h := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨⟨rfl, ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩⟩, rfl⟩ := h
+      rfl)
+
+/-- (D22 S-b′2) An entry of the certificate registry: a snapshot, and whether the entry
+certifies it **at any term** (`true`: every snapshot at its index with its lists and `AutoLeave`,
+whatever its term; what `CreateSnapshot`, which reads the term from the storage, needs) or at its
+own (`false`). -/
+abbrev CertKey := SnapTrip × Bool
+
+/-- What a registry entry certifies. -/
+def certCovers (e : CertKey) (k : SnapTrip) : Prop :=
+  if e.2 then e.1.sid.index' = k.sid.index' ∧ e.1.cl = k.cl ∧ e.1.al = k.al else e.1 = k
+
 /-- The ghost names of a `MemoryStorage` (2026-10-10; until then one `GName`, of the
 ghost variable of its state): see the file header. -/
 structure MemStorNames where
@@ -505,6 +515,13 @@ structure MemStorNames where
   `Hccap`), so neither does any `storCut` fact (`memStorCut`); `Compact` and `ApplySnapshot` take
   it as a premise. Chosen at `NewMemoryStorage`; `2 ^ 64` (or more) is no cap. -/
   cap : Int
+  /-- (D22 S-b′2, 2026-10-20) the **certificate registry**: a mono list of entries (`CertKey`)
+  certifying snapshots for this storage (`memStorCert`, its persistent lower bounds). Its
+  authority is `NewMemoryStorage`'s (`memCertAuth`), which the application puts in the invariant
+  tying each element to raft's certificate (`memCertInv`, `MemstorageInstance.lean`); the
+  snapshot's home (`memSnapHome`) keeps the current non-empty snapshot's, which
+  `CreateSnapshot`/`ApplySnapshot` take of the new one and raft's `Snapshot` hands out. -/
+  cert : GName
 
 /-- The snapshot's part of a storage state (D17d, 2026-10-18): what the snapshot's ghost value
 records (its id and conf state), the rest fixed. -/
@@ -639,9 +656,84 @@ theorem memSnapKeys_excl (γs : MemStorNames) (k j : Nat) :
     | iapply memKey_excl $$ Hb Hc
     | iapply memKey_excl $$ Hb Hd
 
-/-- The snapshot at home: the storage's own snapshot at some state, with half its ghost value. -/
+/-- (D22 S-b′2, 2026-10-20) The snapshot `k` is in the storage's certificate registry
+(persistent): an entry certifies it (`certCovers`). -/
+def memStorCert (γs : MemStorNames) (k : SnapTrip) : IProp GF :=
+  iprop(∃ L : List CertKey, monoListLbOwn γs.cert L ∗ ⌜∃ e ∈ L, certCovers e k⌝)
+
+instance memStorCert_persistent (γs : MemStorNames) (k : SnapTrip) :
+    Persistent (memStorCert (GF := GF) γs k) := by
+  unfold memStorCert; infer_instance
+
+omit [StorageModel GF] package_sem in
+/-- An entry of the registry gives its certificate. -/
+theorem memStorCert_of_lb (γs : MemStorNames) (L : List CertKey) (e : CertKey) (k : SnapTrip)
+    (he : e ∈ L) (hc : certCovers e k) :
+    monoListLbOwn (GF := GF) γs.cert L ⊢ memStorCert γs k := by
+  iintro #H
+  iunfold memStorCert
+  iexists L
+  iframe H
+  ipureintro; exact ⟨e, he, hc⟩
+
+/-- The registry's authority, empty (`NewMemoryStorage`'s): the application puts it in the
+invariant that ties the registry to raft's certificates (`memCertInv`, `MemstorageInstance.lean`). -/
+def memCertAuth (γs : MemStorNames) : IProp GF :=
+  monoListAuthOwn γs.cert 1 ([] : List CertKey)
+
+/-- The snapshot of the state `σ`, as the registry records it. -/
+def StorState.trip (σ : StorState) : SnapTrip := ⟨σ.ss, σ.scs, σ.sal⟩
+
+/-- (D22 S-b′2) The state's snapshot is empty or certified (persistent). -/
+def memSnapCertOk (γs : MemStorNames) (σ : StorState) : IProp GF :=
+  iprop(⌜σ.ss.index' = W64 0⌝ ∨ memStorCert γs σ.trip)
+
+instance memSnapCertOk_persistent (γs : MemStorNames) (σ : StorState) :
+    Persistent (memSnapCertOk (GF := GF) γs σ) := by
+  unfold memSnapCertOk; infer_instance
+
+omit [StorageModel GF] package_sem in
+/-- `memSnapCertOk` reads only the snapshot's part of the state. -/
+theorem memSnapCertOk_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
+    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) :
+    memSnapCertOk (GF := GF) γs σ ⊢ memSnapCertOk γs σ' := by
+  unfold memSnapCertOk StorState.trip
+  rw [h1, h2, h3]
+
+omit [StorageModel GF] package_sem in
+/-- A snapshot record whose id, lists and `AutoLeave` are the state's: its certificate is the
+state's. -/
+theorem memSnapCertOk_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
+    (h : snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
+      sv.Metadata'.ConfState'.AutoLeave' = σ.sal) :
+    memSnapCertOk (GF := GF) γs σ ⊢
+      ⌜sv.Metadata'.Index' = W64 0⌝ ∨ memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) := by
+  have ht : snapTrip sv sv.Metadata'.ConfState'.lists = σ.trip := by
+    simp only [snapTrip, StorState.trip, h.1, h.2.1, h.2.2]
+  have hi : sv.Metadata'.Index' = σ.ss.index' := by rw [← h.1]; rfl
+  rw [ht, hi]
+  unfold memSnapCertOk
+  exact .rfl
+
+omit [StorageModel GF] package_sem in
+/-- ... and conversely: a certificate of the snapshot record certifies the state. -/
+theorem memSnapCertOk_of_sv (γs : MemStorNames) (σ : StorState) (sv : SnapshotM)
+    (h : snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.lists = σ.scs ∧
+      sv.Metadata'.ConfState'.AutoLeave' = σ.sal) :
+    memStorCert (GF := GF) γs (snapTrip sv sv.Metadata'.ConfState'.lists) ⊢
+      memSnapCertOk γs σ := by
+  have ht : snapTrip sv sv.Metadata'.ConfState'.lists = σ.trip := by
+    simp only [snapTrip, StorState.trip, h.1, h.2.1, h.2.2]
+  rw [ht]
+  unfold memSnapCertOk
+  iintro #H
+  iright; iexact H
+
+/-- The snapshot at home: the storage's own snapshot at some state, with half its ghost value,
+and (D22 S-b′2) its certificate if it is not empty. -/
 def memSnapHome (ms : Loc) (γs : MemStorNames) : IProp GF :=
-  iprop(∃ (σp : StorState), memSnapOwn ms σp ∗ ghostVar γs.sn (1 : Qp).half (snapPart σp))
+  iprop(∃ (σp : StorState), memSnapOwn ms σp ∗ ghostVar γs.sn (1 : Qp).half (snapPart σp) ∗
+    memSnapCertOk γs σp)
 
 /-- The snapshot's invariant (D17d): at home (`w = 0`, both halves of `sw`), or out against the key
 set `w` (half of `sw` here, the other half the taker's receipt). -/
@@ -685,8 +777,9 @@ theorem memSnap_take (ms : Loc) (γs : MemStorNames) (k : Nat) (E : CoPset) (HE 
 theorem memSnap_put (ms : Loc) (γs : MemStorNames) (k : Nat) (σ : StorState) (E : CoPset)
     (HE : ↑memSnapN ⊆ E) :
     ⊢ inv memSnapN (memSnapInv (GF := GF) ms γs) -∗ ghostVar γs.sw (1 : Qp).half k -∗
-      memSnapOwn ms σ -∗ ghostVar γs.sn (1 : Qp).half (snapPart σ) ={E}=∗ memSnapKeys γs k := by
-  iintro #Hinv Hr Hown Hsn
+      memSnapOwn ms σ -∗ ghostVar γs.sn (1 : Qp).half (snapPart σ) -∗ memSnapCertOk γs σ ={E}=∗
+      memSnapKeys γs k := by
+  iintro #Hinv Hr Hown Hsn #Hcert
   iinv Hinv with Hi Hclose
   iunfold memSnapInv at Hi
   icases Hi with ⟨%w, >Hw, Hi⟩
@@ -712,6 +805,7 @@ theorem memSnap_put (ms : Loc) (γs : MemStorNames) (k : Nat) (σ : StorState) (
       iunfold memSnapHome
       iexists σ
       iframe
+      iexact Hcert
     imodintro
     iexact Hk
 
@@ -805,13 +899,6 @@ def memSnapTok (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF :=
   "Hak" ∷ memKey γs.ak ∗
   "Hsv" ∷ ghostVar γs.sn memQ (snapPart σ) ∗
   "Hcbt" ∷ ghostVar γs.cb (1 : Qp).half σ.prev)
-
-theorem memSnapTok_congr (ms : Loc) (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.ss = σ.ss)
-    (h2 : σ'.scs = σ.scs) (h3 : σ'.sal = σ.sal) (h4 : σ'.prev = σ.prev) :
-    memSnapTok (GF := GF) ms γs σ ⊢ memSnapTok ms γs σ' := by
-  have : snapPart σ' = snapPart σ := by simp only [snapPart, h1, h2, h3]
-  unfold memSnapTok
-  rw [this, h4]
 
 /-- The owner's ghost view at `σ` (2026-10-10; D19i part 1): the history `hist` it has
 sanctioned (`HistOk`), and either nothing pending -- all of `hist`'s authority, ending at `σ`, the
@@ -967,14 +1054,6 @@ theorem monoHalves_update (γ : GName) (H H' : List StorState) (h : H <+: H') :
   icases (monoAuth_halves γ H').1 $$ Hf with ⟨H1, H2⟩
   imodintro
   iframe H1 H2
-
-/-- `Append`'s ghost step for `done`: the two halves record one more state. -/
-theorem memDone_append (γs : MemStorNames) (H : List StorState) (x : StorState) :
-    ⊢ monoListAuthOwn (GF := GF) γs.done (1 : Qp).half H -∗
-      monoListAuthOwn γs.done (1 : Qp).half H ==∗
-      monoListAuthOwn γs.done (1 : Qp).half (H ++ [x]) ∗
-      monoListAuthOwn γs.done (1 : Qp).half (H ++ [x]) :=
-  monoHalves_update γs.done H (H ++ [x]) (List.prefix_append _ _)
 
 /-- A whole typed points-to is two halves (2026-10-12: `memStorMeta` and the lock
 share `hardState` and `snapshot`). -/

@@ -206,14 +206,6 @@ theorem kvSeq_putOk {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) (v : V) :
     ∃ S', kvSeq.step S (.put k v, .ok) = some S' ∧ S' ⟨c.kv.set k v, c.pend⟩ :=
   kvSeq_step_of_cstep hS (.putOk c k v) (.refl _)
 
-/-- A put that failed, having taken effect at the commit (the server applied it during the
-call): pending, then applied. -/
-theorem kvSeq_putErr_applied {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) (v : V) :
-    ∃ S', kvSeq.step S (.put k v, .err) = some S' ∧ S' ⟨c.kv.set k v, c.pend⟩ := by
-  refine kvSeq_step_of_cstep hS (.putErr c k v) (.single ?_)
-  have h := Silent.apply ⟨c.kv, (k, v) :: c.pend⟩ k v List.mem_cons_self
-  simpa [List.erase_cons_head] using h
-
 /-- A put that failed, not (yet) applied at the commit (the call's return): pending. -/
 theorem kvSeq_putErr_pending {S : KVSet K V} {c : Cfg K V} (hS : S c) (k : K) (v : V) :
     ∃ S', kvSeq.step S (.put k v, .err) = some S' ∧ S' ⟨c.kv, (k, v) :: c.pend⟩ :=

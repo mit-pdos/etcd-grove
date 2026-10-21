@@ -55,17 +55,6 @@ theorem srvOps_take_succ (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (ops : L
   have hl : ops.take (i + 1) = ops.take i ++ [op] := by rw [List.take_add_one, h]; rfl
   rw [hl, srvOps_append, srvOps_single]
 
-/-- The run of all the operations: the first `i`'s, then the rest's. -/
-theorem srvOps_take_drop (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (ops : List TxnOp)
-    (i : Nat) :
-    srvOps s0 r s ops =
-      ((srvOps s0 r s (ops.take i)).1 ++
-          (srvOps s0 r (mvcc.applyChanges r s (srvOps s0 r s (ops.take i)).1) (ops.drop i)).1,
-        (srvOps s0 r s (ops.take i)).2 ++
-          (srvOps s0 r (mvcc.applyChanges r s (srvOps s0 r s (ops.take i)).1) (ops.drop i)).2) := by
-  conv => lhs; rw [← List.take_append_drop i ops]
-  rw [srvOps_append]
-
 theorem opsOk_append (w : Bool) (s0 : List EtcdKv) (r : w64) :
     ∀ (s : List EtcdKv) (a b : List TxnOp),
       OpsOk w s0 r s (a ++ b) ↔

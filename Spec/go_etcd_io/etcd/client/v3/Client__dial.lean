@@ -23,24 +23,24 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.dial(creds, dopts...)` on a client `New` builds (`retryClientOk`; its configuration
-`cfg` with no keepalive and no dial options of the caller's; no token bundle; its endpoints
-`[ep]`, read-only, a plain one), with the one option `WithResolvers(rb)` of a resolver of etcd's scheme to
-`ep` (taken): an etcd connection to the server at `ep` (`isEtcdConn`: the retry interceptor
-installed), or an error. -/
+`cfg` with no dial options of the caller's; no token bundle; its endpoints
+`eps`, read-only, plain, at least one, D27), with the one option `WithResolvers(rb)` of a resolver of
+etcd's scheme to `eps` (taken): an etcd connection to the servers at `eps` (`isEtcdConn`: the retry
+interceptor installed), or an error. -/
 abbrev Client.dial.spec : Prop :=
   ∀ (c : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (cr : GoInterface) (sl : GoSlice)
-    (rb : GoInterface) (esl : GoSlice) (ep : GoString),
+    (rb : GoInterface) (esl : GoSlice) (eps : List GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗ ⌜sint.Z cfg.DialKeepAliveTime' ≤ 0⌝ ∗
+      retryClientOk c ∗ clientF c go!"cfg" ↦□ cfg ∗
       cfg.DialOptions' ↦*□ ([] : List GoInterface) ∗
       clientF c go!"authTokenBundle" ↦□ GoInterface.nil ∗
-      clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ [ep] ∗ ⌜plainEndpoint ep⌝ ∗
-      dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme ep }}
+      clientF c go!"endpoints" ↦□ esl ∗ esl ↦*□ eps ∗ ⌜plainEndpoints eps⌝ ∗
+      dialOptsAt sl [.resolvers [rb]] ∗ grpcResolverAt rb etcdScheme eps }}
     (App (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!! go!"dial")) (Val #cr)) (Val #sl))
   {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ isEtcdConn conn ep ∗
+      (⌜err = GoInterface.nil⌝ ∗ isEtcdConn conn eps ∗
         -- (2026-10-19, D21 M6) configured for one attempt
-        (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ isEtcdConn1 conn ep)) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+        (⌜cfg.MaxUnaryRetries' = W64 1⌝ -∗ isEtcdConn1 conn eps)) ∨ ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 

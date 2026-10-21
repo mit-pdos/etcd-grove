@@ -149,7 +149,9 @@ until then of a one-member cluster). -/
 def srvApplyAllBuilt (s : Loc) : IProp GF :=
   iprop(∃ msc : Loc, rnMsgSnapCAddr (srvRAddr s) ↦□ msc ∗
     (∃ (γc : ChanNames) (P : Loc → IProp GF), isChanBag γc msc (V := Loc) P ∗
-      □ (∀ m : Loc, P m -∗ False)))
+      □ (∀ m : Loc, P m -∗ False)) ∗
+    -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`'s invariant
+    srvInflight s)
 
 instance srvApplyAllBuilt_persistent (s : Loc) : Persistent (srvApplyAllBuilt (GF := GF) s) := by
   unfold srvApplyAllBuilt; infer_instance

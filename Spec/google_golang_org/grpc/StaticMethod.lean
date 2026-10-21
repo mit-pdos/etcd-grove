@@ -28,7 +28,9 @@ an option that holds no pointer). -/
 abbrev grpc.StaticMethod.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.StaticMethod)) (Val #()))
-  {{ (v : GoInterface), RET #v; callOptOk v }}
+  {{ (v : GoInterface), RET #v; callOptOk v ∗
+      -- (2026-10-21, D29) a `StaticMethodCallOption`, a scalar option (no retry option)
+      ⌜scalarOpts [v]⌝ }}
 
 end spec
 

@@ -40,7 +40,7 @@ theorem lessor.Grant.wp_proof
   iunfold lessorRemoteAt at Hrem
   icases Hrem with ⟨%rlc, %conn, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
   iunfold callOptsAt at Hco
-  icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok⟩
+  icases Hco with ⟨%vs, #Hsl, %Hcap, #Hok, -⟩
   wp_auto
   wp_apply wp_retry rlc conn addr Spec Q ctx cd _ _ sl vs $$ [«$r0»] as %resp %err ⟨-, Hres⟩
   · iframe #

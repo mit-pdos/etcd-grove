@@ -42,16 +42,6 @@ voter's ghost state: the vote record from the vote table in `raftCommitInv`
 which `Step.commit` has, inside the invariant, and which is what lets the global
 committed log be extended there. -/
 
-omit [FfiSyntax] in
-theorem quorums_intersect_cfg (cfg q1 q2 : GSet w64) :
-    IsQuorum cfg q1 → IsQuorum cfg q2 → ∃ x, x ∈ q1 ∧ x ∈ q2 ∧ x ∈ cfg := by
-  intro Hq1 Hq2
-  have E1 : q1 ∩ cfg ∩ cfg = q1 ∩ cfg := by set_solver
-  have E2 : q2 ∩ cfg ∩ cfg = q2 ∩ cfg := by set_solver
-  obtain ⟨x, Hx1, Hx2⟩ := quorums_intersect cfg (q1 ∩ cfg) (q2 ∩ cfg)
-    (by unfold IsQuorum at *; rw [E1]; exact Hq1) (by unfold IsQuorum at *; rw [E2]; exact Hq2)
-  exact ⟨x, by set_solver, by set_solver, by set_solver⟩
-
 /-- A campaign log ends at its last entry. -/
 theorem camp_last (T : w64) (F0 : List EntryM) :
     CampOk T F0 →
@@ -689,9 +679,9 @@ theorem cq_agree (γ : RaftNames) (t1 n1 t2 n2 i : w64) (G1 G2 : List EntryM) :
     ipureintro; intro j Hj; exact (H j (by omega)).symm
 
 /-! Firing the registries as the global log grows by one entry `e`, the entry at position `m`
-of a full log `G` with records (2026-10-10; 2026-10-14, stage R: persistent updates fired at
-every entry). The entry's record carries its data (`entData`): the entry's own update moves
-the client's log (`propAu` of its data, or the standing `noopAu`), then every read slot is
+of a full log `G` with records (2026-10-10; 2026-10-14, stage R: updates fired at the entry;
+D21 M6: a proposal's at most once). The entry's record carries its data (`entData`): the entry's
+own update moves the client's log (`propAu1` of its data, or the standing `noopAu`), then every read slot is
 fired at the new log (`readSlot_fire`); every other proposal slot keeps its results
 (`propSlot_grow`). -/
 
@@ -727,14 +717,37 @@ theorem entDataIs_deposited (γ : RaftNames) (e : EntryM) (d : List w8) :
   iintro ⟨⟨-, #H⟩, -⟩
   iexact H
 
+/-- A deposit keeps its state as the log grows. -/
+theorem depSlot_grow (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List EntryM)
+    (e : EntryM) :
+    depSlot (GF := GF) γ d γq γt l ⊢ depSlot γ d γq γt (l ++ [e]) := by
+  unfold depSlot
+  iintro (Hau | ⟨%i, #Hv, %Hi⟩)
+  · ileft; iexact Hau
+  · iright
+    iexists i
+    iframe Hv
+    ipureintro
+    simp only [List.length_append, List.length_singleton]
+    push_cast; omega
+
+/-- A slot's deposits keep their states as the log grows. -/
+theorem deps_grow (γ : RaftNames) (d : List w8) (γq : GName) (K : GMap Nat GName)
+    (l : List EntryM) (e : EntryM) :
+    ([∗map] _k ↦ γt ∈ K, depSlot (GF := GF) γ d γq γt l) ⊢
+      [∗map] _k ↦ γt ∈ K, depSlot γ d γq γt (l ++ [e]) := by
+  iintro Hdeps
+  iapply BigSepM.bigSepM_impl $$ Hdeps
+  imodintro
+  iintro %k %γt %_ Hd
+  iapply depSlot_grow $$ Hd
+
 /-- A proposal slot keeps its results as the log grows by an entry whose data is not its. -/
 theorem propSlot_grow (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
     (e : EntryM) (o : Option (List w8)) (Hne : o ≠ some d) :
     ⊢ entDataIs (GF := GF) γ e o -∗ propSlot γ d p l -∗ propSlot γ d p (l ++ [e]) := by
-  unfold propSlot
-  iintro #He ⟨%Q, #Hsp, #Hres, Hau⟩
-  iexists Q
-  iframe Hsp
+  unfold propSlot propSlotRes
+  iintro #He ⟨#Hres, %K, HKa, Hdeps⟩
   isplitr
   · imodintro
     iintro %m %e' %Hm #He'
@@ -742,50 +755,28 @@ theorem propSlot_grow (γ : RaftNames) (d : List w8) (p : PropRec) (l : List Ent
     · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
     · ihave %Ho := entDataIs_agree γ e' o (some d) $$ He He'
       exact absurd Ho Hne
-  -- (D21 M6) the update: as it was; an occurrence stays one
-  cases hb : p.2.2
-  · simp only [hb, Bool.false_eq_true, ↓reduceIte]
-    iexact Hau
-  · simp only [hb, ↓reduceIte]
-    icases Hau with (Hau | #Hocc)
-    · ileft; iexact Hau
-    · iright
-      unfold propOcc
-      icases Hocc with ⟨%m0, %e0, %Hm0, #He0⟩
-      iexists m0, e0
-      iframe He0
-      ipureintro
-      rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp Hm0).1]
-      exact Hm0
+  iexists K
+  iframe HKa
+  iapply deps_grow $$ Hdeps
 
-/-- The new entry's own proposal slot, fired: its result at the log before is added; (D21 M6)
-the update kept if persistent, else the entry's occurrence recorded. -/
+/-- The new entry's own proposal slot, fired: its result at the log before is added, its
+deposits as given (the fired one recorded by the caller). -/
 theorem propSlot_fire (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
-    (e : EntryM) (Q : List EntryM → IProp GF) :
-    ⊢ savedPredOwn p.1 DFrac.discard Q -∗ entDataIs γ e (some d) -∗
-      (if p.2.2 then iprop(emp) else propAu γ d Q) -∗ □ Q l -∗
-      □ (∀ (m : Nat) (e' : EntryM), ⌜l[m]? = some e'⌝ -∗ entDataIs γ e' (some d) -∗
-         □ Q (l.take m)) -∗
+    (e : EntryM) :
+    ⊢ qRes (GF := GF) p.1 l -∗ propSlotRes γ d p l -∗
+      (∃ K : GMap Nat GName, ghostMapAuth p.2 1 K ∗
+        [∗map] _k ↦ γt ∈ K, depSlot γ d p.1 γt (l ++ [e])) -∗
       propSlot γ d p (l ++ [e]) := by
-  iintro #Hsp #He Hau #HQ #Hres
+  iintro #HQ #Hres Hk
   unfold propSlot
-  iexists Q
-  iframe Hsp
-  isplitr
-  · imodintro
-    iintro %m %e' %Hm #He'
-    rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, -, Ht⟩
-    · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
-    · rw [Ht]; iexact HQ
-  cases hb : p.2.2
-  · simp only [hb, Bool.false_eq_true, ↓reduceIte] at *
-    iexact Hau
-  · simp only [hb, ↓reduceIte]
-    iright
-    unfold propOcc
-    iexists l.length, e
-    iframe He
-    ipureintro; simp
+  iframe Hk
+  iunfold propSlotRes at Hres
+  iunfold propSlotRes
+  imodintro
+  iintro %m %e' %Hm #He'
+  rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, -, Ht⟩
+  · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
+  · rw [Ht]; iexact HQ
 
 /-- A read slot, fired at the log grown by one entry. -/
 theorem readSlot_fire (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM)
@@ -919,54 +910,52 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       iframe Hfr
       iapply propSlot_grow γ d p (G.take m) e none (by simp) $$ Ho Hsl
     | some d =>
-      ihave #Hdep := entDataIs_deposited γ e d $$ Ho
-      unfold deposited
-      icases Hdep with ⟨%p, #Hdq⟩
+      -- the deposit whose ticket was spent at the entry's index (`propIdx`)
+      ihave #Hi := entDataIs_idx γ e d $$ Ho
+      iunfold propIdx at Hi
+      icases Hi with ⟨%p, %k, %γt, #Hdq, #Hkf, #Hv0⟩
       icases ghost_map_lookup $$ Hra Hdq with %HRd
       icases (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
         iprop(propSlot (GF := GF) γ d p (G.take m) ∗ propFresh γ d)) HRd).1 $$ Hs
         with ⟨⟨Hsl, Hfr⟩, Hs⟩
       iunfold propSlot at Hsl
-      icases Hsl with ⟨%Q, #Hsp, #Hres, Hau⟩
-      -- the update: fired (persistent, or (D21 M6) at most once: a second occurrence of a
-      -- proposal deposited once would be at its one index, `propIdx_agree`)
-      ihave Hfired : |={⊤ \ ↑raftN}=> ghostVar γ.reRLog (1 : Qp).half (G.take m ++ [e]) ∗ □ Q (G.take m) ∗
-          (if p.2.2 then iprop(emp) else propAu γ d Q) $$ [Hau Hv]
-      · cases hb : p.2.2
-        · simp only [hb, Bool.false_eq_true, ↓reduceIte]
-          icases Hau with #Hau
-          imod propAu_fire γ d Q (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
-          imodintro
-          iframe Hv HQ Hau
-        · simp only [hb, ↓reduceIte]
-          icases Hau with (Hau | #Hocc)
-          · imod propAu1_fire γ d Q (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
-            imodintro
-            iframe Hv HQ
-          · iunfold propOcc at Hocc
-            icases Hocc with ⟨%m0, %e0, %Hm0, #He0⟩
-            ihave #Hon : propOnce γ d $$ []
-            · unfold propOnce; iexists p; iframe Hdq; ipureintro; exact hb
-            ihave #Hi0 := entDataIs_idx γ e0 d $$ Hon He0
-            ihave #Hi := entDataIs_idx γ e d $$ Hon Ho
-            ihave %Hii := propIdx_agree γ d _ _ $$ Hi0 Hi
-            have Hm0l := (List.getElem?_eq_some_iff.mp Hm0).1
-            rw [List.length_take] at Hm0l
-            have HG0 : G[m0]? = some e0 := by
-              rw [← Hm0, List.getElem?_take_of_lt (by omega)]
-            have He0i := Hwf _ _ HG0
-            rw [base0_index] at He0i
-            push_cast at He0i
-            rw [Hii] at He0i
-            exfalso; omega
-      imod Hfired with ⟨Hv, #HQ, Hau⟩
+      icases Hsl with ⟨#Hres, %K, HKa, Hdeps⟩
+      icases ghost_map_lookup $$ HKa Hkf with %HKk
+      icases (BigSepM.bigSepM_delete (Φ := fun (_k : Nat) (γt : GName) =>
+        depSlot (GF := GF) γ d p.1 γt (G.take m)) HKk).1 $$ Hdeps with ⟨Hdk, Hdeps⟩
+      iunfold depSlot at Hdk
+      -- not fired before: a fired deposit's index is within the log, the entry's is past it
+      icases Hdk with (⟨%Qk, #Hspk, Hau⟩ | ⟨%i, #Hvi, %Hi⟩)
+      rotate_left
+      · ihave %Hii := dghostVar_agree γt (some i : Option w64) DFrac.discard (some e.Index')
+          DFrac.discard $$ Hvi Hv0
+        cases Hii
+        exfalso; omega
+      imod propAu1_fire γ d Qk (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
       imodintro
       iframe Hv Hra
       iapply (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>
         iprop(propSlot (GF := GF) γ d p (G.take m ++ [e]) ∗ propFresh γ d)) HRd).2
-      isplitl [Hfr Hau]
+      isplitl [Hfr HKa Hdeps]
       · iframe Hfr
-        iapply propSlot_fire γ d p (G.take m) e Q $$ Hsp Ho Hau HQ Hres
+        iapply propSlot_fire γ d p (G.take m) e $$ [] Hres [HKa Hdeps]
+        · unfold qRes; iexists Qk; iframe Hspk HQ
+        iexists K
+        iframe HKa
+        iapply (BigSepM.bigSepM_delete (Φ := fun (_k : Nat) (γt : GName) =>
+          depSlot (GF := GF) γ d p.1 γt (G.take m ++ [e])) HKk).2
+        isplitr
+        · unfold depSlot
+          iright
+          iexists e.Index'
+          iframe Hv0
+          ipureintro
+          simp only [List.length_append, List.length_singleton]
+          push_cast; omega
+        iapply BigSepM.bigSepM_impl $$ Hdeps
+        imodintro
+        iintro %k' %γt' %_ Hd
+        iapply depSlot_grow $$ Hd
       iapply BigSepM.bigSepM_impl $$ Hs
       imodintro
       iintro %d' %p' %Hk ⟨Hsl, Hfr⟩

@@ -75,26 +75,6 @@ theorem aboveCnt_delete (n id : w64) (WM : GMap w64 Loc) :
   · cases this
   · exact this
 
-theorem aboveCnt_insert (n id : w64) (w : Loc) (WM : GMap w64 Loc) :
-    aboveCnt n (<[id := w]> WM) ≤ aboveCnt n WM + 1 := by
-  unfold aboveCnt
-  have h1 : GMap.filter (fun i _ => decide (sint.Z n ≤ sint.Z i)) (<[id := w]> WM) ⊆
-      <[id := w]> (GMap.filter (fun i _ => decide (sint.Z n ≤ sint.Z i)) WM) := by
-    intro k v h
-    have h' : (GMap.filter (fun i _ => decide (sint.Z n ≤ sint.Z i)) (<[id := w]> WM)) !! k =
-        some v := h
-    show (<[id := w]> (GMap.filter (fun i _ => decide (sint.Z n ≤ sint.Z i)) WM)) !! k = some v
-    rw [GMap.mapLookup_filter_Some] at h'
-    obtain ⟨h1, h2⟩ := h'
-    rw [GMap.lookup_insert_eq_iff] at h1 ⊢
-    by_cases hik : id = k
-    · simp only [hik, ↓reduceIte] at h1 ⊢; exact h1
-    · simp only [hik, ↓reduceIte] at h1 ⊢
-      rw [GMap.mapLookup_filter_Some]; exact ⟨h1, h2⟩
-  have := GMap.map_subseteq_size h1
-  rw [GMap.map_size_insert] at this
-  split at this <;> omega
-
 /-- Skipping a live id `n`: one fewer live id at or above the next. -/
 theorem aboveCnt_skip (n : w64) (w : Loc) (WM : GMap w64 Loc) (hn : WM !! n = some w)
     (hb : sint.Z n < 2 ^ 63 - 1) :
@@ -276,10 +256,6 @@ whose id has its reason (`rsnFor`). -/
 def cancelledFor (P : WatchParams GF) (γc : WatchChanNames) (w : Loc) : IProp GF :=
   iprop(P.WC w ∗ ∃ (r : WatchRange) (fcs : GoSlice) (lo : Nat), P.IWF w r fcs lo ∗
     rsnFor γc.rsn r.id)
-
-instance cancelledFor_persistent (P : WatchParams GF) (γc : WatchChanNames) (w : Loc) :
-    Persistent (cancelledFor P γc w) := by
-  unfold cancelledFor; infer_instance
 
 /-- **What `progressAll(m)` is lent of the stream** (K1b): open (`o`), the close right of `ch`
 (with the watchers `L` registered on the channel), every one of `L` in the map or cancelled for

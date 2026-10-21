@@ -322,10 +322,6 @@ def ownWatcherBatch (wb : GoMap) (Bm : GMap Loc EventBatch) (q : Qp := 1) : IPro
     ownMap wb (DFrac.own q) (GMap.fmap Prod.fst PB) ∗ ⌜Bm = GMap.fmap Prod.snd PB⌝ ∗
     [∗map] _w ↦ p ∈ PB, ⌜p.1 ≠ null⌝ ∗ ownEventBatch p.1 p.2 q)
 
-/-- A watcher batch or `nil` (empty). -/
-def ownWatcherBatchOpt (wb : GoMap) (Bm : GMap Loc EventBatch) : IProp GF :=
-  iprop(⌜wb = map.nil ∧ Bm = ∅⌝ ∨ ownWatcherBatch wb Bm)
-
 /-- The members' mutable fields (the caller's: the store's, or a batch's). -/
 def ownStates (ST : GMap Loc WatcherSt) : IProp GF :=
   iprop([∗map] w ↦ st ∈ ST, watcherOwn w st)

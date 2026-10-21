@@ -88,14 +88,6 @@ instance waitGone_persistent (γw : GName) (id : w64) (t : GName) :
     Persistent (waitGone (GF := GF) γw id t) := by
   unfold waitGone; infer_instance
 
-/-- A gone registration was a registration. -/
-theorem waitGone_regd (γw : GName) (id : w64) (t : GName) :
-    waitGone (GF := GF) γw id t ⊢ waitRegd γw id t := by
-  unfold waitGone waitRegd
-  iintro ⟨%γs, %γr, %g, #H1, #H2, -⟩
-  iexists γs, γr, g
-  iframe #
-
 /-- What the caller of `IsRegistered(id)` knows of `id`'s registration: nothing (`none`), or that
 it was registered with the consumer token named `t` (`some t`). -/
 def waitRegdOpt (γw : GName) (id : w64) : Option GName → IProp GF

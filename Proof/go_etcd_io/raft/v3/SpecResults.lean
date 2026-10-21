@@ -53,15 +53,6 @@ end scan
 section hup_results
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
-`MsgTimeoutNow`): `r.step` agrees with the role, a protocol step that receives nothing,
-the log untouched, the term up by at most one (a step at every bound `B`: it creates no
-entry), `r.preVote` and the ghost bounds kept. -/
-def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
-  NStateWf s' ∧ (∀ B, Step cfg id B (toPState s) [] (toPState s')) ∧
-  (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
-   uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh)
-
 /-- What `hup` checked before it campaigned (2026-10-14, reconfiguration stage B7: the dynamic
 model's `StepR.campaign` guard): nothing done, or a campaign (`campaignState`) by a non-leader
 voter of either half, with no snapshot pending (`promotable`) and no conf-change entry committed
@@ -74,11 +65,13 @@ def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
      peers ≡ₚ elements (c.voters \ {[id]}) ∧
      s' = { campaignState id s pre peers cl with prvals := pvs })
 
-/-- `HupOk` at a joint configuration (2026-10-13, reconfiguration stage A2): the step is
-`StepC c`, and a node that is not a voter of either half does nothing (it is not
-`promotable`). The last conjunct is what lets the simple-configuration statement be derived
-at an empty voter set, where `StepC` and `Step` differ (`HupOkC.simple`). (2026-10-14, stage
-B7) And what `hup` checked (`HupGuard`). -/
+/-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
+`MsgTimeoutNow`), at a joint configuration (2026-10-13, reconfiguration stage A2): `r.step` agrees
+with the role, a `StepC c` step that receives nothing, the log untouched, the term up by at most
+one (a step at every bound `B`: it creates no entry), `r.preVote` and the ghost bounds kept; a
+node that is not a voter of either half does nothing (it is not `promotable`). (2026-10-14,
+stage B7) And what `hup` checked (`HupGuard`). (Until 2026-10-21 also `HupOk`, at a simple
+configuration and the old `Step` model.) -/
 def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
   NStateWf s' ∧ (∀ B, StepC c id B (toPState s) [] (toPState s')) ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
@@ -94,16 +87,6 @@ theorem HupGuard.precand {c : CfgM} {id : w64} {s s' : NState} (h : HupGuard c i
   · cases pre
     · simp [campaignState, sendMsgs, becomeCandidate] at hp
     · simp [campaignState, sendMsgs, becomePrecandidate]
-
-/-- At a simple configuration, `HupOkC` is `HupOk`. -/
-theorem HupOkC.simple {cfg lrn : GSet w64} {id : w64} {s s' : NState}
-    (h : HupOkC (CfgM.simple cfg lrn) id s s') : HupOk cfg id s s' := by
-  refine ⟨h.1, ?_, h.2.2.1⟩
-  by_cases hne : cfg = ∅
-  · have hs : s' = s := h.2.2.2.1 (by
-      rw [CfgM.voters_simple, hne]; exact GMap.not_elem_of_empty _)
-    rw [hs]; exact fun _ => .refl _
-  · exact fun B => step_of_stepC (CfgM.simple cfg lrn) id B hne rfl (h.2.1 B)
 
 end hup_results
 
@@ -122,30 +105,36 @@ def SnapScope (sv : SnapshotM) (cl : CSLists) : Prop :=
   (cl.outgoing = [] → cs.AutoLeave' = false) ∧
   uint.Z sv.Metadata'.Index' < 2^61
 
-/-- `id` is in one of the sets `restore`'s `found` search reads: an incoming voter, a learner or
-an outgoing voter (2026-10-14, reconfiguration stage B8; a staged learner is an outgoing voter,
-`CSWf`). -/
-def CSLists.Has (cl : CSLists) (id : w64) : Prop :=
-  id ∈ cl.voters ∨ id ∈ cl.learners ∨ id ∈ cl.outgoing
+/-- (D22 S-b′4, 2026-10-20) What a receiver needs of a snapshot's `ConfState`: its scope once it
+names the node `id` (`restore` reads the lists only past its `!found` exit), and its index below
+`2^61` either way (a refused snapshot is no boundary, but the bound is the transport's). The
+scope comes from the message's certificate (`raftSnapCert`'s `SnapListsOk`, under `Has`). -/
+def SnapScopeIf (id : w64) (sv : SnapshotM) (cl : CSLists) : Prop :=
+  (cl.Has id → SnapScope sv cl) ∧ uint.Z sv.Metadata'.Index' < 2^61
+
+theorem SnapScopeIf.of_scope {id : w64} {sv : SnapshotM} {cl : CSLists} (h : SnapScope sv cl) :
+    SnapScopeIf id sv cl := ⟨fun _ => h, h.2.2.2.2.2.2.2⟩
 
 /-- The configuration a snapshot's `ConfState` denotes (2026-10-14, reconfiguration stage B8). -/
 abbrev snapCfg (sv : SnapshotM) (cl : CSLists) : CfgM :=
   csCfgM cl.outgoing cl.voters cl.learners cl.learnersNext sv.Metadata'.ConfState'.AutoLeave'
 
-/-- The three exits of `restore`; see the file header. -/
-def RestoreResult (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool) (s' : NState) :
-    Prop :=
+/-- The three exits of `restore`; see the file header. (D22 S-b, D22j, 2026-10-19: the first
+also when the node `id` is in none of the `ConfState`'s sets, the `!found` exit, until then a
+premise of the spec.) -/
+def RestoreResult (id : w64) (s : NState) (sv : SnapshotM) (cl : CSLists) (b : Bool)
+    (s' : NState) : Prop :=
   let ls := s.logst
   let es := ls.sents ++ ls.uents
   let sid := snapId sv
-  (uint.Z sid.index' ≤ uint.Z ls.committed ∧
+  ((uint.Z sid.index' ≤ uint.Z ls.committed ∨ ¬ cl.Has id) ∧
    b = false ∧ s' = s)
   ∨
-  (uint.Z ls.committed < uint.Z sid.index' ∧
+  (uint.Z ls.committed < uint.Z sid.index' ∧ cl.Has id ∧
    PlogMatches ls.prev es sid ∧ b = false ∧
    s' = { s with logst := { ls with committed := sid.index' } })
   ∨
-  (uint.Z ls.committed < uint.Z sid.index' ∧
+  (uint.Z ls.committed < uint.Z sid.index' ∧ cl.Has id ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧
    ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs,
                                logst := logRestore ls (snapTrip sv cl), isLearner := il })

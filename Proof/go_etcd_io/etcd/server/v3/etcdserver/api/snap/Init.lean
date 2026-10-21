@@ -9,7 +9,9 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Perennial.Proof.io.Link
+public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -81,6 +83,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
+      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk ErrNoDBSnapshot.init (by mem_tac))
   wp_apply (opaqueInitsOk snapMarshallingSec.init (by mem_tac))
   wp_apply (opaqueInitsOk snapSaveSec.init (by mem_tac))

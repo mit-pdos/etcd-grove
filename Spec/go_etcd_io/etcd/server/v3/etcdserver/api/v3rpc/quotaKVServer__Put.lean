@@ -28,21 +28,23 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`q.Put(ctx, r)`** on a `*quotaKVServer` over a service `kv` whose `Put` meets `Spec` with
-the resource `S` (`grpcHandlerOk`), for the server `s` (its request-path view and id budget, for
-the alarm): the quota check, then `kv.Put(ctx, r)`: `S`, the reader slot of `leadTimeMu` and the
-auth store's reader resource `E.RD` (2026-10-14, unit A2) come back, and on success the response is `kv.Put`'s (at some `m'` with `Φ m'`). -/
+the resource `S` (`grpcHandlerOk`), for the server `s`: the quota check (over the current
+backend, `quotaAlarmer.check`), then `kv.Put(ctx, r)`: `S` and the check's reader slots
+(`quotaRd`: of `lgMu` and `bemu`; until D22g (A) the alarm's request-path view, id budget,
+`leadTimeMu` slot and `E.RD`) come back, and on success the response is `kv.Put`'s (at some `m'`
+with `Φ m'`). -/
 abbrev v3rpc.quotaKVServer.Put.spec : Prop :=
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
+    (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Put" kv.v) S Spec ∗
-      isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗ S ∗ srvLeadTimeReader s ∗ E.RD ∗
+      S ∗ v3rpc.quotaRd s ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ci))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ srvLeadTimeReader s ∗ E.RD ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.quotaRd s ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }}
 
 end spec

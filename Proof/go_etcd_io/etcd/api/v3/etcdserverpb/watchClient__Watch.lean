@@ -35,7 +35,7 @@ theorem watchClient.Watch.wp_proof
   intro wc conn addr ics Up Spec ctx cd opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hopts, #Hok⟩
   wp_auto
-  wp_apply wp_StaticMethod as %sm #Hsm
+  wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
   wp_apply wp_slice_literal (V := GoInterface) [sm]
   isplitr
   · ipureintro; rfl

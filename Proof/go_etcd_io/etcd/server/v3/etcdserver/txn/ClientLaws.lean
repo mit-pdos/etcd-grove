@@ -53,14 +53,6 @@ theorem btInsert_of_lt_all {v : V} (hord : StrictWeakOrder less) :
     have hwv : ¬ less w v := fun h' => hord.irrefl v (hord.trans _ _ _ hvw h')
     simp only [btInsert, hwv, hvw, ↓reduceIte]
 
-theorem btDelete_of_lt_all {k : V} (hord : StrictWeakOrder less) :
-    ∀ {l : List V}, (∀ x ∈ l, less k x) → btDelete less k l = l
-  | [], _ => rfl
-  | w :: ws, h => by
-    have hkw := h w List.mem_cons_self
-    have hwk : ¬ less w k := fun h' => hord.irrefl k (hord.trans _ _ _ hkw h')
-    simp only [btDelete, hwk, hkw, ↓reduceIte]
-
 /-- `p` gives one answer on items the order does not separate. -/
 def RespEquiv (less : V → V → Prop) (p : V → Bool) : Prop :=
   ∀ a b, ¬ less a b → ¬ less b a → p a = p b
@@ -94,35 +86,6 @@ theorem filter_btInsert (hord : StrictWeakOrder less) (p : V → Bool) (hp : Res
         · have hw : ¬ p w = true := by rw [← he]; exact hv
           rw [List.filter_cons_of_neg hv, if_neg hv, List.filter_cons_of_neg hw]
 
-theorem filter_btDelete (hord : StrictWeakOrder less) (p : V → Bool) (hp : RespEquiv less p)
-    (k : V) : ∀ (l : List V), l.Pairwise less →
-      (btDelete less k l).filter p = if p k then btDelete less k (l.filter p) else l.filter p
-  | [], _ => by by_cases h : p k <;> simp [btDelete, h]
-  | w :: ws, hs => by
-    rw [List.pairwise_cons] at hs
-    have ih := filter_btDelete hord p hp k ws hs.2
-    by_cases h1 : less w k
-    · simp only [btDelete, h1, ↓reduceIte, List.filter_cons, ih]
-      by_cases hk : p k <;> by_cases hw : p w <;> simp [hk, hw, btDelete, h1]
-    · by_cases h2 : less k w
-      · simp only [btDelete, h1, h2, ↓reduceIte]
-        have hall : ∀ x ∈ (w :: ws).filter p, less k x := by
-          intro x hx
-          rcases List.mem_cons.1 (List.mem_filter.1 hx).1 with rfl | hx'
-          · exact h2
-          · exact hord.trans _ _ _ h2 (hs.1 x hx')
-        by_cases hk : p k
-        · rw [if_pos hk, btDelete_of_lt_all hord hall]
-        · rw [if_neg hk]
-      · have he := hp k w h2 h1
-        simp only [btDelete, h1, h2, ↓reduceIte]
-        by_cases hk : p k
-        · have hw : p w = true := he ▸ hk
-          rw [if_pos hk, List.filter_cons_of_pos hw]
-          simp only [btDelete, h1, h2, ↓reduceIte]
-        · have hw : ¬ p w = true := by rw [← he]; exact hk
-          rw [if_neg hk, List.filter_cons_of_neg hw]
-
 end bt
 
 /-! ## The state under a prefix -/
@@ -134,9 +97,6 @@ def underPfx (pfx : GoString) (s : List EtcdKv) : List EtcdKv :=
 theorem underPfx_stateAt (log : Log) (r : Nat) (pfx : GoString) :
     underPfx pfx (stateAt log r) = stateAtPfx log r pfx := rfl
 
-theorem underPfx_sorted {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (pfx : GoString) :
-    (underPfx pfx s).Pairwise etcdKvLess := hs.filter _
-
 theorem mem_underPfx {pfx : GoString} {s : List EtcdKv} {v : EtcdKv} :
     v ∈ underPfx pfx s ↔ v ∈ s ∧ pfx <+: v.key := by
   unfold underPfx; rw [List.mem_filter, decide_eq_true_iff]
@@ -146,12 +106,6 @@ theorem etcdKv_key_eq_of_incomp {a b : EtcdKv} (h1 : ¬ etcdKvLess a b) (h2 : ¬
 
 theorem pfx_respEquiv (pfx : GoString) :
     RespEquiv etcdKvLess (fun v : EtcdKv => decide (pfx <+: v.key)) := by
-  intro a b h1 h2
-  show _ = _
-  simp only [etcdKv_key_eq_of_incomp h1 h2]
-
-theorem key_ne_respEquiv (k : GoString) :
-    RespEquiv etcdKvLess (fun v : EtcdKv => !decide (v.key = k)) := by
   intro a b h1 h2
   show _ = _
   simp only [etcdKv_key_eq_of_incomp h1 h2]
@@ -211,11 +165,6 @@ watchable store sends, `mvccpb.KeyValue{Key, ModRevision}`). -/
 def changeEv (r : w64) (s : List EtcdKv) : Change → EtcdEv
   | .put k val l => { typ := W32 0, kv := putNv r k val l s }
   | .del k => { typ := W32 1, kv := { zeroKv k with modRev := r } }
-
-theorem changeEv_key (r : w64) (s : List EtcdKv) (c : Change) : (changeEv r s c).kv.key = c.key := by
-  cases c with
-  | put k val l => exact putNv_key r k val l s
-  | del k => rfl
 
 /-- **The client's events of revision `r`'s changes `cs` under `pfx`**, from the state `s`
 before them, in order. -/

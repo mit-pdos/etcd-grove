@@ -55,27 +55,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 section pure
 variable [FfiSyntax]
 
-/-- **The bootstrap log at the applied index `0`** (D12): `BootLogOk`'s entries have the
-consecutive indices `1..n`, are v1 conf changes whose bytes decode (raft's `ccDecodeV1`, the
-server's `isConfChangeEncoding` since stage R8b), and `n < 2^61`. -/
-theorem srvIdxOk_boot (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (h : BootLogOk ccOk ps bootLog) : srvIdxOk (W64 0) (bootLog.map EntryModel.ofM) := by
-  obtain ⟨hlen, hbound, hk⟩ := h
-  refine ⟨?_, ?_⟩
-  · simp only [List.length_map]
-    rw [show uint.Z (W64 0) = 0 by word]
-    omega
-  · intro n m hm
-    rw [List.getElem?_map] at hm
-    obtain ⟨e, he, rfl⟩ := Option.map_eq_some_iff.mp hm
-    obtain ⟨-, hidx, hty, ⟨cm, hdec, -, -⟩, -⟩ := hk n e he
-    refine ⟨?_, Or.inr ⟨?_, ?_⟩⟩
-    · simp only [EntryModel.ofM]
-      rw [show uint.Z (W64 0) = 0 by word]
-      omega
-    · simp only [EntryModel.ofM]; exact hty
-    · simp only [EntryModel.ofM]; exact isConfChangeEncoding_of_decode hdec
-
 end pure
 
 section defs

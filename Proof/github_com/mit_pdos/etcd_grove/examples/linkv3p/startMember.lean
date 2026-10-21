@@ -7,7 +7,7 @@ storage registry, `NewServer`, `net.Listen` at the peer address, `s.RaftHandler(
 steps of linkv3's `Main` (`Proof/.../linkv3/Main.lean`), for this member: `v3rpc.Server(s, nil,
 nil)` (its configuration from `NewServer`'s and `Start`'s, `grpcCfgOk_of_started'`), the ghost
 step `etcd_kv_started` (etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the client
-address), `go
+address) with the members' axiom `etcd_noRefusal` before it (D29: the address refusal-free), `go
 gs.Serve(l)`. Every step's error returns it, with the thread token.
 -/
 module
@@ -19,10 +19,12 @@ public import Spec.net.Listen
 public import Spec.net.http.Serve
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
 public import Spec.google_golang_org.grpc.Server__Serve
+public import Spec.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 
 @[expose] public section
 
@@ -76,12 +78,13 @@ theorem startMember.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG))
     (wp_Serve : net.http.Serve.spec (GF := GF) (hG := hG))
+    (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
     Φs γn
-    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hnoc Hms
+    Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     Hslot⟩
   iunfold bootPremise at Hboot
@@ -134,7 +137,7 @@ theorem startMember.wp_proof
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
       · unfold cfgOk; simp
       · exact ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
     isplitr
@@ -158,10 +161,10 @@ theorem startMember.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hnoc
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, #Hnm, -⟩)
   · -- `NewServer` failed: the error returned
     cases err with
@@ -209,7 +212,7 @@ theorem startMember.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
@@ -225,7 +228,7 @@ theorem startMember.wp_proof
   (try wp_auto)
   -- the member up (putget3's `memberUp`, as linkv3's `startMember` returns it), in the form
   -- linkv3's `Main` takes it apart to serve the member
-  ihave Hup : memberUp srv ρ E₀ lg $$ [Hgo Hlg3 Hrslots Hwpi Hbemu Hlts Hlgs Hrds Hsts]
+  ihave Hup : memberUp srv ρ E₀ lg $$ [Hgo Hlg3 Hrslots Hwpi Hbemu Hlts Hlgs Hrds Hsts Hbms]
   · iunfold memberUp
     iexists E, _, γw
     iframe
@@ -235,7 +238,7 @@ theorem startMember.wp_proof
   iclear Hreq Hrd Hwb Hsf
   iunfold memberUp at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
@@ -246,26 +249,41 @@ theorem startMember.wp_proof
     · ipureintro; rw [HElg]; exact Hlg
     rw [HEtr]
     iapply ownSlice_nil
-  wp_apply (wp_Server Hms srv C _ slice.nil [] Hbuq) $$ [Hlg3 Hbemu Hgo Hwpi]
+  -- (2026-10-21, D28) the server option: the keepalive policy, neutral
+  (try wp_auto)
+  wp_apply wp_KEP as %kv %Hkv
+  wp_apply wp_slice_literal (V := GoInterface) [kv]
+  try (isplitr; (ipureintro; rfl))
+  iintro %gslp ⟨Hgsl, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
+  wp_apply (wp_Server Hms srv C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwpi]
     as %gs ⟨%q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
       Hgsn, %Hregs, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
       Hwpi2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [HEw]; simp
-    isplitr
-    · iapply ownSlice_nil
-    ipureintro; intro v hv; cases hv
+    ipureintro; intro v hv
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    subst hv; exact Hkv
   -- the ghost step between `Listen` and `go gs.Serve(l)`: etcd's KV specs at the address
   haveI := Hms
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := EtcdGrove.client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := EtcdGrove.client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hclis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal client gs q p srv clis E
+      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HEo) $$
+    [Hgsn Hclis]
+  · iframe Hgsn Hclis; iframe #
   imod (EtcdGrove.client.etcd_kv_started client gs q p srv clis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
     $$ [Hgsn Hclis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn⟩
@@ -287,8 +305,10 @@ theorem startMember.wp_proof
   iexists E, γw, cid, mid
   iframe Hgo2 HPut HRange HDel HTxn
   iframe #
-  ipureintro
-  exact ⟨HEa, HEo⟩
+  isplitl []
+  · ipureintro
+    exact ⟨HEa, HEo⟩
+  ipureintro; exact Hnr
 
 end proof
 

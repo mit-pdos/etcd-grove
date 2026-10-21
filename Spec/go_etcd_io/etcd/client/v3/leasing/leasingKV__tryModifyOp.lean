@@ -23,12 +23,6 @@ variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-/-- The guarded transaction of `tryModifyOp` and `revoke`: `op` if the lease key `pfx ++ key` was
-created at or before `rev` (or is absent), else `els`. -/
-def guardedTxn (pfx key : GoString) (rev : w64) (top : TxnOp) (els : List TxnOp) : TxnModel :=
-  { cmps := [compareM (cmpKeyM .create (pfx ++ key)) .lt (.num (rev + W64 1))],
-    thenOps := [top], elseOps := els }
-
 /-- **`lkv.tryModifyOp(ctx, op)`** for a write `op` (`top`) of the key `o.key`: `Lock`s the key's
 entry (its revision `rev`, a waiter channel `wc` if cached) and commits `op` guarded by the lease
 key's create revision being at most `rev`. Returns `(nil, nil, err)` on an error (the key evicted)

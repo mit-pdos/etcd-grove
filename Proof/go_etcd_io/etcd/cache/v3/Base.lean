@@ -44,6 +44,35 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace go_etcd_io.etcd.cache.v3
 
+section desc
+
+/-- **An error's description** (opaque; D29, 2026-10-21): what `rpctypes.ErrorDesc(err)` returns,
+the status message (`status.FromError(err).Message()`), which for an error that is not a status
+error is its `Error()` (`Spec/google_golang_org/grpc/status/FromError.lean`). grpc's `FromError`
+reads the status embedded in the error value, so the description is a function of the error, as
+its code is (`statusCode`); nothing more is said of it. -/
+opaque errDesc [FfiSyntax] : GoInterface → GoString
+
+/-- **The refusals** (D29): the descriptions after which the client's retry interceptor sends a
+`nonRepeatable` call (a write) again: the auth errors (`shouldRefreshToken`, then
+`refreshToken`), the learner's refusal (`isSafeRetry`), grpc's old balancer's "no address" and
+"no connection" (`isSafeRetryMutableRPC`). -/
+def refusalDescs : List GoString :=
+  [go!"etcdserver: invalid auth token", go!"etcdserver: revision of auth store is old",
+    go!"etcdserver: user name is empty", go!"etcdserver: rpc not supported for learner",
+    go!"there is no address available", go!"there is no connection available"]
+
+theorem mem_refusalDescs_balancer (d : GoString)
+    (h : d = go!"there is no address available" ∨ d = go!"there is no connection available") :
+    d ∈ refusalDescs := by
+  rcases h with rfl | rfl <;> simp [refusalDescs]
+
+/-- **An error that is not a refusal** (D29): `nil`, or one whose description is not a refusal's. -/
+def noRefusal [FfiSyntax] (err : GoInterface) : Prop :=
+  err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
+
+end desc
+
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -223,10 +252,6 @@ def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
     □ ∀ (target : GoInterface) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
 
-instance grpcErrMethodsOk_persistent (e : GoInterfaceOk) :
-    Persistent (grpcErrMethodsOk (GF := GF) e) := by
-  unfold grpcErrMethodsOk; infer_instance
-
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks
 of its error tree only check it) whose `Error()` returns some string (`errorStringSpec`:
@@ -288,20 +313,27 @@ abbrev rpctypesInit : IProp GF :=
       errorStringSpec e) ∗
     (∃ (mref : Loc) (m : GMap GoString GoInterface),
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError ↦□ mref ∗ mref ↦$□ m ∗
-      □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → statusErrOk v)) ∗
+      □ (∀ (k : GoString) (v : GoInterface), ⌜m !! k = some v⌝ → statusErrOk v) ∗
+      -- (D29, 2026-10-21) each value's description is its key (`ErrorDesc(ErrGRPCx): ErrGRPCx`)
+      ⌜∀ (k : GoString) (v : GoInterface), m !! k = some v → errDesc v = k⌝) ∗
     ⌜rpctypesEtcdErrorTy (GF := GF) (hG := hG)⌝ ∗
+    -- (D29, 2026-10-21) the refusals with their descriptions
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrUserEmpty ↦□
-        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x ∗
+      ⌜x.desc' = go!"etcdserver: user name is empty"⌝) ∗
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrInvalidAuthToken ↦□
-        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x ∗
+      ⌜x.desc' = go!"etcdserver: invalid auth token"⌝) ∗
     (∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrAuthOldRevision ↦□
-        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) ∗
+        interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x ∗
+      ⌜x.desc' = go!"etcdserver: revision of auth store is old"⌝) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ↦□
-        GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝) ∗
+        GoInterface.ok e ∗ ⌜errors.IsPointerError e⌝ ∗
+      ⌜errDesc (GoInterface.ok e) = go!"etcdserver: rpc not supported for learner"⌝) ∗
     (∃ s : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC ↦□ s) ∗
     (∃ s : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger ↦□ s) ∗
     -- (item 8, 2026-10-17: moved here from `v3rpc`'s facts) the `ErrGRPC*` errors the gRPC
@@ -455,7 +487,9 @@ abbrev clientv3Init : IProp GF :=
     sl ↦*□ [W8 0]) ∗
     (∃ (dp : Loc) (ov : go_etcd_io.etcd.client.v3.options),
       globalAddr go_etcd_io.etcd.client.v3.defaultOptions ↦□ dp ∗ dp ↦□ ov ∗
-      backoffOk ov.backoffFunc') ∗
+      backoffOk ov.backoffFunc' ∗
+      -- (D29, 2026-10-21) the default policy: `nonRepeatable`
+      ⌜ov.retryPolicy' = W8 1⌝) ∗
     -- (item 8, 2026-10-17: `client/v3`'s `clientNewVars`, which `New` took as a premise)
     -- `defaultCallOpts` (`options.go`: `WaitForReady(true)`, `MaxCallSendMsgSize`,
     -- `MaxCallRecvMsgSize`: options holding only scalars) and the retry defaults

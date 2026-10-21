@@ -39,7 +39,7 @@ translate = ["!*",
   # kvstore.go
   "ErrCompacted", "ErrFutureRev", "NewStore", "store.Compact", "store.compactLockfree",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
-  "store.compactBarrier",
+  "store.compactBarrier", "store.Restore",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go

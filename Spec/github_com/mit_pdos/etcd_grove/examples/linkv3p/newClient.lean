@@ -1,12 +1,15 @@
 /-
-`newClient(addr, lg)` (`examples/linkv3p/linkv3p.go`; the partition plan's S3a, 2026-10-20):
-`clientv3.New` of a configuration with the one endpoint `addr`, the logger `lg` and
-`MaxUnaryRetries: 1` (one attempt per call: a Put is sent at most once, D21i), what linkv3's `Main`
-did inline for its one client. Lean-first (no Rocq counterpart).
+`newClient(eps, lg)` (`examples/linkv3p/linkv3p.go`; the partition plan's S3a, 2026-10-20; the
+endpoints a slice since 2026-10-21, failover, `notes/decisions.md` D27): `clientv3.New` of a
+configuration with the endpoints `eps`, the logger `lg` and keepalive, with the default retries
+since 2026-10-21 (`notes/read-retry-plan.md`; until then `MaxUnaryRetries: 1`, one attempt per call,
+D21i), what linkv3's `Main` did inline for its one client. Lean-first (no Rocq counterpart).
 
-**The triple:** for a plain endpoint (`plainEndpoint`, `clientv3.New`'s premise) and a logger, from
-the package's fact: the one-attempt client (`isNewClient` at any watch environment `V`, which the
-caller never uses, `clientKVOnce`) and `nil`, or an error and `null` (`clientv3.New`'s two cases).
+**The triple:** for plain endpoints (`plainEndpoints`, `clientv3.New`'s premise: at least one, each
+plain), read-only, and a logger, from the package's fact: the client of those endpoints
+(`isNewClient` at any watch environment `V`, which the caller never uses) and `nil`, or an error and
+`null` (`clientv3.New`'s two cases). A write through it is sent at most once when the endpoints are
+refusal-free (`clientWriteOnce`, D29), which the caller establishes.
 -/
 module
 
@@ -31,13 +34,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev newClient.spec : Prop :=
-  ∀ (addr : GoString) (lg : Loc) (V : EtcdGrove.client.WEnv GF),
-  threadBound GF ≤ 2 ^ 31 → lg ≠ null → plainEndpoint addr →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient)) (Val #addr))
+  ∀ (eps : GoSlice) (addrs : List GoString) (lg : Loc) (V : EtcdGrove.client.WEnv GF),
+  threadBound GF ≤ 2 ^ 31 → lg ≠ null → plainEndpoints addrs →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
+      eps ↦*□ addrs }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient)) (Val #eps))
       (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl addr V ∗ clientKVOnce cl addr) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl addrs V) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec

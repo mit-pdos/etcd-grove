@@ -85,48 +85,6 @@ def readForward (id lead : w64) (m : MessageM) (ents : List EntryM)
   Msg.mkV .readIndex (if m.From' = W64 0 then id else m.From') lead (W64 0) m.Reject' m.Index'
     m.LogTerm' m.Commit' m.RejectHint' ents [] cl
 
-/-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
-`ErrProposalDropped` (the postcondition then says `err` is that global's value;
-otherwise `err = nil`). -/
-def FollowerStepResult (cfg : GSet w64) (scfg : CSLists) (id : w64) (s : NState)
-    (m : MessageM)
-    (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
-    (cl : List w8 := []) : Prop :=
-  if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
-  else if m.Type' = MsgProp then
-    if s.lead = W64 0 then dropped = true ∧ s' = s
-    else dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl]
-  else if m.Type' = MsgApp then
-    dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
-  else if m.Type' = MsgHeartbeat then
-    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
-  else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
-    m.Type' = MsgCheckQuorum then
-    dropped = false ∧ s' = s
-  else if m.Type' = MsgSnap then
-    dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv scfg s'
-  else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
-  -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
-  else if m.Type' = MsgReadIndex then
-    dropped = false ∧
-    (if s.lead = W64 0 then s' = s
-     else s' = sendMsgs s [readForward id s.lead m ents cl])
-  else if m.Type' = MsgReadIndexResp then
-    dropped = false ∧
-    (match ents with
-     | [e] => s' = addReadState s m.Index' e.Data'
-     | _ => s' = s)
-  -- (2026-10-13) `ForgetLeader` clears the leader (the read-only option is `Safe`);
-  -- a leader-transfer request is forwarded to the leader, or dropped without one, and
-  -- carries nothing the model sees; the local reports have no arm; `MsgTimeoutNow`
-  -- campaigns (`hup(campaignTransfer)`), with the voters `cfg` (until 2026-10-13 written
-  -- `domSet s.progress`, equal to it before learners were tracked)
-  else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
-  else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
-    dropped = false ∧ s' = s
-  else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOk cfg id s s'
-  else False
-
 /-- `FollowerStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with
 the configuration `c'` the node is at afterwards: `c` itself, except after a `MsgSnap` that
 `restore` installs, which moves it to the snapshot's (since 2026-10-14, stage A3; since B8 the
@@ -135,7 +93,7 @@ at `c` (`HupOkC`). -/
 def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (sv : SnapshotM) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
+  (if m.Type' = MsgSnap then SnapCfgOk id c s sv scfg c'
    else c' = c) ∧
   (if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
      else if m.Type' = MsgProp then
@@ -168,22 +126,6 @@ def FollowerStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m :
        -- (2026-10-17) the transfer's campaign makes no pre-candidate
        dropped = false ∧ HupOkC c id s s' ∧ (s'.role = .preCandidate → s'.role = s.role)
      else False)
-
-/-- At a simple configuration, `FollowerStepResultC`'s step is `FollowerStepResult`'s. -/
-theorem FollowerStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}
-    {m : MessageM}
-    {ents : List EntryM} {sv : SnapshotM} {dropped : Bool} {s' : NState} {c' : CfgM}
-    {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
-    FollowerStepResult cfg scfg id s m ents sv dropped s' cl := by
-  obtain ⟨-, h⟩ := h
-  unfold FollowerStepResult
-  by_cases hT : m.Type' = MsgTimeoutNow
-  · simp [hT, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
-      MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
-      MsgUnreachable, MsgSnapStatus, MsgTimeoutNow] at h ⊢
-    exact ⟨h.1, h.2.1.simple⟩
-  · simp only [hT, ite_false] at h ⊢
-    exact h
 
 end results
 
@@ -266,7 +208,7 @@ abbrev stepFollower.spec : Prop :=
   -- a snapshot (stage R4: pure, on the snapshot the message holds and its `ConfState`'s lists)
   (m.Type' = MsgSnap →
      sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-     SnapScope sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id ∧
+     SnapScopeIf id sv scfg ∧ s.role = .follower ∧ s.votes = ∅ ∧ m.From' ≠ id ∧
      -- (2026-10-19, D21 M3) outside the no-snapshot mode
      s.gh.ns = false) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -274,7 +216,10 @@ abbrev stepFollower.spec : Prop :=
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a
       -- forwarded proposal and the response to a heartbeat carry)
       "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
-               ⟨m, ents, sn, cl, rs⟩ }}
+               ⟨m, ents, sn, cl, rs⟩ ∗
+      -- (D22 S-b′3, 2026-10-20) a `MsgSnap`'s snapshot certified in the storage's registry
+      -- (`handleSnapshot`'s; `tsSrc_ne` for any other type)
+      "#Hcert" ∷ tsSrc s.logst.storage m.Type' sn }}
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗

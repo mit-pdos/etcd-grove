@@ -202,20 +202,6 @@ theorem bupd_sendAu {V : Type} [Pos.Countable V] [ZeroVal V] (γ : ChanNames) (v
   imod H
   iexact H
 
-/-- The two halves of the membership token and a whole one are too many. -/
-theorem ghostMapElem_half_whole (γ : GName) (k : Loc) :
-    ghostMapElem (GF := GF) (K := Loc) (V := Unit) γ k (DFrac.own (1 : Qp).half) () ∗
-      ghostMapElem γ k (DFrac.own 1) () ⊢ False := by
-  iintro ⟨H1, H2⟩
-  icombine H1 H2 gives %Hv
-  exfalso
-  obtain ⟨Hv, _⟩ := Hv
-  revert Hv
-  simp only [CMRA.Valid, DFrac.op_own]
-  intro h
-  have : (1 / 2 : Rat) + 1 ≤ 1 := h
-  grind
-
 theorem chainE_trans (P : WsPrm GF) (a b c : Nat) :
     chainE (GF := GF) P a b ∗ chainE P b c ⊢ chainE P a c := by
   unfold chainE

@@ -156,26 +156,6 @@ theorem bbs_insert (P : BksPhys) (B : GMap w64 (List Ent)) (dq : DFrac) (id : w6
       bbAt x.1 dq x.2 es ∗ [∗map] _id ↦ x;es ∈ P;B, bbAt (GF := GF) x.1 dq x.2 es :=
   BigSepM2.bigSepM2_insert (Φ := fun _ (x : Loc × BBPhys) (es : List Ent) => bbAt (GF := GF) x.1 dq x.2 es) hP hB
 
-/-- A buffer of the map, and the map back with that buffer changed (its layout `x'` and entries
-`es'`). -/
-theorem bbs_insert_acc (P : BksPhys) (B : GMap w64 (List Ent)) (dq : DFrac) (id : w64)
-    (x : Loc × BBPhys) (hP : P !! id = some x) :
-    ([∗map] _id ↦ x;es ∈ P;B, bbAt (GF := GF) x.1 dq x.2 es) ⊢
-      ∃ es, ⌜B !! id = some es⌝ ∗ bbAt x.1 dq x.2 es ∗
-        ∀ (x' : Loc × BBPhys) (es' : List Ent), bbAt x'.1 dq x'.2 es' -∗
-          [∗map] _id ↦ x;es ∈ (<[id := x']> P : BksPhys);(<[id := es']> B : GMap w64 (List Ent)), bbAt (GF := GF) x.1 dq x.2 es := by
-  iintro H
-  ihave %Hs := bbs_lookup_some P B dq id x hP $$ H
-  obtain ⟨es, hB⟩ := Hs
-  icases BigSepM2.bigSepM2_insert_acc (Φ := fun _ (x : Loc × BBPhys) (es : List Ent) => bbAt (GF := GF) x.1 dq x.2 es)
-    (m1 := P) (m2 := B) hP hB $$ H with ⟨Hb, Hback⟩
-  iexists es
-  iframe Hb
-  isplitr
-  · ipureintro; exact hB
-  iintro %x' %es' Hb
-  iapply Hback $$ %x' %es' Hb
-
 /-- A buffer of the map, and the map back with that buffer as it was. -/
 theorem bbs_lookup_acc (P : BksPhys) (B : GMap w64 (List Ent)) (dq : DFrac) (id : w64)
     (x : Loc × BBPhys) (hP : P !! id = some x) :

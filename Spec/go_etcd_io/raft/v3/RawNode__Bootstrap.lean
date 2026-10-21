@@ -68,7 +68,10 @@ abbrev RawNode.Bootstrap.spec : Prop :=
       ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗
       -- (2026-10-19, D21 M3) in the cluster's no-snapshot mode, a storage that never compacts
       -- past index `1`
-      NsCap γ.reNoSnap (interface.ok si) }}
+      NsCap γ.reNoSnap (interface.ok si) ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
+      -- no-snapshot mode)
+      certLink γ (interface.ok si) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Bootstrap")) (Val #peers))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∗

@@ -89,6 +89,8 @@ public import Proof.go_etcd_io.raft.v3.SnapConf
 -- (2026-10-16, stage R5) `StepMsg`, `RestMsgOk` for `NetMsgOk`; `ccV2Of` for `DynCCPre`
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Proof.go_etcd_io.raft.v3.CCApply
+-- (D22l) `phsWit`, `phsNext`
+public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 
 @[expose] public section
 
@@ -110,13 +112,17 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 - `self pv t`: a self-addressed response from `msgsAfterAppend` (a candidate's own vote,
   a pre-candidate's own pre-vote -- `pv` -- or a leader's own `MsgAppResp`) of term `t`
   (2026-10-10; until then `self a`, with the message's abstraction `a`);
-- `appendAck t last`: `MsgStorageAppendResp` at term `t` acknowledging the log up to
-  `last` (queued when there were unstable entries);
+- `appendAck t b last sn`: `MsgStorageAppendResp` at term `t` acknowledging the log up to
+  `last` (queued when there were unstable entries; D22 S-d3a, 2026-10-21: `none`, with `Index`
+  `0`, when there were none) and the snapshot `sn` the `Ready` handed out (D22 S-d3a: queued for a
+  snapshot too, `needStorageAppendRespMsg`); (D22 S-d3b, 2026-10-21) `b` is the log's boundary at
+  the `Ready`, which what the storage will hold follows (`LogState.stored`) -- a restore between
+  the `Ready` and the `Advance` moves the boundary, not `stored`;
 - `applyAck ents`: `MsgStorageApplyResp` carrying the committed entries handed out for
   applying. -/
 inductive Pending [FfiSyntax] where
   | self (pv : Bool) (t : w64)
-  | appendAck (term : w64) (last : entryID)
+  | appendAck (term : w64) (base : entryID) (last : Option entryID) (sn : Option SnapshotM)
   | applyAck (ents : List EntryM)
 
 /-- The mode of a `RawNode`'s ghost state (2026-10-14, reconfiguration stage B7 part 2): static
@@ -126,6 +132,18 @@ by applied conf entries: a decoder `dec` and an initial configuration `c0`; B5's
 inductive RNMode [FfiSyntax] where
   | static
   | dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0)
+
+/-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s loan**: the `Ready` handed out the snapshot `snap`
+at `ptr` (`rd.Snapshot`, half of it: the queued acknowledgement shares the pointer,
+`newStorageAppendRespMsg`) and the node's storage itself (`ownRaftLog_lend`, at the floor `fl`), and
+the committed log up to the snapshot (`dlv`, `isCommitted`); the application gives both back with
+`Advance` (`snapReceipt`), which steps the acknowledgement and hands the committed log over
+(`RNState.delivered := dlv`). -/
+structure SnapLoan [FfiSyntax] where
+  ptr : Loc
+  snap : SnapshotM
+  fl : w64
+  dlv : List EntryM
 
 /-- What the application sees of a `RawNode` (2026-10-09). -/
 structure RNState [FfiSyntax] where
@@ -179,6 +197,24 @@ structure RNState [FfiSyntax] where
   to campaign (`Campaign`, `Tick`, `Step` take it clear: `hasUnappliedConfChanges` reads from
   `applied + 1`). -/
   flw : Bool := false
+  /-- (2026-10-20, D22 S-c) A snapshot may be pending: a `MsgSnap` was stepped (`RawNode.Step`),
+  whose restore leaves the snapshot in the log (`unstable.snapshot`, `LogState.snap`) for a later
+  `Ready` to hand out. Only `RawNode.Step` sets it; (D22 S-d3a, 2026-10-21) the next `Ready` clears
+  it (`acceptReady`: it hands the snapshot out, `slent`). So: "a `MsgSnap` stepped since the last
+  `Ready`" (a stale one sets it too). (Until S-d3a, `HasReady`, `readyWithoutAccept`, `Ready`,
+  `Advance` and the floor's raise took it `false`, and nothing cleared it; S-d3a to S-d3b it gated
+  the records of what the storage will hold, now `ackInv`'s.) -/
+  psnap : Bool := false
+  /-- (D22 S-d3a, 2026-10-21) The loan of the last `Ready`, if it handed out a snapshot
+  (`SnapLoan`): from `acceptReady` to the `Advance` that takes the application's receipt back. -/
+  slent : Option SnapLoan := none
+  /-- (D22l, 2026-10-20) `prevHardSt`'s record: the hard state of the last accepted `Ready` that
+  had a non-empty one (`phsNext`), the zero record until then (`NewRawNode` on an empty storage,
+  whose `hardState()` is zero). Only `acceptReady` moves it. A `Ready` with a `nil` `HardState`
+  is one at which the node's hard state is this one, so its witness (`readyWithoutAccept`'s
+  `hsWit` of `phsNext rs.phs h`) is this one's: what `node.go`'s driver needs to read every
+  batch's commit witness off the hard state it last recorded. -/
+  phs : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
 
 section defs
 variable [FfiSyntax]
@@ -194,13 +230,6 @@ def RNMode.toG : RNMode → RGh → GMode
 
 theorem RNMode.toG_isDyn (md : RNMode) (g : RGh) : (md.toG g).isDyn = md.isDyn := by
   cases md <;> rfl
-
-/-- The voters the node's quorums are taken in, as the client sees them: `γ.reCfg` in the
-static mode, the configuration in use in the dynamic one. -/
-def RNState.vcfg (γ : RaftNames) (rs : RNState) : CfgM :=
-  match rs.mode with
-  | .static => CfgM.simple γ.reCfg ∅
-  | .dyn .. => rs.cfg.cfg
 
 /-- No conf entry in a range of a prefix is none in the longer log. -/
 theorem NoConfIn_prefix {D F : List EntryM} {lo hi : Nat} (hp : D <+: F)
@@ -278,7 +307,7 @@ builds (no snapshot, context or responses; the apply acknowledgement's entries t
 entries handed out). -/
 def pendSt (id : w64) (st : MsgSt) : Pending → Prop
   | .self pv t => SelfMsgOk id st ∧ st.msg.Term' = t ∧ pv = decide (st.msg.Type' = MsgPreVoteResp)
-  | .appendAck t e => st = ⟨appendAckM id t e, [], none, [], []⟩
+  | .appendAck t _ e sn => st = ⟨appendAckM id t (e.getD (entryID.mk (W64 0) (W64 0))), [], sn, [], []⟩
   | .applyAck ce => st = ⟨applyAckM id, ce, none, [], []⟩
 
 /-! ## The queue `Advance` is proved for
@@ -313,7 +342,12 @@ def PendingOk (s : NState) (p : Pending) : Prop :=
       -- (2026-10-17; 2026-10-10 to 2026-10-17: with pre-vote off, not a pre-vote response) a
       -- pre-vote response within the term ceiling (`OutTermOk`)
       (pv = true → uint.Z t ≤ uint.Z s.gh.tc)
-  | .appendAck t e => uint.Z t ≤ uint.Z s.term ∧ plogLast s.logst.prev s.logst.stored = e
+  | .appendAck t b e _ => uint.Z t ≤ uint.Z s.term ∧
+      -- (D22 S-d3b) the last of what the storage holds after the `Ready`'s boundary `b` (not the
+      -- log's current one, which a restore moves), and the term past `0` (the entry's record and
+      -- the term bound of the log, at the `Ready`): an acknowledgement of term `0` would be a
+      -- local message, of the current term whatever it is
+      ∀ x, e = some x → plogLast b s.logst.stored = x ∧ 1 ≤ uint.Z t
   | .applyAck _ => ApplyAckOk s p
 
 /-- The queue, in `acceptReady`'s order: the self-addressed responses (2026-10-10), then
@@ -325,7 +359,7 @@ responses (`RNState.advanceable`). It is stated on `s`'s term, `committed`, `app
 def StepsOk (s : NState) : List Pending → Prop
   | [] => True
   | .self pv t :: rest => PendingOk s (.self pv t) ∧ StepsOk s rest
-  | .appendAck t e :: rest => PendingOk s (.appendAck t e) ∧ ∀ p ∈ rest, ApplyAckOk s p
+  | .appendAck t b e sn :: rest => PendingOk s (.appendAck t b e sn) ∧ ∀ p ∈ rest, ApplyAckOk s p
   | .applyAck ce :: rest => ∀ p ∈ Pending.applyAck ce :: rest, ApplyAckOk s p
 
 theorem applyAckOk_mono (s s' : NState) (p : Pending)
@@ -346,7 +380,7 @@ theorem stepsOk_of_applyAcks (s : NState) (l : List Pending)
   match l, H with
   | [], _ => trivial
   | .self _ _ :: _, H => exact (H _ List.mem_cons_self).elim
-  | .appendAck _ _ :: _, H => exact (H _ List.mem_cons_self).elim
+  | .appendAck _ _ _ _ :: _, H => exact (H _ List.mem_cons_self).elim
   | .applyAck _ :: _, H => exact H
 
 /-- `StepsOk` survives a step that moves the term up (a campaign, a message of a higher
@@ -370,10 +404,10 @@ theorem stepsOk_mono_le (s s' : NState) (steps : List Pending)
     | self pv t =>
       intro ⟨⟨H1, H1'⟩, H2⟩
       exact ⟨⟨by omega, fun h => Int.le_trans (H1' h) Htc⟩, IH H2⟩
-    | appendAck t e =>
+    | appendAck t b e sn =>
       intro ⟨⟨H1, H2⟩, Hr⟩
       refine ⟨⟨by omega, ?_⟩, Hall rest Hr⟩
-      rw [Hst.1, Hst.2]; exact H2
+      rw [Hst.2]; exact H2
     | applyAck ce =>
       intro H; exact Hall _ H
 
@@ -450,7 +484,7 @@ theorem stepsOk_cons (s : NState) (p : Pending) (rest : List Pending) :
     StepsOk s (p :: rest) → PendingOk s p ∧ StepsOk s rest := by
   cases p with
   | self pv t => exact id
-  | appendAck t e =>
+  | appendAck t b e sn =>
     intro ⟨Hh, Hr⟩
     exact ⟨Hh, stepsOk_of_applyAcks s rest Hr⟩
   | applyAck ce =>
@@ -464,7 +498,7 @@ theorem stepsOk_ack_noself (s : NState) (p : Pending) (rest : List Pending)
     StepsOk s (p :: rest) → ∀ pv t, Pending.self pv t ∉ rest := by
   cases p with
   | self pv t => exact absurd rfl (Hp pv t)
-  | appendAck t e =>
+  | appendAck t b e sn =>
     intro ⟨_, Hr⟩ pv t' Hm
     exact Hr _ Hm
   | applyAck ce =>
@@ -472,19 +506,74 @@ theorem stepsOk_ack_noself (s : NState) (p : Pending) (rest : List Pending)
     exact H _ (List.mem_cons_of_mem _ Hm)
 
 
+/-- (D22 S-d3b, 2026-10-21) `StepsOk` across a step that need not keep the log's boundary (a
+restore's): it is stated on `stored`, not on `prev` (`PendingOk`). -/
+theorem stepsOk_mono_st (s s' : NState) (steps : List Pending)
+    (Ht : uint.Z s.term ≤ uint.Z s'.term)
+    (Hsd : s'.logst.stored = s.logst.stored)
+    (Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (Ha : s'.logst.applying = s.logst.applying)
+    (Htc : uint.Z s.gh.tc ≤ uint.Z s'.gh.tc) :
+    StepsOk s steps → StepsOk s' steps := by
+  have Hall : ∀ l : List Pending, (∀ p ∈ l, ApplyAckOk s p) → ∀ p ∈ l, ApplyAckOk s' p :=
+    fun l H p Hp => applyAckOk_mono s s' p Hc Ha (H p Hp)
+  induction steps with
+  | nil => intro _; trivial
+  | cons p rest IH =>
+    cases p with
+    | self pv t =>
+      intro ⟨⟨H1, H1'⟩, H2⟩
+      exact ⟨⟨by omega, fun h => Int.le_trans (H1' h) Htc⟩, IH H2⟩
+    | appendAck t b e sn =>
+      intro ⟨⟨H1, H2⟩, Hr⟩
+      refine ⟨⟨by omega, ?_⟩, Hall rest Hr⟩
+      rw [Hsd]; exact H2
+    | applyAck ce =>
+      intro H; exact Hall _ H
+
+/-- (D22 S-d3b) A queued storage acknowledgement of a `StepsOk` queue is `PendingOk` (there is at
+most one, and it is followed by apply acknowledgements only). -/
+theorem stepsOk_ack {s : NState} {steps : List Pending} {t : w64} {b : entryID}
+    {e : Option entryID} {sn : Option SnapshotM} (H : StepsOk s steps)
+    (hm : Pending.appendAck t b e sn ∈ steps) : PendingOk s (.appendAck t b e sn) := by
+  induction steps with
+  | nil => cases hm
+  | cons p rest IH =>
+    cases p with
+    | self pv t' =>
+      rcases List.mem_cons.1 hm with h | h
+      · cases h
+      · exact IH H.2 h
+    | appendAck t' b' e' sn' =>
+      rcases List.mem_cons.1 hm with h | h
+      · cases h; exact H.1
+      · exact (H.2 _ h).elim
+    | applyAck ce =>
+      exact (H _ hm).elim
+
+/-- (D22 S-d3b) The term of a queued storage acknowledgement, after a step that does not move the
+term back, is the term before when it is the term after. -/
+theorem ack_term_back {t : w64} {s s' : NState} (h1 : uint.Z t ≤ uint.Z s.term)
+    (h2 : uint.Z s.term ≤ uint.Z s'.term) (h3 : s'.term = t) : s.term = t := by
+  rw [h3] at h2
+  exact uint_Z_inj.mp (by omega)
+
 /-! ## The messages of the `RawNode`/`node` API (2026-10-16, stage R5)
 
 Moved here from the old specs (`RawNode__Step.lean`, `RawNode__ApplyConfChange.lean`,
 `RawNode__Propose.lean`, `node`'s): `InvNode.lean` and the specs share them. -/
 
 /-- The message types `RawNode.Step` is specified for: replication, leader election,
-(2026-10-13) read-index, leader transfer and the local reports. -/
+(2026-10-13) read-index, leader transfer and the local reports, (2026-10-17) pre-vote and
+(2026-10-20, D22 S-c) a leader's snapshot. -/
 def netStepTypes : List w32 :=
   [MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
    MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader,
    MsgUnreachable, MsgSnapStatus,
    -- (2026-10-17) pre-vote
-   MsgPreVote, MsgPreVoteResp]
+   MsgPreVote, MsgPreVoteResp,
+   -- (2026-10-20, D22 S-c) a snapshot
+   MsgSnap]
 
 /-- (2026-10-13) The types of `netStepTypes` that come unstamped (`Term = 0`): a read-index
 request (forwarded or local), `TransferLeadership`'s request, and the local reports. -/
@@ -497,13 +586,14 @@ def UnstampedType (t : w32) : Prop :=
 addressed to `id`, of a nonzero term, from a nonzero sender; a transfer request with no
 entries and no context. (2026-10-16, stage R5: on the message's state, the last clause over its
 entries and context, `st.ents = [] ∧ st.ctx = []`; until then over the Goose value, `Entries' =
-slice.nil ∧ Context' = slice.nil`.) -/
+slice.nil ∧ Context' = slice.nil`.) (2026-10-20, D22 S-c) A `MsgSnap`, a leader's, from another
+node, like its `MsgApp`. -/
 def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
   st.msg.Type' ∈ netStepTypes ∧
   (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
   (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
   (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-     st.msg.Type' = MsgReadIndexResp → st.msg.From' ≠ id) ∧
+     st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
   (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
   (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
   -- (2026-10-17) a pre-vote request from another node
@@ -512,7 +602,7 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
 omit [FfiSyntax] in
 theorem netStepTypes_nonneg {t : w32} (h : t ∈ netStepTypes) : 0 ≤ sint.Z t := by
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
-  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
+  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
 
 omit [FfiSyntax] in
 theorem netStepTypes_ne_prop {t : w32} (h : t ∈ netStepTypes) : t ≠ MsgProp := by
@@ -520,12 +610,12 @@ theorem netStepTypes_ne_prop {t : w32} (h : t ∈ netStepTypes) : t ≠ MsgProp 
   rw [he] at h
   simp [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
     MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgTimeoutNow, MsgTransferLeader,
-    MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgPreVote, MsgPreVoteResp] at h
+    MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgPreVote, MsgPreVoteResp, MsgSnap] at h
 
 theorem netStepTypes_stepMsg {m : MessageM} (h : m.Type' ∈ netStepTypes) : StepMsg m := by
   simp only [StepMsg, stepMsgTypes]
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
-  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> simp [h]
+  rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> simp [h]
 
 
 /-! ### What a sender in the no-snapshot mode promises the receiver (2026-10-19, D21 M2r)
@@ -534,11 +624,6 @@ A message a `Ready` hands out in the cluster's no-snapshot mode is `SentMsgOk` (
 clause, `InvRaftPhys.lean`): at the node it is addressed to, every clause of `NetMsgOk` but for a
 forwarded proposal, which `node.Step` takes as `fwdP` (D21g (A)). -/
 
-theorem SentMsgOk.ne_snap {st : MsgSt} (H : SentMsgOk st) : st.msg.Type' ≠ MsgSnap := by
-  intro h; have := H.1; rw [h] at this
-  simp [sentTypes, MsgSnap, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
-    MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-    MsgTransferLeader] at this
 
 theorem SentMsgOk.ne_timeoutNow {st : MsgSt} (H : SentMsgOk st) :
     st.msg.Type' ≠ MsgTimeoutNow := by
@@ -563,10 +648,10 @@ theorem NetMsgOk.of_sent {dst : w64} {st : MsgSt} (H : SentMsgOk st) (Hto : st.m
   subst Hto
   unfold NetMsgOk UnstampedType
   simp only [sentTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-  rcases Hty with h | h | h | h | h | h | h | h | h | h | h <;> rw [h] at Ht0 Ht1 Hft Hnp ⊢ <;>
+  rcases Hty with h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] at Ht0 Ht1 Hft Hnp ⊢ <;>
     simp only [netStepTypes, MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat,
       MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgTimeoutNow,
-      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at Ht0 Ht1 Hft Hnp ⊢ <;>
+      MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgSnap] at Ht0 Ht1 Hft Hnp ⊢ <;>
     simp_all
 
 /-- What `raft.Step` takes of the types it was extended to last (`RestMsgOk`), from
@@ -648,24 +733,10 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
       ⌜uint.Z ls.prev.index' + ((ls.sents ++ ls.uents).length : Int) < 2^61 + 2^63⌝ ∗
       ownRaftLog l ls := by
   iintro H0
+  -- (D22 S-d1b) the stable part's bound (the storage may be lent)
+  icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
   iNamed H0
-  ihave #Hsto : isStorage (GF := GF) lv.storage' $$ []
-  · iexact HisStorage
-  iunfold isStorage at Hsto
-  iunfold isStorageWith at Hsto
-  icases Hsto with ⟨%isv, #Hs⟩
-  iNamed Hs
-  icases Hbounded $$ %σ HStorage with ⟨%Hstb, HStorage⟩
   ihave %Hul := entsPts_len _ _ _ $$ Huents
-  have Hsb : uint.Z ls.prev.index' + (ls.sents.length : Int) < 2^61 := by
-    unfold LogStoreOk at Hstore
-    split at Hstore
-    · obtain ⟨Hsp, Hstored, -⟩ := Hstore
-      have := Hstored.length_le
-      rw [Hsp] at Hstb
-      omega
-    · obtain ⟨rfl, Hs0, Hsid⟩ := Hstore
-      rw [Hs0, List.length_nil]; omega
   isplitr
   · ipureintro
     have : (ls.uents.length : Int) < 2^63 := by
@@ -674,8 +745,81 @@ theorem ownRaftLog_last_bound (l : Loc) (ls : LogState) :
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
       Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
-      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Huents
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
       Huents_cap Hl_logger Hu_logger
+
+/-- The in-progress part of the log is a prefix of what the storage will hold
+(`LogPersistRel`): the log and `stored` agree below `offsetInProgress`. -/
+theorem persistRel_agree {prev : entryID} {sents uents stored : List EntryM} {ip : w64}
+    (H : LogPersistRel sents uents
+      (uint.Z ip - (uint.Z prev.index' + (sents.length : Int) + 1)) stored)
+    (Hip1 : uint.Z prev.index' + (sents.length : Int) + 1 ≤ uint.Z ip)
+    (Hip2 : uint.Z ip ≤ uint.Z prev.index' + (sents.length : Int) + 1 + (uents.length : Int))
+    (j : w64) (hj1 : uint.Z prev.index' < uint.Z j) (hj2 : uint.Z j < uint.Z ip) :
+    plogTermAt prev (sents ++ uents) j = plogTermAt prev stored j := by
+  obtain ⟨Hpre, -⟩ := H
+  have h1 : ¬ uint.Z j < uint.Z prev.index' := by omega
+  have h2 : ¬ uint.Z j = uint.Z prev.index' := by omega
+  unfold plogTermAt
+  simp only [h1, h2, ↓reduceIte]
+  congr 1
+  generalize hk : (uint.Z j - uint.Z prev.index' - 1).toNat = k
+  generalize hn : (uint.Z ip - (uint.Z prev.index' + (sents.length : Int) + 1)).toNat = n at Hpre
+  have Hkl : k < (sents ++ uents.take n).length := by
+    simp only [List.length_append, List.length_take]
+    omega
+  have H1 : (sents ++ uents)[k]? = (sents ++ uents.take n)[k]? := by
+    by_cases hks : k < sents.length
+    · rw [List.getElem?_append_left hks, List.getElem?_append_left hks]
+    · rw [List.getElem?_append_right (by omega), List.getElem?_append_right (by omega),
+        List.getElem?_take_of_lt (by simp only [List.length_append, List.length_take] at Hkl; omega)]
+  rw [H1]
+  obtain ⟨tl, htl⟩ := Hpre
+  rw [← htl, List.getElem?_append_left Hkl]
+
+/-- (D22 S-d3b, 2026-10-21) The log and what the storage will hold agree below
+`offsetInProgress`, with no snapshot pending or one in progress (`Hpersist`, `SipOk`:
+`LogPersistRel`, `persistRel_agree`); and the boundary is at most the commit index. -/
+theorem ownRaftLog_persistRel (l : Loc) (ls : LogState) :
+    ⊢ ownRaftLog (GF := GF) l ls -∗
+      ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
+        ((ls.snap = none ∨ ls.sip = true) →
+          ∀ j : w64, uint.Z ls.prev.index' < uint.Z j → uint.Z j < uint.Z ls.inprogress →
+            plogTermAt ls.prev (ls.sents ++ ls.uents) j = plogTermAt ls.prev ls.stored j)⌝ ∗
+      ownRaftLog l ls := by
+  iintro H0
+  iNamed H0
+  isplitr
+  · ipureintro
+    refine ⟨Happlied.1, fun Hc j h1 h2 => ?_⟩
+    have Hrel : LogPersistRel ls.sents ls.uents
+        (uint.Z ls.inprogress - uint.Z lv.unstable'.offset') ls.stored := by
+      rcases Hc with Hc | Hc
+      · exact (Hpersist Hc).rel
+      · exact Hprel.1 Hc
+    rw [Hoffset] at Hrel Hipb
+    exact persistRel_agree Hrel Hipb.1 Hipb.2 j h1 h2
+  · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Hpaused Hasz Hamx Hstor Hpend Hfl Hsksn Hsip Hsipn Hlent Hq Hprel Hsat rfl rfl rfl rfl $$ Hl HisStorage HStorage Husnap Hpksn Hkcert Huents
+      Huents_cap Hl_logger Hu_logger
+
+/-- ... read through the struct. -/
+theorem ownRaftPhysC_persistRel (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed ∧
+        ((s.logst.snap = none ∨ s.logst.sip = true) →
+          ∀ j : w64, uint.Z s.logst.prev.index' < uint.Z j →
+            uint.Z j < uint.Z s.logst.inprogress →
+            plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) j =
+              plogTermAt s.logst.prev s.logst.stored j)⌝ ∗
+      ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_log_same c r id s $$ H with ⟨Hlog, Hback⟩
+  icases ownRaftLog_persistRel _ _ $$ Hlog with ⟨%Hb, Hlog⟩
+  ihave H := Hback $$ Hlog
+  iframe H
+  ipureintro; exact Hb
 
 /-- ... read through the struct: room for a dropped proposal's indices (`GMode.Pre`). -/
 theorem ownRaftPhysC_last_bound (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
@@ -750,7 +894,7 @@ local macro "not_net" : tactic => `(tactic| (intro h; first
 /-- A stamped type is not one of the unstamped ones. -/
 local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
   MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgPreVote, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
-  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
+  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader, MsgSnap]))
 
 /-- **`raft.Step`'s premises of a message from the network** (`NetMsgOk`) at a `RawNode`'s
 state (`RNPv rs s`, the term `rs.term = s.term`; the ceiling covering the message's term and a
@@ -758,7 +902,7 @@ transfer's campaign, a pre-vote request only past term `0`): every premise up to
 vacuous at a type the network does not deliver. `k` is `raft.Step`'s spec at the message (what it
 takes after `RestMsgOk` is left in `X`). Shared by `RawNode.Step` (`RawNode__Step.lean`) and
 `run`'s step (`InvNodeRun.lean`, `wp_rn_raft_Step_net`). -/
-theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m : MessageM}
+theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {md : GMode} {m : MessageM}
     {ents : List EntryM} {sn : Option SnapshotM} {ctx : List w8} {rsp : List Loc} {X : Prop}
     (Hok : NetMsgOk id ⟨m, ents, sn, ctx, rsp⟩) (Hpv : RNPv rs s) (Htrm : rs.term = s.term)
     (Hmtc : uint.Z m.Term' ≤ uint.Z rs.tc)
@@ -789,9 +933,17 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
       (m.Type' = MsgSnap → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
       (m.Type' = MsgBeat ∨ m.Type' = MsgCheckQuorum → m.Term' = W64 0) →
       (m.Type' = MsgProp → m.Term' = W64 0 ∧ (m.From' = W64 0 ∨ m.From' = id)) →
-      (m.Type' = MsgStorageAppendResp → sn = none ∧ uint.Z m.Term' ≤ uint.Z s.term ∧
+      (m.Type' = MsgStorageAppendResp →
+        (∀ sv, sn = some sv →
+          snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
+          uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
+          md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+          (s.logst.snap ≠ none → s.logst.lent = false →
+            uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+          (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index')) ∧
+        uint.Z m.Term' ≤ uint.Z s.term ∧
         (m.Term' = W64 0 ∨ m.Term' = s.term → m.Index' ≠ W64 0 →
-          StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
+          StableOk (ackLog s.logst sn) (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false) →
       (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
       (m.Type' = MsgReadIndex → m.Term' = W64 0) →
       (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
@@ -819,10 +971,13 @@ theorem NetMsgOk.raftStep {id : w64} {rs : RNState} {s : NState} {c : CfgM} {m :
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2, Hrej h⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inl h)))⟩)
-    (by not_net) (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h))
+    -- (2026-10-20, D22 S-c) a leader's snapshot, from another node
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inr (.inr (.inr h))))⟩)
+    (by not_net) (by not_net) (by not_net) (by not_net) (fun h => Hri (.inl h))
     (by not_net)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-      Hself (.inr (.inr (.inr h)))⟩)
+      Hself (.inr (.inr (.inr (.inl h))))⟩)
     (Hok.restMsgOk (st := ⟨m, ents, sn, ctx, rsp⟩) (fun h => by
       have := Htn h; rw [Hpv.2.1, Htrm] at this
       have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term')
@@ -853,11 +1008,133 @@ theorem RNPv.keep {rs rs' : RNState} {s s' : NState} (H : RNPv rs s)
   refine ⟨fun h => by rw [hpv]; exact H1 (hmd ▸ h), by rw [htc, hgh]; exact H2,
     by rw [hgh, ht]; exact H3, fun h => by rw [hgh, ht]; exact H4 (hr ▸ h)⟩
 
+/-- (D22 S-d3a, 2026-10-21) **A snapshot `Ready`'s loan, as the node keeps it** (`RNState.slent`):
+the ghost mirror of the lent storage (`NGhost.slent`, `SnpOk`) and of the snapshot handed out
+(`NGhost.snp`); with a loan, the snapshot still pending or (D22 S-d3b, 2026-10-21) a later one
+restored past it (`RawNode.Step` takes a `MsgSnap` with a loan since S-d3b: the restore found the
+log without the later snapshot's last entry, `ackBaseW`), the lent snapshot at most the commit
+index, the floor the storage was lent at, what the storage will hold the batch handed out
+(`stored = unpersisted`), `applying` at most the snapshot's index, the committed log up to the
+snapshot extending `delivered`, and its acknowledgement queued last, after the node's own
+responses (a snapshot `Ready` hands out no committed entries), at the snapshot as its boundary.
+(Until S-d3b: the snapshot still pending, `psnap` off, and `psnap → steps = []`.) -/
+def LoanOk (rs : RNState) (s : NState) : Prop :=
+  s.gh.slent = rs.slent.isSome ∧
+  (rs.slent = none → s.gh.snp = none ∧ ∀ t b e sv, Pending.appendAck t b e (some sv) ∉ rs.steps) ∧
+  (∀ l, rs.slent = some l →
+    s.gh.snp = some (snapTrip l.snap l.snap.Metadata'.ConfState'.lists) ∧
+    (s.logst.snap = some (snapId l.snap) ∨
+      ∃ s2, s.logst.snap = some s2 ∧ uint.Z l.snap.Metadata'.Index' < uint.Z s2.index' ∧
+        rs.psnap = true) ∧
+    uint.Z l.snap.Metadata'.Index' ≤ uint.Z s.logst.committed ∧
+    l.fl = s.logst.fl ∧
+    s.logst.stored = s.logst.unpersisted ∧
+    uint.Z s.logst.applying ≤ uint.Z l.snap.Metadata'.Index' ∧
+    rs.delivered <+: l.dlv ∧ l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
+    ∃ pre t e, rs.steps = pre ++ [Pending.appendAck t (snapId l.snap) e (some l.snap)] ∧
+      ∀ p ∈ pre, ∃ pv t', p = .self pv t')
+
+/-- No loan, no snapshot acknowledgement queued. -/
+theorem LoanOk.none_noack {rs : RNState} {s : NState} (H : LoanOk rs s) (h : rs.slent = none) :
+    s.gh.snp = none ∧ ∀ t b e sv, Pending.appendAck t b e (some sv) ∉ rs.steps := H.2.1 h
+
+/-- An empty queue: no loan. -/
+theorem LoanOk.none_of_nil {rs : RNState} {s : NState} (H : LoanOk rs s) (h : rs.steps = []) :
+    rs.slent = none := by
+  cases hl : rs.slent with
+  | none => rfl
+  | some l =>
+    obtain ⟨-, -, -, -, -, -, -, -, pre, t, e, Hst, -⟩ := H.2.2 l hl
+    rw [h] at Hst; simp at Hst
+
+/-- `LoanOk` across a step that keeps what it reads (the commit index not moved back). -/
+theorem LoanOk.keep {rs rs' : RNState} {s s' : NState} (H : LoanOk rs s)
+    (hgh : s'.gh = s.gh) (hsn : s'.logst.snap = s.logst.snap) (hfl : s'.logst.fl = s.logst.fl)
+    (hsd : s'.logst.stored = s.logst.stored) (hu : s'.logst.unpersisted = s.logst.unpersisted)
+    (hap : s'.logst.applying = s.logst.applying)
+    (hcm : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed)
+    (hsl : rs'.slent = rs.slent := by rfl) (hst : rs'.steps = rs.steps := by rfl)
+    (hd : rs'.delivered = rs.delivered := by rfl) (hps : rs'.psnap = rs.psnap := by rfl) :
+    LoanOk rs' s' := by
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨by rw [hgh, hsl]; exact H1, fun h => ?_, fun l h => ?_⟩
+  · rw [hgh, hst]; exact H2 (hsl ▸ h)
+  · obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := H3 l (hsl ▸ h)
+    rw [hgh, hsn, hfl, hsd, hu, hap, hd, hst, hps]
+    exact ⟨a1, a2, Int.le_trans a3 hcm, a4, a5, a6, a7, a8, a9⟩
+
+/-- `LoanOk` across `RawNode.Step`: the ghost state kept, and with a loan what it reads of the log,
+but for the pending snapshot, which (D22 S-d3b) a restore past the commit index replaces. -/
+theorem LoanOk.step {rs : RNState} {s s' : NState} {b : Bool} (t : w64) (H : LoanOk rs s)
+    (hgh : s'.gh = s.gh)
+    (hkeep : rs.slent ≠ none →
+      (s'.logst.snap = s.logst.snap ∨
+        ∃ s2, s'.logst.snap = some s2 ∧ uint.Z s.logst.committed < uint.Z s2.index' ∧
+          b = true) ∧
+      s'.logst.fl = s.logst.fl ∧
+      s'.logst.stored = s.logst.stored ∧ s'.logst.unpersisted = s.logst.unpersisted ∧
+      s'.logst.applying = s.logst.applying ∧
+      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) :
+    LoanOk { rs with term := t, psnap := rs.psnap || b } s' := by
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨by rw [hgh]; exact H1, fun h => ?_, fun l h => ?_⟩
+  · rw [hgh]; exact H2 h
+  · have hl : rs.slent = some l := h
+    obtain ⟨a1, a2, a3, a4, a5, a6, a7, a8, a9⟩ := H3 l hl
+    obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hkeep (by rw [hl]; simp)
+    refine ⟨by rw [hgh]; exact a1, ?_, Int.le_trans a3 k6, by rw [k2]; exact a4,
+      by rw [k3, k4]; exact a5, by rw [k5]; exact a6, a7, a8, a9⟩
+    rcases k1 with k1 | ⟨s2, h2, hgt, hb⟩
+    · rw [k1]
+      rcases a2 with a2 | ⟨s2, h2, hlt, hps⟩
+      · exact .inl a2
+      · exact .inr ⟨s2, h2, hlt, by simp [hps]⟩
+    · exact .inr ⟨s2, h2, by omega, by simp [hb]⟩
+
+/-- (D22 S-d3b) The queue's snapshot acknowledgement is the loan's (it holds at most one storage
+acknowledgement, after the node's own responses). -/
+theorem LoanOk.ack_eq {rs : RNState} {s : NState} (H : LoanOk rs s) {t : w64} {b : entryID}
+    {e : Option entryID} {sv : SnapshotM} (hm : Pending.appendAck t b e (some sv) ∈ rs.steps) :
+    ∃ l, rs.slent = some l ∧ sv = l.snap ∧ b = snapId l.snap := by
+  cases hl : rs.slent with
+  | none => exact absurd hm ((H.none_noack hl).2 t b e sv)
+  | some l =>
+    obtain ⟨-, -, -, -, -, -, -, -, pre, t', e', Hst, Hpre⟩ := H.2.2 l hl
+    rw [Hst] at hm
+    rcases List.mem_append.1 hm with h | h
+    · obtain ⟨pv, t'', h'⟩ := Hpre _ h; cases h'
+    · simp only [List.mem_singleton, Pending.appendAck.injEq] at h
+      exact ⟨l, rfl, Option.some.inj h.2.2.2, h.2.1⟩
+
+/-- (D22 S-d3b) With a storage acknowledgement queued and no restore since its `Ready` (the boundary
+and the pending snapshot the `Ready`'s), no snapshot is pending or one is in progress (the loan's,
+`SnpOk`): the log's persistence relation holds (`ownRaftPhysC_persistRel`). -/
+theorem ack_snap_sip {rs : RNState} {s : NState} (H : LoanOk rs s) (Hsn : SnpOk s.gh s.logst) :
+    (∃ t b e sn, Pending.appendAck t b e sn ∈ rs.steps ∧ s.logst.prev = b ∧
+      s.logst.snap = sn.map snapId) → s.logst.snap = none ∨ s.logst.sip = true := by
+  rintro ⟨t, b, e, sn, hm, -, hsn⟩
+  cases sn with
+  | none => exact .inl hsn
+  | some sv =>
+    obtain ⟨l, hl, rfl, -⟩ := H.ack_eq hm
+    obtain ⟨a1, -⟩ := H.2.2 l hl
+    exact .inr ((Hsn.2.1 _ a1).1 hsn).1
+
 /-- What `GMode.Pre` needs of the node, for any message but a snapshot or a storage-apply
 acknowledgement (2026-10-14, stage B7 part 2). -/
 def PreFacts (dyn : Bool) (s : NState) : Prop :=
   (dyn = true → s.role ≠ .preCandidate) ∧
   plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64
+
+/-- (2026-10-20, D22 S-c) `GMode.Pre` for any message but a storage-apply acknowledgement, a
+snapshot's included (`GMode.Pre` asks nothing of one). -/
+theorem RNMode.pre_net {mode : RNMode} {g : RGh} {m : MessageM} {ents : List EntryM}
+    {s : NState} (h : PreFacts (mode.toG g).isDyn s)
+    (h3 : m.Type' ≠ MsgStorageApplyResp) : (mode.toG g).Pre m ents s := by
+  cases mode with
+  | static => trivial
+  | dyn dec c0 h0 _ =>
+    exact ⟨h.1 rfl, fun h' => absurd h' h3, fun _ => h.2⟩
 
 theorem GMode.Pre.of_facts {md : GMode} {m : MessageM} {ents : List EntryM}
     {s : NState} (h : PreFacts md.isDyn s) (h1 : m.Type' ≠ MsgSnap)
@@ -879,25 +1156,6 @@ theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
   ipureintro
   refine ⟨fun hd h => ?_, Hb⟩
   have := Hpc h; rw [Hpv hd] at this; cases this
-
-/-- The dynamic mode's premises of a step of `raft.Step` (`GMode.Pre`) for a message that is
-no snapshot and no storage-apply acknowledgement, at a node with pre-vote off (2026-10-14,
-stage B7 part 2): no pre-candidate (`ownRaftPhysC_precand`), and for a proposal the log's
-room (`ownRaftPhysC_last_bound`). -/
-theorem ownRaftPhysC_pre (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
-    (md : GMode) (m : MessageM) (ents : List EntryM) (Hpv : md.isDyn = true → s.prevote = false)
-    (h1 : m.Type' ≠ MsgSnap) (h3 : m.Type' ≠ MsgStorageApplyResp) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜md.Pre m ents s⌝ ∗ ownRaftPhysCV c V r id s := by
-  iintro H
-  icases ownRaftPhysC_precand c r id s $$ H with ⟨%Hpc, H⟩
-  icases ownRaftPhysC_last_bound c r id s $$ H with ⟨%Hb, H⟩
-  iframe H
-  ipureintro
-  cases md with
-  | static => trivial
-  | dyn dec c0 h0 g =>
-    refine ⟨fun h => ?_, fun h => absurd h h3, fun _ => Hb⟩
-    have := Hpc h; rw [Hpv rfl] at this; cases this
 
 end proof
 
@@ -935,23 +1193,21 @@ legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; 
 pure.) (2026-10-19, D21 M3) In the cluster's no-snapshot mode no `MsgSnap`; (D21 M2r, D21g (A))
 and what the receiver's `NetMsgOk` needs of it (`SentMsgOk`, `NetMsgOk.of_sent`): its type, a
 nonzero sender other than its destination, its term stamped (no `MsgTimeoutNow`, no
-`MsgTransferLeader`: leader transfer is off in the mode). -/
+`MsgTransferLeader`: leader transfer is off). (2026-10-19, D22 S-a) The latter in the no-transfer
+mode (`RaftNames.reNoXfer`) and the no-snapshot one, which until then were one; (2026-10-20, D22
+S-c) in the no-transfer mode alone: its types exclude the transfer messages (admitting a leader's
+`MsgSnap`), and its stamped terms are past `0`, which the mode's bootstrap log gives
+(`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). (2026-10-20, D22 S-b′3) Certified
+(`isMessageC`): a `MsgSnap` carries its snapshot's configuration certificate (`raftSnapCert`),
+which the `Ready` took from the storage's registry (`qSrc`, `certLink`). -/
 def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
-  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗ ⌜γ.reNoSnap = true → SentMsgOk st⌝ ∗
-    ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessage γ x)
+  iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
+    ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
+    ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x)
 
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
   unfold isRaftMsg; infer_instance
-
-/-- (2026-10-19, D21 M2r) In the cluster's no-snapshot mode a message a `Ready` handed out is
-`SentMsgOk`: at its destination `NetMsgOk.of_sent` (D21g (A)). -/
-theorem isRaftMsg_sent (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ st ⊢ ⌜SentMsgOk st⌝ := by
-  iintro H
-  unfold isRaftMsg
-  icases H with ⟨-, %H, -⟩
-  ipureintro; exact H hns
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
 records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of
@@ -1003,7 +1259,35 @@ theorem stableOk_of_stored (γ : RaftNames) (id : w64) (s : NState) {md : Bool}
   isplitr
   · ipureintro
     intro Hhit
-    exact ⟨Hsn, Hun, stored_agree _ _ _ _ HwL HwF HRA He Hhit.2⟩
+    exact ⟨.inl Hsn, Hun, stored_agree _ _ _ _ HwL HwF HRA He Hhit.2⟩
+  iexact Hg
+
+/-- (D22 S-d3a) `stableOk_of_stored` for a log state `ls` with the node's log and records' base
+and what it holds (the acknowledgement's `ackLog`), the storage holding the pending snapshot
+(`sapp`) or none pending. -/
+theorem stableOk_of_stored_ls (γ : RaftNames) (id : w64) (s : NState) {md : Bool}
+    (ls : LogState) (e : entryID)
+    (Hls : ls.prev = s.logst.prev ∧ ls.stored = s.logst.stored ∧
+      ls.sents ++ ls.uents = s.logst.sents ++ s.logst.uents)
+    (He : plogLast s.logst.prev s.logst.stored = e)
+    (Hsn : ls.snap = none ∨ ls.sapp = true) (Hun : ls.unpersisted = []) :
+    ⊢ storedRecs γ s.logst.prev s.logst.stored -∗ ownRaftGhost (GF := GF) γ id (toPState s) md -∗
+      ⌜StableOk ls e⌝ ∗ ownRaftGhost γ id (toPState s) md := by
+  iintro #Hst Hg
+  icases ownRaftGhost_storedRecs_keep γ id (toPState s) $$ Hg with ⟨Hg, #Hlr⟩
+  unfold storedRecs
+  icases Hst with ⟨%HwL, #HrL⟩
+  icases Hlr with ⟨%HwF, #HrF⟩
+  icases logRecs_agree γ _ _ _ _ $$ HrL HrF with %HRA
+  isplitr
+  · ipureintro
+    intro Hhit
+    obtain ⟨Hp, Hs, Hl⟩ := Hls
+    refine ⟨Hsn, Hun, ?_⟩
+    have Ht : plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) e.index' = some e.term' := by
+      have := Hhit.2; rw [Hp, Hl] at this; exact this
+    rw [Hs, Hl, Hp]
+    exact stored_agree _ _ _ _ HwL HwF HRA He Ht
   iexact Hg
 
 /-- Nothing stored has records. -/
@@ -1018,6 +1302,512 @@ theorem storedRecs_eq (γ : RaftNames) (b b' : entryID) (L L' : List EntryM)
     (Hb : b' = b) (HL : L' = L) :
     ⊢ storedRecs (GF := GF) γ b L -∗ storedRecs γ b' L' := by
   subst Hb HL; iintro H; iexact H
+
+-- (D22 S-d3b, 2026-10-21) `storedRecsP` (the records gated by `RNState.psnap`, D22 S-c to S-d3a) is
+-- gone: the records are kept at the queued acknowledgement's boundary (`ackInv`).
+
+/-! ### The acknowledgement across a restore (D22 S-d3b, 2026-10-21)
+
+A `MsgSnap` may come between a `Ready` and its `Advance` (`node.go` steps the network while the
+application persists the `Ready`). Its restore moves the log's boundary past the commit index, so
+the queued `MsgStorageAppendResp` acknowledges entries of a log with another boundary: what the
+storage holds after the `Ready`'s boundary `b` (`LogState.stored`). Its `stableTo` must then miss
+(had it hit, the storage, at `b`, would be shadowed by the restored snapshot with a stable part
+after it, and the next `Ready`'s `ApplySnapshot` then `Append` would panic on the gap). It does:
+a hit at the acknowledged entry, by Log Matching between `stored` and the log (both with records),
+puts `stored`'s entry at the restored boundary `p` at `p`'s term -- which the restore excluded.
+
+That is a fact of the restore's moment, carried to the `Advance` (`ackBaseW`): the restore saw the
+log without `p`'s last entry (`restore`'s `!matchTerm`, `SnapLogStep`), and `stored` agreed with
+the log up to `offsetInProgress` (`LogPersistRel`); above it, a `MsgApp` of the acknowledgement's
+term had cut the batch, at an entry the term's leader's log has and `stored` has not
+(`ackLostW`, `AppTrunc`); the restored snapshot is in that leader's log too (`isMessage`'s
+`snap`), so `stored` agreeing with it at `p` would agree with it below, at the cut, against the
+cut. A later restore carries the fact on: the new boundary's snapshot is in the same leader's log,
+which has `p`'s entry. All of it only while the term is the acknowledgement's: after a term change
+the acknowledgement is stale (`raft.Step`'s lower-term arm: no `stableTo`). -/
+
+/-- (D22 S-d3b) The term of a leader's entry is past `0`: its campaign does not wrap the term
+(`CampOk`). -/
+theorem isLeader_term_nz (γ : RaftNames) (id term : w64) :
+    ⊢ isLeader (GF := GF) γ id term -∗ ⌜term ≠ W64 0⌝ := by
+  unfold isLeader isWin isWinCore
+  iintro ⟨%q, %c, ⟨%γw, %F0, %k, -, #HcK, -, -⟩, -⟩
+  icases isCampK_ok γ id term F0 k $$ HcK with %H
+  ipureintro; exact H.term_nz
+
+/-- (D22 S-d3b) A record's term is past `0`: a leader's (`isLeader_term_nz`) or a boot entry's
+(`1`). -/
+theorem isEntryR_term_nz (γ : RaftNames) (e : EntryM) (pt : w64) :
+    ⊢ isEntryR (GF := GF) γ e pt -∗ ⌜e.Term' ≠ W64 0⌝ := by
+  unfold isEntryR
+  iintro (⟨%ldr, %_, %_, %_, %_, #Hl, -, -, -, -, -⟩ | ⟨%Hb, -⟩)
+  · iapply isLeader_term_nz γ ldr e.Term' $$ Hl
+  · ipureintro
+    obtain ⟨-, -, Ht, -⟩ := Hb
+    rw [Ht]; word
+
+omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+/-- (Lean helper, as `StepGhost.lean`'s.) -/
+private theorem ite_pos_elim' {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] (P Q : PROP)
+    (h : c) : (if c then P else Q) ⊢ P := by
+  rw [ite_eq_left_iff.mpr (fun hn => absurd h hn)]
+
+/-- (Lean helper, as `StepGhost.lean`'s `logRecs_lookup_b`.) One entry's record. -/
+private theorem logRecs_lookup_b' (γ : RaftNames) (b : entryID) (es : List EntryM)
+    (k : Nat) (e : EntryM) :
+    es[k]? = some e → uint.Z b.index' + (k : Int) + 1 < 2 ^ 64 →
+    ⊢ logRecs (GF := GF) γ b es -∗
+      ∃ pt, ⌜plogTermAt b es (pidx b k) = some pt⌝ ∗ isEntryR γ e pt := by
+  intro He Hr
+  unfold logRecs
+  iintro #H
+  ihave #He' := BigSepL.bigSepL_lookup He $$ H
+  iapply ite_pos_elim' _ _ Hr $$ He'
+
+/-- (D22 S-d3b) The last entry of a non-empty log with records has a term past `0`. -/
+theorem storedRecs_last_term (γ : RaftNames) (b : entryID) (L : List EntryM) (hne : L ≠ [])
+    (Hnw : uint.Z b.index' + (L.length : Int) < 2 ^ 64) :
+    ⊢ storedRecs (GF := GF) γ b L -∗
+      ⌜(plogLast b L).term' ≠ W64 0 ∧
+        plogTermAt b L (plogLast b L).index' = some (plogLast b L).term'⌝ := by
+  iintro #H
+  unfold storedRecs
+  icases H with ⟨%Hwf, #Hr⟩
+  obtain ⟨x, Hx⟩ : ∃ x, L.getLast? = some x := by
+    cases h : L.getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 h) hne
+    | some x => exact ⟨x, rfl⟩
+  have Hk := getLast?_some_getElem? L x Hx
+  have Hlen : 0 < L.length := List.length_pos_iff.2 hne
+  have Hxi := Hwf _ _ Hk
+  have Hpl : plogLast b L = entId x := by simp [plogLast, Hx]
+  rw [Hpl]
+  icases logRecs_lookup_b' γ b L _ x Hk (by omega) $$ Hr with ⟨%pt, -, #He⟩
+  icases isEntryR_term_nz γ x pt $$ He with %Ht
+  ipureintro
+  refine ⟨Ht, ?_⟩
+  exact plogTermAt_lookup b L _ _ x Hk (by simp only [entId]; push_cast at Hxi ⊢; omega)
+
+/-- (D22 S-d3b) No term of a node's log is above the node's term (`TermsLe`, `ownLogGhost`). -/
+theorem ownRaftGhost_terms_le (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
+    ownRaftGhost (GF := GF) γ id ps md ⊢
+      ⌜∀ j x, plogTermAt ps.base ps.log j = some x → uint.Z x ≤ uint.Z ps.term⌝ ∗
+        ownRaftGhost γ id ps md := by
+  apply persistent_entails_right
+  iintro H
+  unfold ownRaftGhost
+  icases H with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  unfold ownLogGhost
+  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, Hlg⟩
+  iNamed Hlg
+  ipureintro
+  intro j x Hx
+  obtain ⟨Hfo, -, Htl⟩ := Hfull
+  have hj := (plogTermAt_some_range _ _ _ _ Hx).1
+  rw [← full_term_at ps.base fp ps.log j Hfo hj] at Hx
+  exact (Htl j x Hx).1
+
+/-- (D22 S-d3b) **The batch a `MsgApp` of term `t` cut** from what the storage holds after `b`
+(`es`), above `offsetInProgress` `ip`: nothing (all of `es` is in progress), or an index `c`,
+between the boundary and `ip`, at which a log of the leader of `t` (`leadFull`) has an entry and
+`es` has another or none -- the cut (`AppTrunc`). -/
+def ackLostW (γ : RaftNames) (t : w64) (b : entryID) (es : List EntryM) (ip : w64) : IProp GF :=
+  iprop(⌜plogLastIndexZ b es < uint.Z ip⌝ ∨
+    ∃ (c : w64) (G : List EntryM), ⌜uint.Z b.index' < uint.Z c ∧ uint.Z c ≤ uint.Z ip ∧
+      (plogTermAt base0 G c).isSome ∧ plogTermAt base0 G c ≠ plogTermAt b es c⌝ ∗
+      leadFull γ t G)
+
+instance ackLostW_pers (γ : RaftNames) (t : w64) (b : entryID) (es : List EntryM) (ip : w64) :
+    Persistent (ackLostW (GF := GF) γ t b es ip) := by
+  unfold ackLostW; infer_instance
+
+/-- (D22 S-d3b) **A restore's mark** on what the storage holds after `b` (`es`), at the restored
+boundary `p`: `es` has no entry of `p`'s term at `p`'s index (what the acknowledgement's miss
+needs), and a log of the leader of `t` has `p` (what a later restore needs). -/
+def ackBaseW (γ : RaftNames) (t : w64) (b : entryID) (es : List EntryM) (p : entryID) :
+    IProp GF :=
+  iprop(⌜plogTermAt b es p.index' ≠ some p.term'⌝ ∗
+    ∃ G, leadFull γ t G ∗ ⌜plogTermAt base0 G p.index' = some p.term'⌝)
+
+instance ackBaseW_pers (γ : RaftNames) (t : w64) (b : entryID) (es : List EntryM) (p : entryID) :
+    Persistent (ackBaseW (GF := GF) γ t b es p) := by
+  unfold ackBaseW; infer_instance
+
+/-- (D22 S-d3b) A queued acknowledgement of term `t` of the log up to `e` after the `Ready`'s
+boundary `b`, at the node's state `s`: no restore since the `Ready` (the boundary and the pending
+snapshot the `Ready`'s; at the term `t`, the cut, `ackLostW`), or a restore past `b` (at the term
+`t`, with an entry acknowledged, its mark, `ackBaseW`). -/
+abbrev ackArm (γ : RaftNames) (t : w64) (b : entryID) (e : Option entryID) (sn : Option SnapshotM)
+    (s : NState) : IProp GF :=
+  iprop((⌜s.logst.prev = b ∧ s.logst.snap = sn.map snapId⌝ ∗
+          (∀ (_ : s.term = t), ackLostW γ t b s.logst.stored s.logst.inprogress)) ∨
+        (⌜uint.Z b.index' < uint.Z s.logst.prev.index'⌝ ∗
+          (∀ (_ : e ≠ none ∧ s.term = t), ackBaseW γ t b s.logst.stored s.logst.prev)))
+
+instance ackArm_pers (γ : RaftNames) (t : w64) (b : entryID) (e : Option entryID)
+    (sn : Option SnapshotM) (s : NState) : Persistent (ackArm (GF := GF) γ t b e sn s) := by
+  unfold ackArm; infer_instance
+
+/-- (D22 S-d3b, 2026-10-21) **What the node keeps for its queued storage acknowledgement** (`ownRawNode`'s
+`Hstrecs`): the records of what the storage holds after the `Ready`'s boundary (`storedRecs`, for
+Log Matching), and the acknowledgement's arm (`ackArm`). (Until S-d3b `storedRecsP γ psnap prev
+stored`: the records at the log's boundary, while no restore since the `Ready`; with a restore
+nothing, and `RawNode.Step` took a `MsgSnap` only with an empty queue.) -/
+abbrev ackInv (γ : RaftNames) (rs : RNState) (s : NState) : IProp GF :=
+  iprop(∀ (t : w64) (b : entryID) (e : Option entryID) (sn : Option SnapshotM)
+      (_ : Pending.appendAck t b e sn ∈ rs.steps),
+    storedRecs γ b s.logst.stored ∗ ackArm γ t b e sn s)
+
+instance ackInv_pers (γ : RaftNames) (rs : RNState) (s : NState) :
+    Persistent (ackInv (GF := GF) γ rs s) := by
+  unfold ackInv; infer_instance
+
+/-- No storage acknowledgement queued: nothing to keep. -/
+theorem ackInv_none (γ : RaftNames) (rs : RNState) (s : NState)
+    (h : ∀ t b e sn, Pending.appendAck t b e sn ∉ rs.steps) :
+    ⊢ ackInv (GF := GF) γ rs s := by
+  unfold ackInv
+  iintro %t %b %e %sn %hm
+  exact absurd hm (h t b e sn)
+
+theorem ackLostW_mono (γ : RaftNames) (t : w64) (b : entryID) (es : List EntryM) {ip ip' : w64}
+    (h : uint.Z ip ≤ uint.Z ip') :
+    ackLostW (GF := GF) γ t b es ip ⊢ ackLostW γ t b es ip' := by
+  unfold ackLostW
+  iintro (%H | ⟨%c, %G, %Hc, #HG⟩)
+  · ileft; ipureintro; omega
+  · iright; iexists c, G; iframe HG; ipureintro
+    exact ⟨Hc.1, by omega, Hc.2.2.1, Hc.2.2.2⟩
+
+/-- **`ackInv` across a step that keeps the boundary, the pending snapshot and what the storage
+holds**, does not move the term back nor `offsetInProgress` (every step but a `MsgSnap`'s and a
+truncating `MsgApp`'s), with the queue unchanged. -/
+theorem ackInv_keep (γ : RaftNames) {rs rs' : RNState} {s s' : NState}
+    (hst : rs'.steps = rs.steps) (Hstok : StepsOk s rs.steps)
+    (hterm : uint.Z s.term ≤ uint.Z s'.term)
+    (hpv : s'.logst.prev = s.logst.prev) (hsn : s'.logst.snap = s.logst.snap)
+    (hsd : s'.logst.stored = s.logst.stored)
+    (hip : uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
+    ackInv (GF := GF) γ rs s ⊢ ackInv γ rs' s' := by
+  iintro #H
+  unfold ackInv
+  iintro %t %b %e %sn %hm
+  rw [hst] at hm
+  have Hpo := stepsOk_ack Hstok hm
+  icases H $$ %t %b %e %sn %hm with ⟨#Hr, #Ha⟩
+  unfold ackArm
+  rw [hsd, hpv, hsn]
+  iframe Hr
+  icases Ha with (⟨%Hp, #Hl⟩ | ⟨%Hp, #Hb⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact Hp
+    iintro %ht
+    ihave #Hl' := Hl $$ %(ack_term_back Hpo.1 hterm ht)
+    iapply ackLostW_mono γ t b _ hip $$ Hl'
+  · iright
+    isplitr
+    · ipureintro; exact Hp
+    iintro %ht
+    iapply Hb $$ %(And.intro ht.1 (ack_term_back Hpo.1 hterm ht.2))
+
+/-- `ackInv` at an unchanged state, the queue unchanged. -/
+theorem ackInv_eq (γ : RaftNames) {rs rs' : RNState} (s : NState) (hst : rs'.steps = rs.steps) :
+    ackInv (GF := GF) γ rs s ⊢ ackInv γ rs' s := by
+  unfold ackInv
+  rw [hst]
+
+/-- (D22 S-d3b) **A restore's mark, established** (`ackBaseW`, the pure core): with what the
+storage holds after `b` (`es`) agreeing with a log `G2` of the leader of `t` that has the restored
+snapshot `p`'s entry, down from `p` (Log Matching, `RecsAgree`), `es` agrees with the node's log
+below `offsetInProgress` `ip` (`persistRel_agree`), and the cut above it (`ackLostW`: `G` agrees
+with `G2`, `leadFull_agree`), `es` having `p`'s term at `p` would make the log have it, against the
+restore's `!matchTerm`. -/
+theorem nobase_core {b p : entryID} {es R G2 : List EntryM} {ip : w64}
+    (HwE : PlogWf b es) (HwG : PlogWfR base0 G2) (HRA : RecsAgree b es base0 G2)
+    (HG2 : plogTermAt base0 G2 p.index' = some p.term')
+    (Hbp : uint.Z b.index' < uint.Z p.index')
+    (Hagree : ∀ j : w64, uint.Z b.index' < uint.Z j → uint.Z j < uint.Z ip →
+      plogTermAt b R j = plogTermAt b es j)
+    (Hnm : ¬ PlogMatches b R p)
+    (Hcut : plogLastIndexZ b es < uint.Z ip ∨
+      ∃ (c : w64), uint.Z b.index' < uint.Z c ∧ uint.Z c ≤ uint.Z ip ∧
+        ((plogTermAt base0 G2 c).isSome → plogTermAt base0 G2 c ≠ plogTermAt b es c)) :
+    plogTermAt b es p.index' ≠ some p.term' := by
+  intro Hes
+  have Hmd := plog_match_down b es base0 G2 p.index' (PlogWf_wfR _ _ HwE) HwG HRA
+    (by rw [Hes]; rfl) (by rw [Hes, HG2])
+  have Hrange := plogTermAt_some_range _ _ _ _ Hes
+  by_cases hlt : uint.Z p.index' < uint.Z ip
+  · apply Hnm
+    unfold PlogMatches
+    rw [Hagree _ Hbp hlt]; exact Hes
+  · rcases Hcut with Hc | ⟨c, Hc1, Hc2, Hc3⟩
+    · omega
+    · have hG2c : (plogTermAt base0 G2 c).isSome := by
+        apply full_term_at_some G2 c p.index' (by rw [HG2]; rfl) (by omega)
+      apply Hc3 hG2c
+      exact (Hmd c (by omega) (by rw [base0_index]; exact uint_Z_nonneg _) (by omega)).symm
+
+/-- (D22 S-d3b) **The acknowledgement misses after a restore**: an entry `x` of what the storage
+holds after `b` (or `b` itself) is not where the log (at a later boundary `p`, `es` without `p`'s
+entry) would hit, by Log Matching between the two logs' records (`stored_agree`'s, across
+boundaries). -/
+theorem stableHit_miss {b : entryID} {es : List EntryM} {ls : LogState}
+    (HwE : PlogWf b es) (HwR : PlogWf ls.prev (ls.sents ++ ls.uents))
+    (HRA : RecsAgree b es ls.prev (ls.sents ++ ls.uents))
+    (Hbp : uint.Z b.index' < uint.Z ls.prev.index')
+    (Hnb : plogTermAt b es ls.prev.index' ≠ some ls.prev.term') :
+    ¬ StableHit ls (plogLast b es) := by
+  rintro ⟨⟨Ho, -⟩, Ht⟩
+  unfold logOffset at Ho
+  have Hli := plogLast_index b es HwE
+  have HtE : plogTermAt b es (plogLast b es).index' = some (plogLast b es).term' := by
+    cases Hl : es.getLast? with
+    | none =>
+      have : es = [] := List.getLast?_eq_none_iff.mp Hl
+      subst this
+      simp only [plogLast, List.getLast?_nil] at Ho ⊢
+      exfalso; omega
+    | some x =>
+      have Hk := getLast?_some_getElem? es x Hl
+      have He : plogLast b es = entId x := by simp [plogLast, Hl]
+      have Hpos : 0 < es.length := by
+        cases es with
+        | nil => simp at Hl
+        | cons _ _ => simp
+      have Hx := HwE _ _ Hk
+      rw [He]
+      exact plogTermAt_lookup b es _ _ x Hk (by simp only [entId]; push_cast at Hx ⊢; omega)
+  have Hmd := plog_match_down b es ls.prev (ls.sents ++ ls.uents) (plogLast b es).index'
+    (PlogWf_wfR _ _ HwE) (PlogWf_wfR _ _ HwR) HRA (by rw [HtE]; rfl) (by rw [HtE, Ht])
+  have := Hmd ls.prev.index' (by omega) (Int.le_refl _) (by omega)
+  rw [plogTermAt_base] at this
+  exact Hnb this
+
+/-- (D22 S-d3b) A restore's mark carried to a later restore (the pure core): `es` without the
+boundary `p`'s term at `p`, and logs of the leader of the term with `p` (`Gp`) and with the new
+boundary `q` (`G2`, past `p`): `es` with `q`'s term at `q` would agree with `G2` down to `p`, where
+`G2` agrees with `Gp`. -/
+theorem nobase_core2 {b p q : entryID} {es G2 : List EntryM}
+    (HwE : PlogWf b es) (HwG : PlogWfR base0 G2) (HRA : RecsAgree b es base0 G2)
+    (HG2 : plogTermAt base0 G2 q.index' = some q.term')
+    (Hbp : uint.Z b.index' < uint.Z p.index') (Hpq : uint.Z p.index' ≤ uint.Z q.index')
+    (HGp : (plogTermAt base0 G2 p.index').isSome → plogTermAt base0 G2 p.index' = some p.term')
+    (Hnb : plogTermAt b es p.index' ≠ some p.term') :
+    plogTermAt b es q.index' ≠ some q.term' := by
+  intro Hes
+  have Hmd := plog_match_down b es base0 G2 q.index' (PlogWf_wfR _ _ HwE) HwG HRA
+    (by rw [Hes]; rfl) (by rw [Hes, HG2])
+  have hG2p : (plogTermAt base0 G2 p.index').isSome :=
+    full_term_at_some G2 p.index' q.index' (by rw [HG2]; rfl) Hpq
+  apply Hnb
+  rw [Hmd p.index' (by omega) (by rw [base0_index]; exact uint_Z_nonneg _) Hpq]
+  exact HGp hG2p
+
+/-- (D22 S-d3b) A `MsgApp`'s entries are in its leader's log (`isMessage`'s `app`, as a full log
+from the start, `leadFull`). -/
+theorem isMessage_app_leadFull (γ : RaftNames) (m : MessageM) (ents : List EntryM) :
+    isMessage (GF := GF) γ (absMsg .app m ents) ⊢
+      □ (∀ e, ⌜e ∈ ents⌝ -∗ ∃ G, leadFull γ m.Term' G ∗
+          ⌜plogTermAt base0 G e.Index' = some e.Term'⌝) := by
+  unfold isMessage absMsg absMsgFrom
+  iintro ⟨%Hpay, -, ⟨%bL, %l, %fp, #Hlp, %Hpure, #Hfull, -⟩, -⟩
+  imodintro
+  iintro %e %He
+  iexists fp ++ l
+  isplitr
+  · iapply leadFull_intro γ m.From' m.Term' bL l fp $$ Hlp Hfull
+  icases lpfull_fp γ m.From' m.Term' bL l fp $$ Hfull with ⟨-, %Hfp⟩
+  ipureintro
+  obtain ⟨Hwf, Hnw⟩ := Hpay
+  simp only [Msg.mkV] at Hwf Hnw Hpure
+  obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
+  have Hki := Hwf k e Hk
+  have Hkl : k < ents.length := (List.getElem?_eq_some_iff.1 Hk).1
+  have Hb := plog_prefix_batch bL l (entryID.mk m.LogTerm' m.Index') ents Hnw Hpure.1 Hpure.2
+    e.Index' (by simp only at Hki ⊢; push_cast at Hki; omega)
+    (by simp only at Hki ⊢; push_cast at Hki; omega)
+  have Hr := (plogTermAt_some_range _ _ _ _ Hpure.1).1
+  rw [full_term_at bL fp l _ Hfp.1 (by simp only at Hki Hr; push_cast at Hki; omega), Hb]
+  exact plogTermAt_lookup _ ents _ k e Hk (by simp only at Hki ⊢; exact Hki)
+
+/-- (D22 S-d3b) A `MsgSnap`'s snapshot is in its leader's log (`isMessage`'s `snap`). -/
+theorem isMessage_snap_leadFull (γ : RaftNames) (m : MessageM) (sv : SnapshotM)
+    (voters : CSLists) :
+    isMessage (GF := GF) γ (absSnap m sv voters) ⊢
+      ∃ G, leadFull γ m.Term' G ∗
+        ⌜plogTermAt base0 G (snapId sv).index' = some (snapId sv).term'⌝ := by
+  unfold isMessage absSnap absSnapFrom
+  iintro ⟨-, -, ⟨%bL, %l, %fp, #Hlp, %Hpure, #Hfull, -⟩, -⟩
+  iexists fp ++ l
+  isplitr
+  · iapply leadFull_intro γ m.From' m.Term' bL l fp $$ Hlp Hfull
+  icases lpfull_fp γ m.From' m.Term' bL l fp $$ Hfull with ⟨-, %Hfp⟩
+  ipureintro
+  simp only [Msg.mkS] at Hpure
+  have Hr := (plogTermAt_some_range _ _ _ _ Hpure).1
+  show plogTermAt base0 (fp ++ l) sv.Metadata'.Index' = some sv.Metadata'.Term'
+  rw [full_term_at bL fp l _ Hfp.1 Hr]
+  exact Hpure
+
+/-- (D22 S-d3b) **`ackInv` across a `MsgApp`'s step**: as `ackInv_keep`, but for `offsetInProgress`,
+which a truncation moves back (`AppTrunc`) -- to a cut, an entry of the message's batch, which its
+leader's log has (`isMessage_app_leadFull`) and the log, which agreed with `stored` there
+(`persistRel_agree`), did not have. -/
+theorem ackInv_app (γ : RaftNames) {rs rs' : RNState} {s s' : NState} {m : MessageM}
+    {ents : List EntryM} (hst : rs'.steps = rs.steps) (Hstok : StepsOk s rs.steps)
+    (hterm : uint.Z s.term ≤ uint.Z s'.term)
+    (hpv : s'.logst.prev = s.logst.prev) (hsn : s'.logst.snap = s.logst.snap)
+    (hsd : s'.logst.stored = s.logst.stored) (Htr : AppTrunc m ents s s')
+    (Hrel : (∃ t b e sn, Pending.appendAck t b e sn ∈ rs.steps ∧ s.logst.prev = b ∧
+        s.logst.snap = sn.map snapId) →
+      ∀ j : w64, uint.Z s.logst.prev.index' < uint.Z j →
+      uint.Z j < uint.Z s.logst.inprogress →
+      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) j =
+        plogTermAt s.logst.prev s.logst.stored j)
+    (Hcm : uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed) :
+    ⊢ ackInv (GF := GF) γ rs s -∗
+      □ (∀ e, ⌜e ∈ ents⌝ -∗ ∃ G, leadFull γ m.Term' G ∗
+          ⌜plogTermAt base0 G e.Index' = some e.Term'⌝) -∗
+      ackInv γ rs' s' := by
+  iintro #H #Hents
+  by_cases hip : uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress
+  · iapply ackInv_keep γ hst Hstok hterm hpv hsn hsd hip $$ H
+  have hlt : uint.Z s'.logst.inprogress < uint.Z s.logst.inprogress := by omega
+  obtain ⟨Htm, Hcm', e, He, Hei, Hnm⟩ := Htr hlt
+  unfold ackInv
+  iintro %t %b %e0 %sn %hm
+  rw [hst] at hm
+  have Hpo := stepsOk_ack Hstok hm
+  icases H $$ %t %b %e0 %sn %hm with ⟨#Hr, #Ha⟩
+  unfold ackArm
+  rw [hsd, hpv, hsn]
+  iframe Hr
+  icases Ha with (⟨%Hp, -⟩ | ⟨%Hp, #Hb⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact Hp
+    iintro %ht
+    have Hrel' := Hrel ⟨t, b, e0, sn, hm, Hp⟩
+    obtain ⟨Hpb, -⟩ := Hp
+    icases Hents $$ %e %He with ⟨%G, #HG, %HGe⟩
+    rw [← ht, Htm]
+    unfold ackLostW
+    iright
+    iexists s'.logst.inprogress, G
+    iframe HG
+    ipureintro
+    have Hlt0 : uint.Z s.logst.prev.index' < uint.Z s'.logst.inprogress := by omega
+    rw [← Hei] at Hlt0 ⊢
+    refine ⟨by rw [← Hpb]; exact Hlt0, Int.le_refl _, by rw [HGe]; rfl, ?_⟩
+    rw [HGe, ← Hpb, ← Hrel' _ Hlt0 (by rw [Hei]; exact hlt)]
+    intro Hc
+    exact Hnm Hc.symm
+  · iright
+    isplitr
+    · ipureintro; exact Hp
+    iintro %ht
+    iapply Hb $$ %(And.intro ht.1 (ack_term_back Hpo.1 hterm ht.2))
+
+/-- (D22 S-d3b) **`ackInv` across a `MsgSnap`'s step**: kept (`ackInv_keep`) if the log is (a stale
+snapshot, or one the log has), and otherwise -- a restore past the commit index, of a snapshot the
+message's leader's log has (`isMessage_snap_leadFull`) and the log had not -- the restored arm,
+its mark established (`nobase_core`, from the cut, `ackLostW`; `nobase_core2`, from a mark). -/
+theorem ackInv_snap (γ : RaftNames) {rs rs' : RNState} {s s' : NState} {m : MessageM}
+    {sv : SnapshotM} (hst : rs'.steps = rs.steps) (Hstok : StepsOk s rs.steps)
+    (hterm : uint.Z s.term ≤ uint.Z s'.term) (hsd : s'.logst.stored = s.logst.stored)
+    (Hsl : SnapLogStep sv m s s')
+    (Hrel : (∃ t b e sn, Pending.appendAck t b e sn ∈ rs.steps ∧ s.logst.prev = b ∧
+        s.logst.snap = sn.map snapId) →
+      ∀ j : w64, uint.Z s.logst.prev.index' < uint.Z j →
+      uint.Z j < uint.Z s.logst.inprogress →
+      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) j =
+        plogTermAt s.logst.prev s.logst.stored j)
+    (Hcm : uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed) :
+    ⊢ ackInv (GF := GF) γ rs s -∗
+      (∃ G, leadFull γ m.Term' G ∗
+        ⌜plogTermAt base0 G (snapId sv).index' = some (snapId sv).term'⌝) -∗
+      ackInv γ rs' s' := by
+  iintro #H #HG2
+  rcases Hsl with ⟨hpv, hsn, -, hip⟩ | ⟨Htm, hpv, hsn, -, Hgt, Hnm⟩
+  · iapply ackInv_keep γ hst Hstok hterm hpv hsn hsd (by rw [hip]; exact Int.le_refl _) $$ H
+  icases HG2 with ⟨%G2, #HG2, %HG2p⟩
+  ihave ⟨%HwG2, #HrG2⟩ := leadFull_wf γ m.Term' G2 $$ HG2
+  unfold ackInv
+  iintro %t %b %e0 %sn %hm
+  rw [hst] at hm
+  have Hpo := stepsOk_ack Hstok hm
+  icases H $$ %t %b %e0 %sn %hm with ⟨#Hr, #Ha⟩
+  unfold ackArm
+  rw [hsd, hpv]
+  iframe Hr
+  iunfold storedRecs at Hr
+  icases Hr with ⟨%HwE, #HrE⟩
+  icases logRecs_agree γ _ _ _ _ $$ HrE HrG2 with %HRA
+  iright
+  icases Ha with (⟨%Hp, #Hl⟩ | ⟨%Hp, #Hb⟩)
+  · have Hrel' := Hrel ⟨t, b, e0, sn, hm, Hp⟩
+    obtain ⟨Hpb, -⟩ := Hp
+    isplitr
+    · ipureintro
+      show uint.Z b.index' < uint.Z sv.Metadata'.Index'
+      rw [← Hpb]; omega
+    iintro %ht
+    have Ht0 : s.term = t := ack_term_back Hpo.1 hterm ht.2
+    have HmT : m.Term' = t := Htm.symm.trans ht.2
+    unfold ackBaseW
+    isplitr
+    · ihave #Hl' := Hl $$ %Ht0
+      unfold ackLostW
+      icases Hl' with (%Hc | ⟨%c, %G, %Hc, #HG⟩)
+      · ipureintro
+        rw [Hpb] at Hnm
+        exact nobase_core HwE (PlogWf_wfR _ _ HwG2.1) HRA HG2p
+          (by rw [← Hpb]; show _ < uint.Z sv.Metadata'.Index'; omega)
+          (fun j h1 h2 => by rw [← Hpb]; exact Hrel' j (by rw [Hpb]; exact h1) h2) Hnm (.inl Hc)
+      · rw [← HmT]
+        ihave %Hag : ⌜(plogTermAt base0 G2 c).isSome →
+            plogTermAt base0 G c = plogTermAt base0 G2 c⌝ $$ []
+        · by_cases hs : (plogTermAt base0 G2 c).isSome
+          · icases leadFull_agree γ m.Term' G G2 c Hc.2.2.1 hs $$ HG HG2 with %Hq
+            ipureintro; exact fun _ => Hq
+          · ipureintro; exact fun h => absurd h hs
+        ipureintro
+        rw [Hpb] at Hnm
+        refine nobase_core HwE (PlogWf_wfR _ _ HwG2.1) HRA HG2p
+          (by rw [← Hpb]; show _ < uint.Z sv.Metadata'.Index'; omega)
+          (fun j h1 h2 => by rw [← Hpb]; exact Hrel' j (by rw [Hpb]; exact h1) h2) Hnm
+          (.inr ⟨c, Hc.1, Hc.2.1, fun hs => ?_⟩)
+        rw [← Hag hs]; exact Hc.2.2.2
+    · iexists G2; rw [← HmT]; iframe HG2; ipureintro; exact HG2p
+  · isplitr
+    · ipureintro
+      show uint.Z b.index' < uint.Z sv.Metadata'.Index'
+      omega
+    iintro %ht
+    have Ht0 : s.term = t := ack_term_back Hpo.1 hterm ht.2
+    have HmT : m.Term' = t := Htm.symm.trans ht.2
+    ihave #Hb' := Hb $$ %(And.intro ht.1 Ht0)
+    iunfold ackBaseW at Hb'
+    icases Hb' with ⟨%Hnb, %Gp, #HGp, %HGpp⟩
+    unfold ackBaseW
+    isplitr
+    · ihave %Hag : ⌜(plogTermAt base0 G2 s.logst.prev.index').isSome →
+          plogTermAt base0 G2 s.logst.prev.index' = some s.logst.prev.term'⌝ $$ []
+      · by_cases hs : (plogTermAt base0 G2 s.logst.prev.index').isSome
+        · ihave #HGp' : leadFull γ m.Term' Gp $$ []
+          · rw [HmT]; iexact HGp
+          icases leadFull_agree γ m.Term' Gp G2 s.logst.prev.index' (by rw [HGpp]; rfl) hs
+            $$ HGp' HG2 with %Hq
+          ipureintro; exact fun _ => by rw [← Hq]; exact HGpp
+        · ipureintro; exact fun h => absurd h hs
+      ipureintro
+      exact nobase_core2 HwE (PlogWf_wfR _ _ HwG2.1) HRA HG2p Hp
+        (by show _ ≤ uint.Z sv.Metadata'.Index'; omega) Hag Hnb
+    · iexists G2; rw [← HmT]; iframe HG2; ipureintro; exact HG2p
 
 /-! ## The `RawNode` struct, with `raft` shared (2026-10-10)
 
@@ -1122,33 +1912,6 @@ scoped instance (priority := high) rawNodeOwn_access_store_stepsOnAdvance (l : L
 
 end RawNodeOwnAccess
 
-/-- The configuration the struct is at has the voters the client sees (`RNState.vcfg`;
-2026-10-14, stage B7 part 2): `γ.reCfg` statically, the configuration in use dynamically. -/
-theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List EntryM) (c : CfgM)
-    (id : w64) (s : NState) :
-    ⊢ ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
-      ⌜c.incoming = (rs.vcfg γ).incoming ∧ c.outgoing = (rs.vcfg γ).outgoing⌝ ∗
-      ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s := by
-  iintro H
-  unfold RNState.vcfg
-  cases hm : rs.mode with
-  | static =>
-    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC⟩
-    iframe Hg
-    ipureintro
-    exact ⟨⟨HC.1.1, HC.1.2.1⟩, Hnl, HC⟩
-  | dyn dec c0 h0 _ =>
-    simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM]
-    icases H with ⟨Hg, %Hnl, %HC, Hr⟩
-    iframe Hg Hr
-    isplitr
-    · ipureintro
-      have hc := HC.2.1
-      exact ⟨by rw [← hc], by rw [← hc]⟩
-    ipureintro
-    exact ⟨Hnl, HC⟩
-
 /-- A node's committed prefix, with records, is a prefix of the global committed log (persistent;
 read off the ghost state's log ghost). -/
 theorem ownRaftGhost_cmt (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
@@ -1176,7 +1939,7 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
     with ⟨Hg, %fp', %Hf', #Hfr', #Hc⟩
   iunfold ghostRest at Hr
   iunfold ghostRestM at Hr
-  icases Hr with ⟨%Hnl, %HC, #Hfr, Hcamp⟩
+  icases Hr with ⟨%Hnl, ⟨%HC, #Hfr, Hcamp⟩, #Hcl⟩
   icases FullOk_unique γ (toPState s).base fp' g.fp Hf' HC.2.2.full $$ Hfr' Hfr with %He
   icases isCommitted_agree γ _ _ $$ HD Hc with %Hag
   isplitr
@@ -1206,11 +1969,13 @@ theorem ownStepGhost_deliv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : C
   iunfold ghostRestM
   isplitr
   · ipureintro; exact Hnl
-  isplitr
-  · ipureintro; exact HC
-  isplitr
-  · iexact Hfr
-  iexact Hcamp
+  isplitl [Hcamp]
+  · isplitr
+    · ipureintro; exact HC
+    isplitr
+    · iexact Hfr
+    iexact Hcamp
+  iexact Hcl
 
 /-! ## The one predicate for a `RawNode` -/
 
@@ -1234,6 +1999,56 @@ theorem pendList_nil (γ : RaftNames) (id : w64) :
   iapply (BigSepL2.bigSepL2_nil (Φ := fun _ l p => iprop(∃ st, msgIn (GF := GF) l DFrac.discard st ∗
     pendingRel γ id st p))).2
   iempintro
+
+/-- (D22l) `prevHardSt`: a pointer to a read-only hard state `h` (`hsRO`), the record `ph`
+(`RNState.phs`), with its witness (`phsWit`: the hard state of an earlier `Ready`, or zero). -/
+def prevHS (γ : RaftNames) (p : Loc) (h ph : HardStateM) : IProp GF :=
+  iprop(hsRO p h ∗ ⌜h = ph⌝ ∗ phsWit γ h)
+
+instance prevHS_persistent (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    Persistent (prevHS (GF := GF) γ p h ph) := by
+  unfold prevHS; infer_instance
+
+theorem prevHS_hsRO (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    prevHS (GF := GF) γ p h ph ⊢ hsRO p h := by
+  unfold prevHS; iintro ⟨#H, -, -⟩; iexact H
+
+theorem prevHS_eq (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    prevHS (GF := GF) γ p h ph ⊢ ⌜h = ph⌝ := by
+  unfold prevHS; iintro ⟨-, %H, -⟩; ipureintro; exact H
+
+theorem prevHS_wit (γ : RaftNames) (p : Loc) (h ph : HardStateM) :
+    prevHS (GF := GF) γ p h ph ⊢ phsWit γ ph := by
+  unfold prevHS; iintro ⟨-, %H, #W⟩; subst H; iexact W
+
+theorem prevHS_of_zero (γ : RaftNames) (p : Loc) (h : HardStateM) (Hz : h = hsZero) :
+    hsRO (GF := GF) p h ⊢ prevHS γ p h hsZero := by
+  unfold prevHS; iintro #H; iframe H; subst Hz
+  isplitr; · ipureintro; rfl
+  iapply phsWit_zero
+
+theorem prevHS_intro (γ : RaftNames) (p : Loc) (h : HardStateM) :
+    ⊢ hsRO (GF := GF) p h -∗ phsWit γ h -∗ prevHS γ p h h := by
+  unfold prevHS; iintro #H #W; iframe H W; ipureintro; rfl
+
+/-- (D22 S-d3a, 2026-10-21) The queue while a snapshot is lent (`RNState.slent`): half of the
+snapshot handed out (the other half is the application's, `rd.Snapshot`), and the queue once the
+whole snapshot is back -- its acknowledgement shares the pointer (`newStorageAppendRespMsg`). -/
+abbrev lentPend (o : Option SnapLoan) (P : IProp GF) : IProp GF :=
+  match o with
+  | none => P
+  | some l => iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
+      (ownSnapM l.ptr (DFrac.own 1) l.snap -∗ P))
+
+/-- (D22 S-d3a) The committed log up to a lent snapshot (`SnapLoan.dlv`). -/
+abbrev loanCom (γ : RaftNames) (o : Option SnapLoan) : IProp GF :=
+  match o with
+  | none => iprop(True)
+  | some l => isCommitted γ l.dlv
+
+instance loanCom_pers (γ : RaftNames) (o : Option SnapLoan) :
+    Persistent (loanCom (GF := GF) γ o) := by
+  cases o <;> unfold loanCom <;> infer_instance
 
 /-- See the file header. `s` is the node's physical state, `c` the configuration the struct is
 at, `fp` the ghost full prefix (the dynamic mode's ghost part is `⟨rs.capplied, rs.cfg, fp⟩`);
@@ -1265,20 +2080,28 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- or a `Ready.SoftState`), held read-only; (2026-10-16, stage R5) `prevHardSt`: a pointer
   -- to a read-only hard state (`NewRawNode`'s `r.hardState()` or a `Ready.HardState`)
   "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
-  "#Hhard" ∷ hsRO rnv.prevHardSt' hprev ∗
+  "#Hhard" ∷ prevHS γ rnv.prevHardSt' hprev rs.phs ∗
   "Hsteps" ∷ rnv.stepsOnAdvance' ↦* steps ∗
   "Hsteps_cap" ∷ ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
   -- (2026-10-16, stage R5) each queued message owned, with its record (until then
   -- `pendingRel` of the Goose value, persistent, and `pendingOwn`)
-  "Hpend" ∷ pendList γ id steps rs.steps ∗
+  -- (D22 S-d3a) while a snapshot is lent, half of it, the queue once it is whole (`lentPend`)
+  "Hpend" ∷ lentPend rs.slent (pendList γ id steps rs.steps) ∗
   "#Hdeliv" ∷ isCommitted γ rs.delivered ∗
   -- the records of what the storage holds (2026-10-10), for the acknowledgement
   -- `Advance` steps (`PendingOk`, `stableOk_of_stored`)
-  "#Hstrecs" ∷ storedRecs γ s.logst.prev s.logst.stored ∗
+  -- (2026-10-20, D22 S-c to D22 S-d3a: while no snapshot may be pending, `storedRecsP`) (D22
+  -- S-d3b) at the `Ready`'s boundary, with what the acknowledgement's miss after a restore needs
+  -- (`ackInv`)
+  "#Hstrecs" ∷ ackInv γ rs s ∗
+  -- (D22 S-d3a) the committed log up to a lent snapshot
+  "#Hloanc" ∷ loanCom γ rs.slent ∗
   "%Hdlen" ∷ ⌜rs.delivered.length = (uint.Z s.logst.applying).toNat⌝ ∗
   "%Hunp" ∷ ⌜rs.unpersisted = s.logst.unpersisted⌝ ∗
-  -- scope: no snapshot pending (handing one out and `appliedSnap` are phase 2)
-  "%Hsnap" ∷ ⌜s.logst.snap = none⌝ ∗
+  -- no snapshot pending unless a `MsgSnap` was stepped (`RNState.psnap`) or one is lent
+  -- (`RNState.slent`, D22 S-d3a), which only the static mode takes (`DynNoSnap`); until
+  -- 2026-10-20, D22 S-c, none at all
+  "%Hsnap" ∷ ⌜(rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none⌝ ∗
   -- the queue is steppable (since 2026-10-10 unconditionally: until then only for an
   -- `advanceable` one)
   "%Hstok" ∷ ⌜StepsOk s rs.steps⌝ ∗
@@ -1292,7 +2115,9 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
   "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝ ∗
   -- (D19i part 1) the floor and `applied`
-  "%Hrnfl" ∷ ⌜RNFl rs s⌝)
+  "%Hrnfl" ∷ ⌜RNFl rs s⌝ ∗
+  -- (D22 S-d3a) a snapshot `Ready`'s loan
+  "%Hloan" ∷ ⌜LoanOk rs s⌝)
 
 /-- Closing the predicate; the pure premises are first, the resources in the order of
 the definition. (2026-10-16, stage R5: the hard state `hprev` after the soft state; the
@@ -1303,29 +2128,31 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (Hwf : NStateWf s) (Hin : rs.mode = .static → id ∈ γ.reCfg) (Hal : c.autoLeave = false)
     (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
-    (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
+    (Hunp : rs.unpersisted = s.logst.unpersisted)
+    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
-    (Hrnfl : RNFl rs s) :
+    (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhysCV c c.voters rnv.raft' id s -∗
       ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) c id s -∗
       sdrOk rnv.raft' rs.mode -∗
-      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      pendList γ id steps rs.steps -∗
+      lentPend rs.slent (pendList γ id steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
-      storedRecs γ s.logst.prev s.logst.stored -∗
+      ackInv γ rs s -∗
+      loanCom γ rs.slent -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc
   unfold ownRawNode
   iexists s, c, fp, rnv, sv, hprev, steps
   simp only [named]
-  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+  iframe Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc
   ipureintro
   exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, Hunp, Hsnap, Hstok, Htrm, Hstor, Hpvoff, Hrs_out,
-    Hrs_unst, Hrs_clb, Hrnfl⟩
+    Hrs_unst, Hrs_clb, Hrnfl, Hloan⟩
 
 /-! ### The static mode, as before (2026-10-14, stage B7 part 2)
 
@@ -1342,11 +2169,13 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
       -- (D19p, 2026-10-18) the tracker within the tracked bound
       ⌜TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id⌝ ∗
       -- (2026-10-19, D21 M3)
-      ⌜NsLink γ s⌝ := by
+      ⌜NsLink γ s⌝ ∗
+      -- (D22 S-b′3) the storage's certificate link
+      certLink γ s.logst.storage := by
   iintro Hphys Hghost
   rw [Hm]
   simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-  icases Hghost with ⟨Hghost, %Hnl, %HC⟩
+  icases Hghost with ⟨Hghost, %Hnl, %HC, #Hcl⟩
   icases ownRaftPhysC_toPhys cf r id s HC.1.2.1 $$ Hphys with ⟨Hphys, %Hlrn⟩
   rw [HC.1.1] at Hlrn ⊢
   iframe Hphys Hghost
@@ -1354,6 +2183,7 @@ theorem ownRawNode_static_open (γ : RaftNames) (rs : RNState) (Hm : rs.mode = .
   · ipureintro
     exact TrackedOk.of_eq (by rw [CfgM.voters_simple, CfgStatic.voters HC.1])
       (by rw [Hlrn]; rfl) HC.2
+  iframe Hcl
   ipureintro; exact Hnl
 
 theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
@@ -1362,25 +2192,29 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Hm : rs.mode = .static)
     (Hrel : NStateRel s ps) (Hin : id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
     (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
-    (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
+    (Hunp : rs.unpersisted = s.logst.unpersisted)
+    (Hsnap : (rs.psnap = false ∧ rs.slent = none) ∨ rs.mode.isDyn = true → s.logst.snap = none)
     (Hstok : StepsOk s rs.steps)
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : RNPv rs s) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
-    (Hrnfl : RNFl rs s)
+    (Hrnfl : RNFl rs s) (Hloan : LoanOk rs s)
     -- (D19p, 2026-10-18) the tracker within the ghost state's tracked bound
     (Htrk : TrackedOk γ (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id)
     -- (2026-10-19, D21 M3) the no-snapshot mode only with a bootstrap log
     (Hnl : NsLink γ s) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗
       ownRaftGhost (GF := GF) γ id ps -∗ sdrOk rnv.raft' rs.mode -∗
-      rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ prevHS γ rnv.prevHardSt' hprev rs.phs -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      pendList γ id steps rs.steps -∗
+      lentPend rs.slent (pendList γ id steps rs.steps) -∗
       isCommitted γ rs.delivered -∗
-      storedRecs γ s.logst.prev s.logst.stored -∗
+      ackInv γ rs s -∗
+      loanCom γ rs.slent -∗
+      -- (D22 S-b′3) the storage's certificate link
+      certLink γ s.logst.storage -∗
       ownRawNode γ rn id rs := by
-  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs
+  iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hcl
   obtain ⟨rfl, Hwf⟩ := Hrel
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
@@ -1388,13 +2222,13 @@ theorem ownRawNode_intro_static (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) id s $$ [Hghost]
   · rw [Hm]
     simp only [RNMode.toG, ownStepGhost, ghostRest, ghostRestM, GMode.isDyn]
-    iframe Hghost
+    iframe Hghost Hcl
     isplitr
     · ipureintro; exact Hnl
     ipureintro; exact ⟨CfgStatic.simple γ _ Hst, Htrk⟩
   iapply ownRawNode_intro γ rn id rs s _ [] rnv sv hprev steps Hwf (fun _ => Hin) rfl Hasync Hdlen
-    Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs
+    Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc
 
 /-- The mode is the ghost state's (2026-10-14, stage B7 part 2): static exactly when `γ` is. -/
 theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
@@ -1414,8 +2248,8 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     | static => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Hm]
     | dyn dec c0 h0 _ => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
 
 /-- (2026-10-17) In a cluster started from a bootstrap log (`StartNode`: `γ.reBoot ≠ []`) every
 node is past term `0` (`ownLogGhost_boot`): a pre-vote request rejected at a node's own term
@@ -1456,6 +2290,27 @@ theorem ownRaftPhysC_nsOut (γ : RaftNames) (md : GMode) (c : CfgM) {V : GSet w6
   iunfold ownStepGhost
   iframe Hg Hr
 
+/-- (2026-10-20, D22 S-c) A node with nothing committed is of a cluster with no bootstrap log
+(`ownLogGhost_boot`), so not in the no-transfer mode (`RaftNames.reNoXfer_ok`): what
+`RestartNode`'s fresh node is. -/
+theorem ownRaftGhost_noXfer_of_commit (γ : RaftNames) (id : w64) (ps : PState) {md : Bool}
+    (Hc : uint.Z ps.commit = 0) :
+    ownRaftGhost (GF := GF) γ id ps md ⊢ ⌜γ.reNoXfer = false⌝ ∗ ownRaftGhost γ id ps md := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownRaftGhost at H
+  icases H with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_boot γ id ps kl $$ Hlg with ⟨%Hx, -⟩
+  ipureintro
+  cases h : γ.reNoXfer
+  · rfl
+  · exfalso
+    have Hne := RaftNames.noXfer_boot h
+    have := List.length_pos_iff.mpr Hne
+    have := Hx.1
+    omega
+
 /-- (2026-10-19, D21 M3) A node with nothing committed is of a cluster with no bootstrap log
 (`ownLogGhost_boot`), so not in the no-snapshot mode: what `RestartNode`'s fresh node is. -/
 theorem ownRaftGhost_noSnap_of_commit (γ : RaftNames) (id : w64) (ps : PState) {md : Bool}
@@ -1488,56 +2343,73 @@ theorem ownRaftPhys_raise_tc (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) 
   iapply ownRaftPhysC_toS
   iexact H
 
-/-- (2026-10-19, D21 M3) The no-snapshot mode set to `b` on the static-mode physical state of a
-node out of the mode (`Bootstrap`'s, at the cluster's `RaftNames.reNoSnap`): into it, a
-non-leader with no pending snapshot, its log's boundary at most `1` and something committed, over
-a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). (2026-10-19, D21 M2r)
-Leader transfer (`NGhost.xf`, on since `newRaft`) set to the same: kept off in the mode, whose
-node is past term `0` with nothing in its outbox; turned on otherwise (`ownRaftPhysC_xf_off`). -/
-theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b : Bool)
-    (H0 : s.gh.ns = false) (H0x : s.gh.xf = true)
-    (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
-      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap)
-    (Hbt : b = true → s.term ≠ W64 0 ∧ s.outbox = []) :
-    ⊢ NsCap (GF := GF) b s.logst.storage -∗ ownRaftPhys cfg r id s -∗
-      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := b } } := by
-  iintro #Hcap H
-  cases b with
-  | false =>
-    have He : ({ s with gh := { s.gh with ns := false, xf := false } } : NState) =
-        { s with gh := { s.gh with xf := false } } := by
-      rw [← H0]
-    rw [He]
-    ihave H := ownRaftPhys_toC' $$ H
-    ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s H0 $$ H
-    iapply ownRaftPhysC_toS
-    iexact H
-  | true =>
-    obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
-    obtain ⟨Ht, Hob⟩ := Hbt rfl
-    have He : ({ s with gh := { s.gh with ns := true, xf := true } } : NState) =
-        { s with gh := { s.gh with ns := true } } := by
-      rw [← H0x]
-    rw [He]
-    ihave H := ownRaftPhys_toC' $$ H
-    iunfold NsCap at Hcap
-    ihave #Hc1 := Hcap $$ %rfl
-    ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn Hp
-      Hc Ho H0x Ht Hob $$ Hc1 H
-    iapply ownRaftPhysC_toS
-    iexact H
-
 /-- (2026-10-19, D21 M2r) Leader transfer turned on (`ownRaftPhysC_xf_off`) on the static-mode
-physical state, outside the no-snapshot mode. -/
-theorem ownRaftPhys_xf_off (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (H0 : s.gh.ns = false) :
+physical state (2026-10-19, D22 S-a: in either no-snapshot mode). -/
+theorem ownRaftPhys_xf_off (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
       ownRaftPhys cfg r id { s with gh := { s.gh with xf := false } } := by
   iintro H
   ihave H := ownRaftPhys_toC' $$ H
-  ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s H0 $$ H
+  ihave H := ownRaftPhysC_xf_off (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s $$ H
   iapply ownRaftPhysC_toS
   iexact H
+
+/-- (2026-10-19, D21 M3) The no-snapshot mode set to `b` on the static-mode physical state of a
+node out of the mode (`Bootstrap`'s, at the cluster's `RaftNames.reNoSnap`): into it, a
+non-leader with no pending snapshot, its log's boundary at most `1` and something committed, over
+a storage that never compacts past `1` (`NsCap`; `ownRaftPhysC_set_ns`). (2026-10-19, D21 M2r)
+Leader transfer (`NGhost.xf`, off since `newRaft`) set to `bx` (2026-10-19, D22 S-a: the cluster's
+`RaftNames.reNoXfer`, independent of `b`; until then `b` too): kept off, or turned on
+(`ownRaftPhysC_xf_off`); (2026-10-20, D22 S-c) and the boot flag (`NGhost.bt`) to `bx` too, past
+term `0` with nothing in the outbox (`ownRaftPhysC_set_bt`; until then the no-snapshot mode asked
+these). -/
+theorem ownRaftPhys_set_ns (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (b bx : Bool)
+    (H0 : s.gh.ns = false) (H0x : s.gh.xf = true) (H0b : s.gh.bt = false)
+    (Hb : b = true → s.role ≠ .leader ∧ s.logst.snap = none ∧ uint.Z s.logst.prev.index' ≤ 1 ∧
+      1 ≤ uint.Z s.logst.committed ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap)
+    (Hbt : bx = true → s.term ≠ W64 0 ∧ s.outbox = []) :
+    ⊢ NsCap (GF := GF) b s.logst.storage -∗ ownRaftPhys cfg r id s -∗
+      ownRaftPhys cfg r id { s with gh := { s.gh with ns := b, xf := bx, bt := bx } } := by
+  iintro #Hcap H
+  -- the mode first (transfer still off), then transfer
+  ihave H : ownRaftPhys cfg r id { s with gh := { s.gh with ns := b } } $$ [H]
+  · cases b with
+    | false =>
+      have He : ({ s with gh := { s.gh with ns := false } } : NState) = s := by
+        rw [← H0]
+      rw [He]
+      iexact H
+    | true =>
+      obtain ⟨Hr, Hsn, Hp, Hc, Ho⟩ := Hb rfl
+      ihave H := ownRaftPhys_toC' $$ H
+      iunfold NsCap at Hcap
+      ihave #Hc1 := Hcap $$ %rfl
+      ihave H := ownRaftPhysC_set_ns (c := CfgM.simple cfg (domSet s.progress \ cfg)) r id s Hr Hsn
+        Hp Hc Ho $$ Hc1 H
+      iapply ownRaftPhysC_toS
+      iexact H
+  cases bx with
+  | true =>
+    obtain ⟨Ht, Hob⟩ := Hbt rfl
+    ihave H := ownRaftPhys_toC' $$ H
+    ihave H := ownRaftPhysC_set_bt
+      (c := CfgM.simple cfg (domSet ({ s with gh := { s.gh with ns := b } } : NState).progress \ cfg))
+      r id { s with gh := { s.gh with ns := b } } Ht Hob $$ H
+    ihave H := ownRaftPhysC_toS $$ H
+    have He : ({ s with gh := { s.gh with ns := b, xf := true, bt := true } } : NState) =
+        { ({ s with gh := { s.gh with ns := b } } : NState) with
+          gh := { ({ s with gh := { s.gh with ns := b } } : NState).gh with bt := true } } := by
+      rw [← H0x]
+    rw [He]
+    iexact H
+  | false =>
+    ihave H := ownRaftPhys_xf_off cfg r id { s with gh := { s.gh with ns := b } } $$ H
+    have He : ({ s with gh := { s.gh with ns := b, xf := false, bt := false } } : NState) =
+        { ({ s with gh := { s.gh with ns := b } } : NState) with
+          gh := { ({ s with gh := { s.gh with ns := b } } : NState).gh with xf := false } } := by
+      rw [← H0b]
+    rw [He]
+    iexact H
 
 /-- (2026-10-17) The term ceiling raised: a ghost step the client takes, with the budget for the
 new ceiling, before a step that may queue messages of a later term (a received pre-vote request's,
@@ -1556,7 +2428,8 @@ theorem ownRawNode_raise_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
     (stepsOk_mono s _ _ rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl Hle' Hstok) Htrm Hstor
     ⟨H1, rfl, Int.le_trans H3 Hle', fun h => Int.le_trans (H4 h) Hle'⟩ Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    ⟨Hloan.1, Hloan.2.1, Hloan.2.2⟩
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
 
 /-- (2026-10-17) The term is within the ceiling. -/
 theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
@@ -1567,8 +2440,8 @@ theorem ownRawNode_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
   isplitr
   · ipureintro; rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
 
 /-- The storage handshake, at the RawNode (2026-10-10; until then `ownRawNode_persist`,
 which lent the client the storage itself): the receipt of the application's append of
@@ -1577,7 +2450,9 @@ absorbed into the log's storage (`ownRaftLog_absorb`); afterwards nothing is
 unpersisted. The right to append came with the `Ready` (`appendRight`); in between the
 node may be stepped, ticked, or asked to propose or campaign, while the application
 appends on its own. -/
-theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    -- (D22 S-d3a) no snapshot lent: a lent storage comes back with `Advance` (`snapReceipt`)
+    (Hsl : rs.slent = none) :
     ⊢ ownRawNode (GF := GF) γ rn id rs -∗ appendReceipt rs.storage rs.unpersisted ==∗
       ownRawNode γ rn id { rs with unpersisted := [] } := by
   iintro H Hr
@@ -1603,14 +2478,18 @@ theorem ownRawNode_appended (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
     Hdlen rfl Hsnap
     (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
     Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+    ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h)⟩
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
 
 /-- (D19i part 1) **Raising the floor** to `applying` -- the committed log handed out,
 `delivered` -- with nothing unpersisted: the client (`node.go`, when the application's `Advance`
 is handed over) gets the storage's floor witness, the application's right to compact and snapshot
 up to it, and the node is marked raised (`RNState.flw`) until `Advance` moves `applied` there. -/
 theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
-    (Hunp0 : rs.unpersisted = []) :
+    (Hunp0 : rs.unpersisted = [])
+    -- (D22 S-d3a) no snapshot lent (the storage is the application's then); since D22 S-d4 item 3
+    -- a snapshot restored since the last `Ready` may be pending (`StorExtOk`)
+    (Hsl : rs.slent = none) :
     ⊢ ownRawNode (GF := GF) γ rn id rs ==∗
       ownRawNode γ rn id { rs with flw := true } ∗
       ∃ x : w64, ⌜uint.Z x = (rs.delivered.length : Int)⌝ ∗ storFloor rs.storage x := by
@@ -1618,8 +2497,9 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
   iNamed H
   icases ownRaftPhysC_log_at cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hlback⟩
   icases ownRaftLog_fl _ _ $$ Hlog with ⟨%Hflb, Hlog⟩
+  have Hlnt : s.logst.lent = false := by rw [Hgh0.1.2.1, Hloan.1, Hsl]; rfl
   imod ownRaftLog_raise_floor s.log s.logst s.logst.applying ⟨Hflb.1, Int.le_refl _⟩
-    (Hunp ▸ Hunp0) Hsnap $$ Hlog with ⟨Hlog, Hfw⟩
+    (Hunp ▸ Hunp0) Hlnt $$ Hlog with ⟨Hlog, Hfw⟩
   ihave Hphys := Hlback $$ %_ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     %(fun _ => logLast_le_of_fields rfl rfl rfl)
   ihave Hghost := ownStepGhost_congr γ _ cf id (s := s)
@@ -1632,7 +2512,8 @@ theorem ownRawNode_raise_floor (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
       (stepsOk_mono s _ rs.steps rfl ⟨rfl, rfl⟩ (Int.le_refl _) rfl (Int.le_refl _) Hstok)
       Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
       ⟨fun h => by simp at h, Hrnfl.2⟩
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs
+      ⟨Hloan.1, Hloan.2.1, (fun l (h : rs.slent = some l) => by rw [Hsl] at h; cases h)⟩
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
   iexists s.logst.applying
   isplitr
   · ipureintro; have := uint_Z_nonneg s.logst.applying; rw [Hdlen]; omega

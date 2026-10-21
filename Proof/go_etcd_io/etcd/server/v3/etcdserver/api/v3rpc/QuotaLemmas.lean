@@ -31,52 +31,49 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`quotaKVServer.Put` meets the embedded service's spec**, with the reader slot of
-`leadTimeMu` and the auth store's reader resource `E.RD` the alarm needs (from its spec). -/
+/-- **`quotaKVServer.Put` meets the embedded service's spec**, with the quota check's
+reader slots (`quotaRd`, from its spec). -/
 theorem v3rpc.quotaKV_putHandlerOk_of
     (wp_Put : v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) :
+    (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Put" kv.v) S Spec ∗
-        isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Put" kv.v) S Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put")
-        iprop(S ∗ srvLeadTimeReader s ∗ E.RD) Spec := by
-  iintro ⟨#Hp1, #Hp2, #Hq, #Hh, #Hsrv, #HNR⟩
+        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hlt, Hard⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Put Req Rep Spec q s kv E ρ S m Φ ci cd r) $$ [HS Hlt Hard HSpec]
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply (wp_Put Req Rep Spec q s kv S m Φ ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOk
     iexact Hh
   inext
-  iintro %resp %err ⟨HS, Hlt, Hard, Hres⟩
+  iintro %resp %err ⟨HS, Hqr, Hres⟩
   iapply HΨ
   iframe
 
 /-- **`quotaKVServer.Txn` meets (the vertical slice's unit V2; as `Put`'s) the embedded service's
-spec**, with the reader slot of `leadTimeMu` and the auth store's reader resource `E.RD` the alarm
-needs (from its spec). -/
+spec**, with the quota check's reader slots (`quotaRd`, from its spec). -/
 theorem v3rpc.quotaKV_txnHandlerOk_of
     (wp_Txn : v3rpc.quotaKVServer.Txn.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
-    (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) :
+    (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec ∗
-        isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+        v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Txn" kv.v) S Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Txn")
-        iprop(S ∗ srvLeadTimeReader s ∗ E.RD) Spec := by
-  iintro ⟨#Hp1, #Hp2, #Hq, #Hh, #Hsrv, #HNR⟩
+        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hlt, Hard⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Txn Req Rep Spec q s kv E ρ S m Φ ci cd r) $$ [HS Hlt Hard HSpec]
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply (wp_Txn Req Rep Spec q s kv S m Φ ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOk
     iexact Hh
   inext
-  iintro %resp %err ⟨HS, Hlt, Hard, Hres⟩
+  iintro %resp %err ⟨HS, Hqr, Hres⟩
   iapply HΨ
   iframe
 

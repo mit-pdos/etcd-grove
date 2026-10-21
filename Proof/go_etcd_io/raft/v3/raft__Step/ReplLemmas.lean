@@ -116,16 +116,6 @@ theorem wp_GetEntries_ro (Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     iframe Hes Hents
   iapply Hback $$ %cap %els %ms.ents Hes Hents Hcap
 
-/-- A fresh cell, frozen: read-only. -/
-theorem cellRO_of_pointsto {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V)
-    (E : CoPset) : (p ↦ v : IProp GF) ⊢ |={E}=> cellRO p v := by
-  iintro H
-  imod (typedPointsto_dfractional (GF := GF) _ v).dfractional_persist _ $$ H with #H
-  imodintro
-  iunfold cellRO
-  iright
-  iexact H
-
 /-- A freshly allocated `&pb.Message{...}` with scalar fields only (`Entries`, `Context`,
 `Responses` nil, `Snapshot` nil): an owned message holding `mm` and nothing else. -/
 theorem msgOwn_of_scalars (l : Loc) (v : raftpb.Message) (mm : MessageM) (E : CoPset) :
@@ -228,7 +218,7 @@ macro "cq_split " q:ident : tactic => `(tactic| (
   cases Hcq : s.cq <;> (try wp_auto) <;> (try wp_drive $q)
   all_goals try (
     have _ : s.cq = false := Hcq
-    cases s.prevote <;> (try wp_auto) <;> wp_drive $q)))
+    cases Hpv : s.prevote <;> (try wp_auto) <;> wp_drive $q)))
 
 end EtcdGrove
 end Perennial

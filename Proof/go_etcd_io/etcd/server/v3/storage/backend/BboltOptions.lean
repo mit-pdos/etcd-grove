@@ -61,8 +61,6 @@ axiom optsVal (v : go_etcd_io.bbolt.Options) (o : OptsM) : Prop
 axiom boltLogger (l : GoInterface) : IProp GF
 
 @[instance] axiom boltLogger_persistent (l : GoInterface) : Persistent (boltLogger (GF := GF) l)
-@[instance] axiom boltLogger_timeless (l : GoInterface) : Timeless (boltLogger (GF := GF) l)
-
 /-- `bolt.Options{}` is the zero value. -/
 axiom wp_optsLit :
   {{ (True : IProp GF) }}

@@ -144,14 +144,6 @@ def putgetWorkload : SrvWorkload where
 
 theorem putgetWorkload_noGrant : putgetWorkload.noGrant := fun _ h => h
 
-/-- `plainReq putgetWorkload` is the covered requests (behaviour unchanged by D19q). -/
-theorem plainCover_putget (rq : apply.IRRModel) (h : plainCover rq) :
-    putgetWorkload.admits rq := by
-  show putgetKind _
-  unfold plainCover at h
-  unfold putgetKind
-  cases hk : apply.dispatchKind rq <;> simp only [hk] at h <;> simp
-
 /-- **A plain request** of the workload `W` (D19q; until then `plainCover`, the D19k
 narrowing): covered by the generic proofs, and admitted by `W`. -/
 def plainReq (W : SrvWorkload) (rq : apply.IRRModel) : Prop := plainCover rq ∧ W.admits rq
@@ -189,8 +181,6 @@ with a `Ready`'s batch, a premise on the run, `rnLogFits`; 2026-10-16, stage R7b
 def srvIdxOk [FfiSyntax] (ai₀ : w64) (L : List EntryModel) : Prop :=
   uint.Z ai₀ + 1 + L.length < 2 ^ 64 ∧ srvIdxOkW ai₀ L
 
-theorem srvIdxOkW_nil [FfiSyntax] (ai₀ : w64) : srvIdxOkW ai₀ [] := fun n m h => by simp at h
-
 /-- A prefix of a consecutive log is consecutive. -/
 theorem srvIdxOkW_prefix [FfiSyntax] (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOkW ai₀ B) (hp : A <+: B) :
     srvIdxOkW ai₀ A := by
@@ -217,15 +207,6 @@ theorem srvIdxOkW_snoc [FfiSyntax] (ai₀ : w64) (L : List EntryModel) (e : Entr
     simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at hm
     subst hm
     exact ⟨hidx, hty⟩
-
-/-- `srvIdxOk` one entry on, under the bound on the index after it. -/
-theorem srvIdxOk_snoc [FfiSyntax] (ai₀ : w64) (L : List EntryModel) (e : EntryModel) (h : srvIdxOk ai₀ L)
-    (hidx : uint.Z e.index = uint.Z ai₀ + 1 + L.length)
-    (hty : e.typ = W32 0 ∨ (e.typ = W32 1 ∧ isConfChangeEncoding e.data))
-    (hb : uint.Z ai₀ + 2 + L.length < 2 ^ 64) :
-    srvIdxOk ai₀ (L ++ [e]) :=
-  ⟨by simp only [List.length_append, List.length_singleton]; push_cast; omega,
-    srvIdxOkW_snoc ai₀ L e h.2 hidx hty⟩
 
 /-- `srvIdxOk` from the entry-wise facts and the bound. -/
 theorem srvIdxOk_of_W [FfiSyntax] (ai₀ : w64) (L : List EntryModel) (h : srvIdxOkW ai₀ L)
@@ -391,79 +372,11 @@ theorem kvRaftOf_prefix (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) (A B
   rw [kvRaftOf_append]
   exact kvRaftOf_extends _ _ _ _
 
-/-- The intermediate value lemma, from a log: a log between `log` and the fold of `D` from it is
-the fold of a prefix of `D`. -/
-theorem kvRaftOf_ivt_aux (c₀ : w64) (ch : apply.Chain) (l : mvcc.Log) :
-    ∀ (D : List EntryModel) (log : mvcc.Log), log <+: l → l <+: kvRaftOf c₀ ch log D →
-      ∃ D', D' <+: D ∧ kvRaftOf c₀ ch log D' = l
-  | [], log, h1, h2 => ⟨[], List.prefix_refl _, h1.eq_of_length (Nat.le_antisymm h1.length_le h2.length_le)⟩
-  | m :: D, log, h1, h2 => by
-    by_cases he : log = l
-    · exact ⟨[], List.nil_prefix, he⟩
-    · have h2' : l <+: kvRaftOf c₀ ch (kvEntry c₀ ch log m) D := h2
-      have hstep : kvEntry c₀ ch log m <+: l := by
-        rcases kvEntry_grow c₀ ch log m with hk | ⟨cs, hk⟩
-        · rw [hk]; exact h1
-        · have hlen : log.length < l.length := by
-            rcases Nat.lt_or_ge log.length l.length with h | h
-            · exact h
-            · exact absurd (h1.eq_of_length (Nat.le_antisymm h1.length_le h)) he
-          have hk' : kvEntry c₀ ch log m <+: kvRaftOf c₀ ch (kvEntry c₀ ch log m) D :=
-            kvRaftOf_extends _ _ _ _
-          apply List.prefix_of_prefix_length_le hk' h2'
-          rw [hk]; simp only [List.length_append, List.length_singleton]; omega
-      obtain ⟨D', hD', hk⟩ := kvRaftOf_ivt_aux c₀ ch l D (kvEntry c₀ ch log m) hstep h2'
-      exact ⟨m :: D', List.cons_prefix_cons.2 ⟨rfl, hD'⟩, hk⟩
-
-/-- **The intermediate value lemma**: a log between the models of `A₀` and of `B ⊒ A₀` (prefix
-order) is the model of some `A` between them. Since each entry appends at most one revision, the
-models of the prefixes between `A₀` and `B` pass through every log in between. -/
-theorem kvRaftOf_ivt (c₀ : w64) (ch : apply.Chain) (log₀ l : mvcc.Log) (A₀ B : List EntryModel)
-    (hAB : A₀ <+: B) (h1 : kvRaftOf c₀ ch log₀ A₀ <+: l) (h2 : l <+: kvRaftOf c₀ ch log₀ B) :
-    ∃ A, A₀ <+: A ∧ A <+: B ∧ kvRaftOf c₀ ch log₀ A = l := by
-  obtain ⟨D, rfl⟩ := hAB
-  rw [kvRaftOf_append] at h2
-  obtain ⟨D', hD', hk⟩ := kvRaftOf_ivt_aux c₀ ch l D _ h1 h2
-  refine ⟨A₀ ++ D', List.prefix_append _ _, ?_, ?_⟩
-  · obtain ⟨E, rfl⟩ := hD'
-    rw [← List.append_assoc]; exact List.prefix_append _ _
-  · rw [kvRaftOf_append]; exact hk
-
 
 /-! ## A plain put's and a write-free request's effect on the values -/
 
 section putValues
 open mvcc
-
-/-- The put of `k` finds the value it wrote. -/
-theorem kvVal_putKv (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (r : w64)
-    (k v : GoString) (l : w64) : (findKey k (putKv r k v l s)).map EtcdKv.value = some v := by
-  unfold putKv
-  simp only
-  rw [findKey_btInsert _ s hs]
-  cases h : s.find? (fun v => decide (v.key = k)) with
-  | none => simp
-  | some kv =>
-    have hk : kv.key = k := by simpa using List.find?_some h
-    simp [hk]
-
-/-- **A put's change writes its value** (no `IgnoreValue`). -/
-theorem kvVal_put (log : Log) (op : OpFull) (pv : Option EtcdKv) (hiv : op.ignoreValue = false) :
-    kvVal (log ++ [[txn.putChangeOf op pv]]) op.key = some op.val := by
-  unfold kvVal
-  rw [stateAfter_append]
-  simp only [applyChanges, List.foldl_cons, List.foldl_nil, txn.putChangeOf, applyChange]
-  rw [kvVal_putKv _ (stateAfter_sorted _)]
-  simp [txn.putValOf, hiv]
-
-/-- **A put's change leaves the other keys.** -/
-theorem kvVal_put_other (log : Log) (op : OpFull) (pv : Option EtcdKv) (k : GoString)
-    (hne : op.key ≠ k) :
-    kvVal (log ++ [[txn.putChangeOf op pv]]) k = kvVal log k := by
-  unfold kvVal
-  rw [stateAfter_append]
-  simp only [applyChanges, List.foldl_cons, List.foldl_nil, txn.putChangeOf, applyChange]
-  rw [findKey_putKv_other (stateAfter_sorted _) _ _ _ _ _ hne]
 
 end putValues
 

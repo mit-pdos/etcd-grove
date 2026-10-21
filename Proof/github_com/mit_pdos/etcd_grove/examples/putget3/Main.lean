@@ -73,7 +73,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id₁ id₂ id₃ bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id₁ id₂ id₃ bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
@@ -157,14 +157,14 @@ theorem Main.wp_proof
   -- the ghost state of the cluster and its members (`putget3_alloc`)
   imod (putget3_alloc id₁ id₂ id₃ bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂,
     %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2, hwl₁⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hwl₁⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
-      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hnoc) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -176,14 +176,14 @@ theorem Main.wp_proof
   wp_auto
   iunfold memberUp at Hup₁
   icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
-      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq Hnoc)
+      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).1.symm]) Hlg Hck Haf Hbuq Hdbo)
     $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -201,9 +201,9 @@ theorem Main.wp_proof
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) [id₁, id₂, id₃] bootLog
-      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
+      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
       (by simp [dir3, (id_ne id₁ id₂ id₃ bootLog Hbf).2.1.symm,
-        (id_ne id₁ id₂ id₃ bootLog Hbf).2.2.symm]) Hlg Hck Haf Hbuq Hnoc)
+        (id_ne id₁ id₂ id₃ bootLog Hbf).2.2.symm]) Hlg Hck Haf Hbuq Hdbo)
     $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -258,8 +258,9 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started s₁ E ρ₁.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p s₁ C.A cid mid C.n $$ Hkvs
   rw [HC.1]
@@ -283,7 +284,7 @@ theorem Main.wp_proof
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_New _ clientAddr₁
+  wp_apply (wp_New _ [clientAddr₁]
       ⟨R, clientAddr₁, [], null, null, [], null⟩) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -294,7 +295,7 @@ theorem Main.wp_proof
       · iapply ownSlice_nil
       ipureintro
       refine ⟨?_, ?_⟩
-      · unfold plainEndpoint clientAddr₁; decide
+      · exact plainEndpoints_singleton _ (by unfold plainEndpoint clientAddr₁; decide)
       · simp [Hlg]
     ipureintro; exact Htb
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)

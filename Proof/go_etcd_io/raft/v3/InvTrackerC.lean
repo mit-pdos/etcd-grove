@@ -98,22 +98,6 @@ two halves' answers (Go: `if idx0 < idx1 { return idx0 }; return idx1`). -/
 def JCommittedIdx (s0 s1 : GSet w64) (f : w64 → w64) (N : w64) : Prop :=
   ∃ N0 N1, MajIdx s0 f N0 ∧ MajIdx s1 f N1 ∧ N = (if uint.Z N0 < uint.Z N1 then N0 else N1)
 
-/-- At a non-joint configuration (an empty outgoing half) the joint answer is the incoming
-half's. -/
-theorem JCommittedIdx_simple (s0 : GSet w64) (f : w64 → w64) (N : w64)
-    (H : JCommittedIdx s0 ∅ f N) : MajIdx s0 f N := by
-  obtain ⟨N0, N1, H0, H1, HN⟩ := H
-  have h1 : N1 = W64 (2 ^ 64 - 1) := H1.1 rfl
-  subst h1
-  have : N = N0 := by
-    rw [HN]
-    split
-    · rfl
-    · rename_i h
-      word
-  subst this
-  exact H0
-
 /-! ### The simple configuration's facts -/
 
 theorem cfgInv_simple (cfg : GSet w64) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
@@ -558,38 +542,6 @@ def visitClosureC (c : CfgM) (trk : Loc) (votes : GMap w64 Bool) (prs : GMap w64
       (App (App (Val #f) (Val #i)) (Val #pr))
     {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTrackerC c tv' ⟨votes, prs, pvs'⟩ ∗
                             I ({[i]} ∪ D) pvs' }})
-
-/-- A closure for the simple configuration is one for `ownTrackerC` at it. -/
-theorem visitClosure_toC (cfg : GSet w64) (trk : Loc) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (f : GoFunc) (I : GSet w64 → GMap w64 Progress → IProp GF) :
-    □ visitClosure (GF := GF) cfg trk votes prs f I ⊢
-      visitClosureC (CfgM.simple cfg (domSet prs \ cfg)) trk votes prs f I := by
-  iintro #Hf
-  unfold visitClosureC
-  iintro %i %pr %tv %pvs %p %D
-  imodintro
-  iintro %Φ ⟨%Hi, %Hpr, %Hp, %Hmi, Htrk, Hpp, Hback, HI⟩ HΦ
-  iunfold visitClosure at Hf
-  iapply Hf $$ %i %pr %tv %pvs %p %D [Htrk Hpp Hback HI]
-  · iframe Htrk Hpp HI
-    isplitr
-    · ipureintro; exact Hi
-    isplitr
-    · ipureintro; exact Hpr
-    isplitr
-    · ipureintro; exact Hp
-    isplitr
-    · ipureintro; exact Hmi
-    iintro %p' Hpp' %Hl
-    ihave Hown := Hback $$ %p' Hpp' %Hl
-    icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
-    iexact Hown
-  inext
-  iintro ⟨%tv', %pvs', Htrk, Hown, HI⟩
-  iapply HΦ
-  iexists tv', pvs'
-  iframe Htrk HI
-  iapply ownTracker_toC _ _ _ $$ Hown
 
 /-! ### A new configuration, as `switchToConfig` installs it (2026-10-13, stage A2) -/
 

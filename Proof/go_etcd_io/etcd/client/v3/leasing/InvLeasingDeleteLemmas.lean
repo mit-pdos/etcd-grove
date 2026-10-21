@@ -52,15 +52,6 @@ instance cachedKvOwn_discard_persistent (c : CachedKv) :
     Persistent (cachedKvOwn (GF := GF) c DFrac.discard) :=
   (cachedKvOwn_dfractional (GF := GF) c).dfractional_persistent
 
-/-- An owned key-value made read-only is `kvValAt`. -/
-theorem cachedKvOwn_kvValAt (c : CachedKv) :
-    cachedKvOwn (GF := GF) c DFrac.discard ⊢ kvValAt c.p c.kv := by
-  unfold cachedKvOwn kvValAt
-  iintro ⟨-, HK, #Hks, HC, HM, HV, HVal, #Hvs, HL⟩
-  iexists c.keySl, c.valSl
-  iframe
-  iframe #
-
 /-- `deleteCommitted` reads the delete's range only. -/
 theorem deleteCommitted_congr (lo : w64) (o o' : OpFull) (dr : Loc) (hk : o.key = o'.key)
     (he : o.base.rangeEnd = o'.base.rangeEnd) :

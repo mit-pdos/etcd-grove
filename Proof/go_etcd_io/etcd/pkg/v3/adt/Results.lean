@@ -36,15 +36,12 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.adt.findE_none
 #print axioms Perennial.EtcdGrove.adt.intersects_iff
 #print axioms Perennial.EtcdGrove.adt.visit_stab
-#print axioms Perennial.EtcdGrove.adt.RbT.inorder_rotateLeft
-#print axioms Perennial.EtcdGrove.adt.RbT.inorder_rotateRight
 
 /-! The insert's model (`TreeInsert.lean`, unit 4b): the descent inserts in the tree's order,
 a subtree's max is a function of its entries (the rotations keep it), and `insertFixup`'s loop
 invariant holds for the new leaf, is kept by each case of the loop and gives a red-black tree
 at its exit. -/
 #print axioms Perennial.EtcdGrove.adt.inorder_insertBST
-#print axioms Perennial.EtcdGrove.adt.maxEnd_eq_of_inorder
 #print axioms Perennial.EtcdGrove.adt.RbCtx.fixInv_start
 #print axioms Perennial.EtcdGrove.adt.RbCtx.fixInv_exit
 #print axioms Perennial.EtcdGrove.adt.RbCtx.fix_red_LL

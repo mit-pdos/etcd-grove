@@ -12,9 +12,9 @@ Lean-first (no Rocq counterpart).
   token for raft's read registry; `kv_read_minted`: a deposited context with a minted key is
   the one minted there.
 - `kvLb_current`: the history now is a lower bound (`kvLb`), at the client's state.
-- `kv_propAu`: the persistent atomic update over raft's full log that `Node.Propose` deposits
-  for an operation's datum: at every committed occurrence it moves the store's log, and at
-  the first it runs the client's update from the operation's slot (the linearization point);
+- `kv_propAu`: the atomic update over raft's full log that `Node.Propose` deposits for an
+  operation's datum, fired at most once: at a committed occurrence it moves the store's log, and
+  at the first it runs the client's update from the operation's slot (the linearization point);
   `kv_noopAu`, the standing update for raft's own entries; `kv_readAu`, a read's update.
 - `kv_collect`: the client's result, from its slot, with its ticket.
 - `rkvVal_agree`, `rkvVal_update`: the client's half of the history's ghost variable against the
@@ -536,10 +536,9 @@ operation's datum `d`, whose slot is `γp` (2026-10-14, stage R; see the file he
 committed occurrence it moves the store's log; at the first (`d` not yet in the history) it
 runs the client's update from the slot, with the slot's later credit, and moves the value. -/
 theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) :
-    ⊢ rkvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗ propAu γr.raft d (fun _ => iprop(True)) := by
+    ⊢ rkvInv (GF := GF) γr -∗ d ↪[γr.ops]□ γp -∗ propAu1 γr.raft d (fun _ => iprop(True)) := by
   iintro #Hinv #Hop
-  unfold propAu
-  imodintro
+  unfold propAu1
   iauintro
   unfold atomic_acc rkvInv rkvInvBody
   have Hdisj := rkvN_raftN

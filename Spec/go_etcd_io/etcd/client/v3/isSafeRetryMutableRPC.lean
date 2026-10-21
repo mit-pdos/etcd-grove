@@ -29,7 +29,9 @@ abbrev isSafeRetryMutableRPC.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ statusErrOk err }}
     (App (Val (@! go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC)) (Val #err))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b;
+      -- (2026-10-21, D29) `true` only for grpc's old balancer's "no address"/"no connection"
+      ⌜b = true → go_etcd_io.etcd.cache.v3.errDesc err ∈ go_etcd_io.etcd.cache.v3.refusalDescs⌝ }}
 
 end spec
 

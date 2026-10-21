@@ -40,10 +40,6 @@ def evFact (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat) (e : 
   iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
     kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ revAt E r e.key v)
 
-instance evFact_persistent (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat)
-    (e : EvModel) : Persistent (evFact (GF := GF) E P r e) := by
-  unfold evFact; infer_instance
-
 theorem putNv_value (r : w64) (k val : GoString) (l : w64) (s : List EtcdKv) :
     (txn.putNv r k val l s).value = val := by
   unfold txn.putNv

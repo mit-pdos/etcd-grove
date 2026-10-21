@@ -101,17 +101,17 @@ theorem RawNode.ProposeConfChange.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [propMsgM, MsgProp]
-  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, -, -, Herr⟩
   have Hc := Href.commit_mono
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hc' (by msg_ne); subst c'
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
-  obtain ⟨Hfr, Hap, -⟩ := Hloc (.inl rfl)
+  obtain ⟨Hfr, Hap, -⟩ := Hloc.1 (fun h => absurd h (by msg_ne)) (.inl rfl)
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
-  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
-    Hfr.2.2.2.2.2.1 $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok (by rw [Hfr.1]; exact Int.le_refl _)
+    Hfr.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.1 Hfr.2.1 $$ Hstrecs
   iapply HΦ
   simp only [named]
   iframe Hc
@@ -126,7 +126,8 @@ theorem RawNode.ProposeConfChange.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2.1]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
       (RNFl.keep Hrnfl Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.2 Hap')
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+      (Hloan.keep Hfr.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.1 Hfr.2.2.2.2.2.2.2.2.2.2.1 Hfr.2.2.2.2.2.1 Hfr.2.2.1 Hap' Hc)
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd

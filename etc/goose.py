@@ -7,8 +7,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, lintest,
-               raft-witness or kvwitness; repeatable; default: all).
+  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, bridge,
+               lintest, raft-witness or kvwitness; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -144,20 +144,24 @@ PROJECTS = [
         # `closeRequireLeader` context alignment (a7bd9a16e,
         # issues/etcd-lease-close-require-leader-ctx-misaligned.md) and the retry interceptor's
         # non-repeatable context-error return (8a24be2a3, issues/etcd-client-retry-put-ctx-error.md),
-        # and (D25, the watch client's reconnection) branch `watch-resume-fixes` on it: a
-        # server-canceled substream's id reset (04375baaa,
+        # and the gRPC quota's current backend (8f793b820,
+        # issues/etcd-quota-stale-backend-after-snapshot.md; D22g (A)) and the auth store's move
+        # before the old backend's close (d52eec43e,
+        # issues/etcd-auth-snapshot-closed-backend-panic.md; D22k (A)), and the merged snapshot
+        # sent only at its message's term (de825d8c6, issues/etcd-merged-snapshot-stale-term.md;
+        # D22a), and (D25, the watch client's reconnection) the four fixes of branch
+        # `watch-resume-fixes` (04375baaa..b3c29bc17, made on 8a24be2a3) cherry-picked on top: a
+        # server-canceled substream's id reset (cafce83d8,
         # issues/etcd-watch-resume-stale-canceled-id.md) and no nil channel on `retc`
-        # (a8a459955, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
-        # moving forward (16f73d6eb, issues/etcd-watch-resume-below-start-revision.md) and
-        # `waitCancelSubstreams` adding one goroutine at a time to its wait group (b3c29bc17,
+        # (c15c7dda8, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
+        # moving forward (2e2dc077c, issues/etcd-watch-resume-below-start-revision.md) and
+        # `waitCancelSubstreams` adding one goroutine at a time to its wait group (2aed163b1,
         # issues/etcd-watch-resume-waitgroup-overflow.md).
-        # `goose-lean` (2aed163b1) is the collaborator's three D22 server commits (de825d8c6..)
-        # with these four fixes cherry-picked on top: a later bump to `goose-lean` brings both.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="b3c29bc17f266cbb3e99fed9675c8d928122dca5",
+        rev="2aed163b15c64eb415382dcedb6558a09dff203a",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -514,6 +518,20 @@ PROJECTS = [
         lean_roots=["github.com/anishathalye/porcupine="],
         packages=["."],
         owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
+        name="bridge",
+        # etcd's integration tests' TCP bridge between a client and a member (tests/framework/
+        # integration/bridge.go at the etcd pin), vendored with an exported constructor
+        # (third_party/bridge/UPSTREAM.md): linkv3p's cuts between a client and its member
+        # (notes/client-cut-plan.md). Its imports are standard library: io, sync (Perennial's)
+        # and net (the etcd project's names, the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "bridge"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "third_party")],
     ),
     Project(
         name="lintest",

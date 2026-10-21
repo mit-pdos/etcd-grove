@@ -43,31 +43,20 @@ variable [EM : EtcdModel GF]
 abbrev lessorIfaceOf (l : Loc) : GoInterfaceOk :=
   interface.mk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #l
 
-/-- **`context`'s facts give `ctxErrTargets`** (as the read package states them). -/
-theorem ctxErrTargets_of [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] :
-    isPkgInit (PROP := IProp GF) pkg_id.context ⊢ ctxErrTargets := by
-  iintro #Hp
-  ihave ⟨#HC, #HD⟩ := EtcdGrove.ContextReadErrs.errs $$ Hp
-  iunfold EtcdGrove.errVarLeaf at HC
-  icases HC with ⟨%ec, #Hec, %Hlc, -⟩
-  icases HD with ⟨%ed, #Hed, %Hld, -⟩
-  unfold ctxErrTargets
-  isplitl
-  · iexists ec; iframe #; ipureintro; exact Hlc.1
-  · iexists ed; iframe #; ipureintro; exact Hld.2.2.2
-
 /-- **A `*lessor` meets the clients' lease contract** (see the file header). -/
 theorem isEtcdLease_of_lessor
     (wp_Grant : lessor.Grant.spec (GF := GF) (hG := hG))
     (wp_Revoke : lessor.Revoke.spec (GF := GF) (hG := hG))
     (wp_KeepAlive : lessor.KeepAlive.spec (GF := GF) (hG := hG))
     (l : Loc) (addr : GoString) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l addr ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk addr ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢
     isEtcdLease (lessorIfaceOf l) := by
-  iintro ⟨#Hp, #Hl, #HG, #HR, #Hstr, #Heof, #Hall, #Htg⟩
+  iintro ⟨#Hp, #Hl, #HG0, #HR0, #Hstr, #Heof, #Hall, #Htg⟩
+  ihave #HG := (isGrpcRpcs_singleton addr _ _).1 $$ HG0
+  ihave #HR := (isGrpcRpcs_singleton addr _ _).1 $$ HR0
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
   icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, -, -, -, -, -, -, -, #Hrem, -, -⟩
@@ -77,7 +66,7 @@ theorem isEtcdLease_of_lessor
     ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
-    iapply (wp_Grant l addr etcdLeaseGrantSpec
+    iapply (wp_Grant l [addr] etcdLeaseGrantSpec
       (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗ etcdReached m.hdr.revision)) ctx cs ttl) $$ []
     · iframe #
       unfold etcdLeaseGrantSpec
@@ -110,7 +99,7 @@ theorem isEtcdLease_of_lessor
     ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
     iunfold client.ctxErrClientAll at Hall
     ihave #Hce := Hall $$ %ctx %cs Hctx
-    iapply (wp_Revoke l addr etcdLeaseRevokeSpec
+    iapply (wp_Revoke l [addr] etcdLeaseRevokeSpec
       (fun m => iprop(etcdReached m.hdr.revision)) ctx cs id) $$ []
     · iframe #
       unfold etcdLeaseRevokeSpec
@@ -140,7 +129,7 @@ theorem isEtcdLeaseClient_of_new
     (wp_Revoke : lessor.Revoke.spec (GF := GF) (hG := hG))
     (wp_KeepAlive : lessor.KeepAlive.spec (GF := GF) (hG := hG))
     (cl : Loc) (ep : GoString) (V : client.WEnv GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl ep V ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseGrant" etcdLeaseGrantSpec ∗
       isGrpcRpc ep go!"/etcdserverpb.Lease/LeaseRevoke" etcdLeaseRevokeSpec ∗
       leaseKAStreamOk ep ∗ client.eofOk ∗ client.ctxErrClientAll ∗ ctxErrTargets ⊢

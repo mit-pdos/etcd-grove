@@ -928,17 +928,6 @@ theorem splitBatches_run (b : List EvModel) (hb : b ≠ []) (r : w64)
         rw [h e' (by simp), h e (by simp)]
       simp [this]
 
-/-- The first batch's revision is the first event's, the last batch's the last event's. -/
-theorem splitBatches_head_rev (evs : List EvModel) (e : EvModel) (h : evs.head? = some e) :
-    ∃ b, (splitBatches evs).head? = some b ∧ batchRev b = e.rev := by
-  cases evs with
-  | nil => simp at h
-  | cons x xs =>
-    simp only [List.head?_cons, Option.some.injEq] at h
-    subst h
-    obtain ⟨b, bs, hb⟩ := splitBatches_cons x xs
-    exact ⟨x :: b, by rw [hb]; rfl, rfl⟩
-
 theorem splitBatches_last_rev (evs : List EvModel) (e : EvModel) (h : evs.getLast? = some e) :
     ∃ b, (splitBatches evs).getLast? = some b ∧ batchRev b = e.rev := by
   have hne : evs ≠ [] := by intro h'; subst h'; simp at h
@@ -1431,10 +1420,6 @@ theorem streamRange_decomp (s n : w64) (st : List Batch) (hsorted : RevSorted ba
           · have := hall b' hb'; omega
         rw [hnil]
         exact ⟨[], b :: bs, by simp, fun _ h => by cases h⟩
-
-theorem chainEnd_append_single (last : Int) (bs : List Batch) (b : Batch) :
-    chainEnd last (bs ++ [b]) = sint.Z (batchRev b) := by
-  simp [chainEnd]
 
 theorem eventsOf_append (sent : List RespModel) (r : RespModel) :
     eventsOf (sent ++ [r]) = eventsOf sent ++ r.events := by
@@ -2324,73 +2309,6 @@ theorem certChain_prog (last : Int) (bs : List Batch) :
     rcases List.mem_cons.1 Hb' with h | h
     · subst h; iapply C.cert_prog p b'; iexact Hc
     · iapply Hih; ipureintro; exact h
-
-/-- **The delivery fact at any time** (for `Cache.Watch`): under a read lock, `w`'s registrant
-learns that what its consumer has received is a prefix of a log with the delivery facts. -/
-theorem demux_watcher_delivered (d : Loc) (γd : DemuxNames) (cap : Nat) (w : Loc)
-    (γ : WatcherNames) (pred : Option (GoString → Bool)) (s : w64)
-    (received : List RespModel) :
-    isDemux (hG := hG) d γd cap C ∗ demuxRegistered γd w γ pred s ∗
-      demuxLockInv d γd cap C sync.rfrac ∗ watcherConsumer γ received ∗ £ 4 ⊢
-      |={⊤}=> demuxRegistered γd w γ pred s ∗ demuxLockInv d γd cap C sync.rfrac ∗
-        watcherConsumer γ received ∗
-        ⌜∃ (sent : List RespModel) (c : Option w64), received <+: sent ∧
-          DeliveredLog pred s sent c⌝ := by
-  iintro ⟨#Hd, Hreg, HP, Hcons, Hlc⟩
-  icases lc_split (n := 2) (m := 2) |>.1 $$ Hlc with ⟨Hlc2, Hlc⟩
-  icases lc_split (n := 1) (m := 1) |>.1 $$ Hlc with ⟨Hlc3, Hlc4⟩
-  imod demux_slot_borrow d γd cap w γ pred s $$ [Hd Hreg HP Hlc2] with ⟨%pn, %sr, #Hpred, Hr, Hloan⟩
-  · iframe Hd Hreg Hlc2; inext; iexact HP
-  iunfold regRes at Hr
-  icases Hr with ⟨%sent', %v', %pred', #Hw', #Hpred', Hview', Hwat', Huniq', %Hdel'⟩
-  ihave Heq : iprop(▷ ⌜pred = pred'⌝) $$ []
-  · iapply predIs_agree pn pred pred'
-    isplitl
-    · iexact Hpred
-    · iexact Hpred'
-  imod lc_fupd_elim_later (E := ⊤) $$ Hlc3 Heq with %Heq
-  subst Heq
-  -- the consumer's prefix, in the view's phase
-  iunfold named at Hw' Hpred' Hview' Hwat'
-  ihave Hpfx : iprop(|={⊤}=> watcherAt γ sent' v'.phase.toWatcher ∗ watcherConsumer γ received ∗
-      ⌜∃ c, List.IsPrefix received sent' ∧ ∀ m, c = some m → m = v'.n⌝) $$ [Hwat' Hcons]
-  · dsimp only
-    cases hph : v'.phase with
-    | active =>
-      simp only [RegPhase.toWatcher, watcherAt]
-      imod watcher_received_prefix w γ pred _ sent' received $$ [Hw' Hwat' Hcons]
-        with ⟨Hwat', Hcons, %Hpre⟩
-      · iframe Hwat' Hcons; iexact Hw'
-      imodintro; iframe; ipureintro; exact ⟨none, Hpre, fun m h => by cases h⟩
-    | lagging =>
-      simp only [RegPhase.toWatcher, watcherAt]
-      imod watcher_received_prefix w γ pred _ sent' received $$ [Hw' Hwat' Hcons]
-        with ⟨Hwat', Hcons, %Hpre⟩
-      · iframe Hwat' Hcons; iexact Hw'
-      imodintro; iframe; ipureintro; exact ⟨none, Hpre, fun m h => by cases h⟩
-    | closed c0 =>
-      simp only [RegPhase.toWatcher, watcherAt]
-      ihave #Hcl := Hwat'
-      imod watcher_received_prefix_closed w γ pred _ sent' received c0 $$ [Hcons]
-        with ⟨Hcons, %Hpre⟩
-      · iframe Hcons; iframe #
-      imodintro; iframe; iframe #; ipureintro
-      exact ⟨c0, Hpre, fun m h => Hdel'.cancel m (by rw [hph, h])⟩
-  imod Hpfx with ⟨Hwat', Hcons, %Hpfx⟩
-  obtain ⟨c, Hpre, Hc⟩ := Hpfx
-  imod demux_slot_return d γd cap w γ pred s pn sr $$ [Hd Hpred Hview' Hwat' Huniq' Hloan Hlc4]
-    with ⟨Hreg, HP⟩
-  · iframe Hd Hpred Hloan Hlc4
-    iunfold regRes
-    iexists sent', v', pred
-    simp only [named]
-    iframe
-    iframe #
-    ipureintro; exact Hdel'
-  imodintro
-  iframe
-  ipureintro
-  exact ⟨sent', c, Hpre, v', Hdel', Hc⟩
 
 end lemmas
 

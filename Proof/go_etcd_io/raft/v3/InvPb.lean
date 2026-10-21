@@ -457,28 +457,6 @@ theorem pbMsg_alloc (T : Type) (l : Loc) (st : google_golang_org.protobuf.intern
 
 /-! ### Entries -/
 
-/-- Two facts about the entry at one location agree (D2: a log entry is one value for good). -/
-theorem entPts_agree (l : Loc) (dq1 dq2 : DFrac) (e1 e2 : EntryM) :
-    entPts (GF := GF) l dq1 e1 ∗ entPts l dq2 e2 ⊢ ⌜e1 = e2⌝ := by
-  iintro ⟨H1, H2⟩
-  iNamedSuffix H1 "1"
-  iNamedSuffix H2 "2"
-  icombine HT1 HT2 gives %HT
-  icombine HI1 HI2 gives %HI
-  icombine HY1 HY2 gives %HY
-  icombine HD1 HD2 gives %HD
-  subst HT HI HY HD
-  ihave %Hd := ownSlice_agree (GF := GF) ds DFrac.discard DFrac.discard e1.Data' e2.Data' $$ Hd1 Hd2
-  ihave %Ht := cellRO_agree (GF := GF) pt e1.Term' e2.Term' $$ [cT1 cT2]
-  · isplitl [] <;> iassumption
-  ihave %Hi := cellRO_agree (GF := GF) pi e1.Index' e2.Index' $$ [cI1 cI2]
-  · isplitl [] <;> iassumption
-  ihave %Hy := cellRO_agree (GF := GF) pty e1.Type' e2.Type' $$ [cY1 cY2]
-  · isplitl [] <;> iassumption
-  ipureintro
-  cases e1; cases e2
-  simp_all
-
 /-- A fresh entry, once filled, is frozen into a log entry (D2). -/
 theorem entOwn_freeze (l : Loc) (e : EntryM) : entOwn (GF := GF) l e ⊢ |==> entRO l e := by
   iintro H
@@ -847,16 +825,6 @@ theorem csPts_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) (al : Bool) :
     iframe
     iframe cA Hpb
     ipureintro; exact Hal
-
-theorem csOpt_split (p : Loc) (dq1 dq2 : DFrac) (c : ConfStateM) :
-    csOpt (GF := GF) p (dq1 • dq2) c ⊢ csOpt p dq1 c ∗ csOpt p dq2 c := by
-  iunfold csOpt
-  iintro (%H | H)
-  · isplitl [] <;> ileft <;> ipureintro <;> exact H
-  · icases csPts_split _ _ _ _ _ $$ H with ⟨H1, H2⟩
-    isplitl [H1]
-    · iright; iexact H1
-    · iright; iexact H2
 
 /-- A snapshot's nested conf state is `nil` holding the zero record, or not `nil`. -/
 theorem csOptA_nn (p : Loc) (dq : DFrac) (c : ConfStateM) :

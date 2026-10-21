@@ -18,7 +18,10 @@ txn package, which imports it without the apply thread's translation). The insta
 packages the server's `apply` package reaches (`apply` itself, `raftpb`, `pbutil`, `wait`,
 `auth`, `v3alarm`, `membership`, `storage`, `client/pkg/v3/types`) are in `apply/Base.lean`
 (2026-10-12: moved there, unchanged but for `apply`'s, which now states the package's facts,
-for the apply package, which must not import the server's translation).
+for the apply package, which must not import the server's translation). Those of `config`, `snap`
+and `config`'s imports (`otelgrpc`, `crypto/tls`, `transport`, `featuregate`, `v3discovery`) are
+there too since D22 S-f (2026-10-19: `storage`, whose instance is there, imports `config` and `snap`
+for `OpenSnapshotBackend`).
 -/
 module
 
@@ -61,43 +64,6 @@ end net.http
 -- zap, zapcore, protoreflect and proto: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (clientv3
 -- imports them too).
 
-namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc :=
-  build_get_is_pkg_init_wf
-
-end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
-
--- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17)
-namespace crypto.tls
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
-  build_get_is_pkg_init_wf
-
-end crypto.tls
-
-namespace go_etcd_io.etcd.client.pkg.v3.transport
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.transport
-
-namespace go_etcd_io.etcd.pkg.v3.featuregate
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.featuregate
-
 -- names only (stage R8b of the raft v3.7 retarget, 2026-10-16): the packages the raft wrapper's
 -- construction names (`newRaftNode`'s dead logger branch, the WAL `bootstrappedRaft.newRaftNode`
 -- wraps); `logutil`'s instance is in `cache/v3/Base.lean` (item 5: `clientv3` imports it).
@@ -110,33 +76,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.storage.wal
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
-
-namespace go_etcd_io.etcd.server.v3.config
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.config
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
@@ -363,9 +302,6 @@ abbrev srvRaftInit : IProp GF :=
     -- (D19r (C), 2026-10-18) the raft status's mutex over its function (`raft.go`; the raft
     -- wrapper's `rnRaftStatusOk`), allocated and initialized by the package's initializer
     sync.isMutex (globalAddr raftStatusMu) iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f))
-
-instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
-  unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance
 
 /-- The apply loop's part of the server's package facts (2026-10-13, the request path's unit 4b,
 `applyAll`): the metric `proposalsApplied` holds a fixed gauge (`Set`), and `schema.AllBuckets`

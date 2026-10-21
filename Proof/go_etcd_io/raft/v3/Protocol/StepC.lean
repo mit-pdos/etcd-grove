@@ -104,10 +104,6 @@ theorem JQuorum_single {c : CfgM} {id : w64} (h : CfgSingle c id) : JQuorum c {[
     size_singleton]
   omega
 
-theorem cfgSingle_simple (cfg lrn : GSet w64) (id : w64) :
-    CfgSingle (CfgM.simple cfg lrn) id ↔ cfg = {[id]} := by
-  unfold CfgSingle CfgM.simple; simp
-
 /-! ### Joint quorums at a non-joint configuration -/
 
 theorem MajQ_empty (q : GSet w64) : MajQ ∅ q := Or.inl rfl
@@ -126,17 +122,6 @@ theorem JQuorum_of_out {c : CfgM} (hi : c.incoming ≠ ∅) (ho : c.outgoing = �
     JQuorum c q ↔ IsQuorum c.incoming q := by
   unfold JQuorum; rw [ho, MajQ_of_ne q hi]
   exact ⟨fun h => h.1, fun h => ⟨h, MajQ_empty q⟩⟩
-
-theorem JLost_of_out {c : CfgM} (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
-    (votes : GMap w64 Bool) :
-    JLost c votes ↔ ¬ IsQuorum c.incoming (c.incoming \ rejected votes) := by
-  unfold JLost; rw [ho, MajQ_of_ne _ hi]
-  exact ⟨fun h => h.elim id (fun h' => absurd (MajQ_empty _) h'), Or.inl⟩
-
-theorem JQuorumAcked_of_out {c : CfgM} (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
-    (f : w64 → w64) (N : w64) : JQuorumAcked c f N ↔ QuorumAcked c.incoming f N := by
-  unfold JQuorumAcked QuorumAcked
-  simp only [JQuorum_of_out hi ho]
 
 /-! ### Overlapping configurations (moved from `CfgOverlap.lean` in stage B4: the ghost
 state's definitions read it) -/
@@ -165,9 +150,6 @@ theorem QOverlap.refl {c : CfgM} (hi : c.incoming ≠ ∅) : QOverlap c c :=
 /-- Whether the configuration `c` is joint: `len(r.trk.Config.Voters[1]) > 0`, `stepLeader`'s
 `alreadyJoint` (moved here from `Spec/stepLeader.lean` in stage B3, for `StepR`'s proposals). -/
 def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
-
-theorem CfgM.joint_simple (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).joint = false := by
-  simp [CfgM.joint, CfgM.simple, GMap.map_size_empty]
 
 /-! ### Conf-change entries of a log (moved here from `CfgOverlap.lean` and `StepRInv.lean`
 in stage B5: the ghost state's dynamic facts read them) -/
@@ -332,14 +314,6 @@ theorem ConfI1_snoc {l : List EntryM} {c : Nat} {e : EntryM} (h : ConfI1 l c)
   rw [List.getElem?_append_left (by omega)] at h1
   rw [List.getElem?_append_left hk2] at h2
   exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
-
-theorem ConfI1_take {l : List EntryM} {c n : Nat} (h : ConfI1 l c) : ConfI1 (l.take n) c := by
-  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
-  rw [List.getElem?_take] at h1 h2
-  by_cases hk1 : k1 < n <;> by_cases hk2 : k2 < n <;>
-    simp only [hk1, hk2, ite_true, ite_false] at h1 h2
-  · exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
-  all_goals (first | cases h1 | cases h2)
 
 /-- With at most one conf entry at or past `a`, a conf entry at `k ≥ a` has exactly the conf
 entries of the prefix of length `a` before it. -/
@@ -590,7 +564,6 @@ inductive StepC : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      uint.Z m.index ≤ uint.Z s.commit →
       StepC s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
@@ -658,55 +631,6 @@ end model
 
 section equiv
 variable [FfiSyntax]
-
-/-- `StepC` at a non-joint configuration is `Step` at its voters. -/
-theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)
-    {s : PState} {ms : List Msg} {s' : PState} (h : StepC c id B s ms s') :
-    Step c.incoming id B s ms s' := by
-  have Hv := CfgM.voters_of_out ho
-  induction h with
-  | refl s => exact .refl s
-  | trans _ _ _ _ _ _ _ ih1 ih2 => exact .trans _ _ _ _ _ ih1 ih2
-  | campaign s peers cl h1 h2 h3 h4 =>
-    exact .campaign s peers cl h1 (Hv ▸ h2) h3 (Hv ▸ h4)
-  | win s mt ms h1 h2 h3 h4 h5 _ => exact .win s mt ms h1 ((JQuorum_of_out hi ho _).1 h2) h3 h4 h5
-  | sendApps s ms h1 h2 _ => exact .sendApps s ms h1 h2
-  | lose s h1 h2 => exact .lose s h1 ((JLost_of_out hi ho _).1 h2)
-  | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).1 h5)
-  | readAck m s N h1 h2 h3 h4 h5 h6 =>
-    exact .readAck m s N h1 h2 h3 h4 h5 ((JQuorumAcked_of_out hi ho _ _).1 h6)
-  | readSingle m s h1 h2 h3 h4 => exact .readSingle m s h1 h2 h3 h4.1
-  | readReleaseSingle s h1 h2 h3 => exact .readReleaseSingle s h1 h2 h3.1
-  | _ =>
-    first
-    | (apply Step.higherTerm <;> assumption)
-    | (apply Step.grantVote <;> assumption)
-    | (apply Step.rejectVote <;> assumption)
-    | (apply Step.recordVote <;> assumption)
-    | (apply Step.drain <;> assumption)
-    | (apply Step.appAccept <;> assumption)
-    | (apply Step.appStale <;> assumption)
-    | (apply Step.appReject <;> assumption)
-    | (apply Step.heartbeat <;> assumption)
-    | (apply Step.beat <;> assumption)
-    | (apply Step.appResp <;> assumption)
-    | (apply Step.sendApps <;> assumption)
-    | (apply Step.propose <;> assumption)
-    | (apply Step.propForward <;> assumption)
-    | (apply Step.snapRestore <;> assumption)
-    | (apply Step.snapFastfwd <;> assumption)
-    | (apply Step.snapStale <;> assumption)
-    | (apply Step.takeReads <;> assumption)
-    | (apply Step.readFwd <;> assumption)
-    | (apply Step.readPend <;> assumption)
-    | (apply Step.readArrive <;> assumption)
-    | (apply Step.readRelease <;> assumption)
-    | (apply Step.readState <;> assumption)
-    | (apply Step.sendFree <;> assumption)
-    | (apply Step.abandon <;> assumption)
-    | (apply Step.zeroAck <;> assumption)
-    | (apply Step.reMatch <;> assumption)
-    | (apply Step.stepDown <;> assumption)
 
 end equiv
 

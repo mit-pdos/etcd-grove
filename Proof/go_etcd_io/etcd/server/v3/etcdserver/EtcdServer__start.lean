@@ -379,7 +379,7 @@ theorem EtcdServer.start.wp_proof
   ihave #Hsa : isServerApplyAll s γr $$ []
   · iunfold isServerApplyAll
     iunfold srvApplyAllBuilt at Hsab
-    icases Hsab with ⟨%msc, #Hmsc, #Hmscb⟩
+    icases Hsab with ⟨%msc, #Hmsc, #Hmscb, #Hinfl⟩
     iexists _, msc, sc1
     iframe #
     isplitr
