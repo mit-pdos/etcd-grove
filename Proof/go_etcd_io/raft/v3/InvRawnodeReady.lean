@@ -333,7 +333,8 @@ def SnapRdy (rs : RNState) (ce : List EntryM) (l : SnapLoan) (s : NState) : Prop
   snapTrip l.snap l.snap.Metadata'.ConfState'.lists ∈ s.logst.ksn ∧
   0 < uint.Z l.snap.Metadata'.Index' ∧ l.fl = s.logst.fl ∧ ce = [] ∧
   rs.delivered <+: l.dlv ∧ l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
-  uint.Z s.logst.applying ≤ uint.Z l.snap.Metadata'.Index' ∧
+  -- (D22 S-r, 2026-10-21) strictly: `applying` stays below a pending snapshot (`SipOk`)
+  uint.Z s.logst.applying < uint.Z l.snap.Metadata'.Index' ∧
   nextUnstable s.logst = s.logst.sents ++ s.logst.uents
 
 end pure
@@ -1049,6 +1050,9 @@ acknowledgement shares the pointer), the committed log up to it (`isCommitted`, 
 at least the floor the storage is lent at, and the entries handed out numbered right after it. -/
 def LoanOut (rs : RNState) (rd : Ready) (ce es : List EntryM) (l : SnapLoan) : Prop :=
   l.ptr = rd.Snapshot' ∧ ce = [] ∧ rs.delivered <+: l.dlv ∧
+  -- (D22 S-r, 2026-10-21) past the committed log handed out (`restore` is past the commit index):
+  -- an application's own snapshot, at most the log it applied, is older
+  rs.delivered.length < l.dlv.length ∧
   l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
   0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
   uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es

@@ -167,6 +167,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       (fun h => absurd (Hlast e He).2 (Int.not_le.2 h)) Hal Hq0.1
       (fun h => absurd (Hq0.2.symm.trans h) (by decide))
       (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
+      (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
       (fun h => absurd (Hq0.2.symm.trans h) (by decide)) $$ [$Hphys] as Hphys
     try wp_auto
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es5 ⟨#Hes5, Hm⟩

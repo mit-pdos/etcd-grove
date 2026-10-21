@@ -96,8 +96,9 @@ theorem raftLog.restore.wp_proof
       -- (D22 S-d1b) the storage stays lent, if it is; no window; the snapshot not in progress
       (fun _ => by simp [logRestore]) ⟨rfl, rfl⟩
       ⟨(fun h => by simp [logRestore] at h), (fun _ _ => ⟨by rw [Hoff']; rfl, by
-        show uint.Z ls.applying ≤ uint.Z sv.Metadata'.Index'
-        have := Happlying.2; omega⟩)⟩
+        show uint.Z ls.applying < uint.Z sv.Metadata'.Index'
+        have := Happlying.2; have : uint.Z (snapId sv).index' = uint.Z sv.Metadata'.Index' := rfl
+        omega⟩)⟩
       (fun h => by simp [logRestore] at h) ?_ ?_ ?_ ?_
     $$ Hl HisStorage HStorage Hsn Hpk Hkcert' Hents Hents_cap Hl_logger Hu_logger
   all_goals simp only [logRestore, snapTrip, snapId, List.append_nil, List.length_nil,

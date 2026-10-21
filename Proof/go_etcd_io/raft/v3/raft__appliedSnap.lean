@@ -88,9 +88,27 @@ theorem raft.appliedSnap.wp_proof
     cases Hh : snapHit s.logst.snap sv.Metadata'.Index'
     · rw [logStableSnap_miss _ _ Hh] at h1 h2 ⊢; exact Hsx h1 h2
     · exfalso; apply h1; unfold logStableSnap; simp [Hh]
+  -- (D22 S-r) a pending snapshot the acknowledgement misses is past it: the boundary, at least
+  -- the acknowledged index, is the pending snapshot, of another index
+  have Hsp1 : (logStableSnap s.logst sv.Metadata'.Index').snap ≠ none →
+      (logStableSnap s.logst sv.Metadata'.Index').sip = false →
+      uint.Z (logStableSnap s.logst sv.Metadata'.Index').applying < uint.Z sv.Metadata'.Index' →
+      uint.Z sv.Metadata'.Index' < uint.Z (logStableSnap s.logst sv.Metadata'.Index').prev.index' := by
+    intro h1 _ _
+    cases Hh : snapHit s.logst.snap sv.Metadata'.Index'
+    · rw [logStableSnap_miss _ _ Hh] at h1 ⊢
+      obtain ⟨sid, Hs⟩ := Option.ne_none_iff_exists'.1 h1
+      rw [Hs] at Hh
+      simp only [snapHit, decide_eq_false_iff_not] at Hh
+      have Hpe := Hsp sid Hs
+      have Hne : uint.Z sv.Metadata'.Index' ≠ uint.Z sid.index' := by
+        intro h; apply Hh; word
+      rw [← Hpe] at Hle ⊢
+      omega
+    · exfalso; apply h1; unfold logStableSnap; simp [Hh]
   wp_apply wp_raft_appliedTo c r id { s with logst := logStableSnap s.logst sv.Metadata'.Index' }
       sv.Metadata'.Index' (W64 0) (by simp only; omega) (fun _ => by simp only; omega) Hal Hsa1 Haps1
-      Hsx1 (fun _ k hk => Hkx k hk) $$ [$Hphys] as Hphys
+      Hsx1 Hsp1 (fun _ k hk => Hkx k hk) $$ [$Hphys] as Hphys
   iapply HΦ
   iframe Hback Hphys
 

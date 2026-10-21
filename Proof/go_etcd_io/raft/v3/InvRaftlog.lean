@@ -670,29 +670,24 @@ abbrev SipOk (ls : LogState) (off : w64) : Prop :=
   -- (D22 S-d3a, 2026-10-21) a pending snapshot not yet handed out: nothing after it is in progress
   -- (`restore` sets `offsetInProgress` to the offset, a truncation keeps it there, only
   -- `acceptUnstable` moves it, and sets `snapshotInProgress`), so a snapshot `Ready` hands out
-  -- every entry after the snapshot, which the storage then holds (`stored`); and `applying` is at
-  -- most the snapshot's index (`restore` is past the commit index, and nothing is applied while
-  -- a snapshot is pending)
-  (ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z ls.applying ≤ uint.Z ls.prev.index')
+  -- every entry after the snapshot, which the storage then holds (`stored`); and `applying` is
+  -- below the snapshot's index (`restore` is past the commit index, and nothing is applied while
+  -- a snapshot is pending; D22 S-r, 2026-10-21: strictly, until then at most)
+  (ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z ls.applying < uint.Z ls.prev.index')
 
-/-- (D22 S-d3a) `applying` moved to `a`, below `offsetInProgress` (or not past `applying`): with
-a pending snapshot not yet handed out, `offsetInProgress` is the offset, right after the
-snapshot, so `a` is at most the snapshot's index. -/
+/-- (D22 S-d3a) `applying` moved to `a`: with a pending snapshot not yet handed out, (D22 S-r) not
+past `applying` or below the snapshot's index (until S-r: below `offsetInProgress`, the offset right
+after the snapshot, so at most its index). -/
 theorem SipOk.applying_lt {ls : LogState} {σ : StorState} {off a : w64} (H : SipOk ls off)
-    (Hst : LogStoreOk ls.snap σ ls.prev ls.sents ls.uents)
-    (Hoff : uint.Z off = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)
-    (Ha : uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.inprogress) :
-    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a ≤ uint.Z ls.prev.index' := by
+    (_Hst : LogStoreOk ls.snap σ ls.prev ls.sents ls.uents)
+    (_Hoff : uint.Z off = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)
+    (Ha : ls.snap ≠ none → ls.sip = false →
+      uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.prev.index') :
+    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a < uint.Z ls.prev.index' := by
   intro h1 h2
   obtain ⟨Hio, Hapl⟩ := H.2 h1 h2
   refine ⟨Hio, ?_⟩
-  obtain ⟨sid, hs⟩ := Option.ne_none_iff_exists'.1 h1
-  rw [hs] at Hst
-  obtain ⟨-, Hse, -⟩ := Hst
-  rw [Hse] at Hoff
-  simp only [List.length_nil, Int.natCast_zero, Int.add_zero] at Hoff
-  rw [Hio] at Ha
-  omega
+  rcases Ha h1 h2 with h | h <;> omega
 
 /-- (D22 S-d2, 2026-10-21) What the log says while the storage is at the pending snapshot
 (`LogState.sat`): the application's receipt of the snapshot in progress absorbed -- the storage
@@ -919,8 +914,9 @@ theorem SipOk.applying_ltW {ls : LogState} {σ : StorState} {off a : w64} (H : S
     (Hst : LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents)
     (Hsapp : ls.sapp = true → SappOk σ ls)
     (Hoff : uint.Z off = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)
-    (Ha : uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.inprogress) :
-    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a ≤ uint.Z ls.prev.index' := by
+    (Ha : ls.snap ≠ none → ls.sip = false →
+      uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.prev.index') :
+    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a < uint.Z ls.prev.index' := by
   intro h1 h2
   have hs : ls.sapp = false := by
     cases hh : ls.sapp with

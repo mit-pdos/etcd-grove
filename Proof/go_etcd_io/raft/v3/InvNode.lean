@@ -650,6 +650,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
     ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
+      -- (D22 S-r, 2026-10-21) past the committed log handed out before
+      d.length < l.dlv.length ∧
       l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
       uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗

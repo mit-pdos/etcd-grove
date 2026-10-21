@@ -56,6 +56,10 @@ abbrev raft.appliedTo.spec : Prop :=
   -- what the storage holds (`raftLog.appliedTo`'s premise; `appliedSnap` after a second restore)
   (s.logst.snap ≠ none → s.logst.lent = false → uint.Z s.logst.applying < uint.Z index →
     uint.Z index ≤ uint.Z s.logst.sxt) →
+  -- (D22 S-r, 2026-10-21) and, with a pending snapshot not yet handed out, below its index
+  -- (`raftLog.appliedTo`'s premise)
+  (s.logst.snap ≠ none → s.logst.sip = false → uint.Z s.logst.applying < uint.Z index →
+    uint.Z index < uint.Z s.logst.prev.index') →
   -- and in `appliedSnap`'s window, past the snapshot handed out (`SnpExt`)
   (s.logst.aps = true → ∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z index) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

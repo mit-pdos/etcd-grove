@@ -600,7 +600,7 @@ theorem ownRaftLog_snap_next (l : Loc) (ls : LogState) :
     ⊢ ownRaftLog (GF := GF) l ls -∗
       ⌜∀ sid, ls.snap = some sid → ls.sip = false →
         ls.prev = sid ∧ ls.sents = [] ∧ nextUnstable ls = ls.sents ++ ls.uents ∧
-        0 < uint.Z sid.index' ∧ uint.Z sid.index' < 2^61 ∧ uint.Z ls.applying ≤ uint.Z sid.index'⌝ ∗
+        0 < uint.Z sid.index' ∧ uint.Z sid.index' < 2^61 ∧ uint.Z ls.applying < uint.Z sid.index'⌝ ∗
       ownRaftLog l ls := by
   iintro H
   iNamed H
