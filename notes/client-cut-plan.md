@@ -288,8 +288,11 @@ D27, approved).** Stages:
   address) and the client over it (`clientCfgOk cfg eps`, `isNewClient cl eps V`, every unary call
   at `isGrpcRpcs`; the lessor's keep-alive and the watcher at one address). The examples keep their
   statements at `[ep]` (`isGrpcRpcs [a]` reduces to `isGrpcRpc a`). No axiom added or removed.
-- **K4c:** failover's end-to-end results: a call through a client of several members' endpoints,
-  each registering its own spec, at the conjunction of the specs; the reply is some member's.
+- **K4c (done):** failover's end-to-end results: a call through a client of several members' endpoints,
+  each registering its own spec, at the conjunction of the specs; the reply is some member's
+  (`Proof/go_etcd_io/etcd/client/v3/Failover.lean`: `anySpec`, `isGrpcRpcs_anySpec` from
+  `isGrpcRpc_mono`, `client_put_any`, `client_range_any`, `client_delete_any`, `client_txn_any`,
+  for a one-attempt client).
 - **K4d:** linkvtxn's `Apply` (and its calls) for a client of several members; linkv3p's clients
   each with the three bridges' addresses; `TestMainRun`/`TestClientCuts` with failover.
 

@@ -482,6 +482,31 @@ theorem isGrpcRpcs_of_all {Req Rep : ProtoMsg GF} (addrs : List GoString) (name 
       iframe Ha
       iapply ih $$ Hr
 
+/-- A method meeting `Spec` meets a stronger request precondition `Spec'` (`Spec` occurs only in
+the run's precondition). -/
+theorem grpcMethodOk_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
+    (ics : List GoFunc) (S : IProp GF) (Spec Spec' : GrpcSpec Req Rep)
+    (h : ∀ m Φ, Spec' m Φ ⊢ Spec m Φ) :
+    grpcMethodOk mh srv ics S Spec ⊢ grpcMethodOk mh srv ics S Spec' := by
+  iintro #Hm
+  unfold grpcMethodOk
+  iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+  iapply Hm $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
+  iframe
+  iapply (h m Φ) $$ HSpec
+
+/-- A registration with `Spec` is one with a stronger request precondition `Spec'`. -/
+theorem isGrpcRpc_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
+    (Spec Spec' : GrpcSpec Req Rep) (h : ∀ m Φ, Spec' m Φ ⊢ Spec m Φ) :
+    isGrpcRpc addr name Spec ⊢ isGrpcRpc addr name Spec' := by
+  iintro #H
+  iunfold isGrpcRpc at H
+  icases H with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  unfold isGrpcRpc
+  iexists mh, srv, ics, S
+  iframe Hs
+  iapply (grpcMethodOk_mono mh srv ics S Spec Spec' h) $$ Hm
+
 /-- A served method handler that meets `Spec` registers it. -/
 theorem isGrpcRpc_intro {Req Rep : ProtoMsg GF} (addr name : GoString) (mh : val)
     (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Spec : GrpcSpec Req Rep) :
