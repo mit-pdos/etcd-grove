@@ -340,7 +340,9 @@ tx")`), bounds requests at 1.5 MiB by default and uses the default page size, so
 reaches etcd. For bbolt's own maintainers the order would be:
 [bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
 (MVCC broken after an I/O error, for any user that keeps the `DB` after a failed `Commit`;
-reproduced, small fix), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
+reproduced, small fix; still on bbolt `main` 2026-10-21; **to file now** (the user's decision,
+2026-10-21): bbolt's own failpoint `beforeWriteMetaError` tests this rollback path but fires before
+the meta reaches the file, which is the case missed), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
 (values `Put` accepts make data unreadable; reproduced; the 256 MB variant, etcd-io/bbolt#931,
 was fixed), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
