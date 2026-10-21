@@ -130,6 +130,9 @@ before any public issue.
 
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
+[raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md)
+(with `AsyncStorageWrites`, the documented thread model lets entries be applied on top of a later
+snapshot: a diverged state machine; reproduced, but etcd does not enable the option),
 [leasing-modify-uncached-once](leasing-modify-uncached-once.md) (every write of an uncached key
 committed twice; deterministic, one condition, but see leasing below),
 [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) (leases outlive

@@ -145,5 +145,9 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   ignored snapshot and the leader retries, only after `ReportSnapshot`), at the cost of delaying
   catch-up; or, the candidate's fix (2026-10-18), keep the `MsgSnap` while `applying > applied`
   and step it again when `appliedTo` brings `applied` to `applying` (no resend needed).
+  Another (2026-10-21, not tried): switch raft's configuration to the snapshot's at `appliedSnap` instead
+  of at `restore`; without `AsyncStorageWrites` that needs no copy and no index, with it the snapshot can be
+  acknowledged before the older entries, the same ordering gap that diverges the state machine
+  (`raft-async-snapshot-during-apply-divergence.md`).
 - **Found**: 2026-10-14, while working out how the guard fix should treat snapshot restores
   (`raft-conf-lag-model/guard-fix.md`), reproduced by the tests above.
