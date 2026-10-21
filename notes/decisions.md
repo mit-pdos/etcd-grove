@@ -13712,3 +13712,88 @@ acknowledgement), here carried through a restore.
 (`wp_rn_raft_Step_net`, which still takes `Type ≠ MsgSnap` and now carries `ackInv` across a
 `MsgApp`); S-d4 adds its `MsgSnap` case as `RawNode.Step`'s (`SnapLogStep`, `ackInv_snap`,
 `LoanOk.step`), then the rest as designed.
+
+## D22 S-d4 designed precisely, not carried out: `node.go` over a snapshot `Ready`; stopped after S-d3b (2026-10-21)
+
+A read of `node.go`'s proofs (`node__run.lean`, `InvNodeRun.lean`, `InvNode.lean`, `InvAdvance.lean`)
+and their consumers (`examples/kv/KV__run.lean`, `Cluster.lean`; the server's `NodeBridge`,
+`InvRaftNode`; putget, putget3) against "D22 S-d3a carried out"'s S-d4 found it several times the
+planned size, with interface facts the design did not settle (item 1); per the brief, stopped at a
+precise design (item 2). No Lean change in this entry.
+
+**1. What the design did not count.**
+- *The kv example cannot refute a snapshot `Ready` by `reNoSnap`.* The design guards `readyData`'s
+  snapshot case by `γ.raft.reNoSnap = false`, which the server, putget and putget3 (`reNoSnap = true`)
+  refute; the kv example leaves `reNoSnap` free (it drops `MsgSnap` at delivery, `Deliverable`), so
+  it would face the case with nothing to refute it. A node-level flag is needed: whether the
+  application may deliver a `MsgSnap` at all.
+- *The loan's identity between `Ready` and `Advance`.* `RawNode.Advance` takes `loanRet rs`, the
+  receipt for the node's own `rs.slent`; the driver's `advanceP` must name the same loan: `run`'s
+  record of its last `Ready` (`rof`, now `(d, ce, es, p')`) must carry it.
+- *The floor at the `advancec` rendezvous.* `advance_complete` absorbs the driver's append receipt
+  and raises the floor (`ownRawNode_appended`, `ownRawNode_raise_floor`, both `slent = none`), and
+  `node.Advance` returns the floor's witness `storFloor γ.stor x`, `|ds| ≤ x`. With a loan the
+  storage is the application's: neither can run, and no invariant gives `|d| ≤ fl` (`FlOk` is
+  `fl ≤ applying`). Either `node.Advance`'s witness only after a `Ready` without a snapshot, or the
+  rendezvous raises the floor on the application's storage (its `Hfloor` law, `isStorageWith`) and
+  the lent log's `fl` and the loan's `fl` with it (a log-layer lemma for the lent state).
+- *The delivered jump in the driver's ghost state.* `RawNode.Advance` sets `delivered := l.dlv`
+  (`advRS`); `run`'s `dlm` authority (`runCfg`, over `rs.delivered`), the driver's `dlv` half and
+  lower bounds (`nodeDriverBusy`'s `ds = d ++ ce`) all follow `d ++ ce`, but a snapshot `Ready`'s
+  `CommittedEntries` are `[]` while the committed log handed out is `l.dlv`.
+- *The certificate for `ApplySnapshot`.* `MemoryStorage.ApplySnapshot` takes `memStorCert` of the
+  snapshot's trip; the `Ready` hands out none (`rdSnapOut`: the half snapshot, `isCommitted l.dlv`,
+  `LoanOut`). The log holds it (`ownRaftLog`'s `Hkcert`, `trip ∈ ksn` by `SnapRdy`).
+- *`run` steps with `r.Step`, not `RawNode.Step`*: `wp_rn_raft_Step_net` needs `RawNode.Step`'s
+  `MsgSnap` case again (S-d3b's `SnapLogStep`, `ackInv_snap`, `LoanOk.step`, the restored
+  configuration, `SnapCfgOut`).
+- *A stale `Ready` with a snapshot.* `run` keeps a computed `Ready` across steps when `HasReady`
+  turns false (`staleOk`, `ownRawNodeIdle`); with a snapshot that cannot happen (`HasReady` is true
+  while a snapshot is pending and not in progress), which `ownRawNodeReady_abandon` must record
+  (`unst`, whose `GhLogOk` already admits `snap ≠ none`).
+
+**2. The design** (paths under `Proof/go_etcd_io/raft/v3/` unless said otherwise).
+- `NodeNames.snapIn : Bool` (the application may deliver a `MsgSnap`), a parameter of `StartNode`/
+  `RestartNode`, requiring `snapIn = true → γ.raft.reNoSnap = false ∧ γ.mode = .static`; the server,
+  putget, putget3 and kv pass `false` and keep `γ.snapIn = false` with their `NodeNames`.
+- `netP`: `st.msg.Type' = MsgSnap → γ.snapIn = true`, and `RawNode.Step`'s `"#Hsnap"` (the snapshot
+  `sv`, its index below `2^61`, `isMessageC γ (absSnap …)`), `#Hmsg` at `ty ≠ .snap`; kv's
+  `stepP_deliverable` proves the new conjunct vacuously.
+- `wp_rn_raft_Step_net` without `Hns`: its `MsgSnap` case as `RawNode.Step`'s.
+- `runCfg`: `γ.snapIn = false → rs.psnap = false ∧ rs.slent = none` (`runCfg_psnap`/`_slent` take
+  the flag); and `dlm`'s authority over `rs.delivered`, or with a loan over `l.dlv` (extended at
+  the `Ready`, `runCfg_extend`), equal to `rs.delivered` again after `Advance` (`advRS`).
+- `readyData γ rd d dj ce es ms p p'` with the committed log handed out after the `Ready` `dj`
+  (`d ++ ce`, or `l.dlv` with a snapshot), and the snapshot part: `L = none`: `⌜rd.Snapshot' = null⌝ ∗
+  appendRight γ.stor es`; `L = some l`: `⌜γ.snapIn = true⌝ ∗ rdSnapOut` (half the snapshot,
+  `isCommitted l.dlv`, `LoanOut`) ∗ `readyOut` (the storage, `ownStorage γ.stor σ`, `σ.pend = []`,
+  `σ.fl = l.fl`) ∗ `storCert γ.stor (snapTrip l.snap …)` (from `Hkcert`, new accessor).
+  `readyP`'s `rof` record gains `L`; `nodeDriverBusy`'s `ds := dj`.
+- `advanceP`: the receipt for `rof`'s `L`: `appendReceipt γ.stor es`, or `snapReceipt γ.stor l es`.
+- `advance_complete`/`advDep`/`advRet`: without a loan as now; with one the receipt passes to `run`
+  (`advRet` holds `loanRet rs`), nothing absorbed, the floor not raised (`flw` stays `false`), and
+  `node.Advance`'s floor witness only for `L = none` (`node.Advance`'s post: `L = none → ∃ x, …`);
+  the consumers at `snapIn = false` refute `L = some` and keep their witness.
+- `node__run`: the `readyc` arm with `L` (no `HL := Hpsn Hps` unless `snapIn = false`),
+  `acceptReady` at `L`; the `advancec` arm passes `advRet`'s `loanRet` to `RawNode.Advance` and
+  re-establishes `runCfg` over `advRS`; `ownRawNodeReady_abandon` keeps `unst` for a snapshot.
+- Consumers: `readyData`/`readyP`/`advanceP`'s new shape, refuted with `snapIn = false` (kv's
+  `KV__run`, the server's `NodeBridge`/`InvRaftNode`, putget/putget3's drivers), statements unchanged.
+
+**3. What S-r (snapshots in examples/kv) needs, given S-d3a/S-d3b and this design.** With `snapIn =
+true`, a `Ready` with `rd.Snapshot' ≠ nil` hands out half of the snapshot (`ownSnapM l.ptr ½`), the
+committed log up to it (`isCommitted l.dlv`, `|l.dlv| = l.index`), the storage itself
+(`ownStorage γ.stor σ`, nothing pending, the loan's floor) and the snapshot's certificate, with
+`rd.Entries` the whole log after the snapshot and no committed entries. The application runs
+`ApplySnapshot(rd.Snapshot)` then `Append(rd.Entries)` and returns at `Advance` the receipt
+`snapReceipt γ.stor l es`: the half snapshot and `ownStorage` at a state with `prev = ss = snapId
+l.snap`, `ents = es`, nothing pending, the floor `l.fl`, the snapshot's lists and `AutoLeave`.
+`MemoryStorage.ApplySnapshot`'s spec must take the snapshot at any fraction (it only reads it; today
+`ownSnapM sp (DFrac.own 1)`), with the storage's `cap` at least the snapshot's index (a cap of
+`2^64`: `LogStoreOk`'s `index < 2^61`) and `memStorCert` of its trip. Compaction is the existing
+`CreateSnapshot`/`Compact` over `memFloorTok` (the floor witness `node.Advance` returns after a
+`Ready` without a snapshot) and, for `CreateSnapshot`, `memStorCert` of the new snapshot's trip,
+which the application registers through `storCertOk` (`SnapConf.lean`: `raftSnapCert` of a prefix
+committed by `isCommitted`). The network rule: a `MsgSnap` is delivered (`netP`) only with `snapIn`,
+outside the no-snapshot mode, in the static mode, carrying its snapshot (index below `2^61`) and
+its certificate (`isMessageC`: `isRaftMsg` gives it at the sender).
