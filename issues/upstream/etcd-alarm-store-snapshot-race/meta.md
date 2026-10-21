@@ -12,8 +12,9 @@ request controls it (it needs a member to apply a leader's snapshot).
 - **Target**: etcd-io/etcd, `main`. `restoreAlarms` has replaced the field unsynchronized since the alarm store was
   added; release branches likely have it too (not checked).
 - **Branch**: `fix/etcd-alarm-store-snapshot-race` in `~/etcd-fixes/etcd-alarm-store-snapshot-race`, two commits:
-  b2810d37a (`tests/integration: test Status during a snapshot install`) adds the test, which fails there under
-  `-race`; 17a1a9c98 (`etcdserver: recover the alarm store in place on snapshot`) is the fix. Not pushed.
+  9cf3ac84b (`tests/integration: test reading alarms while applying a snapshot`) adds the test, which fails there
+  under `-race`; d396a0fc7 (`etcdserver: fix data race on the alarm store when applying a snapshot`) is the fix.
+  Not pushed. (Before the 2026-10-21 review pass: b2810d37a and 17a1a9c98.)
 - **Base**: upstream `main` 7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b (2026-10-20); `restoreAlarms`, `Alarms` and
   `applySnapshot` are as the finding describes them at the fork pin.
 - **State**: draft
@@ -30,31 +31,45 @@ Five searches on etcd-io/etcd (issues and PRs each): `alarmStore race`, `restore
 
 ## Verification (go1.27.2 linux/amd64)
 
-`TestV3AlarmsDuringSnapshotInstall` (in `tests/integration/v3_alarm_test.go`, after `TestV3AlarmDeactivate`) is the
-issue's example: three members, `SnapshotCount: 10`, `SnapshotCatchUpEntries: 5`; a follower is partitioned, the
-leader takes 20 puts, eight goroutines call `Status` on the follower while the partition heals; a linearizable
-`Get` through the follower waits until it has caught up, and the test checks that its backend changed (it applied
-a snapshot). The race detector fails the test.
+`TestV3AlarmsDuringSnapshotInstall` (in `tests/integration/v3_alarm_test.go`, lines 161-199, after
+`TestV3AlarmDeactivate`) is the issue's example: three members, `SnapshotCount: 10`, `SnapshotCatchUpEntries: 5`; a
+follower is partitioned, the leader takes 20 puts, one goroutine calls `follower.Server.Alarms()` in a loop while
+the partition heals; a linearizable `Get` through the follower waits until it has caught up, and the test checks
+that its backend changed (it applied a snapshot). The race detector is the assertion. About 0.4 s per run.
 
-- At the tests commit b2810d37a (`cd tests; go test -race -c ./integration/`, then the binary with
-  `-test.run 'TestV3AlarmsDuringSnapshotInstall$' -test.count=1`, one process per run, since the detector reports a
-  given race once per process): fails 10 of 10, each with one `WARNING: DATA RACE`, write in `restoreAlarms`
-  (`server.go:2399`, from `applySnapshot` `:1102`) against the read in `Alarms` (`:2426`, from
-  `maintenanceServer.Status`). With the earlier 40-put version, 10 of 11 (one run caught no race).
-- At the base by `go test -overlay` (the base's `server.go` and `alarms.go` over the fix commit): without `-race`
-  the test passes 3 of 3 (the scenario runs, the follower applies a snapshot); with `-race` it fails 3 of 3.
-- At the fix commit 17a1a9c98: the same, 15 of 15 pass (no race); in `server/`, `go test -race ./etcdserver/...
-  ./storage/...` ok; `go build ./...` ok; `go vet ./etcdserver/ ./etcdserver/api/v3alarm/` clean; `gofmt -l` empty.
-- At the fix commit, `cd tests; go test -race ./integration/ -run
-  'Alarm|Quota|Snapshot|Maintenance|Status|Restore|Partition|Health' -count=1`: ok (47 s); `go test
-  ./integration/ -count=1 -timeout 50m`: ok (464 s).
-- Merges cleanly (`git merge-tree --write-tree`) with the sibling branches `fix/etcd-quota-stale-backend-after-snapshot`,
-  `fix/etcd-auth-snapshot-closed-backend-panic` and `fix/etcd-merged-snapshot-stale-term`, which also touch
-  `applySnapshot` or `v3_alarm_test.go`.
+Each count below is one process per run (`cd tests; go test -race -c ./integration/`, then the binary with
+`-test.run 'TestV3AlarmsDuringSnapshotInstall$' -test.count=1`), since the detector reports a given race once per
+process.
+
+- At the tests commit 9cf3ac84b (the base plus the test): with `-race`, fails 20 of 20 (2026-10-21), each run with
+  two or three `WARNING: DATA RACE`: the write of the field in `restoreAlarms` (`server.go:2399`, from
+  `applySnapshot` `:1102`) against the read in `Alarms` (`:2426`), and `Get` reading the new store's mutex and map
+  against their initialization in `NewAlarmStore` (`alarms.go:48`), i.e. a reader seeing a partly initialized
+  store. Without `-race`, passes 5 of 5 (the scenario runs, the follower applies a snapshot).
+- The earlier version of the test, with eight goroutines calling `Status` on the follower instead of
+  `Server.Alarms()`, failed only 15 of 20 at the base (also 15 of 20 with 16 and with 32 goroutines): `Status`
+  takes locks the apply goroutine also takes while installing the snapshot (the backend's read transaction, which
+  `NewAlarmStore`'s commit locks; the auth store's and the cluster's), which order most of its reads of the field
+  with the write, so the detector sees an unordered pair only when a read falls in the commit's window. Reading the
+  alarms directly has no such edges, so it is the reliable and smaller reproduction; the issue keeps the `Status`
+  run as the user-visible case.
+- At the fix commit d396a0fc7: the test passes 20 of 20 with `-race` (no race); in `server/`, `go test -race
+  ./etcdserver/... ./storage/...` ok; `go build ./...` ok; `go vet ./etcdserver/ ./etcdserver/api/v3alarm/` and
+  `go vet ./integration/` (in `tests/`) clean; `gofmt -l` empty; `cd tests; go test -race ./integration/ -run
+  'Alarm|Quota|Snapshot|Maintenance|Status|Restore|Partition|Health' -count=1`: ok (43 s).
+- Before the review pass (same fix but the comment), `go test ./integration/ -count=1 -timeout 50m`: ok (464 s);
+  not rerun.
+- Merges cleanly (`git merge-tree --write-tree`, checked before the review pass) with the sibling branches
+  `fix/etcd-quota-stale-backend-after-snapshot`, `fix/etcd-auth-snapshot-closed-backend-panic` and
+  `fix/etcd-merged-snapshot-stale-term`, which also touch `applySnapshot` or `v3_alarm_test.go`.
+
+CI: etcd's integration jobs (`make test-integration`, `PASSES="integration" ./scripts/test.sh`) run with `--race` on
+amd64 and arm64 (`scripts/test.sh` sets `RACE="--race"` for those `GOARCH`es unless `RACE` is set), so the test
+fails there at the base; on other architectures it runs without the detector and passes.
 
 Not run: `tests/e2e`, `make verify` (golangci-lint; revive's `exported` rule is disabled, so the undocumented
 `Recover` matches `Activate`/`Get`). The `/health` and `/readyz` readers (`etcdhttp/health.go:186`, `:422`) race the
-same way by code reading; only the `Status` path was run.
+same way by code reading; the `Status` path was run (above).
 
 ## Why the test shows the bug and not a misuse
 
@@ -74,6 +89,10 @@ reader starts, so the field needs no synchronization, and readers see the alarms
 The uber applier keeps the same pointer, which stays valid; it is rebuilt at the end of `applySnapshot` as before,
 which recomputes the alarm-based appliers from the recovered alarms.
 
+The comment before the uber applier's rebuild at the end of `applySnapshot` said "implementations like alarmsStore
+changed"; the fix commit rewords it ("the backend and the alarms changed"), since the alarm store is now the same
+object.
+
 The two unit tests that build a partial `EtcdServer` and apply a snapshot (`TestSnapshotOrdering`,
 `TestConcurrentApplyAndSnapshotV3`) relied on `restoreAlarms` creating the store; the fix commit gives them one,
 as the second already does for the auth store.
@@ -89,8 +108,11 @@ Candidate fixes, at the layer of the alarm store and of the server:
   guarding `types` and `be`, so no new synchronization is added, and readers need no change. Nine lines plus one.
   `Recover` holds `a.mu` across `restore`'s `ForceCommit`, as `lessor.Recover` holds `le.mu` across its commit;
   lock order is the same as `Activate`'s (`a.mu`, then the batch transaction's lock), so no new deadlock.
-  `restoreAlarms` stays, used only by `NewServer`; removing it and inlining `NewAlarmStore` there is a cosmetic
-  follow-up kept out of this change.
+  `Recover` returns `restore`'s error, as `NewAlarmStore` does, and `applySnapshot` panics on it as before (the
+  lessor and auth store's `Recover` cannot fail). Readers see the clear and the reload as one step, since `Get`
+  takes the same mutex; a new backend without the alarm bucket is handled by `restore`'s `CreateAlarmBucket`, as at
+  startup. `restoreAlarms` stays, used only by `NewServer`; removing it and inlining `NewAlarmStore` there is a
+  cosmetic follow-up kept out of this change.
 - **`atomic.Pointer[v3alarm.AlarmStore]`** (the finding's first idea): `restoreAlarms` stores, `Alarms`,
   `NewUberApplier` and `apply` load. Correct, but it changes the field's type and four use sites, and no other
   store in `EtcdServer` is held that way; and it keeps replacing the object, so the uber applier and any reader
@@ -110,11 +132,11 @@ changed here.
 
 ## Commit messages to rewrite
 
-- `tests/integration: test Status during a snapshot install` (no body)
-- `etcdserver: recover the alarm store in place on snapshot`, body: "Replacing the alarm store when applying a
-  snapshot raced with the readers of the alarms on other goroutines."
+- `tests/integration: test reading alarms while applying a snapshot` (no body)
+- `etcdserver: fix data race on the alarm store when applying a snapshot`, body: "Recover the alarm store in place,
+  as the lessor is, instead of replacing it while other goroutines read it."
 
 ## Push (when the user approves)
 
 `git -C ~/etcd-fixes/etcd-alarm-store-snapshot-race push origin fix/etcd-alarm-store-snapshot-race`; then check the
-issue's test link (`v3_alarm_test.go#L161-L202`) on GitHub.
+issue's test link (`v3_alarm_test.go#L161-L199`) on GitHub.
