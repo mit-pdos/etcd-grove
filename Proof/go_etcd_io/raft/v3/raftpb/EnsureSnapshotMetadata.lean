@@ -101,10 +101,13 @@ private theorem wp_EnsureConfState_A
     · ipureintro; exact Hr
     · ipureintro; intro _; rfl
 
-theorem raftpb.EnsureSnapshotMetadata.wp_proof
-    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
-    raftpb.EnsureSnapshotMetadata.spec (GF := GF) (hG := hG) := by
-  intro m md
+/-- The owned triple (`raftpb.EnsureSnapshotMetadata.spec`'s first). -/
+private theorem wp_EnsureSnapshotMetadata_own
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG))
+    (m : Loc) (md : SnapshotMetadataM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smOpt m (DFrac.own 1) md }}
+      (App (Val #(functions raftpb.EnsureSnapshotMetadata [])) (Val #m))
+    {{ (r : Loc), RET #r; smPtsW r (DFrac.own 1) md ∗ ⌜m ≠ null → r = m⌝ }} := by
   wp_start as Hm
   iapply wp_fupd
   iunfold smOpt at Hm
@@ -166,6 +169,42 @@ theorem raftpb.EnsureSnapshotMetadata.wp_proof
             iframe
             iframe cI cT Hpb
           · ipureintro; intro _; rfl
+
+/-- (D22 S-d4, 2026-10-21) `EnsureSnapshotMetadata` of a metadata with every pointer field set, at
+any fraction: it writes nothing and returns the metadata (`smPtsS`). -/
+private theorem wp_EnsureSnapshotMetadata_set
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG))
+    (m : Loc) (dq : DFrac) (md : SnapshotMetadataM) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smPtsS m dq md }}
+      (App (Val #(functions raftpb.EnsureSnapshotMetadata [])) (Val #m))
+    {{ RET #m; smPtsS m dq md }} := by
+  wp_start as Hm
+  iNamed Hm
+  obtain ⟨Hmn, Hpc, Hpi, Hpt⟩ := Hnn
+  wp_auto
+  wp_if_destruct
+  · exact absurd rfl Hmn
+  wp_apply wp_EnsureConfState.1 pc dq md.ConfState' true $$ [Hc] as Hc
+  · iframe Hc; ipureintro; intro _; rfl
+  wp_if_destruct
+  · exact absurd rfl Hpc
+  wp_if_destruct
+  · exact absurd rfl Hpi
+  wp_if_destruct
+  · exact absurd rfl Hpt
+  iapply HΦ
+  iunfold smPtsS
+  iexists pc, pi, pt, uf
+  isplitr
+  · ipureintro; exact ⟨Hmn, Hpc, Hpi, Hpt⟩
+  iframe HC Hc HI HT cI cT Hpb
+
+theorem raftpb.EnsureSnapshotMetadata.wp_proof
+    (wp_EnsureConfState : raftpb.EnsureConfState.spec (GF := GF) (hG := hG)) :
+    raftpb.EnsureSnapshotMetadata.spec (GF := GF) (hG := hG) :=
+  ⟨wp_EnsureSnapshotMetadata_own wp_EnsureConfState,
+   wp_EnsureSnapshotMetadata_set wp_EnsureConfState⟩
+
 
 end proof
 

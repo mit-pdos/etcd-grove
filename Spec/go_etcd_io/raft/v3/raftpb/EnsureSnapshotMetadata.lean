@@ -4,7 +4,7 @@ retarget, stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 @[expose] public section
 
@@ -28,10 +28,15 @@ fields and its conf state's `AutoLeave`) holding `md`: a non-`nil` metadata hold
 as the zero value it is given (`EnsureConfState` on the conf state). Since D17d (2026-10-18) its
 `ConfState` set too (`smPtsW`). -/
 abbrev raftpb.EnsureSnapshotMetadata.spec : Prop :=
-  ∀ (m : Loc) (md : SnapshotMetadataM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smOpt m (DFrac.own 1) md }}
-    (App (Val #(functions raftpb.EnsureSnapshotMetadata [])) (Val #m))
-  {{ (r : Loc), RET #r; smPtsW r (DFrac.own 1) md ∗ ⌜m ≠ null → r = m⌝ }}
+  (∀ (m : Loc) (md : SnapshotMetadataM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smOpt m (DFrac.own 1) md }}
+      (App (Val #(functions raftpb.EnsureSnapshotMetadata [])) (Val #m))
+    {{ (r : Loc), RET #r; smPtsW r (DFrac.own 1) md ∗ ⌜m ≠ null → r = m⌝ }}) ∧
+  -- (D22 S-d4, 2026-10-21) every pointer field set (`smPtsS`), at any fraction: nothing written
+  (∀ (m : Loc) (dq : DFrac) (md : SnapshotMetadataM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ smPtsS m dq md }}
+      (App (Val #(functions raftpb.EnsureSnapshotMetadata [])) (Val #m))
+    {{ RET #m; smPtsS m dq md }})
 
 end spec
 

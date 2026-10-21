@@ -3,6 +3,7 @@ Rocq counterpart); raft v3.7 (stage R3, 2026-10-15): the snapshot is a pointer, 
 module
 
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 @[expose] public section
 
@@ -40,9 +41,14 @@ application's `CreateSnapshot`): the out-of-date test is against the token's, `�
 state keeps the owner's floor, which the snapshot must cover.
 
 (D22 S-b′2, 2026-10-20) The new snapshot comes with its certificate in the storage's registry
-(`memStorCert`), which the snapshot's home keeps (`memSnapHome`). -/
+(`memStorCert`), which the snapshot's home keeps (`memSnapHome`).
+
+(D22 S-d4, 2026-10-21) The snapshot owned, or at any fraction with every pointer field set
+(`snapArg`, `ownSnapS`): `EnsureSnapshot` then writes nothing, and the call only reads it -- a
+`Ready`'s snapshot, whose other half the node's queued acknowledgement holds (D22 S-d3a), applied
+by the application before `Advance`. Given back at the same fraction (`ownSnapM`). -/
 abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
-  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (sp : Loc) (sv : SnapshotM)
+  ∀ (ms : Loc) (γs : MemStorNames) (σ σt : StorState) (sp : Loc) (sv : SnapshotM) (dq : DFrac)
     (eood : GoInterface),
   σ.pend = [] →
   uint.Z sv.Metadata'.Index' < 2^61 →
@@ -53,14 +59,14 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Htok" ∷ memSnapTok ms γs σt ∗
-      "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv ∗
+      "Hsnap" ∷ snapArg sp dq sv ∗
       -- (D22 S-b′2, 2026-10-20) the new snapshot certified in the storage's registry
       "#Hcert" ∷ memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists) ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
       (Val #sp))
   {{ (err : GoInterface), RET #err;
-      ownSnapM sp (DFrac.own 1) sv ∗
+      ownSnapM sp dq sv ∗
       ((⌜σt.ss.index' ≠ W64 0 ∧ uint.Z sv.Metadata'.Index' ≤ uint.Z σt.ss.index' ∧
           err = eood⌝ ∗
         ownMemoryStorage ms γs σ ∗ memSnapTok ms γs σt) ∨

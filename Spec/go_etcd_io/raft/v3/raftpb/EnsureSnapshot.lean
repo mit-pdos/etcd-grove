@@ -4,7 +4,7 @@ stage R1).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
 
 @[expose] public section
 
@@ -26,14 +26,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 a non-`nil` snapshot holding the same record (the zero record for `nil`), owned, its `Metadata`
 set (`ownSnapE`; since 2026-10-15, stage R3, for `MemoryStorage.CreateSnapshot`, which writes the
 metadata's fields after `EnsureSnapshot`); `s` itself when `s` was not `nil`. Since D17d (2026-10-18)
-whole (`ownSnapW`: the metadata's conf state set too; `ownSnapW_E` forgets it). -/
+whole (`ownSnapW`: the metadata's conf state set too; `ownSnapW_E` forgets it). (D22 S-d4,
+2026-10-21) And of a snapshot with every pointer field set (`ownSnapS`) at any fraction: it writes
+nothing (`MemoryStorage.ApplySnapshot` of a `Ready`'s snapshot it shares with the node). -/
 abbrev raftpb.EnsureSnapshot.spec : Prop :=
-  ∀ (s : Loc) (o : Option SnapshotM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapOpt s (DFrac.own 1) o }}
-    (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #s))
-  {{ (r : Loc), RET #r;
-      ownSnapW r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
-        (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))) ∗ ⌜s ≠ null → r = s⌝ }}
+  (∀ (s : Loc) (o : Option SnapshotM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapOpt s (DFrac.own 1) o }}
+      (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #s))
+    {{ (r : Loc), RET #r;
+        ownSnapW r (DFrac.own 1) (o.getD (SnapshotM.mk [] (SnapshotMetadataM.mk
+          (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))) ∗ ⌜s ≠ null → r = s⌝ }}) ∧
+  -- (D22 S-d4, 2026-10-21) every pointer field set (`ownSnapS`), at any fraction: nothing
+  -- written, the same pointer
+  (∀ (s : Loc) (dq : DFrac) (sv : SnapshotM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownSnapS s dq sv }}
+      (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #s))
+    {{ RET #s; ownSnapS s dq sv }})
 
 end spec
 

@@ -181,7 +181,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   clear Hcl Hl0
   ihave %Hcl := entsRO_cons_len $$ Hents_1
   -- the storage's snapshot, made whole in place
-  wp_apply wp_EnsureSnapshot sp0 (some sv0) $$ [Hsnap0] as %r ⟨Hr, %Hrsp⟩
+  wp_apply wp_EnsureSnapshot.1 sp0 (some sv0) $$ [Hsnap0] as %r ⟨Hr, %Hrsp⟩
   · simp only [snapOpt]; iexact Hsnap0
   ihave Hr := ownSnapW_E $$ Hr
   have Hr : r = sp0 := Hrsp Hsp0nn

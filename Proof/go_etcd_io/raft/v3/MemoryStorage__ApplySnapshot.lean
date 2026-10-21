@@ -25,6 +25,31 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (D22 S-d4, 2026-10-21) `EnsureSnapshot` of `ApplySnapshot`'s argument (`snapArg`): owned, it may
+write its `nil` fields; at a fraction, with every pointer field set, it writes nothing. Either way
+the same pointer, holding the same snapshot at the same fraction. -/
+private theorem wp_EnsureSnapshot_arg
+    (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
+    (sp : Loc) (dq : DFrac) (sv : SnapshotM) (Hnn : sp ≠ null) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ snapArg sp dq sv }}
+      (App (Val #(functions raftpb.EnsureSnapshot [])) (Val #sp))
+    {{ RET #sp; ownSnapM sp dq sv }} := by
+  iintro %Φ ⟨#Hinit, Hs⟩ HΦ
+  iunfold snapArg at Hs
+  icases Hs with (⟨%Hdq, Hs⟩ | Hs)
+  · subst Hdq
+    wp_apply wp_EnsureSnapshot.1 sp (some sv) $$ [Hs] as %r ⟨Hr, %Hrsp⟩
+    · simp only [snapOpt]; iexact Hs
+    ihave Hr := ownSnapW_E $$ Hr
+    have Hr' : r = sp := Hrsp Hnn
+    subst Hr'
+    simp only [Option.getD_some]
+    iapply HΦ
+    iapply ownSnapE_weaken $$ Hr
+  · wp_apply wp_EnsureSnapshot.2 sp dq sv $$ [$Hs] as Hs
+    iapply HΦ
+    iapply ownSnapS_M $$ Hs
+
 theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
     (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
@@ -33,7 +58,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs σ σt sp sv eood Hidle Hbnd Hfl Hcap
+  intro ms γs σ σt sp sv dq eood Hidle Hbnd Hfl Hcap
   wp_start as ⟨Hms, Htok, Hsnap, #Hcertn, #Herr⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, Hsn, %Hbounded⟩
@@ -41,7 +66,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   icases Hsn with ⟨#Hsinv, Hok⟩
   iunfold memSnapTok at Htok
   icases Htok with ⟨-, -, -, Hak, Hsvt, Hcbt⟩
-  icases ownSnapM_not_null $$ Hsnap with ⟨Hsnap, %Hspnn⟩
+  icases snapArg_not_null $$ Hsnap with ⟨Hsnap, %Hspnn⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -62,13 +87,8 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   icases memInvGhost_key $$ Hgs_inv with ⟨Hlk, Hgs_back⟩
   imod memSnap_take ms γs 1 ⊤ HN $$ Hsinv [Hlk Hok] with ⟨Hhome, Hrcpt⟩
   · iunfold memSnapKeys; ileft; iframe; ipureintro; rfl
-  wp_apply wp_EnsureSnapshot sp (some sv) $$ [Hsnap] as %r ⟨Hr, %Hrsp⟩
-  · simp only [snapOpt]; iexact Hsnap
-  ihave Hr := ownSnapW_E $$ Hr
-  have Hr : r = sp := Hrsp Hspnn
-  subst r
-  simp only [Option.getD_some]
-  ihave Hsnap := ownSnapE_weaken $$ Hr
+  -- (D22 S-d4) the same pointer, the snapshot at the same fraction
+  wp_apply wp_EnsureSnapshot_arg wp_EnsureSnapshot sp dq sv Hspnn $$ [$Hsnap] as Hsnap
   iunfold memSnapHome at Hhome
   icases Hhome with ⟨%σ1, Hsn, Hsnh, #Hcert1⟩
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
@@ -86,9 +106,9 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   wp_apply wp_GetIndex pm0 (DFrac.own 1) sv0.Metadata' $$ [Hm0] as Hm0
   · iframe Hm0
   ihave Hsnap0 := Hmback0 $$ Hm0
-  wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
+  wp_apply wp_GetMetadata.1 sp dq sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
   · iframe Hsnap
-  wp_apply wp_GetIndex pm (DFrac.own 1) sv.Metadata' $$ [Hm] as Hm
+  wp_apply wp_GetIndex pm dq sv.Metadata' $$ [Hm] as Hm
   · iframe Hm
   ihave Hsnap := Hmback $$ Hm
   rw [← Hss]
@@ -155,16 +175,16 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
         omega
       · have := not_and.1 Hnot h0
         omega
-    wp_apply wp_CloneSnapshot.1 sp (DFrac.own 1) sv $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
+    wp_apply wp_CloneSnapshot.1 sp dq sv $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
     · iframe Hsnap
-    wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
+    wp_apply wp_GetMetadata.1 sp dq sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
     · iframe Hsnap
-    wp_apply wp_GetTerm pm (DFrac.own 1) sv.Metadata' $$ [Hm] as Hm
+    wp_apply wp_GetTerm pm dq sv.Metadata' $$ [Hm] as Hm
     · iframe Hm
     ihave Hsnap := Hmback $$ Hm
-    wp_apply wp_GetMetadata.1 sp (DFrac.own 1) sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
+    wp_apply wp_GetMetadata.1 sp dq sv $$ [Hsnap] as %pm ⟨Hm, Hmback⟩
     · iframe Hsnap
-    wp_apply wp_GetIndex pm (DFrac.own 1) sv.Metadata' $$ [Hm] as Hm
+    wp_apply wp_GetIndex pm dq sv.Metadata' $$ [Hm] as Hm
     · iframe Hm
     ihave Hsnap := Hmback $$ Hm
     imod cellRO_alloc $$ «$v0» with #cT
