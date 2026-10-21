@@ -1,6 +1,6 @@
 # Plan: watches across a cut (linkv3p)
 
-Status: W0 done, the lifting lemma scoped (2026-10-21, branch `watch-cut`); next W1. Follows `notes/read-retry-plan.md` (D29),
+Status: W0 done, the lifting lemma scoped, D30 approved (2026-10-21, branch `watch-cut`); W1 (carrying D30 out) and W2 next. Follows `notes/read-retry-plan.md` (D29),
 `notes/keepalive-plan.md` (D28) and `notes/client-cut-plan.md` (D26, D27), whose "Later" section
 lists this item.
 
@@ -138,12 +138,15 @@ member id. The client's resume proof uses all of it. None of it can be stated cl
   the guard rather than from `startRead_le`. If the guard alone suffices, `startRead` may be
   dropped altogether. Size: medium, in mvcc's watch proofs.
 
-**A side finding: the examples' Go tests do not run the verified watch client.**
-- Every example's `go.mod` pins the etcd fork at `8a24be2a3`. That is before the four watch-resume
-  fixes F1–F4 that the translation's pin `b3c29bc17` carries, and that pin is not pushed (no remote
-  branch contains it).
-- W0's run therefore exercised the unfixed resume path. It passed, since no transient error hit a
-  closing or canceled substream.
+**A side finding: the examples' Go tests did not run the verified watch client.**
+- Every example's `go.mod` pinned the etcd fork at `8a24be2a3`. That is before the four
+  watch-resume fixes F1–F4 that the translation's pin `b3c29bc17` carries.
+- `b3c29bc17` is pushed: it is the fork's branch `watch-resume-fixes`. Only the `go.mod` files had
+  not been bumped.
+- W0's first run therefore exercised the unfixed resume path. It passed, since no transient error
+  hit a closing or canceled substream.
+- **Fixed (2026-10-21):** every example's `go.mod` replaces etcd's modules by
+  `v3.0.0-20261020173053-b3c29bc17f26`. `etc/goose.py --check` shows every translation unchanged.
 - With the server's guard, the F3 scenario (`issues/etcd-watch-resume-below-start-revision.md`)
   looks unreachable against etcd's own server: its reproduction uses a fake server. To check, and
   to note in the issue.
@@ -178,9 +181,10 @@ settles Q4, so linkv3p's translation and proofs are untouched. One run under `-r
 
 ### W1. The trust boundary (asked of the user; D30)
 
-- `NewStream` over address lists (Q1, with Q2's answer).
+- `NewStream` over address lists: a stream at some member of the list, with that member's spec
+  (Q1 (b), per the scoping).
 - The bridge forwards streams (`bridge.New`'s spec, `forwards`).
-- `notes/decisions.md` D30, and ask.
+- `notes/decisions.md` D30, and ask. **Approved 2026-10-21.**
 
 ### W2. The server side: a cluster-wide watch spec
 

@@ -517,7 +517,10 @@ watch resumed on the member blackholed next (grpc's round robin), so the resume 
 three times. No finding for `issues/`. The workload stays in the test until W4 decides how Main
 runs it (the plan's Q4); linkv3p's translation and proofs are untouched.
 
-Next: W1, the trust boundary (D30), to be asked.
+The lifting lemma, scoped (the plan's section): small, but the boundary is per member (D30 (b)),
+and a resume at a lagging member needs a cluster-wide `startRead` case (W2). The examples'
+`go.mod` files now replace etcd by the translation's pin `b3c29bc17` (they were at `8a24be2a3`,
+before the watch-resume fixes F1–F4). D30 approved; W1 (carrying it out) with W2.
 
 ## Read retries (2026-10-21, branch `read-retry`)
 
