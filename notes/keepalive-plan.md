@@ -1,7 +1,6 @@
 # Plan: keepalive in the client's configuration, and failover on a silent partition
 
-Status: in progress (2026-10-21, branch `keepalive`, worktree `/shared/etcd-grove-ka`): KA0, KA1 and
-KA2 done (D28 approved). Follows
+Status: done (2026-10-21, branch `keepalive`; D28 approved). Follows
 `notes/client-cut-plan.md` (K4, failover; `notes/decisions.md` D27).
 
 ## Goal
@@ -167,6 +166,16 @@ again; only linkv3p's `startMember` waits for KA3.
 - `newClient`'s proof: the configuration literal's two more fields.
 - Gates: `lake build`, every `gen-link` mode, `goose --check`, `gen-init --check`, `tcb-report
   --check` (`--update`: the two new axioms) and every collection, `verified-code.py`.
+
+**Done (2026-10-21).** `startMember`'s proof builds the server option (`KeepaliveEnforcementPolicy`,
+`.neutral`) and passes its slice to `v3rpc.Server`; `newClient`'s needed nothing (KA2's
+`clientCfgOk`). Gates: `lake build` (6939 jobs), every `gen-link` mode (`--linkv3p` links the
+server option), `goose --check`, `gen-init --check`, `tcb-report --check` (528 axioms, 2 sorries:
+the two of D28) and every collection: `grpc.WithKeepaliveParams.wp_proof` enters every collection
+whose results go through `clientv3.New` (client, putget, putget3, linkv, linkv3, linkvtxn,
+linkv3p, watchkv, cachekv: `dialSetupOpts`' proof now covers the branch, taken or not), and
+`grpc.KeepaliveEnforcementPolicy.wp_proof` linkv3p's alone. `verified-code.py`: linkv3p 9 of 9,
+linkvtxn 46 of 46. `linkv3p_safe`'s statement is unchanged; it now covers clients with keepalive.
 
 ## Risks
 

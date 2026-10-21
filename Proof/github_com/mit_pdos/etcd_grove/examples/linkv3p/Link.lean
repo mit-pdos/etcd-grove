@@ -14,6 +14,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Bl
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
+public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.http.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
@@ -91,6 +92,10 @@ theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
 
+theorem grpc.wp_KeepaliveEnforcementPolicy :
+    EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
+
 theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof
@@ -113,7 +118,7 @@ theorem net.wp_Listen :
 
 theorem wp_startMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.linkv3p.startMember.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve v3rpc.wp_Server grpc.Server.wp_Serve
+  EtcdGrove.linkv3p.startMember.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start net.wp_Listen EtcdServer.wp_RaftHandler net.http.wp_Serve grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve
 
 theorem wp_startBridge :
     EtcdGrove.linkv3p.startBridge.spec (GF := GF) (hG := hG) :=

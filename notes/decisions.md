@@ -12402,6 +12402,7 @@ re-sends a request, so an attempt still reaches at most one run of one handler (
 policy only decides when the server closes a connection, never which handler runs or what it is
 given.
 
-**Trust base.** +2 axioms (`grpc.WithKeepaliveParams.wp_proof`,
-`grpc.KeepaliveEnforcementPolicy.wp_proof`), in the collections whose results use them once the
-client's construction (KA2) and linkv3p's members (KA3) call them.
+**Trust base.** +2 axioms (528 axioms, 2 sorries). `grpc.WithKeepaliveParams.wp_proof` is in every
+collection whose results go through `clientv3.New` (`dialSetupOpts`' proof covers the keepalive
+branch whether a configuration takes it or not); `grpc.KeepaliveEnforcementPolicy.wp_proof` in
+linkv3p's only (its members' servers).

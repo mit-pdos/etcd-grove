@@ -308,6 +308,7 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof
@@ -318,6 +319,7 @@ axiom grpc.Server.RegisterService.wp_proof
 axiom grpc.Server.Serve.wp_proof
 axiom grpc.StaticMethod.wp_proof
 axiom grpc.StatsHandler.wp_proof
+axiom grpc.WithKeepaliveParams.wp_proof
 axiom grpc.WithResolvers.wp_proof
 axiom grpc.WithStreamInterceptor.wp_proof
 axiom grpc.WithTransportCredentials.wp_proof
