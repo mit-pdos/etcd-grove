@@ -2,14 +2,23 @@ package linkv3p
 
 import (
 	"context"
+	"math/rand"
+	"os"
+	"os/exec"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/linkvtxn"
+	"github.com/mit-pdos/etcd-grove/examples/lintest"
+	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
 
 // TestMemberIDs checks D21e (A)'s premise on the member ids etcd computes for Main's cluster (from
@@ -36,12 +45,36 @@ func TestMemberIDs(t *testing.T) {
 	}
 }
 
+// inChild runs the test name in a child process and reports whether it did (the caller then
+// returns); in the child it returns false and the test runs. A test that starts members runs so:
+// the members keep their ports until their process exits (Main does not stop them), so two such
+// tests in one process would collide.
+func inChild(t *testing.T, name string) bool {
+	if os.Getenv("LINKV3P_CHILD") == name {
+		return false
+	}
+	args := []string{"-test.run=^" + name + "$", "-test.v"}
+	// the parent's deadline (go test's -timeout) less 30s, so that a hung child fails first,
+	// with its stacks
+	if d, ok := t.Deadline(); ok {
+		args = append(args, "-test.timeout="+(time.Until(d)-30*time.Second).String())
+	}
+	cmd := exec.Command(os.Args[0], args...)
+	cmd.Env = append(os.Environ(), "LINKV3P_CHILD="+name)
+	out, err := cmd.CombinedOutput()
+	t.Logf("%s", out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return true
+}
+
 // isolate returns the steps that, after delay, cut member m from the two others.
 func isolate(delay time.Duration, m int) []Step {
 	var steps []Step
 	for o := 0; o < 3; o++ {
 		if o != m {
-			steps = append(steps, Step{Delay: delay, Cut: true, A: m, B: o})
+			steps = append(steps, Step{Delay: delay, Kind: PeerCut, A: m, B: o})
 			delay = 0
 		}
 	}
@@ -53,7 +86,7 @@ func heal(delay time.Duration, m int) []Step {
 	var steps []Step
 	for o := 0; o < 3; o++ {
 		if o != m {
-			steps = append(steps, Step{Delay: delay, A: m, B: o})
+			steps = append(steps, Step{Delay: delay, Kind: PeerMend, A: m, B: o})
 			delay = 0
 		}
 	}
@@ -61,23 +94,40 @@ func heal(delay time.Duration, m int) []Step {
 }
 
 // TestMainRun runs Main for real: three members in a fresh directory (the members' DataDirs are
-// relative), 8 clients of 150 operations each, on a schedule that isolates each member in turn
-// for three seconds, half a second apart (so the leader, whichever it is, is isolated once at
-// least, its followers elect another and it steps down: CheckQuorum; an operation at an isolated
-// member fails after the request timeout, 7s, which stretches the workload over the schedule),
-// and porcupine's verdict must be Ok. Then it asks each member, which Main left running, for the
-// keys (so that the history was not all errors, and the three members, mended, agree), the raft
+// relative), 3 clients of 150 operations each, on a schedule that, after half a second, isolates
+// each member in turn for three seconds, back to back (so the leader, whichever it is, is isolated
+// once at least, its followers elect another and it steps down: CheckQuorum; an operation at an
+// isolated member fails after the request timeout, 7s, and some member is isolated until the
+// schedule ends, which stretches the workload over the schedule, as the re-election check needs).
+// Few clients, since each fails about one operation per isolation, and a failed write stays
+// pending in porcupine's model to the end of the history: with 8 clients, the check of a history
+// took minutes now and then, once 35. The schedule also blackholes member 3's client during the
+// first isolation and drops member 2's client connections as it ends. Porcupine's verdict must be
+// Ok. Then it asks each member, which Main left running, for the keys (so that the history was not all errors, and the three members, mended, agree), the raft
 // term (past the first election's: a re-election happened) and the member count. (The keys may
 // all be deleted at the end: the workload has deletes; the revision says the writes took effect.)
 func TestMainRun(t *testing.T) {
+	if inChild(t, "TestMainRun") {
+		return
+	}
 	t.Chdir(t.TempDir())
 	var sched []Step
 	for m := 0; m < 3; m++ {
-		sched = append(sched, isolate(500*time.Millisecond, m)...)
+		delay := time.Duration(0)
+		if m == 0 {
+			delay = 500 * time.Millisecond
+		}
+		sched = append(sched, isolate(delay, m)...)
+		if m == 0 {
+			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+		}
 		sched = append(sched, heal(3*time.Second, m)...)
+		if m == 0 {
+			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+		}
 	}
 	start := time.Now()
-	if r := Main(8, 150, sched); r != porcupine.Ok {
+	if r := Main(3, 150, sched); r != porcupine.Ok {
 		t.Fatalf("got %v", r)
 	}
 	t.Logf("Main took %v", time.Since(start))
@@ -121,5 +171,139 @@ func TestMainRun(t *testing.T) {
 			resp.Header.RaftTerm, len(resp.Kvs))
 		cancel()
 		cli.Close()
+	}
+}
+
+// An operation of TestClientCuts' run: the client it went through, when it started and ended
+// (since the run's start), and whether it failed.
+type cutOp struct {
+	cli        int
+	start, end time.Duration
+	err        bool
+}
+
+// TestClientCuts shows the clients' cuts and recovery (notes/client-cut-plan.md, D-C5): Main's
+// pieces (startMember, startBridge, newClient, partitioner) with an apply that records each
+// operation's client and outcome, on a schedule that drops member 2's client connections at 20ms
+// and 50ms and blackholes member 1's client from 0.1s to 3.1s. It checks: porcupine's verdict is
+// Ok; some operation through client 1 failed (a call in flight during the blackhole hangs, and
+// the unblackhole closes its connection: Unavailable; the clients are connected first, warmed
+// up); some operation through client 1 that started after the unblackhole succeeded (gRPC
+// re-dialed the bridge); and the history is not all errors.
+// It runs 3 workers of 600 operations each (few workers, as TestMainRun's few clients: each worker
+// fails about one operation per cut, and porcupine's check is exponential in the failed writes;
+// with 6 workers of 1000, a check took a minute and a half now and then). It runs in a child
+// process (inChild), as TestMainRun.
+func TestClientCuts(t *testing.T) {
+	if inChild(t, "TestClientCuts") {
+		return
+	}
+	t.Chdir(t.TempDir())
+	lg := zap.NewNop()
+	peer := []types.URLs{{{Scheme: "http", Host: peerAddr1}}, {{Scheme: "http", Host: peerAddr2}},
+		{{Scheme: "http", Host: peerAddr3}}}
+	cluster := types.URLsMap{"linkv3p-1": peer[0], "linkv3p-2": peer[1], "linkv3p-3": peer[2]}
+	peerAddrs := []string{peerAddr1, peerAddr2, peerAddr3}
+	clientAddrs := []string{clientAddr1, clientAddr2, clientAddr3}
+	bridgeAddrs := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}
+	var srvs []*etcdserver.EtcdServer
+	var brs []bridge.Bridge
+	var clis []*clientv3.Client
+	for i := 0; i < 3; i++ {
+		s, err := startMember([]string{"linkv3p-1", "linkv3p-2", "linkv3p-3"}[i], peer[i],
+			peerAddrs[i], clientAddrs[i], cluster, lg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		srvs = append(srvs, s)
+	}
+	for i := 0; i < 3; i++ {
+		br, err := startBridge(bridgeAddrs[i], clientAddrs[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		brs = append(brs, br)
+		cli, err := newClient(bridgeAddrs[i], lg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		clis = append(clis, cli)
+	}
+
+	// every client connected before the schedule starts (a leader elected, gRPC's lazy
+	// connection made): a connection begun during a blackhole never completes its handshake, so
+	// its calls only wait (WaitForReady) and succeed after the unblackhole, and none would fail
+	// (retried: the first election may fail a call, "leader changed")
+	for i, cli := range clis {
+		deadline := time.Now().Add(30 * time.Second)
+		for {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_, err := cli.Get(ctx, "warmup")
+			cancel()
+			if err == nil {
+				break
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("client %d: %v", i+1, err)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	// the drops first, while every worker runs; then the blackhole, which soon holds every worker
+	// (each picks client 1 sooner or later), so the run outlasts it however fast operations are
+	const blackholeAt, unblackholeAt = 100 * time.Millisecond, 3100 * time.Millisecond
+	sched := []Step{
+		{Delay: 20 * time.Millisecond, Kind: ClientDrop, A: 1},
+		{Delay: 30 * time.Millisecond, Kind: ClientDrop, A: 1},
+		{Delay: blackholeAt - 50*time.Millisecond, Kind: ClientBlackhole, A: 0},
+		{Delay: unblackholeAt - blackholeAt, Kind: ClientUnblackhole, A: 0},
+	}
+	var mu sync.Mutex
+	var ops []cutOp
+	t0 := time.Now()
+	apply := func(input any) any {
+		mu.Lock()
+		i := rand.Intn(len(clis))
+		mu.Unlock()
+		start := time.Since(t0)
+		out := linkvtxn.Apply(clis[i], input)
+		end := time.Since(t0)
+		mu.Lock()
+		ops = append(ops, cutOp{i, start, end, out.(linkvtxn.Output).Err})
+		mu.Unlock()
+		return out
+	}
+	go partitioner(srvs, brs, sched)
+	if r := lintest.Run(linkvtxn.Model(), apply, linkvtxn.Gen, lintest.CounterClock(), 3, 600,
+		0); r != porcupine.Ok {
+		t.Fatalf("got %v", r)
+	}
+	t.Logf("the run took %v", time.Since(t0))
+
+	var failed1, okAfter1 bool
+	nOk, nErr := [3]int{}, [3]int{}
+	for _, op := range ops {
+		if op.err {
+			nErr[op.cli]++
+		} else {
+			nOk[op.cli]++
+		}
+		if op.cli == 0 && op.err {
+			failed1 = true
+		}
+		if op.cli == 0 && !op.err && op.start > unblackholeAt {
+			okAfter1 = true
+		}
+	}
+	t.Logf("operations per client: succeeded %v, failed %v", nOk, nErr)
+	if !failed1 {
+		t.Fatalf("no operation through client 1 failed: the blackhole cut nothing")
+	}
+	if !okAfter1 {
+		t.Fatalf("no operation through client 1 succeeded after the unblackhole: no recovery")
+	}
+	if nOk[0]+nOk[1]+nOk[2] == 0 {
+		t.Fatalf("every operation failed")
 	}
 }

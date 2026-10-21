@@ -11,11 +11,13 @@ replace (
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
 )
 
-// linkvtxn's workload, the driver and the vendored porcupine (third_party/porcupine/UPSTREAM.md), as translated.
+// linkvtxn's workload, the driver, the vendored porcupine (third_party/porcupine/UPSTREAM.md) and
+// etcd's test bridge (third_party/bridge/UPSTREAM.md), as translated.
 replace (
 	github.com/anishathalye/porcupine => ../../third_party/porcupine
 	github.com/mit-pdos/etcd-grove/examples/linkvtxn => ../linkvtxn
 	github.com/mit-pdos/etcd-grove/examples/lintest => ../lintest
+	github.com/mit-pdos/etcd-grove/third_party/bridge => ../../third_party/bridge
 )
 
 require (
@@ -23,6 +25,7 @@ require (
 	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples/linkvtxn v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
+	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0

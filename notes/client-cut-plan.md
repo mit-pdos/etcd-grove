@@ -1,6 +1,7 @@
 # Plan: cuts between clients and members in `linkv3p`, and recovery from them
 
-Status: proposed (2026-10-20).
+Status: in progress (2026-10-21): K0 done (branch `client-cut`, worktree `/shared/etcd-grove-cc`);
+linkv3p's `partitioner`, `Main` and `Adequacy` proofs do not build until K3.
 
 ## Goal
 
@@ -95,7 +96,10 @@ Alternatives:
 Recommendation: (a), the bridge verified over the `net` axioms, plus the forwarding fact.
 
 **D-C3. Recovery (1) needs no new client proof.** Each attempt is independent in the model, so a
-client whose link was mended may succeed again. The one-attempt configuration stays, so writes
+client whose link was mended may succeed again. In Go, recovery is etcd's client's own: its calls
+default to `grpc.WaitForReady(true)` (`client/v3/options.go:26-29`), so a call made while the
+connection is down waits in gRPC for a connection rather than failing, and gRPC re-dials the
+bridge. The one-attempt configuration stays, so writes
 keep at-most-once firing. The Go test shows recovery (D-C5).
 
 **D-C4. Failover (2) generalizes the client to several endpoints.** `clientCfgOk` takes a list of
@@ -114,8 +118,10 @@ member 1's client, waits, unblackholes, then drops member 2's connections, check
 - operations through the cut client succeeded after the mend (the client's last calls succeed;
   the store's revision moved after the mend).
 
-Calls use `context.Background()`, and the client's keepalive is off (`clientCfgOk`), so a call
-made during a blackhole hangs until the unblackhole closes its connection. A schedule must
+Calls use `context.Background()`, and the client's keepalive is off (`clientCfgOk`). So a call
+in flight on a connection that a blackhole silences hangs until the unblackhole closes that
+connection, and then fails (`Unavailable`; a write is not retried). A call made while there is no
+connection, including one whose handshake the blackhole stalls, waits and then succeeds. A schedule must
 therefore mend every blackhole for the test to finish. That affects only the test's running time
 (liveness); the theorem quantifies over every schedule. `DropConnections` fails calls at once.
 
@@ -129,15 +135,58 @@ therefore mend every blackhole for the test to finish. That affects only the tes
   `newClient` dials the bridge; `Step` gets a kind (peer cut, peer mend, client blackhole,
   client unblackhole, client drop); `partitioner` applies it. `TestMainRun` as D-C5, and
   `-race`.
-- **A finding to confirm first.** etcd's client retries a write only when
-  `isSafeRetryMutableRPC` (`client/v3/retry.go:85-94`) sees the description "there is no address
-  available" or "there is no connection available". grpc-go v1.84, etcd's pinned version, never
-  produces either string outside its tests (its picker reports `no SubConn is available` and
-  connection errors). So with today's grpc, a write that fails because the connection is down is
-  never retried, whatever `MaxUnaryRetries` is, contrary to the comment's "retry if the request
-  was not sent". Confirm with a Go test (a default client, a bridge drop, a `Put`: one attempt,
-  not retried). If confirmed, record it in `issues/` (a stale safe-retry check: behavior the
-  code's documentation contradicts).
+- **A finding to confirm first** (done: not a bug). etcd's client retries a write only when
+  `isSafeRetryMutableRPC` (`client/v3/retry.go:85-94`) sees "there is no address available" or
+  "there is no connection available", and grpc-go v1.84 produces neither. But the client's
+  default call options include `grpc.WaitForReady(true)`, so an attempt made while the connection
+  is down does not fail: it blocks in gRPC until there is a connection or the deadline passes. A
+  probe (a default client, an endpoint that refuses connections, a 3s deadline) shows the `Put`
+  and the `Get` both waiting out the deadline. The two strings are a leftover of an older grpc;
+  the behavior is safe and recovers by itself. Nothing for `issues/`.
+
+**Done (2026-10-21).**
+
+- `third_party/bridge`: etcd's `bridge.go` (package clause changed) and `dialer.go` (etcd's
+  `dialer`, copied, and an exported `New`), with `UPSTREAM.md` and etcd's `LICENSE`. Goose
+  translates it unchanged (project `bridge` of `etc/goose.py`, translating `net.Conn` through
+  `net`'s names, `io.Copy`/`io.Discard` through Perennial's `io`); its package fact is `True`
+  (`Proof/.../third_party/bridge/Base.lean`; `Init.lean` generated).
+- **A finding**: a second `Blackhole` without an `Unblackhole` in between panics ("close of
+  closed channel"), holding the bridge's mutex
+  (`issues/etcd-bridge-blackhole-twice-panic.md`, reproduced by
+  `third_party/bridge/bridge_test.go`). Since `Main`'s theorem is for every schedule, linkv3p's
+  `partitioner` records which bridges are blackholed and skips a second `Blackhole`
+  (`clientStep`'s `holed`). K2's `Blackhole` spec takes the bridge unblackholed.
+- `linkv3p.go`: three bridge addresses (`127.0.0.1:2385{1,2,3}`), `startBridge`, the clients dial
+  the bridges, `Step.Kind` (`PeerCut`, `PeerMend`, `ClientBlackhole`, `ClientUnblackhole`,
+  `ClientDrop`), `peerStep`/`clientStep` under `partitioner`. Re-translated, `gen-init` rerun.
+- Tests, each that starts members in a child process (`inChild`: a member keeps its ports until
+  its process exits; the child gets the parent's deadline less 30s):
+  - `TestMainRun`: 3 clients of 150 operations, a schedule that isolates each member in turn for
+    3s, back to back from 0.5s (so some member is isolated until the schedule ends, and every
+    client waits out request timeouts until then: the run outlasts the schedule, whose leader
+    isolation the re-election check needs), with member 3's client blackholed during the first
+    isolation and member 2's connections dropped as it ends: `Ok`. 25 of 25 runs, 9.7-14.9s;
+    every member at raft term 5 or more.
+  - `TestClientCuts` (D-C5): `Main`'s pieces with an apply that records each operation's client
+    and outcome, 3 workers of 600 operations. It warms each client up first (a connection begun
+    during a blackhole only waits, so nothing would fail). Then it drops member 2's connections
+    twice (20ms, 50ms), while every worker runs, and blackholes member 1's client from 0.1s to
+    3.1s, which soon holds every worker, so the run outlasts it however fast operations are.
+    Twenty of twenty runs, about 3.2s each: `Ok`; all three workers' calls through client 1 failed
+    at the unblackhole; client 1 then served about 600 operations; the drops failed 0-2 calls at
+    client 2.
+  - `go test -race` passes (five runs of the package, 18-23s each, no race reported; and
+    `third_party/bridge`'s test).
+- **Porcupine's check is the test's running time** (not the network): a run of the earlier
+  `TestMainRun` (8 clients of 150, or of 400, operations; isolations 0.5s apart) took minutes now
+  and then, once 35 minutes, before and after the bridge (a pre-bridge loop: 1 of 15 runs past
+  60s; and `TestClientCuts`, with 6 workers of 1000, once 97s). The goroutine dump: every client done, `Main` in `porcupine.CheckOperationsVerbose` (no
+  timeout), stepping linkvtxn's model. A failed write stays pending in the model to the end of
+  the history (`closure` explores every subset and order of the pending writes), and each client
+  fails about one operation per isolation, so the cost grows exponentially with
+  clients x isolations. Hence 3 clients, and 3 workers. The model is the theorem's; nothing changes
+  there.
 
 ### K1. The trust boundary (asked of the user)
 

@@ -13,6 +13,7 @@ public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Init
+public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
 public import Proof.go_etcd_io.etcd.server.v3.config.Init
@@ -66,6 +67,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd14⟩
   wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd13⟩
