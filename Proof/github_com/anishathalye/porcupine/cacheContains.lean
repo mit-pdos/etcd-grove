@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.anishathalye.porcupine.Assumptions]
 
 theorem cacheContains.wp_proof (wp_equal : bitset.equal.spec (GF := GF) (hG := hG)) :
-    cacheContains.spec (GF := GF) (hG := hG) := fun σ S m p P bk ces dqb lin ws dq st t => by
+    cacheContains.spec (GF := GF) (hG := hG) := fun σ S m p P bk ces dqb lin ws dq k st t => by
   wp_start as ⟨#Heh, Hbk, #Hces, Hlin, Hst, Htok⟩
   ihave %Hlen := ownSlice_len $$ Hbk
   wp_auto
@@ -46,7 +46,7 @@ theorem cacheContains.wp_proof (wp_equal : bitset.equal.spec (GF := GF) (hG := h
     · iframe; ipureintro; exact Hce_lookup
     ihave #Hce := BigSepL.bigSepL_lookup (Φ := fun _ ce => cacheEntryOk S p P ce) Hce_lookup $$ Hces
     unfold cacheEntryOk
-    icases Hce with ⟨%ws', %t', #Hws', #Ht', %HP⟩
+    icases Hce with ⟨%ws', %t', %k', #Hws', #Ht', %HP⟩
     wp_method_call
     wp_call
     wp_auto
@@ -56,8 +56,8 @@ theorem cacheContains.wp_proof (wp_equal : bitset.equal.spec (GF := GF) (hG := h
       wp_auto_lc 1
       unfold isEqHash equalSpec
       icases Heh with ⟨-, #Heq, -⟩
-      imod shared_acc S p ce.state' t' $$ [$Ht' $Htok $Hlc1] with ⟨Hrep, Hclose⟩
-      wp_apply Heq $$ %st %ce.state' %t %t' [$Hst $Hrep] as %b ⟨Hst, Hrep, %Hb⟩
+      imod shared_acc S p k' ce.state' t' $$ [$Ht' $Htok $Hlc1] with ⟨Hrep, Hclose⟩
+      wp_apply Heq $$ %k %k' %st %ce.state' %t %t' [$Hst $Hrep] as %b ⟨Hst, Hrep, %Hb⟩
       imod Hclose $$ Hrep with Htok
       cases b
       · wp_auto

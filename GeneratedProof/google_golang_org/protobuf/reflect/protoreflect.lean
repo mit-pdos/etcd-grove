@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.google_golang_org.protobuf.reflect.protoreflect
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.protobuf.reflect.protoreflect
 

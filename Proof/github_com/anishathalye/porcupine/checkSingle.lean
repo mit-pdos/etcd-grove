@@ -11,6 +11,11 @@ The state values are shared in a pool `np` of non-atomic invariants allocated at
 state's when it is pushed (`StepContext` returns it owned, and `cacheKey`/`cacheContains` take
 it owned); `StepContext` on the current state opens its invariant with the later credit of a
 pure step before the call, and closes it after.
+
+A state value's index (`ModelSpec.rep`) is its depth on the stack: `Init`'s is `0`, the current
+state's `|fs|`, the `i`-th oldest frame's `i` (`callsRep`); a cached value's is any. A step lifts
+an operation not on the stack, so `|fs|` is below the history's length, below `2^60`
+(`frames_length_lt`), as `stepCtxSpec` asks.
 -/
 module
 
@@ -212,7 +217,7 @@ theorem checkSingle.wp_proof
   imod (NonAtomicInvariant.alloc (GF := GF)) with ⟨%np, Htok⟩
   unfold initSpec
   wp_apply Hinit as %sv0 Hsv0
-  imod shared_alloc S np ⊤ sv0 S.M.init $$ Hsv0 with #Hsv0
+  imod shared_alloc S np ⊤ 0 sv0 S.M.init $$ Hsv0 with #Hsv0
   -- the head
   irename «$a0» => Hhd
   obtain ⟨hd, hhd⟩ : ∃ hd, «$a0_ptr» = hd := ⟨_, rfl⟩
@@ -352,10 +357,22 @@ theorem checkSingle.wp_proof
       rw [hval1, hval2]
       ihave #Hioy := BigSepL.bigSepL_lookup (Φ := fun _ o => S.ioOk o.val.1 o.val.2) ho $$ Hio
       iunfold stepCtxSpec at Hstep
+      -- the state's index: the stack is shorter than the history
+      have hyids : y ∉ ids fs := rem_get_not_mem he
+      have hidsn : ∀ i ∈ ids fs, i < h.length := by
+        intro i hi
+        simp only [ids, List.mem_map] at hi
+        obtain ⟨f, hf, rfl⟩ := hi
+        exact (hok.2.1 _).mp (framesPos_mem Hfp f hf)
+      have hfsl : fs.length < 2 ^ 60 := by
+        have := frames_length_lt Hfp hyids hy hidsn
+        omega
+      ihave %Hcl0 := callsRep_length S np loc ces fs $$ Hces
       -- open the current state's invariant for the call, close it after
-      imod shared_acc S np sv s $$ [$Hsv $Htok $Hlc1] with ⟨Hrep, Hclose⟩
-      wp_apply Hstep $$ %c %cs %sv %s %o.val.1 %o.val.2 [$Hctx $Hrep $Hioy]
+      imod shared_acc S np fs.length sv s $$ [$Hsv $Htok $Hlc1] with ⟨Hrep, Hclose⟩
+      wp_apply Hstep $$ %c %cs %fs.length %sv %s %o.val.1 %o.val.2 [$Hctx $Hrep $Hioy]
         as %ok %nsv ⟨Hrep, Hres⟩
+      · ipureintro; exact hfsl
       imod Hclose $$ Hrep with Htok
       ctx_check
       have hpq1 : p + 1 < (rem (es.map entryOf) (ids fs)).length :=
@@ -418,7 +435,7 @@ theorem checkSingle.wp_proof
         wp_apply wp_set lsl ws (W64 y) hyb $$ [Hlin] as Hlin
         · iframe
         -- `key := cacheKey(model, linearized, newState)`, `bucket := cache[key]`
-        wp_apply wp_cacheKey σ S m lsl (bsSet ws (W64 y)) (DFrac.own 1) nsv t' $$ [$Heh $Hlin $Hpost]
+        wp_apply wp_cacheKey σ S m lsl (bsSet ws (W64 y)) (DFrac.own 1) (fs.length + 1) nsv t' $$ [$Heh $Hlin $Hpost]
           as %key ⟨Hlin, Hpost⟩
         iunfold cacheOwn at Hcache
         icases Hcache with ⟨%CM, Hcm, HB⟩
@@ -427,7 +444,7 @@ theorem checkSingle.wp_proof
         icases buckets_read S np h.length cache CM key $$ HB with ⟨⟨%bces, #Hbk, #Hbces⟩, HB⟩
         -- `cacheContains(model, bucket, linearized, newState)`
         wp_apply wp_cacheContains σ S m np (cacheP h.length cache) _ bces DFrac.discard lsl _
-          (DFrac.own 1) nsv t' $$ [$Heh $Hbk $Hbces $Hlin $Hpost $Htok]
+          (DFrac.own 1) (fs.length + 1) nsv t' $$ [$Heh $Hbk $Hbces $Hlin $Hpost $Htok]
           as %hit ⟨-, Hlin, Hpost, Htok, %Hhit⟩
         have hyids : y ∉ ids fs := rem_get_not_mem he
         have hidsn : ∀ i ∈ ids fs, i < h.length := by
@@ -449,7 +466,7 @@ theorem checkSingle.wp_proof
           · iframe
           ipersist Hlin2
           -- the new state, shared
-          imod shared_alloc S np ⊤ nsv t' $$ Hpost with #Hpost
+          imod shared_alloc S np ⊤ (fs.length + 1) nsv t' $$ Hpost with #Hpost
           -- the new cache entry, and the cache with its configuration
           let cnew : (Nat → Prop) × σ := (fun i => i ∈ y :: ids fs, t')
           have hcnew : cacheP h.length (cnew :: cache) (bsSet ws (W64 y)) t' := by
@@ -481,7 +498,7 @@ theorem checkSingle.wp_proof
             iapply BigSepL.bigSepL_snoc.2
             iframe Hbces2
             iunfold cacheEntryOk
-            iexists bsSet ws (W64 y), t'
+            iexists bsSet ws (W64 y), t', fs.length + 1
             iframe Hlin2 Hpost
             ipureintro; exact hcnew
           -- `calls = append(calls, callsEntry{entry, state})`
@@ -528,6 +545,7 @@ theorem checkSingle.wp_proof
           isplitl []
           · simp only [callsRep, List.reverse_cons]
             iapply BigSepL2.bigSepL2_snoc.2
+            rw [Hcl0]
             iframe Hces Hsv
             ipureintro; rfl
           ipureintro

@@ -29,8 +29,9 @@ triple of a function the program calls, D19a's second kind):
 
 What were package-fact premises until D19r was carried out are gone: `rnRaftStatusOk` and
 `waitClosecInit` are now `etcdserver`'s and `pkg/wait`'s facts; `io.EOF` and `context`'s
-`closedchan` come from the named Props `EofFromIoInit` and `ClosedchanFromContextInit` (false under
-the current Perennial pin; the proposed Perennial changes make them theorems).
+`closedchan`, which came from the named Props `EofFromIoInit` and `ClosedchanFromContextInit`
+until 2026-10-20, now come from `io`'s and `context`'s package facts (Perennial `init-facts`:
+`v3rpc.eofVar_of_init`, `context.isClosedchanInit_of_init`).
 -/
 module
 
@@ -129,22 +130,6 @@ def premises (N : Nat) (id : w64) (bootLog : List EntryM) : IProp GF :=
 instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
     Persistent (premises (GF := GF) N id bootLog) := by
   unfold premises; infer_instance
-
-/-- **`io.EOF` from `io`'s package fact** (a named hypothesis, D19r; **false under the current
-Perennial pin**): Perennial's `io` initializer stores `errors.New("EOF")` in `io.EOF` but its fact
-(`io.isInit`) does not keep it, so this entailment holds in no model today. The proposed
-Perennial change (`io.isInit` keeps `EOF`'s value with its `errors.New` facts, D19j) makes it a
-theorem; the closed theorem takes it until that pin. -/
-def EofFromIoInit : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.io ⊢ v3rpc.eofVar
-
-/-- **`context`'s closed channel from its package fact** (a named hypothesis, D19r (E); **false
-under the current Perennial pin**): Perennial's `context` initializer makes `closedchan` and closes
-it, but its fact keeps it out ("ghost state"), so this entailment holds in no model today. A
-Perennial change (being drafted separately: the fact keeps `closedchan`'s invariant) makes it a
-theorem; the closed theorem takes it until that pin. -/
-def ClosedchanFromContextInit : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.context ⊢ context.isClosedchanInit
 
 end defs
 

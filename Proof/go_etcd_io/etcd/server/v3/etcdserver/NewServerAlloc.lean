@@ -69,11 +69,11 @@ start values, the workload and the claims' map; not a member's certificate map, 
 height or its slots and prefix. -/
 theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     (h : γk.st = γk'.st ∧ γk.c0 = γk'.c0 ∧ γk.ch0 = γk'.ch0 ∧ γk.log0 = γk'.log0 ∧
-      γk.wl = γk'.wl ∧ γk.ids.issued = γk'.ids.issued) :
+      γk.wl = γk'.wl ∧ γk.ids.issued = γk'.ids.issued ∧ γk.ids.wn = γk'.ids.wn) :
     kvInv (GF := GF) γs γk = kvInv γs γk' := by
-  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h
-  unfold kvInv kvWork entryClaim idClaim kvModel
-  rw [h1, h2, h3, h4, h5, h6]
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h
+  unfold kvInv kvWork entryClaim idClaim kvModel idRegd idWaitIs
+  rw [h1, h2, h3, h4, h5, h6, h7]
 
 /-- The client's `etcdKV` reads only the state's variable. -/
 theorem etcdKV_congr (γk γk' : KVNames) (h : γk.st = γk'.st) (σ : KVState) :
@@ -266,12 +266,15 @@ theorem srvClusterBoot_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 → 
         kvInv ⟨γ, [], W64 0⟩ γk ∗ etcdKV γk (kvStateOf (kvModel γk (bootEntries bootLog))) ∗
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
-        [∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          rdCred γ (2 ^ 48)) := by
+        ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
+          rdCred γ (2 ^ 48))) ∗
+        -- (linkv-txn stage B1, 2026-10-20) each member's entry of the registries' map
+        [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) := by
   obtain ⟨Hnd, Hok, Hlen⟩ := idPfxsOf_ok ps Hpd Hp0
   istart
   imod (idCluster_alloc (GF := GF) (idPfxsOf ps) Φs ⊤ Hnd Hok) with ⟨%issued, %cnt, #Hcl, #H0, Hps⟩
-  imod (srvRaftBoot_alloc (GF := GF) ⊤ cfg nodes ccOk ps bootLog ⟨issued, cnt, 0, 0⟩ W
+  imod (idWait_alloc_list (GF := GF) (idPfxsOf ps) Hnd) with ⟨%wn, Hwns⟩
+  imod (srvRaftBoot_alloc (GF := GF) ⊤ cfg nodes ccOk ps bootLog ⟨issued, cnt, 0, 0, wn⟩ W
       Hcne Hnz Hcfg hboot hpol)
     with ⟨%γ, %Hγ, #Hcinv, #Hcomm, Hghosts, Hout, HrdC, #HrdI⟩
   iunfold srvBootOut at Hout
@@ -289,13 +292,21 @@ theorem srvClusterBoot_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 → 
   · ipureintro
     obtain ⟨h1, h2, h3, h4, -, h5⟩ := Hγ
     exact ⟨h1, h2, h3, h4, h5, hc0, hch, hlog, by rw [hids], hwl⟩
-  iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
-  iframe Hcr
-  have hm : ([∗list] p ∈ idPfxsOf ps, p ↪[cnt] ([] : List w64)) =
-      ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) : IProp GF)) := by
+  isplitl [Hps Hcr]
+  · iapply (BigSepL.bigSepL_sep_eqv (PROP := IProp GF)).2
+    iframe Hcr
+    have hm : ([∗list] p ∈ idPfxsOf ps, p ↪[cnt] ([] : List w64)) =
+        ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) : IProp GF)) := by
+      unfold idPfxsOf; rw [BigSepL.bigSepL_map]
+    rw [← hm]
+    iexact Hps
+  have hw : γk.ids.wn = wn := by rw [hids]
+  rw [hw]
+  have hm : ([∗list] p ∈ idPfxsOf ps, idWaitTokAt (GF := GF) wn p) =
+      ([∗list] id ∈ ps, idWaitTokAt (GF := GF) wn (idPfxOf (W16 (uint.Z id)))) := by
     unfold idPfxsOf; rw [BigSepL.bigSepL_map]
   rw [← hm]
-  iexact Hps
+  iexact Hwns
 
 /-- **A member's names and share** (D21e (A), stage M4; see the file header): for the member
 `id` of a cluster allocated by `srvClusterBoot_alloc` (its KV names `γk`, its claims' names), the
@@ -306,14 +317,16 @@ prefix); with its read names' fresh rows (`srvReadNamesFreshNK`), the KV invaria
 theorem srvMemberBoot_alloc (γ : RaftNames) (cnt : GName) (γk : KVNames) (id : w64)
     (cok : GName) :
     ⊢ kvInv (GF := GF) ⟨γ, [], W64 0⟩ γk -∗
-      idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ==∗
+      idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) -∗
+      idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) ==∗
       ∃ ρ : ReqNames,
         ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
           ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.wl = γk.wl ∧
           ρ.rd.kv.cok = cok ∧ ρ.ids.issued = γk.ids.issued ∧ ρ.ids.cnt = cnt ∧
           ρ.ids.pfx = idPfxOf (W16 (uint.Z id))⌝ ∗
-        kvInv ⟨γ, [], W64 0⟩ ρ.rd.kv ∗ idShare ρ.ids ∗ srvReadNamesFreshNK ρ.rd := by
-  iintro #Hkv Hp
+        kvInv ⟨γ, [], W64 0⟩ ρ.rd.kv ∗ idShare ρ.ids ∗ srvReadNamesFreshNK ρ.rd ∗
+        idWaitTok ρ.ids := by
+  iintro #Hkv Hp Hwt
   imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
@@ -324,23 +337,25 @@ theorem srvMemberBoot_alloc (γ : RaftNames) (cnt : GName) (γk : KVNames) (id :
   imodintro
   iexists ⟨0, ⟨γa, γc, γn, γl, γp, ⟨γ, [], W64 0⟩,
     ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id))⟩, γk.wl⟩⟩⟩
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn⟩, γk.wl⟩⟩⟩
   isplitr
   · ipureintro
     exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   isplitr
   · dsimp only
     rw [kvInv_congr _ ⟨γk.st, γk.c0, γk.ch0, γk.log0, cok, γhi,
-      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id))⟩, γk.wl⟩ γk
-      ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩]
+      ⟨γk.ids.issued, cnt, γsl, idPfxOf (W16 (uint.Z id)), γk.ids.wn⟩, γk.wl⟩ γk
+      ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩]
     iexact Hkv
   isplitl [Hp Hsl]
   · iunfold idShare
     iframe Hp Hsl
-  iunfold srvReadNamesFreshNK
-  iframe Ha Hc Hl Hpd Hhi
-  iexists _
-  iexact Hn
+  isplitr [Hwt]
+  · iunfold srvReadNamesFreshNK
+    iframe Ha Hc Hl Hpd Hhi
+    iexists _
+    iexact Hn
+  iexact Hwt
 
 end alloc
 

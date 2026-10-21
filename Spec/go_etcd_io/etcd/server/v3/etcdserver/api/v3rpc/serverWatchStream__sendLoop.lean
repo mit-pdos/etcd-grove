@@ -36,9 +36,9 @@ abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
       spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.watchConsumer r.γc [] ∗ v3rpc.sendRes r.srv ∗
-      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) }}
+      sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗ threadTok }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"sendLoop")) (Val #()))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

@@ -13,7 +13,8 @@ of `ROOTS`, but Perennial's (with a `Link`), raft's (`Proof/go_etcd_io/raft/v3/I
 B-tree's (`initialize.lean`) and `NOT_YET`; a package whose fact is not `True` or whose
 initializer runs translated code needs an entry in `SPECIAL` (the per-package doc, axioms, the
 hand-written steps `before` an item, `$inits` (before the `init` functions) and `$end`, and the
-`finish`).
+`finish`). The packages of `CLOSEDCHAN` (porcupine and the packages importing it) are proved in a
+variant form that also returns `context`'s `isClosedchanInit` (see `CLOSEDCHAN`).
 
 Each theorem is proved in a form that keeps what is initialized (decision D19e,
 `Proof/runtime/PkgInit.lean`): `wp_initialize'_lb` (from `ownInitLb g σ0`, for every `σ0`) or,
@@ -36,7 +37,14 @@ PERENNIAL_CODE = '.lake/packages/perennial/Perennial/Code'
 ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.putget',
-         'github_com.mit_pdos.etcd_grove.examples.putget3']
+         'github_com.mit_pdos.etcd_grove.examples.putget3',
+         'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
+         'github_com.mit_pdos.etcd_grove.examples.linkv',
+         'github_com.mit_pdos.etcd_grove.examples.linkv3',
+         'github_com.mit_pdos.etcd_grove.examples.linkv3p',
+         'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
+         'github_com.mit_pdos.etcd_grove.examples.watchkv',
+         'github_com.mit_pdos.etcd_grove.examples.cachekv']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -395,6 +403,50 @@ SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['custom'].update({
 SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'] = (
     ['ipersist HTokenFieldNameGRPC', 'ipersist HTokenFieldNameSwagger'] +
     SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']['finish'])
+
+def _cacheErrVar(x, tag, msg):
+    """`cacheInit`'s `errorStringSpec` of the `errors.New(msg)` error variable `x` (`#M<tag>`)."""
+    return ['isplitr',
+            '· iintro !> %e #He',
+            f'  icombine H{x} He gives %Heq',
+            '  simp only [interface.mkOk, GoInterface.ok.injEq] at Heq',
+            '  subst Heq',
+            f'  iapply (errorStringSpec_of_msg _ go!"{msg}")',
+            f'  iexact M{tag}']
+
+SPECIAL['go_etcd_io.etcd.cache.v3'] = dict(
+    doc='''Its fact (`cacheInit`, `Base.lean`; 2026-10-20, cachekv): the error variables `ErrUnsupportedRequest`,
+`ErrKeyRangeInvalid`, `ErrCacheTimeout` (translated `errors.New` calls, whose `Error()` returns
+their message) and `ErrNotReady` (a translated `fmt.Errorf` call), each a fixed non-nil error,
+the first two with `errorStringSpec`. Its initializer allocates them, initializes its imports and
+runs their translated initializers.''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Proof.fmt.Link'],
+    vars=['[_root_.Perennial.fmt.Assumptions]'],
+    alloc_types={'ErrUnsupportedRequest': 'GoInterface', 'ErrKeyRangeInvalid': 'GoInterface',
+                 'ErrCacheTimeout': 'GoInterface', 'ErrNotReady': 'GoInterface'},
+    before={'$end': [
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xKR #MKR',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %xCT #MCT',
+        'wp_apply (EtcdGrove.fmt.wp_Errorf go!"cache: store not ready" slice.nil [] (DFrac.own 1))',
+        '    $$ [] as %eNR -',
+        '· isplitl',
+        '  · iapply ownSlice_nil',
+        '  unfold EtcdGrove.fmt.argsOk; itrivial']},
+    finish=['ipersist HErrUnsupportedRequest', 'ipersist HErrKeyRangeInvalid',
+            'ipersist HErrCacheTimeout', 'ipersist HErrNotReady'] + FIN_PRE[:6] + [
+            'imodintro', 'unfold cacheInit',
+            'isplitr; · iexists _; iexact HErrNotReady',
+            'isplitr; · iexists _; iexact HErrUnsupportedRequest',
+            'isplitr; · iexists _; iexact HErrKeyRangeInvalid',
+            'isplitr; · iexists _; iexact HErrCacheTimeout'] +
+           _cacheErrVar('ErrKeyRangeInvalid', 'KR', 'cache: invalid or out‑of‑range key range')[0:1] +
+           _cacheErrVar('ErrKeyRangeInvalid', 'KR', 'cache: invalid or out‑of‑range key range')[1:] +
+           ['iintro !> %e #He', 'icombine HErrUnsupportedRequest He gives %Heq',
+            'simp only [interface.mkOk, GoInterface.ok.injEq] at Heq', 'subst Heq',
+            'iapply (errorStringSpec_of_msg _ go!"cache: unsupported request parameters")',
+            'iexact MUR'],
+)
 
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
@@ -881,7 +933,10 @@ names) and the four
              '  iframe HprogressReportInterval',
              '  ipureintro',
              '  first | decide | (simp [_root_.Perennial.time.Minute]; decide) | word',
-             'ihave ⟨-, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS'] +
+             'ihave ⟨HIS, #HIG⟩ := sync.ownRWMutex_slots_guard _ _ $$ HIS',
+             '-- (2026-10-20, watchkv) its reader slots pooled, for the watch streams\' send loops',
+             'imod (EtcdGrove.v3rpc.intervalPool_alloc ⊤) $$ [HIS] with #HIP',
+             '· iframe HIG; iexact HIS'] +
             FIN_PRE[:6] +
             ['imodintro', 'unfold v3rpcInit EtcdGrove.v3rpc.watchPkgVars grpcErrMap checkErrVars sortNameMaps ctxCanceledPtr interceptorVars errVarSet EtcdGrove.v3rpc.metricsVars',
              'iframe #', 'ipureintro', 'exact PtoGRPCErrorMap']),
@@ -1056,7 +1111,8 @@ def pkginfo_imports(p):
     return [x.strip()[len('pkg_id.'):] for x in m.group(1).split(',')]
 
 def exec_order(p):
-    """The initializer's statements in execution order: ('import', q) / ('opaque', X)."""
+    """The initializer's statements in execution order: ('import', q) / ('opaque', X) /
+    ('trusted', X) / ...."""
     d = inv[p]
     t = open(d['file']).read()
     i = t.find("noncomputable def initialize'")
@@ -1067,19 +1123,21 @@ def exec_order(p):
         if m.group(1):
             items.append(('import', m.group(1)))
         elif m.group(2):
-            items.append(('opaque', m.group(2)))
+            # an axiom of the translation, or a trusted variable's model (in `TrustedCode/`)
+            kind = 'opaque' if f'axiom {m.group(2)}.init ' in t else 'trusted'
+            items.append((kind, m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))
         elif m.group(4):
             items.append(('store', m.group(4)))
         else:
-            # a `func init()`, `init.<k>` (as gc names them): translated if it has a body
-            kind = 'initfn' if f'noncomputable def {m.group(5)}.impl ' in t else 'opaqueinitfn'
+            # a `func init()`, `init.<k>` (as gc names them): unfolded if translated or trusted
+            kind = 'initfn' if f'FuncUnfold {m.group(5)} [] ' in t else 'opaqueinitfn'
             items.append((kind, m.group(5)))
     items.reverse()
     return items
 
-def gen(p, cfg=None):
+def gen(p, cfg=None, lb_only=False):
     cfg = cfg or {}
     newvars = cfg.get('newvars', {})
     custom = cfg.get('custom', {})
@@ -1094,6 +1152,7 @@ def gen(p, cfg=None):
     items = exec_order(p)
     opq = [x for (kind, x) in items if kind == 'opaque' and x not in newvars and x not in custom]
     opqf = [x for (kind, x) in items if kind == 'opaqueinitfn']
+    trs = [x for (kind, x) in items if kind == 'trusted']
     imps = [x for (kind, x) in items if kind == 'import']
     assert sorted(imps) == sorted(pk), (p, imps, pk)
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg.get('imports', [])
@@ -1107,6 +1166,9 @@ def gen(p, cfg=None):
     A('')
     if 'doc' in cfg:
         A(cfg['doc'])
+    elif trs and not opq and not opqf:
+        A('Its fact is `True`. Its initializer initializes its imports and runs the trusted')
+        A('initializers of its variables (`X.init`, models in `TrustedCode/` that do nothing).')
     elif opq and opqf:
         A('Its fact is `True`. Its initializer initializes its imports, runs the untranslated')
         A('initializers of its variables (`X.init`, axioms of the translation), which the')
@@ -1281,6 +1343,8 @@ def gen(p, cfg=None):
             A(f'  wp_apply {x}_init as {custom[x]["pat"].replace("@", x)}')
         elif kind == 'opaque':
             A(f'  wp_apply (opaqueInitsOk {x}.init (by mem_tac))')
+        elif kind == 'trusted':
+            A(f'  wp_call  -- {x}: its trusted initializer does nothing')
         elif kind == 'opaqueinitfn':
             A(f'  wp_apply (initFuncsOk {x} (by mem_tac))')
         elif kind == 'initfn':
@@ -1298,6 +1362,11 @@ def gen(p, cfg=None):
     for l in cfg.get('finish', ['iframe Hown', 'is_pkg_init_finish']):
         A('  ' + hdsub(l))
     A('')
+    if lb_only:
+        # the ordinary `wp_initialize'_lb` alone, for a `CLOSEDCHAN` package (`gen_cc`)
+        assert form == 'lb', p
+        i = lines.index('section init')
+        return mods, '\n'.join(lines[i:] + [f'end {p}', '', 'end init'])
     if form == 'lb':
         A('/-- Perennial\'s form, from `wp_initialize\'_lb`. -/')
     else:
@@ -1327,6 +1396,333 @@ def gen(p, cfg=None):
         path = f'Proof/{dirof(p)}/Initialize.lean'
     return path, '\n'.join(lines) + '\n'
 
+
+
+# **The `isClosedchanInit` variant** (D20, 2026-10-19). Porcupine's specs (`CheckOperations*`)
+# take `context.isClosedchanInit` (`context`'s `closedchan` closed, an invariant), which
+# `context`'s `isPkgInit` did not give before Perennial `init-facts` (2026-10-20; now it does,
+# `context.isClosedchanInit_of_init`, and the variant is redundant: a follow-up can remove it,
+# `notes/STATUS.md`). The packages of `CLOSEDCHAN`
+# prove their initialization in a variant form that returns it: at a table whose entries for
+# `context` and for every `CLOSEDCHAN` package (`CC_BASE`, the one importing `context`, and those
+# importing it) are `isPkgInit ∗ isClosedchanInit` (`CC_BASE`'s structure `PorcupineInitTable` and
+# an equation per other `CLOSEDCHAN` package), the other packages' their `isPkgInit`
+# (`GetIsPkgInitProp`); `CC_BASE`'s file re-proves `context`'s initialization with the invariant
+# (`CC_BLOCK_CTX`, from the proof of Perennial's `context.initialize'.wp_proof`). Such a table
+# cannot be the program's table of a package whose closure also reaches `context` through the
+# generated proofs (the server's: they need `context`'s entry to be its `isPkgInit`), so a
+# `CLOSEDCHAN` package imported by a package of the ordinary form (linkv) also gets the ordinary
+# `wp_initialize'_lb` (in a section of its own; its `wp_initialize'` is the variant's), and that
+# program takes `isClosedchanInit` otherwise (linkv: from `context`'s `isPkgInit`,
+# `context.isClosedchanInit_of_init`).
+CC_BASE = 'github_com.anishathalye.porcupine'
+CC_TABLE = 'PorcupineInitTable'
+CLOSEDCHAN = {}
+CC_EXTRA_IMPORTS = {'context': ['Perennial.Proof.context.NewErrorString']}
+CC_WIDTH = 100
+CC_LB_DOC = '''/-! The ordinary form (decision D19e), for a package of the ordinary form importing this one, at
+a table of its closure's `isPkgInit`s (see `CLOSEDCHAN` in `etc/gen-init.py`). -/'''
+
+
+def cc_field(q):
+    """The `PorcupineInitTable` field of a package (`sync.atomic`: `atomic`)."""
+    return plain(q).split('.')[-1]
+
+
+def cc_fields():
+    """The packages `CC_BASE`'s table states `GetIsPkgInitProp` of: `context`'s imports, then
+    `CC_BASE`'s other imports."""
+    out = []
+    for q in pkginfo_imports('context') + pkginfo_imports(CC_BASE):
+        if q != 'context' and q not in CLOSEDCHAN and q not in out:
+            out.append(q)
+    return out
+
+
+def cc_eqs(p):
+    """The `CLOSEDCHAN` packages whose equation `p`'s theorem takes, in order (`p`'s own last)."""
+    return sorted(q for q in closure(p) if q in CLOSEDCHAN and q not in (CC_BASE, p)) + [p]
+
+
+def cc_hyp(q, p):
+    return 'Hself' if q == p else 'H' + cc_field(q)
+
+
+def cc_wrap(first, ind, q, tail):
+    """`first`, then `iprop(isPkgInit ... pkg_id.q ∗ context.isClosedchanInit)` + `tail`, on one,
+    two or three lines (indented `ind`) as they fit in `CC_WIDTH`."""
+    one = f'{" " * ind}{first}isPkgInit (PROP := IProp GF) pkg_id.{q} ∗ context.isClosedchanInit){tail}'
+    if len(one) <= CC_WIDTH:
+        return [one]
+    two = f'{" " * ind}{first}isPkgInit (PROP := IProp GF) pkg_id.{q} ∗'
+    if len(two) <= CC_WIDTH:
+        return [two, f'{" " * (ind + 2)}context.isClosedchanInit){tail}']
+    return [f'{" " * ind}{first}isPkgInit (PROP := IProp GF)', f'{" " * (ind + 4)}pkg_id.{q} ∗',
+            f'{" " * (ind + 2)}context.isClosedchanInit){tail}']
+
+
+def gen_cc(p, lb):
+    """`p`'s `Init.lean` in the `isClosedchanInit` variant (see `CLOSEDCHAN`), with the ordinary
+    `wp_initialize'_lb` if `lb`."""
+    cfg = CLOSEDCHAN[p]
+    base = p == CC_BASE
+    k = plain(p)
+    inst_mod = 'Proof.' + (inst.get(k) or inst.get(p))[0][0].replace('/', '.')
+    pk = pkginfo_imports(p)
+    items = exec_order(p)
+    assert all(kind == 'import' for kind, _ in items), (p, items)
+    imps = [x for _, x in items]
+    assert sorted(imps) == sorted(pk), (p, imps, pk)
+    fields = cc_fields()
+    # the imports' modules: an import's own unless another import's closure reaches it
+    mods = [inst_mod]
+    for q in pk:
+        if any(q in closure(o) for o in pk if o != q):
+            continue
+        if q in CLOSEDCHAN:
+            mods.append(f'Proof.{plain(q)}.Init')
+        else:
+            assert base, (p, q)
+            mods.append(init_module(q))
+            mods += CC_EXTRA_IMPORTS.get(q, [])
+    lbtxt = None
+    if lb:
+        lbmods, lbtxt = gen(p, SPECIAL.get(p), lb_only=True)
+        mods += [m for m in lbmods if m not in mods]
+    L = [cfg['header'], 'module', '']
+    L += [f'public import {m}' for m in mods]
+    L += ['', '@[expose] public section', '', 'set_option linter.iris.style.nameCheck false',
+          'set_option linter.unusedSectionVars false', '', 'noncomputable section', '',
+          'namespace Perennial', '', 'open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode', '']
+    if base:
+        L += [CC_BLOCK_CTX, '']
+    L += [f'namespace {p}', '', 'section init',
+          'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+          'variable [go_gctx : GoGlobalContext]',
+          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
+          'variable [sem : go.Semantics]',
+          f'variable [package_sem : {p}.Assumptions]', '']
+    tbl = CC_TABLE if base else f'{CC_BASE}.{CC_TABLE}'
+    if base:
+        L.append(cfg['table_doc'])
+        L.append(f'structure {CC_TABLE} (get_is_pkg_init : GoString → IProp GF) : Prop where')
+        L.append(f'  self : get_is_pkg_init pkg_id.{p} =')
+        L += cc_wrap('iprop(', 4, p, '')
+        L.append('  context : get_is_pkg_init pkg_id.context =')
+        L += cc_wrap('iprop(', 4, 'context', '')
+        L += [f'  {cc_field(q)} : GetIsPkgInitProp pkg_id.{q} get_is_pkg_init' for q in fields]
+        L.append('')
+    L.append(cfg['thm_doc'])
+    L.append("theorem wp_initialize' [context.ErrorStringIsError] [context.DeadlineExceededIsError]")
+    if base:
+        L.append(f'    (get_is_pkg_init : GoString → IProp GF) (Ht : {tbl} get_is_pkg_init) :')
+    else:
+        L.append('    (get_is_pkg_init : GoString → IProp GF)')
+        L.append(f'    (Ht : {tbl} get_is_pkg_init)')
+        eqs = cc_eqs(p)
+        for i, q in enumerate(eqs):
+            L.append(f'    ({cc_hyp(q, p)} : get_is_pkg_init pkg_id.{q} =')
+            L += cc_wrap('iprop(', 6, q, ')' + (' :' if i == len(eqs) - 1 else ''))
+    L += ['    {{ ownInitializing get_is_pkg_init }}', "      (App (Val initialize') (Val #()))",
+          '    {{ RET #(); ownInitializing get_is_pkg_init ∗']
+    L += cc_wrap('(', 8, p, ' }} := by')
+    L += ['  wp_start as Hown',
+          f'  iapply wp_package_init (heq := {"Ht.self" if base else "Hself"}) $$ [Hown] HΦ',
+          '  iframe Hown', '  iintro Hown', '  wp_auto']
+    have_cc = False
+    for q in imps:
+        idx = pk.index(q) + 1
+        if q == 'context':
+            assert base
+            args = ' '.join(['Ht.context'] + [f'Ht.{cc_field(d)}' for d in pkginfo_imports('context')])
+            line = f"  wp_apply context_wp_initialize'_closedchan _ {args}"
+            pat = f'⟨Hown, #H{idx}, #Hcc⟩'
+            have_cc = True
+        elif q in CLOSEDCHAN:
+            args = ' '.join(['Ht'] + ([] if q == CC_BASE else [cc_hyp(e, p) for e in cc_eqs(q)]))
+            line = f"  wp_apply {q}.wp_initialize' _ {args}"
+            pat = f'⟨Hown, #H{idx}, -⟩' if have_cc else f'⟨Hown, #H{idx}, #Hcc⟩'
+            have_cc = True
+        else:
+            assert q in fields, (p, q)
+            line = f"  wp_apply {q}.wp_initialize' _ Ht.{cc_field(q)}"
+            pat = f'⟨Hown, #H{idx}⟩'
+        if len(f'{line} $$ Hown as {pat}') <= CC_WIDTH:
+            L.append(f'{line} $$ Hown as {pat}')
+        else:
+            L += [line, f'    $$ Hown as {pat}']
+    assert have_cc, p
+    L += ['  iframe Hown', '  imodintro', '  iframe #', '  is_pkg_init_finish', '', 'end init', '',
+          f'end {p}', '']
+    if lbtxt:
+        L += [CC_LB_DOC, lbtxt, '']
+    L.append('end Perennial')
+    return f'Proof/{dirof(p)}/Init.lean', '\n'.join(L) + '\n'
+
+
+def lb_cc():
+    """The `CLOSEDCHAN` packages a generated package of the ordinary form imports: they get the
+    ordinary `wp_initialize'_lb` too."""
+    return {q for p in packages() if p not in CLOSEDCHAN for q in inv[p]['imports'] if q in CLOSEDCHAN}
+
+CC_BLOCK_CTX = r'''section ctx
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : context.Assumptions]
+
+open context in
+/-- `context`'s initialization, returning `isClosedchanInit` (see the file header). -/
+theorem context_wp_initialize'_closedchan [hErr : ErrorStringIsError]
+    [hDE : DeadlineExceededIsError] (get_is_pkg_init : GoString → IProp GF)
+    (Hctx : get_is_pkg_init pkg_id.context =
+      iprop(isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClosedchanInit))
+    (Herr : GetIsPkgInitProp pkg_id.errors get_is_pkg_init)
+    (Hsync : GetIsPkgInitProp pkg_id.sync get_is_pkg_init)
+    (Hatomic : GetIsPkgInitProp pkg_id.sync.atomic get_is_pkg_init)
+    (Htime : GetIsPkgInitProp pkg_id.time get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        (isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClosedchanInit) }} := by
+  wp_start as Hown
+  iapply wp_package_init (heq := Hctx) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply wp_GlobalAlloc (V := GoChan) closedchan _ as Hcl
+  wp_apply wp_GlobalAlloc (V := w64) cancelCtxKey go.int as _
+  wp_apply wp_GlobalAlloc (V := sync.atomic.Int32) goroutines sync.atomic.Int32.ty as Hgo
+  wp_apply wp_GlobalAlloc (V := GoInterface) DeadlineExceeded go.error as HDE
+  wp_apply wp_GlobalAlloc (V := GoInterface) Canceled go.error as HC
+  wp_apply time.wp_initialize' _ Htime $$ Hown as ⟨Hown, #H1⟩
+  wp_apply sync.atomic.wp_initialize' _ Hatomic $$ Hown as ⟨Hown, #H2⟩
+  wp_apply sync.wp_initialize' _ Hsync $$ Hown as ⟨Hown, #H3⟩
+  wp_apply errors.wp_initialize' _ Herr $$ Hown as ⟨Hown, #H4⟩
+  wp_apply wp_New_errorString as %x _
+  wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩
+  ipersist HC
+  ipersist HDE
+  ipersist Hcl
+  ihave Hgo : sync.atomic.ownInt32 (globalAddr goroutines) (DFrac.own 1) (W32 0) $$ [Hgo]
+  · rw [sync.atomic.ownInt32_unseal]
+    unfold sync.atomic.ownInt32Def
+    rw [show ({ _0' := zero_val _, v' := W32 0 } : sync.atomic.Int32) =
+      zero_val sync.atomic.Int32 from rfl]
+    iexact Hgo
+  imod inv_alloc nroot ⊤ iprop(∃ g, sync.atomic.ownInt32 (globalAddr context.goroutines)
+    (DFrac.own 1) g) $$ [Hgo] with #Hginv
+  · inext
+    iexists _
+    iexact Hgo
+  -- context's init.0 (`closedchan` closed)
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply_core chan.wp_close (V := Unit) ch γ $$ His_ch
+  iintro -
+  unfold closeAu
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iexists .Idle
+  iframe Hch
+  dsimp only
+  iintro Hch
+  imod Hmask with -
+  imod inv_alloc closedchanN ⊤ (ownChan γ Unit (.Closed [])) $$ [Hch] with #Hccinv
+  · inext
+    iexact Hch
+  imodintro
+  wp_auto
+  iframe Hown
+  imodintro
+  isplitl
+  · isPkgInit_unfold
+    iframe #
+    isplitr
+    · iexact Hginv
+    isplitr
+    · iexists ch
+      iexact Hcl
+    isplitr
+    · iexists _
+      iframe HC
+      ipureintro
+      exact hErr.is_error
+    isplitr
+    · iexists _
+      iframe HDE
+      ipureintro
+      exact hDE.is_error
+    isplitr
+    · unfold isClosedchanInit
+      iexists ch, γ
+      iframe #
+    itrivial
+  · unfold isClosedchanInit
+    iexists ch, γ
+    iframe #
+
+end ctx'''
+CLOSEDCHAN['github_com.anishathalye.porcupine'] = dict(
+    header=r'''/- Lean-first (no Rocq counterpart).
+
+# Porcupine's package initialization, with `context`'s `isClosedchanInit` (2026-10-19)
+
+Porcupine's specs (`CheckOperations*`) take `context.isClosedchanInit` (`closedchan` is
+closed, an invariant: `WithCancel(Background())` needs it), which `context`'s `isPkgInit` did
+not give until Perennial `init-facts` (2026-10-20: now its conjunct `"#Hcci"`,
+`context.isClosedchanInit_of_init`). This file was written before, and proves the
+initialization again with it:
+
+- `context_wp_initialize'_closedchan`: `context`'s initialization (the proof of Perennial's
+  `context.initialize'.wp_proof`, plus the invariant `inv closedchanN (ownChan γ (Closed []))`
+  allocated once `init` has closed the channel, which `isPkgInit context` now holds too) at a
+  `get_is_pkg_init` whose entry for `context` is `isPkgInit context ∗ isClosedchanInit`; it
+  returns both.
+- `wp_initialize'`: porcupine's (which runs `context`'s first), at a table
+  (`PorcupineInitTable`) whose entries for `context` and porcupine carry `isClosedchanInit`
+  (so a second initialization, from the map, gives it too) and whose entries for the other
+  packages it reaches (`errors`, `sync`, `sync/atomic`, `time`, `sort`, `fmt`, `strings`,
+  which do not import `context`) are their `isPkgInit` (`GetIsPkgInitProp`).
+
+Now that `context`'s `isPkgInit` includes `isClosedchanInit`, this variant is redundant: the
+packages of `CLOSEDCHAN` could be proved in the ordinary form, and their specs could get
+`isClosedchanInit` from `isPkgInit context` (`notes/STATUS.md`).
+-/''',
+    thm_doc=r'''/-- Porcupine's initialization, returning `context`'s `isClosedchanInit` (see the file
+header). -/''')
+CLOSEDCHAN['github_com.mit_pdos.etcd_grove.examples.lintest'] = dict(
+    header=r'''/- Lean-first (no Rocq counterpart).
+
+# lintest's package initialization (2026-10-19)
+
+`wp_initialize'`: lintest's `initialize'` initializes porcupine (which initializes `context`,
+`Proof/github_com/anishathalye/porcupine/Init.lean`), `time`, `sync/atomic` and `sync`, then
+the package (no package-level variable). It returns `context`'s `isClosedchanInit` beside the
+package's `isPkgInit`, at a table whose entry for lintest carries it too (as porcupine's,
+`PorcupineInitTable`), so that a second initialization, from the map, gives it as well.
+-/''',
+    thm_doc=r'''/-- lintest's initialization, returning `context`'s `isClosedchanInit` (see the file header). -/''')
+CLOSEDCHAN['github_com.mit_pdos.etcd_grove.examples.lintest.counter'] = dict(
+    header=r'''/- Lean-first (no Rocq counterpart).
+
+# The counter package's initialization (2026-10-19)
+
+`wp_initialize'`: the counter's `initialize'` initializes lintest (which initializes porcupine,
+which initializes `context`: `Proof/github_com/anishathalye/porcupine/Init.lean`), porcupine,
+`time` and `sync`, then the package (no package-level variable). It returns `context`'s
+`isClosedchanInit`, which `Main.spec` takes, beside the package's `isPkgInit`, at a table whose
+entries for `context`, porcupine, lintest and the counter carry it (`PorcupineInitTable` and
+the two equations).
+-/''',
+    thm_doc=r'''/-- The counter's initialization, returning `context`'s `isClosedchanInit` (see the file
+header). -/''')
+CLOSEDCHAN['github_com.anishathalye.porcupine']['table_doc'] = r'''/-- What porcupine's initialization needs of `get_is_pkg_init` (see the file header):
+`context`'s and porcupine's entries carry `isClosedchanInit`, the other packages' are their
+`isPkgInit`. -/'''
 
 
 def packages():
@@ -1375,7 +1771,11 @@ these expressions).
 
 
 def gen_ext():
-    exts = sorted({x for p in packages() for x in inv[p]['imports'] if external(x)})
+    # (a `CLOSEDCHAN` package's imports only if it has the ordinary form too: the variant's
+    # proof uses Perennial's `wp_initialize'`s)
+    lbs = lb_cc()
+    exts = sorted({x for p in packages() if p not in CLOSEDCHAN or p in lbs
+                   for x in inv[p]['imports'] if external(x)})
     mods = sorted({code_module(q) for q in exts})
     L = [EXT_DOC, 'module', '', 'public import Proof.runtime.PkgInit']
     L += [f'public import {m}' for m in mods]
@@ -1417,7 +1817,19 @@ def gen_ext():
 PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.linkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.linkv3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.linkv3p':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.linkvtxn':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.watchkv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.cachekv':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
@@ -1480,7 +1892,8 @@ def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
     bad = []
-    outs = [gen(p, SPECIAL.get(p)) for p in pkgs]
+    lbs = lb_cc()
+    outs = [gen_cc(p, p in lbs) if p in CLOSEDCHAN else gen(p, SPECIAL.get(p)) for p in pkgs]
     if not [a for a in argv if not a.startswith('--')]:
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]

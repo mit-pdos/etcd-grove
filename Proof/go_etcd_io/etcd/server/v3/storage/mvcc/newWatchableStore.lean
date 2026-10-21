@@ -87,7 +87,8 @@ theorem mvcc.newWatchableStore.wp_proof
   imod ghostVar_alloc (GF := GF) mvcc.wsInit with ⟨%γwst, Hwst⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
   imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
-  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt⟩
+  imod mono_nat_own_alloc (GF := GF) mvcc.wsInit.Lmu.length with ⟨%γrel, Hrel, -⟩
+  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt, γrel⟩
   ihave Hwt : mvcc.watchBudget γ 1 (∅ : GMap Loc mvcc.WatcherNames) $$ [Hta]
   · iunfold mvcc.watchBudget
     iexists 0 + (2 ^ 63 - 3)
@@ -100,12 +101,12 @@ theorem mvcc.newWatchableStore.wp_proof
   · have h : (if true = true then mvcc.logQ (GF := GF) γs [[], []] else iprop(True)) =
         mvcc.logQ γs [[], []] := by simp
     rw [← h]; iexact HlogQ
-  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
+  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
     isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
     rotate_left
-    · ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
+    · iframe Hrel; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt

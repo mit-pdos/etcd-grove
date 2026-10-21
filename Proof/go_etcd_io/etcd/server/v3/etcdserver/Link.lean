@@ -20,6 +20,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ClusterVersion
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CommittedIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CutPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Done
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnabled
@@ -34,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChang
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Process
@@ -219,6 +221,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__AddRemote
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__CutPeer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport__Start
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
@@ -897,6 +901,14 @@ theorem EtcdServer.wp_CommittedIndex :
     EtcdServer.CommittedIndex.spec (GF := GF) (hG := hG) :=
   EtcdServer.CommittedIndex.wp_proof EtcdServer.wp_getCommittedIndex
 
+theorem rafthttp.Transport.wp_CutPeer :
+    rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.CutPeer.wp_proof
+
+theorem EtcdServer.wp_CutPeer :
+    EtcdServer.CutPeer.spec (GF := GF) (hG := hG) :=
+  EtcdServer.CutPeer.wp_proof rafthttp.Transport.wp_CutPeer
+
 theorem EtcdServer.wp_FeatureEnabled :
     EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG) :=
   EtcdServer.FeatureEnabled.wp_proof
@@ -992,6 +1004,14 @@ theorem EtcdServer.wp_LeaderChanged :
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
+
+theorem rafthttp.Transport.wp_MendPeer :
+    rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) :=
+  rafthttp.Transport.MendPeer.wp_proof
+
+theorem EtcdServer.wp_MendPeer :
+    EtcdServer.MendPeer.spec (GF := GF) (hG := hG) :=
+  EtcdServer.MendPeer.wp_proof rafthttp.Transport.wp_MendPeer
 
 theorem EtcdServer.wp_NewUberApplier [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG) :=

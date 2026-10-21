@@ -516,22 +516,86 @@ def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
 /-- **What the caller of `applyEntryNormal` knows of the entry's registration** (persistent; the
 request path's unit 4d): for an entry whose data decode to a request with an id, `ot`'s
 knowledge of the id (`waitRegdOpt`: nothing for `none`, the registration with the consumer token
-`t` for `some t`). -/
-def entryRegd (γw : GName) (m : EntryModel) (ot : Option GName) : IProp GF :=
+`t` for `some t`); and (linkv-txn stage B1, 2026-10-20) nothing known only of another prefix's id
+than the member's `p` (the member's own requests were registered before they were proposed:
+`idRegd`, `entryWaitOk`). -/
+def entryRegd (γw : GName) (p : w64) (m : EntryModel) (ot : Option GName) : IProp GF :=
   iprop(□ ∀ (rq : apply.IRRModel) (id : w64),
-    ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ → waitRegdOpt γw id ot)
+    ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ →
+      waitRegdOpt γw id ot ∗ ⌜ot = none → m.data ≠ [] → idPfx id ≠ p⌝)
 
-instance entryRegd_persistent (γw : GName) (m : EntryModel) (ot : Option GName) :
-    Persistent (entryRegd (GF := GF) γw m ot) := by
+instance entryRegd_persistent (γw : GName) (p : w64) (m : EntryModel) (ot : Option GName) :
+    Persistent (entryRegd (GF := GF) γw p m ot) := by
   unfold entryRegd; infer_instance
 
-/-- Nothing known: `entryRegd` at `none`. -/
-theorem entryRegd_none (γw : GName) (m : EntryModel) : ⊢ entryRegd (GF := GF) γw m none := by
-  iunfold entryRegd
-  imodintro
-  iintro %rq %id %_
-  iunfold waitRegdOpt
-  itrivial
+/-- **What the apply thread knows of a committed entry's registration** (linkv-txn stage B1,
+2026-10-20): from the entry's claims (`entryWaitOk`: the id registered in its prefix's member's
+registry, `idRegd`) and the member's registry (`idWaitIs`, `waitInv`), the registration with its
+consumer token for an id of the member's prefix, nothing for another's. -/
+theorem entryRegd_of_wait (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel)
+    (ht : m.typ = W32 0) :
+    entryWaitOk (GF := GF) ρ E m ∗ idWaitIs ρ.ids ρ.ids.pfx ρ.wait ⊢
+      ∃ ot : Option GName, entryRegd ρ.wait ρ.ids.pfx m ot := by
+  iintro ⟨#Hw, #Hn⟩
+  unfold entryWaitOk
+  simp only [ht, ↓reduceIte]
+  icases Hw with ⟨#Hc, -⟩
+  have hnone : (∀ rq id, apply.irrDecode m.data = some rq → apply.irrId rq = some id →
+      m.data ≠ [] → idPfx id ≠ ρ.ids.pfx) → ⊢ entryRegd (GF := GF) ρ.wait ρ.ids.pfx m none := by
+    intro h
+    iunfold entryRegd
+    iintro !> %rq %id %hrq
+    iunfold waitRegdOpt
+    isplitr
+    · itrivial
+    ipureintro; intro _ hd; exact h rq id hrq.1 hrq.2 hd
+  by_cases hd : m.data = []
+  · iexists none
+    iapply hnone (fun _ _ _ _ h => absurd hd h)
+  cases hdec : apply.irrDecode m.data with
+  | none =>
+    iexists none
+    iapply hnone (fun _ _ h => by rw [hdec] at h; cases h)
+  | some rq =>
+    cases hid : apply.irrId rq with
+    | none =>
+      iexists none
+      iapply hnone (fun rq' _ h h' => by
+        rw [hdec] at h; cases h; rw [hid] at h'; cases h')
+    | some id =>
+      ihave ⟨-, #Hreg⟩ := Hc $$ %rq %id %(⟨hd, rfl, hid⟩)
+      by_cases hp : idPfx id = ρ.ids.pfx
+      · iunfold idRegd at Hreg
+        icases Hreg with ⟨%W, %t, #HW, #Hr⟩
+        rw [hp]
+        ihave %HWe := idWaitIs_agree ρ.ids ρ.ids.pfx W ρ.wait $$ HW Hn
+        subst HWe
+        iexists some t
+        iunfold entryRegd
+        iintro !> %rq' %id' %h
+        have : rq' = rq := by rw [hdec] at h; exact (Option.some.inj h.1).symm
+        subst this
+        have : id' = id := by rw [hid] at h; exact (Option.some.inj h.2).symm
+        subst this
+        iunfold waitRegdOpt
+        iframe Hr
+        ipureintro; intro h; cases h
+      · iexists none
+        iapply hnone (fun rq' id' h h' _ => by
+          rw [hdec] at h; cases h; rw [hid] at h'; cases h'; exact hp)
+
+/-- The member's registry, from the server's view (linkv-txn stage B1). -/
+theorem isServer_waitIs (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServer (GF := GF) s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.pfx ρ.wait := by
+  iintro #H
+  iunfold isServer at H
+  icases H with ⟨-, -, ⟨%v, #Hf⟩, -⟩
+  iunfold srvFieldsAt at Hf
+  icases Hf with ⟨-, -, -, #Hwi, -⟩
+  iunfold waitInv at Hwi
+  icases Hwi with ⟨-, #Hn⟩
+  iexact Hn
 
 /-- **The entry's delivery** (persistent; the request path's unit 4d): the entry has no data, or
 its outcome was not waived for want of a waiter (`ApplyOut.waived`: applied, its ranges run),

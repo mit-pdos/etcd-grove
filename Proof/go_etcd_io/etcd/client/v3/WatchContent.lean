@@ -416,9 +416,9 @@ range's watch events of revisions `[a, d)` of a watched log (`mvcc.evLog`: seale
 `d` within it, `a` at or above the watch's start revision), whose key-value is at `kv`; the
 event's revision is reached because the log is certified (`etcdReached_of_certOk`: S4, a theorem
 since unit W-M3). -/
-theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (L2 : mvcc.Log) (rg : mvcc.WatchRange) (X : w64)
-    (a d : Nat) (ev : mvcc.EvM) (kv : Loc)
-    (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn P.sr) X rg)
+theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (L2 : mvcc.Log)
+    (rg : mvcc.WatchRange) (X : w64) (a d : Nat) (ev : mvcc.EvM) (kv : Loc)
+    (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr) X rg)
     (hmem : ev ∈ mvcc.watchEvents L2 rg a d) (hd : d ≤ L2.length) (hlo : sint.Z P.rev ≤ (a : Int))
     (hst : V.R.γ.st = V.R.E.γ) (hnd : txn.NoDupKeysPerRev L2) :
     mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗ mvcc.kvPtrFixed kv ev.kv ⊢
@@ -444,12 +444,12 @@ theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (L2 : mvcc.Log) (rg : mvcc.WatchRange
   have hjz : sint.Z (W64 (j : Int)) = j := by word
   -- the key is in the request's range, under the prefix
   obtain ⟨hrw, -, -, hku, hkey, hed, -, -⟩ := hok
-  have hkne : (createOf P.key P.ed P.rev P.pn P.sr).key ≠ [] := by
+  have hkne : (createOf P.key P.ed rr P.pn srr).key ≠ [] := by
     show P.key ≠ []; rw [hkey]; exact keyRangeUnder_key_ne hku hpfx
-  have hin0 := covers_inRange (createOf P.key P.ed P.rev P.pn P.sr) X rg ev.kv.key hcr hkne (by simpa using hcov)
+  have hin0 := covers_inRange (createOf P.key P.ed rr P.pn srr) X rg ev.kv.key hcr hkne (by simpa using hcov)
   have hin : inRange P.o.key P.o.base.rangeEnd ev.kv.key = true := by
-    have : (createOf P.key P.ed P.rev P.pn P.sr).key = P.o.key := hkey
-    have h2 : (createOf P.key P.ed P.rev P.pn P.sr).rangeEnd = P.o.base.rangeEnd := hed
+    have : (createOf P.key P.ed rr P.pn srr).key = P.o.key := hkey
+    have h2 : (createOf P.key P.ed rr P.pn srr).rangeEnd = P.o.base.rangeEnd := hed
     rw [this, h2] at hin0; exact hin0
   have hpk : V.pfx <+: ev.kv.key := hku _ hin
   -- the store's facts at the event's revision
@@ -523,11 +523,11 @@ events of revisions `[lo, d)` of a watched log (`mvcc.evLog`). -/
 theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg : mvcc.WatchRange)
     (fcs : GoSlice) (lo : Nat) :
     mvcc.watchRecvOk (GF := GF) γ w rs ∗ mvcc.watcherIs γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ⊢
-      ∃ (L : mvcc.Log) (d : Nat), mvcc.evLog γ.st L ∗
+      ∃ (L : mvcc.Log) (d : Nat), mvcc.evLog γ.st L ∗ mvcc.relLb γ L.length ∗
         ⌜(rs.map mvcc.RespM.evs).flatten = mvcc.watchEvents L rg lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝ := by
   iintro ⟨#Hc, #Hw, #Hfcs⟩
   unfold mvcc.watchRecvOk
-  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, %HD, #HDf, -⟩
+  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, #Hrl, %HD, #HDf, -⟩
   unfold mvcc.watcherIs
   icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, -, %Hlo⟩
   ihave %Hag : iprop(⌜rg = r ∧ fcs = fcs'⌝) $$ []
@@ -554,7 +554,7 @@ theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg
     unfold mvcc.filtered
     simp
   iexists L, d
-  iframe HL
+  iframe HL Hrl
   ipureintro
   obtain ⟨h1, h2, h3, -⟩ := HD
   rw [← Hlo.1]
@@ -593,25 +593,28 @@ theorem mem_zipWith_evModel {evs : List mvcc.EvM} {kvs : List Loc} {e : EvModel}
 /-- **The content of a dispatched mvcc response** (`recvElem`'s, `run`'s default case): its events,
 as the contract reads them, satisfy the contract from the dispatch cursor `hi`, and the cursor
 moves to the last one's revision, the events so far still a cut of the watcher's. -/
-theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchRespM)
+theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (hb : w64)
+    (Dm : List v3rpc.WatchRespM)
     (m : v3rpc.WatchRespM) (ρ : mvcc.RespM) (rs : List mvcc.RespM) (X : w64) (w : Loc)
     (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (hi : w64) (sl : GoSlice) (ps : List Loc)
     (hdr : w64)
     (hsrc : m.src = some ρ) (hρw : ρ.evs ≠ [] → ρ.w = w)
     (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
     (hps : ps.length = ρ.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
-    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed P.rev P.pn P.sr) X rg)
-    (hhi : (evsOf Dm w = [] ∧ hi = P.rev - W64 1) ∨
+    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr) X rg)
+    (hrr : P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rr)
+    (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
+    (hhi : (evsOf Dm w = [] ∧ hi = hb) ∨
       ∃ e, (evsOf Dm w).getLast? = some e ∧ hi = e.kv.modRev) :
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       mvcc.watcherIs V.R.γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ∗
       (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
         ⌜evsOf Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
       sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
-    ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
+    |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
       rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hi ((es.getLast?.map EvModel.rev).getD hi)
         ⟨es, W64 0, false, false, hdr⟩ ∗
-      ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = P.rev - W64 1) ∨
+      ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = hb) ∨
         ∃ e, (evsOf (Dm ++ [m]) w).getLast? = some e ∧
           (es.getLast?.map EvModel.rev).getD hi = e.kv.modRev⌝ ∗
       (⌜evsOf (Dm ++ [m]) w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
@@ -635,6 +638,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   · ipureintro; simp [Hkvl]
   by_cases hne : ρ.evs = []
   · -- no events: the cursor stands still
+    imodintro
     have hes : List.zipWith evModelOf ρ.evs kvs = [] := by rw [hne]; simp
     rw [hes]
     have hsn : evsOf (Dm ++ [m]) w = evsOf Dm w := by rw [hsnoc, if_neg (by simp [hne])]; simp
@@ -659,7 +663,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   irevert Hrecv
   rw [hw]
   iintro #Hrecv
-  ihave ⟨%L, %d, #HLe, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hrecv Hwi Hfcs]
+  ihave ⟨%L, %d, #HLe, -, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hrecv Hwi Hfcs]
   · iframe #
   ihave #HL := mvcc.evLog_sealed _ _ $$ HLe
   obtain ⟨hflat, hdL⟩ := HLd
@@ -667,18 +671,24 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
   have hflat' : evsOf Dm w ++ ρ.evs = mvcc.watchEvents L rg lo d := hflat
   ihave %HLw := v3rpc.sealed_pure _ L $$ HL
   iunfold srvNoDupKeys at Hnd
-  ihave %HLnd := Hnd $$ %L HL
-  -- the start revision
-  ihave %Hlo : ⌜sint.Z P.rev ≤ (lo : Int)⌝ $$ []
+  ihave #HLc := mvcc.evLog_certOk _ _ $$ HLe
+  ihave Hnd' := Hnd $$ %L HL HLc
+  imod Hnd' with %HLnd
+  imodintro
+  -- the start revision (D25: the registration's, at or above the watch's)
+  ihave %Hlor : ⌜sint.Z rr ≤ (lo : Int)⌝ $$ []
   · unfold mvcc.watcherIs
     icases Hwi with ⟨%γw0, %C, -, -, -, -, %Hlo⟩
     ipureintro
     obtain ⟨-, hsr, -, -⟩ := hcr
-    have h0 : 0 ≤ sint.Z P.rev := hok.2.2.1
     rw [Hlo.2, hsr]
-    show sint.Z P.rev ≤ ((if P.rev = W64 0 then C.length else (sint.Z P.rev).toNat : Nat) : Int)
+    show sint.Z rr ≤ ((if rr = W64 0 then C.length else (sint.Z rr).toNat : Nat) : Int)
     split
     · rename_i h; rw [h]; simp
+    · omega
+  have Hlo : sint.Z P.rev ≤ (lo : Int) := by
+    rcases hrr with h | h
+    · rw [h]; simp
     · omega
   -- the cut
   ihave %Hcc : ⌜d ≤ L.length ∧ lo ≤ d ∧ ∃ a, lo ≤ a ∧
@@ -715,9 +725,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
     have hjz : sint.Z (W64 (j : Int)) = j := by word
     rw [hjz]
     rcases hhi with ⟨-, rfl⟩ | ⟨e0, he0, rfl⟩
-    · have h0 : 0 ≤ sint.Z P.rev := hok.2.2.1
-      have : sint.Z (P.rev - W64 1) = sint.Z P.rev - 1 := by word
-      rw [this]; omega
+    · rcases hhb with h | h <;> omega
     · obtain ⟨j', hj'1, hj'2⟩ := hEj e0 (List.mem_of_getLast? he0)
       rw [hj'2]
       have : sint.Z (W64 (j' : Int)) = j' := by word
@@ -749,7 +757,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (Dm : List v3rpc.WatchResp
         ihave #Hk := Hkv $$ %i %ev %kv %hev %hkv
         have hmem : ev ∈ mvcc.watchEvents L rg a d := by
           rw [← hevs]; exact List.mem_of_getElem? hev
-        iapply ev_ok V P L rg X a d ev kv hok hpfx hcr hmem hdd (by omega) hst HLnd
+        iapply ev_ok V P rr srr L rg X a d ev kv hok hpfx hcr hmem hdd (by omega) hst HLnd
         iframe #
   isplitr
   · ipureintro

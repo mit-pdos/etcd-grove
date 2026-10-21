@@ -11,9 +11,9 @@ base of each printed in the build log (`#print axioms`). Lean-first (no Rocq cou
 * **`putget_safe`** (stage 3, 2026-10-18; `Adequacy.lean`'s `putget_adequate`): the closed
   theorem. Every real execution of `n` steps of `putget`'s initialization followed by `Main()`,
   from a fresh state with one thread, has no stuck thread, no thread ended in a panic, and the main
-  thread's result, if any, is `#()`; under hypotheses of D19a's kinds and the two marked ones,
-  `EofFromIoInit` and `ClosedchanFromContextInit` (false under the current Perennial pin: the
-  proposed Perennial changes make them theorems; `notes/decisions.md`, D19r).
+  thread's result, if any, is `#()`; under hypotheses of D19a's kinds (`notes/decisions.md`,
+  D19r; the two marked ones it took until 2026-10-20, `EofFromIoInit` and
+  `ClosedchanFromContextInit`, are theorems of Perennial's package facts since `init-facts`).
 -/
 module
 
@@ -70,9 +70,6 @@ theorem putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)
-    (HEof : ∀ hG : HeapGS .hasLC putgetGF, putget.EofFromIoInit (GF := putgetGF) (hG := heapAt hG lctx))
-    (HCc : ∀ hG : HeapGS .hasLC putgetGF,
-      putget.ClosedchanFromContextInit (GF := putgetGF) (hG := heapAt hG lctx))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -81,7 +78,7 @@ theorem putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget_adequate Hctx Hms hAs id bootLog Hbf Hck Haf Hbuq Hnoc HNs HAs n Hprem HEof HCc σ g
+  putget_adequate Hctx Hms hAs id bootLog Hbf Hck Haf Hbuq Hnoc HNs HAs n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

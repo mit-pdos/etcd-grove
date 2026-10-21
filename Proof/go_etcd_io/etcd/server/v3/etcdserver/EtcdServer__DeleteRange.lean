@@ -135,19 +135,21 @@ theorem EtcdServer.DeleteRange.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
+  -- (2026-10-20, linkv-txn stage A) the token of the delete's result
+  imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
   wp_apply hRR s E ρ ctx1 _ «$a1_ptr» (irrDeleteRange op)
-      (fun L => iprop(□ Q (kvStateOf (kvModel ρ.kv L)))) F rfl
+      (fun L => kvRes γc Q (kvStateOf (kvModel ρ.kv L))) F rfl
       $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
   · iframe # Hrd Hard Hcred
     isplitl [Hnp]
-    · iapply deletePermit_reqPropOk $$ Hnp
+    · iapply deletePermit_reqPropOk ρ.kv op Q γc $$ Hnp
     iexists _; iexact Header
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %lb, %Hwire, Hok, %Lq, #HLq, %HLlb, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOk at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
-    obtain ⟨Hstep, Hfl, Hxlb⟩ := Hstep0
+    obtain ⟨Hstep, Hfl, Hxlb, -⟩ := Hstep0
     have Hk : apply.dispatchKind rq' = .deleteRange := by
       rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
     have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
@@ -160,6 +162,9 @@ theorem EtcdServer.DeleteRange.wp_proof
     obtain ⟨log', rfl⟩ := Hap
     simp only [apply.deleteAnswerIs]
     icases Hpo with ⟨Hpo, Hhdr⟩
+    wp_auto_lc 1
+    -- the delete's result, with its token
+    imod kvRes_take γc Q _ ⊤ CoPset.subseteq_top $$ HQq Htok Hlc1 with HQ
     (try wp_auto)
     wp_apply HEnd
     (try wp_auto)
@@ -172,7 +177,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     iframe Hpo Hhdr Hcert HMint Hwit Hcok
     isplitr
     rotate_left
-    · rw [Hxlb, ← HLlb]; iexact HQq
+    · rw [Hxlb, ← HLlb]; iexact HQ
     ipureintro
     refine ⟨Hwire, Hop', ?_, Hstep, ⟨log', rfl⟩,
       Hfl' log' false rfl⟩

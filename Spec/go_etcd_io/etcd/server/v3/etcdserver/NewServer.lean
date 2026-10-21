@@ -168,6 +168,8 @@ abbrev NewServer.spec : Prop :=
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
       "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ rdCred γ (2 ^ 48) ∗
+      -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
+      "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
       "Hidx" ∷ mvcc.idxFresh E₀.γ.idx ∗
       "Hcok" ∷ ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
@@ -214,7 +216,10 @@ abbrev NewServer.spec : Prop :=
           srvMonitorCfg srv cfg ∗
           -- (D21 M5, 2026-10-19) the server is member `id` of the network `γn`, its transport
           -- started there: what `RaftHandler`'s axiom takes, to serve the member's raft handler
-          srvNetMember γn srv id }}
+          srvNetMember γn srv id ∗
+          -- (2026-10-20, watchkv) 64 reader slots of the watchable store, for the watch
+          -- service's run slots (`v3rpc.watchRunSlot`)
+          srvWatchReaders srv E 64 }}
 
 end spec
 

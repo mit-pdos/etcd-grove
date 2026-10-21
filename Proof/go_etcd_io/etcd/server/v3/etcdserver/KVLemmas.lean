@@ -199,10 +199,10 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     (Qr : List EntryModel → IProp GF) (hd : d ≠ []) (hdec : apply.irrDecode d = some rq)
     (id : w64) (γf : GName) (hid : apply.irrId rq = some id)
     (E : CoPset) (hE : ↑kvN ⊆ E) :
-    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ reqPropOk γk rq Qr ={E}=∗
+    ⊢ kvInv (GF := GF) γ γk -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗ reqPropOk γk rq Qr ={E}=∗
       srvPropAu1 γ d Qr := by
   have Hdisj := kvN_raftN
-  iintro #Hinv #Hcl Hok
+  iintro #Hinv #Hcl #Hreg Hok
   -- the entry's workload facts, whichever case
   have hsh : ∀ e : EntryModel, e.typ = W32 0 → e.data = d → rqShape rq → entryShape e := by
     intro e het hed hs
@@ -213,7 +213,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     iright
     iexists rq, id, γf
     rw [hed]
-    iframe Hcl
+    iframe Hcl Hreg
     ipureintro; exact ⟨hdec, hid⟩
   iunfold reqPropOk at Hok
   icases Hok with (%Hno | ⟨%op, %Q, %Hop, #Hau⟩ | ⟨%op, %Q, %γc, %Hop, Hau⟩)
@@ -268,6 +268,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
     subst hQr
     iunfold kvOpAu at Hau
+    icases Hau with ⟨-, Hau⟩
     iunfold kvAu at Hau
     iapply srvPropAu_one
     imodintro
@@ -332,6 +333,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
     obtain ⟨hplain, hop, -, hshape, hQr⟩ := Hop
     subst hQr
     iunfold kvOpAu1 at Hau
+    icases Hau with ⟨-, Hau⟩
     iunfold kvAu1 at Hau
     imodintro
     unfold srvPropAu1

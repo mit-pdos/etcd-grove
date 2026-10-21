@@ -56,10 +56,10 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     isplitr
     · ipureintro; exact ⟨trivial, nofun⟩
     unfold stepSpec
-    iintro %v %s %i %o
+    iintro %k %v %s %i %o
     iintro !> %Φ' Hpre HΦ'
     simp only [counterS]
-    icases Hpre with ⟨%Hrep, %Hio⟩
+    icases Hpre with ⟨-, %Hrep, %Hio⟩
     obtain ⟨⟨b, rfl⟩, x, rfl⟩ := Hio
     subst Hrep
     wp_auto
@@ -74,7 +74,7 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
         rw [counterM_step_box, counterNext_boxB]
         simp only [Bool.false_eq_true, ite_false]
         split <;> simp_all
-      have H := stepPost_counter (GF := GF) s x (boxB false)
+      have H := stepPost_counter (GF := GF) k s x (boxB false)
       simp only [counterS, counterNext_boxB, Bool.false_eq_true, ite_false] at H
       iapply H
     | true =>
@@ -87,7 +87,7 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
         rw [counterM_step_box, counterNext_boxB]
         simp only [ite_true]
         split <;> simp_all
-      have H := stepPost_counter (GF := GF) s x (boxB true)
+      have H := stepPost_counter (GF := GF) k s x (boxB true)
       simp only [counterS, counterNext_boxB, ite_true] at H
       iapply H
   isplitr
@@ -95,7 +95,7 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
   isplitr
   · -- Equal
     unfold equalSpec
-    iintro %v %w %s %t
+    iintro %k %j %v %w %s %t
     iintro !> %Φ' Hpre HΦ'
     simp only [counterS]
     icases Hpre with ⟨%Hv, %Hw⟩

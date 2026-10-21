@@ -679,7 +679,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
     (hrel : NotifyRel σ N (batchOf σ.Ws σ.ST (evsOfRevM N (stateAfter ilog) pend)) PB keys
       keys.length STi Wsi Bv Out PBr)
     (vs' : GoSlice) (vm : GoMap) (k : Loc) (st : WatcherSt) (hSTk : STi !! k = some st) :
-    (evLog γ.st (ilog ++ [pend]) ∗
+    (evLog γ.st (ilog ++ [pend]) ∗ relLb γ (ilog ++ [pend]).length ∗
         ([∗map] w ↦ r ∈ Wsi, ∃ fcs, watcherFixed w r fcs)) ∗
         memberAt (GF := GF) γ σ N keys keys.length Out Bv k st ⊢
       memberRes γ 1 (notifyState σ N STi Wsi Bv Out vs' vm) k st := by
@@ -752,7 +752,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
       iintro ⟨-, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, Ha, Hl, %Hmin, #Hwf⟩⟩
       ihave %Hlo : ⌜B.evs ≠ [] → γw.lo ≤ N⌝ $$ []
       · iunfold evsWf at Hwf
-        icases Hwf with ⟨%L, -, %HL⟩
+        icases Hwf with ⟨%L, -, -, %HL⟩
         ipureintro
         intro hne'
         refine Classical.byContradiction (fun hc => ?_)
@@ -830,7 +830,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
         cases h : batchOf σ.Ws σ.ST (evsOfRevM N (stateAfter ilog) pend) !! k with
         | none => rfl
         | some _ => exact absurd ((hkeys k).2 (by rw [h]; rfl)) hk
-      iintro ⟨⟨#Hlb, #Hfxs⟩, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hEk, Ha, Hl,
+      iintro ⟨⟨#Hlb, #Hrlb, #Hfxs⟩, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hEk, Ha, Hl,
         %Hp, #Hwf⟩⟩
       icases (BigSepM.bigSepM_lookup_acc hWsik).1 $$ Hfxs with ⟨⟨%fcs0, #Hf0⟩, -⟩
       ihave %Hag := watcherFixed_agree k r r0 fcs fcs0 $$ [$Hf $Hf0]
@@ -865,11 +865,11 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
           · rw [if_neg h] at hnb'; cases hnb'
         iunfold evsWf at Hwf
         iunfold evsWf
-        icases Hwf with ⟨%L, #HlbL, %HL⟩
+        icases Hwf with ⟨%L, #HlbL, -, %HL⟩
         ihave %hcmp := evLog_cmp _ _ _ $$ Hlb HlbL
         rw [hdN] at HL
         iexists ilog ++ [pend]
-        iframe Hlb
+        iframe Hlb Hrlb
         ipureintro
         refine ⟨?_, Or.inl (by simp; omega)⟩
         rw [HL.1, show max γw.lo (N + 1) = N + 1 by omega,
@@ -912,7 +912,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     mvcc.watchableStore.notify.spec (GF := GF) (hG := hG) := by
   have hDel := mvcc.watcherGroup.delete.spec_group hDel
   intro s st γ σ ilog pend evs dq es evm
-  wp_start as ⟨#Hws, Hbody, %Hpre, #Hlb, Hevs, #HevIs, %Hevm⟩
+  wp_start as ⟨#Hws, Hbody, %Hpre, #Hlb, #Hrlb, Hevs, #HevIs, %Hevm⟩
   obtain ⟨hLmu, hbelow, hvic, hlen, hne⟩ := Hpre
   obtain ⟨hes, hevm⟩ := Hevm
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -1040,7 +1040,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     rw [hN] at hbm
     obtain ⟨hminN, hloN, hdN, hwEne, hB⟩ := hbm
     iunfold mvcc.evsWf at Hwf
-    icases Hwf with ⟨%L, #HlbL, %HL⟩
+    icases Hwf with ⟨%L, #HlbL, -, %HL⟩
     rw [hdN] at HL
     ihave %hcmp := mvcc.evLog_cmp _ _ _ $$ Hlb HlbL
     have hevsw : evsw = mvcc.watchEvents (ilog ++ [pend]) r' γw.lo N := by
@@ -1052,7 +1052,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     ihave #Hwf' : mvcc.evsWf γ r' γw.lo (evsw ++ B.evs) (N + 1) $$ []
     · iunfold mvcc.evsWf
       iexists ilog ++ [pend]
-      iframe Hlb
+      iframe Hlb Hrlb
       ipureintro; exact ⟨hnew, Or.inl (by simp; omega)⟩
     subst hB
     iunfold mvcc.ownEventBatch at HB
@@ -1229,7 +1229,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     iintro %k %v %hkv Hm
     iapply (mvcc.memberRes_final γ σ ilog pend N hN hLmu hne hlen Hok hbelow keys PB STi Wsi
       (GMap.fmap Prod.snd PBv) Out PBr hkeys Hrel vs' vm k v (by simpa [gmap_get?_eq] using hkv))
-    iframe Hm Hlb Hfxs
+    iframe Hm Hlb Hrlb Hfxs
   imod ghostVar_update (mvcc.notifyState σ N STi Wsi (GMap.fmap Prod.snd PBv) Out vs' vm)
     γ.wst σ $$ Hσ with Hσ
   (try wp_auto)

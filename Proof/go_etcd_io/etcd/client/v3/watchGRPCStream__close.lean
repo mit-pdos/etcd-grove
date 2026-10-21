@@ -37,11 +37,11 @@ theorem watchGRPCStream.close.wp_proof
   iunfold isWGS at Hg
   icases Hg with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
-    #Hbdone⟩
+    #Hbdone, -⟩
   iunfold watchSrvFacts at Hsf
   icases Hsf with ⟨-, #Hcf⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, -, #Heof, -, #Hcea, -, -⟩
+  icases Hcf with ⟨-, -, -, -, -, -, #Heof, -, #Hcea, -, -⟩
   iunfold ctxErrClientAllW at Hcea
   ihave #Hce := Hcea $$ %G.ctx %G.cd HisCtx
   iunfold context.cancelSpec at Hcspec
@@ -59,7 +59,7 @@ theorem watchGRPCStream.close.wp_proof
   iapply broadcast_chan_receive G.donec G.γdone (closeErrPub G.wgs) _ .Unknown $$ Hbdone
   iintro ⟨-, -⟩
   wp_auto
-  ihave #Hech := is_bag_is_chan G.γerr G.errc errP $$ Hberr
+  ihave #Hech := is_bag_is_chan G.γerr G.errc (errP G.γr G.γep) $$ Hberr
   wp_apply_core chan.wp_select_nonblocking
   isplit
   · iapply BigAndL.bigAndL_cons.2
@@ -76,7 +76,7 @@ theorem watchGRPCStream.close.wp_proof
         inext
         iintro %e He0
         iunfold errP at He0
-        icases He0 with ⟨%Hne, Hor, #Hse⟩
+        icases He0 with ⟨%Hne, Hor, #Hse, -⟩
         ihave %Hce : ⌜clientErr e⌝ $$ [Hor]
         · icases Hor with (#Hcs | #He)
           · iunfold cliStreamErr at Hcs

@@ -551,6 +551,11 @@ def main():
         "to be Go's."
     )
     w(
+        "- **The trusted models** (`TrustedCode/`): goose's `trusted` declarations, "
+        "hand-written models of Go code goose does not translate, are trusted to mean what "
+        "that code means (each docstring says why)."
+    )
+    w(
         "- **The statements**: a proved theorem says only what its statement says. The "
         "results and the definitions they rest on, listed above, are what must be read."
     )

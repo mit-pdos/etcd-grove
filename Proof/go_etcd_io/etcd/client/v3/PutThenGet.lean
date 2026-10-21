@@ -84,8 +84,10 @@ def putGetOk (key val : GoString) (σ : KVState) (n : Nat) : Prop :=
 /-- **The client's invariant for a put of `key ↦ val` and gets of `key`** (see the file header):
 `etcdKV` and the put's flag at `γf`. -/
 def putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) : IProp GF :=
-  inv kvClientN iprop(∃ (σ : KVState) (n : Nat), etcdKV γ.kv σ ∗ monoNatAuthOwn γf 1 n ∗
-    ⌜putGetOk key val σ n⌝)
+  -- (D23, 2026-10-20) the server's workload lets the client deposit the put
+  iprop(⌜γ.kv.wl.writes (.put (putKeyOp key val))⌝ ∗
+    inv kvClientN iprop(∃ (σ : KVState) (n : Nat), etcdKV γ.kv σ ∗ monoNatAuthOwn γf 1 n ∗
+      ⌜putGetOk key val σ n⌝))
 
 instance putGetInv_persistent (γ : ReadNames) (γf : GName) (key val : GoString) :
     Persistent (putGetInv (GF := GF) γ γf key val) := by
@@ -93,7 +95,7 @@ instance putGetInv_persistent (γ : ReadNames) (γf : GName) (key val : GoString
 
 /-- **The invariant, allocated** from `etcdKV` of a state sorted by key (the put not fired). -/
 theorem putGetInv_alloc (γ : ReadNames) (key val : GoString) (σ : KVState)
-    (hs : σ.kvs.Pairwise etcdKvLess) (Em : CoPset) :
+    (hs : σ.kvs.Pairwise etcdKvLess) (hW : γ.kv.wl.writes (.put (putKeyOp key val))) (Em : CoPset) :
     etcdKV (GF := GF) γ.kv σ ⊢ |={Em}=> ∃ γf : GName, putGetInv γ γf key val := by
   iintro Hσ
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
@@ -104,7 +106,8 @@ theorem putGetInv_alloc (γ : ReadNames) (key val : GoString) (σ : KVState)
   imodintro
   iexists γf
   iunfold putGetInv
-  iexact Hinv
+  iframe Hinv
+  ipureintro; exact hW
 
 /-- **The put's update** (persistent): each firing writes `key ↦ val` and sets the flag; its
 result is the flag's lower bound `1`. -/
@@ -114,11 +117,14 @@ theorem putAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
   have Hm := kvClientN_mask
   iintro #Hinv
   iunfold kvOpAu
+  iunfold putGetInv at Hinv
+  icases Hinv with ⟨%HW, #Hinv⟩
+  isplitr
+  · ipureintro; exact HW
   iunfold kvAu
   iintro !>
   iauintro
   unfold atomic_acc
-  iunfold putGetInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%σ, %n, Hσ, Hmn, %Hok⟩
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
@@ -159,6 +165,7 @@ theorem getAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
   iauintro
   unfold atomic_acc
   iunfold putGetInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%σ, %n, Hσ, Hmn, %Hok⟩
   ihave %Hv := monoNatLbOwn_valid γf 1 n 1 $$ Hmn Hlb

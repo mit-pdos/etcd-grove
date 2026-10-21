@@ -37,6 +37,9 @@ theorem v3rpc.SetProgressReportInterval.wp_proof :
   icases Hv with ⟨-, #Hv⟩
   iunfold v3rpc.watchPkgVars at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hg⟩
+  -- the lock's guard, from its pool (2026-10-20)
+  iunfold v3rpc.intervalPool at Hg
+  icases Hg with ⟨#Hg, -⟩
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hl, HP⟩
   wp_auto_lc 1

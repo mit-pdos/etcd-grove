@@ -678,7 +678,7 @@ local macro "send_return" : tactic => `(tactic| (
     iintro - HPM
     wp_auto
     iapply HΦ
-    itrivial
+    iexact Htt
   simp only [mvcc.watchRecvResult, ↓reduceIte]
   icases Hres with ⟨%x, Hwc, #HrIR, -⟩
   iunfold mvcc.respIs at HrIR
@@ -1589,75 +1589,86 @@ local macro "ctrl_rest" : tactic => `(tactic| (
       · exact Hans.2.2.2.2.elim
       · exact Hans.2.2.2.2.elim
     wp_auto
-    cases hca : m.canceled <;> cases hcr : m.created
-    · exfalso
-      unfold v3rpc.ctrlAnswers at Hans
-      rcases req with c | id | _ | _
-      · rw [hcr] at Hans; exact absurd Hans.2.2.2.2.1 (by decide)
-      · rw [hca] at Hans; exact absurd Hans.2.2.2.2.2.1 (by decide)
-      · exact Hans.2.2.2.2.elim
-      · exact Hans.2.2.2.2.elim
-    case false.true =>
-      wp_auto
+    cases hcr : m.created
+    · cases hca : m.canceled
+      · exfalso
+        unfold v3rpc.ctrlAnswers at Hans
+        rcases req with c | id | _ | _
+        · rw [hcr] at Hans; exact absurd Hans.2.2.2.2.1 (by decide)
+        · rw [hca] at Hans; exact absurd Hans.2.2.2.2.2.1 (by decide)
+        · exact Hans.2.2.2.2.elim
+        · exact Hans.2.2.2.2.elim
+      · -- canceled, not created: `delete(ids, wid)` unless `wid == -1`, then `continue`
+        wp_auto
+        ctrl_assert
+        iunfold v3rpc.sendSt at HS
+        icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
+        obtain ⟨hI, hD, hPM, hL, hH⟩ := HSI
+        have hD' : (D ++ [m]).filterMap v3rpc.WatchRespM.src = S.filterMap (fun n => rcv[n]?) := by
+          rw [List.filterMap_append, hD]; simp [Hm.2.2]
+        by_cases hw : m.watchId = W64 (-1)
+        · simp only [hw, _root_.decide_true, Bool.not_true, ↓reduceIte]
+          wp_auto
+          wp_apply time.wp_Since as %du -
+          wp_apply hSec du as %fs -
+          observe hs3 Ho3
+          wp_auto
+          wp_for_post
+          iframe
+          iexists rcv, cs ++ [cl], D ++ [m]
+          iframe
+          iunfold v3rpc.sendSt
+          iexists S, pend, IM, PM
+          iframe HIM HPM Hcaps Hpsl Hrok
+          ipureintro
+          exact ⟨hI, hD', hPM, v3rpc.idsLive_neg1 _ _ _ Hm.2.2 hw hL, v3rpc.sendHist_ctrl m Hm.2.2 hH⟩
+        · simp only [hw, decide_false, Bool.not_false, ↓reduceIte]
+          wp_auto
+          wp_apply (wp_mapDelete idsL IM m.watchId go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
+            (go.StructType [])) $$ HIM as HIM
+          (try wp_auto)
+          wp_for_post
+          iframe
+          iexists rcv, cs ++ [cl], D ++ [m]
+          iframe
+          iunfold v3rpc.sendSt
+          iexists S, pend, (GMap.delete m.watchId IM), PM
+          iframe HIM HPM Hcaps Hpsl Hrok
+          ipureintro
+          refine ⟨?_, hD', hPM, v3rpc.idsLive_canceled _ _ _ _ Hm.2.2 rfl hca hL,
+            v3rpc.sendHist_ctrl m Hm.2.2 hH⟩
+          have hids : (fun Y => ((GMap.delete m.watchId IM) !! Y).isSome) =
+              v3rpc.upd (fun Y => (IM !! Y).isSome) m.watchId false := by
+            funext Y; unfold v3rpc.upd; by_cases h : Y = m.watchId
+            · subst h; simp [GMap.lookup_delete]
+            · simp [h, Ne.symm h]
+          rw [hids]
+          exact v3rpc.sendInv_cancel m.watchId hI
+    · -- created (and so `wid == -1` if canceled, `Hcc`): whether canceled or not, the assertion's
+      -- condition is `true` and `c.Canceled && wid != -1` false, both joined (`wp_join`), so that
+      -- the flush (`ctrl_created`) is verified once
+      wp_join (v := #true) at (if: _ then _ else _) with [c wid]
+      · cases hca : m.canceled
+        · wp_auto
+          wp_join_done
+        · rw [Hcc hca hcr]
+          wp_auto
+          wp_join_done
       ctrl_assert
+      wp_join at (if: _ then _ else _) with [c wid]
+      · cases hca : m.canceled
+        · wp_auto
+          wp_join_done
+        · rw [Hcc hca hcr]
+          wp_auto
+          wp_join_done
       have hX : m.watchId = m.watchId := rfl
-      have hok : m.watchId ≠ W64 (-1) → (m.created && !m.canceled) = true :=
-        fun _ => by simp [hca, hcr]
+      have hok : m.watchId ≠ W64 (-1) → (m.created && !m.canceled) = true := fun h => by
+        cases hca : m.canceled
+        · simp [hcr]
+        · exact absurd (Hcc hca hcr) h
+      (try wp_auto)
       ctrl_created m.watchId
-    case true.false =>
-      wp_auto
-      ctrl_assert
-      iunfold v3rpc.sendSt at HS
-      icases HS with ⟨%S, %pend, %IM, %PM, %HSI, HIM, HPM, Hcaps, #Hpsl, #Hrok⟩
-      obtain ⟨hI, hD, hPM, hL, hH⟩ := HSI
-      have hD' : (D ++ [m]).filterMap v3rpc.WatchRespM.src = S.filterMap (fun n => rcv[n]?) := by
-        rw [List.filterMap_append, hD]; simp [Hm.2.2]
-      by_cases hw : m.watchId = W64 (-1)
-      · simp only [hw, _root_.decide_true, Bool.not_true, ↓reduceIte]
-        wp_auto
-        wp_apply time.wp_Since as %du -
-        wp_apply hSec du as %fs -
-        observe hs3 Ho3
-        wp_auto
-        wp_for_post
-        iframe
-        iexists rcv, cs ++ [cl], D ++ [m]
-        iframe
-        iunfold v3rpc.sendSt
-        iexists S, pend, IM, PM
-        iframe HIM HPM Hcaps Hpsl Hrok
-        ipureintro
-        exact ⟨hI, hD', hPM, v3rpc.idsLive_neg1 _ _ _ Hm.2.2 hw hL, v3rpc.sendHist_ctrl m Hm.2.2 hH⟩
-      · simp only [hw, decide_false, Bool.not_false, ↓reduceIte]
-        wp_auto
-        wp_apply (wp_mapDelete idsL IM m.watchId go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
-          (go.StructType [])) $$ HIM as HIM
-        (try wp_auto)
-        wp_for_post
-        iframe
-        iexists rcv, cs ++ [cl], D ++ [m]
-        iframe
-        iunfold v3rpc.sendSt
-        iexists S, pend, (GMap.delete m.watchId IM), PM
-        iframe HIM HPM Hcaps Hpsl Hrok
-        ipureintro
-        refine ⟨?_, hD', hPM, v3rpc.idsLive_canceled _ _ _ _ Hm.2.2 rfl hca hL,
-          v3rpc.sendHist_ctrl m Hm.2.2 hH⟩
-        have hids : (fun Y => ((GMap.delete m.watchId IM) !! Y).isSome) =
-            v3rpc.upd (fun Y => (IM !! Y).isSome) m.watchId false := by
-          funext Y; unfold v3rpc.upd; by_cases h : Y = m.watchId
-          · subst h; simp [GMap.lookup_delete]
-          · simp [h, Ne.symm h]
-        rw [hids]
-        exact v3rpc.sendInv_cancel m.watchId hI
-    case true.true =>
-      have hX : m.watchId = W64 (-1) := Hcc hca hcr
-      have hok : W64 (-1) ≠ W64 (-1) → (m.created && !m.canceled) = true :=
-        fun h => absurd rfl h
-      rw [Hcc hca hcr]
-      wp_auto
-      ctrl_assert
-      ctrl_created (W64 (-1))
   send_fail ret_exit))
 
 set_option hygiene false in
@@ -1676,6 +1687,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+-- (the unused-variables linter walks the whole info tree of this long proof)
+set_option linter.unusedVariables false in
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000 in
 theorem v3rpc.serverWatchStream.sendLoop.wp_proof
@@ -1696,7 +1709,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (hRER : mvcc.ReportEventReceived.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
   intro sws r
-  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, Hres, Hmu⟩
+  wp_start as ⟨#Hsws, Hst, Hcons, Hwc, Hres, Hmu, Htt⟩
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
@@ -1748,7 +1761,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold v3rpc.sendRes at Hres
-  icases Hres with ⟨HR, Hiv⟩
+  icases Hres with ⟨HR, %Hiv⟩
   (try wp_auto)
   wp_bind (App (Val wrapDefer) _)
   iapply wp_with_defer
@@ -1758,8 +1771,8 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (go.StructType [])) as %idsL Hids
   wp_apply (wp_map_make1 (K := w64) (V := GoSlice) go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty
     (go.GoType.SliceType (go.GoType.PointerType etcdserverpb.WatchResponse.ty))) as %pendL Hpend
-  wp_apply hGPI $$ [$Hiv] as %d ⟨%Hd, Hiv⟩
-  · iframe #
+  wp_apply hGPI $$ [$Htt] as %d ⟨%Hd, Htt⟩
+  · iframe #; ipureintro; exact Hiv
   wp_apply hNT d $$ [] as %tk #Htk
   · ipureintro; exact Hd
   ihave #Htk' := Htk
@@ -1811,7 +1824,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     simp at h
   -- the loop's postcondition: it returns (`sendRet`), then the deferred function runs
   wp_bind (App (App (App (Val doFor) _) _) _)
-  iapply (wp_wand (Φ := v3rpc.sendRet r pendL)) $$ [- HΦ Hdefer]
+  iapply (wp_wand (Φ := v3rpc.sendRet r pendL)) $$ [- HΦ Hdefer Htt]
   rotate_left
   · iintro %v Hv
     iunfold v3rpc.sendRet at Hv
@@ -1920,20 +1933,44 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
         · iexact Hauxc
         · iexact Haux
       obtain ⟨hγo, -⟩ := v3rpc.auxOf_inj Hag
+      -- the snapshot `l0` (with, unless the create was refused, what the created response says
+      -- of it), so that the drain is verified once
+      imod (monoListLbOwn_nil (GF := GF) (A := mvcc.RespM) r.γc.sentl) with #Hl0n
+      ihave ⟨%l0, #Hl0, Hcw, #Hsnap⟩ : iprop(∃ l0 : List mvcc.RespM, mvcc.chanSentLb r.γc l0 ∗
+          v3rpc.ctrlWatcher r.srv.γ γo req m ∗
+          (if m.canceled then iprop(True) else iprop(∃ (w0 : Loc) (n0 : Nat),
+            mvcc.idAssigned γo m.watchId w0 ∗ mvcc.streamSentLb γo l0 ∗ mvcc.streamRegAt γo w0 n0 ∗
+            ⌜n0 ≤ l0.length⌝))) $$ [Hcw]
+      · cases hca0 : m.canceled
+        · have hreq : ∃ c, req = .create c := by
+            rcases req with c | id | _ | _
+            · exact ⟨c, rfl⟩
+            all_goals (unfold v3rpc.ctrlAnswers at Hans; simp_all)
+          obtain ⟨c, hreq⟩ := hreq
+          irevert Hcw; rw [hreq]; iintro Hcw
+          icases v3rpc.ctrlWatcher_snap r.srv.γ γo c m hca0 $$ Hcw
+            with ⟨Hcw, %w0, %l0, %n0, #Hia0, #Hl0s, #Hn0, %Hn0l⟩
+          irevert Hcw; rw [← hreq]; iintro Hcw
+          iexists l0
+          iframe Hcw
+          isplitr
+          · iapply (mvcc.chanSentLb_stream γo r.γc l0 (by rw [hγo]; exact Hγoc.2.2.1)).2 $$ Hl0s
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          iexists w0, n0
+          iframe Hia0 Hl0s Hn0
+          ipureintro; exact Hn0l
+        · -- a refused create: nothing to say (`createdAfter` is `True`), the drain all the same
+          iexists []
+          iframe Hcw
+          isplitr
+          · unfold mvcc.chanSentLb; iexact Hl0n
+          simp only [↓reduceIte]
+          itrivial
+      drain_created
       cases hca0 : m.canceled
-      · have hreq : ∃ c, req = .create c := by
-          rcases req with c | id | _ | _
-          · exact ⟨c, rfl⟩
-          all_goals (unfold v3rpc.ctrlAnswers at Hans; simp_all)
-        obtain ⟨c, hreq⟩ := hreq
-        irevert Hcw; rw [hreq]; iintro Hcw
-        icases v3rpc.ctrlWatcher_snap r.srv.γ γo c m hca0 $$ Hcw
-          with ⟨Hcw, %w0, %l0, %n0, #Hia0, #Hl0s, #Hn0, %Hn0l⟩
-        irevert Hcw; rw [← hreq]; iintro Hcw
-        ihave #Hl0 : mvcc.chanSentLb r.γc l0 $$ []
-        · iapply (mvcc.chanSentLb_stream γo r.γc l0 (by rw [hγo]; exact Hγoc.2.2.1)).2 $$ Hl0s
-        drain_created
-        -- `createdAfter`: the received list as the later snapshot
+      · -- `createdAfter`: the received list as the later snapshot
+        isimp only [Bool.false_eq_true, ↓reduceIte] at Hsnap
+        icases Hsnap with ⟨%w0, %n0, #Hia0, #Hl0s, #Hn0, %Hn0l⟩
         ihave ⟨Hst, #HlbD⟩ := v3rpc.srvSendTok_lb _ _ $$ Hst
         icases persistent_entails_right (v3rpc.sendSt_neg1 r idsL pendL rcv D) $$ HS with ⟨%Hneg, HS⟩
         ihave #Hord : v3rpc.createdAfter r.γs D.length m $$ []
@@ -1953,13 +1990,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
           · ipureintro; exact Hn0l
           ipureintro; exact ⟨Hl0rcv, rfl, Hneg⟩
         ctrl_mid_exec
-      · -- a refused create: nothing to say (`createdAfter` is `True`), the drain all the same
-        imod (monoListLbOwn_nil (GF := GF) (A := mvcc.RespM) r.γc.sentl) with #Hl0n
-        obtain ⟨l0, hl0⟩ : ∃ l0 : List mvcc.RespM, l0 = [] := ⟨_, rfl⟩
-        ihave #Hl0 : mvcc.chanSentLb r.γc l0 $$ []
-        · rw [hl0]; unfold mvcc.chanSentLb; iexact Hl0n
-        drain_created
-        ihave #Hord : v3rpc.createdAfter r.γs D.length m $$ []
+      · ihave #Hord : v3rpc.createdAfter r.γs D.length m $$ []
         · unfold v3rpc.createdAfter
           rw [hca0]
           simp only [Bool.not_true, Bool.and_false, Bool.false_eq_true, ↓reduceIte]

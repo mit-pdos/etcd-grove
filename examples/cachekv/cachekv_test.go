@@ -1,0 +1,121 @@
+package cachekv
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+)
+
+// TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
+// relative), 4 writers of 25 Puts each; the check must pass. Then it asks the member Main left
+// running whether the Puts took effect (so that the check was not vacuous).
+func TestMainRun(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if r := Main(4, 25); r != Ok {
+		t.Fatalf("got %v", r)
+	}
+
+	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: zap.NewNop()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cli.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := cli.Get(ctx, prefix, clientv3.WithPrefix())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Header.Revision != 101 {
+		t.Fatalf("Main's Puts did not all take effect: revision %d", resp.Header.Revision)
+	}
+	t.Logf("revision %d after Main, keys %d", resp.Header.Revision, len(resp.Kvs))
+}
+
+// mustPanic runs f and fails the test unless it panics.
+func mustPanic(t *testing.T, name string, f func()) {
+	t.Helper()
+	defer func() {
+		if recover() == nil {
+			t.Errorf("%s: no panic", name)
+		}
+	}()
+	f()
+}
+
+// TestCheck checks the checker on hand-made histories: a good one passes; a delete, a repeated or
+// decreasing revision, a gap, a put no writer attempted, a successful Put missing or different
+// each panic.
+func TestCheck(t *testing.T) {
+	tried := []kv{{"ck/k0", "a"}, {"ck/k1", "b"}, {"ck/k0", "c"}}
+	oks := []putRec{{2, "ck/k0", "a"}, {4, "ck/k0", "c"}}
+	good := []event{{2, "ck/k0", "a", true}, {3, "ck/k1", "b", true}, {4, "ck/k0", "c", true}}
+	check(good, tried, oks)
+	check(nil, tried, nil)
+
+	mustPanic(t, "delete", func() {
+		check([]event{{2, "ck/k0", "a", false}}, tried, nil)
+	})
+	mustPanic(t, "repeat", func() {
+		check([]event{{2, "ck/k0", "a", true}, {2, "ck/k1", "b", true}}, tried, nil)
+	})
+	mustPanic(t, "gap", func() {
+		check([]event{{2, "ck/k0", "a", true}, {4, "ck/k1", "b", true}}, tried, nil)
+	})
+	mustPanic(t, "start", func() {
+		check([]event{{3, "ck/k0", "a", true}}, tried, nil)
+	})
+	mustPanic(t, "unattempted", func() {
+		check([]event{{2, "ck/k2", "d", true}}, tried, nil)
+	})
+	mustPanic(t, "missing", func() {
+		check(good[:2], tried, oks)
+	})
+	mustPanic(t, "different", func() {
+		check(good, tried, []putRec{{3, "ck/k0", "a"}})
+	})
+}
+
+// TestMaxRev checks maxRev.
+func TestMaxRev(t *testing.T) {
+	if m := maxRev(nil); m != 0 {
+		t.Fatalf("maxRev(nil) = %d", m)
+	}
+	if m := maxRev([]putRec{{5, "a", "b"}, {9, "a", "b"}, {7, "a", "b"}}); m != 9 {
+		t.Fatalf("maxRev = %d", m)
+	}
+}
+
+// TestCollect checks collect on hand-made channels: it stops at the first event at or above upTo,
+// and reports false on a cancel (a compaction's, a rejection's) or a closed channel before it.
+func TestCollect(t *testing.T) {
+	ev := func(rev int64, key string) *clientv3.Event {
+		return &clientv3.Event{Kv: &mvccpb.KeyValue{Key: []byte(key), Value: []byte("a"), ModRevision: rev}}
+	}
+	run := func(upTo int64, resps ...clientv3.WatchResponse) ([]event, bool) {
+		ch := make(chan clientv3.WatchResponse, len(resps))
+		for _, r := range resps {
+			ch <- r
+		}
+		close(ch)
+		return collect(ch, upTo)
+	}
+	if evs, ok := run(3, clientv3.WatchResponse{Events: []*clientv3.Event{ev(2, "ck/k0")}},
+		clientv3.WatchResponse{Events: []*clientv3.Event{ev(3, "ck/k1")}}); !ok || len(evs) != 2 {
+		t.Fatalf("got %v %v", evs, ok)
+	}
+	if _, ok := run(3, clientv3.WatchResponse{Events: []*clientv3.Event{ev(2, "ck/k0")}},
+		clientv3.WatchResponse{Canceled: true, CompactRevision: 3}); ok {
+		t.Fatal("a compaction's cancel: ok")
+	}
+	if _, ok := run(3, clientv3.WatchResponse{Canceled: true}); ok {
+		t.Fatal("a rejection: ok")
+	}
+	if _, ok := run(3, clientv3.WatchResponse{Events: []*clientv3.Event{ev(2, "ck/k0")}}); ok {
+		t.Fatal("closed early: ok")
+	}
+}

@@ -105,7 +105,7 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   rw [if_pos hws]
   icases Hpop with ⟨-, Hwf⟩
   iunfold mvcc.evsWf at Hwf
-  icases Hwf with ⟨%L, #Hs, %Hf⟩
+  icases Hwf with ⟨%L, #Hs, -, %Hf⟩
   ihave #Hs' := mvcc.evLog_sealed _ _ $$ Hs
   iunfold mvcc.idxSealed at Hs'
   icases Hs' with ⟨#Hlb, -⟩
@@ -484,7 +484,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   icases persistent_entails_right (mvcc.body_pin s stw st γ σ ilog pend chs ps) $$
     [$HP $Hwlog $Hcore] with ⟨%Hpin, HP, Hwlog, Hcore⟩
@@ -502,8 +502,12 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     · iexact H
   ihave #Hlb : mvcc.evLog γ.st (ilog ++ [pend]) $$ []
   · iunfold mvcc.evLog; iframe Hsl Hok
+  -- (D25) the revision released before its events go out: the released length bumped
+  imod mono_nat_own_update (ilog ++ [pend]).length (by rw [hLmu]; simp) $$ Hrel with ⟨Hrel, #Hrl⟩
+  ihave #Hrlb : mvcc.relLb γ (ilog ++ [pend]).length $$ []
+  · iunfold mvcc.relLb; iexact Hrl
   wp_apply (hNotify s st γ σ ilog pend esl (DFrac.own 1) done evd) $$
-    [$Hws0 $HP $Hlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
+    [$Hws0 $HP $Hlb $Hrlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
   · ipureintro
     exact ⟨⟨hLmu, hbel, by rw [← hLmu]; exact Hset.2, by omega, Hwfc.2.2.2.2⟩, hdl, hevd⟩
   obtain ⟨hLmu', hab, hbel', hvic', hMeq⟩ := Hσ'
@@ -525,7 +529,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
     with ⟨HP, Hwlog⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel]
   · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
       refine ⟨?_, ?_⟩
       · show σ'.syncedBelow (σ'.Lmu ++ [pend]).length
@@ -539,7 +543,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
       have := Hsrb w γw h0 hs
       have hl := hLL
       simp only [List.length_append, List.length_singleton]; omega
-    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP; ipureintro; exact ⟨hs'', hsr''⟩
+    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP Hrel; ipureintro; exact ⟨hs'', hsr''⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd Hc Htrc

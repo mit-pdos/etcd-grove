@@ -42,9 +42,10 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **The client's invariant at a log's state** (`putGetInv_alloc`; every log's state is sorted
 by key, `mvcc.stateAfter_sorted`): from the client's `etcdKV` at `kvStateOf l` (the bootstrap
 log's model, as the server's allocation gives it, `srvBootOut`). -/
-theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString) (Em : CoPset) :
+theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString)
+    (hW : γr.kv.wl.writes (.put (putKeyOp key val))) (Em : CoPset) :
     etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢ |={Em}=> ∃ γf : GName, putGetInv γr γf key val :=
-  putGetInv_alloc γr key val (kvStateOf l) (mvcc.stateAfter_sorted l) Em
+  putGetInv_alloc γr key val (kvStateOf l) (mvcc.stateAfter_sorted l) hW Em
 
 /-- **`cli.Put(ctx, key, val)` by `New`'s client `cl`** (`client_put_own` through the `KV` field):
 `nil`, the reply and the put's flag; or an error. -/

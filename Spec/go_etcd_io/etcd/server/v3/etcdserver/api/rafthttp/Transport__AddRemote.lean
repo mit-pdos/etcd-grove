@@ -33,15 +33,18 @@ it returns early for a stopped transport or a known peer or remote; `types.NewUR
 (their calls into the server: `Start`'s axiom); it logs and returns. It only reads `us` (the parsed `types.URLs` are
 fresh), so the caller's share comes back. (D21 M2, 2026-10-19) The URLs are member `id`'s in the
 network's directory (`γn.dir id`): what makes `Send`'s messages for `id` reach the transport holding
-`id`'s slot (D21b's deployment fact; until then the opaque `transportEffectsOk`). -/
+`id`'s slot (D21b's deployment fact; until then the opaque `transportEffectsOk`). (The partition
+plan's S1, 2026-10-20) `id` joins the live transport's list of remotes (`transportLive γn t rs`),
+whether or not `t.remotes` gets the key (not for a known peer or remote: the list over-approximates). -/
 abbrev rafthttp.Transport.AddRemote.spec : Prop :=
-  ∀ (γn : NetNames GF) (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString),
+  ∀ (γn : NetNames GF) (t : Loc) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
+    (rs : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      transportLive γn t ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss ∧ γn.dir id = ss⌝ }}
+      transportLive γn t rs ∗ us ↦*{dq} ss ∗ ⌜membership.peerURLsOk ss ∧ γn.dir id = ss⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"AddRemote")) (Val #id))
       (Val #us))
-  {{ RET #(); transportLive γn t ∗ us ↦*{dq} ss }}
+  {{ RET #(); transportLive γn t (rs ++ [id]) ∗ us ↦*{dq} ss }}
 
 end spec
 

@@ -1,0 +1,46 @@
+diff --git a/server/etcdserver/server.go b/server/etcdserver/server.go
+index 15a9710..e54d04b 100644
+--- a/server/etcdserver/server.go
++++ b/server/etcdserver/server.go
+@@ -1094,19 +1094,6 @@ func (s *EtcdServer) applySnapshot(ep *etcdProgress, toApply *toApply) {
+ 	s.bemu.Unlock()
+ 	bemuUnlocked = true
+ 
+-	// Closing old backend might block until all the txns
+-	// on the backend are finished.
+-	// We do not want to wait on closing the old backend.
+-	go func() {
+-		lg.Info("closing old backend file")
+-		defer func() {
+-			lg.Info("closed old backend file")
+-		}()
+-		if err := oldbe.Close(); err != nil {
+-			lg.Panic("failed to close old backend", zap.Error(err))
+-		}
+-	}()
+-
+ 	lg.Info("restoring alarm store")
+ 
+ 	if err := s.restoreAlarms(); err != nil {
+@@ -1125,6 +1112,21 @@ func (s *EtcdServer) applySnapshot(ep *etcdProgress, toApply *toApply) {
+ 
+ 	s.cluster.SetBackend(schema.NewMembershipBackend(lg, newbe))
+ 
++	// Close the old backend only once every holder (the alarm, auth and membership stores) has
++	// moved to the new one: the auth store's checks run on gRPC goroutines.
++	// Closing old backend might block until all the txns
++	// on the backend are finished.
++	// We do not want to wait on closing the old backend.
++	go func() {
++		lg.Info("closing old backend file")
++		defer func() {
++			lg.Info("closed old backend file")
++		}()
++		if err := oldbe.Close(); err != nil {
++			lg.Panic("failed to close old backend", zap.Error(err))
++		}
++	}()
++
+ 	lg.Info("restoring cluster configuration")
+ 
+ 	s.cluster.Recover(api.UpdateCapability)

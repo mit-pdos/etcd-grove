@@ -22,6 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 public import Proof.errors.NewVar
+public import Perennial.Proof.io.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Init
 public import Spec.context.ErrAny
 
@@ -163,6 +164,37 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
     exact absurd h hG
   · iintro %h
     exact absurd h hIs
+
+/-- **`io.EOF` is a client error grpc's `status` accepts** (`eofOk`), from `io`'s package fact:
+`io.isInit` keeps `EOF`'s value, an `errors.New("EOF")` error (`io.eof_of_init`), a leaf
+`*errorString` without `Is` or `GRPCStatus` (`ErrorStringLeaf`, `ErrorStringNoGRPCStatus`) whose
+`Error()` returns. -/
+theorem eofOk_of_init [_root_.Perennial.io.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ⊢ eofOk := by
+  iintro #Hpkg
+  ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hpkg
+  iunfold _root_.Perennial.errors.newVar at Hv
+  icases Hv with ⟨%x, #Hpt, #Hmsg⟩
+  ihave #Hm : EtcdGrove.errMsgOk (GF := GF)
+      ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ $$ []
+  · iunfold EtcdGrove.errMsgOk
+    iapply (errorMsg_triple (GF := GF)) $$ Hmsg
+  have hl := errorString_leaf x
+  have hty : go.GoType.PointerType _root_.Perennial.errors.errorString.ty ≠
+      go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
+    unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
+  ihave ⟨%Hc, #Hs⟩ := clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs $$ Hm
+  unfold eofOk
+  iintro !> %err #He
+  iunfold eofIs at He
+  icombine Hpt He gives %Heq
+  subst Heq
+  isplitr
+  · ipureintro
+    exact ⟨nofun, Hc⟩
+  iexact Hs
 
 /-- **Every context's `Err()` returns client errors** (see the file header). -/
 theorem ctxErrClientAllW_of (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))

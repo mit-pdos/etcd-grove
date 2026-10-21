@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-16
+checked: 2026-10-20
 links:
   - etcd-io/etcd#20704 issue closed: related, not this bug (the user's leasing report, closed by the stale bot as not planned, unfixed; does not list this)
 ---

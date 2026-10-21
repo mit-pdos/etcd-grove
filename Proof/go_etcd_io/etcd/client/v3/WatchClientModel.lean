@@ -7,7 +7,8 @@ Lean-first, no Rocq counterpart.
 * `WPh`: a substream's phase: `queued` (in `resuming`, its create sent at an up position or not),
   `reg X` (registered at the watch id `X`, in `substreams`), `closedRun X` (registered, its `recvc`
   closed by `run` on the server's cancel, in `closing`, out of `substreams`: `run` drops it there,
-  the fix of `issues/etcd-watch-progress-closed-substream.md`; at `X` in the ghost map `CI`), `orphan` (its create refused: `recvc`
+  the fix of `issues/etcd-watch-progress-closed-substream.md`; at `X` in the ghost map `CI`; its
+  `id` field reset to `-1`, D25's F1, `issues/etcd-watch-resume-stale-canceled-id.md`), `orphan` (its create refused: `recvc`
   closed, in no map).
 * `RunSt`: the requests sent (`L`), the responses received (`Dm`), the pending create (`pend`),
   the answered positions (`ansd`), the registered ids (`regs`), `substreams` (`M`), `resuming`
@@ -41,6 +42,9 @@ inductive WPh where
   | reg (X : w64)
   | closedRun (X : w64)
   | orphan
+  /-- (D25) stopped, its `recvc` closed by `run`'s teardown or the server's cancel on an earlier
+  stream, waiting on `closingc` (in `closing`, in no other map; no fact of the stream it was on) -/
+  | closed
 
 /-- What `run` knows (see the file header). -/
 structure RunSt where
@@ -69,6 +73,7 @@ def phOk (S : RunSt) (ws : Loc) : WPh → Prop
   | .closedRun X => (S.M !! X = none ∧ (∀ Y, S.M !! Y ≠ some ws) ∧ S.CI !! X = some ws) ∧ ws ∉ S.l ∧ S.CL !! ws = some () ∧ X ∈ S.regs ∧
       X ≠ W64 (-1) ∧ ¬ idLive S.Dm X ∧ (∀ i, S.L[i]? = some (WatchReqM.cancel X) → i ∈ S.ansd)
   | .orphan => (∀ X, S.M !! X ≠ some ws) ∧ ws ∉ S.l ∧ S.CL !! ws = none
+  | .closed => (∀ X, S.M !! X ≠ some ws) ∧ ws ∉ S.l ∧ S.CL !! ws = some ()
 
 /-- **The facts across the maps and the stream** (`U`: the substreams `run` made, not yet seen
 stop). -/
@@ -324,14 +329,26 @@ theorem nilOut_nodup {l : List Loc} {ws : Loc}
 /-- The watch id field's value in a phase. -/
 def WPh.id : WPh → w64
   | .reg X => X
+  | _ => W64 (-1)
+
+/-- An orphan (its create refused; D25: its goroutine's lifetime may be of an earlier generation). -/
+def WPh.isOrphan : WPh → Bool
+  | .orphan => true
+  | _ => false
+
+/-- The id a substream's phase has in `run`'s maps, ghost ones included: a `closedRun` one's in
+`CI` (its `id` field is `-1`: `run` resets it when the server cancels it, D25's fix F1). -/
+def WPh.cid : WPh → w64
+  | .reg X => X
   | .closedRun X => X
   | _ => W64 (-1)
 
-/-- The model after `closeSubstream(ws)` of a substream of id `id` and `closing`'s `delete`. -/
-def RunSt.closeWs (S : RunSt) (ws : Loc) (id : w64) : RunSt :=
-  { S with M := if id = W64 (-1) then S.M else GMap.delete id S.M,
-           CI := if id = W64 (-1) then S.CI else GMap.delete id S.CI,
-           l := if id = W64 (-1) then nilOut S.l ws else S.l,
+/-- The model after `closeSubstream(ws)` of a substream in phase `ph` (its `id` field `ph.id`) and
+`closing`'s `delete`. -/
+def RunSt.closeWs (S : RunSt) (ws : Loc) (ph : WPh) : RunSt :=
+  { S with M := if ph.id = W64 (-1) then S.M else GMap.delete ph.id S.M,
+           CI := if ph.cid = W64 (-1) then S.CI else GMap.delete ph.cid S.CI,
+           l := if ph.id = W64 (-1) then nilOut S.l ws else S.l,
            CL := GMap.delete ws S.CL }
 
 theorem phOk_id_neg {S : RunSt} {ws : Loc} {ph : WPh} (h : phOk S ws ph) (hid : ph.id = W64 (-1)) :
@@ -339,27 +356,28 @@ theorem phOk_id_neg {S : RunSt} {ws : Loc} {ph : WPh} (h : phOk S ws ph) (hid : 
   cases ph with
   | queued si => exact h.1
   | reg X => simp only [WPh.id] at hid; exact absurd hid h.2.2.2.2.1
-  | closedRun X => simp only [WPh.id] at hid; exact absurd hid h.2.2.2.2.1
+  | closedRun X => exact h.1.2.1
   | orphan => exact h.1
+  | closed => exact h.1
 
 theorem phOk_id_pos {S : RunSt} {ws : Loc} {ph : WPh} (h : phOk S ws ph) (hid : ph.id ≠ W64 (-1)) :
-    (S.M !! ph.id = some ws ∨ (S.M !! ph.id = none ∧ (∀ Y, S.M !! Y ≠ some ws) ∧
-      S.CI !! ph.id = some ws)) ∧ ws ∉ S.l := by
+    S.M !! ph.id = some ws ∧ ws ∉ S.l := by
   cases ph with
   | queued si => exact absurd rfl hid
-  | reg X => exact ⟨Or.inl h.1, h.2.1⟩
-  | closedRun X => exact ⟨Or.inr h.1, h.2.1⟩
+  | reg X => exact ⟨h.1, h.2.1⟩
+  | closedRun X => exact absurd rfl hid
   | orphan => exact absurd rfl hid
+  | closed => exact absurd rfl hid
 
 theorem closeWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {ph : WPh} (hg : gOk S U)
     (hU : U !! ws = some ()) (hph : phOk S ws ph) :
-    gOk (S.closeWs ws ph.id) (GMap.delete ws U) ∧
+    gOk (S.closeWs ws ph) (GMap.delete ws U) ∧
       ∀ ws' ph', ws' ≠ ws → U !! ws' = some () → phOk S ws' ph' →
-        phOk (S.closeWs ws ph.id) ws' ph' := by
+        phOk (S.closeWs ws ph) ws' ph' := by
   obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
   have hwsn : ws ≠ null := fun e => by rw [e, g6] at hU; cases hU
   -- the lookups of the new `substreams`
-  have hM : ∀ X ws', (S.closeWs ws ph.id).M !! X = some ws' → S.M !! X = some ws' ∧ ws' ≠ ws := by
+  have hM : ∀ X ws', (S.closeWs ws ph).M !! X = some ws' → S.M !! X = some ws' ∧ ws' ≠ ws := by
     intro X ws' h
     unfold RunSt.closeWs at h
     simp only at h
@@ -373,10 +391,8 @@ theorem closeWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {ph : WPh} (hg : g
       · rw [GMap.lookup_delete_ne _ hX] at h
         refine ⟨h, fun e => ?_⟩
         subst e
-        rcases (phOk_id_pos hph hid).1 with h1 | ⟨-, h1, -⟩
-        · exact hX (g2 _ _ _ h1 h)
-        · exact h1 X h
-  have hMr : ∀ X ws', ws' ≠ ws → S.M !! X = some ws' → (S.closeWs ws ph.id).M !! X = some ws' := by
+        exact hX (g2 _ _ _ (phOk_id_pos hph hid).1 h)
+  have hMr : ∀ X ws', ws' ≠ ws → S.M !! X = some ws' → (S.closeWs ws ph).M !! X = some ws' := by
     intro X ws' hne h
     unfold RunSt.closeWs
     simp only
@@ -385,23 +401,21 @@ theorem closeWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {ph : WPh} (hg : g
     · rw [if_neg hid]
       have hX : ph.id ≠ X := by
         intro e; subst e
-        rcases (phOk_id_pos hph hid).1 with h1 | ⟨h1, -⟩
-        · rw [h1] at h; cases h; exact hne rfl
-        · rw [h1] at h; cases h
+        rw [(phOk_id_pos hph hid).1] at h; cases h; exact hne rfl
       rw [GMap.lookup_delete_ne _ hX]; exact h
-  have hl : ∀ x, x ≠ ws → x ≠ null → (x ∈ (S.closeWs ws ph.id).l ↔ x ∈ S.l) := by
+  have hl : ∀ x, x ≠ ws → x ≠ null → (x ∈ (S.closeWs ws ph).l ↔ x ∈ S.l) := by
     intro x hx hxn
     unfold RunSt.closeWs
     simp only
     split
     · exact ⟨fun hm => mem_nilOut hm hxn, fun hm => mem_nilOut_of hm hx⟩
     · exact Iff.rfl
-  have hlen : (S.closeWs ws ph.id).l.length = S.l.length := by
+  have hlen : (S.closeWs ws ph).l.length = S.l.length := by
     unfold RunSt.closeWs; simp only; split
     · exact nilOut_length _ _
     · rfl
   -- the first entry: unchanged, or `null` where it was `ws`
-  have hhead : ∀ x, x ≠ null → (S.closeWs ws ph.id).l.head? = some x → S.l.head? = some x := by
+  have hhead : ∀ x, x ≠ null → (S.closeWs ws ph).l.head? = some x → S.l.head? = some x := by
     intro x hxn h
     unfold RunSt.closeWs at h; simp only at h
     split at h
@@ -409,12 +423,12 @@ theorem closeWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {ph : WPh} (hg : g
       · rw [nilOut_head?_self _ _ hh] at h; cases h; exact absurd rfl hxn
       · rw [nilOut_head? _ _ hh] at h; exact h
     · exact h
-  have hhead' : ∀ x, x ≠ ws → S.l.head? = some x → (S.closeWs ws ph.id).l.head? = some x := by
+  have hhead' : ∀ x, x ≠ ws → S.l.head? = some x → (S.closeWs ws ph).l.head? = some x := by
     intro x hx h
     unfold RunSt.closeWs; simp only; split
     · rw [nilOut_head? _ _ (by rw [h]; intro e; cases e; exact hx rfl)]; exact h
     · exact h
-  have hCL : ∀ x, x ≠ ws → (S.closeWs ws ph.id).CL !! x = S.CL !! x := by
+  have hCL : ∀ x, x ≠ ws → (S.closeWs ws ph).CL !! x = S.CL !! x := by
     intro x hx; unfold RunSt.closeWs; simp only; exact GMap.lookup_delete_ne _ (Ne.symm hx)
   have hUd : ∀ x, x ≠ ws → (GMap.delete ws U) !! x = U !! x := fun x hx =>
     GMap.lookup_delete_ne _ (Ne.symm hx)
@@ -459,24 +473,32 @@ theorem closeWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {ph : WPh} (hg : g
       exact ⟨hMr X ws' hne r1, fun h => r2 ((hl ws' hne hn').1 h), by rw [hCL ws' hne]; exact r3, r4⟩
     | closedRun X =>
       obtain ⟨⟨r1, r1', r1''⟩, r2, r3, r4⟩ := hph'
-      have r1n : (S.closeWs ws ph.id).M !! X = none := by
-        cases hx : (S.closeWs ws ph.id).M !! X with
+      have r1n : (S.closeWs ws ph).M !! X = none := by
+        cases hx : (S.closeWs ws ph).M !! X with
         | none => rfl
         | some w => rw [(hM X w hx).1] at r1; cases r1
-      have r1c : (S.closeWs ws ph.id).CI !! X = some ws' := by
+      have r1c : (S.closeWs ws ph).CI !! X = some ws' := by
         unfold RunSt.closeWs; simp only
         split
         · exact r1''
         · rename_i hid
-          have hX : ph.id ≠ X := by
+          have hX : ph.cid ≠ X := by
             intro e; subst e
-            rcases (phOk_id_pos hph hid).1 with h1 | ⟨-, -, h2⟩
-            · rw [h1] at r1; cases r1
-            · rw [h2] at r1''; cases r1''; exact hne rfl
+            cases ph with
+            | queued si => exact hid rfl
+            | orphan => exact hid rfl
+            | closed => exact hid rfl
+            | reg Y => simp only [WPh.cid] at r1; rw [hph.1] at r1; cases r1
+            | closedRun Y =>
+              simp only [WPh.cid] at r1''; rw [hph.1.2.2] at r1''; cases r1''; exact hne rfl
           rw [GMap.lookup_delete_ne _ hX]; exact r1''
       exact ⟨⟨r1n, fun Y h => r1' Y (hM Y ws' h).1, r1c⟩, fun h => r2 ((hl ws' hne hn').1 h),
         by rw [hCL ws' hne]; exact r3, r4⟩
     | orphan =>
+      obtain ⟨o1, o2, o3⟩ := hph'
+      exact ⟨fun X h => o1 X (hM X ws' h).1, fun h => o2 ((hl ws' hne hn').1 h),
+        by rw [hCL ws' hne]; exact o3⟩
+    | closed =>
       obtain ⟨o1, o2, o3⟩ := hph'
       exact ⟨fun X h => o1 X (hM X ws' h).1, fun h => o2 ((hl ws' hne hn').1 h),
         by rw [hCL ws' hne]; exact o3⟩
@@ -543,6 +565,7 @@ theorem cancel_ok {S : RunSt} {U : GMap Loc Unit} {X : w64} {L' : List v3rpc.Wat
     cases ph with
     | queued si => exact hph
     | orphan => exact hph
+    | closed => exact hph
     | reg X' =>
       obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
       refine ⟨r1, r2, r3, r4, r5, ?_, ?_, r8⟩
@@ -618,6 +641,7 @@ theorem progress_ok {S : RunSt} {U : GMap Loc Unit} {L' : List v3rpc.WatchReqM}
     cases ph with
     | queued si => exact hph
     | orphan => exact hph
+    | closed => exact hph
     | reg X' =>
       obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
       refine ⟨r1, r2, r3, r4, r5, ?_, ?_, r8⟩
@@ -798,6 +822,13 @@ theorem addWs_ok {S : RunSt} {U : GMap Loc Unit} {ws : Loc} {L' : List v3rpc.Wat
         · exact c7 i h
         · cases hc'
     | orphan =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      refine ⟨o1, ?_, o3⟩
+      intro h
+      rcases List.mem_append.1 h with h | h
+      · exact o2 h
+      · simp at h; exact hne h
+    | closed =>
       obtain ⟨o1, o2, o3⟩ := hph
       refine ⟨o1, ?_, o3⟩
       intro h
@@ -1019,6 +1050,12 @@ theorem answer_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} {X 
       rcases hM1 Y ws hY with h1 | ⟨-, -, e⟩
       · exact o1 Y h1
       · exact hne e
+    | closed =>
+      obtain ⟨o1, o2, o3⟩ := hph'
+      refine ⟨fun Y hY => ?_, fun hm => o2 (hl1 ws hwn hm), o3⟩
+      rcases hM1 Y ws hY with h1 | ⟨-, -, e⟩
+      · exact o1 Y h1
+      · exact hne e
   · intro hn
     obtain ⟨q1, q2, q3, -, -⟩ := hph hn
     by_cases hr : reg = true
@@ -1152,6 +1189,9 @@ theorem resume_ok {S : RunSt} {U : GMap Loc Unit} {L' : List WatchReqM} {pend' s
     | orphan =>
       obtain ⟨o1, o2, o3⟩ := hph
       exact ⟨o1, fun h => o2 ((hl ws hwn).1 h), o3⟩
+    | closed =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      exact ⟨o1, fun h => o2 ((hl ws hwn).1 h), o3⟩
   · intro h2 hh hU ph hph
     have hwn : h2 ≠ null := dropNull_head hh
     have hm2 : h2 ∈ S.l := (mem_dropNull hwn).1 (List.mem_of_mem_head? hh)
@@ -1168,6 +1208,7 @@ theorem resume_ok {S : RunSt} {U : GMap Loc Unit} {L' : List WatchReqM} {pend' s
     | reg Y => exact absurd hm2 hph.2.1
     | closedRun Y => exact absurd hm2 hph.2.1
     | orphan => exact absurd hm2 hph.2.1
+    | closed => exact absurd hm2 hph.2.1
 
 /-- The model after the answer `m` (at the up position `i`) to a cancel of `X`: `cancelSet`
 forgets `X`; the substream registered at `X`, if any (`fw`), joins `closing` and leaves
@@ -1292,12 +1333,16 @@ theorem cancelAns_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {i : Nat} 
     | orphan =>
       obtain ⟨o1, o2, o3⟩ := hph
       exact ⟨fun Y h => o1 Y (hM Y ws h).1, o2, by rw [hCL ws hne]; exact o3⟩
+    | closed =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      exact ⟨fun Y h => o1 Y (hM Y ws h).1, o2, by rw [hCL ws hne]; exact o3⟩
   · intro ws ph hf hph
     rw [hf] at hfw
     have hMX := hfw.symm
     cases ph with
     | queued si => exact absurd hMX (hph.1 X)
     | orphan => exact absurd hMX (hph.1 X)
+    | closed => exact absurd hMX (hph.1 X)
     | closedRun Y => exact absurd hMX (hph.1.2.1 X)
     | reg Y =>
       have hY : Y = X := g2 Y X ws hph.1 hMX
@@ -1348,7 +1393,104 @@ theorem recvMvcc_ok {S : RunSt} {U : GMap Loc Unit} {m : WatchRespM} {ρ : mvcc.
       obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8⟩ := hph
       exact ⟨r1, r2, r3, r4, r5, r6, r7, (hlive Y).2 r8⟩
     | orphan => exact hph
+    | closed => exact hph
 
+
+/-! ## The reconnection (D25) -/
+
+/-- **The model after a reconnection** (`newWatchClient` after `errc`, before the next create): a
+new stream (nothing sent or received, no registered id, no cancel), `substreams` empty, `resuming`
+the old one's and `substreams`'s substreams (`l'`), the closing map kept. -/
+def RunSt.reconnect (S : RunSt) (l' : List Loc) : RunSt :=
+  { L := [], Dm := [], pend := none, ansd := [], regs := [], M := ∅, l := l', CL := S.CL,
+    CS := ∅, CI := ∅ }
+
+/-- **A substream's phase after a reconnection**: queued (from `resuming` or `substreams`), closed
+(stopped and waiting on `closingc`), or still an orphan. -/
+def WPh.recon : WPh → WPh
+  | .queued _ => .queued none
+  | .reg _ => .queued none
+  | .closedRun _ => .closed
+  | .orphan => .orphan
+  | .closed => .closed
+
+theorem WPh.recon_id (ph : WPh) : ph.recon.id = W64 (-1) := by
+  cases ph <;> rfl
+
+/-- **The reconnection keeps the facts**: from `resuming` and `substreams`'s values (in some
+order, `mv`) with the nils dropped, every substream's phase becomes its `recon`. -/
+theorem reconnect_ok {S : RunSt} {U : GMap Loc Unit} (hg : gOk S U) (mv : List Loc)
+    (hmv : ∀ ws, ws ∈ mv ↔ ∃ X, S.M !! X = some ws) (hmvn : mv.Nodup)
+    (hdisj : ∀ X ws, S.M !! X = some ws → ws ∉ S.l) :
+    let l' := (S.l ++ mv).filter (fun x => decide (x ≠ null))
+    gOk (S.reconnect l') U ∧
+      ∀ ws ph, U !! ws = some () → phOk S ws ph → phOk (S.reconnect l') ws ph.recon := by
+  intro l'
+  obtain ⟨g1, g2, g3, g4, g5, g6, g7, g8, g9, g10, g11, g12, g13⟩ := hg
+  have hmvU : ∀ ws ∈ mv, U !! ws = some () := by
+    intro ws h; obtain ⟨X, hX⟩ := (hmv ws).1 h; exact g1 X ws hX
+  have hmem : ∀ x, x ∈ l' ↔ (x ∈ S.l ∨ x ∈ mv) ∧ x ≠ null := by
+    intro x; simp only [l', List.mem_filter, List.mem_append, decide_eq_true_eq]
+  refine ⟨⟨?_, ?_, ?_, ?_, g5, g6, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
+  · intro X ws h; simp [RunSt.reconnect, GMap.lookup_empty] at h
+  · intro X Y ws h; simp [RunSt.reconnect, GMap.lookup_empty] at h
+  · intro ws h hn
+    rcases ((hmem ws).1 h).1 with h1 | h1
+    · exact g3 ws h1 hn
+    · exact hmvU ws h1
+  · show (l'.filter (fun x => decide (x ≠ null))).Nodup
+    have hl' : l'.filter (fun x => decide (x ≠ null)) = l' := by
+      simp only [l', List.filter_filter, Bool.and_self]
+    rw [hl']
+    simp only [l', List.filter_append]
+    refine List.nodup_append.2 ⟨g4, hmvn.filter _, ?_⟩
+    intro a ha b hb hab
+    subst hab
+    have ha' := (List.mem_filter.1 ha).1
+    have hb' := (List.mem_filter.1 hb).1
+    obtain ⟨X, hX⟩ := (hmv a).1 hb'
+    exact hdisj X a hX ha'
+  · intro x hx; simp [RunSt.reconnect] at hx
+  · intro i c h; simp [RunSt.reconnect] at h
+  · intro i id h; simp [RunSt.reconnect] at h
+  · intro i h; simp [RunSt.reconnect] at h
+  · intro i h; simp [RunSt.reconnect] at h
+  · intro j m ρ h; simp [RunSt.reconnect] at h
+  · intro m h; simp [RunSt.reconnect] at h
+  · intro ws ph hU hph
+    cases ph with
+    | queued si =>
+      obtain ⟨q1, q2, q3, -, -⟩ := hph
+      have hn : ws ≠ null := fun e => by subst e; rw [g6] at hU; cases hU
+      refine ⟨fun X h => by simp [RunSt.reconnect, GMap.lookup_empty] at h,
+        (hmem ws).2 ⟨Or.inl q2, hn⟩, q3, ?_, ?_⟩
+      · intro i h; exact absurd h (by simp)
+      · intro _ _; rfl
+    | reg X =>
+      obtain ⟨r1, r2, r3, -⟩ := hph
+      have hn : ws ≠ null := fun e => by subst e; rw [g6] at hU; cases hU
+      refine ⟨fun X h => by simp [RunSt.reconnect, GMap.lookup_empty] at h,
+        (hmem ws).2 ⟨Or.inr ((hmv ws).2 ⟨X, r1⟩), hn⟩, r3, ?_, ?_⟩
+      · intro i h; exact absurd h (by simp)
+      · intro _ _; rfl
+    | closedRun X =>
+      obtain ⟨⟨-, c1, -⟩, c2, c3, -⟩ := hph
+      refine ⟨fun X h => by simp [RunSt.reconnect, GMap.lookup_empty] at h, fun h => ?_, c3⟩
+      rcases ((hmem ws).1 h).1 with h1 | h1
+      · exact c2 h1
+      · obtain ⟨Y, hY⟩ := (hmv ws).1 h1; exact c1 Y hY
+    | orphan =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      refine ⟨fun X h => by simp [RunSt.reconnect, GMap.lookup_empty] at h, fun h => ?_, o3⟩
+      rcases ((hmem ws).1 h).1 with h1 | h1
+      · exact o2 h1
+      · obtain ⟨Y, hY⟩ := (hmv ws).1 h1; exact o1 Y hY
+    | closed =>
+      obtain ⟨o1, o2, o3⟩ := hph
+      refine ⟨fun X h => by simp [RunSt.reconnect, GMap.lookup_empty] at h, fun h => ?_, o3⟩
+      rcases ((hmem ws).1 h).1 with h1 | h1
+      · exact o2 h1
+      · obtain ⟨Y, hY⟩ := (hmv ws).1 h1; exact o1 Y hY
 
 end client
 end EtcdGrove

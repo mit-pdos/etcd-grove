@@ -34,7 +34,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
   intro V wgs resp ws id ca rs dq dq' wid0 m M e
   wp_start as ⟨#Hcf, Hid, Hca, Hrs, Hwid, Hsub, Hmap, Hce, Hcl⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, -, -, #HeN, -, -, -⟩
+  icases Hcf with ⟨-, -, -, -, -, -, -, #HeN, -, -, -⟩
   iunfold errorsNewOk at HeN
   (try wp_auto)
   wp_if_destruct
@@ -44,7 +44,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     icases Hcl with ⟨%P, %sent, %HPws, #Hws, Hprod⟩
     subst HPws
     iunfold wsIs at Hws
-    icases Hws with ⟨-, -, #Hrecvc, -, -, #Hspsc, -⟩
+    icases Hws with ⟨-, #Hrecvc, -, #Hspsc, -⟩
     (try wp_auto)
     wp_bind (App (Val #(functions _root_.Perennial.errors.New [])) (Val #rs))
     iapply HeN
@@ -56,7 +56,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, -⟩
     · ipureintro; exact He1.1
     (try wp_auto)
-    wp_apply wp_spsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
+    wp_apply wp_sspsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
     (try wp_auto)
     iapply HΦ
     iframe
@@ -76,7 +76,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     icases Hcl with ⟨%P, %sent, %HPws, #Hws, Hprod⟩
     subst HPws
     iunfold wsIs at Hws
-    icases Hws with ⟨-, -, #Hrecvc, -, -, #Hspsc, -⟩
+    icases Hws with ⟨-, #Hrecvc, -, #Hspsc, -⟩
     (try wp_auto)
     wp_bind (App (Val #(functions _root_.Perennial.errors.New [])) (Val #rs))
     iapply HeN
@@ -88,7 +88,7 @@ theorem watchGRPCStream.addSubstream.wp_proof
     wp_apply wp_rpctypes_Error e1 $$ [$Hrpc $Hs1] as %e2 ⟨%He2, #Hs2, -⟩
     · ipureintro; exact He1.1
     (try wp_auto)
-    wp_apply wp_spsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
+    wp_apply wp_sspsc_close P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) sent $$ [$Hspsc $Hprod]
     (try wp_auto)
     iapply HΦ
     iframe

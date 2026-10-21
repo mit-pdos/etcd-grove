@@ -11,7 +11,7 @@ mutex, its porcupine model and `Check`, which runs the driver on them.
 States are `w64` (Go's `int64`, wrapping). An operation `(i, o)` of interface values is
 allowed in state `s` iff its output is the boxed `int64` of the next state
 `counterNext s i`, which is `s + 1` if the input is the boxed `true` and `s` otherwise. A
-state value is the boxed `int64` of the state (`rep`). The inputs are boxed `bool`s
+state value is the boxed `int64` of the state (`rep`, of any index). The inputs are boxed `bool`s
 (`counterInOk`, the driver's `inOk`: `gen` returns them, `Apply` assumes them), and an
 operation's input and output are a boxed `bool` and a boxed `int64` (`ioOk`), which `Step`'s
 `input.(bool)` and `output.(int64)` need.
@@ -135,7 +135,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.
 /-- The counter's porcupine model specification (see the file header). -/
 def counterS : ModelSpec GF w64 where
   M := counterM
-  rep v s := iprop(⌜v = boxI s⌝)
+  rep _ v s := iprop(⌜v = boxI s⌝)
   ioOk i o := iprop(⌜(∃ b : Bool, i = boxB b) ∧ ∃ x : w64, o = boxI x⌝)
   ioOk_pers _ _ := by infer_instance
 
@@ -143,8 +143,8 @@ def counterS : ModelSpec GF w64 where
 abbrev counterInOk (i : GoInterface) : IProp GF := iprop(⌜∃ b : Bool, i = boxB b⌝)
 
 /-- What `Step` returns of a next state: `stepPost` of the output `boxI x`. -/
-theorem stepPost_counter (s x : w64) (i : GoInterface) :
-    ⊢ stepPost (counterS (GF := GF)) s (i, boxI x) (boxI (counterNext s i)) := by
+theorem stepPost_counter (k : Nat) (s x : w64) (i : GoInterface) :
+    ⊢ stepPost (counterS (GF := GF)) k s (i, boxI x) (boxI (counterNext s i)) := by
   unfold stepPost
   simp only [counterS]
   rw [counterM_step_box]

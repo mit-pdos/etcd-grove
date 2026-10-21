@@ -54,7 +54,7 @@ theorem startRead_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E
   iunfold v3rpc.srvReadAt at H
   icases H with ⟨%log, #Hc, %hl⟩
   iunfold mvcc.startRead
-  iright
+  iright; ileft
   iexists log
   rw [hst]
   iframe Hc
@@ -148,7 +148,7 @@ theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
     iunfold watchSrvFacts at Hsf
     icases Hsf with ⟨-, Hcf⟩
     iunfold watchConnFacts at Hcf
-    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, -, -, %h⟩
+    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, -, %h⟩
     ipureintro; exact h
   obtain ⟨hst, hp⟩ := hf
   unfold isEtcdWatcher

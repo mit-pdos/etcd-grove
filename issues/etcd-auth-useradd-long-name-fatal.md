@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-17
+upstream: none
+checked: 2026-10-20
 links:
+  - etcd-io/etcd#10907 pr merged: related, not this bug (added RoleAdd's empty-name check, the only name check besides UserAdd's; no length bound)
 ---
 
 # A user or role name longer than bbolt's `MaxKeySize` makes every member exit while applying it

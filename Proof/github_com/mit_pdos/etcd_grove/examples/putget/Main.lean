@@ -84,18 +84,16 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id bootLog Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
-  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts (the named Props)
+  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
-  · unfold EofFromIoInit at HEof
-    iapply HEof
+  · iapply v3rpc.eofVar_of_init
     iPkgInit
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
-  · unfold ClosedchanFromContextInit at HCc
-    iapply HCc
+  · iapply context.isClosedchanInit_of_init
     iPkgInit
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -139,7 +137,7 @@ theorem Main.wp_proof
   imod ownMap_persist _ _ _ $$ Hpm with #Hpm
   -- the ghost state `NewServer` takes (`putget_alloc`)
   imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
-    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hidx, Hcok, Hrev,
+    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
@@ -160,7 +158,7 @@ theorem Main.wp_proof
         omega)
       hblen
       hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost HrdCred Hids Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
+    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
   · iframe
     iframe #
     isplitr
@@ -304,7 +302,7 @@ theorem Main.wp_proof
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
-  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" ⊤)
+  imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" (by rw [hwl]; trivial) ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []

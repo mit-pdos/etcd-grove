@@ -1151,13 +1151,27 @@ instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF :
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
 
+/-- **`id` was registered** (persistent; linkv-txn stage B1, 2026-10-20) in the wait registry of
+the member of its prefix (the cluster's registries' map, `idWaitIs`), with the consumer token `t`:
+what a proposal's entry carries, its proposer having registered the id before proposing. -/
+def idRegd (γi : IdNames) (id : w64) : IProp GF :=
+  iprop(∃ W t : GName, idWaitIs γi (idPfx id) W ∗ waitRegd W id t)
+
+instance idRegd_persistent (γi : IdNames) (id : w64) : Persistent (idRegd (GF := GF) γi id) := by
+  unfold idRegd; infer_instance
+
+instance idRegd_timeless (γi : IdNames) (id : w64) : Timeless (idRegd (GF := GF) γi id) := by
+  unfold idRegd idWaitIs waitRegd; infer_instance
+
 /-- **A committed entry's id claimed** (persistent; D19c): a normal entry whose data decode to a
 request with an id was claimed for its data under that id (`idClaim`, the generator's names
-`γi`). -/
+`γi`), and (linkv-txn stage B1, 2026-10-20) the id registered before the entry was proposed
+(`idRegd`). -/
 def entryClaim (γi : IdNames) (m : EntryModel) : IProp GF :=
   iprop(⌜m.typ ≠ W32 0 ∨ m.data = []⌝ ∨
     ∃ (rq : apply.IRRModel) (id : w64) (γf : GName),
-      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf)
+      ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ ∗ idClaim γi id m.data γf ∗
+      idRegd γi id)
 
 instance entryClaim_persistent (γi : IdNames) (m : EntryModel) :
     Persistent (entryClaim (GF := GF) γi m) := by
@@ -1214,9 +1228,10 @@ instance kvAu_persistent (γk : KVNames) (f : KVState → KVState) (Q : KVState 
   unfold kvAu; infer_instance
 
 /-- **A client's update for the operation `op`**: its step (`kvOpStep`; a rejected request's the
-identity). -/
+identity); (D23, 2026-10-20) of an operation the server's workload lets its clients deposit
+(`γk.wl.writes`: every one for `putgetWorkload`). -/
 def kvOpAu (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
-  kvAu γk (kvOpStep op) Q
+  iprop(⌜γk.wl.writes op⌝ ∗ kvAu γk (kvOpStep op) Q)
 
 instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     Persistent (kvOpAu (GF := GF) γk op Q) := by
@@ -1230,15 +1245,33 @@ def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
           <{ etcdKV γk (f σ), COMM Q σ }>)
 
-/-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
+/-- **A client's update for the operation `op`, fired at most once** (D21 M6); (D23) of an
+operation the workload lets its clients deposit, as `kvOpAu`. -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
-  kvAu1 γk (kvOpStep op) Q
+  iprop(⌜γk.wl.writes op⌝ ∗ kvAu1 γk (kvOpStep op) Q)
+
+open Iris.ProofMode in
+/-- (D23) The workload's admission of a deposited operation. -/
+theorem kvOpAu_writes (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+    kvOpAu (GF := GF) γk op Q ⊢ ⌜γk.wl.writes op⌝ ∗ kvOpAu γk op Q := by
+  unfold kvOpAu
+  iintro ⟨%h, H⟩
+  iframe H
+  isplitr <;> ipureintro <;> exact h
+
+open Iris.ProofMode in
+theorem kvOpAu1_writes (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
+    kvOpAu1 (GF := GF) γk op Q ⊢ ⌜γk.wl.writes op⌝ ∗ kvOpAu1 γk op Q := by
+  unfold kvOpAu1
+  iintro ⟨%h, H⟩
+  iframe H
+  isplitr <;> ipureintro <;> exact h
 
 /-- A persistent update fires once, its result persistent. -/
 theorem kvOpAu_one (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ kvOpAu1 γk op (fun σ => iprop(□ Q σ)) := by
   unfold kvOpAu kvAu kvOpAu1 kvAu1
-  exact intuitionistically_elim
+  exact sep_mono_right intuitionistically_elim
 
 /-- The results' namespace (D21 M6): where an update fired at most once leaves its result. -/
 def kvResN : Namespace := nroot .@ "server_kv_res"
@@ -1351,9 +1384,10 @@ def putPermit (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp G
   iprop(⌜op.leaseID = W64 0⌝ ∗ kvOpAu1 γk (.put op) Q)
 
 /-- **What a delete of `op` needs** (2026-10-15, unit T2): its range end not `[0]` (the wire
-keeps it: `irrWireOf`), and its client's update. -/
+keeps it: `irrWireOf`), and its client's update, fired at most once (`kvOpAu1`, as a put's
+since D21 M6; 2026-10-20, linkv-txn stage A). -/
 def deletePermit (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜op.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu γk (.deleteRange op) Q)
+  iprop(⌜op.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu1 γk (.deleteRange op) Q)
 
 /-- No range end of a transaction's comparisons and operations is `[0]` (`irrNoZeroEnd` of its
 request: the wire keeps it). -/
@@ -1363,9 +1397,10 @@ def txnNoZeroEnd (t : TxnModel) : Prop :=
 /-- **What a writing transaction `t` needs** (2026-10-15, unit T2): plain (`txn.txnPlain`: its
 gets at revision `0`, its puts with no lease and no `IgnoreLease`), no range end `[0]`, and its
 client's update; since D19c (2026-10-18) its shape (`txn.txnShape`: the apply's premise but for
-its size clauses, which the gRPC layer's checks give, `v3rpc.txnShape_of_check`). -/
+its size clauses, which the gRPC layer's checks give, `v3rpc.txnShape_of_check`). Since
+2026-10-20 (linkv-txn stage A) the update is fired at most once (`kvOpAu1`, as a put's). -/
 def txnPermit (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗ kvOpAu γk (.txn t) Q)
+  iprop(⌜txn.txnPlain t ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗ kvOpAu1 γk (.txn t) Q)
 
 /-- **What a proposal of `rq` needs** (2026-10-14, unit T1; 2026-10-15, unit T2: every plain
 write), with the result `Qr` its update gives: a plain request with no KV write (no put, no
@@ -1883,12 +1918,15 @@ the log after is applied through an index of the committed log (`appliedWit γr 
 thread deposits it before it hands the result over, `srvAppliedPre`); and (unit W-M3) the log the
 entry met is `lb` (`y.log`: the proposer ties it to the raft prefix its update fired at,
 `entryWit`) and the log after is certified (`certOk`: the KV model of a committed raft prefix,
-what makes its revisions reached in the clients' model). -/
+what makes its revisions reached in the clients' model). Since linkv-txn stage B1 (2026-10-20)
+the outcome is not waived (`out.waived = false`: the apply thread found the id registered, so a
+transaction's ranges were run): a result reaches the registered proposer only then. -/
 def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
-      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb⌝ ∗
+      ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
+        out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
       mvcc.certOk E.γ y'.log)
@@ -1950,9 +1988,12 @@ instance reqWaitR_persistent (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
 /-- **The server's wait** `s.w` (persistent): a `wait.Wait` (`wait.New`'s contract) with the
 server's registration condition, the ids `ρ.ids`, the registered ids' map `ρ.wait`, and some
 reader's resource (the apply thread's `srvApplyKV` holds `IsRegistered`'s, as the apply package's
-`waitOk`). Replaces the apply package's `waitOk` in `srvFieldsAt` (unit 2). -/
+`waitOk`). Replaces the apply package's `waitOk` in `srvFieldsAt` (unit 2). Since linkv-txn stage
+B1 (2026-10-20) also `ρ.wait` as the member's entry of the cluster's registries' map. -/
 def waitInv (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ E) RD)
+  iprop((∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ E) RD) ∗
+    -- (linkv-txn stage B1, 2026-10-20) the member's registry in the cluster's registries' map
+    idWaitIs ρ.ids ρ.ids.pfx ρ.wait)
 
 instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (waitInv (GF := GF) w ρ E) := by
@@ -1960,7 +2001,8 @@ instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF
 
 /-- **What the apply thread knows of a committed entry's id** (persistent; the raft contract's
 apply side, `batchCommitted`, gives the first half; unit 4): a normal entry's data, if they
-decode to a request with an id, were claimed under that id; a conf change's id (`ccIdOf`) is no
+decode to a request with an id, were claimed under that id, and (linkv-txn stage B1) the id
+registered (`idRegd`); a conf change's id (`ccIdOf`) is no
 KV request's registration (the conf change's proposer claimed it for the conf change: typed
 claims, unit 4), and the change is one `applyConfChange` takes (`ccBootOk` at raft's
 configuration; audit phase B3, 2026-10-18). -/
@@ -1968,7 +2010,7 @@ def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF 
   if m.typ = W32 0 then
     iprop((∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-        ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
+        (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
       ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝)
   else iprop((□ ∀ Ψ, reqWaitR ρ E (ccIdOf m.data) Ψ -∗ False) ∗
     ⌜ccBootOk ρ.raft.raft.reCfg m.data⌝)

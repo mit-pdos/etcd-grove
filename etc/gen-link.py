@@ -37,6 +37,11 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --lintest > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Link.lean
        etc/gen-link.py --lintest-counter > Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/Link.lean
        etc/gen-link.py --linkv > Proof/github_com/mit_pdos/etcd_grove/examples/linkv/Link.lean
+       etc/gen-link.py --linkv3 > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Link.lean
+       etc/gen-link.py --linkvtxn > Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/Link.lean
+       etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean
+       etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
+       etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -258,16 +263,64 @@ LEAN_FIRST = {
                           "github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions",
                           "The porcupine driver's instance's proofs (`examples/lintest/counter`)",
                           [""]),
-    # the linearizability instance over etcd's client (examples/linkv, D20): its porcupine model
-    # and its generator so far
-    "--linkv": ("link-lean-first-linkv.txt", "github_com.mit_pdos.etcd_grove.examples.linkv",
+    # the linearizability instance over etcd's client (examples/linkv, D20): its porcupine model,
+    # its generator, `Apply`, `Check` (over the driver's, `@`) and `Main` (over the server's,
+    # v3rpc's and the client's, `@`)
+    "--linkv": ("link-lean-first-linkv.txt",
+                "github_com.mit_pdos.etcd_grove.examples.linkv "
+                "github_com.mit_pdos.etcd_grove.examples.lintest "
+                "github_com.anishathalye.porcupine",
                 "github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions",
                 "The linearizability instance's proofs (`examples/linkv`)", [""]),
+    # the linearizability instance over a three-member cluster (examples/linkv3, D20, D21): its
+    # `startMember` (putget3's, over the server's, `@`) and `Main` (over v3rpc's, the client's
+    # and linkv's `Check`, `@`)
+    "--linkv3": ("link-lean-first-linkv3.txt",
+                 "github_com.mit_pdos.etcd_grove.examples.linkv3 "
+                 "github_com.mit_pdos.etcd_grove.examples.linkv "
+                 "github_com.mit_pdos.etcd_grove.examples.lintest "
+                 "github_com.anishathalye.porcupine",
+                 "github_com.mit_pdos.etcd_grove.examples.linkv3.Assumptions",
+                 "The three-member linearizability instance's proofs (`examples/linkv3`)", [""]),
+    # the linearizability instance over the robustness tester's KV workload (examples/linkvtxn,
+    # notes/linkv-txn-plan.md): its porcupine model (stage E), `Apply` (stage F), its generator,
+    # `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the client's, `@`;
+    # stage G)
+    "--linkvtxn": ("link-lean-first-linkvtxn.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.linkvtxn "
+                   "github_com.mit_pdos.etcd_grove.examples.lintest "
+                   "github_com.anishathalye.porcupine",
+                   "github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions",
+                   "The KV-workload linearizability instance's proofs (`examples/linkvtxn`)", [""]),
+    # the three-member instance under network partitions (examples/linkv3p, notes/partition-plan.md):
+    # its `startMember` (linkv3's plus the member's gRPC server, over the server's, v3rpc's and
+    # grpc's, `@`), `newClient` (over the client's `New`, `@`), `partitioner` (over the server's
+    # `MemberID`/`CutPeer`/`MendPeer`, `@`), `Apply` (over linkvtxn's `Apply`, `@`), `Check` (over
+    # the driver's and linkvtxn's, `@`; notes/linkv3p-txn-plan.md) and `Main`
+    "--linkv3p": ("link-lean-first-linkv3p.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.linkv3p "
+                  "github_com.mit_pdos.etcd_grove.examples.linkvtxn "
+                  "github_com.mit_pdos.etcd_grove.examples.lintest "
+                  "github_com.anishathalye.porcupine",
+                  "github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions",
+                  "The partitioned three-member instance's proofs (`examples/linkv3p`)", [""]),
+    # the watch example (examples/watchkv, D23): its functions, the watch's options, and `Main`
+    # (over the server's, v3rpc's, the client's and `context`'s, `@`)
+    "--watchkv": ("link-lean-first-watchkv.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.watchkv",
+                  "github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions",
+                  "The watch example's proofs (`examples/watchkv`)", [""]),
+    # the cache watch example (examples/cachekv): watchkv's functions, the cache watch's options,
+    # and `Main` (over the server's, v3rpc's, the client's, `context`'s and the cache's, `@`)
+    "--cachekv": ("link-lean-first-cachekv.txt",
+                  "github_com.mit_pdos.etcd_grove.examples.cachekv",
+                  "github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions",
+                  "The cache watch example's proofs (`examples/cachekv`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -283,7 +336,8 @@ if mode is None:
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
-NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv"}
+NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3", "--linkv3p",
+            "--linkvtxn"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None
@@ -297,6 +351,9 @@ root = os.path.normpath(os.path.join(here, ".."))
 # `<last two components>_<fn>`)
 # (`prefix`: the module root of a spec outside `Spec/`, a part's; none now)
 where, prefix, ambiguous = {}, {}, set()
+# every package's spec of a bare `<fn>` (module path, root prefix): an ambiguous bare name in a
+# mode's list is the one of the mode's own packages (below)
+candidates = {}
 for mroot in (mode[4] if cache else [""]):
     spec_dir = os.path.join(root, mroot, "Spec")
     for dp, _, fs in os.walk(spec_dir):
@@ -304,6 +361,8 @@ for mroot in (mode[4] if cache else [""]):
             if f.endswith(".lean"):
                 rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
                 *pkg, stem = rel.split(os.sep)
+                candidates.setdefault(stem, []).append(
+                    (".".join(pkg + [stem]), mroot + "." if mroot else ""))
                 qual = pkg[-1] + "_" + stem
                 if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
                     # the same Go function in a later root (a part's, as the server's
@@ -331,6 +390,15 @@ for mroot in (mode[4] if cache else [""]):
                 where[stem], prefix[stem] = where[qual], prefix[qual]
 for name in ambiguous:
     del where[name]
+# An ambiguous bare `<fn>` in a mode's list (the apply package's `Apply`, which linkv's `Apply`
+# shares) is the function of the mode's own packages (`LEAN_FIRST`'s opens) if exactly one
+# candidate is in one of them: the qualified names stay the only ones elsewhere.
+own_pkgs = set((mode[1] if cache else "").split())
+for name in ambiguous:
+    own = [c for c in candidates.get(name, [])
+           if ".".join(c[0].split(".")[:-1]) in own_pkgs]
+    if len({c[0] for c in own}) == 1:
+        where[name], prefix[name] = own[-1]
 
 
 def spec_file(fn):
@@ -448,6 +516,20 @@ if cache:
         links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
         todo.extend(re.findall(r"^public import (Proof\.\S+\.Link)$", src, re.M))
     here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
+    # an `@` callee's result named, in its Link, by the name `result` gives but in another
+    # namespace than this one's (the client's `v3.clientv3.wp_New`, in `EtcdGrove.client`, called
+    # from linkv's): referred to with that namespace (`client.v3.clientv3.wp_New`)
+    ext_ref = {}
+    for fn in external:
+        mod = external_link(fn)
+        if not os.path.exists(link_file(mod)):
+            continue
+        src = open(link_file(mod)).read()
+        ns = link_namespace(src)
+        rel = ns[len("EtcdGrove."):] if ns.startswith("EtcdGrove.") else ""
+        if (ns != here_ns and rel and result(fn) in re.findall(r"^theorem (\S+)", src, re.M)
+                and not result(fn).startswith(rel + ".")):
+            ext_ref[fn] = f"{rel}.{result(fn)}"
     for fn in fns:
         if fn in external or fn in pending:
             continue
@@ -525,6 +607,8 @@ variable [package_sem : {assumptions}]
         # calling `wp_evalCmp`; `bootstrappedRaft.wp_newRaftNode` calling `wp_newRaftNode`,
         # 2026-10-16) would resolve to the theorem itself: qualify it
         r = result(c)
+        if c in ext_ref:
+            return ext_ref[c]
         if "." in result(fn) and r == result(fn).split(".")[-1]:
             return f"EtcdGrove.{nsd}.{r}" if nsd else f"EtcdGrove.{r}"
         return r

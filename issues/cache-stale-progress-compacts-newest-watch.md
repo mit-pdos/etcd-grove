@@ -1,12 +1,23 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-10-20
+links:
+  - etcd-io/etcd#20221 issue closed: same trigger on the server side (a member switched to by a multi-endpoint client sent progress notifications below the watch's start revision); not the cache's missing check
+  - etcd-io/etcd#20229 pr merged: the server fix of that trigger (progressIfSync sends no progress while rev < w.startRev; backported to 3.5 and 3.6, #20245, #20241), which keeps a fixed etcd from sending the stale progress this finding needs; the demux still accepts one
+  - etcd-io/etcd#20614 pr merged: related (made the demux progress-aware: Broadcast's progress handling, maxRev); no discussion of a progress below minRev
 ---
 
 # A progress notification below the cache's start revision makes a watch "from now" compacted
 
 - **Status**: bug (a wrong result: a spurious `ErrCompacted`), reproduced at the demux level; an
   end-to-end reproduction needs an etcd member that lags behind the one the cache's `Get` read
-  (not attempted). Not reachable with one etcd member: the proof's model.
+  (not attempted). Not reachable with one etcd member: the proof's model. Nor, it appears, with
+  a server that has etcd-io/etcd#20229 (v3.5 and v3.6 backports, and the pin): both progress
+  paths (`RequestProgress`, `v3rpc/watch.go:564`, and the periodic `RequestProgressAll`, 398) go
+  through `progressIfSync`, which sends nothing while `rev < w.startRev`
+  (`server/storage/mvcc/watchable_store.go:528`), so the lagging member sends no progress to the
+  cache's watch from `R + 1` until it reaches it; what remains is the demux's missing check
+  (checked by code reading, 2026-10-20).
 - **Where** (`upamanyus/etcd` `goose-lean` `09669450f`, `cache/`):
   - `cache.go`: `get` (340) reads the prefix and restores the store at the `Get`'s header
     revision `R`; `watch(R + 1)` (348) calls `demux.Init(R + 1)`, which on a fresh demux sets

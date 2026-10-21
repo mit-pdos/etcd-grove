@@ -7,7 +7,9 @@ finding: its upstream state, when it was last checked, and its links.
   --refresh   re-read the state of every linked GitHub issue and PR (open, closed, merged) and
               write it back into the front matter, setting `checked` to today for the files whose
               links were all read. Uses the unauthenticated GitHub API (60 requests an hour) unless
-              $GITHUB_TOKEN is set.
+              $GITHUB_TOKEN is set; each link is read once a run, a merged PR not again (it stays
+              merged), and a file checked today is skipped, so a run cut short by the rate limit
+              is finished by running it again after the limit resets.
   --state S   only the findings in state S (repeatable).
   --check     exit 1 if a file has no front matter or an unknown state.
 """
@@ -19,6 +21,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,18 +64,33 @@ def gh_state(repo, num):
     return "issue", d["state"]
 
 
+SEEN = {}  # (repo, number) -> (kind, state), or None after a failed read
+LIMITED = []  # non-empty once the API refused a request for the rate limit
+
+
 def refresh(path, fm, lines):
     ok = True
     for i in range(1, fm["_end"]):
         m = LINK.match(lines[i])
         if not m:
             continue
-        try:
-            kind, state = gh_state(m.group(2), int(m.group(3)))
-        except Exception as e:  # rate limit, network
-            print(f"{os.path.basename(path)}: {m.group(2)}#{m.group(3)}: {e}", file=sys.stderr)
+        key = (m.group(2), int(m.group(3)))
+        if m.group(5) == "pr" and m.group(7) == "merged":
+            continue
+        if key not in SEEN and LIMITED:
+            SEEN[key] = None
+        if key not in SEEN:
+            try:
+                SEEN[key] = gh_state(*key)
+            except Exception as e:  # rate limit, network
+                SEEN[key] = None
+                if isinstance(e, urllib.error.HTTPError) and e.code in (403, 429):
+                    LIMITED.append(key)
+                print(f"{os.path.basename(path)}: {key[0]}#{key[1]}: {e}", file=sys.stderr)
+        if SEEN[key] is None:
             ok = False
             continue
+        kind, state = SEEN[key]
         lines[i] = "".join([m.group(1), m.group(2), "#", m.group(3), m.group(4), kind, m.group(6),
                             state, m.group(8)])
     if ok:
@@ -102,7 +120,8 @@ def main():
             print(f"{name}: no front matter or unknown state", file=sys.stderr)
             bad += 1
             continue
-        if args.refresh and any(LINK.match(lines[i]) for i in range(1, fm["_end"])):
+        if (args.refresh and fm.get("checked") != datetime.date.today().isoformat()
+                and any(LINK.match(lines[i]) for i in range(1, fm["_end"]))):
             refresh(path, fm, lines)
             fm, lines = parse(path)
         if args.state and fm["upstream"] not in args.state:

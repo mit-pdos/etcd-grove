@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-18
+upstream: known
+checked: 2026-10-20
 links:
+  - etcd-io/raft#243 pr open: fixes this comment ("Fixes incorrect documentation that claimed SnapshotFinish was a no-op"; new text "updates the follower's progress"), inside a breaking v4 change (`ReportSnapshot` takes the applied index, `PendingSnapshot` removed); no review, needs rebase
+  - etcd-io/raft#124 issue open: related, not this bug: the snapshot-handling cleanup #243 implements (`ReportSnapshot` taking the snapshot's index); does not mention the comment
 ---
 
 # raft: `Node.ReportSnapshot`'s comment says `SnapshotFinish` is a no-op; without it a leader can stay paused on a follower forever

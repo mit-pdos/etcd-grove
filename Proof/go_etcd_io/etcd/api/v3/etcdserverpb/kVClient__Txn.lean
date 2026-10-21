@@ -30,7 +30,7 @@ theorem kVClient.Txn.wp_proof
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Txn.spec (GF := GF) (hG := hG) := by
   intro kc conn addr Spec Q ctx cd inp req t opts vs
-  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok⟩
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, Hpre, #Hctx, Hin, #Ht, #Hopts, #Hok⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm #Hsm
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -57,8 +57,7 @@ theorem kVClient.Txn.wp_proof
     ([sm] ++ vs)
   rw [show (pbTxnRequest (GF := GF)).ty = etcdserverpb.TxnRequest.ty from rfl,
     show (pbTxnResponse (GF := GF)).ty = etcdserverpb.TxnResponse.ty from rfl] at hI
-  ihave Hpre' := reqPre_box conn addr _ $$ Hpre
-  wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
+  wp_apply hI $$ [Hsend Hblank Hpre] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
   icases Hin' with ⟨%req', Hin', -⟩

@@ -11369,3 +11369,895 @@ Following the design above, with D21i (A) and D21j. Where it departs from the de
   (`putAuOk_of_box`, `putReplied_mono`), so putget, putget3, `ServerKVPut` and `PutThenGet` keep
   their statements. No axiom or `sorry` changed: D21j restates `grpcInvokerOk`, a definition the
   `Invoke` axiom's promise is stated with.
+
+## T-S: the snapshot path, scope and staging (D22, 2026-10-19 · proposed)
+
+A design pass only (no Lean change); track T-S of D21 ("Later tracks"), D21c (B). Goal: lift D21
+M3's run bound, so that `NewServer.spec` drops `receiptBound ≤ SnapshotCatchUpEntries + 1`,
+`bootOk` drops `"%Hnosnap"` (`γ.reNoSnap = true ∧ γs.cap = 1`), and a cluster member may
+compact its raft log anywhere, send `MsgSnap`s, and install a received snapshot. Go citations at
+the pins: etcd fork `8a24be2a3` (`git -C /shared/etcd show 8a24be2a3:<path>`; `/shared/etcd`'s
+checkout is at `bc8b52a50`, not a descendant of the pin, and `.lake/go-src/etcd` is at
+`0df483bee6`), raft fork `c8217eb9` (`/shared/etcd-raft37-a1`). Constraint (the user): no edit
+to the bbolt proofs (`Proof`/`Spec` under `go_etcd_io/bbolt`); bbolt-level facts become specs or
+axioms at etcd's backend boundary (`server/v3/storage/backend`, `server/v3/storage`).
+
+**What T-S buys, stated plainly.** `putget_safe` and `putget3_safe` already hold for every run of
+their programs: the examples set `SnapshotCatchUpEntries: 1 << 48`, so the run bound follows from
+the receipt bound and is no hypothesis (D21 M3). What T-S changes is *which program* is verified:
+with it, the examples run etcd's defaults (in-memory snapshot every 100 applied entries,
+compaction at `appliedi - 5000`), and the code production runs on every lagging follower --
+raft's `MsgSnap` send and receive, `createMergedSnapshotMessage`, `sendMergedSnap`, the snapshot
+stream, `applySnapshot`'s restore -- is covered instead of configured away. The theorem's
+statement barely moves; its scope does.
+
+### Inventory
+
+Paths under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` (server) and
+`Proof/go_etcd_io/raft/v3/` (P), `Spec/go_etcd_io/raft/v3/` (S) unless said otherwise.
+
+**Raft, sending** (all proved, no `sorry`, no snapshot axiom):
+- `maybeSendSnapshot` (`raft.go:666-690`; P `raft__maybeSendSnapshot.lean:90`, S `:65`): premises
+  `s.gh.ns = false` and `prev.index ≠ 0 ∨ storPast storage 1`. `maybeSendAppend` (`raft.go:618-661`;
+  P `raft__maybeSendAppend.lean:292`) closes both snapshot fallbacks in the mode (`PrOkN`,
+  `LogNsOk`, `storPast_cap` against `NsCap`) and calls `maybeSendSnapshot` outside it. `raft.send`'s
+  `MsgSnap` clause takes `ns = false` (S `raft__send.lean:129-134`).
+- The protocol's `.snap` message (`P/Protocol/GhostState.lean:242-256`): `isLeader src term`,
+  `isSnapMeta`, **the snapshot's last entry in the leader's log at `m.term`** (`leadPrefix`,
+  `plogTermAt … = some logterm`, `lpfull`), `commitIn … m.index m.term`, `isCommitted` of the
+  covered prefix, `dst ≠ src` and both in `reTracked`. `SnapOk` (`P/Protocol/Model.lean:1527`).
+  `raftSnapCert` (`P/SnapConf.lean:147`) and `LogState.ksn` exist and are used by nothing (stage S,
+  2026-10-15, `notes/STATUS.md` "Snapshots at the public API (stage S)"; the on-message variant is
+  on the remote branch `stage-s-msg-extension`, `8fdbfceb4`, not merged).
+- The mode: `RaftNames.reNoSnap` (`P/Protocol/Ghost.lean:317`), `NGhost.ns`/`xf`, `NsLink`
+  (`P/StepGhostMode.lean:241`: **`ns = xf = reNoSnap`**, one flag for "no snapshot" and "no leader
+  transfer", D21 M2r), `isRaftMsg`'s `reNoSnap = true → Type ≠ MsgSnap ∧ SentMsgOk`
+  (`P/InvRawnode.lean:939`), set by `ownRaftGhost_alloc_boot ns` (`P/Protocol/Facts.lean:1622`),
+  the server's `NewServerAlloc.lean:221` with `true`.
+
+**Raft, receiving:**
+- `raft.Step`'s `MsgSnap` branch (`raft.go:1690`, `:1735`; P `raft__Step/MsgSnap.lean:53`),
+  `handleSnapshot` (`raft.go:1837`; P `raft__handleSnapshot.lean:53`), `raft.restore`
+  (`raft.go:1857`; P `raft__restore.lean:245`), `raftLog.restore` (`log.go:466`),
+  `unstable.restore`: proved, with premises `ns = false`, `scfg.Has id` (the `!found` exit
+  undescribed), `SnapScope`, `md.SnapOk`, `isMessage (absSnap …)` (S `raft__Step.lean:525-530`).
+- Not reachable: `netStepTypes` has no `MsgSnap` (`P/InvRawnode.lean:482`); `ownRawNode`,
+  `ownRawNodeReady`, `ownRawNodeIdle` hold `s.logst.snap = none` (`P/InvRawnode.lean:1281`, 19
+  files read it); `readyData`/`RawNode.Ready` give `rd.Snapshot = null` (`P/InvNode.lean:552`,
+  S `RawNode__Ready.lean:102`); `raft.Step` takes `MsgStorageAppendResp` only with no snapshot
+  (S `raft__Step.lean:429`).
+- **Unverified Go on the path** (no spec, not in `etc/link-lean-first-raft.txt`):
+  `raft.appliedSnap` (`raft.go:766`), `raftLog.stableSnapTo` (`log.go:369`),
+  `unstable.stableSnapTo` (`log_unstable.go:185`); `readyWithoutAccept` (`rawnode.go:139`) and
+  `acceptReady` (`:400`) with a snapshot in progress.
+- `MemoryStorage`: `ApplySnapshot` (premise `index ≤ γs.cap`, and it needs `ownMemoryStorage`,
+  which raft's `ownRaftLog` holds: no handout exists for it, unlike `Append`'s
+  `Hhandout`/`Habsorb`, `P/InvStorage.lean:494-496`), `Compact` (`ci ≤ γs.cap`, the application's
+  `memSnapTok`/`memFloorTok`), `CreateSnapshot`, `Snapshot`: proved. `ReportSnapshot`/
+  `MsgSnapStatus`: proved (`P/RawNode__ReportSnapshot.lean:39`, `stepLeader/Rest.lean:334`,
+  server `EtcdServer__ReportSnapshot.lean:27`).
+
+**etcd, the trigger** (`server.go:1220-1237`, `2088-2174`): `snapshotIfNeededAndCompactRaftLog`,
+`shouldSnapshotToDisk`/`ToMemory` proved; `EtcdServer.snapshot` and `compactRaftLog` axioms
+(names-only), the latter restated in M3 with `(if scu < snapi then snapi - scu else 1) ≤ γs.cap`
+and silent on the `inflightSnapshots` skip (`:2150`); the cap discharged through `srvWTPool`/
+`srvWTAt` (`InvApplier.lean:647-740`: `ai < receiptBound ≤ scu + 1`). `srvSnapState`
+(`InvApplyAll.lean:93`) at `sl = 0`.
+
+**etcd, the sender:** `applyAll`'s `msgSnapC` receive (`server.go:1002-1009`) translated, dead
+(`#Hnosnap`, `srvMsgSnapC_false`, `InvBuild.lean:162`); `processMessages`' `MsgSnap` branch
+(`raft.go:374-384`, the 16-slot `msgSnapC`) proved. `createMergedSnapshotMessage`
+(`snapshot_merge.go:32-80`: `KV().Commit()`, `be.Snapshot()`, a goroutine streaming it through an
+`io.Pipe` that panics on a failed close, `ConfState` cloned, `m.Snapshot` **overwritten** with
+`(ep.appliedi, ep.appliedt, ep.confState)`) and `sendMergedSnap` (`server.go:1854-1892`:
+`inflightSnapshots`, `transport.SendSnapshot`, a `GoAttach` goroutine releasing the count after
+`CloseNotify` and `releaseDelayAfterSnapshot = 30s`): names-only, no spec since D19p (they were the
+`True`-postcondition axioms of `aac0122b4b`, removed in `4b2744b8a5`).
+
+**etcd, the receiver:**
+- `raftNode.start`'s snapshot branch (`raft.go:219-283`: `proto.Clone`, `storage.SaveSnap`,
+  `storage.Sync`, `notifyc`, `raftStorage.ApplySnapshot` with its error ignored,
+  `storage.Release`): translated, proved only at `rd.Snapshot = null` (`raftNode__start.lean:158`,
+  `410-437`).
+- `applySnapshot` (`server.go:1011-1159`): translated; spec and proof only for the empty snapshot
+  (`Spec/…/EtcdServer__applySnapshot.lean`, `taSnapshotAddr ap ↦□ null`). Its body: panic if the
+  snapshot index `≤ ep.appliedi`; `<-notifyc`; `bemu.Lock`; `storage.OpenSnapshotBackend`
+  (`server/storage/backend.go:63-72`: `Snapshotter.DBFilePath`, `os.Rename` onto the backend path,
+  `OpenBackend` -> `newBackend`, a goroutine and a 10 s timer); `consistIndex.SetBackend`;
+  `lessor.Recover` (`lease/lessor.go:600`); `kv.Restore` (`mvcc/watchable_store.go:207`, which
+  moves every synced watcher to unsynced with `restore = true`, -> `store.Restore`,
+  `mvcc/kvstore.go:292-314`: **closes `stopc` and stops the FIFO scheduler**, a new tree index and
+  scheduler, `restore()` of a backend *with data*); `SetTxPostLockInsideApplyHook`; the swap
+  `s.be = newbe` (under `bemu`, already a reader-slot `RWMutex` with `s.be` in its invariant,
+  `InvApplyAll.lean:57-65`); `oldbe.Close()` in a goroutine; `restoreAlarms`; `authStore.Recover`
+  (`auth/store.go:396`); `cluster.SetBackend`/`Recover` (`membership/cluster.go:247-302`:
+  `UnsafeLoad`, `MustDetectDowngrade`); `transport.RemoveAllPeers` and `AddPeer` per member;
+  `ep` reset to the snapshot; `NewUberApplier`.
+- Status of the callees: `consistIndex.SetBackend`, `backend.Close`, `restoreAlarms` proved;
+  `watchableStore.Restore` translated, no spec; `store.Restore`, `lessor.Recover`,
+  `authStore.Recover`, `RaftCluster.SetBackend`/`Recover`, `Transport.RemoveAllPeers`,
+  `OpenSnapshotBackend`/`OpenBackend` names-only, no spec; `mvcc.store.restore` an axiom for an
+  **empty** key bucket under `backendNoCompaction` (D19l (v) (B)); `AddPeer`/`AddRemote` axioms.
+- **The backend model** reads one bucket: `isKeyBackendG` (`storage/mvcc/InvStore.lean:992`), the
+  rest opaque premises of `NewServer.spec` about the data directory at startup: `bkFresh`
+  (lease/auth buckets empty, `InvBoot.lean:97`), `backendNoCompaction` (`InvStore.lean:210`),
+  `backendUnderQuota` (`apply/Contracts.lean:520`). `backend.Snapshot()` (`backend.go:381`) and
+  the `Snapshot` interface (`WriteTo`, `:86-90`) are not translated; `newBackend`/`New` are proved
+  from `fileHolds cfg.Path D` (an axiom-level predicate of the bbolt boundary,
+  `InvBbolt.lean:89`).
+- **The KV invariant:** `kvInv` (`InvRequest.lean:1195`, the cluster's since M4: raft's `srvRLog`,
+  the KV state as `kvModel` of the log), each apply thread's `kvApplied` (`:1344`, `srvRLogLb A`,
+  `x.log = kvModel A`) and `appliedLogAt` (`:1552`), `loopOk` (`InvApplier.lean:98`, the
+  consistent index's `ciEff`). Nothing relates a store installed from a snapshot.
+
+**The transport:** `rafthttp` and `snap` are names-only (`translate = ["!*"]`). `Net.lean`
+(`api/rafthttp/Net.lean`) is generic in the payload; `netTransport` has `Send`/`Stop`, no
+`SendSnapshot`; the snapshot handler (`rafthttp/http.go:208-330`: decode the envelope, refuse a
+non-`MsgSnap`, `Snapshotter.SaveDBFrom` -- temp file, fsync, rename to `<index>.snap.db`, **keeping
+an existing file of that index** (`snap/db.go:37-90`) -- then `Process`); `snapshotSender.send`
+(`snapshot_sender.go:66-140`: `ReportSnapshot(Failure|Finish)`, `CloseWithError`);
+`Transport.SendSnapshot` (`transport.go:409-418`: a missing peer closes the message with
+`errMemberNotFound`). `ReleaseSnapDBs` (`snap/snapshotter.go:45-70`, from `storage.Release`)
+removes only `.snap.db` files *below* the released index, so a file `applySnapshot` will open is
+never removed under it.
+
+### Findings
+
+1. **A Go bug, filed:** `issues/etcd-quota-stale-backend-after-snapshot.md`. The gRPC quota servers
+   (`v3rpc/quota.go:53-95`) capture `s.Backend()` at construction; `applySnapshot` swaps `s.be`
+   and closes the old backend, whose `Size()` is then frozen. If the old db was over the quota,
+   every write through the member re-raises NOSPACE for the whole cluster until it restarts, through
+   the documented recovery (compact, defragment, disarm). Reproduced by an integration test at the
+   pin; the fix (read `s.Backend()` per check) passes it. For the proof: D22g.
+2. **etcd's merged snapshot is not raft's `.snap` message.** `createMergedSnapshotMessage`
+   overwrites the snapshot raft produced (the storage's, at the last memory snapshot `i0`) with
+   `(ep.appliedi, ep.appliedt, ep.confState)` of the apply thread, `appliedi ≥ i0`. The receiver's
+   raft restores that, and its `MsgAppResp` acknowledges `appliedi`. Two consequences:
+   - the protocol clause's "last entry in the leader's log at `m.term`" is not what the apply
+     thread knows: it knows its applied prefix is committed, not that the raft node is still leader
+     at `m.term`;
+   - **it can be false**: `msgSnapC` holds up to 16 messages and `applyAll` takes one per batch,
+     so a `MsgSnap` of term `T` can be taken after the member has stepped down and applied entries
+     committed by a later leader of term `T' > T`. The merged message then has `Term = T` and a
+     snapshot whose last term is `T'`. A receiver at term `≤ T` restores it and holds a log whose
+     last term is greater than its current term. Not a safety bug (by code reading): a quorum
+     acknowledged an entry of term `≥ T'`, so its members have terms `≥ T'` and refuse any vote
+     below `T'`, and the receiver cannot lead before `T'`; a stale `MsgApp` of term `T` cannot
+     match at the snapshot's index (its `LogTerm ≤ T < T'`). Not filed. But the proof must state
+     the `.snap` clause so that it holds of this message (D22a), and S-0 must check that no protocol
+     invariant assumes "a node's last log term is at most its term".
+3. **`store.Restore` stops the store's scheduler**, which needs the stop token D19m (C) gave up at
+   `NewStore`'s success (`isStore` holds `isFifo` without `schedLive`; the closer `storeCloser` is
+   dropped by `NewServer`). D22d.
+4. **The single mode flag.** `NsLink` makes "no snapshot" and "no leader transfer" one flag
+   (`reNoSnap`); lifting the first must not lift the second (etcd still needs `MsgTimeoutNow`
+   excluded, D21 M0), and `SentMsgOk` (what the receiver's `NetMsgOk` comes from) is given only
+   under `reNoSnap = true`. Stage S-a splits it.
+5. **The applied index jumps.** After an install, `ep.appliedi = snapi` without this member's apply
+   pool having paid a token per covered entry, so `srvWTAt`'s "`ai ≤` tokens taken" fails. What
+   it bounds besides M3's cap (revision and counter overflow, D19b) needs a cluster-level source:
+   the committed log's length (`rnLogFits`, D19b stage 5). D22h.
+6. **The backend's other buckets.** The receiver reads, from the image, the `meta` bucket
+   (consistent index and term, the confState, the compaction keys, the storage version), `lease`
+   (`lessor.Recover`), `auth*` (`authStore.Recover`), `members`/`members_removed`/`cluster`
+   (`cluster.Recover`), `alarm` (`restoreAlarms`). Today these are opaque premises *about the
+   data directory at startup* (`bkFresh`, `backendNoCompaction`, `backendUnderQuota`); a received
+   image is produced by the program, so they must be derived, not assumed (D19a). D22c.
+7. Liveness only, not filed (as D21's): `raftStorage.ApplySnapshot`'s error is ignored
+   (`raft.go:277`; unreachable: the storage's snapshot index is at most the applied index, below
+   the incoming one); a stale merged snapshot whose file another sender's `SaveDBFrom` already
+   wrote at the same index is dropped in favour of the first (`db.go`'s exists branch), harmless
+   since both are the state at that committed index.
+
+### Decisions
+
+**D22a. The `.snap` message's content.**
+- *(A) Split the clause: an envelope and a content certificate.* The envelope: `isLeader src
+  m.term`, `src ≠ 0`, `dst ≠ src`, the tracked bound (what `stepFollower` reads: `lead = m.From`).
+  The content: `isCommitted` of a prefix ending at `(index, logterm)` and the configuration's
+  certificate (`raftSnapCert`, A3) -- no leader prefix, no `commitIn` at `m.term`. raft's sender
+  builds both (it has them); an application that applied a committed prefix mints the content
+  (`snapContent_mint`, from `kvApplied`'s `srvRLogLb` and raft's committed records) and replaces a
+  message's content with it (`isMessage_snap_recontent`). The receiving `raft.Step` keeps its proof
+  shape if the leader-prefix fact was only used to derive `isCommitted` (S-0 checks; the protocol's
+  restore step, `StepC.snap*`, and `ownRaftGhost_step_snap*` read what?).
+- *(B) A fork fix that drops a stale merged snapshot* (`applyAll` sends only when `ep.appliedt ≤
+  m.Term` and the member is still leader): racy (leadership can end after the check) and not
+  sufficient (an applied entry of term `≤ T` may still be missing from the leader of `T`'s log,
+  the Figure 8 shape), so (A) is needed anyway.
+- *(C) Keep raft's snapshot metadata* (no rewrite): changes etcd's protocol (the db image is at
+  `appliedi`, not `i0`); no.
+- *Recommendation:* (A), checked first by S-0.
+
+**D22b. The certificate's carrier** (stage S's open "Left" 1).
+- *(A) On the message*, as `stage-s-msg-extension` did (`Msg` gains the lists, `isMessage`'s
+  `.snap` carries `raftSnapCert`), restated per D22a (A).
+- *(B) Local to `RawNode`* (`ownRawNode` holds the certificates of `ksn`, `Ready` hands one out
+  with each `MsgSnap`). With etcd's rewrite, the content the receiver gets is the server's, not
+  `ksn`'s: a raft-local certificate of `i0` says nothing about `appliedi`, so the server would
+  need the on-message form anyway.
+- *Recommendation:* (A). It reverses the integration session's 2026-10-15 preference (avoid
+  touching `Msg`/`isMessage`/`ownRaftGhost` when a local route exists), because for etcd no local
+  route exists; asked of the user for that reason.
+
+**D22c. What the image certificate says about the backend.**
+- *(A) The key and meta buckets modeled, the rest by determinism.* `dbImage γ i D`: `D`'s key view
+  is `kvModel` of the committed prefix of length `i` (with its compaction: D19l (v) (A), the meta
+  bucket's compaction keys modeled), `D`'s consistent index and term are `i` and its term, its
+  confState the static configuration; the other buckets are `bkRestAt i` -- the value every
+  member's backend has at consistent index `i`, one trust-boundary axiom at the backend (the
+  apply path writes those buckets as a function of the applied entries) under which the
+  `Recover` axioms are stated, plus the facts `bkFresh` gave for putget's workload (no lease or
+  auth writes: from the workload, as `noGrant`).
+- *(B) Model every bucket the `Recover`s read* (lease, auth, members, cluster version, alarm,
+  downgrade): faithful, large (four packages' backend contracts).
+- *(C) Opaque premises per received image:* not of D19a's kinds (a fact about the program's own
+  state); rejected.
+- *Recommendation:* (A); (B) piecewise when a package's proofs need it.
+
+**D22d. The store's stop token for `Restore`.**
+- *(A) The apply thread keeps `storeCloser`* (`NewServer` stops dropping it): `Restore` takes it,
+  stops the old scheduler, and returns a new one for the new scheduler (`store.Restore`
+  translated and proved; it is short); the compaction right (`compactRight`, `compactQueue`) is
+  re-made from it as at `NewStore`.
+- *(B) `store.Restore` an axiom over `isFifo` only*: hides a real ownership transfer (a compaction
+  job of the old scheduler running against the new backend is what Go's `Stop` prevents).
+- *Recommendation:* (A).
+
+**D22e. A cheaper intermediate first?** The run bound cannot be weakened short of T-S: compaction
+past a lagging follower forces a `MsgSnap` (raft cannot know the follower is merely delayed), so
+"compaction on, snapshots off" is not a reachable mode, and a bound on the followers' lag is not
+of D19a's kinds; "the server's trigger off" buys nothing, since the in-memory snapshot ignores
+`SnapshotCount` (D21 M0). The intermediate worth having is on raft's side:
+- *(A) Raft's snapshot path end to end on `examples/kv` first* (stage S-r): the store's Go code
+  compacts its raft log every `K` entries and puts its map, encoded, in the snapshot's `Data`;
+  `kv_porcupine_safe` keeps its statement with snapshots live. It exercises S-b..S-d with a
+  trivial application state, gives a closed theorem with raft's `MsgSnap` verified before any
+  backend work, and de-risks D22a/b. Cost: a Go change in the example and its proofs (medium).
+- *(B) Straight to etcd*: S-b..S-d tested only through putget3, after the server stages.
+- *(C) Stop at M3's bound* (T-S later): nothing new verified.
+- *Recommendation:* (A), in parallel with the server stages S-f..S-i (it gates nothing).
+
+**D22f. putget3's configuration after T-S.** *(A) etcd's defaults* (`SnapshotCatchUpEntries`
+`5000`, memory snapshot every `100`), the point of the track; *(B) a small value* (e.g. `5`) so
+that snapshots happen in short runs (the theorem does not care; tests would). *Recommendation:*
+(A) in putget3; (B) only in a test configuration.
+
+**D22g. The stale quota (finding 1).**
+- *(A) Fix in the fork* (the quota reads `s.Backend()` per check; the issue's patch) and verify
+  the fixed code: the quota's contract is over the current backend.
+- *(B) Keep upstream's code*: the quota's contract (`apply.isQuota`, D19j's `quotaAlarmer`) is
+  over the backend captured at construction, closed or not (`Size()` of a closed backend is its
+  last value); a refusal is an error path the request specs already allow, and the opaque
+  `backendUnderQuota` must then speak of every backend a member opens or captured.
+- *Recommendation:* (A), the fork's practice for reproduced bugs (`raft-stale-term-…`, D21c′), if
+  the user agrees to carry it; else (B).
+
+**D22h. The applied index after a jump.**
+- *(A) A cluster-level bound*: `srvWTAt` replaced, where it bounds anything but M3's cap, by the
+  committed log's length bound (`rnLogFits`) and a per-entry receipt of the proposer (the
+  revision grows by at most one per committed entry, whoever applies it).
+- *(B) Snapshot-carried tokens* (the sender passes the covered entries' tokens): there are none to
+  pass (every member applies every entry with its own tokens).
+- *Recommendation:* (A), its exact form from S-0's list of `srvWTPool`'s users.
+
+**D22i. The mode flag** (finding 4). *(A) Split* `reNoSnap` into `reNoXfer` (no leader transfer,
+`SentMsgOk`; on for the server) and `reNoSnap` (no snapshot, the cap; off after T-S), `NsLink`
+into two links. *(B) Drop the no-transfer mode* and give `MsgTimeoutNow` a tick credit (the
+register's budget). *Recommendation:* (A): mechanical, and etcd never transfers in the runs
+covered.
+
+### Stages
+
+Each small enough for one agent; dependencies in brackets.
+
+- **S-0. Pen-and-paper check** [none; no Lean]: (1) D22a (A) against the receiving raft's proof
+  (which uses of the leader-prefix and `commitIn` in the `.snap` ghost steps survive), and whether
+  any protocol invariant assumes "last log term `≤` term" (finding 2's stale case); (2) the sender's
+  facts at the `msgSnapC` receive: the applied prefix committed, `ep.appliedt` its last term,
+  `ep.confState` the static configuration, the db's consistent index `= ep.appliedi` after
+  `KV().Commit()` (`applyEntryNormal`'s deferred `SetConsistentIndex`); (3) which entries write the
+  buckets of finding 6 (D22c (A)'s determinism claim); (4) `srvWTPool`'s users (D22h); (5) the
+  holders of a backend across the swap (`s.Backend()` callers, the quota, the hooks), with
+  finding 1 as the one found so far. Output: a note, amendments to the stages.
+- **S-a. Split the mode flag** [none; parallel with S-0]: D22i (A). Raft (`Protocol/Ghost`,
+  `StepGhostMode`, `InvRawnode`, `RawNode__Bootstrap`, the allocation) and the server's `bootOk`/
+  `InvBuild`. Small. Trust base unchanged.
+- **S-b. The `.snap` message restated, its certificate on the message** [S-0]: D22a (A), D22b
+  (A): the protocol clause, raft's sender (`maybeSendSnapshot`'s ghost step), the receiver's
+  `raft.Step` premises derived from the message (`SnapScope`, `md.SnapOk`), the minting and
+  re-content lemmas for an application. Raft files. Medium. Unchanged trust base.
+- **S-c. `MsgSnap` at `RawNode.Step`/`node.Step`** [S-b] (stage S2): `netStepTypes`, `NetMsgOk`
+  for `MsgSnap`, a pending snapshot in `ownRawNode` (the 19 files reading `Hsnap`), `node.Step`'s
+  `netP`; `SentMsgOk` for `MsgSnap` (under `reNoXfer`). Medium-large. Unchanged.
+- **S-d. A pending snapshot through `Ready`/`Advance`** [S-c] (stage S3): `appliedSnap`,
+  `stableSnapTo` (both), `MsgStorageAppendResp`'s snapshot arm, `readyWithoutAccept`/
+  `acceptReady` with a snapshot in progress; `readyData` with `rd.Snapshot ≠ null` handing out the
+  content certificate; `RNState`'s delivered/applied jump; a handout protocol for the
+  application's `MemoryStorage.ApplySnapshot` while raft holds the storage (beside
+  `Hhandout`/`Habsorb`); `MemoryStorage`'s cap at `2^64` outside the mode. Large. Unchanged.
+- **S-r. `examples/kv` with snapshots** [S-d] (D22e (A); optional): Go change in the example,
+  its proofs, `kv_porcupine_safe` unchanged in statement. Medium. Unchanged (the example's own
+  code).
+- **S-f. The backend boundary** [S-0; parallel with S-b..S-d]: `backend.Snapshot()` and
+  `snapshot.WriteTo` (axioms: the image written is the backend's committed state, as
+  `fileHolds`'s abstract state), `storage.OpenSnapshotBackend` translated with its body over
+  `Snapshotter.DBFilePath` and `os.Rename` (axioms here; `OpenBackend`'s goroutine and timer
+  translated if Perennial's `time.After` suffices, else one axiom for `OpenBackend`), `newBackend`
+  proved already; the `dbImage` certificate of D22c (A) and `bkRestAt`. Server and `storage`
+  files only, no bbolt file. Medium. **+3 to +5 axioms.**
+- **S-g. The store's restore with data** [S-0, S-f's `dbImage`]: D19l (v) (A) (the compaction
+  keys in the backend contract, `backendNoCompaction` from the model instead of an opaque
+  premise), `mvcc.store.restore` restated for a key bucket with data (the index rebuilt, the
+  compaction finished or rescheduled), `store.Restore` translated and proved under D22d (A),
+  `watchableStore.Restore` proved (watchers to unsynced with `restore = true`, against the watch
+  invariants: `InvWatchSync`, the client's `isClientWatcher`). mvcc files. Medium-large. **0 net**
+  (`restore` restated, one opaque premise fewer).
+- **S-h. The sender** [S-b, S-f, S-i]: `createMergedSnapshotMessage` and `newSnapshotReaderCloser`
+  translated and proved (the merged content minted from the apply thread's `kvApplied`, the image
+  from `KV().Commit()` and `Snapshot`), `sendMergedSnap` translated and proved (the
+  `inflightSnapshots` count, the release goroutine), `compactRaftLog`'s contract restated with the
+  inflight skip and no cap, `applyAll`'s `msgSnapC` branch live (the message bundle from raft, as
+  `srvMsgNet`). Server files. Medium. **+2 to +4 axioms** (`snap.NewMessage`/`CloseNotify` unless
+  `snap/message.go` is translated, `io.Pipe` unless Perennial models it); the two removed in D19p
+  come back as *proved*.
+- **S-i. The snapshot stream in the network contract** [S-0; parallel]: D21b's contract extended:
+  `netTransport` gains `SendSnapshot` (in `Transport.Start`'s restated postcondition: a merged
+  message whose payload is a `.snap` with its content certificate and whose reader streams an
+  image with `dbImage`); the receiver's snapshot directory as a ghost map, written by the
+  transport before it calls `Process(MsgSnap)` (`SaveDBFrom`'s order, `http.go:279-330`), read by
+  `OpenSnapshotBackend`; `ReportSnapshot` at any time (proved); `Snapshotter` at `bootstrap`.
+  `api/rafthttp/Net.lean`, the transport axioms. Small-medium. **0 new declarations**
+  (`Start` restated), +1 if `Snapshotter`'s constructor needs one.
+- **S-j. The receiver** [S-d, S-f, S-g, S-i]: `raftNode.start`'s snapshot branch (`SaveSnap`,
+  `Sync`, `Release` of the WAL storage: axioms unless already there; `raftStorage.ApplySnapshot`
+  through S-d's handout), `applySnapshot` past the empty case: the backend swap under `bemu`'s
+  writer side, `consistIndex.SetBackend` (proved), `lessor.Recover`, `authStore.Recover`,
+  `cluster.SetBackend`/`Recover` (axioms under `bkRestAt`; `rcLockInv`'s empty removed map and
+  `localKept` from the image), `kv.Restore` (S-g), `oldbe.Close` in a goroutine (the old
+  backend's closer, which the server must keep), `restoreAlarms` (proved), `RemoveAllPeers`
+  (axiom; the transport's peer set re-made) and the `AddPeer` loop, `NewUberApplier` (proved);
+  the member's share of `kvInv` and `loopOk` re-established at `snapi`, D22h's bound. Large;
+  splits into S-j1 (`raftNode.start` and the hand-off) and S-j2 (`applySnapshot`) if needed.
+  **+6 to +8 axioms** (`lessor.Recover`, `authStore.Recover`, `RaftCluster.SetBackend`,
+  `RaftCluster.Recover`, `Transport.RemoveAllPeers`, the WAL's `SaveSnap`/`Sync`/`Release` as
+  needed).
+- **S-k. The quota after the swap** [S-0; with S-j]: D22g, (A) a fork commit and re-translation,
+  or (B) `isQuota` restated over the captured backend. Small. 0 net.
+- **S-l. Lifting the bound** [S-a..S-k but S-r]: `bootOk` without `"%Hnosnap"` (cluster at
+  `reNoSnap = false`, `γs.cap = 2^64`), `NewServer.spec` without `receiptBound ≤
+  SnapshotCatchUpEntries + 1`, `isServerApplyAll` without `scu`'s bound, `srvMsgSnapC_false` gone,
+  putget/putget3 at etcd's defaults (D22f (A)), their closed theorems re-checked
+  (`etc/tcb-collections/putget3.txt`). Small-medium. 0 axioms; `compactRaftLog`/`snapshot`
+  restated.
+
+Parallelism: S-0 and S-a at once; then the raft chain S-b -> S-c -> S-d (-> S-r) alongside the
+server's S-f, S-g, S-i (disjoint files: raft, backend/storage, mvcc, rafthttp); S-h after S-b,
+S-f, S-i; S-j after S-d, S-f, S-g, S-i; S-k with S-j; S-l last. Track it with a collection
+`etc/tcb-collections/snapshot.txt` (roots: `applySnapshot`, `createMergedSnapshotMessage`,
+`sendMergedSnap`, `raft__Step`, the RawNode `Ready`/`Step`).
+
+**Trust base (estimate).** Added: about 11 to 17 trust-boundary axioms (S-f 3-5, S-h 2-4, S-i 0-1,
+S-j 6-8), more than D21's "about eight" because `OpenSnapshotBackend`'s and the merged message's
+callees are counted one by one and the WAL storage's snapshot calls are new. Restated:
+`Transport.Start` (the snapshot stream), `compactRaftLog`, `EtcdServer.snapshot`,
+`mvcc.store.restore`, `isQuota` under D22g (B). Removed as premises: `backendNoCompaction` (S-g),
+the run bound (S-l). Proved again: `createMergedSnapshotMessage`, `sendMergedSnap` (removed as
+false `True`-postcondition axioms in D19p). The raft stages add nothing.
+
+**What the collaborator's bbolt work could discharge later** (each stated here as an axiom at the
+backend boundary, none touching `Proof`/`Spec` under `go_etcd_io/bbolt`): `backend.Snapshot()`'s
+read transaction sees the committed state (bbolt's `DB.Begin(false)` isolation); `WriteTo`'s
+bytes are an image of that state (bbolt's `Tx.WriteTo`); opening a file holding such an image
+gives a database with the same state (`bolt.Open` of `Tx.WriteTo`'s output: the `fileHolds`
+round trip, `newBackend`'s premise); closing the old backend while its read transactions finish
+(`DB.Close`). `os.Rename` keeping `fileHolds` is a file-system fact, not bbolt's.
+
+*Asked of the user:* D22a-i (recommendations: (A) each; D22b (A) reverses the 2026-10-15
+preference for the local route, for the reason given; D22g (A) adds a fork commit), and whether
+S-r (D22e (A)) is wanted before the server stages finish.
+
+## D23: watchkv's watch path: the workload record, the watch run slots, the plan fixed at start (2026-10-20)
+
+**Problem.** `watch_safe` (the closed theorem of `examples/watchkv`: a prefix watch from revision
+1 over one member, writer goroutines, a check that the watched events are exactly the writes)
+stopped on three findings (STATUS, "watchkv"): (1) nothing produced the watch service's run slot
+(`v3rpc.watchRunSlot`: two watchable-store readers, an auth reader, a reader slot of v3rpc's
+`progressReportIntervalMu`); (2) `srvNoDupKeys` (no key twice in a revision of a sealed log) was
+not derivable from anything a program can choose; (3) the checks "every event a put", "gap-free
+from 2" and "each event a Put some writer tried" need every revision of the log to be one of the
+writers' Puts. The user chose (ii): fix 1, add a workload record for 2, keep all four checks.
+
+**Options.** (1) The interval mutex's reader slots: (a) passed from v3rpc's initializer to the
+program's `Main` (every program's generated `Init.lean`/`PkgTable.lean` would change, as would
+the initializers' output shape); (b) pooled in v3rpc's package fact, borrowed by a thread for the
+length of one `GetProgressReportInterval` call against its thread token. (2) The record: (a) a
+server-side log of which client operation each committed entry carries (new ghost state in the
+apply path); (b) a predicate on operations in the server's workload (`SrvWorkload`, D19q), which
+every client deposit must satisfy and which the KV invariant's committed log then obeys. (3) The
+"tried" check: (a) the writers' Puts recorded as they go (the plan then grows during the run, not
+known to the workload at allocation); (b) all the Puts picked before the member starts.
+
+**Choice.** (1b): `v3rpc.intervalPool` (`v3rpc/BaseWatch.lean`): `k` reader slots, `d` loaned
+against `threadToks d` (`ownTokAuth`), `k + d = actualMaxReaders`; the generated v3rpc
+`Init.lean` allocates it (`etc/gen-init.py`'s v3rpc entry, its only regenerated file);
+`GetProgressReportInterval.spec` takes and returns the caller's `threadTok` and needs
+`threadBound ≤ actualMaxReaders` (`2 ^ 30 - 1`): so `watch_safe`'s execution bound is `2 ^ 29`.
+`NewServer.spec` exports 64 watch readers (`srvWatchReaders`). (2b): `SrvWorkload.writes : KVOp →
+Prop` with `admits_write` (a write request is admitted when its op satisfies `writes`; `admits_kv`
+removed); `kvOpAu`/`kvOpAu1` carry `⌜writes op⌝`; `putgetWorkload.writes := True` (every existing
+instance's behaviour unchanged, every closed theorem's statement unchanged); the clients' model's
+`srvStep` is certified (`certOk`), and `srvNoDupKeys` is stated over certified sealed logs (a
+fupd), which `srvNoDupKeys_wk` derives for watchkv's workload (`workload P`: puts of a pair of `P`,
+no lease, no flags) through `wk_log` (`kv_cert_read`: a certified log is the KV model of a
+committed prefix, whose entries the workload restricts). (3b): `genAll` picks every Put before the
+member starts, so `P = tried.map pairOf` is known when the cluster's ghost state is allocated
+(`watchkv_alloc`). The Go program calls `cli.Watcher.Watch` (the method `cli.Watch` promotes,
+through the embedded field: no client translation change) in a `WithCancel(Background())` context
+(cancelled after `collect`): `isEtcdWatcher` needs `isContext`, which `Background()`'s value has
+no lemma for. Premises kept explicit: `noRetryableStreamErr` (in `watchkv.premises`) and
+`EofOkFromIoInit` (marked as putget's `EofFromIoInit`).
+
+## Trusted initializers: `TrustedCode/`, no-op models for untranslated variable initializers (2026-10-20)
+
+*The decision.* An untranslated package-variable initializer or `func init()` whose readers are
+all untranslated is a goose `trusted` declaration with a hand-written model in
+`TrustedCode/<pkg>.lean` (as Perennial's `Perennial/TrustedCode`, `948699d06`: a trusted
+variable's `X.init` is its whole initialization, allocation included, and a trusted function's
+`X.impl` unfolds through the package's `Assumptions`), not an axiom of the translation with a
+trust-boundary axiom (`opaqueInitsOk`, `initFuncsOk`) saying it returns. The model does nothing
+when Perennial's criterion holds (`errors.errorType`, `log.std`): Go's initializer cannot panic,
+no translated code reads the variable, and a translated reader could not load it (no fact gives
+a points-to for it). Where goose can translate the real initializer cheaply, it is translated
+instead (raftpb's `file_raft_proto_goTypes`, `_depIdxs`), the trust ladder's higher rung.
+
+*Why.* The axioms said only "this returns", about uninterpreted constants; the model says what
+the code does as far as any proof can observe, it is reviewable (each docstring quotes the Go
+and says why the no-op is faithful), and `etc/gen-init.py` steps through it (`wp_call`), so a
+package's init proof rests on no axiom of its own. A no-op is less faithful than translating
+when a translated reader exists; then the rung is translating (or a model that allocates and
+the fact gives the cell, as `os.Stderr_init` states today).
+
+*Where.* Done for raftpb and protobuf-go's `proto`, `protoreflect` and `internal/impl` (the six
+init axioms of the kv adequacy theorem on this repository's translations). `os` and `strconv`
+are Perennial's names-only translations: their four axioms (`os.opaqueInitsOk`,
+`os.initFuncsOk`, `os.Stderr_init`, `strconv.opaqueInitsOk`) go by a Perennial change
+(translating `strconv`'s tables and errors, trusted models for `os` with `Stderr`'s), which also
+moves `os`'s fact out of raft's `Base.lean`: deferred (2026-10-20, the user's choice) because
+it rebuilds everything and touches a file every raft proof imports. The other packages'
+`opaqueInitsOk` (etcd's server, its dependencies; putget's and linkv's trust bases) can follow
+the same scheme package by package.
+
+## D19r (E) discharged: `io`'s and `context`'s facts keep `EOF` and `closedchan` (2026-10-20)
+
+The closed theorems took three marked hypotheses, false under the Perennial pin `e81f4a6ce`
+(D19r, (E)): `EofFromIoInit` (`isPkgInit io ⊢ v3rpc.eofVar`), `ClosedchanFromContextInit`
+(`isPkgInit context ⊢ context.isClosedchanInit`) and watchkv's `EofOkFromIoInit`
+(`isPkgInit io ⊢ client.eofOk`). The Perennial change, general and proposed on its own (branch
+`init-facts`: `io.isInit` keeps its nine `errors.New` variables as `errors.newVar X msg`, a
+persistent points-to of a fixed `*errorString` whose `Error()` returns `msg`; `context.isInit`
+keeps `isClosedchanInit`, allocated by the initializer once it closes the channel), makes them
+theorems, and they are deleted rather than kept as proved Props:
+
+- `context.isClosedchanInit_of_init` (Perennial's) holds outright, so `Main.spec` loses the
+  premise.
+- `io.eof_of_init` gives `EOF`'s value with its message, not the method-set facts `eofVar` and
+  `eofOk` state (leaf, no `Is`, no `GRPCStatus`, in `error`'s type set): those are about method
+  sets, which the semantics leaves uninterpreted, so they stay the classes they already were
+  (`ErrorStringLeaf`, `ErrorStringNoGRPCStatus`, `context.ErrorStringIsError`), hypotheses of every
+  closed theorem already. `v3rpc.eofVar_of_init` and `client.eofOk_of_init` derive the facts
+  from `io`'s package fact under those classes, and each `Main.spec` takes the classes in place of
+  the Prop. A Prop premise in `Main.spec` would be more general (it is implied by the classes),
+  but nothing is gained by it: the only caller is the closed theorem, which has the classes.
+- The `isClosedchanInit` variant of `etc/gen-init.py` (D20, `CLOSEDCHAN`) is kept, with its
+  `context` re-proof completed by the new conjunct; it is now redundant (the clean fix it waited
+  for is in), and removing it is a separate simplification (`notes/STATUS.md`).
+
+
+## D25: the watch client's reconnection, verified (2026-10-20 · S0: designed, stopped on two fork fixes)
+
+**Problem.** `watch_safe` and `cache_safe` (and `client_watcher_rangeWatcher`,
+`client_newWatcher_rangeWatcher`, the cache's results over the real watcher) rest on
+`client.noRetryableStreamErr` (`watchConnFacts`): no client watch-stream error, nor `io.EOF`, has
+the gRPC code `Unavailable` or `Internal`, the codes on which `isHaltErr` lets
+`watchGRPCStream.run` reconnect. Under it every receive error stops `run`, and the reconnection
+(`newWatchClient` after `errc`, `resuming`, `nextResume`, `waitCancelSubstreams`, each substream
+resumed from its `initReq.rev`) is verified at its first call only. The premise is false of any
+real network. The goal: verify the reconnection and drop the premise.
+
+### S0 (a): the resume path at the pin `8a24be2a3`
+
+- **The original finding is fixed at the pin.** `issues/etcd-watch-resume-closing-substream.md`'s
+  reproduction (3000 trials) no longer panics: K0 (`107edf7e4`, the same as etcd-io/etcd#22191)
+  drops a server-canceled substream from `substreams`, so `newWatchClient` never resumes it.
+- **Two bugs remain** (each reproduced by an overlay test with a fake `pb.WatchClient`, fixed on
+  the fork branch `watch-resume-fixes` off the pin, one commit each with a regression test that
+  fails without the fix; `go test -race ./client/v3` passes with both):
+  1. `issues/etcd-watch-resume-stale-canceled-id.md` (introduced by K0): the dropped substream
+     keeps its id; after a reconnect a resumed watch can be registered under the same id, and
+     `closeSubstream` of the canceled one then deletes the resumed watch (which never gets
+     another event; `run` may stop and hang in `wg.Wait()`). Fix F1 `04375baaa`: the `Canceled`
+     case resets the id to `InvalidWatchID`.
+  2. `issues/etcd-watch-resume-nil-watch-chan.md` (upstream too): a watch canceled while `run`
+     reconnects has its `outc` closed and set to `nil` by `waitCancelSubstreams`;
+     `closeSubstream` then sends the nil channel on `retc`, which `Watch` may return. Fix F2
+     `a8a459955`: send on `retc` only a non-nil `outc`. The proof needs it: `retcP` (`isSpsc`)
+     cannot hold of a nil channel.
+- **Hazards checked, not bugs** (each is a proof obligation of S1, below):
+  - *The resume revision.* `serveSubstream` sets `initReq.rev` on every receive from `recvc`
+    (unbuffered: a response `run` took from the old stream is either received, so counted, or
+    dropped because the goroutine stopped for good), to the last event's revision + 1, or a
+    non-created response's header revision + 1; `buf` and `outc` survive the goroutine. So the
+    resumed create starts right after the contract's position: after events, the position is
+    the last event (`rangeWatchRespOk`, `watchRespOk`); after a progress notification, its
+    header revision (`watchRespOk`'s progress case: `c ≤ hdrRev`, `c' = hdrRev`). For the weak
+    contract (`cpl = false`) after an event-less response, `hdrRev ≥ c` is needed and is the
+    server's: an event-less response covers its watcher, whose deliveries stop at its revision
+    (`respCov`, K2a/K2e-4). A non-created, event-less response with header revision `0` would
+    resume from `1`; the verified server never sends one (an event-less response's revision is
+    a notified log's last, `≥ 1`).
+  - *`rev = 0`.* After the first `Created`, `nextRev` is the header revision `H` (not `H + 1`), so a
+    resumed "from now" watch can get the events of `H`, committed before it was created. Allowed
+    by the client's contract (events above `rev - 1 = -1`; `cplCond` excludes `rev = 0`), and
+    deliberate (the code's comment: never lose an event committed between the server's watch
+    registration and its reading of `H`). Not recorded as an issue.
+  - *Fragments and `cur`.* `cur` survives a reconnect only holding a fragment; the client never
+    asks for fragments (`wrRO`: `fragment` false), so `cur` is nil at every `errc`.
+  - *Progress.* A progress request sent on the old stream may go unanswered (liveness only); a
+    `-1` response on the new stream is broadcast to the substreams re-created on it only (they
+    enter `substreams` at their `Created`), and covers them by K1b on that stream.
+  - *A closing substream resumed.* A substream whose goroutine stopped for good and is still
+    waiting on `closingc` is moved to `resuming` and may be re-created on the new stream; the
+    `Created`'s dispatch fails on its closed `donec` (no send on an open `recvc` nobody receives),
+    and `closingc` later removes it and cancels the server's watch. `run` must read its
+    `initReq.rev` for the create before it gets the substream's `closingBody`.
+  - *A goroutine racing `resumec` against its closed `recvc`.* If the server canceled a *live*
+    substream, its goroutine could take `resumec` instead of the closed `recvc`, return without
+    posting on `closingc`, and leave `run`'s teardown waiting forever. etcd's server sends a
+    `Canceled` (without compaction) for a registered id only to answer a cancel request, which
+    the client sends only for a substream whose goroutine stopped (K2c's `noCancelOk`): so the
+    goroutine has stopped when `run` closes its `recvc`. Unreachable with etcd's server (a
+    proxy that cancels watches on its own would reach it); the proof uses `noCancelOk`.
+  - *`closeErr`, `isHaltErr`, `openWatchClient`'s loop.* Unchanged: a halting error or the
+    stream's context ends `run` with a `status`-accepted close error; `openWatchClient`'s spec is
+    not first-call-specific (any call gives a fresh stream with `watchSpec`, or an error); its
+    retry loop and `backoffIfUnavailable` are already proved.
+
+### S0 (b): the proof design
+
+**Options.** (A) Keep the premise (the status quo). (B) Verify the reconnection over the fork with
+F1 and F2, the client's contract `isEtcdRangeWatcher` unchanged (it already allows a channel that
+closes and promises no completeness for the weak contract; the cache's `cpl` contract is per
+response, from cursor positions that survive the reconnect). (C) As (B), but weaken the contract
+for watches that saw a reconnect (no completeness after it): changes the cache's results, so
+`cache_safe`'s checks; rejected.
+
+**Choice: (B).** The design:
+
+1. **Epochs of `run`.** `run`'s state names the current gRPC stream (epoch `e`: its
+   `StreamNames`, `Dn`, `watchSpec`, sender token, the requests sent on it, the model's
+   per-stream registry `M`/`CI` and cancels, `WatchClientModel.lean`). A reconnect is a model
+   transition: every registered substream goes back to `resuming` with its id reset (F1 makes a
+   server-canceled one's `-1` too), the per-stream sets empty, the epoch advances. The facts
+   `wsElem` keeps per registered substream (`noCancelOk`, `idAssigned`, the dispatch facts) are
+   per epoch; nothing of an old epoch is used after it.
+2. **`respc` across epochs.** One SPSC over all epochs, its `k`th element tagged with its epoch
+   and its index in that epoch's stream (a monotone ghost list of the epochs' start positions).
+   `serveWatchClient` of an epoch owns the producer side from that epoch's start; its receive
+   error goes on `errc` with the producer token and its count (`errP` gains them: `errc` is a
+   bag, buffered 1, one sender per epoch). Every response of the old stream precedes its error on
+   `respc`/`errc` (the old goroutine sends them in order), so `run` has dispatched all of them
+   before it reconnects; responses the server sent but the client never received are simply
+   not counted (no fact about the old stream is needed).
+3. **A substream across goroutine lifetimes.** What outlives a lifetime: `recvc` (one producer,
+   `run`; the consumer side owned by the current lifetime), the dispatch cursors `γhi`/`γh2`, the
+   `outc` producer and `γ.cur`/`γ.cur2` authorities, `buf`, the `rev` and `retc` fields, `outc`'s
+   field (now mutable: `waitCancelSubstreams` writes it; `wsIs` keeps it as a fraction). Each
+   lifetime gets a fresh `donec` (a broadcast channel per lifetime) whose close publishes either
+   the stop for good (`γx`, with a read-only copy of `rev`: the closing substream's resume create
+   reads it) or, on `resumec`, an invariant holding the handed-back resources with a token `run`
+   keeps (`joinSubstreams` collects them). `resumec`'s predicate becomes `True` (a signal).
+   `serveSubstream`'s spec starts from any such state (`n` published, `k` received, the buffer's
+   contents) instead of the fresh one.
+4. **The resume revision.** A per-substream invariant, kept by whoever holds the `rev` field:
+   `rev - 1 ≥` the last `γhi` position, `rev - 1 =` the last `γh2` position when `cpl`, and the
+   create's facts for `rev` (`startOk V sr rev`, the original `sr`). Each `recvElem` gains the
+   facts that make `hiA + 1` / `h2A + 1` such a revision; `recvElem` also admits a `Created`
+   response at `k > 0` (a resumed create: no events, position kept; `serveSubstream` ignores it).
+5. **The server side: `startRead` from a notified log.** A resumed create's start revision is
+   the last delivered event's or progress revision + 1, which the server notified, perhaps before
+   committing it (`TxnWrite.End` notifies, then bumps `currentRev`, both under `s.mu`), so
+   `mvcc.startRead` (a committed log, `idxCert`, reaching `rev - 1`) may not hold. But
+   `watchableStore.watch` registers under `s.mu`, whose body holds the committed log's quarter at
+   the notified log (K1a's `wlogQ`): so `startRead` can be stated as either a committed or a
+   notified log reaching `rev - 1` (`notifiedLb`, K2e-2), and `startRead_le` still holds under
+   `s.mu`. The responses then export, per response, the notified log their position is in (an
+   event-less one's revision is a notified log's last, K2e-5's `respRev`; an event's revision is
+   one of the notified log the delivery was cut from). Internal statements change
+   (`mvcc.startRead`, `watchRecvResult`/`mvccOk`'s exports); no closed theorem's.
+6. **`waitCancelSubstreams` and `newWatchClient`, general.** `newWatchClient` lends each resuming
+   substream's state to its `waitCancelSubstreams` goroutine (closing it — F2's case — when its
+   context is done: `outc` closed and nil, `closing` set, `γx` set by the lender's token, posted
+   on `closingc` by a goroutine that `w.wg.Add(1)`s) and gets it back at the returned channel's
+   close (Perennial's `WaitGroup` for the local group; an invariant per substream with a token,
+   as for `donec`). The concurrent `Add(1)`s need `run`'s `wgsWgAdder` split into fractions while
+   no `Wait` can happen (`InvWatchWg.lean`: each `Add` still deposits a thread token). Then it
+   restarts every non-closing substream (`serveSubstream`, general) and `serveWatchClient`.
+7. **Premises.** `noRetryableStreamErr` leaves `watchConnFacts` and with it
+   `client_watcher_rangeWatcher`, `client_newWatcher_rangeWatcher`, the cache's results over the
+   watcher, `watchkv.premises`, `cachekv.premises`, `watch_safe`, `cache_safe` (and is deleted).
+   Nothing else in those statements changes; every other closed theorem's statement is unchanged.
+   **No new axiom**: a second stream is another `openWatchClient` call (the stub's spec is
+   persistent, the gRPC stream axioms give each `NewStream` fresh names); the old stream is
+   abandoned with its tokens; each resumed create spends a watch token from the pool, as a first
+   create does.
+
+**Stages.**
+- **S1a (the pin).** F1 and F2 cherry-picked onto `goose-lean` (pushed by the user), the pin
+  moved, the translation regenerated (expected to change only `Code/`/`GeneratedProof/` of
+  `go_etcd_io/etcd/client/v3`: `run`'s `Canceled` case, `closeSubstream`); `run`'s and
+  `closeSubstream`'s proofs re-done over it, still under the premise.
+- **S1b (server).** `startRead` from a notified log; the per-response resume facts exported.
+- **S1c (model).** Epochs and the reconnect transition (`WatchClientModel.lean`); `recvElem`'s
+  resume facts and resumed `Created`s; the resume-revision invariant.
+- **S1d (the helpers).** `serveSubstream` from any state with the resume exit; `joinSubstreams`
+  collecting the hand-backs; `waitCancelSubstreams`, `serveWatchClient` (the producer over
+  `errc`), `newWatchClient`, general; `InvWatchWg`'s split adder.
+- **S1e (`run` and the results).** `run`'s `errc` case and resumed creates; the premise dropped
+  from `watchConnFacts` up to `watch_safe`/`cache_safe`; collections and baseline updated.
+
+**S1b's findings (2026-10-20; S1a and S1b done, stopped before S1c).**
+- *A third fix is needed* (`issues/etcd-watch-resume-below-start-revision.md`): `serveSubstream`
+  sets the resume revision to a progress notification's header revision + 1 unconditionally; a
+  watch from a revision the store has not reached is synced on the server and gets progress at the
+  store's revision, below its start, so a reconnect re-creates it below its start and it delivers
+  events the caller did not ask for (against `rangeWatchEvOk`'s `rev ≤ e.rev`). Fix F3
+  `16f73d6eb` (on `a8a459955`, branch `watch-resume-fixes`, not pushed): move the resume revision
+  only forward. With F3 the resume invariant is exact: `rev - 1 = ` the second cursor when `cpl`
+  (after a progress notification that does not raise it, its revision equals the cursor), `rev - 1
+  ≥` the first cursor, and `rev ≥` the watch's start.
+- *The event case of item 5, refined.* An event's revision may be notified before mvcc commits it
+  (`notify` runs inside `End`'s critical section before the commit extends `γ.wlog`), so a
+  notified lower bound cannot cover it; S1b added a monotone *released length* (`γ.rel`, bumped by
+  `End` before `notify`, at the notified log's length under `s.mu`) that every delivered log
+  carries (`evsWf`), and `startRead` accepts it.
+- *A liveness bug, not fixed* (`issues/etcd-watch-close-hang-refused-create.md`): a refused
+  create's substream is registered nowhere, so `run`'s teardown does not wait for its `closingc`
+  post and `Close` can hang. Partial correctness does not see it; the proof needs no change.
+- *Checked, no further Go change needed* for S1c–S1e: the old `serveWatchClient` has posted its
+  error (after every response it received went through `respc`) before `run` reconnects; a
+  resumed substream's first dispatch on a new stream is its `Created` (it enters `substreams`
+  there), which can carry `run`'s half of `rev` as the first create's does; a closing substream
+  re-created on the new stream fails its dispatch on its closed `donec` (`run` sets its `γx`
+  itself when `waitCancelSubstreams` closes it); `donec`, `outc`, `closing`, `id` become fields
+  owned per lifetime.
+
+**Stopped after S0** (the parent's rule: a Go fix to etcd is needed): F1 and F2 are on the fork
+branch `watch-resume-fixes` (`/shared/etcd-goose-lean-wr`, a worktree of
+`/shared/etcd-goose-lean-wk`), not on `goose-lean`, not pushed; S1a needs them cherry-picked onto
+`goose-lean` and pushed (or the translation run with `--src etcd=<checkout>` until then).
+
+**S1c's findings (2026-10-20; S1c-R1 and S1c-R2 done; stopped before R3 for a fourth fork fix).**
+- *A fourth fix is needed* (`issues/etcd-watch-resume-waitgroup-overflow.md`): `waitCancelSubstreams`
+  calls `wg.Add(len(w.resuming))` on a local `sync.WaitGroup`, whose counter is an `int32`.
+  Perennial's `Add` spec needs the counter below `2^31`, so the proof needs `len(w.resuming) <
+  2^31`. The model bounds only the live goroutines (`threadBound GF ≤ 2^31`), and nothing ties
+  that bound to the number of watches at a reconnect:
+  - by then the resumed goroutines may have called `Done` and exited;
+  - in the ghost world a closingc sender can call `Done` before `run`'s receive commits (an
+    unbuffered send completes at `SndCommit`, before the receiver's nested update, Perennial's
+    `recvAu`).
+
+  `run` could count live goroutines only with a reworked wait-group accounting and a custom
+  closingc idiom. Fix F4 `b3c29bc17` (on `16f73d6eb`, branch `watch-resume-fixes`, not pushed)
+  calls `wg.Add(1)` before each `go` instead. Each `Add(1)` is then bounded by the thread tokens
+  deposited for the goroutines already started (as for the stream's wait group, `InvWatchWg`).
+  The Go behaviour is a real panic with 2^31 or more watches on one stream, out of reach in
+  practice.
+- *A gap in Perennial's SPSC idiom, to be worked around locally* (`notes/STATUS.md`,
+  "watch-resume"). At the epoch switch `run` must know that no response of the old stream is
+  still in flight on `respc`: the handed-back producer's count must equal `run`'s consumer
+  position, `sent = rcv`. Go's synchronous handoff guarantees it. Perennial's `spscInv`, however,
+  does not tie the `RcvPending`/`SndCommit` states to a pending receive of the consumer, nor
+  `SndPending` to a pending send of the producer, so `run`, holding both tokens at its errc case,
+  cannot exclude an element in flight. The workaround is a local SPSC variant (copied from
+  `Idioms/Spsc.lean`) in which the consumer deposits a token while its receive is pending and the
+  producer one while its send is pending: holding both endpoints' tokens and both "not pending"
+  tokens then gives `sent = recv`. A general version is to be proposed to Perennial on its own.
+- *The lifetimes (R3), refined.*
+  - **Per-lifetime invariant.** At each `go w.serveSubstream`, `run` allocates an invariant for
+    the lifetime: its state `running` holds half of the substream's membership element
+    (`G.γws`, the other half being the goroutine's). Each exit deposits what the substream keeps
+    across lifetimes into it: on `resumec` everything; on a stop for good `outc`'s field and
+    producer, its `retc` field and the rest. `run` holds the lifetime's token.
+  - **`donec`'s predicate.** The new `donec` that `run` allocates per lifetime has the predicate
+    `□ (inv ∗ (γx □ true ∨ endedLb (n+1)))`, `n` the `resumec` generation. `run` holds `γend`'s
+    authority at `n` and so refutes the resume case in its own generation.
+  - **closingc.** A message carries the full membership element, which refutes `running`; `run`
+    takes the deposit with its token (unless it took it at a join). No message has to name the
+    lifetime.
+  - **Fields made read-only.** `closing` is owned while `false` and `↦□ true` once set; `outc`
+    is `↦□ nil` once `waitCancelSubstreams` closes it; `rev` stays with `run`'s queued half.
+    Every read `newWatchClient`, `nextResume` and `closeSubstream` make of a closing substream's
+    fields is then possible while its closingc post is in flight.
+  - **The stream's wait group.** The waitCancel goroutines' concurrent `Add(1)`s need the
+    waiters' authority (`ownWaitGroupWaiters γ 0`) shared in an invariant with fractional tokens
+    for the goroutines, rejoined after the local wait group's `Wait`. A local join idiom backed
+    by thread tokens returns each goroutine's lent state at `Done`.
+
+**R4's findings (2026-10-20; R4a and R4b done).**
+- *The reconnection is `newWatchClient`'s proof, over `run`'s state.* Its spec takes `run`'s
+  model and substreams (`RunSt`, `wsElem`, moved to `WatchRun.lean` so that the spec can name
+  them) and returns the reconnection's (`RunSt.reconnect`, every phase's `WPh.recon`: registered
+  and queued substreams queued, `closedRun` ones `closed`), independent of the next stream. The
+  per-substream steps are lemmas of `WatchRecon.lean`: the deposit taken after
+  `joinSubstreams` (`take_dep`: `lifeQ` now includes the deposit's flag `γt`, so the deposit
+  is there), a live substream re-queued from its resume revision with its next goroutine's start
+  (`recon_alive`: `sspsc_sync` gives `sent = rcv`; a registered substream's created response was
+  received, so its goroutine owns the whole `rev` field, by `lifeStart`/`psAt`; the new base is
+  `⟨rv, cplOf P, hl⟩`), a stopped one re-queued without a goroutine (`recon_dead`).
+- *A stopped substream in the queue* (`wsRest .queued`'s second disjunct): one that a
+  reconnection resumed after its goroutine stopped for good keeps only what its create and its
+  registration need (a fraction of `rev` at a start revision `startOk` holds of, the dispatch
+  cursors' authorities, `recvc`'s producer); its registration's dispatch fails on the closed
+  `donec` (`reg_post_dead`). `stopBody` keeps the resume revision's facts (`resumeOk`) for it.
+- *`regBOk` drops `0 ≤ rr`* (`dispatch_content` never used it); the promised case is `1 ≤ rr`.
+- *Lifetimes of an earlier generation.* `wsLife` holds the token or the taken deposit
+  (`lifeTk`), and `genOk` (current generation, or stopped) except for orphans, whose goroutine
+  may have resumed: dispatches need `genOk`, `take_stop` does not (a whole membership element
+  posted on `closingc` refutes a resumed deposit, which holds the element too).
+- *`waitCancelSubstreams`' wait groups* (`InvWcJoin.lean`). The local join is Perennial's
+  idiom with thread tokens instead of a bound on the `Add`s. A goroutine closing its substream
+  `Add`s to the stream's wait group with its slot's token (the slot then holds the stream's
+  running token) and refills the slot at its inner `go` statement with the fresh token, at the
+  fork itself (`wp_fork_tok_upd`, below), so the local `Add`'s bound counts the borrowed slots
+  against the stream's deposited tokens. The waiters' authority of the stream's wait group is
+  shared through an invariant with counted tokens (`wgsWgShared`).
+- *Two more gaps in Perennial, worked around locally:* `wp_fork_tok`'s premise is a plain wand,
+  so a ghost update cannot happen at the fork step (and `Fork` may stutter, so it is not atomic
+  and no invariant can be opened around it): `wp_fork_tok_upd` is a local copy whose premise is an
+  update with a later credit; its join idiom (`sync.join`) bounds the `Add`s since the last
+  `Wait` rather than the goroutines running: `wcjAdder` backs the counter with thread tokens (as
+  `InvWatchWg.lean` and `cacheWgInv` do). The general versions are to be proposed to Perennial.
+- *`run`'s `errc` case (R4c).* The handed-back producer's count equals `run`'s consumer position
+  (`sspsc_sync`), so the old epoch ends where the new one starts (`epochSt_close`: the handed-back
+  count authority is the current epoch's, an earlier one's being `run`'s); `run`'s loop invariant
+  quantifies over the stream, its epoch's first position, the generation and `cancelSet`'s map.
+  `ErrNoLeader` (`ContextError` then `errors.Is`) uses the existing trust-boundary axiom
+  `errors.IsStatusErr.wp_proof`, as the lessor does.
+- *S1e.* With every call of the reconnection verified, `noRetryableStreamErr` is no longer used and
+  is deleted: the closed theorems lose one hypothesis.
+
+## linkv-txn B1: why the registration rides on a cluster registries' map (2026-10-20)
+
+To show a delivered writing `Txn` ran its ranges (`skip = false`), the result the apply thread
+hands `Trigger` must say "not waived" in every case the proposer can receive it. The apply thread
+proves it at a *known* registration (`request_delivered`), so each committed entry must carry its
+id's registration. Three constraints shaped where:
+- The claim (`idClaim`, `srv_claim_mint`) is minted *before* `Register`, whose condition
+  (`reqWaitR`) needs it; so the claim cannot carry the registration. The post-`Register` fact
+  enters the log where the proposer builds the entry's `entryClaim`, in `kv_prop_au`.
+- `entryClaim`/`kvWork` are shared by every member (one `kvInv`, `kvInv_congr`); a member's own
+  registry name `ρ.wait` is meaningless to the others. And `ρ.wait` is fixed only in `start`
+  (`{ρ with wait := γw}`), after raft's environment (`srvC`, `batchWaitOk ρ`) is fixed at
+  `NewServer`. So the entry names the registry through a cluster table, prefix to registry
+  (`IdNames.wn`), whose member entries `start` sets (a one-shot cell per prefix: ghost-map
+  fragments cannot be updated without the authority).
+- An entry of another member's id is never registered here: `reqWaitR`'s prefix clause makes
+  `waitTrig` vacuous for it, so the loops pass `none` exactly for those (`entryRegd`'s new clause).
+Rejected: fixing the registry name at boot (`wait.New` taking a pre-allocated name; every
+example's `Main` replaces `ρ.wait`), and per-claim registration cells in the claims' facts (needs
+the registry name in `Φs`, fixed before the registry exists). The fallback (no gets in writing
+transactions) was the plan's alternative.
+
+## D24: the partition hooks' axioms and the transport's remotes (2026-10-20, `notes/partition-plan.md` S1/S2)
+
+**Problem.** The partition example (`examples/linkv3p`) cuts and mends links with etcd's own test
+hooks, `EtcdServer.CutPeer`/`MendPeer`, which forward to rafthttp's `Transport.CutPeer`/`MendPeer`
+(names-only: axioms). The plan's S1 stated them over `transportStarted γn t` alone, on the ground
+that pausing a peer only loses messages, which the network model allows. Checking the Go code:
+`CutPeer` also calls `Pause` on a *remote* of `id` if there is one, and `remote.Pause` stops the
+pipeline, whose `stop` closes a channel unconditionally, so a second `CutPeer` of a remote without
+a `MendPeer` in between panics ("close of closed channel"; reproduced,
+`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
+schedule, including one that cuts the same link twice, so the S1 axiom was false as stated.
+
+**Options.** (a) Fix the fork (`remote.Pause`/`Resume` idempotent): the axiom is then true of any
+started transport; needs the fork pushed and the etcd pin moved (every example's `go.mod`
+replaces too), though no translation changes (rafthttp is names-only). (b) A per-link one-shot
+"not cut" token, consumed by `CutPeer`, restored by `MendPeer`: its supply has to come from
+`Transport.Start`'s axiom (one per possible id), and the partitioner would have to track cut links
+(it could: skip a redundant step). (c) Track the transport's remotes in its ghost state: the
+exclusive `transportLive γn t rs` records the ids `AddRemote` was called with (`Start` gives `[]`,
+`AddRemote` appends, `AddPeer` keeps); giving it up yields `transportStarted γn t` and the
+persistent `transportRemotes t rs`; `CutPeer`/`MendPeer` take `id ∉ rs`. `t.remotes` gets a key
+only through `AddRemote`, and `transportLive` is exclusive and given up before the transport is
+shared, so the list is complete.
+
+**Decision: (c)**, with the server side closed by the bootstrap contract: `bootOk` already describes
+a new cluster's bootstrap only (`Hnosnap`: raft started by `StartNode` with the members as peers,
+which `bootstrapRaft` does for `!haveWAL && cfg.NewCluster` alone, where `bootstrapCluster` is
+`bootstrapNewClusterNoWAL` and `remotes` is nil), so it gains `"%Hrms0" ∷ ⌜rms = []⌝`, true of the
+case it describes. `NewServer`'s `AddRemote` loop is then dead (its body closed by contradiction;
+`AddRemote`'s result stays a hypothesis of the linked proof), the transport is given up at `[]`,
+and `srvNetMember γn s id` carries `transportRemotes t []`. The server's `CutPeer`/`MendPeer`
+specs take `srvNetMember` alone (as `RaftHandler`'s axiom does), and their proofs apply the
+transport axiom at `rs = []`. Nothing else changes: `transportStarted`, `srvNetMember`'s
+signature, `NewServer.spec`, `RaftHandler`, the examples. (a) stays the right fix for etcd (the
+issue says so); if the fork takes it, `id ∉ rs` can go. (b) was rejected for the plumbing through
+`Start`'s axiom and the example.
+
+**Trust base.** +2 axioms (`rafthttp.Transport.CutPeer`, `MendPeer`); `Transport.Start`,
+`AddRemote`, `AddPeer` restated (the remotes list); `bootOk` (a premise, `bootstrapContract`)
+stronger by `rms = []`.
+
+## linkv-txn F: a write's commit at a state the model cannot answer; `call` per kind (2026-10-20)
+
+**A write's update commits at every firing.** `write_ok_au` must commit `lintest`'s update when the
+server fires it, with the `Output` `call` will return (`outAt i σ`); the model decodes the
+output's revision as a natural number (`decOut`), so the commit needs the answer's revision below
+`2^64`, which nothing at the firing gives (the server's state carries no bound; the reply's log
+is below `2^63`, but the reply comes later). Committing nothing at such a state is not an option:
+the state moves, and `LinkvOk`'s configuration must move with it. So at a state where the answer
+does not fit, the update commits the write *as failed and applied* (`pSeq_errW_applied`: a write
+that returned an error may have taken effect), and its result says so (`wQ`'s right side); the
+reply, below `2^63`, contradicts it. The alternative, a bound in the invariant, would need every
+deposited write to respect a budget nobody tracks.
+
+**Reads commit at the prophesied revision only**, as linkv's gets: the read update is persistent
+(fired at every committed state), the revision prophecy picks the one, and the revisions' map
+(now of whole states: lists and read-only transactions read every key) makes every firing at
+that revision see the committed state. A state's revision determines it because every server
+step keeps the state or moves to the next revision (`kvOpStep_cases`).
+
+**`call` split per kind** (`callGet`, …, `callTxn`, with `cmpsFor` and `txnRes`): the Go program
+is this repository's own, and one function per kind gives each its own spec and proof file
+(the spec/proof discipline) instead of one proof of five branches, two loops and the txn builder.
+
+**Empty transactions are out of `Apply`'s input** (`GenIn`), not handled: etcd serves them
+without the read index (`issues/etcd-txn-empty-serializable.md`), and the client's model agrees
+(`txnSerializable` vacuously true), so no read update fires for them; `Gen` never makes one.
+
+## linkv-txn E: the model's inputs and outputs as plain values, and what `ioOk` carries (2026-10-20)
+
+porcupine's model receives an operation as boxed Go values (`OpV`), and `ModelSpec.M` must decode
+it purely (`decOp`, from the values alone). A struct holding slices (stage D's `Input.Cmps`,
+`Output.Res`) is a value holding pointers whose contents are in the heap, so no pure function of
+it is the model's input. Hence `Input`/`Output` were made plain values with bounded, unrolled
+fields (at most one comparison, three then- and one else-operation, three results and three
+key-values, each with a count), which is all `Gen` produces and all the workload's replies carry
+(three keys); robustness's model is no wider on these histories (`TestDifferential` unchanged).
+Rejected: decoding through a ghost table of the slices' contents (the model would no longer be a
+function of porcupine's operations).
+
+The decoder reads an output by its input's kind (`decOut`), so `outEqual` was narrowed to compare
+only those fields (`resEqual`): otherwise a reply equal to the model's answer but differing in an
+unread field (a put result's `R`) would be rejected by `Step` and allowed by `pM`, and `Step`
+would not refine the model.
+
+`ioOk` carries `ValidIn x` (the input decodes, its keys the workload's): `Step` runs `mstep` on any
+input, while `pM` has no step for one that does not decode; `Apply` delivers `ioOk` and knows its
+input is `Gen`'s. The configurations' invariant `Bounded n` (`Steps.lean`) carries the pending
+inputs' validity for the same reason (a pending write takes effect through `mstep`), and the
+revision plus the pending count, so that `mstep`'s revision stays far from overflow: each step
+adds at most one to that sum, a pending write taking effect nothing, and porcupine's index stays
+below `2^60`.
+
+## linkv3p over linkvtxn's workload: in place, and what moved where (2026-10-20, `notes/linkv3p-txn-plan.md`)
+
+`linkv3p` switched its workload to linkvtxn's in place (its Go `Apply`/`Check` call package
+`linkvtxn`), not through a fourth example: linkvtxn's workload includes linkv's (Puts and Gets are
+two of its kinds), so the new `linkv3p_safe` implies the old one; everything partition-specific
+(`startMember`, `newClient`, `partitioner`, the transport's axioms, `cluster3_alloc`, `Main`'s
+structure) is reused unchanged; and `linkv`/`linkv3` keep the plain Put/Get workload as the
+simplest end-to-end results. Rejected: a copy `examples/linkv3ptxn` (about 2.7k lines of proof
+duplicated) to keep the Put/Get partition theorem beside the new one.
+
+What the swap took: the members keep etcd's `DeleteRange` and `Txn` registrations
+(`memberServed`), `clientOk` is linkvtxn's `Apply` premises, `linkvInv_congr` unfolds linkvtxn's
+`linkvInvBody` too, and `Apply`/`Check` restate linkvtxn's triples over a slice of clients. No
+server, client or raft proof changed, and the trust base is the same (`etc/tcb-collections/
+linkv3p.txt`, 463 axioms): linkvtxn's results rest on exactly linkv's. The ghost-state bundle stays
+linkv's `linkvGF` (the same functors as `linkvtxnGF`), so the closed theorem's statement is
+unchanged. Go: a dependency's `replace` directives do not apply, so `examples/linkv3p/go.mod`
+repeats linkvtxn's `go.etcd.io/etcd/tests/v3` replace.

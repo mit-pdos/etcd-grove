@@ -10,17 +10,19 @@ variables (non-`nil`, and for the three the proofs compare against, of a pointer
 `errors.New`), `globalRand` with its mutex, `emptyState`, the message tables.
 
 Three things are not facts of the model, and are premises:
-* `raftpb`'s, `proto`'s, `os`'s and `strconv`'s initializers are only partly translated
-  (raftpb's protobuf descriptors, which `raftpb.toml` does not translate; the names-only
-  packages `google.golang.org/protobuf/proto` and the standard library's `os`, `strconv`), so
-  they call opaque values `X.init`: the trust-boundary axioms `<pkg>.opaqueInitsOk` say these
-  run (the generated `Init.lean` files' method, `etc/gen-init.py`), `<pkg>.initFuncsOk` that
-  their untranslated `func init()`s (`init.0`, as gc names it) return (2026-10-19, when Goose
-  began calling a package's `init`s by name), and `os.Stderr_init` that
-  `Stderr`'s gives the variable some `*File`, which `os`'s fact reads (2026-10-18; until then
-  the four `wp_initialize'` were `sorry`). `raftpb`'s and `proto`'s call the generated
-  `protoreflect`/`protoimpl` theorems, so they (and `quorum`'s, `tracker`'s, `confchange`'s)
-  are stated at `HasLC.hasLC`, with their package's `Assumptions`.
+* `os`'s and `strconv`'s initializers are only partly translated (the standard library's
+  names-only `os` and `strconv`, Perennial's), so they call opaque values `X.init`: the
+  trust-boundary axioms `<pkg>.opaqueInitsOk` say these run (the generated `Init.lean` files'
+  method, `etc/gen-init.py`), `os.initFuncsOk` that its untranslated `func init()`s (`init.0`, as
+  gc names it) return (2026-10-19, when Goose began calling a package's `init`s by name), and
+  `os.Stderr_init` that `Stderr`'s gives the variable some `*File`, which `os`'s fact reads
+  (2026-10-18; until then the four `wp_initialize'` were `sorry`). `raftpb`'s and `proto`'s
+  untranslated initializers and `init`s are trusted no-op models (2026-10-20, until then axioms
+  like these: `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`,
+  `TrustedCode/google_golang_org/protobuf/proto.lean`), and raftpb's descriptor tables
+  `file_raft_proto_goTypes` and `_depIdxs` are translated. `raftpb`'s and `proto`'s call the
+  generated `protoreflect`/`protoimpl` theorems, so they (and `quorum`'s, `tracker`'s,
+  `confchange`'s) are stated at `HasLC.hasLC`, with their package's `Assumptions`.
   (Raft v3.7, stage R4: `proto` is new, raft imports it; `reflect` is gone, `ConfState.Equivalent`
   no longer calling `reflect.DeepEqual`; `emptyState` is a pointer, `&pb.HardState{}`.)
 * `log.New` (raft's `defaultLogger`, `discardLogger`) is not modelled by Perennial: the
@@ -146,56 +148,6 @@ axiom opaqueInitsOk :
 
 end strconv
 
-namespace google_golang_org.protobuf.proto
-
-/-- **The trust boundary: protobuf-go `proto`'s untranslated variable initializers run.**
-`proto` is translated names-only, so each `X.init` is an axiom of the translation; Go runs them
-at program start (`wireTypes`, a map literal, and `errRecursionDepth`, `errDecode`,
-`errUnknown`, `errors.New`/`protoimpl.X.NewError` values), and etcd starts, so each returns
-without panicking. Satisfiable whatever the semantics (the `X.init`s are uninterpreted
-constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([wireTypes.init, errRecursionDepth.init, errDecode.init, errUnknown.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `proto`'s untranslated `init` functions return.** Goose names a package's
-`func init()`s `init.<k>`, as gc does, and translates `proto` names-only, so the model does not
-unfold them (`@! init.<k>`: the semantics' `functions`, which the package's `Assumptions` do not
-constrain for them). Go runs them at program start (its `func init()`, `proto.go`'s `Error =
-errors.Error`), and etcd starts, so each returns without panicking. A fact about the Go code, as
-the axioms of other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end google_golang_org.protobuf.proto
-
-namespace go_etcd_io.raft.v3.raftpb
-
-/-- **The trust boundary: `raftpb`'s untranslated variable initializers run.** `raftpb.toml`
-does not translate the generated protobuf descriptors (`file_raft_proto_enumTypes`, `_msgTypes`,
-`_goTypes`, `_depIdxs`: slice and array literals of zero messages, enum values and type
-indices), so each `X.init` is an axiom of the translation; Go runs them at program start, and
-etcd starts, so each returns without panicking. Satisfiable whatever the semantics (the
-`X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([file_raft_proto_depIdxs.init, file_raft_proto_goTypes.init,
-        file_raft_proto_msgTypes.init, file_raft_proto_enumTypes.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-/-- **The trust boundary: `raftpb`'s untranslated `init` functions return.** Goose names a
-package's `func init()`s `init.<k>`, as gc does, and translates it names-only (`raftpb.toml`), so
-the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which the package's
-`Assumptions` do not constrain for them). Go runs them at program start (its `func init()` is
-`file_raft_proto_init()`, the registration of the file descriptor), and etcd starts, so each
-returns without panicking. A fact about the Go code, as the axioms of other names-only functions
-(`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end go_etcd_io.raft.v3.raftpb
-
 end opaqueInits
 
 /-- `x ∈ [a, ..., x, ...]`, linear in the list. -/
@@ -303,11 +255,14 @@ theorem google_golang_org.protobuf.proto.wp_initialize'
   wp_auto
   wp_apply google_golang_org.protobuf.reflect.protoreflect.wp_initialize' _ Hinit.2.1 $$ Hown
     as ⟨Hown, #H1⟩
-  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errUnknown.init (by mem_tac))
-  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errDecode.init (by mem_tac))
-  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.errRecursionDepth.init (by mem_tac))
-  wp_apply (google_golang_org.protobuf.proto.opaqueInitsOk google_golang_org.protobuf.proto.wireTypes.init (by mem_tac))
-  wp_apply (google_golang_org.protobuf.proto.initFuncsOk google_golang_org.protobuf.proto.init.«0» (by mem_tac))
+  -- errUnknown, errDecode, errRecursionDepth, wireTypes: their trusted initializers do nothing
+  wp_call
+  wp_call
+  wp_call
+  wp_call
+  -- init.0: its trusted model does nothing
+  wp_func_call
+  wp_call
   iframe Hown
   is_pkg_init_finish
 
@@ -323,6 +278,8 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := GoSlice) go_etcd_io.raft.v3.raftpb.file_raft_proto_depIdxs _ as HdepIdxs
+  wp_apply wp_GlobalAlloc (V := GoSlice) go_etcd_io.raft.v3.raftpb.file_raft_proto_goTypes _ as HgoTypes
   wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeType_value _ as HConfChangeType_value
   wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeType_name _ as HConfChangeType_name
   wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.ConfChangeTransition_value _ as HConfChangeTransition_value
@@ -339,7 +296,6 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
     | wp_apply strings.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
     | wp_apply strconv.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
     | wp_apply fmt.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #H1⟩
-    | wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk _ (by mem_tac))
     | wp_auto)
   wp_apply (wp_map_make1 (K := w32) (V := GoString) _ _) as %m0 Hm0
   repeat (first
@@ -373,11 +329,23 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   repeat (first
     | wp_apply (wp_mapInsert (K := GoString) (V := w32) _ m7 _ _ _) $$ Hm7 as Hm7
     | wp_auto)
-  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_enumTypes.init (by mem_tac))
-  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_msgTypes.init (by mem_tac))
-  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_goTypes.init (by mem_tac))
-  wp_apply (go_etcd_io.raft.v3.raftpb.opaqueInitsOk go_etcd_io.raft.v3.raftpb.file_raft_proto_depIdxs.init (by mem_tac))
-  wp_apply (go_etcd_io.raft.v3.raftpb.initFuncsOk go_etcd_io.raft.v3.raftpb.init.«0» (by mem_tac))
+  -- file_raft_proto_enumTypes, _msgTypes: their trusted initializers do nothing
+  wp_call
+  wp_call
+  -- file_raft_proto_goTypes, _depIdxs: translated slice literals, stored
+  wp_apply wp_slice_literal (V := GoInterface) (t := go.any)
+  try (isplitr; (ipureintro; rfl))
+  iintro %goTypes ⟨-, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  wp_auto
+  wp_apply wp_slice_literal (V := w32) (t := go.int32)
+  try (isplitr; (ipureintro; rfl))
+  iintro %depIdxs ⟨-, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  wp_auto
+  -- init.0: its trusted model does nothing
+  wp_func_call
+  wp_call
   iframe Hown
   is_pkg_init_finish
 
@@ -481,7 +449,7 @@ theorem os_isPkgInit_Stderr :
 theorem io_isPkgInit_Discard :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢
       ∃ w : GoInterface, typedPointsto (globalAddr io.Discard) w DFrac.discard := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.io
+  with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.io).trans sep_elim_left
 
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 get_is_pkg_init) :

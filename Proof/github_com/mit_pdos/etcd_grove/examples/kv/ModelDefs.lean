@@ -183,7 +183,7 @@ instance kvRep_persistent (v : GoInterface) (s : KVMap) : Persistent (kvRep (GF 
 /-- The store's porcupine model specification (see the file header). -/
 def kvS : ModelSpec GF KVMap where
   M := kvM
-  rep := kvRep
+  rep _ := kvRep
   ioOk i o := iprop(⌜(∃ x, i = boxIn x) ∧ ∃ str, o = boxS str⌝)
   ioOk_pers _ _ := by infer_instance
 

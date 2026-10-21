@@ -144,7 +144,7 @@ the `rpctypes` errors whose `Error()` it calls (`msgErrVar`, from `rpctypes`' fa
 (`streamFailures`, the four histograms: their initializers' trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, `context.Canceled`'s pointer error, and the progress interval's lock
 (`progressReportIntervalMu`, allocated by the initializer, guarding `progressReportInterval`,
-`10 * time.Minute`: `intervalP`). `io.EOF` is not among them: Perennial's `io` fact does not
+`10 * time.Minute`: `intervalP`), with its reader slots pooled (`intervalPool`, 2026-10-20). `io.EOF` is not among them: Perennial's `io` fact does not
 keep it (`v3rpc.eofVar`, `InvWatch.lean`). -/
 def _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars : IProp GF :=
   iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken ∗
@@ -167,7 +167,7 @@ def _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars : IProp GF :=
     EtcdGrove.v3rpc.histVar watchSendLoopProgressDuration ∗
     (∃ tr : GoInterfaceOk, globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr) ∗
     ctxCanceledPtr ∗
-    sync.isRWMutexGuard EtcdGrove.v3rpc.intervalMu EtcdGrove.v3rpc.intervalP)
+    EtcdGrove.v3rpc.intervalPool)
 
 instance _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars_persistent :
     Persistent (EtcdGrove.v3rpc.watchPkgVars (GF := GF)) := by

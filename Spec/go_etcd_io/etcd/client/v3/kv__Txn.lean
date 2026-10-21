@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `kv.Txn(ctx)` on a `*kv` over a connection to the server at `addr`, at a context whose errors are client errors
 (`ctxErrClient`, for `Commit`'s `ContextError`): a new `*txn` as a `Txn`, a builder in its empty
-state (`txnObjAt`). -/
+state (`txnObjAt`), made from `api` (`txnKvIs`; 2026-10-20, linkv-txn stage A). -/
 abbrev kv.Txn.spec : Prop :=
   ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
@@ -32,7 +32,7 @@ abbrev kv.Txn.spec : Prop :=
       (Val #(GoInterface.ok ci)))
   {{ (t : GoInterface), RET #t; ∃ tp : Loc,
       ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty) #tp⌝ ∗
-      txnObjAt tp addr ci cd TxnBuild.empty }}
+      txnObjAt tp addr ci cd TxnBuild.empty ∗ txnKvIs tp api }}
 
 end spec
 

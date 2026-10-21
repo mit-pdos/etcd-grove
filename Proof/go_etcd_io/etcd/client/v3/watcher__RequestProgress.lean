@@ -47,7 +47,7 @@ theorem watcher.RequestProgress.wp_proof
   iunfold watchSrvFacts at Hf'
   icases Hf' with ⟨-, Hcf⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, -, -, #HeN, #HcA, -, -⟩
+  icases Hcf with ⟨-, -, -, -, -, -, -, #HeN, #HcA, -, -⟩
   iunfold ctxErrClientAllW at HcA
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce
@@ -117,7 +117,7 @@ theorem watcher.RequestProgress.wp_proof
   iunfold isWGS at HG
   icases HG with ⟨%Hgnn, #Hcv, #Hsf, %Hlg', #Howner, #Hremote, #Hcallo, #Hgctx, #Hckey, #Hcancel,
     #Hreqc, #Hrespc, #Hdonec, #Herrc, #Hclosingc, #Hglg, #HisCtx, #Hcspec, #Hbreq, #Hberr, #Hbcl,
-    #Hbdone⟩
+    #Hbdone, -⟩
   wp_auto
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst HM]
   · inext

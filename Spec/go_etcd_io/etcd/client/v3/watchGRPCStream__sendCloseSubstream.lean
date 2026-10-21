@@ -33,6 +33,7 @@ timeout passes first) and closes `outc`. -/
 abbrev watchGRPCStream.sendCloseSubstream.spec : Prop :=
   ∀ (V : WEnv GF) (P : WsPrm GF) (wgs resp : Loc) (v : go_etcd_io.etcd.client.v3.WatchResponse),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wsIs V P ∗ outcProd P ∗
+      wsF P.ws go!"outc" ↦ P.outc ∗
       resp ↦ v ∗ v.Header' ↦ (zero_val etcdserverpb.ResponseHeader) ∗
       ⌜v.Header' ≠ null ∧ v.Events' = slice.nil ∧ v.CompactRevision' = W64 0 ∧
         v.Canceled' = true ∧ v.Created' = false⌝ ∗ statusErrOk v.closeErr' }}

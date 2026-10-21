@@ -87,10 +87,10 @@ theorem Model.wp_proof
     isplitr
     · ipureintro; exact ⟨trivial, nofun⟩
     unfold stepSpec
-    iintro %v %s %i %o
+    iintro %k %v %s %i %o
     iintro !> %Φ' Hpre HΦ'
     simp only [kvS]
-    icases Hpre with ⟨#Hrep, %Hio⟩
+    icases Hpre with ⟨-, #Hrep, %Hio⟩
     obtain ⟨⟨x, rfl⟩, str, rfl⟩ := Hio
     unfold kvRep
     icases Hrep with ⟨%l, %m, %Hv, #Hl, %Hm⟩
@@ -195,7 +195,7 @@ theorem Model.wp_proof
   isplitr
   · -- Equal
     unfold equalSpec
-    iintro %v %w %s %t
+    iintro %k %j %v %w %s %t
     iintro !> %Φ' Hpre HΦ'
     simp only [kvS]
     icases Hpre with ⟨#Hv, #Hw⟩
@@ -233,7 +233,7 @@ theorem Model.wp_proof
         | none => rfl
   iright
   unfold hashSpec
-  iintro %v %s
+  iintro %k %v %s
   iintro !> %Φ' Hv HΦ'
   simp only [kvS]
   unfold kvRep

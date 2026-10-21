@@ -3,6 +3,7 @@ module
 
 public import Code.google_golang_org.protobuf.internal.pragma
 public import Perennial.Golang.Defn
+public import TrustedCode.google_golang_org.protobuf.internal.impl
 
 @[expose] public section
 
@@ -618,652 +619,392 @@ noncomputable def needsInitCheckMap [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def coderMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderMessageValue"
 
-axiom coderMessageValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderGroupValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderGroupValue"
-
-axiom coderGroupValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderMessageSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderMessageSliceValue"
 
-axiom coderMessageSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderGroupSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderGroupSliceValue"
-
-axiom coderGroupSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBool [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBool"
 
-axiom coderBool.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBoolNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolNoZero"
-
-axiom coderBoolNoZero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBoolPtr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolPtr"
 
-axiom coderBoolPtr.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBoolSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolSlice"
-
-axiom coderBoolSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBoolPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolPackedSlice"
 
-axiom coderBoolPackedSlice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBoolValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolValue"
-
-axiom coderBoolValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBoolSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolSliceValue"
 
-axiom coderBoolSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBoolPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolPackedSliceValue"
-
-axiom coderBoolPackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderEnumValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumValue"
 
-axiom coderEnumValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderEnumSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumSliceValue"
-
-axiom coderEnumSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderEnumPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumPackedSliceValue"
 
-axiom coderEnumPackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32"
-
-axiom coderInt32.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32NoZero"
 
-axiom coderInt32NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32Ptr"
-
-axiom coderInt32Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32Slice"
 
-axiom coderInt32Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32PackedSlice"
-
-axiom coderInt32PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt32Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32Value"
 
-axiom coderInt32Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32SliceValue"
-
-axiom coderInt32SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32PackedSliceValue"
 
-axiom coderInt32PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint32 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32"
-
-axiom coderSint32.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32NoZero"
 
-axiom coderSint32NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32Ptr"
-
-axiom coderSint32Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32Slice"
 
-axiom coderSint32Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32PackedSlice"
-
-axiom coderSint32PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32Value"
 
-axiom coderSint32Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32SliceValue"
-
-axiom coderSint32SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32PackedSliceValue"
 
-axiom coderSint32PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint32 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32"
-
-axiom coderUint32.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32NoZero"
 
-axiom coderUint32NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32Ptr"
-
-axiom coderUint32Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32Slice"
 
-axiom coderUint32Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32PackedSlice"
-
-axiom coderUint32PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32Value"
 
-axiom coderUint32Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32SliceValue"
-
-axiom coderUint32SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32PackedSliceValue"
 
-axiom coderUint32PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64"
-
-axiom coderInt64.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64NoZero"
 
-axiom coderInt64NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64Ptr"
-
-axiom coderInt64Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64Slice"
 
-axiom coderInt64Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64PackedSlice"
-
-axiom coderInt64PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt64Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64Value"
 
-axiom coderInt64Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderInt64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64SliceValue"
-
-axiom coderInt64SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderInt64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64PackedSliceValue"
 
-axiom coderInt64PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint64 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64"
-
-axiom coderSint64.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64NoZero"
 
-axiom coderSint64NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64Ptr"
-
-axiom coderSint64Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64Slice"
 
-axiom coderSint64Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64PackedSlice"
-
-axiom coderSint64PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64Value"
 
-axiom coderSint64Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64SliceValue"
-
-axiom coderSint64SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64PackedSliceValue"
 
-axiom coderSint64PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint64 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64"
-
-axiom coderUint64.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64NoZero"
 
-axiom coderUint64NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64Ptr"
-
-axiom coderUint64Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64Slice"
 
-axiom coderUint64Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64PackedSlice"
-
-axiom coderUint64PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64Value"
 
-axiom coderUint64Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderUint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64SliceValue"
-
-axiom coderUint64SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderUint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64PackedSliceValue"
 
-axiom coderUint64PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32"
-
-axiom coderSfixed32.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32NoZero"
 
-axiom coderSfixed32NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32Ptr"
-
-axiom coderSfixed32Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32Slice"
 
-axiom coderSfixed32Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32PackedSlice"
-
-axiom coderSfixed32PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32Value"
 
-axiom coderSfixed32Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32SliceValue"
-
-axiom coderSfixed32SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32PackedSliceValue"
 
-axiom coderSfixed32PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32"
-
-axiom coderFixed32.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32NoZero"
 
-axiom coderFixed32NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32Ptr"
-
-axiom coderFixed32Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32Slice"
 
-axiom coderFixed32Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32PackedSlice"
-
-axiom coderFixed32PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32Value"
 
-axiom coderFixed32Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32SliceValue"
-
-axiom coderFixed32SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32PackedSliceValue"
 
-axiom coderFixed32PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFloat [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloat"
-
-axiom coderFloat.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFloatNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatNoZero"
 
-axiom coderFloatNoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFloatPtr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatPtr"
-
-axiom coderFloatPtr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFloatSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatSlice"
 
-axiom coderFloatSlice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFloatPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatPackedSlice"
-
-axiom coderFloatPackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFloatValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatValue"
 
-axiom coderFloatValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFloatSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatSliceValue"
-
-axiom coderFloatSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFloatPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatPackedSliceValue"
 
-axiom coderFloatPackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64"
-
-axiom coderSfixed64.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64NoZero"
 
-axiom coderSfixed64NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64Ptr"
-
-axiom coderSfixed64Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64Slice"
 
-axiom coderSfixed64Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64PackedSlice"
-
-axiom coderSfixed64PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64Value"
 
-axiom coderSfixed64Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderSfixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64SliceValue"
-
-axiom coderSfixed64SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderSfixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64PackedSliceValue"
 
-axiom coderSfixed64PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64"
-
-axiom coderFixed64.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64NoZero"
 
-axiom coderFixed64NoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64Ptr"
-
-axiom coderFixed64Ptr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64Slice"
 
-axiom coderFixed64Slice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64PackedSlice"
-
-axiom coderFixed64PackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64Value"
 
-axiom coderFixed64Value.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderFixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64SliceValue"
-
-axiom coderFixed64SliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderFixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64PackedSliceValue"
 
-axiom coderFixed64PackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderDouble [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDouble"
-
-axiom coderDouble.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderDoubleNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleNoZero"
 
-axiom coderDoubleNoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderDoublePtr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoublePtr"
-
-axiom coderDoublePtr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderDoubleSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleSlice"
 
-axiom coderDoubleSlice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderDoublePackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoublePackedSlice"
-
-axiom coderDoublePackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderDoubleValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleValue"
 
-axiom coderDoubleValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderDoubleSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleSliceValue"
-
-axiom coderDoubleSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderDoublePackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoublePackedSliceValue"
 
-axiom coderDoublePackedSliceValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderString [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderString"
-
-axiom coderString.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderStringValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringValidateUTF8"
 
-axiom coderStringValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderStringNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringNoZero"
-
-axiom coderStringNoZero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderStringNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringNoZeroValidateUTF8"
 
-axiom coderStringNoZeroValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderStringPtr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringPtr"
-
-axiom coderStringPtr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderStringPtrValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringPtrValidateUTF8"
 
-axiom coderStringPtrValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringSlice"
-
-axiom coderStringSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderStringSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringSliceValidateUTF8"
 
-axiom coderStringSliceValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderStringValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringValue"
-
-axiom coderStringValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderStringValueValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringValueValidateUTF8"
 
-axiom coderStringValueValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderStringSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringSliceValue"
-
-axiom coderStringSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBytes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytes"
 
-axiom coderBytes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBytesValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesValidateUTF8"
-
-axiom coderBytesValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBytesNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesNoZero"
 
-axiom coderBytesNoZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBytesNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesNoZeroValidateUTF8"
-
-axiom coderBytesNoZeroValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBytesSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesSlice"
 
-axiom coderBytesSlice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBytesSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesSliceValidateUTF8"
-
-axiom coderBytesSliceValidateUTF8.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderBytesValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesValue"
 
-axiom coderBytesValue.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderBytesSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesSliceValue"
-
-axiom coderBytesSliceValue.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def emptyBuf [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.emptyBuf"
@@ -1271,152 +1012,92 @@ noncomputable def emptyBuf [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def wireTypes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.wireTypes"
 
-axiom wireTypes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderEnumNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumNoZero"
-
-axiom coderEnumNoZero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderEnum [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnum"
 
-axiom coderEnum.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderEnumPtr [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumPtr"
-
-axiom coderEnumPtr.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def coderEnumSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumSlice"
 
-axiom coderEnumSlice.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def coderEnumPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumPackedSlice"
-
-axiom coderEnumPackedSlice.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def boolType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.boolType"
 
-axiom boolType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def int32Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int32Type"
-
-axiom int32Type.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def int64Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int64Type"
 
-axiom int64Type.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def uint32Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint32Type"
-
-axiom uint32Type.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def uint64Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint64Type"
 
-axiom uint64Type.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def float32Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float32Type"
-
-axiom float32Type.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def float64Type [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float64Type"
 
-axiom float64Type.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def stringType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.stringType"
-
-axiom stringType.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def bytesType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.bytesType"
 
-axiom bytesType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def byteType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.byteType"
-
-axiom byteType.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def boolZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.boolZero"
 
-axiom boolZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def int32Zero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int32Zero"
-
-axiom int32Zero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def int64Zero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int64Zero"
 
-axiom int64Zero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def uint32Zero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint32Zero"
-
-axiom uint32Zero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def uint64Zero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint64Zero"
 
-axiom uint64Zero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def float32Zero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float32Zero"
-
-axiom float32Zero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def float64Zero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float64Zero"
 
-axiom float64Zero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def stringZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.stringZero"
-
-axiom stringZero.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def bytesZero [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.bytesZero"
 
-axiom bytesZero.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def errDecode [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.errDecode"
-
-axiom errDecode.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def errRecursionDepth [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.errRecursionDepth"
 
-axiom errRecursionDepth.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def lazyUnmarshalOptions [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.lazyUnmarshalOptions"
-
-axiom lazyUnmarshalOptions.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def errUnknown [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.errUnknown"
 
-axiom errUnknown.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def enableLazy [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.enableLazy"
-
-axiom enableLazy.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def legacyEnumTypeCache [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyEnumTypeCache"
@@ -1445,47 +1126,29 @@ noncomputable def aberrantMessageDescCache [FfiSyntax] [GoGlobalContext] : GoStr
 noncomputable def aberrantProtoMethods [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantProtoMethods"
 
-axiom aberrantProtoMethods.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def sizecacheType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizecacheType"
-
-axiom sizecacheType.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def unknownFieldsAType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.unknownFieldsAType"
 
-axiom unknownFieldsAType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def unknownFieldsBType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.unknownFieldsBType"
-
-axiom unknownFieldsBType.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def extensionFieldsType [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.extensionFieldsType"
 
-axiom extensionFieldsType.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def nilBytes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.nilBytes"
-
-axiom nilBytes.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def emptyBytes [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.emptyBytes"
 
-axiom emptyBytes.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def invalidOffset [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.invalidOffset"
 
-axiom invalidOffset.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def zeroOffset [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.zeroOffset"
-
-axiom zeroOffset.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def interfaceToPointer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.interfaceToPointer"
@@ -3064,8 +2727,6 @@ noncomputable def newValidationInfo [FfiSyntax] [GoGlobalContext] : GoString :=
 
 instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.impl where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.internal.pragma]
-
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon

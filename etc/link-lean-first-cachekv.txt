@@ -1,0 +1,39 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --cachekv`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `cachekv`. Not listed: the standard library's and goose's functions with Perennial specs
+# (`primitive.RandomUint64`, `context.Background`, `context.WithCancel`, `sync.Mutex`,
+# `sync.WaitGroup`), which the proofs use directly.
+#
+# the program's own functions
+cachekv_Gen:
+cachekv_genAll: cachekv_Gen
+cachekv_attempted:
+cachekv_check: cachekv_attempted
+cachekv_maxRev:
+cachekv_writer:
+cachekv_collect:
+# the cache watch's options (client/v3/op.go)
+getPrefix:
+WithPrefix: getPrefix
+WithRev:
+# `Main`: putget's start of the server and the client (the server's, v3rpc's and the client's
+# results, linked in their `Link.lean`s; zap's, the feature gate's, `net`'s and grpc's
+# trust-boundary axioms), the cache's client (the client's watcher's `Watch` and
+# `RequestProgress`, linked in the client's `Link.lean`; a context's `Err`, in `context`'s), the
+# cache's `New` and `Watch` (linked in the cache's `Link.lean`), then the writers, `collect` and
+# `check`
+etcdserver_NewServer: @
+EtcdServer__Start: @
+v3rpc_Server: @
+client_v3_New: @
+context_ErrAny: @
+watcher__Watch: @
+watcher__RequestProgress: @
+cache_v3_New: @
+Cache__Watch: @
+zap_NewNop:
+features_NewDefaultServerFeatureGate:
+net_Listen:
+grpc_Server__Serve:
+cachekv_Main: cachekv_genAll cachekv_writer cachekv_maxRev cachekv_collect cachekv_check zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch

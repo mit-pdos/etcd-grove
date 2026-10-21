@@ -709,8 +709,8 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     simp only [Bool.false_eq_true, ↓reduceIte]
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
-    icases Hrep with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, #HQ⟩
-    obtain ⟨Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel⟩ := Hp
+    icases Hrep with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, HQ⟩
+    obtain ⟨Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
     have hlin : t.linearizable = true :=
       linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
     ihave %Hfl := Himp $$ %hlin %(kvStateOf x.log) HQ
@@ -973,7 +973,7 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
         (⌜txn.txnReadonly (txnWireOf b.model) = true ∧
           txn.txnSerializable (txnWireOf b.model) = false⌝ ∗ kvReadAu γr.kv Q) ∨
         (⌜txn.txnReadonly (txnWireOf b.model) = false ∧ txn.txnPlain (txnWireOf b.model) ∧
-          txnNoZeroEnd (txnWireOf b.model)⌝ ∗ kvOpAu γw.kv (.txn (txnWireOf b.model)) Q)) ∗
+          txnNoZeroEnd (txnWireOf b.model)⌝ ∗ □ kvOpAu1 γw.kv (.txn (txnWireOf b.model)) Q)) ∗
       □ (⌜b.model.linearizable = true⌝ -∗ ∀ σ, Q σ -∗ ⌜lf.length ≤ σ.rev + 1⌝)) $$ []
   · cases hro : txn.txnReadonly (txnWireOf b.model)
     · have hl : TxnModel.leaseFree b.model := by
@@ -983,12 +983,15 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
       iunfold kvAnyAu at Hw
       imod Hw $$ %(KVOp.txn (txnWireOf b.model)) %lf Hcl with #Hau
       imodintro
-      iexists (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝))
+      -- (2026-10-20, linkv-txn stage A) the update fired at most once, its result persistent
+      iexists (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
       isplitl
       · iright; iright
-        iframe Hau
-        ipureintro; exact ⟨rfl, txnPlain_wire _ hp hx hl, txnNoZeroEnd_wire _ hp hx hro⟩
-      · iintro !> - %σ H; iexact H
+        isplitr
+        · ipureintro; exact ⟨rfl, txnPlain_wire _ hp hx hl, txnNoZeroEnd_wire _ hp hx hro⟩
+        iintro !>
+        iapply kvOpAu_one $$ Hau
+      · iintro !> - %σ #H; iexact H
     · cases hs : txn.txnSerializable (txnWireOf b.model)
       · iunfold kvAnyAu at Hr
         imod Hr $$ %(KVOp.range (opGetModel [] [])) %lf Hcl with #Hau
@@ -1011,13 +1014,18 @@ theorem kv_txn_commit (tp : Loc) (addr : GoString) (E : apply.AEnv GF)
     (txnReplied E γw γr (W64 0) F (txnWireOf b.model) Q cid mid)) $$ [Hobj]
   · iframe
     iframe #
+    iapply txnReqPre_box
     imodintro
     inext
     unfold etcdTxnSpec
     isplitl []
     · ipureintro; exact ⟨txnWireOf_plain _ hp, txnModelIn_wire _ hx⟩
     iexists Q
-    iframe Hdq
+    isplitr
+    · icases Hdq with (%H | ⟨%H, #Ha⟩ | ⟨%H, #Ha⟩)
+      · ileft; ipureintro; exact H
+      · iright; ileft; iframe Ha; ipureintro; exact H
+      · iright; iright; iframe Ha; ipureintro; exact H
     iexists (W64 0), F
     iframe #
     iintro %m Hm
@@ -1055,7 +1063,7 @@ theorem isEtcdTxnKVTodo_of_kv (api : Loc) (addr : GoString) (s : Loc) (E : apply
   iapply (v3.kv.wp_Txn api addr todoCtxVal cd) $$ []
   · iframe #
   inext
-  iintro %t ⟨%tp, %Ht, Hobj⟩
+  iintro %t ⟨%tp, %Ht, Hobj, -⟩
   subst Ht
   iapply HΦ $$ %(txnIfaceOf tp)
   iexists (txnB tp addr cd)

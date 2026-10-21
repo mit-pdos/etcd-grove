@@ -1,0 +1,37 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean`
+# (all Lean-first; D23), read by `etc/gen-link.py --watchkv`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `watchkv`. Not listed: the standard library's and goose's functions with Perennial specs
+# (`primitive.RandomUint64`, `context.Background`, `context.WithCancel`, `sync.Mutex`,
+# `sync.WaitGroup`), which the proofs use directly.
+#
+# the program's own functions
+watchkv_Gen:
+watchkv_genAll: watchkv_Gen
+watchkv_attempted:
+watchkv_check: watchkv_attempted
+watchkv_maxRev:
+watchkv_writer:
+WatchResponse__Err: @
+watchkv_collect: WatchResponse__Err
+# the watch's options (client/v3/op.go, as the cache's `watchEvents` builds them)
+getPrefix:
+WithPrefix: getPrefix
+WithRev:
+WithProgressNotify:
+WithCreatedNotify:
+# `Main`: putget's start of the server and the client (the server's, v3rpc's and the client's
+# results, linked in their `Link.lean`s; zap's, the feature gate's, `net`'s and grpc's
+# trust-boundary axioms), the client's watcher (its `Watch`, linked in the client's `Link.lean`;
+# a context's `Err`, in `context`'s), then the writers, `collect` and `check`
+etcdserver_NewServer: @
+EtcdServer__Start: @
+v3rpc_Server: @
+client_v3_New: @
+context_ErrAny: @
+watcher__Watch: @
+zap_NewNop:
+features_NewDefaultServerFeatureGate:
+net_Listen:
+grpc_Server__Serve:
+watchkv_Main: watchkv_genAll watchkv_writer watchkv_maxRev watchkv_collect watchkv_check zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

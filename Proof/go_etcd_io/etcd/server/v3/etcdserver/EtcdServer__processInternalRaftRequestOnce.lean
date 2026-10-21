@@ -113,6 +113,25 @@ local macro "exit_dep" : tactic => `(tactic| (
   ipureintro; exact ⟨Hdec, Hwire⟩))
 
 set_option hygiene false in
+/-- `exit_dep` at the joined `select` (its postcondition, before the deferred calls). -/
+local macro "exit_dep_q" : tactic => `(tactic| (
+  iexists _, _
+  isplitr
+  · ipureintro; rfl
+  iframe start Hrd Hard
+  iright
+  isplitr
+  · ipureintro; exact ⟨rfl, by first | assumption | simp⟩
+  isplitr
+  · first | iexact HaE | iexact HaStop
+  iunfold srvMaybeDeposited
+  iexists true
+  simp only [↓reduceIte]
+  iexists bs, ⟨id, hv.Username', hv.AuthRevision'⟩, rq'
+  iframe Hdep
+  ipureintro; exact ⟨Hdec, Hwire⟩))
+
+set_option hygiene false in
 /-- The rest of the function from `getRequestType(r)` on (after the header is set, `Hhv : «$r0_ptr» ↦ hv`, `Hhvid : hv.ID' = id`). -/
 local macro "piro_tail" : tactic => `(tactic| (
   wp_apply hRT p rq $$ []
@@ -159,7 +178,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     imod srv_claim_mint ρ E v.gen id bs rq' F Hdec Hidrq Hpfx $$ HidGen Hmint Hunc HF
       with ⟨%γf, #Hclaim, #Hfl, Hpf⟩
     iunfold waitInv at Hwi
-    icases Hwi with ⟨%RD, #Hwait⟩
+    icases Hwi with ⟨⟨%RD, #Hwait⟩, #Hwn⟩
     iunfold isWait at Hwait
     icases Hwait with ⟨%wi, %Hwi', #HReg, #HTrig, -⟩
     rw [Hwi']
@@ -193,8 +212,14 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold raftPropose at Hprop
     icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose, -⟩
     ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
+    -- (linkv-txn stage B1) the id registered in this member's registry, before the proposal
+    ihave #Hireg : iprop(idRegd ρ.ids id) $$ []
+    · iunfold idRegd
+      iexists ρ.wait, γh.takenName
+      rw [Hpfx]
+      iframe Hwn Hregd
     imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim HokW with Hau
+      CoPset.subseteq_top $$ Hclog Hclaim Hireg HokW with Hau
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]
@@ -225,7 +250,7 @@ local macro "piro_tail" : tactic => `(tactic| (
       wp_apply HInc
       (try wp_auto)
       wp_apply HTrig $$ %_ %_ [Hcons]
-      · ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
+      · iright; ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
       (try wp_auto)
       wp_apply Hcancel
       run_metrics
@@ -236,132 +261,141 @@ local macro "piro_tail" : tactic => `(tactic| (
       icases Hppcs with ⟨#HGInc, #HGDec, -⟩
       wp_apply HGInc
       (try wp_auto)
-      ihave #Hcctx' := Hcctx
-      iNamed Hcctx'
-      wp_apply HDone as %chD %γD #HcD
-      iunfold srvDoneChan at Hdonec
-      icases Hdonec with ⟨%γdn, #Hdn⟩
+      -- the `select`, joined (`wp_join`): its three ways out return, and the deferred
+      -- `proposalsPending.Dec()`, `cancel()` and metrics after them are verified once
+      wp_join (Q := fun v => iprop(∃ (res : Loc) (e : GoInterface),
+          ⌜v = returnVal (PairV #res #e)⌝ ∗ start_ptr ↦ start ∗ srvLeadTimeReader s ∗ E.RD ∗
+          ((⌜e = GoInterface.nil⌝ ∗ ∃ hm rq',
+              ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
+              ∃ lb, resultIsW E ρ.rd rq' F res lb ∗ ∃ L, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗
+                □ Qr L) ∨
+            ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
+        at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
+      · ihave #Hcctx' := Hcctx
+        iNamed Hcctx'
+        wp_apply HDone as %chD %γD #HcD
+        iunfold srvDoneChan at Hdonec
+        icases Hdonec with ⟨%γdn, #Hdn⟩
+        (try wp_auto)
+        ihave #Hho' := Hho
+        iunfold isHandoff at Hho'
+        icases Hho' with ⟨#Hchan, -⟩
+        wp_apply_core chan.wp_select_blocking
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · -- the result
+          simp only [chan.blockingClausePre]
+          iexists GoInterface, inferInstance, inferInstance, inferInstance, inferInstance, ch,
+            γh.chanName
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iexact Hchan
+          iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ rq' F)) iprop(True) iprop(False) false _
+            $$ Hho Hlc1 Hcons
+          inext
+          iintro %x %ok ⟨Hcons', Hgot⟩
+          unfold handoffGot
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          cases ok
+          · simp only [Bool.false_eq_true, ↓reduceIte]
+            icases Hgot with ⟨-, Hf⟩
+            iexfalso; iexact Hf
+          simp only [↓reduceIte]
+          icases Hgot with ⟨Hw, -⟩
+          iunfold waitVal at Hw
+          icases Hw with (Hres | ⟨-, Hc2⟩)
+          rotate_left
+          · iunfold handoffConsumer at Hcons' Hc2
+            ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
+            cases Hbad
+          iunfold resultΨ at Hres
+          icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
+          subst Hx
+          wp_auto_lc 2
+          iunfold entryWit at HeW
+          icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
+          obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
+          have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
+          subst hidd
+          ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
+          replace Hdd := Hdd.1
+          ihave #HWits' := HWits
+          iunfold srvPropWits at HWits'
+          imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+          · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
+          · iapply (lc_split (n := 1) (m := 1)).2; iframe
+          ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
+          · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
+          wp_apply HAddEv
+          (try wp_auto)
+          iexists _, _
+          isplitr
+          · ipureintro; rfl
+          iframe start Hrd Hard
+          ileft
+          isplitr
+          · ipureintro; rfl
+          iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
+          iframe HTr
+          isplitr
+          · ipureintro; exact Hwire
+          iexists lb
+          iframe Hri
+          iexists Lw.take mw
+          iframe HLt HQr
+          ipureintro; exact hlbw
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · -- the context done: give up
+          simp only [chan.blockingClausePre]
+          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, chD, γD
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iapply context.isContextDone_is_chan $$ HcD
+          iapply context.isContextDone_receive _ _ _ _ $$ HcD
+          iintro ⟨#HPD, #HCC⟩
+          (try wp_auto)
+          wp_apply HInc
+          (try wp_auto)
+          wp_apply HTrig $$ %_ %_ [Hcons]
+          · iright; ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
+          (try wp_auto)
+          wp_apply hED cctx _ $$ [HCC] as %cerr ⟨%Hcerr, #Hcerrv⟩
+          · iframe #
+          (try wp_auto)
+          wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
+          · iframe Hrd
+            isplitl
+            · iunfold isServerReq; iexists v; iexact Hv
+            iexact Hcerrv
+          (try wp_auto)
+          exit_dep_q
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · -- the server stopped
+          simp only [chan.blockingClausePre]
+          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, v.done, γdn
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iapply ownBroadcastChan_is_chan $$ Hdn
+          iapply broadcast_chan_receive _ _ _ _ _ $$ Hdn
+          iintro ⟨-, -⟩
+          (try wp_auto)
+          exit_dep_q
+        iapply BigAndL.bigAndL_nil.2
+        itrivial
+      iintro ⟨%res, %e, %Hv, start, Hrd, Hard, Hpost⟩
+      subst Hv
       (try wp_auto)
-      ihave #Hho' := Hho
-      iunfold isHandoff at Hho'
-      icases Hho' with ⟨#Hchan, -⟩
-      wp_apply_core chan.wp_select_blocking
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · -- the result
-        simp only [chan.blockingClausePre]
-        iexists GoInterface, inferInstance, inferInstance, inferInstance, inferInstance, ch,
-          γh.chanName
-        isplitr
-        · ipureintro; rfl
-        isplitr
-        · iexact Hchan
-        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ rq' F)) iprop(True) iprop(False) false _
-          $$ Hho Hlc1 Hcons
-        inext
-        iintro %x %ok ⟨Hcons', Hgot⟩
-        unfold handoffGot
-        simp only [Bool.false_eq_true, ↓reduceIte]
-        cases ok
-        · simp only [Bool.false_eq_true, ↓reduceIte]
-          icases Hgot with ⟨-, Hf⟩
-          iexfalso; iexact Hf
-        simp only [↓reduceIte]
-        icases Hgot with ⟨Hw, -⟩
-        iunfold waitVal at Hw
-        icases Hw with (Hres | ⟨-, Hc2⟩)
-        rotate_left
-        · iunfold handoffConsumer at Hcons' Hc2
-          ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
-          cases Hbad
-        iunfold resultΨ at Hres
-        icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
-        subst Hx
-        wp_auto_lc 2
-        iunfold entryWit at HeW
-        icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
-        obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
-        have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
-        subst hidd
-        ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs γw γf $$ Hclw Hclaim
-        replace Hdd := Hdd.1
-        ihave #HWits' := HWits
-        iunfold srvPropWits at HWits'
-        imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
-        · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
-        · iapply (lc_split (n := 1) (m := 1)).2; iframe
-        ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
-        · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
-        wp_apply HAddEv
-        (try wp_auto)
-        wp_apply HGDec
-        (try wp_auto)
-        wp_apply Hcancel
-        run_metrics
-        iapply HΦ
-        iframe Hrd Hard
-        ileft
-        isplitr
-        · ipureintro; rfl
-        iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
-        iframe HTr
-        isplitr
-        · ipureintro; exact Hwire
-        iexists lb
-        iframe Hri
-        iexists Lw.take mw
-        iframe HLt HQr
-        ipureintro; exact hlbw
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · -- the context done: give up
-        simp only [chan.blockingClausePre]
-        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, chD, γD
-        isplitr
-        · ipureintro; rfl
-        isplitr
-        · iapply context.isContextDone_is_chan $$ HcD
-        iapply context.isContextDone_receive _ _ _ _ $$ HcD
-        iintro ⟨#HPD, #HCC⟩
-        (try wp_auto)
-        wp_apply HInc
-        (try wp_auto)
-        wp_apply HTrig $$ %_ %_ [Hcons]
-        · ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
-        (try wp_auto)
-        wp_apply hED cctx _ $$ [HCC] as %cerr ⟨%Hcerr, #Hcerrv⟩
-        · iframe #
-        (try wp_auto)
-        wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
-        · iframe Hrd
-          isplitl
-          · iunfold isServerReq; iexists v; iexact Hv
-          iexact Hcerrv
-        (try wp_auto)
-        wp_apply HGDec
-        (try wp_auto)
-        wp_apply Hcancel
-        run_metrics
-        exit_dep
-      iapply BigAndL.bigAndL_cons.2
-      isplit
-      · -- the server stopped
-        simp only [chan.blockingClausePre]
-        iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, v.done, γdn
-        isplitr
-        · ipureintro; rfl
-        isplitr
-        · iapply ownBroadcastChan_is_chan $$ Hdn
-        iapply broadcast_chan_receive _ _ _ _ _ $$ Hdn
-        iintro ⟨-, -⟩
-        (try wp_auto)
-        wp_apply HGDec
-        (try wp_auto)
-        wp_apply Hcancel
-        run_metrics
-        exit_dep
-      iapply BigAndL.bigAndL_nil.2
-      itrivial
+      wp_apply HGDec
+      (try wp_auto)
+      wp_apply Hcancel
+      run_metrics
+      iapply HΦ
+      iframe Hrd Hard Hpost
   · rcases merr with mei | _
     · run_metrics
       exit_nodep
@@ -439,54 +473,81 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     iunfold irrNoHdrIs at Hirr'
     icases Hirr' with ⟨%Hpn, #HID, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%la, #Hla, Hla'⟩, -⟩
     ihave %Hlan := apply.optReqIs_nil la rq.authenticate _ apply.authenticateIs_nn $$ Hla'
-    cases hau : rq.authenticate with
-    | some am =>
-      have hla : la ≠ null := fun h => by rw [Hlan.1 h] at hau; cases hau
-      (try wp_auto)
-      rw [decide_eq_false hla]
-      (try wp_auto)
-      ihave Hhv : iprop(∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝) $$ [«$r0»]
-      · iexists _; iframe «$r0»; ipureintro; rfl
-      icases Hhv with ⟨%hv, Hhv, %Hhvid⟩
-      piro_tail
-    | none =>
-      have hla : la = null := Hlan.2 hau
-      (try wp_auto)
-      wp_if_destruct
-      · wp_apply hAuth s v.auth E.RD v.cca ctx cd $$ [Hard] as %au %aerr ⟨Hard, Hau, #HaE⟩
-        · iframe Hard; iframe #
-          iunfold mvcc.txnCtx; iright; iexact Hctx
+    -- `if r.Authenticate == nil { authInfo, err := s.AuthInfoFromCtx(ctx); if err != nil { return
+    -- nil, err }; .. }`, joined (`wp_join`): falling through with the header set (`Hhv`), or
+    -- returning the error; the rest (`piro_tail`) is verified once, not once per way (the
+    -- receiver and the context, read-only from here on, for both)
+    ipersist s
+    ipersist ctx
+    wp_join (Q := fun v => iprop(
+        (⌜v = executeVal⌝ ∗ ∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
+          structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p ∗
+          E.RD) ∨
+        (∃ aei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok aei))⌝ ∗ E.RD ∗
+          applyErrIs (GoInterface.ok aei))))
+      at next with [«$r0» Hhdr r Hard]
+    · cases hau : rq.authenticate with
+      | some am =>
+        have hla : la ≠ null := fun h => by rw [Hlan.1 h] at hau; cases hau
         (try wp_auto)
-        cases aerr with
-        | ok aei =>
+        rw [decide_eq_false hla]
+        (try wp_auto)
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists _; iframe «$r0» Hhdr r Hard; ipureintro; rfl
+      | none =>
+        have hla : la = null := Hlan.2 hau
+        (try wp_auto)
+        wp_if_destruct
+        · wp_apply hAuth s v.auth E.RD v.cca ctx cd $$ [Hard] as %au %aerr ⟨Hard, Hau, #HaE⟩
+          · iframe Hard; iframe #
+            iunfold mvcc.txnCtx; iright; iexact Hctx
           (try wp_auto)
-          iapply HΦ
-          iframe Hrd Hard
-          iright
-          isplitr
-          · ipureintro; exact ⟨rfl, by simp⟩
-          isplitr
-          · iexact HaE
-          iunfold srvMaybeDeposited
-          iexists false
-          simp only [Bool.false_eq_true, ↓reduceIte]
-          itrivial
-        | nil =>
-          (try wp_auto)
-          wp_join iprop(∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
-              structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p)
-            with [«$r0» Hau authInfo Hhdr r] as ⟨%hv, Hhv, %Hhvid, Hhdr, r⟩
-          · iexists _; iframe «$r0» Hhdr r; ipureintro; rfl
-          · iunfold authInfoOpt at Hau
-            icases Hau with (%Hn | ⟨%user, %rev, Hai⟩)
-            · exfalso; simp_all
-            iunfold authInfoIs at Hai
-            icases Hai with ⟨-, #HU, #HR⟩
+          cases aerr with
+          | ok aei =>
             (try wp_auto)
-            wp_join_done
-            iexists _; iframe «$r0» Hhdr r; ipureintro; rfl
-          piro_tail
-      · exact absurd hla Hif
+            iright
+            iexists aei
+            isplitr
+            · ipureintro; rfl
+            iframe Hard HaE
+          | nil =>
+            (try wp_auto)
+            wp_join iprop(∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
+                structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p)
+              with [«$r0» Hau authInfo Hhdr r] as ⟨%hv, Hhv, %Hhvid, Hhdr, r⟩
+            · iexists _; iframe «$r0» Hhdr r; ipureintro; rfl
+            · iunfold authInfoOpt at Hau
+              icases Hau with (%Hn | ⟨%user, %rev, Hai⟩)
+              · exfalso; simp_all
+              iunfold authInfoIs at Hai
+              icases Hai with ⟨-, #HU, #HR⟩
+              (try wp_auto)
+              wp_join_done
+              iexists _; iframe «$r0» Hhdr r; ipureintro; rfl
+            ileft
+            isplitr
+            · ipureintro; rfl
+            iexists hv; iframe Hhv Hhdr r Hard; ipureintro; exact Hhvid
+        · exact absurd hla Hif
+    iintro (⟨%Hv, %hv, Hhv, %Hhvid, Hhdr, r, Hard⟩ | ⟨%aei, %Hv, Hard, #HaE⟩)
+    · subst Hv
+      (try wp_auto)
+      piro_tail
+    · subst Hv
+      (try wp_auto)
+      iapply HΦ
+      iframe Hrd Hard
+      iright
+      isplitr
+      · ipureintro; exact ⟨rfl, by simp⟩
+      isplitr
+      · iexact HaE
+      iunfold srvMaybeDeposited
+      iexists false
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      itrivial
   · (try wp_auto)
     iapply HΦ
     iframe Hrd Hard

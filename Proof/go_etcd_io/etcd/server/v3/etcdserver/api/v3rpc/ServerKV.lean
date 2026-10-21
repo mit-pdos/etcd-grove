@@ -141,7 +141,7 @@ def deleteApplied (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (o : OpFu
       F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
     apply.deleteOutcomeIs x.log op' resp GoInterface.nil (.applied l false) ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
 /-- **A successful `DeleteRange` of `o`**: as `putAppliedOk`, for the request the proposed data
 decode to (`rq'`, whose delete `op'` is `o` unless its range end is `[0]`, `irrWireOf`); the
@@ -244,10 +244,12 @@ def txnAppliedAns (E : apply.AEnv GF) (γw : ReadNames) (F : mvcc.Log) (t : TxnM
       apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧
       r = W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int) ∧
-      F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63⌝ ∗
+      F <+: x.log ∧ 2 ≤ x.log.length ∧ x.log.length + 4 ≤ 2 ^ 63 ∧
+      -- (linkv-txn stage B1, 2026-10-20) the ranges run
+      skip = false⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log ∗
-    mvcc.certOk E.γ x'.log ∗ □ Q (kvStateOf x.log))
+    mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log))
 
 /-- **A client's update, deposited with a call** (2026-10-14, unit T1; 2026-10-15, unit T2: over
 the whole state): none, a write's update for the KV operation `o` with result `Q` (`kvOpAu`: a
@@ -257,7 +259,8 @@ inductive KVDep (GF : BundledGFunctors) where
   | none
   | op (o : KVOp) (Q : KVState → IProp GF)
   | read (Q : KVState → IProp GF)
-  /-- (2026-10-19, D21 M6) a put's update fired at most once (`kvOpAu1`) -/
+  /-- (2026-10-19, D21 M6) a put's update fired at most once (`kvOpAu1`); since 2026-10-20
+  (linkv-txn stage A) a delete's and a writing transaction's too -/
   | op1 (o : KVOp) (Q : KVState → IProp GF)
 
 /-- The deposit's update: a write's at the request path's KV names, a read's at the read names'
@@ -289,10 +292,10 @@ depth, sorting cut by a limit (`txn.OpsNoCut`): with the checks they give its ap
 def kvDepPre (d : KVDep GF) : KVReq → Prop
   | .put o => (∃ Q, d = .op1 (.put o) Q) ∧ o.leaseID = W64 0
   | .range o => ∀ Q, d = .read Q → o.base.serializable = false
-  | .deleteRange o => (∃ Q, d = .op (.deleteRange o) Q) ∧ o.base.rangeEnd ≠ [W8 0]
+  | .deleteRange o => (∃ Q, d = .op1 (.deleteRange o) Q) ∧ o.base.rangeEnd ≠ [W8 0]
   | .txn cs ts es => ∀ t, txnModelOf cs ts es = some t →
       (txn.txnReadonly t = true ∧ ∀ Q, d = .read Q → txn.txnSerializable t = false) ∨
-      ((∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
+      ((∃ Q, d = .op1 (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
         ReqOp.siblingSafeL ts ∧ ReqOp.siblingSafeL es ∧ txn.OpsNoCut t.thenOps ∧
         txn.OpsNoCut t.elseOps)
 
@@ -368,7 +371,7 @@ theorem deletePermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (o 
 open Iris.ProofMode in
 /-- A writing transaction's permit (`txnPermit`) from its deposit. -/
 theorem txnPermit_of_dep (ρ : ReqNames) (γr : ReadNames) (d : KVDep GF) (t : TxnModel)
-    (hd : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t) (hs : txn.txnShape t) :
+    (hd : (∃ Q, d = .op1 (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t) (hs : txn.txnShape t) :
     kvDepOwn ρ γr d ⊢ txnPermit ρ.kv t (opDepQ d) := by
   iintro H
   iunfold txnPermit
@@ -619,7 +622,7 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit,
-    #Hcok, #HQv⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    #Hcok, HQv⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, ⟨l, rfl⟩, HFx⟩ := Hst
     subst Herr
     simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -740,7 +743,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   have hT := hTxn s E ρ γr c ci cd r t (opDepQ d) (rangeDepQ γr.kv d) none false F
   cases hro : txn.txnReadonly t
   · -- a writing transaction: through raft, as `Put`
-    have hdp' : (∃ Q, d = .op (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
+    have hdp' : (∃ Q, d = .op1 (.txn t) Q) ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧
         ReqOp.siblingSafeL ts ∧ ReqOp.siblingSafeL es ∧ txn.OpsNoCut t.thenOps ∧
         txn.OpsNoCut t.elseOps := by
       rcases Hro t hm with ⟨h, -⟩ | h
@@ -766,7 +769,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       icases Hok' with ⟨%hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint, #Hwit,
-        #Hcok, #HQv⟩
+        #Hcok, HQv⟩
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩
@@ -791,7 +794,9 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       iunfold txnAppliedAns
       iexists hm', rq', t', x, x', l, skip
       isplitr
-      · ipureintro; exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, Hst.2.2.2.2, Hlen.1, Hlen.2⟩
+      · ipureintro
+        exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, Hst.2.2.2.2.1, Hlen.1, Hlen.2,
+          Hst.2.2.2.2.2⟩
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
       iframe Hout Hcert HMint Hwit Hcok HQv
       try (ipureintro; trivial)

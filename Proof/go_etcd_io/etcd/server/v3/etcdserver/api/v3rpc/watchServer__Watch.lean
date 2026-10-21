@@ -157,8 +157,11 @@ theorem v3rpc.watchServer.Watch.wp_proof
   wp_apply sync.join.WaitGroup.wp_Add iprop(True) (v3rpc.swsF sws_ptr go!"wg") iprop(True) (W32 0)
     $$ [$Hadd] as ⟨Hadd, Hdone⟩
   · iframe #; ipureintro; decide
-  wp_apply wp_fork $$ [Hst Hcons' Hcons Hsres Hmutok Hdone]
-  · wp_apply hSend sws_ptr r $$ [$Hst $Hcons' $Hcons $Hsres $Hmutok]
+  -- (2026-10-20, watchkv) the send loop's goroutine with its thread token, which
+  -- `GetProgressReportInterval` lends to the interval's pool
+  wp_apply wp_fork_tok_body $$ [Hst Hcons' Hcons Hsres Hmutok Hdone]
+  · iintro Htt
+    wp_apply hSend sws_ptr r $$ [$Hst $Hcons' $Hcons $Hsres $Hmutok $Htt] as Htt
     · iframe #
     wp_apply sync.join.WaitGroup.wp_Done iprop(True) (v3rpc.swsF sws_ptr go!"wg") $$ [$Hdone]
     · iframe #; itrivial

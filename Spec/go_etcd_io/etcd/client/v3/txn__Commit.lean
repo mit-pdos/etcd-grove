@@ -29,7 +29,9 @@ abbrev txn.Commit.spec : Prop :=
   ∀ (tp : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (b : TxnBuild) (Spec : GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse) (Q : TxnRespM → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ txnObjAt tp addr ci cd b ∗
-      isGrpcRpc addr go!"/etcdserverpb.KV/Txn" Spec ∗ □ ▷ Spec (txnWireOf b.model) Q }}
+      isGrpcRpc addr go!"/etcdserverpb.KV/Txn" Spec ∗
+      -- (2026-10-20, linkv-txn stage A) ordinary on a builder over a one-attempt connection
+      txnReqPre tp addr (Spec (txnWireOf b.model) Q) }}
     (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
       (Val #()))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnCallOut Q resp err }}

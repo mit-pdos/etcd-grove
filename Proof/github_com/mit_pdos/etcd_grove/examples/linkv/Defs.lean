@@ -20,10 +20,10 @@ And the model's (`Model.spec`): `boxOut y`, `boxSt sl` (a boxed `Output`, a boxe
 configuration `c`'s two slices hold `g`, read-only: configurations share slices, `step` returns
 `c.kv` in a new configuration); `stRep v S` (a Go state value: a boxed `state`, its slice and
 configurations read-only, whose contents `gs` represent `S`, `GOk gs S`); and `linkvS`, the
-model's `ModelSpec`: `kvM decOp`, `stRep`, and `ioOk i o` (a boxed `Input` and a boxed `Output`,
-what `Step`'s type assertions need). `stRepB n v S` is `stRep v S` with every configuration's
-lengths below `n` (`Bounded n`): `Model.spec`'s `Step` keeps the state's lengths bounded, one
-more after each step (see `Spec/.../linkv/Model.lean`).
+model's `ModelSpec`: `kvM decOp`, `rep k` = `stRepB (k + 1)`, and `ioOk i o` (a boxed `Input`
+and a boxed `Output`, what `Step`'s type assertions need). `stRepB n v S` is `stRep v S` with
+every configuration's lengths below `n` (`Bounded n`): a value made by `k` steps has lengths
+below `k + 1` (porcupine's index, `ModelSpec.rep`; see `Spec/.../linkv/Model.lean`).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
 translation's field projections (`get_Put`, ...: a deterministic pure step from `#x` to `#x.f`),
@@ -170,7 +170,7 @@ theorem stRepB_stRep (n : Nat) (v : GoInterface) (S : KVSet GoString GoString) :
 /-- **The model's specification** (see the file header). -/
 def linkvS : github_com.anishathalye.porcupine.ModelSpec GF (KVSet GoString GoString) where
   M := kvM decOp
-  rep := stRep
+  rep k := stRepB (k + 1)
   ioOk i o := iprop(⌜∃ x y, i = boxIn x ∧ o = boxOut y⌝)
   ioOk_pers _ _ := by infer_instance
 

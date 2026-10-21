@@ -73,21 +73,19 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ bootLog Hbf HEof HCc Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id₁ id₂ id₃ bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
   ihave #Hcom' := Hcom
   iunfold commonPremises at Hcom'
   icases Hcom' with ⟨-, -, -, -, -, -, #Hnrl⟩
-  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts (the named Props)
+  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
-  · unfold EofFromIoInit at HEof
-    iapply HEof
+  · iapply v3rpc.eofVar_of_init
     iPkgInit
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
-  · unfold ClosedchanFromContextInit at HCc
-    iapply HCc
+  · iapply context.isClosedchanInit_of_init
     iPkgInit
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -159,7 +157,7 @@ theorem Main.wp_proof
   -- the ghost state of the cluster and its members (`putget3_alloc`)
   imod (putget3_alloc id₁ id₂ id₃ bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂,
     %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2, hwl₁⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
@@ -314,7 +312,7 @@ theorem Main.wp_proof
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
-  imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries bootLog)) go!"k" go!"v" ⊤)
+  imod (client.putGetInv_alloc_log ρ₁.rd (kvModel ρ₁.rd.kv (bootEntries bootLog)) go!"k" go!"v" (by rw [hwl₁]; trivial) ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []

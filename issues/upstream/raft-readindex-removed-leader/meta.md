@@ -19,8 +19,11 @@ decides how to file, as for the sibling.
   `upamanyus/etcd-raft` by a force-push (`--force-with-lease=fix/raft-readindex-removed-leader:30d3548`, done
   2026-10-19 with the user's approval, as the reviewer asked for a rebase); the PR's head is now 3009105.
 - **Base**: upstream `main` 1d3216d845a72ef5a78c55772ea220a931e2c3ef (2026-10-19, the merge of #535)
-- **State**: filed (the issue and the PR, 2026-10-19); revision pushed 2026-10-19 (the PR description and the
-  issue's test link still to be edited on GitHub by the user)
+- **State**: merged (filed 2026-10-19; the revision, 3009105, merged by ahrtr the same day as 1931ff5be). The
+  bot's `/cherry-pick` to release-3.7 (conflict in `raft.go`) and release-3.6 (`raft_test.go`) failed; ahrtr
+  asked for manual cherry-picks to release-3.7, release-3.6 and etcd's release-3.5 (`raft/`), and reopened #534
+  "to track the backport effort": not done (2026-10-20). Before the merge, the PR description and the issue's
+  test link were still to be edited on GitHub by the user.
 - **Upstream issue**: [etcd-io/raft#534](https://github.com/etcd-io/raft/issues/534), filed 2026-10-19. Its test
   link (`blob/fix/raft-readindex-removed-leader/raft_test.go#L2227-L2260`) is off by 36 lines after the rebase;
   `issue.md` now has the permalink `blob/1917bb4/raft_test.go#L2263-L2296` and base 1d3216d84, to edit into the issue.

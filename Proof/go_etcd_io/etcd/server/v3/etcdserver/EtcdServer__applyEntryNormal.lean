@@ -147,7 +147,7 @@ local macro "trig'" : tactic => `(tactic| (
   iexists x, x', out
   iframe HRes Hcert HMint Hcx'
   isplitr
-  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl⟩
+  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx⟩
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -157,7 +157,7 @@ set_option hygiene false in
 /-- `Trigger(id, ar)`'s premise: every expectation registered under the entry's id is the
 proposer's `resultΨ` of the entry's request (the claims agree), which the result meets. -/
 local macro "trig" : tactic => `(tactic| (
-  iright
+  iright; iright
   iunfold waitTrig
   iintro %Ψ HR
   iunfold reqWaitR at HR
@@ -188,7 +188,7 @@ local macro "trig" : tactic => `(tactic| (
   iexists x, x', out
   iframe HRes Hcert HMint Hcx'
   isplitr
-  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl⟩
+  · ipureintro; exact ⟨Hstep0.1, Hstep0.2, rfl, Hwvf hpx⟩
   iunfold appliedWit
   iexists m.index
   rw [Hrd]
@@ -348,7 +348,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         $$ [HKV Hwt HRD HFSE HSpF] as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, %Hstep0, -, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpF
         isplitr
-        · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
+        · iunfold entryRegd at Hreg
+          ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
+          iexact Hr1
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr
         · ipureintro; exact Hlgnn
@@ -457,19 +459,16 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       -- (and, unit T1, the committed log it is in)
       have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
+              (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
         unfold entryWaitOk; rw [ite_eq_left Htyp]
       ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              ∃ γf : GName, idClaim ρ.ids id m.data γf) ∗
+              (∃ γf : GName, idClaim ρ.ids id m.data γf) ∗ idRegd ρ.ids id) ∗
             ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
       · rw [← he]; iexact Hewo
       icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
-      ihave #Hcl0' : iprop(∃ γf : GName, idClaim ρ.ids id0 m.data γf) $$ []
-      · iapply Hewc
-        ipureintro; exact ⟨hdata, hdec, hid⟩
-      icases Hcl0' with ⟨%γf, #Hcl0⟩
+      ihave ⟨⟨%γf, #Hcl0⟩, -⟩ := Hewc $$ %rq %id0 %(⟨hdata, hdec, hid⟩)
       ihave #Hgen' := Hgen
       iunfold srvGenAt at Hgen'
       icases Hgen' with ⟨%gidg, -, #Hidg⟩
@@ -528,7 +527,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           ⟨HRD, HFS, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep0, HRes, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt Hcp HFSE HSpT
         isplitr
-        · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
+        · iunfold entryRegd at Hreg
+          ihave ⟨#Hr1, -⟩ := Hreg $$ %rq %id0 %(⟨hdec, hid⟩)
+          iexact Hr1
         simp only [↓reduceIte]
         rw [HEP, HEf]
         isplitr
@@ -615,7 +616,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       wp_apply (wp_Is_notNoSpace hIs err ens Hensp) $$ []
       · iframe #
       iunfold waitInv at Hwok
-      icases Hwok with ⟨%RD0, Hwok⟩
+      icases Hwok with ⟨⟨%RD0, Hwok⟩, #Hwn⟩
       iunfold isWait at Hwok
       icases Hwok with ⟨%wi, %Hwi, -, #HTrig, -⟩
       subst Hid
@@ -639,10 +640,30 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       (try dsimp only)
       ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-      wp_apply HT $$ [HRes HTr HMint]
-      · trig
-      (try wp_auto)
-      tail_any
+      -- (linkv-txn stage B1) the result handed over is of a full application: the outcome not
+      -- waived, or the registration gone (nothing is sent), or the id another member's
+      ihave %Hot : ⌜ot = none → m.data ≠ [] → idPfx id ≠ ρ.ids.pfx⌝ $$ []
+      · iunfold entryRegd at Hreg
+        ihave ⟨-, %Ho⟩ := Hreg $$ %rq %id %(⟨hdec, hid⟩)
+        ipureintro; exact Ho
+      icases Hdel with (%Hwv | #Hg)
+      · have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun _ => Hwv
+        wp_apply HT $$ [HRes HTr HMint]
+        · trig
+        (try wp_auto)
+        tail_any
+      · cases ot with
+        | some t =>
+          wp_apply HT $$ []
+          · ileft; iexists t; iunfold waitGoneOpt at Hg; iexact Hg
+          (try wp_auto)
+          tail_any
+        | none =>
+          have Hwvf : idPfx id = ρ.ids.pfx → out.waived = false := fun h => absurd h (Hot rfl hdata)
+          wp_apply HT $$ [HRes HTr HMint]
+          · trig
+          (try wp_auto)
+          tail_any
 
 end proof
 

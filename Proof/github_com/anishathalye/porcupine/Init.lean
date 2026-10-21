@@ -3,24 +3,25 @@
 # Porcupine's package initialization, with `context`'s `isClosedchanInit` (2026-10-19)
 
 Porcupine's specs (`CheckOperations*`) take `context.isClosedchanInit` (`closedchan` is
-closed, an invariant: `WithCancel(Background())` needs it), which `context`'s `isPkgInit` does
-not give and Perennial's `context.wp_initialize'` does not return: its proof closes
-`closedchan` and drops the channel's state. A closed program built on porcupine must get it
-from its initialization, so this file proves the initialization again with it:
+closed, an invariant: `WithCancel(Background())` needs it), which `context`'s `isPkgInit` did
+not give until Perennial `init-facts` (2026-10-20: now its conjunct `"#Hcci"`,
+`context.isClosedchanInit_of_init`). This file was written before, and proves the
+initialization again with it:
 
 - `context_wp_initialize'_closedchan`: `context`'s initialization (the proof of Perennial's
   `context.initialize'.wp_proof`, plus the invariant `inv closedchanN (ownChan γ (Closed []))`
-  allocated once `init` has closed the channel) at a `get_is_pkg_init` whose entry for
-  `context` is `isPkgInit context ∗ isClosedchanInit`; it returns both.
+  allocated once `init` has closed the channel, which `isPkgInit context` now holds too) at a
+  `get_is_pkg_init` whose entry for `context` is `isPkgInit context ∗ isClosedchanInit`; it
+  returns both.
 - `wp_initialize'`: porcupine's (which runs `context`'s first), at a table
   (`PorcupineInitTable`) whose entries for `context` and porcupine carry `isClosedchanInit`
   (so a second initialization, from the map, gives it too) and whose entries for the other
   packages it reaches (`errors`, `sync`, `sync/atomic`, `time`, `sort`, `fmt`, `strings`,
   which do not import `context`) are their `isPkgInit` (`GetIsPkgInitProp`).
 
-The clean fix is in Perennial: `context`'s `isPkgInit` could include `isClosedchanInit`
-(its `isInit` is stated at any `HasLC`, `isClosedchanInit` at `HasLC.hasLC`), and then no
-spec would take it as a premise.
+Now that `context`'s `isPkgInit` includes `isClosedchanInit`, this variant is redundant: the
+packages of `CLOSEDCHAN` could be proved in the ordinary form, and their specs could get
+`isClosedchanInit` from `isPkgInit context` (`notes/STATUS.md`).
 -/
 module
 
@@ -30,6 +31,8 @@ public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.strings.Link
+public import Perennial.Proof.time.Link
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -133,6 +136,10 @@ theorem context_wp_initialize'_closedchan [hErr : ErrorStringIsError]
       iframe HDE
       ipureintro
       exact hDE.is_error
+    isplitr
+    · unfold isClosedchanInit
+      iexists ch, γ
+      iframe #
     itrivial
   · unfold isClosedchanInit
     iexists ch, γ
@@ -194,5 +201,46 @@ theorem wp_initialize' [context.ErrorStringIsError] [context.DeadlineExceededIsE
 end init
 
 end github_com.anishathalye.porcupine
+
+/-! The ordinary form (decision D19e), for a package of the ordinary form importing this one, at
+a table of its closure's `isPkgInit`s (see `CLOSEDCHAN` in `etc/gen-init.py`). -/
+section init
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions]
+variable [_root_.Perennial.context.ErrorStringIsError]
+  [_root_.Perennial.context.DeadlineExceededIsError]
+
+namespace github_com.anishathalye.porcupine
+
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.anishathalye.porcupine get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine }} := by
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  iframe Hown
+  is_pkg_init_finish
+
+end github_com.anishathalye.porcupine
+
+end init
 
 end Perennial

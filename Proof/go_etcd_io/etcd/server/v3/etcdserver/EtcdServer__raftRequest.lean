@@ -49,7 +49,7 @@ local macro "rr_ok" : tactic => `(tactic| (
     iexists y, y', o, skip
     iframe Hcert HMint Hwit Hok
     isplitr
-    · ipureintro; exact Hstep
+    · ipureintro; exact ⟨Hstep.1, Hstep.2.1, Hstep.2.2.1, Hstep.2.2.2⟩
     rw [← hve]
     iexact Hans
   iexact HQL))

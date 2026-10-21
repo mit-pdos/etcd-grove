@@ -29,8 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 and stats set, for member `tv.ID` of the network `γn` (D21 M2, 2026-10-19): given the member's slot
 (`netSlot`), its `Raft` (`tv.Raft`: `netRaftOk`, the calls the transport makes into it) and
 `netProcSlots` copies of the resource `R` those calls borrow, an error, or the transport live
-(`transportLive γn t`: `AddRemote`/`AddPeer` take it), which the caller gives up for
-`transportStarted γn t` (`Send`, `Stop`, `ActiveSince`).
+with no remote yet (`transportLive γn t []`: `AddRemote` adds to the list, `AddPeer` keeps it),
+which the caller gives up for `transportStarted γn t` (`Send`, `Stop`, `ActiveSince`) and
+`transportRemotes t rs`, the ids `AddRemote` was called for (the partition plan's S1,
+2026-10-20: `CutPeer`/`MendPeer` take an id not among them, since a second `CutPeer` of a
+remote panics, `issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`; `t.remotes` gets a key only
+through `AddRemote`, which the exclusive `transportLive` serializes before the transport is given
+up, so the list is complete).
 
 What the axiom asserts of the Go code (`transport.go`, `peer.go`, `stream.go`, `pipeline.go`,
 `http.go` at the etcd pin), besides `Start`'s own steps (the two round trippers from the TLS info,
@@ -60,7 +65,8 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty @!! go!"Start")) (Val #()))
   {{ (err : GoInterface), RET #err;
       ⌜err ≠ GoInterface.nil⌝ ∨
-      ⌜err = GoInterface.nil⌝ ∗ transportLive γn t ∗ (transportLive γn t -∗ transportStarted γn t) }}
+      ⌜err = GoInterface.nil⌝ ∗ transportLive γn t [] ∗
+        (∀ rs : List w64, transportLive γn t rs -∗ transportStarted γn t ∗ transportRemotes t rs) }}
 
 end spec
 

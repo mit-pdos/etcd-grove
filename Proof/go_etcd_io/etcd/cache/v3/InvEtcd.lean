@@ -813,7 +813,9 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
   unfold isEtcdKV; infer_instance
 
 /-- **The cache's client `KV`**: `isEtcdKV` for the gets the cache makes (exact ones,
-`getExact`; K3: etcd's state only for a prefix get, `kvGetResultC`), and the `Error()` of a
+`getExact`, without a sort option, `sortSet = false` (2026-10-20, cachekv: neither of the cache's
+two gets sorts, and a sorted get's client reads `rpctypes.ErrInvalidSortOption`, which no package
+fact gives); K3: etcd's state only for a prefix get, `kvGetResultC`), and the `Error()` of a
 non-nil error its `Get` returns returns some string (`errStrOk`: the cache's watch loop prints it
 with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
 `rpctypes` error, each an error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
@@ -821,7 +823,8 @@ def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
       (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
-        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact⌝ }}
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact ∧
+          (opGetModel key gs).base.sortSet = false⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

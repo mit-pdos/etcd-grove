@@ -79,18 +79,26 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- (checkQuorum || preVote) && (MsgHeartbeat || MsgApp): with either on, the type test is
   -- false
-  wp_drive _Q
+  -- (2026-10-20) joined at `false` (`wp_join`): the rest of the arm is verified once, not
+  -- once per flag case
+  wp_join (v := #false) at (If (If _ (Val #true) _) _ (Val #false)) with [Hphys r m Hm]
+  · wp_drive _Q
+    cq_split _Q
+    -- where the type test ran, its last disjunct (`MsgApp`) is the value left
+    all_goals first
+      | wp_join_done
+      | (isplitr
+         · ipureintro; rw [decide_eq_false (by w32_ne)]
+         iframe)
   -- not MsgPreVote, not MsgStorageAppendResp: only the log line
-  cq_split _Q
-  all_goals
-    try wp_auto
-    wp_drive _Q
-    wp_raft_logC
-    iapply HΦ $$ %interface.nil %s
-    iframe Hphys
-    ipureintro
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
-      StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl, rfl⟩
+  try wp_auto
+  wp_drive _Q
+  wp_raft_logC
+  iapply HΦ $$ %interface.nil %s
+  iframe Hphys
+  ipureintro
+  exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+    StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl, rfl⟩
 
 end StepProof
 

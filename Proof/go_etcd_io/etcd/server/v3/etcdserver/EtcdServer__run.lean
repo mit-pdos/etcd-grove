@@ -327,57 +327,55 @@ theorem EtcdServer.run.wp_proof
       · iPkgInit
       ihave #Pt : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
       · iPkgInit
-      cases isl
-      · -- not the leader: `Demote`, `Pause`
-        simp only [Bool.not_false]
-        (try wp_auto)
-        rw [Hli]
-        (try wp_auto)
-        wp_apply HDemote
-        (try wp_auto)
-        icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
-        · rw [Hcpn]
-          ul_tail
-        · rw [Hcpi]
+      -- `if !s.isLeader() { .. } else { .. }`, joined (`wp_join`, it only reads `newLeader`): the
+      -- notification and the stats after it (`ul_tail`) are verified once
+      wp_join at next with [newLeader]
+      · cases isl
+        · -- not the leader: `Demote`, `Pause`
+          simp only [Bool.not_false]
           (try wp_auto)
-          wp_apply HPause
-          ul_tail
-      · -- the leader: the election time (if new), `Resume`
-        simp only [Bool.not_true]
-        (try wp_auto)
-        cases nl
-        · (try wp_auto)
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
-          · rw [Hcpn]
-            ul_stats
-          · rw [Hcpi]
-            (try wp_auto)
-            wp_apply HResume
-            ul_stats
-        · (try wp_auto)
-          wp_apply time.wp_Now as %tn -
+          rw [Hli]
           (try wp_auto)
-          wp_apply sync.RWMutex.wp_Lock_guard (srvLeadTimeMuAddr s) (leadTimeP s) $$ [] as ⟨Hwl, HP⟩
-          · iframe #
-          iunfold leadTimeP at HP
-          icases HP with ⟨%t0, Hlt⟩
-          (try wp_auto)
-          wp_apply sync.RWMutex.wp_Unlock_guard (srvLeadTimeMuAddr s) (leadTimeP s) $$ [Hwl Hlt]
-          · iframe #; iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
+          wp_apply HDemote
           (try wp_auto)
           icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
           · rw [Hcpn]
             (try wp_auto)
-            wp_apply hN v.leaderChanged $$ []
-            · iframe #
-            ul_stats
+            wp_join_done
+          · rw [Hcpi]
+            (try wp_auto)
+            wp_apply HPause
+            (try wp_auto)
+            wp_join_done
+        · -- the leader: the election time (if new), `Resume`
+          simp only [Bool.not_true]
+          (try wp_auto)
+          wp_join at next with [newLeader]
+          · cases nl
+            · (try wp_auto)
+              wp_join_done
+            · (try wp_auto)
+              wp_apply time.wp_Now as %tn -
+              (try wp_auto)
+              wp_apply sync.RWMutex.wp_Lock_guard (srvLeadTimeMuAddr s) (leadTimeP s) $$ [] as ⟨Hwl, HP⟩
+              · iframe #
+              iunfold leadTimeP at HP
+              icases HP with ⟨%t0, Hlt⟩
+              (try wp_auto)
+              wp_apply sync.RWMutex.wp_Unlock_guard (srvLeadTimeMuAddr s) (leadTimeP s) $$ [Hwl Hlt]
+              · iframe #; iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
+              (try wp_auto)
+              wp_join_done
+          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
+          · rw [Hcpn]
+            (try wp_auto)
+            wp_join_done
           · rw [Hcpi]
             (try wp_auto)
             wp_apply HResume
             (try wp_auto)
-            wp_apply hN v.leaderChanged $$ []
-            · iframe #
-            ul_stats
+            wp_join_done
+      ul_tail
     · -- `updateCommittedIndex`: the writer's half of the committed index
       iintro %ci' %Lc !> %Φ' !> ⟨⟨%c, Hown⟩, #HLc, %HciL⟩ HΦ'
       wp_auto

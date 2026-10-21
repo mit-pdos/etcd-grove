@@ -215,6 +215,7 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
       reqPropOk γk (irrPut op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold putPermit reqPropOk
   iintro ⟨%Hl, Hau⟩
+  icases kvOpAu1_writes γk (.put op) Q $$ Hau with ⟨%Hwr, Hau⟩
   iright; iright
   iexists .put op, Q, γc
   iframe Hau
@@ -230,19 +231,21 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
     simp only [irrPut, Option.some.injEq] at hop'
     subst hop'
     exact Hl
-  refine ⟨⟨hpl, γk.wl.admits_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
+  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
     rqShape_of_plain _ hpl (by rw [hk]; decide), rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
 
 /-- **A delete's permission is its proposal's** (2026-10-15, unit T2). -/
-theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF)
+    (γc : GName) :
     deletePermit (GF := GF) γk op Q ⊢
-      reqPropOk γk (irrDeleteRange op) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+      reqPropOk γk (irrDeleteRange op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold deletePermit reqPropOk
-  iintro ⟨%Hz, #Hau⟩
-  iright; ileft
-  iexists .deleteRange op, Q
+  iintro ⟨%Hz, Hau⟩
+  icases kvOpAu1_writes γk (.deleteRange op) Q $$ Hau with ⟨%Hwr, Hau⟩
+  iright; iright
+  iexists .deleteRange op, Q, γc
   iframe Hau
   ipureintro
   have hk : apply.dispatchKind (irrDeleteRange op) = .deleteRange := by
@@ -252,7 +255,7 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     rw [hk]
     exact ⟨by simp [apply.noSideEffect, irrDeleteRange, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrDeleteRange, apply.irrEmpty]⟩
-  refine ⟨⟨hpl, γk.wl.admits_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
+  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
     rqShape_of_plain _ hpl (by rw [hk]; decide), rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩
@@ -261,13 +264,15 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
 
 /-- **A writing transaction's permission is its proposal's** (2026-10-15, unit T2). -/
-theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) :
+theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF)
+    (γc : GName) :
     txnPermit (GF := GF) γk t Q ⊢
-      reqPropOk γk (irrTxn t) (fun L => iprop(□ Q (kvStateOf (kvModel γk L)))) := by
+      reqPropOk γk (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold txnPermit reqPropOk
-  iintro ⟨%Ht, #Hau⟩
-  iright; ileft
-  iexists .txn t, Q
+  iintro ⟨%Ht, Hau⟩
+  icases kvOpAu1_writes γk (.txn t) Q $$ Hau with ⟨%Hwr, Hau⟩
+  iright; iright
+  iexists .txn t, Q, γc
   iframe Hau
   ipureintro
   have hk : apply.dispatchKind (irrTxn t) = .txn := by
@@ -278,7 +283,7 @@ theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IPro
     refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
     intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
-  refine ⟨⟨hpl, γk.wl.admits_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
+  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
     rqShape_of_txn _ hpl hk ?_, rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩
@@ -459,13 +464,14 @@ token of the revision the step appended, if it appended one (`revMinted`, unit V
 (`appliedWit γr`, the result's witness, `resultIsW`); and (the vertical slice's unit V2) a KV
 write ran at a log extending the proposer's floor `F` (`apply.kvFloorOk`); and (unit W-M3) the log
 the entry met is `lb` (`x.log`, which the raft request's result ties to the raft prefix the
-proposal's update fired at) and the log after is certified (`certOk`). -/
+proposal's update fired at) and the log after is certified (`certOk`); and (linkv-txn stage B1,
+2026-10-20) the ranges were run (`skip = false`: the apply thread found the id registered). -/
 def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (lb : mvcc.Log) :
     IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
-      x.log = lb⌝ ∗
+      x.log = lb ∧ skip = false⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
     revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ mvcc.certOk E.γ x'.log)
 
