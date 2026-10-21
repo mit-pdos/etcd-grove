@@ -34,8 +34,8 @@ theorem RestartNode.wp_proof
     (wp_newNode : newNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     RestartNode.spec (GF := GF) (hG := hG) := by
-  intro γ md bud c cv lok si σ hs csm P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
-    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28
+  intro γ md bud c cv lok si σ hs csm sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11 P12 P13 P14
+    P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 P28 HsnIn
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, #Hinit, Hghost, #Hcommitted, #Hbud, #Hlb0, #Hcl⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
   · cases md with
@@ -203,8 +203,8 @@ theorem RestartNode.wp_proof
   -- the node's ghost state
   imod dghostVar_alloc ((([] : List EntryM), hsZero) : List EntryM × HardStateM) with ⟨%γdlv, Hdlv⟩
   icases dghostVar_halves _ _ $$ Hdlv with ⟨Hdlv1, Hdlv2⟩
-  imod dghostVar_alloc (([], [], [], hsZero) : List EntryM × List EntryM ×
-    List EntryM × HardStateM) with ⟨%γrof, Hrof⟩
+  imod dghostVar_alloc (([], [], [], hsZero, none) : List EntryM × List EntryM ×
+    List EntryM × HardStateM × Option SnapLoan) with ⟨%γrof, Hrof⟩
   icases dghostVar_halves _ _ $$ Hrof with ⟨Hrof1, Hrof2⟩
   -- (2026-10-15, stage N) the configuration shared with the driver
   imod mono_list_own_alloc ([] : List EntryM) with ⟨%γdlm, Hdlm, #Hdlb⟩
@@ -214,7 +214,7 @@ theorem RestartNode.wp_proof
   icases dghostVar_halves _ _ $$ Hccq with ⟨Hccq1, Hccq2⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcam, Hcam, #Hcamlb⟩
   -- (D19i part 1) the driver's request on `advancec`
-  imod dghostVar_alloc (0 : Nat) with ⟨%γreq, Hreq⟩
+  imod dghostVar_alloc (none : Option Nat) with ⟨%γreq, Hreq⟩
   icases dghostVar_halves _ _ $$ Hreq with ⟨Hreq1, Hreq2⟩
   unfold newNodeChans
   icases Hchans with ⟨%γp, %γr, %γc, %γcs, %γrd, %γa, %γt, %γd, %γs, %γst, #Hcp, Hop, #Hcr, Hor,
@@ -222,7 +222,8 @@ theorem RestartNode.wp_proof
   let γn : NodeNames := { raft := γ, bud := bud, stor := interface.ok si, propc := γp,
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
-                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq }
+                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
+                          snapIn := sn }
   imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
   imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
@@ -253,16 +254,19 @@ theorem RestartNode.wp_proof
   · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam]
     · iframe Hnode
       unfold runPre
-      iexists nv, _, (([], [], [], hsZero) : List EntryM × List EntryM × List EntryM × HardStateM)
+      iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
+        HardStateM × Option SnapLoan)
       rw [Hnvrn]
       iframe n Hrn Hrof1 Hrof2
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl⟩
       iframe Hdlv1 Hlb0
       unfold runCfg
-      iframe Hdlm
       isplitr
-      · ipureintro; exact ⟨rfl, Nat.le_refl _, rfl, rfl, rfl⟩
+      · ipureintro
+        exact ⟨rfl, Nat.le_refl _, rfl, fun _ => ⟨rfl, rfl⟩, HsnIn, fun _ h => by cases h⟩
+      isplitl [Hdlm]
+      · iExactEq Hdlm; rfl
       iexists 0
       iframe Hcap1 Hcam
       ipureintro; exact ⟨Nat.le_refl _, NoConfIn_empty _ _⟩
@@ -270,7 +274,7 @@ theorem RestartNode.wp_proof
   iapply HΦ
   iexists γn, n_ptr
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   iframe Hnode
   isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriver dlvLb

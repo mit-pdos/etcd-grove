@@ -414,7 +414,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
   iunfold rnEnvOk at Henv
   icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, -, %HRQ⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  obtain ⟨Hstatic, Hstor⟩ := Hmode
+  obtain ⟨Hstatic, Hstor, Hns⟩ := Hmode
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -434,12 +434,16 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
     iunfold rnBusy at Hbusy
     icases Hbusy with ⟨Hbusy, %ca, %cfg, Hcfg⟩
     iunfold rnAppendReceipt at Hrcpt
-    wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg p
+    wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg p none
       (fun h => by rw [Hstatic] at h; simp [RNMode.isDyn] at h) $$ [Hbusy Hrcpt Hcfg]
-      as ⟨Hdrv, Hcfg, %x, #Hfl, %Hx⟩
+      as ⟨Hdrv, Hcfg, #Hw⟩
     · iframe #
       rw [Hstor]
-      iframe Hbusy Hrcpt Hcfg
+      iframe Hbusy Hcfg
+      simp only [advReceipt]
+      iexact Hrcpt
+    -- (D22 S-d4) the floor's witness: raft's no-snapshot mode
+    icases reqWit_none γ.node _ (.inl Hns) $$ Hw with ⟨%x, #Hfl, %Hx⟩
     iapply HΦ
     isplitl [Hdrv Hcfg]
     · iunfold rnDrv

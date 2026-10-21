@@ -140,9 +140,20 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · ipureintro
       exact NetMsgOk.of_sent Hsent Hto Hp
     isplitr
-    · ipureintro; exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent), Hns⟩
+    · ipureintro
+      exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent),
+        fun h => absurd h Hns⟩
+    -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
+    isplitr
+    · imodintro
+      iintro %ty %Hty %_Hne
+      iapply Hmsgs $$ %ty %Hty
+    isplitr
+    · imodintro
+      iintro %h
+      exact absurd h Hns
     simp only [ite_eq_right Htn]
-    iframe Hmsgs Htl HO Htc
+    iframe Htl HO Htc
 
 end lemmas
 

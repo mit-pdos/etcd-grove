@@ -87,7 +87,10 @@ theorem KV.run.wp_proof
     ipureintro
     refine ⟨by simp; rfl, Nat.le_refl _, NoConfIn_empty _ _, .inl rfl⟩
   wp_for IH
-  wp_apply node_ready_receive γp.node id n ch ds p $$ [$Hch $Hdrv]
+  -- (D22 S-d4) no snapshot `Ready`: the node is in the dynamic mode
+  have Hdy : γp.node.mode.isDyn = true := by
+    obtain ⟨⟨h0, h1, hm⟩, -⟩ := Hcc; rw [hm]; rfl
+  wp_apply node_ready_receive_ns γp.node id n ch ds p (.inr (.inl Hdy)) $$ [$Hch $Hdrv]
     as %rdv' ⟨%ce, %es, %msgs, %p', Hdata, Hbusy⟩
   ihave #Hdlb := nodeDriverBusy_lb γp.node id n (ds ++ ce) es p' $$ Hbusy
   unfold readyData
@@ -291,7 +294,10 @@ theorem KV.run.wp_proof
     -- the reads whose index is applied, answered
     wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ vs) (DFrac.own 1) a' Ha
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
-    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' p' (fun _ => Hrc.2.1)
+    -- (D22 S-d4) the receipt for a `Ready` without a snapshot
+    ihave Hrcpt : advReceipt γp.node.stor es none $$ [Hrcpt]
+    · simp only [advReceipt]; iexact Hrcpt
+    wp_apply wp_node_Advance γp.node id n (ds ++ ce) es ca' cfg' p' none (fun _ => Hrc.2.1)
       $$ [$Hraftinit $Hbusy $Hrcpt $Hncfg] as ⟨Hdrv, Hncfg, -⟩
     wp_for_post
     iframe

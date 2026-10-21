@@ -90,7 +90,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iunfold memSnapOwn at Hown
     icases Hown with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
     wp_auto
-    wp_apply wp_EnsureSnapshot sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
+    wp_apply wp_EnsureSnapshot.1 sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
     · simp only [snapOpt]; iexact Hsnap
     ihave Hr := ownSnapW_E $$ Hr
     ihave Hr := ownSnapE_weaken $$ Hr
@@ -191,7 +191,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iunfold memSnapOwn at Hown
     icases Hown with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
     wp_auto
-    wp_apply wp_EnsureSnapshot sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
+    wp_apply wp_EnsureSnapshot.1 sp (some sv) $$ [Hsnap] as %r ⟨Hr, -⟩
     · simp only [snapOpt]; iexact Hsnap
     simp only [Option.getD_some]
     wp_apply wp_CloneSnapshot.2.2 r (DFrac.own 1) sv $$ [Hr] as %p' ⟨Hr, Hp'⟩

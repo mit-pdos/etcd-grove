@@ -137,7 +137,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
   isplitr
-  · ipureintro; exact ⟨hmode, hstor⟩
+  · ipureintro; exact ⟨hmode, hstor, by rw [hraft]; exact hns⟩
   isplitr
   · ipureintro; exact hcap
   isplitr
