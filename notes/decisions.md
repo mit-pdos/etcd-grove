@@ -12288,3 +12288,33 @@ build; matchers shared between definitions over-approximate use (one such case,
 `FollowerStepResult`, removed by hand). Protocol-level results nothing links
 (`state_machine_safety`, `raft_dyn_*`, ...) are removed with the rest: the client-facing
 guarantees are the specs' atomic updates, and the closed theorems do not use them.
+
+## Proposals: registered once (a public ghost step), proposed any number of times (2026-10-21, branch `clean-up`)
+
+**2026-10-21 · accepted (the user's design) · supersedes the "every proposal once" half of the
+previous entry**
+
+The ticket of D21 M6 answered a real need: for a client to get `Q` with committed entries, it
+must commit to one `Q` per data it proposes. Until now that commitment was made inside
+`Propose` (the fresh token in its precondition, the handle in its postcondition), so the same
+bytes could be proposed only once, and a retrying client (the register) needed a second kind of
+proposal or had to stop. **Decision:** the commitment is raft's public ghost step,
+`prop_register : propFresh γ d ={E}=∗ propIs γ d Q`, taken once per data whenever the client
+likes (the server, in its bridge, just before proposing; the register, after minting the
+operation); `Propose` takes `propIs γ d Q ∗ propAu1 γ d Q` and returns only the error, and may be
+called any number of times for one `d`.
+
+*The proof plan chosen for the fewest ghost constructs.* (i) The registry maps `d` to its saved
+predicate and a per-`d` ghost map of deposits (no new field in `RaftNames`). (ii) Results are
+stored per `d`, quantified over committed occurrences, each as `qRes γq L` (`∃ Q, savedPred γq Q
+∗ □ Q L`): with a result carrying its own predicate, firing a deposit never compares two saved
+predicates, which inside the step (the registry open across it, `regsOwn`) would cost a later
+credit per firing; the client compares once, in `prop_collect`, under the laters it already had.
+(iii) A deposit holds exactly what `Propose` received (`savedPred γq Q ∗ propAu1 γ d Q`) until it
+fires, then its ticket's index. (iv) The ticket stays a timeless ghost variable carried by the
+message; carrying the update itself (no tickets, no deposit map) was rejected because updates are
+not timeless and messages cross channels and the network contract under laters. (v) An entry's
+record names some deposit of its data spent at its index; two deposits of one `d` may be spent at
+one index (different terms), so results cannot be per deposit, and firing needs only that the
+named deposit has not fired (a fired one's index is within the log). `propIdx_agree` ("`d` has
+one index") is gone with the single deposit.

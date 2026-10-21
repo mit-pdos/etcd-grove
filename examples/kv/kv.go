@@ -183,8 +183,8 @@ func (r *KV) answer(pending []raft.ReadState, applied uint64) []raft.ReadState {
 
 // apply runs one committed entry: a Put sets its key's value, an Append appends to it;
 // any kind answers its waiter, if this replica proposed it, with the key's value after the
-// operation. An entry whose operation was already applied (raft commits an operation
-// proposed once at most once, but the register does not rely on it) is skipped, so
+// operation. An entry whose operation was already applied (an operation may be committed
+// more than once: a proposal retried after an error, or delivered twice) is skipped, so
 // that an operation takes effect once. Operations are told apart by their encoding, which
 // is unique: the replica and a sequence number of its own.
 func (r *KV) apply(e *pb.Entry) {
@@ -226,10 +226,10 @@ func (r *KV) apply(e *pb.Entry) {
 const maxSeq = ^uint64(0)
 
 // do proposes one operation and waits until it is applied; it returns the key's value after
-// the operation. An operation is proposed once: a proposal this node drops (this node a
-// leader transferring its leadership, or over its uncommitted-size limit; while no leader is
-// known the node does not take proposals) stops the replica, and one the leader it is
-// forwarded to drops makes do wait forever (partial correctness, like Read).
+// the operation. A proposal this node drops (no leader known, or this node a leader
+// transferring its leadership) is proposed again. One the leader it is forwarded to drops
+// (a leader transferring its leadership) is not: do then waits forever (partial
+// correctness, like Read).
 func (r *KV) do(kind byte, key, val string) string {
 	r.mu.Lock()
 	if r.nextSeq == maxSeq {
@@ -241,9 +241,7 @@ func (r *KV) do(kind byte, key, val string) string {
 	ch := make(chan string, 1)
 	r.waiters[seq] = ch
 	r.mu.Unlock()
-	if r.node.Propose(context.Background(), encode(r.id, seq, kind, key, val)) != nil {
-		for {
-		}
+	for r.node.Propose(context.Background(), encode(r.id, seq, kind, key, val)) != nil {
 	}
 	return <-ch
 }

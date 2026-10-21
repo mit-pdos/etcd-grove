@@ -244,7 +244,7 @@ func TestTransfer(t *testing.T) {
 		}
 		val := string(rune('b' + i))
 		regs[to].Put("k", val)
-		// a Get first (the node holds a proposal while it knows no leader), so that the
+		// a Get first (a proposal dropped for want of a leader is retried), so that the
 		// replica knows the new leader by the time it asks for a read index
 		for _, id := range voters {
 			if v := regs[id].Get("k"); v != val {

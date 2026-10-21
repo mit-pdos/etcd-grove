@@ -13,11 +13,12 @@ is its fold (`kvFold`, `Base.lean`: every key's value). A client holds `rkvVal Î
 half, at a history whose fold is `m` (a ghost variable holds a countable value: the history,
 not the map). `Put`/`Get`/`Append` hand their atomic update over `rkvVal` to `do`, which mints
 the operation and keeps the update in the operation's slot (`opSlot`, with a later credit),
-and gives `Node.Propose` the atomic update over raft's log that moves the store's log at a
-committed occurrence of the operation's datum (`kv_propAu`, `Lemmas.lean`; raft fires it at most
-once, the operation being proposed once): at the first, it opens `rkvInv`, runs the client's
-update from the slot and moves the history -- the linearization point; at a later one only the
-log moves (the store, as the Go code, does not rely on raft's at-most-once).
+registers the operation's datum with raft once (`node_prop_register`), and gives every
+`Node.Propose` of it -- a retry of a dropped proposal included -- a new atomic update over raft's
+log that moves the store's log at a committed occurrence of the datum (`kv_propAu`,
+`Lemmas.lean`; raft fires each at most once): at the first, it opens `rkvInv`, runs the client's
+update from the slot and moves the history -- the linearization point; at a later one (a retry,
+a redelivered proposal) only the log moves.
 The result -- the key's value after the operation -- stays in the slot until the client
 collects it with its ticket (`kv_collect`). The standing update for raft's own entries is the
 store's too (`kv_noopAu`, given at allocation).

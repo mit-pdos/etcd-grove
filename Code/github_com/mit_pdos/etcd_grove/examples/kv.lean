@@ -1362,8 +1362,8 @@ noncomputable def KV.answer.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- apply runs one committed entry: a Put sets its key's value, an Append appends to it;
     any kind answers its waiter, if this replica proposed it, with the key's value after the
-    operation. An entry whose operation was already applied (raft commits an operation
-    proposed once at most once, but the register does not rely on it) is skipped, so
+    operation. An entry whose operation was already applied (an operation may be committed
+    more than once: a proposal retried after an error, or delivered twice) is skipped, so
     that an operation takes effect once. Operations are told apart by their encoding, which
     is unique: the replica and a sequence number of its own.
 
@@ -1499,10 +1499,10 @@ noncomputable def KV.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))
 
 /-- do proposes one operation and waits until it is applied; it returns the key's value after
-    the operation. An operation is proposed once: a proposal this node drops (this node a
-    leader transferring its leadership, or over its uncommitted-size limit; while no leader is
-    known the node does not take proposals) stops the replica, and one the leader it is
-    forwarded to drops makes do wait forever (partial correctness, like Read).
+    the operation. A proposal this node drops (no leader known, or this node a leader
+    transferring its leadership) is proposed again. One the leader it is forwarded to drops
+    (a leader transferring its leadership) is not: do then waits forever (partial
+    correctness, like Read).
 
     go: kv.go:233:14 -/
 noncomputable def KV.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -1530,21 +1530,18 @@ noncomputable def KV.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Fst (App (Val (chan.receive go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.string)))) (Var "ch")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
   (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KV.ty)))) (Var "r"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "seq"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.byte))) (Var "kind"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad go.string))) (Var "val"))
   (App (App (App (App (App (App (Val (GoInstruction (FuncResolve encode []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
-  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KV.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (App (App (Val doFor) (Lam BAnon
-  (Val #true))) (Lam BAnon
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.Node.ty go!"Propose"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KV.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))) (Lam BAnon
   (App (Val doExecute)
   (Val #()))))
   (Lam BAnon
-  (Val #())))
-  (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType KV.ty)))) (Var "r")))) (Val #()))))))
@@ -1570,7 +1567,7 @@ noncomputable def KV.«do».impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Put sets key's value to val.
 
-    go: kv.go:252:14 -/
+    go: kv.go:250:14 -/
 noncomputable def KV.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -1590,7 +1587,7 @@ noncomputable def KV.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Get returns key's value ("" for a key never set).
 
-    go: kv.go:257:14 -/
+    go: kv.go:255:14 -/
 noncomputable def KV.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -1605,7 +1602,7 @@ noncomputable def KV.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Append appends val to key's value.
 
-    go: kv.go:262:14 -/
+    go: kv.go:260:14 -/
 noncomputable def KV.Append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -1628,7 +1625,7 @@ noncomputable def KV.Append.impl [FfiSyntax] [GoGlobalContext] : val :=
     request to its leader, which the transport drops: deliverable). Nothing is promised of
     the outcome, and the store's operations are correct whoever leads.
 
-    go: kv.go:270:14 -/
+    go: kv.go:268:14 -/
 noncomputable def KV.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "to"
@@ -1651,7 +1648,7 @@ noncomputable def KV.TransferLeadership.impl [FfiSyntax] [GoGlobalContext] : val
     promised of the outcome: raft drops a change proposed while another one is not yet
     applied, and RemoveMember proposes it once.
 
-    go: kv.go:280:14 -/
+    go: kv.go:278:14 -/
 noncomputable def KV.RemoveMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "id"
@@ -1674,7 +1671,7 @@ noncomputable def KV.RemoveMember.impl [FfiSyntax] [GoGlobalContext] : val :=
     replica has applied the log that far. A request raft drops (no leader known) is not
     retried: Read then waits forever.
 
-    go: kv.go:289:14 -/
+    go: kv.go:287:14 -/
 noncomputable def KV.Read.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"

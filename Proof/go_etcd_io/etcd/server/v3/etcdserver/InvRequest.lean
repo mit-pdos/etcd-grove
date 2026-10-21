@@ -350,11 +350,11 @@ instance srvDeposited_persistent (γ : ServerRaftNames) (d : List w8) :
     Persistent (srvDeposited (GF := GF) γ d) := by
   unfold srvDeposited; infer_instance
 
-/-- **The proposer's handle on its deposited proposal**, with result `Q` (persistent): raft's
-`isProp`, of the lifted predicate. -/
+/-- **The proposer's handle on its proposal**, with result `Q` (persistent): raft's `propIs`
+(the data registered with the predicate), of the lifted predicate. -/
 def srvIsProp (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop(∃ γq : GName, isProp γ.raft d γq (srvLift γ Q))
+  propIs γ.raft d (srvLift γ Q)
 
 instance srvIsProp_persistent (γ : ServerRaftNames) (d : List w8)
     (Q : List EntryModel → IProp GF) : Persistent (srvIsProp (GF := GF) γ d Q) := by
@@ -895,7 +895,6 @@ theorem srvPropWits_of_raft (γ : ServerRaftNames) :
   iintro !> %d %Q %L %m %e #Hp #HL %Hf Hlc
   obtain ⟨Hlk, Het, Hed, Hne⟩ := Hf
   iunfold srvIsProp at Hp
-  icases Hp with ⟨%γq, #Hp⟩
   iunfold srvRLogLb at HL
   -- (2026-10-19, D21 M6) the committed entry's data, from raft (its index, a proposal deposited
   -- once)
@@ -917,7 +916,7 @@ theorem srvPropWits_of_raft (γ : ServerRaftNames) :
       have : d' = d := by simp only [EntryModel.toM] at Hd'; rw [← Hd'.1, Hed]
       subst this
       iexact Heo
-  imod prop_collect γ.raft ⊤ d γq (srvLift γ Q) (srvLogOf γ L) (γ.pre.length + m) e.toM
+  imod prop_collect γ.raft ⊤ d (srvLift γ Q) (srvLogOf γ L) (γ.pre.length + m) e.toM
     CoPset.subseteq_top (srvLogOf_lookup γ L m e Hlk) $$ Hcinv Hp HL He with HQ
   icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc1, Hlc2⟩
   imod lc_fupd_elim_later $$ Hlc1 HQ with HQ

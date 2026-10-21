@@ -863,10 +863,11 @@ macro "open_node " H:ident : tactic =>
 
 /-! ## Proposals and the client log, at the node (2026-10-10)
 
-A proposal's ghost work before it leaves the node (`node_propose_ghost`: the update
-deposited); and what the committed log's entries hold, for the application applying them
-(`node_committed_data`, `node_entData_heap`, `node_collect`). (2026-10-16, stage R5, D6: no
-proposed slices to record, `propDataInv` gone.) -/
+A data's registration with its result predicate (`node_prop_register`, the client's step before
+proposing it), a proposal's ghost work before it leaves the node (`node_propose_ghost`: the
+update deposited); and what the committed log's entries hold, for the application applying them
+(`node_committed_data`, `node_entData_heap`). (2026-10-16, stage R5, D6: no proposed slices to
+record, `propDataInv` gone.) -/
 
 section props
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -874,17 +875,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- What `Node.Propose` takes for its data `d`: its fresh token and the client's atomic update
-(2026-10-14, stage R), fired at most once (D21 M6: `d` is proposed once, its ticket going with
-it, so it is appended once). (Until 2026-10-21 also a retry of a deposited `d`, proposed any
-number of times, `propMulti`: the register's, which no longer retries.) -/
+/-- What `Node.Propose` takes for its data `d` (2026-10-21): `d` registered with the result
+predicate `Q` (`propIs`, from `node_prop_register`) and the client's atomic update for `d` and
+`Q` (2026-10-14, stage R), which raft fires at most once (D21 M6: each proposal is appended
+once, its ticket going with it). `d` may be proposed any number of times, each with its own
+update. (Until 2026-10-21 the fresh token went with the first proposal, and a retry of the same
+bytes needed `propMulti`.) -/
 def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(propFresh γ d ∗ propAu1 γ d Q)
-
-/-- What it gives back: `d` deposited and the handle on the update's results (2026-10-14,
-stage R: persistent). -/
-def propRes (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(deposited γ d ∗ ∃ γq, isProp γ d γq Q)
+  iprop(propIs γ d Q ∗ propAu1 γ d Q)
 
 -- (2026-10-16, stage R5, D6) `propDataInv_alloc`, `propData_register` and `propData_heap` are
 -- gone with the proposed slices: an entry's data, a read context, is its bytes.
@@ -906,27 +904,33 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
     (data : List w8) (Q : List EntryM → IProp GF) (E : CoPset)
     (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) :
     ⊢ isNode γ id n -∗ propArg γ.raft data Q ={E}=∗
-      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) ∗
-      propRes γ.raft data Q := by
+      propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) := by
   iintro #Hnode Harg
   open_node Hnode
   have Htk : entTk (GF := GF) γ.raft (propEntryM data) = propTk γ.raft data := by
     unfold entTk; rw [if_pos ⟨rfl, Hne⟩]; rfl
   rw [Htk]
-  unfold propArg propRes
-  icases Harg with ⟨Hfr, Hau⟩
-  imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp, Htk⟩
-  ihave #Hdep := isProp_deposited $$ Hp
+  unfold propArg
+  icases Harg with ⟨#Hpi, Hau⟩
+  ihave #Hdep := propIs_deposited $$ Hpi
+  imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hpi Hau with Htk
   imodintro
+  iframe Htk
+  unfold propData
+  iexists some data
+  unfold propDataIs
   isplitr
-  · unfold propData
-    iexists some data
-    unfold propDataIs
-    isplitr
-    · ipureintro; exact ⟨rfl, Hne, rfl⟩
-    iexact Hdep
-  iframe Htk Hdep
-  iexists γq; iexact Hp
+  · ipureintro; exact ⟨rfl, Hne, rfl⟩
+  iexact Hdep
+
+/-- **Registering `d` with `Q`, at the node** (2026-10-21; `prop_register`): what a client does,
+once per data, before proposing it. -/
+theorem node_prop_register (γ : NodeNames) (id : w64) (n : Loc) (d : List w8)
+    (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) :
+    ⊢ isNode γ id n -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q := by
+  iintro #Hnode Hfr
+  open_node Hnode
+  iapply prop_register γ.raft E d Q HE1 $$ Hcinv Hfr
 
 /-- A `ReadState`'s context and `readOk` of it (2026-10-13). A client that compares the bytes
 with its own context's (its `readReq γ c Lc`) learns `readOk` of its read (`readOk_prefix`).

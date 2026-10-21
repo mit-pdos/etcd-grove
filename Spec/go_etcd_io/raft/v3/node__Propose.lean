@@ -9,18 +9,20 @@ steps as `RawNode.Propose` does. Until stage R7a specified for `context.Backgrou
 raft's `ErrStopped`, the context's once its `Done()` fired) or the proposal's own result from
 `run` (`ErrProposalDropped`, ...; non-`nil`).
 
-**Logically atomic (2026-10-10; stage R, 2026-10-14; D21 M6, 2026-10-19).** The full committed
-log `rLog γ L` (`Protocol/GhostState.lean`) is the client's: a proposal of `data` (with the fresh
-token `propFresh`) hands in the client's atomic update `propAu1 γ data Q` = `AU <{ ∃∃ L, rLog γ L
-}> @ ⊤ ∖ ↑raftN, ∅ <{ ∀∀ e, rLog γ (L ++ [e]) ∗ entDataIs γ e (some data), COMM □ Q L }>`, which
-`Propose` deposits in the cluster's registry before the proposal leaves the node
-(`node_propose_ghost`), with the proposal's ticket, which travels with it. It fires -- a
-linearization point -- at the one committed entry holding `data` (the ticket is spent where the
-proposal is appended, so it is appended once), on whichever node commits it; the client collects
-`□ Q L` with the handle it gets back (`node_collect`), once it sees that entry committed. The
-error (`ErrProposalDropped`, ...) says only whether this proposal reached a leader; the update
-stays deposited either way. (Until 2026-10-21 a retry of a deposited `data`, proposed any number
-of times, was also specified: the register's, which no longer retries.)
+**Logically atomic (2026-10-10; stage R, 2026-10-14; D21 M6, 2026-10-19; 2026-10-21).** The
+full committed log `rLog γ L` (`Protocol/GhostState.lean`) is the client's. Before proposing
+`data` the client registers it with a result predicate `Q` (`node_prop_register`, a ghost step,
+once per data, with the fresh token `propFresh`), getting `propIs γ data Q`. Each proposal of
+`data` then hands in `propIs γ data Q` and an atomic update `propAu1 γ data Q` = `AU <{ ∃∃ L,
+rLog γ L }> @ ⊤ ∖ ↑raftN, ∅ <{ ∀∀ e, rLog γ (L ++ [e]) ∗ entDataIs γ e (some data), COMM □ Q L
+}>`, which `Propose` deposits in `data`'s slot before the proposal leaves the node
+(`node_propose_ghost`), with a ticket that travels with the proposal. It fires -- a linearization
+point -- at most once, at a committed entry holding `data` (the ticket is spent where the
+proposal is appended), on whichever node commits it; every committed occurrence of `data` gives
+`□ Q` of the log before it (`prop_collect`, from `propIs`). `data` may be proposed any number of
+times, each proposal with its own update. The error (`ErrProposalDropped`, ...) says only
+whether this proposal reached a leader; the update stays deposited either way. (Until
+2026-10-21 the fresh token went with the first proposal, which returned the handle.)
 
 raft v3.7 (2026-10-16, stage R5): the message is a fresh `*pb.Message` whose one entry holds
 `data`'s bytes (D6: `propEntryM data`, the caller's slice frozen, `data_sl ↦*□ data`), on `propc`
@@ -60,7 +62,7 @@ abbrev node.Propose.spec : Prop :=
       propArg γ.raft data Q }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
-  {{ (err : GoInterface), RET #err; propRes γ.raft data Q ∗ propErr cd err }}
+  {{ (err : GoInterface), RET #err; propErr cd err }}
 
 end spec
 

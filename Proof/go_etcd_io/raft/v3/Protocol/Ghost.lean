@@ -231,10 +231,11 @@ structure RaftNames where
   atomic update was deposited (`prop_deposit`), whose authority is in `raftCommitInv`'s
   registry half; `γq` names the update's result predicate. (Until stage R `data ↦ (γq, γk)`,
   `γk` the client's ticket for a one-shot result.) Since 2026-10-19 (D21 M6, D20 (b))
-  `data ↦ (γq, γt)`: a proposal is proposed once (its ticket `propTk`); `γt` names the
-  ticket, a ghost variable `none` until a leader appends the proposal at some index `i`,
-  `some i` (persistent, `propIdx`) after. (Until 2026-10-21 a proposal could also be deposited
-  not once, `propMulti`, for a client retrying it: the register, which no longer retries.) -/
+  `data ↦ (γq, γt)`, a proposal proposed once with its ticket `γt`. Since 2026-10-21 the
+  registry of registered data: `data ↦ (γq, γd)`, `γq` the result predicate `prop_register`
+  fixed, `γd` the ghost map of `data`'s deposits (`k ↦ γt`, one per `Propose` of `data`, each
+  with its ticket `propTk`: a ghost variable `none` until a leader appends that proposal at some
+  index `i`, `some i` (persistent, `propIdx`) after). -/
   reProps : GName
   /-- The full committed log, client view (2026-10-14, stage R; replaces the client log
   `reCLog` of first-occurrence data): a ghost variable of entries, halved between
@@ -883,23 +884,26 @@ entry was proposed, with data whose atomic update was deposited (`deposited`). S
 (stage R4) `Data'` is the bytes themselves; until then it was the slice, and a ghost map of
 proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held. -/
 
-/-- A proposal's slot: its result predicate's name, its ticket's name (D21 M6). -/
+/-- A registered data's record (2026-10-21): its result predicate's name, its deposits' map's
+name. -/
 abbrev PropRec : Type := GName × GName
 
-/-- `d`'s atomic update was deposited (persistent): its slot. -/
+/-- `d` is registered (persistent): its record. -/
 def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
   iprop(∃ p : PropRec, d ↪[γ.reProps]□ p)
 
-/-- **A proposal's ticket** (2026-10-19, D21 M6, D20 (b); exclusive): the deposit of `d`, once,
-hands it out, it travels with the proposal (`msgTks`), and the leader that appends `d` consumes
-it, fixing `d`'s index (`propIdx`). So `d` is appended once, at one index, and occurs at most
-once in any log. -/
+/-- **A proposal's ticket** (2026-10-19, D21 M6, D20 (b); exclusive; since 2026-10-21 one per
+deposit): a deposit of `d` (one `Propose`, `prop_deposit`) hands it out, it travels with the
+proposal (`msgTks`), and the leader that appends the proposal consumes it, fixing its index
+(`propIdx`). So each deposit is appended once, at one index. -/
 def propTk (γ : RaftNames) (d : List w8) : IProp GF :=
-  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ dghostVar p.2 (DFrac.own 1) (none : Option w64))
+  iprop(∃ (p : PropRec) (k : Nat) (γt : GName), d ↪[γ.reProps]□ p ∗ k ↪[p.2]□ γt ∗
+    dghostVar γt (DFrac.own 1) (none : Option w64))
 
-/-- **`d` was appended at index `i`** (persistent; D21 M6): the ticket of `d`, consumed. -/
+/-- **A deposit of `d` was appended at index `i`** (persistent; D21 M6): its ticket, consumed. -/
 def propIdx (γ : RaftNames) (d : List w8) (i : w64) : IProp GF :=
-  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ dghostVar p.2 DFrac.discard (some i))
+  iprop(∃ (p : PropRec) (k : Nat) (γt : GName), d ↪[γ.reProps]□ p ∗ k ↪[p.2]□ γt ∗
+    dghostVar γt DFrac.discard (some i))
 
 instance propIdx_persistent (γ : RaftNames) (d : List w8) (i : w64) :
     Persistent (propIdx (GF := GF) γ d i) := by
@@ -907,27 +911,16 @@ instance propIdx_persistent (γ : RaftNames) (d : List w8) (i : w64) :
 instance propIdx_timeless (γ : RaftNames) (d : List w8) (i : w64) :
     Timeless (propIdx (GF := GF) γ d i) := by
   unfold propIdx; infer_instance
-/-- `d` has one index. -/
-theorem propIdx_agree (γ : RaftNames) (d : List w8) (i i' : w64) :
-    ⊢ propIdx (GF := GF) γ d i -∗ propIdx γ d i' -∗ ⌜i = i'⌝ := by
-  unfold propIdx
-  iintro ⟨%p, #Hp, #Hv⟩ ⟨%p', #Hp', #Hv'⟩
-  icases ghostMapElem_agree $$ Hp Hp' with %Hpp
-  subst Hpp
-  ihave %Hii := dghostVar_agree p.2 (some i : Option w64) DFrac.discard (some i') DFrac.discard
-    $$ Hv Hv'
-  ipureintro; exact Option.some.inj Hii
-
-/-- Consuming the ticket of `d` at index `i`. -/
+/-- Consuming a ticket of `d` at index `i`. -/
 theorem propTk_set (γ : RaftNames) (d : List w8) (i : w64) :
     ⊢ propTk (GF := GF) γ d ==∗ propIdx γ d i := by
   unfold propTk propIdx
-  iintro ⟨%p, #Hp, Hv⟩
-  imod dghostVar_update (some i : Option w64) p.2 (none : Option w64) $$ Hv with Hv
-  imod dghostVar_persist p.2 1 (some i : Option w64) $$ Hv with #Hv
+  iintro ⟨%p, %k, %γt, #Hp, #Hk, Hv⟩
+  imod dghostVar_update (some i : Option w64) γt (none : Option w64) $$ Hv with Hv
+  imod dghostVar_persist γt 1 (some i : Option w64) $$ Hv with #Hv
   imodintro
-  iexists p
-  iframe Hp Hv
+  iexists p, k, γt
+  iframe Hp Hk Hv
 
 /-- The data of entry `e`: `some d` for a normal entry holding the (non-empty, D6) client data
 `d`; `none` for an entry that is not a client operation -- a normal entry with no bytes (a

@@ -92,31 +92,41 @@ theorem KV.do.wp_proof
     unfold waiterOk
     iexists d, γh
     iframe Hmint Hho Hprod
-  -- the update over raft's log that `Node.Propose` deposits (2026-10-14, stage R), fired at most
-  -- once (D21 M6: the operation is proposed once)
-  ihave Hpau := kv_propAu γr d γo $$ Hinv Hop
+  -- (2026-10-21) the datum registered with raft, once; then every proposal of it, a retry of a
+  -- dropped one included, takes the registration and a new update over raft's log (2026-10-14,
+  -- stage R), which the store's invariant makes (`kv_propAu`) and raft fires at most once
   rw [← Hraft]
-  ihave Harg : propArg γp.node.raft d (fun _ => iprop(True)) $$ [Hfresh Hpau]
-  · unfold propArg
-    iframe Hfresh Hpau
+  imod node_prop_register γp.node id n d (fun _ => iprop(True)) ⊤ CoPset.subseteq_top
+    $$ HisNode Hfresh with #Hpi
+  ihave HI : iprop(True) $$ []
+  · itrivial
+  wp_for HI
   wp_apply context.wp_Background
   wp_apply wp_encode id (ns + W64 1) kind key val Hkey Hval as %b ⟨Hb, Hbcap⟩
   rw [Hd]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
+  ihave Hpau := kv_propAu γr d γo $$ Hinv Hop
+  rw [← Hraft]
+  ihave Harg : propArg γp.node.raft d (fun _ => iprop(True)) $$ [Hpau]
+  · unfold propArg
+    iframe Hpi Hpau
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   wp_apply wp_node_Propose γp.node id n b d _ context.backgroundCtxVal bgCd
-    $$ [$Hraftinit $HisNode $Hbg $Hb $Harg] as %err ⟨-, -⟩
+    $$ [$Hraftinit $HisNode $Hbg $Hb $Harg] as %err -
   · ipureintro; exact Hdne
   cases err with
   | ok i =>
-    -- dropped: the replica stops
+    -- dropped: propose again
     wp_auto
-    ihave Hspin : iprop(True) $$ []
-    · itrivial
-    wp_for Hspin
+    simp only [show decide ((#true : val) = #true) = true from decide_eq_true rfl, ↓reduceIte,
+      _root_.decide_true]
+    wp_auto
     wp_for_post
     iframe
   | nil =>
+    wp_auto
+    rw [ite_eq_right (by simp only [decide_eq_true_eq]; intro h; cases go.intoVal_inj (V := Bool) h),
+      ite_eq_left (by simp)]
     wp_auto_lc 2
     wp_apply +noauto wp_handoff_receive (t := go.string) γh ch (waitP γr d) iprop(True) iprop(False)
       false $$ [$Hho $Hcons] as %v %ok ⟨Hcons, Hgot⟩

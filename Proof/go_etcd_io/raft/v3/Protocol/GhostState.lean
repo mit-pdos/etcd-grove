@@ -838,22 +838,21 @@ instance rdFresh_timeless (γ : RaftNames) (c : List w8) :
     Timeless (rdFresh (GF := GF) γ c) := by
   unfold rdFresh; infer_instance
 
-/-- The client's handle on its deposited proposal: the slot of `d`, with result `Q` (and,
-since D21 M6, the ticket's name `γt`). -/
-def isProp (γ : RaftNames) (d : List w8) (γq : GName)
-    (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop((∃ γt : GName, d ↪[γ.reProps]□ ((γq, γt) : PropRec)) ∗
-    savedPredOwn γq DFrac.discard Q)
+/-- **`d` is registered with the result predicate `Q`** (2026-10-21; persistent): the client's
+handle on `d`, from `prop_register`. Every proposal of `d` takes an update with this `Q`, and
+every committed occurrence of `d` gives `□ Q` of the log before it (`prop_collect`). -/
+def propIs (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+  iprop(∃ p : PropRec, d ↪[γ.reProps]□ p ∗ savedPredOwn p.1 DFrac.discard Q)
 
-instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
-    (Q : List EntryM → IProp GF) : Persistent (isProp γ d γq Q) := by
-  unfold isProp; infer_instance
+instance propIs_persistent (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
+    Persistent (propIs γ d Q) := by
+  unfold propIs; infer_instance
 
-theorem isProp_deposited (γ : RaftNames) (d : List w8) (γq : GName)
-    (Q : List EntryM → IProp GF) : ⊢ isProp (GF := GF) γ d γq Q -∗ deposited γ d := by
-  unfold isProp deposited
-  iintro ⟨⟨%γt, #H⟩, -⟩
-  iexists (γq, γt); iexact H
+theorem propIs_deposited (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
+    ⊢ propIs (GF := GF) γ d Q -∗ deposited γ d := by
+  unfold propIs deposited
+  iintro ⟨%p, #H, -⟩
+  iexists p; iexact H
 
 /-- The client's handle on its deposited read: the update's result predicate. -/
 def isRead (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : IProp GF :=
@@ -976,41 +975,44 @@ theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
   imodintro
   iexact Hv
 
-/-- `d` occurs in the log `l` (persistent; D21 M6). -/
-def propOcc (γ : RaftNames) (d : List w8) (l : List EntryM) : IProp GF :=
-  iprop(∃ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ ∗ entDataIs γ e (some d))
+/-- A result of the predicate `γq` names, at the log `L` (persistent): what a fired update
+returned. It carries its own copy of the saved predicate, so that results from different
+proposals of one `d` meet in one slot without comparing predicates; the client compares with
+its own `propIs` when it collects (`prop_collect`, under a later). -/
+def qRes (γq : GName) (L : List EntryM) : IProp GF :=
+  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ □ Q L)
 
-instance propOcc_persistent (γ : RaftNames) (d : List w8) (l : List EntryM) :
-    Persistent (propOcc (GF := GF) γ d l) := by
-  unfold propOcc; infer_instance
+instance qRes_persistent (γq : GName) (L : List EntryM) : Persistent (qRes (GF := GF) γq L) := by
+  unfold qRes; infer_instance
 
-/-- A proposal slot, for the committed log `l`: the result predicate (tied to `p.1`), its
-results at every occurrence of `d` in `l` (with the log before it), and the update, fired at
-most once (D21 M6): not yet, or `d` occurs in `l`. -/
-def propSlot (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
-  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn p.1 DFrac.discard Q ∗
-    □ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
-         □ Q (l.take m)) ∗
-    (propAu1 γ d Q ∨ propOcc γ d l))
+/-- A deposit of `d` (2026-10-21), its ticket named `γt`, for the committed log `l`: not fired --
+the update a `Propose` handed in, with the predicate it was registered under -- or fired, its
+ticket spent at an index within `l`. -/
+def depSlot (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List EntryM) : IProp GF :=
+  iprop((∃ Q : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu1 γ d Q) ∨
+    (∃ i : w64, dghostVar γt DFrac.discard (some i) ∗ ⌜uint.Z i ≤ (l.length : Int)⌝))
 
-/-- A proposal slot's results (persistent; D21 M6: the slot, holding an update fired at most
-once, is not). -/
+/-- The results of `d`'s slot: at every committed occurrence of `d`, the result at the log
+before it (persistent). -/
 def propSlotRes (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
-  iprop(∃ Q : List EntryM → IProp GF, savedPredOwn p.1 DFrac.discard Q ∗
-    □ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
-         □ Q (l.take m)))
+  iprop(□ (∀ (m : Nat) (e : EntryM), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
+    qRes p.1 (l.take m)))
 
 instance propSlotRes_persistent (γ : RaftNames) (d : List w8) (p : PropRec)
     (l : List EntryM) : Persistent (propSlotRes (GF := GF) γ d p l) := by
   unfold propSlotRes; infer_instance
 
+/-- **A registered `d`'s slot** (2026-10-21), for the committed log `l`: its results, and its
+deposits -- the ghost map `p.2` of the deposits' tickets, one per `Propose` of `d`. -/
+def propSlot (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
+  iprop(propSlotRes γ d p l ∗
+    ∃ K : GMap Nat GName, ghostMapAuth p.2 1 K ∗ [∗map] _k ↦ γt ∈ K, depSlot γ d p.1 γt l)
+
 theorem propSlot_res (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) :
     propSlot (GF := GF) γ d p l ⊢ propSlot γ d p l ∗ propSlotRes γ d p l := by
-  unfold propSlot propSlotRes
-  iintro ⟨%Q, #Hsp, #Hres, Hau⟩
-  isplitl [Hau]
-  · iexists Q; iframe Hsp Hres Hau
-  · iexists Q; iframe Hsp Hres
+  unfold propSlot
+  iintro ⟨#Hres, Hk⟩
+  iframe Hres Hk
 
 /-- The proposal registry, for the committed log `l` (each slot with its data's fresh
 token). -/

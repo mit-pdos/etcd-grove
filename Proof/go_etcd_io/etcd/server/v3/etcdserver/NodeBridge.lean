@@ -347,33 +347,37 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     iexact Hcs
   iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
-  -- (2026-10-19, D21 M6) the update fired at most once
-  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) $$ [Harg]
-  · iunfold srvPropArg at Harg
-    unfold propArg
+  iunfold srvPropArg at Harg
+  icases Harg with ⟨Hfr, Hau⟩
+  iunfold srvPropFresh at Hfr
+  -- (2026-10-21) the data registered with the lifted predicate (raft's public ghost step), then
+  -- proposed once with the update (D21 M6: fired at most once)
+  ihave #Hnode' : isNode γ.node γ.id γ.nl $$ []
+  · iunfold rnIsNode at Hnode; iexact Hnode
+  imod node_prop_register γ.node γ.id γ.nl data (srvLift E.γr.raft Q) ⊤ CoPset.subseteq_top
+    $$ Hnode' [Hfr] with #Hpi
+  · rw [← Hraft]; iexact Hfr
+  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) $$ [Hau]
+  · unfold propArg
+    iframe Hpi
     rw [← Hraft]
-    icases Harg with ⟨Hfr, Hau⟩
-    iunfold srvPropFresh at Hfr
-    iframe Hfr
     iapply srvPropAu1_to_propAu1 E.γr.raft data Q $$ Hinv Hau
   wp_apply wp_Propose γ.node γ.id γ.nl dsl data (srvLift E.γr.raft Q) ctx cd $$ [Harg']
-    as %err ⟨Hres, #Herr⟩
+    as %err #Herr
   · iframe #
     iframe Harg'
     ipureintro; exact Hne
   iapply HΦ
-  isplitl [Hres]
+  isplitr
   · iunfold srvPropRes
-    unfold propRes
-    icases Hres with ⟨#Hdep, %γq, #Hp⟩
+    ihave #Hdep := propIs_deposited $$ Hpi
     isplitr
     · iunfold srvDeposited
       rw [Hraft]
       iexact Hdep
     iunfold srvIsProp
-    iexists γq
     rw [Hraft]
-    iexact Hp
+    iexact Hpi
   · iapply applyErrIs_of_propErr cd err $$ Hpkg Herr
 
 /-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise): `Ready` from
