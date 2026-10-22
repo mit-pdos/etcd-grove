@@ -119,14 +119,15 @@ trust-boundary spec.
    `new(expr)` in the codec, `binary.Read` through reflection, an unchecked `w.(http.Flusher)`)
    are worked around (trusted models, `Code/**.toml`) or recorded in
    `notes/perennial-changes.md`.
-   **Done 2026-10-22** (branch `rafthttp-plan`): Goose translates the whole message path (90
+   **Done 2026-10-22** (branch `rafthttp-plan`; the two `opaqueInitsOk` accepted by the user):
+   Goose translates the whole message path (90
    functions, both codecs included, no unsupported feature). Names only, besides the above: the
    package variables' initializers (`errMemberRemoved`, `supportedStream`, `ConnReadTimeout`, the
    URL prefixes, ...: they call `errors.New`, `fmt.Errorf`, `path.Join` and `proto.Size`, which
    `gen-init.py` would need custom steps for), run by `Init.lean`'s `opaqueInitsOk`; and
    `waitSchedule` (`runtime.Gosched`: Perennial has no `runtime` initializer proof). New
    names-only packages: the standard library's `path`, etcd's `pkg/v3/ioutil` and
-   `pkg/v3/httputil`. **Trust base +2** (537 -> 539, awaiting the user's approval): the
+   `pkg/v3/httputil`. **Trust base +2** (537 -> 539, accepted by the user): the
    `opaqueInitsOk` of `path` (`ErrBadPattern`) and of `ioutil` (`ErrShortRead`, `ErrExpectEOF`,
    `defaultBufferBytes`), the usual "an untranslated variable initializer runs" axioms; they can
    go once those initializers are translated (with stage 2's variable facts). No statement changed.
@@ -134,6 +135,8 @@ trust-boundary spec.
    current spec (which mentions the raft network) by the generic one, and the mailbox and stream
    invariants (`Proof/.../rafthttp/`). Reviewed with the user before proofs rely on them. Also
    the package variables' values (translated initializers, or facts), which stages 4-6 read.
+   **Design drafted 2026-10-22 for review: `notes/rafthttp-http-boundary.md`** (bytes and routing,
+   per-address request/response protocols carrying persistent facts, the mailbox; three questions).
 3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
    encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
    only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`
