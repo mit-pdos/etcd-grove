@@ -50,6 +50,10 @@ Then give it:
 by how much they matter to etcd's and raft's maintainers and how likely they are to act; update it
 when an issue is added or its upstream state moves.
 
+`INDEX.md` (also not an issue, also skipped) lists every file in alphabetical order, one row each: its kind, its
+upstream state and what matters most in deciding whether to look into it. Add a row when an issue
+is added, and update it when its upstream state or its assessment moves.
+
 ## Drafts for etcd-io/etcd
 
 The findings of the etcd client-side work (cache, concurrency, leasing, recipes) are written as
