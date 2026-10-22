@@ -15452,3 +15452,20 @@ per put).
 programs' terms change), their premises are the examples' own definitions, unchanged. No axiom
 added; every collection unchanged.
 
+
+**One Go module for the examples (2026-10-22, branch `examples-module`).** The etcd examples and
+`common` were each a Go module with the same replaces of etcd and raft (nine copies, kept in step by
+hand; a bump to the fork's pin had to edit each). They are now packages of one module,
+`examples/go.mod` (module `github.com/mit-pdos/etcd-grove/examples`), so the import paths, and with
+them the translations, are unchanged; `kv` joined it too (its raft is the same pin). Separate modules
+remain where the module cannot be shared: `examples/kvwitness` (a different raft, the witness
+fork's), `examples/lintest` (which kvwitness also needs: in the examples' module it would bring the
+module's etcd requirements into kvwitness's graph), and `third_party/{porcupine,bridge}` (copies
+whose module paths, `github.com/anishathalye/porcupine` and `.../etcd-grove/third_party/bridge`,
+are not under `examples/`). `etc/goose.py --check` compares the forks' revisions in the replaces of
+`examples/go.mod` and `examples/kvwitness/go.mod` with the projects' pins (`GO_MOD_PINS`): the
+go.mod files had drifted from the etcd pin before (2026-10-22, `72ca9e5505`). The examples' fixed
+ports overlap (putget3's and linkv's clients, watchkv's and linkv3p's, ...), so the module's tests
+run one package at a time: `go test -race -p 1 ./...`. `etc/verified-code.{py,go}` count a project
+whose directory is inside a module (an example) as the module at that directory's import path, so
+their report is as before.

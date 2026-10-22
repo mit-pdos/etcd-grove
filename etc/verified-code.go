@@ -11,7 +11,8 @@
 //	 "sloc": the lines in that range holding code (not blank, not only comments),
 //	 "generated": the file says it is generated ("Code generated ... DO NOT EDIT.")}
 //
-// The import path is the module path of the nearest `go.mod` plus the directory.
+// The import path is the module path of the nearest `go.mod` plus the directory (for a
+// DIR inside a module, the module is DIR, at its import path).
 // `testdata` and `vendor` directories, hidden directories, and files the default
 // build excludes (build constraints) are skipped.
 package main
@@ -101,9 +102,28 @@ func codeLines(fset *token.FileSet, src []byte) map[int]bool {
 	return lines
 }
 
+type mod struct{ dir, path string }
+
+// enclosing is the nearest go.mod above root (not in it), if any: a source tree
+// that is a directory of a module (an example of the examples' module).
+func enclosing(root string) []mod {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return nil
+	}
+	for d := filepath.Dir(abs); ; d = filepath.Dir(d) {
+		if m, ok := modulePath(d); ok {
+			rel, _ := filepath.Rel(d, abs)
+			return []mod{{root, m + "/" + filepath.ToSlash(rel)}}
+		}
+		if filepath.Dir(d) == d {
+			return nil
+		}
+	}
+}
+
 func walk(root string, out *json.Encoder) error {
-	type mod struct{ dir, path string }
-	var mods []mod // innermost last
+	mods := enclosing(root) // innermost last
 	return filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
