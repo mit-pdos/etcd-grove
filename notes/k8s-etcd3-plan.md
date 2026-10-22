@@ -3,7 +3,12 @@
 Status: planned (2026-10-22). The translation survey is on branch `k8s-etcd3-goose`
 (`notes/k8s-etcd3-goose.md`, not merged into `lean`): the store translates and builds with the
 pinned translator except six functions left names-only; its gaps G1-G3 are under "What blocks
-where".
+where", and the Perennial changes they call for in `notes/perennial-changes.md`.
+
+Next step: merge `k8s-etcd3-goose` into `lean` (phases 1-4 build on its Goose project
+`k8s-apiserver` and `examples/k8setcd3`). It also changes the etcd project's configuration (it
+translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`), so it waits on an OK
+from the etcd client proof's owner. Then phase 1.
 
 ## Goal
 
