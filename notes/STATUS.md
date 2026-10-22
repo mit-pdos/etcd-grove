@@ -48,6 +48,19 @@ module system").
 
 
 
+## Clean-up: the watch client's joins, the one-attempt client, the init variants (2026-10-22, branch `cleanup`)
+
+- **The watch client's proofs joined again** (proof-perf, as lean `7617c74d89`/`b9234c174f` did for
+  the versions before D25). `watchGRPCStream.closeSubstream`: the removal from `substreams`/`resuming`
+  was verified 17 times (the `outc`-nil case twice, the live case's three ways out of the `select`
+  times five ways of closing); the `if ws.outc != nil { select }` is joined (`wp_join ... at next`)
+  over its four ways, the close-or-fork `if` over its ways, so the removal is verified once and the
+  macros `close_tail`/`close_rest` are gone. `watchGRPCStream.run`: the seven `if err := Send(..);
+  err != nil { log }` statements joined in frame mode (the next iteration verified once), the
+  substream-closing loop bound to its invariant only (`wp_join at (doFor ..) with [IH2]`), the
+  unused-variables linter off for the theorem. CPU (user+sys, `lake env lean`, quiet machine):
+  closeSubstream 52.2s -> 6.6s, run 148.0s -> 131.2s. Fingerprint unchanged.
+
 ## The examples' clients: etcd's default configuration, one family of call lemmas (2026-10-22, branch `client-default`)
 
 `notes/decisions.md` D31. linkv, linkv3, linkvtxn, watchkv and cachekv no longer set
