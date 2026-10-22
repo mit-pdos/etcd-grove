@@ -140,14 +140,20 @@ trust-boundary spec.
    user 2026-10-22** (decisions at its end: the closed world accepted, the status faithful, `path`
    translated, the removal a parameter of rafthttp's spec for dynamic clusters). Since then:
    `path` translated with bodies (`Clean`, `Join`, `Split`, `Base`, `Dir`, with `internal/bytealg`'s
-   `LastIndexByteString`; **trust base +1**, awaiting approval: `bytealg`'s `init()`, which detects CPU
+   `LastIndexByteString`; **trust base +1**, accepted by the user: `bytealg`'s `init()`, which detects CPU
    features and cannot be translated, assumed to run, `initFuncsOk`); **the boundary drafted in Lean**, `Proof/net/http/Boundary.lean`
    (definitions and spec statements, not axioms; nothing uses them yet): `HReq`, `Proto`, `HttpNet`,
    the client's `reqOwn`/`respAt`/`respReader`/`roundTripperOk`, the server's `reqAt`/`bodyReader`/
    `respWriter`/`handlerOk`, and the statements of `Serve`, `NewRequest`, the bodies' `Read`,
-   `Write`/`WriteHeader`/`Flush`, `io.ReadAll`/`io.ReadFull`. Still to draft: routing
-   (`NewServeMux`/`Handle`), `http.Error`, `urlOf`'s link to `url.URL.String`,
-   `encoding/binary`'s `Read`/`Write`, the header `Get`/`Set` triples.
+   `Write`/`WriteHeader`/`Flush`, `io.ReadAll`/`io.ReadFull`; then (2026-10-22, the rest) the
+   headers (`canonKey`, `hdrSet`/`hdrGet`, `hdrOwn`/`hdrAt`, `Header.Set`/`Get`, `w.Header()`;
+   `reqOwn`/`reqAt` now name the `Header` map and the `URL`'s `Path`), `http.Error`, routing
+   (`patMatches`, `route`, `muxOwn`, `NewServeMux`/`Handle`, `handlerFor`, the mux's
+   `handlerOk` from its registrations, with the protocol allowing the mux's own `404`/`301`
+   for unrouted requests), `url.URL.String` (`urlOf` of host and path), and `encoding/binary`'s
+   `Write` of a `uint64` and of a `uint8`-kind value and `Read` into a `*uint64`, stated over
+   the writer's `Write` and the reader's `ReadFull` (Go's fast path; `uint64OfBE` opaque).
+   The whole boundary is drafted; still statements only, for the user's review.
 3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
    encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
    only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`

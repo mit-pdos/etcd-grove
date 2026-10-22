@@ -27,6 +27,7 @@ public import Proof.net.InvNet
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import Perennial.Code.io
+public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
 
 @[expose] public section
@@ -48,6 +49,19 @@ structure HReq where
   path : GoString
   hdr : List (GoString × GoString)
   body : List w8
+
+section fields
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The field `f` of the `*http.Request` at `r`. -/
+abbrev reqF (f : GoString) (r : Loc) : Loc :=
+  structFieldRef _root_.Perennial.net.http.Request f r
+
+/-- The field `f` of the `*url.URL` at `u`. -/
+abbrev urlF (f : GoString) (u : Loc) : Loc :=
+  structFieldRef _root_.Perennial.net.url.URL f u
+
+end fields
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -75,9 +89,38 @@ def ioEOF (e : GoInterface) : IProp GF := globalAddr _root_.Perennial.io.EOF ↦
 
 /-! ### The client's side -/
 
-/-- **A request being built** at `r` (exclusive): `NewRequest`'s result, its headers `Set` before
-`RoundTrip`. The record `R` is what will be sent. -/
-opaque reqOwn (r : Loc) (R : HReq) : IProp GF
+/-! ### Headers -/
+
+/-- **A header key canonicalized** (opaque, pure): `textproto.CanonicalMIMEHeaderKey`, which
+`Header.Set` and `Header.Get` apply to their key. -/
+opaque canonKey (k : GoString) : GoString
+
+/-- `Header.Set(k, v)`'s effect on the list of (canonical key, value) pairs: `k`'s values
+replaced by `v`. -/
+def hdrSet (hs : List (GoString × GoString)) (k v : GoString) : List (GoString × GoString) :=
+  hs.filter (fun kv => kv.1 ≠ canonKey k) ++ [(canonKey k, v)]
+
+/-- `Header.Get(k)`: the first value of `k` (canonical), or `""`. -/
+def hdrGet (hs : List (GoString × GoString)) (k : GoString) : GoString :=
+  ((hs.find? (fun kv => kv.1 = canonKey k)).map Prod.snd).getD ""
+
+/-- **A header map `hm` holding `hs`** (exclusive; a request's headers being built, or a response
+writer's). -/
+opaque hdrOwn (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
+
+/-- **A received request's header map `hm`, holding `hs`** (persistent): `Get` reads it. -/
+opaque hdrAt (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
+
+/-! ### The client's side (continued) -/
+
+/-- **The rest of a request being built** at `r` (exclusive, opaque): its method, URL, body and
+context, those of `R` but for the headers, which `reqOwn` keeps in its `Header` map. -/
+opaque reqRest (r : Loc) (R : HReq) : IProp GF
+
+/-- **A request being built** at `r` (exclusive): `NewRequest`'s result; its `Header` field holds
+the map `hm`, whose `Set`s before `RoundTrip` build `R.hdr`. -/
+def reqOwn (r : Loc) (R : HReq) : IProp GF :=
+  iprop(∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrOwn hm R.hdr ∗ reqRest r R)
 
 /-- **A reader holding exactly `bs`** (exclusive; `bytes.NewBuffer(bs)` as an `io.Reader`, or `nil`
 for an empty body): what `NewRequest` takes as the body. -/
@@ -109,10 +152,16 @@ def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
 
 /-! ### The server's side -/
 
-/-- **A received request** at `r` (persistent field facts): its `Method`, `URL` (with `Path`),
-`Header` (whose `Get` returns the value last set by the client, or `""`), `RemoteAddr` and `Body`
-(the reader `rd`) are those of `R`. -/
-opaque reqAt (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF
+/-- **A received request** at `r` (persistent field facts): its `Method`, `URL` (a `*url.URL` whose
+`Path` is `R.path`), `Header` (`hdrAt` of `R.hdr`), `RemoteAddr` (some string) and `Body` (the
+reader `rd`). -/
+def reqAt (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF :=
+  iprop(reqF go!"Method" r ↦□ R.meth ∗
+    (∃ u : Loc, reqF go!"URL" r ↦□ u ∗
+      urlF go!"Path" u ↦□ R.path) ∗
+    (∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrAt hm R.hdr) ∗
+    (∃ ra : GoString, reqF go!"RemoteAddr" r ↦□ ra) ∗
+    reqF go!"Body" r ↦□ rd)
 
 /-- **A request body's reader** for `R`, having read `r` (exclusive): reads stay a prefix of
 `R.body`; `EOF` only once all of it is read. -/
@@ -204,11 +253,30 @@ def NewRequest_spec : Prop :=
           ⌜err ≠ GoInterface.nil⌝ ∨
           ⌜err = GoInterface.nil⌝ ∗ reqOwn r ⟨meth, host, path, [], bs⟩ }}
 
-/-- `req.Header.Set(k, v)` on a request being built: the header recorded. (The translation loads
-`req.Header`, a map, and calls `Header.Set` on it; the statement is of the two steps' effect, its
-exact form fixed when the client's proofs need it.) -/
-def reqHeaderSet_effect (r : Loc) (R : HReq) (k v : GoString) : IProp GF :=
-  iprop(reqOwn r R -∗ reqOwn r { R with hdr := R.hdr ++ [(k, v)] })
+/-- `hm.Set(k, v)` (`http.Header`'s, a method of the map type) on a header map being built. -/
+def HeaderSet_spec : Prop :=
+  ∀ (hm : Loc) (hs : List (GoString × GoString)) (k v : GoString),
+    ⊢ {{ hdrOwn (GF := GF) hm hs }}
+        (App (App (Val (hm @!! _root_.Perennial.net.http.Header.ty @!! go!"Set")) (Val #k))
+          (Val #v))
+      {{ RET #(); hdrOwn hm (hdrSet hs k v) }}
+
+/-- `hm.Get(k)` on a received request's header map. -/
+def HeaderGet_spec : Prop :=
+  ∀ (hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
+    ⊢ {{ hdrAt (GF := GF) hm hs }}
+        (App (Val (hm @!! _root_.Perennial.net.http.Header.ty @!! go!"Get")) (Val #k))
+      {{ RET #(hdrGet hs k); True }}
+
+/-- `w.Header()` of a response writer: a header map the handler may `Set` freely (the client's
+view of response headers is unconstrained). -/
+def RespHeader_spec (H : HttpNet GF) : Prop :=
+  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (st : Option w64)
+    (w : List w8),
+    wr = GoInterface.ok wi →
+    ⊢ {{ respWriter H wr a R st w }}
+        (App (Val #(methods wi.ty go!"Header" wi.v)) (Val #()))
+      {{ (hm : Loc), RET #hm; respWriter H wr a R st w ∗ ∃ hs, hdrOwn hm hs }}
 
 /-- `io.ReadAll(rd)` of a request body: the whole body, or an error. -/
 def ReadAll_body_spec : Prop :=
@@ -238,6 +306,136 @@ def Flush_spec (H : HttpNet GF) : Prop :=
     ⊢ {{ respWriter H wr a R st w }}
         (App (Val #(methods wi.ty go!"Flush" wi.v)) (Val #()))
       {{ RET #(); respWriter H wr a R st w }}
+
+/-- `http.Error(w, msg, code)` before any write: the status `code`, the body `msg` and a newline. -/
+def Error_spec (H : HttpNet GF) : Prop :=
+  ∀ (wr : GoInterface) (a : GoString) (R : HReq) (msg : GoString) (code : w64),
+    ⊢ {{ respWriter H wr a R none [] ∗ □ (H.proto a).resp R code (msg ++ [W8 10]) }}
+        (App (App (App (Val (@! _root_.Perennial.net.http.Error)) (Val #wr)) (Val #msg))
+          (Val #code))
+      {{ RET #(); respWriter H wr a R (some code) (msg ++ [W8 10]) }}
+
+/-! ### Routing (`http.ServeMux`) -/
+
+/-- A pattern matches a path (Go's `ServeMux` for plain path patterns, as rafthttp registers):
+a pattern ending in `/` matches its subtree, any other only itself. -/
+def patMatches (pat path : GoString) : Bool :=
+  if pat.getLast? = some (W8 47) then pat.isPrefixOf path else pat == path
+
+/-- The pattern a path is routed to: the longest registered pattern that matches it. -/
+def route (pats : List GoString) (path : GoString) : Option GoString :=
+  (pats.filter (fun p => patMatches p path)).foldl
+    (fun best p => match best with
+      | none => some p
+      | some b => if b.length < p.length then some p else some b) none
+
+/-- **A mux being built** at `m` (exclusive): its registrations so far. -/
+opaque muxOwn (m : Loc) (regs : List (GoString × GoInterface)) : IProp GF
+
+/-- `http.NewServeMux()`: an empty mux. -/
+def NewServeMux_spec : Prop :=
+  ⊢ {{ (True : IProp GF) }}
+      (App (Val (@! _root_.Perennial.net.http.NewServeMux)) (Val #()))
+    {{ (m : Loc), RET #m; muxOwn m [] }}
+
+/-- `m.Handle(pat, h)`: the registration appended (a pattern registered twice panics in Go; the
+callers register distinct ones, which the precondition states). -/
+def Handle_spec : Prop :=
+  ∀ (m : Loc) (regs : List (GoString × GoInterface)) (pat : GoString) (h : GoInterface),
+    ⊢ {{ muxOwn (GF := GF) m regs ∗ ⌜pat ∉ regs.map Prod.fst⌝ }}
+        (App (App (Val (m @!! go.GoType.PointerType _root_.Perennial.net.http.ServeMux.ty @!!
+          go!"Handle")) (Val #pat)) (Val #h))
+      {{ RET #(); muxOwn m (regs ++ [(pat, h)]) }}
+
+/-- **A handler of `a` for the requests routed to `pat`** (persistent): as `handlerOk`, for the
+requests whose path `route` sends to `pat`. -/
+def handlerFor (H : HttpNet GF) (a : GoString) (pats : List GoString) (pat : GoString)
+    (h : GoInterface) : IProp GF :=
+  iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
+    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (rd : GoInterface),
+      {{ reqAt r R rd ∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ ∗ □ (H.proto a).req R ∗
+          bodyReader rd R [] ∗ respWriter H wr a R none [] }}
+        (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
+      {{ (v : val), RET v; True }}))
+
+/-- **A built mux is a handler of `a`** (the mux's dispatch, stated as what its `ServeHTTP` does):
+each registered handler handles what is routed to it; a request routed nowhere (or redirected,
+for a path not in `ServeMux`'s clean form) gets the mux's own `404`/`301` response, which the
+protocol must allow. -/
+def mux_handlerOk_spec (H : HttpNet GF) : Prop :=
+  ∀ (m : Loc) (regs : List (GoString × GoInterface)) (a : GoString),
+    ⊢ muxOwn (GF := GF) m regs -∗
+      ([∗list] reg ∈ regs, handlerFor H a (regs.map Prod.fst) reg.1 reg.2) -∗
+      (□ ∀ (R : HReq) (st : w64) (w : List w8),
+        ⌜route (regs.map Prod.fst) R.path = none⌝ → (H.proto a).req R -∗ (H.proto a).resp R st w) -∗
+      handlerOk H a (interface.mkOk (go.GoType.PointerType _root_.Perennial.net.http.ServeMux.ty)
+        #m)
+
+/-! ### URLs -/
+
+/-- `u.String()` of a `url.URL` with only `Scheme = "http"`, `Host` and `Path` set: `urlOf`. -/
+def URLString_spec : Prop :=
+  ∀ (u : _root_.Perennial.net.url.URL),
+    u.Scheme' = go!"http" → u.Opaque' = "" → u.User' = null → u.Fragment' = "" →
+    u.RawQuery' = "" → u.RawPath' = "" → u.RawFragment' = "" → u.ForceQuery' = false →
+    u.OmitHost' = false →
+    ⊢ {{ (True : IProp GF) }}
+        (App (Val (u @!! _root_.Perennial.net.url.URL.ty @!! go!"String")) (Val #()))
+      {{ RET #(urlOf u.Host' u.Path'); True }}
+
+/-! ### `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) -/
+
+/-- The `uint64` of big-endian bytes (opaque here; `binary.BigEndian.Uint64`'s). -/
+opaque uint64OfBE (bs : List w8) : w64
+
+/-- Big-endian bytes of a `uint64`. -/
+def be64 (v : w64) : List w8 := (u64Le v).reverse
+
+/-- `binary.Write(w, binary.BigEndian, v)` of a `uint64`: one `w.Write` of its eight big-endian
+bytes (Go's fast path); its result is that call's error. Stated over `w`'s `Write` triple. -/
+def binaryWrite_u64_spec : Prop :=
+  ∀ (w : GoInterface) (wi : GoInterfaceOk) (v : w64) (P : IProp GF) (Q : w64 → GoInterface → IProp GF)
+    (bo : GoInterface),
+    w = GoInterface.ok wi →
+    ⊢ (□ ∀ sl : GoSlice, {{ sl ↦* be64 v ∗ P }}
+        (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #sl))
+        {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Q n err }}) -∗
+      {{ P ∗ globalAddr _root_.Perennial.encoding.binary.BigEndian ↦□ bo }}
+        (App (App (App (Val (@! _root_.Perennial.encoding.binary.Write)) (Val #w)) (Val #bo))
+          (Val #(interface.mkOk go.uint64 #v)))
+      {{ (err : GoInterface), RET #err; ∃ n err', Q n err' }}
+
+/-- `binary.Write(w, binary.BigEndian, v)` of a value of a type whose underlying type is `uint8`
+(the msgappv2 encoder's frame tag, a `msgType`): one `w.Write` of the byte. -/
+def binaryWrite_u8_spec : Prop :=
+  ∀ (t : go.GoType) [t ↓u go.uint8] (w : GoInterface) (wi : GoInterfaceOk) (v : w8) (P : IProp GF)
+    (Q : w64 → GoInterface → IProp GF) (bo : GoInterface),
+    w = GoInterface.ok wi →
+    ⊢ (□ ∀ sl : GoSlice, {{ sl ↦* [v] ∗ P }}
+        (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #sl))
+        {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Q n err }}) -∗
+      {{ P ∗ globalAddr _root_.Perennial.encoding.binary.BigEndian ↦□ bo }}
+        (App (App (App (Val (@! _root_.Perennial.encoding.binary.Write)) (Val #w)) (Val #bo))
+          (Val #(interface.mkOk t #v)))
+      {{ (err : GoInterface), RET #err; ∃ n err', Q n err' }}
+
+/-- `binary.Read(r, binary.BigEndian, p)` into a `*uint64`: `io.ReadFull(r, buf)` of eight bytes
+(Go's fast path), then, if it succeeded, `p` set to their big-endian value. Stated over `r`'s
+`ReadFull` behaviour. -/
+def binaryRead_u64_spec : Prop :=
+  ∀ (r : GoInterface) (p : Loc) (x : w64) (P : IProp GF)
+    (Q : List w8 → w64 → GoInterface → IProp GF) (bo : GoInterface),
+    ⊢ (□ ∀ (sl : GoSlice) (xs : List w8), {{ sl ↦* xs ∗ ⌜xs.length = 8⌝ ∗ P }}
+        (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #r)) (Val #sl))
+        {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+            ∃ ys, sl ↦* (ys ++ xs.drop ys.length) ∗ Q ys n err }}) -∗
+      {{ P ∗ p ↦ x ∗ globalAddr _root_.Perennial.encoding.binary.BigEndian ↦□ bo }}
+        (App (App (App (Val (@! _root_.Perennial.encoding.binary.Read)) (Val #r)) (Val #bo))
+          (Val #(interface.mkOk (go.GoType.PointerType go.uint64) #p)))
+      {{ (err : GoInterface), RET #err;
+          ∃ ys n err', Q ys n err' ∗
+            (⌜err = GoInterface.nil ∧ ys.length = 8⌝ ∗ p ↦ uint64OfBE ys ∨
+             ⌜err ≠ GoInterface.nil⌝ ∗ ∃ x' : w64, p ↦ x') }}
 
 end defs
 
