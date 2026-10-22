@@ -1,0 +1,6 @@
+# Names only (D33, rafthttp's stage 1): what rafthttp's message path calls.
+translate = ["!*"]
+imports = ["!*", "io", "net/http"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

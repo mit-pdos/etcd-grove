@@ -15401,7 +15401,7 @@ stream stays at one address in the lessor's specs, an instance of the new statem
   `isGrpcStream_forwards`.
 - Trust base: 530 axioms, 2 sorries, unchanged; the collections unchanged.
 
-## D33: rafthttp verified over a bytes-level HTTP boundary (2026-10-22 · proposed, awaiting the user's approval; `notes/rafthttp-plan.md`)
+## D33: rafthttp verified over a bytes-level HTTP boundary (2026-10-22 · (A) approved by the user; `notes/rafthttp-plan.md`)
 
 **Context.** D21b (A) kept `rafthttp` names-only behind a trusted network contract (`Net.lean`:
 `netBundle`, `netRecv`, `netRaftOk`, the five `Transport` axioms, `RaftHandler`'s and

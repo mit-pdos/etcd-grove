@@ -115,6 +115,34 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.xia
 
 end github_com.xiang90.probing
 
+-- (D33, rafthttp's stage 1: the packages its message path names, names only)
+namespace path
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
+  build_get_is_pkg_init_wf
+
+end path
+
+namespace go_etcd_io.etcd.pkg.v3.ioutil
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.ioutil
+
+namespace go_etcd_io.etcd.pkg.v3.httputil
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.httputil :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.httputil :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.httputil
+
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 

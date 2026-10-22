@@ -1,0 +1,7 @@
+# Names only (a standard-library package Perennial does not translate): `Dir`, `Base` and `Join`,
+# which rafthttp's stream handler and reader call (D33, stage 1).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -1,14 +1,36 @@
-# Types and names only: function and method bodies are axiomatized. The packages the
-# `Transporter` interface's method set names are imported (the raft wrapper's transport, and
-# the request path's unit 2: the server's `parseProposeCtxErr` loads `s.r.transport`;
-# otherwise an axiomatized type).
-translate = ["!*"]
-# Unit N4 (2026-10-17): the packages of `Transport`'s fields too (zap, the TLS info, the stats,
-# the rate limit, the probers, sync), so that its struct is translated (`NewServer` builds one).
-imports = ["!*", "net/http", "time", "go.etcd.io/raft/v3/raftpb", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/client/pkg/v3/types",
-  "go.uber.org/zap", "go.etcd.io/etcd/client/pkg/v3/transport", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
-  "golang.org/x/time/rate", "github.com/xiang90/probing", "sync",
-  "context", "go.etcd.io/raft/v3"]
+# rafthttp's message path with bodies (D33, `notes/rafthttp-plan.md` stage 1, 2026-10-22): the
+# transport, peers, stream writers and readers, the pipeline, remotes, the pipeline and stream
+# handlers, the two codecs, the URL picker, the peer status and the request helpers. Names only:
+# the snapshot stream (the sender, its handler and `SendSnapshot`: D22's contract, an axiom), the
+# probes, the package variables' and metrics' initializers and `init`, and the round trippers' and listener's
+# constructors (the HTTP boundary's).
+translate = ["*", "!init.*",
+  "!newSnapshotSender", "!snapshotSender.*", "!createSnapBody", "!snapResponseReadTimeout",
+  "!newSnapshotHandler", "!snapshotHandler.*", "!Transport.SendSnapshot", "!peer.sendSnap",
+  "!addPeerToProber", "!monitorProbingStatus",
+  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
+  "!activePeers", "!disconnectedPeers", "!sentBytes", "!receivedBytes", "!sentFailures",
+  "!recvFailures", "!snapshotSend", "!snapshotSendInflights", "!snapshotSendFailures",
+  "!snapshotSendSeconds", "!snapshotReceive", "!snapshotReceiveInflights",
+  "!snapshotReceiveFailures", "!snapshotReceiveSeconds", "!rttSec",
+  # the package variables' initializers (errors, the stream table, timeouts, URL prefixes):
+  # untranslated for now, run by `Init.lean`'s `opaqueInitsOk`; their values become facts with
+  # the HTTP boundary (stage 2), where the proofs first read them
+  "!errMemberNotFound", "!errMemberRemoved", "!linkHeartbeatSize", "!linkHeartbeatMessage", "!supportedStream",
+  "!errUnsupportedStreamType", "!statusErrorInterval", "!statusMonitoringInterval", "!proberInterval", "!errStopped",
+  "!ConnWriteTimeout", "!ConnReadTimeout", "!ErrExceedSizeLimit", "!readBytesLimit", "!ErrClusterIDMismatch",
+  "!errIncompatibleVersion", "!RaftSnapshotPrefix", "!RaftStreamPrefix", "!ProbingPrefix", "!RaftPrefix"]
+imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
+  "net/url", "path", "strings", "sync", "time",
+  "github.com/Masterminds/semver/v3", "github.com/dustin/go-humanize",
+  "github.com/prometheus/client_golang/prometheus", "github.com/xiang90/probing",
+  "go.etcd.io/etcd/api/v3/version", "go.etcd.io/etcd/client/pkg/v3/transport",
+  "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/httputil",
+  "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/ioutil",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats", "go.etcd.io/raft/v3",
+  "go.etcd.io/raft/v3/raftpb", "go.uber.org/zap", "golang.org/x/time/rate",
+  "google.golang.org/protobuf/proto"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -90,6 +90,7 @@ axiom Perennial.go_etcd_io.etcd.client.v3.defaultUnaryMaxRetries_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.featuregate.opaqueInitsOk
+axiom Perennial.go_etcd_io.etcd.pkg.v3.ioutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
@@ -202,6 +203,7 @@ axiom Perennial.net.url.opaqueInitsOk
 axiom Perennial.os.Stderr_init
 axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
+axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.strconv.opaqueInitsOk
 axiom Perennial.unicode.utf8.opaqueInitsOk

@@ -1,7 +1,7 @@
 # Plan: rafthttp verified, the trust boundary pushed down to HTTP
 
-Stage 1 (scoping) of 2026-10-22, at `lean` `a00708b853`; proposed as D33 (`notes/decisions.md`,
-awaiting the user's approval). Nothing proved yet. The inventory below is of the etcd pin
+Stage 0 (scoping) of 2026-10-22, at `lean` `a00708b853`; D33 (`notes/decisions.md`; (A) approved
+by the user, 2026-10-22). Nothing proved yet. The inventory below is of the etcd pin
 (`upamanyus/etcd` `188113160d`; `server/etcdserver/api/rafthttp`, test files excluded; the fork has
 no commits in the package: `CutPeer`/`MendPeer` are upstream's test hooks).
 
@@ -119,9 +119,21 @@ trust-boundary spec.
    `new(expr)` in the codec, `binary.Read` through reflection, an unchecked `w.(http.Flusher)`)
    are worked around (trusted models, `Code/**.toml`) or recorded in
    `notes/perennial-changes.md`.
+   **Done 2026-10-22** (branch `rafthttp-plan`): Goose translates the whole message path (90
+   functions, both codecs included, no unsupported feature). Names only, besides the above: the
+   package variables' initializers (`errMemberRemoved`, `supportedStream`, `ConnReadTimeout`, the
+   URL prefixes, ...: they call `errors.New`, `fmt.Errorf`, `path.Join` and `proto.Size`, which
+   `gen-init.py` would need custom steps for), run by `Init.lean`'s `opaqueInitsOk`; and
+   `waitSchedule` (`runtime.Gosched`: Perennial has no `runtime` initializer proof). New
+   names-only packages: the standard library's `path`, etcd's `pkg/v3/ioutil` and
+   `pkg/v3/httputil`. **Trust base +2** (537 -> 539, awaiting the user's approval): the
+   `opaqueInitsOk` of `path` (`ErrBadPattern`) and of `ioutil` (`ErrShortRead`, `ErrExpectEOF`,
+   `defaultBufferBytes`), the usual "an untranslated variable initializer runs" axioms; they can
+   go once those initializers are translated (with stage 2's variable facts). No statement changed.
 2. **The HTTP boundary.** The specs of 1-4 above (`Spec/net/http/`), replacing `net.http.Serve`'s
    current spec (which mentions the raft network) by the generic one, and the mailbox and stream
-   invariants (`Proof/.../rafthttp/`). Reviewed with the user before proofs rely on them.
+   invariants (`Proof/.../rafthttp/`). Reviewed with the user before proofs rely on them. Also
+   the package variables' values (translated initializers, or facts), which stages 4-6 read.
 3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
    encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
    only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`
@@ -152,6 +164,5 @@ trust-boundary spec.
 
 ## Open
 
-- D33: approve the bytes-level HTTP boundary (A) with the mailbox, or prefer (B).
 - Whether `remote`s (members not yet in the peer map) are in scope: today's specs allow
   `AddRemote`, so yes, with their pipeline only.
