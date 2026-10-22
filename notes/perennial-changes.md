@@ -177,7 +177,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `goStringLt_cons_iff`/`_nil_cons`/`_not_nil` (`Golang/Defn/String.lean`). Theorems only.
   Then, here: each copy deleted and its uses pointed at Perennial's (the `_take_succ` three stay
   one-liners over `foldl_apply_take_succ`: `opFold` and its kin are in specs' statements).
-- **Status.** Branch built (its changed modules); not landed (landing pushes to GitHub, which
+- **Status.** Branch built (every Perennial module); not landed (landing pushes to GitHub, which
   this machine cannot reach). Found 2026-10-22.
 
 ## Landed
