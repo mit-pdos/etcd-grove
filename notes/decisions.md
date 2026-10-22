@@ -15400,3 +15400,38 @@ stream stays at one address in the lessor's specs, an instance of the new statem
 - `bridge.New` gains the stream forwarding, and so does linkv3p's `forwards`, with
   `isGrpcStream_forwards`.
 - Trust base: 530 axioms, 2 sorries, unchanged; the collections unchanged.
+
+## D33: the examples' shared code in one Go package, `examples/common` (2026-10-22)
+
+**Problem.** The etcd examples repeated Go code verbatim, and with it its translation, specs and
+proofs: the one-member start and client (five `Main`s), the three-member `startMember` and the
+cluster's allocation (putget3, linkv3, linkv3p), and the watch workload's functions (watchkv,
+cachekv, linkv3p). A change to the start (D22's contract, D29's clients) had to be made in every
+copy.
+
+**Decision.** One Go package, `examples/common` (its own module, replaced by `../common` in the
+examples' `go.mod`; its own Goose project), with what differed among the copies as parameters (the
+member's name and addresses, the cluster's map and token, the keys `Gen` picks from, the panic
+messages' prefix and word). Each example keeps its own configuration constants and its named
+premises (`premises`, which its closed theorem takes); `common.bootPremise_of` turns an example's
+`bootstrap` clause into the shared form. Only what is the same Go code is shared: a variant whose
+difference is substantive stays the example's (linkv3p's `startMember`: the client listener before
+`Start`, the keepalive policy; cachekv's `collect`: the cache's cancels; linkv3p's `writer`: a client
+per put).
+
+**Where a proof differs among callers, the spec takes it as a parameter** instead of keeping copies:
+- `Serve`'s ghost step between `Listen` and `go gs.Serve(l)` (what is registered at the address:
+  the KV calls, with or without `etcd_noRefusal`, or with the watch server's facts) is a wand in the
+  precondition from `grpcUp` (what `v3rpc.Server` and `Listen` return) to `grpcServeTok` and the
+  caller's `Q`; it may hold the caller's request slots in its closure. A result rests on
+  `etcd_noRefusal` only if its caller's step uses it, so putget's collection is unchanged.
+- `Collect` is generic over the watch's model `EM`, the per-revision predicate `R` (`revAt E` at one
+  server, `revAtH` at the cluster's history) and the caller's response lemma (`resp_wk`,
+  `resp_hist`) from persistent resources `A`.
+- `Writer` takes each put's update (`kvOpAu1`) as a premise, which watchkv gives from its KV
+  invariant and cachekv from the client's.
+
+**Statements.** No closed theorem's statement changes: their programs call `common`'s functions (the
+programs' terms change), their premises are the examples' own definitions, unchanged. No axiom
+added; every collection unchanged.
+
