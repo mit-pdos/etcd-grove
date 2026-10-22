@@ -145,7 +145,7 @@ func TestPreVoteStaleGrantSameTerm(t *testing.T) {
   (`Step.sendFree`, and a pre-candidate's tally is invisible to the protocol, `toPState`), and the
   real election still needs real votes (`Step.campaign`, `Step.win`). The `RawNode` layer has so
   far required pre-vote off (`ownRawNode`'s `Hpvoff`); the term budget of the coming pre-vote stage
-  must cover shape 1's term rise past the message's term (notes/STATUS.md, "Raft: CheckQuorum and
+  must cover shape 1's term rise past the message's term (notes/status-history.md, "Raft: CheckQuorum and
   PreVote on").
 - **Possible fixes**: shape 1: at a pre-candidate count only granted responses with `Term ==
   r.Term + 1` (in `stepCandidate`, or drop them in `Step`'s `m.Term == r.Term` case at a

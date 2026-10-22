@@ -119,9 +119,9 @@ candidate: issues/upstream/raft-readindex-singleton-stale/
   (stage B7 part 2's files): `RawNode.Step.spec`'s and `RawNode.ReadIndex.spec`'s read-index
   premise (`NotSingleton`), `node.ReadIndex`'s and the register's `1 < size reCfg`, and the static
   `raft.Step.specS`'s `1 < GMap.size cfg` (kept for its callers), none of which `raft.Step` needs
-  any more (`notes/STATUS.md`, "The single-voter read-index fix").
+  any more (`notes/status-history.md`, "The single-voter read-index fix").
 - **How the proof handled it until 2026-10-14**: the static read-index proof excluded the path by the premise
-  `1 < size cfg` of `raft.Step`/`node.ReadIndex` (`notes/STATUS.md`, "Read-index"). Under
+  `1 < size cfg` of `raft.Step`/`node.ReadIndex` (`notes/status-history.md`, "Read-index"). Under
   reconfiguration the configuration is not the caller's to fix, so the premise becomes a
   restriction on the run (no configuration with a single incoming voter and no outgoing half
   while a leader may receive `MsgReadIndex`), or the code is fixed. The reconfiguration paper

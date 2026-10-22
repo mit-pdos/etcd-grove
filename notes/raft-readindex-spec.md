@@ -3,7 +3,7 @@
 For: the raft team (`origin/worktree-raft-rest`, read at `cec7448e9`).
 From: the backend unit T1 (`notes/decisions.md` in the backend worktree, "Put and Get as persistent
 atomic updates linearized by raft (unit T1)").
-Status: **implemented** (2026-10-14, stage R on `worktree-raft-rest`; `notes/STATUS.md`, "The
+Status: **implemented** (2026-10-14, stage R on `worktree-raft-rest`; `notes/status-history.md`, "The
 new ReadIndex and proposal specs (stage R)", and `notes/decisions.md`). Where it differs: §4.4 is
 superseded by stage F (the single-voter shortcut fixed in the pinned raft and refined in both
 modes; no `readSingle` static-only argument); the updates bind the entry with `∀∀ e`, not the

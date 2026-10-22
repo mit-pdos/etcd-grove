@@ -74,7 +74,7 @@ candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
   that was canceled can later be assigned automatically to a new watch, whose created response
   then flushes the canceled watcher's buffered responses as above. A stream on which every
   create uses `AutoWatchID` (etcd's client: `toPB` sets no `WatchId`) never reuses an id: mvcc's
-  `idAssigned_agree` (an assigned id names one watcher for good; `notes/STATUS.md`, "W-M").
+  `idAssigned_agree` (an assigned id names one watcher for good; `notes/status-history.md`, "W-M").
 
   ```go
   // server/storage/mvcc/watcher.go:128-136 (etcd main f061acd09)
@@ -94,7 +94,7 @@ candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
   response to its watcher, not to its id (`WatchRespM.src`, `mvccOk` over `r.w`;
   `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WatchSendModel.lean`'s `send_claim`
   orders each watcher's responses, whatever ids they share). A client of `watchStreamSpec` must
-  not identify a watch by its id across a cancel (the client hop, `notes/STATUS.md`, "The watch
+  not identify a watch by its id across a cancel (the client hop, `notes/status-history.md`, "The watch
   slice").
 - **Possible fixes**: dropping `pending[X]` on a cancel (`delete(pending, X)` with the
   `delete(ids, X)`) is not enough: tried on the reproduction, it still fails 10 of 10, since most of

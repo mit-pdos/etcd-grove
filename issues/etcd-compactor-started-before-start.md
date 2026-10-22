@@ -28,7 +28,7 @@ links: []
 - **How the proof handles it**: not yet: `v3compactor.New` and `Run` are names-only and their
   contracts are pending (`?` in `etc/link-lean-first-server.txt`); N0's `compactorRunOk` (`{True}
   Run() {True}`) hides the goroutine's proposals and is not a true contract
-  (`notes/STATUS.md`, "Server construction, unit N1"). A true one makes `Run` require
+  (`notes/status-history.md`, "Server construction, unit N1"). A true one makes `Run` require
   `Compact`'s contract, which the server only meets after `start()`; `NewServer`'s spec would
   take `cfg.AutoCompactionRetention = 0` meanwhile.
 - **Possible fixes**: move `srv.compactor.Run()` to `start()` (or `Start`), or add

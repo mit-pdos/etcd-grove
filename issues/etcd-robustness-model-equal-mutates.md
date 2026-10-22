@@ -78,7 +78,7 @@ etcd, `rep v s` would say the slice holds some ordering of the set `s`, which a 
 checker, which aliases a state between its stack, its cache and its current state, shares each
 state value in a non-atomic invariant and opens it for each call
 (`Proof/github_com/anishathalye/porcupine/Shared.lean`). etcd's model itself is not verified
-against these premises (`notes/STATUS.md`, "Porcupine").
+against these premises (`notes/status-history.md`, "Porcupine").
 
 **Possible fixes**:
 
@@ -89,4 +89,4 @@ against these premises (`notes/STATUS.md`, "Porcupine").
   through non-atomic invariants (above); what is left is a proof of etcd's model against them.
 
 **Found**: 2026-10-14, while matching the porcupine proof's model premises against etcd's
-robustness model (`notes/STATUS.md`, "Porcupine").
+robustness model (`notes/status-history.md`, "Porcupine").

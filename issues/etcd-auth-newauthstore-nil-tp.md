@@ -43,7 +43,7 @@ links: []
   e.g. by using a no-op provider).
 - **How the proof handles it**: `auth.NewAuthStore`'s contract is pending (`?` in
   `etc/link-lean-first-server.txt`); its true statement takes the token provider's contract
-  (`auth.tokenProviderOk tp`, which implies `tp ≠ nil`) as a premise (`notes/STATUS.md`, "Server
+  (`auth.tokenProviderOk tp`, which implies `tp ≠ nil`) as a premise (`notes/status-history.md`, "Server
   construction, unit N1").
 - **Possible fixes**: document the precondition on `NewAuthStore`, or substitute
   `newTokenProviderNop()` for a nil `tp`.

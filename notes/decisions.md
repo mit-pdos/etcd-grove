@@ -942,7 +942,7 @@ code is now upstream main plus the readiness fix only; the other two fixes are r
 
 `Cache.watch`, `getWatch` and `getWatchLoop` are proved against etcd's cache with three fixes
 (fork branch `cache-ready-after-retry`, merged into `goose-lean` at `6ab61a1c7`), not against
-upstream's code, which has two findings (STATUS, "The watch loop and Cache.Watch"): (1) two
+upstream's code, which has two findings (status-history.md, "The watch loop and Cache.Watch"): (1) two
 writers of the store (an iteration's `applyStorage` goroutine was not waited for, so it could
 `Apply` concurrently with the next iteration's or the next `get`'s `Restore`; harmless only by
 `validateRevisions` and etcd's linearizability), and (2) the cache could stay not ready after a
@@ -1611,7 +1611,7 @@ first under the prefix is the leader. `InvElection.lean`.
 - **`Campaign`'s spec states what its code checks: nothing after the wait.** `nil` gives
   `leaderAt ∨ campaignLost` (no key older than the campaign's, and the campaign's key not there
   with its create revision). *Changed from the plan* ("the final `Get` of the key"): `Campaign` has
-  no final `Get`; it returns after `waitDeletes`. A finding (STATUS, "Election").
+  no final `Get`; it returns after `waitDeletes`. A finding (status-history.md, "Election").
 - **`waitDeletes` takes `maxCreateRev ≥ 0`.** `Campaign` calls it with `leaderRev - 1`, which is `0`
   for a key created at revision `1` (the model's create revisions are only positive; etcd's first
   write is at revision 2): `WithMaxCreateRev(0)` is no filter, and the spec's conclusion (no key
@@ -1689,7 +1689,7 @@ buffered reads and writes with one guarded transaction, retrying on conflict.
   the same mod revision hold the same key-value (a revision writes a key at most once). The
   existing laws do not imply it (they speak of create revisions and bounds). Without it a
   successful comparison on mod revisions says nothing about values.
-- **The snapshot is not claimed** (a finding, STATUS "STM"): the serializable levels' documented
+- **The snapshot is not claimed** (a finding, status-history.md "STM"): the serializable levels' documented
   promise "reads within the same transaction attempt return data from the revision of the first
   read" fails after a failed commit, when the next attempt's first read is of a key not prefetched:
   that read sets the snapshot at the latest revision, while prefetched reads (from the failed
@@ -3139,7 +3139,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   functions. mvcc's read-only write transaction (`NewReadOnlyTxnWrite`, `txnReadWrite`) is
   verified, not assumed (`InvRoTxn.lean`: its reads delegate, `Changes` is `nil`, `Put` and
   `DeleteRange` panic).
-- **Unit 1** (2026-10-11, `Put` and `DeleteRange`; `notes/STATUS.md`, "Unit 1"). Three changes to
+- **Unit 1** (2026-10-11, `Put` and `DeleteRange`; `notes/status-history.md`, "Unit 1"). Three changes to
   the plan. (1) *The pin travels with the token.* A spec taking only the revision token cannot
   give the sole writer's corollary: after `End` the token is spent and nothing bounds the log
   the transaction found. `Put`/`DeleteRange` take, beside the token, any `ownToks γ.revs m ∗
@@ -3245,7 +3245,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
 
 ## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
 
-2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn
+2026-10-11, for the server's txn package, unit 0c (`notes/status-history.md`, "Unit 0c"). The txn
 package's sole writer (`txn/SoleWriter.lean`: the certificate of `log` and every revision token
 not spent) must pin the logs its write and read transactions see to `log`; unit 0b found four
 gaps in mvcc's specs. Each change is minimal and keeps every spec at least as strong.
@@ -3376,7 +3376,7 @@ linearization point is in the past when the `ReadState` arrives: it would need p
 
 **2026-10-13 · accepted**
 
-Conf-change entries are in the log as data (notes/STATUS.md, "Reconfiguration, stage D");
+Conf-change entries are in the log as data (notes/status-history.md, "Reconfiguration, stage D");
 three choices in how:
 
 - **The leader's decoding needs the bytes; they travel with the protocol message.** `stepLeader`
@@ -3542,7 +3542,7 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   `StepC` is tied to `Step` by `step_iff_stepC` at non-joint configurations, and `Step` has no
   such rule either (a leader there is always a voter). The protocol at joint configurations will
   have to add one (or forbid self-removal).
-- **Items 3-5 left with a plan** (notes/STATUS.md, "Reconfiguration, stage A3"): the `raft.Step`
+- **Items 3-5 left with a plan** (notes/status-history.md, "Reconfiguration, stage A3"): the `raft.Step`
   branches are physical triples with pure `Step` witnesses, so `raft.Step` at `c` is their
   conversion to `StepC` (with C result and step lemmas), and the old branch lemmas follow at
   `CfgM.simple`; the `RawNode` client's view (`RNState`) needs the learner set (and, for
@@ -4194,7 +4194,7 @@ results and making the server's `applierFor` a definition.
 ## mvcc: the batch lock runs the hook
 
 **2026-10-12 · adopted** (the server's apply package, unit A; plan: the apply package's
-"The hook through mvcc"; `notes/STATUS.md`, "Unit A: the hook through mvcc")
+"The hook through mvcc"; `notes/status-history.md`, "Unit A: the hook through mvcc")
 
 The real backend's `batchTx.LockInsideApply` runs the server's `txPostLockInsideApplyHook`
 under the lock (`backend/batch_tx.go`). The server's protocol (`apply.Apply.spec`,
@@ -4255,7 +4255,7 @@ gRPC checks discharge the txn package's request premises.
   ghost names (`ServerRaftNames`; a context `mvcc.txnCtx` in place of `Background`); its apply
   side (`batchCommitted`: a batch's client data are the committed client log's next entries,
   each deposited and claimed by its id) is what unit 4 states the loops with. Discharging it is
-  retargeting the verified raft to v3.7 (`notes/STATUS.md`, "Retargeting raft to upstream").
+  retargeting the verified raft to v3.7 (`notes/status-history.md`, "Retargeting raft to upstream").
   *Rejected:* retargeting first (it blocks the path on a large mechanical port; the path's own
   content, the checks, the wait protocol, the handoff, does not depend on it).
 - **The wait registry: a handoff per registration, a registration condition** (unit 0). The
@@ -4450,7 +4450,7 @@ gRPC checks discharge the txn package's request premises.
 
 ## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
 
-**2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `STATUS.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).
+**2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `status-history.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).
 Toward an end-to-end statement (a client driver against a slice of etcd: the raft wrapper, the
 apply thread, the applier chain, mvcc), the raft wrapper is the link between raft's `Ready` and
 the apply thread, whose `applyEntries` assumes its batch "consecutive from `f0`, with no gap
@@ -4468,7 +4468,7 @@ after the applied index, as raft hands them over". Its proof is what discharges 
   persistent "committed" predicate `C`; the entries to append with their append right; the
   messages, each `M m`; no snapshot and no read states, as node.go guarantees); `Advance()`
   takes the driver's busy token and the append receipt. The v3.7 raft is not the verified one
-  (protobuf-go v2, `STATUS.md`, "Retargeting raft to upstream"), so the contract is stated in the
+  (protobuf-go v2, `status-history.md`, "Retargeting raft to upstream"), so the contract is stated in the
   server's terms (`EntryModel`, the v3.7 types), to be discharged by node.go's specs once raft is
   retargeted. *Rejected:* stating the contract over node.go's own predicates (no module imports
   both raft translations).
@@ -4500,7 +4500,7 @@ after the applied index, as raft hands them over". Its proof is what discharges 
 
 **2026-10-12 · the buffers adopted (unit 1); the rest proposed (units 2–3)** (`server/v3/storage/
 backend`, ~1500 Go lines, translated with bodies but for the snapshot, the hash, defragmentation
-and `verify.go`; branch `worktree-backend`; `STATUS.md`, "The backend"). bbolt is the trust
+and `verify.go`; branch `worktree-backend`; `status-history.md`, "The backend"). bbolt is the trust
 boundary: it is not merged here (its proof, branch `bbolt`, needs Perennial work not yet landed),
 and its specs there are physical (pages, cursors as stacks, no contents), so the backend is
 proved over a key-value contract of bbolt, stated here as axioms, which the bbolt proof is to
@@ -4606,7 +4606,7 @@ btree's `ownBTree` was, "store: btree as the trust boundary"), the functions' sp
 
 ### The backend's proofs: what changed from the plan (2026-10-13 · adopted)
 
-Units 2 and 3 carried the plan out (`STATUS.md`, "The backend"); the proofs changed it here:
+Units 2 and 3 carried the plan out (`status-history.md`, "The backend"); the proofs changed it here:
 
 - **The view is a finite map.** `γ.view` holds `vData P (C, R)` (the readers' lookups off the
   hook's buckets as a `GMap`), not the pair: the `run` goroutine's commits move entries from the
@@ -4661,7 +4661,7 @@ Units 2 and 3 carried the plan out (`STATUS.md`, "The backend"); the proofs chan
 etcd's STM, which recovers `stm.fetch`'s and `commit`'s panics in `runSTM`, is not provable
 there. The calls Perennial's new `ArgsWf` excludes (errors, `Duration`s, `LeaseID` as `fmt`
 arguments; a context's `Err()` formatted) are trust-boundary axioms and strengthened
-assumptions, each listed in `STATUS.md` ("Perennial `a54e1999f`") to be replaced by proofs.
+assumptions, each listed in `status-history.md` ("Perennial `a54e1999f`") to be replaced by proofs.
 
 **Rejected:** axioms for the STM at `d0324b842` (the model's code is stuck where `fetch`
 panics; an axiom that `runSTM` returns would contradict it and could derive `False`); the STM's
@@ -4691,7 +4691,7 @@ context error's tree, and `context.DeadlineExceeded` is a non-pointer error, whi
 `TreeTyped` (for every target, `DeadlineExceeded` included) cannot describe; that is a redesign
 of `applyErrIs` (targets restricted to pointer errors), not a merge. So the request path's error
 facts for a canceled read rest on Perennial's model, which Perennial documents as not modeling
-`%w` (`Perennial/TrustedCode/fmt.lean`): the known gap, `notes/STATUS.md`, "Merge of
+`%w` (`Perennial/TrustedCode/fmt.lean`): the known gap, `notes/status-history.md`, "Merge of
 `origin/lean` (Perennial `a54e1999f`)".
 
 ---
@@ -4699,7 +4699,7 @@ facts for a canceled read rest on Perennial's model, which Perennial documents a
 ## mvcc: compaction — the compaction revision under revMu, the index compacted per key, the bucket minus a kept set
 
 **2026-10-13 · unit 5a implemented (the specs, the model, the contracts; the proofs of the
-compaction functions are units 5b/5c)** (`notes/STATUS.md`, "The store's compaction")
+compaction functions are units 5b/5c)** (`notes/status-history.md`, "The store's compaction")
 
 The store's compaction (`kvstore.go`'s `Compact`, `updateCompactRev`, `compact`,
 `compactBarrier`, `checkPrevCompactionCompleted`, `compactLockfree`; `kvstore_compaction.go`'s
@@ -4831,7 +4831,7 @@ code forced:
 ### The compaction over the real backend (merge, 2026-10-13)
 
 **2026-10-13 · adopted** (the merge of `lean`, the backend's units 1–5, into `mvcc` after unit 5a;
-`STATUS.md`, "Merge: lean into mvcc, the backend meets the compaction")
+`status-history.md`, "Merge: lean into mvcc, the backend meets the compaction")
 
 **Decision: one contract, theirs, with the compaction's clauses inside it, the compaction-only
 calls guarded by `Cmp`.** `isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P f`
@@ -4893,7 +4893,7 @@ dropping `snapThin` (the assumed contract would be false of Go's backend once co
 
 ### The index side's proofs (unit 5b, 2026-10-13 · adopted)
 
-**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 5b)
+**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 5b)
 
 - **`walk`'s closure is effectful.** `generation.walk`'s spec takes `walkFnSpecR f p R Q`
   (`Defs.lean`): on a revision where `p` holds the closure returns true keeping `R`; where it
@@ -4940,7 +4940,7 @@ dropping `snapThin` (the assumed contract would be false of Go's backend once co
 
 ### The store's side: the compaction right carries the scheduler queue (unit 5c)
 
-**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 5c)
+**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 5c)
 
 **Decision: the compaction job is a tracked job of the store's FIFO scheduler, and the exclusive
 compaction right holds the queue.** `treeIndex.Compact` takes the index compactor's token
@@ -4991,7 +4991,7 @@ where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu`
 
 ### Compaction-aware readers (unit 6a): the delete-then-put premise on `Compact`, the frozen reader a corollary
 
-**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 6a)
+**2026-10-13 · adopted** (`status-history.md`, "The store's compaction", unit 6a)
 
 **Decision 1: the one who compacts asserts `NoDelPutAt` at its revision.** `store.Compact`
 (`compactLockfree`, `updateCompactRev`) takes `idxCert γ.idx log`, `sint.Z rev < log.length` and
@@ -5178,7 +5178,7 @@ foresee, and how it is resolved:
   taken by `ConcurrentReadTx`/`ReadTx`, given back by `RUnlock` and lent to the calls that need the
   backend open; `WT` (a write-back's budget) is spent by every session; `PutOk` is what the
   backend's `UnsafeSeqPut` needs of a put (bounds, keys increasing). *Rejected:* wiring `RT`
-  through `storeReader` now: it does not compose until `WT` and the view do (STATUS, "Unit 4").
+  through `storeReader` now: it does not compose until `WT` and the view do (status-history.md, "Unit 4").
 - **The shared read transaction's snapshot is the one its `RLock` finds**: `ReadTx()` returns the
   shared `readTx`, whose interval (bbolt's read transaction) changes at every commit until its
   `RLock`. So the snapshot splits: `keyReadSnap View RT rt m L` is `RLock` alone, taking the
@@ -5517,7 +5517,7 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
 
 ## The request path, closed: delivery, the premises kept, and why
 
-**2026-10-13 · adopted (the request path's unit 4d)** (`notes/STATUS.md`, "Unit 4d: the
+**2026-10-13 · adopted (the request path's unit 4d)** (`notes/status-history.md`, "Unit 4d: the
 wrap-up", "The request path: results and premises")
 
 **Delivery: the wait registry's ghost state tells live from gone.** `IsRegistered` was "some
@@ -5567,7 +5567,7 @@ contract, the id budget, `storeSmall`).
 
 ## The client's model as a class the server instantiates; the wire as the handler's theorem transported
 
-(The vertical slice's unit V1, 2026-10-13; `notes/STATUS.md`, "The vertical slice: client to
+(The vertical slice's unit V1, 2026-10-13; `notes/status-history.md`, "The vertical slice: client to
 server".)
 
 **A class, not axioms.** The clients' fourteen axioms about etcd (`etcdState` and its laws,
@@ -5618,12 +5618,12 @@ is listed in STATUS rather than weakened in the contracts.
 the stub's four axioms, `isKVClient`) is gone: unit C1 translated the generated stub and proved
 `kVClient.Put`/`Range` down to grpc's `ClientConn.Invoke`, whose contract (one axiom) and the
 connection predicate `isKVConn conn K` are the lower boundary now ("The client meets the server
-(unit C1)" below; STATUS, "Merge of `origin/lean` (units 8, 9, C1)"). The class, the server's
+(unit C1)" below; status-history.md, "Merge of `origin/lean` (units 8, 9, C1)"). The class, the server's
 instance and the token's path stay; `DeleteRange`/`Txn` stubs are V2's to prove in C1's style.
 
 ## The client meets the server (unit C1)
 
-**2026-10-14 · adopted (unit C1)** (`notes/STATUS.md`, "Unit C1: the client meets the server")
+**2026-10-14 · adopted (unit C1)** (`notes/status-history.md`, "Unit C1: the client meets the server")
 
 *Superseded in part* (2026-10-14) by "A generic gRPC specification" (below): the `Put`/`Range`
 axiom, the connection `isKVConn`, the run premises `putRunOk`/`rangeRunOk` and the runtime's
@@ -5723,7 +5723,7 @@ the precondition `doRunOk` rules them out).
 
 ## A generic gRPC specification
 
-**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit C1", "The generic gRPC specification")
+**2026-10-14 · adopted** (`notes/status-history.md`, "Unit C1", "The generic gRPC specification")
 
 *Superseded in part* (2026-10-14, unit P3b) by "The server end of the gRPC boundary" (below): the
 server side (`grpc.serve`, `grpcListener`, the handler's level) is now grpc's runtime running the
@@ -5824,7 +5824,7 @@ revision its reply reports.
 
 ## The retry interceptor proved: the gRPC boundary below it
 
-**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit P3a")
+**2026-10-14 · adopted** (`notes/status-history.md`, "Unit P3a")
 
 **The boundary is grpc's `invoke`, one attempt; the interceptor chain is stated as grpc composes
 it.** grpc's `ClientConn.Invoke` (`call.go`) runs `cc.dopts.unaryInt(ctx, method, args, reply, cc,
@@ -5905,7 +5905,7 @@ watch's close error, a leasing transaction's).
 
 ## The server end of the gRPC boundary
 
-**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit P3b")
+**2026-10-14 · adopted** (`notes/status-history.md`, "Unit P3b")
 
 Supersedes the server side of "A generic gRPC specification" ("The server side and its
 resources", "The handler's level: the service method"): the boundary is now grpc's server
@@ -6172,7 +6172,7 @@ covered.
 **Status.** Implemented (2026-10-14): the model, the KV ghost state and its invariants, the raft
 contract restated, the read loop's registry, mvcc's log certificates, the apply thread's KV
 ghost state, the server's `Put`/`Range`, the gRPC layer's deposits, the client's `kv.Put`/`kv.Get`
-with persistent updates. Full build green, no new axiom, no new `sorry` (`notes/STATUS.md`, "Unit
+with persistent updates. Full build green, no new axiom, no new `sorry` (`notes/status-history.md`, "Unit
 T1"). The two gaps found while designing are resolved below ("The two gaps, resolved").
 **Superseded in part (2026-10-15, unit T2)**: the per-key points-to (`k ↦kv vo`, `kvPutAu`,
 `kvGetAu`), the plain workload's limits (puts without ignore flags, deletes without `PrevKv`, no
@@ -6502,7 +6502,7 @@ restriction `watchReqOk` (a premise on `Up`) leaves them to a later unit.
 
 ## Every KV operation as a persistent atomic update on the whole state (unit T2, 2026-10-15 · adopted)
 
-**Status.** Implemented (2026-10-15, `notes/STATUS.md`, "Unit T2"): puts (any flag but a lease),
+**Status.** Implemented (2026-10-15, `notes/status-history.md`, "Unit T2"): puts (any flag but a lease),
 ranges, deletes (with or without `PrevKv`) and plain transactions are deterministic in the KV
 model and step one exclusive abstract state; the server's and the client's `Put`, `Range`/`Get`,
 `DeleteRange` and `Txn` take persistent atomic updates over it. It supersedes unit T1's per-key
@@ -6698,7 +6698,7 @@ lease-free puts and transactions are meaningful again; leased ones wait for T3.
   that `apply` assumes, `clockSpec` logically atomic and monotone); the linearization order is a
   ghost log of the linearization points with the clock value at each. `CounterClock` is proved;
   `MonotonicClock` (etcd's `time.Since`) is not specifiable in Perennial's time model
-  (`STATUS.md`, "Porcupine").
+  (`status-history.md`, "Porcupine").
 - **No alias `Results.lean`** for porcupine and the driver (decided with the user): their
   `Link.lean` results (`porcupine.wp_CheckOperations*`, `lintest.wp_Run`) are the exported
   results, and the Links are the TCB report's roots; a file restating them would only repeat
@@ -7644,7 +7644,7 @@ The register sidestepped it with its own `Storage` wrapper (`Snapshot` answers
     `maybeSendAppend` establishes from the bound (`1 ≤ Next ≤ lastIndex + 1` leaves `ErrCompacted`
     as the only failure of `term(Next - 1)`, and that means `prev.index ≥ 1`). The register's
     `Storage` still meets the clause.
-- **Carried out (2026-10-16, R8a; `notes/STATUS.md`, "stage R8a").** As designed, with four
+- **Carried out (2026-10-16, R8a; `notes/status-history.md`, "stage R8a").** As designed, with four
   details. (i) `raftLog.term`'s spec needed no "which error" clause: its iff already negates the
   range, and the bound rules out the past-the-end side, so the error branch of `maybeSendAppend`
   gets `prev.index ≠ 0` from it directly. (ii) The bound is conditional on the role, so
@@ -7746,7 +7746,7 @@ and `PreVote` settings stay premises.
   `BootLogOk`'s `ccOk`. The composition: `isServerBuilt`'s raft rows (`isRaftNode`, the loop and
   apply tokens at `[]`, `rnSnapOnce`, `srvRaftLogInv` at `pre = []`) from `ownRaftGhost_alloc_boot`,
   `budget_alloc`, `memStorReg`, `NewMemoryStorage`, `StartNode.spec` and `newRaftNode`.
-- **Carried out (2026-10-16, R8b; `notes/STATUS.md`, "stage R8b").** As designed, with these
+- **Carried out (2026-10-16, R8b; `notes/status-history.md`, "stage R8b").** As designed, with these
   deviations. (i) `RaftNames.reBoot` is a derived function over an instance-free field
   `reBootRaw : List BootEntry` (`EntryM` needs `FfiSyntax`, which `RaftNames` does not take);
   every use reads `γ.reBoot`. (ii) One conjunct of `ownLogGhost` suffices (`|reBoot| ≤ commit`);
@@ -7985,7 +7985,7 @@ constructor contracts false. D14 settles the three.
   (and `NewAlarmBackend`/`NewAuthBackend` with bodies), or state the link with abstract predicates.
 
 - **D14g (adopted 2026-10-17, the user's choice (a)): the server's lifetime bound.** Unit N4 found
-  the server's write budget unsatisfiable over the real backend (`notes/STATUS.md`, "unit N4,
+  the server's write budget unsatisfiable over the real backend (`notes/status-history.md`, "unit N4,
   continued"): `bootOk` gave `2 ^ 64 + 3` write-back tokens and `start` took `2 ^ 64 ≤ N`, while the
   backend's batch lock bounds the tokens out below `2 ^ 40` (`backend.bgOk`). Now:
   * `bootOk γ id bootLog N b` (and `bootstrapContract … N`) gives the tokens the backend has, `N + 7`
@@ -8141,7 +8141,7 @@ as `storeSmall`), carried by `compactJobPre` and taken by `updateCompactRev`, `C
 
 A Go `if`/`select`/`switch` whose arms continue with the same code got the same tactic block
 pasted into each arm of its proof (up to 350 lines, three times, in `closeSubstream`). The
-duplication review (notes/STATUS.md, "Repeated in-proof blocks as macros") replaced them.
+duplication review (notes/status-history.md, "Repeated in-proof blocks as macros") replaced them.
 
 **Decision:** prove the shared continuation once when it is easy to state (a `have`, or merging
 identical `cases` arms); otherwise a `set_option hygiene false in local macro` just before the
@@ -8408,7 +8408,7 @@ revision facts.
 
 protoc-gen-go-grpc's unary handlers (`_KV_{Range,Put,DeleteRange,Txn}_Handler`) have the same
 body up to the method's name and its request and response types, and their proofs were the same
-95-line proof, copied. The duplication review (notes/STATUS.md, "Proof families as lemmas")
+95-line proof, copied. The duplication review (notes/status-history.md, "Proof families as lemmas")
 replaced them.
 
 **Decision:** `etcdserverpb/UnaryHandlerLemmas.lean` defines the common body as a function of what
@@ -8471,7 +8471,7 @@ raised by `RawNode` before a step, bounding every queued message (`OutTermOk`), 
 `termLB` of the ceiling. A pre-candidate's win on a stale grant of its own term raises the term to
 `term + 1` past the message's, so `ownRawNode` must keep `preCandidate → term + 1 ≤ tc`, which
 needs a new `raft.Step` postcondition (`ownRaftPhys` cannot keep it: `reset` stores the term while
-the role is still `preCandidate`). See notes/STATUS.md, "Raft: CheckQuorum and PreVote on".
+the role is still `preCandidate`). See notes/status-history.md, "Raft: CheckQuorum and PreVote on".
 
 As built (stage P): `Ready`'s bound is `m.Term ≤ rs.tc` (the ceiling is kept at or above the term,
 `RNPv`, so this is the same as `max`); the ceiling is raised by the *client* (`ownRawNode_raise_tc`,
@@ -8493,7 +8493,7 @@ the restriction costs nothing for etcd's server (`StartNode`) and the register e
 **2026-10-18 · proposed (branch `raft-retarget`, open-work item 9); D19a, D19b, D19d, D19e, D19f
 adopted by the user (D19d and D19e by the local route, below)**
 
-The adequacy example (`examples/putget`, `notes/STATUS.md`, "Item 9: the adequacy example") was to
+The adequacy example (`examples/putget`, `notes/status-history.md`, "Item 9: the adequacy example") was to
 keep each undischarged premise of the server's construction as a named hypothesis of the closed
 theorem. A hypothesis of a closed theorem quantifies over every instance of the ghost state
 (`∀ [HeapGS …]`) and every ghost name; if a proof can refute it inside the logic, it is false and
@@ -8591,7 +8591,7 @@ the theorem says nothing.
   committed entry is the bootstrap log's, a leader's empty entry, or a proposal of this server
   (the request path, and the names-only monitors `publishV3`/`monitorClusterVersions`, whose
   contracts then say what they propose) -- proved as an invariant on raft's committed log.
-  **2026-10-18: adopted by the user, attempted, stopped** (`notes/STATUS.md`, "D19c: unit N3
+  **2026-10-18: adopted by the user, attempted, stopped** (`notes/status-history.md`, "D19c: unit N3
   stopped"). The clause is not provable from the ghost allocations, and not as stated:
   (1) every committed normal entry after the boot log is fired by a deposit of `kv_prop_au`
   (`reqPropOk`) or `kv_noop_au` (`kvInv` holds the server's half of the log), so `entriesOk`
@@ -8611,7 +8611,7 @@ the theorem says nothing.
   takes `ρ.ids`, `E`); plus a pure premise `uint16(memberID) ≠ 0` from `bootstrapContract`;
   (b) keep the clause a premise of `NewServer` and state the adequacy theorem for the workload
   that satisfies it, as a pure property of the requests (out of D19a's rule as now written).
-  **2026-10-18: option (a) adopted by the user and carried out** (`notes/STATUS.md`, "D19c:
+  **2026-10-18: option (a) adopted by the user and carried out** (`notes/status-history.md`, "D19c:
   option (a), the workload clause proved but its size bound"):
   - The apply premise split (`WorkloadDefs.lean`): `rqSmall log rq`, the size clauses (room for a
     revision, a delete's range and a transaction's changes below `2 ^ 56`, the sorts' small logs
@@ -9664,7 +9664,7 @@ import graph: `Iris` needs only Perennial's ghost state (the raft protocol's `Gh
 it without the heap), `GoString` only `Perennial.Golang.Defn.String`, `List` nothing.
 
 *Carried out (2026-10-19).* Every fact moved to Perennial (`lean`, `8d53c9e0d`) or was deleted (unused, or a one-liner from Lean core), and
-`Proof/Lib/` is gone (STATUS.md, "Proof/Lib: the package-independent facts"). A new fact of this
+`Proof/Lib/` is gone (status-history.md, "Proof/Lib: the package-independent facts"). A new fact of this
 kind goes to Perennial directly, on a branch off its `lean`, not into a holding place here.
 
 *Temporary, per fact.* `Proof/Lib/` was a holding place, not a library of this repository: each
@@ -10201,7 +10201,7 @@ Less depends on one member than the restriction's footprint suggests:
   `InvNode.lean:394-515`): every type but `MsgSnap` (`netStepTypes`, `InvRawnode.lean:482`), a
   forwarded `MsgProp` owned (`fwdP`); the read index for any number of voters (`readAck`'s
   `QuorumAcked`, `node__ReadIndex.lean:15`); `raft.Step`'s `MsgSnap` branch (restore) proved, but
-  not reachable from `RawNode`/`node` (stage S, `notes/STATUS.md`, "Snapshots at the public API").
+  not reachable from `RawNode`/`node` (stage S, `notes/status-history.md`, "Snapshots at the public API").
   Precedent for a cluster: the register example's three in-process replicas over `deliver`
   (`examples/register/Cluster.lean`, `deliver.lean`: the wire's copy of a message, owned, so the
   half-owned responses of D8 are no obstacle).
@@ -11407,7 +11407,7 @@ Paths under `Proof/go_etcd_io/etcd/server/v3/etcdserver/` (server) and
   `plogTermAt … = some logterm`, `lpfull`), `commitIn … m.index m.term`, `isCommitted` of the
   covered prefix, `dst ≠ src` and both in `reTracked`. `SnapOk` (`P/Protocol/Model.lean:1527`).
   `raftSnapCert` (`P/SnapConf.lean:147`) and `LogState.ksn` exist and are used by nothing (stage S,
-  2026-10-15, `notes/STATUS.md` "Snapshots at the public API (stage S)"; the on-message variant is
+  2026-10-15, `notes/status-history.md` "Snapshots at the public API (stage S)"; the on-message variant is
   on the remote branch `stage-s-msg-extension`, `8fdbfceb4`, not merged).
 - The mode: `RaftNames.reNoSnap` (`P/Protocol/Ghost.lean:317`), `NGhost.ns`/`xf`, `NsLink`
   (`P/StepGhostMode.lean:241`: **`ns = xf = reNoSnap`**, one flag for "no snapshot" and "no leader

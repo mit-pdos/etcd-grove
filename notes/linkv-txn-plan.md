@@ -1,6 +1,6 @@
 # Plan: linkv over Delete and Txn (the robustness tester's workload)
 
-Status: done (2026-10-20; STATUS "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F", "stage G"): `linkvtxn_safe`, on exactly `linkv_safe`'s axioms.
+Status: done (2026-10-20; status-history.md "linkv-txn stage A", "stage B1", "stage B2, B3", "stage C", "stage D", "stage E", "stage F"; STATUS "linkv-txn stage G"): `linkvtxn_safe`, on exactly `linkv_safe`'s axioms.
 
 ## Goal
 
@@ -48,7 +48,7 @@ API semantics, recognisably. Stage D has the checks for that.
    `skip` (`SkipRangeExecution`, set when `needResult` is false, i.e. no waiter registered).
    Needed: a delivered reply had `skip = false`.
 3. A read-only Txn takes no read update at the client (`client_txn_end_to_end` forces
-   `Q = True`; STATUS "Open work", item 3), though `txnReplied`'s read-only case and the server's
+   `Q = True`; status-history.md "Open work", item 3), though `txnReplied`'s read-only case and the server's
    `kvDep` already carry `□ Q`.
 4. linkv's model knows values only, puts only; its abstraction (`absKV`, `ModelKV.lean`) and
    invariant (`LinkvOk`, pending *puts*, revisions' map of key-values) follow.
@@ -59,7 +59,7 @@ A and B (server/client) are independent of C–E (model); F needs all of them; G
 
 ### A. At-most-once Delete and Txn (server, gRPC layer, client)
 
-Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out"):
+Follow D21 M6's Put changes (status-history.md "D21 M6", decisions.md "D21 M6 carried out"):
 
 - `EtcdServer.DeleteRange.spec`, `EtcdServer.Txn.spec` (writing case): take `kvOpAu1`, success
   gives `Q` (not `□ Q`) through `kvRes`, as `EtcdServer.Put.spec`. Their proofs: the request
@@ -83,7 +83,7 @@ Follow D21 M6's Put changes (STATUS "D21 M6", decisions.md "D21 M6 carried out")
   trigger ⇒ registered at `IsRegistered` (ids are not reused) ⇒ `skip = false`. Put it in
   `txnReplied`'s writing case. **Fallback** if this turns out expensive: gens with no Get in a
   writing Txn (the CAS's `Else(Get)` then becomes `Else()`), and B1 later.
-  **Done** (2026-10-20, STATUS "linkv-txn stage B1"), as the findings below proposed but for (b):
+  **Done** (2026-10-20, status-history.md "linkv-txn stage B1"), as the findings below proposed but for (b):
   the registration rides on a cluster-level registries' map (`IdNames.wn`, per prefix), not on
   `ρ.wait`, which raft's environment (`srvC`) fixes before `start` makes the wait.
   **Findings (2026-10-20, before any change)**: the apply thread already proves the
@@ -145,7 +145,7 @@ keys; the old model stays until F.
 
 ### D. The Go program (`examples/linkv/linkv.go`)
 
-**Done** (2026-10-20) as a new module `examples/linkvtxn` (STATUS "linkv-txn stage D"), linkv
+**Done** (2026-10-20) as a new module `examples/linkvtxn` (status-history.md "linkv-txn stage D"), linkv
 unchanged.
 
 - `Input`/`Output` widened (an op kind, a key, a value, cmps and ops for a txn; the response
@@ -171,7 +171,7 @@ unchanged.
 
 ### E. The Go model's proofs
 
-**Done** (2026-10-20, STATUS "linkv-txn stage E"): every function of the model specified and
+**Done** (2026-10-20, status-history.md "linkv-txn stage E"): every function of the model specified and
 proved, `Model` linked against `pM (txnSpec wks)`; `Input`/`Output` made plain values first.
 
 Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, the txn's op loop,
@@ -181,7 +181,7 @@ Per helper, one spec/proof file (as `lookup`, `set`, …): compare evaluation, t
 
 ### F. `Apply` (`Spec/.../linkv/Apply.lean`, `linkv/Inv.lean`, `linkv/Apply.lean`)
 
-**Done** (2026-10-20, STATUS "linkv-txn stage F") for `examples/linkvtxn`: `call` split per kind,
+**Done** (2026-10-20, status-history.md "linkv-txn stage F") for `examples/linkvtxn`: `call` split per kind,
 each kind's call proved at the state its update fired at, `Apply` linked (`wp_Apply`). A finding on
 the way: a compare-only `Txn` skips the read index (`issues/etcd-txn-empty-serializable.md`);
 `Apply`'s input excludes empty transactions, which `Gen` never makes.
@@ -226,7 +226,7 @@ read-only txns and List (B2), CAS with `Else(Get)`.
   only as robustness does (`Persisted` with the revision).
 - **Serializable reads**: not linearizable; robustness validates them separately by replay. A
   separate theorem.
-- **Leases** (`PutWithLease`, `LeaseRevoke`): unit T3 (STATUS "Open work", item 1).
+- **Leases** (`PutWithLease`, `LeaseRevoke`): unit T3 (status-history.md "Open work", item 1).
 - **Compaction, defragmentation**: removes the premise `mvcc.backendNoCompaction`; model
   `CompactRevision`, `ErrCompacted`.
 - **Watch** validation (robustness's watch checks): `watchkv` is the start.

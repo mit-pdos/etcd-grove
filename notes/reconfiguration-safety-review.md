@@ -45,7 +45,7 @@ an entry of its term. `stepLeader`'s `MsgReadIndex` (`raft.go:1341-1348`) does n
 answers at once with `raftLog.committed`, before the `committedEntryInCurrentTerm` check
 (`1350-1355`), and it does not check that the voter is `r.id`. At a fixed voter set this is
 sound: the only voter is the leader, and every commit is its own. That is why the static
-proof's premise `1 < size cfg` could exclude the path (STATUS, "Read-index"). Once
+proof's premise `1 < size cfg` could exclude the path (status-history.md, "Read-index"). Once
 configurations change, both assumptions fail:
 
 - **New leader, commit index behind.** `{1,2}` becomes `{1}`. Node 1 learns that the removal is
