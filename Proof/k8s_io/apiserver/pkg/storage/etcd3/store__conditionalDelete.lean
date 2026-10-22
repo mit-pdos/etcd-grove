@@ -43,7 +43,7 @@ theorem store.conditionalDelete.wp_proof
     (wp_deleteOnce : store.deleteOnce.spec (GF := GF) (hG := hG))
     (wp_refresh : refreshOnError.spec (GF := GF) (hG := hG)) :
     store.conditionalDelete.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E sp c ci cd key out o0 rv0 v p validate vf W Q Φu hk
+  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 v p validate vf W Q Φu hk
   wp_start as ⟨#Hst, #Hctx, #Hce, Hout, %Hv, HW, #Hau, #Hval⟩
   ihave #Hrd := k8sAusRW_read c.ms c (delStep key validate) W Q Φu $$ Hau
   have hR : ∀ σ, rdOk (GF := GF) c Q σ ⊢ ⌜kvWf c σ⌝ := fun σ => by
@@ -58,16 +58,17 @@ theorem store.conditionalDelete.wp_proof
   (try wp_auto)
   iunfold getStateOk at Hf
   wp_apply Hf as %st %err Hr
-  icases Hr with (%Herr | ⟨%σ, #Hrdσ, Hat⟩)
-  · cases err with
-    | nil => exact absurd rfl Herr
+  icases Hr with (#Herr | ⟨%σ, #Hrdσ, Hat⟩)
+  · ihave %Hne := unkErr_ne c err $$ Herr
+    cases err with
+    | nil => exact absurd rfl Hne
     | ok ei =>
       (try wp_auto)
       iapply HΦ
       iunfold delOut
       ileft
       isplitr
-      · ipureintro; nofun
+      · iexact Herr
       iexists o0, rv0
       iexact Hout
   · unfold stAt
@@ -126,7 +127,7 @@ theorem store.conditionalDelete.wp_proof
       | some e =>
         rw [hvd] at Hvres
         cases verr with
-        | nil => exact absurd rfl Hvres
+        | nil => exact absurd rfl Hvres.1
         | ok ei =>
           (try wp_auto)
           icases (ownState_split c st s) $$ Hos with ⟨%x', Hos, -⟩
@@ -149,7 +150,7 @@ theorem store.conditionalDelete.wp_proof
           · ipureintro; rfl
           simp only [respIs]
           isplitr
-          · ipureintro; nofun
+          · ipureintro; exact ⟨by nofun, Hvres.2⟩
           iexists o0, rv0
           iexact Hout
       | none =>
@@ -160,10 +161,11 @@ theorem store.conditionalDelete.wp_proof
             hs hvd) $$ [$Hos $Hout $HW] as %st' %ok %derr Hd
         · iframe #
           ipureintro; exact Hv
-        icases Hd with (⟨%Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, HW, Hout, %σ', #Hrd', Hat⟩)
+        icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, HW, Hout, %σ', #Hrd', Hat⟩)
         · -- an error
+          ihave %Hne := unkErr_ne c derr $$ Hde
           cases derr with
-          | nil => exact absurd rfl Hde
+          | nil => exact absurd rfl Hne
           | ok ei =>
             (try wp_auto)
             wp_for_post
@@ -171,7 +173,7 @@ theorem store.conditionalDelete.wp_proof
             iunfold delOut
             ileft
             iframe Hout
-            ipureintro; exact Hde
+            iexact Hde
         · -- deleted
           obtain ⟨rfl, rfl⟩ := Hok
           (try wp_auto)

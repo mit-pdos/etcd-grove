@@ -41,7 +41,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 /-- See the file header. -/
 abbrev store.deleteOnce.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (Obj : Type) [DecidableEq Obj] (E : Type) (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
+    (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (out : GoInterface) (o0 : Obj)
     (rv0 : GoString) (st : Loc) (s : OState Obj) (σ0 : KVState) (kv0 : EtcdKv)
     (v : _root_.Perennial.reflect.Value) (p : Loc) (validate : Obj → Nat → Option E)
@@ -58,7 +58,7 @@ abbrev store.deleteOnce.spec : Prop :=
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"deleteOnce")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #out)) (Val #st)) (Val #v)) (Val #false))
   {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
+      (unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out) ∨
       (⌜ok = false⌝ ∗ W ∗ c.S.objAt out o0 rv0 ∗ ∃ σ, rdOk c Q σ ∗ stAt c key σ st' err) }}

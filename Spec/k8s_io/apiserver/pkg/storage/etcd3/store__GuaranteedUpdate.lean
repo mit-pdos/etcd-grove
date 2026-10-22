@@ -39,7 +39,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 /-- See the file header. -/
 abbrev store.GuaranteedUpdate.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (Obj : Type) [DecidableEq Obj] (E : Type) (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
+    (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (dest : GoInterface) (o0 : Obj)
     (rv0 : GoString) (f : Obj → Nat → Except E Obj) (uf : GoFunc) (W : IProp GF)
     (Q Φ : KVState → IProp GF) (k : GoString),

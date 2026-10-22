@@ -41,7 +41,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 /-- See the file header. -/
 abbrev store.updateOnce.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    (Obj : Type) [DecidableEq Obj] (E : Type) (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
+    (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (span : Loc) (key : GoString) (dest : GoInterface)
     (o0 : Obj) (rv0 : GoString) (st : Loc) (s : OState Obj) (x : GoInterface) (dsl : GoSlice)
     (σ0 : KVState) (kv0 : EtcdKv) (v : _root_.Perennial.reflect.Value) (p : Loc) (z : Obj)
@@ -61,7 +61,7 @@ abbrev store.updateOnce.spec : Prop :=
       (Val #span)) (Val #key)) (Val #dest)) (Val #st)) (Val #dsl)) (Val #(W64 0))) (Val #v))
       (Val #false))
   {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt dest o rv) ∨
+      (unkErr c err ∗ ∃ o rv, c.S.objAt dest o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err dest) ∨
       (⌜ok = false⌝ ∗ W ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdOk c Q σ ∗ stAt c key σ st' err) }}

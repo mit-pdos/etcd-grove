@@ -69,7 +69,7 @@ theorem store.GuaranteedUpdate.wp_proof
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG)) :
     store.GuaranteedUpdate.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E sp c ci cd key dest o0 rv0 f uf W Q Φu k hk
+  intro _ _ Obj _ E _ sp c ci cd key dest o0 rv0 f uf W Q Φu k hk
   wp_start as ⟨#Hst, #Hctx, #Hce, Hout, HW, #Hau, #Hup⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -140,9 +140,10 @@ theorem store.GuaranteedUpdate.wp_proof
   (try wp_auto)
   iunfold getStateOk at Hgf
   wp_apply Hgf as %st %err Hr
-  icases Hr with (%Herr | ⟨%σ, #Hrdσ, Hat⟩)
-  · cases err with
-    | nil => exact absurd rfl Herr
+  icases Hr with (#Herr | ⟨%σ, #Hrdσ, Hat⟩)
+  · ihave %Hne := unkErr_ne c err $$ Herr
+    cases err with
+    | nil => exact absurd rfl Hne
     | ok ei =>
       (try wp_auto)
       wp_apply wp_End spn _ $$ []
@@ -153,7 +154,7 @@ theorem store.GuaranteedUpdate.wp_proof
       iunfold updOut
       ileft
       isplitr
-      · ipureintro; nofun
+      · iexact Herr
       iexists o0, rv0
       iexact Hout
   · unfold stAt
@@ -224,7 +225,7 @@ theorem store.GuaranteedUpdate.wp_proof
         isimp only [hfr] at Hres
         icases Hres with %Huerr
         cases uerr with
-        | nil => exact absurd rfl Huerr
+        | nil => exact absurd rfl Huerr.1
         | ok ei =>
           (try wp_auto)
           wp_apply wp_refresh Obj c st s (GoInterface.ok ei) gf x' hs.2.2.2 $$ [$Hx]
@@ -250,7 +251,7 @@ theorem store.GuaranteedUpdate.wp_proof
           · ipureintro; rfl
           simp only [respIs]
           isplitr
-          · ipureintro; nofun
+          · ipureintro; exact ⟨by nofun, Huerr.2⟩
           iexists o0, rv0
           iexact Hout
       | ok o' =>
@@ -303,10 +304,11 @@ theorem store.GuaranteedUpdate.wp_proof
                   hpfx hkv hs hfr hw) $$ [$Hx $Hout $HW] as %st' %ok %uerr Hd
               · iframe #
                 ipureintro; exact ⟨Hspn, Hv⟩
-              icases Hd with (⟨%Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, HW, Hout, %σ', #Hrd', Hat⟩)
+              icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, HW, Hout, %σ', #Hrd', Hat⟩)
               · -- an error
+                ihave %Hne := unkErr_ne c uerr $$ Hde
                 cases uerr with
-                | nil => exact absurd rfl Hde
+                | nil => exact absurd rfl Hne
                 | ok ei =>
                   (try wp_auto)
                   wp_for_post
@@ -318,7 +320,7 @@ theorem store.GuaranteedUpdate.wp_proof
                   iunfold updOut
                   ileft
                   iframe Hout
-                  ipureintro; exact Hde
+                  iexact Hde
               · -- written
                 obtain ⟨rfl, rfl⟩ := Hok
                 (try wp_auto)
@@ -423,10 +425,11 @@ theorem store.GuaranteedUpdate.wp_proof
                 hpfx hkv hs hfr hw) $$ [$Hx $Hout $HW] as %st' %ok %uerr Hd
             · iframe #
               ipureintro; exact ⟨Hspn, Hv⟩
-            icases Hd with (⟨%Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, HW, Hout, %σ', #Hrd', Hat⟩)
+            icases Hd with (⟨#Hde, Hout⟩ | ⟨%Hok, %σ', HΦu, Hresp⟩ | ⟨%Hok, HW, Hout, %σ', #Hrd', Hat⟩)
             · -- an error
+              ihave %Hne := unkErr_ne c uerr $$ Hde
               cases uerr with
-              | nil => exact absurd rfl Hde
+              | nil => exact absurd rfl Hne
               | ok ei =>
                 (try wp_auto)
                 wp_for_post
@@ -438,7 +441,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 iunfold updOut
                 ileft
                 iframe Hout
-                ipureintro; exact Hde
+                iexact Hde
             · -- written
               obtain ⟨rfl, rfl⟩ := Hok
               (try wp_auto)
@@ -498,6 +501,7 @@ theorem store.GuaranteedUpdate.wp_proof
                 iframe
                 ipureintro; exact ⟨hf', Hs'⟩
         · -- the encoding failed
+          obtain ⟨Heerr, Hee⟩ := Heerr
           cases eerr with
           | nil => exact absurd rfl Heerr
           | ok ee =>
@@ -525,7 +529,7 @@ theorem store.GuaranteedUpdate.wp_proof
             iunfold updOut
             ileft
             isplitl []
-            · ipureintro; nofun
+            · iapply (unkErr_enc c _ (by nofun) Hee)
             iexists o0, rv0
             iexact Hout
 

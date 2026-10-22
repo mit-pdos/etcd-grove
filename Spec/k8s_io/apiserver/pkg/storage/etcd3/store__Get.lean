@@ -53,7 +53,7 @@ abbrev store.Get.spec : Prop :=
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Get")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #opts)) (Val #out))
   {{ (err : GoInterface), RET #err;
-      (⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
+      (unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
       (∃ σ : KVState, □ Q σ ∗
         respIs (E := Empty) c ((c.abs σ).get (c.pathPrefix ++ k) 0 opts.IgnoreNotFound') err out) }}
 

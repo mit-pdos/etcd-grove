@@ -250,26 +250,26 @@ theorem delete_invalid {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : Go
 
 /-- **The caller's `validateDeletion`** (persistent: called at each retry): on an object holding
 `o` at resource version `r`, it leaves it and answers `validate o r` (`nil` for `none`). -/
-def validateOk {E : Type} (c : StoreCfg GF Obj) (validate : Obj → Nat → Option E) (vf : GoFunc) :
+def validateOk {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (validate : Obj → Nat → Option E) (vf : GoFunc) :
     IProp GF :=
   iprop(□ ∀ (ctx x : GoInterface) (o : Obj) (r : w64) (Ψ : val → IProp GF),
     c.S.objAt x o (c.S.fmtRV r) -∗
     ▷ (∀ err : GoInterface, c.S.objAt x o (c.S.fmtRV r) -∗
         ⌜match validate o (uint.nat r) with
           | none => err = GoInterface.nil
-          | some _ => err ≠ GoInterface.nil⌝ -∗ Ψ #err) -∗
+          | some e => err ≠ GoInterface.nil ∧ KUserErr.is e err⌝ -∗ Ψ #err) -∗
     WP (App (App (Val #vf) (Val #ctx)) (Val #x)) {{ Ψ }})
 
-instance validateOk_persistent {E : Type} (c : StoreCfg GF Obj) (validate : Obj → Nat → Option E)
+instance validateOk_persistent {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (validate : Obj → Nat → Option E)
     (vf : GoFunc) : Persistent (validateOk c validate vf) := by
   unfold validateOk; infer_instance
 
-/-- **`Delete`'s outcome** for the prepared key `key`: an error (of the client, the update fired
-at most once); the model's `delete` as the write at `σ` (`Φ σ`); or a read-like answer at `σ`
+/-- **`Delete`'s outcome** for the prepared key `key`: an error whose outcome is unknown
+(`unkErr`: the client's, the update fired at most once); the model's `delete` as the write at `σ` (`Φ σ`); or a read-like answer at `σ`
 (`□ Q σ`, nothing changed, `W` back). -/
-def delOut {E : Type} (c : StoreCfg GF Obj) (key : GoString) (validate : Obj → Nat → Option E)
+def delOut {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (key : GoString) (validate : Obj → Nat → Option E)
     (W : IProp GF) (Q Φ : KVState → IProp GF) (err out : GoInterface) : IProp GF :=
-  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
+  iprop((unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
     (∃ σ, Φ σ ∗ respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out) ∨
     (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).delete key (fun _ _ => none) validate).1 = c.abs σ⌝ ∗
       respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out))
@@ -408,29 +408,29 @@ theorem updStepOk {E : Type} (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx
 /-- **The caller's `tryUpdate`** (persistent: called at each retry): on an object holding `o` at
 resource version `r` (and the response metadata at `r`), it answers `f o r`: an object holding
 the result (no TTL, D30d), or an error. It may keep or change the input object (it owns it). -/
-def tryUpdateOk {E : Type} (c : StoreCfg GF Obj) (f : Obj → Nat → Except E Obj) (uf : GoFunc) :
+def tryUpdateOk {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (f : Obj → Nat → Except E Obj) (uf : GoFunc) :
     IProp GF :=
   iprop(□ ∀ (x : GoInterface) (o : Obj) (r : w64) (Ψ : val → IProp GF),
     c.S.objAt x o (c.S.fmtRV r) -∗
     ▷ (∀ (ret : GoInterface) (ttlp : Loc) (err : GoInterface),
         (match f o (uint.nat r) with
           | .ok o' => ⌜err = GoInterface.nil ∧ ttlp = null⌝ ∗ ∃ rv', c.S.objAt ret o' rv'
-          | .error _ => ⌜err ≠ GoInterface.nil⌝) -∗
+          | .error e => ⌜err ≠ GoInterface.nil ∧ KUserErr.is e err⌝) -∗
         Ψ (PairV (PairV #ret #ttlp) #err)) -∗
     WP (App (App (Val #uf) (Val #x))
       (Val #(k8s_io.apiserver.pkg.storage.ResponseMeta.mk (W64 0) r))) {{ Ψ }})
 
-instance tryUpdateOk_persistent {E : Type} (c : StoreCfg GF Obj) (f : Obj → Nat → Except E Obj)
+instance tryUpdateOk_persistent {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (f : Obj → Nat → Except E Obj)
     (uf : GoFunc) : Persistent (tryUpdateOk c f uf) := by
   unfold tryUpdateOk; infer_instance
 
 /-- **`GuaranteedUpdate`'s outcome** for the prepared key `key` (as `delOut`): an error; the
 model's `update` as the write at `σ` (`Φ σ`); or a read-like answer at `σ` (`□ Q σ`, nothing
 changed, `W` back: a no-op, not found, `tryUpdate`'s error). -/
-def updOut {E : Type} (c : StoreCfg GF Obj) (key : GoString) (z : Obj)
+def updOut {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (key : GoString) (z : Obj)
     (f : Obj → Nat → Except E Obj) (W : IProp GF) (Q Φ : KVState → IProp GF)
     (err out : GoInterface) : IProp GF :=
-  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
+  iprop((unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
     (∃ σ, Φ σ ∗ respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out) ∨
     (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).update key false z (fun _ _ => none) f).1 = c.abs σ⌝ ∗
       respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out))

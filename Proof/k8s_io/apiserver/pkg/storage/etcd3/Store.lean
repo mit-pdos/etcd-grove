@@ -22,6 +22,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Contract
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Defs
+public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3.metrics
 public import GeneratedProof.k8s_io.apiserver.pkg.storage
@@ -36,6 +37,16 @@ namespace EtcdGrove
 namespace k8s
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
+
+/-- **A callback's error as the Go error the store returns** (`validateDeletion`'s, `tryUpdate`'s):
+the store returns it unchanged, so a caller that knows its callback's errors (`GoInterface`: the
+error itself) can tell them apart from the others. -/
+class KUserErr [FfiSyntax] (E : Type) where
+  is : E → GoInterface → Prop
+
+instance [FfiSyntax] : KUserErr Empty := ⟨fun e _ => nomatch e⟩
+
+instance [FfiSyntax] : KUserErr GoInterface := ⟨fun e err => err = e⟩
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -107,10 +118,63 @@ def storageErrIs (err : GoInterface) (code : w64) (key : GoString) (rv : w64) : 
       (go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) #p⌝ ∗
     p ↦□ k8s_io.apiserver.pkg.storage.StorageError.mk code key rv GoInterface.nil)
 
+/-- **An error whose outcome is unknown** (a method's first disjunct: its write, if any, may or may
+not have fired): not `nil`, and the client's (`clientErr`, `statusErrOk`: the store returns the
+client's errors unchanged), an `InternalError` (the transformer's failures, wrapped), or the
+codec's own (`ObjSpec.encErr`). None is a `*StorageError` or a callback's error, which a caller
+tells apart by type or identity. -/
+def unkErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∗
+    ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err) ∨
+      ⌜(∃ ie : k8s_io.apiserver.pkg.storage.InternalError,
+          err = interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) ∨
+        c.S.encErr err⌝))
+
+instance unkErr_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
+    Persistent (unkErr c err) := by
+  unfold unkErr; infer_instance
+
+open Iris.ProofMode in
+theorem unkErr_ne (c : StoreCfg GF Obj) (err : GoInterface) :
+    unkErr (GF := GF) c err ⊢ ⌜err ≠ GoInterface.nil⌝ := by
+  unfold unkErr
+  iintro ⟨%h, -⟩
+  ipureintro; exact h
+
+open Iris.ProofMode in
+theorem unkErr_client (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInterface.nil)
+    (hc : clientErr err) : go_etcd_io.etcd.cache.v3.statusErrOk err ⊢ unkErr c err := by
+  iintro #H
+  unfold unkErr
+  isplitr
+  · ipureintro; exact hn
+  ileft
+  iframe H
+  ipureintro; exact hc
+
+open Iris.ProofMode in
+theorem unkErr_internal (c : StoreCfg GF Obj) (ie : k8s_io.apiserver.pkg.storage.InternalError) :
+    ⊢ unkErr (GF := GF) c (interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) := by
+  unfold unkErr
+  isplitr
+  · ipureintro; nofun
+  iright
+  ipureintro; exact .inl ⟨ie, rfl⟩
+
+open Iris.ProofMode in
+theorem unkErr_enc (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInterface.nil)
+    (he : c.S.encErr err) : ⊢ unkErr (GF := GF) c err := by
+  unfold unkErr
+  isplitr
+  · ipureintro; exact hn
+  iright
+  ipureintro; exact .inr he
+
 /-- **A model answer, as the method leaves it** (`err` and the object `out`): an object at a
 resource version, the zero object, a key not found or existing (`StorageError`s with codes `1`,
-`2`); the other errors (not answered by the unary methods' specs yet) as any error. -/
-def respIs {E : Type} (c : StoreCfg GF Obj) (r : KResp Obj E) (err out : GoInterface) : IProp GF :=
+`2`), a callback's error (`KUserErr`); the other errors (not answered by the unary methods' specs
+yet) as any error. -/
+def respIs {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (r : KResp Obj E) (err out : GoInterface) : IProp GF :=
   match r with
   | .obj o rv => iprop(⌜err = GoInterface.nil⌝ ∗ c.S.objAt out o (c.S.fmtRV (W64 (rv : Int))))
   | .zero => iprop(⌜err = GoInterface.nil⌝ ∗ c.S.objAt out c.S.zero [])
@@ -118,6 +182,8 @@ def respIs {E : Type} (c : StoreCfg GF Obj) (r : KResp Obj E) (err out : GoInter
     iprop(storageErrIs err (W64 1) k (W64 (rv : Int)) ∗ ∃ o rv', c.S.objAt out o rv')
   | .err (.keyExists k) =>
     iprop(storageErrIs err (W64 2) k (W64 0) ∗ ∃ o rv', c.S.objAt out o rv')
+  | .err (.user e) =>
+    iprop(⌜err ≠ GoInterface.nil ∧ KUserErr.is e err⌝ ∗ ∃ o rv', c.S.objAt out o rv')
   | .err _ => iprop(⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv', c.S.objAt out o rv')
 
 /-- **etcd's state is the store's** (D30i): sorted by key, and the store's invariant under its

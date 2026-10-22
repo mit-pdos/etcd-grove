@@ -52,7 +52,7 @@ abbrev store.Create.spec : Prop :=
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Create")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #obj)) (Val #out)) (Val #(W64 0)))
   {{ (err : GoInterface), RET #err; (∃ o' rv', c.S.objAt obj o' rv') ∗
-      ((⌜err ≠ GoInterface.nil⌝ ∗ ∃ o' rv', c.S.objAt out o' rv') ∨
+      ((unkErr c err ∗ ∃ o' rv', c.S.objAt out o' rv') ∨
         (∃ σ : KVState, Φ σ ∗
           respIs (E := Empty) c ((c.abs σ).create (c.pathPrefix ++ k) o 0).2 err out)) }}
 

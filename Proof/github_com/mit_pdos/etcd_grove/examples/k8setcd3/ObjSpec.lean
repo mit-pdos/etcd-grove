@@ -80,6 +80,7 @@ def driverSpec : ObjSpec GF DObj where
   objTy := objTyD
   objAt_ptr := objAtD_ptr
   newObj := objAtD_new
+  encErr _ := False
 
 end defs
 

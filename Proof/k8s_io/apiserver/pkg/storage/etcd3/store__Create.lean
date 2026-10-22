@@ -295,7 +295,9 @@ theorem store.Create.wp_proof
           · iexists o, []; iexact Hobj
           ileft
           isplitl []
-          · ipureintro; nofun
+          · iapply (unkErr_client c _ (by nofun) Hpce)
+            iunfold go_etcd_io.etcd.cache.v3.statusErrOk
+            iexact Hpse
           iexists o0, rv0
           iexact Hout
     · -- the transformer failed
@@ -330,10 +332,11 @@ theorem store.Create.wp_proof
         · iexists o, []; iexact Hobj
         ileft
         isplitl []
-        · ipureintro; nofun
+        · iapply unkErr_internal
         iexists o0, rv0
         iexact Hout
   · -- the encoding failed
+    obtain ⟨Heerr, Hee⟩ := Heerr
     cases eerr with
     | nil => exact absurd rfl Heerr
     | ok ee =>
@@ -361,7 +364,7 @@ theorem store.Create.wp_proof
       · iexists o, []; iexact Hobj
       ileft
       isplitl []
-      · ipureintro; nofun
+      · iapply (unkErr_enc c _ (by nofun) Hee)
       iexists o0, rv0
       iexact Hout
 

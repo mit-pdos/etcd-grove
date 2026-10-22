@@ -89,7 +89,7 @@ def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : KVState → IProp GF)
     IProp GF :=
   iprop(□ ∀ Ψ : val → IProp GF,
     ▷ (∀ (st : Loc) (err : GoInterface),
-        (⌜err ≠ GoInterface.nil⌝ ∨ ∃ σ, □ R σ ∗ stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
+        (unkErr c err ∨ ∃ σ, □ R σ ∗ stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
     WP (App (Val #f) (Val #())) {{ Ψ }})
 
 instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (R : KVState → IProp GF)

@@ -32,20 +32,23 @@ open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input)
 /-- Whether the callbacks reject an object of value `v`: `reject != "" && v == reject`. -/
 def rejects (reject v : GoString) : Bool := decide (reject ≠ []) && decide (v = reject)
 
-/-- **`validateFor(reject)`, as a function**: an object of value `reject` is rejected. -/
-def rejD (reject : GoString) (o : DObj) (_ : Nat) : Option Unit :=
-  if rejects reject o.1.2 then some () else none
 
 section upd
 variable [FfiSyntax]
+
+/-- **`validateFor(reject)`, as a function**: an object of value `reject` is rejected, with the
+error `eD` (`errDeleteRejected`'s). -/
+def rejD (eD : GoInterface) (reject : GoString) (o : DObj) (_ : Nat) : Option GoInterface :=
+  if rejects reject o.1.2 then some eD else none
 
 /-- `updated(in, o)`'s object: the value `in.Val`, unless `in.NoOp`. -/
 def updObj (inp : Input) (o : DObj) : DObj :=
   ⟨(o.1.1, if inp.NoOp' then o.1.2 else inp.Val'), o.2⟩
 
-/-- **`tryUpdateFor(in)`, as a function**: rejected as `rejD in.Reject`, otherwise `updObj`. -/
-def updD (inp : Input) (o : DObj) (_ : Nat) : Except Unit DObj :=
-  if rejects inp.Reject' o.1.2 then .error () else .ok (updObj inp o)
+/-- **`tryUpdateFor(in)`, as a function**: rejected as `rejD` on `in.Reject`, with the error `eU`
+(`errUpdateRejected`'s), otherwise `updObj`. -/
+def updD (eU : GoInterface) (inp : Input) (o : DObj) (_ : Nat) : Except GoInterface DObj :=
+  if rejects inp.Reject' o.1.2 then .error eU else .ok (updObj inp o)
 
 end upd
 
@@ -98,11 +101,12 @@ theorem errVar_ne_nil (x : GoString) (err : GoInterface) :
   nofun
 
 /-- **The store's `validateOk` of `validateFor(reject)`'s closure.** -/
-theorem validateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (reject : GoString)
-    (vf : GoFunc) :
+theorem validateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (eD : GoInterface)
+    (reject : GoString) (vf : GoFunc) :
     github_com.mit_pdos.etcd_grove.examples.k8setcd3.errVarOk (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8setcd3.errDeleteRejected ∗
-      validateD reject vf ⊢ validateOk c (rejD reject) vf := by
-  iintro ⟨#He, #Hv⟩
+      globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errDeleteRejected ↦□ eD ∗
+      validateD reject vf ⊢ validateOk c (rejD eD reject) vf := by
+  iintro ⟨#He, #HeD, #Hv⟩
   unfold validateOk
   rw [hc]
   iunfold validateD at Hv
@@ -120,17 +124,17 @@ theorem validateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (reject : Go
     iexact Herr
   · isimp only [hr, ↓reduceIte] at Herr
     simp only [hr, ↓reduceIte]
-    iapply errVar_ne_nil
-    isplitl []
-    · iexact He
-    · iexact Herr
+    ihave %Hne := errVar_ne_nil _ err $$ [$He $Herr]
+    icombine HeD Herr gives %Heq
+    ipureintro; exact ⟨Hne, Heq.symm⟩
 
 /-- **The store's `tryUpdateOk` of `tryUpdateFor(in)`'s closure.** -/
-theorem tryUpdateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (inp : Input)
-    (uf : GoFunc) :
+theorem tryUpdateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (eU : GoInterface)
+    (inp : Input) (uf : GoFunc) :
     github_com.mit_pdos.etcd_grove.examples.k8setcd3.errVarOk (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8setcd3.errUpdateRejected ∗
-      tryUpdateD inp uf ⊢ tryUpdateOk c (updD inp) uf := by
-  iintro ⟨#He, #Hu⟩
+      globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errUpdateRejected ↦□ eU ∗
+      tryUpdateD inp uf ⊢ tryUpdateOk c (updD eU inp) uf := by
+  iintro ⟨#He, #HeU, #Hu⟩
   unfold tryUpdateOk
   rw [hc]
   iunfold tryUpdateD at Hu
@@ -150,10 +154,9 @@ theorem tryUpdateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (inp : Inpu
     ipureintro; exact Hn
   · isimp only [hr, ↓reduceIte] at Hr
     simp only [hr, ↓reduceIte]
-    iapply errVar_ne_nil
-    isplitl []
-    · iexact He
-    · iexact Hr
+    ihave %Hne := errVar_ne_nil _ err $$ [$He $Hr]
+    icombine HeU Hr gives %Heq
+    ipureintro; exact ⟨Hne, Heq.symm⟩
 
 end defs
 

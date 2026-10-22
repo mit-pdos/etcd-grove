@@ -117,7 +117,8 @@ theorem store.getCurrentState.wp_proof
       (try wp_auto)
       iapply HΨ
       ileft
-      ipureintro; nofun
+      iapply (unkErr_client c _ (by nofun) Hgce)
+      iexact Hgse
 
 end proof
 

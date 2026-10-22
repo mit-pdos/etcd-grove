@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem store.updateState.wp_proof : store.updateState.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E sp c st s f uf
+  intro _ _ Obj _ E _ sp c st s f uf
   wp_start as ⟨#Hst, Hos, #Hup⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -58,7 +58,7 @@ theorem store.updateState.wp_proof : store.updateState.spec (GF := GF) (hG := hG
     isimp only [hf] at Hres
     icases Hres with %Herr
     cases err with
-    | nil => exact absurd rfl Herr
+    | nil => exact absurd rfl Herr.1
     | ok ei =>
       (try wp_auto)
       iapply HΦ

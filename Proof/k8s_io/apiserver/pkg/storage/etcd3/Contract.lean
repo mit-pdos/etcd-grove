@@ -133,6 +133,8 @@ structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj wher
   /-- `reflect.New(objTy)`'s allocation is the zero object -/
   newObj : ∀ p : Loc, reflectM.reflNew objTy p ⊢
     |==> objAt (interface.mkOk (go.GoType.PointerType objTy) #p) zero []
+  /-- the errors the codec's `Encode` may return -/
+  encErr : GoInterface → Prop
 
 /-- **The objects' Go type** is a `runtime.Object` and not a `runtime.Unstructured` (the type
 assertions the store makes, `typeSetContains`). -/
@@ -150,7 +152,7 @@ def encodeOk (S : ObjSpec GF Obj) (codec : GoInterface) : IProp GF :=
     ▷ (∀ (sl : GoSlice) (err : GoInterface),
         S.objAt x o [] -∗
         (⌜err = GoInterface.nil⌝ ∗ sl ↦* S.encode o ∨
-          ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
+          ⌜err ≠ GoInterface.nil ∧ S.encErr err⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
         Φ (PairV #sl #err)) -∗
     WP (App (App (Val (@! k8s_io.apimachinery.pkg.runtime.Encode)) (Val #codec)) (Val #x))
       {{ Φ }})

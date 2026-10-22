@@ -279,7 +279,9 @@ theorem store.Get.wp_proof
       iapply HΦ
       ileft
       isplitl []
-      · ipureintro; nofun
+      · iapply (unkErr_client c _ (by nofun) Hgce)
+        iunfold go_etcd_io.etcd.cache.v3.statusErrOk
+        iexact Hgse
       iexists o0, rv0
       iexact Hout
 

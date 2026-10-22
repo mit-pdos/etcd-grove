@@ -58,7 +58,7 @@ theorem store.updateOnce.wp_proof
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG))
     (wp_kPut : kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG)) :
     store.updateOnce.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E sp c ci cd span key dest o0 rv0 st s x dsl σ0 kv0 v p z f o' W Q Φu
+  intro _ _ Obj _ E _ sp c ci cd span key dest o0 rv0 st s x dsl σ0 kv0 v p z f o' W Q Φu
     hk hkv0 hs hok hw
   wp_start as ⟨#Hst, #Hctx, #Hce, %Hspn, Hos, #Hdsl, Hout, %Hv, #Hrd0, HW, #Hau⟩
   ihave Hst' := Hst
@@ -302,7 +302,9 @@ theorem store.updateOnce.wp_proof
         iapply HΦ
         ileft
         isplitl []
-        · ipureintro; nofun
+        · iapply (unkErr_client c _ (by nofun) Hpce)
+          iunfold go_etcd_io.etcd.cache.v3.statusErrOk
+          iexact Hpse
         iexists o0, rv0
         iexact Hout
   · -- the transformer failed
@@ -331,7 +333,7 @@ theorem store.updateOnce.wp_proof
       iapply HΦ
       ileft
       isplitl []
-      · ipureintro; nofun
+      · iapply unkErr_internal
       iexists o0, rv0
       iexact Hout
 
