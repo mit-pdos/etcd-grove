@@ -29,7 +29,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) := by
   intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro te crev Z
-  wp_start as ⟨#Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu, Hown⟩
+  wp_start as ⟨#Hs, #Htr, Hrd, Hti, #Hctx, #Hkey, #Hend, Hmu, Hown⟩
   iunfold mvcc.txReader at Hrd
   icases Hrd with ⟨%m, %m', %Rd, %Tok, Hrd⟩
   iNamed Hrd
@@ -58,8 +58,8 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   · rw [mvcc.idxKnows_cert]; isplitr
     · iexact Hcert0
     iexact HnevT
-  icases mvcc.muHeld_cmp_idx s γ crev ti $$ [Hmu] with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
-  · iframe Hmu Hidx
+  icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #Hidx⟩
+  icases mvcc.muHeld_cmp_idx s γ crev ti $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
   wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m Tok γ (.cert log) log rev
       ctx cd todo key endk k e ro _ _ crev log te _ (by assumption))
     $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hcert0 $Hkn $Hidx $Hidxf $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]

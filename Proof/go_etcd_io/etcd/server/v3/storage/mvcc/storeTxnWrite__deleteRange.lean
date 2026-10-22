@@ -172,16 +172,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
-  iunfold mvcc.idxPin at Hidx
-  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
-  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
-  · iframe HpinS Hpin0
-  subst Hoo
-  simp only at Ho0
-  have Ho1 := Ho0.symm
-  subst Ho1
-  ihave #Hidx : mvcc.idxPin γ ti $$ []
-  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
+  -- the transaction's tree index (D22 receiver epochs, S5b: its `s.mu` share's)
+  icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #HtiS⟩
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -249,8 +241,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     -- `keys, _, _, _, _ := tw.s.kvindex.Range(key, end, rrev, 0, false)` by the writer
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_crev_idx s γ crev ti $$ [Hmu] with ⟨Hcu, Hidxf, Hmub⟩
-    · iframe Hmu Hidx
+    icases mvcc.muHeld_crev_idx s γ crev ti $$ Hmu with ⟨Hcu, Hidxf, Hmub⟩
     (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 (ilog.length : Int)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
@@ -292,8 +283,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     -- `keys, _, _, _, _ := tw.s.kvindex.Range(key, end, rrev, 0, false)` by the writer
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_crev_idx s γ crev ti $$ [Hmu] with ⟨Hcu, Hidxf, Hmub⟩
-    · iframe Hmu Hidx
+    icases mvcc.muHeld_crev_idx s γ crev ti $$ Hmu with ⟨Hcu, Hidxf, Hmub⟩
     (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 ((ilog.length : Int) - 1)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]

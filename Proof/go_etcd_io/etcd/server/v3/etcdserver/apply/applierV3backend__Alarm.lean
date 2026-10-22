@@ -80,11 +80,12 @@ theorem apply.applierV3backend.Alarm.wp_proof
       iexact Hcs
     iunfold apply.kvOwn at Hkv
     icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-    icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+    icases Hard with ⟨Hard, Hwo⟩
+    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
     wp_apply HAct $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm⟩
     · ipureintro; exact Hif
-    ihave Hrd := Hrdb $$ Hrt
-    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+    ihave Hwo := Hrdb $$ Hrt
+    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
     · iunfold apply.kvOwn; iframe
     wp_if_destruct
     · -- no alarm member
@@ -131,10 +132,11 @@ theorem apply.applierV3backend.Alarm.wp_proof
   · -- DEACTIVATE
     iunfold apply.kvOwn at Hkv
     icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-    icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+    icases Hard with ⟨Hard, Hwo⟩
+    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
     wp_apply HDeact $$ %am.memberID %am.alarm %Pre %Q %Post [$Hcs $Hwt $Hrt] as %m ⟨HPP, Hrt, Hm⟩
-    ihave Hrd := Hrdb $$ Hrt
-    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+    ihave Hwo := Hrdb $$ Hrt
+    ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
     · iunfold apply.kvOwn; iframe
     wp_if_destruct
     · -- no alarm member

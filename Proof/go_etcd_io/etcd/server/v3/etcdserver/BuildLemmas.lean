@@ -110,7 +110,7 @@ theorem server_kv_watchable_of
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl⟩
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag⟩
   obtain ⟨hb, hl, hk, hi, hc⟩ := Hγ
   ihave #Hws' := Hws
   iunfold mvcc.isWatchableStore at Hws'
@@ -130,7 +130,7 @@ theorem server_kv_watchable_of
     iexists _
     iframe Hrvkv Hs
     iunfold mvcc.kvOver; iright; iexists ws; iframe Hst; ipureintro; rfl
-  isplitl [Hww]
+  isplitl [Hww Hfrag]
   · iunfold mvcc.watchWriter at Hww
     icases Hww with ⟨#Hc, Htoks, Hhalf⟩
     iunfold txn.kvWriter
@@ -141,10 +141,12 @@ theorem server_kv_watchable_of
       rw [hsb]
       iframe Htoks
       ipureintro; exact ⟨txn.soleLog_boot, hrb⟩
-    iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
-    iexists ws, γw
-    iframe Hws Hhalf Hc
-    ipureintro; rfl
+    isplitr [Hfrag]
+    · iapply (txn.wlogOwn_watch st γw.st [[], []] Hwq).2
+      iexists ws, γw
+      iframe Hws Hhalf Hc
+      ipureintro; rfl
+    iexact Hfrag
   unfold txn.storeWTs
   rw [hk]
   iexact Hw

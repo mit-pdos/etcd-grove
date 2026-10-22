@@ -442,7 +442,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
     ihave #Hstp0 : s.[watchableStore, go!"store"] ↦□ st $$ []
     · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
-    icases mvcc.revMuInv_open_ws s st γ _ _ $$ [HQ Hwsf] with ⟨HQ, HrstR, Hwsf⟩
+    icases mvcc.revMuInv_open_ws s st γ _ _ $$ [HQ Hwsf] with ⟨⟨%γp, HQ, HrstR⟩, Hwsf⟩
     · iframe Hstp0 HQ Hwsf
     iunfold mvcc.revMuBody at HQ
     icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
@@ -690,7 +690,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       iframe Hwsf; ipureintro; exact ⟨Hset', Hsrb'⟩
     wp_for_post
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
-    iframe HΦ Hmur HmuR HrevMuR HtkR HrtR s HvsM HvcapM
+    iframe HΦ Hmur HmuR HrevMuR HtkR s HvsM HvcapM
     iexists n + W64 1, nvv', NV', mv', vb
     simp only [named]
     rw [hn1]
@@ -705,7 +705,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       obtain ⟨j, B', hj, h1, h2⟩ := Hn.2.2.2 k hk
       exact ⟨j, B', by omega, h1, h2⟩
   · -- the failed ones: victims again, in one batch
-    ihave HR : mvcc.watchReader s st γ $$ [Hmur HmuR HrevMuR HtkR HrtR]
+    ihave HR : mvcc.watchReader s st γ $$ [Hmur HmuR HrevMuR HtkR]
     · iunfold mvcc.watchReader; iframe Hmur
       iunfold mvcc.storeReader; simp only [named]; iframe; iframe #
     icases Hnvm with (⟨%Hnil1, %Hnil2⟩ | Hnvm)

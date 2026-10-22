@@ -35,7 +35,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
-  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+  icases Hard with ⟨Hard, Hwo⟩
+  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
@@ -54,7 +55,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   rw [Hli]
   wp_auto
   wp_apply HGrant $$ [$Hcs $Hown $Hwt $Hrt $Hgr] as %l %err ⟨HPP, Hrt, ⟨%L', Hown, %HLL, Hl⟩, #HeI⟩
-  ihave Hrd := Hrdb $$ Hrt
+  ihave Hwo := Hrdb $$ Hrt
   ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo]
   · iunfold apply.leasesLive
     iexists L'

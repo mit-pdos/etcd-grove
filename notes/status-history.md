@@ -18284,3 +18284,22 @@ in the proofs changed but deprecated `if_pos`/`if_neg`.
   failed in `Proof/go_etcd_io/etcd/cache/v3/InvDemux.lean:1911` (`slots_take_all`: the
   `iframe` closing `IH`'s premise left `Hrest`, unfolded by `unfold slotRes`, unsolved); the
   unchanged file then built alone and in the next full build. Not understood: watch for it.
+
+## D22 receiver epochs, S1-S4: the store's fields lock-held; S5 designed (2026-10-22, branch `worktree-agent-ac204083d5bd27672`)
+
+`notes/decisions.md`, "D22 receiver epochs, S1-S5 carried out". The store-level steps of
+`notes/snapshot-receiver-epochs.md` §4, each commit a full build, trust base unchanged (543
+axioms, 2 sorries), no top-level statement changed, no re-translation. Done: **S1** `idxCert`
+names only the history and the committed log (the index's count is `idxNevLb`, kept by `s.revMu`
+and the read transactions); **S2** the writer's logical state (`writerL`) out of the backend's
+batch lock into `writerInv`, gated by `s.mu` (`StoreNames.wr/wk/wv`); **S3a** `s.b`,
+`s.kvindex`, `s.fifoSched`, `s.stopc` no longer `↦□` but shared by `s.mu`, the right to close and
+the watchable store's `s.mu` (`fieldShare`, `wsFields`), the objects pinned in the interim
+(`objsPin`); the compaction's read-only fields only from the compaction right
+(`compactRight_of_closer`, `storeStop s γ`); **S3b** `s.revMu`'s restoring mode (`revMuRest`, flag
+`StoreNames.rst`); **S4** the readers' pool of the index's slots (tickets `tk`/`tko`; the
+backend's reader tokens still the readers': server-side). **Not done, designed: S5** (the
+report's S3 remainder with its S5: `γ.cur` a ghost variable of the physical record, the physical
+facts out of `isStore`, the transactions at `γ.withPhys π`, the readers' backend tokens pooled,
+the writer's fragment `hookIs` non-persistent), 60-80 files; until it, `Restore` cannot be stated
+as a true axiom (the objects and the backend's names are still fixed).

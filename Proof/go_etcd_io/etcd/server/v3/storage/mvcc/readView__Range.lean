@@ -75,7 +75,7 @@ theorem mvcc.readView.Range.wp_proof
   -- the deferred `tr.End()`: `metricsTxnWrite.End`
   ihave Htx : mvcc.isTxnRead mw s γ t log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti Htrc]
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
   ihave Htx' : mvcc.isTxn mw s γ t (.read log rev) crev iprop(True) $$ [Htx]
@@ -88,6 +88,7 @@ theorem mvcc.readView.Range.wp_proof
   iapply HΦ
   iframe Hrd
   iexists log, rev, crev
+  withPhys_simp
   iframe HcertT Hout Hlbc
   ipureintro
   exact ⟨HneT, HrevT, Hp.2.2, HcrevT.1⟩

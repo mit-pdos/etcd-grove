@@ -54,16 +54,8 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   have HBM : pend.length + 1 < mvcc.putMax γ := by have := mvcc.putMax_ge γ; omega
   have Hbm := HBM
   have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
-  iunfold mvcc.idxPin at Hidx
-  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
-  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
-  · iframe HpinS Hpin0
-  subst Hoo
-  simp only at Ho0
-  have Ho1 := Ho0.symm
-  subst Ho1
-  ihave #Hidx : mvcc.idxPin γ ti $$ []
-  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
+  -- the transaction's tree index (D22 receiver epochs, S5b: its `s.mu` share's)
+  icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #HtiS⟩
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -144,8 +136,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     ipureintro; exact mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm
   inext
   iintro ⟨Hlocked, Hbv⟩
-  icases mvcc.muHeld_idx s γ crev ti $$ [Hmu] with ⟨Hidxf, HmuI⟩
-  · iframe Hmu Hidx
+  icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw

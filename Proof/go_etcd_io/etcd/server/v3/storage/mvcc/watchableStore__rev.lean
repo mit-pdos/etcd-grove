@@ -77,7 +77,7 @@ theorem mvcc.watchableStore.rev.wp_proof
   (try wp_auto)
   ihave Htx : mvcc.isTxnRead mw st γ.st t log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti Htrc]
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
   ihave Htx' : mvcc.isTxn mw st γ.st t (.read log rev) crev iprop(True) $$ [Htx]
@@ -90,6 +90,7 @@ theorem mvcc.watchableStore.rev.wp_proof
   iapply HΦ
   iframe Hrd HoA
   iexists log
+  withPhys_simp
   iframe HcertT
   ipureintro
   have hl := Hpre0.1.length_le

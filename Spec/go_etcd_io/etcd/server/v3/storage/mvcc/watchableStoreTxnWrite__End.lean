@@ -37,7 +37,8 @@ abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
       mvcc.certOkNext γ.st ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
-      mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
+      mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
+      mvcc.writerFrag γ.st }}
 
 end spec
 

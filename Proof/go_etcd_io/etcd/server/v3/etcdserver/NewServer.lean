@@ -512,7 +512,7 @@ theorem NewServer.wp_proof
   -- the lessor's reader slots: one for the store, one for the apply thread's lease owner (D14i)
   icases replicate_take1 _ _ hM1 $$ Hlrd with ⟨Hlrd, Hlrds⟩
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
-  wp_apply (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
+  wp_apply (lc := 2) (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
       (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl Hrb)
     $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
@@ -531,6 +531,23 @@ theorem NewServer.wp_proof
   iunfold mvcc.isWatchableStore at Hws'
   icases Hws' with ⟨%wvc, %wstc, %wrv, %wγv, Hws'⟩
   iNamed Hws'
+  -- (D22 receiver epochs, S5a) two of the store's readers retired for backend tokens of their own
+  -- (`mvcc.storeReader_retire`): the storage version monitor's and the apply thread's (its
+  -- `mvcc.writerOwn`, in `apply.kvOwn`: its writes under the batch lock borrow one)
+  icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨HwrSV, Hwrds⟩
+  icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨HwrA, Hwrds⟩
+  iunfold mvcc.watchReader at HwrSV HwrA
+  icases HwrSV with ⟨HwrSV, -⟩
+  icases HwrA with ⟨HwrA, -⟩
+  -- (S5b) at the writer's fragment (`kvWriter`'s), a pin of the current names
+  iunfold txn.kvWriter at Hkvw
+  icases Hkvw with ⟨Hkvw0, Hkvw1, Hfrag0⟩
+  iunfold mvcc.writerFrag at Hfrag0
+  icases Hfrag0 with ⟨%ow, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc1 Hs Hpinw HwrSV with ⟨HrtSV, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, Hpinw⟩
+  ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
+  · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   -- `newCorruptionChecker(lg, srv, srv.kv.HashStorage())`
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty)
     (m := go!"HashStorage")]
@@ -982,11 +999,6 @@ theorem NewServer.wp_proof
       · iframe #
     iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
   -- (D19i part 2) the storage version monitor's read token, with an open share
-  icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨HwrSV, Hwrds⟩
-  iunfold mvcc.watchReader at HwrSV
-  icases HwrSV with ⟨HwrSV, -⟩
-  iunfold mvcc.storeReader at HwrSV
-  icases HwrSV with ⟨-, -, -, HrtSV, -⟩
   -- (D19i part 2) the storage version monitor's backend access
   ihave HSV : srvSVRes s γw.st $$ [HbmSV HrtSV HlgSV]
   · unfold srvSVRes srvBemuReader
@@ -1223,7 +1235,7 @@ theorem NewServer.wp_proof
       iframe Hrvf
       iframe #
     isplitr
-    · iapply (mvcc.hookIs_of_init γw.st _ #func.nil d Hγw.2.2.1 hook Hhknn)
+    · iapply (mvcc.hookOk_of_init γw.st _ #func.nil d Hγw.2.2.1 hook Hhknn)
       iframe #
     isplitr
     · iexact Hapl
@@ -1318,7 +1330,9 @@ theorem NewServer.wp_proof
   isplitl [Huo]
   · iexact Huo
   iunfold apply.kvOwn
-  iframe Hsrd Hkvw HRD2
+  ihave HwoA : mvcc.writerOwn γw.st $$ [HrtA]
+  · iunfold mvcc.writerOwn; iexact HrtA
+  iframe Hsrd Hkvw HRD2 HwoA
   iunfold apply.leasesLive
   iexists []
   isplitr

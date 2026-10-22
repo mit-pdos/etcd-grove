@@ -44,7 +44,8 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+  icases Hard with ⟨Hard, Hwo⟩
+  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -66,8 +67,8 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_auto
   wp_apply HSV $$ [$Hcs $Hwt $Hrt] as ⟨HPP, Hrt⟩
   · ipureintro; exact Hnv
-  ihave Hrd := Hrdb $$ Hrt
-  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard]
+  ihave Hwo := Hrdb $$ Hrt
+  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
   · iunfold apply.kvOwn; iframe
   wp_if_destruct
   · -- no previous version

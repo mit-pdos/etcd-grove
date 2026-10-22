@@ -31,7 +31,8 @@ nothing for mvcc's assumed backend; 2026-10-13, unit 5) is spent too.
 **The compaction revision** (2026-10-13, unit 6a): the transaction holds `s.mu` at the
 compaction revision `crev` (fixed until `End`), at or above the caller's lower bound `c`, a
 revision of the committed log (or `-1`); its reads answer `rangeOutcomeC` at it. The reader's tag
-`Z` is carried to `End`. The frozen statement (`storeReader`, `crev = -1`) is `specFrozen`
+`Z` is carried to `End`. The caller's hook (`hookIs`, with the writer's fragment: the caller's
+names are the store's current ones; D22 receiver epochs, S5b) is given back. The frozen statement (`storeReader`, `crev = -1`) is `specFrozen`
 (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.store.Write.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
@@ -45,7 +46,7 @@ abbrev mvcc.store.Write.spec : Prop :=
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       (∃ (ilog : mvcc.Log) (crev : Int),
         mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
-        ⌜c ≤ crev⌝) ∗ Q }}
+        ⌜c ≤ crev⌝) ∗ Q ∗ mvcc.hookIs γ P f }}
 
 end spec
 

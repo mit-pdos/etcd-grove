@@ -671,7 +671,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
   ihave #Hstp0 : s.[watchableStore, go!"store"] ↦□ st $$ []
   · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
-  icases mvcc.revMuInv_open_ws s st γ _ _ $$ [HQ Hwsf] with ⟨HQ, HrstR, Hwsf⟩
+  icases mvcc.revMuInv_open_ws s st γ _ _ $$ [HQ Hwsf] with ⟨⟨%γp, HQ, HrstR⟩, Hwsf⟩
   · iframe Hstp0 HQ Hwsf
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
@@ -869,12 +869,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
         simp only [named]
-        iframe HmuR HrevMuR HtkR HrtR
+        iframe HmuR HrevMuR HtkR
         iframe #
       isplitr
       · iexists lo
@@ -982,12 +982,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
         simp only [named]
-        iframe HmuR HrevMuR HtkR HrtR
+        iframe HmuR HrevMuR HtkR
         iframe #
       isplitr
       · iexists lo
@@ -1105,12 +1105,12 @@ theorem mvcc.watchableStore.watch.wp_proof
           icases Hwc with ⟨Hic, Hinv, -⟩
           rw [← hwc]
           iframe Hic Hinv HCR
-        isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+        isplitl [Hmur HmuR HrevMuR HtkR]
         · iunfold mvcc.watchReader
           iframe Hmur
           iunfold mvcc.storeReader
           simp only [named]
-          iframe HmuR HrevMuR HtkR HrtR
+          iframe HmuR HrevMuR HtkR
           iframe #
         isplitr
         · iexists lo
@@ -1219,12 +1219,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
         simp only [named]
-        iframe HmuR HrevMuR HtkR HrtR
+        iframe HmuR HrevMuR HtkR
         iframe #
       isplitr
       · iexists lo
