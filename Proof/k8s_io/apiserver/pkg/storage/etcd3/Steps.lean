@@ -274,6 +274,167 @@ def delOut {E : Type} (c : StoreCfg GF Obj) (key : GoString) (validate : Obj →
     (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).delete key (fun _ _ => none) validate).1 = c.abs σ⌝ ∗
       respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out))
 
+/-- **`GuaranteedUpdate`'s model step** (no preconditions for now; the key must exist,
+`ignoreNotFound` false; `f`, the caller's `tryUpdate`). -/
+def updStep {E : Type} (key : GoString) (z : Obj) (f : Obj → Nat → Except E Obj) (s : KSt Obj) :
+    KSt Obj :=
+  (s.update key false z (fun _ _ => none) f).1
+
+/-- **`updateOnce`'s transaction** (`OptimisticPut(key, v, r, GetOnFailure: true)`, `r` a mod
+revision, so not `0`, `v` a value that decodes) at a state of the store: if it fails, nothing
+changed; if it succeeds, the key had a key-value at mod revision `r`, and holds `v` at the next
+revision, a state of the store. -/
+theorem put_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
+    (hb : σ.rev + 2 < 2 ^ 63) (pk v : GoString) (r : w64) (hr : r ≠ W64 0)
+    (hv : c.pfx <+: pk → (c.S.dec v).isSome) :
+    ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (kubernetes.optPutTxn pk v r true)).1 =
+        false → kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ = σ) ∧
+    ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (kubernetes.optPutTxn pk v r true)).1 =
+        true → ∃ w, mvcc.findKey pk σ.kvs = some w ∧ w.modRev = r ∧
+      kvWf c (kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ) ∧
+      linkv.absSt (kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ) =
+        ⟨(linkv.absSt σ).kv.put ((linkv.absSt σ).rev + 1) pk v, (linkv.absSt σ).rev + 1⟩ ∧
+      (kvOpStep (.txn (kubernetes.optPutTxn pk v r true)) σ).rev = σ.rev + 1) := by
+  have hs := hwf.1
+  have habs := linkv.absSt_kvOpStep [] [] [] σ hs (putTxn pk v r true)
+  have hout := linkv.mStep_txn_out [] [] [] σ hs [.mod pk r] [.put pk v] [.get pk]
+  have heq : putTxn pk v r true = .txn [.mod pk r] [.put pk v] [.get pk] := rfl
+  have ht : kubernetes.optPutTxn pk v r true = linkv.txnOf [.mod pk r] [.put pk v] [.get pk] := rfl
+  rw [← heq] at hout
+  rw [kvOpStep_optPut] at ⊢
+  rw [ht]
+  have hid : (linkv.mStep [] (putTxn pk v r true) (linkv.absSt σ)).1 = linkv.absSt σ →
+      kvOpStep (linkv.opOf [] [] (putTxn pk v r true)) σ = σ := by
+    intro h1
+    have hrev := congrArg linkv.MSt.rev (habs.trans h1)
+    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (putTxn pk v r true)) σ with h | h
+    · exact h
+    · simp only [linkv.absSt] at hrev
+      omega
+  have hm := mStep_putTxn [] (linkv.absSt σ) pk v r true
+  by_cases hmr : modOf (linkv.absSt σ).kv pk = r
+  · rw [if_pos hmr] at hm
+    have hout' := hout
+    rw [hm] at hout'
+    simp only [linkv.MOut.txn.injEq] at hout'
+    have hst : linkv.absSt (kvOpStep (linkv.opOf [] [] (putTxn pk v r true)) σ) =
+        ⟨(linkv.absSt σ).kv.put ((linkv.absSt σ).rev + 1) pk v, (linkv.absSt σ).rev + 1⟩ := by
+      rw [habs, hm]
+    refine ⟨fun h => ?_, fun _ => ?_⟩
+    · rw [h] at hout'
+      exact absurd hout'.2.1 (by decide)
+    · cases hf : mvcc.findKey pk σ.kvs with
+      | none =>
+        exfalso
+        have : modOf (linkv.absSt σ).kv pk = W64 0 := by
+          simp [modOf, linkv.absSt, linkv.absM, hf]
+        exact hr (hmr.symm.trans this)
+      | some w =>
+        have hwm : w.modRev = r := by
+          have : modOf (linkv.absSt σ).kv pk = w.modRev := by
+            simp [modOf, linkv.absSt, linkv.absM, hf, linkv.absVR]
+          rw [← this, hmr]
+        refine ⟨w, rfl, hwm, ⟨linkv.kvOpStep_sorted _ σ hs, ?_⟩, hst, ?_⟩
+        · rw [hst]
+          exact KWf_put c.S.dec c.pfx (linkv.absSt σ) hwf.2 hb pk v hv
+        · have := congrArg linkv.MSt.rev hst
+          simp only [linkv.absSt] at this
+          exact this
+  · rw [if_neg hmr] at hm
+    rw [hm] at hout
+    simp only [linkv.MOut.txn.injEq] at hout
+    refine ⟨fun _ => hid (by rw [hm]), fun h => ?_⟩
+    rw [h] at hout
+    exact absurd hout.2.1 (by decide)
+
+/-- **The model's `update` at a state where the key's key-value is the one the store read**
+(`s`, read from `kv0`; at the same mod revision, so the same value), `tryUpdate` gave `o'` on it
+and the store does not skip the write (not both unchanged and canonical): the item `o'` at the
+next revision, canonical. -/
+theorem update_at {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (v kv0 : EtcdKv) (hv : mvcc.findKey key σ.kvs = some v)
+    (s : OState Obj) (hs : stOfKv c kv0 s) (hval : v.value = kv0.value)
+    (hmod : v.modRev = s.rev) (z : Obj) (f : Obj → Nat → Except E Obj) (o' : Obj)
+    (hok : f s.o (uint.nat s.rev) = .ok o')
+    (hw : (!s.stale && decide (c.S.encode o' = s.data)) = false) :
+    (c.abs σ).update key false z (fun _ _ => none) f =
+      (⟨(c.abs σ).setItem key ⟨o', (c.abs σ).rv + 1, true⟩, (c.abs σ).rv + 1⟩,
+        .obj o' ((c.abs σ).rv + 1)) := by
+  obtain ⟨-, hfs, hdc, -⟩ := hs
+  have hd : c.S.dec v.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+    simp [ObjCodec.dec, hval, hfs, hdc]
+  have hit := c.abs_some σ key hpk v hv _ _ hd
+  have hn : ¬ (o' = s.o ∧ (!s.stale && decide (c.S.encode s.o = s.data)) = true) := by
+    intro ⟨h1, h2⟩
+    subst h1
+    rw [h2] at hw
+    exact absurd hw (by decide)
+  unfold KSt.update KSt.current
+  rw [hit]
+  simp only [hmod, hok]
+  rw [if_neg hn]
+
+/-- **`updateOnce`'s transaction is the model's `update` when it succeeds**, and the identity when
+it fails, at a state of the store where the key's key-value at the store's mod revision is the
+one it read (`sameAt`); `v` is the store's new value for `o'` (canonical). -/
+theorem updStepOk {E : Type} (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key)
+    (kv0 : EtcdKv) (s : OState Obj) (hs : stOfKv c kv0 s) (hr : s.rev ≠ W64 0) (z : Obj)
+    (f : Obj → Nat → Except E Obj) (o' : Obj) (hok : f s.o (uint.nat s.rev) = .ok o')
+    (hw : (!s.stale && decide (c.S.encode o' = s.data)) = false) (v : GoString)
+    (hv : c.S.dec v = some (o', true)) :
+    ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → sameAt key s.rev kv0 σ →
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optPutTxn key v s.rev true)).1 = true →
+        kvWf c (kvOpStep (.txn (kubernetes.optPutTxn key v s.rev true)) σ) ∧
+        c.abs (kvOpStep (.txn (kubernetes.optPutTxn key v s.rev true)) σ) =
+          updStep key z f (c.abs σ)) ∧
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optPutTxn key v s.rev true)).1 = false →
+        kvOpStep (.txn (kubernetes.optPutTxn key v s.rev true)) σ = σ) := by
+  intro σ hwf hb hsame
+  have hc := put_cases c σ hwf hb key v s.rev hr (fun _ => by rw [hv]; rfl)
+  refine ⟨fun h => ?_, hc.1⟩
+  obtain ⟨w, hw', hm, hwf', habs, -⟩ := hc.2 h
+  refine ⟨hwf', ?_⟩
+  unfold StoreCfg.abs
+  rw [habs, absK_put c.S.dec c.pfx (linkv.absSt σ) hwf.2 key v o' hpk hv]
+  unfold updStep
+  have hval := hsame w (mvcc.findKey_mem hw') (mvcc.findKey_key hw') hm
+  have := update_at c σ key hpk w kv0 hw' s hs hval hm z f o' hok hw
+  unfold StoreCfg.abs at this
+  rw [this]
+  rfl
+
+/-- **The caller's `tryUpdate`** (persistent: called at each retry): on an object holding `o` at
+resource version `r` (and the response metadata at `r`), it answers `f o r`: an object holding
+the result (no TTL, D30d), or an error. It may keep or change the input object (it owns it). -/
+def tryUpdateOk {E : Type} (c : StoreCfg GF Obj) (f : Obj → Nat → Except E Obj) (uf : GoFunc) :
+    IProp GF :=
+  iprop(□ ∀ (x : GoInterface) (o : Obj) (r : w64) (Ψ : val → IProp GF),
+    c.S.objAt x o (c.S.fmtRV r) -∗
+    ▷ (∀ (ret : GoInterface) (ttlp : Loc) (err : GoInterface),
+        (match f o (uint.nat r) with
+          | .ok o' => ⌜err = GoInterface.nil ∧ ttlp = null⌝ ∗ ∃ rv', c.S.objAt ret o' rv'
+          | .error _ => ⌜err ≠ GoInterface.nil⌝) -∗
+        Ψ (PairV (PairV #ret #ttlp) #err)) -∗
+    WP (App (App (Val #uf) (Val #x))
+      (Val #(k8s_io.apiserver.pkg.storage.ResponseMeta.mk (W64 0) r))) {{ Ψ }})
+
+instance tryUpdateOk_persistent {E : Type} (c : StoreCfg GF Obj) (f : Obj → Nat → Except E Obj)
+    (uf : GoFunc) : Persistent (tryUpdateOk c f uf) := by
+  unfold tryUpdateOk; infer_instance
+
+/-- **`GuaranteedUpdate`'s outcome** for the prepared key `key` (as `delOut`): an error; the
+model's `update` as the write at `σ` (`Φ σ`); or a read-like answer at `σ` (`□ Q σ`, nothing
+changed, `W` back: a no-op, not found, `tryUpdate`'s error). -/
+def updOut {E : Type} (c : StoreCfg GF Obj) (key : GoString) (z : Obj)
+    (f : Obj → Nat → Except E Obj) (W : IProp GF) (Q Φ : KVState → IProp GF)
+    (err out : GoInterface) : IProp GF :=
+  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
+    (∃ σ, Φ σ ∗ respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out) ∨
+    (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).update key false z (fun _ _ => none) f).1 = c.abs σ⌝ ∗
+      respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out))
+
 end steps
 
 end k8s

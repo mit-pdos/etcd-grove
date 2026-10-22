@@ -57,6 +57,23 @@ def stOfKv (c : StoreCfg GF Obj) (kv : EtcdKv) (s : OState Obj) : Prop :=
   s.rev = kv.modRev ∧ c.S.fromS kv.value = some (s.data, s.stale) ∧
     c.S.decode s.data = some s.o ∧ s.current = true
 
+/-- **The `*objState` `st` holds `s`, its object `x` given away** (to `tryUpdate`). -/
+def ownStateX (c : StoreCfg GF Obj) (st : Loc) (s : OState Obj) (x : GoInterface) : IProp GF :=
+  iprop(∃ (m : Loc) (dsl : GoSlice), ⌜st ≠ null⌝ ∗
+    st ↦ k8s_io.apiserver.pkg.storage.etcd3.objState.mk x m s.rev dsl s.current s.stale ∗
+    dsl ↦*□ s.data ∗ m ↦ k8s_io.apiserver.pkg.storage.ResponseMeta.mk (W64 0) s.rev)
+
+open Iris.ProofMode in
+theorem ownState_split (c : StoreCfg GF Obj) (st : Loc) (s : OState Obj) :
+    ownState c st s ⊢ ∃ x, ownStateX c st s x ∗ c.S.objAt x s.o (c.S.fmtRV s.rev) := by
+  unfold ownState ownStateX
+  iintro ⟨%x, %m, %dsl, %h, Hst, Hobj, #Hdsl, Hm⟩
+  iexists x
+  iframe Hobj
+  iexists m, dsl
+  iframe Hst Hdsl Hm
+  ipureintro; exact h
+
 /-- **The store's answer for the key `key` at the state `σ`** (`stateFromEtcdResponse` of a read
 at `σ`): "not found" at `σ`'s revision, or a new `*objState` of its key-value. -/
 def stAt (c : StoreCfg GF Obj) (key : GoString) (σ : KVState) (st : Loc) (err : GoInterface) :
