@@ -15168,3 +15168,23 @@ from the plan.
   comparing it with the real (fixed) Model on random traffic. Later (the plan's "Open"):
   translate a copy of the real `correctness` package, with trusted models for `reflect` and
   whatever else it needs, so that the trusted spec is the maintainers' Model itself.
+- **D30n: the driver's linearization points, from a prophecy of the output's numbers**
+  (2026-10-22). linkvtxn prophesies whether a call failed and, for a read, the revision it was
+  served at (its outputs carry it: a revision determines the state). The store's `Get` returns a
+  found object at its mod revision, not the read's, and its read updates (`kvReadAu`, and
+  `k8sAuRW`'s reads for `Delete`/`GuaranteedUpdate`) are persistent: they may fire at several
+  states, the answer the store returns being one of them. So `Apply` prophesies the output's
+  numeric fields (`Err`, `ErrRV`, `RV`: three `ResolveU64`s, the only prophecy operations Goose's
+  `primitive` has besides `ResolveBool`), and a read firing commits `lintest`'s update, once (a
+  call invariant, as linkv's `callInv`), at the first state whose model answer has those fields.
+  They determine the answer: a found object by its mod revision (the store's history `kvSeen`,
+  D30j: one value per key and mod revision), a not-found answer by the read's revision, the zero
+  object and a callback's rejection are constant. A write's answer carries the next revision, so
+  it never has a read's fields, except an update's no-op answer (`Err` 0 like a write's), whose
+  `RV` is an item's mod revision, at most the state's, below any later write's (the revisions'
+  map, linkvtxn's `revOwn`, orders the firings). A `Create` fires once and commits there; a call
+  whose prophecy says `EOther` commits at its start (a write as pending, linkvtxn's). Two marked
+  `sorry`s until their fixes land (the user's choice): a client error is not a callback's sentinel
+  (the client proof's, "From the etcd client proof" item 5), and etcd's revision stays below
+  `2^63 - 2` at every firing (the store's updates require it; the driver cannot count the writes
+  to come: `lintest`'s `applySpec` gives no budget).

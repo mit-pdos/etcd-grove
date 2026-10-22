@@ -740,13 +740,17 @@ func call(s storage.Interface, in Input) Output {
 	return objOut(*out)
 }
 
-// Apply runs one operation through the store s, resolving a prophecy with whether the call
-// returned no other error (EOther: the client's).
+// Apply runs one operation through the store s, resolving a prophecy with the output's numeric
+// fields (its error kind, its error's resource version, its object's resource version): what the
+// proof's linearization point compares the store's answer at a read with, the rest of the output
+// following from them.
 func Apply(s storage.Interface, input any) any {
 	in := input.(Input)
 	p := primitive.NewProph()
 	out := call(s, in)
-	p.ResolveBool(out.Err != EOther)
+	p.ResolveU64(uint64(out.Err))
+	p.ResolveU64(uint64(out.ErrRV))
+	p.ResolveU64(out.RV)
 	return out
 }
 

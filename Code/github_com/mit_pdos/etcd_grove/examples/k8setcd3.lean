@@ -2256,10 +2256,12 @@ noncomputable def call.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))
 
-/-- Apply runs one operation through the store s, resolving a prophecy with whether the call
-    returned no other error (EOther: the client's).
+/-- Apply runs one operation through the store s, resolving a prophecy with the output's numeric
+    fields (its error kind, its error's resource version, its object's resource version): what the
+    proof's linearization point compares the store's answer at a read with, the rest of the output
+    following from them.
 
-    go: k8setcd3.go:745:6 -/
+    go: k8setcd3.go:747:6 -/
 noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "input"
@@ -2278,11 +2280,19 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "out" (App (Val (GoInstruction (GoAlloc Output.ty))) (App (Val (GoInstruction (GoZeroVal Output.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert Output.ty go.any))) (App (Val (GoInstruction (GoLoad Output.ty))) (Var "out"))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val EOther)))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveBool"))) (Var "p")) (Var "$a0")))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"RV"))) (Var "out")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"ErrRV"))) (Var "out"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Output.ty go!"Err"))) (Var "out"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (Var "p")) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Output.ty))) (Pair (Var "out") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -2293,7 +2303,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Check runs lintest.Run of clients concurrent clients of the store s, each running ops
     operations, and returns porcupine's verdict against Model from the store st0.
 
-    go: k8setcd3.go:755:6 -/
+    go: k8setcd3.go:759:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "st0"
@@ -2330,7 +2340,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- The keys seeded in the older encoding before the traffic, and their values.
 
-    go: k8setcd3.go:761:6 -/
+    go: k8setcd3.go:765:6 -/
 noncomputable def seedKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -2343,7 +2353,7 @@ noncomputable def seedKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
     (non-canonical data, as a store with an older codec left: D30g), and returns the model's store
     after them, or false if a put failed.
 
-    go: k8setcd3.go:768:6 -/
+    go: k8setcd3.go:772:6 -/
 noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (App (Val exceptionDo)
@@ -2423,7 +2433,7 @@ noncomputable def seed.impl [FfiSyntax] [GoGlobalContext] : val :=
     Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
     Main without a check.
 
-    go: k8setcd3.go:790:6 -/
+    go: k8setcd3.go:794:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
