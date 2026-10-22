@@ -315,6 +315,26 @@ revision both have. Not yet used: W3 imports it.
 
 ### W4. linkv3p
 
+**The stages (2026-10-22).** Q4 settled: the watch workload runs alone, in its own entry point.
+- watchkv's check rests on its server's workload: only the writers' puts are admitted
+  (`workload P`, `WkLog`), so every committed revision under the prefix is one of them.
+- linkv3p's members admit any write (`putgetWorkload`), as linkvtxn's porcupine check needs, so
+  the watch run starts its members at watchkv's workload instead.
+- Stages:
+  - **W4a (Go):** `startCluster` (the members, bridges and clients, shared by both entry points);
+    `MainWatch(nw, nops, sched)`, watchkv's workload (the plan of puts picked first, the writers
+    through the failover clients, a prefix watch from revision 1, `collect`, `check`) under the
+    partitioner; `TestMainWatch`; the translation.
+  - **W4b:** the members' workload a parameter (`cluster3_alloc`, `startMember`); `startCluster`'s
+    spec and proof, out of `Main`'s; `Main` over it (its theorem unchanged).
+  - **W4c:** the watch environment over the bridges, at the history model: `watchLaws` for
+    `etcdModelOfHistory` (with the logs of at most two revisions: the start log's prefixes);
+    `isNewClient_watcher` over a list of endpoints.
+  - **W4d:** `MainWatch`'s proof: the writers' puts, and `collect`'s and `check`'s, over the
+    history model and the plan's workload (watchkv's `WkLog`, `chain_wk`, `resp_wk` restated
+    over committed prefixes).
+  - **W4e:** the adequacy and the closed theorem `linkv3p_watch_safe`; the gates.
+
 - `Main` builds the watch environment from the members (no more `noWatch`). The watch workload's
   proofs follow watchkv's (`Writes`, `WatchFacts`, the checker's).
 - The closed theorem covers the watch check (`linkv3p_safe` extended, or a second theorem over the
