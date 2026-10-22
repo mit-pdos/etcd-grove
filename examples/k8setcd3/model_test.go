@@ -2,6 +2,7 @@ package k8setcd3
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,6 +51,14 @@ func tTryUpdateFor(in Input) storage.UpdateFunc {
 	}
 }
 
+// decRV is a resource version as Kubernetes' objects keep it (decimal, empty for 0).
+func decRV(rv uint64) string {
+	if rv == 0 {
+		return ""
+	}
+	return strconv.FormatUint(rv, 10)
+}
+
 // request is an Input as the real Model's request.
 func request(in Input) correctness.Request {
 	key := storeKey(in.Key)
@@ -82,11 +91,11 @@ func response(in Input, out Output) correctness.Response {
 		}
 		return correctness.Response{Err: errUpdateRejected}
 	}
-	if out.Name == "" && out.Value == "" && out.RV == "" {
+	if out.Name == "" && out.Value == "" && out.RV == 0 {
 		return correctness.Response{Object: &TObj{}}
 	}
 	return correctness.Response{Object: &TObj{
-		ObjectMeta: metav1.ObjectMeta{Name: out.Name, ResourceVersion: out.RV}, Value: out.Value}}
+		ObjectMeta: metav1.ObjectMeta{Name: out.Name, ResourceVersion: decRV(out.RV)}, Value: out.Value}}
 }
 
 // TestModelMatchesCorrectnessModel runs random traffic from the empty store through the driver's
@@ -105,9 +114,9 @@ func TestModelMatchesCorrectnessModel(t *testing.T) {
 				t.Fatalf("run %d op %d %+v: the real Model rejects %+v", run, i, in, out)
 			}
 			// a wrong answer is rejected (the resource version off by one)
-			if out.Err == ENone && out.RV != "" && in.Kind != KGet {
+			if out.Err == ENone && out.RV != 0 && in.Kind != KGet {
 				bad := out
-				bad.RV = formatRV(next.rv + 1)
+				bad.RV = next.rv + 1
 				if ok, _, _ := real.Step(request(in), response(in, bad)); ok {
 					t.Fatalf("run %d op %d: the real Model accepts a wrong answer", run, i)
 				}
@@ -121,7 +130,7 @@ func TestModelMatchesCorrectnessModel(t *testing.T) {
 			for _, it := range st.items {
 				ro, ok := real.Items[storeKey(it.key)].(*TObj)
 				if !ok || ro.Name != it.obj.Name || ro.Value != it.obj.Value ||
-					ro.ResourceVersion != it.obj.ResourceVersion {
+					ro.ResourceVersion != decRV(it.obj.ResourceVersion) {
 					t.Fatalf("run %d op %d: item %s differs: %+v vs %+v", run, i, it.key, ro, it.obj)
 				}
 			}
@@ -132,7 +141,7 @@ func TestModelMatchesCorrectnessModel(t *testing.T) {
 // TestModelNonCanonicalDiffers: on a non-canonical item a no-op update rewrites (the store does),
 // which the unfixed real Model rejects (issues/k8s-correctness-model-noop-rewrite.md).
 func TestModelNonCanonicalDiffers(t *testing.T) {
-	st := mstore{items: []item{{key: "a", obj: Obj{Name: "a", Value: "x", ResourceVersion: "2"}, canon: false}}, rv: 2}
+	st := mstore{items: []item{{key: "a", obj: Obj{Name: "a", Value: "x", ResourceVersion: 2}, canon: false}}, rv: 2}
 	in := Input{Kind: KUpdate, Key: "a", NoOp: true}
 	_, out := mstep(in, st)
 	real := correctness.NewEmptyModel(Prefix, newTObj, nil, storage.APIObjectVersioner{})

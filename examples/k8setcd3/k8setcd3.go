@@ -35,8 +35,6 @@ import (
 	"errors"
 	"io"
 	"net"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -64,11 +62,12 @@ import (
 // The driver's objects, codec, versioner, decoder and transformer
 
 // An Obj is the driver's object: its name (the key it is stored at), a value, and its resource
-// version (a decimal string, empty for none, as Kubernetes' objects').
+// version (0 for none). Kubernetes' objects keep it as a decimal string; the driver keeps the
+// number, and its versioner's string form of it is rvString's.
 type Obj struct {
 	Name            string
 	Value           string
-	ResourceVersion string
+	ResourceVersion uint64
 }
 
 // GetObjectKind is runtime.Object's: the driver's objects carry no kind.
@@ -88,33 +87,40 @@ const (
 	tagV0 = "v0:"
 )
 
-// encodeObj is the current encoding of an object's name and value (not its resource version):
-// "v1:<name>:<value>" (names and values have no ':').
-func encodeObj(o *Obj) []byte {
-	return []byte(tagV1 + o.Name + ":" + o.Value)
+// encodeWith is the encoding of an object's name and value (not its resource version) under the
+// tag tag: the tag, the name's length (one byte; names are shorter than 256 bytes), the name and
+// the value.
+func encodeWith(tag string, name string, val string) []byte {
+	out := []byte(tag)
+	out = append(out, byte(len(name)))
+	out = append(out, []byte(name)...)
+	return append(out, []byte(val)...)
 }
 
-// encodeV0 is the older encoding: "v0:<name>:<value>". The driver seeds some keys with it.
+// encodeObj is the current encoding of an object.
+func encodeObj(o *Obj) []byte {
+	return encodeWith(tagV1, o.Name, o.Value)
+}
+
+// encodeV0 is the older encoding. The driver seeds some keys with it.
 func encodeV0(name string, val string) []byte {
-	return []byte(tagV0 + name + ":" + val)
+	return encodeWith(tagV0, name, val)
 }
 
 // decodeObj decodes either encoding: the name and value, or false.
 func decodeObj(data []byte) (string, string, bool) {
-	s := string(data)
-	var rest string
-	if strings.HasPrefix(s, tagV1) {
-		rest = s[len(tagV1):]
-	} else if strings.HasPrefix(s, tagV0) {
-		rest = s[len(tagV0):]
-	} else {
+	if len(data) < 4 {
 		return "", "", false
 	}
-	i := strings.Index(rest, ":")
-	if i < 0 {
+	tag := string(data[:3])
+	if tag != tagV1 && tag != tagV0 {
 		return "", "", false
 	}
-	return rest[:i], rest[i+1:], true
+	n := int(data[3])
+	if len(data) < 4+n {
+		return "", "", false
+	}
+	return string(data[4 : 4+n]), string(data[4+n:]), true
 }
 
 var errNotObj = errors.New("k8setcd3: not an *Obj")
@@ -152,22 +158,18 @@ func (codec) Decode(data []byte, defaults *schema.GroupVersionKind, into runtime
 	return o, nil, nil
 }
 
-// formatRV is a resource version's string: empty for 0 (as Kubernetes' APIObjectVersioner).
-func formatRV(rv uint64) string {
-	if rv == 0 {
-		return ""
-	}
-	return strconv.FormatUint(rv, 10)
-}
-
-// parseRV parses a resource version string: 0 for the empty one.
+// parseRV parses a resource version string, the versioner's form of a number: empty for 0, its
+// eight bytes (big-endian) otherwise.
 func parseRV(s string) (uint64, error) {
-	if s == "" {
+	if len(s) == 0 {
 		return 0, nil
 	}
-	n, err := strconv.ParseUint(s, 10, 64)
-	if err != nil {
+	if len(s) != 8 {
 		return 0, errBadRV
+	}
+	var n uint64
+	for i := 0; i < 8; i++ {
+		n = n<<8 | uint64(s[i])
 	}
 	return n, nil
 }
@@ -180,7 +182,7 @@ func (versioner) UpdateObject(obj runtime.Object, resourceVersion uint64) error 
 	if !ok {
 		return errNotObj
 	}
-	o.ResourceVersion = formatRV(resourceVersion)
+	o.ResourceVersion = resourceVersion
 	return nil
 }
 
@@ -193,7 +195,7 @@ func (versioner) PrepareObjectForStorage(obj runtime.Object) error {
 	if !ok {
 		return errNotObj
 	}
-	o.ResourceVersion = ""
+	o.ResourceVersion = 0
 	return nil
 }
 
@@ -202,7 +204,7 @@ func (versioner) ObjectResourceVersion(obj runtime.Object) (uint64, error) {
 	if !ok {
 		return 0, errNotObj
 	}
-	return parseRV(o.ResourceVersion)
+	return o.ResourceVersion, nil
 }
 
 func (versioner) ParseResourceVersion(resourceVersion string) (uint64, error) {
@@ -223,7 +225,7 @@ func (decoder) Decode(data []byte, objPtr runtime.Object, rev int64) error {
 	}
 	o.Name = name
 	o.Value = val
-	o.ResourceVersion = formatRV(uint64(rev))
+	o.ResourceVersion = uint64(rev)
 	return nil
 }
 
@@ -300,7 +302,7 @@ type Output struct {
 	ErrRV  int64
 	Name   string
 	Value  string
-	RV     string
+	RV     uint64
 }
 
 // The store's keys: Prefix + "/objs/" + name (the Model's Prefix and the store's resource
@@ -447,7 +449,7 @@ func mcreate(in Input, st mstore) (mstore, Output) {
 		return st, Output{Err: EExists, ErrKey: Prefix + storeKey(in.Key), ErrRV: 0}
 	}
 	rv := st.rv + 1
-	o := Obj{Name: in.Key, Value: in.Val, ResourceVersion: formatRV(rv)}
+	o := Obj{Name: in.Key, Value: in.Val, ResourceVersion: rv}
 	return mstore{items: setItem(st.items, item{key: in.Key, obj: o, canon: true}), rv: rv}, objOut(o)
 }
 
@@ -464,7 +466,7 @@ func mdelete(in Input, st mstore) (mstore, Output) {
 	}
 	rv := st.rv + 1
 	o := it.obj
-	o.ResourceVersion = formatRV(rv)
+	o.ResourceVersion = rv
 	return mstore{items: delItem(st.items, in.Key), rv: rv}, objOut(o)
 }
 
@@ -487,7 +489,7 @@ func mupdate(in Input, st mstore) (mstore, Output) {
 	}
 	rv := st.rv + 1
 	o := *r
-	o.ResourceVersion = formatRV(rv)
+	o.ResourceVersion = rv
 	return mstore{items: setItem(st.items, item{key: in.Key, obj: o, canon: true}), rv: rv}, objOut(o)
 }
 
@@ -771,7 +773,7 @@ func seed(cli *clientv3.Client) (mstore, bool) {
 			return mstore{}, false
 		}
 		rv := uint64(resp.Header.Revision)
-		o := Obj{Name: k, Value: "x", ResourceVersion: formatRV(rv)}
+		o := Obj{Name: k, Value: "x", ResourceVersion: rv}
 		st = mstore{items: setItem(st.items, item{key: k, obj: o, canon: false}), rv: rv}
 	}
 	return st, true

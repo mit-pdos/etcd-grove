@@ -22,8 +22,6 @@ public import GeneratedProof.k8s_io.apiserver.pkg.storage
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.value
 public import GeneratedProof.net
-public import Perennial.GeneratedProof.strconv
-public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.k8setcd3
@@ -103,7 +101,7 @@ instance Obj_access_load_ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd
  by
   solve_pointsto_access_struct
 
-instance Obj_access_store_ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj) (ResourceVersion' : GoString) :
+instance Obj_access_store_ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj) (ResourceVersion' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj go!"ResourceVersion" l) ResourceVersion' (DFrac.own 1))
@@ -468,7 +466,7 @@ instance Output_access_load_RV (l : Loc) (v : github_com.mit_pdos.etcd_grove.exa
  by
   solve_pointsto_access_struct
 
-instance Output_access_store_RV (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Output) (RV' : GoString) :
+instance Output_access_store_RV (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Output) (RV' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8setcd3.Output go!"RV" l) v.RV' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8setcd3.Output go!"RV" l) RV' (DFrac.own 1))
