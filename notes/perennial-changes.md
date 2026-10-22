@@ -142,6 +142,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   proved from it.
 - **Status.** Not started in Perennial.
 
+### Goose: a names-only package's constants are values of unknown shape
+
+- **Need.** A names-only package's constants are axiomatized `val`s
+  (`k8s.io/apiserver/pkg/features.AllowUnsafeMalformedObjectDeletion`). Binding one (`let x :=
+  features.F`, as Goose translates a call argument) is a beta step whose premise is that the value
+  is not a panic (`pure_beta`), which nothing says of an axiom.
+- **Workaround here.** `Proof/k8s_io/apiserver/pkg/features/Values.lean`: a trust-boundary axiom
+  that this constant is not a panic value, used by `store.Delete`'s proof (`wp_pure` with it in
+  the context).
+- **Proposed fix.** Goose could translate a names-only package's constants (their values are
+  constant expressions, never code), or emit with each axiomatized constant the fact that it is a
+  value of its Go type (`#(c : V)` for a Lean type `V` of the constant's type), from which
+  `isPanic_intoVal` gives the premise.
+- **Status.** Not started.
+
 ## Landed
 
 (none yet)

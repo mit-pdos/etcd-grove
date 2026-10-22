@@ -9,7 +9,9 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 `k8s-apiserver` of `etc/goose.py`); the standard-library `encoding/base64`, `encoding/json`,
 `iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`). Every fact is
 `True` but the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
-`txnError` returns for a failed comparison, holds some error). As in the cache's `Base.lean`, these
+`txnError` returns for a failed comparison, holds some error) and `util/feature`'s
+(`featureInit`: `DefaultFeatureGate` holds a gate whose `Enabled` answers some `bool`; the gate is
+names-only, `component-base/featuregate`, and which features are on is the deployment's). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -44,6 +46,14 @@ error, for good. -/
 abbrev metricsInit : IProp GF :=
   iprop(∃ e : GoInterface,
     globalAddr k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict ↦□ e)
+
+/-- `util/feature`'s fact: `DefaultFeatureGate` holds a feature gate whose `Enabled` answers some
+`bool` for any feature (see the file header). -/
+abbrev featureInit : IProp GF :=
+  iprop(∃ g : GoInterfaceOk,
+    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
+    □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
+      WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }})
 
 instance k8s_io_apimachinery_pkg_runtime_schema_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime.schema :=
@@ -89,7 +99,7 @@ instance k8s_io_component_base_featuregate_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apiserver_pkg_util_feature_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init featureInit
 instance k8s_io_apiserver_pkg_util_feature_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature :=
   build_get_is_pkg_init_wf

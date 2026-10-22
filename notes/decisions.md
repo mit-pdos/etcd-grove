@@ -15139,3 +15139,19 @@ from the plan.
   with room for one revision (`σ.rev + 2 < 2 ^ 63`: the abstraction reads mod revisions as
   numbers below `2 ^ 63`), so the caller (the driver) must bound its traffic's revisions.
   Rejected: a fixed transaction in the caller's update (the caller cannot know the stored bytes).
+- **D30l: D30h as carried out, one persistent update with a write token** (2026-10-22, for
+  `Delete`; proposed for the user's review, since it changes D30h's form). D30h's two updates (a
+  persistent one for read-like outcomes, a one-shot one for the write) cannot be used for a
+  conditional transaction: whether its compare holds is known only at the state it runs at, inside
+  the one atomic step the client's one-shot update (`kvOpAu1`) fires in. Opening the one-shot
+  update there and aborting it on a conflict gives the caller nothing for that state, and opening
+  the read update after the abort may see another state (the caller's abort may change its ghost
+  state). So the caller gives one persistent update per member with a choice at its commit
+  (`k8sAuRW γk c step W Q Φ`, `Updates.lean`): as a read (the state unchanged, `□ Q σ`) any number
+  of times, or as the write (the model's `step`, `Φ σ`), the write branch consuming the caller's
+  exclusive token `W` (given once, in `Delete`'s precondition), so it fires at most once: D30h's
+  objection to one persistent update (a write recorded twice) does not apply. `k8sAuRW_kvAu1`
+  builds the client's update for the transaction: the write when the compare holds, a read
+  handing `W` back on a conflict (`del_cases`: a failed transaction leaves etcd's state exactly
+  as it was). `Delete`'s spec answers `delOut`: the write's `Φ σ`, or a read-like answer at `□ Q σ`
+  with `W` back, or the client's error. `Create` keeps `k8sAu1` (it never retries).

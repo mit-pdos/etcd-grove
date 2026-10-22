@@ -309,6 +309,7 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom conversion.EnforcePtr.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -318,6 +319,7 @@ axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
+axiom features.AllowUnsafeMalformedObjectDeletion_notPanic
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
@@ -392,6 +394,8 @@ axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
+axiom klog.V.wp_proof
+axiom klog.Verbose.Infof.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -459,8 +463,14 @@ axiom rafthttp.Transport.MendPeer.wp_proof
 axiom rafthttp.Transport.Start.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom rand.Int63n.wp_proof
+axiom reflect.New.wp_proof
 axiom reflect.TypeOf.wp_proof
+axiom reflect.Value.Addr.wp_proof
+axiom reflect.Value.Interface.wp_proof
+axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
+axiom reflectM.value_into_val_typed
+axiom reflectM.value_typed_pointsto
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof

@@ -1,16 +1,16 @@
 # Plan: the Kubernetes etcd3 storage backend (`k8s.io/apiserver/pkg/storage/etcd3`)
 
 Status: started (2026-10-22, branch `k8s-etcd3`: `lean` with `k8s-etcd3-goose` merged). Decisions:
-D30 in `notes/decisions.md` (D30a-k; D30h-j proposed). The translation survey is branch
+D30 in `notes/decisions.md` (D30a-l; D30h-j and D30l proposed). The translation survey is branch
 `k8s-etcd3-goose` (`notes/k8s-etcd3-goose.md`): the store translates and builds with the pinned
 translator except six functions left names-only; its gaps G1-G3 are under "What blocks where", and
 the Perennial changes they call for in `notes/perennial-changes.md`. Done so far (`notes/STATUS.md`
 has the details): phase 1's contract, phase 2's model, phase 3's client (`Get`, `OptimisticPut`,
-`OptimisticDelete`; one `sorry`, `kvIs_ne_null`: request 3 below), and phase 4's `store.Get` and
-`store.Create`, linked.
+`OptimisticDelete`; one `sorry`, `kvIs_ne_null`: request 3 below), and phase 4's `store.Get`,
+`store.Create` and `store.Delete` (D30l: the read-or-write update; `reflect` through local axioms,
+the user's choice), linked.
 
-Next steps: phase 4's `Delete` and `GuaranteedUpdate`, blocked on how `reflect.Value` is handled
-("What blocks where"); then `Get`'s minimum resource version.
+Next steps: phase 4's `GuaranteedUpdate`; then `Get`'s minimum resource version.
 Merging `k8s-etcd3` into `lean` waits on an OK from the etcd client proof's owner (the survey
 changes the etcd project's configuration: it translates `client/v3/kubernetes` and owns only
 `k8s_io/utils/third_party`).

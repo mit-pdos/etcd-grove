@@ -14,10 +14,20 @@ HasSuffix:
 strings_Contains:
 RecordEtcdRequest:
 TypeOf:
+v2_V:
+Verbose__Infof:
+# the trust boundary: reflect's reasoning principles (Proof/reflect/Values.lean) and apimachinery's
+# conversion.EnforcePtr, which uses them
+reflect_New:
+reflect_Value__Addr:
+reflect_Value__Type:
+reflect_Value__Interface:
+EnforcePtr:
 # linked in their own packages' Link.lean
 fmt_Errorf: @
 Client__Get: @
 Client__OptimisticPut: @
+Client__OptimisticDelete: @
 #
 # k8s.io/apiserver/pkg/storage
 PrepareKey: HasSuffix strings_Contains fmt_Errorf
@@ -32,3 +42,9 @@ getTypeName: TypeOf
 txnError:
 store__Get: store__prepareKey store__validateMinimumResourceVersion NewKeyNotFoundError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated OperationLatencyTracker__Record Client__Get
 store__Create: store__prepareKey getTypeName txnError NewKeyExistsError NewInternalError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated RecordEtcdRequest Client__OptimisticPut
+store__stateFromEtcdResponse: NewKeyNotFoundError reflect_New reflect_Value__Addr reflect_Value__Type reflect_Value__Interface
+store__getCurrentState: store__stateFromEtcdResponse RecordEtcdRequest Client__Get
+refreshOnError:
+store__deleteOnce: store__stateFromEtcdResponse txnError RecordEtcdRequest v2_V Verbose__Infof Client__OptimisticDelete
+store__conditionalDelete: store__getCurrentState store__deleteOnce refreshOnError
+store__Delete: store__prepareKey EnforcePtr store__conditionalDelete
