@@ -27,7 +27,8 @@ object its data decodes to, canonical when it is not stale and its data is its e
 `ObjSpec` holds these functions and the ownership predicate of an object in the heap (`objAt x
 o rv`: the `runtime.Object` `x` holds the body `o` with resource version string `rv`).
 `contractOk S codec versioner transformer decoder` (persistent) is the premise: the WPs of the
-exact calls the store makes on them. `runtime.Encode(codec, obj)`, names-only in this translation,
+exact calls the store makes on them; an error they return has an `Error()` (`errStrOk`), which
+the store calls to trace it. `runtime.Encode(codec, obj)`, names-only in this translation,
 is one of those calls, so its behavior is part of the premise and not an axiom of this
 repository; a concrete codec's proof gives it a body.
 -/
@@ -35,6 +36,7 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Model
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 
 @[expose] public section
 
@@ -116,6 +118,8 @@ variable [sem : go.Semantics]
 the `runtime.Object` `x` holds the body `o` with resource version string `rv`). -/
 structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj where
   objAt : GoInterface → Obj → GoString → IProp GF
+  /-- an object is not the `nil` interface -/
+  objAt_ne_nil : ∀ x o rv, objAt x o rv ⊢ ⌜x ≠ GoInterface.nil⌝
 
 /-- `runtime.Encode(codec, x)`: the bytes of the object's encoding (after
 `PrepareObjectForStorage`: no resource version), or an error. -/
@@ -124,7 +128,8 @@ def encodeOk (S : ObjSpec GF Obj) (codec : GoInterface) : IProp GF :=
     S.objAt x o [] -∗
     ▷ (∀ (sl : GoSlice) (err : GoInterface),
         S.objAt x o [] -∗
-        (⌜err = GoInterface.nil⌝ ∗ sl ↦* S.encode o ∨ ⌜err ≠ GoInterface.nil⌝) -∗
+        (⌜err = GoInterface.nil⌝ ∗ sl ↦* S.encode o ∨
+          ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
         Φ (PairV #sl #err)) -∗
     WP (App (App (Val (@! k8s_io.apimachinery.pkg.runtime.Encode)) (Val #codec)) (Val #x))
       {{ Φ }})
@@ -164,7 +169,7 @@ def transformerOk (S : ObjSpec GF Obj) (ti : GoInterfaceOk) : IProp GF :=
       ▷ (∀ (dsl : GoSlice) (st : Bool) (err : GoInterface),
           (match S.fromS v with
             | some (d, s) => ⌜err = GoInterface.nil ∧ st = s⌝ ∗ dsl ↦*□ d
-            | none => ⌜err ≠ GoInterface.nil⌝) -∗
+            | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
           Φ (PairV (PairV #dsl #st) #err)) -∗
       WP (App (App (App (Val #(methods ti.ty go!"TransformFromStorage" ti.v)) (Val #ctx))
         (Val #vsl)) (Val #dctx)) {{ Φ }}) ∗
@@ -172,7 +177,8 @@ def transformerOk (S : ObjSpec GF Obj) (ti : GoInterfaceOk) : IProp GF :=
         (Φ : val → IProp GF),
       dsl ↦*□ d -∗
       ▷ (∀ (vsl : GoSlice) (err : GoInterface),
-          (⌜err = GoInterface.nil⌝ ∗ ∃ v, ⌜S.toS d v⌝ ∗ vsl ↦*□ v) ∨ ⌜err ≠ GoInterface.nil⌝ -∗
+          (⌜err = GoInterface.nil⌝ ∗ ∃ v, ⌜S.toS d v⌝ ∗ vsl ↦*□ v) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err) -∗
           Φ (PairV #vsl #err)) -∗
       WP (App (App (App (Val #(methods ti.ty go!"TransformToStorage" ti.v)) (Val #ctx))
         (Val #dsl)) (Val #dctx)) {{ Φ }}))
@@ -186,7 +192,8 @@ def decoderOk (S : ObjSpec GF Obj) (di : GoInterfaceOk) : IProp GF :=
     ▷ (∀ err : GoInterface,
         (match S.decode d with
           | some o' => ⌜err = GoInterface.nil⌝ ∗ S.objAt x o' (S.fmtRV rev)
-          | none => ⌜err ≠ GoInterface.nil⌝ ∗ ∃ o' rv', S.objAt x o' rv') -∗ Φ #err) -∗
+          | none => ⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.errStrOk err ∗
+              ∃ o' rv', S.objAt x o' rv') -∗ Φ #err) -∗
     WP (App (App (App (Val #(methods di.ty go!"Decode" di.v)) (Val #dsl)) (Val #x)) (Val #rev))
       {{ Φ }})
 

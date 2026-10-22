@@ -8,7 +8,8 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 (`storage/etcd3`, `storage`) or names- or types-only (`Code/k8s_io/**.toml`, project
 `k8s-apiserver` of `etc/goose.py`); the standard-library `encoding/base64`, `encoding/json`,
 `iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`). Every fact is
-`True`: no proof reads a package-level variable of them yet. As in the cache's `Base.lean`, these
+`True` but the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
+`txnError` returns for a failed comparison, holds some error). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -37,6 +38,12 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+/-- The store's metrics package's fact: `ErrTransactionConflict` (`errors.New` at init) holds some
+error, for good. -/
+abbrev metricsInit : IProp GF :=
+  iprop(∃ e : GoInterface,
+    globalAddr k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict ↦□ e)
 
 instance k8s_io_apimachinery_pkg_runtime_schema_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime.schema :=
@@ -229,7 +236,7 @@ instance k8s_io_apimachinery_pkg_util_runtime_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apiserver_pkg_storage_etcd3_metrics_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init metricsInit
 instance k8s_io_apiserver_pkg_storage_etcd3_metrics_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   build_get_is_pkg_init_wf

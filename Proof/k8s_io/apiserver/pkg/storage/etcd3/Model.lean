@@ -476,6 +476,58 @@ theorem update_noop (s : KSt Obj) (k : GoString) (it : KItem Obj) (hit : s.items
     s.update k ign z pre f = (s, .obj it.obj it.rv) := by
   simp [KSt.update, KSt.current, hit, hpre, hf, hc]
 
+/-! ## The store's states are kept -/
+
+/-- A put of a value that reads (or of a key outside the prefix), at the next revision, keeps
+the store's state, given room for the revision. -/
+theorem KWf_put (m : MSt GoString GoString) (hwf : KWf dec pfx m) (hb : m.rev + 2 < 2 ^ 63)
+    (k v : GoString) (hv : pfx <+: k → (dec v).isSome) :
+    KWf dec pfx ⟨m.kv.put (m.rev + 1) k v, m.rev + 1⟩ := by
+  obtain ⟨hd, hm, -⟩ := hwf
+  refine ⟨?_, ?_, by simp only; omega⟩
+  · intro k' x hk' hx
+    simp only [MStore.put] at hx
+    split at hx
+    · cases hx; rename_i h; subst h; exact hv hk'
+    · exact hd k' x hk' hx
+  · intro k' x hx
+    simp only [MStore.put] at hx
+    split at hx
+    · cases hx
+      simp only
+      rw [uint_nat_W64 (m.rev + 1) (by omega)]
+      omega
+    · have := hm k' x hx
+      simp only
+      omega
+
+/-- A delete keeps the store's state, given room for the revision. -/
+theorem KWf_del (m : MSt GoString GoString) (hwf : KWf dec pfx m) (hb : m.rev + 2 < 2 ^ 63)
+    (k : GoString) : KWf dec pfx ⟨m.kv.del k, m.rev + 1⟩ := by
+  obtain ⟨hd, hm, -⟩ := hwf
+  refine ⟨?_, ?_, by simp only; omega⟩
+  · intro k' x hk' hx
+    simp only [MStore.del] at hx
+    split at hx
+    · cases hx
+    · exact hd k' x hk' hx
+  · intro k' x hx
+    simp only [MStore.del] at hx
+    split at hx
+    · cases hx
+    · have := hm k' x hx
+      simp only
+      omega
+
+/-- `OptimisticPut`'s transaction keeps the store's state. -/
+theorem KWf_putTxn (ks : List GoString) (m : MSt GoString GoString) (hwf : KWf dec pfx m)
+    (hb : m.rev + 2 < 2 ^ 63) (k v : GoString) (rev : w64) (g : Bool)
+    (hv : pfx <+: k → (dec v).isSome) : KWf dec pfx (mStep ks (putTxn k v rev g) m).1 := by
+  rw [mStep_putTxn]
+  split
+  · exact KWf_put dec pfx m hwf hb k v hv
+  · exact hwf
+
 end abs
 
 end k8s

@@ -9,7 +9,8 @@ Lean-first (no Rocq counterpart).
 - `isStore sp c` (persistent): the store's fields as `New` set them, read-only (the unary paths
   never write them), its client `*kubernetes.Client` (`Kubernetes` is the client itself, as
   `kubernetes.New` sets it) over `New`'s `clientv3.Client` of the members (`isNewClient`,
-  sending a write at most once, each member's KV registered), and the contract (`contractOk`).
+  sending a write at most once, each member's KV registered, its workload admitting the store's
+  writes), and the contract (`contractOk`).
 - `storageErrIs err code key rv`: `err` is a `*storage.StorageError` with these fields (what
   `NewKeyNotFoundError`, `NewKeyExistsError` return); `respIs`: a model answer as the error and
   the object a method leaves.
@@ -92,6 +93,7 @@ def isStore (sp : Loc) (c : StoreCfg GF Obj) : IProp GF :=
     isNewClient c.cl (c.ms.map client.SrvAt.addr) c.V ∗
     client.clientWriteOnce c.cl (c.ms.map client.SrvAt.addr) ∗
     ([∗list] x ∈ c.ms, client.kvRegsAt x) ∗
+    ⌜∀ x ∈ c.ms, ∀ op, x.γr.kv.wl.writes op⌝ ∗
     contractOk c.S c.codec c.vi c.ti c.di)
 
 instance isStore_persistent (sp : Loc) (c : StoreCfg GF Obj) : Persistent (isStore sp c) := by
