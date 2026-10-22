@@ -96,8 +96,8 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     · iframe Hlocked Hbv
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_cmp_idx s γ crev ti $$ [Hmu] with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
-    · iframe Hmu Hidx
+    icases mvcc.muHeld_tree s γ crev ti $$ Hmu with ⟨Hmu, #Hidx⟩
+    icases mvcc.muHeld_cmp_idx s γ crev ti $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
     wp_apply (hKeys (mvcc.txCommonW tw) s trace ti bt (DFrac.own 1)
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))

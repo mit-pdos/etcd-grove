@@ -762,7 +762,7 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 /-- **The backend's options** `opts` in the environment `E`: a logger, the KV (the store `E.s`,
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
-  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
+  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookOk E.γ E.P E.f ∗
     isApplyLessor opts.Lessor' E.s E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn ∗
     isAlarmStore opts.AlarmStore' E.γ E.P E.f ∗ isCluster opts.Cluster' E.γ E.P E.f ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗

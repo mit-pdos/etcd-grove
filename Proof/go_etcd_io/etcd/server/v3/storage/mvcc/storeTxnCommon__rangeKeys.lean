@@ -52,17 +52,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     #Hpin0, Hidx0, Hti0,
     #Hctx, #Hkey, #Hend, Hcmp, Hcu, %Hc0, Hown⟩
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %ti', %lg, Hs⟩
   iNamed Hs
-  -- the transaction's index is the store's (D22 receiver epochs, S3: the pin)
-  iunfold mvcc.idxPin at Hpin0
-  icases Hpin0 with ⟨%o0, #Hpin0, %Ho0⟩
-  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [Hpin Hpin0]
-  · iframe Hpin Hpin0
-  subst Hoo
-  simp only at Ho0
-  have Ho1 := Ho0.symm
-  subst Ho1
+  -- the transaction's tree index (D22 receiver epochs, S5b: its share's; until then the pin's)
+  ihave #Hti := Hpin0
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨⟨%e0, #Herr⟩, ⟨%ecp, #Hcomp⟩, ⟨%ef, #Hfut⟩, -, -, -, -, -, -⟩

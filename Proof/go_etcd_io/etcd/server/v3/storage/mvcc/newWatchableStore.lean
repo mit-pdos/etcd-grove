@@ -47,7 +47,7 @@ theorem mvcc.newWatchableStore.wp_proof
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0 Hrb0)
     $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
-      Hwsd, Hright⟩
+      Hwsd, Hfrag, Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's
   -- half of the revision's authority given up, the readers those of a never-compacted store (the
   -- closer, with the scheduler's stop token, goes to the caller: D19m (C))
@@ -159,7 +159,7 @@ theorem mvcc.newWatchableStore.wp_proof
     · iunfold mvcc.isStopChan
       iexists γstc; iexact Hstop0
     ipureintro; exact hγw
-  iframe HhookP Hsclose wg
+  iframe HhookP Hsclose wg Hfrag
   isplitr [Hmus Hreaders Hstop Htw Hok]
   · iunfold mvcc.watchWriter
     iframe Hcert Hwl2

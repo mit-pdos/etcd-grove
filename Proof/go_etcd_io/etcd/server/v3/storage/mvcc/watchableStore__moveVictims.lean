@@ -442,7 +442,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
     ihave #Hstp0 : s.[watchableStore, go!"store"] ↦□ st $$ []
     · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
-    icases mvcc.revMuInv_open_ws s st γ _ _ $$ [HQ Hwsf] with ⟨HQ, HrstR, Hwsf⟩
+    icases mvcc.revMuInv_open_ws s st γ _ _ $$ [HQ Hwsf] with ⟨⟨%γp, HQ, HrstR⟩, Hwsf⟩
     · iframe Hstp0 HQ Hwsf
     iunfold mvcc.revMuBody at HQ
     icases HQ with ⟨%C, %ntok, %cQ, HQ⟩

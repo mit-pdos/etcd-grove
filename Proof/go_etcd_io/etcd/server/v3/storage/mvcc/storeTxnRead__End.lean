@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG) := by
   intro tr s trace ti rt γ log rev crev Z
-  wp_start as ⟨#Hs, #Htr, Hrd, #Hidx0, Hmu0, HrevMu0, Hti0⟩
+  wp_start as ⟨#Hs, #Htr, Hrd, Hmu0, HrevMu0, Hti0⟩
   ihave #HpoolS : mvcc.readerPool γ $$ []
   · iunfold mvcc.isStore at Hs; iNamed Hs; iexact Hpool
   iunfold mvcc.storeTxnReadIs at Htr
@@ -40,15 +40,21 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   -- `tr.tx.RUnlock()`
   wp_apply HRU $$ [$Htok] as Hrt
   (try wp_auto)
-  -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
-  imod mvcc.readerPool_checkin γ $$ Hlc1 HpoolS [Hti0 Hrt] Htko with ⟨Htk, Hwr2⟩
-  · iunfold mvcc.idxSlot; iexists ti; iframe Hidx0 Hti0 Hrt
+  -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4), at the
+  -- transaction's pin (S5b)
+  icases mvcc.muHeld_cur s γ crev ti $$ Hmu0 with ⟨%o, %Ho, Hpin, Hmub⟩
+  subst Ho
+  imod mvcc.readerPool_checkin γ _ o $$ Hlc1 HpoolS Hpin [Hti0 Hrt] Htko with ⟨Htk, Hwr2, Hpin⟩
+  · iunfold mvcc.idxSlot; iframe Hti0 Hrt
+  ihave Hmu0 := Hmub $$ Hpin
   -- `tr.s.mu.RUnlock()`
   iunfold mvcc.muHeld at Hmu0
-  icases Hmu0 with ⟨Hmu0, Hmua, Hfs⟩
+  icases Hmu0 with ⟨Hmu0, Hmua, %o', %Ho', Hfs⟩
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu0 Hmua Hwr Hwr2 Hfs] as Hmu0
-  · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs
-    iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
+  · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua
+    isplitl [Hwr Hwr2]
+    · iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
+    iapply mvcc.fieldShare_of_at s γ _ o'; iexact Hfs
   (try wp_auto)
   iapply HΦ
   iframe HZT

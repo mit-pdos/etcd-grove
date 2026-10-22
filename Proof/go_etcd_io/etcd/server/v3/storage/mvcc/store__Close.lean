@@ -37,17 +37,16 @@ theorem mvcc.store.Close.wp_proof
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
   iunfold mvcc.storeCloser at Hc
-  icases Hc with ⟨⟨%o, #Hpin', -, Hcl⟩, Htok, Hq, Hfs⟩
-  ihave %Ho := mvcc.objsPin_agree γ ⟨b, ti, ssched, sstop⟩ o $$ [Hpin Hpin']
-  · iframe #
-  subst Ho
-  iunfold mvcc.fieldShare at Hfs
-  icases Hfs with ⟨%o', #Hpin'', Hf, -⟩
-  ihave %Ho' := mvcc.objsPin_agree γ ⟨b, ti, ssched, sstop⟩ o' $$ [Hpin Hpin'']
-  · iframe #
-  subst Ho'
-  iunfold mvcc.storeFields at Hf
-  iNamed Hf
+  icases Hc with ⟨%o, Hfs, -, Hcl, Htok, Hq⟩
+  -- the closer's share of the fields, at its objects (D22 receiver epochs, S5b: the current ones)
+  iunfold mvcc.fieldShareAt at Hfs
+  iNamed Hfs
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
+  obtain ⟨b, ti, ssched, sstop⟩ := o
+  try simp only
   (try wp_auto)
   iunfold mvcc.stopCloser at Hcl
   icases Hcl with ⟨%γc, Hcl⟩

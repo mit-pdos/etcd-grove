@@ -54,12 +54,17 @@ theorem mvcc.store.Compact.wp_of_le
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
         mvcc.compactRight γ c ∗ Pre)) }} := by
-  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, #Hhook, Hcs, Htrc⟩
+  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, HhookW, Hcs, Htrc⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
-  · iframe Hpin Hstop
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -83,7 +88,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h0 s γ hcmp) $$ [] as %pcc -
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs $HhookW] as %ch %prev %err Hres
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   wp_apply (h2 trace te _ slice.nil) $$ [Htrc] as Htrc

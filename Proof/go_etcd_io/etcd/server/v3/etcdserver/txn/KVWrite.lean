@@ -169,22 +169,23 @@ theorem kv_Write (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
     {{ (tyX : go.GoType) (vX : val), RET #(interface.mkOk tyX vX);
         ∃ (ilog : mvcc.Log) (mw : Loc),
           mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) ∗
-          twEnd s γ tyX vX mw ilog ∗ ownToks γ.revs m ∗ ⌜γ.watchQ = true → ilog = Lw⌝ ∗ Q }} := by
+          twEnd s γ tyX vX mw ilog ∗ ownToks γ.revs m ∗ ⌜γ.watchQ = true → ilog = Lw⌝ ∗ Q ∗
+          mvcc.hookIs γ P f }} := by
   have hWF := mvcc.store.Write.spec_frozen hW
-  iintro %Φ ⟨#Hpkg, #Hkv, Hrd, Htok, Hwt, Hm, Hwl, %Hsole, %Ht, #Hhook, Hpre, #Htr, Htrc⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hkv, Hrd, Htok, Hwt, Hm, Hwl, %Hsole, %Ht, Hhook, Hpre, #Htr, Htrc⟩ HΦ
   iunfold isKV at Hkv
   icases Hkv with (⟨%Hkv, #Hs, %Hwq⟩ | ⟨%ws, %γw, %Hkv, #Hws⟩)
   · -- the plain store
     simp only [interface.mkOk, GoInterface.ok.injEq] at Hkv
     injection Hkv with h1 h2
     subst h1 h2
-    iapply (hWF s γ trace P Pre Q f te) $$ [Hrd Htok Hwt Hpre Htrc]
-    · iframe Hrd Htok Hwt Hpre Htrc; iframe #; ipureintro; exact Ht
+    iapply (hWF s γ trace P Pre Q f te) $$ [Hrd Htok Hwt Hpre Htrc Hhook]
+    · iframe Hrd Htok Hwt Hpre Htrc Hhook; iframe #; ipureintro; exact Ht
     inext
-    iintro %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+    iintro %mw ⟨⟨%ilog, Htx⟩, HQ, Hhook⟩
     iapply HΦ
     iexists ilog, mw
-    iframe Htx Hm HQ
+    iframe Htx Hm HQ Hhook
     isplitl []
     · iunfold twEnd; ileft; ipureintro; exact ⟨rfl, rfl, Hwq⟩
     · ipureintro; intro h; rw [Hwq] at h; cases h
@@ -211,16 +212,16 @@ theorem kv_Write (hW : mvcc.store.Write.spec (GF := GF) (hG := hG))
       unfold mvcc.revToken
       iapply (ownToks_add 1 m γw.st.revs).2
       iframe Hm Htok
-    iapply (hWW ws s γw2 trace Lw P Pre Q f te) $$ [Hrd Hwt Hww Hpre Htrc]
-    · rw [hγ2]; iframe Hrd Hwt Hww Hpre Htrc; iframe #; ipureintro; exact ⟨hlen, Ht⟩
+    iapply (hWW ws s γw2 trace Lw P Pre Q f te) $$ [Hrd Hwt Hww Hpre Htrc Hhook]
+    · rw [hγ2]; iframe Hrd Hwt Hww Hpre Htrc Hhook; iframe #; ipureintro; exact ⟨hlen, Ht⟩
     inext
-    iintro %tw ⟨Htw, HQ⟩
+    iintro %tw ⟨Htw, HQ, Hhook⟩
     iunfold mvcc.isWatchTxnWrite at Htw
     iNamed Htw
     iapply HΦ
     iexists Lw, mw
     rw [hγ2]
-    iframe Htx HQ
+    iframe Htx HQ Hhook
     isplitr [Htoks]
     · iunfold twEnd; iright; iexists tw, ws, γw2
       rw [hγ2]
@@ -249,9 +250,13 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     {{ RET #(); mvcc.storeReader s γ ∗ (∃ te : Bool, traceutil.ownTrace trace te) ∗
         mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
         (if pend = [] then mvcc.revToken γ else iprop(True)) ∗ ownToks γ.revs m ∗
-        wlogOwn s γ (mvcc.commitLog ilog pend) }} := by
+        wlogOwn s γ (mvcc.commitLog ilog pend) ∗ mvcc.hookIs γ P f }} := by
   have hEF := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  iintro %Φ ⟨#Hpkg, Htx, Hte, Hm, %Hsole, #Hhook, HP, #Hok⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Htx, Hte, Hm, %Hsole, Hhook, HP, #Hok⟩ HΦ
+  -- the hook's facts kept, its fragment given back by `End` (D22 receiver epochs, S5b)
+  icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩
+  ihave Hhook : mvcc.hookIs γ P f $$ [Hfrag]
+  · iapply (mvcc.hookIs_split γ P f).2; iframe HhookOk Hfrag
   iunfold twEnd at Hte
   icases Hte with (%H | ⟨%twl, %ws, %γw, %H, #Htw, #Hws, Hhalf, #Hcert⟩)
   · -- the plain store's `metricsTxnWrite.End`
@@ -260,17 +265,19 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     ihave Htx : mvcc.isTxn mw s γ trace (.write ilog pend puts deletes putSize) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    iapply (hEF trace mw s γ _) $$ [Htx HP]
+    iapply (hEF trace mw s γ _) $$ [Htx HP Hhook]
     · iframe Htx; iframe #
       iapply (mvcc.txnEndPre_write_plain _ _ _ _ _ _ _ _ hwq); iframe Hhook HP Hok
     inext
     iintro ⟨Hrd, Hpost, %te', Htrc⟩
-    ihave ⟨#Hc, Htok⟩ := mvcc.txnEndPost_plain _ _ _ _ _ _ hwq $$ Hpost
+    ihave ⟨#Hc, Htok, Hfrag⟩ := mvcc.txnEndPost_plain _ _ _ _ _ _ hwq $$ Hpost
     iapply HΦ
     iframe Hrd Hc Htok Hm
     isplitl [Htrc]
     · iexists te'; iexact Htrc
-    iapply wlogOwn_plain s γ _ hwq
+    isplitl []
+    · iapply wlogOwn_plain s γ _ hwq
+    iapply (mvcc.hookIs_split γ P f).2; iframe HhookOk Hfrag
   · -- the watchable store's `End`: the watchers notified under its lock
     obtain ⟨h1, h2, hγ⟩ := H
     subst h1 h2 hγ
@@ -286,10 +293,10 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
       simp only [named]
       rw [hb']
       iframe Htw Hws Htx Hcert Hm Hhalf
-    iapply (hWEnd trace twl ws s γw ilog pend puts deletes putSize P f) $$ [Hw HP]
-    · iframe Hw HP; iframe #
+    iapply (hWEnd trace twl ws s γw ilog pend puts deletes putSize P f) $$ [Hw HP Hhook]
+    · iframe Hw HP Hhook; iframe #
     inext
-    iintro ⟨Hrd, #Hc, Hww, Htrc⟩
+    iintro ⟨Hrd, #Hc, Hww, Htrc, Hfrag⟩
     iunfold mvcc.watchWriter at Hww
     icases Hww with ⟨-, Htoks, Hhalf⟩
     iapply HΦ
@@ -306,10 +313,12 @@ theorem tw_End (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG))
     · by_cases hp : pend = []
       · simp only [hp, ↓reduceIte]; unfold mvcc.revToken; iexact H1
       · simp only [hp, ↓reduceIte]; itrivial
-    iapply (wlogOwn_watch s γw.st _ Hwq).2
-    iexists ws, γw
-    iframe Hws Hhalf Hc
-    ipureintro; rfl
+    isplitr [Hfrag]
+    · iapply (wlogOwn_watch s γw.st _ Hwq).2
+      iexists ws, γw
+      iframe Hws Hhalf Hc
+      ipureintro; rfl
+    iapply (mvcc.hookIs_split γw.st P f).2; iframe HhookOk Hfrag
 
 end kv
 

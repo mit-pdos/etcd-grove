@@ -39,7 +39,7 @@ theorem txn.DeleteRange.wp_proof
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te Lw
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -75,7 +75,7 @@ theorem txn.DeleteRange.wp_proof
   (try wp_auto)
   wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f false m Lw)
     $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $Hpre $Htr $Htrc]
-    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ⟩
+    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
   · ipureintro; exact ⟨fun h => Hsole h, Ht⟩
   ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw ilog $$ Hte
   have hsole : γ.watchQ = true → m + 1 = txn.soleBudget ilog := by
@@ -100,14 +100,14 @@ theorem txn.DeleteRange.wp_proof
     (try wp_auto)
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
         (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0) deletes' (W64 0) m P f)
-      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl⟩
+      $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
     · iframe HP Hhook
       isplitl []
       · ipureintro; exact hsole
       iapply Hcok; ipureintro; exact Hpin
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Htoks
+    iframe Hrd Hhook Htoks
     isplitl []
     · ipureintro; exact Ht
     iframe HPost
@@ -124,7 +124,7 @@ theorem txn.DeleteRange.wp_proof
   · -- the range read's context error: nothing written, the token back
     (try wp_auto)
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) m P f)
-      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl⟩
+      $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
     · iframe HP Hhook
       isplitl []
       · ipureintro; exact hsole
@@ -132,7 +132,7 @@ theorem txn.DeleteRange.wp_proof
     simp only [mvcc.commitLog, ↓reduceIte]
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Htoks
+    iframe Hrd Hhook Htoks
     isplitl []
     · ipureintro; exact Ht
     iframe HPost

@@ -123,8 +123,8 @@ theorem mvcc.NewStore_backend
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %s ⟨%γ, %Hγ, Hs, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hcr⟩
-  ihave #Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk]
+  iintro %s ⟨%γ, %Hγ, Hs, Hok, #Hh0, Hv, Hr, Ht, Hc, -, Hcl, Hst, -, Hfrag, Hcr⟩
+  ihave Hh := mvcc.hookIs_of_init γ Pk #f d Hγ.2.2.1 f hf $$ [$Hh0 $Hhk $Hfrag]
   iapply HΦ
   iexists γ
   iframe Hs Hok Hh Hv Hr Ht Hc Hcl Hst Hcr
@@ -146,7 +146,13 @@ theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG 
   have hwt : mvcc.storeWT (GF := GF) γ = backend.wbTok d.γB := by
     unfold mvcc.storeWT mvcc.kbWT; rw [hk]
   rw [← hwt]
-  exact hWrite s γ trace P Pre Q f te
+  iintro %Φ H HΦ
+  iapply (hWrite s γ trace P Pre Q f te) $$ %Φ [H]
+  · iexact H
+  inext
+  iintro %mw ⟨Htx, HQ, -⟩
+  iapply HΦ
+  iframe Htx HQ
 
 end proof
 

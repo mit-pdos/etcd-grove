@@ -45,7 +45,7 @@ theorem txn.Put.wp_proof
     (hWEnd : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f L ot te Lw
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlprem, #Hcok, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, Hwl, %Hsole, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlprem, #Hcok, Hcs, Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -90,7 +90,7 @@ theorem txn.Put.wp_proof
     subst Hee
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Htoks Hu
+    iframe Hrd Hhook Htoks Hu
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]
@@ -108,7 +108,7 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f false m Lw)
     $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $Hpre $Htr $Htrc]
-    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ⟩
+    as %tyX %vX ⟨%ilog, %mw, Htx, Hte, Htoks, %Hil, HQ, Hhook⟩
   · ipureintro; exact ⟨fun h => Hsole h, Ht⟩
   ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw ilog $$ Hte
   have hsole : γ.watchQ = true → m + 1 = txn.soleBudget ilog := by
@@ -140,7 +140,7 @@ theorem txn.Put.wp_proof
     ihave Htx : mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog [] (W64 0) (W64 0) (W64 0) m P f)
-      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl⟩
+      $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, Htok, Htoks, Hwl, Hhook⟩
     · iframe HP Hhook
       isplitl []
       · ipureintro; exact hsole
@@ -148,7 +148,7 @@ theorem txn.Put.wp_proof
     simp only [mvcc.commitLog, ↓reduceIte]
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Htoks Hu
+    iframe Hrd Hhook Htoks Hu
     isplitl []
     · ipureintro; exact Ht
     isplitl [Htrc]
@@ -186,7 +186,7 @@ theorem txn.Put.wp_proof
   -- the deferred `txnWrite.End()`: the put committed
   wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw ilog
       [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize' m P f)
-    $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, -, Htoks, Hwl⟩
+    $$ [$Htx $Hte $Htoks HP Hhook] as ⟨Hrd, ⟨%te', Htrc⟩, #Hc, -, Htoks, Hwl, Hhook⟩
   · iframe HP Hhook
     isplitl []
     · ipureintro; exact hsole
@@ -194,7 +194,7 @@ theorem txn.Put.wp_proof
   simp only [mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
   (try wp_auto)
   iapply HΦ
-  iframe Hrd Htoks
+  iframe Hrd Hhook Htoks
   isplitl [Hown Hrdo]
   · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
   isplitl []

@@ -34,14 +34,13 @@ abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
     (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev crev Z ∗ mvcc.txReader γ rt log ∗
-      mvcc.idxPin γ ti ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      mvcc.muHeld s γ crev ∗ traceutil.ownTrace trace te }}
+      mvcc.muHeld s γ crev ti ∗ traceutil.ownTrace trace te }}
     (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!
       go!"Range")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗
-      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ crev ∗ mvcc.txReader γ rt log ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ crev ti ∗ mvcc.txReader γ rt log ∗
       traceutil.ownTrace trace te ∗
       mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }}
 

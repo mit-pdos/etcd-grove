@@ -223,8 +223,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
-  · iframe Hpin Hstop
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, #HBT, #HForce, #HSize, #HSizeU, #HCmp⟩

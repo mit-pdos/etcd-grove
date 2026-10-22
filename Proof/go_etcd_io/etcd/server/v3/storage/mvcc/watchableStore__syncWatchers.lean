@@ -150,19 +150,28 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
   icombine Hstp Hst' gives %Hsteq
   subst Hsteq
-  icases mvcc.fieldShare_open st γ.st _ _ _ _ _ $$ [HpinS Hwsf] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
-  · iframe HpinS Hwsf
+  -- the share at the current physical names `p` (D22 receiver epochs, S5b): the backend's reads
+  -- are at `γ.st.withPhys p`
+  iunfold mvcc.fieldShare at Hwsf
+  icases Hwsf with ⟨%p, %o, Hwsf⟩
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
+  icases mvcc.revMuInv_open_share st γ.st p _ _ o $$ [HQ Hwsf] with ⟨HQ, HrstR, Hwsf⟩
+  · iframe HQ Hwsf
   -- a slot of the readers' pool, for the snapshot's backend token: checked out under the watchable
-  -- store's lock, with its deposit (D22 receiver epochs, S5a)
-  imod mvcc.readerPool_checkout_ws γ.st $$ Hlc2 HpoolS HtkR [Hwsd] with ⟨Hslot, Htkw⟩
+  -- store's lock, with its deposit (D22 receiver epochs, S5a), at the share's pin (S5b)
+  iunfold mvcc.fieldShareAt at Hwsf
+  iNamed Hwsf
+  imod mvcc.readerPool_checkout_ws_p γ.st p _ o $$ Hlc2 HpoolS Hcur HtkR [Hwsd] with ⟨Hslot, Htkw, Hcur⟩
   · iunfold mvcc.wsDep; iexact Hwsd
   iunfold mvcc.idxSlot at Hslot
-  icases Hslot with ⟨%tiS, #HidxS, HtiS, HrtR⟩
-  icases mvcc.revMuInv_open st γ.st _ _ $$ [HQ Hfrst] with ⟨HQ, HrstR, Hfrst⟩
-  · iframe HQ Hfrst
+  icases Hslot with ⟨HtiP, HrtR⟩
+  ihave #HphS := Hph
+  iunfold mvcc.physOk at HphS
+  iNamedSuffix HphS "S"
+  iunfold mvcc.storeFields at Hflds
+  iNamed Hflds
   iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
@@ -264,13 +273,17 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     icases HcertQ with ⟨-, %H, -⟩
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
-  wp_apply (lc := 1) (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
-    $$ [$HbkS $HrtR $HfrzR $HbucketQ $HcertQ $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap,
+  ihave #HfrzP : mvcc.crevFrozen (γ.st.withPhys p) $$ []
+  · rw [mvcc.crevFrozen_withPhys]; iexact HfrzR
+  ihave #HcertP : mvcc.idxCert (γ.st.withPhys p).idx C $$ []
+  · rw [mvcc.idxCert_withPhys]; iexact HcertQ
+  wp_apply (lc := 1) (hRange _ _ (γ.st.withPhys p) _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
+    $$ [$HbkS $HrtR $HfrzP $HbucketQ $HcertP $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap,
       %Hpslen, #HevIs⟩
   · ipureintro; rw [hcur1]; omega
   -- the slot back in the readers' pool, the watchable store's deposit back (S5a)
-  imod mvcc.readerPool_checkin_ws γ.st $$ Hlc1 HpoolS [HtiS HrtR] Htkw with ⟨HtkR, Hwsd⟩
-  · iunfold mvcc.idxSlot; iexists tiS; iframe HidxS HtiS HrtR
+  imod mvcc.readerPool_checkin_ws_p γ.st p _ o $$ Hlc1 HpoolS Hcur [HtiP HrtR] Htkw with ⟨HtkR, Hwsd, Hcur⟩
+  · iunfold mvcc.idxSlot; iframe HtiP HrtR
   iunfold mvcc.wsDep at Hwsd
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp
@@ -959,8 +972,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     isplitr
     · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by unfold mvcc.outRes; exact .rfl)) $$ Hout
     ipureintro; exact hokf
-  ihave Hwsf := mvcc.fieldShare_close st γ.st _ _ _ _ _ $$ [HpinS Hfb Hfidx Hfsch Hfstop Hfrst]
-  · iframe HpinS Hfb Hfidx Hfsch Hfstop Hfrst
+  ihave Hwsf : mvcc.fieldShare st γ.st (1 : Qp).half.half $$ [Hcur Hfb Hfidx Hfsch Hfstop Hfrst]
+  · iunfold mvcc.fieldShare; iexists p, o
+    iunfold mvcc.fieldShareAt
+    simp only [named]
+    iframe Hcur Hfrst Hph
+    iunfold mvcc.storeFields; simp only [named]; iframe Hfb Hfidx Hfsch Hfstop
   ihave Hwsf : mvcc.wsFields s γ 1 $$ [Hwsf Hwsd]
   · iunfold mvcc.wsFields; iexists st; iframe Hstp Hwsf Hwsd
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf Hrel Hwsf]

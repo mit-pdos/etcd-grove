@@ -539,8 +539,15 @@ theorem NewServer.wp_proof
   iunfold mvcc.watchReader at HwrSV HwrA
   icases HwrSV with ⟨HwrSV, -⟩
   icases HwrA with ⟨HwrA, -⟩
-  imod mvcc.storeReader_retire kst γw.st $$ Hlc1 Hs HwrSV with HrtSV
-  imod mvcc.storeReader_retire kst γw.st $$ Hlc2 Hs HwrA with HrtA
+  -- (S5b) at the writer's fragment (`kvWriter`'s), a pin of the current names
+  iunfold txn.kvWriter at Hkvw
+  icases Hkvw with ⟨Hkvw0, Hkvw1, Hfrag0⟩
+  iunfold mvcc.writerFrag at Hfrag0
+  icases Hfrag0 with ⟨%ow, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc1 Hs Hpinw HwrSV with ⟨HrtSV, Hpinw⟩
+  imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, Hpinw⟩
+  ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
+  · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
   -- `newCorruptionChecker(lg, srv, srv.kv.HashStorage())`
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty)
     (m := go!"HashStorage")]
@@ -1228,7 +1235,7 @@ theorem NewServer.wp_proof
       iframe Hrvf
       iframe #
     isplitr
-    · iapply (mvcc.hookIs_of_init γw.st _ #func.nil d Hγw.2.2.1 hook Hhknn)
+    · iapply (mvcc.hookOk_of_init γw.st _ #func.nil d Hγw.2.2.1 hook Hhknn)
       iframe #
     isplitr
     · iexact Hapl

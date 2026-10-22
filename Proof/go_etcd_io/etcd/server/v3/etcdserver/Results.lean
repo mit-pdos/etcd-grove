@@ -803,7 +803,7 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
   iapply wp_fupd
   wp_apply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf hcfg hrb) $$ [Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd]
-    as %s ⟨%γ, %Hγ, #Hst, Hcok, #Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
+    as %s ⟨%γ, %Hγ, #Hst, Hcok, Hhk', -, Hrds, Htoks, #Hc, Hcl, -, Hright⟩
   · iframe #; iframe Hv Hncmp Hrg Hrts Hlrd
     unfold backend.wbTok
     iframe Hw1 Hw2
