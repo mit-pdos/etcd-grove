@@ -53,10 +53,10 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or
   -- above the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
-  wp_auto_lc 1
+  wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
@@ -89,7 +89,18 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   iunfold mvcc.writerRes at HW
-  iNamed HW
+  icases HW with ⟨%L, Hwk, HwvW, Hbv, #HcertW, %HneW, Hcres⟩
+  -- the writer's state, checked out of the writer's invariant (D22 receiver epochs, S2): the
+  -- batch lock's key and the transaction's part of `s.mu`'s deposit ghost deposited
+  ihave Hwr : mvcc.wDep γ $$ [Hwr]
+  · iunfold mvcc.wDep; iexact Hwr
+  imod mvcc.writerInv_checkout s γ $$ Hlc2 Hwi Hwk Hwr with HL
+  iunfold mvcc.writerL at HL
+  icases HL with ⟨%ilog, %ntok, HL⟩
+  iNamed HL
+  icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
+  · iframe Hwv HwvW
+  subst HL
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)
   iunfold mvcc.crevSafe at HclM0
@@ -119,7 +130,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ti2, bt, Locked, chs, [], ntok, P0, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmuh HrevMuR HtiR HrtR Hcres Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Hmuh HrevMuR HtiR HrtR Hcres Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

@@ -67,7 +67,7 @@ theorem mvcc.store.Compact.wp_of_le
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ 1)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%c', HmuP⟩
+  icases HmuP with ⟨%c', HmuP, Hwr⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   iunfold mvcc.compactRight at Hright
@@ -92,8 +92,8 @@ theorem mvcc.store.Compact.wp_of_le
     ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
   · subst Herr
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
-    · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
+    · inext; iunfold mvcc.muInv; iexists (sint.Z rev); iframe Hwr; iexact Hmu
     (try wp_auto)
     iunfold mvcc.compactRight at Hright
     icases Hright with ⟨Hcr, Hq, #Hlive⟩
@@ -112,8 +112,8 @@ theorem mvcc.store.Compact.wp_of_le
     iexact Hlb
   · subst Herr
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
-    · inext; iunfold mvcc.muInv; iexists c'; iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
+    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
     iframe Htrc
@@ -124,8 +124,8 @@ theorem mvcc.store.Compact.wp_of_le
     iexists ec; iframe Hec; ipureintro; rfl
   · subst Herr Hch
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu]
-    · inext; iunfold mvcc.muInv; iexists c'; iexact Hmu
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmu Hwr]
+    · inext; iunfold mvcc.muInv; iexists c'; iframe Hwr; iexact Hmu
     (try wp_auto)
     iapply HΦ
     iframe Htrc

@@ -73,7 +73,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   iunfold mvcc.txReader
   iexists m, m', Rd, Tok
   simp only [named]
-  iframe Htok Hsnap Hthin
+  iframe Htok Hsnap Hthin Hwr
   ipureintro; exact Hsub
 
 end proof

@@ -63,7 +63,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -71,11 +71,11 @@ local macro "del_range_tail" : tactic => `(tactic| (
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd]
       · iunfold mvcc.storeTxnWriteIs
         iexists ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       (try wp_auto)

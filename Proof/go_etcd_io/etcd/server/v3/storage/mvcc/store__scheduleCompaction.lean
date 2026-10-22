@@ -311,7 +311,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   iintro ⟨Hlocked, HW, HP, -⟩
   (try wp_auto)
   iunfold mvcc.writerRes at HW
-  icases HW with ⟨%ilog, %ntok, HW⟩
+  icases HW with ⟨%ilog, HW⟩
   iNamedSuffix HW "W"
   ihave #HcW' := HcertW
   ihave %Hpre : ⌜log <+: ilog ∨ ilog <+: log⌝ $$ []
@@ -531,15 +531,13 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW Hmeta Hfin HP HlrdW]
+    iapply HUnl0 $$ [Hlocked HwkW HwvW HbvW Hmeta Hfin HP]
     · iframe Hlocked HP
       iunfold mvcc.writerRes
-      iexists ilog, ntok
+      iexists ilog
       simp only [named]
       iframe
       iframe #
-      isplitr
-      · ipureintro; exact HbudgetW
       isplitr
       · ipureintro; exact HneW
       iunfold mvcc.compactRes
@@ -616,14 +614,14 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ipureintro; rfl
   -- a full batch: committed, then the next one after the sleep, unless the store stops
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW]
+  iapply HUnl0 $$ [Hlocked HwkW HwvW HbvW HcresW HP]
   · iframe Hlocked HP
     iunfold mvcc.writerRes
-    iexists ilog, ntok
+    iexists ilog
     simp only [named]
     iframe
     iframe #
-    ipureintro; exact ⟨HbudgetW, HneW⟩
+    ipureintro; exact HneW
   inext
   iintro -
   (try wp_auto)

@@ -48,7 +48,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · intro h
       rw [h] at h1
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
-  wp_auto_lc 1
+  wp_auto_lc 2
   -- the caller's invariant is the store's
   imod mvcc.hookIs_agree_lc ⊤ γ P Pw f fw $$ [$Hlc1 $HhookC $Hhook] with ⟨-, #HPPw, -⟩
   ihave HP := HPPw $$ HP
@@ -59,13 +59,24 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     subst hnil
     ihave Hw := mvcc.idxWriterB_nil γ.idx ilog sealed $$ Hw
     (try wp_auto)
-    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv Hcres Hlrd]
-    · iunfold mvcc.writerRes
+    -- the writer's state checked back in (D22 receiver epochs, S2): the batch lock's key and the
+    -- transaction's part of `s.mu`'s deposit ghost back
+    icases ghostVar_halves γ.wv ilog $$ Hwv with ⟨Hwv, HwvW⟩
+    ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd]
+    · iunfold mvcc.writerL
       iexists ilog, ntok
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hbv Hcres Hlrd
+      iframe Htoks Hw Hclog Hwv Hcur Hlrd
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
+    imod mvcc.writerInv_checkin s γ ilog $$ Hlc2 HwiS HL HwvW with ⟨Hwk, Hwr, HwvW⟩
+    ihave HW : mvcc.writerRes s γ $$ [Hwk HwvW Hbv Hcres]
+    · iunfold mvcc.writerRes
+      iexists ilog
+      simp only [named]
+      iframe Hwk HwvW Hbv Hcres
+      iframe #
+      ipureintro; exact Hne
     ihave HW := mvcc.storeW_put s γ $$ [$Hreg $HW]
     rw [mvcc.pendPuts_nil]
     wp_apply HUnlock0 $$ [$Hlocked $HW $HP]
@@ -77,8 +88,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     (try wp_auto)
     iunfold mvcc.muHeld at Hmu
     icases Hmu with ⟨Hmu, Hmua⟩
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
-    · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr] as Hmu
+    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua; iunfold mvcc.wDep at Hwr; iexact Hwr
     (try wp_auto)
     iapply HΦ
     iframe HZ
@@ -144,9 +155,21 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe HbucketL Hbv
     -- `tw.tx.Unlock()`: the write-back, then the batch lock's resource at the committed log
     -- (half the new view), the other half kept for `s.revMu`
+    -- the writer's state at the committed log, checked back in (D22 receiver epochs, S2)
+    imod ghostVar_update (ilog ++ [pend]) γ.wv ilog $$ Hwv with Hwv
+    icases ghostVar_halves γ.wv (ilog ++ [pend]) $$ Hwv with ⟨Hwv, HwvW⟩
+    ihave HL : mvcc.writerL s γ $$ [Htoks Hw Hclog Hwv Hcur Hlrd]
+    · iunfold mvcc.writerL
+      iexists (ilog ++ [pend]), n
+      simp only [named]
+      iframe Htoks Hw Hclog Hwv Hcur Hlrd
+      iframe #
+      ipureintro
+      exact ⟨by simp; omega, by simp⟩
+    imod mvcc.writerInv_checkin s γ (ilog ++ [pend]) $$ Hlc2 HwiS HL HwvW with ⟨Hwk, Hwr, HwvW⟩
     ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur Hcres Hlrd] as Hbucket
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres] as Hbucket
     · rw [← mvcc.bucketMap_append ilog pend Hne]
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -154,12 +177,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iapply mvcc.storeW_put s γ
       iframe Hreg
       iunfold mvcc.writerRes
-      iexists (ilog ++ [pend]), n
+      iexists (ilog ++ [pend])
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hv1 Hcres Hlrd
+      iframe Hwk HwvW Hv1 Hcres
       iframe #
-      ipureintro
-      exact ⟨by simp; omega, by simp⟩
+      ipureintro; simp
     (try wp_auto)
     -- `tw.s.revMu.Unlock()`
     wp_if_destruct
@@ -184,8 +206,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       -- `tw.s.mu.RUnlock()`
       iunfold mvcc.muHeld at Hmu
       icases Hmu with ⟨Hmu, Hmua⟩
-      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
-      · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
+      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr] as Hmu
+      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua; iunfold mvcc.wDep at Hwr; iexact Hwr
       (try wp_auto)
       iapply HΦ
       iframe HZ

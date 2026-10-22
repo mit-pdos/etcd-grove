@@ -161,14 +161,14 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
         changes' := chs' } : storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
       mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z : IProp GF)
-      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
+      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]
-    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     isplitl []
     · ipureintro; exact Hbudget

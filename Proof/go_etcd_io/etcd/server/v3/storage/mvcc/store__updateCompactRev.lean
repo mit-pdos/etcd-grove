@@ -253,7 +253,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         imod Hupd $$ HQ with ⟨HP, HPost⟩
         ihave HP0 := HPP0 $$ HP
         iunfold mvcc.writerRes at HW
-        icases HW with ⟨%ilog, %ntok', HW⟩
+        icases HW with ⟨%ilog, HW⟩
         iNamed HW
         iunfold mvcc.compactRes at Hcres
         icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn⟩
@@ -262,12 +262,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
         imodintro
         iframe HP0 HPost
         iunfold mvcc.writerRes
-        iexists ilog, ntok'
+        iexists ilog
         simp only [named]
         iframe
         iframe #
-        isplitr
-        · ipureintro; exact Hbudget
         isplitr
         · ipureintro; exact Hne
         iunfold mvcc.compactRes

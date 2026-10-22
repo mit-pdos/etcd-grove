@@ -46,7 +46,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
@@ -140,11 +140,13 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
         | exact ⟨Hne, trivial, Htrnn, HcM, Hc.2⟩
         | exact ⟨Hne, Htrnn, HcM, Hc.2⟩
         | exact ⟨Hne, rfl, Htrnn, HcM, Hc.2⟩
-    isplitl [Htok]
+    isplitl [Htok Hwr]
     · iunfold mvcc.txReader
       iexists (mvcc.bucketMap log), m', Rd, Tok
       simp only [named]
       iframe Htok Hthin
+      iunfold mvcc.wDep
+      iframe Hwr
       isplitr
       · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
       ipureintro; exact fun _ _ h => h

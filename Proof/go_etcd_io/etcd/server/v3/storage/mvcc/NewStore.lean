@@ -171,13 +171,23 @@ theorem mvcc.NewStore.wp_proof
   -- compaction's: the meta keys' record (nothing written), the finished compactions' counter
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm, Hmeta⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
-  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw⟩ :
+  -- the writer's (D22 receiver epochs, S2): `s.mu`'s deposit ghost, the batch lock's key, the
+  -- ghost of the log the bucket's view is of
+  imod ghostVar_alloc (GF := GF) () with ⟨%γwr, Hwr⟩
+  imod ghostVar_alloc (GF := GF) () with ⟨%γwk, Hwk⟩
+  imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwv, Hwv⟩
+  icases ghostVar_halves γwv _ $$ Hwv with ⟨Hwv1, Hwv2⟩
+  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
+      hγwv⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
-      γ.watchQ = wq :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl⟩
+      γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv⟩, rfl, rfl, rfl, rfl,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  rw [← hγwr] at *
+  rw [← hγwk] at *
+  rw [← hγwv] at *
   ihave #HhookP : mvcc.hookP γ P $$ []
   · iunfold mvcc.hookP; rw [hγh]; iexact Hh
   ihave #Hhook : mvcc.hookInit γ P f $$ []
@@ -284,15 +294,30 @@ theorem mvcc.NewStore.wp_proof
   have hone : (W64 1 : w64) = W64 (((([[], []] : mvcc.Log).length : Int)) - 1) := rfl
   ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hlrd]
   · rw [hγl]; iexact Hlrd
-  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd]
-  · iunfold mvcc.writerRes
+  -- the writer's state, in the writer's invariant (D22 receiver epochs, S2)
+  ihave HL : mvcc.writerL «$r0_ptr» γ $$ [Hauth Hiw Hc1 Hwv1 HcurA Hlrd]
+  · iunfold mvcc.writerL
     iexists [[], []], 2 ^ 63 - 5
     simp only [named]
-    rw [mvcc.bucketMap_init, ← hone]
-    iframe Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd
+    rw [← hone]
+    iframe Hauth Hiw Hc1 Hwv1 HcurA Hlrd
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
+  imod (inv_alloc mvcc.writerN ⊤ iprop(mvcc.writerL «$r0_ptr» γ ∨ mvcc.writerKey γ ∗ mvcc.wDep γ))
+    $$ [HL] with #Hwi
+  · inext; ileft; iexact HL
+  ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
+  · iunfold mvcc.writerInv; iexact Hwi
+  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres]
+  · iunfold mvcc.writerRes
+    iexists [[], []]
+    simp only [named]
+    rw [mvcc.bucketMap_init]
+    iunfold mvcc.writerKey
+    iframe Hwk Hwv2 Hbv1 Hcres
+    iframe #
+    ipureintro; simp
   imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
@@ -310,11 +335,12 @@ theorem mvcc.NewStore.wp_proof
       DFrac.own (1 : Qp).half} (W64 (-1) : w64) : IProp GF) $$ [compactMainRev]
   · rw [← hsplit]; iexact compactMainRev
   icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcmp2 with ⟨HcmpA, HcmpB⟩
-  imod sync.init_RWMutex (mvcc.muInv «$r0_ptr» γ) (mvcc.muAddr «$r0_ptr») $$ [HcmpA HcuM] mu
+  imod sync.init_RWMutex (mvcc.muInv «$r0_ptr» γ) (mvcc.muAddr «$r0_ptr») $$ [HcmpA HcuM Hwr] mu
     with Hmus
   · inext
     iunfold mvcc.muInv
     iexists -1
+    iframe Hwr
     iunfold mvcc.muInvAt
     iframe HcmpA HcuM
     isplitl []
@@ -326,7 +352,7 @@ theorem mvcc.NewStore.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv «$r0_ptr» γ 1)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   ihave %Hcm := mvcc.crevUB_agree γ.idx _ _ cm (-1) HcM (by decide) $$ HcrevM HcuR
@@ -389,10 +415,11 @@ theorem mvcc.NewStore.wp_proof
     ipureintro; simp
   icases sync.ownRWMutex_slots_guard _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
   -- the deferred `s.mu.Unlock()`
-  wp_apply sync.RWMutex.wp_Unlock $$ [$Hmul HcmpA HcrevM] as Hmu1
+  wp_apply sync.RWMutex.wp_Unlock $$ [$Hmul HcmpA HcrevM Hwr] as Hmu1
   · inext
     iunfold mvcc.muInv
     iexists -1
+    iframe Hwr
     iunfold mvcc.muInvAt
     iframe HcmpA HcrevM
     iframe #

@@ -134,6 +134,17 @@ structure StoreNames where
   `s.mu` the outer quarter (`logQ`), which a commit takes from its caller; otherwise `s.revMu`
   holds a half and a commit needs nothing more (`revQ`, `logQPre`) -/
   watchQ : Bool
+  /-- (D22 receiver epochs, S2, 2026-10-22) the writer's deposit (`ghostVar Unit`): `s.mu`'s
+  resource holds it at its fraction (`muInv`); a writer, holding `s.mu` shared, deposits its part
+  in the writer's invariant while it holds the writer's state (`wDep`, `writerInv`), so the holder
+  of `s.mu` exclusively finds that state there -/
+  wr : GName := 0
+  /-- (S2) the batch lock's key (`ghostVar Unit`, exclusive: `writerKey`), in the batch lock's
+  resource or deposited by the writer holding the lock; per backend -/
+  wk : GName := 0
+  /-- (S2) the log the batch lock's view is of (`ghostVar Log`): half in the batch lock's resource
+  (`writerRes`), half in the writer's state (`writerL`); per backend -/
+  wv : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -165,11 +176,8 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb,
-      x.cmeta, x.fin, x.sch, x.cok, x.watchQ))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2⟩)
+    (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 section addrs
@@ -1385,26 +1393,82 @@ def compactRes (γ : StoreNames) : IProp GF :=
 /-! ## The locks -/
 
 
-/-- The batch lock's resource for the store (`W` of `isKeyBackend`): the index writer's handle
-at the committed log `ilog` with no pending change, half the committed-log ghost variable (the
-other half under `s.revMu`), half of `currentRev` (`store.Write` reads it under the batch lock
-alone), half the bucket's view (the other half under `s.revMu`: the write transaction's reads
-of the bucket, through the batch transaction), the certificate of `ilog`, and half the
-revision budget's authority (the other half under `s.revMu`); and the compaction's part
-(`compactRes`: the meta keys' record, the finished compactions' counter). -/
+/-- Two halves of a ghost variable agree and make the whole. -/
+theorem ghostVar_join_halves {A : Type} [Pos.Countable A] (γ : GName) (a b : A) :
+    ghostVar (GF := GF) γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half b ⊢
+      ghostVar γ 1 a ∗ ⌜a = b⌝ := by
+  iintro ⟨H1, H2⟩
+  ihave %Hab := ghostVar_agree γ a _ b _ $$ H1 H2
+  subst Hab
+  have h := (ghostVar_fractional (GF := GF) γ a).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  isplitl
+  · iapply h.2; iframe H1 H2
+  ipureintro; rfl
+
+/-- **The batch lock's key** (exclusive; D22 receiver epochs, S2, 2026-10-22): in the batch lock's
+resource (`writerRes`), deposited by a writer holding the lock while it holds the writer's state
+(`writerInv`): so a writer finds that state in the invariant. -/
+def writerKey (γ : StoreNames) : IProp GF := ghostVar γ.wk 1 ()
+
+/-- **A reader's part of `s.mu`'s deposit ghost** (D22 receiver epochs, S2): `s.mu`'s resource
+holds the ghost at its fraction (`muInv`), so a holder of `s.mu` shared has this part: a read
+transaction keeps it with its reader (`txReader`), a writer deposits it in the writer's invariant
+while it holds the writer's state (`writerInv`), so the holder of `s.mu` exclusively (all of the
+ghost) finds that state there. -/
+def wDep (γ : StoreNames) : IProp GF := ghostVar γ.wr sync.rfrac ()
+
+/-- The batch lock's resource for the store (`W` of `isKeyBackend`; physical, per backend: D22
+receiver epochs, S2, 2026-10-22, until then also the writer's state, now `writerL`): the batch
+lock's key, half the ghost of the log `L` the bucket's view is of (the other half is the
+writer's state's, so the writer's log is the view's), half the bucket's view at `L` (the other
+half under `s.revMu`: the write transaction's reads of the bucket, through the batch transaction),
+the certificate of `L`, and the compaction's part (`compactRes`: the meta keys' record, the
+finished compactions' counter). -/
 def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop(∃ L : Log,
+    "Hwk" ∷ writerKey γ ∗
+    "Hwv" ∷ ghostVar γ.wv (1 : Qp).half L ∗
+    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap L) ∗
+    "#Hcert" ∷ idxCert γ.idx L ∗
+    "%Hne" ∷ ⌜L ≠ []⌝ ∗
+    "Hcres" ∷ compactRes γ)
+
+/-- **The writer's state** (D22 receiver epochs, S2, 2026-10-22; until then in the batch lock's
+resource, which `store.Restore` never takes): the index writer's handle at the committed log
+`ilog` with no pending change, half the committed-log ghost variable (the other half under
+`s.revMu`), half the ghost of the log the bucket's view is of (the other half in the batch lock's
+resource), half of `currentRev` (`store.Write` reads it under the batch lock and `s.mu` shared),
+the certificate of `ilog`, half the revision budget's authority (the other half under `s.revMu`),
+and a reader slot of the lessor. It is in the writer's invariant (`writerInv`), checked out by a
+writer holding `s.mu` shared and the batch lock. -/
+def writerL (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (ilog : Log) (ntok : Nat),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hw" ∷ idxWriter γ.idx ilog [] ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
+    "Hwv" ∷ ghostVar γ.wv (1 : Qp).half ilog ∗
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
-    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
-    "Hcres" ∷ compactRes γ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases)
+
+/-- The writer's invariant's name. -/
+abbrev writerN : Namespace := nroot.@"mvcc_writer"
+
+/-- **The writer's invariant** (persistent; D22 receiver epochs, S2, 2026-10-22): the writer's
+state checked in, or the batch lock's key with a reader's part of `s.mu`'s deposit ghost (a writer,
+holding the batch lock and `s.mu` shared, has the state out). A writer finds the state in (it
+holds the key: `writerInv_checkout`); so does the holder of `s.mu` exclusively (`store.Restore`,
+which takes neither the batch lock nor a writer's state from it: all of the deposit ghost). -/
+def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
+  inv writerN iprop(writerL s γ ∨ writerKey γ ∗ wDep γ)
+
+instance writerInv_persistent (s : Loc) (γ : StoreNames) : Persistent (writerInv (GF := GF) s γ) := by
+  unfold writerInv; infer_instance
+
 
 /-! ### The batch lock's resource, late-bound (the real backend)
 
@@ -1754,8 +1818,11 @@ def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
     "#HclM" ∷ crevSafe γ c ∗
     "%HcM" ∷ ⌜-1 ≤ c⌝)
 
-/-- `s.mu`'s resource at fraction `q`: at some compaction revision. -/
-def muInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF := iprop(∃ c : Int, muInvAt s γ q c)
+/-- `s.mu`'s resource at fraction `q`: at some compaction revision, and the writer's deposit
+ghost at the fraction (D22 receiver epochs, S2: a holder of `s.mu` exclusively has all of it, so
+no writer has the writer's state out, `writerInv`). -/
+def muInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
+  iprop(∃ c : Int, muInvAt s γ q c ∗ ghostVar γ.wr q ())
 
 instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF := GF) s γ) where
   fractional q1 q2 := by
@@ -1765,25 +1832,30 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
       fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
+    have hwr := (ghostVar_fractional (GF := GF) γ.wr ()).fractional q1 q2
     unfold muInv muInvAt
     rw [Qp_half_add, Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
-      icases H with ⟨%c, H⟩
+      icases H with ⟨%c, H, Hwr⟩
       iNamed H
       icases (hcmp _).1 $$ HcmpM with ⟨Hm1, Hm2⟩
       icases (hcrev c).1 $$ HcrevM with ⟨Hv1, Hv2⟩
-      isplitl [Hm1 Hv1]
-      · iexists c; simp only [named]; iframe Hm1 Hv1; iframe #; ipureintro; exact HcM
-      · iexists c; simp only [named]; iframe Hm2 Hv2; iframe #; ipureintro; exact HcM
+      icases hwr.1 $$ Hwr with ⟨Hw1, Hw2⟩
+      isplitl [Hm1 Hv1 Hw1]
+      · iexists c; simp only [named]; iframe Hm1 Hv1 Hw1; iframe #; ipureintro; exact HcM
+      · iexists c; simp only [named]; iframe Hm2 Hv2 Hw2; iframe #; ipureintro; exact HcM
     · iintro ⟨H1, H2⟩
-      icases H1 with ⟨%c, H1⟩
-      icases H2 with ⟨%c2, H2⟩
+      icases H1 with ⟨%c, H1, Hw1⟩
+      icases H2 with ⟨%c2, H2, Hw2⟩
       iNamedSuffix H1 "1"
       iNamedSuffix H2 "2"
       ihave %Hcc := crevUB_agree γ.idx _ _ c c2 HcM1 HcM2 $$ HcrevM1 HcrevM2
       subst Hcc
       iexists c
+      isplitr [Hw1 Hw2]
+      rotate_left
+      · iapply hwr.2; iframe Hw1 Hw2
       simp only [named]
       isplitl [HcmpM1 HcmpM2]
       · iapply (hcmp _).2; iframe HcmpM1 HcmpM2
@@ -1886,6 +1958,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
     "#HhsOk" ∷ mvcc.hashStorageOk shs ∗
+    "#Hwi" ∷ writerInv s γ ∗
     "#Hc0" ∷ idxCert γ.idx [[], []] ∗
     "%Hrb" ∷ ⌜receiptBound GF ≤ 2 ^ 48⌝)
 
@@ -1904,8 +1977,8 @@ instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (
     Persistent (storeBackend (GF := GF) b s γ P) := by
   unfold storeBackend; infer_instance
 
-set_option synthInstance.maxSize 4096 in
-set_option synthInstance.maxHeartbeats 400000 in
+set_option synthInstance.maxSize 8192 in
+set_option synthInstance.maxHeartbeats 800000 in
 instance isStore_persistent (s : Loc) (γ : StoreNames) : Persistent (isStore (GF := GF) s γ) := by
   unfold isStore; infer_instance
 
@@ -2028,12 +2101,14 @@ def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNa
 /-- A read transaction's reader `rt`, locked: a snapshot `m'` of a bucket `m` holding `log`'s,
 but for keys compaction may have deleted (`snapThin`; 2026-10-13, unit 6a), with the reader's
 token (from its `RLock` to the transaction's `End`, which `RUnlock`s it, getting the store's
-reader token back). -/
+reader token back), and the transaction's part of `s.mu`'s deposit ghost (given back at `End`
+with its part of `s.mu`'s resource; D22 receiver epochs, S2). -/
 def txReader (γ : StoreNames) (rt : GoInterfaceOk) (log : Log) : IProp GF :=
   iprop(∃ (m m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
     "#Hsnap" ∷ keyReadLocked (storeRT γ) false rt m' Rd Tok ∗
     "#Hthin" ∷ snapThin m m' (delKey γ) ∗
     "Htok" ∷ Tok ∗
+    "Hwr" ∷ wDep γ ∗
     "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝)
 
 instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames)
@@ -2337,6 +2412,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
     "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
+    "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hmu" ∷ muHeld s γ crev ∗
@@ -2382,6 +2458,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
       (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
     "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
+    "Hwv" ∷ ghostVar γ.wv 1 ilog ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hmu" ∷ muHeld s γ crev ∗
@@ -2441,7 +2518,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn, Hcrev⟩
 
@@ -2456,7 +2533,7 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iunfold storeTxnWriteIs
   iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn, Hcrev⟩
 
@@ -2479,7 +2556,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iunfold storeTxnWriteCore
   iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_true]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
@@ -2499,7 +2576,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   · iunfold storeTxnWriteCore
     iexists ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hwv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩
@@ -2910,6 +2987,49 @@ theorem hookP_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f : val
     icases Hiff with ⟨-, #H⟩
     iapply H
     iexact HP
+
+/-- **A writer checks the writer's state out** (one later credit): with the batch lock's key (the
+state is in: another writer's deposit would be a second key) and its part of `s.mu`'s deposit
+ghost, both deposited. -/
+theorem writerInv_checkout (s : Loc) (γ : StoreNames) :
+    ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ writerKey γ -∗ wDep γ ={⊤}=∗ writerL s γ := by
+  iintro Hlc #Hi Hk Hd
+  iunfold writerInv at Hi
+  imod inv_acc (E := ⊤) (N := writerN) (P := iprop(writerL (GF := GF) s γ ∨ writerKey γ ∗ wDep γ))
+    (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
+  imod (lc_fupd_elim_later (P := iprop(writerL (GF := GF) s γ ∨ writerKey γ ∗ wDep γ))) $$ Hlc HP with HP
+  icases HP with (HL | ⟨Hk', -⟩)
+  · imod Hclose $$ [Hk Hd] with -
+    · inext; iright; iframe Hk Hd
+    imodintro; iexact HL
+  · iunfold writerKey at Hk Hk'
+    ihave %Hv := ghostVar_valid_2 γ.wk () 1 () 1 $$ Hk Hk'
+    exact absurd Hv.1 (Qp_one_add_not_le 1)
+
+/-- **A writer checks the writer's state back in** (one later credit), getting the batch lock's key
+and its part of `s.mu`'s deposit ghost back: the state is out (a second state's half of the view's
+log ghost, with the writer's and the batch lock's, would be three halves). -/
+theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) :
+    ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ writerL s γ -∗ ghostVar γ.wv (1 : Qp).half L ={⊤}=∗
+      writerKey γ ∗ wDep γ ∗ ghostVar γ.wv (1 : Qp).half L := by
+  iintro Hlc #Hi HL Hv
+  iunfold writerInv at Hi
+  imod inv_acc (E := ⊤) (N := writerN) (P := iprop(writerL (GF := GF) s γ ∨ writerKey γ ∗ wDep γ))
+    (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
+  imod (lc_fupd_elim_later (P := iprop(writerL (GF := GF) s γ ∨ writerKey γ ∗ wDep γ))) $$ Hlc HP with HP
+  icases HP with (HL' | ⟨Hk, Hd⟩)
+  · iunfold writerL at HL HL'
+    icases HL with ⟨%l1, %n1, HL⟩
+    icases HL' with ⟨%l2, %n2, HL'⟩
+    iNamedSuffix HL "1"
+    iNamedSuffix HL' "2"
+    icases ghostVar_join_halves γ.wv l1 l2 $$ [Hwv1 Hwv2] with ⟨Hwv12, -⟩
+    · iframe Hwv1 Hwv2
+    ihave %Hv3 := ghostVar_valid_2 γ.wv l1 1 L (1 : Qp).half $$ Hwv12 Hv
+    exact absurd Hv3.1 (Qp_one_add_not_le _)
+  · imod Hclose $$ [HL] with -
+    · inext; ileft; iexact HL
+    imodintro; iframe Hk Hd Hv
 
 /-- A stop channel (persistent): a broadcast channel of `True`, maybe closed (the store's
 `stopc`; the watchable store's). Moved from `InvWatchStore.lean` (2026-10-13). -/
