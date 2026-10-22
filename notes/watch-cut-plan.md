@@ -352,6 +352,15 @@ and `revEvs_prefix`. A member's watched log of more than two revisions is a hist
 the member's store has sealed (`isStore`'s `idxCert γ.idx [[], []]`, reached from `isWatchServer`),
 and `[[], []]` is the history log of the empty committed prefix (`log0 = [[], []]`).
 
+**W4c done (2026-10-22).** `v3rpc.histWL` and its laws (`histWL_reached`, `histWL_state`,
+`histWL_step`, `histWL_of_sealed`, `HistoryModel.lean`); `client.watchLaws_hist` and
+`isWatchServer_start` (`WatchLawsHist.lean`); a client of several members:
+`watchConnFacts_of_members` and `isNewClient_watcher_of` (`InvClientNewResult.lean`;
+`watchConnFacts_of_addr` and `isNewClient_watcher` remain the one-server case); linkv3p's
+`memberWatch` (a member's read view, watch server, `srvNoDupKeys`, `memberOf`) and `watchEnv_conn`
+(the watcher's facts at every connection to the three bridges, `WatchEnv.lean`). `srvNoDupKeys` is
+the caller's (W4d: watchkv's `srvNoDupKeys_wk`, from the workload).
+
 - `Main` builds the watch environment from the members (no more `noWatch`). The watch workload's
   proofs follow watchkv's (`Writes`, `WatchFacts`, the checker's).
 - The closed theorem covers the watch check (`linkv3p_safe` extended, or a second theorem over the

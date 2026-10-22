@@ -259,7 +259,7 @@ choice (`isNewClient`); a client that never watches needs none of its facts. -/
 def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     EtcdGrove.client.WEnv GF :=
   ⟨R₁, bridgeAddr₁, [], null, null, pfx, null, v3rpc.etcdModelOfHistory γr.raft γr.kv,
-    v3rpc.histLog γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3⟩
+    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `startCluster` gives of each, from
 `memberServed` and its bridge's start): its place in the network, its bridge's address serving

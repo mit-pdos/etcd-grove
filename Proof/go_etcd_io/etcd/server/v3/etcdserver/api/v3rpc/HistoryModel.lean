@@ -408,6 +408,135 @@ theorem histReached_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AE
   ipureintro
   rw [← kvModel_congr γk γr.kv hc0 hch hlog, hA]; exact h
 
+/-! ## The watched logs of a client of the cluster (W4c) -/
+
+/-- **A watched log of the history** (persistent; W4c of `notes/watch-cut-plan.md`): a prefix of
+a history log. A member watches logs of at most two revisions (the start log's prefixes) that no
+committed raft prefix models exactly; the prefixes of history logs take them in. -/
+def histWL (γ : ServerRaftNames) (γk : KVNames) (L : Log) : IProp GF :=
+  iprop(∃ L' : Log, histLog γ γk L' ∗ ⌜L <+: L'⌝)
+
+instance histWL_persistent (γ : ServerRaftNames) (γk : KVNames) (L : Log) :
+    Persistent (histWL (GF := GF) γ γk L) := by
+  unfold histWL; infer_instance
+
+/-- A watched log's revisions are reached. -/
+theorem histWL_reached (γ : ServerRaftNames) (γk : KVNames) (L : Log) (r : w64)
+    (h : sint.Z r < L.length) :
+    histWL (GF := GF) γ γk L ⊢ etcdReached (EM := etcdModelOfHistory γ γk) r := by
+  iintro #H
+  iunfold histWL at H
+  icases H with ⟨%L', #HL, %hp⟩
+  unfold etcdReached
+  by_cases hle : sint.Z r ≤ 0
+  · ileft; ipureintro; exact hle
+  iright
+  iexists r
+  isplitr
+  · ipureintro; exact Int.le_refl _
+  imodintro
+  rw [etcdModelOfHistory_etcdReachedAt]
+  iunfold histLog at HL
+  icases HL with ⟨%A, #HA, %hA⟩
+  iunfold histReachedAt
+  iexists A
+  iframe HA
+  ipureintro
+  have := hp.length_le
+  rw [hA.1]; omega
+
+/-- A watched log's states are the history's. -/
+theorem histWL_state (γ : ServerRaftNames) (γk : KVNames) (L : Log) (r : w64) (pfx : GoString)
+    (h : 0 ≤ sint.Z r ∧ sint.Z r < L.length) :
+    histWL (GF := GF) γ γk L ⊢
+      histEtcdState γ γk r pfx (underPfx pfx (stateAt L (sint.Z r).toNat)) := by
+  iintro #H
+  iunfold histWL at H
+  icases H with ⟨%L', #HL, %hp⟩
+  iunfold histEtcdState
+  iexists L'
+  iframe HL
+  ipureintro
+  have := hp.length_le
+  refine ⟨h.1, by omega, ?_⟩
+  rw [stateAt_of_prefix hp (by omega)]
+
+/-- A watched log's steps are the history's. -/
+theorem histWL_step (γ : ServerRaftNames) (γk : KVNames) (L : Log) (r0 r1 : w64)
+    (pfx : GoString) (evs : List EtcdEv)
+    (h : 0 ≤ sint.Z r0 ∧ sint.Z r0 ≤ sint.Z r1 ∧ sint.Z r1 < L.length ∧
+      (∀ x : Nat, sint.Z r0 < x → x < sint.Z r1 → revEvs L pfx x = []) ∧
+      revEvs L pfx (sint.Z r1).toNat = evs) :
+    histWL (GF := GF) γ γk L ⊢ histStep γ γk r0 r1 pfx evs := by
+  iintro #H
+  iunfold histWL at H
+  icases H with ⟨%L', #HL, %hp⟩
+  iunfold histStep
+  iexists L'
+  iframe HL
+  ipureintro
+  obtain ⟨h0, h01, h1, hmid, hevs⟩ := h
+  have := hp.length_le
+  refine ⟨h0, h01, by omega, fun x hx0 hx1 => ?_, ?_⟩
+  · rw [revEvs_prefix hp (by omega)]; exact hmid x hx0 hx1
+  · rw [revEvs_prefix hp (by omega)]; exact hevs
+
+/-- The start log `[[], []]` is well formed and small. -/
+theorem startLog_ok : LogWf' ([[], []] : Log) ∧ ([[], []] : Log).length < 2 ^ 63 ∧
+    LogSmall ([[], []] : Log) := by
+  refine ⟨⟨fun _ => rfl, fun r cs i k hr hi => ?_⟩, by decide, ?_⟩
+  · have hcs : cs = [] := by
+      rcases r with _ | _ | r <;> simp_all
+    subst hcs; simp at hi
+  · unfold LogSmall; decide
+
+/-- **A member's watched log is the history's** (W4c): one of more than two revisions is a history
+log (`histLog_of_cert`); one of at most two is a prefix of the start log `[[], []]` (the member's
+store sealed it, `NewStore`'s certificate), the history log of the empty committed prefix. -/
+theorem histWL_of_sealed (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
+    (γr : ReadNames) (hm : memberOf γ γk γr) (hlog0 : γk.log0 = [[], []]) (Em : CoPset)
+    (hEm : ↑kvcN ⊆ Em) (L : Log) (hs : LogSmall L) :
+    ⊢ srvKVInvs (GF := GF) E γr -∗ idxSealed E.γ.idx [[], []] -∗ idxSealed E.γ.idx L -∗
+      certOk E.γ L ={Em}=∗ histWL γ γk L := by
+  iintro #Hinvs #H0 #Hs #Hc
+  by_cases h2 : 2 < L.length
+  · ihave #Hl : srvLog E L $$ []
+    · iunfold srvLog; iframe Hs; ipureintro; exact hs
+    imod histLog_of_cert γ γk E γr hm Em hEm L h2 $$ Hinvs Hl Hc with #Hh
+    imodintro
+    iunfold histWL
+    iexists L
+    iframe Hh
+    ipureintro; exact List.prefix_refl L
+  ihave %hc := idxSealed_cmp E.γ.idx L [[], []] $$ Hs H0
+  have hp : L <+: ([[], []] : Log) := by
+    rcases hc with h | h
+    · exact h
+    · have := h.length_le
+      have he := h.eq_of_length (by simp at this ⊢; omega)
+      rw [he]; exact List.prefix_refl L
+  obtain ⟨hr, -, -, -⟩ := hm
+  iunfold srvKVInvs at Hinvs
+  icases Hinvs with ⟨-, #Hcinv, -, -⟩
+  iunfold kvCertInv at Hcinv
+  iinv Hcinv with >Hi Hclose
+  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
+  imod Hclose $$ [HC Hhi'] with -
+  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
+  ihave #H0lb := srvRLogLb_mono γr.raft [] Lb (List.nil_prefix) $$ HLb
+  imodintro
+  iunfold histWL
+  iexists [[], []]
+  isplitl
+  · iunfold histLog
+    iexists []
+    rw [← hr]
+    iframe H0lb
+    ipureintro
+    refine ⟨?_, startLog_ok⟩
+    unfold kvModel; rw [kvRaftOf_nil, hlog0]
+  ipureintro; exact hp
+
 end model
 
 end v3rpc

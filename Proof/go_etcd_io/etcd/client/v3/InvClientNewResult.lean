@@ -197,6 +197,70 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
   iframe P1 P2 P3 Hf
   iexact Hc
 
+/-- **A watcher's facts at a connection to several members** (W4c of `notes/watch-cut-plan.md`):
+`watchConnFacts` from the packages' facts, the connection, the `Watch` stream at each member's
+address and each member's facts (`watchConnFacts_of_addr`, for a client of one server, builds them
+at its one address). -/
+theorem watchConnFacts_of_members [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
+    (V : WEnv GF) (conn : Loc) (ics : List GoFunc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
+      isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      grpcConn (GF := GF) conn V.addrs ics [] ∗
+      isGrpcStreams (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addrs
+        go!"/etcdserverpb.Watch/Watch" (fun a => v3rpc.watchUp (V.memOf a).γ)
+        (fun a => v3rpc.watchSpec (V.memOf a)) ∗
+      (□ ∀ i : Nat, ⌜i < V.nm⌝ -∗ watchMemberFacts (V.atIdx i)) ∗ eofOk ∗
+      ⌜V.pfx ≠ [] ∧ V.addrs.Nodup ∧ ∃ i, i < V.nm ∧ V.mem i = (V.addr, V.R)⌝ ⊢
+      watchConnFacts { V with conn := conn, ics := ics } := by
+  iintro ⟨#P1, #P2, #P3, #Hc, #Hst, #Hm, #Heof, %Hp⟩
+  ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
+  ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
+  ihave #H2 := watchDescOk_of_init $$ P2
+  ihave #H10 := clientWatchVars_of_init $$ P1
+  have ha : WEnv.addrs (GF := GF) { V with conn := conn, ics := ics } = V.addrs := rfl
+  have hmo : ∀ a, WEnv.memOf (GF := GF) { V with conn := conn, ics := ics } a = V.memOf a :=
+    fun _ => rfl
+  unfold watchConnFacts
+  simp only [ha, hmo]
+  iframe #
+  isplitr
+  · iintro !> %i %hi
+    iapply (show watchMemberFacts (GF := GF) (V.atIdx i) ⊢
+        watchMemberFacts ({ V with conn := conn, ics := ics }.atIdx i) from by
+      unfold watchMemberFacts watchLaws; exact .rfl)
+    iapply Hm
+    ipureintro; exact hi
+  ipureintro; exact Hp
+
+/-- **The client's watcher at the facts of its connection** (W4c; `isNewClient_watcher`, for a
+client of one server, is this at `watchConnFacts_of_addr`): `New`'s client with, for every
+connection to its endpoints, the watcher's facts there. -/
+theorem isNewClient_watcher_of [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) :
+    isNewClient cl eps V ∗
+      (□ ∀ (conn : Loc) (ics : List GoFunc), grpcConn (GF := GF) conn eps ics [] -∗
+        watchConnFacts { V with conn := conn, ics := ics }) ⊢
+      ∃ (w conn wc lg : Loc) (ics : List GoFunc),
+        clientF cl go!"Watcher" ↦□ GoInterface.ok (watcherIfaceOf w) ∗
+        isClientWatcher { V with conn := conn, ics := ics, wc := wc, lg := lg } w := by
+  unfold isNewClient
+  iintro ⟨⟨-, -, -, ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hc, #Hcore⟩, -⟩, #Hf⟩
+  iexists w, conn, wc, lg, ics
+  iframe Hw
+  iapply isClientWatcher_of_core
+  iframe Hcore
+  iapply (show watchConnFacts (GF := GF) { V with conn := conn, ics := ics } ⊢
+      watchConnFacts { V with conn := conn, ics := ics, wc := wc, lg := lg } from by
+    unfold watchConnFacts; exact .rfl)
+  iapply Hf
+  iexact Hc
+
 end defs
 
 end EtcdGrove
