@@ -12574,7 +12574,7 @@ rpctypes' and `client/v3`'s initializer axioms, `bridge.New`). `errDesc_etcdErro
 collection whose results go through the retry interceptor; `etcd_noRefusal` is in linkv3p's
 only.
 
-## D30: a watch over several endpoints: streams over a list of addresses, forwarded by the bridge (2026-10-21 · approved by the user; `notes/watch-cut-plan.md` W1)
+## D32: a watch over several endpoints: streams over a list of addresses, forwarded by the bridge (2026-10-21 · approved by the user; `notes/watch-cut-plan.md` W1)
 
 **Problem.** A production client's watch fails over. When the member it streams from is cut,
 keepalive closes the connection, and the watch client re-opens the stream on the same `ClientConn`.

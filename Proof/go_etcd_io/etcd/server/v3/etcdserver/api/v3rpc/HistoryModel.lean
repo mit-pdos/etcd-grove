@@ -1,10 +1,10 @@
 /-
 **The clients' model of etcd over the cluster's committed history** (W3a of
-`notes/watch-cut-plan.md`, 2026-10-22; `notes/decisions.md` D30). Lean-first, no Rocq counterpart.
+`notes/watch-cut-plan.md`, 2026-10-22; `notes/decisions.md` D32). Lean-first, no Rocq counterpart.
 
 `etcdModelOfServer E` (`ClientModel.lean`) instantiates the clients' model with one server's
 facts: its sealed and certified logs. A client of several members (a watch resumed at another
-member after a cut, D30) cannot name the member in its contract. `etcdModelOfHistory γ γk`
+member after a cut, D32) cannot name the member in its contract. `etcdModelOfHistory γ γk`
 instantiates the model with the cluster's history instead, at the raft names `γ` the members share
 and the KV names `γk` they agree on (`c0`, `ch0`, `log0`, what the KV model reads):
 

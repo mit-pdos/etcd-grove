@@ -42,7 +42,7 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
   {{ (ws err : GoInterface), RET (PairV #ws #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
           (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF)),
-        -- (W3b) the stream at some member `i` of the connection's (D30)
+        -- (W3b) the stream at some member `i` of the connection's (D32)
         ⌜i < V.nm⌝ ∗ v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2.γ) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗ v3rpc.watchSpec (V.mem i).2 γs Dn) ∨

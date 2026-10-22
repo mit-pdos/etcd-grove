@@ -1,6 +1,6 @@
 /-
 **Two members' certified logs are in prefix order** (W2 of `notes/watch-cut-plan.md`, the lifting
-lemma; `notes/decisions.md` D30): a store log a member certified (`mvcc.certOk`, at its own
+lemma; `notes/decisions.md` D32): a store log a member certified (`mvcc.certOk`, at its own
 certificates' map) is the KV model of a committed prefix of the raft log (`kv_cert_read`); the
 members share the raft names, so their committed prefixes are comparable (`srvRLogLb_prefix`), and
 they agree on what the model reads (`c0`, `ch0`, `log0`), so the models of comparable prefixes are

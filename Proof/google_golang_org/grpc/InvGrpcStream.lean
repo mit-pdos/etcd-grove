@@ -957,7 +957,7 @@ instance isGrpcStream_persistent {Req Rep : StreamMsg GF} (addr name : GoString)
   unfold isGrpcStream; infer_instance
 
 /-- **The streaming method `name` of every server at `addrs`, each with its own content and
-specification** (persistent; D30): what a stream on a connection to `addrs` needs, wherever grpc's
+specification** (persistent; D32): what a stream on a connection to `addrs` needs, wherever grpc's
 balancer sends it. Reducible, by recursion, so that at one address it is that address's
 `isGrpcStream` (as `isGrpcRpcs`, D27). -/
 @[reducible] def isGrpcStreams {Req Rep : StreamMsg GF} : List GoString → GoString →

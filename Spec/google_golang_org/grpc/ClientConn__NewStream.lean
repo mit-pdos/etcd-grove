@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 /-- **`conn.NewStream(ctx, desc, method, opts...)`** on a connection with no default call options
 (`grpcConn conn addrs ics []`, what etcd's client dials with: `isEtcdConn`), for a streaming method
 registered at every address of `addrs`, each with its own content and stream specification
-(`isGrpcStreams addrs method Up Spec`; 2026-10-21, D30: until then one address, `[addr]`), a
+(`isGrpcStreams addrs method Up Spec`; 2026-10-21, D32: until then one address, `[addr]`), a
 context (`ctxOk`), a stream descriptor `desc` (read-only) of a client stream (`ClientStreams`;
 2026-10-18, the axiom audit: for a server-streaming method with retries etcd's interceptor
 returns a `serverStreamingRetryingStream`, which on a failed first `RecvMsg` opens a second stream
@@ -38,7 +38,7 @@ call options (`streamCallOptsOk`: scalar options, the client's retry policy opti
 interceptor's options): a client stream at some address `a` of `addrs` (`cliStreamIs`: a raw
 client end, both tokens at `[]`, `a`'s content `Up a` and stream specification `Spec a γ Dn` for
 the content `Dn` its responses will carry), or a client error grpc's `status` accepts and a `nil`
-stream. `a` is ghost: the program does not learn it. (D30) True of grpc-go: `newClientStream`
+stream. `a` is ghost: the program does not learn it. (D32) True of grpc-go: `newClientStream`
 takes one transport from the picker (round-robin over the READY subchannels of the resolver's
 addresses), and every message of the stream goes on that one HTTP/2 stream, to one server's
 handler run; grpc's transparent retry of a stream's creation moves it only when the first server

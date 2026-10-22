@@ -81,7 +81,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
-  -- (D30) the one-address case
+  -- (D32) the one-address case
   iapply (wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
     pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ _ _ => iprop(True)) (fun _ => Spec)
     ctx cd _ copts ([sm] ++ vs))

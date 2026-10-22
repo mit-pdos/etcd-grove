@@ -196,7 +196,7 @@ variable [sem : go.Semantics]
 
 /-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
 gives, from the bridge's trust-boundary spec of `New`), and (D29) `a` is refusal-free if `b` is,
-and (D30) `a` serves `b`'s stream methods. -/
+and (D32) `a` serves `b`'s stream methods. -/
 def forwards (a b : GoString) : IProp GF :=
   iprop((□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
     grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S) ∗
@@ -220,7 +220,7 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
   · iapply Hf $$ %name %mh %srv %ics %S Hs
   · iexact Hm
 
-/-- (D30) A stream method registered at `b` is registered at an address that forwards to `b`. -/
+/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`. -/
 theorem isGrpcStream_forwards {Req Rep : StreamMsg GF} (a b name : GoString)
     (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
     forwards (GF := GF) a b ∗ isGrpcStream b name Up Spec ⊢ isGrpcStream a name Up Spec := by

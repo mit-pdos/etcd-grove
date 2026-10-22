@@ -39,7 +39,7 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   under `linkv3p_safe`'s hypotheses but `Run`'s bounds, the client watcher's (watchkv's
   `watch_safe`: its class premises and `ContextErrsClient`) and watchkv's bounds on `nw` and
   `nops`; executions of `n + 2 ≤ 2^29` steps. The watch's events are the cluster's committed
-  history's (`etcdModelOfHistory`), the watch resumed at any member after a cut (D30): no gap, no
+  history's (`etcdModelOfHistory`), the watch resumed at any member after a cut (D32): no gap, no
   repeat, every successful put reported at its revision, whatever the schedule.
 
 What the theorem says of partitions: the network model (`Transport.Start`'s axiom) lets any

@@ -422,7 +422,7 @@ instance watchMemberFacts_persistent (V : WEnv GF) : Persistent (watchMemberFact
 /-- **The facts about the servers, the transport and the packages a watcher rests on, but the
 stub** (persistent; see the file header; W3b, 2026-10-22: of every member): the connection to
 the members' addresses, the `Watch` stream registered at each (its member's content and
-specification, D30), each member's facts, the packages', the prefix not empty, the addresses
+specification, D32), each member's facts, the packages', the prefix not empty, the addresses
 distinct, `V` at one of its members. -/
 def watchConnFacts (V : WEnv GF) : IProp GF :=
   iprop(grpcConn V.conn V.addrs V.ics [] ∗

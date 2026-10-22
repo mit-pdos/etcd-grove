@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `c.Watch(ctx, opts...)` on a stub on a connection to the servers at `addrs` (`watchStubAt`,
 `grpcConn` with no default call options), for the stream specification and the client's content
-each server registered for the method (`isGrpcStreams`: per address, D30, 2026-10-22; until then
+each server registered for the method (`isGrpcStreams`: per address, D32, 2026-10-22; until then
 one address): `NewStream` of `"/etcdserverpb.Watch/Watch"` with `grpc.StaticMethod()` before the
 options and the service's first `StreamDesc` (`watchDescOk`), wrapped in a
 `GenericClientStream[WatchRequest, WatchResponse]`: the client end of a fresh watch stream at some

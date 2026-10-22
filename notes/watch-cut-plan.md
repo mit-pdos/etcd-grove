@@ -1,6 +1,6 @@
 # Plan: watches across a cut (linkv3p)
 
-Status: W0 done, the lifting lemma scoped, D30 approved (2026-10-21, branch `watch-cut`); W1 (carrying D30 out) and W2 next. Follows `notes/read-retry-plan.md` (D29),
+Status: W0 done, the lifting lemma scoped, D32 approved (2026-10-21, branch `watch-cut`); W1 (carrying D32 out) and W2 next. Follows `notes/read-retry-plan.md` (D29),
 `notes/keepalive-plan.md` (D28) and `notes/client-cut-plan.md` (D26, D27), whose "Later" section
 lists this item.
 
@@ -50,7 +50,7 @@ The watch is tied to **one address and one member** at every layer:
 
 ## Design questions
 
-**Q1. Streams over a list of addresses (a trust-boundary change, D30, asked).**
+**Q1. Streams over a list of addresses (a trust-boundary change, D32, asked).**
 - `NewStream` on `grpcConn conn addrs` with the method registered at every address, as D27 did for
   `Invoke`. The stream is bound to the one address the balancer picked, for its whole life: one
   HTTP/2 stream on one subconnection.
@@ -179,13 +179,13 @@ settles Q4, so linkv3p's translation and proofs are untouched. One run under `-r
   until the member is mended, then catches up. That costs liveness, not safety, and the closed
   theorem is about safety.
 
-### W1. The trust boundary (asked of the user; D30)
+### W1. The trust boundary (asked of the user; D32)
 
 - `NewStream` over address lists: a stream at some member of the list, with that member's spec
   (Q1 (b), per the scoping).
 - The bridge forwards streams (`bridge.New`'s spec, `forwards`).
-- `notes/decisions.md` D30, and ask. **Approved 2026-10-21.**
-- **Done (2026-10-21):** D30's "Carried out". `NewStream` over a list, each address with its own
+- `notes/decisions.md` D32, and ask. **Approved 2026-10-21.**
+- **Done (2026-10-21):** D32's "Carried out". `NewStream` over a list, each address with its own
   content and spec, the stream at some address of the list; the bridge and `forwards` forward
   streams (`isGrpcStream_forwards`). No axiom added.
 
@@ -280,11 +280,11 @@ revision both have. Not yet used: W3 imports it.
     member facts.
   - `watchConnFacts` holds each member's facts (`watchMemberFacts (V.atIdx i)`: its token pool,
     small logs, no duplicate keys, store names, its logs' conversion) and the stream registered at
-    every member's address (`isGrpcStreams`, D30); the laws of `WM` read no member.
+    every member's address (`isGrpcStreams`, D32); the laws of `WM` read no member.
   - `EpInfo` records each epoch's member, and `respcE` reads an epoch's responses at it.
   - `run`'s loop invariant quantifies the epoch's environment, named `V` in the loop's body, so the
     body's proof is unchanged: `V = V0.atIdx i` for the stream's member `i` (`newWatchClient`
-    returns a stream at some member, `NewStream`'s axiom, D30). At a reconnection every substream
+    returns a stream at some member, `NewStream`'s axiom, D32). At a reconnection every substream
     is queued (`RunSt.reconnect`), whose state reads no member, so it carries to the next epoch's
     environment.
 - **W3b-2 done (2026-10-22): epochs at members.**
@@ -387,7 +387,7 @@ the bounds on `nw` and `nops`); `n + 2 ≤ 2^29`. No axiom added.
   lifting lemma is the main unknown, and it decides Q1(a) against (b). If it is out of reach, stop
   and ask: (b) with an existential member per epoch, or the watch at one endpoint (no failover for
   watches, which production clients do not have either).
-- Trust base: D30 restates `NewStream`'s axiom and the bridge's spec. No new axiom is expected.
+- Trust base: D32 restates `NewStream`'s axiom and the bridge's spec. No new axiom is expected.
 
 ## Out of scope
 

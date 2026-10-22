@@ -14,7 +14,7 @@ exactly the writes: every put at revisions `2, 3, ...`, no gap or repeat, each a
 successful put at its revision) -- started from a fresh state (no package initialized, one thread):
 for every real execution of `n` steps, the main thread's result, if it has one, is `WatchOk`,
 `WatchFailed` or `WatchEnded`, no thread is stuck, and no thread has ended in a panic. The watch
-resumes across members (the client watcher's reconnection, at any member of its connection, D30)
+resumes across members (the client watcher's reconnection, at any member of its connection, D32)
 and its events are the cluster's committed history's (`etcdModelOfHistory`).
 
 It follows, as `linkv3p_adequate`, from `EtcdGrove.goose_adequacy_start` with the read package's
