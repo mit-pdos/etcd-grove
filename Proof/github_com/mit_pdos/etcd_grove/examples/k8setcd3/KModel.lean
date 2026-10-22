@@ -83,7 +83,7 @@ def delItemL (its : List item) (k : GoString) : List item :=
   its.filter (fun e => !decide (e.key' = k))
 
 /-- `storeKey(name)`. -/
-def storeKeyL (name : GoString) : GoString := go!"/objs" ++ go!"/" ++ name
+def storeKeyL (name : GoString) : GoString := go!"/objs/" ++ name
 
 /-- The model's key of a name (`Prefix + storeKey(name)`). -/
 def mkeyL (name : GoString) : GoString := go!"/registry" ++ storeKeyL name
@@ -99,19 +99,19 @@ instance GSt_decEq : DecidableEq GSt := fun a b =>
   decidable_of_iff (a.items = b.items ∧ a.rv = b.rv) (by cases a; cases b; simp)
 
 /-- `notFound(st, key)` of a store at the resource version `rv`. -/
-def notFoundL (rv : w64) (key : GoString) : Output := ⟨W64 1, mkeyL key, rv, [], [], W64 0⟩
+def notFoundL (rv : w64) (key : GoString) : Output := ⟨W64 1, mkeyL key, rv, [], [], 0⟩
 
 /-- `objOut(o)`. -/
-def objOutL (o : Obj) : Output := ⟨W64 0, [], W64 0, o.Name', o.Value', o.ResourceVersion'⟩
+def objOutL (o : Obj) : Output := ⟨W64 0, [], 0, o.Name', o.Value', o.ResourceVersion'⟩
 
 /-- "key exists" (`Output{Err: EExists, ...}`). -/
-def existsL (key : GoString) : Output := ⟨W64 2, mkeyL key, W64 0, [], [], W64 0⟩
+def existsL (key : GoString) : Output := ⟨W64 2, mkeyL key, W64 0, [], [], 0⟩
 
 /-- A callback's rejection (`Output{Err: ERejected}`). -/
-def rejectedL : Output := ⟨W64 3, [], W64 0, [], [], W64 0⟩
+def rejectedL : Output := ⟨W64 3, [], 0, [], [], 0⟩
 
 /-- The zero object's answer (`Output{Err: ENone}`). -/
-def zeroOutL : Output := ⟨W64 0, [], W64 0, [], [], W64 0⟩
+def zeroOutL : Output := ⟨W64 0, [], 0, [], [], 0⟩
 
 /-! ## One operation -/
 
