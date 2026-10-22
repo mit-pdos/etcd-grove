@@ -94,18 +94,7 @@ theorem client_Put_hist [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   ihave #Hwo : client.writeOnce api (ms.map client.SrvAt.addr) $$ [Hone]
   · iunfold client.clientWriteOnce at Hone
     iunfold client.writeOnce
-    icases Hone with (#Hone | %Hnr)
-    · ileft
-      iunfold clientKVOnce at Hone
-      icases Hone with ⟨%api', #Hkvf', #Honce⟩
-      icombine Hkvf Hkvf' gives %Heq
-      have Heq' : api = api' := by
-        unfold interface.mkOk at Heq
-        simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at Heq
-        exact go.intoVal_inj Heq
-      subst Heq'
-      iexact Honce
-    · iright; ipureintro; exact Hnr
+    iexact Hone
   ihave #Hrr : ([∗list] x ∈ ms, isGrpcRpc x.addr go!"/etcdserverpb.KV/Put"
       (client.etcdPutSpec x.E x.γr x.cid x.mid)) $$ [Hregs]
   · iapply (BigSepL.bigSepL_mono (Φ := fun _ x => client.kvRegsAt (GF := GF) x) fun _ => by

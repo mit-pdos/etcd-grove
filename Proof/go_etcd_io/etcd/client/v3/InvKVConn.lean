@@ -763,42 +763,18 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
 instance etcdInterceptorOk_persistent (ic : GoFunc) : Persistent (etcdInterceptorOk (GF := GF) ic) := by
   unfold etcdInterceptorOk; infer_instance
 
-/-- **The retry interceptor's contract, for a client configured for one attempt** (persistent;
-2026-10-19, D21 M6, D21i: `MaxUnaryRetries: 1`): as `etcdInterceptorOk`, for the caller's
-ordinary `▷ Spec m Φ` (the request is delivered by one attempt, to at most one run of the
-handler). -/
-def etcdInterceptorOk1 (ic : GoFunc) : IProp GF :=
-  iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
-      (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
-      (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
-      (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcs addr method Spec ∗
-        ▷ Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
-        opts ↦*□ vs ∗ callOptsOk vs }}
-      (interceptorCall ic #(GoInterface.ok ctx) #method
-        #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
-        #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
-    {{ (err : GoInterface), RET #err; Req.send inp m ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
-
-instance etcdInterceptorOk1_persistent (ic : GoFunc) :
-    Persistent (etcdInterceptorOk1 (GF := GF) ic) := by
-  unfold etcdInterceptorOk1; infer_instance
-
 /-- **Call options holding only scalars** (D29): no retry option among them (the client's own
 call options, `defaultCallOpts` and the message-size options; a write's). -/
 def scalarOpts (vs : List GoInterface) : Prop :=
   ∀ v ∈ vs, ∃ (t : go.GoType) (x : val), v = interface.mkOk t x ∧ t ∈ grpcScalarOptTys
 
 /-- **The attempt modes of the retry interceptor's contract**: any number of attempts (a
-persistent precondition), one attempt (D21 M6: `MaxUnaryRetries: 1`), or a write that is never
-retried (D29: a refusal-free connection and no retry option, so the call's policy is the
-default `nonRepeatable`, which the interceptor retries only after a refusal). -/
+persistent precondition), or a write that is never retried (D29: a refusal-free connection and
+no retry option, so the call's policy is the default `nonRepeatable`, which the interceptor
+retries only after a refusal). (Until 2026-10-22 also one attempt, D21 M6: `MaxUnaryRetries: 1`,
+which no client configures since D31.) -/
 inductive AttemptMode where
   | any
-  | one
   | write
   deriving DecidableEq
 
@@ -807,11 +783,10 @@ def modePre (md : AttemptMode) (addr : List GoString) (vs : List GoInterface) (P
     IProp GF :=
   match md with
   | .any => iprop(□ ▷ P)
-  | .one => iprop(▷ P)
   | .write => iprop(▷ P ∗ ⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝)
 
-/-- The retry interceptor's contract in a mode (D21 M6, D29): `etcdInterceptorOk` (`.any`),
-`etcdInterceptorOk1` (`.one`), `etcdInterceptorOkW` (`.write`). -/
+/-- The retry interceptor's contract in a mode (D29): `etcdInterceptorOk` (`.any`),
+`etcdInterceptorOkW` (`.write`). -/
 def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
       (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
@@ -833,7 +808,7 @@ instance etcdInterceptorOkM_persistent (md : AttemptMode) (ic : GoFunc) :
   unfold etcdInterceptorOkM; infer_instance
 
 /-- **The retry interceptor's contract for a write on a refusal-free connection** (persistent;
-2026-10-21, D29): as `etcdInterceptorOk1`, for the caller's ordinary `▷ Spec m Φ`, whatever the
+2026-10-21, D29): as `etcdInterceptorOk`, for the caller's ordinary `▷ Spec m Φ`, whatever the
 retry bound, when every address of the connection is refusal-free (`noRefusalAt`) and the call
 options hold only scalars (`scalarOpts`): the call's policy is the default `nonRepeatable`, and
 the interceptor sends it again only after a refusal, which such a connection never returns. -/
@@ -843,13 +818,13 @@ instance etcdInterceptorOkW_persistent (ic : GoFunc) :
     Persistent (etcdInterceptorOkW (GF := GF) ic) := by
   unfold etcdInterceptorOkW; infer_instance
 
-/-- The three modes of the contract (D21 M6, D29). -/
-theorem etcdInterceptorOkM_split (ic : GoFunc) (C : Prop) :
-    (□ ∀ md : AttemptMode, ⌜md = .one → C⌝ -∗ etcdInterceptorOkM (GF := GF) md ic) ⊢
-      etcdInterceptorOk ic ∗ (⌜C⌝ -∗ etcdInterceptorOk1 ic) ∗ etcdInterceptorOkW ic := by
+/-- The two modes of the contract (D29). -/
+theorem etcdInterceptorOkM_split (ic : GoFunc) :
+    (□ ∀ md : AttemptMode, etcdInterceptorOkM (GF := GF) md ic) ⊢
+      etcdInterceptorOk ic ∗ etcdInterceptorOkW ic := by
   iintro #H
   isplitl []
-  · ihave #H0 := H $$ %AttemptMode.any %(by simp)
+  · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
     iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
       %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
@@ -857,17 +832,7 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) (C : Prop) :
     unfold modePre
     iframe #
     iframe
-  isplitl []
-  · iintro %Hc
-    ihave #H1 := H $$ %AttemptMode.one %(fun _ => Hc)
-    unfold etcdInterceptorOkM etcdInterceptorOk1
-    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
-      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
-    iapply H1 $$ [Hsend Hblank Hpre] HΨ
-    unfold modePre
-    iframe #
-    iframe
-  · ihave #H2 := H $$ %AttemptMode.write %(by simp)
+  · ihave #H2 := H $$ %AttemptMode.write
     unfold etcdInterceptorOkW
     iexact H2
 
@@ -883,22 +848,13 @@ instance isEtcdConn_persistent (conn : Loc) (addr : List GoString) :
     Persistent (isEtcdConn (GF := GF) conn addr) := by
   unfold isEtcdConn; infer_instance
 
-/-- **An etcd client's connection configured for one attempt** (persistent; D21 M6): grpc's
-connection with the retry interceptor, which makes one attempt (`etcdInterceptorOk1`). -/
-def isEtcdConn1 (conn : Loc) (addr : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] ∗ etcdInterceptorOk1 ic)
-
-instance isEtcdConn1_persistent (conn : Loc) (addr : List GoString) :
-    Persistent (isEtcdConn1 (GF := GF) conn addr) := by
-  unfold isEtcdConn1; infer_instance
-
-/-- **A request's precondition on a connection, with the call options `vs`** (D21 M6, D29):
-persistent (any number of attempts), ordinary on a connection configured for one attempt, or
-ordinary on a refusal-free connection with scalar call options (a write, never retried). -/
+/-- **A request's precondition on a connection, with the call options `vs`** (D29): persistent
+(any number of attempts), or ordinary on a refusal-free connection with scalar call options (a
+write, never retried). (Until 2026-10-22 also ordinary on a connection configured for one
+attempt, D21 M6.) -/
 def reqPre (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
     IProp GF :=
-  iprop(□ ▷ P ∨ (isEtcdConn1 conn addr ∗ ▷ P) ∨
-    (⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
+  iprop(□ ▷ P ∨ (⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
 
 theorem reqPre_box (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
     (□ ▷ P : IProp GF) ⊢ reqPre conn addr vs P := by
@@ -909,10 +865,9 @@ theorem reqPre_scalar_app (conn : Loc) (addr : List GoString) (ws vs : List GoIn
     (P : IProp GF) (h : scalarOpts ws) :
     reqPre (GF := GF) conn addr vs P ⊢ reqPre conn addr (ws ++ vs) P := by
   unfold reqPre
-  iintro (#H | ⟨#Ho, H⟩ | ⟨%Hw, H⟩)
+  iintro (#H | ⟨%Hw, H⟩)
   · ileft; iexact H
-  · iright; ileft; iframe H; iexact Ho
-  · iright; iright; iframe H
+  · iright; iframe H
     ipureintro
     refine ⟨Hw.1, fun v hv => ?_⟩
     rcases List.mem_append.1 hv with hv | hv
@@ -1001,69 +956,29 @@ def kvObjAt (api : Loc) (addr : List GoString) : IProp GF :=
 instance kvObjAt_persistent (api : Loc) (addr : List GoString) : Persistent (kvObjAt (GF := GF) api addr) := by
   unfold kvObjAt; infer_instance
 
-/-- **The `*kv` `api` over a connection configured for one attempt** (persistent; D21 M6): its
-`*retryKVClient`'s stub's connection is `isEtcdConn1`. -/
-def kvOnce (api : Loc) (addr : List GoString) : IProp GF :=
-  iprop(∃ (rkv conn : Loc),
-    structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
-        GoInterface) ∗
-    retryKVAt rkv conn ∗ isEtcdConn1 conn addr)
-
-instance kvOnce_persistent (api : Loc) (addr : List GoString) : Persistent (kvOnce (GF := GF) api addr) := by
-  unfold kvOnce; infer_instance
-
-/-- **A request's precondition on a `*kv`** (D21 M6, D29): persistent, ordinary over a
-connection configured for one attempt, or ordinary over a refusal-free connection (a write: the
-`*kv` passes its client's call options, scalars, `callOptsAt`). -/
+/-- **A request's precondition on a `*kv`** (D29): persistent, or ordinary over a refusal-free
+connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). (Until
+2026-10-22 also ordinary over a connection configured for one attempt, D21 M6.) -/
 def kvReqPre (api : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
-  iprop(□ ▷ P ∨ (kvOnce api addr ∗ ▷ P) ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
+  iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
 
 theorem kvReqPre_box (api : Loc) (addr : List GoString) (P : IProp GF) :
     (□ ▷ P : IProp GF) ⊢ kvReqPre api addr P := by
   unfold kvReqPre; iintro #H; ileft; iexact H
 
-/-- A `*kv`'s precondition is its connection's (the remote's points-to agree). -/
+/-- A `*kv`'s precondition is its connection's, with scalar call options. -/
 theorem kvReqPre_conn (api rkv conn : Loc) (addr : List GoString) (vs : List GoInterface)
     (P : IProp GF) (hvs : scalarOpts vs) :
     structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
         GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn addr vs P := by
-  iintro ⟨#Hr, #Hrkv, H⟩
+  iintro ⟨-, -, H⟩
   unfold kvReqPre reqPre
-  icases H with (#H | ⟨#Ho, H⟩ | ⟨%Hnr, H⟩)
+  icases H with (#H | ⟨%Hnr, H⟩)
   · ileft; iexact H
-  rotate_left
-  · iright; iright
+  · iright
     iframe H
     ipureintro; exact ⟨Hnr, hvs⟩
-  · iright; ileft
-    iframe H
-    iunfold kvOnce at Ho
-    icases Ho with ⟨%rkv', %conn', #Hr', #Hrkv', #Hc⟩
-    icombine Hr Hr' gives %Heq
-    have Heq' : rkv = rkv' := by
-      unfold interface.mkOk at Heq
-      simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
-      exact go.intoVal_inj Heq
-    subst Heq'
-    iunfold retryKVAt at Hrkv Hrkv'
-    icases Hrkv with ⟨%kc, #Hk, #Hs⟩
-    icases Hrkv' with ⟨%kc', #Hk', #Hs'⟩
-    icombine Hk Hk' gives %Hkk
-    have Hkk' : kc = kc' := by
-      unfold interface.mkOk at Hkk
-      simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Hkk
-      exact go.intoVal_inj Hkk
-    subst Hkk'
-    iunfold kvStubAt at Hs Hs'
-    icombine Hs Hs' gives %Hcc
-    have Hcc' : conn = conn' := by
-      unfold interface.mkOk at Hcc
-      simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Hcc
-      exact go.intoVal_inj Hcc
-    subst Hcc'
-    iexact Hc
 
 /-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to the server at `addr`) and call
 options, fixed since `clientv3.New` (an assumption about the unverified constructor). -/

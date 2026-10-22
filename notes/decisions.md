@@ -15311,6 +15311,13 @@ retries if its members are refusal-free (`clientWriteOnce`'s second case), as li
 **Trust base.** No axiom added: `etcd_noRefusal` (D29) now reaches the five examples' collections
 (each +1). The closed theorems' statements do not change; the configuration they speak of does.
 
+**Done (2026-10-22, branch `cleanup`).** The one-attempt machinery kept above is deleted
+(`clientKVOnce`, `kvOnce`, `isEtcdConn1`, `etcdInterceptorOk1`, `AttemptMode.one`, the one-attempt
+cases of `reqPre`/`kvReqPre`/`txnReqPre`/`putAuOk`/`txnAuOk`/`clientWriteOnce`/`txnWriteOnce`, the
+`MaxUnaryRetries' = 1` clauses of `New`'s, `newClient`'s, `dial`'s, `dialWithBalancer`'s and
+`dialSetupOpts`' specs): no example used it, and it rested on no axiom (`notes/STATUS.md`, "Clean-up:
+the watch client's joins, the one-attempt client, the init variants").
+
 ## D32: a watch over several endpoints: streams over a list of addresses, forwarded by the bridge (2026-10-21 · approved by the user; `notes/watch-cut-plan.md` W1)
 
 **Problem.** A production client's watch fails over. When the member it streams from is cut,

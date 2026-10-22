@@ -51,7 +51,7 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
       · exact Hplain
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
   · subst Hcerr
     iapply HΦ
     ileft

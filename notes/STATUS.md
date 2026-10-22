@@ -60,6 +60,23 @@ module system").
   substream-closing loop bound to its invariant only (`wp_join at (doFor ..) with [IH2]`), the
   unused-variables linter off for the theorem. CPU (user+sys, `lake env lean`, quiet machine):
   closeSubstream 52.2s -> 6.6s, run 148.0s -> 131.2s. Fingerprint unchanged.
+- **The one-attempt client machinery deleted** (D31's follow-up; `notes/decisions.md` D31, "Done").
+  Deleted: `clientKVOnce`, `kvOnce`, `isEtcdConn1`, `etcdInterceptorOk1`, `AttemptMode.one` (and
+  `modePre`'s case), `clientKVOnce_api`; the one-attempt disjunct of `reqPre`, `kvReqPre`,
+  `txnReqPre`, `putAuOk`, `txnAuOk`; `writeOnce`/`clientWriteOnce`/`txnWriteOnce` are now the
+  refusal-free case alone (pure); the `MaxUnaryRetries' = 1` clauses of `New.spec`, `newClient.spec`,
+  `Client.dial(WithBalancer).spec`, `Client.dialSetupOpts.spec`, the retry-bound clause of
+  `Client.unaryClientInterceptor.spec`, `NewKV.spec`'s `kvOnce` clause; `etcdInterceptorOkM_split`
+  over two modes. No axiom mentioned the one-attempt configuration (the interceptor, `dial` and
+  `New` are proved), so the trust base is unchanged (543 axioms, 2 sorries, every collection). The
+  examples' closed theorems' statements and their definitions are unchanged (fingerprint); the
+  client results `client_put_end_to_end`, `client_delete_end_to_end`, `client_txn_end_to_end`,
+  `putAuOk_of_box`, `txnAuOk_of_box` keep their text but `putAuOk`/`txnAuOk` lost the one-attempt
+  disjunct (their update is persistent only; the at-most-once write is `Failover.lean`'s), and
+  `AttemptMode` lost `.one` (reached through `isEtcdConn` by most client/cache/recipes results,
+  which use `.any`/`.write` only: their meaning is unchanged). Not done: the retry-bound tracking
+  (`optApplyMax`'s bound, `maxAfter`, `retryOptsMax`'s bound, D21 M6) is now used by no result's
+  conclusion and could go too (`withMax`, `withBackoff`, `reuseOrNewWithCallOptions` specs).
 
 ## The examples' clients: etcd's default configuration, one family of call lemmas (2026-10-22, branch `client-default`)
 

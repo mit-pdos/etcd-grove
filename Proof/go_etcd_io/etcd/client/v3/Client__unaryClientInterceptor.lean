@@ -98,14 +98,14 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_auto
   rw [recv_eq_func_mk]
   iapply HΦ
-  -- (2026-10-19, D21 M6) both modes: any precondition persistent, or an ordinary one when the
-  -- retry bound is at most `1` (one attempt)
-  iapply etcdInterceptorOkM_split _ (∀ mx, uint.Z (maxAfter mx ks) ≤ 1)
-  iintro !> %md %Honce
+  -- (D29) both modes: any precondition persistent, or an ordinary one for a write on a
+  -- refusal-free connection
+  iapply etcdInterceptorOkM_split
+  iintro !> %md
   unfold etcdInterceptorOkM
   iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
     %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
-  -- (D29) one attempt's precondition (`.one`, `.write`) or any number's (`.any`)
+  -- (D29) one attempt's precondition (`.write`) or any number's (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
   ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) ∗
       ⌜md = AttemptMode.write → (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]
@@ -113,9 +113,6 @@ theorem Client.unaryClientInterceptor.wp_proof
     cases md
     · unfold modePre laterHid
       simp only [bne_self_eq_false, Bool.false_eq_true, ↓reduceIte]
-      iframe Hpre; ipureintro; intro h; cases h
-    · unfold modePre laterHid
-      simp only [show (AttemptMode.one != AttemptMode.any) = true from rfl, ↓reduceIte]
       iframe Hpre; ipureintro; intro h; cases h
     · unfold modePre laterHid
       simp only [show (AttemptMode.write != AttemptMode.any) = true from rfl, ↓reduceIte]
@@ -154,12 +151,9 @@ theorem Client.unaryClientInterceptor.wp_proof
   ihave #Hco' := Hcom
   iunfold retryOptsMax at Hco'
   icases Hco' with ⟨%cov, #Hcov, #Hcovk, %Hcovm⟩
-  have Hcovb : md = AttemptMode.one → uint.Z cov.max' ≤ 1 := fun h => by
-    rw [Hcovm]; exact Honce h _
   -- (D29) a write's call options are scalars: its options are the interceptor's, `nonRepeatable`
   ihave %Hcovpol : ⌜md = AttemptMode.write → cov.retryPolicy' = W8 1⌝ $$ []
   · cases md
-    · ipureintro; intro h; cases h
     · ipureintro; intro h; cases h
     · have Hcoio : co = io := Hco0 (Hnone (Hw rfl).2)
       subst Hcoio
@@ -249,20 +243,12 @@ theorem Client.unaryClientInterceptor.wp_proof
       wp_apply wp_GetLogger c $$ [$Hlg] as %lg %Hlgn
       wp_apply wp_Debug lg _ _ $$ []
       · iframe #; ipureintro; exact Hlgn
-      -- the attempt: (D21 M6) with an ordinary precondition, the first and only one (the retry
-      -- bound at most `1`)
+      -- the attempt: (D29) with an ordinary precondition (a write), the first and only one
       have Hlt1 : once = true → a = W64 0 := fun h => by
-        by_cases hw : md = AttemptMode.write
-        · exact Hwa hw
-        · have h1 : md = AttemptMode.one := by
-            subst hon
-            cases md with
-            | any => exact absurd h (by decide)
-            | one => rfl
-            | write => exact absurd rfl hw
-          have := Hcovb h1
-          clear Hw Hcovpol Hwa hon Hnone Hco0 Honce Hcovb h1 hw
-          word
+        subst hon
+        cases md with
+        | any => exact absurd h (by decide)
+        | write => exact Hwa rfl
       ihave ⟨Hsp, Hp⟩ : iprop(▷ Spec m Φ' ∗
           (if once then iprop(⌜a + W64 1 = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
           $$ [Hp]

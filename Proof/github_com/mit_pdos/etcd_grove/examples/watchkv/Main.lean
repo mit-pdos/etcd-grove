@@ -413,7 +413,7 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     ipureintro; exact Htb31
-  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -425,7 +425,7 @@ theorem Main.wp_proof
   wp_auto
   -- (D29) a write sent at most once: the member is refusal-free
   ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23831"] $$ []
-  · iunfold client.clientWriteOnce; iright; ipureintro
+  · iunfold client.clientWriteOnce; ipureintro
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
   -- the client's `Watcher`, with the watch server's facts (D19f), etcd's watch contract

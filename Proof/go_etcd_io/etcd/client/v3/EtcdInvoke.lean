@@ -74,7 +74,7 @@ theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG 
   intro conn addr method Req Rep Spec m Φ ctx cd inp out opts vs
   iintro %Ψ ⟨#Hg, #Hconn0, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
   iunfold reqPre at Hpre
-  icases Hpre with (#Hpre | ⟨#Hconn, Hpre⟩ | ⟨%Hw, Hpre⟩)
+  icases Hpre with (#Hpre | ⟨%Hw, Hpre⟩)
   · -- any number of attempts
     iunfold isEtcdConn at Hconn0
     icases Hconn0 with ⟨%ic, #Hgc, #Hic, -⟩
@@ -89,22 +89,6 @@ theorem etcdConn_Invoke (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG 
     · iframe #
     iunfold etcdInterceptorOk at Hic
     iapply Hic $$ [Hsend Hblank] HΨ
-    iframe #
-    iframe
-  · -- (2026-10-19, D21 M6) a connection configured for one attempt, an ordinary precondition
-    iunfold isEtcdConn1 at Hconn
-    icases Hconn with ⟨%ic, #Hgc, #Hic⟩
-    iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
-      (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
-    iframe #
-    iintro %inv %opts' #Hinv #Hopts'
-    simp only [List.nil_append, chainWP]
-    iintro %inv' #Hinv'
-    ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
-    · iframe #
-    iunfold etcdInterceptorOk1 at Hic
-    iapply Hic $$ [Hsend Hblank Hpre] HΨ
     iframe #
     iframe
   · -- (2026-10-21, D29) a write on a refusal-free connection, with scalar call options: never

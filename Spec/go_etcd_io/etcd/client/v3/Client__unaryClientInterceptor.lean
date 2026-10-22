@@ -40,8 +40,6 @@ abbrev Client.unaryClientInterceptor.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
       go!"unaryClientInterceptor")) (Val #sl))
   {{ (f : GoFunc), RET #f; etcdInterceptorOk f ∗
-      -- (D21 M6) one attempt (the last `withMax` at most `1`): the request delivered once
-      (⌜∀ mx, uint.Z (maxAfter mx ks) ≤ 1⌝ -∗ etcdInterceptorOk1 f) ∗
       -- (D29) a write on a refusal-free connection, whatever the bound
       etcdInterceptorOkW f }}
 
