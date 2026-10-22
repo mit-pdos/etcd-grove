@@ -36,7 +36,7 @@ abbrev writer.spec : Prop :=
   0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.watchkv ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
+      isNewClient cl [ep] V ∗ EtcdGrove.client.clientWriteOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
       tsl ↦*□ tried ∗ wkKV γr ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"mu" w)

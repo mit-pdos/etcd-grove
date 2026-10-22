@@ -11,7 +11,7 @@ and the writers' updates open the same invariant.
 * `okFact E p`: watchkv's, at cachekv's `putRec`: the revision is at least `2` and is the put of
   the key and value (`watchkv.revAt`), from the reply (`okFact_of_reply`).
 * `wsInv w E`: the lock invariant of the log `w`: its slice of successful Puts, each with `okFact`.
-* The Put itself is watchkv's `client_Put_rev`.
+* The Put itself is the client package's `client.client_Put_rep` (`client/v3/ClientPutGet.lean`).
 -/
 module
 

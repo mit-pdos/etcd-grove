@@ -5,8 +5,8 @@ The proof of `Apply(cli, input)` (D20 (c)): `NewProph()` gives a prophecy of the
 the end (`!out.Err`, the call's outcome), and the commit (`Inv.lean`'s steps) is chosen by its
 head before the client is called:
 
-- a put, prophecy `ok`: the client's update is `put_ok_au` (ordinary, fired at most once on the
-  one-attempt client, `putAuOk`'s second case); it commits `lintest`'s update at the server's
+- a put, prophecy `ok`: the client's update is `put_ok_au` (ordinary, fired at most once on a
+  client that sends a write at most once, `clientWriteOnce`); it commits `lintest`'s update at the server's
   apply with output `ok`, and `Put`'s success returns its continuation. An error return
   contradicts the prophecy.
 - a put, prophecy error: commit now, the put pending (`put_err_commit`); the client's update is
@@ -21,13 +21,14 @@ head before the client is called:
   the commit bit `γc` at `none`; the client's read update is `get_ok_au`, persistent: at each
   firing at a state of revision `R` it commits once (the bit goes to the store's value, read-only)
   and later firings at `R` see the same store (the revisions' map in `linkvInv`). After the reply
-  (`client_Get_au`: `□ Q σ` at the state read, whose revision is the header's, `getReply_state`),
+  (`client_Get_st`: `□ Q σ` at the state read, whose revision is the header's),
   `ResolveU64` gives `R = m.hdr.revision`, so `Q σ` gives the bit at the reply's value, and
   `Apply` takes the continuation (`callInv_take`, with its token and a second credit). A revision
   that is not the reply's contradicts the resolution; an error return contradicts the first.
 
-The client's calls go through `New`'s `KV` field (`client_Put_once`, `client_Get_plain`, as
-`ClientPutGet.lean` does), the `kvOnce` of `clientKVOnce` matched with `isNewClient`'s `*kv`.
+The client's calls are the client package's (`client/v3/ClientPutGet.lean`, D31: `client_Put_st`,
+`client_Get_st`), at the client's one member, on a client that sends a write at most once
+(`clientWriteOnce`).
 -/
 module
 
@@ -60,170 +61,24 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
 
 
-/-- `cli.Put(ctx, key, val)` by `New`'s client configured for one attempt, with an update fired at
-most once (`client_put_end_to_end` through the `KV` field): `nil` and the update's result at the
-state it fired at; or an error. -/
 theorem zero_val_Output :
     (zero_val github_com.mit_pdos.etcd_grove.examples.linkv.Output) = okOut := rfl
-
-theorem client_Put_once [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString)
-    (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-        clientKVOnce cl [ep] ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        kvOpAu1 γr.kv (.put (putOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
-      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
-          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ σ, Q σ) ∨ ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hrpc, #Hctx, #Hce, #Hopts, Hau, #HF⟩ HΦ
-  iunfold isNewClient at Hcl
-  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  iunfold clientKVOnce at Hone
-  icases Hone with ⟨%api', #Hkvf', #Honce⟩
-  icombine Hkvf Hkvf' gives %Heq
-  have Heq' : api = api' := by
-    unfold interface.mkOk at Heq
-    simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Heq
-    exact go.intoVal_inj Heq
-  subst Heq'
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
-  wp_pures
-  wp_auto
-  wp_apply (client.client_put_end_to_end api [ep] E γr cid mid ci cd key val sl Q F) $$ [Hau]
-    as %resp %err Hout
-  · iframe #
-    iunfold client.putAuOk
-    iright
-    iframe Hau
-    iexact Honce
-  iapply HΦ
-  icases Hout with (⟨%Herr, %m, -, Hm⟩ | ⟨%Herr, -⟩)
-  · ileft
-    isplitl []
-    · ipureintro; exact Herr
-    iunfold client.putReplied at Hm
-    icases Hm with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, HQ⟩
-    iexists _
-    iexact HQ
-  · iright
-    ipureintro; exact Herr
-
-/-- `cli.Get(ctx, key)` by `New`'s client, with no update: `nil` and the reply; or an error. -/
-theorem client_Get_plain [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString)
-    (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr (W64 0) ∗
-        mvcc.idxCert E.γ.idx F }}
-      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
-          go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hrpc, #Hctx, #Hce, #Hopts, #Hc, #HF⟩ HΦ
-  iunfold isNewClient at Hcl
-  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
-  wp_pures
-  wp_auto
-  wp_apply (client.client_get_end_to_end api [ep] E γr (W64 0) cid mid ci cd key sl
-      (fun _ => iprop(True)) F) $$ [] as %resp %err Hout
-  · iframe #
-    ileft; ipureintro; rfl
-  iapply HΦ
-  icases Hout with (⟨%Herr, %m, Hm, -⟩ | ⟨%Herr, -⟩)
-  · ileft
-    isplitl []
-    · ipureintro; exact Herr
-    iexists m
-    iexact Hm
-  · iright
-    ipureintro; exact Herr
-
-/-- **What a linearizable get's reply says** (`client.client_get_value`, with the log's bound):
-the client's read update fired at a state `σ` (`□ Q σ`) whose store's value of the key is the
-reply's, whose revision is the reply's header revision, and which is below `2 ^ 63`. -/
-theorem getReply_state (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : w64) (key : GoString)
-    (F : mvcc.Log) (Q : KVState → IProp GF) (m : RangeRespM) :
-    client.rangeReplyOk E γr c F (client.getKeyOp key) cid mid Q m ⊢
-      ∃ σ : KVState, □ Q σ ∗ ⌜m.kvs.head?.map EtcdKv.value = absKV σ key ∧
-        m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝ := by
-  iintro #H
-  iunfold client.rangeReplyOk at H
-  icases H with ⟨%l, -, -, %Hl, -, #HQ⟩
-  have hs : (client.getKeyOp key).base.serializable = false := rfl
-  have hk : (client.getKeyOp key).key = key := rfl
-  simp only [hs, hk, Bool.false_eq_true, ↓reduceIte]
-  obtain ⟨hlen, hlen', hrev, -, -, -, -, hsel, -⟩ := Hl
-  have hst : mvcc.stateAt l (sint.nat (mvcc.rangeRev m.hdr.revision (client.getKeyOp key).base.rev)) =
-      mvcc.stateAfter l := by
-    have h1 : mvcc.rangeRev m.hdr.revision (client.getKeyOp key).base.rev = m.hdr.revision := by
-      simp [mvcc.rangeRev, txn.rangeOpOf]
-    rw [h1, hrev]
-    have h2 : sint.nat (W64 ((l.length : Int) - 1)) = l.length - 1 := by
-      unfold sint.nat; word
-    rw [h2, mvcc.stateAt_last]
-  rw [hst] at hsel
-  iexists kvStateOf l
-  iframe HQ
-  ipureintro
-  refine ⟨client.getKey_value key l m.kvs m.more hsel, ?_, ?_⟩
-  · rw [hrev]
-    unfold kvStateOf
-    simp only
-    congr 1
-    omega
-  · unfold kvStateOf
-    simp only
-    omega
-
-/-- `cli.Get(ctx, key)` by `New`'s client, with a read update: `nil`, the reply and what it says
-(`getReply_state`); or an error. -/
-theorem client_Get_au [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString)
-    (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice) (F : mvcc.Log)
-    (Q : KVState → IProp GF) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr (W64 0) ∗
-        kvReadAu γr.kv Q ∗ mvcc.idxCert E.γ.idx F }}
-      (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
-          go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗ □ Q σ ∗
-          ⌜m.kvs.head?.map EtcdKv.value = absKV σ key ∧ m.hdr.revision = W64 (σ.rev : Int) ∧
-            σ.rev + 3 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hrpc, #Hctx, #Hce, #Hopts, #Hc, #Hau, #HF⟩ HΦ
-  iunfold isNewClient at Hcl
-  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
-  wp_pures
-  wp_auto
-  wp_apply (client.client_get_end_to_end api [ep] E γr (W64 0) cid mid ci cd key sl Q F) $$ []
-    as %resp %err Hout
-  · iframe #
-  iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, -⟩)
-  · ileft
-    isplitl []
-    · ipureintro; exact Herr
-    ihave Hs := getReply_state E γr (W64 0) cid mid key F Q m $$ Hq
-    icases Hs with ⟨%σ, #HQ, %Hσ⟩
-    iexists m, σ
-    iframe Hm HQ
-    ipureintro; exact Hσ
-  · iright
-    ipureintro; exact Herr
 
 theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
   intro _ γ cl ep V E γr cid mid hAs
   iintro #Hpkg #Pcli #Hcl #Hone #Hput #Hrange #Hinv
+  -- the client's one member, as the client package's calls take it (`client/v3/ClientPutGet.lean`)
+  let x0 : client.SrvAt GF := ⟨ep, E, γr, cid, mid⟩
+  ihave #Hput1 : [∗list] y ∈ [x0], isGrpcRpc y.addr go!"/etcdserverpb.KV/Put"
+      (client.etcdPutSpec y.E y.γr y.cid y.mid) $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iexact Hput
+  ihave #Hrange1 : [∗list] y ∈ [x0], isGrpcRpc y.addr go!"/etcdserverpb.KV/Range"
+      (client.etcdRangeSpec y.E y.γr y.cid y.mid) $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iexact Hrange
+  ihave #Hcl1 : isNewClient cl ([x0].map client.SrvAt.addr) V $$ []
+  · iExactEq Hcl; rfl
+  ihave #Hone1 : client.clientWriteOnce (GF := GF) cl ([x0].map client.SrvAt.addr) $$ []
+  · iExactEq Hone; rfl
   iintro %i
   imodintro
   iintro %Φ %Hin HAU
@@ -240,6 +95,10 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
   ihave #Hc0' : committedAtLeast (GF := GF) γr (W64 0) $$ []
   · iunfold committedAtLeast
     iExactEq Hc0; rfl
+  ihave #HF1 : [∗list] y ∈ [x0], mvcc.idxCert y.E.γ.idx [] $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iexact HF0
+  ihave #Hst1 : [∗list] y ∈ [x0], client.srvStart y $$ []
+  · iapply BigSepL.bigSepL_singleton.2; iunfold client.srvStart; iframe #
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)
@@ -276,11 +135,21 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
       ihave #Hau := get_ok_au γ γr.kv γc γt x hP (rs.headD (W64 0)) Φ $$ []
       · iframe #
       wp_auto
-      wp_apply (client_Get_au cl ep V E γr cid mid context.backgroundCtxVal cd x.Key' slice.nil []
+      ihave #Hau2 : iprop(⌜getQ γc x (rs.headD (W64 0)) = (fun _ => iprop(True) : KVState → IProp GF)⌝ ∨
+          kvReadAu (GF := GF) x0.γr.kv (getQ γc x (rs.headD (W64 0)))) $$ []
+      · iright; iexact Hau
+      ihave #Hau1 : □ ([∧list] y ∈ [x0], ⌜getQ γc x (rs.headD (W64 0)) = (fun _ => iprop(True) : KVState → IProp GF)⌝ ∨
+          kvReadAu (GF := GF) y.γr.kv (getQ γc x (rs.headD (W64 0)))) $$ []
+      · imodintro
+        iapply BigAndL.bigAndL_singleton.2
+        iexact Hau2
+      wp_apply (client.client_Get_st cl [x0] V context.backgroundCtxVal cd x.Key' slice.nil
           (getQ γc x (rs.headD (W64 0)))) $$ [] as %resp %err Hout
       · iframe #
-      icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hval, %Hrev, %Hbnd⟩ | %Herr)
-      · subst Herr
+      icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hkvs, %Hrev, %Hbnd⟩ | %Herr)
+      · have Hval : m.kvs.head?.map EtcdKv.value = absKV σ x.Key' := by
+          rw [Hkvs, client.head_filter_key]; rfl
+        subst Herr
         iunfold rangeRespMsg at Hm
         icases Hm with ⟨%Hnn, %h, %sl, %ps, #Hh, #Hhf, #Hkvf, #Hsl, #Hkvs, #Hmore, #Hcount⟩
         iunfold hdrFull at Hhf
@@ -382,10 +251,16 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
       · iframe Hinv; iunfold linU; iexact HAU
       imodintro
       wp_auto
-      wp_apply (client_Get_plain cl ep V E γr cid mid context.backgroundCtxVal cd x.Key' slice.nil
-          []) $$ [] as %resp %err Hout
+      ihave #Hau0 : □ ([∧list] y ∈ [x0], ⌜(fun _ => iprop(True) : KVState → IProp GF) =
+          (fun _ => iprop(True) : KVState → IProp GF)⌝ ∨
+          kvReadAu (GF := GF) y.γr.kv (fun _ => iprop(True) : KVState → IProp GF)) $$ []
+      · imodintro
+        iapply BigAndL.bigAndL_singleton.2
+        ileft; ipureintro; rfl
+      wp_apply (client.client_Get_st cl [x0] V context.backgroundCtxVal cd x.Key' slice.nil
+          (fun _ => iprop(True))) $$ [] as %resp %err Hout
       · iframe #
-      icases Hout with (⟨%Herr, %m, #Hm⟩ | %Herr)
+      icases Hout with (⟨%Herr, %m, %σ, #Hm, -, -⟩ | %Herr)
       · subst Herr
         iunfold rangeRespMsg at Hm
         icases Hm with ⟨%Hnn, %h, %sl, %ps, #Hh, #Hhf, #Hkvf, #Hsl, #Hkvs, #Hmore, #Hcount⟩
@@ -441,11 +316,11 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
       ihave Hau := put_ok_au γ γr.kv x hP Φ $$ [HAU]
       · iframe Hinv; iunfold linU; iexact HAU
       wp_auto
-      wp_apply (client_Put_once cl ep V E γr cid mid context.backgroundCtxVal cd x.Key' x.Val'
-          slice.nil _ []) $$ [Hau] as %resp %err Hout
+      wp_apply (client.client_Put_st cl [x0] V context.backgroundCtxVal cd x.Key' x.Val'
+          slice.nil _) $$ [Hau] as %resp %err Hout
       · iframe #
-        iexact Hau
-      icases Hout with (⟨%Herr, %σ, HΦ⟩ | %Herr)
+        iapply BigAndL.bigAndL_singleton.2; iexact Hau
+      icases Hout with (⟨%Herr, %m, %σ, -, HΦ, -⟩ | %Herr)
       · subst Herr
         wp_auto
         wp_apply (wp_ptr_ResolveBool_typed github_com.goose_lang.primitive.ProphId.wp_ResolveBool
@@ -474,10 +349,10 @@ theorem Apply.wp_proof : Apply.spec (GF := GF) (hG := hG) := by
       · iframe Hinv; iexact Htok
       imodintro
       wp_auto
-      wp_apply (client_Put_once cl ep V E γr cid mid context.backgroundCtxVal cd x.Key' x.Val'
-          slice.nil _ []) $$ [Hau] as %resp %err Hout
+      wp_apply (client.client_Put_st cl [x0] V context.backgroundCtxVal cd x.Key' x.Val'
+          slice.nil _) $$ [Hau] as %resp %err Hout
       · iframe #
-        iexact Hau
+        iapply BigAndL.bigAndL_singleton.2; iexact Hau
       icases Hout with (⟨%Herr, -⟩ | %Herr)
       · subst Herr
         wp_auto

@@ -417,6 +417,8 @@ theorem Main.wp_proof
   wp_auto
   ihave #Hone := Hone $$ []
   · ipureintro; trivial
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23831"] $$ []
+  · iunfold client.clientWriteOnce; ileft; iexact Hone
   -- the client's `Watcher`, with the watch server's facts (D19f), etcd's watch contract
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
     [go!"127.0.0.1:23831"] ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩ rfl

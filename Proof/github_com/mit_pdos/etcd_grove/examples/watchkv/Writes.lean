@@ -10,15 +10,15 @@
   last revision is the put's change, `client.put_applied_log`).
 * `wsInv w E`: the lock invariant of the log `w`: its slice of successful Puts, each with
   `okFact`.
-* `client_Put_rev`: `cli.Put(ctx, key, val)` by `New`'s client configured for one attempt
-  (`client_put_end_to_end` through the `KV` field, as linkv's `client_Put_once`), with the
-  reply's message and `putReplied`.
+* The Put itself is the client package's `client.client_Put_rep` (`client/v3/ClientPutGet.lean`,
+  D31): the reply's message and `putReplied`, on a client that sends a write at most once.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Defs
 public import Proof.go_etcd_io.etcd.client.v3.CacheClient
 public import Proof.go_etcd_io.etcd.client.v3.Results
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 
 @[expose] public section
 
@@ -130,64 +130,6 @@ def wsInv (w : Loc) (E : apply.AEnv GF) : IProp GF :=
     □ [∗list] p ∈ oks, okFact E p)
 
 end defs
-
-section put
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-
-/-- `cli.Put(ctx, key, val)` by `New`'s client configured for one attempt, with an update fired at
-most once (see the file header): `nil`, the reply's message and `putReplied`; or an error. -/
-theorem client_Put_rev [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString)
-    (V : client.WEnv GF) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (Q : KVState → IProp GF) (F : mvcc.Log) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-        clientKVOnce cl [ep] ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
-        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        kvOpAu1 γr.kv (.put (client.putKeyOp key val)) Q ∗ mvcc.idxCert E.γ.idx F }}
-      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
-          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
-          client.putReplied E γr F (client.putKeyOp key val) Q cid mid m) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
-  iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hrpc, #Hctx, #Hce, #Hopts, Hau, #HF⟩ HΦ
-  iunfold isNewClient at Hcl
-  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
-  iunfold clientKVOnce at Hone
-  icases Hone with ⟨%api', #Hkvf', #Honce⟩
-  icombine Hkvf Hkvf' gives %Heq
-  have Heq' : api = api' := by
-    unfold interface.mkOk at Heq
-    simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at Heq
-    exact go.intoVal_inj Heq
-  subst Heq'
-  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
-  wp_pures
-  wp_auto
-  wp_apply (client.client_put_end_to_end api [ep] E γr cid mid ci cd key val sl Q F) $$ [Hau]
-    as %resp %err Hout
-  · iframe #
-    iunfold client.putAuOk
-    iright
-    iframe Hau
-    iexact Honce
-  iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, -⟩)
-  · ileft
-    isplitl []
-    · ipureintro; exact Herr
-    iexists m
-    iframe Hm Hr
-  · iright
-    ipureintro; exact Herr
-
-end put
 
 end watchkv
 end EtcdGrove

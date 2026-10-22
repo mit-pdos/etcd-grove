@@ -459,6 +459,8 @@ theorem Main.wp_proof
   wp_auto
   ihave #Hone := Hone $$ []
   · ipureintro; trivial
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23851"] $$ []
+  · iunfold client.clientWriteOnce; ileft; iexact Hone
   -- the client's KV state in the client's invariant (its revision a monotone counter), which the
   -- cache's gets (`kvRangeAu`) and the writers' puts (`put_au`) open
   imod client.kvClientInv_alloc ρ.rd _ ⊤ $$ Hetcd with ⟨%γm, #Hkci⟩

@@ -16,7 +16,7 @@ instance's. The input is one `Gen` may return (`linkvInOk`: `GenIn`, its transac
 
 Premises: what `New` returns for a client of the members `ms` (at least one; several since
 2026-10-21, failover, `notes/decisions.md` D27) configured with `MaxUnaryRetries: 1`
-(`isNewClient`, `clientKVOnce`), each member's `Put`, `Range`, `DeleteRange` and `Txn` registered
+(`isNewClient`, `clientWriteOnce`: a write sent at most once), each member's `Put`, `Range`, `DeleteRange` and `Txn` registered
 with etcd's specs at its endpoint (`client.kvRegsAt`: `etcd_kv_served`'s, at the member's apply
 environment, read names and ids), the instance's invariant at each member's KV names, the packages'
 facts, and `errors.As`'s target (the client's context lemma). Stated

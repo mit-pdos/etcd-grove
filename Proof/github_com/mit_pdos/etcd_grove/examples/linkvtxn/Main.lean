@@ -299,6 +299,8 @@ theorem Main.wp_proof
   wp_auto
   ihave #Hone := Hone $$ []
   · ipureintro; trivial
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23796"] $$ []
+  · iunfold client.clientWriteOnce; ileft; iexact Hone
   -- the instance's invariant, at the server's start store (empty)
   imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot (by rw [hwl]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩

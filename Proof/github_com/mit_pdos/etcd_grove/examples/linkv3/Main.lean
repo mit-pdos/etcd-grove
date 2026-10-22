@@ -320,6 +320,8 @@ theorem Main.wp_proof
   wp_auto
   ihave #Hone := Hone $$ []
   · ipureintro; trivial
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [clientAddr₁] $$ []
+  · iunfold client.clientWriteOnce; ileft; iexact Hone
   -- the instance's invariant, at the server's start store (empty)
   imod (linkv.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
       Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd

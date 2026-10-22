@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `callGet`: `client_Get_st`, then the output from the reply's header revision and
+The proof of `callGet`: `client.client_Get_st`, then the output from the reply's header revision and
 first key-value (`getOut`).
 -/
 module
@@ -43,10 +43,11 @@ theorem callGet.wp_proof (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
-  wp_apply (client_Get_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ []
+  ihave #Hrr := client.kvRegs_range ms $$ Hregs
+  wp_apply (client.client_Get_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ []
     as %resp %err Hout
   · iframe #
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | %Herr)
