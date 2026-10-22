@@ -23,16 +23,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The `dlv` halves move on past the `Ready` (`run` will recognize its record), one goes
 with the receipt on `advancec`; `n.done` never fires. -/
 theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
-  intro γ id n ds es ca cfg HA1
+  intro γ id n ds es ca cfg p' L HA1
   wp_start as ⟨Hbusy, Hrcpt, Hcfg⟩
   unfold nodeDriverBusy
-  icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, Hd1, Hd2, Hrof, %Hds, %k0, Hr1, Hr2⟩
+  icases Hbusy with ⟨#Hnode, #Hdlb, %d, %ce, %p, Hd1, Hd2, Hrof, %Hds, %q0, Hr1, Hr2⟩
   ihave #Hcamlb : monoNatLbOwn γ.cam ca $$ [Hcfg]
   · unfold nodeCfg; icases Hcfg with ⟨-, -, $⟩
   subst Hds
   ihave #Hnode' := Hnode
   open_node Hnode'
-  imod dghostVar_update_halves (d ++ ce) γ.dlv d d $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
+  imod dghostVar_update_halves (dlvAfter d ce L, p') γ.dlv (d, p) (d, p) $$ Hd1 Hd2 with ⟨Hd1, Hd2⟩
   wp_auto_lc 3
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
@@ -45,10 +45,10 @@ theorem node.Advance.wp_proof : node.Advance.spec (GF := GF) (hG := hG) := by
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitr
     · iapply isAdvChan_isChan $$ Hadvancec
-    iapply adv_send_au γ nv.rn' id nv.advancec' (d ++ ce) k0
+    iapply adv_send_au γ nv.rn' id nv.advancec' (dlvAfter d ce L) L q0
       $$ [$Hlc1 $Hlc2 $Hlc3] Hadvancec [Hd1 Hrof Hrcpt] Hdlb Hr1 Hr2
     · unfold advanceP
-      iexists d, ce, es
+      iexists d, ce, es, p'
       iframe Hd1 Hrof Hrcpt
       iexists ca
       iframe Hcamlb

@@ -22,13 +22,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `l.hasNextUnstableSnapshot()` (`log.go:281`): `l.unstable.nextSnapshot() != nil` --
-`false` with no snapshot pending (whether a pending one is in progress is not
-tracked). -/
+`false` exactly with no snapshot pending or the pending one in progress (`sip`, since D22 S-d1,
+2026-10-20; until then only the no-snapshot case). -/
 abbrev raftLog.hasNextUnstableSnapshot.spec : Prop :=
   ∀ (l : Loc) (ls : LogState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls }}
     (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"hasNextUnstableSnapshot")) (Val #()))
-  {{ (b : Bool), RET #b; ownRaftLog l ls ∗ ⌜ls.snap = none → b = false⌝ }}
+  {{ (b : Bool), RET #b; ownRaftLog l ls ∗ ⌜(ls.snap = none ∨ ls.sip = true) ↔ b = false⌝ }}
 
 end spec
 

@@ -68,11 +68,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `raft.StartNode(b.config, b.peers)`
   wp_apply (wp_StartNode γ bud bv.config' cv lok ⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩
     memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0)) (ConfStateM.mk [] [] [] [] false)
-    (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
+    (memSnapTok bv.storage' γs memStorEmpty) bv.peers' dq pv ps ctxs bootLog false Hvalid Hlok Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync
     Happlied rfl rfl (Or.inr rfl) rfl ⟨rfl, rfl, rfl⟩ rfl rfl rfl rfl
-    rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk)
+    rfl Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot HbootOk rfl (fun h => by cases h))
     $$ [Hc Hsto Hghost Hpeers Htok] as %nd ⟨Htok, Hpost⟩
-  · rfl
   · rw [show (GoInterface.ok (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk)) =
       memStorIface bv.storage' from rfl]
     rw [show (⟨go.GoType.PointerType MemoryStorage.ty, #bv.storage'⟩ : GoInterfaceOk).ty =
@@ -87,7 +86,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
     iintro %hp %cs %al Hs Ht Hhs Hcs
     iapply HK $$ Hs Ht Hhs Hcs
   icases Hpost with ⟨%γn, %n, %Hnd, #Hnode, Hdrv, Hncfg, Hpeers⟩
-  obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hndeq⟩ := Hnd
+  obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, -, Hndeq⟩ := Hnd
   subst Hndeq
   (try wp_auto)
   -- `raftStatus = n.Status` under `raftStatusMu`

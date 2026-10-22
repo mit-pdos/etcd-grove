@@ -45,6 +45,7 @@ abbrev epDiskSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"diskSn
 abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memorySnapshotIndex" ep
 abbrev taSnapshotAddr (ta : Loc) : Loc := structFieldRef toApply go!"snapshot" ta
 abbrev taNotifycAddr (ta : Loc) : Loc := structFieldRef toApply go!"notifyc" ta
+abbrev srvInflightAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"inflightSnapshots" s
 
 end addrs
 
@@ -59,6 +60,19 @@ other half of the field is `↦□`, `NewServer`'s, so the backend `s.be` holds 
 `InvStorageVersion.lean`). -/
 def bemuP (s : Loc) (q : Qp) : IProp GF :=
   iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q.half} b)
+
+/-- The namespace of `s.inflightSnapshots`'s invariant. -/
+def srvInflightN : Namespace := nroot .@ "etcdserver_inflight_snapshots"
+
+/-- **`s.inflightSnapshots`** (persistent; D22 S-h, 2026-10-20): the atomic count of merged
+snapshots in flight, in an invariant with no content (`sendMergedSnap` adds `1`, its release
+goroutine `-1`, `compactRaftLog` skips the compaction while it is not `0`: liveness only, the
+proofs read nothing of its value). -/
+def srvInflight (s : Loc) : IProp GF :=
+  inv srvInflightN iprop(∃ n : w64, sync.atomic.ownInt64 (srvInflightAddr s) (DFrac.own 1) n)
+
+instance srvInflight_persistent (s : Loc) : Persistent (srvInflight (GF := GF) s) := by
+  unfold srvInflight; infer_instance
 
 /-- **A reader slot of `s.bemu`** (the apply thread's, for `Backend`). -/
 def srvBemuReader (s : Loc) : IProp GF :=
@@ -79,8 +93,13 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
     -- (2026-10-19, D21 M3) `SnapshotCatchUpEntries`, which `compactRaftLog` reads, past the
     -- receipts' bound (`NewServer.spec`'s run bound): every compaction is at index `1`
     (∃ scu : w64, srvCfgFieldAddr s go!"SnapshotCatchUpEntries" ↦□ scu ∗
-      ⌜receiptBound GF ≤ uint.Z scu + 1⌝))
+      ⌜receiptBound GF ≤ uint.Z scu + 1⌝) ∗
+    -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
+    -- `sendMergedSnap` writes
+    srvInflight s)
 
+set_option synthInstance.maxSize 1024 in
+set_option synthInstance.maxHeartbeats 400000 in
 instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance

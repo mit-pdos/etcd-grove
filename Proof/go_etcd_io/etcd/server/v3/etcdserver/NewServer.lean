@@ -324,6 +324,9 @@ theorem NewServer.wp_proof
     h86
   obtain ⟨Hrlg, Hrhb, Hrvalid, Hrlok, Hrstor, Hrinfl, Hrdpf, Hrro, Hrdccv, Hrsizes, Hrasync,
     Hrapplied, Hrid, Hrps, Hrpsne, Hrnodup, Hr0, Hrpslen, Hrmem, Hrcfg, Hrboot, Hrbok⟩ := Hraft
+  -- (D22 S-b′3) the storage's certificate link: the no-snapshot mode's
+  ihave #Hclk : certLink (GF := GF) γ (memStorIface bv.storage') $$ []
+  · iapply certLink_noSnap; exact Hnosnap.1
   wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γ bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
@@ -508,12 +511,12 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ (by omega) $$ Hlrds with ⟨Hlrd2, -⟩
   wp_apply (server_kv_watchable_of h26 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70 h71 h72 h73
       h74 h75 h76 h77 h46 h47 h48 cfg.Logger' (lease.lessorIface lp) _ d HbP E₀.γ.bucket γl
-      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl Hrb Hnocmp)
-    $$ [Hview Hlate Hwkv Hrts Hlrd Hidx Hcok]
+      (batchLockInv γA (metaTM d.γB d.P)) #func.nil N E₀.γ.idx E₀.γ.cok Hcbl Hrb)
+    $$ [Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok]
     as %ws ⟨%kst, %γw, %Hγw, #HisKV, ⟨%rv, #Hrvf, #Hrv⟩, #HhkI, Hkvw, Hwts, Hcok, #Hws, Hwtoks,
       Hwrds, Hwcl⟩
   · iframe #
-    iframe Hview Hlate Hwkv Hrts Hlrd Hidx Hcok
+    iframe Hview Hncmp Hlate Hwkv Hrts Hlrd Hidx Hcok
   -- (D19g (b)) the store's reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hwrds with ⟨Hwsr, Hwrds⟩
   -- (2026-10-20, watchkv) 64 more for the watch service's run slots (`srvWatchReaders`)
@@ -670,14 +673,18 @@ theorem NewServer.wp_proof
       rw [h] at hl
       exact Hrpsne (List.length_eq_zero_iff.mp hl.symm)
     exact ⟨Hlgnn, by rw [Hrn5, Hrid, Hid], Hssnn, by rw [Hγn.1, Hrn1, Hrn2],
-      by rw [Hrn1]; exact Hnosnap.1, hb⟩
-  ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn s id $$ [$Hpkg $Hprocok]
+      by rw [Hrn1]; exact Hnosnap.1, hb, by rw [Hrn1]; exact Hnoxfer⟩
+  -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
+  -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j)
+  imod (snapDir_alloc bs.ss' γn.N.img (fun _ => iprop(True)) ⊤) with ⟨%γd, #Hsdir⟩
+  ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
-  wp_apply (h38 t _ γn (srvLgReader s)) $$ [«$r0» Hslot HlgNet] as %terr Htres
+  wp_apply (h38 t _ γn (srvLgReader s) γd (fun _ => iprop(True))) $$ [«$r0» Hslot HlgNet]
+    as %terr Htres
   · iframe #; iframe «$r0»
     simp only
     rw [Hid]
-    iframe Hslot HlgNet Hnro
+    iframe Hslot HlgNet Hnro Hss Hsdir
     ipureintro; exact ⟨Hlgnn, Hssnn, Hlsnn⟩
   icases Htres with (%Hterr | ⟨%Hterr, Htlive, Htstart⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
@@ -861,6 +868,8 @@ theorem NewServer.wp_proof
   icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, Hbmslots⟩
   -- (D19g (b)) `v3rpc.Server`'s reader slot of `bemu`
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, Hbmslots⟩
+  -- (D22g (A)) the quota checks' reader slots of `bemu`, for request goroutines
+  icases replicate_takeN _ 64 _ (by omega) $$ Hbmslots with ⟨Hbms, Hbmslots⟩
   -- (D19i part 2) the storage version monitor's
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨HbmSV, -⟩
   -- the raft node, its transport installed
@@ -885,7 +894,6 @@ theorem NewServer.wp_proof
     iapply isRNTransport_of_net γn $$ [] Htrall
     iintro !> %m HM
     simp only [srvEr]
-    icases HM with ⟨HM, -⟩
     rw [Hγn.1, ← hργ]
     iapply srvMsgNet_bundle $$ HM
   · iexact Hrtm
@@ -923,6 +931,20 @@ theorem NewServer.wp_proof
   ipersist compactor
   ipersist MaxRequestBytesS
   ipersist ClientCertAuthEnabledS
+  -- (D22 S-h) `s.inflightSnapshots`'s invariant, from the field's zero value
+  ihave Hinfl0 : sync.atomic.ownInt64 (GF := GF) (srvInflightAddr s) (DFrac.own 1) (W64 0)
+    $$ [inflightSnapshots]
+  · rw [sync.atomic.ownInt64_unseal]
+    unfold sync.atomic.ownInt64Def
+    rw [show ({ _0' := zero_val _, _1' := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
+      zero_val _ from rfl]
+    iexact inflightSnapshots
+  imod inv_alloc srvInflightN ⊤
+    iprop(∃ n : w64, sync.atomic.ownInt64 (GF := GF) (srvInflightAddr s) (DFrac.own 1) n)
+    $$ [Hinfl0] with #HinflI
+  · inext; iexists _; iexact Hinfl0
+  ihave #Hinfl : srvInflight s $$ []
+  · iunfold srvInflight; iexact HinflI
   icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr5, Hlgrs⟩
   icases replicate_take1 _ _ hM1 $$ Hfcnr with ⟨Hfcr, -⟩
   -- the watch-token pool (D19b's method), from `mvcc.New`'s tokens
@@ -947,7 +969,7 @@ theorem NewServer.wp_proof
   ipersist MaxConcurrentStreamsS
   ihave Hserve : srvServeBuilt s
       (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
-      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs]
+      cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
   · unfold srvServeBuilt srvServeFacts srvServeCfg srvBemuReader srvLeadTimeReader
     isplitr
     · isplitr
@@ -955,7 +977,7 @@ theorem NewServer.wp_proof
         iframe #
         ipureintro; rfl
       · iframe #
-    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs
+    iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
   -- (D19i part 2) the storage version monitor's read token, with an open share
   icases replicate_take1 _ _ (by omega) $$ Hwrds with ⟨HwrSV, Hwrds⟩
   iunfold mvcc.watchReader at HwrSV
@@ -1008,6 +1030,14 @@ theorem NewServer.wp_proof
     iexists ws, γw
     iframe #
     ipureintro; rfl
+  isplitl [Hwcl]
+  · -- (D22 S-g) the KV's closer, kept (until then dropped here)
+    unfold srvKVCloser
+    iexists ws
+    iframe #
+    iexact Hwcl
+  -- (D22 S-j2) the backend file's directory entry, `bootOk`'s, kept
+  iframe Hpath
   unfold srvBuilt
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr
@@ -1061,6 +1091,7 @@ theorem NewServer.wp_proof
     iframe NHmsc
     iunfold isRNMsgSnapC at NHmsci
     icases NHmsci with ⟨%γmc, #Hmcb⟩
+    iframe Hinfl
     iexists γmc, _
     iframe Hmcb
     iintro !> %mm Hmm

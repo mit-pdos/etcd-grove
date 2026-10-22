@@ -303,6 +303,7 @@ instance authStore_typed_pointsto :
     "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"be" l) v.be' dq ∗
     "enabled" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabled" l) v.enabled' dq ∗
     "enabledMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' dq ∗
+    "beMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' dq ∗
     "rangePermCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCache" l) v.rangePermCache' dq ∗
     "rangePermCacheMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"rangePermCacheMu" l) v.rangePermCacheMu' dq ∗
     "tokenProvider" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"tokenProvider" l) v.tokenProvider' dq ∗
@@ -393,6 +394,22 @@ instance authStore_access_store_enabledMu (l : Loc) (v : go_etcd_io.etcd.server.
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) v.enabledMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"enabledMu" l) enabledMu' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enabledMu' := enabledMu' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_load_beMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authStore_access_store_beMu (l : Loc) (v : go_etcd_io.etcd.server.v3.auth.authStore) (beMu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) v.beMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"beMu" l) beMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with beMu' := beMu' } : go_etcd_io.etcd.server.v3.auth.authStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

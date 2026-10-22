@@ -170,9 +170,10 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
 []`): from raft's driver at the empty delivered log (`nodeDriver … []`: `StartNode`'s, with
 `γ.pre = []` so that `rnLogOf γ [] = []`), its view of the configuration, and `applyc`'s halves
 with `cum` at `[[]]` (`newRaftNode`'s). -/
-theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre = []) :
+theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre = [])
+    (p : HardStateM) :
     (letI : MemStorReg GF := ⟨γ.reg⟩;
-      iprop(nodeDriver γ.node γ.id γ.nl [] ∗ nodeCfg γ.node ca cfg)) ∗
+      iprop(nodeDriver γ.node γ.id γ.nl [] p ∗ nodeCfg γ.node ca cfg)) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
@@ -180,6 +181,8 @@ theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre
   iintro ⟨⟨Hdrv, Hcfg⟩, Hprod, Hcons, Hcum, Hcum0⟩
   isplitl [Hdrv Hcfg Hprod Hcum]
   · iunfold rnLoopTok
+    iexists p
+    iunfold rnLoopTokP
     iexists [], [[]]
     isplitl [Hdrv Hcfg]
     · iunfold rnDrv
@@ -277,6 +280,9 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
+        -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in raft's
+        -- no-snapshot mode, the servers')
+        "#Hclk" ∷ certLink γ (memStorIface bv.storage') ∗
         -- trust boundary: raft's `Ready`s fit (D10), `Stop` returns
         "#Hfits" ∷ (∀ γw : RNNames,
           ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
@@ -379,7 +385,7 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave #Hisnode : rnIsNode γw $$ []
   · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
   -- the tokens
-  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw 0 (cfgState (GMap.listToSet ps) ∅) Hwpre
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw 0 (cfgState (GMap.listToSet ps) ∅) Hwpre hsZero
     $$ [Hdrv Hncfg Hprod Hcons Hcum Hcum0]
   · rw [Hwnode, Hwid, Hwnl]
     iframe Hdrv Hncfg Hprod Hcons Hcum Hcum0

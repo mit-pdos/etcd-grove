@@ -34,7 +34,7 @@ theorem raftLog.firstIndex.wp_proof
   iNamed Hlog
   wp_auto
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -64,6 +64,7 @@ theorem raftLog.firstIndex.wp_proof
     rw [Hstok]
     wp_auto
     obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
+    take_storage Hs
     wp_apply HFirstIndex $$ HStorage as %fi2 ⟨%Hfi2, #Hcut, HStorage⟩
     rw [← Hstok]
     iapply HΦ

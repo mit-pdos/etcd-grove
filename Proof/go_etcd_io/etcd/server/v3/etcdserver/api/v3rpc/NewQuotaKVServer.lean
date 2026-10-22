@@ -5,8 +5,6 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewQuotaKVServer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newBackendQuota
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 
 @[expose] public section
 
@@ -30,28 +28,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.NewQuotaKVServer.wp_proof
-    (wp_NewKVServer : v3rpc.NewKVServer.spec (GF := GF) (hG := hG))
-    (wp_newBackendQuota : v3rpc.newBackendQuota.spec (GF := GF) (hG := hG))
-    (wp_MemberID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
+    (wp_NewKVServer : v3rpc.NewKVServer.spec (GF := GF) (hG := hG)) :
     v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) := by
-  intro s A n lg qb mid Hbuq
-  wp_start as ⟨#HKV, #Hn, #Hlg, %Hlgn, Hlr, #Hqb, Hbr, #Hmid⟩
+  intro s A n lg qb Hbuq
+  wp_start as ⟨#HKV, #Hn, #Hlg, %Hlgn, #Hqb⟩
   wp_auto
   wp_apply wp_NewKVServer s A n $$ [] as %kv ⟨%p, %cid, %mid', %Hkv, #Hp⟩
   · iframe #
   subst Hkv
-  wp_apply wp_newBackendQuota s lg qb go!"kv" Hbuq $$ [Hlr Hbr] as %qv ⟨#Hq, Hlr, Hbr⟩
-  · iframe; iframe #; ipureintro; exact Hlgn
-  wp_apply wp_MemberID s mid $$ []
-  · iframe #
   wp_alloc q as Hqv
   ihave %Hqn := typedPointsto_not_null _ _ _ $$ Hqv
   iStructNamed Hqv
   iStructNamed qa
   ipersist KVServer
-  ipersist q
-  ipersist a
-  ipersist id
+  ipersist s
+  ipersist name
   wp_auto
   iapply HΦ
   iexists q, p, cid, mid'
@@ -64,8 +55,9 @@ theorem v3rpc.NewQuotaKVServer.wp_proof
   isplitr
   · ipureintro; exact Hqn
   iunfold v3rpc.quotaAlarmerAt
-  iexists qv, mid
+  iexists go!"kv", lg, qb
   iframe #
+  ipureintro; exact ⟨Hlgn, Hbuq⟩
 
 end proof
 

@@ -197,38 +197,23 @@ def absMsg (ty : MsgType) (m : MessageM) (ents : List EntryM)
     (ctx : List w8 := []) : Msg :=
   absMsgFrom ty m m.From' m.Term' ents ctx
 
-/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
-`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
-`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). -/
-structure CSLists where
-  voters : List w64
-  learners : List w64
-  outgoing : List w64
-  learnersNext : List w64
+-- (D22 S-b′, 2026-10-20) `CSLists` is `Protocol/Model.lean`'s (a `Msg` field)
 
-/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
-instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
-
-/-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
-`ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
-(`LogState.ksn`) and what the application certifies (`raftSnapCert`, `SnapConf.lean`). -/
-structure SnapTrip [FfiSyntax] where
-  sid : entryID
-  cl : CSLists
-  al : Bool
+-- (D22 S-b′3, 2026-10-20) `SnapTrip` and `msgSnapTrip` are `Protocol/Model.lean`'s
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to (since the raft v3.7
 retarget, stage R1, its record `SnapshotM`), and `voters`
 the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
-the abstract message keeps the incoming voters). `index`/`logterm` are the
+the abstract message kept the incoming voters until D22 S-b′, 2026-10-20: now all four and the
+`AutoLeave`, which the message's certificate is about). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
 def absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM)
     (voters : CSLists) : Msg :=
-  Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
-    m.Commit' m.RejectHint' [] voters.voters []
+  Msg.mkS .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
+    m.Commit' m.RejectHint' [] voters sv.Metadata'.ConfState'.AutoLeave' []
 
 def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
@@ -339,6 +324,38 @@ structure LogState [FfiSyntax] where
   up to it. Ghost, not a Go field. At most `applied` (`ownRaftLog`'s `Hfl`): raft's
   `hasUnappliedConfChanges` reads the log from `applied + 1`. -/
   fl : w64 := 0
+  /-- (D22 S-d1, 2026-10-20) `unstable.snapshotInProgress`: the pending snapshot has been handed
+  to the application by a `Ready` (`acceptInProgress`), so `nextSnapshot` no longer returns it.
+  `false` with no snapshot pending (`ownRaftLog`'s `Hsipn`); `restore` clears it. -/
+  sip : Bool := false
+  /-- (D22 S-d1b, 2026-10-21) The storage is lent to the application (ghost): a `Ready` that hands
+  out a snapshot hands out the storage itself, for `ApplySnapshot` and the `Append` of the entries
+  after it (`ownRaftLog_lend`); `ownRaftLog` then holds no `ownStorage` (`lentStor`), which is
+  sound because raft reads no storage while a snapshot is pending. Only with a snapshot pending
+  (`Hlent`); the application's receipt ends it (`ownRaftLog_absorb_snap`). -/
+  lent : Bool := false
+  /-- (D22 S-d1b) The storage holds the pending snapshot and the entries after it (ghost): set by
+  the absorption of the application's receipt of the snapshot in progress, cleared by
+  `stableSnapTo`'s hit (and by `restore`). Only `ownRaftLogW` admits it (the acknowledgement's arm
+  of `raft.Step`, `raftLog.stableTo`, `raftLog.stableSnapTo`); `ownRaftLog` has it `false`. -/
+  sapp : Bool := false
+  /-- (D22 S-d1b) `raft.appliedSnap` between its two calls (ghost): `stableSnapTo` dropped the
+  snapshot, and `applied` is still below the boundary until `appliedTo` moves it there. Only
+  `ownRaftLogW` admits it; `ownRaftLog` has it `false`. -/
+  aps : Bool := false
+  /-- (D22 S-d2, 2026-10-21) The storage is at the pending snapshot (ghost): the application's
+  receipt of the snapshot in progress is absorbed (`ownRaftLog_absorb_snap`), so the storage holds
+  the snapshot and what the `Ready` asked it to store (`SatOk`). Set by the absorption only;
+  cleared by `restore`, a `Ready`'s `acceptUnstable` and `stableSnapTo`'s hit. Quiet: the
+  acknowledgement's arm turns it into the `sapp` window (`ownRaftLog_sapp`). -/
+  sat : Bool := false
+  /-- (D22 S-d4 item 3, 2026-10-21) With a snapshot pending and the storage not lent, a lower
+  bound of what the storage holds (ghost): it holds the log up to `sxt`, and unless it is at the
+  pending snapshot `applying ≤ sxt` (`StorExtOk`), so that the floor can be raised to `applying`
+  with a snapshot pending. Set by `restore` (to `applying`) and by the absorption of a snapshot
+  `Ready`'s receipt (to the snapshot the storage is then at, which `appliedSnap` moves `applying`
+  to also when a later snapshot was restored meanwhile: `SnpOk`'s link to the lent snapshot). -/
+  sxt : w64 := 0
 
 /-! ## The tracker's records (2026-10-02)
 
@@ -913,12 +930,20 @@ snapshot pending. `unstable.restore` sets `offsetInProgress` to the new offset;
 (its id, lists and `AutoLeave`) joins the ones the node may send (`ksn`). -/
 def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
   ⟨k.sid, [], [], k.sid.index', ls.applied, some k.sid, k.sid.index' + W64 1, ls.applying,
-   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl⟩
+   ls.unpersisted, ls.stored, ls.apsize, ls.apmax, ls.storage, ls.ksn ++ [k], ls.fl, false,
+   -- (D22 S-d1b) the storage stays lent, if it is; the storage no longer at the pending snapshot
+   ls.lent, false, false, false,
+   -- (D22 S-d4 item 3) what the storage holds: as before if a snapshot was pending, else `applying`
+   if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
 `ConfState` and its `AutoLeave`. -/
 def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
   ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
+
+/-- (D22 S-b′3) A `MsgSnap`'s abstraction carries its snapshot's trip. -/
+theorem msgSnapTrip_absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM) (cl : CSLists) :
+    msgSnapTrip (absSnapFrom m src term sv cl) = snapTrip sv cl := rfl
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/
@@ -985,7 +1010,7 @@ it after all, when `HasReady` reports nothing new: that is right only because wh
 the abandoned `Ready` held is still there (`ownRawNodeReady_abandon`, `RNState.outlb`).
 `ownRaftPhys` states both (`Hgh_out`, `Hgh_unst`); every step but a storage
 acknowledgement keeps them (`NetFrame`, `LocalFrame`). -/
-structure NGhost where
+structure NGhost [FfiSyntax] where
   outlb : Nat := 0
   unst : Bool := false
   /-- (2026-10-17, pre-vote at the `RawNode` layer) a term ceiling: every queued message is of a
@@ -1004,11 +1029,33 @@ structure NGhost where
   describe (`MsgTimeoutNow`, a forwarded `MsgTransferLeader`): `raft.Step` takes no
   `MsgTransferLeader` (`RestMsgOk`). On when the struct is built (`newRaft`, its queues empty:
   the default), turned off by a ghost step (`ownRaftPhysC_xf_off`) when the node's construction
-  leaves the cluster's no-snapshot mode (`RestartNode`, `Bootstrap` outside it), so that a node
-  is in it exactly when in the cluster's mode (`RaftNames.reNoSnap`, `NsLink`); the no-snapshot
-  mode implies it. -/
+  leaves the cluster's no-transfer mode (`RestartNode`, `Bootstrap` outside it), so that a node
+  is in it exactly when in the cluster's mode (`NsLink`; 2026-10-19, D22 S-a:
+  `RaftNames.reNoXfer`, independent of the no-snapshot mode, which until then implied it). With
+  the no-snapshot mode it makes the queued messages `SentMsgOk` (`XfOk`). (D22 S-c) With the
+  boot flag `bt` instead: the no-snapshot mode no longer enters. -/
   xf : Bool := true
-deriving DecidableEq
+  /-- (2026-10-20, D22 S-c) **Past term `0` for good**: the node's term is not `0` (`ownRaftPhys`'s
+  `Hxf`, `XfOk`), which `SentMsgOk`'s stamped terms need. Off when the struct is built (`newRaft`,
+  at term `0`), set with leader transfer's flag when the node's construction is of a cluster with
+  a bootstrap log (`Bootstrap`, at term `1`; `ownRaftPhys_set_ns`), at the cluster's no-transfer
+  mode (`NsLink`: `RaftNames.reNoXfer`, which needs a bootstrap log, `reNoXfer_ok`). Until D22
+  S-c the no-snapshot mode (`ns`) gave the term, so that `SentMsgOk` was of both modes. -/
+  bt : Bool := false
+  /-- (D22 S-d3a, 2026-10-21) **The storage lent**: a mirror of `LogState.lent` (`SnpOk`), which a
+  step keeps (`NetFrame`'s `s'.gh = s.gh`), so that the `RawNode` knows across the steps between a
+  snapshot's `Ready` and its `Advance` that the application holds the storage. Only the `RawNode`'s
+  ghost steps move it: a snapshot `Ready` sets it (`acceptReady`), the absorption of the
+  application's receipt clears it (`Advance`). -/
+  slent : Bool := false
+  /-- (D22 S-d3a) **The snapshot the last `Ready` handed out** (its trip), until the `Advance` that
+  steps its acknowledgement: while it is the pending one it is in progress and lent or absorbed
+  (`SnpOk`), and a snapshot in progress or absorbed has one recorded; it is a snapshot the node may
+  send (`ksn`) at most the commit index. Set by `acceptReady`, cleared by `Advance`. -/
+  snp : Option SnapTrip := none
+
+-- (D22 S-d3a) classical: `SnapTrip`'s `entryID` has no decidable equality
+noncomputable instance [FfiSyntax] : DecidableEq NGhost := fun a b => Classical.propDecidable (a = b)
 
 
 

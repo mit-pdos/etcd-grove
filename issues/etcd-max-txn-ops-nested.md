@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#22134 pr merged: related, not this bug (costTxnReq ignored nested RequestTxn; the same per-level blind spot in a different check)
 ---

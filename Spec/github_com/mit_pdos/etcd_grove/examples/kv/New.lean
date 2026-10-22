@@ -32,7 +32,7 @@ variable [KVStor GF]
 abbrev New.spec : Prop :=
   ∀ (γr : RKVNames) (γn : NodeNames) (id : w64) (n st : Loc) (send : GoFunc) (op : CCOp)
     (c0 c1 : CCState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ rkvInv γr ∗ nodeDriver γn id n [] ∗ ⌜γn.raft = γr.raft⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗ rkvInv γr ∗ nodeDriver γn id n [] hsZero ∗ ⌜γn.raft = γr.raft⌝ ∗
       -- (2026-10-15, stage N) the node in the dynamic mode of a cluster whose conf changes are
       -- `op` (`KVCC`), and the driver's view of its configuration, the initial one
       ⌜KVCC γn op c0 c1⌝ ∗ nodeCfg γn 0 c0 ∗

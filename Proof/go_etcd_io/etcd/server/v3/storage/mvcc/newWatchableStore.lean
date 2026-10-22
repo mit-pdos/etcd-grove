@@ -34,8 +34,8 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f γi γok Hcfg0 Hrb0 Hnc
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
+  intro lg b le cfg kb γb γl P f γi γok Hcfg0 Hrb0
+  wp_start as ⟨Hbk, Hbv, Hncmp, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor, Hifresh, Hok0⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -44,8 +44,8 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0 Hrb0 Hnc)
-    $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0 Hrb0)
+    $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, -,
       Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's

@@ -4,6 +4,7 @@ Proof of the spec of the same name (unit P3b). Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newBackendQuota
 
 @[expose] public section
 
@@ -26,19 +27,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem v3rpc.quotaAlarmer.check.wp_proof :
+theorem v3rpc.quotaAlarmer.check.wp_proof
+    (wp_newBackendQuota : v3rpc.newBackendQuota.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) := by
-  intro qa s E ρ ci cd r rt hrt
-  wp_start as ⟨#Hqa, #Hsrv, #HNR, Hlt, Hard, #Hctx⟩
-  ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, #Hiv, -, -⟩
-  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.interceptorVars at Hiv
-  icases Hiv with ⟨#HeNS, -⟩
-  iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.errVarSet at HeNS
-  icases HeNS with ⟨%eNS, #HeNS⟩
+  intro qa s ci r rt hrt
+  wp_start as ⟨#Hqa, Hrd⟩
+  ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
+  · iPkgInit
   iunfold v3rpc.quotaAlarmerAt at Hqa
-  icases Hqa with ⟨%qv, %id, #Hq, #Hiq, #Ha, #Hid⟩
+  icases Hqa with ⟨%name, %lg, %qb, #Hs, #Hname, #Hlg, %Hlgn, #Hqb, %Hbuq⟩
+  iunfold v3rpc.quotaRd at Hrd
+  icases Hrd with ⟨Hlr, Hbr⟩
+  wp_auto
+  -- (D22g (A)) the quota of the backend current at the check
+  wp_apply wp_newBackendQuota s lg qb name Hbuq $$ [Hlr Hbr] as %qv ⟨#Hiq, Hlr, Hbr⟩
+  · iframe; iframe #; ipureintro; exact Hlgn
   iunfold apply.isQuota at Hiq
   icases Hiq with ⟨%qi, %Hqi, #HAv, -⟩
   subst Hqi
@@ -46,11 +49,12 @@ theorem v3rpc.quotaAlarmer.check.wp_proof :
   wp_apply HAv $$ %rt %r as %b %Hb
   · ipureintro; exact hrt
   -- (audit phase B3, D19h) under `backendUnderQuota` the quota answers true: the NOSPACE
-  -- alarm's branch (`s.Alarm`) is not reached
+  -- alarm's branch (`s.MemberID()`, `s.Alarm`) is not reached
   subst Hb
-  · wp_auto
-    iapply HΦ
-    iframe
+  wp_auto
+  iapply HΦ
+  iunfold v3rpc.quotaRd
+  iframe
 
 end proof
 

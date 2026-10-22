@@ -195,19 +195,6 @@ theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantic
   simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
   exact go.intoVal_inj h
 
-/-- **The backends the stores open record no compaction** (opaque, a named premise about the
-program's environment, D19a's first kind, as `apply.backendUnderQuota`; D19l (v), 2026-10-18,
-adopted by the user): the `meta` bucket of every backend `NewStore` is called on holds neither
-the finished nor the scheduled compaction's key (`schema.FinishedCompactKeyName`,
-`ScheduledCompactKeyName`). `store.restore` reads both (`kvstore.go:330-342`): a finished one sets
-`compactMainRev`, a scheduled one above it raises `currentRev` and runs `compactLockfree`, which
-the store's backend contract (`isKeyBackendG`, the `Key` bucket only) does not model. A premise of
-`restore`'s axiom, so of `NewStore` ... `mvcc.New` and `NewServer.spec`. True of a fresh data
-directory (putget's): only the compaction (`UnsafeSetScheduledCompact` in `store.Compact`,
-`UnsafeSetFinishedCompact` in its job) writes the keys, and nothing compacts before the store
-exists; false of a restart after a compaction, which the closed theorem then does not cover (the
-backend contract with the `meta` keys, D19l (v)'s option (A), is the route for it). -/
-opaque backendNoCompaction : Prop
 
 section reprs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -216,6 +203,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+/-- **A real backend's `meta` bucket records no compaction** (opaque, exclusive; D22 S-g,
+2026-10-19, D19l (v) (A); until then the opaque `Prop` `backendNoCompaction`, a premise of
+`NewStore` ... `NewServer.spec` and of the closed theorems): the bbolt data of the backend `γB`
+holds neither the scheduled nor the finished compaction's key (`schema.ScheduledCompactKeyName`,
+`FinishedCompactKeyName`), and only a store over it writes them (its compaction:
+`UnsafeSetScheduledCompact` in `store.Compact`, `UnsafeSetFinishedCompact` in the job). The
+store's `restore` consumes it (it reads both keys, `kvstore.go:330-342`: a finished one sets
+`compactMainRev`, a scheduled one above it raises `currentRev` and resumes the compaction). The
+readers' view of a backend leaves out every bucket but `Key` (`bridgeParams`), so the model
+cannot state the `meta` bucket's keys to the store: this names the fact about the backend's data,
+as `etcdserver.bkFresh` does a fresh bucket's, given by whoever opens the backend over data of
+which it is true: `bootstrap`'s contract for a new cluster's backend (a bbolt file created empty,
+`bootOk`), and for a received image the opener of a data `D` without either key (`keyImage`'s
+last two conjuncts, `Image.lean`; D22 S-j). -/
+opaque bkNoCmp (γB : backend.BNames) : IProp GF
+
+/-- The same for mvcc's assumed backend (`kb = none`, the store's own ghost map `γb`): opaque,
+given by that backend's creator with its fresh key bucket (no caller in this repository). -/
+opaque viewNoCmp (γb : GName) : IProp GF
+
+/-- **The backend of the instance `kb` records no compaction** (`bkNoCmp`, `viewNoCmp`): what
+`restore` consumes in place of the opaque premise `backendNoCompaction` (D22 S-g). -/
+def kbNoCmp (kb : Option KBReal) (γb : GName) : IProp GF :=
+  match kb with
+  | none => viewNoCmp γb
+  | some d => bkNoCmp d.γB
 
 /-! ## The backend's contract -/
 
@@ -2767,6 +2780,75 @@ instance isWriteView_persistent (wv s : Loc) (γ : StoreNames) :
     Persistent (isWriteView (GF := GF) wv s γ) := by
   unfold isWriteView; infer_instance
 
+
+/-! ## `restore` of a key bucket with data (D22 S-g) -/
+
+/-- **The revisions a store can be restored with** after `NewStore`'s two (D22 S-g, 2026-10-19):
+the log `[[], []] ++ R` (revision 0 and the store's first `currentRev`, both empty) whose further
+revisions each have a change (an empty revision writes nothing to the `Key` bucket, so `restore`
+could not see it: the restored `currentRev` is the last revision with an entry, the log's last),
+well formed and bounded as the index writer's log (`IdxWf`), and with no put attached to a lease
+(`restore` attaches the leases of the keys it finds through the lessor, `s.le.Attach`: not
+modelled, and the server's workload grants none). -/
+def restoreLogOk (R : Log) : Prop :=
+  (∀ cs ∈ R, cs ≠ []) ∧ IdxWf ([[], []] ++ R) [] ∧
+    ∀ cs ∈ R, ∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0
+
+/-- `NewStore`'s log: no revision after its two. -/
+theorem restoreLogOk_nil : restoreLogOk [] := by
+  refine ⟨by simp, ⟨⟨fun _ => rfl, ?_⟩, by decide, by decide, by simp⟩, by simp⟩
+  intro r cs i k hr hi
+  have hcs : cs = [] := by
+    rcases r with _ | _ | _ | r <;> simp_all
+  subst hcs
+  simp at hi
+
+/-- Revisions each with a change have at least as many changes as revisions. -/
+theorem length_le_logCh : ∀ (R : Log), (∀ cs ∈ R, cs ≠ []) → R.length ≤ logCh R
+  | [], _ => by simp
+  | cs :: R, h => by
+    have h1 : 0 < cs.length := List.length_pos_iff.2 (h cs (by simp))
+    have h2 := length_le_logCh R (fun c hc => h c (by simp [hc]))
+    simp only [logCh, List.map_cons, List.sum_cons, List.length_cons] at h2 ⊢
+    omega
+
+/-- **A restored log has a revision per change past its first two** (what the sole writer's
+`soleLog` asks: `txn.soleLog ([[], []] ++ R)`, D22 S-j). -/
+theorem restoreLogOk_len {R : Log} (h : restoreLogOk R) :
+    2 ≤ ([[], []] ++ R).length ∧ ([[], []] ++ R).length ≤ logCh ([[], []] ++ R) + 2 := by
+  have := length_le_logCh R h.1
+  have hc : logCh ([[], []] ++ R) = logCh R := by simp [logCh]
+  simp only [List.length_append, hc]
+  simp only [List.length_cons, List.length_nil]
+  omega
+
+/-- **What `restore` takes of the index** for the revisions `R`: nothing for none (the `Key`
+bucket is empty, `restore` reads nothing, as in `NewStore`, whose index writer is under the batch
+lock by then); else the index writer's handle at `NewStore`'s log with no pending change and the
+other half of the committed log's authority (the caller's: a store whose writer resource is not
+yet in its backend's batch lock, as after `Restore`'s `newTreeIndex`). -/
+def restoreIdxPre (γ : IdxNames) (R : Log) : IProp GF :=
+  if R.isEmpty then iprop(True)
+  else iprop(idxWriter γ [[], []] [] ∗ idxLogAuth γ (1 : Qp).half [[], []])
+
+/-- **What `restore` gives back of the index** for the revisions `R`: nothing for none; else the
+index rebuilt at the log `[[], []] ++ R` (`restoreIntoIndex`'s `put`/`tombstone`/`restore` and
+`Insert` per change, under the index's lock): the writer's handle there, with a time receipt per
+change (D22h restated, D22 S-g: each change is put into the index by a step of `restore`'s
+goroutine, whose receipt `restore` takes, as `treeIndex.Put`/`Tombstone` do per change for a
+write transaction: so the restored log, made by other members' writes, is bounded by this
+member's own steps, and `idxSealed`'s `logCh log < receiptBound` holds of it), the committed
+log's authority's other half and the index's certificate of the log. -/
+def restoreIdxPost (γ : IdxNames) (R : Log) : IProp GF :=
+  if R.isEmpty then iprop(True)
+  else iprop(idxWriter γ ([[], []] ++ R) [] ∗ idxLogAuth γ (1 : Qp).half ([[], []] ++ R) ∗
+    idxCert γ ([[], []] ++ R))
+
+@[simp] theorem restoreIdxPre_nil (γ : IdxNames) :
+    restoreIdxPre (GF := GF) γ [] = iprop(True) := by unfold restoreIdxPre; simp
+
+@[simp] theorem restoreIdxPost_nil (γ : IdxNames) :
+    restoreIdxPost (GF := GF) γ [] = iprop(True) := by unfold restoreIdxPost; simp
 
 end reprs
 

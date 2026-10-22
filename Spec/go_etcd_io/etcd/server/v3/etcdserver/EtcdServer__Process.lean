@@ -28,12 +28,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 message the network delivers to it (`netRecv`) and a context the node API takes, with one of
 `lgMu`'s reader slots (`Logger()`): returns some error, the slot back. The two `403` branches are
 dead: the cluster removes no member (`IsIDRemoved` is `false`) and the message is addressed to
-`id` (the network's promise); the message is stepped into raft's node (`stepP`, `stepP_of_recv`). -/
+`id` (the network's promise); the message is stepped into raft's node (`stepP`, `stepP_of_recv`). (D22 S-i) `γd` names the
+member's snapshot directory, whose fact for a `MsgSnap` (`netSnapRecv`) is not read yet: the
+no-snapshot mode excludes `MsgSnap` (S-j reads it). -/
 abbrev EtcdServer.Process.spec : Prop :=
-  ∀ (γn : NetNames GF) (s : Loc) (id : w64) (ctx : GoInterfaceOk)
+  ∀ (γn : NetNames GF) (γd : GName) (s : Loc) (id : w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (ml : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id ∗ nodeCtx ctx cd ∗ srvLgReader s ∗ netRecv γn id ml }}
+      srvProcOk γn s id ∗ nodeCtx ctx cd ∗ srvLgReader s ∗ netRecv γn id γd ml }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Process"))
       (Val #(GoInterface.ok ctx))) (Val #ml))
   {{ (err : GoInterface), RET #err; srvLgReader s }}

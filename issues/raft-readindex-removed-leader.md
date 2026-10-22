@@ -1,9 +1,9 @@
 ---
 upstream: fixed
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/raft#534 issue open: this bug, reported 2026-10-19; closed by #536, then reopened by ahrtr "to track the backport effort" (3.7, 3.6, 3.5)
-  - etcd-io/raft#536 pr merged: the fix, opened 2026-10-19, revised after review (IsVoter, rebased on #535) and merged the same day; the bot's cherry-picks to release-3.7 (raft.go) and release-3.6 (raft_test.go) conflict, and ahrtr asked us to cherry-pick by hand to release-3.7, release-3.6 and etcd's release-3.5 (raft/ inside etcd)
+  - etcd-io/raft#536 pr merged: the fix, opened 2026-10-19, revised after review (IsVoter, rebased on #535) and merged the same day; the bot's cherry-picks to release-3.7 (raft.go) and release-3.6 (raft_test.go) conflict, and ahrtr asked us to cherry-pick by hand to release-3.7, release-3.6 and etcd's release-3.5 (raft/ inside etcd); no backport PR by anyone yet (2026-10-21)
   - etcd-io/raft@1931ff5be: #536's merge commit, on `main`
   - etcd-io/raft#83 issue open: related, not this bug: make StepDownOnRemoval the default (would avoid it)
 candidate: issues/upstream/raft-readindex-removed-leader/

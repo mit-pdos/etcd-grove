@@ -12,7 +12,7 @@ The test below runs these steps (output trimmed):
 
 ```
 --- FAIL: TestV3WatchProgressBeforeCreated (0.23s)
-        	Error:      	Should be zero, but was 12
+        	Error:      	Should be false
         	Messages:   	progress response at revision 12 after the created response of the watcher on b, before its event at revision 2
 ```
 
@@ -24,7 +24,7 @@ The progress response should come before the created response of the watch on `b
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestV3WatchProgressBeforeCreated`](https://github.com/upamanyus/etcd/blob/fix/etcd-watch-progress-before-created/tests/integration/clientv3/watch/v3_watch_test.go#L1536-L1598) on branch [`upamanyus/etcd:fix/etcd-watch-progress-before-created`](https://github.com/upamanyus/etcd/tree/fix/etcd-watch-progress-before-created), off `main` (22cc5d9ac). On `main` it fails as above, in 20 of 20 runs.
+Integration test: [`TestV3WatchProgressBeforeCreated`](https://github.com/upamanyus/etcd/blob/fix/etcd-watch-progress-before-created/tests/integration/clientv3/watch/v3_watch_test.go#L1536-L1597) on branch [`upamanyus/etcd:fix/etcd-watch-progress-before-created`](https://github.com/upamanyus/etcd/tree/fix/etcd-watch-progress-before-created), off `main` (bf9cadf04). On `main` it fails as above, in 20 of 20 runs.
 
 ### Anything else we need to know?
 
@@ -36,7 +36,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-Integration test at `main` (22cc5d9ac), go1.27.2 linux/amd64; no binaries.
+Integration test at `main` (bf9cadf04), go1.27.3 linux/amd64; no binaries.
 
 </details>
 

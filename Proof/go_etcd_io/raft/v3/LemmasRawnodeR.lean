@@ -62,6 +62,25 @@ theorem msgPtsC_store_LogTerm (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) 
   iframe
   iframe cTy cTo cFr cTe cLt' cIx cCo cVo cRj cRh Hents Hcs Hpb
 
+/-- (D22 S-d3a, 2026-10-21) `m.Snapshot = rd.Snapshot` (`newStorageAppendRespMsg`, `rawnode.go:349`):
+the field stored; the message's snapshot is then the one the pointer holds, once that is owned. -/
+theorem msgPtsC_store_Snapshot (l : Loc) (dqe : DFrac) (cap : Bool) (ms : MsgSt) :
+    msgPtsC (GF := GF) l (DFrac.own 1) dqe cap ms ⊢
+      ∃ p : Loc, l.[raftpb.Message, go!"Snapshot"] ↦ p ∗
+        (∀ (p' : Loc) (o : Option SnapshotM), l.[raftpb.Message, go!"Snapshot"] ↦ p' -∗
+          snapOpt p' (DFrac.own 1) o -∗ msgPtsC l (DFrac.own 1) dqe cap { ms with snap := o }) := by
+  iintro H
+  iNamed H
+  iexists ps
+  iframe HSn
+  iintro %p' %o HSn Hsn'
+  iunfold msgPtsC
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, p', cs, rs, uf
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
 /-- A read-only hard state is one that may be `nil` (`raft.hardState()`'s result handed to
 `IsEmptyHardState`/`isHardStateEqual`). -/
 theorem hsRO_to_hsOpt (p : Loc) (h : HardStateM) : hsRO (GF := GF) p h ⊢ hsOpt p h := by

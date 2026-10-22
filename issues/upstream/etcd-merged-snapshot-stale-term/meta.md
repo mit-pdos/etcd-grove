@@ -14,17 +14,18 @@ a gap of two terms with the intermediate leader still up.
 - **Target**: etcd-io/etcd, `main`. Since #7513 (2017) the merged snapshot's term is `etcdProgress.appliedt`, with
   `m.Term` unchanged. The release branches likely have the bug too (not checked).
 - **Branch**: `fix/etcd-merged-snapshot-stale-term` in `~/etcd-fixes/etcd-merged-snapshot-stale-term`, two commits:
-  01009c61f (`etcdserver: test the term of a merged snapshot`) adds the test, which fails there; f81ca1509
-  (`etcdserver: send a queued MsgSnap only while raft is at its term`) is the fix. Not pushed.
-- **Base**: upstream `main` 6782f5229b8a6dbc5f6d421107fd70d66de98694 (2026-10-19). `processMessages`, `applyAll`'s
-  `msgSnapC` branch and `createMergedSnapshotMessage` match the finding's description at the fork pin.
-  `applyAll` on `main` does not wait for `raftAdvancedC` (that wait is a fork fix,
-  `issues/etcd-compact-past-raft-applied.md`). The bug does not depend on it.
+  cfc8d04bb (`etcdserver: test the term of a merged snapshot`) adds the test, which fails there; c5630c231
+  (`etcdserver: drop a queued MsgSnap older than the applied term`) is the fix. Not pushed.
+- **Base**: upstream `main` bf9cadf044f0531036a61c9b6dbeba8aef2a3b30 (2026-10-21; rebased from 6782f5229, the two
+  commits in between touch none of these files). `processMessages`, `applyAll`'s `msgSnapC` branch and
+  `createMergedSnapshotMessage` match the finding's description at the fork pin. `applyAll` on `main` does not wait
+  for `raftAdvancedC` (that wait is a fork fix, `issues/etcd-compact-past-raft-applied.md`). The bug does not depend
+  on it.
 - **State**: draft
 - **Upstream issue**: —
 - **PR**: —
 
-## Duplicates checked (2026-10-19)
+## Duplicates checked (2026-10-19, rechecked 2026-10-21)
 
 Five searches: `createMergedSnapshotMessage`, `merged snapshot term` and `msgSnapC` (etcd-io/etcd), `"need non-empty
 snapshot"` (etcd-io/etcd and etcd-io/raft), and `snapshot term greater` (etcd-io/raft). None is a duplicate, and no
@@ -41,21 +42,32 @@ open PR fixes it. Related, different:
 - etcd-io/raft#108 (open): the same `need non-empty snapshot` panic with a different cause, `MemoryStorage.Snapshot`
   in a fuzzing harness.
 
-## Verification (go1.27.2 linux/amd64)
+Rechecked 2026-10-21 (authenticated search, issues and PRs): `createMergedSnapshotMessage`, `msgSnapC`, `snapshot
+stale term` (etcd-io/etcd), and `MsgSnap term` / `snapshot term` updated since 2026-10-19 (etcd-io/etcd,
+etcd-io/raft). Nothing new; #22516/#22524 (open, a member catching up from a snapshot stays unpublished) and #22510
+are about the receiver's publish, not the message's term.
+
+## Verification (go1.27.3 linux/amd64, 2026-10-21)
 
 `TestMergedSnapshotTerm` (in `server/etcdserver/server_test.go`, after `TestSnapshotOrdering`, through the same
 harness: `newNopReadyNode`, `newSnapTransporter`, the real `raftNode` loop and `applyAll`) is the issue's example.
 
-- At the tests commit 01009c61f (`cd server; go test ./etcdserver -run TestMergedSnapshotTerm -count=20`): fails 20
+- At the tests commit cfc8d04bb (`cd server; go test ./etcdserver -run TestMergedSnapshotTerm -count=20`): fails 20
   of 20, `"2" is not less than or equal to "1"`, `snapshot term of the MsgSnap to 5`.
-- At the fix commit f81ca1509: the same command passes 20 of 20. In `server/`, `go test ./... -count=1` is ok
-  (every package), `go vet ./etcdserver/` is clean and `gofmt -l` is empty. `cd tests; go test ./integration/ -run
-  'Snapshot|Snap' -count=1` is ok.
+- At the fix commit c5630c231: the same command passes 20 of 20; `go test ./etcdserver/... -count=1` is ok (every
+  package); `go test -race ./etcdserver -count=1` is ok, and `-race -run TestMergedSnapshotTerm -count=20` passes;
+  `go vet ./etcdserver/` is clean and `gofmt -l etcdserver` is empty.
+- Siblings that touch the same files: `git merge-tree --write-tree` of this branch with
+  `fix/etcd-alarm-store-snapshot-race` (d396a0fc7), `fix/etcd-auth-snapshot-closed-backend-panic` (8b64b1019) and
+  `fix/etcd-compact-past-raft-applied` (be0ad9592, which also edits `applyAll`, three lines above this change) is
+  clean for each; each merge builds (`go build ./...` in `server`), vets, and passes `go test ./etcdserver`. No
+  conflict note is needed in `pr.md`.
 
-Not run: `tests/e2e`, the whole of `tests/integration`, `make verify` (golangci-lint). The scenario end to end (a
-real cluster with a stalled fsync and an asymmetric partition) was not reproduced. The finding's raft-level tests
-show that raft reaches the state (`merged_snapshot_stale_term_test.go`) and the gap-of-two panic
-(`stale_term_gap2_ack_test.go`, with hand-built messages), at raft v3.7.0 and the fork.
+Not run: `tests/e2e`, `tests/integration` (run on the previous version of the fix, 2026-10-19: `-run
+'Snapshot|Snap'` ok), `make verify` (golangci-lint). The scenario end to end (a real cluster with a stalled fsync
+and an asymmetric partition) was not reproduced. The finding's raft-level tests show that raft reaches the state
+(`merged_snapshot_stale_term_test.go`) and the gap-of-two panic (`stale_term_gap2_ack_test.go`, with hand-built
+messages), at raft v3.7.0 and the fork.
 
 ## Why the test shows the bug and not a misuse
 
@@ -76,50 +88,74 @@ snapshot is of its log, whose terms are at most its term. etcd's server code use
 
 ## Why the fix works
 
-At the base, `processMessages` queues every `MsgSnap` on `msgSnapC` (16 slots). Each `applyAll` job, after applying
-its batch and waiting for `notifyc`, takes at most one queued message and merges it with `(appliedi, appliedt)`. At
-the base nothing ties the message's term to what was applied:
+At the base, `processMessages` queues every `MsgSnap` on `msgSnapC` (16 slots; `applyAll` is its only consumer).
+Each `applyAll` job, after applying its batch and waiting for `notifyc`, takes at most one queued message and merges
+it with `(appliedi, appliedt)`. Nothing ties the message's term to what was applied:
 
 - In the scenario, job 1 takes member 4's message.
 - Job 2 applies the term-2 entry and takes member 5's message, which is sent as term 1 with a term-2 snapshot.
 
-With the fix, the raft goroutine records `rd.HardState.Term` whenever a Ready's HardState is non-empty and passes
-it in `toApply.raftTerm`. `applyAll` merges a message only if `m.Term >= raftTerm`. Every entry applied up to batch
-`k` was committed in a Ready at or before `k`, and that Ready's HardState carried the committed index and the term,
-so the applied data's term, and the term it was committed at, are at most `raftTerm`. If `m.Term >= raftTerm`, the
-node made `m` as leader of `m.Term`, and everything applied was committed in its log at or before that term: the
-merged snapshot is a snapshot of that leader's committed log, as raft's own would be. If `m.Term < raftTerm`, raft
-has left `m.Term`. Every term change resets the progress of every peer (`raft.reset`), so no leader waits for
-`m`'s `ReportSnapshot`, and dropping it without a report leaves nothing stuck. The current leader, if it needs to,
-sends its own `MsgSnap`. This also excludes the finding's second shape (data of `m.Term` or older, committed by a
-later leader), because that commit raised the HardState term first.
+With the fix, a job merges a queued message only if `appliedt <= m.Term`; job 2 drops member 5's message, and job 3
+sends the term-3 message to member 3. That is exactly raft's own guarantee for a `MsgSnap` (raft#47's
+`m.Term >= m.Snapshot.Metadata.Term`): a leader's snapshot is of its log, whose terms are at most its term. A member
+at `m.Term` that installs the merged snapshot then never has a last log term above its own term, which is what the
+gap-of-two panic needs.
+
+Dropping is safe for liveness. `appliedt > m.Term` means an entry (or a received snapshot) of a term above `m.Term`
+was committed and applied here, so raft had left `m.Term` before this job; every term change resets the progress of
+every peer (`raft.reset`), so no leader waits for `m`'s `ReportSnapshot`. The current leader, this member or
+another, probes the follower afresh and sends its own `MsgSnap` if the follower is behind its compacted log. The
+base already drops a `MsgSnap` without a report when `msgSnapC` is full (`processMessages`).
+
+What the fix does not exclude: the finding's second shape (data of `m.Term` or older, whose last entries were
+committed by a later leader after this member stepped down) is still sent under `m.Term`. Its snapshot term is at
+most `m.Term`, so the receiver's last log term stays at most its term; the data is committed, so the receiver's log
+is a prefix of the committed log. No wrong result or panic follows (finding, "What the receiver can do afterwards").
+The verified fork excludes it too, with the stronger check below, because its proof's invariant on `MsgSnap` says
+"committed at `m.Term`"; upstream has no such invariant to keep.
 
 ## If a reviewer asks
 
-- **Why `>=` and not `==`** (the verified fork's version, de825d8c6, uses `==`): raft can run several Readys ahead
-  of the apply jobs. The run loop schedules a job as soon as it receives the batch, and `applyAll` does not wait for
-  raft. So job `k` can take a `MsgSnap` that raft made in a later Ready, at a term newer than batch `k`'s. Merging
-  that message is safe: the data is older than its term. Dropping it without a `ReportSnapshot` would leave the
-  leader's progress for that peer in `StateSnapshot` until the next term change. Likewise `raftTerm` is 0 until the
-  first non-empty HardState after a restart. With `>=` that case keeps today's behavior.
-- **Why not `s.Term()` or `s.isLeader()`**: `s.Term()` is the applied entry's term, which is exactly what may be
-  newer. `isLeader()` holds again after a re-election at a later term.
-- **Why not `s.r.Status()` in `applyAll`**: it would work (merge only if leader at `m.Term`), but it is a round trip
-  to raft's goroutine in every job that takes a message, and it is no more precise: the message is made at
-  `m.Term` either way.
-- **Why not restamp `m.Term` with `appliedt`**: the sender need not have been leader at `appliedt`.
-- **Why not fix it in raft** (reject a `MsgSnap` whose snapshot term exceeds its term in `restore`): the receiver
-  cannot tell a stale merge from a valid one in the second shape (data committed later, of an old term), and raft's
-  own messages never violate it. A raft-side check would be defense in depth (raft#47's direction), not the fix.
-- **Cost**: one `uint64` per batch and a comparison per queued `MsgSnap`.
+Where the defect is: `applyAll` pairs a message raft made as leader of `m.Term` with data applied later, and
+`createMergedSnapshotMessage` (its only caller is `applyAll`) keeps `m.Term`. raft's messages are consistent; the
+pairing is etcd's. The candidate fixes, and why this one:
+
+- **(chosen) Drop when `appliedt > m.Term`**, in `applyAll`: one condition on data the job already has, at the
+  only place that pairs the two, and it states the invariant raft's `MsgSnap`s keep. Its drops are a subset of
+  those of the next option, with the same liveness argument.
+- **(a) Drop when raft's term changed** (the previous version of this branch, and the verified fork's de825d8c6
+  with `==`): the raft goroutine records the latest `HardState.Term` and passes it in a new `toApply.raftTerm`;
+  `applyAll` drops `m` if `m.Term < raftTerm`. Also correct, and stronger (it excludes the second shape), but it
+  adds a field and raft-goroutine bookkeeping for a case with no upstream consequence. `>=`, not `==`: raft can run
+  Readys ahead of the apply jobs, so job `k` can take a message made in a later Ready at a newer term, and `==`
+  would drop it with no term change to reset the leader's progress (stuck in `StateSnapshot`). Leadership need not
+  be checked besides the term: raft makes `MsgSnap` only as leader, and a check-quorum step-down at the same term
+  leaves the log and commit index frozen until a higher term.
+- **(b) Restamp `m.Term` with the current or applied term**: the sender need not be leader at that term (it is a
+  follower in the scenario), so the message would claim a leadership it does not have.
+- **(c) Snapshot at the message's term** (merge only data of term at most `m.Term`): the merged snapshot is the
+  backend at `appliedi`; etcd cannot snapshot an older index. Dropping is the feasible form of (c), which is the
+  chosen fix.
+- **(d) Reject in raft** a `MsgSnap` whose snapshot term exceeds `m.Term` (raft#47's invariant; its check panics
+  `appending out-of-order term` instead): raft's own messages never violate it, so the check would only turn
+  etcd's bad message into a receiver panic or a silent drop. It is defense in depth for raft, not this fix.
+- **Why not `s.Term()` or `s.isLeader()`**: `s.Term()` is the applied entry's term (`appliedt` itself, through
+  `SetTerm`); `isLeader()` holds again after a re-election at a later term, and the message is made at `m.Term`
+  either way.
+- **Why not `s.r.Status()` in `applyAll`**: a round trip to raft's goroutine in every job that takes a message,
+  for option (a)'s precision.
+- **Mixed versions**: a member that installed a bad merged snapshot from an unfixed leader can have `appliedt`
+  above its raft term; its own later `MsgSnap`s at a term below `appliedt` would then be dropped. Reaching that
+  needs this bug first; not traced further.
+- **Cost**: one comparison per queued `MsgSnap`.
 - **Backport**: the release branches were not checked. The fix is self-contained.
 
 ## check.py
 
 No FAIL. WARNs kept:
 
-- The two comments in the fix stay. `raftTerm`'s field comment matches its neighbours in `toApply`, and the one
-  in `applyAll` says why a message is dropped.
+- The fix's two-line comment stays: it says why a message is dropped (whose snapshot it would be, and that nothing
+  waits for it), not what the condition does.
 - The issue's 355 words of prose cover a three-step scenario and its impact (the panic), which a maintainer needs
   in order to care.
-- The PR's 117 words hold three permalinks and one sentence of change.
+- The PR's words hold two permalinks, the wrong assumption and one sentence of change with why dropping is safe.

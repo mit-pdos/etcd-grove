@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#21969 issue closed: same bug (progress broadcast sends on a canceled substream's closed recvc); closed as stale (not planned), not fixed
   - etcd-io/etcd#22191 pr open: same bug, fix (delete the substream from substreams after close(recvc)); no review, needs ok-to-test

@@ -50,7 +50,7 @@ the `Logger` for the `Infof`s is `ownUnstable`'s. Which entries may be moved -- 
 the caller's business (`raftLog.stableTo`'s `StableOk`). -/
 abbrev unstable.stableTo.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt) (id : entryID),
-  (∀ sid, us.snap = some sid → uint.Z us.offset = uint.Z sid.index' + 1) →
+  (∀ sid, us.snap = some sid → uint.Z sid.index' < uint.Z us.offset) →
   uint.Z us.offset + (us.ents.length : Int) < 2^64 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us }}

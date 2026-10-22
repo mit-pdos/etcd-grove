@@ -35,7 +35,7 @@ theorem raftLog.lastIndex.wp_proof
   wp_auto
   have Hnw : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2^64 := by omega
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -66,6 +66,7 @@ theorem raftLog.lastIndex.wp_proof
       obtain ⟨Hsp, -, Hstored_eq⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs ▸ Hstore
       have Hpnil : σ.pend = [] := by
         rw [Hpend.1]; exact (Hpersist Hs).2.2.1 He
+      take_storage Hs
       wp_apply HLastIndex $$ [$HStorage] as %li2 ⟨%Hli2, HStorage⟩
       · ipureintro; exact Hpnil
       rw [← Hstok]

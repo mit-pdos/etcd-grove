@@ -1,6 +1,6 @@
 ---
-upstream: none
-checked: 2026-10-20
+upstream: not-filing
+checked: 2026-10-21
 links:
   - etcd-io/etcd#4203 issue closed: related, flagged: asked in 2016 whether a Ready's conf change must be applied before Advance (maintainer: 'probably fair'); closed by etcd-io/etcd#4049, whose Advance comment allows Advance while applying without that exception; the safety consequence was not raised (maintainer called delaying a conf change apply safe)
   - etcd-io/raft#80 issue open: related, not this bug: the pendingConfIndex > applied proposal check gives false positives; proposes tracking the configuration explicitly
@@ -8,6 +8,13 @@ links:
 ---
 
 # raft: track which conf changes have been applied, so that Advance before ApplyConfChange is safe
+
+**2026-10-21: not filing (for now).** The candidate for this finding
+(`issues/upstream/raft-advance-before-applyconfchange/`) takes the documentation fix instead: default-on tracking
+needs one `ApplyConfChange` call per handed-out conf entry, which `Node.ApplyConfChange`'s own comment (do not call
+it for a rejected change) and etcd's restart path (it skips the replayed conf entries below its consistent index)
+break, leaving nodes unable to campaign; opt-in it fixes nothing for existing applications and is a feature
+proposal (etcd-io/raft#80's direction). Reasons in the candidate's `meta.md`, "If a reviewer asks", (b).
 
 ## Summary
 

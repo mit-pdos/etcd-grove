@@ -220,7 +220,7 @@ theorem opR_step1 : ccStepB opR c1R = some c1R :=
 /-- A replica's node, in the cluster's dynamic mode, is at the cluster's conf changes. -/
 theorem kvCC_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkR)
     (Hmd : γn.mode = .dyn (ccDecOf opR) c0R c0R_ok c0R_good)
-    (Hns : γn.raft.reNoSnap = false) : KVCC γn opR c0R c1R :=
+    (Hns : γn.raft.reNoXfer = false) : KVCC γn opR c0R c1R :=
   ⟨⟨c0R_ok, c0R_good, Hmd⟩, fun ty bs h => by rw [Hok] at h; exact h, opR_step0, opR_step1, rfl,
     Hns⟩
 
@@ -269,7 +269,7 @@ def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
   iprop(∃ (γn : NodeNames) (n : Loc),
     ⌜γn.raft = γr.raft ∧ γn.bud = bud ∧ γn.stor = kvStorIface st ∧
       nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-    nodeDriver γn id n [] ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
+    nodeDriver γn id n [] hsZero ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     id ↪[γr.seq] W64 0 ∗
     -- (2026-10-15, stage N) the node's mode and the driver's view of its configuration
     ⌜KVCC γn opR c0R c1R⌝ ∗ nodeCfg γn 0 c0R)
@@ -319,7 +319,9 @@ theorem StartCluster.wp_proof
     iexists γr0
     iframe Hreg0 Hval0 Hseqs0
     ipureintro; rfl
-  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2
+  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.2.2.1
+  -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
+  have Hnx := Hcfg'.2.2.2
   have Hdyn := Hcfg'.1
   have HccOk := Hcfg'.2.1
   -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
@@ -367,7 +369,11 @@ theorem StartCluster.wp_proof
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z k) _ DFrac.discard id0 Hk.1 $$ [Hvsl] as -
     · iframe Hvsl; ipureintro; exact Hid0
-    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem⟩
+    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca⟩
+    -- (D22 S-b′3) the storage's certificate registry tied to raft's names
+    imod memCertInv_alloc γr.raft γs ⊤ $$ Hca with #Hci
+    ihave #Hcl : certLink (GF := GF) γr.raft (kvStorIface st) $$ []
+    · iunfold certLink; iright; iapply kvStorCertOk_intro γr.raft st ms γs $$ Hci Hrec
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨Hghost, Hseq⟩, Htodo⟩
@@ -387,12 +393,9 @@ theorem StartCluster.wp_proof
       $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
-    -- (2026-10-19, D21 M2r) out of the no-snapshot mode: nothing committed
-    ihave %HnsR : ⌜γr.raft.reNoSnap = false⌝ $$ [Hghost]
-    · iunfold ownRaftGhostR at Hghost
-      icases Hghost with ⟨Hg, -⟩
-      icases ownRaftGhost_noSnap_of_commit γr.raft id0 _ rfl $$ Hg with ⟨%H, -⟩
-      ipureintro; exact H
+    -- (2026-10-19, D21 M2r) leader transfer on: (D22 S-a) the allocation's
+    -- (`RaftNames.reNoXfer`, until then out of the no-snapshot mode: nothing committed)
+    have HnsR : γr.raft.reNoXfer = false := Hnx
     ihave Hghost : rnInit γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good) id0
         (GMap.listToSet clusterIds) $$ [Hghost]
     · iunfold rnInit
@@ -402,16 +405,16 @@ theorem StartCluster.wp_proof
     wp_apply (wp_RestartNode γr.raft (.dyn (ccDecOf opR) c0R c0R_ok c0R_good)
       bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
-      (kv.kvConfState clusterIds)
+      (kv.kvConfState clusterIds) false
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (fun _ => rfl) rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
-      (fun _ => rfl) rfl)
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0]
+      (fun _ => rfl) rfl (fun h => by cases h))
+      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hcl]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
-    obtain ⟨Hr, Hb, Hs, Hmd, rfl⟩ := Hnd
+    obtain ⟨Hr, Hb, Hs, Hmd, -, rfl⟩ := Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
     have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
     rw [Hdrop] at Hnd'

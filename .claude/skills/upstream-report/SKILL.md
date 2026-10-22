@@ -1,6 +1,6 @@
 ---
 name: upstream-report
-description: Turn a finding in issues/<slug>.md into an upstream-ready candidate — a GitHub issue text, a fix branch off upstream main with a regression test, and a PR description — for etcd-io/etcd, etcd-io/raft or etcd-io/website. Use when asked to report, file, draft, or fix an issue from issues/ upstream, or to revise a fix branch after review. Never pushes or files anything.
+description: Turn a finding in issues/<slug>.md into an upstream-ready candidate — a GitHub issue text, a fix branch off upstream main with a regression test, and a PR description — for etcd-io/etcd, etcd-io/raft, etcd-io/bbolt or etcd-io/website. Use when asked to report, file, draft, or fix an issue from issues/ upstream, or to revise a fix branch after review. Never pushes or files anything.
 ---
 
 # Reporting a finding upstream
@@ -22,6 +22,7 @@ force-push the user approved. Aim for a candidate the user can file as it is. `e
 |---|---|---|
 | etcd-io/etcd | `~/etcd` | `upstream` etcd-io/etcd, `origin` upamanyus/etcd |
 | etcd-io/raft | `~/etcd-raft` (clone on first use) | `upstream` etcd-io/raft, `origin` upamanyus/etcd-raft |
+| etcd-io/bbolt | `~/etcd-bbolt` | `upstream` etcd-io/bbolt, `origin` upamanyus/bbolt |
 | etcd-io/website | `~/etcd-website` | `upstream` etcd-io/website (no fork) |
 
 `git -C <clone> fetch upstream && git -C <clone> worktree add ~/etcd-fixes/<slug> -b fix/<slug> upstream/main`. Never
@@ -36,11 +37,12 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
   2026-10-19): leave it out of bug fixes unless a reviewer asks. Otherwise the changelog entry comes last, alone
   (`changelog: add entry for <what>`, no body, in `CHANGELOG/CHANGELOG-<next minor>.md` on `main`, the link
   `pull/TODO` until the PR exists): raft keeps its changelogs on `main`, mostly in commits of their own. In etcd, no
-  changelog edit: its changelog is updated separately (few changelog commits touch code).
+  changelog edit: its changelog is updated separately (few changelog commits touch code). Nor in bbolt, whose
+  `CHANGELOG/` entries go in commits of their own, mostly by the maintainers after merging.
 - Messages are as short as upstream's: most etcd and raft commits have no body, and nine in ten at most three lines.
   The tests commit has no body; the fix commit says in one short sentence what changes, or what was wrong, in words
   rather than function names, without restating the diff. Subjects at most 72 characters; the prefix the package's
-  history uses (`client/v3:`, `etcdserver:`, `raft:`). `git commit -s`, no AI trailer of any kind. The messages are
+  history uses (`client/v3:`, `etcdserver:`, `raft:`; bbolt's root package: `tx:`, `db:`). `git commit -s`, no AI trailer of any kind. The messages are
   drafts the user rewrites (Kubernetes' AI guidance, which etcd follows, forbids AI-written commit messages). Amend
   the commits until the PR is open.
 - The issue and the PR each end with their AI disclosure (below; etcd's PR template asks for one, following
@@ -94,7 +96,20 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
      it, do not change the helper's signature; add a small helper for what the caller needs, its doc in the
      package's terms, and check both at the caller (`IsVoter(r.id) && IsSingleton()`, as the etcd-io/raft#536 review
      asked instead of `IsSingleton(id)`).
-   - A comment only when it says why (an ordering that matters), never what the code does.
+   - Fix the root cause, not its symptoms at the callers: when a helper's result contradicts its name or doc comment
+    (its informal spec), fix the helper so that it meets that spec, once, if every caller wants the corrected
+    result, rather than working around it in each caller that is hit (etcd-io/etcd#22615 fixed
+    `IsDefaultOrdering` itself, one change fixing two bugs, where our #22616 and the `rangestream` candidate
+    patched two callers). Read every caller first; this differs from the `IsSingleton` case above, where the
+    helper did what it said and a caller needed more. Before settling on a fix, list the candidate layers and
+    fixes in `meta.md`, "If a reviewer asks", and say why the chosen one is the one a maintainer would pick.
+  - A comment only when it says why (an ordering that matters), never what the code does.
+   - A fix that changes only documentation (doc comments, `doc.go`, `README.md`) has no test that can fail before it
+     and pass after: the branch is that one commit, and the reproduction test goes on a branch `repro/<slug>` off the
+     same base (worktree `~/etcd-fixes/<slug>-repro`), which `meta.md` names in its line "**Reproduction branch**"
+     (the branch and the worktree, each in backticks, as on the line "**Branch**") and the issue links instead of
+     `fix/<slug>`; the PR leaves out the first-commit sentence, and the hand-off pushes both branches. `check.py`
+     accepts this shape only when the fix changes no code or tests.
    - Try the simplest alternative first (reorder, one more condition); if it fails, run it and record why in
      `meta.md`, "If a reviewer asks", with the other alternatives and costs; do not research more for it.
 8. **Verify**: check out the tests commit (the new tests fail) and the fix commit (they pass, the module's tests

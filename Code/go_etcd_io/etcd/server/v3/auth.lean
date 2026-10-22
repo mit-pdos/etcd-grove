@@ -504,7 +504,7 @@ noncomputable def isOpenEnded.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "rangeEnd")) (Val #(W64 0))))) (Val #(W8 0)))) (Val #false))))))
 
-/-- go: store.go:790:22 -/
+/-- go: store.go:795:22 -/
 noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -522,7 +522,7 @@ noncomputable def authStore.authInfoFromToken.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doReturn)
   (Pair (Var "$ret0") (Var "$ret1")))))))))))))
 
-/-- go: store.go:859:22 -/
+/-- go: store.go:864:22 -/
 noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "userName"
@@ -544,9 +544,8 @@ noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : v
   (Let "rev" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"lockedReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))
   (Let "tx" (App (Val (GoInstruction (GoAlloc AuthReadTx.ty))) (App (Val (GoInstruction (GoZeroVal AuthReadTx.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "userName"))
@@ -595,8 +594,6 @@ noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : v
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve AuthReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad AuthReadTx.ty))) (Var "tx"))) (Val #()))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "revision")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rev")))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -632,7 +629,7 @@ noncomputable def authStore.isOpPermitted.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))))))))))))
 
-/-- go: store.go:901:22 -/
+/-- go: store.go:905:22 -/
 noncomputable def authStore.IsPutPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -649,7 +646,7 @@ noncomputable def authStore.IsPutPermitted.impl [FfiSyntax] [GoGlobalContext] : 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))
 
-/-- go: store.go:905:22 -/
+/-- go: store.go:909:22 -/
 noncomputable def authStore.IsRangePermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -668,7 +665,7 @@ noncomputable def authStore.IsRangePermitted.impl [FfiSyntax] [GoGlobalContext] 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_READ)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:909:22 -/
+/-- go: store.go:913:22 -/
 noncomputable def authStore.IsDeleteRangePermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -687,7 +684,7 @@ noncomputable def authStore.IsDeleteRangePermitted.impl [FfiSyntax] [GoGlobalCon
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:913:22 -/
+/-- go: store.go:917:22 -/
 noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -697,9 +694,8 @@ noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] 
   (Let "authInfo" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AuthInfo.ty)))) (Var "authInfo"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"lockedReadTx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Val #()))
   (Let "tx" (App (Val (GoInstruction (GoAlloc AuthReadTx.ty))) (App (Val (GoInstruction (GoZeroVal AuthReadTx.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef AuthInfo.ty go!"Username"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthInfo.ty)))) (Var "authInfo"))))
@@ -730,8 +726,6 @@ noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] 
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve AuthReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad AuthReadTx.ty))) (Var "tx"))) (Val #()))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType AuthInfo.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthInfo.ty)))) (Var "authInfo")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType AuthInfo.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef AuthInfo.ty go!"Username"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AuthInfo.ty)))) (Var "authInfo")))) (Val #(go!""))))))
   (App (Val doReturn)
@@ -744,7 +738,39 @@ noncomputable def authStore.IsAdminPermitted.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: store.go:937:22 -/
+/-- lockedReadTx returns a read transaction of the current backend, locked
+    before Recover can replace that backend: the server closes a replaced
+    backend only after Recover, and closing waits for read transactions to unlock.
+
+    go: store.go:943:22 -/
+noncomputable def authStore.lockedReadTx.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "as"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "as" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType authStore.ty)))) (Var "as"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve AuthBackend.ty go!"ReadTx"))) (App (Val (GoInstruction (GoLoad AuthBackend.ty))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))) (Val #()))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc AuthReadTx.ty))) (App (Val (GoInstruction (GoZeroVal AuthReadTx.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad AuthReadTx.ty))) (Var "tx")))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve AuthReadTx.ty go!"RLock"))) (App (Val (GoInstruction (GoLoad AuthReadTx.ty))) (Var "tx"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore AuthReadTx.ty))) (Pair (Var "tx") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"beMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"beMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))))
+
+/-- go: store.go:951:22 -/
 noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -764,7 +790,7 @@ noncomputable def authStore.IsAuthEnabled.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"enabledMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))))
 
-/-- go: store.go:1009:22 -/
+/-- go: store.go:1023:22 -/
 noncomputable def authStore.Revision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -774,7 +800,7 @@ noncomputable def authStore.Revision.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef authStore.ty go!"revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadUint64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: store.go:1060:22 -/
+/-- go: store.go:1074:22 -/
 noncomputable def authStore.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -1338,13 +1364,14 @@ structure authStore [FfiSyntax] where
   be' : AuthBackend
   enabled' : Bool
   enabledMu' : _root_.Perennial.sync.RWMutex
+  beMu' : _root_.Perennial.sync.RWMutex
   rangePermCache' : GoMap
   rangePermCacheMu' : _root_.Perennial.sync.RWMutex
   tokenProvider' : TokenProvider
   bcryptCost' : w64
 
 instance authStore.zero_val [FfiSyntax] : ZeroVal authStore :=
-  ⟨authStore.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨authStore.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] def authStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"revision" go.uint64),
@@ -1352,6 +1379,7 @@ instance authStore.zero_val [FfiSyntax] : ZeroVal authStore :=
 (go.field_decl.FieldDecl go!"be" AuthBackend.ty),
 (go.field_decl.FieldDecl go!"enabled" go.bool),
 (go.field_decl.FieldDecl go!"enabledMu" _root_.Perennial.sync.RWMutex.ty),
+(go.field_decl.FieldDecl go!"beMu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"rangePermCache" (go.GoType.MapType go.string (go.GoType.PointerType unifiedRangePermissions.ty))),
 (go.field_decl.FieldDecl go!"rangePermCacheMu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"tokenProvider" TokenProvider.ty),
@@ -1380,6 +1408,8 @@ class authStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_enabled : ∀ (x : authStore) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"enabled") (PairV #x #y) (Val #(({ x with enabled' := y } : authStore)))
   get_enabledMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"enabledMu") #x (Val #(x.enabledMu'))
   set_enabledMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"enabledMu") (PairV #x #y) (Val #(({ x with enabledMu' := y } : authStore)))
+  get_beMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"beMu") #x (Val #(x.beMu'))
+  set_beMu : ∀ (x : authStore) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"beMu") (PairV #x #y) (Val #(({ x with beMu' := y } : authStore)))
   get_rangePermCache : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"rangePermCache") #x (Val #(x.rangePermCache'))
   set_rangePermCache : ∀ (x : authStore) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet authStore.underlying go!"rangePermCache") (PairV #x #y) (Val #(({ x with rangePermCache' := y } : authStore)))
   get_rangePermCacheMu : ∀ (x : authStore), go.IsGoStepPureDetTagged under (StructFieldGet authStore.underlying go!"rangePermCacheMu") #x (Val #(x.rangePermCacheMu'))
@@ -1398,6 +1428,7 @@ class authStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   ptr_authInfoFromToken_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"authInfoFromToken" authStore.authInfoFromToken.impl
   ptr_isOpPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isOpPermitted" authStore.isOpPermitted.impl
   ptr_isRangeOpPermitted_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"isRangeOpPermitted" authStore.isRangeOpPermitted.impl
+  ptr_lockedReadTx_unfold : MethodUnfold (go.GoType.PointerType authStore.ty) go!"lockedReadTx" authStore.lockedReadTx.impl
 
 attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.underlying
@@ -1411,6 +1442,8 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.set_enabled
   authStore.TypeAssumptions.get_enabledMu
   authStore.TypeAssumptions.set_enabledMu
+  authStore.TypeAssumptions.get_beMu
+  authStore.TypeAssumptions.set_beMu
   authStore.TypeAssumptions.get_rangePermCache
   authStore.TypeAssumptions.set_rangePermCache
   authStore.TypeAssumptions.get_rangePermCacheMu
@@ -1429,6 +1462,7 @@ attribute [instance] authStore.TypeAssumptions.type_repr
   authStore.TypeAssumptions.ptr_authInfoFromToken_unfold
   authStore.TypeAssumptions.ptr_isOpPermitted_unfold
   authStore.TypeAssumptions.ptr_isRangeOpPermitted_unfold
+  authStore.TypeAssumptions.ptr_lockedReadTx_unfold
 
 abbrev permSlice [FfiSyntax] : Type := GoSlice
 

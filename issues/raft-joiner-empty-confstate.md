@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/raft#370 pr merged: related, where it starts: allows the index-0 ConfState-only bootstrap snapshot; the discussion does not consider nodes added later
 ---

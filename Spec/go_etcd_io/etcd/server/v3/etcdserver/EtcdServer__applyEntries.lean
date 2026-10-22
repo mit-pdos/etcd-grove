@@ -71,7 +71,9 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
         ⌜loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ st'.k = ciEff γ st.k ∨
-            uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai'))⌝ }}
+            uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
+          -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
+          termAfter at0 (unapplied ai ms) at'⌝ }}
 
 end spec
 

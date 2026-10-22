@@ -77,7 +77,7 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
@@ -143,7 +143,7 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := cachekv.wp_Main (GF := putgetGF) n id bootLog nw nops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

@@ -245,7 +245,9 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap
     srvWTAt C.wt ai ∗
     ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
-      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap⌝)
+      entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
+      -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
+      lastTermIs A at'⌝)
 
 /-- **The compactor** (`s.compactor`, a `v3compactor.Compactor`, names-only: a trust-boundary
 contract): nil (no auto-compaction), or one whose `Pause` and `Resume` return. -/

@@ -26,17 +26,17 @@ as a `WatchableKV`, its two loops started (`s.wg.Add(2)`, each with a reader slo
 token), with what `newWatchableStore` gives (every watch token among it) but those two slots, and the right to close it
 (`wsCloser`: the stop channel's close, the wait for the loops, the inner store's close, with its
 scheduler's stop token: D19m (C), 2026-10-18), on a backend that records no compaction
-(`backendNoCompaction`, `NewStore`'s premise: D19l (v)). The
+(`kbNoCmp`, `NewStore`'s: D19l (v) (A), D22 S-g). The
 index's names `γi` and the certificate map's `γok` are the caller's, fresh, and the map's
 authority is handed back (2026-10-16, D13a: the etcd server chooses them before `newRaftNode`,
 and its KV certificates' invariant, `kvCertInv`, takes the authority). -/
 abbrev mvcc.New.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (γi : mvcc.IdxNames) (γok : GName),
-  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → mvcc.backendNoCompaction →
+  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
-      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}

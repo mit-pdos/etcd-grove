@@ -56,7 +56,11 @@ D17d (2026-10-18): a conjunction. The first triple is raft's (the owner's, `ownM
 through `isStorage`); the second the **application's**, with its snapshot token (`memSnapTok`):
 the snapshot its token records, as a whole clone (`ownSnapW`: `EnsureSnapshot` sets the metadata
 and its conf state, `proto.Clone` keeps them), and no error. etcd's `run` calls it while raft's
-goroutine owns the storage. -/
+goroutine owns the storage.
+
+(D22 S-b′2, 2026-10-20) Raft's triple also hands out the snapshot's certificate from the storage's
+registry (`memStorCert`) when it is not empty: the home keeps the current snapshot's
+(`memSnapHome`), which is what `isStorage`'s `HSnapshot` passes on (`storCert`). -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface) (n : Int),
@@ -79,7 +83,10 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
            (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
             uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
             uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧
-            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝)) }}) ∧
+            termAt σ.prev σ.ents sv.Metadata'.Index' = some sv.Metadata'.Term'))⌝ ∗
+        -- (D22 S-b′2, 2026-10-20) a non-empty one certified in the registry
+        (⌜sv.Metadata'.Index' = W64 0⌝ ∨
+          memStorCert γs (snapTrip sv sv.Metadata'.ConfState'.lists)))) }}) ∧
   -- (D17d, 2026-10-18) the application's: with its snapshot token
   (∀ (ms : Loc) (γs : MemStorNames) (σ : StorState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

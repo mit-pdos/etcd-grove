@@ -48,8 +48,8 @@ theorem RawNode.Tick.wp_proof
     | wp_apply wp_tickHeartbeat cf _ γ rnv.raft' id s Hwf Hpf.1
         $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
   all_goals (
-    obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, -, Htpc⟩ := Htk
-    ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+    obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc⟩ := Htk
+    ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn Hsd Hip4 $$ Hstrecs
     iapply HΦ $$ %s'.term
     isplitl
     · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv hprev steps
@@ -58,8 +58,8 @@ theorem RawNode.Tick.wp_proof
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok) rfl (by rw [Hsg]; exact Hstor) ⟨fun h => by rw [Hpre]; exact Hpvoff.1 h, by rw [Hgh]; exact Hpvoff.2.1,
           by rw [Hgh]; omega, fun hp => by rw [Hgh, Htpc hp]; exact Htc1⟩
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha)
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, Ht2⟩)

@@ -3,6 +3,7 @@ upstream: none
 checked: 2026-10-21
 links:
   - etcd-io/raft#8 pr merged: added AsyncStorageWrites; its review (and etcd-io/etcd#14627's, where it started) does not discuss a snapshot handed out while committed entries are being applied
+candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
 ---
 
 # raft: with `AsyncStorageWrites`, a snapshot is handed out while earlier committed entries are being applied, and the documented thread model lets the application apply those entries on top of it
@@ -52,10 +53,15 @@ links:
   contradicts), and the example shows where the state machine takes the snapshot.
 - **How the proof handles it**: out of scope: the raft proof requires `asyncStorageWrites = false`
   (`Proof/go_etcd_io/raft/v3/InvRawnodeC.lean:53`, `InvBoot.lean:62`).
-- **Possible fixes**: (1) hold the snapshot back in `Ready` (`hasNextUnstableSnapshot` in `readyWithoutAccept`
-  and `HasReady`) while `applying > applied`, as `hasNextCommittedEnts` already holds back entries while a
-  snapshot is pending; appends after the snapshot wait too, only in this case. With synchronous storage this
-  changes nothing (the snapshot's `Ready` already comes after the earlier `Advance`). (2) Document the ordering
+- **Possible fixes**: (1) hold the snapshot back in `Ready` while `applying > applied`, as
+  `hasNextCommittedEnts` already holds back entries while a snapshot is pending; with it everything else bound for
+  the append thread (the entries after the snapshot, a `HardState` whose commit index is the snapshot's, and
+  `msgsAfterAppend`, whose `MsgAppResp` acknowledges the snapshot), only in this case. With synchronous storage
+  this changes nothing (the snapshot's `Ready` already comes after the earlier `Advance`). Implemented
+  (`storageAppendHeld` in `rawnode.go`, 2026-10-21) as part of the candidate fix of
+  `raft-snapshot-during-apply-stale-confchange`, which needs it; with it this file's test no longer sees the
+  snapshot handed out while entry 1 is being applied, and a variant asserting the state machine ends with "ab"
+  passes (`issues/upstream/raft-snapshot-during-apply-stale-confchange/meta.md`, "Verification"). (2) Document the ordering
   requirement and fix the example. (3) Send the snapshot to the apply thread as well, ordered with the
   entries: an interface change. Fix (1) does not by itself fix `raft-snapshot-during-apply-stale-confchange`
   (raft's configuration still switches at `restore`), but it makes `appliedSnap` come after the earlier

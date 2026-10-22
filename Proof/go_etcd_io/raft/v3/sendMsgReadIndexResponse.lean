@@ -149,6 +149,7 @@ theorem sendMsgReadIndexResponse.wp_proof
               fun h => Hloc (Or.inr h), rfl⟩))
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
           $$ [$Hphys $Hresp]
+        · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
         iintro Hphys
         wp_auto
         iapply HΦ

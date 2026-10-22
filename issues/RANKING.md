@@ -1,7 +1,7 @@
 # Which issues matter most to etcd's developers
 
 A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20, the
-watch-resume findings re-ranked 2026-10-21; upstream states as of 2026-10-20): the order in which we would bring the
+watch-resume findings re-ranked 2026-10-21; upstream states as of 2026-10-21): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -21,11 +21,15 @@ we have already filed ourselves (issues and PRs by `upamanyus` or `upamanyus-age
 the tiers, in "Filed by us" below, whatever their severity: what remains to do for them is to see
 the filing through, not to decide whether to bring it.
 
-## Report privately first
+## Report privately first?
 
-The top two let one client take the whole cluster down permanently, every member crashing again
-on the WAL replay at restart. They belong in etcd's private security process (security@etcd.io)
-before any public issue.
+etcd's threat model trusts its clients (2026-10-21): a crash a client can cause with a request it
+is allowed to send is a robustness bug, not a security issue, and does not go to security@etcd.io
+on that ground alone. [etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md) (item
+1) takes the whole cluster down permanently; it crosses a permission line only with auth enabled,
+where a user allowed to write one key can crash every member. Whether it goes through the private
+process or publicly through etcd-io/etcd#22395 was the user's decision: a security report
+(2026-10-21), to be safe and to try etcd's security process.
 
 ## Top tier: core guarantees or the cluster's availability, with the default configuration
 
@@ -35,28 +39,12 @@ before any public issue.
    `etcdctl`). Fix: about one line in `checkIntervals`. Upstream: etcd-io/etcd#22395 has the
    same fix but does not mention the panic and calls itself "not a security fix"; what this adds
    is the severity.
-2. **[etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md)**: a `UserAdd` or
-   `RoleAdd` whose name is over 32 KiB hits bbolt's `ErrKeyTooLarge`, which is fatal on every
-   member and again on replay; with auth off (the default) any client can send one. Fix: a length
-   check. Confirmed end to end through gRPC (2026-10-18, upstream `main`: `etcdctl user add` or
-   `role add` with a 32769-byte name; all three members exit, and again when restarted together).
-   Same cause (bbolt errors made fatal in `unsafePut`, one size check covers all three):
-   [etcd-auth-record-too-large-fatal](etcd-auth-record-too-large-fatal.md),
-   [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md).
-3. **[etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md)**: compacting at the
+2. **[etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md)**: compacting at the
    revision that deleted and re-put a key deletes the live value; an acknowledged write is lost
    and members exit on its next read. Reproduced through gRPC and `etcdctl`. Known:
    etcd-io/etcd#22376 and fix PR #22377 are open (a regression from #18274); the useful step is
    to support that PR.
-4. **[election-campaign-key-check](election-campaign-key-check.md)**: `Election.Campaign`
-   returns success after its own key was deleted (the session's lease expired in a partition, or
-   a sibling resigned), so two campaigners both lead: the leader-election API's one guarantee.
-   Integration test on the fork branch; fix small (the key check `Mutex.Lock` already does).
-   Users reported it twice (etcd-io/etcd#11051, #11777), both closed by the stale bot, not by a
-   maintainer. Not yet filed; file it next to
-   [mutex-lock-recreated](mutex-lock-recreated.md), its sibling in `Mutex.Lock` that we have
-   already reported ("Filed by us" below), since one key check fixes both.
-5. **[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)**: a progress
+3. **[etcd-watch-progress-before-created](etcd-watch-progress-before-created.md)**: a progress
    notification can reach a new watch before its catch-up events, so clients that trust progress
    (Kubernetes' watch cache, etcd's `cache`) skip events. Deterministic integration test on the
    fork branch (20 of 20 at 22cc5d9ac); fixed in our fork; searched upstream: not reported
@@ -64,7 +52,7 @@ before any public issue.
 
 ## Second tier: real, narrower or partly known
 
-6. **[etcd-compact-past-raft-applied](etcd-compact-past-raft-applied.md)**: the apply loop
+4. **[etcd-compact-past-raft-applied](etcd-compact-past-raft-applied.md)**: the apply loop
    snapshots and compacts raft's in-memory log before `Advance` has moved raft's `applied`, so a
    campaign in that window panics the member (`hasUnappliedConfChanges`: "unavailable due to
    compaction"). Default configuration: a follower restarted without a disk snapshot replays its
@@ -73,7 +61,7 @@ before any public issue.
    member crashes, a restart recovers it. Fix: small (`applyAll` waits for `raftAdvancedC` before
    snapshotting; tested, `fix.patch`). Upstream: none for this trigger (etcd-io/etcd#9079, the same
    panic from another cause; #18825 made the in-memory snapshot reachable with defaults).
-7. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
+5. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
    [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) (the same cause):
    the client library panics on a send to a closed channel (for Kubernetes, the API server).
    etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it, with
@@ -84,12 +72,13 @@ before any public issue.
    have (a cache or controller on it keeps a stale view), not in `main` today but introduced by
    the PR as it stands (and by our fork's K0 until F1); reproduced within 5 to 54 trials. A
    one-line addition to the PR: reset the id.
-8. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)**: the retry
+6. **[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md)** (deferred,
+   2026-10-21: it turns on what at-most-once etcd's client promises, to take up separately): the retry
    interceptor can resend a `Put`/`Txn`/`Delete` after a `Canceled` status, applying the write
    twice. Less reachable than the file suggests (mostly through proxies or load balancers).
    etcd-io/etcd#18424 was closed as unreachable; the since-merged #21122 undercuts that, a reason
    to reopen.
-9. **[raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md)** (one finding
+7. **[raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md)** (one finding
    in four files, with [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md),
    [raft-track-confchange-application](raft-track-confchange-application.md),
    [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md)):
@@ -98,7 +87,8 @@ before any public issue.
    `RawNode`; etcd's path is unconfirmed (concurrent membership changes, a slow apply loop, a
    partition). The documentation fix and etcd's five-line change are easy to argue for; claiming
    etcd is affected needs more evidence.
-10. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
+8. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
+    (not in the current filing list, 2026-10-21: availability, the user prefers safety findings)
     (2026-10-19): the gRPC quota check keeps the backend it saw at startup, so after a member
     installs a leader's snapshot it judges writes by its old, closed backend; if that one was over
     the quota, every write through the member re-raises NOSPACE for the whole cluster, through
@@ -106,33 +96,51 @@ before any public issue.
     the documented NOSPACE recovery with one member down during it; reproduced by an integration
     test at the pin; fix a few lines (tested). Searched upstream 2026-10-20: not reported
     (related: #20553, the same stale backend in the maintenance `Defragment` path, fixed).
-11. **[etcd-auth-snapshot-closed-backend-panic](etcd-auth-snapshot-closed-backend-panic.md)**
+9. **[etcd-auth-snapshot-closed-backend-panic](etcd-auth-snapshot-closed-backend-panic.md)**
     (2026-10-19): with auth enabled, `applySnapshot` closes the old backend before
     `authStore.Recover`, so a serializable read, watch, keep-alive, `Authenticate` or admin RPC
     reaching a member as it installs a leader's snapshot panics it on a nil bolt read tx. One
     member crashes and a restart recovers it. Reproduced end to end at the pin (7 of 10 runs) and
     on `main` (3 of 3). The fix moves the close after the stores' recovery (tested, applies to
     `main`). Searched upstream: not reported (the shutdown variant was #17223).
-12. **[etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md)** (2026-10-19): a
+10. **[etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md)** (2026-10-19): a
     leader that steps down while saving a Ready (a slow disk) can later send a queued `MsgSnap`
     stamped with its old term but carrying data of a newer term, which a follower still at the old
     term installs; with a gap of two terms, a leader of the term in between can panic (`need
     non-empty snapshot`). Needs a stall longer than an election timeout, two followers past
-    compaction and a partition; the etcd half reproduced with the real apply loop, the panic in
-    raft from hand-built messages, not end to end. Fix a few lines (tested). Searched upstream
-    2026-10-19: not reported (raft#47 states the invariant).
-13. **[etcd-txn-empty-serializable](etcd-txn-empty-serializable.md)** (2026-10-20): a `Txn`
+    compaction and a partition (5 or more members, asymmetric); the etcd half reproduced with the
+    real apply loop, the panic in raft from hand-built messages, not end to end. With a gap of one
+    term no wrong result was found (one untraced consequence: a `--force-new-cluster` restart of
+    that follower writes log terms that go down); no wrong commit was found with any gap. Fix a few
+    lines (merge only at the message's term; tested; the verified fork carries it). Searched
+    upstream 2026-10-19: not reported (raft#47 states the invariant).
+11. **[etcd-txn-empty-serializable](etcd-txn-empty-serializable.md)** (2026-10-20): a `Txn`
     with comparisons and no operations counts as serializable (`IsTxnSerializable` is vacuously
     true), so a member that is behind answers it from its local state without the read index: a
     stale verdict and revision, a linearizability violation of a public request. Rare in practice
     (compare-only transactions), by inspection only, no reproduction yet; the fix is a one-line
     guard. Upstream not searched yet.
 
+Also to file (2026-10-21, the last scan of the current batch):
+[etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
+client-chosen id that a just-canceled watch used receives the canceled watch's buffered events, of
+another key; reproduced at upstream `main`, 80 of 80 runs; the auto-assigned-id variant is not
+reproduced; candidate drafted; it was listed here as "not reproduced" until 2026-10-21, which was
+wrong), [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialstate-unlocked.md)
+(a data race `-race` reports: `InitialState` reads and, in v3.7, writes `MemoryStorage`'s fields
+without its documented mutex; the fix takes the lock) and
+[etcd-alarm-store-snapshot-race](etcd-alarm-store-snapshot-race.md) (above). Not in the batch:
+[raft-joint-self-quorum-read](raft-joint-self-quorum-read.md) (liveness, a configuration nobody
+runs) and the conf-change validation panics (`raft-joint-empty-transition-panic`,
+`raft-unknown-transition-panic`: only the application's own proposals reach them, a trusted
+caller's precondition).
+
 Next, if time allows: [raft-snapshot-during-apply-stale-confchange](raft-snapshot-during-apply-stale-confchange.md)
 (a wrong follower configuration; the track patch above fixes it too),
 [raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md)
 (with `AsyncStorageWrites`, the documented thread model lets entries be applied on top of a later
-snapshot: a diverged state machine; reproduced, but etcd does not enable the option),
+snapshot: a diverged state machine; reproduced, but etcd does not enable the option; fixed by the
+`raft-snapshot-during-apply-stale-confchange` candidate),
 [leasing-modify-uncached-once](leasing-modify-uncached-once.md) (every write of an uncached key
 committed twice; deterministic, one condition, but see leasing below),
 [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) (leases outlive
@@ -181,11 +189,17 @@ as a checkpoint re-processes old events; but it needs a start revision in the fu
 store's, which is unusual (watches start at the current revision + 1 or at a past one; Kubernetes'
 watch cache does neither), plus a progress notification before that revision and a transient
 stream failure; reproduced deterministically against a fake server only, not on a cluster;
-one-line fix with a test).
+one-line fix with a test). The file's server step does not happen as described (2026-10-21): every
+supported branch's `progressIfSync` (`main`, release-3.4 to 3.6, the fork pin) sends no progress
+to a watcher whose start revision is above the store's (`if rev < w.startRev { return false }`),
+so neither `WithProgressNotify` nor `RequestProgress` reaches it directly. A path not yet checked:
+a `RequestProgress` broadcast computed before the watch's create, sent (through the watch stream)
+after its `Created` (through the control stream), which the client then broadcasts to the new
+substream; until one is shown, this is a client hardening for old servers.
 
 ## Filed by us
 
-Issues and PRs by `upamanyus` (or `upamanyus-agent`), checked against GitHub 2026-10-20. Ranked by
+Issues and PRs by `upamanyus` (or `upamanyus-agent`), checked against GitHub 2026-10-21. Ranked by
 what is left to do:
 
 1. **[raft-readindex-removed-leader](raft-readindex-removed-leader.md)**: fixed, etcd-io/raft#536
@@ -197,16 +211,21 @@ what is left to do:
    `{1}&&{1}` leader waits) unfixed, not reported.
 2. **[mutex-lock-recreated](mutex-lock-recreated.md)**: reported, etcd-io/etcd#22613 with fix PR
    #22617 (both open, 2026-10-19). `Mutex.Lock` succeeds while another session holds the lock; the
-   v3lock service reaches it when a client retries a `Lock`. Its sibling
-   `election-campaign-key-check` (top tier, item 4) is the one still to file.
+   v3lock service reaches it when a client retries a `Lock`. A maintainer may answer that `Lock`
+   returning nil is no guarantee anyway (the session can expire right after it returns) and only
+   `IsOwner()` fencing is, which fails correctly here; what sets this apart is that the caller's
+   own session is alive and another session's key is live and first when `Lock` returns. Its
+   sibling [election-campaign-key-check](election-campaign-key-check.md) is not filed (below).
 3. **[etcd-range-sort-none-limit](etcd-range-sort-none-limit.md)**: reported, etcd-io/etcd#22612
    with our fix #22616; someone else's fix #22615 was opened an hour earlier, all open. #22615
    changes `IsDefaultOrdering` itself and so would also fix
    [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md); if the maintainers prefer it, ours
    closes.
 4. **[cache-ready-after-retry](cache-ready-after-retry.md)**: reported, etcd-io/etcd#22614 (open,
-   2026-10-19), no fix PR yet; a one-line fix with a deterministic test in an actively developed
-   package, the likeliest quick merge once a PR is up.
+   2026-10-19); no PR of ours, but someone else's #22618 (open, 2026-10-19, `needs-ok-to-test`) is
+   our candidate's fix and test verbatim, crediting the report. A one-line fix with a
+   deterministic test in an actively developed package, the likeliest quick merge; what is left is
+   to support #22618 rather than open a duplicate.
 5. **[raft-readindex-singleton-stale](raft-readindex-singleton-stale.md)**: fixed, etcd-io/raft#535
    (merged 2026-10-19, closing our #533); the maintainer sees no need to backport. Nothing left.
 6. **[leasing-update-stale](leasing-update-stale.md)**: reported in part, etcd-io/etcd#20704
@@ -255,7 +274,8 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 - **Test hooks**: [etcd-rafthttp-cutpeer-twice-remote-panic](etcd-rafthttp-cutpeer-twice-remote-panic.md):
   a second `CutPeer` of a *remote* (a member that joined an existing cluster) panics, "close of
   closed channel"; only the integration tests' partition injection calls it, a two-line
-  idempotence fix with a test. [etcd-bridge-blackhole-twice-panic](etcd-bridge-blackhole-twice-panic.md)
+  idempotence fix with a test. Searched upstream 2026-10-21: not reported.
+  [etcd-bridge-blackhole-twice-panic](etcd-bridge-blackhole-twice-panic.md)
   (2026-10-21): the same for the integration tests' bridge, a second `Blackhole` (and the panic
   leaves the bridge's mutex held); no upstream test reaches it, the fix is the guard
   `UnpauseConnections` already has.
@@ -286,16 +306,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [raft-joiner-empty-confstate](raft-joiner-empty-confstate.md),
   [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) (a mixed-version
   panic, hypothetical until a field is added).
-- **A Raft invariant broken, no wrong result found**:
-  [etcd-merged-snapshot-stale-term](etcd-merged-snapshot-stale-term.md) (2026-10-19). `applyAll`
-  merges a queued `MsgSnap` of an old leader's term with content applied later, so a follower
-  still at that term ends with a last log term above its own term. It needs 5 or more members, a
-  stalled fsync on the leader, two followers lagging past compaction and an asymmetric partition.
-  Reproduced at raft level with an emulation of etcd's pipeline, and the merge with etcd's real
-  `applyAll`; not end to end. The only consequence found is untraced: a `--force-new-cluster`
-  restart of that follower writes log terms that go down. The fix is a few lines (merge only at
-  the message's term), and the verified fork carries it for the proof. Searched upstream: not
-  reported.
 - **Model or documentation only**: [raft-commit-lost-with-entries-kept](raft-commit-lost-with-entries-kept.md),
   [raft-ready-messages-read-after-handout](raft-ready-messages-read-after-handout.md),
   [raft-step-writes-caller-message](raft-step-writes-caller-message.md),
@@ -314,14 +324,25 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-watch-progress-interval-overflow](etcd-watch-progress-interval-overflow.md),
   [etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md) (a cheap fix
   nonetheless).
+- **Not a guarantee etcd makes**: [election-campaign-key-check](election-campaign-key-check.md)
+  (`not-filing`, 2026-10-21): `Campaign` returning nil after its own key was deleted is the same as
+  the session expiring right after `Campaign` returns, which can always happen; the guarantee is
+  fencing on the key's create revision (`Proclaim`, `Leader()`), which fails correctly. The other
+  trigger, a sibling `Election` on the same session resigning, is a misuse.
+- **Client-triggered, with clients trusted**:
+  [etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md) (a `UserAdd` or
+  `RoleAdd` name over 32 KiB is fatal on every member and again on replay; root-only with auth
+  on, and with auth off any client can delete everything anyway; reproduced on `main`; a length
+  check), with [etcd-auth-record-too-large-fatal](etcd-auth-record-too-large-fatal.md) and
+  [etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md) (the same
+  cause, one size check covers all three). Cheap robustness fixes, not a priority for etcd.
 - **Declined, unreproduced or out of scope**:
   [etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md) (maintainers declined:
   #16380 closed not planned),
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,
-  PR open), [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (not
-  reproduced), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
+  PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
   reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond),
   [etcd-watch-canceled-pending-retained](etcd-watch-canceled-pending-retained.md) (up to 128
@@ -330,7 +351,7 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [raft-switchtoconfig-pending-reads](raft-switchtoconfig-pending-reads.md) (reads postponed to
   the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a
   bug for an application that applies conf changes before `Advance`, so not filing: it is one more
-  consequence of the misuse in item 9), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
+  consequence of the misuse in item 7), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
   (Go, not etcd; a golang/go issue drafted, not filed).
 - **Metrics**: [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md),
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
@@ -343,7 +364,9 @@ tx")`), bounds requests at 1.5 MiB by default and uses the default page size, so
 reaches etcd. For bbolt's own maintainers the order would be:
 [bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
 (MVCC broken after an I/O error, for any user that keeps the `DB` after a failed `Commit`;
-reproduced, small fix), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
+reproduced, small fix; still on bbolt `main` 2026-10-21; **to file now** (the user's decision,
+2026-10-21): bbolt's own failpoint `beforeWriteMetaError` tests this rollback path but fires before
+the meta reaches the file, which is the case missed), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
 (values `Put` accepts make data unreadable; reproduced; the 256 MB variant, etcd-io/bbolt#931,
 was fixed), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).

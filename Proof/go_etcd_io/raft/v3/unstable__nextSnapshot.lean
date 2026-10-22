@@ -37,25 +37,35 @@ theorem unstable.nextSnapshot.wp_proof
     iunfold pendKsn at Hpk
     icases Hpk $$ %sid %Hs with ⟨%sv, #Hsv, %Hid, %Hin⟩
     ihave %Hnn : ⌜uv.snapshot' ≠ null⌝ $$ [Hsv]
-    · iunfold ownSnapM at Hsv; iNamed Hsv; ipureintro; exact Hnn
+    · iunfold ownSnapS at Hsv; iNamed Hsv; ipureintro; exact Hnn
     simp only [Hnn, _root_.decide_false]
     wp_auto
-    rcases Hsip : uv.snapshotInProgress' <;> wp_auto
-    · wp_apply wp_proto_CloneSnapshot.1 _ DFrac.discard sv $$ [$Hsv] as %p' ⟨-, Hc⟩
+    rcases Hsip : us.sip <;> wp_auto
+    · wp_apply wp_proto_CloneSnapshot.2.2.2 _ DFrac.discard sv $$ [$Hsv] as %p' ⟨-, Hc⟩
+      -- the clone is not `nil`
+      iunfold ownSnapS at Hc
+      icases Hc with ⟨%ds, %pm, %uf, %Hnn', Hc⟩
       iapply HΦ
       isplitl [Hu Hents_cap Hents]
-      · close_unstable
+      · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+        ipureintro; exact ⟨rfl, rfl, Hsip.symm⟩
       isplitr
-      · ipureintro; rw [Hs]; intro h; cases h
+      · ipureintro; rw [Hs]; simp [Hnn']
       iright
       iexists sid, sv
-      iframe Hc
-      ipureintro; exact ⟨Hs, Hid, Hin⟩
+      isplitr
+      · ipureintro; exact ⟨Hs, rfl, Hid, Hin⟩
+      iunfold ownSnapS
+      iexists ds, pm, uf
+      isplitr
+      · ipureintro; exact Hnn'
+      iexact Hc
     · iapply HΦ
       isplitl
-      · close_unstable
+      · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+        ipureintro; exact ⟨rfl, rfl, Hsip.symm⟩
       isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; simp
       ileft; ipureintro; rfl
   · ihave %Hn := ownSnap_of_eq_none Hs $$ Hsnap
     simp only [decide_eq_true Hn]
@@ -64,7 +74,7 @@ theorem unstable.nextSnapshot.wp_proof
     isplitl
     · close_unstable
     isplitr
-    · ipureintro; intro _; rfl
+    · ipureintro; simp [Hs]
     ileft; ipureintro; rfl
 
 end proof

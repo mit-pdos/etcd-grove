@@ -43,14 +43,16 @@ abbrev unstable.restore.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt) (sp : Loc) (dq : DFrac) (sv : SnapshotM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
-      "Hsnap" ∷ ownSnapM sp dq sv }}
+      -- (D22 S-d4 item 4) every pointer field set (`raft.restore`'s `EnsureSnapshot`)
+      "Hsnap" ∷ ownSnapS sp dq sv }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"restore")) (Val #sp))
   {{ RET #();
-      ownSnapM sp dq sv ∗
+      ownSnapS sp dq sv ∗
       ownUnstable u { ents := [], offset := sv.Metadata'.Index' + W64 1,
                       inprogress := sv.Metadata'.Index' + W64 1,
                       snap := some (snapId sv),
-                      ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists] } }}
+                      ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
+                      sip := false } }}
 
 end spec
 

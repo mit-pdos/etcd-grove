@@ -165,7 +165,8 @@ theorem raftMsg_deliverable (γ : RaftNames) (st : MsgSt) (Hd : Deliverable st) 
   · rw [Hty0] at Hn; cases Hn
   · ihave #Hmsg : isMessage (GF := GF) γ (absMsg ty st.msg st.ents st.ctx) $$ [Hl]
     · simp only [Option.toList_some]
-      iapply (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessage (GF := GF) γ x)).1 $$ Hl
+      ihave #Hx := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hl
+      iapply isMessageC_isMessage $$ Hx
     imodintro
     iintro %ty' %Hty'
     rw [Hty] at Hty'
@@ -205,7 +206,7 @@ theorem deliverable_netMsgOk (id : w64) (st : MsgSt) (Hd : Deliverable st)
     (¬ UnstampedType st.msg.Type' → st.msg.To' = id ∧ st.msg.Term' ≠ W64 0 ∧ st.msg.From' ≠ W64 0) ∧
     (UnstampedType st.msg.Type' → st.msg.Term' = W64 0) ∧
     (st.msg.Type' = MsgApp ∨ st.msg.Type' = MsgHeartbeat ∨ st.msg.Type' = MsgHeartbeatResp ∨
-       st.msg.Type' = MsgReadIndexResp → st.msg.From' ≠ id) ∧
+       st.msg.Type' = MsgReadIndexResp ∨ st.msg.Type' = MsgSnap → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true → st.msg.From' ≠ id) ∧
     (st.msg.Type' = MsgTransferLeader → st.ents = [] ∧ st.ctx = []) ∧
     (st.msg.Type' = MsgPreVote → st.msg.From' ≠ id)
@@ -281,12 +282,29 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (l : Loc) (st : MsgSt)
     · ipureintro; exact deliverable_netMsgOk id st Hd Hp Hto
     isplitr
     · ipureintro
-      refine ⟨fun h => (deliverable_not_prevote st Hd h).elim, fun h => ?_⟩
+      refine ⟨fun h => (deliverable_not_prevote st Hd h).elim, fun h => ?_, fun h => ?_⟩
+      · exfalso
+        rcases deliverable_mtype st Hd with h' | ⟨ty, h', -⟩
+        · rw [h] at h'; simp [MsgTransferLeader, MsgTimeoutNow] at h'
+        · rw [h] at h'; cases h'
+      -- (2026-10-20, D22 S-c) no snapshot (`deliverable` drops one)
+      · exfalso
+        rcases deliverable_mtype st Hd with h' | ⟨ty, h', hns⟩
+        · rw [h] at h'; simp [MsgSnap, MsgTimeoutNow] at h'
+        · rw [h] at h'; cases h'; exact hns rfl
+    -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
+    isplitr
+    · imodintro
+      iintro %ty %Hty %_Hne
+      iapply Hmsg $$ %ty %Hty
+    isplitr
+    · imodintro
+      iintro %h
       exfalso
-      rcases deliverable_mtype st Hd with h' | ⟨ty, h', -⟩
-      · rw [h] at h'; simp [MsgTransferLeader, MsgTimeoutNow] at h'
-      · rw [h] at h'; cases h'
-    iframe Hmsg Hlb Hcr Htc
+      rcases deliverable_mtype st Hd with h' | ⟨ty, h', hns⟩
+      · rw [h] at h'; simp [MsgSnap, MsgTimeoutNow] at h'
+      · rw [h] at h'; cases h'; exact hns rfl
+    iframe Hlb Hcr Htc
 
 end defs
 

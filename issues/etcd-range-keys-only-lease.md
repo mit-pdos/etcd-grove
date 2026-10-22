@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#22209 issue open: same bug (keys_only no longer returns lease since #21791), labeled type/bug, proposed for v3.7.4
   - etcd-io/etcd#22550 pr open: fix for #22209 (records the lease in the key index); ahrtr objects to the design and suggests documenting the limitation

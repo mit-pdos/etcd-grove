@@ -85,7 +85,10 @@ abbrev setupNode.spec : Prop :=
       ownRaftGhost γ cv.ID' (bootPState bootLog) ∗ isCommitted γ bootLog ∗
       -- (2026-10-19, D21 M3) `Bootstrap`'s: in the no-snapshot mode, a storage never compacted
       -- past `1`
-      NsCap γ.reNoSnap (interface.ok si) }}
+      NsCap γ.reNoSnap (interface.ok si) ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
+      -- no-snapshot mode)
+      certLink γ (interface.ok si) }}
     (App (App (Val #(functions setupNode [])) (Val #c)) (Val #peers))
   {{ (n : Loc), RET #n;
       R ∗ ∃ (nv : node) (rn : Loc),

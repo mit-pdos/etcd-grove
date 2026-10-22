@@ -104,6 +104,9 @@ is not done yet is carrying the certificate from those records to the receiving 
 section cert
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
+-- (D22 S-b′3, 2026-10-20) `SnapListsOk`, `SnapTrip.cfgM` and `raftSnapCert` are
+-- `Protocol/Ghost.lean`'s
+
 end cert
 
 end EtcdGrove

@@ -1,5 +1,10 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-10-21
+links:
+  - etcd-io/etcd#22609 pr merged: the same class (mvcc `Hash` racing with `Restore`'s backend swap); a different field
+  - etcd-io/etcd#10874 pr closed: `s.be` read outside `bemu` in `applySnapshot`; not the alarm store
+candidate: issues/upstream/etcd-alarm-store-snapshot-race/
 ---
 
 # `applySnapshot` replaces `s.alarmStore` while gRPC and health goroutines read it (a data race)
@@ -12,7 +17,7 @@ upstream: unchecked
   fields it sees partly initialized (an empty alarm map: no alarm). So `Status` and the `/health`
   checks can report a stale or empty alarm list for that moment. No crash found. The race itself
   is the bug: etcd's tests run with `-race`, and the code has no synchronization at all here.
-- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, the pin of `etc/goose.py` on branch `raft-retarget`, where this was found; upstream `main` has the same code):
+- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, where this was found; the same code at the pin of `etc/goose.py`, `2aed163b1`; upstream `main` has the same code):
   - `server/etcdserver/server.go:2409-2416` (`restoreAlarms`): `s.alarmStore = as`, with no lock,
     called by `applySnapshot` (`server.go:1102`) on the apply goroutine after `s.bemu.Unlock()`.
   - `server/etcdserver/server.go:2440-2442` (`Alarms`): `return s.alarmStore.Get(...)`, with no lock.
@@ -47,5 +52,10 @@ upstream: unchecked
   `s.bemu` (build the new store before `s.bemu.Unlock()`, assign it inside the critical section, and
   have `Alarms()` read the field under `s.bemu.RLock()`), at the cost of holding `bemu` across
   `NewAlarmStore`'s `ForceCommit`.
+- **Fix chosen upstream** (2026-10-21, `issues/upstream/etcd-alarm-store-snapshot-race/`): neither of the
+  above: `AlarmStore.Recover(be)` reloads the store in place under its own mutex, as `lessor.Recover` does, and
+  `applySnapshot` calls it instead of `restoreAlarms`, so `s.alarmStore` is written only by `NewServer` (the
+  comparison is in the candidate's `meta.md`). For the proof this makes the field read-only for good again
+  (`srvAlarmStoreAddr s ↦□` holds through the snapshot path); `Recover` needs a spec on the store's lock invariant.
 - **Found**: 2026-10-20, stage S-j2 of track T-S, listing the server fields `applySnapshot` writes
   against the proof's read-only facts of them.

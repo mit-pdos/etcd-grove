@@ -45,7 +45,7 @@ theorem watchkv_alloc (P : List (GoString × GoString)) (id : w64) (bootLog : Li
     ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF)
         (Φs : w64 → w64 → List w8 → GName → IProp GF),
       ⌜γ.reCfg = GMap.listToSet [id] ∧ γ.reDyn = none ∧ γ.reCCOk = putget.ccOk id ∧
-        γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
+        γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true ∧ ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
         ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
         ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = workload P ∧
         ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
@@ -73,7 +73,7 @@ theorem watchkv_alloc (P : List (GoString × GoString)) (id : w64) (bootLog : Li
       rfl Hbf.boot (fun ty d h => h) (by simp) (by simpa using Hbf.idLow))
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
       #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hc0, hch, hlog, hiss, hwl⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, HrdC⟩, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hwns with ⟨Hwn, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
@@ -98,7 +98,7 @@ theorem watchkv_alloc (P : List (GoString × GoString)) (id : w64) (bootLog : Li
   iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd
   isplitr
   · ipureintro
-    refine ⟨hcfg, hdyn, hcc, hboot, htr, rfl, ?_, by rw [hc0', hc0], by rw [hch', hch],
+    refine ⟨hcfg, hdyn, hcc, hboot, htr, htx, rfl, ?_, by rw [hc0', hc0], by rw [hch', hch],
       by rw [hlog', hlog], hcok, by rw [hwl', hwl], hpfx, rfl⟩
     intro ty d h
     simp only at h ⊢

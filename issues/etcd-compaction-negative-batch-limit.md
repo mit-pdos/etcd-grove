@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#13777 issue closed: related, not this bug (stabilizing the compaction-batch-limit flag; no validation discussed)
 ---

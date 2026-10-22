@@ -36,10 +36,30 @@ theorem unstable.acceptInProgress.wp_proof
   · -- no entries: only the snapshot flag
     wp_if_destruct
     · exfalso; simp [He] at Hlen; word
-    wp_if_destruct <;>
-    · iapply HΦ
+    wp_if_destruct
+    · -- no snapshot pending
+      ihave %Hsn : ⌜us.snap.isSome = false⌝ $$ [Hsnap]
+      · rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+        · icases ownSnap_of_eq_some Hs $$ Hsnap with ⟨%sv, Hsv, -⟩
+          iunfold ownSnapM at Hsv; iNamed Hsv
+          exfalso; first | exact Hnn Hif | exact Hif Hn | exact absurd Hif Hnn | exact absurd Hn Hif
+        · ipureintro; rw [Hs]; rfl
+      iapply HΦ
       isplitl
-      · close_unstable
+      · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp [Hsn]
+      ipureintro
+      simp [He]
+    · -- a snapshot pending: in progress now
+      ihave %Hsn : ⌜us.snap.isSome = true⌝ $$ [Hsnap]
+      · rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+        · ipureintro; rw [Hs]; rfl
+        · ihave %Hn := ownSnap_of_eq_none Hs $$ Hsnap
+          exfalso; first | exact Hnn Hif | exact Hif Hn | exact absurd Hif Hnn | exact absurd Hn Hif
+      iapply HΦ
+      isplitl
+      · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp [Hsn]
       ipureintro
       simp [He]
   · obtain ⟨es, e, Hes⟩ := List.eq_nil_or_concat us.ents |>.resolve_left He
@@ -65,10 +85,31 @@ theorem unstable.acceptInProgress.wp_proof
       Hbnd.1 $$ [Hls] as -
     · iframe Hls; ipureintro; exact Hl
     wp_apply wp_Entry_GetIndex.1 l DFrac.discard e $$ [$Hel] as -
-    wp_if_destruct <;>
-    · iapply HΦ
+    wp_if_destruct
+    · -- no snapshot pending
+      ihave %Hsn : ⌜us.snap.isSome = false⌝ $$ [Hsnap]
+      · rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+        · icases ownSnap_of_eq_some Hs $$ Hsnap with ⟨%sv, Hsv, -⟩
+          iunfold ownSnapM at Hsv; iNamed Hsv
+          exfalso; first | exact Hnn Hif | exact Hif Hn | exact absurd Hif Hnn | exact absurd Hn Hif
+        · ipureintro; rw [Hs]; rfl
+      iapply HΦ
       isplitl
-      · close_unstable
+      · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp [Hsn]
+      ipureintro
+      refine ⟨fun h => absurd h He, fun _ => ?_⟩
+      word
+    · -- a snapshot pending: in progress now
+      ihave %Hsn : ⌜us.snap.isSome = true⌝ $$ [Hsnap]
+      · rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
+        · ipureintro; rw [Hs]; rfl
+        · ihave %Hn := ownSnap_of_eq_none Hs $$ Hsnap
+          exfalso; first | exact Hnn Hif | exact Hif Hn | exact absurd Hif Hnn | exact absurd Hn Hif
+      iapply HΦ
+      isplitl
+      · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hpksn Hlogger
+        ipureintro; refine ⟨rfl, rfl, ?_⟩; simp [Hsn]
       ipureintro
       refine ⟨fun h => absurd h He, fun _ => ?_⟩
       word

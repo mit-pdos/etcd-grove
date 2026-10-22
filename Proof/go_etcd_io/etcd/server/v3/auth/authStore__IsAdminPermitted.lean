@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.auth.hasRootRole
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
 
 @[expose] public section
 
@@ -28,12 +29,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.IsAdminPermitted.wp_proof
     (h_IsAuthEnabled : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
+    (h_lockedReadTx : auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG))
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG)) :
     auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) := by
   intro st R a info dq
   wp_start as ⟨#Hinv, Hrd, Ha⟩
   iunfold authRd at Hrd
-  icases Hrd with ⟨Hen, Hca, HR⟩
+  icases Hrd with ⟨Hen, Hca, Hbr, HR⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -49,7 +51,7 @@ theorem auth.authStore.IsAdminPermitted.wp_proof
   icases HePD' with ⟨%ePD, #HePDa, -⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, -, ⟨%be, #Hbe, #Hbeok⟩, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, -, -, -, -, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (h_IsAuthEnabled st R) $$ [$Hinv $Hen] as %en Hen
@@ -77,20 +79,11 @@ theorem auth.authStore.IsAdminPermitted.wp_proof
     iexists ErrUserEmpty, eUE
     iframe HeUEa
     ipureintro; simp
-  iunfold authBackendOk at Hbeok
-  icases Hbeok with ⟨%bi, %Hbi, #HRT⟩
-  subst Hbi
-  wp_auto
-  wp_apply HRT as %tx Htx
-  iunfold authReadTxOk at Htx
+  wp_apply (h_lockedReadTx st R) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
+  iunfold authReadTxLocked at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Tk, #HRL, #HUG, #HRU⟩
-  wp_auto
-  wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-  iapply HRL $$ HR
-  inext
-  iintro Htok
+  icases Htx with ⟨%Tk, Htok, #HUG, #HRU⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #info.Username'))
   iapply HUG $$ Htok

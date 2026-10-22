@@ -25,6 +25,25 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.EnsureSnapshot.wp_proof
     (wp_EnsureSnapshotMetadata : raftpb.EnsureSnapshotMetadata.spec (GF := GF) (hG := hG)) :
     raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG) := by
+  refine ⟨?_, ?_⟩
+  rotate_left
+  · -- (D22 S-d4) every pointer field set, at any fraction: nothing written
+    intro s dq sv
+    wp_start as Hs
+    iNamed Hs
+    icases smPtsS_not_null _ _ _ $$ Hm with ⟨Hm, %Hpm⟩
+    wp_auto
+    wp_if_destruct
+    · exact absurd rfl Hnn
+    wp_apply wp_EnsureSnapshotMetadata.2 pm dq sv.Metadata' $$ [$Hm] as Hm
+    wp_if_destruct
+    · exact absurd rfl Hpm
+    iapply HΦ
+    iunfold ownSnapS
+    iexists ds, pm, uf
+    isplitr
+    · ipureintro; exact Hnn
+    iframe HD Hd HM Hm Hpb
   intro s o
   wp_start as Hs
   iapply wp_fupd
@@ -34,13 +53,13 @@ theorem raftpb.EnsureSnapshot.wp_proof
     icases Hs with %Hp
     subst Hp
     wp_auto
-    wp_apply wp_EnsureSnapshotMetadata null
+    wp_apply wp_EnsureSnapshotMetadata.1 null
       (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)) $$ []
       as %rm ⟨Hsm, -⟩
     · iunfold smOpt; ileft; ipureintro; exact ⟨rfl, rfl⟩
     ihave Hn : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
     · iapply ownSlice_nil
-    imod ownSnapW_of_struct «$r0_ptr» { (zero_val raftpb.Snapshot) with Metadata' := rm }
+    imod ownSnapS_of_struct «$r0_ptr» { (zero_val raftpb.Snapshot) with Metadata' := rm }
       (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) (W64 0) (W64 0)))
       ⊤ (by rfl) $$ [«$r0» Hn Hsm] with Hsn
     · dsimp only
@@ -57,7 +76,7 @@ theorem raftpb.EnsureSnapshot.wp_proof
     wp_auto
     wp_if_destruct
     · exact absurd rfl Hnn
-    wp_apply wp_EnsureSnapshotMetadata pm sn.Metadata' $$ [Hm] as %rm ⟨Hsm, %Hrm⟩
+    wp_apply wp_EnsureSnapshotMetadata.1 pm sn.Metadata' $$ [Hm] as %rm ⟨Hsm, %Hrm⟩
     · iexact Hm
     wp_if_destruct
     all_goals try (have e := Hrm Hif; subst e)
@@ -65,7 +84,7 @@ theorem raftpb.EnsureSnapshot.wp_proof
       imodintro
       iapply HΦ
       isplitl
-      · iunfold ownSnapW
+      · iunfold ownSnapS
         iexists ds, rm, uf
         isplitr
         · ipureintro; exact Hnn

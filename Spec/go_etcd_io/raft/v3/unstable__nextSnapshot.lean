@@ -22,9 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `u.nextSnapshot()` (`log_unstable.go:106`): the pending snapshot unless it is
-already in progress -- `nil` when there is none. Whether a pending snapshot is in
-progress (`snapshotInProgress`) is not tracked, so only the no-snapshot case is
-pinned.
+already in progress -- `nil` when there is none or it is in progress (`sip`, since D22
+S-d1, 2026-10-20; until then only the no-snapshot case was pinned).
 
 raft v3.7 (stage R3, 2026-10-15): the snapshot returned is a fresh clone of the pending one
 (`proto.Clone(u.snapshot)`, `log_unstable.go:114`), owned by the caller, holding the pending
@@ -34,11 +33,12 @@ abbrev unstable.nextSnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"nextSnapshot")) (Val #()))
-  {{ (p : Loc), RET #p; ownUnstable u us ∗ ⌜us.snap = none → p = null⌝ ∗
+  {{ (p : Loc), RET #p; ownUnstable u us ∗ ⌜p = null ↔ (us.snap = none ∨ us.sip = true)⌝ ∗
       (⌜p = null⌝ ∨ ∃ (sid : entryID) (sv : SnapshotM),
-        ⌜us.snap = some sid ∧ snapId sv = sid ∧
+        ⌜us.snap = some sid ∧ us.sip = false ∧ snapId sv = sid ∧
           snapTrip sv sv.Metadata'.ConfState'.lists ∈ us.ksn⌝ ∗
-        ownSnapM p (DFrac.own 1) sv) }}
+        -- (D22 S-d4 item 4) every pointer field set
+        ownSnapS p (DFrac.own 1) sv) }}
 
 end spec
 
