@@ -15064,3 +15064,51 @@ from the plan.
   repository's Goose configuration (G1, G3: names-only functions, an import through
   `util/feature.toml`), the general fixes listed in `notes/perennial-changes.md`; neither G1 nor
   G3 blocks phases 1-4.
+
+## D22 fork fixes: the snapshot file's release and the alarm store's race (2026-10-22)
+
+The user approved both fixes (2026-10-22). The etcd pin moves to the fork's `188113160`
+(`goose-lean`, after `2aed163b1`), two commits, each with its regression test:
+
+- **The alarm store recovered in place** (`8fd98af04`, `issues/etcd-alarm-store-snapshot-race.md`).
+  Not the `atomic.Pointer` of S-j2's list: the upstream candidate's fix
+  (`issues/upstream/etcd-alarm-store-snapshot-race/`, `d396a0fc7`), so that the fork and the
+  proposal upstream agree. `AlarmStore.Recover(be)` reloads the store under its own mutex, as
+  `lessor.Recover` does; `applySnapshot` calls it instead of `restoreAlarms`, which only
+  `NewServer` calls now. For the proof this is the better of the two: `s.alarmStore` is written
+  only by `NewServer`, so the persistent invariants' `srvAlarmStoreAddr s ↦□` stays true through
+  the snapshot path (S-j no longer needs to hand the field to the apply thread), and a verified
+  `Alarms()` reads a read-only field and calls `Get`, whose lock invariant must then cover
+  `Recover`'s swap of `be` and `types`. `Recover` is not translated (`v3alarm.toml` translates only
+  `Get`): `applySnapshot`'s call is in the branch of a non-empty snapshot, which its proof does not
+  reach. S-j: translate `Recover`, prove it against the store's lock invariant (whose `be` is then
+  any backend's alarm view, not `NewAlarmStore`'s fixed one), and call it in `applySnapshot`'s proof.
+  Test `TestV3AlarmsDuringSnapshotInstall` (`tests/integration`, `-race`): 5 of 5 fail without the
+  fix, 15 of 15 pass with it.
+- **A snapshot's older files released after its open** (`188113160`,
+  `issues/etcd-release-snapdb-before-open.md`). `raftNode.start` no longer calls
+  `storage.Release`; `applySnapshot` calls `s.r.storage.Release(toApply.snapshot)` after
+  `s.bemu.Unlock()`, once `OpenSnapshotBackend` has renamed the snapshot's file. Chosen over the
+  alternatives in the issue: a second signal the raft goroutine waits for would hold the raft
+  goroutine behind the apply queue; a `ReleaseSnapDBs` on the apply side alone would split
+  `Storage.Release` (a new interface method, the mocks) or change its contract for `snapshot()`'s
+  call too. Moving the whole call keeps `Release`'s contract and adds one call site in the style of
+  `snapshot()`'s (`server.go:2136`, also on the apply goroutine). The WAL release only moves later:
+  the `Sync` before it (etcd-io/etcd#10219) still precedes it (raft's `Sync`, then `notifyc`, which
+  `applySnapshot` waits for), and releasing the WAL's locks later keeps files longer, never fewer.
+  The `raftAfterWALRelease` failpoint (`tests/robustness`, a follower panic) moves with the call.
+  Test `TestSnapshotDBKeptUntilOpened` (`server/etcdserver`, deterministic: the test holds `bemu`
+  so that `applySnapshot(2)` waits before its open, a fake node hands out snapshots 2 and 4, the
+  test waits until the raft goroutine has appended the second batch's entry -- past where it called
+  `Release` -- and checks `<2>.snap.db`): 5 of 5 fail without the fix, 10 of 10 pass with it.
+  **For S-j, `snapDirInv`'s `Rm`**: the removers of `<j>.snap.db` are now only `applySnapshot(j)`'s
+  rename and `Release(i)` on the apply goroutine, by `applySnapshot(i)` after its open or by
+  `snapshot()` at the applied index, both with `j < i ≤` the applied index, so `Rm j :=
+  appliedAtLeast γr (j+1)`-style facts (the apply goroutine's applied index is past `j`) are
+  established by the releaser and refuted by `applySnapshot(j)`'s own `srvAppliedOwn γr a0`,
+  `a0 < j`.
+
+In the proof: `raftNode.start` (the snapshot branch is still proved only at `rd.Snapshot = null`)
+and `applySnapshot` (proved only at the empty snapshot) needed no change: both changes are in
+branches the proofs do not reach. Re-translated: `etcdserver.lean`, `v3alarm.lean` (a position).
+Trust base unchanged (543 axioms, 2 sorries).
