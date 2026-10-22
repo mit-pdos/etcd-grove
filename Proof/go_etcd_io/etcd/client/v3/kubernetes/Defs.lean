@@ -47,8 +47,8 @@ theorem filter_take_one {α : Type} (p : α → Bool) (l : List α) :
   | nil => rfl
   | cons a l ih =>
     by_cases h : p a
-    · simp [List.filter_cons, h, List.find?_cons]
-    · simp [List.filter_cons, h, List.find?_cons, ih]
+    · simp [h]
+    · simp [h, ih]
 
 /-- **`Get`'s range selects the key's first key-value** (pure; with `WithLimit(1)` the server
 reads two and returns one, `More` if there were two). -/
@@ -86,6 +86,55 @@ theorem srvRangeOk_getKey1 (key : GoString) (s kvs : List EtcdKv) (more : Bool)
   | [] => simp
   | [a] => simp
   | a :: b :: F' => simp
+
+/-- `OptimisticPut`'s transaction (linkv's): put `val` at `key` if its mod revision is `rev`, else
+get it if `g`. -/
+abbrev optPutTxn (key val : GoString) (rev : w64) (g : Bool) : TxnModel :=
+  linkv.txnOf [.mod key rev] [.put key val] (if g then [.get key] else [])
+
+/-- `OptimisticDelete`'s transaction (linkv's). -/
+abbrev optDelTxn (key : GoString) (rev : w64) (g : Bool) : TxnModel :=
+  linkv.txnOf [.mod key rev] [.del key] (if g then [.get key] else [])
+
+/-- **A failed `GetOnFailure` transaction's responses** (pure): its else branch's get, one range
+response whose key-values are the key's at the state. -/
+theorem failure_resps (s : List EtcdKv) (r : w64) (cs : List (linkv.MCmp GoString GoString))
+    (t : List (linkv.MOp GoString GoString)) (key : GoString) (resps : List OpRespM)
+    (hok : (txn.srvRunTxn r s (linkv.txnOf cs t [.get key])).1 = false)
+    (hrel : client.opRespsRel false ((linkv.txnOf cs t [.get key]).branch false)
+      (txn.srvRunTxn r s (linkv.txnOf cs t [.get key])).2.2 resps) :
+    ∃ rv more count, resps = [.range rv (s.filter fun v => decide (v.key = key)) more count] := by
+  unfold txn.srvRunTxn at hok hrel
+  simp only at hok hrel
+  rw [hok] at hrel
+  simp only [linkv.txnOf, TxnModel.branch, List.map_cons, List.map_nil, Bool.false_eq_true,
+    ↓reduceIte, linkv.tOpOf] at hrel
+  rw [txn.srvOps_cons, txn.srvOps_nil] at hrel
+  simp only [txn.srvOp] at hrel
+  match resps, hrel with
+  | [m], hrel =>
+    simp only [client.opRespsRel] at hrel
+    obtain ⟨h1, -⟩ := hrel
+    cases m with
+    | range rv kvs more count =>
+      simp only [client.opRespRel, Bool.false_eq_true, ↓reduceIte] at h1
+      obtain ⟨-, kvs', hk, hkv⟩ := h1
+      refine ⟨rv, more, count, ?_⟩
+      obtain ⟨l, -, h0, -, -, hl⟩ := hk
+      have hord : (linkv.getOp key).effSortOrder = W64 0 := by simp [OpFull.effSortOrder]
+      have hlz : txn.leaseZ (txn.fastKeysOnly (linkv.getOp key)) = id := by
+        funext v; simp [txn.leaseZ, txn.fastKeysOnly]
+      have hsel : rangeSel s (linkv.getOp key) = s.filter fun v => decide (v.key = key) := by
+        unfold rangeSel rangeIn
+        rw [List.filter_filter]
+        apply List.filter_congr
+        intro v _
+        simp [kvFilterOk, inRange]
+      rw [hkv, hlz, List.map_id, hl, ← hsel, ← h0 hord]
+      simp
+    | _ => simp [client.opRespRel] at h1
+  | [], hrel => simp [client.opRespsRel] at hrel
+  | _ :: _ :: _, hrel => simp [client.opRespsRel] at hrel
 
 end pure
 
