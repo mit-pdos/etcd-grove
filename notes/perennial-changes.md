@@ -122,6 +122,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
   provable); then this repository's `hash` translation goes.
 
+## Landed
+
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork
 
 Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's findings" and
@@ -149,10 +151,5 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   token lendable, `lend_acc`/`unlend_acc`, under a client's lending law `lendLaw N L`). New
   definitions and theorems only; no existing statement changes. Reviewed (`trusted-delta.py`: no
   tier 0-2 trust change), recorded with `etc/land.sh mark-reviewed`.
-- **Status.** Proposed, waiting for the user's `etc/land.sh push`. The etcd-grove branch
-  `perennial-idioms` already uses them (the local copies deleted; built against the branch
-  through `.lake/manifest-stdinit.json`); it lands after the pin moves to the landed `lean`.
-
-## Landed
-
-(none yet)
+- **Status.** Landed 2026-10-22: Perennial `lean` `537c426e0` (`3c3e83e2c`, `9e52da638`,
+  `537c426e0`), the pin since; the local copies are deleted (etcd-grove branch `perennial-idioms`).
