@@ -185,7 +185,7 @@ theorem store.deleteOnce.wp_proof
       iright
       ileft
       isplitr
-      · ipureintro; rfl
+      · ipureintro; exact ⟨rfl, rfl⟩
       iexists σ
       iframe Hres
       rw [hdel]

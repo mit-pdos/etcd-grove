@@ -224,6 +224,56 @@ theorem single_filter (k : GoString) (s : List EtcdKv) (hs : s.Pairwise etcdKvLe
   | none => rw [client.filter_key_of_findKey_none k s h]; rfl
   | some kv => rw [client.filter_key_of_findKey k s hs kv h]; rfl
 
+/-- **The model's `delete` of a key the state lacks**: "not found" at its revision, nothing
+changed. -/
+theorem delete_none {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hv : mvcc.findKey key σ.kvs = none) (pre validate : Obj → Nat → Option E) :
+    (c.abs σ).delete key pre validate = (c.abs σ, .err (.notFound key σ.rev)) := by
+  unfold KSt.delete
+  rw [c.abs_none σ key hv]
+  rfl
+
+/-- **The model's `delete` when `validateDeletion` fails on the stored object**: its error,
+nothing changed. -/
+theorem delete_invalid {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (kv : EtcdKv) (hv : mvcc.findKey key σ.kvs = some kv)
+    (s : OState Obj) (hs : stOfKv c kv s) (validate : Obj → Nat → Option E) (e : E)
+    (he : validate s.o (uint.nat s.rev) = some e) :
+    (c.abs σ).delete key (fun _ _ => none) validate = (c.abs σ, .err (.user e)) := by
+  obtain ⟨hrev, hfs, hdc, -⟩ := hs
+  have hd : c.S.dec kv.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+    simp [ObjCodec.dec, hfs, hdc]
+  have hit := c.abs_some σ key hpk kv hv _ _ hd
+  unfold KSt.delete
+  rw [hit]
+  simp only [← hrev, he]
+
+/-- **The caller's `validateDeletion`** (persistent: called at each retry): on an object holding
+`o` at resource version `r`, it leaves it and answers `validate o r` (`nil` for `none`). -/
+def validateOk {E : Type} (c : StoreCfg GF Obj) (validate : Obj → Nat → Option E) (vf : GoFunc) :
+    IProp GF :=
+  iprop(□ ∀ (ctx x : GoInterface) (o : Obj) (r : w64) (Ψ : val → IProp GF),
+    c.S.objAt x o (c.S.fmtRV r) -∗
+    ▷ (∀ err : GoInterface, c.S.objAt x o (c.S.fmtRV r) -∗
+        ⌜match validate o (uint.nat r) with
+          | none => err = GoInterface.nil
+          | some _ => err ≠ GoInterface.nil⌝ -∗ Ψ #err) -∗
+    WP (App (App (Val #vf) (Val #ctx)) (Val #x)) {{ Ψ }})
+
+instance validateOk_persistent {E : Type} (c : StoreCfg GF Obj) (validate : Obj → Nat → Option E)
+    (vf : GoFunc) : Persistent (validateOk c validate vf) := by
+  unfold validateOk; infer_instance
+
+/-- **`Delete`'s outcome** for the prepared key `key`: an error (of the client, the update fired
+at most once); the model's `delete` as the write at `σ` (`Φ σ`); or a read-like answer at `σ`
+(`□ Q σ`, nothing changed, `W` back). -/
+def delOut {E : Type} (c : StoreCfg GF Obj) (key : GoString) (validate : Obj → Nat → Option E)
+    (W : IProp GF) (Q Φ : KVState → IProp GF) (err out : GoInterface) : IProp GF :=
+  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
+    (∃ σ, Φ σ ∗ respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out) ∨
+    (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).delete key (fun _ _ => none) validate).1 = c.abs σ⌝ ∗
+      respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out))
+
 end steps
 
 end k8s

@@ -59,7 +59,7 @@ abbrev store.deleteOnce.spec : Prop :=
       (Val #key)) (Val #out)) (Val #st)) (Val #v)) (Val #false))
   {{ (st' : Loc) (ok : Bool) (err : GoInterface), RET (PairV (PairV #st' #ok) #err);
       (⌜err ≠ GoInterface.nil⌝ ∗ ∃ o rv, c.S.objAt out o rv) ∨
-      (⌜ok = true⌝ ∗ ∃ σ, Φ σ ∗
+      (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out) ∨
       (⌜ok = false⌝ ∗ W ∗ c.S.objAt out o0 rv0 ∗ ∃ σ, rdOk c Q σ ∗ stAt c key σ st' err) }}
 
