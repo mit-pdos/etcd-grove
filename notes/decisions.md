@@ -12573,3 +12573,38 @@ axioms, 2 sorries), and restated specs of existing axioms (`status.FromError`,
 rpctypes' and `client/v3`'s initializer axioms, `bridge.New`). `errDesc_etcdError` is in every
 collection whose results go through the retry interceptor; `etcd_noRefusal` is in linkv3p's
 only.
+
+## D31: the examples' clients with etcd's default configuration; one family of client call lemmas (2026-10-22)
+
+**Problem.** linkv, linkv3, linkvtxn, watchkv and cachekv configured their clients with
+`MaxUnaryRetries: 1` (D21i (A)) so that a write is sent at most once, and each example proved its
+own wrappers of `New`'s client's calls (`linkv/Apply.lean`'s `client_Put_once`, `client_Get_plain`,
+`client_Get_au`; `linkvtxn/Calls.lean`'s `client_*_st`; `watchkv/Writes.lean`'s `client_Put_rev`,
+which cachekv used too). Since D29 a write is also sent at most once by a client with the default
+retries if its members are refusal-free (`clientWriteOnce`'s second case), as linkv3p's are.
+
+**Decision.**
+- *Configuration.* The five programs use etcd's default client configuration (`MaxUnaryRetries`
+  unset), each with its one endpoint (a watch is a stream to one address; linkv3's client stays on
+  its first member: linkv's `Check` is over one member). Their `Main` proofs apply `etcd_noRefusal`
+  before `etcd_kv_started` (authentication off: `NewServer`'s `E.authOn = false`, or putget3's
+  `memberUp`), and give `clientWriteOnce`'s refusal-free case. The `Apply`, `Check` and `writer`
+  specs take `clientWriteOnce` instead of `clientKVOnce`.
+- *One family.* The wrappers are in the client package, `client/v3/ClientPutGet.lean`, beside
+  putget's persistent forms (`client_Put_own`, `client_Get_own`): over a client of the members
+  `ms` (one member is `[x]`), `client_Get_st` (a persistent read update or none), `client_Put_rep`
+  (a member's `putReplied`), `client_Put_st`, `client_Delete_st` (an update fired at most once, on
+  `clientWriteOnce`), `client_Txn_st` (the builder, with `txnWriteOnce`), with `srvStart`, the
+  registrations by method (`kvRegs_*`), `rangeReply_state_bnd`, `head_filter_key`. The lemmas take
+  the registrations method by method (what the `*kv` results take), so a single-member caller
+  needs only the methods it calls. linkvtxn keeps `client_List_st` and `txn_Commit_st`, which
+  speak of its model's range and transaction.
+- *Kept.* `clientKVOnce` (and `kvOnce`, `isEtcdConn1`, `New.spec`'s `MaxUnaryRetries' = 1` clause,
+  `putAuOk`'s one-attempt case) stays: no example configures one attempt any more, but it is a true
+  spec of the client's configuration, `clientWriteOnce`'s first case, and removing it is a separate
+  clean-up of the client's specs. `putAuOk`/`txnAuOk` (single-endpoint, `client_*_end_to_end`)
+  could take the refusal-free case too; not needed, since the family goes through `Failover.lean`'s
+  results.
+
+**Trust base.** No axiom added: `etcd_noRefusal` (D29) now reaches the five examples' collections
+(each +1). The closed theorems' statements do not change; the configuration they speak of does.

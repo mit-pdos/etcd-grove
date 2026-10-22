@@ -6,8 +6,8 @@ prophecy of the `ResolveBool` at the end (`!out.Err`, the call's outcome), and t
 (`Inv.lean`'s steps) is chosen by the operation's kind and the prophecy's head before the client
 is called:
 
-- a write, prophecy `ok`: the call's update is `write_ok_au` (fired at most once on the
-  one-attempt client); it commits `lintest`'s update at the server's apply with `call`'s output at
+- a write, prophecy `ok`: the call's update is `write_ok_au` (fired at most once on a
+  client that sends a write at most once); it commits `lintest`'s update at the server's apply with `call`'s output at
   the state it fired at, and the call returns that output (`call.spec`, the state good: `wQ`). An
   error return contradicts the prophecy; so does a state whose answer's revision does not fit a
   word (the reply's state is below `2^63`).

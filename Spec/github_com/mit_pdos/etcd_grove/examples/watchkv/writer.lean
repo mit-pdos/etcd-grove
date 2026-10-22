@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `writer(cli, w, tried, lo, hi)` (watchkv.go): the Puts `tried[lo:hi]` through `New`'s client
-configured for one attempt, each with the writer's update (`put_au`: the workload lets the
+that sends a write at most once (`clientWriteOnce`), each with the writer's update (`put_au`: the workload lets the
 client deposit the plan's puts), logging each that returned no error in `w` with `okFact`
 (`wsInv`, the log's lock invariant).
 -/

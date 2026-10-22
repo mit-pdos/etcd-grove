@@ -4,7 +4,7 @@ stage G), restated, with the trust base of each printed in the build log (`#prin
 Lean-first (no Rocq counterpart).
 
 * **`linkvtxn_Main`** (`Link.lean`'s `linkvtxn.wp_Main`): `Main(clients, ops)` -- one etcd member
-  started in process, a client configured for one attempt per call, `Check(cli, clients, ops, 0)`
+  started in process, a client with etcd's default configuration, `Check(cli, clients, ops, 0)`
   (`lintest.Run` with the model of etcd's KV, `Apply` over the client: gets, lists, puts, deletes,
   transactions; porcupine's checker), and a panic if porcupine answers `Illegal` -- does not panic
   and returns `Ok` or `Unknown`. From `isPkgInit linkvtxn`, the right to listen on

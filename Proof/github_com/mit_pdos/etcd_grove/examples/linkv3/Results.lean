@@ -5,7 +5,7 @@ Rocq counterpart).
 
 * **`linkv3_Main`** (`Link.lean`'s `linkv3.wp_Main`): `Main(clients, ops)` -- three etcd members
   started in process (putget3's `startMember`), a client to the first (`127.0.0.1:23811`)
-  configured for one attempt per call, linkv's `Check(cli, clients, ops, 0)`, and a panic if
+  with etcd's default configuration, linkv's `Check(cli, clients, ops, 0)`, and a panic if
   porcupine answers `Illegal` -- does not panic and returns `Ok` or `Unknown`. From
   `isPkgInit linkv3`, the right to listen on the four addresses, the main thread's token and
   `Main`'s named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/linkv3/Main.lean`).

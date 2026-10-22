@@ -6,7 +6,7 @@ linkv's closed theorem (`linkv/Adequacy.lean`) for `examples/linkv3`: the packag
 (which initializes its import closure: etcd's server, its gRPC layer, the client, raft, linkv,
 porcupine, the driver `lintest`, ...) followed by `Main(clients, ops)` -- three etcd members started
 in process (putget3's `startMember`: each serving its raft handler on its own peer listener), a
-client to the first configured for one attempt per call, linkv's `Check(cli, clients, ops, 0)`
+client to the first with etcd's default configuration, linkv's `Check(cli, clients, ops, 0)`
 (`clients` clients of `ops` random operations each, the history checked by porcupine against the
 key-value model), and a panic ("linkv3: porcupine found the history not linearizable") if porcupine
 answers `Illegal` -- started from a fresh state (no package initialized, one thread): for every real

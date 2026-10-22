@@ -5,7 +5,7 @@
 A closed theorem about the operational semantics of `watchkv`'s program (`examples/watchkv`): the
 package's initialization (which initializes its import closure: etcd's server, its gRPC layer,
 the client, raft, ...) followed by `Main(nw, nops)` -- the writers' `nw * nops` Puts picked, one
-etcd member started in process, a client configured for one attempt per call, a prefix watch on
+etcd member started in process, a client with etcd's default configuration, a prefix watch on
 `wk/` from revision `1`, `nw` writer goroutines, the watch read up to the highest revision a
 successful Put returned, and the check, which panics unless the watched events are exactly the
 writes (puts only, gap-free from revision `2`, each of a Put attempted, every successful Put the

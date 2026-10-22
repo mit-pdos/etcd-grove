@@ -2,7 +2,7 @@
 
 `Main(nw, nops)` (`examples/watchkv/watchkv.go`; D23): the writers' `nw * nops` Puts picked
 (`genAll`), one etcd member started in process (as `examples/putget`'s `Main`, on `watchkv`'s
-ports), a client configured for one attempt per call (`MaxUnaryRetries: 1`), a prefix watch on
+ports), a client with etcd's default configuration (its default retries; D29), a prefix watch on
 `wk/` from revision `1`, `nw` writer goroutines, then, after they are done, the successful Puts'
 log, the watch read up to their highest revision (`collect`) and the check (`check`, which panics
 if the watch did not report exactly the writes).

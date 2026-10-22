@@ -4,7 +4,7 @@
 
 As `linkv/Adequacy.lean`'s, for `examples/linkvtxn`: the package's initialization (which
 initializes its import closure) followed by `Main(clients, ops)` -- one etcd member started in
-process, a client configured for one attempt per call, `clients` clients of `ops` random
+process, a client with etcd's default configuration, `clients` clients of `ops` random
 operations each through it (`lintest.Run`: gets, lists, puts, deletes, multi-operation
 transactions and compare-and-sets, robustness's `EtcdPutDeleteLease` workload without leases and
 stale reads), the recorded history checked by porcupine against the model of etcd's KV

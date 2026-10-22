@@ -5,7 +5,7 @@
 A closed theorem about the operational semantics of `cachekv`'s program (`examples/cachekv`): the
 package's initialization (which initializes its import closure: etcd's server, its gRPC layer,
 the client, the cache, raft, ...) followed by `Main(nw, nops)` -- the writers' `nw * nops` Puts
-picked, one etcd member started in process, a client configured for one attempt per call, a
+picked, one etcd member started in process, a client with etcd's default configuration, a
 cache of the prefix `ck/` over it, the cache's watch of the prefix from revision `2`, `nw` writer
 goroutines, the watch read up to the highest revision a successful Put returned, and watchkv's
 check, which panics unless the watched events are exactly the writes (puts only, gap-free from

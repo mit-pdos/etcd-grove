@@ -8,7 +8,8 @@ the initial cluster's map; the ghost state of the cluster and its members (`clus
 `bootstrap`'s order, the client's `etcdKV` at the first member's names); `startMember` for each
 member, the thread token passed along; `v3rpc.Server`, `Listen` at the first member's client
 address, `etcd_kv_started` (etcd's `Put` and `Range` registered at the address), `go gs.Serve(l)`,
-`clientv3.New` (with `MaxUnaryRetries: 1`, so `clientKVOnce`). Then linkv's `Main`
+`clientv3.New` (etcd's default configuration; the first member refusal-free,
+`etcd_noRefusal`, so `clientWriteOnce`, D29). Then linkv's `Main`
 (`Proof/.../linkv/Main.lean`): the instance's invariant at the cluster's start store
 (`linkvInv_alloc_boot`: the bootstrap log changes no KV state) and `linkv.Check(cli, clients, ops,
 0)`, which returns `Ok` (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error
@@ -28,6 +29,7 @@ public import Spec.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 
 @[expose] public section
 
@@ -274,6 +276,11 @@ theorem Main.wp_proof
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p s₁ C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal clientAddr₁ gs q p s₁ lis E
+      { ρ₁ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HEo) $$
+    [Hgsn Hlis]
+  · iframe Hgsn Hlis; iframe #
   imod (client.etcd_kv_started clientAddr₁ gs q p s₁ lis E { ρ₁ with wait := γw } ρ₁.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
     $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, -, -⟩
@@ -308,7 +315,7 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint clientAddr₁; decide)
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -318,10 +325,11 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr
   wp_auto
-  ihave #Hone := Hone $$ []
-  · ipureintro; trivial
+  -- (D29) a write sent at most once: the member is refusal-free
   ihave #Hwo : client.clientWriteOnce (GF := GF) cl [clientAddr₁] $$ []
-  · iunfold client.clientWriteOnce; ileft; iexact Hone
+  · iunfold client.clientWriteOnce; iright; ipureintro
+    intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
   imod (linkv.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
       Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd

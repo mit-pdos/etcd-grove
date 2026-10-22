@@ -13,8 +13,9 @@ instance's invariant `linkvInv γ γr.kv` with the server's `etcdKV`: `Proof/...
 The mask `linkvE` is the server's invariants open where it fires a client's update and the
 instance's.
 
-Premises: what `New` returns for a client configured with `MaxUnaryRetries: 1` (`isNewClient`,
-`clientWriteOnce`: a write sent at most once), the server's `Put` and `Range` registered with etcd's specs at the client's
+Premises: what `New` returns for a client that sends a write at most once (`isNewClient`,
+`clientWriteOnce`: one attempt, or a refusal-free member, D29), the server's `Put` and `Range`
+registered with etcd's specs at the client's
 endpoint (`etcd_kv_served`), the instance's invariant, the packages' facts, and `errors.As`'s
 target (`background_ctx`, the client's context lemma). Stated under the cache package's assumptions,
 which the client's lemmas take (as `putget.Main.spec`).

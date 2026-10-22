@@ -3,7 +3,7 @@ The linearizability instance's results (`examples/linkv/linkv.go`; D20 (c)), res
 trust base of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`linkv_Main`** (`Link.lean`'s `linkv.wp_Main`): `Main(clients, ops)` -- one etcd member started
-  in process, a client configured for one attempt per call, `Check(cli, clients, ops, 0)`
+  in process, a client with etcd's default configuration, `Check(cli, clients, ops, 0)`
   (`lintest.Run` with the key-value model, `Apply` over the client, porcupine's checker), and a
   panic if porcupine answers `Illegal` -- does not panic and returns `Ok` or `Unknown`. From
   `isPkgInit linkv`, the right to listen on `127.0.0.1:23791`, the main thread's token and `Main`'s

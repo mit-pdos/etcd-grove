@@ -6,8 +6,8 @@ kind takes (`callUpd`: a write's, fired at most once; a read's read update, or n
 failed call's output (`errOut`), or a successful one at the state `σ` the update fired at
 (`callRes`), below `2 ^ 63`, which is the model's answer at `σ` (`outAt i σ`) when `σ` is good.
 
-Premises: what `New` returns (`isNewClient`, `clientWriteOnce`: a write sent at most once), the server's `Put`, `Range`,
-`DeleteRange` and `Txn` registered with etcd's specs at the client's endpoint (`etcd_kv_served`,
+Premises: what `New` returns (`isNewClient`, `clientWriteOnce`: a write sent at most once), the
+server's `Put`, `Range`, `DeleteRange` and `Txn` registered with etcd's specs at the client's endpoint (`etcd_kv_served`,
 at one read names `γr`), the packages' facts, and `errors.As`'s target (the client's context
 lemma). Stated under the cache package's assumptions, which the client's lemmas take.
 -/

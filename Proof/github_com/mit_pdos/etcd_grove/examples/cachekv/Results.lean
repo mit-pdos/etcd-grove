@@ -3,7 +3,7 @@ The cache watch example's results (`examples/cachekv/cachekv.go`), restated, wit
 of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`cachekv_Main`** (`Link.lean`'s `cachekv.wp_Main`): `Main(nw, nops)` -- the Puts picked, one
-  etcd member started in process, a one-attempt client, a cache of the prefix over it, the cache's
+  etcd member started in process, a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
   revision, and a check that panics unless the watched events are exactly the writes -- does not
   panic and returns `Ok`, `Failed` or `WatchEnded`. From `isPkgInit cachekv`, the right to listen

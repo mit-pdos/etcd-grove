@@ -5,7 +5,7 @@
 A closed theorem about the operational semantics of `linkv`'s program (`examples/linkv`): the
 package's initialization (which initializes its import closure: etcd's server, its gRPC layer,
 the client, raft, porcupine, the driver `lintest`, ...) followed by `Main(clients, ops)` -- one
-etcd member started in process, a client configured for one attempt per call, `clients` clients
+etcd member started in process, a client with etcd's default configuration, `clients` clients
 of `ops` random operations each through it (`lintest.Run`), the recorded history checked by
 porcupine against the model of a key-value store, and a panic ("linkv: porcupine found the history
 not linearizable") if porcupine answers `Illegal` -- started from a fresh state (no package

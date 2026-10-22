@@ -5,8 +5,9 @@ Lean-first (no Rocq counterpart).
 The server's start is putget's `Main` (`Proof/.../putget/Main.lean`, whose steps this follows
 verbatim up to the client, at `linkv`'s configuration): the ghost state `NewServer` takes
 (`putget.putget_alloc`), `NewServer`, `Start`, `v3rpc.Server`, `Listen`, `etcd_kv_started`
-(etcd's `Put` and `Range` registered at the address), `go gs.Serve(l)`, `clientv3.New` (with
-`MaxUnaryRetries: 1`, so `clientKVOnce`). Then the instance's invariant at the server's start
+(etcd's `Put` and `Range` registered at the address), `go gs.Serve(l)`, `clientv3.New` (etcd's
+default configuration; the member refusal-free, `etcd_noRefusal` before `etcd_kv_started`, so
+`clientWriteOnce`, D29). Then the instance's invariant at the server's start
 store (`linkvInv_alloc_boot`: the bootstrap log changes no KV state) and `Check(cli, clients, ops,
 0)`, which returns `Ok` (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error
 ends `Main` with `Unknown`.
@@ -29,6 +30,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Alloc
 
 @[expose] public section
@@ -254,6 +256,11 @@ theorem Main.wp_proof
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23791" gs q p srv lis E
+      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HE.2) $$
+    [Hgsn Hlis]
+  · iframe Hgsn Hlis; iframe #
   imod (client.etcd_kv_started go!"127.0.0.1:23791" gs q p srv lis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
     $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, -, -⟩
@@ -287,7 +294,7 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -297,10 +304,11 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr
   wp_auto
-  ihave #Hone := Hone $$ []
-  · ipureintro; trivial
+  -- (D29) a write sent at most once: the member is refusal-free
   ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23791"] $$ []
-  · iunfold client.clientWriteOnce; ileft; iexact Hone
+  · iunfold client.clientWriteOnce; iright; ipureintro
+    intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
   imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot (by rw [hwl]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩

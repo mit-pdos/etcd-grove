@@ -3,7 +3,7 @@
 `Main(nw, nops)` (`examples/cachekv/cachekv.go`): watchkv's `Main` (`Spec/.../watchkv/Main.lean`)
 with the watch read through etcd's cache: the writers' `nw * nops` Puts picked (`genAll`), one
 etcd member started in process (as `examples/putget`'s `Main`, on `cachekv`'s ports), a client
-configured for one attempt per call (`MaxUnaryRetries: 1`), a cache of the prefix `ck/` over the
+with etcd's default configuration (its default retries; D29), a cache of the prefix `ck/` over the
 client (`cache.New`, the default options), the cache's watch of the prefix from revision `2`,
 `nw` writer goroutines, then, after they are done, the successful Puts' log, the watch read up to
 their highest revision (`collect`) and the check (`check`, which panics if the watch did not

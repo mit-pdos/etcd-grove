@@ -3,8 +3,9 @@
 `Check(cli, clients, ops, timeout)` (`examples/linkvtxn/linkvtxn.go`; linkv-txn stage G, as
 `examples/linkv`'s): `lintest.Run` with the
 model `Model()`, the closure `func(input any) any { return Apply(cli, input) }`, the generator
-`Gen` and the clock `lintest.CounterClock()`. Over `New`'s one-attempt client `cli` (`Apply.spec`'s
-premises: `isNewClient`, `clientWriteOnce`: a write sent at most once, etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered
+`Gen` and the clock `lintest.CounterClock()`. Over `New`'s client `cli` (`Apply.spec`'s
+premises: `isNewClient`, `clientWriteOnce`: a write sent at most once, etcd's `Put`, `Range`,
+`DeleteRange` and `Txn` registered
 at its endpoint) and
 the instance's invariant with the library state at the model's start (`linkvInv γ γr.kv`,
 `linkvState γ (linkv.pInit TS)`, what `linkvInv_alloc` gives), under `Run`'s bounds on `clients` and `ops`

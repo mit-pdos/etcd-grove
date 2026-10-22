@@ -3,7 +3,7 @@ The watch example's results (`examples/watchkv/watchkv.go`; D23), restated, with
 of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`watchkv_Main`** (`Link.lean`'s `watchkv.wp_Main`): `Main(nw, nops)` -- the Puts picked, one
-  etcd member started in process, a one-attempt client, a prefix watch from revision `1`, `nw`
+  etcd member started in process, a client with etcd's default configuration, a prefix watch from revision `1`, `nw`
   writers, the watch read up to the highest successful revision, and a check that panics unless
   the watched events are exactly the writes -- does not panic and returns `Ok`, `Failed` or
   `WatchEnded`. From `isPkgInit watchkv`, the right to listen on `127.0.0.1:23831`, the main

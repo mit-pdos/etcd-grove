@@ -838,7 +838,7 @@ func Check(cli *clientv3.Client, clients int, ops int, timeout time.Duration) po
 const clientAddr = "127.0.0.1:23796"
 
 // Main starts one member of a new cluster (as examples/linkv's Main does), connects a client
-// configured for one attempt per call and runs Check; it panics if porcupine finds the history
+// with etcd's default configuration and runs Check; it panics if porcupine finds the history
 // illegal. An error from a step before Check ends Main without a check.
 func Main(clients int, ops int) porcupine.CheckResult {
 	lg := zap.NewNop()
@@ -875,12 +875,12 @@ func Main(clients int, ops int) porcupine.CheckResult {
 	}
 	go gs.Serve(l)
 
-	// One attempt per call (MaxUnaryRetries: 1): a write is sent at most once, so the server
-	// applies it at most once.
+	// etcd's default client configuration (its default retries): the server never answers with a
+	// refusal (authentication off, a voter), so a write is sent at most once and the server applies
+	// it at most once, while a read may be retried (decision D29).
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:       []string{clientAddr},
-		Logger:          lg,
-		MaxUnaryRetries: 1,
+		Endpoints: []string{clientAddr},
+		Logger:    lg,
 	})
 	if err != nil {
 		return porcupine.Unknown
