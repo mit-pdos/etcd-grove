@@ -450,7 +450,7 @@ func TestCheck(t *testing.T) {
 // write.
 func TestEncodeState(t *testing.T) {
 	kv := map[string]string{"b": "2", "a": "1", "": "e", "ab": ""}
-	ops := map[string]bool{string(encode(1, 2, opPut, "a", "1")): true, "x": true}
+	ops := map[string]string{string(encode(1, 2, opPut, "a", "1")): "1", "x": "", "y": "v"}
 	b := encodeState(kv, ops)
 	for i := 0; i < 20; i++ {
 		if c := encodeState(kv, ops); string(c) != string(b) {
@@ -467,8 +467,8 @@ func TestEncodeState(t *testing.T) {
 		}
 	}
 	for o := range ops {
-		if !ops2[o] {
-			t.Fatalf("op %q missing", o)
+		if v, ok := ops2[o]; !ok || v != ops[o] {
+			t.Fatalf("op %q: %q, %v, want %q", o, v, ok, ops[o])
 		}
 	}
 	if _, _, ok := decodeState(b[:len(b)-1]); ok {
@@ -477,15 +477,19 @@ func TestEncodeState(t *testing.T) {
 	if _, _, ok := decodeState(append(b, 0)); ok {
 		t.Fatalf("decodeState accepted trailing bytes")
 	}
-	if _, _, ok := decodeState(encodeState(map[string]string{}, map[string]bool{})); !ok {
+	if _, _, ok := decodeState(encodeState(map[string]string{}, map[string]string{})); !ok {
 		t.Fatalf("decodeState refused the empty state")
 	}
 }
 
-// TestSnapshotCatchUp cuts replica 3 off (no message to or from it is delivered), runs more
-// than 2*snapEvery operations, so that the others take snapshots and compact their logs past
-// what replica 3 has, and then heals the cut: replica 3 catches up by a snapshot (a MsgSnap is
-// delivered to it), serves the latest values, and applies operations after it.
+// TestSnapshotCatchUp cuts replica 3 off (no message to it is delivered, and none from it but
+// its proposals), runs more than 2*snapEvery operations, so that the others take snapshots and
+// compact their logs past what replica 3 has, and then heals the cut: replica 3 catches up by a
+// snapshot (a MsgSnap is delivered to it), serves the latest values, and applies operations after
+// it. An operation replica 3 proposed while cut off, committed by the others, is among those the
+// snapshot covers: replica 3 never applies its entry, and answers it at the install, with the
+// key's value after it. Replica 3 does not tick until the cut heals, so that it stays a follower
+// of the leader it knew (and forwards its proposal to it).
 func TestSnapshotCatchUp(t *testing.T) {
 	voters := []uint64{1, 2, 3}
 	peers := make(map[uint64]raft.Node)
@@ -505,13 +509,14 @@ func TestSnapshotCatchUp(t *testing.T) {
 	}
 	tr := &transfers{left: timeouts}
 	var mu sync.Mutex
-	cut := true
+	cut := false
+	healed := false
 	snaps := 0
 	send := func(ms []*pb.Message) {
 		var pass []*pb.Message
 		mu.Lock()
 		for _, m := range ms {
-			if cut && (m.GetTo() == 3 || m.GetFrom() == 3) {
+			if cut && (m.GetTo() == 3 || (m.GetFrom() == 3 && m.GetType() != pb.MsgProp)) {
 				continue
 			}
 			if m.GetType() == pb.MsgSnap && m.GetTo() == 3 && deliverable(m) {
@@ -532,32 +537,67 @@ func TestSnapshotCatchUp(t *testing.T) {
 	regs := make(map[uint64]*KV)
 	for _, id := range voters {
 		regs[id] = New(id, peers[id], storages[id], send)
-		go func(nd raft.Node) {
+		go func(id uint64, nd raft.Node) {
 			tk := time.NewTicker(5 * time.Millisecond)
 			defer tk.Stop()
 			for {
 				select {
 				case <-tk.C:
-					nd.Tick()
+					mu.Lock()
+					tick := id != 3 || healed
+					mu.Unlock()
+					if tick {
+						nd.Tick()
+					}
 				case <-stop:
 					return
 				}
 			}
-		}(peers[id])
+		}(id, peers[id])
+	}
+	// replica 3 follows a leader (one of the others: it does not tick)
+	regs[3].Put("w", "a")
+	mu.Lock()
+	cut = true
+	mu.Unlock()
+	// replica 3's operation, committed by the others while it is cut off
+	ans := make(chan string, 1)
+	go func() { ans <- regs[3].do(opAppend, "w", "b") }()
+	op := string(encode(3, 2, opAppend, "w", "b"))
+	for deadline := time.Now().Add(10 * time.Second); ; {
+		regs[1].mu.Lock()
+		_, done := regs[1].applied[op]
+		regs[1].mu.Unlock()
+		if done {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("replica 3's operation was not committed while it was cut off")
+		}
+		time.Sleep(time.Millisecond)
 	}
 	const n = 2*snapEvery + 50
 	for i := 0; i < n; i++ {
 		regs[uint64(1+i%2)].Put(fmt.Sprintf("k%d", i%7), fmt.Sprint(i))
 	}
 	regs[1].Append("k0", "+")
-	if fi, _ := storages[1].FirstIndex(); fi <= 1 {
-		t.Fatalf("replica 1 did not compact its log (first index %d)", fi)
+	if fi, _ := storages[1].FirstIndex(); fi <= 3 {
+		t.Fatalf("replica 1 did not compact its log past replica 3's operation (first index %d)", fi)
 	}
 	mu.Lock()
 	cut = false
+	healed = true
 	mu.Unlock()
-	// an operation of replica 3's first (proposed again until it knows a leader: a read raft
-	// drops then is not retried), applied once it has caught up
+	// replica 3's operation, answered when it installs the snapshot that covers it
+	select {
+	case v := <-ans:
+		if v != "ab" {
+			t.Fatalf("replica 3's operation answered %q, want %q", v, "ab")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("replica 3's operation, covered by the snapshot it installed, was not answered")
+	}
+	// an operation of replica 3's, applied once it has caught up
 	if v, want := regs[3].Get("k0"), regs[1].Get("k0"); v != want {
 		t.Fatalf("replica 3: Get(k0) = %q, want %q", v, want)
 	}

@@ -14984,6 +14984,44 @@ data's certificate is minted from `runOwn` (`stateEnc_intro`), the configuration
 raft's `Init.lean` and kv's re-proof of it frame the allocation they already made.
 
 **What is not covered.** An operation of a replica that commits inside a snapshot the replica
-installs is not answered: its `do` waits (partial correctness, the Go comment's). `RaftWitness/` is
+installs is not answered: its `do` waits (partial correctness, the Go comment's; fixed 2026-10-22,
+"The kv example's snapshot liveness: carried out", below). `RaftWitness/` is
 unchanged: its copies of raft's modules have neither the data certificate nor the strict snapshot
 `Ready`, which kvwitness would need only to take snapshots.
+
+## The kv example's snapshot liveness: carried out (2026-10-22)
+
+**Problem.** Since S-r a lagging replica installs a snapshot instead of applying the entries it
+covers, and only `apply` answered a replica's own waiting operation (`KV.do`), so a `do` whose
+operation commits inside a snapshot its replica installs waited forever. `kv_porcupine_safe`
+(partial correctness) allowed it; a run that hit it stalled. `TestSnapshotCatchUp` now reproduces
+it deterministically: replica 3 does not tick until the cut heals (so it stays a follower of the
+leader it knew), proposes an `Append` while cut off from everything but its own `MsgProp`s, the
+others commit it and compact past it, and the heal hands 3 a `MsgSnap` covering it. Without the
+fix the operation is never answered (3 of 3 runs, the test's 10 s timeout); with it, it returns the
+key's value after the operation.
+
+**The fix (the user's design).** The replicated table of the operations applied (`KV.applied`)
+maps each operation's encoding to its answer -- the key's value right after it -- instead of
+`true`: `apply` records the value it sends; the snapshot's data carries the table (both maps
+written by one `putMap`, read by one `getMap`: `encodeState`/`decodeState` are now two calls each,
+which replaces the duplicated operation half of both proofs); and the install (`KV.install`, a
+method of its own) replaces the two maps and, under the lock, answers every operation of the
+table that decodes to this replica's id with a waiter at its sequence number, with the recorded
+value -- what `apply` would have sent. It is deterministic (a function of the committed log), so
+every replica's table and every snapshot of the same prefix agree.
+
+**The proof.** `AppliedOk A H` (`Base.lean`) is now `AnsTab (A !! ·) H`: the table's keys are the
+decodable data of the history, and each value `v` of `d` satisfies `AnsOk H d v` -- `d` occurs in
+`H` after a prefix `H0` without it, and `v = kvFold (H0 ++ [d]) (dkey d)`, the form `waitP` and
+`opSlot` already use. A relation, not a function (`kvFold` of `H` up to `d`'s index), so that it
+needs no index lemma and matches `waitP` directly; `ansOk_firstOcc` (`Lemmas.lean`) turns it into
+`waitP`'s witness (the first occurrence's index `m` in the log's data). `StateEnc` carries the
+table's bindings with `AnsTab` of their lookup. The waiter-answering at the install needed no new
+invariant: the operation `o` the snapshot's table holds is in the committed log's data, so it was
+deposited (`ods_deposited`, from the log's `entDataIs`); the waiter at `(id, seq)` carries its
+minted datum (`waiterOk`); `opKey o = (id, seq)` from `decode`; so the two are equal
+(`kv_deposited_minted`, as in `apply`). `KV.install`'s spec takes the new maps with `runOwn`'s
+facts at the snapshot's committed log and returns `runOwn` there; `run`'s install branch calls it in
+place of its own lock section. `putMap`/`getMap` are the halves of the former proofs over any
+prefix/rest. `kv_porcupine_safe`'s statement is unchanged; no axiom or `sorry` added.

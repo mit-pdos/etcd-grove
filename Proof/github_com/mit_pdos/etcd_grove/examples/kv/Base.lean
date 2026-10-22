@@ -16,8 +16,8 @@ sequence number, little-endian, the kind, the key's length, the key, the value),
 anything else -- a `Get`, a datum that is no operation -- leaves the store). An operation
 answers its key's value after it (`dkey`). The client log holds each operation once
 (`firstOcc`, `Protocol/Model.lean`), which is what `apply`'s table of applied encodings
-(`AppliedOk`) mirrors. (Until 2026-10-19 the example was a register: one value, `Put` and
-`Get`.)
+(`AppliedOk`, each with its answer, `AnsOk`) mirrors. (Until 2026-10-19 the example was a
+register: one value, `Put` and `Get`.)
 -/
 module
 
@@ -125,9 +125,35 @@ def dkey (d : List w8) : List w8 :=
 /-- The store after the client log `L`. -/
 def kvFold (L : List (List w8)) : KVMap := L.foldl kvApply kvEmpty
 
-/-- `apply`'s table: the decodable data of the client log `L`, each mapped to `true`. -/
-def AppliedOk (A : GMap (List w8) Bool) (L : List (List w8)) : Prop :=
-  ∀ d, A !! d = if d ∈ L ∧ (decodeOp d).isSome then some true else none
+/-- `v` is what the operation `d` answers in the history `H`: its key's value right after `d`,
+which occurs in `H` after the history `H0` (and not in `H0`: the first occurrence; a history
+holds each datum once, `firstOcc`). -/
+def AnsOk (H : List (List w8)) (d v : List w8) : Prop :=
+  ∃ H0, H0 ++ [d] <+: H ∧ d ∉ H0 ∧ v = kvFold (H0 ++ [d]) (dkey d)
+
+/-- A table of answers (a lookup function `f`) for the history `H`: it has exactly the decodable
+data of `H`, each with its answer (`AnsOk`). -/
+def AnsTab (f : List w8 → Option (List w8)) (H : List (List w8)) : Prop :=
+  (∀ d, (f d).isSome ↔ d ∈ H ∧ (decodeOp d).isSome) ∧ ∀ d v, f d = some v → AnsOk H d v
+
+/-- `apply`'s table: the decodable data of the client log `L`, each mapped to its answer, its
+key's value right after it (2026-10-22, the snapshot-liveness fix: until then to `true`; what a
+replica answers its waiting operations with when a snapshot it installs covers them). -/
+def AppliedOk (A : GMap (List w8) (List w8)) (L : List (List w8)) : Prop :=
+  AnsTab (fun d => A !! d) L
+
+theorem ansOk_mono (H H' : List (List w8)) (d v : List w8) (h : H <+: H') (ha : AnsOk H d v) :
+    AnsOk H' d v := by
+  obtain ⟨H0, h1, h2, h3⟩ := ha
+  exact ⟨H0, h1.trans h, h2, h3⟩
+
+theorem ansOk_last (H : List (List w8)) (d : List w8) (h : d ∉ H) :
+    AnsOk (H ++ [d]) d (kvFold (H ++ [d]) (dkey d)) :=
+  ⟨H, List.prefix_refl _, h, rfl⟩
+
+theorem ansOk_mem (H : List (List w8)) (d v : List w8) (ha : AnsOk H d v) : d ∈ H := by
+  obtain ⟨H0, h1, -, -⟩ := ha
+  exact h1.subset (by simp)
 
 theorem encodeOp_length (replica seq : w64) (kind : w8) (key val : List w8) :
     (encodeOp replica seq kind key val).length = 25 + key.length + val.length := by
@@ -195,12 +221,12 @@ theorem kvUpd_other (m : KVMap) (k k' v : List w8) (h : k' ≠ k) : kvUpd m k v 
 /-! ## A snapshot's data (D22 S-r, 2026-10-21)
 
 What a replica's snapshot holds (`encodeState`, `kv.go`): the store's replicated state -- every
-key's value and the operations applied -- as bytes (`encState`): the key count (8 bytes,
-little-endian), each key and its value length-prefixed (`putB`), then the operation count and
-each operation length-prefixed. `encodeState` writes the keys and the operations in increasing
-order, so that the bytes are a function of the state; the proof needs only that they are *some*
-order of them (`StateEnc`: any list of the bindings, without repeated keys), which
-`decodeState` reads back whatever the order.
+key's value and the operations applied, each with its answer (2026-10-22) -- as bytes
+(`encState`): each map as `putMap` writes it (`encMap`), its count (8 bytes, little-endian), then
+each key and its value length-prefixed (`putB`). `putMap` writes the keys in increasing order,
+so that the bytes are a function of the state; the proof needs only that they are *some* order
+of them (`StateEnc`: any list of the bindings, without repeated keys), which `getMap` reads back
+whatever the order.
 
 **The cluster's data certificate** (`kvSnapOk`, raft's `RaftNames.reSnapOkRaw`, fixed at the
 cluster's allocation): the data of a snapshot at index `i` encodes the replicated state of the
@@ -237,29 +263,15 @@ def encKVs : List (List w8 × List w8) → List w8
   | [] => []
   | p :: r => putB p.1 ++ putB p.2 ++ encKVs r
 
-/-- The operations, each `putB`'d. -/
-def encOps : List (List w8) → List w8
-  | [] => []
-  | o :: r => putB o ++ encOps r
-
 theorem encKVs_snoc (l : List (List w8 × List w8)) (p : List w8 × List w8) :
     encKVs (l ++ [p]) = encKVs l ++ (putB p.1 ++ putB p.2) := by
   induction l with
   | nil => simp [encKVs]
   | cons q l ih => simp only [List.cons_append, encKVs, ih, List.append_assoc]
 
-theorem encOps_snoc (l : List (List w8)) (o : List w8) :
-    encOps (l ++ [o]) = encOps l ++ putB o := by
-  induction l with
-  | nil => simp [encOps]
-  | cons q l ih => simp only [List.cons_append, encOps, ih, List.append_assoc]
-
 theorem encKVs_cons (p : List w8 × List w8) (l : List (List w8 × List w8)) :
     encKVs (p :: l) = putB p.1 ++ (putB p.2 ++ encKVs l) := by
   simp [encKVs, List.append_assoc]
-
-theorem encOps_cons (o : List w8) (l : List (List w8)) :
-    encOps (o :: l) = putB o ++ encOps l := rfl
 
 theorem lookup_take_succ (kvs : List (List w8 × List w8)) (n : Nat) (p : List w8 × List w8)
     (h : kvs[n]? = some p) (hnd : (kvs.map Prod.fst).Nodup) (k : List w8) :
@@ -302,29 +314,34 @@ theorem lookup_take_succ (kvs : List (List w8 × List w8)) (n : Nat) (p : List w
 theorem lookup_take_all (kvs : List (List w8 × List w8)) (k : List w8) :
     (kvs.take kvs.length).lookup k = kvs.lookup k := by rw [List.take_length]
 
-/-- What `encodeState` writes of the bindings `kvs` and the operations `ops`. -/
-def encState (kvs : List (List w8 × List w8)) (ops : List (List w8)) : List w8 :=
-  u64Le (W64 kvs.length) ++ encKVs kvs ++ (u64Le (W64 ops.length) ++ encOps ops)
+/-- What `putMap` writes of the bindings `kvs`: their count, then each binding. -/
+def encMap (kvs : List (List w8 × List w8)) : List w8 :=
+  u64Le (W64 kvs.length) ++ encKVs kvs
 
-/-- What a list of bindings needs for `decodeState` to read it back: no repeated key, and every
+/-- What `encodeState` writes of the bindings `kvs` (the store's) and `ops` (the operations
+applied, each with its answer; 2026-10-22: until then the operations alone). -/
+def encState (kvs ops : List (List w8 × List w8)) : List w8 := encMap kvs ++ encMap ops
+
+/-- What a list of bindings needs for `getMap` to read it back: no repeated key, and every
 length (the count, each key's and value's) a Go slice's. -/
 def KVsWf (kvs : List (List w8 × List w8)) : Prop :=
   (kvs.map Prod.fst).Nodup ∧ (kvs.length : Int) < 2 ^ 63 ∧
     ∀ p ∈ kvs, (p.1.length : Int) < 2 ^ 63 ∧ (p.2.length : Int) < 2 ^ 63
 
-/-- ... and a list of operations. -/
-def OpsWf (ops : List (List w8)) : Prop :=
-  ops.Nodup ∧ (ops.length : Int) < 2 ^ 63 ∧ ∀ o ∈ ops, (o.length : Int) < 2 ^ 63
+/-- The bindings `kvs` are the map `K`'s, and well formed for `getMap` (`KVsWf`): what `putMap`
+writes of `K` (in Go, in increasing order of the keys; see `less.spec`). -/
+def KVsOf (K : GMap (List w8) (List w8)) (kvs : List (List w8 × List w8)) : Prop :=
+  KVsWf kvs ∧ ∀ k, kvs.lookup k = K !! k
 
 /-- **The bytes `d` encode the replicated state of the client history `H`** (see the section
 header): bindings giving every key its value after `H` (a key they lack has `[]`, as
-`runOwn`'s map), and operations, exactly the decodable data of `H` (what `apply` records,
-`AppliedOk`). -/
+`runOwn`'s map), and bindings of exactly the decodable data of `H`, each to its answer (what
+`apply` records, `AppliedOk`). -/
 def StateEnc (H : List (List w8)) (d : List w8) : Prop :=
-  ∃ (kvs : List (List w8 × List w8)) (ops : List (List w8)),
-    d = encState kvs ops ∧ KVsWf kvs ∧ OpsWf ops ∧
+  ∃ (kvs ops : List (List w8 × List w8)),
+    d = encState kvs ops ∧ KVsWf kvs ∧ KVsWf ops ∧
     (∀ k, ((kvs.lookup k).getD []) = kvFold H k) ∧
-    (∀ o, o ∈ ops ↔ o ∈ H ∧ (decodeOp o).isSome)
+    AnsTab (fun o => ops.lookup o) H
 
 /-- **The key-value cluster's data certificate** (`RaftNames.reSnapOkRaw`, see the section
 header): the data of a snapshot at the end of the committed prefix `L` encodes the replicated

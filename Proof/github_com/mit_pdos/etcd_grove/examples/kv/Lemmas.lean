@@ -45,31 +45,90 @@ theorem occStep_nmem (L : List (List w8)) (d : List w8) (h : d ∉ L) :
     occStep L (some d) = L ++ [d] := by
   show (if d ∈ L then _ else _) = _; rw [ite_eq_right h]
 
-theorem appliedOk_skip (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
+theorem appliedOk_skip (A : GMap (List w8) (List w8)) (L : List (List w8)) (d : List w8)
     (HA : AppliedOk A L) (Hd : decodeOp d = none ∨ d ∈ L) : AppliedOk A (occStep L (some d)) := by
   by_cases Hm : d ∈ L
   · rw [occStep_mem L d Hm]; exact HA
   · have Hd' : decodeOp d = none := by rcases Hd with h | h; exact h; exact absurd h Hm
     rw [occStep_nmem L d Hm]
-    intro d'
-    rw [HA d']
+    refine ⟨fun d' => ?_, fun d' v h => ansOk_mono _ _ _ _ (List.prefix_append _ _) (HA.2 d' v h)⟩
+    rw [HA.1 d']
     by_cases Heq : d' = d
     · subst Heq; simp [Hd', Hm]
     · simp [List.mem_append, Heq]
 
-theorem appliedOk_insert (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
+/-- (2026-10-22) The first occurrence of `d` applied: the table records its answer, the key's
+value after it. -/
+theorem appliedOk_insert (A : GMap (List w8) (List w8)) (L : List (List w8)) (d : List w8)
     (HA : AppliedOk A L) (Hm : d ∉ L) (Hd : (decodeOp d).isSome) :
-    AppliedOk (A.insert d true) (L ++ [d]) := by
-  intro d'
-  by_cases Heq : d' = d
-  · subst Heq; rw [GMap.lookup_insert_eq]; simp [Hd]
-  · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq), HA d']
-    simp [List.mem_append, Heq]
+    AppliedOk (A.insert d (kvFold (L ++ [d]) (dkey d))) (L ++ [d]) := by
+  refine ⟨fun d' => ?_, fun d' v h => ?_⟩
+  · show (A.insert d (kvFold (L ++ [d]) (dkey d)) !! d').isSome ↔ _
+    by_cases Heq : d' = d
+    · subst Heq; rw [GMap.lookup_insert_eq]; simp [Hd]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq), HA.1 d']
+      simp [List.mem_append, Heq]
+  · by_cases Heq : d' = d
+    · subst Heq
+      have h' : A.insert d' (kvFold (L ++ [d']) (dkey d')) !! d' = some v := h
+      rw [GMap.lookup_insert_eq] at h'
+      cases h'
+      exact ansOk_last L d' Hm
+    · have h' : A.insert d (kvFold (L ++ [d]) (dkey d)) !! d' = some v := h
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)] at h'
+      exact ansOk_mono _ _ _ _ (List.prefix_append _ _) (HA.2 d' v h')
 
-theorem appliedOk_lookup (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
-    (HA : AppliedOk A L) (Hd : (decodeOp d).isSome) : (A !! d).getD false = decide (d ∈ L) := by
-  rw [HA d]
-  by_cases Hm : d ∈ L <;> simp [Hm, Hd]
+theorem appliedOk_lookup (A : GMap (List w8) (List w8)) (L : List (List w8)) (d : List w8)
+    (HA : AppliedOk A L) (Hd : (decodeOp d).isSome) : (A !! d).isSome = decide (d ∈ L) := by
+  have h := HA.1 d
+  by_cases Hm : d ∈ L
+  · simp only [Hm, Hd, and_self, iff_true] at h; simp [Hm, h]
+  · simp only [Hm, false_and, iff_false] at h; simp [Hm, h]
+
+/-- A datum's first occurrence in `ods`: at `m`, not in the history before it. -/
+theorem firstOcc_first (ods : List (Option (List w8))) (d : List w8) (h : some d ∈ ods) :
+    ∃ m, ods[m]? = some (some d) ∧ d ∉ firstOcc (ods.take m) := by
+  suffices H : ∃ m, ods[m]? = some (some d) ∧ some d ∉ ods.take m by
+    obtain ⟨m, h1, h2⟩ := H
+    exact ⟨m, h1, fun h' => h2 ((mem_firstOcc _ d).1 h')⟩
+  induction ods with
+  | nil => cases h
+  | cons x ods ih =>
+    by_cases hx : x = some d
+    · subst hx; exact ⟨0, rfl, by simp⟩
+    · have hin : some d ∈ ods := by
+        rcases List.mem_cons.1 h with h | h
+        · exact absurd h.symm hx
+        · exact h
+      obtain ⟨m, hm, hm2⟩ := ih hin
+      refine ⟨m + 1, by simpa using hm, ?_⟩
+      simp only [List.take_succ_cons, List.mem_cons, not_or]
+      exact ⟨fun h' => hx h'.symm, hm2⟩
+
+/-- (2026-10-22) Where the answer of an operation of the history `firstOcc ods` comes from: the
+entry of its first occurrence in `ods`, at `m`, after which the key's value is the answer (what
+`waitP` says of an answer). -/
+theorem ansOk_firstOcc (ods : List (Option (List w8))) (d v : List w8)
+    (h : AnsOk (firstOcc ods) d v) :
+    ∃ m, ods[m]? = some (some d) ∧ d ∉ firstOcc (ods.take m) ∧
+      v = kvFold (firstOcc (ods.take m) ++ [d]) (dkey d) := by
+  obtain ⟨H0, Hpre, -, Hv⟩ := h
+  obtain ⟨m, hm, hm2⟩ :=
+    firstOcc_first ods d ((mem_firstOcc ods d).1 (Hpre.subset (by simp)))
+  -- the history before it is `H0`
+  have hml : m < ods.length := (List.getElem?_eq_some_iff.1 hm).1
+  have Hsplit : ods.take (m + 1) = ods.take m ++ [some d] := by
+    rw [List.take_add_one, hm]; rfl
+  have Hp1 : firstOcc (ods.take m) ++ [d] <+: firstOcc ods := by
+    have h1 : firstOcc (ods.take (m + 1)) = firstOcc (ods.take m) ++ [d] := by
+      rw [Hsplit, firstOcc_snoc, occStep_nmem _ _ hm2]
+    rw [← h1]
+    have h2 := firstOcc_append_prefix (ods.take (m + 1)) (ods.drop (m + 1))
+    rwa [List.take_append_drop] at h2
+  have HH0 := prefix_before_unique (firstOcc ods) H0 (firstOcc (ods.take m)) d
+    (firstOcc_nodup ods) Hpre Hp1
+  subst HH0
+  exact ⟨m, hm, hm2, Hv⟩
 
 theorem firstOcc_prefix_of_prefix (a b : List (Option (List w8))) (h : a <+: b) :
     firstOcc a <+: firstOcc b := by
@@ -456,6 +515,19 @@ theorem kvLb_current (γr : RKVNames) (x : KVMap) (E : CoPset)
     iframe HLc Hods
     ipureintro; rfl
   ipureintro; exact Hxeq
+
+/-- (2026-10-22) A datum of a log's data was deposited (its entry's data fact says so). -/
+theorem ods_deposited (γ : RaftNames) (L : List EntryM) (ods : List (Option (List w8)))
+    (d : List w8) (h : some d ∈ ods) :
+    ([∗list] e;o ∈ L;ods, entDataIs (GF := GF) γ e o) ⊢ deposited γ d := by
+  obtain ⟨m, hm⟩ := List.mem_iff_getElem?.1 h
+  iintro H
+  icases (BigSepL2.bigSepL2_lookup_right (Φ := fun _ e o => entDataIs (GF := GF) γ e o) (l1 := L) hm)
+    $$ H with ⟨%e, -, He⟩
+  ihave He := entDataIs_prop γ e (some d) $$ He
+  iunfold propDataIs at He
+  icases He with ⟨-, Hdep⟩
+  iexact Hdep
 
 /-- A deposited datum was minted (its fresh token is raft's registry's, and every token
 was minted), so it is the one minted at its key. -/

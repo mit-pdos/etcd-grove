@@ -31,7 +31,7 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
   wp_start as ⟨#Hinv, Hdrv, %Hraft, %Hmd, Hncfg, %Hstor, #Hsrec, #Hc0, Hseq, Hrs, #Hsend⟩
   wp_auto
   wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mK HK
-  wp_apply wp_map_make1 (K := List w8) (V := Bool) as %mA HA
+  wp_apply wp_map_make1 (K := List w8) (V := List w8) as %mA HA
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mW HW
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mR HRd
   iStructNamed «$r0»
@@ -86,8 +86,9 @@ theorem New.wp_proof (wp_run : kv.KV.run.spec (GF := GF) (hG := hG)) :
       ipureintro
       refine ⟨?_, ?_⟩
       · intro k; simp [firstOcc, kvFold, kvEmpty]
-      · intro d
-        simp [firstOcc]
+      · refine ⟨fun d => ?_, fun d v h => ?_⟩
+        · simp [firstOcc]
+        · simp at h
     itrivial
   iapply HΦ
   iexists ⟨γn⟩
