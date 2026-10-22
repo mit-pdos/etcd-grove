@@ -29,7 +29,7 @@ abbrev withBackoff.spec : Prop :=
   ∀ (bf : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ backoffOk bf }}
     (App (Val (@! go_etcd_io.etcd.client.v3.withBackoff)) (Val #bf))
-  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyMax ro.applyFunc' none true }}
+  {{ (ro : go_etcd_io.etcd.client.v3.retryOption), RET #ro; optApplyKeep ro.applyFunc' true }}
 
 end spec
 
