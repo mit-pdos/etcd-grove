@@ -1,7 +1,8 @@
 # Which issues matter most to etcd's developers
 
 A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20, the
-watch-resume findings re-ranked 2026-10-21; upstream states as of 2026-10-21): the order in which we would bring the
+watch-resume findings re-ranked 2026-10-21, the fork's fixes of the alarm store's race and the
+snapshot file's release noted 2026-10-22; upstream states as of 2026-10-21): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -170,11 +171,15 @@ their low 16 bits),
 one-token fix; known: etcd-io/etcd#22081 and fix PR #22087, open, unreviewed, marked stale),
 [etcd-alarm-store-snapshot-race](etcd-alarm-store-snapshot-race.md) (2026-10-20: `restoreAlarms`
 replaces `s.alarmStore` unsynchronized while `Status`/`/health` read it; the race detector reports
-it in 4 of 5 runs of an integration test; effect a stale alarm list for a moment; an
-`atomic.Pointer` fixes it),
-[etcd-release-snapdb-before-open](etcd-release-snapdb-before-open.md) (2026-10-20, code reading,
-not reproduced: a second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` has
-not opened yet, a follower panic; needs two snapshots in quick succession).
+it in 4 of 5 runs of an integration test; effect a stale alarm list for a moment; fixed in our fork
+2026-10-22 by the upstream candidate's fix, the store recovered in place, with an integration test
+that fails 5 of 5 without it and passes 15 of 15 with it, the same fix as its drafted candidate),
+[etcd-release-snapdb-before-open](etcd-release-snapdb-before-open.md) (2026-10-20, code reading: a
+second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` has not opened yet, a
+follower panic; needs two snapshots in quick succession; fixed in our fork 2026-10-22, `Release`
+moved after the open, with a deterministic unit test that fails 5 of 5 without the fix and passes
+10 of 10 with it; still not reproduced in a cluster, which is what it needs before filing, and no
+upstream candidate drafted, upstream not searched yet).
 
 Two of the watch client's resume-path findings (2026-10-20, D25), in this order, which is by how
 likely a deployment is to hit them rather than by severity alone:
