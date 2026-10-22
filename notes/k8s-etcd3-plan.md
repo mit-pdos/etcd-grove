@@ -5,11 +5,12 @@ D30 in `notes/decisions.md` (D30a-j; D30h-j proposed). The translation survey is
 `k8s-etcd3-goose` (`notes/k8s-etcd3-goose.md`): the store translates and builds with the pinned
 translator except six functions left names-only; its gaps G1-G3 are under "What blocks where", and
 the Perennial changes they call for in `notes/perennial-changes.md`. Done so far: phase 2's model
-(`Proof/k8s_io/apiserver/pkg/storage/etcd3/Model.lean`), phase 3's `Client.Get` (one `sorry`,
-request 3 below); `notes/STATUS.md` has the details.
+(`Proof/k8s_io/apiserver/pkg/storage/etcd3/Model.lean`), phase 3's `Client.Get`,
+`OptimisticPut` and `OptimisticDelete`, linked (one `sorry`, `kvIs_ne_null`: request 3 below);
+`notes/STATUS.md` has the details.
 
-Next steps: phase 3's `OptimisticPut`, `OptimisticDelete` and `Count` (linkvtxn's `client_Txn_st`/
-`txn_Commit_st` pattern), a `--k8s` link mode, then phase 1. Merging `k8s-etcd3` into `lean` waits
+Next steps: phase 1, then phase 4's helpers; phase 3's `Count` (it needs the reply's count from
+`client_range_any`) when `Stats` is needed. Merging `k8s-etcd3` into `lean` waits
 on an OK from the etcd client proof's owner (the survey changes the etcd project's configuration:
 it translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`).
 

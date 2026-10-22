@@ -1,0 +1,21 @@
+# The Kubernetes etcd3 store's verification (notes/k8s-etcd3-plan.md): every linked result of
+# Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean (the client the store calls, phase 3).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/k8s.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/client/v3/kubernetes/Link\.lean$
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcPeerOpt
+axiom grpcServes
+axiom grpcServesStream
+axiom grpcServes_persistent
+axiom grpcWrotePeer
+axiom proto.Clone.wp_proof
+axiom rpctypes.errDesc_etcdError
+axiom status.FromError.wp_proof
+sorry kubernetes.kvIs_ne_null
