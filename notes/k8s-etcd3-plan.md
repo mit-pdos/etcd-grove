@@ -137,6 +137,45 @@ when the update function is made, so it is.
    nondeterministic), porcupine with `correctness.Model`, `Replay.Validate`; failed writes as
    above. Then faults: partitions and client cuts from linkv3p's schedule.
 
+## Phase 6: the driver, as carried out (2026-10-22)
+
+`examples/k8setcd3/k8setcd3.go` (translated with project `k8s-apiserver`, package `.`): one
+in-process member, a `kubernetes.New` client (one attempt per call), two keys seeded through the
+client in an older encoding (non-canonical, D30g), the etcd3 store over the client with the
+driver's `Obj`, codec, versioner, decoder and identity transformer, and `lintest.Run` of the
+minimal unary traffic (Create, Delete, GuaranteedUpdate, consistent Get; rejecting callbacks,
+no-op updates) against `Model`, a Go copy of `correctness.Model` (D30m) with the canonical bit and
+linkvtxn's pending failed writes. Go tests: `Main` is linearizable; sequential traffic matches the
+model and reaches every outcome (the non-canonical rewrite included); the model agrees with the
+real `correctness.Model` on random traffic from canonical states and differs only on the
+non-canonical rewrite.
+
+The closed theorem (`k8setcd3_safe`, as `linkvtxn_safe`), in stages:
+
+- **6a. The driver's model in Lean**: the Go model's functions (`lookup`, `setItem`, `delItem`,
+  `mcreate`, `mdelete`, `mupdate`, `mget`, `mstep`, `step`, `closure`, `Model`'s `Step`) proved
+  against Lean functions, as linkvtxn's (`TxnModel.lean`, its per-function proofs).
+- **6b. The refinement**: the store's model (`Model.lean`'s `KSt`, through `absK`) and the
+  driver's (`mstore`, objects with their resource version string, the canonical bit) answer the
+  same: `create`/`delete`/`update`/`get` against `mcreate`/`mdelete`/`mupdate`/`mget`.
+- **6c. The contract's instance**: the driver's `ObjSpec` (its objects are `(name, value)`;
+  `objAt` the `*Obj` points-to) and `contractOk` for its codec, versioner, transformer and
+  decoder. `runtime.Encode` and `runtime.SetZeroValue` are names-only (apimachinery's
+  `runtime`): either their bodies translated (`Encode` writes into a `bytes.Buffer`;
+  `SetZeroValue` uses `reflect`) or trust-boundary specs in terms of the codec's `Encode` and
+  the object's zero value.
+- **6d. The callbacks**: `validateOk` of `validateFor`, `tryUpdateOk` of `tryUpdateFor`
+  (`updated`), matching the model's `validate` and `f`.
+- **6e. `etcd3.New`**: its spec giving `isStore` (from `kubernetes.New`'s, over linkvtxn's
+  client); `path.Join` (not translated by Perennial), the lease manager, the metrics tracker, and
+  `feature.DefaultFeatureSupportChecker.CheckClient` (names-only; its goroutines poll each
+  endpoint with `Status`, a read: a trust-boundary spec).
+- **6f. The history**: the caller's updates (`k8sAuRW` with a token per call, `k8sAu1` for Create,
+  the read update for Get) from an invariant over etcd's state and porcupine's linearization, as
+  linkvtxn's `Inv`/`Apply`, keeping the store's states (`kvWf`: the seeds decode) and the history
+  of key-values (`kvSeen`, D30j's local option: the invariant owns `γh`'s authority).
+- **6g. `Apply`, `Check`, `Main`, adequacy.**
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
