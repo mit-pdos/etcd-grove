@@ -272,14 +272,14 @@ func Check(cli *clientv3.Client, clients int, ops int, timeout time.Duration) po
 // The client address: the string net.Listen is given is the client's endpoint, verbatim (a plain
 // host:port, no scheme: clientv3.New's premise plainEndpoint). Not putget's, so that the two
 // examples' tests can run at once.
-const clientAddr = "127.0.0.1:23791"
+const clientAddr = "127.0.0.1:23871"
 
 // Main starts one member of a new cluster (as examples/putget's Main does), connects a client
 // and runs Check; it panics if porcupine finds the history illegal. An error from a step before
 // Check ends Main without a check (the specs allow every step to fail).
 func Main(clients int, ops int) porcupine.CheckResult {
 	lg := zap.NewNop()
-	s, err := common.StartServer("linkv", "127.0.0.1:23801", clientAddr, lg)
+	s, err := common.StartServer("linkv", "127.0.0.1:23881", clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}

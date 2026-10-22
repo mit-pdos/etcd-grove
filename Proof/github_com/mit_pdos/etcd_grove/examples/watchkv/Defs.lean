@@ -3,8 +3,8 @@
 
 * The configuration `Main` starts its member with, as putget's (`Proof/.../putget/Defs.lean`,
   whose header explains each premise) at watchkv's names and ports: `cfgOk` (member and token
-  `watchkv`, data directory `watchkv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23841`, client
-  URL `http://127.0.0.1:23831`), the peer directory `wkDir`, and `premises`: putget's at these,
+  `watchkv`, data directory `watchkv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23882`, client
+  URL `http://127.0.0.1:23872`), the peer directory `wkDir`, and `premises`: putget's at these,
   (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, that the transport
   never fails a watch stream with a retryable code; gone with D25: the client watcher's
   reconnection is verified).
@@ -41,13 +41,13 @@ abbrev wkv := common.wkv
 abbrev wev := common.wev
 abbrev wrec := common.wrec
 
-/-- `Main`'s peer URL, `http://127.0.0.1:23841`. -/
+/-- `Main`'s peer URL, `http://127.0.0.1:23882`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23841" }
+  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23882" }
 
-/-- `Main`'s client URL, `http://127.0.0.1:23831`. -/
+/-- `Main`'s client URL, `http://127.0.0.1:23872`. -/
 def clientURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23831" }
+  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23872" }
 
 /-- **The URLs of `Main`'s configuration**: the peer URLs `[peerURL]`, the client URLs
 `[clientURL]`, the initial cluster's map `{watchkv ↦ [peerURL]}`. -/
@@ -56,7 +56,7 @@ def urlsOk (U : BootURLs) : Prop :=
     (∃ sl : GoSlice, U.initMap = GMap.insert go!"watchkv" sl ∅) ∧ U.initURLs go!"watchkv" = [peerURL]
 
 /-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL. -/
-def wkDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23841"]
+def wkDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23882"]
 
 /-- The prefix the writers' keys are under and the watch covers. -/
 abbrev wkPfx : GoString := go!"wk/"

@@ -55,7 +55,7 @@ def state.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 attribute [irreducible] state.ty
 
 @[reducible] noncomputable def clientAddr [FfiSyntax] [GoGlobalContext] : val :=
-  #(go!"127.0.0.1:23791")
+  #(go!"127.0.0.1:23871")
 
 noncomputable def entryLess [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv.entryLess"
@@ -870,7 +870,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Val #(go!"linkv"))
-  (Let "$a1" (Val #(go!"127.0.0.1:23801"))
+  (Let "$a1" (Val #(go!"127.0.0.1:23881"))
   (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))

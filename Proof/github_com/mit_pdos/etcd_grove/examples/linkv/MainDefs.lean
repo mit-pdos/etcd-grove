@@ -6,7 +6,7 @@ Lean-first (no Rocq counterpart).
 `linkv`'s `Main` starts the one-member server as `examples/putget`'s does, on other ports and
 names, so its premises are putget's (`Proof/.../putget/Defs.lean`, whose header explains each) at
 `linkv`'s configuration: `cfgOk` (member and cluster token `linkv`, data directory `linkv.etcd`,
-raft's clock), `urlsOk` (peer URL `http://127.0.0.1:23801`, client URL `http://127.0.0.1:23791`)
+raft's clock), `urlsOk` (peer URL `http://127.0.0.1:23881`, client URL `http://127.0.0.1:23871`)
 and the peer directory `linkvDir`. The pure facts (`putget.BootFacts`), the conf-change policy
 (`putget.ccOk`) are putget's and the allocation (`common.alloc1`) the shared start's, which name no
 configuration.
@@ -30,13 +30,13 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 section pure
 variable [ext : FfiSyntax]
 
-/-- `Main`'s peer URL, `http://127.0.0.1:23801`. -/
+/-- `Main`'s peer URL, `http://127.0.0.1:23881`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23801" }
+  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23881" }
 
-/-- `Main`'s client URL, `http://127.0.0.1:23791`. -/
+/-- `Main`'s client URL, `http://127.0.0.1:23871`. -/
 def clientURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23791" }
+  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23871" }
 
 /-- **The URLs of `Main`'s configuration**: the peer URLs `[peerURL]`, the client URLs
 `[clientURL]`, the initial cluster's map `{linkv ↦ [peerURL]}`. -/
@@ -45,7 +45,7 @@ def urlsOk (U : BootURLs) : Prop :=
     (∃ sl : GoSlice, U.initMap = GMap.insert go!"linkv" sl ∅) ∧ U.initURLs go!"linkv" = [peerURL]
 
 /-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL. -/
-def linkvDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23801"]
+def linkvDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23881"]
 
 end pure
 

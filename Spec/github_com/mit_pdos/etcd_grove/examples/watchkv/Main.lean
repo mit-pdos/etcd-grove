@@ -8,7 +8,7 @@ log, the watch read up to their highest revision (`collect`) and the check (`che
 if the watch did not report exactly the writes).
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address
-`127.0.0.1:23831`, the main thread's token and `Main`'s named premises (`watchkv.premises`,
+`127.0.0.1:23872`, the main thread's token and `Main`'s named premises (`watchkv.premises`,
 putget's at `watchkv`'s configuration and the watch stream's transport premise), `Main(nw, nops)`
 does not panic and returns `Ok` (`0`: the check ran and passed), `Failed` (`1`: a step of the start
 failed) or `WatchEnded` (`2`: the watch ended before it reported every successful Put). The pure
@@ -53,7 +53,7 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z nw → sint.Z nw < 2 ^ 31 → 0 ≤ sint.Z nops →
   sint.Z nw * sint.Z nops < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.watchkv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23831" ∗ threadTok ∗ premises N id bootLog }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23872" ∗ threadTok ∗ premises N id bootLog }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.watchkv.Main)) (Val #nw))
       (Val #nops))
   {{ (r : w64), RET #r; ⌜r = W64 0 ∨ r = W64 1 ∨ r = W64 2⌝ }}

@@ -5,8 +5,8 @@ watchkv's (`Proof/.../watchkv/Defs.lean`) at cachekv's names, ports and prefix:
 
 * The configuration `Main` starts its member with, as putget's (`Proof/.../putget/Defs.lean`,
   whose header explains each premise) at cachekv's names and ports: `cfgOk` (member and token
-  `cachekv`, data directory `cachekv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23861`, client
-  URL `http://127.0.0.1:23851`), the peer directory `ckDir`, and `premises`: putget's at these
+  `cachekv`, data directory `cachekv.etcd`), `urlsOk` (peer URL `http://127.0.0.1:23883`, client
+  URL `http://127.0.0.1:23873`), the peer directory `ckDir`, and `premises`: putget's at these
   (until 2026-10-20 also the transport premise `client.noRetryableStreamErr`, gone with D25: the
   client watcher's reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s, under the prefix `ck/`), `pairOf` (a `kv`'s
@@ -41,13 +41,13 @@ abbrev ckv := common.wkv
 abbrev cev := common.wev
 abbrev crec := common.wrec
 
-/-- `Main`'s peer URL, `http://127.0.0.1:23861`. -/
+/-- `Main`'s peer URL, `http://127.0.0.1:23883`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23861" }
+  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23883" }
 
-/-- `Main`'s client URL, `http://127.0.0.1:23851`. -/
+/-- `Main`'s client URL, `http://127.0.0.1:23873`. -/
 def clientURL : _root_.Perennial.net.url.URL :=
-  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23851" }
+  { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23873" }
 
 /-- **The URLs of `Main`'s configuration**: the peer URLs `[peerURL]`, the client URLs
 `[clientURL]`, the initial cluster's map `{cachekv ↦ [peerURL]}`. -/
@@ -56,7 +56,7 @@ def urlsOk (U : BootURLs) : Prop :=
     (∃ sl : GoSlice, U.initMap = GMap.insert go!"cachekv" sl ∅) ∧ U.initURLs go!"cachekv" = [peerURL]
 
 /-- **The peer-URL directory of `Main`'s cluster**: its one member's peer URL. -/
-def ckDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23861"]
+def ckDir (_ : w64) : List GoString := [go!"http://127.0.0.1:23883"]
 
 /-- The prefix the writers' keys are under and the watch covers. -/
 abbrev ckPfx : GoString := go!"ck/"

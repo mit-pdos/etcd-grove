@@ -27,10 +27,10 @@ end pkg_id
 namespace github_com.mit_pdos.etcd_grove.examples.watchkv
 
 @[reducible] noncomputable def clientAddr [FfiSyntax] [GoGlobalContext] : val :=
-  #(go!"127.0.0.1:23831")
+  #(go!"127.0.0.1:23872")
 
 @[reducible] noncomputable def peerAddr [FfiSyntax] [GoGlobalContext] : val :=
-  #(go!"127.0.0.1:23841")
+  #(go!"127.0.0.1:23882")
 
 @[reducible] noncomputable def «prefix» [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"wk/")

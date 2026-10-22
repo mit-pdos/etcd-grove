@@ -34,8 +34,8 @@ import (
 // The client address (a plain host:port, clientv3.New's premise) and the peer address: not any
 // other example's, so that the examples' tests can run at once.
 const (
-	clientAddr = "127.0.0.1:23831"
-	peerAddr   = "127.0.0.1:23841"
+	clientAddr = "127.0.0.1:23872"
+	peerAddr   = "127.0.0.1:23882"
 )
 
 // The prefix every writer's key is under, and the one the watch covers.

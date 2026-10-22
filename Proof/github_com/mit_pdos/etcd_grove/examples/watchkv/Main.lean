@@ -157,13 +157,13 @@ theorem Main.wp_proof
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] bootLog wkDir go!"watchkv" go!"watchkv"
-      (common.urls1 go!"watchkv" go!"127.0.0.1:23841" go!"127.0.0.1:23831") id cfgOk urlsOk (putget.ccOk id)
+      (common.urls1 go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872") id cfgOk urlsOk (putget.ccOk id)
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iframe #
   -- `StartServer("watchkv", peerAddr, clientAddr, lg)`
-  wp_apply (wp_StartServer N go!"watchkv" go!"127.0.0.1:23841" go!"127.0.0.1:23831" lg bootLog
+  wp_apply (wp_StartServer N go!"watchkv" go!"127.0.0.1:23882" go!"127.0.0.1:23872" lg bootLog
       wkDir id γ bud ρ E₀ Φs γn (workload (trs.map pairOf)) (workload_noGrant _) Htb31
       Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 Hlg Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb Hslot] as %srv %err Hr
@@ -183,11 +183,11 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served` (the KV specs and the watch server's
   -- facts at the address), the member refusal-free (D29) first
   haveI := Hms
-  wp_apply (wp_Serve srv go!"127.0.0.1:23831" E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23831"⌝ ∗
-        isGrpcRpc go!"127.0.0.1:23831" go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
-        isGrpcRpc go!"127.0.0.1:23831" go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E ρ.rd cid mid) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null) ∗
+  wp_apply (wp_Serve srv go!"127.0.0.1:23872" E { ρ with wait := γw } ρ.rd cfg
+      (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23872"⌝ ∗
+        isGrpcRpc go!"127.0.0.1:23872" go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
+        isGrpcRpc go!"127.0.0.1:23872" go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E ρ.rd cid mid) ∗
+        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null) ∗
         mvcc.idxCert R.E.γ.idx [[], []]))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
     $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
@@ -228,11 +228,11 @@ theorem Main.wp_proof
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
     -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
-    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23831" gs q p srv lis R.E
+    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23872" gs q p srv lis R.E
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null) go!"127.0.0.1:23831"
+    imod (wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null) go!"127.0.0.1:23872"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         1 1 Hregs1 rfl rfl (by simp) Hms.watch_impl Hregs2 rfl rfl)
       $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HPut, #HRange, #HWF⟩
@@ -257,8 +257,8 @@ theorem Main.wp_proof
   subst hRE
   ihave #Hinvs := client.srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
-  wp_apply (wp_NewClient go!"127.0.0.1:23831" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null) Hlg
+  wp_apply (wp_NewClient go!"127.0.0.1:23872" lg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null) Hlg
       (by unfold plainEndpoint; decide) Htb31) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
   rotate_left
@@ -271,17 +271,17 @@ theorem Main.wp_proof
   subst Hcerr
   wp_auto
   -- (D29) a write sent at most once: the member is refusal-free
-  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23831"] $$ []
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23872"] $$ []
   · iunfold client.clientWriteOnce; ipureintro
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
   -- the client's `Watcher`, with the watch server's facts (D19f), etcd's watch contract
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-    [go!"127.0.0.1:23831"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null) rfl
+    [go!"127.0.0.1:23872"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null) rfl
     rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
   · iframe #
   ihave #Hew := client.isEtcdWatcher_of_watcher wp_Watch
-    (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" ics conn wc wkPfx lgw) w (show prefixRangeEnd wkPfx ≠ [W8 0] by decide) $$ [Pcli Ppb Pctx Hcw]
+    (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" ics conn wc wkPfx lgw) w (show prefixRangeEnd wkPfx ≠ [W8 0] by decide) $$ [Pcli Ppb Pctx Hcw]
   · iframe #
   (try wp_auto)
   -- `wctx, cancel := context.WithCancel(context.Background())`
@@ -407,7 +407,7 @@ theorem Main.wp_proof
     ipersist lo
     wp_apply wp_fork $$ [Hdone]
     · (try wp_auto)
-      wp_apply (wp_Writer cl go!"127.0.0.1:23831" (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null)
+      wp_apply (wp_Writer cl go!"127.0.0.1:23872" (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23872" [] null null wkPfx null)
           R.E ρ.rd cid mid «$r0_ptr» tsl trs (k * nops) (k * nops + nops) hAs
           (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
           (by

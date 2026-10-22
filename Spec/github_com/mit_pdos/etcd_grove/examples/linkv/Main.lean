@@ -6,7 +6,7 @@ configuration (its default retries; D29), and `Check(cli, clients, ops, 0)`, wit
 history `Illegal`.
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address
-`127.0.0.1:23791`, the main thread's token and `Main`'s named premises (`linkv.premises`,
+`127.0.0.1:23871`, the main thread's token and `Main`'s named premises (`linkv.premises`,
 putget's at `linkv`'s configuration, `Proof/.../linkv/MainDefs.lean`), `Main(clients, ops)` does
 not panic and returns `Ok` (the check ran: the history is linearizable) or `Unknown` (a step
 before the check failed). The pure premises are putget's (`putget.Main.spec`: the member id and
@@ -49,7 +49,7 @@ abbrev Main.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23791" ∗ threadTok ∗ premises N id bootLog }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23871" ∗ threadTok ∗ premises N id bootLog }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv.Main)) (Val #clients))
       (Val #ops))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}

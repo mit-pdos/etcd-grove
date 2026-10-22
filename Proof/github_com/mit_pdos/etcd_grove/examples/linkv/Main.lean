@@ -63,7 +63,7 @@ theorem Main.wp_proof
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] bootLog linkvDir go!"linkv" go!"linkv"
-      (common.urls1 go!"linkv" go!"127.0.0.1:23801" go!"127.0.0.1:23791") id cfgOk urlsOk (putget.ccOk id)
+      (common.urls1 go!"linkv" go!"127.0.0.1:23881" go!"127.0.0.1:23871") id cfgOk urlsOk (putget.ccOk id)
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
       (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
@@ -92,8 +92,8 @@ theorem Main.wp_proof
     with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, Hslot, Hetcd⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog, hwl⟩ := Hal
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
-  -- `StartServer("linkv", "127.0.0.1:23801", clientAddr, lg)`
-  wp_apply (wp_StartServer N go!"linkv" go!"127.0.0.1:23801" go!"127.0.0.1:23791" lg bootLog
+  -- `StartServer("linkv", "127.0.0.1:23881", clientAddr, lg)`
+  wp_apply (wp_StartServer N go!"linkv" go!"127.0.0.1:23881" go!"127.0.0.1:23871" lg bootLog
       linkvDir id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
       hdyn hcc hboot htr htx hblen hγn1 hγn2 Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hslot]
     as %srv %err Hr
@@ -113,17 +113,17 @@ theorem Main.wp_proof
   -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
   -- members' axiom), and etcd's KV calls registered at the address
   haveI := Hms
-  wp_apply (wp_Serve srv go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cfg
-      (fun cid mid _ => iprop(common.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid ∗
-        ⌜noRefusalAt go!"127.0.0.1:23791"⌝))
+  wp_apply (wp_Serve srv go!"127.0.0.1:23871" E { ρ with wait := γw } ρ.rd cfg
+      (fun cid mid _ => iprop(common.etcdKVAt go!"127.0.0.1:23871" E { ρ with wait := γw } ρ.rd cid mid ∗
+        ⌜noRefusalAt go!"127.0.0.1:23871"⌝))
       (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
     $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
     ihave ⟨Hg, %Hnr⟩ := common.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
-      go!"127.0.0.1:23791" cid mid R HEo $$ [Hg]
+      go!"127.0.0.1:23871" cid mid R HEo $$ [Hg]
     · iframe; iframe #
-    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid R Hrb48)
+    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23871" cid mid R Hrb48)
       $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
     · iframe; iframe #
     imodintro
@@ -140,8 +140,8 @@ theorem Main.wp_proof
   iunfold common.etcdKVAt at Hkv
   icases Hkv with ⟨#HPut, #HRange, -, -⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
-  wp_apply (wp_NewClient go!"127.0.0.1:23791" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23791" [] null null [] null) Hlg
+  wp_apply (wp_NewClient go!"127.0.0.1:23871" lg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23871" [] null null [] null) Hlg
       (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
   rotate_left
@@ -154,7 +154,7 @@ theorem Main.wp_proof
   subst Hcerr
   wp_auto
   -- (D29) a write sent at most once: the member is refusal-free
-  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23791"] $$ []
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23871"] $$ []
   · iunfold client.clientWriteOnce; ipureintro
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
@@ -162,7 +162,7 @@ theorem Main.wp_proof
   imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot (by rw [hwl]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   -- `Check(cli, clients, ops, 0)`
-  wp_apply (wp_Check γl cl go!"127.0.0.1:23791" _ E ρ.rd cid mid clients ops (W64 0) hAs
+  wp_apply (wp_Check γl cl go!"127.0.0.1:23871" _ E ρ.rd cid mid clients ops (W64 0) hAs
       (by omega) H0 H31 Hops Hmul) $$ [Hst] as %r %Hr
   · iframe; iframe #
   obtain ⟨-, Hok⟩ := Hr

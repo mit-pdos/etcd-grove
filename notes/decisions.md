@@ -15465,7 +15465,11 @@ whose module paths, `github.com/anishathalye/porcupine` and `.../etcd-grove/thir
 are not under `examples/`). `etc/goose.py --check` compares the forks' revisions in the replaces of
 `examples/go.mod` and `examples/kvwitness/go.mod` with the projects' pins (`GO_MOD_PINS`): the
 go.mod files had drifted from the etcd pin before (2026-10-22, `72ca9e5505`). The examples' fixed
-ports overlap (putget3's and linkv's clients, watchkv's and linkv3p's, ...), so the module's tests
-run one package at a time: `go test -race -p 1 ./...`. `etc/verified-code.{py,go}` count a project
+ports overlapped (putget3's and linkv's clients, watchkv's and linkv3p's, cachekv's client and
+linkv3p's first bridge), so the module's tests ran one package at a time (`go test -race -p 1
+./...`). Since branch `example-ports` (2026-10-22) each example has its own ports: linkv moved to
+client `127.0.0.1:23871`, peer `23881`, watchkv to `23872`/`23882`, cachekv to `23873`/`23883`
+(the closed theorems' statements change only in those address literals), so `go test -race ./...`
+runs the packages in parallel. `etc/verified-code.{py,go}` count a project
 whose directory is inside a module (an example) as the module at that directory's import path, so
 their report is as before.

@@ -6,7 +6,7 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   in process, a client with etcd's default configuration, `Check(cli, clients, ops, 0)`
   (`lintest.Run` with the key-value model, `Apply` over the client, porcupine's checker), and a
   panic if porcupine answers `Illegal` -- does not panic and returns `Ok` or `Unknown`. From
-  `isPkgInit linkv`, the right to listen on `127.0.0.1:23791`, the main thread's token and `Main`'s
+  `isPkgInit linkv`, the right to listen on `127.0.0.1:23871`, the main thread's token and `Main`'s
   named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/linkv/Main.lean`).
 * **`linkv_safe`** (`Adequacy.lean`'s `linkv_adequate`): the closed theorem. Every real execution of
   `n` steps of `linkv`'s initialization followed by `Main(clients, ops)`, from a fresh state with
@@ -71,7 +71,7 @@ theorem linkv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (linkvProgram clients ops) linkvNames)
-    (HAs : addrsUnclaimed (linkvProgram clients ops) [go!"127.0.0.1:23791"])
+    (HAs : addrsUnclaimed (linkvProgram clients ops) [go!"127.0.0.1:23871"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id bootLog)
