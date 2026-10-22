@@ -126,7 +126,7 @@ func TestWatchProgressBeforeCreatedRace(t *testing.T) {
   documentation: "the client ... has seen all events up to that revision"); a watch created after
   the server answered the progress request should not receive it.
 - **How the proof handles it**: found while designing the watch slice's unit W-K (the cache over
-  etcd's client watcher, `notes/STATUS.md`, "W-K"): mvcc's progress response is specified to cover
+  etcd's client watcher, `notes/status-history.md`, "W-K"): mvcc's progress response is specified to cover
   the watchers of the stream's map when it is sent, which does not include a watcher registered
   after it; the client's contract for a broadcast progress response cannot hold for such a watch.
   The proof is being decided (a fix in the verified fork, or a contract without broadcast

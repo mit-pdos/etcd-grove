@@ -22,12 +22,12 @@ L, A1, A2; leader transfer; read-index) before picking a task.
   `StepC` at a constant configuration) → B3 (model fields, guards, invariants I1–I3) →
   B4 (winners table, configuration-carrying predicates, static mode) → B5 (safety under
   changing configurations) → B6 (read index) → B7/B8 (code connection, snapshots). The plan
-  is summarized in STATUS ("Reconfiguration, stage A2" and later sections) and will be
+  is summarized in status-history.md ("Reconfiguration, stage A2" and later sections) and will be
   written out in `notes/reconfiguration-safety.md` by B1.
 
 ## Tasks a parallel session can take now (independent of A3 and B1)
 
-**All five done and merged (2026-10-14); results in STATUS, "Reconfiguration, stage B1:
+**All five done and merged (2026-10-14); results in status-history.md, "Reconfiguration, stage B1:
 adversarial review" and "Parallel tasks 1, 2, 4, 5".**
 
 Each is self-contained; pick one or more. They avoid the files above.

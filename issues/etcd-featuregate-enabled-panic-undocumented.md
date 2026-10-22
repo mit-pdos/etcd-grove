@@ -27,7 +27,7 @@ links:
 - **How the proof handles it**: the feature gate's contract `isFeatureGate`
   (`Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`) holds only for `serverFeatures`, the
   keys of `DefaultEtcdServerFeatureGates`. Each call site discharges membership. Until 2026-10-18
-  the contract covered every key, which no Go feature gate meets (`notes/STATUS.md`, "Item 9,
+  the contract covered every key, which no Go feature gate meets (`notes/status-history.md`, "Item 9,
   point 7").
 - **Possible fixes**: document the panic on the interface method. Alternatively, return `false`
   for an unknown key (a behavior change).

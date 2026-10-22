@@ -71,7 +71,7 @@ links:
 - **How the proof handles it**: the proof's etcd is one server, where a progress revision is never
   below a revision a previous response reported. The cache's watch contract (`watchRespOk`,
   `Proof/go_etcd_io/etcd/cache/v3/InvEtcd.lean`) requires a progress notification to be at or above
-  the watch's position; the W-K unit proves that from the server (`notes/STATUS.md`, "W-K", K2e).
+  the watch's position; the W-K unit proves that from the server (`notes/status-history.md`, "W-K", K2e).
 - **Possible fixes**: validate a progress notification against `max(maxRev, minRev - 1)` in
   `Broadcast` (the revision the demux was initialized from); or have `Init` set `maxRev` to
   `minRev - 1`.

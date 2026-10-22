@@ -66,7 +66,7 @@ does not state.
   axioms that assert nothing beyond returning. The server's `srvNetMember γn s id`
   (`InvRaftHandler.lean`, given by `NewServer.spec`) already exposes what the type assertion
   needs: `rnTransportAddr (srvRAddr s) ↦□ transportIface t ∗ transportStarted γn t`.
-- **Out of scope** (as before, STATUS "Open work", "Out of scope for now"): crashes and
+- **Out of scope** (as before, status-history.md "Open work", "Out of scope for now"): crashes and
   durability (no crash semantics; persist-before-send is not stated), liveness, and partitions
   between a client and its member (a client's gRPC call simply fails; optional, see S0).
 

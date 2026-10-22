@@ -116,7 +116,7 @@ func TestCancellableContextErrBeforeDone(t *testing.T) {
   (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/InvStreamInterceptor.lean`: no client asks
   for a leader on a stream); with the window, the wrapper cannot meet Perennial's `isContext` (its
   `Err` clause), so the branch could not be proved even with a `context.WithCancel` spec over any
-  parent context (`notes/STATUS.md`, "W-W, the stream interceptor"; `notes/decisions.md`, "The
+  parent context (`notes/status-history.md`, "W-W, the stream interceptor"; `notes/decisions.md`, "The
   stream interceptor's require-leader premise").
 - **Possible fixes**: call `c.cancel()` before publishing the reason is not enough (a reader
   could then see `Done()` closed and `Err()` the parent's `context.Canceled`, the reason lost,

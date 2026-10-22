@@ -2,7 +2,7 @@
 
 For: the author of `Proof/google_golang_org/grpc/InvGrpc.lean` (the generic gRPC specification,
 units C1/P3a/P3b).
-From: the vertical slice's watch unit (`notes/STATUS.md`, "The vertical slice"; the request
+From: the vertical slice's watch unit (`notes/status-history.md`, "The vertical slice"; the request
 path's session).
 Status: built (unit W-W, 2026-10-15; §6). Before W-W: a proposal. The watch slice's server hop (unit W-S, `server/v3/
 etcdserver/api/v3rpc/watch.go`) is being proved against a local server-end interface of exactly
@@ -80,7 +80,7 @@ SPSC channel idiom (`Perennial/Golang/Theory/Chan/Idioms/Spsc.lean`: `spscProduc
 
 ## 2a. What W-S settled on (2026-10-15)
 
-Unit W-S is done (`notes/STATUS.md`, "The watch slice", "W-S"): `watch.go` is proved against the
+Unit W-S is done (`notes/status-history.md`, "The watch slice", "W-S"): `watch.go` is proved against the
 server end below, `v3rpc/InvWatchStream.lean`'s `srvStreamIs st γ Req Rep Up Dn ci cd`. It is §2's
 shape with five changes, each forced by the code; the axiom that instantiates it should have them:
 

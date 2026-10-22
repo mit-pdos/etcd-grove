@@ -143,7 +143,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork
 
 Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's findings" and
-"R4's findings"; `notes/STATUS.md`, "watch-resume"), proposed as general idioms.
+"R4's findings"; `notes/status-history.md`, "watch-resume"), proposed as general idioms.
 
 - **Missing.** (1) Perennial's SPSC idiom (`Idioms/Spsc.lean`) does not tie its pending channel
   states to the sides' tokens, so the holder of both tokens of an unbuffered channel cannot show

@@ -31,7 +31,7 @@ theorem withBackoff.wp_proof :
   wp_func_lits
   wp_auto
   iapply HΦ
-  unfold optApplyMax
+  unfold optApplyKeep
   iintro !> %o %ov
   wp_start as ⟨Ho, #Hok⟩
   wp_auto
@@ -41,7 +41,7 @@ theorem withBackoff.wp_proof :
   isplitr
   · unfold optionsOk
     iexact Hbf
-  ipureintro; exact ⟨rfl, fun _ => rfl⟩
+  ipureintro; exact fun _ => rfl
 
 end proof
 

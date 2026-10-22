@@ -230,7 +230,7 @@ the node promotable with `applied < base`. At the pinned raft `appliedSnap` is `
 then `appliedTo(index)`, both when the `MsgStorageAppendResp` carrying the snapshot is
 stepped, and the node is unpromotable until then: no such window. `hasUnappliedConfChanges`
 scans compacted entries only if the application compacts its storage above raft's `applied`,
-which `Compact`'s documentation forbids. notes/STATUS.md, "Reconfiguration, stage B8".)
+which `Compact`'s documentation forbids. notes/status-history.md, "Reconfiguration, stage B8".)
 
 **4.11 leader step-down on removal** (new; `switchToConfig`, `raft.go:1986-1994`): with
 `stepDownOnRemoval` a removed or demoted leader becomes a follower at the same term. The

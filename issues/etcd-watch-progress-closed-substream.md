@@ -141,7 +141,7 @@ func TestWatchProgressAfterServerCancel(t *testing.T) {
 - **How the proof handles it** (before the fix; the watch slice's unit W-K verifies the fixed
   code): `watcher.RequestProgress` is not verified (its calls can make `run` panic, so no spec of it
   holds), and the derived watcher contract
-  (`isEtcdRangeWatcher`, `notes/STATUS.md`, "W-C") is for a watcher on which no progress request
+  (`isEtcdRangeWatcher`, `notes/status-history.md`, "W-C") is for a watcher on which no progress request
   is sent: `run`'s invariant keeps every request it sent a create or a cancel, and the server's
   stream specification sends a response of watch id `-1` only in answer to a progress request.
 - **Possible fixes**: in the `Canceled` case, remove the substream from `substreams` when its
