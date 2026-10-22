@@ -1,74 +1,78 @@
-/- Lean-first (no Rocq counterpart).
+/-
+Package initialization of `github_com.mit_pdos.etcd_grove.examples.lintest.counter`
+(item 8, 2026-10-17): its `wp_initialize'`.
 
-# The counter package's initialization (2026-10-19)
-
-`wp_initialize'`: the counter's `initialize'` initializes lintest (which initializes porcupine,
-which initializes `context`: `Proof/github_com/anishathalye/porcupine/Init.lean`), porcupine,
-`time` and `sync`, then the package (no package-level variable). It returns `context`'s
-`isClosedchanInit`, which `Main.spec` takes, beside the package's `isPkgInit`, at a table whose
-entries for `context`, porcupine, lintest and the counter carry it (`PorcupineInitTable` and
-the two equations).
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Defs
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.time.Link
+public import Proof.github_com.anishathalye.porcupine.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Init
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
 set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
-namespace github_com.mit_pdos.etcd_grove.examples.lintest.counter
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+variable [_root_.Perennial.context.ErrorStringIsError]
+  [_root_.Perennial.context.DeadlineExceededIsError]
 
-/-- The counter's initialization, returning `context`'s `isClosedchanInit` (see the file
-header). -/
-theorem wp_initialize' [context.ErrorStringIsError] [context.DeadlineExceededIsError]
-    (get_is_pkg_init : GoString → IProp GF)
-    (Ht : github_com.anishathalye.porcupine.PorcupineInitTable get_is_pkg_init)
-    (Hlintest : get_is_pkg_init pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest =
-      iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-        context.isClosedchanInit))
-    (Hself : get_is_pkg_init pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter =
-      iprop(isPkgInit (PROP := IProp GF)
-          pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter ∗
-        context.isClosedchanInit)) :
-    {{ ownInitializing get_is_pkg_init }}
+namespace github_com.mit_pdos.etcd_grove.examples.lintest.counter
+
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
       (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        (isPkgInit (PROP := IProp GF)
-            pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter ∗
-          context.isClosedchanInit) }} := by
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter }} := by
   wp_start as Hown
-  iapply wp_package_init (heq := Hself) $$ [Hown] HΦ
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply github_com.mit_pdos.etcd_grove.examples.lintest.wp_initialize' _ Ht Hlintest
-    $$ Hown as ⟨Hown, #H4, #Hcc⟩
-  wp_apply github_com.anishathalye.porcupine.wp_initialize' _ Ht $$ Hown as ⟨Hown, #H3, -⟩
-  wp_apply time.wp_initialize' _ Ht.time $$ Hown as ⟨Hown, #H2⟩
-  wp_apply sync.wp_initialize' _ Ht.sync $$ Hown as ⟨Hown, #H1⟩
+  wp_apply (_root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (_root_.Perennial.github_com.anishathalye.porcupine.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
-  imodintro
-  iframe #
   is_pkg_init_finish
 
-end init
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+
 
 end github_com.mit_pdos.etcd_grove.examples.lintest.counter
+
+end init
 
 end Perennial

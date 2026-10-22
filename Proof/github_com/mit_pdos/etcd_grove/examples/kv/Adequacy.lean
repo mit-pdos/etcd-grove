@@ -18,8 +18,9 @@ never rejects the store's trace.
 It follows from Perennial's `goose_adequacy`, as the register's and the counter's
 (`lintest/counter/Adequacy.lean`): the disk FFI (the proofs are generic over the FFI), a
 concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `T = n + 2`
-(threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, which also
-gives `context`'s `isClosedchanInit`) and `Main`'s spec. This file proves it from `Main.spec`
+(threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, at the program's table
+`PkgTable.lean`, both generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from
+`context`'s `isPkgInit`, `context.isClosedchanInit_of_init`) and `Main`'s spec. This file proves it from `Main.spec`
 as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the linked result
 `kv.wp_Main` (`Link.lean`): `kv_adequate`.
 
@@ -39,6 +40,7 @@ as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the link
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.PkgTable
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Main
 public import Proof.runtime.Threads
 public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
@@ -95,77 +97,6 @@ instance kvGF_gooseGpreS : GooseGpreS disk_model kvGF where
 results take. -/
 instance kvGF_naInvG : NaInvG kvGF := ⟨⟨11, rfl⟩⟩
 
-/-! ## Package initialization's starting point -/
-
-section pkgs
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
-
-/-- The post-initialization predicate of every package the store (transitively) imports, and
-of the store itself: what `ownInitializing` hands out for an initialized package. The entries
-of `context` and of the packages that import it, but raft (porcupine, lintest, the store),
-also carry `context.isClosedchanInit` (`Init.lean`). -/
-def pkgInitTable : List (GoString × IProp GF) :=
-  [(pkg_id.github_com.mit_pdos.etcd_grove.examples.kv,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
-        context.isClosedchanInit)),
-   (pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-        context.isClosedchanInit)),
-   (pkg_id.github_com.anishathalye.porcupine,
-      iprop(isPkgInit pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit)),
-   (pkg_id.context, iprop(isPkgInit pkg_id.context ∗ context.isClosedchanInit)),
-   (pkg_id.github_com.goose_lang.primitive, isPkgInit pkg_id.github_com.goose_lang.primitive),
-   (pkg_id.sort, isPkgInit pkg_id.sort),
-   (pkg_id.sync, isPkgInit pkg_id.sync),
-   (pkg_id.internal.synctest, isPkgInit pkg_id.internal.synctest),
-   (pkg_id.internal.race, isPkgInit pkg_id.internal.race),
-   (pkg_id.sync.atomic, isPkgInit pkg_id.sync.atomic),
-   (pkg_id.encoding.binary, isPkgInit pkg_id.encoding.binary),
-   (pkg_id.slices, isPkgInit pkg_id.slices),
-   (pkg_id.math.bits, isPkgInit pkg_id.math.bits),
-   (pkg_id.«unsafe», isPkgInit pkg_id.«unsafe»),
-   (pkg_id.cmp, isPkgInit pkg_id.cmp),
-   (pkg_id.math, isPkgInit pkg_id.math),
-   (pkg_id.io, isPkgInit pkg_id.io),
-   (pkg_id.errors, isPkgInit pkg_id.errors),
-   (pkg_id.go_etcd_io.raft.v3.raftpb, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb),
-   (pkg_id.google_golang_org.protobuf.proto, isPkgInit pkg_id.google_golang_org.protobuf.proto),
-   (pkg_id.google_golang_org.protobuf.reflect.protoreflect,
-      isPkgInit pkg_id.google_golang_org.protobuf.reflect.protoreflect),
-   (pkg_id.google_golang_org.protobuf.runtime.protoimpl,
-      isPkgInit pkg_id.google_golang_org.protobuf.runtime.protoimpl),
-   (pkg_id.google_golang_org.protobuf.internal.impl,
-      isPkgInit pkg_id.google_golang_org.protobuf.internal.impl),
-   (pkg_id.google_golang_org.protobuf.internal.pragma,
-      isPkgInit pkg_id.google_golang_org.protobuf.internal.pragma),
-   (pkg_id.fmt, isPkgInit pkg_id.fmt),
-   (pkg_id.go_etcd_io.raft.v3, isPkgInit pkg_id.go_etcd_io.raft.v3),
-   (pkg_id.go_etcd_io.raft.v3.tracker, isPkgInit pkg_id.go_etcd_io.raft.v3.tracker),
-   (pkg_id.go_etcd_io.raft.v3.quorum, isPkgInit pkg_id.go_etcd_io.raft.v3.quorum),
-   (pkg_id.strconv, isPkgInit pkg_id.strconv),
-   (pkg_id.strings, isPkgInit pkg_id.strings),
-   (pkg_id.go_etcd_io.raft.v3.confchange, isPkgInit pkg_id.go_etcd_io.raft.v3.confchange),
-   (pkg_id.math.big, isPkgInit pkg_id.math.big),
-   (pkg_id.crypto.rand, isPkgInit pkg_id.crypto.rand),
-   (pkg_id.bytes, isPkgInit pkg_id.bytes),
-   (pkg_id.time, isPkgInit pkg_id.time),
-   (pkg_id.os, isPkgInit pkg_id.os),
-   (pkg_id.log, isPkgInit pkg_id.log)]
-
-/-- `get_is_pkg_init` for the store's program: a package's entry in `pkgInitTable`. -/
-def getIsPkgInit (s : GoString) : IProp GF :=
-  ((pkgInitTable (GF := GF)).lookup s).getD iprop(True)
-
-theorem getIsPkgInit_kv :
-    github_com.mit_pdos.etcd_grove.examples.kv.KVInitTable (getIsPkgInit (GF := GF)) := by
-  refine ⟨rfl, rfl, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩ <;>
-  repeat' (first | exact True.intro | apply And.intro | rfl)
-
-end pkgs
 
 /-! ## The closed theorem -/
 
@@ -228,7 +159,8 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   unfold IsInit at Hinit
   rw [Hinit]
   iintro _ _ Hgs Htok
-  ihave Hown : ownInitializing (getIsPkgInit (GF := kvGF)) $$ [Hgs]
+  ihave Hown : ownInitializing
+      (github_com.mit_pdos.etcd_grove.examples.kv.getIsPkgInit (GF := kvGF)) $$ [Hgs]
   · rw [ownInitializing_unseal]
     unfold ownInitializingDef
     iexists ∅
@@ -239,7 +171,10 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   imodintro
   unfold kvProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.kv.wp_initialize' _
-    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+    github_com.mit_pdos.etcd_grove.examples.kv.getIsPkgInit_wf) $$ Hown as ⟨_, #Hpkg⟩
+  ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
   wp_apply (wp_Main Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro

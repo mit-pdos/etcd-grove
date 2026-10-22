@@ -18,8 +18,9 @@ So no panic means porcupine answered `Ok`.
 It follows from Perennial's `goose_adequacy`, as the register's (`register/Adequacy.lean`):
 the disk FFI (the proofs are generic over the FFI), a concrete ghost-state bundle `counterGF`,
 the bounds `N = n + 1` (time receipts) and `T = n + 2` (threads, `Proof/runtime/Threads.lean`),
-the package initialization (`counter/Init.lean`, which also gives `context`'s
-`isClosedchanInit`) and `counter.wp_Main` (`Link.lean`).
+the package initialization (`counter/Init.lean`, at the program's table `PkgTable.lean`, both
+generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from `context`'s `isPkgInit`,
+`context.isClosedchanInit_of_init`) and `counter.wp_Main` (`Link.lean`).
 
 - **The length bound.** `CounterClock`'s spec takes `receiptBound GF ≤ 2^63` (time receipts
   bound the `atomic.Int64` the clock increments, so it does not wrap), and `goose_adequacy`'s
@@ -39,6 +40,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.PkgTable
 public import Proof.runtime.Threads
 public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
 
@@ -96,58 +98,6 @@ instance counterGF_gooseGpreS : GooseGpreS disk_model counterGF where
 results take. -/
 instance counterGF_naInvG : NaInvG counterGF := ⟨⟨11, rfl⟩⟩
 
-/-! ## Package initialization's starting point -/
-
-section pkgs
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
-
-/-- The post-initialization predicate of every package the counter (transitively) imports,
-and of the counter itself: what `ownInitializing` hands out for an initialized package. The
-entries of `context` and of the packages that import it (porcupine, lintest, the counter)
-also carry `context.isClosedchanInit` (`porcupine/Init.lean`). -/
-def pkgInitTable : List (GoString × IProp GF) :=
-  [(pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter ∗
-        context.isClosedchanInit)),
-   (pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-        context.isClosedchanInit)),
-   (pkg_id.github_com.anishathalye.porcupine,
-      iprop(isPkgInit pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit)),
-   (pkg_id.context, iprop(isPkgInit pkg_id.context ∗ context.isClosedchanInit)),
-   (pkg_id.sort, isPkgInit pkg_id.sort),
-   (pkg_id.math.bits, isPkgInit pkg_id.math.bits),
-   (pkg_id.«unsafe», isPkgInit pkg_id.«unsafe»),
-   (pkg_id.time, isPkgInit pkg_id.time),
-   (pkg_id.fmt, isPkgInit pkg_id.fmt),
-   (pkg_id.io, isPkgInit pkg_id.io),
-   (pkg_id.errors, isPkgInit pkg_id.errors),
-   (pkg_id.sync, isPkgInit pkg_id.sync),
-   (pkg_id.sync.atomic, isPkgInit pkg_id.sync.atomic),
-   (pkg_id.internal.race, isPkgInit pkg_id.internal.race),
-   (pkg_id.internal.synctest, isPkgInit pkg_id.internal.synctest),
-   (pkg_id.strings, isPkgInit pkg_id.strings)]
-
-/-- `get_is_pkg_init` for the counter's program: a package's entry in `pkgInitTable`. -/
-def getIsPkgInit (s : GoString) : IProp GF :=
-  ((pkgInitTable (GF := GF)).lookup s).getD iprop(True)
-
-theorem getIsPkgInit_porcupine :
-    github_com.anishathalye.porcupine.PorcupineInitTable (getIsPkgInit (GF := GF)) where
-  self := rfl
-  context := rfl
-  errors := by repeat' (first | exact True.intro | apply And.intro | rfl)
-  sync := by repeat' (first | exact True.intro | apply And.intro | rfl)
-  atomic := by repeat' (first | exact True.intro | apply And.intro | rfl)
-  time := by repeat' (first | exact True.intro | apply And.intro | rfl)
-  sort := by repeat' (first | exact True.intro | apply And.intro | rfl)
-  fmt := by repeat' (first | exact True.intro | apply And.intro | rfl)
-  strings := by repeat' (first | exact True.intro | apply And.intro | rfl)
-
-end pkgs
 
 /-! ## The closed theorem -/
 
@@ -205,7 +155,8 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold IsInit at Hinit
   rw [Hinit]
   iintro _ _ Hgs Htok
-  ihave Hown : ownInitializing (getIsPkgInit (GF := counterGF)) $$ [Hgs]
+  ihave Hown : ownInitializing
+      (github_com.mit_pdos.etcd_grove.examples.lintest.counter.getIsPkgInit (GF := counterGF)) $$ [Hgs]
   · rw [ownInitializing_unseal]
     unfold ownInitializingDef
     iexists ∅
@@ -216,7 +167,10 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   imodintro
   unfold counterProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.lintest.counter.wp_initialize' _
-    getIsPkgInit_porcupine rfl rfl) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+    github_com.mit_pdos.etcd_grove.examples.lintest.counter.getIsPkgInit_wf) $$ Hown as ⟨_, #Hpkg⟩
+  ihave #Hcc : context.isClosedchanInit (GF := counterGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
   wp_apply counter.wp_Main Hbound $$ [Hpkg Hcc]
   · iframe #
   ipureintro

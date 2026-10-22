@@ -1,76 +1,37 @@
-/- Lean-first (no Rocq counterpart).
+/-
+Package initialization of `github_com.mit_pdos.etcd_grove.examples.lintest`
+(item 8, 2026-10-17): its `wp_initialize'`.
 
-# lintest's package initialization (2026-10-19)
-
-`wp_initialize'`: lintest's `initialize'` initializes porcupine (which initializes `context`,
-`Proof/github_com/anishathalye/porcupine/Init.lean`), `time`, `sync/atomic` and `sync`, then
-the package (no package-level variable). It returns `context`'s `isClosedchanInit` beside the
-package's `isPkgInit`, at a table whose entry for lintest carries it too (as porcupine's,
-`PorcupineInitTable`), so that a second initialization, from the map, gives it as well.
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
 -/
 -- The copy for the parallel tree `RaftWitness/` of `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/Init.lean` (`PART_INITS` in
 -- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part's.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Base
-public import RaftWitness.Proof.github_com.anishathalye.porcupine.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
+public import RaftWitness.Proof.github_com.anishathalye.porcupine.Init
 public import RaftWitness.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
 set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 
+/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-namespace github_com.mit_pdos.etcd_grove.examples.lintest
-
-section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions]
-
-/-- lintest's initialization, returning `context`'s `isClosedchanInit` (see the file header). -/
-theorem wp_initialize' [context.ErrorStringIsError] [context.DeadlineExceededIsError]
-    (get_is_pkg_init : GoString → IProp GF)
-    (Ht : github_com.anishathalye.porcupine.PorcupineInitTable get_is_pkg_init)
-    (Hself : get_is_pkg_init pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest =
-      iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-        context.isClosedchanInit)) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        (isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-          context.isClosedchanInit) }} := by
-  wp_start as Hown
-  iapply wp_package_init (heq := Hself) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply github_com.anishathalye.porcupine.wp_initialize' _ Ht $$ Hown as ⟨Hown, #H4, #Hcc⟩
-  wp_apply time.wp_initialize' _ Ht.time $$ Hown as ⟨Hown, #H3⟩
-  wp_apply sync.atomic.wp_initialize' _ Ht.atomic $$ Hown as ⟨Hown, #H2⟩
-  wp_apply sync.wp_initialize' _ Ht.sync $$ Hown as ⟨Hown, #H1⟩
-  iframe Hown
-  imodintro
-  iframe #
-  is_pkg_init_finish
-
-end init
-
-end github_com.mit_pdos.etcd_grove.examples.lintest
-
-/-! The ordinary form (decision D19e), for a package of the ordinary form importing this one, at
-a table of its closure's `isPkgInit`s (see `CLOSEDCHAN` in `etc/gen-init.py`). -/
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -102,6 +63,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+
 
 end github_com.mit_pdos.etcd_grove.examples.lintest
 
