@@ -9,11 +9,18 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Attempted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Gen
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.GenAll
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.NewClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.NewMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.StartServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.newServer
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.Server__Serve
@@ -40,6 +47,26 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
+theorem wp_Attempted :
+    EtcdGrove.common.Attempted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.Attempted.wp_proof
+
+theorem wp_Check :
+    EtcdGrove.common.Check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.Check.wp_proof wp_Attempted
+
+theorem wp_Gen :
+    EtcdGrove.common.Gen.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.Gen.wp_proof
+
+theorem wp_GenAll :
+    EtcdGrove.common.GenAll.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.GenAll.wp_proof wp_Gen
+
+theorem wp_MaxRev :
+    EtcdGrove.common.MaxRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.MaxRev.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -54,6 +81,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 theorem EtcdServer.wp_RaftHandler :
     EtcdGrove.EtcdServer.RaftHandler.spec (GF := GF) (hG := hG) :=
   EtcdGrove.EtcdServer.RaftHandler.wp_proof
+
+theorem wp_Collect :
+    EtcdGrove.common.Collect.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.Collect.wp_proof client.v3.WatchResponse.wp_Err
 
 theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.common.NewClient.spec (GF := GF) (hG := hG) :=
@@ -94,6 +125,10 @@ theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64
 theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.StartServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.StartServer.wp_proof wp_newServer EtcdServer.wp_Start
+
+theorem wp_Writer :
+    EtcdGrove.common.Writer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.common.Writer.wp_proof
 
 end links_hasLC
 

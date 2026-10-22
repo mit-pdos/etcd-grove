@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). The proof of `genAll`: the loop appending `Gen()`'s. -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.genAll
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
 
 @[expose] public section
 
@@ -9,27 +9,27 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace watchkv
+namespace common
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.watchkv
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.common
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem genAll.wp_proof (wp_Gen : Gen.spec (GF := GF) (hG := hG)) :
-    genAll.spec (GF := GF) (hG := hG) := by
-  intro n hn
-  wp_start as _
+theorem GenAll.wp_proof (wp_Gen : Gen.spec (GF := GF) (hG := hG)) :
+    GenAll.spec (GF := GF) (hG := hG) := by
+  intro n ksl ks hn hk0 hk63
+  wp_start as #Hk
   (try wp_auto)
   ihave HI : (∃ (j : w64) (sl : GoSlice) (ps : List wkv),
       "i" ∷ i_ptr ↦ j ∗ "all" ∷ all_ptr ↦ sl ∗ "Hs" ∷ sl ↦* ps ∗
       "Hcap" ∷ ownSliceCap wkv sl (DFrac.own 1) ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z n ∧ ps.length = sint.nat j ∧
-        ∀ p ∈ ps, GenKv p⌝ : IProp GF) $$ [i all]
+        ∀ p ∈ ps, GenKv ks p⌝ : IProp GF) $$ [i all]
   · iexists W64 0, slice.nil, []
     iframe
     isplitr
@@ -39,7 +39,8 @@ theorem genAll.wp_proof (wp_Gen : Gen.spec (GF := GF) (hG := hG)) :
     ipureintro; refine ⟨by word, by word, rfl, fun _ h => by simp at h⟩
   wp_for HI
   wp_if_destruct
-  · wp_apply wp_Gen as %p %Hp
+  · wp_apply (wp_Gen ksl ks hk0 hk63) as %p %Hp
+    · iframe #
     wp_apply wp_slice_literal (l := [p])
     isplitr
     · ipureintro; rfl
@@ -68,6 +69,6 @@ theorem genAll.wp_proof (wp_Gen : Gen.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end watchkv
+end common
 end EtcdGrove
 end Perennial

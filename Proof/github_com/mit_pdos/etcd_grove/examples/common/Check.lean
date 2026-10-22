@@ -2,7 +2,7 @@
 by `CheckOk`. -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.check
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 
 @[expose] public section
 
@@ -10,21 +10,21 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace cachekv
+namespace common
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.mit_pdos.etcd_grove.examples.cachekv
+open github_com.mit_pdos.etcd_grove.examples.common
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem check.wp_proof (wp_attempted : attempted.spec (GF := GF) (hG := hG)) :
-    check.spec (GF := GF) (hG := hG) := by
-  intro esl tsl osl evs tried oks Hok
+theorem Check.wp_proof (wp_Attempted : Attempted.spec (GF := GF) (hG := hG)) :
+    Check.spec (GF := GF) (hG := hG) := by
+  intro name put esl tsl osl evs tried oks Hok
   obtain ⟨Hlen, Hevs, Hoks⟩ := Hok
   wp_start as ⟨#He, #Ht, #Ho⟩
   ihave %Hel := ownSlice_len $$ He
@@ -33,7 +33,7 @@ theorem check.wp_proof (wp_attempted : attempted.spec (GF := GF) (hG := hG)) :
   rename_i ig
   irename : (ig ↦ zero_val w64 : IProp GF) => gi
   -- the events
-  ihave HI : (∃ (j : w64) (e0 : cev) (i0 pv : w64),
+  ihave HI : (∃ (j : w64) (e0 : wev) (i0 pv : w64),
       "i" ∷ i_ptr ↦ j ∗ "e" ∷ e_ptr ↦ e0 ∗ "gi" ∷ ig ↦ i0 ∗ "prev" ∷ prev_ptr ↦ pv ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z esl.len ∧ (0 < sint.Z j → sint.Z pv = 1 + sint.Z j)⌝ :
       IProp GF) $$ [i e gi prev]
@@ -56,40 +56,40 @@ theorem check.wp_proof (wp_attempted : attempted.spec (GF := GF) (hG := hG)) :
       wp_if_destruct
       · exfalso; have := Hj.2.2 (by word); word
       (try wp_auto)
-      have hxr : x.rev' = j + W64 2 := by
+      have hxr : x.Rev' = j + W64 2 := by
         have : sint.nat j = (sint.Z j).toNat := rfl
         word
       rw [decide_eq_true hxr]
       simp only [Bool.not_true]
       wp_auto
-      wp_apply wp_attempted tsl tried DFrac.discard x.key' x.val' as %b ⟨-, %Hb⟩
+      wp_apply wp_Attempted tsl tried DFrac.discard x.Key' x.Val' as %b ⟨-, %Hb⟩
       · iframe #
       rw [Hb hmem]
       wp_auto
       wp_for_post
       iframe
-      iexists j + W64 1, x, j, x.rev'
+      iexists j + W64 1, x, j, x.Rev'
       iframe
       ipureintro; refine ⟨by word, by word, fun _ => by word⟩
     · (try wp_auto)
-      have hxr : x.rev' = j + W64 2 := by
+      have hxr : x.Rev' = j + W64 2 := by
         have : sint.nat j = (sint.Z j).toNat := rfl
         word
       rw [decide_eq_true hxr]
       simp only [Bool.not_true]
       wp_auto
-      wp_apply wp_attempted tsl tried DFrac.discard x.key' x.val' as %b ⟨-, %Hb⟩
+      wp_apply wp_Attempted tsl tried DFrac.discard x.Key' x.Val' as %b ⟨-, %Hb⟩
       · iframe #
       rw [Hb hmem]
       wp_auto
       wp_for_post
       iframe
-      iexists j + W64 1, x, j, x.rev'
+      iexists j + W64 1, x, j, x.Rev'
       iframe
       ipureintro; refine ⟨by word, by word, fun _ => by word⟩
   -- the successful Puts
   (try wp_auto)
-  ihave HJ : (∃ (k : w64) (p0 : crec),
+  ihave HJ : (∃ (k : w64) (p0 : wrec),
       "i" ∷ i_ptr ↦ k ∗ "p" ∷ p_ptr ↦ p0 ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z osl.len⌝ : IProp GF) $$ [i p]
   · iexists W64 0, _
@@ -103,7 +103,7 @@ theorem check.wp_proof (wp_attempted : attempted.spec (GF := GF) (hG := hG)) :
     wp_apply wp_load_slice_index osl (sint.Z k) oks DFrac.discard y Hk.1 $$ [Ho] as -
     · iframe #; ipureintro; exact Hy_lookup
     obtain ⟨hr2, e, he, hek, hev⟩ := Hoks y (List.mem_of_getElem? Hy_lookup)
-    have hel : (sint.Z y.rev' - 2).toNat < evs.length := (List.getElem?_eq_some_iff.mp he).1
+    have hel : (sint.Z y.Rev' - 2).toNat < evs.length := (List.getElem?_eq_some_iff.mp he).1
     (try wp_auto)
     wp_if_destruct
     · exfalso; word
@@ -111,12 +111,12 @@ theorem check.wp_proof (wp_attempted : attempted.spec (GF := GF) (hG := hG)) :
     wp_if_destruct
     · exfalso; have := Hel.1; word
     (try wp_auto)
-    have Hb2 : 0 ≤ sint.Z (y.rev' - W64 2) ∧ sint.Z (y.rev' - W64 2) < sint.Z esl.len := by
+    have Hb2 : 0 ≤ sint.Z (y.Rev' - W64 2) ∧ sint.Z (y.Rev' - W64 2) < sint.Z esl.len := by
       have := Hel.1; constructor <;> word
     simp only [Hb2, _root_.and_self, ↓reduceIte]
-    have hidx : evs[(sint.Z (y.rev' - W64 2)).toNat]? = some e := by
-      rw [show (sint.Z (y.rev' - W64 2)).toNat = (sint.Z y.rev' - 2).toNat by word]; exact he
-    wp_apply wp_load_slice_index esl (sint.Z (y.rev' - W64 2)) evs DFrac.discard e Hb2.1 $$ [He] as -
+    have hidx : evs[(sint.Z (y.Rev' - W64 2)).toNat]? = some e := by
+      rw [show (sint.Z (y.Rev' - W64 2)).toNat = (sint.Z y.Rev' - 2).toNat by word]; exact he
+    wp_apply wp_load_slice_index esl (sint.Z (y.Rev' - W64 2)) evs DFrac.discard e Hb2.1 $$ [He] as -
     · iframe #; ipureintro; exact hidx
     (try wp_auto)
     rw [hek]
@@ -135,6 +135,6 @@ theorem check.wp_proof (wp_attempted : attempted.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end cachekv
+end common
 end EtcdGrove
 end Perennial

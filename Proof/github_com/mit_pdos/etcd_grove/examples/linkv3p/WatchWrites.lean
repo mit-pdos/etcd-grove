@@ -57,7 +57,7 @@ theorem kvOpAu1_congr (γk γk' : KVNames) (hst : γk.st = γk'.st) (hwl : γk.w
 /-- **The writers' log's lock invariant** (watchkv's `wsInv`, its records' `okFactH`). -/
 def wsInvH (w : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ (sl : GoSlice) (oks : List wrec),
-    structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"ok" w ↦ sl ∗
+    structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Ok" w ↦ sl ∗
     sl ↦* oks ∗ ownSliceCap wrec sl (DFrac.own 1) ∗ □ [∗list] p ∈ oks, okFactH γr p)
 
 end defs

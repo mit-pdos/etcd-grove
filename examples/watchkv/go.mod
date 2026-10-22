@@ -15,9 +15,7 @@ replace (
 replace github.com/mit-pdos/etcd-grove/examples/common => ../common
 
 require (
-	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples/common v0.0.0-00010101000000-000000000000
-	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.uber.org/zap v1.28.0
 )
@@ -32,6 +30,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
@@ -44,6 +43,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
+	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/server/v3 v3.0.0-00010101000000-000000000000 // indirect

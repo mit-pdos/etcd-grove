@@ -45,7 +45,7 @@ abbrev writer.spec : Prop :=
         client.clientWriteOnce cl (ms.map client.SrvAt.addr)) ∗
       ([∗list] x ∈ ms, memberPut γr x) ∗
       tsl ↦*□ tried ∗ watchkv.wkKV γr ∗
-      sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"mu" w)
+      sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w)
         (wsInvH w γr) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.writer))
       (Val #clis)) (Val #w)) (Val #tsl)) (Val #lo)) (Val #hi))

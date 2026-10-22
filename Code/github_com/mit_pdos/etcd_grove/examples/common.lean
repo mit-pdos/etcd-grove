@@ -10,6 +10,10 @@ public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import Code.go_etcd_io.etcd.server.v3.features
+public import Perennial.Code.context
+public import Perennial.Code.sync
+public import Perennial.Code.github_com.goose_lang.primitive
+public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -30,6 +34,26 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.common
 
+def KV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.KV" [])
+
+attribute [irreducible] KV.ty
+
+def PutRec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.PutRec" [])
+
+attribute [irreducible] PutRec.ty
+
+def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.Event" [])
+
+attribute [irreducible] Event.ty
+
+def Writes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/common.Writes" [])
+
+attribute [irreducible] Writes.ty
+
 noncomputable def newServer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.newServer"
 
@@ -47,6 +71,27 @@ noncomputable def Serve [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def NewClient [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.NewClient"
+
+noncomputable def Gen [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.Gen"
+
+noncomputable def GenAll [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.GenAll"
+
+noncomputable def Writer [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.Writer"
+
+noncomputable def MaxRev [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.MaxRev"
+
+noncomputable def Collect [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.Collect"
+
+noncomputable def Attempted [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.Attempted"
+
+noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.Check"
 
 /-- newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
     whose token is token: the member's peer URLs are peer, its one client URL http://client.
@@ -348,13 +393,396 @@ noncomputable def NewClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Pair (Var "$ret0") (Var "$ret1")))))))))))
 
+/-- Gen picks a key of keys and a value, from a small set.
+
+    go: watch.go:46:6 -/
+noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "keys"
+  (App (Val exceptionDo)
+  (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
+  (Let "$r0" (Let "$v0" (Val #(go!"a"))
+  (Let "$v1" (Val #(go!"b"))
+  (Let "$v2" (Val #(go!"c"))
+  (Let "$v3" (Val #(go!"d"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3")))]))))))
+  (Let "vals" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.RandomUint64 []))) (Val #())) (Val #()))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vals")) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoOp GoRemainder go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "n")) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vals"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))))
+  (App (Val (GoInstruction (CompositeLiteral KV.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v1")))])))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "vals") (Var "$r0"))))))))))
+
+/-- GenAll picks n Puts (Gen of keys): the writers' Puts, writer i's at [i*nops, (i+1)*nops).
+
+    go: watch.go:55:6 -/
+noncomputable def GenAll.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam "keys"
+  (App (Val exceptionDo)
+  (Let "keys" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "keys"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "all" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType KV.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType KV.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType KV.ty)))) (Var "all")))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType KV.ty)))) (Var "all"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "keys"))
+  (App (App (Val (GoInstruction (FuncResolve Gen []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType KV.ty)))) (LiteralValue [(KeyedElement none (ElementExpression KV.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType KV.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType KV.ty)))) (Pair (Var "all") (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))
+
+/-- Writer does the Puts tried[lo:hi] through cli, in order, logging in w each that returned no
+    error, with its reply's revision.
+
+    go: watch.go:65:6 -/
+noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cli"
+  (Lam "w"
+  (Lam "tried"
+  (Lam "lo"
+  (Lam "hi"
+  (App (Val exceptionDo)
+  (Let "hi" (App (Val (GoInstruction (GoAlloc go.int))) (Var "hi"))
+  (Let "lo" (App (Val (GoInstruction (GoAlloc go.int))) (Var "lo"))
+  (Let "tried" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType KV.ty)))) (Var "tried"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Writes.ty)))) (Var "w"))
+  (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "lo"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (App (Val (GoInstruction (GoLoad go.int))) (Var "hi")))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType KV.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType KV.ty)))) (Var "tried")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))))
+  (Let "p" (App (Val (GoInstruction (GoAlloc KV.ty))) (App (Val (GoInstruction (GoZeroVal KV.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Key"))) (Var "p")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Val"))) (Var "p")))
+  (Let "$a3" (Val #slice.nil)
+  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go!"Put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType PutRec.ty)))) (App (Val (GoInstruction (StructFieldRef Writes.ty go!"Ok"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writes.ty)))) (Var "w"))))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Var "resp"))))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Key"))) (Var "p")))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Val"))) (Var "p")))
+  (App (Val (GoInstruction (CompositeLiteral PutRec.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Rev")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType PutRec.ty)))) (LiteralValue [(KeyedElement none (ElementExpression PutRec.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType PutRec.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Writes.ty go!"Mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writes.ty)))) (Var "w")))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType PutRec.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Writes.ty go!"Ok"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writes.ty)))) (Var "w"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Writes.ty go!"Mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Writes.ty)))) (Var "w")))) (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KV.ty))) (Pair (Var "p") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
+
+/-- MaxRev is the highest revision of the successful Puts oks (0 if there is none).
+
+    go: watch.go:79:6 -/
+noncomputable def MaxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "oks"
+  (App (Val exceptionDo)
+  (Let "oks" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType PutRec.ty)))) (Var "oks"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (Var "m")))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType PutRec.ty)))) (Var "oks"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc PutRec.ty))) (App (Val (GoInstruction (GoZeroVal PutRec.ty))) (Val #())))
+  (App (App (Val (slice.forRange PutRec.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef PutRec.ty go!"Rev"))) (Var "p"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "m")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef PutRec.ty go!"Rev"))) (Var "p")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "m") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore PutRec.ty))) (Pair (Var "p") (Var "$value")))))))))))))))
+
+/-- Collect reads the watch channel wch until an event at revision upTo or above (at once if
+    upTo is 0), returning the events read and true; false if the channel closed, or a response
+    reported an error, before.
+
+    go: watch.go:92:6 -/
+noncomputable def Collect.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "wch"
+  (Lam "upTo"
+  (App (Val exceptionDo)
+  (Let "upTo" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "upTo"))
+  (Let "wch" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wch"))
+  (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Event.ty)))) (Val #())))
+  (Let "last" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs")) (Val #false)))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.v3.WatchChan.ty))) (Var "wch"))
+  (App (App (Val (chan.forRange _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Var "$range"))
+  (Lam "$key"
+  (Let "wresp" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty))) (Var "$key"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Event.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty go!"Events"))) (Var "wresp")))
+  (Let "es" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Event.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "last")) (App (Val (GoInstruction (GoLoad go.int64))) (Var "upTo")))) (Val #false)))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs")) (Val #true)))
+  (App (Val doExecute)
+  (Val #())))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Var "es"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs"))
+  (Let "$a1" (Let "$sl0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e"))))))
+  (Let "$v1" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))))))
+  (Let "$v2" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Value"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))))))
+  (Let "$v3" (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e")))) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event_PUT)))
+  (App (Val (GoInstruction (CompositeLiteral Event.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Rev")) (ElementExpression go.int64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Val")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Put")) (ElementExpression go.bool (Var "$v3")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Event.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Event.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Event.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty go!"Kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Var "e"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "last") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Event.ty)))) (Pair (Var "evs") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)))) (Pair (Var "e") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))))) (Pair (Var "es") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.WatchResponse.ty) go!"Err"))) (Var "wresp")) (Val #())) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs")) (Val #false)))
+  (App (Val doExecute)
+  (Val #())))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "upTo")) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs")) (Val #true)))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+/-- Attempted reports whether (key, val) is one of the Puts tried.
+
+    go: watch.go:118:6 -/
+noncomputable def Attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tried"
+  (Lam "key"
+  (Lam "val"
+  (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "tried" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType KV.ty)))) (Var "tried"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #false))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType KV.ty)))) (Var "tried"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc KV.ty))) (App (Val (GoInstruction (GoZeroVal KV.ty))) (Val #())))
+  (App (App (Val (slice.forRange KV.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Key"))) (Var "p"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key")))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Val"))) (Var "p"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "val")))) (Val #false)))
+  (App (Val doReturn)
+  (Val #true))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore KV.ty))) (Pair (Var "p") (Var "$value"))))))))))))))))))
+
+/-- Check panics unless the events evs are the writes: all puts, at strictly increasing revisions,
+    gap-free from revision 2, each a put some writer attempted (tried), and every successful Put
+    (oks) the event at its revision with its key and value. Its panic messages start with name and
+    call a write put.
+
+    go: watch.go:131:6 -/
+noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "put"
+  (Lam "evs"
+  (Lam "tried"
+  (Lam "oks"
+  (App (Val exceptionDo)
+  (Let "oks" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType PutRec.ty)))) (Var "oks"))
+  (Let "tried" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType KV.ty)))) (Var "tried"))
+  (Let "evs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Event.ty)))) (Var "evs"))
+  (Let "put" (App (Val (GoInstruction (GoAlloc go.string))) (Var "put"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "prev" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType PutRec.ty)))) (Var "oks"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc PutRec.ty))) (App (Val (GoInstruction (GoZeroVal PutRec.ty))) (Val #())))
+  (App (App (Val (slice.forRange PutRec.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef PutRec.ty go!"Rev"))) (Var "p"))) (Val #(W64 2))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Event.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Event.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs")) (App (Val (GoInstruction (Convert go.int64 go.int))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "i"))))))
+  (Let "e" (App (Val (GoInstruction (GoAlloc Event.ty))) (App (Val (GoInstruction (GoZeroVal Event.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Key"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef PutRec.ty go!"Key"))) (Var "p")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Val"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef PutRec.ty go!"Val"))) (Var "p"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!": the event at a successful ")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "put")))) (Val #(go!"'s revision is not that ")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "put")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Event.ty))) (Pair (Var "e") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "i")) (Val #(W64 0)))) (Val #true) (App (Val (GoInstruction (GoOp GoGe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "i")) (App (Val (GoInstruction (Convert go.int go.int64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Event.ty)]))) (Val #())) (Var "$a0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!": a successful ")))) (App (Val (GoInstruction (GoLoad go.string))) (Var "put")))) (Val #(go!"'s revision was not watched")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore PutRec.ty))) (Pair (Var "p") (Var "$value"))))))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Event.ty)))) (Var "evs"))
+  (Let "e" (App (Val (GoInstruction (GoAlloc Event.ty))) (App (Val (GoInstruction (GoZeroVal Event.ty))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Event.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Rev"))) (Var "e")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "prev") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType KV.ty)))) (Var "tried"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Key"))) (Var "e")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Val"))) (Var "e")))
+  (App (App (App (App (Val (GoInstruction (FuncResolve Attempted []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!": a watched put no writer attempted")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Rev"))) (Var "e"))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))) (Val #(W64 2))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!": the watched revisions are not those from 2 on, without a gap")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoLe go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Rev"))) (Var "e"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "prev")))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!": the watched revisions do not increase")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Event.ty go!"Put"))) (Var "e"))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!": a watched event is not a put")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Event.ty))) (Pair (Var "e") (Var "$value")))))))))))))))))))))))))
+
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.common where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.context, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.common)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -380,15 +808,200 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))))
+
+structure KV [FfiSyntax] where
+  mk ::
+  Key' : GoString
+  Val' : GoString
+
+instance KV.zero_val [FfiSyntax] : ZeroVal KV :=
+  ⟨KV.mk zeroValDef zeroValDef⟩
+
+@[reducible] def KV.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Key" go.string),
+(go.field_decl.FieldDecl go!"Val" go.string)]
+
+@[irreducible] def KV.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  KV.fieldsUnsealed
+
+instance equals_unfold_KV [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold KV.fields KV.fieldsUnsealed :=
+  ⟨by unfold KV.fields; rfl⟩
+
+@[reducible] def KV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType KV.fields)
+
+class KV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying KV.underlying KV
+  underlying : go.UnderlyingDirectedEq KV.ty KV.underlying
+  get_Key : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KV)))
+  get_Val : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Val") #x (Val #(x.Val'))
+  set_Val : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : KV)))
+
+attribute [instance] KV.TypeAssumptions.type_repr
+  KV.TypeAssumptions.underlying
+  KV.TypeAssumptions.get_Key
+  KV.TypeAssumptions.set_Key
+  KV.TypeAssumptions.get_Val
+  KV.TypeAssumptions.set_Val
+
+structure PutRec [FfiSyntax] where
+  mk ::
+  Rev' : w64
+  Key' : GoString
+  Val' : GoString
+
+instance PutRec.zero_val [FfiSyntax] : ZeroVal PutRec :=
+  ⟨PutRec.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def PutRec.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Rev" go.int64),
+(go.field_decl.FieldDecl go!"Key" go.string),
+(go.field_decl.FieldDecl go!"Val" go.string)]
+
+@[irreducible] def PutRec.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  PutRec.fieldsUnsealed
+
+instance equals_unfold_PutRec [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold PutRec.fields PutRec.fieldsUnsealed :=
+  ⟨by unfold PutRec.fields; rfl⟩
+
+@[reducible] def PutRec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType PutRec.fields)
+
+class PutRec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying PutRec.underlying PutRec
+  underlying : go.UnderlyingDirectedEq PutRec.ty PutRec.underlying
+  get_Rev : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Rev") #x (Val #(x.Rev'))
+  set_Rev : ∀ (x : PutRec) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : PutRec)))
+  get_Key : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : PutRec)))
+  get_Val : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Val") #x (Val #(x.Val'))
+  set_Val : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : PutRec)))
+
+attribute [instance] PutRec.TypeAssumptions.type_repr
+  PutRec.TypeAssumptions.underlying
+  PutRec.TypeAssumptions.get_Rev
+  PutRec.TypeAssumptions.set_Rev
+  PutRec.TypeAssumptions.get_Key
+  PutRec.TypeAssumptions.set_Key
+  PutRec.TypeAssumptions.get_Val
+  PutRec.TypeAssumptions.set_Val
+
+structure Event [FfiSyntax] where
+  mk ::
+  Rev' : w64
+  Key' : GoString
+  Val' : GoString
+  Put' : Bool
+
+instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+  ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Rev" go.int64),
+(go.field_decl.FieldDecl go!"Key" go.string),
+(go.field_decl.FieldDecl go!"Val" go.string),
+(go.field_decl.FieldDecl go!"Put" go.bool)]
+
+@[irreducible] def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Event.fieldsUnsealed
+
+instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Event.fields Event.fieldsUnsealed :=
+  ⟨by unfold Event.fields; rfl⟩
+
+@[reducible] def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Event.fields)
+
+class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Event.underlying Event
+  underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
+  get_Rev : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Rev") #x (Val #(x.Rev'))
+  set_Rev : ∀ (x : Event) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Rev") (PairV #x #y) (Val #(({ x with Rev' := y } : Event)))
+  get_Key : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : Event)))
+  get_Val : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Val") #x (Val #(x.Val'))
+  set_Val : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Event)))
+  get_Put : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Put") #x (Val #(x.Put'))
+  set_Put : ∀ (x : Event) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Event)))
+
+attribute [instance] Event.TypeAssumptions.type_repr
+  Event.TypeAssumptions.underlying
+  Event.TypeAssumptions.get_Rev
+  Event.TypeAssumptions.set_Rev
+  Event.TypeAssumptions.get_Key
+  Event.TypeAssumptions.set_Key
+  Event.TypeAssumptions.get_Val
+  Event.TypeAssumptions.set_Val
+  Event.TypeAssumptions.get_Put
+  Event.TypeAssumptions.set_Put
+
+structure Writes [FfiSyntax] where
+  mk ::
+  Mu' : _root_.Perennial.sync.Mutex
+  Ok' : GoSlice
+
+instance Writes.zero_val [FfiSyntax] : ZeroVal Writes :=
+  ⟨Writes.mk zeroValDef zeroValDef⟩
+
+@[reducible] def Writes.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"Ok" (go.GoType.SliceType PutRec.ty))]
+
+@[irreducible] def Writes.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Writes.fieldsUnsealed
+
+instance equals_unfold_Writes [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Writes.fields Writes.fieldsUnsealed :=
+  ⟨by unfold Writes.fields; rfl⟩
+
+@[reducible] def Writes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Writes.fields)
+
+class Writes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Writes.underlying Writes
+  underlying : go.UnderlyingDirectedEq Writes.ty Writes.underlying
+  get_Mu : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Mu") #x (Val #(x.Mu'))
+  set_Mu : ∀ (x : Writes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Mu") (PairV #x #y) (Val #(({ x with Mu' := y } : Writes)))
+  get_Ok : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Ok") #x (Val #(x.Ok'))
+  set_Ok : ∀ (x : Writes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Ok") (PairV #x #y) (Val #(({ x with Ok' := y } : Writes)))
+
+attribute [instance] Writes.TypeAssumptions.type_repr
+  Writes.TypeAssumptions.underlying
+  Writes.TypeAssumptions.get_Mu
+  Writes.TypeAssumptions.set_Mu
+  Writes.TypeAssumptions.get_Ok
+  Writes.TypeAssumptions.set_Ok
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  KV_instance : KV.TypeAssumptions
+  PutRec_instance : PutRec.TypeAssumptions
+  Event_instance : Event.TypeAssumptions
+  Writes_instance : Writes.TypeAssumptions
   newServer_unfold : FuncUnfold newServer [] newServer.impl
   StartServer_unfold : FuncUnfold StartServer [] StartServer.impl
   NewMember_unfold : FuncUnfold NewMember [] NewMember.impl
   StartMember_unfold : FuncUnfold StartMember [] StartMember.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
+  Gen_unfold : FuncUnfold Gen [] Gen.impl
+  GenAll_unfold : FuncUnfold GenAll [] GenAll.impl
+  Writer_unfold : FuncUnfold Writer [] Writer.impl
+  MaxRev_unfold : FuncUnfold MaxRev [] MaxRev.impl
+  Collect_unfold : FuncUnfold Collect [] Collect.impl
+  Attempted_unfold : FuncUnfold Attempted [] Attempted.impl
+  Check_unfold : FuncUnfold Check [] Check.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
@@ -398,13 +1011,28 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
   import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
   import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
+  import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
 
-attribute [instance] Assumptions.newServer_unfold
+attribute [instance] Assumptions.KV_instance
+  Assumptions.PutRec_instance
+  Assumptions.Event_instance
+  Assumptions.Writes_instance
+  Assumptions.newServer_unfold
   Assumptions.StartServer_unfold
   Assumptions.NewMember_unfold
   Assumptions.StartMember_unfold
   Assumptions.Serve_unfold
   Assumptions.NewClient_unfold
+  Assumptions.Gen_unfold
+  Assumptions.GenAll_unfold
+  Assumptions.Writer_unfold
+  Assumptions.MaxRev_unfold
+  Assumptions.Collect_unfold
+  Assumptions.Attempted_unfold
+  Assumptions.Check_unfold
   Assumptions.import_net_Assumption
   Assumptions.import_http_Assumption
   Assumptions.import_zap_Assumption
@@ -414,6 +1042,10 @@ attribute [instance] Assumptions.newServer_unfold
   Assumptions.import_etcdserver_Assumption
   Assumptions.import_v3rpc_Assumption
   Assumptions.import_features_Assumption
+  Assumptions.import_context_Assumption
+  Assumptions.import_sync_Assumption
+  Assumptions.import_primitive_Assumption
+  Assumptions.import_mvccpb_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.common
 

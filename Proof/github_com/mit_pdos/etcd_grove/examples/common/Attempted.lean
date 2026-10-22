@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). The proof of `attempted`: the loop over `tried`. -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.attempted
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Attempted
 
 @[expose] public section
 
@@ -9,19 +9,19 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace linkv3p
+namespace common
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.mit_pdos.etcd_grove.examples.linkv3p
+open github_com.mit_pdos.etcd_grove.examples.common
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem attempted.wp_proof : attempted.spec (GF := GF) (hG := hG) := by
+theorem Attempted.wp_proof : Attempted.spec (GF := GF) (hG := hG) := by
   intro sl tried dq key val
   wp_start as Hs
   ihave %Hl := ownSlice_len $$ Hs
@@ -42,9 +42,9 @@ theorem attempted.wp_proof : attempted.spec (GF := GF) (hG := hG) := by
     wp_apply wp_load_slice_index sl (sint.Z j) tried dq x Hj.1 $$ [Hs] as Hs
     · iframe; ipureintro; exact Hx_lookup
     (try wp_auto)
-    by_cases hk : x.key' = key
+    by_cases hk : x.Key' = key
     · subst hk
-      by_cases hv : x.val' = val
+      by_cases hv : x.Val' = val
       · subst hv
         simp only [decide_true]
         wp_auto
@@ -91,6 +91,6 @@ theorem attempted.wp_proof : attempted.spec (GF := GF) (hG := hG) := by
 
 end proof
 
-end linkv3p
+end common
 end EtcdGrove
 end Perennial

@@ -8,6 +8,8 @@ import (
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
+
+	"github.com/mit-pdos/etcd-grove/examples/common"
 )
 
 // TestMainRun runs Main for real: one member in a fresh data directory (Main's DataDir is
@@ -36,67 +38,13 @@ func TestMainRun(t *testing.T) {
 	t.Logf("revision %d after Main, keys %d", resp.Header.Revision, len(resp.Kvs))
 }
 
-// mustPanic runs f and fails the test unless it panics.
-func mustPanic(t *testing.T, name string, f func()) {
-	t.Helper()
-	defer func() {
-		if recover() == nil {
-			t.Errorf("%s: no panic", name)
-		}
-	}()
-	f()
-}
-
-// TestCheck checks the checker on hand-made histories: a good one passes; a delete, a repeated or
-// decreasing revision, a gap, a put no writer attempted, a successful Put missing or different
-// each panic.
-func TestCheck(t *testing.T) {
-	tried := []kv{{"ck/k0", "a"}, {"ck/k1", "b"}, {"ck/k0", "c"}}
-	oks := []putRec{{2, "ck/k0", "a"}, {4, "ck/k0", "c"}}
-	good := []event{{2, "ck/k0", "a", true}, {3, "ck/k1", "b", true}, {4, "ck/k0", "c", true}}
-	check(good, tried, oks)
-	check(nil, tried, nil)
-
-	mustPanic(t, "delete", func() {
-		check([]event{{2, "ck/k0", "a", false}}, tried, nil)
-	})
-	mustPanic(t, "repeat", func() {
-		check([]event{{2, "ck/k0", "a", true}, {2, "ck/k1", "b", true}}, tried, nil)
-	})
-	mustPanic(t, "gap", func() {
-		check([]event{{2, "ck/k0", "a", true}, {4, "ck/k1", "b", true}}, tried, nil)
-	})
-	mustPanic(t, "start", func() {
-		check([]event{{3, "ck/k0", "a", true}}, tried, nil)
-	})
-	mustPanic(t, "unattempted", func() {
-		check([]event{{2, "ck/k2", "d", true}}, tried, nil)
-	})
-	mustPanic(t, "missing", func() {
-		check(good[:2], tried, oks)
-	})
-	mustPanic(t, "different", func() {
-		check(good, tried, []putRec{{3, "ck/k0", "a"}})
-	})
-}
-
-// TestMaxRev checks maxRev.
-func TestMaxRev(t *testing.T) {
-	if m := maxRev(nil); m != 0 {
-		t.Fatalf("maxRev(nil) = %d", m)
-	}
-	if m := maxRev([]putRec{{5, "a", "b"}, {9, "a", "b"}, {7, "a", "b"}}); m != 9 {
-		t.Fatalf("maxRev = %d", m)
-	}
-}
-
 // TestCollect checks collect on hand-made channels: it stops at the first event at or above upTo,
 // and reports false on a cancel (a compaction's, a rejection's) or a closed channel before it.
 func TestCollect(t *testing.T) {
 	ev := func(rev int64, key string) *clientv3.Event {
 		return &clientv3.Event{Kv: &mvccpb.KeyValue{Key: []byte(key), Value: []byte("a"), ModRevision: rev}}
 	}
-	run := func(upTo int64, resps ...clientv3.WatchResponse) ([]event, bool) {
+	run := func(upTo int64, resps ...clientv3.WatchResponse) ([]common.Event, bool) {
 		ch := make(chan clientv3.WatchResponse, len(resps))
 		for _, r := range resps {
 			ch <- r

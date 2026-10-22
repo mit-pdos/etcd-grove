@@ -47,17 +47,15 @@ linkv3p_startCluster: linkv3p_startMember linkv3p_startBridge linkv3p_newClient
 # the rest linkv3p's own)
 zap_NewNop:
 linkv3p_Main: zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_Check
-# `MainWatch` (W4 of `notes/watch-cut-plan.md`): watchkv's workload over the cluster: linkv3p's
-# copies of watchkv's helpers (`genPut`, `genAll`, `attempted`, `checkWatch`, `maxRev`, `writer`,
-# `collect`), the cluster's start, the partitioner, the client's options and `Watch`
-linkv3p_genPut:
-linkv3p_genAll: linkv3p_genPut
-linkv3p_attempted:
-linkv3p_checkWatch: linkv3p_attempted
-linkv3p_maxRev:
+# `MainWatch` (W4 of `notes/watch-cut-plan.md`): watchkv's workload over the cluster: the examples'
+# shared `GenAll`, `MaxRev`, `Collect` and `Check` (linked in `common`'s `Link.lean`), linkv3p's own
+# `writer` (each put through a client picked at random), the cluster's start, the partitioner, the
+# client's options and `Watch`
+common_GenAll: @
+common_MaxRev: @
+common_Collect: @
+common_Check: @
 linkv3p_writer:
-WatchResponse__Err: @
-linkv3p_collect: WatchResponse__Err
 getPrefix:
 WithPrefix: getPrefix
 WithRev:
@@ -65,4 +63,4 @@ WithProgressNotify:
 WithCreatedNotify:
 context_ErrAny: @
 watcher__Watch: @
-linkv3p_MainWatch: linkv3p_genAll zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_writer linkv3p_maxRev linkv3p_collect linkv3p_checkWatch context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
+linkv3p_MainWatch: common_GenAll zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_writer common_MaxRev common_Collect common_Check context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

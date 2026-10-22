@@ -13,6 +13,7 @@ most at `1` (`prog_wk`).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Workload
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WatchBase
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ClientLaws
 
 @[expose] public section
@@ -28,11 +29,8 @@ open go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [ext : FfiSyntax]
 
-/-- **The watch's position after `n` events** (see the file header). -/
-def Cur (n : Nat) (c : w64) : Prop :=
-  (n = 0 ∧ 0 ≤ sint.Z c ∧ sint.Z c ≤ 1) ∨ (1 ≤ n ∧ sint.Z c = 1 + n)
-
-theorem Cur_zero : Cur 0 (W64 0) := Or.inl ⟨rfl, by decide, by decide⟩
+/- **The watch's position after `n` events** (`common.Cur`). -/
+export common (Cur Cur_zero)
 
 /-- Revisions `0` and `1` of a watchkv log have no event. -/
 theorem revEvs_low {P : List (GoString × GoString)} {L : mvcc.Log} (h : WkLog P L)

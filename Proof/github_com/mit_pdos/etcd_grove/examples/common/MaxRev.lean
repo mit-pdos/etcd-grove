@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). The proof of `maxRev`: the loop keeping the maximum. -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.maxRev
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 
 @[expose] public section
 
@@ -9,18 +9,18 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace linkv3p
+namespace common
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.linkv3p
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.common
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem maxRev.wp_proof : maxRev.spec (GF := GF) (hG := hG) := by
+theorem MaxRev.wp_proof : MaxRev.spec (GF := GF) (hG := hG) := by
   intro sl oks dq
   wp_start as Hs
   ihave %Hl := ownSlice_len $$ Hs
@@ -28,7 +28,7 @@ theorem maxRev.wp_proof : maxRev.spec (GF := GF) (hG := hG) := by
   ihave HI : (∃ (j : w64) (p0 : wrec) (m : w64),
       "i" ∷ i_ptr ↦ j ∗ "p" ∷ p_ptr ↦ p0 ∗ "m" ∷ m_ptr ↦ m ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len ∧ 0 ≤ sint.Z m ∧
-        ∀ p ∈ oks.take (sint.nat j), sint.Z p.rev' ≤ sint.Z m⌝ : IProp GF) $$ [i p m]
+        ∀ p ∈ oks.take (sint.nat j), sint.Z p.Rev' ≤ sint.Z m⌝ : IProp GF) $$ [i p m]
   · iexists W64 0, _, W64 0
     iframe
     ipureintro; refine ⟨by word, by word, by word, ?_⟩
@@ -47,7 +47,7 @@ theorem maxRev.wp_proof : maxRev.spec (GF := GF) (hG := hG) := by
     · (try wp_auto)
       wp_for_post
       iframe
-      iexists j + W64 1, x, x.rev'
+      iexists j + W64 1, x, x.Rev'
       iframe
       ipureintro
       refine ⟨by word, by word, by word, ?_⟩
@@ -81,6 +81,6 @@ theorem maxRev.wp_proof : maxRev.spec (GF := GF) (hG := hG) := by
 
 end proof
 
-end linkv3p
+end common
 end EtcdGrove
 end Perennial

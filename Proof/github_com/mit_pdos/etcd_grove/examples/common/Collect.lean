@@ -1,8 +1,10 @@
-/- Lean-first (no Rocq counterpart). The proof of `collect`: the loop over the watch channel
-(`wp_etcdWatch_receive`), each response's events by `resp_wk`, the inner loop appending them. -/
+/- Lean-first (no Rocq counterpart). The proof of `Collect` (watchkv's `collect`'s, at the caller's
+model and response facts, 2026-10-22, D33): the loop over the watch channel
+(`wp_etcdWatch_receive`), each response's events by the caller's `Hresp`, the inner loop appending
+them. -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.collect
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
 public import Spec.go_etcd_io.etcd.client.v3.WatchResponse__Err
 
 @[expose] public section
@@ -15,22 +17,22 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace watchkv
+namespace common
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open go_etcd_io.etcd.server.v3.etcdserver github_com.mit_pdos.etcd_grove.examples.watchkv
+open go_etcd_io.etcd.server.v3.etcdserver github_com.mit_pdos.etcd_grove.examples.common
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
-    collect.spec (GF := GF) (hG := hG) := by
-  intro CS VS E γr P wch γ upTo hwl hlog hpk
-  wp_start as ⟨#Hw, Hcons, #Hinvs, #H0⟩
+theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
+    Collect.spec (GF := GF) (hG := hG) := by
+  intro CS EM R A P pfx wch γ upTo Hresp
+  wp_start as ⟨#Hw, Hcons, #HA⟩
   (try wp_auto)
   wp_if_destruct
   · -- `upTo == 0`: no event needed
@@ -51,8 +53,8 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
       "Hcap" ∷ ownSliceCap wev sl (DFrac.own 1) ∗ "Hcons" ∷ etcdWatchConsumer γ m c ∗
       "%Hc" ∷ ⌜Cur evs0.length c ∧ (evs0 ≠ [] → sint.Z lv = 1 + evs0.length) ∧
         ∀ (i : Nat) (e : wev), evs0[i]? = some e →
-          e.put' = true ∧ sint.Z e.rev' = 2 + i ∧ (e.key', e.val') ∈ P⌝ ∗
-      "#Hrevs" ∷ □ ∀ (i : Nat) (e : wev), ⌜evs0[i]? = some e⌝ -∗ revAt E (2 + i) e.key' e.val' :
+          e.Put' = true ∧ sint.Z e.Rev' = 2 + i ∧ (e.Key', e.Val') ∈ P⌝ ∗
+      "#Hrevs" ∷ □ ∀ (i : Nat) (e : wev), ⌜evs0[i]? = some e⌝ -∗ R (2 + i) e.Key' e.Val' :
       IProp GF) $$ [evs last Hcons]
   · iexists [], slice.nil, _, 0, W64 0
     iframe
@@ -65,7 +67,7 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     iintro !> %i %e %h
     simp at h
   wp_for IH
-  wp_apply (wp_etcdWatch_receive (EM := v3rpc.etcdModelOfServer E) wch γ wkPfx m c) $$ [Hcons]
+  wp_apply (wp_etcdWatch_receive wch γ pfx m c) $$ [Hcons]
     as %v %ok H
   · iframe #; iframe
   cases ok
@@ -79,7 +81,7 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
   simp only [↓reduceIte]
   imod H with ⟨%r, %c', #Hr, #Hok, Hcons⟩
   (try wp_auto)
-  ihave #Hcse := watchRespOk_closeErr' (EM := v3rpc.etcdModelOfServer E) wkPfx c c' v r $$ Hok
+  ihave #Hcse := watchRespOk_closeErr' pfx c c' v r $$ Hok
   wp_apply wp_Err wresp_ptr v (DFrac.own 1) $$ [$wresp $Hcse] as %err ⟨wresp, %Herr, -⟩
   cases err with
   | ok e =>
@@ -93,7 +95,7 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     have h := Herr.1 rfl
     unfold watchErr
     rintro (h' | h' | h') <;> simp_all
-  imod resp_wk E γr P hwl hlog hpk evs0.length c c' v r hnw Hc.1 $$ Hinvs H0 Hok
+  imod (Hresp evs0.length c c' v r hnw Hc.1) $$ HA Hok
     with ⟨%Hcur', #Hevf⟩
   iunfold respAt at Hr
   icases Hr with ⟨#Hevs, -, -⟩
@@ -107,9 +109,9 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z v.Events'.len ∧ ws.length = sint.nat j ∧
         (evs0 ++ ws ≠ [] → sint.Z lv' = 1 + (evs0 ++ ws).length) ∧
         ∀ (i : Nat) (w : wev), ws[i]? = some w →
-          w.put' = true ∧ sint.Z w.rev' = 2 + evs0.length + i ∧ (w.key', w.val') ∈ P⌝ ∗
+          w.Put' = true ∧ sint.Z w.Rev' = 2 + evs0.length + i ∧ (w.Key', w.Val') ∈ P⌝ ∗
       "#Hws" ∷ □ ∀ (i : Nat) (w : wev), ⌜ws[i]? = some w⌝ -∗
-        revAt E (2 + evs0.length + i) w.key' w.val' : IProp GF) $$ [i e evs last Hs Hcap]
+        R (2 + evs0.length + i) w.Key' w.Val' : IProp GF) $$ [i e evs last Hs Hcap]
   · iexists W64 0, _, sl, lv, []
     simp only [List.append_nil]
     iframe
@@ -133,7 +135,7 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     ihave #Hf := Hevf $$ %(sint.nat j) %e %he
     iunfold eventAt at Hea
     icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
-    iunfold evFact at Hf
+    iunfold evFactR at Hf
     icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
     iunfold kvValAt at Hkvv
     icases Hkvv with ⟨%kSl', %valSl, -, -, -, -, -, #Hvalf, #HvalS, -⟩
@@ -159,7 +161,7 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     wp_for_post
     iframe
     iexists j + W64 1, _, sl2, e.rev,
-      ws ++ [{ rev' := e.rev, key' := e.key, val' := kvv.value, put' := true }]
+      ws ++ [{ Rev' := e.rev, Key' := e.key, Val' := kvv.value, Put' := true }]
     rw [List.append_assoc]
     iframe
     isplitr
@@ -269,6 +271,6 @@ theorem collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
 
 end proof
 
-end watchkv
+end common
 end EtcdGrove
 end Perennial

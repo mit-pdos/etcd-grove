@@ -77,19 +77,19 @@ theorem writer.wp_proof :
     list_elem tried (sint.nat k) as x
     wp_apply wp_load_slice_index tsl (sint.Z k) tried DFrac.discard x Hb'.1 $$ [Ht] as -
     · iframe #; ipureintro; exact Hx_lookup
-    have hxP : (x.key', x.val') ∈ P := by
+    have hxP : (x.Key', x.Val') ∈ P := by
       rw [← hP]; exact List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
     -- the writer's update, at every member's names
     have hau := client.bigAndL_of_sep ms (watchkv.wkKV (GF := GF) γr)
       (fun y : client.SrvAt GF => memberPut γr y)
       (fun y : client.SrvAt GF =>
-        kvOpAu1 y.γr.kv (.put (client.putKeyOp x.key' x.val')) (fun _ => iprop(True)))
+        kvOpAu1 y.γr.kv (.put (client.putKeyOp x.Key' x.Val')) (fun _ => iprop(True)))
       (fun y _ => by
         iintro ⟨#Hk, #Hm⟩
         iunfold memberPut at Hm
         icases Hm with ⟨-, -, -, %h⟩
         rw [kvOpAu1_congr y.γr.kv γr.kv h.2.1 h.2.2]
-        iapply watchkv.put_au γr P hwl x.key' x.val' hxP $$ Hk)
+        iapply watchkv.put_au γr P hwl x.Key' x.Val' hxP $$ Hk)
     ihave Hau := hau $$ [Hkv Hms]
     · iframe #
     (try wp_auto)
@@ -132,7 +132,7 @@ theorem writer.wp_proof :
       Hcl_lookup) $$ Hcl
     icases Hc with ⟨#Hnc, #Hwo⟩
     -- `resp, err := cli.Put(ctx, p.key, p.val)`
-    wp_apply (client_Put_hist cl ms V context.backgroundCtxVal cd x.key' x.val' slice.nil
+    wp_apply (client_Put_hist cl ms V context.backgroundCtxVal cd x.Key' x.Val' slice.nil
         (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
     · iframe #; iexact Hau
     icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | %Herr)
@@ -140,7 +140,7 @@ theorem writer.wp_proof :
       ihave #Hy := (BigSepL.bigSepL_mem (Φ := fun y => memberPut (GF := GF) γr y) hy) $$ Hms
       iunfold memberPut at Hy
       icases Hy with ⟨-, #Hinvs, -, %hmy⟩
-      imod okFactH_of_reply γr y.E y.γr hmy.1 hrb [] x.key' x.val' _ y.cid y.mid m
+      imod okFactH_of_reply γr y.E y.γr hmy.1 hrb [] x.Key' x.Val' _ y.cid y.mid m
         $$ Hinvs Hr with #Hok
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [] as ⟨Hown, Hinv⟩
@@ -152,7 +152,7 @@ theorem writer.wp_proof :
       iunfold hdrFull at Hhf
       icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
       (try wp_auto)
-      wp_apply wp_slice_literal (l := [(⟨m.hdr.revision, x.key', x.val'⟩ : wrec)])
+      wp_apply wp_slice_literal (l := [(⟨m.hdr.revision, x.Key', x.Val'⟩ : wrec)])
       isplitr
       · ipureintro; rfl
       iintro %l1 ⟨Hl1, _⟩
@@ -161,12 +161,12 @@ theorem writer.wp_proof :
       wp_apply wp_slice_append $$ [$Hos $Hocap $Hl1] as %osl' ⟨Hos, Hocap, -⟩
       (try wp_auto)
       wp_apply (sync.Mutex.wp_Unlock (structFieldRef
-          github_com.mit_pdos.etcd_grove.examples.linkv3p.writes go!"mu" w) (wsInvH w γr))
+          github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w) (wsInvH w γr))
         $$ [Hown Hof Hos Hocap]
       · iframe #
         iframe Hown
         iunfold wsInvH
-        iexists osl', oks ++ [⟨m.hdr.revision, x.key', x.val'⟩]
+        iexists osl', oks ++ [⟨m.hdr.revision, x.Key', x.Val'⟩]
         iframe
         inext
         imodintro

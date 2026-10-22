@@ -104,15 +104,10 @@ theorem revAtH_agree (γr : ReadNames) (r : Nat) (k v k' v' : GoString) :
   exact e
 
 /-- **A watched event `e`, the put at revision `r` of the history** (persistent; watchkv's
-`evFact`). -/
-def evFactH (γr : ReadNames) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
+`evFact`: `common.evFactR` at `revAtH`). -/
+abbrev evFactH (γr : ReadNames) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
     IProp GF :=
-  iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
-    kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ revAtH γr r e.key v)
-
-instance evFactH_persistent (γr : ReadNames) (P : List (GoString × GoString)) (r : Nat)
-    (e : EvModel) : Persistent (evFactH (GF := GF) γr P r e) := by
-  unfold evFactH; infer_instance
+  common.evFactR (revAtH γr) P r e
 
 /-- **The chain of a watch's batches at the cluster** (watchkv's `chain_wk`, over the history). -/
 theorem chain_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
@@ -167,6 +162,7 @@ theorem chain_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × 
         Option.some.injEq] at hj
       subst hj
       iunfold evFactH
+      iunfold common.evFactR
       isplitr
       · ipureintro
         refine ⟨hty, ?_⟩
@@ -260,6 +256,7 @@ theorem resp_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × G
     simp at hlast
     ihave #Hf := Hch $$ %(r.events.length - 1) %el %hel
     iunfold evFactH at Hf
+    iunfold common.evFactR at Hf
     icases Hf with ⟨%Hfe, -⟩
     imodintro
     isplitr
@@ -272,7 +269,7 @@ theorem resp_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × G
 /-- **What the program knows of a successful put it logged** (persistent; watchkv's `okFact`,
 over the history). -/
 def okFactH (γr : ReadNames) (p : wrec) : IProp GF :=
-  iprop(⌜2 ≤ sint.Z p.rev'⌝ ∗ revAtH γr (sint.Z p.rev').toNat p.key' p.val')
+  iprop(⌜2 ≤ sint.Z p.Rev'⌝ ∗ revAtH γr (sint.Z p.Rev').toNat p.Key' p.Val')
 
 instance okFactH_persistent (γr : ReadNames) (p : wrec) :
     Persistent (okFactH (GF := GF) γr p) := by

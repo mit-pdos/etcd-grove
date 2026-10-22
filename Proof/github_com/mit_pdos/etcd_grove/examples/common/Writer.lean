@@ -2,7 +2,7 @@
 successful Put's reply gives `okFact` (`okFact_of_reply`), logged under the lock. -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.writer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Writer
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
 
@@ -16,20 +16,20 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace cachekv
+namespace common
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.cachekv
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.common
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem writer.wp_proof :
-    writer.spec (GF := GF) (hG := hG) := by
-  intro CS cl ep V E γr cid mid w tsl tried lo hi P γm hAs hwl hP hlo hlh hhi
+theorem Writer.wp_proof :
+    Writer.spec (GF := GF) (hG := hG) := by
+  intro CS cl ep V E γr cid mid w tsl tried lo hi hAs hlo hlh hhi
   wp_start as ⟨#Hnc, #Hone, #Hput, #Ht, #Hkv, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -61,9 +61,9 @@ theorem writer.wp_proof :
     list_elem tried (sint.nat k) as x
     wp_apply wp_load_slice_index tsl (sint.Z k) tried DFrac.discard x Hb'.1 $$ [Ht] as -
     · iframe #; ipureintro; exact Hx_lookup
-    have hxP : (x.key', x.val') ∈ P := by
-      rw [← hP]; exact List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
-    ihave Hau := put_au γr γm P hwl x.key' x.val' hxP $$ Hkv
+    have hxP : (x.Key', x.Val') ∈ tried.map pairOf :=
+      List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
+    ihave Hau := Hkv $$ %x.Key' %x.Val' %hxP
     (try wp_auto)
     ihave #Hput1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
         isGrpcRpc y.addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec y.E y.γr y.cid y.mid) $$ []
@@ -72,7 +72,7 @@ theorem writer.wp_proof :
         mvcc.idxCert y.E.γ.idx [] $$ []
     · iapply BigSepL.bigSepL_singleton.2; iexact HF0
     wp_apply (client.client_Put_rep cl [⟨ep, E, γr, cid, mid⟩] V context.backgroundCtxVal cd
-        x.key' x.val' slice.nil (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
+        x.Key' x.Val' slice.nil (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
     · iframe #
       isplitr; · iExactEq Hnc; rfl
       isplitr; · iExactEq Hone; rfl
@@ -80,7 +80,7 @@ theorem writer.wp_proof :
     icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | %Herr)
     · simp only [List.mem_singleton] at hy
       subst hy Herr
-      ihave #Hok := okFact_of_reply E γr [] x.key' x.val' _ cid mid m $$ Hr
+      ihave #Hok := okFact_of_reply E γr [] x.Key' x.Val' _ cid mid m $$ Hr
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [] as ⟨Hown, Hinv⟩
       · iframe #
@@ -91,7 +91,7 @@ theorem writer.wp_proof :
       iunfold hdrFull at Hhf
       icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
       (try wp_auto)
-      wp_apply wp_slice_literal (l := [(⟨m.hdr.revision, x.key', x.val'⟩ : crec)])
+      wp_apply wp_slice_literal (l := [(⟨m.hdr.revision, x.Key', x.Val'⟩ : wrec)])
       isplitr
       · ipureintro; rfl
       iintro %l1 ⟨Hl1, _⟩
@@ -99,11 +99,11 @@ theorem writer.wp_proof :
       (try wp_auto)
       wp_apply wp_slice_append $$ [$Hos $Hocap $Hl1] as %osl' ⟨Hos, Hocap, -⟩
       (try wp_auto)
-      wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.cachekv.writes go!"mu" w) (wsInv w E)) $$ [Hown Hof Hos Hocap]
+      wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w) (wsInv w E)) $$ [Hown Hof Hos Hocap]
       · iframe #
         iframe Hown
         iunfold wsInv
-        iexists osl', oks ++ [⟨m.hdr.revision, x.key', x.val'⟩]
+        iexists osl', oks ++ [⟨m.hdr.revision, x.Key', x.Val'⟩]
         iframe
         inext
         imodintro
@@ -129,6 +129,6 @@ theorem writer.wp_proof :
 
 end proof
 
-end cachekv
+end common
 end EtcdGrove
 end Perennial

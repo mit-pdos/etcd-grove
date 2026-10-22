@@ -156,6 +156,7 @@ theorem certChain_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString �
         Option.some.injEq] at hj
       subst hj
       iunfold watchkv.evFact
+      iunfold common.evFactR
       isplitr
       · ipureintro
         refine ⟨hty, ?_⟩
@@ -210,6 +211,7 @@ theorem log_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoSt
       by_cases hj : bs.flatten[j]? = some e
       · ihave Hf := Hb $$ %j %e %hj
         iunfold watchkv.evFact at Hf
+        iunfold common.evFactR at Hf
         icases Hf with ⟨-, %v, %kvv, -, %Hv, -⟩
         ipureintro; intro _; exact hkeys _ Hv.2
       · ipureintro; intro h; exact absurd h hj

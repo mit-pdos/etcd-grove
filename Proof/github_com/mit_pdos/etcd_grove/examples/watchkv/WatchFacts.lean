@@ -26,6 +26,8 @@ namespace watchkv
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
+export common (isProgressNotify_events' wp_etcdWatch_receive watchRespOk_closeErr')
+
 section facts
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -34,11 +36,10 @@ variable [sem : go.Semantics]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **A watched event `e`, the put at revision `r`** (persistent; see the file header). -/
-def evFact (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
+/-- **An event's facts at revision `r`** at the store `E` (`common.evFactR` at `revAt E`). -/
+abbrev evFact (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
     IProp GF :=
-  iprop(⌜e.typ = W32 0 ∧ sint.Z e.rev = r⌝ ∗ ∃ (v : GoString) (kvv : EtcdKv),
-    kvValAt e.kv kvv ∗ ⌜kvv.value = v ∧ (e.key, v) ∈ P⌝ ∗ revAt E r e.key v)
+  common.evFactR (revAt E) P r e
 
 theorem putNv_value (r : w64) (k val : GoString) (l : w64) (s : List EtcdKv) :
     (txn.putNv r k val l s).value = val := by
@@ -106,6 +107,7 @@ theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × Go
         Option.some.injEq] at hj
       subst hj
       iunfold evFact
+      iunfold common.evFactR
       isplitr
       · ipureintro
         refine ⟨hty, ?_⟩
@@ -126,12 +128,6 @@ theorem chain_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × Go
       ihave H := Hrest $$ %j %e %hj
       rw [show 2 + n + (j + 1) = 2 + (n + 1) + j by omega]
       iexact H
-
-theorem isProgressNotify_events' {r : RespModel} (h : r.isProgressNotify = true) :
-    r.events = [] := by
-  unfold RespModel.isProgressNotify at h
-  simp only [Bool.and_eq_true, List.isEmpty_iff] at h
-  exact h.1.1.1.1
 
 /-- **A progress step at a watchkv server** stays at the position or, before the first event,
 moves to at most `1`. -/
@@ -208,6 +204,7 @@ theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoS
     simp at hlast
     ihave #Hf := Hch $$ %(r.events.length - 1) %el %hel
     iunfold evFact at Hf
+    iunfold common.evFactR at Hf
     icases Hf with ⟨%Hfe, -⟩
     imodintro
     isplitr
@@ -216,41 +213,6 @@ theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoS
       refine ⟨by omega, ?_⟩
       rw [← hlast, Hfe.2]; push_cast; omega
     iexact Hch
-
-/-- **Receiving from a client watch channel** (`etcdWatch_recv_au` as a triple). -/
-theorem wp_etcdWatch_receive [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
-    (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n : Nat) (cursor : w64) :
-    {{ isEtcdWatchChan ch γ pfx ∗ etcdWatchConsumer γ n cursor }}
-      (App (Val (chan.receive go_etcd_io.etcd.client.v3.WatchResponse.ty)) (Val #ch))
-    {{ (v : go_etcd_io.etcd.client.v3.WatchResponse) (ok : Bool), RET (PairV #v #ok);
-        (if ok then iprop(|==> ∃ (r : RespModel) (c' : w64), respAt (GF := GF) v r ∗
-            watchRespOk pfx cursor c' v r ∗ etcdWatchConsumer γ (n + 1) c')
-         else iprop(⌜v = zero_val go_etcd_io.etcd.client.v3.WatchResponse⌝)) }} := by
-  iintro %Φ ⟨#Hw, Hcons⟩ HΦ
-  ihave #Hch : isChan ch γ.spsc.chanName go_etcd_io.etcd.client.v3.WatchResponse $$ [Hw]
-  · iunfold isEtcdWatchChan at Hw
-    icases Hw with ⟨%Pw, #Hsp, -⟩
-    iunfold isSpsc at Hsp; icases Hsp with ⟨$, -⟩
-  iapply chan.wp_receive ch γ.spsc.chanName $$ Hch
-  iintro ⟨Hlc1, Hlc2, _, _⟩
-  iapply etcdWatch_recv_au ch γ pfx n cursor (fun v ok => Φ (PairV #v #ok)) $$ Hw [$Hlc1 $Hlc2] Hcons
-  inext
-  iintro %v %ok H
-  iapply HΦ $$ %v %ok H
-
-/-- The close error of a response etcd's watch contract allows is one grpc's `status` accepts (as
-the cache's `watchRespOk_closeErr`). -/
-theorem watchRespOk_closeErr' [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
-    (pfx : GoString) (k k' : w64)
-    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
-    watchRespOk (GF := GF) pfx k k' v r ⊢ go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr' := by
-  unfold watchRespOk
-  iintro (⟨%H, #He⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
-  · iexact He
-  all_goals
-    have hn : v.closeErr' = GoInterface.nil :=
-      Classical.byContradiction fun h => H.1 (Or.inl h)
-    rw [hn]; iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
 
 end facts
 

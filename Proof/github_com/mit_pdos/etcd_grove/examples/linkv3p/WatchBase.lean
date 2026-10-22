@@ -10,6 +10,7 @@ may return), `CheckOk` (what `checkWatch` needs not to panic).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WatchBase
 
 @[expose] public section
 
@@ -25,9 +26,9 @@ section pure
 variable [ext : FfiSyntax]
 
 /-- The program's structs (`kv`, `event`, `putRec`), by short names. -/
-abbrev wkv := github_com.mit_pdos.etcd_grove.examples.linkv3p.kv
-abbrev wev := github_com.mit_pdos.etcd_grove.examples.linkv3p.event
-abbrev wrec := github_com.mit_pdos.etcd_grove.examples.linkv3p.putRec
+abbrev wkv := common.wkv
+abbrev wev := common.wev
+abbrev wrec := common.wrec
 
 /-- The prefix the writers' keys are under and the watch covers. -/
 abbrev wkPfx : GoString := go!"wk/"
@@ -35,24 +36,9 @@ abbrev wkPfx : GoString := go!"wk/"
 /-- The keys `genPut` picks from. -/
 abbrev genKeys : List GoString := [go!"wk/k0", go!"wk/k1", go!"wk/k2"]
 
-/-- The values `genPut` picks from. -/
-abbrev genVals : List GoString := [go!"a", go!"b", go!"c", go!"d"]
-
-/-- A `kv`'s key and value. -/
-def pairOf (p : wkv) : GoString × GoString := (p.key', p.val')
-
-/-- A `kv` `genPut` may return. -/
-def GenKv (p : wkv) : Prop := p.key' ∈ genKeys ∧ p.val' ∈ genVals
-
-/-- **What `checkWatch` needs not to panic** (watchkv's `CheckOk`): the events are puts at
-revisions `2, 3, ...` (one per revision, in order), each of a key and value tried, fewer than
-`2 ^ 63 - 1`; and each successful put is the event at its revision with its key and value. -/
-def CheckOk (evs : List wev) (tried : List wkv) (oks : List wrec) : Prop :=
-  evs.length + 1 < 2 ^ 63 ∧
-  (∀ (i : Nat) (e : wev), evs[i]? = some e →
-    e.put' = true ∧ sint.Z e.rev' = 2 + i ∧ (e.key', e.val') ∈ tried.map pairOf) ∧
-  (∀ p ∈ oks, 2 ≤ sint.Z p.rev' ∧ ∃ e, evs[(sint.Z p.rev' - 2).toNat]? = some e ∧
-    e.key' = p.key' ∧ e.val' = p.val')
+/- The values `Gen` picks from, a `KV`'s pair, a `KV` `Gen` may return, what `Check` needs not to
+panic: the shared start's (`common/WatchBase.lean`). -/
+export common (genVals pairOf GenKv CheckOk)
 
 end pure
 

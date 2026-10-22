@@ -5,14 +5,13 @@
 # (`primitive.RandomUint64`, `context.Background`, `context.WithCancel`, `sync.Mutex`,
 # `sync.WaitGroup`), which the proofs use directly.
 #
-# the program's own functions
-cachekv_Gen:
-cachekv_genAll: cachekv_Gen
-cachekv_attempted:
-cachekv_check: cachekv_attempted
-cachekv_maxRev:
-cachekv_writer:
+# the program's own functions: its `collect`; the watch workload's other functions are the
+# examples' shared ones (`common`'s, linked in its `Link.lean`)
 cachekv_collect:
+common_GenAll: @
+common_Writer: @
+common_MaxRev: @
+common_Check: @
 # the cache watch's options (client/v3/op.go)
 getPrefix:
 WithPrefix: getPrefix
@@ -21,7 +20,7 @@ WithRev:
 # `Serve`, `NewClient`, linked in its `Link.lean`; zap's trust-boundary axiom), the cache's
 # client (the client's watcher's `Watch` and `RequestProgress`, linked in the client's
 # `Link.lean`; a context's `Err`, in `context`'s), the cache's `New` and `Watch` (linked in the
-# cache's `Link.lean`), then the writers, `collect` and `check`
+# cache's `Link.lean`), then the writers, `collect` and `Check`
 context_ErrAny: @
 watcher__Watch: @
 watcher__RequestProgress: @
@@ -31,4 +30,4 @@ common_StartServer: @
 common_Serve: @
 common_NewClient: @
 zap_NewNop:
-cachekv_Main: cachekv_genAll cachekv_writer cachekv_maxRev cachekv_collect cachekv_check zap_NewNop common_StartServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch
+cachekv_Main: common_GenAll common_Writer common_MaxRev cachekv_collect common_Check zap_NewNop common_StartServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev watcher__RequestProgress cache_v3_New Cache__Watch

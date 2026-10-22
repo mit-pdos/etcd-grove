@@ -25,3 +25,14 @@ common_Serve: v3rpc_Server net_Listen grpc_Server__Serve
 # `NewClient`: a client of one address (the client's `New`, linked in its `Link.lean`)
 client_v3_New: @
 common_NewClient: client_v3_New
+# the watch workload's shared part (`watch.go`): `Gen`, `GenAll`, `MaxRev`, `Attempted`, `Check`,
+# `Writer` (over the client's `Put`, which its proof uses directly) and `Collect` (a watch
+# response's `Err`, linked in the client's `Link.lean`)
+common_Gen:
+common_GenAll: common_Gen
+common_MaxRev:
+common_Attempted:
+common_Check: common_Attempted
+common_Writer:
+WatchResponse__Err: @
+common_Collect: WatchResponse__Err

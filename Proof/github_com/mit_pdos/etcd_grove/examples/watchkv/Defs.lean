@@ -16,6 +16,7 @@
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WatchBase
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.LogFacts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Defs
 
@@ -36,9 +37,9 @@ section pure
 variable [ext : FfiSyntax]
 
 /-- The program's structs (`kv`, `event`, `putRec`), by short names. -/
-abbrev wkv := github_com.mit_pdos.etcd_grove.examples.watchkv.kv
-abbrev wev := github_com.mit_pdos.etcd_grove.examples.watchkv.event
-abbrev wrec := github_com.mit_pdos.etcd_grove.examples.watchkv.putRec
+abbrev wkv := common.wkv
+abbrev wev := common.wev
+abbrev wrec := common.wrec
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23841`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
@@ -63,24 +64,9 @@ abbrev wkPfx : GoString := go!"wk/"
 /-- The keys `Gen` picks from. -/
 abbrev genKeys : List GoString := [go!"wk/k0", go!"wk/k1", go!"wk/k2"]
 
-/-- The values `Gen` picks from. -/
-abbrev genVals : List GoString := [go!"a", go!"b", go!"c", go!"d"]
-
-/-- A `kv`'s key and value. -/
-def pairOf (p : wkv) : GoString × GoString := (p.key', p.val')
-
-/-- A `kv` `Gen` may return. -/
-def GenKv (p : wkv) : Prop := p.key' ∈ genKeys ∧ p.val' ∈ genVals
-
-/-- **What `check` needs not to panic**: the events are puts at revisions `2, 3, ...` (one per
-revision, in order), each of a key and value tried, fewer than `2 ^ 63 - 1`; and each successful Put
-is the event at its revision with its key and value. -/
-def CheckOk (evs : List wev) (tried : List wkv) (oks : List wrec) : Prop :=
-  evs.length + 1 < 2 ^ 63 ∧
-  (∀ (i : Nat) (e : wev), evs[i]? = some e →
-    e.put' = true ∧ sint.Z e.rev' = 2 + i ∧ (e.key', e.val') ∈ tried.map pairOf) ∧
-  (∀ p ∈ oks, 2 ≤ sint.Z p.rev' ∧ ∃ e, evs[(sint.Z p.rev' - 2).toNat]? = some e ∧
-    e.key' = p.key' ∧ e.val' = p.val')
+/- The values `Gen` picks from, a `KV`'s pair, a `KV` `Gen` may return, what `Check` needs not to
+panic: the shared start's (`common/WatchBase.lean`). -/
+export common (genVals pairOf GenKv CheckOk)
 
 end pure
 
@@ -120,43 +106,9 @@ instance premises_persistent (N : Nat) (id : w64) (bootLog : List EntryM) :
 
 end defs
 
-section rev
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+/- **Revision `r` of the store is the put of `k ↦ v`** (`common.revAt`, with its agreement). -/
+export common (revAt revAt_persistent revAt_agree)
 
-/-- **Revision `r` of the store is the put of `k ↦ v`** (persistent): a sealed log of the store
-`E.γ` has it. -/
-def revAt (E : apply.AEnv GF) (r : Nat) (k v : GoString) : IProp GF :=
-  iprop(∃ L : mvcc.Log, mvcc.idxSealed E.γ.idx L ∗ ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝)
-
-instance revAt_persistent (E : apply.AEnv GF) (r : Nat) (k v : GoString) :
-    Persistent (revAt (GF := GF) E r k v) := by
-  unfold revAt; infer_instance
-
-/-- **Two `revAt`s of one revision agree.** -/
-theorem revAt_agree (E : apply.AEnv GF) (r : Nat) (k v k' v' : GoString) :
-    revAt (GF := GF) E r k v ∗ revAt E r k' v' ⊢ ⌜k = k' ∧ v = v'⌝ := by
-  unfold revAt
-  iintro ⟨⟨%L, #H, %h⟩, ⟨%L', #H', %h'⟩⟩
-  ihave %Hp := mvcc.idxSealed_prefix E.γ.idx L L' $$ [H H']
-  · isplit
-    · iexact H
-    · iexact H'
-  ipureintro
-  have hrL : r < L.length := (List.getElem?_eq_some_iff.mp h).1
-  have hrL' : r < L'.length := (List.getElem?_eq_some_iff.mp h').1
-  have e : L[r]? = L'[r]? := by
-    rcases Hp with ⟨t, rfl⟩ | ⟨t, rfl⟩
-    · rw [List.getElem?_append_left hrL]
-    · rw [List.getElem?_append_left hrL']
-  rw [h, h'] at e
-  simp at e
-  exact e
-
-end rev
 
 end watchkv
 end EtcdGrove

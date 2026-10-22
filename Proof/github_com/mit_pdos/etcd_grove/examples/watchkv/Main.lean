@@ -19,11 +19,13 @@ start step's error ends `Main` with `Failed`; `collect`'s `false` with `WatchEnd
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.Main
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.genAll
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.writer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.maxRev
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.collect
-public import Spec.github_com.mit_pdos.etcd_grove.examples.watchkv.check
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.GenAll
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Writer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Collect
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.WatchFacts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Writes
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
@@ -66,52 +68,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions]
 
-omit package_sem in
-/-- **The check's premise** (`CheckOk`), from what `collect` returns at `upTo` (`collectOk`) and
-the successful Puts' facts (`okFact`), their revisions at most `upTo`: each Put's revision is a
-watched event's (`collectOk`: the events reach `upTo`), whose key and value are the Put's
-(`revAt_agree`). -/
-theorem checkOk_of [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-    (E : apply.AEnv GF) (trs : List wkv) (upTo : w64) (evs : List wev) (oks : List wrec)
-    (hup : ∀ p ∈ oks, sint.Z p.rev' ≤ sint.Z upTo) :
-    collectOk E (trs.map pairOf) upTo evs ∗ □ ([∗list] p ∈ oks, okFact E p) ⊢
-      ⌜CheckOk evs trs oks⌝ := by
-  unfold collectOk
-  iintro ⟨⟨%Hc, #Hrevs⟩, #Hoks⟩
-  obtain ⟨hup0, hlen, hevs⟩ := Hc
-  ihave %H : ⌜∀ p, p ∈ oks → 2 ≤ sint.Z p.rev' ∧ ∃ e, evs[(sint.Z p.rev' - 2).toNat]? = some e ∧
-      e.key' = p.key' ∧ e.val' = p.val'⌝ $$ []
-  · iapply BI.pure_forall.2
-    iintro %p
-    by_cases hp : p ∈ oks
-    · obtain ⟨k, hk⟩ := List.mem_iff_getElem?.mp hp
-      ihave Hf := BigSepL.bigSepL_lookup (Φ := fun _ p => okFact (GF := GF) E p) hk $$ Hoks
-      iunfold okFact at Hf
-      icases Hf with ⟨%h2, #Hra⟩
-      have hle := hup p hp
-      have hlt : (sint.Z p.rev' - 2).toNat < evs.length := by
-        rcases hup0 with h0 | h0
-        · rw [h0] at hle; simp at hle; omega
-        · omega
-      obtain ⟨e, he⟩ : ∃ e, evs[(sint.Z p.rev' - 2).toNat]? = some e :=
-        ⟨_, List.getElem?_eq_getElem hlt⟩
-      have hidx : 2 + (sint.Z p.rev' - 2).toNat = (sint.Z p.rev').toNat := by omega
-      ihave #He : revAt E (sint.Z p.rev').toNat e.key' e.val' $$ []
-      · rw [← hidx]; iapply Hrevs; ipureintro; exact he
-      ihave %Hag := revAt_agree E (sint.Z p.rev').toNat e.key' e.val' p.key' p.val' $$ [He Hra]
-      · iframe #
-      ipureintro; intro _; exact ⟨h2, e, he, Hag.1, Hag.2⟩
-    · ipureintro; intro h; exact absurd h hp
-  ipureintro
-  exact ⟨hlen, hevs, H⟩
-
 set_option maxHeartbeats 1600000 in
 theorem Main.wp_proof
-    (wp_genAll : genAll.spec (GF := GF) (hG := hG))
-    (wp_writer : writer.spec (GF := GF) (hG := hG))
-    (wp_maxRev : maxRev.spec (GF := GF) (hG := hG))
-    (wp_collect : collect.spec (GF := GF) (hG := hG))
-    (wp_check : check.spec (GF := GF) (hG := hG))
+    (wp_GenAll : common.GenAll.spec (GF := GF) (hG := hG))
+    (wp_Writer : common.Writer.spec (GF := GF) (hG := hG))
+    (wp_MaxRev : common.MaxRev.spec (GF := GF) (hG := hG))
+    (wp_Collect : common.Collect.spec (GF := GF) (hG := hG))
+    (wp_Check : common.Check.spec (GF := GF) (hG := hG))
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_StartServer : common.StartServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
@@ -144,13 +107,22 @@ theorem Main.wp_proof
   · iPkgInit
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  -- `tried := genAll(nw * nops)`: the Puts, picked before the member starts
+  -- `tried := common.GenAll(nw*nops, keys)`: the Puts, picked before the member starts
   have hmul : sint.Z (nw * nops) = sint.Z nw * sint.Z nops := by
     have h1 : 0 ≤ sint.Z nw * sint.Z nops := Int.mul_nonneg H0 Hops
     word
   (try wp_auto)
-  wp_apply (wp_genAll (nw * nops) (by rw [hmul]; exact Int.mul_nonneg H0 Hops))
-    as %tsl ⟨%trs, Htrs, %Htrs⟩
+  wp_apply wp_slice_literal (l := genKeys)
+  isplitr
+  · ipureintro; rfl
+  iintro %ksl ⟨Hks, -⟩
+  simp only [go.arrayLiteralSize, List.foldl, Int.reduceAdd,
+    show max (max (3 : Int) 0) 0 = 3 from rfl]
+  imod ownSlice_persist _ _ _ $$ Hks with #Hks
+  (try wp_auto)
+  wp_apply (wp_GenAll (nw * nops) _ genKeys (by rw [hmul]; exact Int.mul_nonneg H0 Hops)
+      (by decide) (by decide)) as %tsl ⟨%trs, Htrs, %Htrs⟩
+  · iframe #
   imod ownSlice_persist _ _ _ $$ Htrs with #Htrs
   have hpk : ∀ kv ∈ trs.map pairOf, wkPfx <+: kv.1 := by
     intro kv hkv
@@ -385,7 +357,7 @@ theorem Main.wp_proof
   try simp only [TypedPointsto.typedPointstoDef]
   icases Hr0 with ⟨mu, ok, -⟩
   imod sync.init_Mutex (wsInv «$r0_ptr» R.E) ⊤
-      (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"mu" «$r0_ptr»)
+      (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" «$r0_ptr»)
     $$ mu [ok] with #Hmu
   · inext
     iunfold wsInv
@@ -434,9 +406,9 @@ theorem Main.wp_proof
     ipersist lo
     wp_apply wp_fork $$ [Hdone]
     · (try wp_auto)
-      wp_apply (wp_writer cl go!"127.0.0.1:23831" (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null)
-          R.E ρ.rd cid mid «$r0_ptr» tsl trs (k * nops) (k * nops + nops) (trs.map pairOf) hAs hwl
-          rfl (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
+      wp_apply (wp_Writer cl go!"127.0.0.1:23831" (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null)
+          R.E ρ.rd cid mid «$r0_ptr» tsl trs (k * nops) (k * nops + nops) hAs
+          (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
           (by
             rw [hhi, Htrs.1]
             have h2 : (sint.Z k + 1) * sint.Z nops ≤ sint.Z nw * sint.Z nops :=
@@ -448,6 +420,9 @@ theorem Main.wp_proof
             rw [e, hmul]
             omega)) $$ []
       · iframe #
+        iintro !> %k' %v' %hkv
+        iapply (put_au ρ.rd (trs.map pairOf) hwl k' v' hkv)
+        iexact Hwkv
       (try wp_auto)
       wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr) $$ [Hdone]
       · iframe
@@ -465,14 +440,14 @@ theorem Main.wp_proof
   wp_apply (sync.join.WaitGroup.wp_Wait_of sync.WaitGroup.wp_Wait _ na wg_ptr) $$ [$Hwg] as -
   (try wp_auto)
   -- the successful Puts, taken out of the log under the lock
-  wp_apply (sync.Mutex.wp_Lock (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes
-      go!"mu" «$r0_ptr») (wsInv «$r0_ptr» R.E)) $$ [] as ⟨Hown, Hws0⟩
+  wp_apply (sync.Mutex.wp_Lock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes
+      go!"Mu" «$r0_ptr») (wsInv «$r0_ptr» R.E)) $$ [] as ⟨Hown, Hws0⟩
   · iframe #
   iunfold wsInv at Hws0
   icases Hws0 with ⟨%osl, %oks, Hok, Hos, Hocap, #Hoks⟩
   (try wp_auto)
-  wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes
-      go!"mu" «$r0_ptr») (wsInv «$r0_ptr» R.E)) $$ [Hown Hok]
+  wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes
+      go!"Mu" «$r0_ptr») (wsInv «$r0_ptr» R.E)) $$ [Hown Hok]
   · iframe #
     iframe Hown
     inext
@@ -487,13 +462,17 @@ theorem Main.wp_proof
     iapply BigSepL.bigSepL_nil.2; itrivial
   (try wp_auto)
   -- `collect(wch, maxRev(oks))`, then `cancel()`
-  wp_apply (wp_maxRev osl oks (DFrac.own 1)) $$ [Hos] as %m ⟨Hos, %Hm⟩
+  wp_apply (wp_MaxRev osl oks (DFrac.own 1)) $$ [Hos] as %m ⟨Hos, %Hm⟩
   · iframe
   have h10 : (W64 1 - W64 1 : w64) = W64 0 := by decide
   ihave Hcons : etcdWatchConsumer γw 0 (W64 0) $$ [Hcons]
   · rw [← h10]; iexact Hcons
-  wp_apply (wp_collect R.E ρ.rd (trs.map pairOf) wch γw m hwl hlog hpk) $$ [Hcons]
-    as %esl %ok Hcol
+  wp_apply (wp_Collect (EM := v3rpc.etcdModelOfServer R.E) (revAt R.E)
+      iprop(srvKVInvs R.E ρ.rd ∗ mvcc.idxCert R.E.γ.idx [[], []]) (trs.map pairOf) wkPfx wch γw m
+      (fun n c c' v r hne hcur => by
+        iintro #⟨Hi, H0'⟩ Hok
+        iapply (resp_wk R.E ρ.rd (trs.map pairOf) hwl hlog hpk n c c' v r hne hcur) $$ Hi H0' Hok))
+    $$ [Hcons] as %esl %ok Hcol
   · iframe; iframe #
   (try wp_auto)
   wp_apply Hcancel $$ [] as -
@@ -504,13 +483,13 @@ theorem Main.wp_proof
     (try wp_auto)
     iapply HΦ; ipureintro; right; right; rfl
   ihave ⟨%evs, Hes, Hcok⟩ := Hcol $$ %rfl
-  ihave %HCk := checkOk_of R.E trs m evs oks Hm.2 $$ [Hcok]
+  ihave %HCk := common.checkOk_of R.E trs m evs oks Hm.2 $$ [Hcok]
   · iframe Hcok
     iexact Hoks
   imod ownSlice_persist _ _ _ $$ Hes with #Hes
   imod ownSlice_persist _ _ _ $$ Hos with #Hos
   (try wp_auto)
-  wp_apply (wp_check esl tsl osl evs trs oks HCk) $$ []
+  wp_apply (wp_Check go!"watchkv" go!"Put" esl tsl osl evs trs oks HCk) $$ []
   · iframe #
   (try wp_auto)
   iapply HΦ; ipureintro; left; rfl

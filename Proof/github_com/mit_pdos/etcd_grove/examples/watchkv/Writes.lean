@@ -16,6 +16,7 @@
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writes
 public import Proof.go_etcd_io.etcd.client.v3.CacheClient
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
@@ -93,41 +94,9 @@ theorem put_au (γr : ReadNames) (P : List (GoString × GoString)) (hwl : γr.kv
     · inext; iexists _; iexact Hσ
     imodintro; itrivial
 
-/-- **What the program knows of a successful Put it logged** (persistent; see the file header). -/
-def okFact (E : apply.AEnv GF) (p : wrec) : IProp GF :=
-  iprop(⌜2 ≤ sint.Z p.rev'⌝ ∗ revAt E (sint.Z p.rev').toNat p.key' p.val')
-
-instance okFact_persistent (E : apply.AEnv GF) (p : wrec) : Persistent (okFact (GF := GF) E p) := by
-  unfold okFact; infer_instance
-
-/-- **A successful Put's reply gives `okFact`** of its revision, key and value. -/
-theorem okFact_of_reply (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (k v : GoString)
-    (Q : KVState → IProp GF) (cid mid : w64) (m : PutRespM) :
-    client.putReplied E γr F (client.putKeyOp k v) Q cid mid m ⊢
-      okFact E ⟨m.hdr.revision, k, v⟩ := by
-  iintro H
-  unfold client.putReplied
-  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, -, -, -, -⟩
-  obtain ⟨hstep, hrev, -, -, -, -, h2, h4⟩ := Hp
-  have hlog := client.put_applied_log _ hm x x' l skip hstep
-  unfold okFact revAt
-  simp only
-  rw [hrev]
-  have hz : sint.Z (W64 (x.log.length : Int)) = x.log.length := by word
-  isplitr
-  · ipureintro; rw [hz]; omega
-  iexists x'.log
-  isplitr
-  · iapply mvcc.idxCert_sealed; iexact Hc
-  ipureintro
-  rw [hz, hlog]
-  simp [client.putKeyOp, txn.putOpOf, txn.putChangeOf, txn.putValOf, txn.putLeaseOf]
-
-/-- **The log's lock invariant** (see the file header). -/
-def wsInv (w : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ (sl : GoSlice) (oks : List wrec),
-    structFieldRef github_com.mit_pdos.etcd_grove.examples.watchkv.writes go!"ok" w ↦ sl ∗ sl ↦* oks ∗ ownSliceCap wrec sl (DFrac.own 1) ∗
-    □ [∗list] p ∈ oks, okFact E p)
+/- **What the program knows of a successful Put it logged**, from its reply, and **the log's lock
+invariant**: the shared start's (`common/Writes.lean`). -/
+export common (okFact okFact_persistent okFact_of_reply wsInv)
 
 end defs
 

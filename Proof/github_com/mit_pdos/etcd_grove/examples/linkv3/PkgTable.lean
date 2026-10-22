@@ -657,14 +657,14 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h6, h28, h86, h115, h42, h72, h4, h117, h82, h45, h15, h21, h118, h119, h37, h112, h114, h5, h120, h20, h41, h35, h17, h59, h77, h29, h34, h85, h111, h0, h10, h51, h57, h90, h84, h103, h121, h99, h102, h27, h80, h44, h94, True.intro⟩
-  have h123 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h18, h19, h15, h17, h44, h51, h115, h122, h114, True.intro⟩
-  have h124 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
+  have h123 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
+  have h124 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h18, h19, h15, h17, h44, h51, h115, h122, h114, h6, h4, h123, h27, True.intro⟩
   have h125 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -672,11 +672,11 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h126 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h5, h13, h124, h15, h44, h123, h125, True.intro⟩
+    exact ⟨h6, h5, h13, h123, h15, h44, h124, h125, True.intro⟩
   have h127 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h15, h17, h123, h126, True.intro⟩
+    exact ⟨h13, h15, h17, h124, h126, True.intro⟩
   exact h127
 
 end table

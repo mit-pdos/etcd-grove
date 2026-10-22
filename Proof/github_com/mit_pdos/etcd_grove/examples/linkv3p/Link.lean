@@ -23,13 +23,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.attempted
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.checkWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.clientStep
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.collect
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.genAll
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.genPut
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.maxRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.peerStep
@@ -88,26 +82,6 @@ theorem v3.wp_WithRev :
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
-
-theorem wp_genPut :
-    EtcdGrove.linkv3p.genPut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.genPut.wp_proof
-
-theorem wp_genAll :
-    EtcdGrove.linkv3p.genAll.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.genAll.wp_proof wp_genPut
-
-theorem wp_maxRev :
-    EtcdGrove.linkv3p.maxRev.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.maxRev.wp_proof
-
-theorem wp_attempted :
-    EtcdGrove.linkv3p.attempted.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.attempted.wp_proof
-
-theorem wp_checkWatch :
-    EtcdGrove.linkv3p.checkWatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.checkWatch.wp_proof wp_attempted
 
 end links
 
@@ -193,13 +167,9 @@ theorem wp_writer :
     EtcdGrove.linkv3p.writer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.writer.wp_proof
 
-theorem wp_collect :
-    EtcdGrove.linkv3p.collect.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.collect.wp_proof client.v3.WatchResponse.wp_Err
-
 theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.MainWatch.wp_proof wp_genAll zap.wp_NewNop wp_startCluster wp_partitioner wp_writer wp_maxRev wp_collect wp_checkWatch context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
+  EtcdGrove.linkv3p.MainWatch.wp_proof common.wp_GenAll zap.wp_NewNop wp_startCluster wp_partitioner wp_writer common.wp_MaxRev common.wp_Collect common.wp_Check context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 
 end links_hasLC
 
