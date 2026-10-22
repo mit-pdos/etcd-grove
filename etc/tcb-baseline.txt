@@ -214,6 +214,7 @@ axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.NewTokenProvider.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
@@ -401,6 +402,7 @@ axiom membership.RaftCluster.String.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.FromOutgoingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
+axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
@@ -484,6 +486,8 @@ axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom streamKeyFromCtx.wp_proof
+axiom strings.Contains.wp_proof
+axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
@@ -499,6 +503,9 @@ axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
+axiom tracing.Span.AddEvent.wp_proof
+axiom tracing.Span.End.wp_proof
+axiom tracing.Start.wp_proof
 axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof

@@ -1,0 +1,26 @@
+# The functions linked in `Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean` (all Lean-first),
+# read by `etc/gen-link.py --k8s-etcd3`: `<fn>: <callees in the order of <fn>.wp_proof's
+# hypotheses>`. The results are in the namespace `k8s` (notes/k8s-etcd3-plan.md, phases 1 and 4).
+#
+# the trust boundary: names-only functions of the unary paths (axioms)
+tracing_Start:
+Span__AddEvent:
+Span__End:
+attribute_String:
+attribute_Int:
+GetAuditIDTruncated:
+OperationLatencyTracker__Record:
+HasSuffix:
+strings_Contains:
+# linked in their own packages' Link.lean
+fmt_Errorf: @
+Client__Get: @
+#
+# k8s.io/apiserver/pkg/storage
+PrepareKey: HasSuffix strings_Contains fmt_Errorf
+NewKeyNotFoundError:
+#
+# k8s.io/apiserver/pkg/storage/etcd3 (`store.go`)
+store__prepareKey: PrepareKey
+store__validateMinimumResourceVersion:
+store__Get: store__prepareKey store__validateMinimumResourceVersion NewKeyNotFoundError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated OperationLatencyTracker__Record Client__Get

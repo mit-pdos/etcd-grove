@@ -9,7 +9,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.PrepareKey
 public import Spec.strings.HasSuffix
 public import Spec.strings.Contains
 public import Spec.fmt.Errorf
-public import Perennial.Spec.strings.HasPrefix
+public import Perennial.Proof.strings.Link
 
 @[expose] public section
 
@@ -39,7 +39,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.Assumptions]
 
-theorem storage.PrepareKey.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF := GF) (hG := hG))
+theorem storage.PrepareKey.wp_proof
     (wp_HasSuffix : strings.HasSuffix.spec (GF := GF) (hG := hG))
     (wp_Contains : strings.Contains.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
@@ -68,7 +68,7 @@ theorem storage.PrepareKey.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF :
     iapply HΦ
     ipureintro
     simp_all [k8s.prepareKeyM, k8s.dotDot, k8s.dotSeg]
-  wp_apply wp_HasPrefix
+  wp_apply _root_.Perennial.strings.wp_HasPrefix
   wp_if_destruct
   ·
     (try wp_auto)
@@ -136,7 +136,7 @@ theorem storage.PrepareKey.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF :
     iapply HΦ
     ipureintro
     simp_all [k8s.prepareKeyM, k8s.dotDot, k8s.dotSeg]
-  wp_apply wp_HasPrefix
+  wp_apply _root_.Perennial.strings.wp_HasPrefix
   wp_if_destruct
   ·
     (try wp_auto)
@@ -223,7 +223,7 @@ theorem storage.PrepareKey.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF :
   -- a recursive key ends in `/`, then the resource prefix
   wp_if_destruct
   · -- not recursive
-    wp_apply wp_HasPrefix
+    wp_apply _root_.Perennial.strings.wp_HasPrefix
     wp_if_destruct
     · iapply HΦ
       ipureintro
@@ -250,7 +250,7 @@ theorem storage.PrepareKey.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF :
     wp_apply wp_HasSuffix
     wp_if_destruct
     · (try wp_auto)
-      wp_apply wp_HasPrefix
+      wp_apply _root_.Perennial.strings.wp_HasPrefix
       wp_if_destruct
       · iapply HΦ
         ipureintro
@@ -274,7 +274,7 @@ theorem storage.PrepareKey.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF :
         ipureintro
         simp_all [k8s.prepareKeyM, k8s.dotDot, k8s.dotSeg]
     · (try wp_auto)
-      wp_apply wp_HasPrefix
+      wp_apply _root_.Perennial.strings.wp_HasPrefix
       wp_if_destruct
       · iapply HΦ
         ipureintro

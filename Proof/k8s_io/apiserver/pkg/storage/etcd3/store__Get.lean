@@ -20,7 +20,7 @@ public import Spec.go_opentelemetry_io.otel.attribute.Int
 public import Spec.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
-public import Perennial.Spec.time.Now
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -57,7 +57,6 @@ theorem store.Get.wp_proof
     (wp_Int : «attribute».Int.spec (GF := GF) (hG := hG))
     (wp_GetAuditIDTruncated : audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG))
     (wp_Record : metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG))
-    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd key opts out o0 rv0 k Q hk hrv hQ
@@ -107,7 +106,7 @@ theorem store.Get.wp_proof
   wp_apply wp_Start ci cd _ _ $$ [] as %ci' %spn ⟨%Hspn, #Hctx', #Hce'⟩
   · iframe #
   (try wp_auto)
-  wp_apply wp_Now as %t0 -
+  wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
     (m := go!"Get")]

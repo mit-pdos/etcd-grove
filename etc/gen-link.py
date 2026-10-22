@@ -45,6 +45,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
+       etc/gen-link.py --k8s-etcd3 > Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -344,11 +345,17 @@ LEAN_FIRST = {
               "go_etcd_io.etcd.client.v3.kubernetes",
               "go_etcd_io.etcd.client.v3.kubernetes.Assumptions",
               "The Kubernetes client's proofs (`client/v3/kubernetes`)", [""]),
+    # the Kubernetes etcd3 store (k8s.io/apiserver/pkg/storage/etcd3 and storage,
+    # notes/k8s-etcd3-plan.md phases 1 and 4), over the kubernetes client (`@`)
+    "--k8s-etcd3": ("link-lean-first-k8s-etcd3.txt",
+                    "k8s_io.apiserver.pkg.storage.etcd3 k8s_io.apiserver.pkg.storage",
+                    "k8s_io.apiserver.pkg.storage.etcd3.Assumptions",
+                    "The Kubernetes etcd3 store's proofs (`k8s.io/apiserver/pkg/storage/etcd3`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--k8s": "kubernetes", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
