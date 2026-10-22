@@ -48,6 +48,15 @@ module system").
 
 
 
+## Kubernetes' etcd3 storage backend: planned (2026-10-22)
+
+`notes/k8s-etcd3-plan.md`: generic logically atomic specs of `k8s.io/apiserver/pkg/storage/etcd3`'s
+`*store` methods against a Lean copy of Kubernetes' `correctness.Model`, for any codec meeting a
+contract (encoding not canonical), then a closed driver theorem (`TestCorrectness`'s traffic and
+porcupine check over in-process etcd, a simple non-canonical codec; a failed write ends a run
+unchecked at first). Needs from the client proof: `Range`'s error identity (`ErrFutureRev`,
+`ErrCompacted`). Translation survey: branch `k8s-etcd3-goose`. Nothing proved yet.
+
 ## Merge of raft-retarget into lean (D22) (2026-10-21)
 
 Branch `raft-retarget` (D22, the snapshot track T-S: S-0..S-d4, S-f..S-i, S-g/S-h, the three fork
