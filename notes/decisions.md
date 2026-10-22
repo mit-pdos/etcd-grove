@@ -15087,3 +15087,43 @@ from the plan.
     the generic specs. Rejected: a non-canonical driver checked against a patched Model, since
     the patched Model (which must know each item's stored form) would then be our trusted spec
     and no longer Kubernetes'. That could be revisited if upstream fixes the Model.
+- **D30h: the store's atomic updates, split by whether the outcome changes the state**
+  (2026-10-22, proposed; phase 4's design). Some outcomes of `GuaranteedUpdate` and `Delete`
+  linearize at a read: a no-op update (`store.go:547`, after `getCurrentState` or at the
+  initial `Get`), and the errors decided on a current state (a failed precondition, a
+  `validateDeletion` or `tryUpdate` error, not found). The client's read specs take a
+  persistent read update (`kvReadAu`, `□`), because a read may fire at several members
+  (`client_range_any`), so a one-shot update (`kvOpAu1`, what a driver's history needs for
+  writes) cannot be committed at a read. So a store method's update has two parts:
+  - a persistent update for the outcomes that leave the model state unchanged (reads, no-ops,
+    errors), with a persistent result, as linkvtxn's reads (`□ Q σ`);
+  - a one-shot update for the outcomes that write.
+  The store's proof builds each attempt's client update from them. A transaction whose compare
+  fails (a conflict) aborts the one-shot part (the state is unchanged: its else branch is a
+  get), and the attempt that writes commits it. In the model an update whose step at the
+  linearization point is a no-op is then a read, as `Model.Step` treats it (`true, s, nil`).
+  Rejected: one one-shot update for the method, which cannot linearize the no-op path; one
+  persistent update, which would let a write's history entry be recorded twice.
+- **D30i: the model sits on linkv's abstraction** (2026-10-22). The Kubernetes model is
+  stated over `linkv.MSt` (`absSt`: each key's value, mod revision and version, and the
+  revision), whose `absSt_kvOpStep` already proves that the server's step on single-key
+  compare-and-put/get/delete transactions is the model's. `OptimisticPut`/`OptimisticDelete`
+  send exactly `linkv.txnOf [.mod key rev] [put | del] (getOnFailure ? [.get key] : [])`.
+  Their only differences from linkv's sends are the lease (`WithLease(0)`, the same put) and
+  `Get`'s `WithRev(0), WithLimit(1)` (the same selection of one key). Like linkvtxn's
+  `GoodKV`, the specs need the state sorted by key (the caller's invariant).
+- **D30j: a key's mod revision determines its value, across states** (2026-10-22, proposed;
+  phases 4-6). The store's conflict check compares only the mod revision
+  (`ModRevision(key) = origState.rev`) with a state it read earlier. When it succeeds, the
+  store's answer (the decoded `origState.data`) and its checks (preconditions,
+  `validateDeletion`, `tryUpdate` and the no-op test, all run on `origState`) are about the
+  earlier read, while the model's step is at the transaction's state. They agree because
+  etcd never reuses a revision: two states at which a key has the same mod revision give it
+  the same key-value. The server's specs do not export this (`etcdKV` is a ghost variable of the
+  latest `KVState`, with no history). Proposed: the store's updates take, at the linearization
+  point, a persistent witness of the state's key-values by key and mod revision. A caller that
+  keeps a ghost map `(key, modRev) ↦ value` next to its half of `etcdKV` (fresh entries at each
+  commit, at revision `rev + 1`) can provide it. The model lemmas (`absK_delete`,
+  `absK_update`) state the matching item as a premise. The general fix, for the etcd client
+  proof's owner: the server's specs could give that persistent fact themselves (the mvcc log is
+  known there), and every caller would then get it for free.
