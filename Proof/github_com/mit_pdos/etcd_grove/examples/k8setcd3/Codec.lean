@@ -127,6 +127,38 @@ theorem decodeObjD_encode (tag : GoString) (ht : tag = tagV1 ∨ tag = tagV0) (o
   simp only [Option.bind_some, o.2, ↓reduceDIte]
   rfl
 
+/-- A decoded name is shorter than 256 bytes (its length is a byte). -/
+theorem decodeD_name_lt (d n v : GoString) (h : decodeD d = some (n, v)) : n.length < 256 := by
+  unfold decodeD at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  dsimp only at h
+  split at h
+  · cases h
+  simp only [Option.some.injEq, Prod.mk.injEq] at h
+  obtain ⟨rfl, -⟩ := h
+  have := (d.getD 3 (W8 0)).isLt
+  simp only [List.length_take]
+  omega
+
+/-- The codec's decoding as an object is `decodeD`'s. -/
+theorem decodeObjD_of (d n v : GoString) (h : decodeD d = some (n, v)) :
+    decodeObjD d = some ⟨(n, v), decodeD_name_lt d n v h⟩ := by
+  unfold decodeObjD; rw [h]
+  simp [decodeD_name_lt d n v h]
+
+theorem decodeObjD_none (d : GoString) (h : decodeD d = none) : decodeObjD d = none := by
+  unfold decodeObjD; rw [h]; rfl
+
+/-- The string form of a resource version is empty only for `0`. -/
+theorem rvStr_nil (n : w64) (h : rvStr n = []) : n = 0 := by
+  unfold rvStr at h
+  by_cases hn : n = 0
+  · exact hn
+  · rw [if_neg hn] at h; simp [rvBytes] at h
+
 /-- **The store's codec of the driver** (`ObjCodec`): the current encoding, decoding either; the
 identity transformer (never stale); the versioner's string form of resource versions. -/
 def driverCodec : ObjCodec DObj where
