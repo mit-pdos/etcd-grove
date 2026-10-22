@@ -45,7 +45,7 @@ attribute [irreducible] AlarmStore.ty
 noncomputable def NewAlarmStore [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.NewAlarmStore"
 
-/-- go: alarms.go:86:22 -/
+/-- go: alarms.go:95:22 -/
 noncomputable def AlarmStore.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "at"

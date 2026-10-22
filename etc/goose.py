@@ -156,12 +156,15 @@ PROJECTS = [
         # (c15c7dda8, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
         # moving forward (2e2dc077c, issues/etcd-watch-resume-below-start-revision.md) and
         # `waitCancelSubstreams` adding one goroutine at a time to its wait group (2aed163b1,
-        # issues/etcd-watch-resume-waitgroup-overflow.md).
+        # issues/etcd-watch-resume-waitgroup-overflow.md), and (D22, the snapshot path) the alarm
+        # store recovered in place (8fd98af04, issues/etcd-alarm-store-snapshot-race.md) and a
+        # snapshot's older files released only after `applySnapshot` opens it (188113160,
+        # issues/etcd-release-snapdb-before-open.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="2aed163b15c64eb415382dcedb6558a09dff203a",
+        rev="188113160d8753c88a9fe59f324e1f94652789e9",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
