@@ -3,6 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
+public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.schedule
 
@@ -84,12 +87,186 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
 instance fifo_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.fifo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.fifo where
+  typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) v.mu' dq ∗
+    "resume" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) v.resume' dq ∗
+    "scheduled" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) v.scheduled' dq ∗
+    "finished" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) v.finished' dq ∗
+    "pendings" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) v.pendings' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) v.ctx' dq ∗
+    "cancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) v.cancel' dq ∗
+    "finishCond" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) v.finishCond' dq ∗
+    "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) v.donec' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) v.lg' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance fifo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.fifo go_etcd_io.etcd.pkg.v3.schedule.fifo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.fifo go_etcd_io.etcd.pkg.v3.schedule.fifo.underlying := by
+  solve_into_val_typed_struct
+
+instance fifo_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (mu' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_resume (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) v.resume' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) v.resume' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_resume (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (resume' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) v.resume' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"resume" l) resume' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resume' := resume' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_scheduled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) v.scheduled' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) v.scheduled' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_scheduled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (scheduled' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) v.scheduled' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"scheduled" l) scheduled' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scheduled' := scheduled' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_finished (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) v.finished' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) v.finished' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_finished (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (finished' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) v.finished' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finished" l) finished' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finished' := finished' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_pendings (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) v.pendings' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) v.pendings' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_pendings (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (pendings' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) v.pendings' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"pendings" l) pendings' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pendings' := pendings' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) v.ctx' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (ctx' : context.Context) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"ctx" l) ctx' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := ctx' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_cancel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) v.cancel' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) v.cancel' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (cancel' : context.CancelFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) v.cancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"cancel" l) cancel' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := cancel' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_finishCond (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) v.finishCond' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) v.finishCond' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_finishCond (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (finishCond' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) v.finishCond' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"finishCond" l) finishCond' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with finishCond' := finishCond' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_donec (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) v.donec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) v.donec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_donec (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (donec' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) v.donec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"donec" l) donec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := donec' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fifo_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.fifo) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.fifo go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.pkg.v3.schedule.fifo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fifo

@@ -153,8 +153,6 @@ axiom rafthttp.Transport.MendPeer.wp_proof
 axiom rafthttp.Transport.Start.wp_proof
 axiom raftpb.ConfChangeType.String.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom schedule.NewFIFOScheduler.wp_proof
-axiom schedule.Scheduler.Schedule.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof

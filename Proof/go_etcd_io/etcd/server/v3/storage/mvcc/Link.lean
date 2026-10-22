@@ -73,6 +73,10 @@ public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.fifo__Schedule
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.fifo__Stop
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.fifo__executeJob
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.fifo__run
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Do
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
@@ -134,6 +138,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRe
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
@@ -253,9 +258,9 @@ theorem mvcc.wp_newTreeIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.newTreeIndex.spec (GF := GF) (hG := hG) :=
   mvcc.newTreeIndex.wp_proof btree.wp_New mvcc.keyIndex.wp_Less
 
-theorem schedule.wp_NewFIFOScheduler :
-    schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG) :=
-  schedule.NewFIFOScheduler.wp_proof
+theorem verify.wp_Assert :
+    verify.Assert.spec (GF := GF) (hG := hG) :=
+  verify.Assert.wp_proof
 
 theorem schema.wp_UnsafeCreateMetaBucket :
     schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG) :=
@@ -560,6 +565,18 @@ theorem mvcc.wp_NewReadOnlyTxnWrite :
     mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG) :=
   mvcc.NewReadOnlyTxnWrite.wp_proof
 
+theorem schedule.fifo.wp_executeJob :
+    schedule.fifo.executeJob.spec (GF := GF) (hG := hG) :=
+  schedule.fifo.executeJob.wp_proof
+
+theorem schedule.fifo.wp_run :
+    schedule.fifo.run.spec (GF := GF) (hG := hG) :=
+  schedule.fifo.run.wp_proof schedule.fifo.wp_executeJob
+
+theorem schedule.wp_NewFIFOScheduler :
+    schedule.NewFIFOScheduler.spec (GF := GF) (hG := hG) :=
+  schedule.NewFIFOScheduler.wp_proof verify.wp_Assert schedule.fifo.wp_run
+
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
   mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
@@ -748,13 +765,21 @@ theorem schedule.wp_NewJob :
     schedule.NewJob.spec (GF := GF) (hG := hG) :=
   schedule.NewJob.wp_proof schedule.job.wp_Do
 
+theorem schedule.fifo.wp_Schedule :
+    schedule.fifo.Schedule.spec (GF := GF) (hG := hG) :=
+  schedule.fifo.Schedule.wp_proof
+
 theorem schedule.Scheduler.wp_Schedule :
     schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
-  schedule.Scheduler.Schedule.wp_proof
+  schedule.Scheduler.Schedule.wp_proof schedule.fifo.wp_Schedule
+
+theorem schedule.fifo.wp_Stop :
+    schedule.fifo.Stop.spec (GF := GF) (hG := hG) :=
+  schedule.fifo.Stop.wp_proof
 
 theorem schedule.Scheduler.wp_Stop :
     schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) :=
-  schedule.Scheduler.Stop.wp_proof
+  schedule.Scheduler.Stop.wp_proof schedule.fifo.wp_Stop
 
 theorem schedule.job.wp_Name :
     schedule.job.Name.spec (GF := GF) (hG := hG) :=

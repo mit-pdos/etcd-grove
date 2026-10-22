@@ -1,6 +1,6 @@
 /-
-`Scheduler.Stop` on the scheduler `NewFIFOScheduler` returns: the trust boundary (`fifo`'s
-methods are names-only). Lean-first (2026-10-13, the request path's unit 4c: the server's `run`
+`Scheduler.Stop` on the scheduler `NewFIFOScheduler` returns, proved from `(*fifo).Stop` since
+2026-10-22 (the trust boundary until then, when `fifo`'s methods were names-only). Lean-first (2026-10-13, the request path's unit 4c: the server's `run`
 stops its scheduler in its deferred shutdown).
 -/
 module
