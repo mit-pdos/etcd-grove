@@ -155,8 +155,14 @@ end go_etcd_io.etcd.pkg.v3.httputil
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
+/-- rafthttp's package fact (2026-10-22, rafthttp stage 3): `ErrExceedSizeLimit`
+(`msg_codec.go`, `errors.New`), the message decoder's error for a message over its limit, holds a
+non-nil error. -/
+abbrev rafthttpInit : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init rafthttpInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   build_get_is_pkg_init_wf
 

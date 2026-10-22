@@ -153,7 +153,8 @@ trust-boundary spec.
    for unrouted requests), `url.URL.String` (`urlOf` of host and path), and `encoding/binary`'s
    `Write` of a `uint64` and of a `uint8`-kind value and `Read` into a `*uint64`, stated over
    the writer's `Write` and the reader's `ReadFull` (Go's fast path; `uint64OfBE` opaque).
-   The whole boundary is drafted; still statements only, for the user's review.
+   The whole boundary is drafted; still statements only, for the user's review. (Stage 3 moved
+   the `encoding/binary` statements to `Spec/encoding/binary/`, corrected: D33a.)
 3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
    encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
    only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`
@@ -161,6 +162,25 @@ trust-boundary spec.
    decoder's defaults. Either raft's MsgApps satisfy that (a fact from raft's side, of the kind
    `SentMsgOk` states), or `wireEq` is weakened to the fields `Process` reads (a change to
    `Net.lean`'s interface, then checked against the server's proof), or it is a finding.
+   **The risk resolved, 2026-10-22, (a) chosen by the user** (D33a): raft's one `MsgApp`
+   constructor sets only the fields the short frame carries (plus `From` = itself), so the shape
+   goes into the sender's promise (`SentMsgOk`, `netBundle`); `wireEq` stays.
+   **Done 2026-10-22, the simple codec** (`msg_codec.go`): `messageEncoder.encode` and
+   `messageDecoder.decodeLimit` proved, over the generic protobuf specs (D33a: `PbType`,
+   `proto.{Size,Marshal,Unmarshal}Pb`, the instance `pbMessage`), `pbutil.MustMarshalMessage`
+   (translated with its body, proved), `encoding/binary`'s `Write`/`Read` of an integer
+   (`Spec/encoding/binary/`), and contracts of the writer and the reader (`rafthttp/Codec.lean`:
+   `writerAt` with a permission on what may be written, `readFullAt` with what is known of what
+   was read). The encoder writes the frame (`msgFrame`: eight big-endian length bytes, then the
+   encoding) of an encoding of the message, or fails; the decoder reads such a frame and returns
+   the decoded message, owned. **Seven new axioms**, accepted by the user: the three generic
+   `proto` axioms and the three `encoding/binary` ones, which no linked result reaches yet (no
+   `Link.lean` for rafthttp until stage 6), and rafthttp's `errorsNewVarsInit`
+   (`ErrExceedSizeLimit = errors.New(...)`), which every result reaching rafthttp's package
+   initializer does: the baseline 540 -> 541 (the eight example collections +1). `decode` (the limit `readBytesLimit`, an untranslated variable)
+   waits for the package variables' values.
+   **Next**: the msgappv2 pair; the `MsgApp` shape and `MsgMarshals` in `SentMsgOk` (raft's side:
+   `maybeSendAppend`, `send`, the queued-message invariant) and in `netBundle`.
 4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
    `Process`. The simplest complete delivery path; first proof that the mailbox design works.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),

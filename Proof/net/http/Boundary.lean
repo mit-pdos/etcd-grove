@@ -383,59 +383,8 @@ def URLString_spec : Prop :=
         (App (Val (u @!! _root_.Perennial.net.url.URL.ty @!! go!"String")) (Val #()))
       {{ RET #(urlOf u.Host' u.Path'); True }}
 
-/-! ### `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) -/
-
-/-- The `uint64` of big-endian bytes (opaque here; `binary.BigEndian.Uint64`'s). -/
-opaque uint64OfBE (bs : List w8) : w64
-
-/-- Big-endian bytes of a `uint64`. -/
-def be64 (v : w64) : List w8 := (u64Le v).reverse
-
-/-- `binary.Write(w, binary.BigEndian, v)` of a `uint64`: one `w.Write` of its eight big-endian
-bytes (Go's fast path); its result is that call's error. Stated over `w`'s `Write` triple. -/
-def binaryWrite_u64_spec : Prop :=
-  ∀ (w : GoInterface) (wi : GoInterfaceOk) (v : w64) (P : IProp GF) (Q : w64 → GoInterface → IProp GF)
-    (bo : GoInterface),
-    w = GoInterface.ok wi →
-    ⊢ (□ ∀ sl : GoSlice, {{ sl ↦* be64 v ∗ P }}
-        (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #sl))
-        {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Q n err }}) -∗
-      {{ P ∗ globalAddr _root_.Perennial.encoding.binary.BigEndian ↦□ bo }}
-        (App (App (App (Val (@! _root_.Perennial.encoding.binary.Write)) (Val #w)) (Val #bo))
-          (Val #(interface.mkOk go.uint64 #v)))
-      {{ (err : GoInterface), RET #err; ∃ n err', Q n err' }}
-
-/-- `binary.Write(w, binary.BigEndian, v)` of a value of a type whose underlying type is `uint8`
-(the msgappv2 encoder's frame tag, a `msgType`): one `w.Write` of the byte. -/
-def binaryWrite_u8_spec : Prop :=
-  ∀ (t : go.GoType) [t ↓u go.uint8] (w : GoInterface) (wi : GoInterfaceOk) (v : w8) (P : IProp GF)
-    (Q : w64 → GoInterface → IProp GF) (bo : GoInterface),
-    w = GoInterface.ok wi →
-    ⊢ (□ ∀ sl : GoSlice, {{ sl ↦* [v] ∗ P }}
-        (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #sl))
-        {{ (n : w64) (err : GoInterface), RET (PairV #n #err); Q n err }}) -∗
-      {{ P ∗ globalAddr _root_.Perennial.encoding.binary.BigEndian ↦□ bo }}
-        (App (App (App (Val (@! _root_.Perennial.encoding.binary.Write)) (Val #w)) (Val #bo))
-          (Val #(interface.mkOk t #v)))
-      {{ (err : GoInterface), RET #err; ∃ n err', Q n err' }}
-
-/-- `binary.Read(r, binary.BigEndian, p)` into a `*uint64`: `io.ReadFull(r, buf)` of eight bytes
-(Go's fast path), then, if it succeeded, `p` set to their big-endian value. Stated over `r`'s
-`ReadFull` behaviour. -/
-def binaryRead_u64_spec : Prop :=
-  ∀ (r : GoInterface) (p : Loc) (x : w64) (P : IProp GF)
-    (Q : List w8 → w64 → GoInterface → IProp GF) (bo : GoInterface),
-    ⊢ (□ ∀ (sl : GoSlice) (xs : List w8), {{ sl ↦* xs ∗ ⌜xs.length = 8⌝ ∗ P }}
-        (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #r)) (Val #sl))
-        {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-            ∃ ys, sl ↦* (ys ++ xs.drop ys.length) ∗ Q ys n err }}) -∗
-      {{ P ∗ p ↦ x ∗ globalAddr _root_.Perennial.encoding.binary.BigEndian ↦□ bo }}
-        (App (App (App (Val (@! _root_.Perennial.encoding.binary.Read)) (Val #r)) (Val #bo))
-          (Val #(interface.mkOk (go.GoType.PointerType go.uint64) #p)))
-      {{ (err : GoInterface), RET #err;
-          ∃ ys n err', Q ys n err' ∗
-            (⌜err = GoInterface.nil ∧ ys.length = 8⌝ ∗ p ↦ uint64OfBE ys ∨
-             ⌜err ≠ GoInterface.nil⌝ ∗ ∃ x' : w64, p ↦ x') }}
+/-! `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) are
+`Spec/encoding/binary/{WriteUint64,WriteUint8,ReadUint64}.lean`. -/
 
 end defs
 

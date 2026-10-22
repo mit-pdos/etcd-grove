@@ -54,6 +54,38 @@ noncomputable def GetBool [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Boolp [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/pbutil.Boolp"
 
+/-- go: pbutil.go:53:6 -/
+noncomputable def MustMarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "m"
+  (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "m"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "m"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Marshal []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "d" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "d")))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"marshal should never fail (%v)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "d") (Var "$r0")))))))))))))))
+
 /-- go: pbutil.go:61:6 -/
 noncomputable def MustUnmarshalMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "um"
@@ -119,12 +151,14 @@ attribute [instance] Unmarshaler.TypeAssumptions.underlying
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Marshaler_instance : Marshaler.TypeAssumptions
   Unmarshaler_instance : Unmarshaler.TypeAssumptions
+  MustMarshalMessage_unfold : FuncUnfold MustMarshalMessage [] MustMarshalMessage.impl
   MustUnmarshalMessage_unfold : FuncUnfold MustUnmarshalMessage [] MustUnmarshalMessage.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
 
 attribute [instance] Assumptions.Marshaler_instance
   Assumptions.Unmarshaler_instance
+  Assumptions.MustMarshalMessage_unfold
   Assumptions.MustUnmarshalMessage_unfold
   Assumptions.import_fmt_Assumption
   Assumptions.import_proto_Assumption

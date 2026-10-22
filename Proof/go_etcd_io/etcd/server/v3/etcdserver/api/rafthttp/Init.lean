@@ -2,10 +2,10 @@
 Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
+error. Its initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an
+`errors.New` call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
+`opaqueInitsOk` the others.
 -/
 module
 
@@ -38,6 +38,7 @@ public import Proof.net.Init
 public import Proof.net.http.Init
 public import Proof.net.url.Init
 public import Proof.path.Init
+public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -90,7 +91,6 @@ axiom opaqueInitsOk :
         snapshotReceiveSeconds.init,
         rttSec.init,
         readBytesLimit.init,
-        ErrExceedSizeLimit.init,
         ConnReadTimeout.init,
         ConnWriteTimeout.init,
         errStopped.init,
@@ -115,6 +115,13 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
+/-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s variables initialized by `errors.New`.** Each
+listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
+it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
+axiom errorsNewVarsInit :
+    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrExceedSizeLimit.init, ErrExceedSizeLimit, go!"rafthttp: error limit exceeded")] : List (val × GoString × GoString)) →
+    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -143,6 +150,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd30⟩
   wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd29⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd28⟩
@@ -207,7 +215,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk snapshotReceiveSeconds.init (by mem_tac))
   wp_apply (opaqueInitsOk rttSec.init (by mem_tac))
   wp_apply (opaqueInitsOk readBytesLimit.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrExceedSizeLimit.init (by mem_tac))
+  wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
+    as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
   wp_apply (opaqueInitsOk ConnReadTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk ConnWriteTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk errStopped.init (by mem_tac))
@@ -222,8 +231,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk errMemberRemoved.init (by mem_tac))
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  ipersist HErrExceedSizeLimit
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try (isplitl []; · (imodintro; itrivial))
+  imodintro
+  iexists _
+  iframe HErrExceedSizeLimit
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

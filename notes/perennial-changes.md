@@ -138,6 +138,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
   provable); then this repository's `hash` translation goes.
 
+### `encoding/binary`'s `Write`/`Read`, and protobuf at the bytes (2026-10-22, rafthttp stage 3, branch `rafthttp-plan`)
+
+- **Missing.** Perennial translates `encoding/binary`'s byte orders but not `Write`/`Read`
+  (names-only: they go through `reflect`); and `google.golang.org/protobuf` is names-only, so its
+  `Size`/`Marshal`/`Unmarshal` have no spec there.
+- **Needed by.** rafthttp's message codecs (`messageEncoder.encode`, `messageDecoder.decodeLimit`,
+  the msgappv2 pair next): a length prefix written with `binary.Write` and read with `binary.Read`,
+  and raft's messages marshalled.
+- **Workaround here.** Trust-boundary axioms: `Spec/encoding/binary/{WriteUint64,WriteUint8,
+  ReadUint64}.lean` (Go's fast path of an integer, stated over the writer's `Write` / the reader's
+  `io.ReadFull`), and generic protobuf specs over a per-type wire model (D33a:
+  `Proof/google_golang_org/protobuf/proto/InvProto.lean`'s `PbType`, `Spec/google_golang_org/
+  protobuf/proto/{Size,Marshal,Unmarshal}Pb.lean`).
+- **Proposed.** Specs of `binary.Write`/`Read` of fixed-size integers in Perennial (or a trusted
+  model of their fast path); and, if the generic vocabulary proves itself across the codecs and
+  the older per-type specs move onto it, `PbType` and its three specs as Perennial's protobuf
+  boundary.
+- **Status.** Not started.
+
 ## Landed
 
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork

@@ -15427,3 +15427,42 @@ and example proofs keep `Net.lean`'s contract as their interface.
 new boundary specs, and the snapshot stream (`SendSnapshot`'s `netSnapBundle` contract, the D22
 owner's area). **Stages** and risks (the msgappv2 delta codec against `wireEq`, the stream writer)
 in the plan.
+
+## D33a: protobuf at the bytes, as grpc's messages are specified; msgappv2's MsgApp shape from raft's side (2026-10-22 · the user: "(a), add the protobuf specs", "do the same thing we did for protobuf specs for grpc")
+
+**Context.** rafthttp's codecs marshal and unmarshal raft's messages to bytes (`msg_codec.go`,
+`msgappv2_codec.go`). The protobuf specs here were per type and per caller (`proto.Marshal.spec`
+of an `mvccpb.KeyValue`, `MarshalIRR`, `MarshalConfChange`, `SizeMessage`, ...); grpc's are generic
+(`ProtoMsg`, `InvGrpc.lean`): one spec per function for every message type, a record per Go type
+whose instance is a trusted wire model.
+
+**Decision.** The same for protobuf at the bytes (`Proof/google_golang_org/protobuf/proto/
+InvProto.lean`): `PbType` (the Go type, the model `M`, `ro` (read-only for good, persistent),
+`marshals`, `wire m bs`, `blank`, `dec`) and one generic spec each of `proto.Size`
+(`SizePb`), `proto.Marshal` (`MarshalPb`) and `proto.Unmarshal` (`UnmarshalPb`). `Size` and
+`Marshal` of one message agree through `pbEnc T.ty l`, the encoding as a function of the address,
+sound because `ro` is read-only for good (nothing can change the message); `Size` also gives the
+encoding's `wire` fact, since the encoder writes the length before it marshals. The instance for
+`*raftpb.Message` (`pbMessage`, `rafthttp/PbMessage.lean`): `ro` is a frozen message (`msgOwn` at
+`□`); `marshals` is no `responses` and every enum known (proto2's closed enums: an unknown value
+decodes into the unknown fields); `wire` is `msgDecode bs = some (wireOf st)` with `msgDecode`
+opaque, so two messages with one encoding agree on the wire (`pbMessage_wire_eq`, `wireEq`) with no
+axiom; `dec` is an owned message with its capacity, `netRecv`'s. The trust is in the instance
+(read it against `raft.proto`) and in the three generic axioms. The older per-type specs predate
+the vocabulary and stay; moving them onto it is a later clean-up.
+
+Also: `encoding/binary`'s `Write` of a `uint64`/`uint8` and `Read` into a `*uint64` moved from the
+HTTP boundary draft to `Spec/encoding/binary/` as axioms, corrected on review: the draft dropped
+the relation between `binary.Write`'s error and its inner `Write`'s (Go returns the latter), and
+typed `binary.BigEndian` as an interface global (it is an empty struct, loaded without a points-to:
+`bigEndianOrder`). rafthttp's package fact gains `ErrExceedSizeLimit` (`errors.New`, by
+`gen-init.py`'s `errorsNewVarsInit`, the errors packages' axiom kind).
+
+**msgappv2 (option (a), chosen by the user).** The short AppEntries frame rebuilds `From`/`To`
+from the connection and `Term`/`LogTerm`/`Index` from the decoder's state, the rest at defaults. A
+sent `MsgApp` must therefore have `From` = the sender and default `Vote`, `Reject`, `RejectHint`,
+snapshot and context; raft's one `MsgApp` constructor (`maybeSendAppend`, plus `send`) does. That
+goes into the sender's promise (`SentMsgOk`, `netBundle`), with `MsgMarshals` (no `responses`,
+known enums), which the encoder's spec takes; the receiver's guarantee (`wireEq`) is unchanged.
+*Rejected:* (b) weakening `wireEq` to the fields `Process` reads (a change to `Net.lean`'s
+interface and the server proofs).

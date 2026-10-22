@@ -164,6 +164,18 @@ states.''',
             'exact ⟨⟨_, _, rfl, rfl⟩, EtcdGrove.ErrorStringLeaf.leaf _, EtcdGrove.ErrorStringLeaf.noIs⟩'],
 )
 
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
+    doc='''Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
+error. Its initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an
+`errors.New` call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
+`opaqueInitsOk` the others.''',
+    newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded"),
+    finish=['ipersist HErrExceedSizeLimit', 'iframe Hown', 'imodintro', 'isplitr',
+            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
+            'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'iexists _',
+            'iframe HErrExceedSizeLimit'],
+)
+
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
