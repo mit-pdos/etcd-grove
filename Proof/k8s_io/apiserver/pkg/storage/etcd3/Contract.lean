@@ -165,7 +165,7 @@ def transformerOk (S : ObjSpec GF Obj) (ti : GoInterfaceOk) : IProp GF :=
           (match S.fromS v with
             | some (d, s) => ⌜err = GoInterface.nil ∧ st = s⌝ ∗ dsl ↦*□ d
             | none => ⌜err ≠ GoInterface.nil⌝) -∗
-          Φ (PairV #dsl (PairV #st #err))) -∗
+          Φ (PairV (PairV #dsl #st) #err)) -∗
       WP (App (App (App (Val #(methods ti.ty go!"TransformFromStorage" ti.v)) (Val #ctx))
         (Val #vsl)) (Val #dctx)) {{ Φ }}) ∗
     □ (∀ (ctx : GoInterface) (dsl : GoSlice) (d : GoString) (dctx : GoInterface)

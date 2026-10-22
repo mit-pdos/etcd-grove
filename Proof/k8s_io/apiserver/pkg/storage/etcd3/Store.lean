@@ -21,6 +21,10 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Contract
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Defs
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
+public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3.metrics
+public import GeneratedProof.k8s_io.apiserver.pkg.storage
+public import Proof.k8s_io.apiserver.pkg.storage.Defs
 
 @[expose] public section
 
@@ -122,6 +126,85 @@ def StoreCfg.abs (c : StoreCfg GF Obj) (σ : KVState) : KSt Obj :=
   absK c.S.dec c.pfx (linkv.absSt σ)
 
 end defs
+
+/-! ## Pure facts of the abstraction -/
+
+section pure
+variable [ext : FfiSyntax]
+variable {Obj : Type} [DecidableEq Obj]
+
+theorem W64_uint_nat (x : w64) : W64 ((uint.nat x : Nat) : Int) = x := by
+  apply BitVec.eq_of_toNat_eq
+  simp only [uint.nat, W64]
+  rw [BitVec.toNat_ofInt]
+  have := x.isLt
+  omega
+
+/-- A prepared key is under the store's prefix. -/
+theorem prepareKeyM_prefix (pp rp key k : GoString) (r : Bool) (h : prepareKeyM rp key r = some k) :
+    (pp ++ rp) <+: (pp ++ k) := by
+  have last : ∀ k0 : GoString, (if rp <+: k0 then some k0 else none) = some k → rp <+: k := by
+    intro k0 hk0
+    by_cases hp : rp <+: k0
+    · rw [if_pos hp] at hk0; cases hk0; exact hp
+    · rw [if_neg hp] at hk0; cases hk0
+  apply (List.prefix_append_right_inj pp).2
+  unfold prepareKeyM at h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  split at h
+  · cases h
+  split at h <;> exact last _ h
+
+/-- The decoded reading of a stored value: the transformer's data and the codec's object. -/
+theorem ObjCodec.dec_some (C : ObjCodec Obj) (v : GoString) (o : Obj) (b : Bool)
+    (h : C.dec v = some (o, b)) :
+    ∃ d st, C.fromS v = some (d, st) ∧ C.decode d = some o ∧ b = (!st && decide (C.encode o = d)) := by
+  unfold ObjCodec.dec at h
+  split at h
+  · cases h
+  · rename_i d st hf
+    cases hd : C.decode d with
+    | none => simp [hd] at h
+    | some o' =>
+      simp only [hd, Option.map_some, Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨rfl, rfl⟩ := h
+      exact ⟨d, st, hf, hd, rfl⟩
+
+end pure
+
+section abs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable {Obj : Type} [DecidableEq Obj]
+
+/-- A key with no key-value has no item. -/
+theorem StoreCfg.abs_none (c : StoreCfg GF Obj) (σ : KVState) (k : GoString)
+    (h : mvcc.findKey k σ.kvs = none) : (c.abs σ).items k = none := by
+  simp [StoreCfg.abs, absK, linkv.absSt, linkv.absM, h]
+
+/-- A stored value under the prefix decodes, in a state of the store. -/
+theorem StoreCfg.dec_of_wf (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ) (k : GoString)
+    (hk : c.pfx <+: k) (v : EtcdKv) (h : mvcc.findKey k σ.kvs = some v) :
+    ∃ o b, c.S.dec v.value = some (o, b) := by
+  have := hwf.2.1 k (linkv.absVR v) hk (by simp [linkv.absSt, linkv.absM, h])
+  obtain ⟨⟨o, b⟩, hob⟩ := Option.isSome_iff_exists.1 this
+  exact ⟨o, b, hob⟩
+
+/-- A key's item: its value decoded, at its mod revision. -/
+theorem StoreCfg.abs_some (c : StoreCfg GF Obj) (σ : KVState) (k : GoString) (hk : c.pfx <+: k)
+    (v : EtcdKv) (h : mvcc.findKey k σ.kvs = some v) (o : Obj) (b : Bool)
+    (hd : c.S.dec v.value = some (o, b)) :
+    (c.abs σ).items k = some ⟨o, uint.nat v.modRev, b⟩ := by
+  simp [StoreCfg.abs, absK, linkv.absSt, linkv.absM, h, hk, itemOf, linkv.absVR, hd]
+
+end abs
 
 end k8s
 end EtcdGrove
