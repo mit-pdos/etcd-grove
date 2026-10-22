@@ -39,24 +39,24 @@ then a registered snapshot is certified for raft (`memCert_read`) and a certifie
 registered (`memCert_register`; at any term, `memCert_registerAny`, for `CreateSnapshot`), and
 the storage meets `storCertOk γ` (`memStorCertOk_intro`). -/
 
-/-- What a registry entry carries: raft's certificate of its snapshot, at every term for an
-any-term entry. -/
+/-- What a registry entry carries: raft's certificates of its snapshot (D22 S-r, 2026-10-21: the
+configuration's and the data's, `raftSnapCertD`), at every term for an any-term entry. -/
 def certElemOk (γ : RaftNames) (e : CertKey) : IProp GF :=
-  if e.2 then iprop(∀ t : w64, raftSnapCert γ ⟨⟨t, e.1.sid.index'⟩, e.1.cl, e.1.al⟩)
-  else raftSnapCert γ e.1
+  if e.2 then iprop(∀ t : w64, raftSnapCertD γ ⟨⟨t, e.1.sid.index'⟩, e.1.cl, e.1.al, e.1.dat⟩)
+  else raftSnapCertD γ e.1
 
 theorem certElemOk_covers (γ : RaftNames) (e : CertKey) (k : SnapTrip) (h : certCovers e k) :
-    certElemOk (GF := GF) γ e ⊢ raftSnapCert γ k := by
+    certElemOk (GF := GF) γ e ⊢ raftSnapCertD γ k := by
   unfold certElemOk
   unfold certCovers at h
   split
   · rename_i he
     rw [if_pos he] at h
-    obtain ⟨h1, h2, h3⟩ := h
+    obtain ⟨h1, h2, h3, h4⟩ := h
     iintro H
     ihave H := H $$ %k.sid.term'
-    have : (⟨⟨k.sid.term', e.1.sid.index'⟩, e.1.cl, e.1.al⟩ : SnapTrip) = k := by
-      cases k with | mk sid cl al => cases sid; simp only at h1 h2 h3; subst h1 h2 h3; rfl
+    have : (⟨⟨k.sid.term', e.1.sid.index'⟩, e.1.cl, e.1.al, e.1.dat⟩ : SnapTrip) = k := by
+      cases k with | mk sid cl al dat => cases sid; simp only at h1 h2 h3 h4; subst h1 h2 h3 h4; rfl
     rw [this]; iexact H
   · rename_i he
     rw [if_neg he] at h
@@ -96,7 +96,7 @@ theorem memCertInv_alloc (γ : RaftNames) (γs : MemStorNames) (E : CoPset) :
 /-- A registered snapshot is certified for raft. -/
 theorem memCert_read (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
     (hE : ↑raftCertN ⊆ E) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ memStorCert γs k ={E}=∗ raftSnapCert γ k := by
+    ⊢ memCertInv (GF := GF) γ γs -∗ memStorCert γs k ={E}=∗ raftSnapCertD γ k := by
   iintro #Hinv #Hc
   iunfold memStorCert at Hc
   icases Hc with ⟨%L0, #Hlb, %Hin⟩
@@ -118,7 +118,7 @@ theorem memCert_read (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : C
 /-- A certified snapshot can be registered (by anyone holding raft's certificate). -/
 theorem memCert_register (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E : CoPset)
     (hE : ↑raftCertN ⊆ E) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ raftSnapCert γ k ={E}=∗ memStorCert γs k := by
+    ⊢ memCertInv (GF := GF) γ γs -∗ raftSnapCertD γ k ={E}=∗ memStorCert γs k := by
   iintro #Hinv #Hk
   unfold memCertInv
   iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
@@ -138,27 +138,27 @@ theorem memCert_register (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip) (E
 
 /-- ... at any term (an any-term entry): what `CreateSnapshot`'s premise asks. -/
 theorem memCert_registerAny (γ : RaftNames) (γs : MemStorNames) (i : w64) (cl : CSLists)
-    (al : Bool) (E : CoPset) (hE : ↑raftCertN ⊆ E) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ (□ ∀ t : w64, raftSnapCert γ ⟨⟨t, i⟩, cl, al⟩) ={E}=∗
-      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al⟩ := by
+    (al : Bool) (d : List w8) (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ (□ ∀ t : w64, raftSnapCertD γ ⟨⟨t, i⟩, cl, al, d⟩) ={E}=∗
+      □ ∀ t : w64, memStorCert γs ⟨⟨t, i⟩, cl, al, d⟩ := by
   iintro #Hinv #Hk
   unfold memCertInv
   iinv Hinv with ⟨%L, >Ha, >#Hall⟩ Hclose
-  imod monoListAuthOwn_update_app [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
-  ihave #He : certElemOk (GF := GF) γ ((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey) $$ []
+  imod monoListAuthOwn_update_app [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)] $$ Ha with ⟨Ha, #Hlb⟩
+  ihave #He : certElemOk (GF := GF) γ ((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey) $$ []
   · simp only [certElemOk, ↓reduceIte]
     iexact Hk
   imod Hclose $$ [Ha] with -
   · inext
-    iexists L ++ [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)]
+    iexists L ++ [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)]
     iframe Ha
     iapply BigSepL.bigSepL_snoc.2
     iframe Hall He
   imodintro
   imodintro
   iintro %t
-  iapply memStorCert_of_lb γs (L ++ [((⟨⟨W64 0, i⟩, cl, al⟩, true) : CertKey)])
-    (⟨⟨W64 0, i⟩, cl, al⟩, true) ⟨⟨t, i⟩, cl, al⟩ (by simp) (by simp [certCovers]) $$ Hlb
+  iapply memStorCert_of_lb γs (L ++ [((⟨⟨W64 0, i⟩, cl, al, d⟩, true) : CertKey)])
+    (⟨⟨W64 0, i⟩, cl, al, d⟩, true) ⟨⟨t, i⟩, cl, al, d⟩ (by simp) (by simp [certCovers]) $$ Hlb
 
 end certLink
 

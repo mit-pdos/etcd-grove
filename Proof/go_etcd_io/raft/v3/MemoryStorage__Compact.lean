@@ -53,7 +53,7 @@ theorem MemoryStorage.Compact.wp_proof
   icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
   subst Hcbe
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsvt with %HagS
-  obtain ⟨HS1, -, -⟩ := snapPart_inj HagS
+  obtain ⟨HS1, -, -, -⟩ := snapPart_inj HagS
   have Hlast := memCut_stLast Hcok.1
   have Hcok1 := Hcok.1
   have Hpbf : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) <

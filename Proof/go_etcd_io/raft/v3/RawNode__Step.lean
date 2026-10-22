@@ -152,11 +152,11 @@ theorem RawNode.Step.wp_proof
         -- (2026-10-20, D22 S-c) a snapshot's facts, at the static mode
         imodintro
         iintro %h
-        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0⟩
+        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0⟩
         iexists sv0, scfg0
         rw [Hstat h]
         simp only [RNMode.toG, GMode.SnapDyn]
-        iframe Hm0
+        iframe Hm0 Hd0
         ipureintro; exact Hp0
       simp only [HnP]
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, %Hresp, %Hsfr,
@@ -171,7 +171,7 @@ theorem RawNode.Step.wp_proof
         -- S-d3b) any queue, the acknowledgement's facts carried across the restore (`ackInv_snap`)
         have Hst := Hstat Hs
         obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hco, Hsl⟩ := Hsfr Hs
-        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, #Hm0⟩
+        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, #Hm0, -⟩
         obtain ⟨Hsn0, Hcl0, -⟩ := Hp0
         have Hsl0 := Hsl sv0 Hsn0
         have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
@@ -186,7 +186,8 @@ theorem RawNode.Step.wp_proof
           | none => rfl
           | some _ => simp [h] at Hgm
         ihave #Hcr0 : raftSnapCert γ (snapTrip sv0 scfg0) $$ []
-        · rw [show snapTrip sv0 scfg0 = msgSnapTrip (absSnap m sv0 scfg0) from rfl]
+        · rw [show raftSnapCert (GF := GF) γ (snapTrip sv0 scfg0) =
+        raftSnapCert γ (msgSnapTrip (absSnap m sv0 scfg0)) from rfl]
           iapply isMessageC_snap_cert γ (absSnap m sv0 scfg0) (by simp [absSnap, absSnapFrom]) $$ Hm0
         ihave %Hso0 : ⌜scfg0.Has id → scfg0.outgoing = []⌝ $$ []
         · unfold raftSnapCert

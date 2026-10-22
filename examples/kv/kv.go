@@ -115,24 +115,175 @@ func New(id uint64, node raft.Node, storage *Storage, send func([]*pb.Message)) 
 // contract assumes of the stable log, 2^61).
 const maxIndex = 1 << 61
 
+// snapEvery is the number of entries a replica applies between two of its snapshots, and
+// snapMargin the number of entries below a new snapshot's index its storage keeps: the log is
+// compacted to the snapshot's index minus snapMargin, so that a follower a little behind is
+// still sent entries rather than the snapshot.
+const (
+	snapEvery  = 100
+	snapMargin = 10
+)
+
+// putBytes appends b to buf, prefixed by its length (8 bytes, little-endian).
+func putBytes(buf []byte, b []byte) []byte {
+	var n [8]byte
+	binary.LittleEndian.PutUint64(n[:], uint64(len(b)))
+	buf = append(buf, n[:]...)
+	return append(buf, b...)
+}
+
+// getBytes reads back what putBytes wrote at the start of b: the bytes and the rest of b; ok
+// is false if b is too short.
+func getBytes(b []byte) (v []byte, rest []byte, ok bool) {
+	if len(b) < 8 {
+		return nil, nil, false
+	}
+	n := binary.LittleEndian.Uint64(b)
+	if uint64(len(b)-8) < n {
+		return nil, nil, false
+	}
+	return b[8 : 8+n], b[8+n:], true
+}
+
+// less is the byte-wise order of strings.
+func less(a, b string) bool {
+	i := 0
+	for i < len(a) && i < len(b) {
+		if a[i] != b[i] {
+			return a[i] < b[i]
+		}
+		i++
+	}
+	return len(a) < len(b)
+}
+
+// sortStrings sorts ks in increasing order (less), in place: an insertion sort.
+func sortStrings(ks []string) {
+	for i := 1; i < len(ks); i++ {
+		for j := i; j > 0 && less(ks[j], ks[j-1]); j-- {
+			ks[j], ks[j-1] = ks[j-1], ks[j]
+		}
+	}
+}
+
+// encodeState is a replica's replicated state as a snapshot's data: the number of keys
+// (8 bytes, little-endian), then each key and its value (each as putBytes writes it), in
+// increasing order of the keys; then the number of operations applied, then each one's
+// encoding, in increasing order. The order makes it a function of the state, whatever order
+// Go iterates the maps in.
+func encodeState(kv map[string]string, applied map[string]bool) []byte {
+	var keys []string
+	for k := range kv {
+		keys = append(keys, k)
+	}
+	sortStrings(keys)
+	var ops []string
+	for o := range applied {
+		ops = append(ops, o)
+	}
+	sortStrings(ops)
+	var n [8]byte
+	binary.LittleEndian.PutUint64(n[:], uint64(len(keys)))
+	b := append([]byte(nil), n[:]...)
+	for _, k := range keys {
+		b = putBytes(b, []byte(k))
+		b = putBytes(b, []byte(kv[k]))
+	}
+	binary.LittleEndian.PutUint64(n[:], uint64(len(ops)))
+	b = append(b, n[:]...)
+	for _, o := range ops {
+		b = putBytes(b, []byte(o))
+	}
+	return b
+}
+
+// decodeState reads back what encodeState wrote; ok is false for data it did not write.
+func decodeState(b []byte) (kv map[string]string, applied map[string]bool, ok bool) {
+	kv = make(map[string]string)
+	applied = make(map[string]bool)
+	if len(b) < 8 {
+		return nil, nil, false
+	}
+	nk := binary.LittleEndian.Uint64(b)
+	b = b[8:]
+	for i := uint64(0); i < nk; i++ {
+		k, rest, ok1 := getBytes(b)
+		if !ok1 {
+			return nil, nil, false
+		}
+		v, rest2, ok2 := getBytes(rest)
+		if !ok2 {
+			return nil, nil, false
+		}
+		kv[string(k)] = string(v)
+		b = rest2
+	}
+	if len(b) < 8 {
+		return nil, nil, false
+	}
+	no := binary.LittleEndian.Uint64(b)
+	b = b[8:]
+	for i := uint64(0); i < no; i++ {
+		o, rest, ok1 := getBytes(b)
+		if !ok1 {
+			return nil, nil, false
+		}
+		applied[string(o)] = true
+		b = rest
+	}
+	if len(b) != 0 {
+		return nil, nil, false
+	}
+	return kv, applied, true
+}
+
 // fits says whether appending es keeps the stored log within maxIndex.
 func fits(es []*pb.Entry) bool {
 	return len(es) == 0 || (uint64(len(es)) <= maxIndex && es[0].GetIndex() <= maxIndex-uint64(len(es)))
 }
 
-// run handles the node's Readys: persist the entries, send the messages, note the read
-// states, apply the committed entries in order (a configuration change, RemoveMember's, to
-// the node: Node.ApplyConfChange, before the Advance that acknowledges it, as raft needs),
-// answer the reads whose index is applied, then Advance. A log that would outgrow maxIndex
-// stops the replica (2^61 entries: it does not happen). The applied index is the number of
-// entries applied: the log starts empty, at index 1, and the store takes no snapshots.
+// run handles the node's Readys: install the snapshot, if any, persist the entries, send the
+// messages, note the read states, apply the committed entries in order (a configuration
+// change, RemoveMember's, to the node: Node.ApplyConfChange, before the Advance that
+// acknowledges it, as raft needs), answer the reads whose index is applied, then Advance. A
+// log that would outgrow maxIndex stops the replica (2^61 entries: it does not happen). The
+// applied index is the number of entries applied: the log starts empty, at index 1.
+//
+// Snapshots: a Ready's snapshot (one of another replica's, which this one lags too far behind
+// to be sent entries) is installed before the entries after it are appended: its data, the
+// replicated state of the log up to its index (encodeState), replaces the store's contents and
+// the operations applied, the applied index jumps to its index, and the storage applies it.
+// Data that does not decode stops the replica (every snapshot is a replica's, encodeState's: it
+// does not happen). After the Advance, every snapEvery applied entries, the replica takes a
+// snapshot of its state at the applied index, with the cluster's voters as its configuration,
+// and compacts its log up to snapMargin entries below it -- unless it has applied a
+// configuration change, after which the voters are no longer the configuration and it takes
+// no more snapshots (a snapshot it installs is of an index before any configuration change,
+// as every snapshot is). An operation of this replica's that commits inside a snapshot it
+// installs is not answered: its Put, Get or Append waits forever (partial correctness).
 func (r *KV) run(send func([]*pb.Message)) {
 	var pending []raft.ReadState
 	var applied uint64
+	var snapIndex uint64
+	reconf := false
 	for rd := range r.node.Ready() {
 		if !fits(rd.Entries) {
 			for {
 			}
+		}
+		if rd.Snapshot != nil {
+			kv, ops, ok := decodeState(rd.Snapshot.GetData())
+			if !ok {
+				for {
+				}
+			}
+			r.mu.Lock()
+			r.kv = kv
+			r.applied = ops
+			r.mu.Unlock()
+			applied = rd.Snapshot.GetMetadata().GetIndex()
+			snapIndex = applied
+			r.storage.ApplySnapshot(rd.Snapshot)
 		}
 		r.storage.Append(rd.Entries)
 		send(rd.Messages)
@@ -142,12 +293,23 @@ func (r *KV) run(send func([]*pb.Message)) {
 				var cc pb.ConfChange
 				proto.Unmarshal(e.GetData(), &cc)
 				r.node.ApplyConfChange(&cc)
+				reconf = true
 			}
 			r.apply(e)
 			applied++
 		}
 		pending = r.answer(pending, applied)
 		r.node.Advance()
+		if !reconf && applied-snapIndex >= snapEvery {
+			r.mu.Lock()
+			data := encodeState(r.kv, r.applied)
+			r.mu.Unlock()
+			r.storage.CreateSnapshot(applied, &pb.ConfState{Voters: r.storage.voters}, data)
+			snapIndex = applied
+			if applied > snapMargin {
+				r.storage.Compact(applied - snapMargin)
+			}
+		}
 	}
 }
 

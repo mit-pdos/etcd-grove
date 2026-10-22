@@ -937,13 +937,14 @@ def logRestore (ls : LogState) (k : SnapTrip) : LogState :=
    if ls.snap.isSome ∧ uint.Z ls.applying ≤ uint.Z ls.sxt then ls.sxt else ls.applying⟩
 
 /-- A snapshot as the protocol knows it (2026-10-15, stage S): its id, the lists behind its
-`ConfState` and its `AutoLeave`. -/
+`ConfState` and its `AutoLeave`; (D22 S-r, 2026-10-21) and its data. -/
 def snapTrip (sv : SnapshotM) (cl : CSLists) : SnapTrip :=
-  ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave'⟩
+  ⟨snapId sv, cl, sv.Metadata'.ConfState'.AutoLeave', sv.Data'⟩
 
-/-- (D22 S-b′3) A `MsgSnap`'s abstraction carries its snapshot's trip. -/
+/-- (D22 S-b′3) A `MsgSnap`'s abstraction carries its snapshot's trip, but its data (D22 S-r: the
+protocol's message has none). -/
 theorem msgSnapTrip_absSnapFrom (m : MessageM) (src term : w64) (sv : SnapshotM) (cl : CSLists) :
-    msgSnapTrip (absSnapFrom m src term sv cl) = snapTrip sv cl := rfl
+    msgSnapTrip (absSnapFrom m src term sv cl) = { snapTrip sv cl with dat := [] } := rfl
 
 /-! `stamp`, `appendEntry`'s stamping loop, is in `Protocol/Model.lean` (since
 2026-10-01: the model's `Step.win` and `Step.propose` stamp too). -/

@@ -9,6 +9,9 @@
 NewMemoryStorage: @
 MemoryStorage__Snapshot: @
 MemoryStorage__Append: @
+MemoryStorage__ApplySnapshot: @
+MemoryStorage__CreateSnapshot: @
+MemoryStorage__Compact: @
 node__Propose: @
 node__ReadIndex: @
 node__TransferLeadership: @
@@ -19,6 +22,7 @@ node__Step: @
 node__ApplyConfChange: @
 node__ProposeConfChange: @
 proto_UnmarshalConfChange: @
+proto_CloneSnapshot: @
 node__Tick: @
 raftpb_Entry__GetType: @
 raftpb_Entry__GetData: @
@@ -37,6 +41,12 @@ CounterClock: @
 encode:
 decode:
 fits: raftpb_Entry__GetIndex
+putBytes:
+getBytes:
+less:
+sortStrings: less
+encodeState: putBytes sortStrings
+decodeState: getBytes
 NewStorage: NewMemoryStorage
 Storage__InitialState:
 Storage__Snapshot: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
@@ -49,16 +59,16 @@ KV__Read: encode node__ReadIndex
 KV__TransferLeadership: node__TransferLeadership
 KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
-KV__run: fits KV__apply KV__answer node__Ready node__Advance MemoryStorage__Append proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
+KV__run: fits KV__apply KV__answer encodeState decodeState node__Ready node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
 kv_New: KV__run
 # the cluster driver (examples/kv/cluster.go)
 kv_quietLogger__Debugf:
 kv_quietLogger__Errorf:
 kv_quietLogger__Infof:
 kv_quietLogger__Warningf:
-kv_deliverable: raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo
+kv_deliverable: raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 kv_transfers__take:
-kv_deliver: kv_deliverable kv_transfers__take node__Step raftpb_Message__GetType raftpb_Message__GetTo
+kv_deliver: kv_deliverable kv_transfers__take node__Step raftpb_Message__GetType raftpb_Message__GetTo proto_CloneSnapshot
 kv_tick: node__Tick
 kv_StartCluster: NewStorage Storage__InitialState Storage__Snapshot kv_New kv_deliver kv_tick kv_quietLogger__Debugf kv_quietLogger__Errorf kv_quietLogger__Infof kv_quietLogger__Warningf RestartNode
 # the randomized linearizability test (examples/kv/check.go)

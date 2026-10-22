@@ -34,7 +34,9 @@ abbrev NewStorage.spec : Prop :=
       kvStorRec s ms γs ∗ s.[RStorage, go!"voters"] ↦□ vsl ∗
       ownMemoryStorage ms γs memStorEmpty ∗
       -- (D22 S-b′3, 2026-10-20) the certificate registry's authority (`NewMemoryStorage`'s)
-      memCertAuth γs }}
+      memCertAuth γs ∗
+      -- (D22 S-r, 2026-10-21) the application's snapshot token, at the cap `2^64`
+      memSnapTok ms γs memStorEmpty ∗ ⌜γs.cap = 2 ^ 64⌝ }}
 
 end spec
 

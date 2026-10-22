@@ -823,7 +823,7 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
 
 end lemmas
 
-/-! ## Conf-change entries, at the applier (2026-10-15, stage N) -/
+/-! ## Committed entries' data, at the applier (2026-10-15, stage N; static since D22 S-r) -/
 
 section confs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -844,52 +844,22 @@ theorem node_entry_data (γ : NodeNames) (id : w64) (n : Loc) (l : List EntryM)
   iexists o
   iexact Ho
 
-/-- An entry of a type other than `EntryConfChange` is no conf-change entry, in the cluster: its
-conf-change entries are all of that type (`KVCC`). -/
-theorem kvCC_notConf (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : KVCC γn op c0 c1)
-    (e : EntryM) (o : Option (List w8)) :
-    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' ≠ W32 1 → ¬ IsConfEnt e⌝ := by
+/-- (2026-10-21, D22 S-r) In the cluster's static mode no conf change is admitted (`KVStat`):
+every committed entry is a normal one (type `0`). (From stage N to D22 S-r `kvCC_notConf` and
+`kvCC_confData`, of the dynamic mode's one change.) -/
+theorem kvStat_type0 (γn : NodeNames) (H : KVStat γn) (e : EntryM) (o : Option (List w8)) :
+    ⊢ entDataIs (GF := GF) γn.raft e o -∗ ⌜e.Type' = W32 0⌝ := by
   iintro He
   cases o with
   | some d =>
     simp only [entDataIs, propDataIs]
     icases He with ⟨⟨%Hd, -⟩, -⟩
-    ipureintro
-    intro _ hc
-    unfold IsConfEnt at hc
-    rw [Hd.2.2] at hc
-    rcases hc with h | h <;> revert h <;> word
+    ipureintro; exact Hd.2.2
   | none =>
     simp only [entDataIs, propDataIs]
     icases He with (%Hz | %Hcc)
-    · ipureintro
-      intro _ hc
-      unfold IsConfEnt at hc
-      rw [Hz.1] at hc
-      rcases hc with h | h <;> revert h <;> word
-    · ipureintro
-      intro hn _
-      exact hn (H.2.1 _ _ Hcc.2.2).1
-
-/-- A conf-change entry of the cluster carries `op` (`KVCC`): its bytes decode to a `ConfChange`
-whose change is `op` (raft v3.7, stage R6b: pure, over the record's bytes, D6; until then the
-entry's slice was read through the proposed slices' invariant). -/
-theorem kvCC_confData (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) (H : KVCC γn op c0 c1)
-    (e : EntryM) (o : Option (List w8)) (Hty : e.Type' = W32 1) :
-    ⊢ entDataIs (GF := GF) γn.raft e o -∗
-      ⌜∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ ccV2Of (.v1 m) = op⌝ := by
-  iintro He
-  cases o with
-  | some d =>
-    simp only [entDataIs, propDataIs]
-    icases He with ⟨⟨%Hd, -⟩, -⟩
-    exfalso; rw [Hd.2.2] at Hty; revert Hty; word
-  | none =>
-    simp only [entDataIs, propDataIs]
-    icases He with (%Hz | %Hcc)
-    · exfalso; rw [Hz.1] at Hty; revert Hty; word
-    · obtain ⟨-, m, Hm, Hop⟩ := H.2.1 _ _ Hcc.2.2
-      ipureintro; exact ⟨m, Hm, Hop⟩
+    · ipureintro; exact Hz.1
+    · exfalso; exact H.2.1 _ _ Hcc.2.2
 
 end confs
 

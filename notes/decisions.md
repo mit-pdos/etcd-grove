@@ -14918,3 +14918,72 @@ axioms, 2 sorries), and restated specs of existing axioms (`status.FromError`,
 rpctypes' and `client/v3`'s initializer axioms, `bridge.New`). `errDesc_etcdError` is in every
 collection whose results go through the retry interceptor; `etcd_noRefusal` is in linkv3p's
 only.
+
+## D22 S-r carried out (proof): snapshots in `examples/kv`, `kv_porcupine_safe` re-closed (2026-10-22)
+
+The proof of stage S-r ("D22 S-r carried out: the Go change of `examples/kv` made and tested (side
+branch); the proof designed", above), in four commits (items (3), (1), (2) raft's part, then (2)
+kv's part, (4) and (5) together: the translation of the Go change breaks the old proofs of `run`,
+`deliverable` and `deliver`, so they land with it). The Go change is the side branch's, unchanged
+(cherry-picked, translated by `etc/goose.py --project kv`). `kv_porcupine_safe`'s statement is
+unchanged; its proof now runs through replicas that compact their logs and catch up by `MsgSnap`.
+
+**(3) The data certificate.** Deviation from the design: no class `SnapData GF`. The cluster's
+relation of a committed prefix and a snapshot's data is a field of raft's ghost names fixed at
+allocation, `RaftNames.reSnapOkRaw : List BootEntry → List w8 → Prop` (as `reCCOk`), read as
+`RaftNames.reSnapOk γ L d`; `snapDataOk γ i d := ∃ L, isCommitted γ L ∗ ⌜|L| = i ∧ γ.reSnapOk L
+d⌝`, and `raftSnapCertD γ k` is the configuration's certificate and the data's. A class would have
+been one more instance argument through raft's specs and the server's instance; the field keeps raft
+generic with no parameter, and every other cluster allocates `fun _ _ => True` (`snapDataOk_triv`;
+the server's sender lemmas take the pure premise `γ.reSnapOk A []`). Carried as designed: the trip
+`SnapTrip.dat` (`raftSnapCert` ignores it, `raftSnapCert_dat`), the storage's `StorState.sdat`
+(`MemoryStorage`'s specs), the registry's entries (`certElemOk` with `raftSnapCertD`), the message
+(`isRaftMsg`'s `msgDat`), the `Ready` (`readySnapData`'s certificate).
+
+**(1) The static mode.** `KVStat γn` (replacing `KVCC`/`RunCfg`): static, no conf change admitted,
+leader transfer on, `snapIn`, `reSnapOkRaw = kvSnapOk`, no dynamic configuration, no tracked
+bound. `StartCluster` allocates with `ownRaftGhost_alloc_snap` (`ccOkS := False`, `kvSnapOk`) and
+starts the nodes with `RestartNode … (sn := true)`; the transport's `peerOk` records `snapIn`.
+`run`'s conf-change branch is dead (`kvStat_type0`); `RemoveMember`'s spec is unchanged (its
+`CCAllowed` premise is false in this cluster).
+
+**(2) The jump.** Raft's part: a snapshot `Ready`'s snapshot is strictly past the committed log
+handed out before it (`readySnapData`'s `d.length < l.dlv.length`, from `SipOk`'s strict
+`applying < prev.index` and `appliedTo`'s new premise), which `ApplySnapshot` needs: the snapshot
+must be newer than the application's own, which is at most its applied index. kv's part: `runOwn`
+jumps to the loan's committed log `l.dlv`: the data certificate (the `Ready`'s, through
+`memCertInv`) gives a committed prefix of the snapshot's length whose replicated state the data
+encodes, which is `l.dlv` (`isCommitted_agree`, same length); the decoded maps are `runOwn`'s at
+it (`maps_of_stateEnc`); the applied index becomes the snapshot's.
+
+**(4) The encoding.** Deviation: no model functions `encodeStateM`/`decodeStateM` and their round
+trip. `encState kvs ops` (`Base.lean`) is over *any* list of bindings without repeated keys
+(`StateEnc`, `KVsWf`, `OpsWf`): `encodeState`'s spec says it writes some such list (its sort is
+proved a permutation, not sorted: the proof needs no more), and `decodeState`'s that it reads back
+any of them. The round trip is the two specs; determinism of the bytes is the Go test's.
+
+**(5) `run`.** The loop holds the storage's snapshot token at the application's view `σt`
+(`runStor`, `New`'s and `run`'s new premise; `NewStorage` returns the token and the cap `2^64`),
+`snapIndex = σt.ss.index ≤ applied`, and the applied index now *equal* to the length of the
+committed log applied (`readyIdx` bounds it below `2^64`). The two kinds of `Ready` meet after `if
+rd.Snapshot != nil` (Perennial's `wp_join`) at the log applied, the token, and the right to append
+with the receipt `Advance` takes. With a snapshot, `ApplySnapshot` gets the `Ready`'s half of it
+(`ownSnapS`, `snapArg`'s right case), its error branch refuted by `snapIndex ≤ applied < index`;
+the entries after it are handed to the storage (`memStorage_handout`/`absorb`, numbered from the
+snapshot: `pendOk_of_logIndices`), the receipt `snapReceipt`. After `Advance`, the snapshot taken
+every `snapEvery` entries: never after a snapshot `Ready` (it applies nothing, so `applied =
+snapIndex`; there is no floor witness then, `reqWit none`); otherwise the floor's witness bounds
+the index (`kvStorFloor_at`; `kvStorFloor` gained `x < 2^61`, from `ownMemoryStorage_bounded`), the
+data's certificate is minted from `runOwn` (`stateEnc_intro`), the configuration's from the voters
+(`snapListsOk_voters`, `raftSnapCert_static`), both registered at any term
+(`memCert_registerAny`); then `Compact`. Helper lemmas in `Proof/…/kv/SnapData.lean`
+(`readyDataL_split`, `wp_Snapshot_GetData_S`, `entsDataIs_odOf`, the encoding lemmas).
+
+**`ErrSnapOutOfDate` in raft's `isInitialized`** (`ErrSnapOOD`, an existential as `ErrBreak`):
+`ApplySnapshot`'s and `CreateSnapshot`'s specs take its value, and no client called them before;
+raft's `Init.lean` and kv's re-proof of it frame the allocation they already made.
+
+**What is not covered.** An operation of a replica that commits inside a snapshot the replica
+installs is not answered: its `do` waits (partial correctness, the Go comment's). `RaftWitness/` is
+unchanged: its copies of raft's modules have neither the data certificate nor the strict snapshot
+`Ready`, which kvwitness would need only to take snapshots.

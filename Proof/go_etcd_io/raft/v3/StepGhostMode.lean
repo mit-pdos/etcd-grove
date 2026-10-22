@@ -208,7 +208,8 @@ end mode
 
 A storage's registry of certified snapshots (`storCert`, `InvStorage.lean`) is γ-free, as the rest
 of the storage model; `storCertOk γ st` ties it to raft's certificates (`raftSnapCert γ`, both
-ways), from an invariant the application allocates knowing raft's names (for a `MemoryStorage`,
+ways; D22 S-r, 2026-10-21: with the data certificate, `raftSnapCertD`), from an invariant the
+application allocates knowing raft's names (for a `MemoryStorage`,
 `memCertInv`, `MemstorageInstance.lean`). Raft reads a certificate out of the registry for a
 snapshot it sends (the storage's, `HSnapshot`), and registers the one a received message carries
 (S-d's lent storage). -/
@@ -222,8 +223,8 @@ def raftCertN : Namespace := nroot .@ "raft_snapcert"
 /-- See above. -/
 def storCertOk (γ : RaftNames) (st : Storage) : IProp GF :=
   iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ storCert st k ={E}=∗
-      raftSnapCert γ k) ∗
-    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ raftSnapCert γ k ={E}=∗
+      raftSnapCertD γ k) ∗
+    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗
       storCert st k))
 
 instance storCertOk_persistent (γ : RaftNames) (st : Storage) :

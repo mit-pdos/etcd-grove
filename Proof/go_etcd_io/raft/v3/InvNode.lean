@@ -490,7 +490,9 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
          ∃ (sv : SnapshotM) (scfg : CSLists),
            ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
              uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
-           isMessageC γ.raft (absSnap st.msg sv scfg)) ∗
+           isMessageC γ.raft (absSnap st.msg sv scfg) ∗
+           -- (D22 S-r, 2026-10-21) and its data certificate (the sender's `msgDat`)
+           snapDataOk γ.raft sv.Metadata'.Index' sv.Data') ∗
       termLB γ.bud st.msg.Term' ∗
       rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
       tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0))
@@ -648,6 +650,8 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (D22 S-d4 item 4) every pointer field set: what `MemoryStorage.ApplySnapshot` takes
     ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
+      -- (D22 S-r, 2026-10-21) past the committed log handed out before
+      d.length < l.dlv.length ∧
       l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
       0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
       uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗

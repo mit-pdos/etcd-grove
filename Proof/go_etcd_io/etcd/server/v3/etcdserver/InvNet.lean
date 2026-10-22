@@ -67,7 +67,7 @@ theorem isRaftMsg_isMessages (γ : RaftNames) (st : MsgSt) (Hns : st.msg.Type' �
         isMessage γ (absMsg ty st.msg st.ents st.ctx)) := by
   iintro #Hr
   iunfold isRaftMsg at Hr
-  icases Hr with ⟨-, -, %a, %Habs, #Hl⟩
+  icases Hr with ⟨-, -, ⟨%a, %Habs, #Hl⟩, -⟩
   imodintro
   iintro %ty %Hty
   rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', -, rfl⟩ | ⟨sv, Hsn, -, -⟩

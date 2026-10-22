@@ -428,7 +428,7 @@ theorem newRaft.wp_proof
       (fun _ => by
         have h1 := Hrw1.1.1; have h2 := Hcb1.1.2.2; have h3 := Hrng.2
         simp only [s1, s0, ls1, List.length_nil] at h1 h2 h3 ⊢; omega)
-      (fun h => absurd rfl h) $$ [$HL] as HL
+      (fun h => absurd rfl h) (fun h => absurd rfl h) $$ [$HL] as HL
     ihave HL := ownRaftLogW_quietW _ _ $$ HL %(⟨rfl, rfl⟩)
     ihave Hphys := Hlogback $$ %_ HL %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl
         (hx := fun h => SnpExt.raise h rfl rfl rfl

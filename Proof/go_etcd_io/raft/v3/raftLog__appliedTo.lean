@@ -21,7 +21,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG) := by
-  intro l ls i size Hi Hipo Hsx
+  intro l ls i size Hi Hipo Hsx Hsnp
   wp_start as Hlog
   iNamed Hlog
   wp_auto
@@ -38,10 +38,13 @@ theorem raftLog.appliedTo.wp_proof : raftLog.appliedTo.spec (GF := GF) (hG := hG
     reseal_raftLogW
   all_goals
     simp only [Hcm, Hap, Hapg, Hasz, Hamx] at *
-    -- (D22 S-d3a) `SipOk`: `applying` stays at most a pending snapshot's index
+    -- (D22 S-d3a) `SipOk`: `applying` stays below a pending snapshot's index (D22 S-r: strictly)
     try (refine ⟨Hprel.1, ?_⟩; refine SipOk.applying_ltW (ls := ls) Hprel Hstore Hsappi Hoffset ?_
-         simp only [w64Max])
-    first
+         intro h1 h2; rw [w64Max_spec]
+         by_cases hlt : uint.Z ls.applying < uint.Z i
+         · right; have := Hsnp h1 h2 hlt; omega
+         · left; omega)
+    try first
       | rfl
       | omega
       | (intro Hn; have := Hpapplied Hn; omega)

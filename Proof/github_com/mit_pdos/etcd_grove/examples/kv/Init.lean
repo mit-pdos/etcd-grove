@@ -3,7 +3,7 @@
 # The store's package initialization (2026-10-19)
 
 `kv.wp_initialize'`: running the package's `initialize'` from `ownInitializing` initializes its
-imports (`proto`, `encoding/binary`, `raftpb`, raft, `time`, `sync`, `context`, lintest,
+imports (`encoding/binary`, `proto` (in this order since D22 S-r's translation), `raftpb`, raft, `time`, `sync`, `context`, lintest,
 `primitive`, porcupine, in the translation's order) and then the package (no package-level
 variable), and gives its `isPkgInit` with `context`'s `isClosedchanInit`, which `Main.spec`
 takes.
@@ -105,7 +105,7 @@ theorem wp_initialize'_closedchan (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoArray Bool 23) isLocalMsg _ as HisLocal
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapshotTemporarilyUnavailable go.error as HESU
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrUnavailable go.error as HEU
-  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapOutOfDate go.error as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrSnapOutOfDate go.error as HESOOD
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrCompacted go.error as HEC
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStepPeerNotFound go.error as HESP
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStepLocalMsg go.error as HESL
@@ -177,6 +177,7 @@ theorem wp_initialize'_closedchan (get_is_pkg_init : GoString → IProp GF)
   ipersist HESP
   ipersist HESL
   ipersist HEB
+  ipersist HESOOD
   ipersist HisLocal
   ipersist HisResp
   iframe Hown
@@ -206,7 +207,10 @@ theorem wp_initialize'_closedchan (get_is_pkg_init : GoString → IProp GF)
   · iexists _
     iframe HEmpty HeT HeV HeC HesPb
     ipureintro; exact HesNN
-  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB'
+  ihave #HESOOD' : iprop(∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF))
+      $$ [HESOOD]
+  · iexists _; iexact HESOOD
+  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD'
   simp only [named, EtcdGrove.errorsNewVar]
   iframe #
   ipureintro
@@ -256,9 +260,9 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply encoding.binary.wp_initialize' _ Ht.raft.binary $$ Hown as ⟨Hown, #H9⟩
   wp_apply google_golang_org.protobuf.proto.wp_initialize' _ Ht.raft.proto $$ Hown
     as ⟨Hown, #H10⟩
-  wp_apply encoding.binary.wp_initialize' _ Ht.raft.binary $$ Hown as ⟨Hown, #H9⟩
   wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Ht.raft.raftpb $$ Hown as ⟨Hown, #H8⟩
   wp_apply go_etcd_io.raft.v3.wp_initialize'_closedchan _ Ht.raft $$ Hown as ⟨Hown, #H7⟩
   wp_apply time.wp_initialize' _ Ht.raft.time $$ Hown as ⟨Hown, #H6⟩

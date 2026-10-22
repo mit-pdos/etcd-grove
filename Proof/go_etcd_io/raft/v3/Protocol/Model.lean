@@ -159,10 +159,15 @@ structure SnapTrip where
   sid : entryID
   cl : CSLists
   al : Bool
+  /-- (D22 S-r, 2026-10-21) the snapshot's data: what the application's data certificate is
+  about (`snapDataOk`, `Ghost.lean`); raft's configuration certificate (`raftSnapCert`) does not
+  read it. -/
+  dat : List w8
 
 /-- A `snap` message's snapshot, as raft records it (`SnapTrip`): its id, lists and
-`AutoLeave` (D22 S-b′, 2026-10-20). -/
-def msgSnapTrip (m : Msg) : SnapTrip := ⟨⟨m.logterm, m.index⟩, m.cl, m.al⟩
+`AutoLeave` (D22 S-b′, 2026-10-20). The protocol's message has no data (`[]`): the configuration
+certificate does not read it (`raftSnapCert_dat`). -/
+def msgSnapTrip (m : Msg) : SnapTrip := ⟨⟨m.logterm, m.index⟩, m.cl, m.al, []⟩
 
 /-- `id` is in one of the sets `restore`'s `found` search reads: an incoming voter, a learner or
 an outgoing voter (2026-10-14, reconfiguration stage B8; a staged learner is an outgoing voter,

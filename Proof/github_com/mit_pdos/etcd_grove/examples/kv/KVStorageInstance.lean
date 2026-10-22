@@ -113,6 +113,22 @@ theorem kvStorCut_intro (s ms : Loc) (γs : MemStorNames) (n : Int) :
     ipureintro; rfl
   iexact H
 
+/-- (D22 S-r) The floor's witness, at a known storage: its `MemoryStorage`'s, below `2^61`. -/
+theorem kvStorFloor_at (s ms : Loc) (γs : MemStorNames) (x : w64) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ storFloor (kvStorIface s) x -∗
+      memFloorTok ms γs x ∗ ⌜uint.Z x < 2 ^ 61⌝ := by
+  iintro #Hrec Hc
+  ihave Hc : kvStorFloor (kvStorIface s) x $$ [Hc]
+  · iexact Hc
+  unfold kvStorFloor
+  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc, %Hx⟩
+  have := kvStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
+  subst H1 H2
+  iframe Hc
+  ipureintro; exact Hx
+
 theorem kvStorCert_at (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
     ⊢ kvStorRec (GF := GF) s ms γs -∗ storCert (kvStorIface s) k -∗ memStorCert γs k := by
   iintro #Hrec Hc
@@ -305,13 +321,14 @@ theorem kvStorage_isStorage
   imodintro
   iintro %σ %x Hown %Hx
   ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
+  icases ownMemoryStorage_bounded ms γs σ $$ Hown with ⟨%Hb, Hown⟩
   imod memStorage_floor ms γs σ x Hx $$ Hown with ⟨Hown, Hfw⟩
   ihave Hown := kvOwnStorage_intro s ms γs _ $$ Hrec Hown
   ihave H : kvStorFloor (kvStorIface s) x $$ [Hfw]
   · unfold kvStorFloor
     iexists s, ms, γs
     iframe Hrec Hfw
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, by have := Hx.2.2; omega⟩
   imodintro
   iframe Hown H
 

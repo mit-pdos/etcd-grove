@@ -11,6 +11,8 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 
 @[expose] public section
 
@@ -53,7 +55,9 @@ theorem deliverable.wp_proof
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
-    (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
+    (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
+    (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
+    (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
     deliverable.spec (GF := GF) (hG := hG) := by
   intro m dq dqe cap st
   wp_start as Hm
@@ -61,7 +65,87 @@ theorem deliverable.wp_proof
   · iPkgInit
   simp only [raftpb.MsgHeartbeatResp, raftpb.MsgHeartbeat, raftpb.MsgVoteResp, raftpb.MsgVote,
     raftpb.MsgAppResp, raftpb.MsgApp, raftpb.MsgReadIndex, raftpb.MsgReadIndexResp,
-    raftpb.MsgTimeoutNow, raftpb.MsgProp]
+    raftpb.MsgTimeoutNow, raftpb.MsgProp, raftpb.MsgSnap]
+  -- (D22 S-r) a snapshot, apart
+  by_cases h7 : st.msg.Type' = W32 7
+  · wp_auto
+    wp_getter
+    simp only [h7]
+    wp_auto
+    wp_getter
+    try wp_auto
+    by_cases hT : st.msg.Term' = W64 0
+    · rw [decide_eq_true hT]
+      wp_auto
+      iapply HΦ
+      iframe Hm
+      ipureintro; intro h; cases h
+    rw [decide_eq_false hT]
+    wp_auto
+    icases msgPtsC_snap_acc _ _ _ _ _ $$ Hm with ⟨%ps, HSn, Hsn, Hback⟩
+    wp_auto
+    cases Hs : st.snap with
+    | none =>
+      simp only [snapOpt]
+      icases Hsn with %Hpn
+      subst Hpn
+      rw [decide_eq_true rfl]
+      wp_auto
+      iapply HΦ
+      ihave Hm := Hback $$ HSn []
+      · ipureintro; rfl
+      iframe Hm
+      ipureintro; intro h; cases h
+    | some sv =>
+      simp only [snapOpt]
+      icases ownSnapM_not_null ps dq sv $$ Hsn with ⟨Hsn, %Hpn⟩
+      rw [decide_eq_false Hpn]
+      wp_auto
+      wp_apply wp_Snapshot_GetMetadata.1 ps dq sv $$ [$Hsn] as %pm ⟨Hmd, Hsback⟩
+      wp_apply wp_SnapshotMetadata_GetIndex pm dq _ $$ [$Hmd] as Hmd
+      ihave Hsn := Hsback $$ Hmd
+      ihave Hm := Hback $$ HSn Hsn
+      try wp_auto
+      by_cases hI : uint.Z (W64 2305843009213693952) ≤ uint.Z sv.Metadata'.Index'
+      · rw [decide_eq_true hI]
+        wp_auto
+        iapply HΦ
+        iframe Hm
+        ipureintro; intro h; cases h
+      rw [decide_eq_false hI]
+      wp_auto
+      have hI' : uint.Z sv.Metadata'.Index' < 2 ^ 61 := by
+        have : uint.Z (W64 2305843009213693952) = 2 ^ 61 := by decide
+        omega
+      wp_getter
+      try wp_auto
+      by_cases hF : st.msg.From' = W64 0
+      · rw [decide_eq_true hF]
+        try wp_auto
+        iapply HΦ
+        iframe Hm
+        ipureintro; intro h; cases h
+      rw [decide_eq_false hF]
+      try wp_auto
+      wp_getter
+      try wp_auto
+      wp_getter
+      try wp_auto
+      by_cases hFT : st.msg.From' = st.msg.To'
+      · rw [decide_eq_true hFT]
+        try wp_auto
+        iapply HΦ
+        iframe Hm
+        ipureintro; intro h; cases h
+      rw [decide_eq_false hFT]
+      try wp_auto
+      wp_field
+      iapply HΦ
+      iframe Hm
+      ipureintro
+      intro hb
+      refine ⟨.inr (.inr (.inr (.inr ⟨h7, hT, sv, Hs, hI'⟩))), hF, hFT, .inl (Hnil.2 ?_)⟩
+      revert hb; simp
   have Hcases : (st.msg.Type' ≠ W32 2 ∧ st.msg.Type' ≠ W32 15 ∧ st.msg.Type' ≠ W32 16 ∧
        st.msg.Type' ≠ W32 9 ∧ st.msg.Type' ≠ W32 8 ∧ st.msg.Type' ≠ W32 6 ∧
        st.msg.Type' ≠ W32 5 ∧ st.msg.Type' ≠ W32 4 ∧ st.msg.Type' ≠ W32 3 ∧
@@ -96,7 +180,7 @@ theorem deliverable.wp_proof
   rcases Hcases with ⟨h2, h15, h16, h9, h8, h6, h5, h4, h3, h14⟩ | Ht | Ht | Ht | Ht | Ht | Ht |
     Ht | Ht | Ht | Ht
   · wp_auto
-    repeat (simp only [h2, h15, h16, h9, h8, h6, h5, h4, h3, h14, decide_false]; wp_auto)
+    repeat (simp only [h2, h15, h16, h9, h8, h6, h5, h4, h3, h14, h7, decide_false]; wp_auto)
     iapply HΦ
     iframe Hm
     ipureintro; intro h; cases h

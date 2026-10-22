@@ -1025,14 +1025,16 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-19, D21 M3) the no-snapshot mode, only with a bootstrap log
     (ns : Bool) (Hns : ns = true → L ≠ [])
     -- (2026-10-19, D22 S-a) the no-transfer mode; (2026-10-20, D22 S-c) only with a bootstrap log
-    (nx : Bool) (Hnx : nx = true → L ≠ []) :
+    (nx : Bool) (Hnx : nx = true → L ≠ [])
+    -- (2026-10-21, D22 S-r) the snapshots' data the cluster admits (`RaftNames.reSnapOkRaw`)
+    (sok : List BootEntry → List w8 → Prop) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) → (dyn = none ∨ L = []) →
     ⊢ allocClientGen E cfg dyn ccOk L C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
-          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
+          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1073,7 +1075,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he)⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1186,7 +1188,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
   imodintro
   iexists γ0
-  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
+  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1220,12 +1222,43 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) Hcne Hnz (BootWf_nil _)
+    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) Hcne Hnz (BootWf_nil _)
     (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
-  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2⟩
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1⟩
   rw [initPState_eq]
+  iexact H
+
+/-- (2026-10-21, D22 S-r) **The static allocation of a cluster that takes snapshots**: as
+`ownRaftGhost_alloc_gen` in the static mode, at the empty log, with the snapshots' data the cluster
+admits (`sok`, `RaftNames.reSnapOkRaw`; the application's relation of a committed prefix and a
+snapshot's data), outside the no-snapshot and no-transfer modes and with no tracked bound. -/
+theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
+    (ccOk : w32 → List w8 → Prop) (sok : List BootEntry → List w8 → Prop)
+    (C : RaftNames → IProp GF) :
+    cfg ≠ ∅ →
+    W64 0 ∉ ids →
+    ⊢ allocClient E cfg none C -∗
+      |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧
+          γ.reNoXfer = false ∧ γ.reNoSnap = false ∧ γ.reTracked = none ∧ γ.reSnapOkRaw = sok⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
+        isCommitted γ [] ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
+        C γ ∗
+        (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
+  intro Hcne Hnz
+  iintro Hcl
+  ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
+  imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
+    false (fun h => by cases h) false (fun h => by cases h) sok Hcne Hnz (BootWf_nil _)
+    (fun h => absurd rfl h) (Or.inr rfl) $$ Hcl' with ⟨%γ, %Hγ, H⟩
+  imodintro
+  iexists γ
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.1,
+    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2⟩
+  rw [initPState_eq]
+  simp only [Option.isSome_none]
   iexact H
 
 /-! ### A new cluster's bootstrap log (2026-10-16, stage R8b, D12) -/
@@ -1309,12 +1342,14 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   ihave Hcl' : allocClientGen (GF := GF) E cfg none ccOk bootLog C $$ [Hcl]
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
-    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne) Hcne Hnz Hok.wf
+    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
+    (fun _ _ => True) Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _) (Or.inl rfl)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
-  isplitr; · ipureintro; exact Hγ
+  isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.1,
+    Hγ.2.2.2.2.2.2.1⟩
   rw [bootPState_eq]
   simp only [Option.isSome_none]
   iexact H

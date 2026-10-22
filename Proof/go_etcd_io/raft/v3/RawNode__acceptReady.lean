@@ -908,7 +908,7 @@ theorem RawNode.acceptReady.wp_proof
         exact this
       · rw [Hlogst, Haf9, Hf_fl, Hfl1]
       · rw [Hlogst, Haf11, Haf12, Hnu0, Hnx1, Hf_sents, Hf_uents]
-      · rw [Hap0 rfl]; exact Hap1
+      · rw [Hap0 rfl]; exact Int.le_of_lt Hap1
       · show rs.delivered ++ [] <+: l.dlv; rw [List.append_nil]; exact Hdp1
       · refine ⟨(selfmsgs id ms2).map (fun q => selfPending q.st.msg), s.term,
           if s.logst.uents ≠ [] then some (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
