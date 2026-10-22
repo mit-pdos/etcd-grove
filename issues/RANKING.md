@@ -178,8 +178,9 @@ that fails 5 of 5 without it and passes 15 of 15 with it),
 second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` has not opened yet, a
 follower panic; needs two snapshots in quick succession; fixed in our fork 2026-10-22, `Release`
 moved after the open, with a deterministic unit test that fails 5 of 5 without the fix and passes
-10 of 10 with it; still not reproduced in a cluster, which is what it needs before filing, and no
-upstream candidate drafted, upstream not searched yet).
+10 of 10 with it; known upstream: etcd-io/etcd#18055, open, reproduced there by the robustness
+tests and Antithesis, with fix PR #22046 open, so the useful step is to support that PR, not to
+file).
 
 Two of the watch client's resume-path findings (2026-10-20, D25), in this order, which is by how
 likely a deployment is to hit them rather than by severity alone:
