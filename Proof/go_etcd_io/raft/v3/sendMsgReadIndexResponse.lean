@@ -148,6 +148,7 @@ theorem sendMsgReadIndexResponse.wp_proof
             (Or.inr (Or.inl ⟨.readIndexResp, Or.inr (Or.inr (Or.inl rfl)), rfl, rfl,
               fun h => Hloc (Or.inr h), rfl⟩))
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
+            (fun h => by simp [readIndexRespMsg, MsgApp] at h)
           $$ [$Hphys $Hresp]
         · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
         iintro Hphys

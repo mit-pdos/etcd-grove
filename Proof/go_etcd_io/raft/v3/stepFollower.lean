@@ -127,6 +127,7 @@ theorem stepFollower.wp_proof
           (Or.imp_right Or.inl Hfrom0)
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
+          (fun h => by simp [Hty, MsgProp, MsgApp] at h)
         $$ [$Hphys $Hm] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
@@ -247,6 +248,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inl Hty)))
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
+          (fun h => by simp [Hty, MsgReadIndex, MsgApp] at h)
         $$ [$Hphys $Hm] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
@@ -414,6 +416,7 @@ theorem stepFollower.wp_proof
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl, Hxo⟩))))
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
+          (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         $$ [$Hphys $Hm] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys

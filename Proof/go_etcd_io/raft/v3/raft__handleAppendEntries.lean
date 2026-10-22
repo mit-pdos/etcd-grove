@@ -54,7 +54,8 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
   wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩))))
-      (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
+      (fun h => absurd h (by simp [MsgSnap]))
+      (fun h => absurd h (by simp [MsgApp])) $$ [$Hphys $Hm] as Hphys
   · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   iapply HΦ
   iexact Hphys

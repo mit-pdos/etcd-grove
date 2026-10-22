@@ -138,10 +138,13 @@ theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
     isplitr
     · ipureintro
-      exact NetMsgOk.of_sent Hsent Hto Hp
+      -- (D33a) `NetMsgOk` reads only the scalars, which the copy has
+      have Hn := NetMsgOk.of_sent Hsent Hto Hp
+      exact Hn
     isplitr
     · ipureintro
-      exact ⟨fun _ => hboot, fun h => absurd h (SentMsgOk.ne_transferLeader Hsent),
+      have Htl := SentMsgOk.ne_transferLeader Hsent
+      exact ⟨fun _ => hboot, fun h => absurd h Htl,
         fun h => absurd h Hns⟩
     -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
     isplitr

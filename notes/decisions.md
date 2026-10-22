@@ -15462,7 +15462,18 @@ typed `binary.BigEndian` as an interface global (it is an empty struct, loaded w
 from the connection and `Term`/`LogTerm`/`Index` from the decoder's state, the rest at defaults. A
 sent `MsgApp` must therefore have `From` = the sender and default `Vote`, `Reject`, `RejectHint`,
 snapshot and context; raft's one `MsgApp` constructor (`maybeSendAppend`, plus `send`) does. That
-goes into the sender's promise (`SentMsgOk`, `netBundle`), with `MsgMarshals` (no `responses`,
-known enums), which the encoder's spec takes; the receiver's guarantee (`wireEq`) is unchanged.
+goes into the sender's promise, the receiver's guarantee (`wireEq`) unchanged. **Done 2026-10-22**:
+`SentMsgOk` has a sixth clause, `MsgApp → AppShape st` (`InvRaftPhys.lean`: `Vote`, `Reject`,
+`RejectHint` zero, no snapshot, no context, no responses); `raft.send` takes it of its message as a
+premise (`m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩`), which `maybeSendAppend` proves from
+its literal and every other caller from its type; `send` stamps only `From` and `Term`. It reaches
+`netBundle` through the server's payload (`isRaftMsg`, in the no-transfer mode). `SentMsgOk` now
+reads `snap` and `resps`, so a copy with other responses (the received message, `InvNet.lean`) or
+another snapshot (the merged `MsgSnap`, `SnapSendBundle.lean`) no longer has it by definitional
+unfolding: `SentMsgOk.of_msg` (not a `MsgApp`), and `NetMsgOk` still reads the scalars only. No
+statement of a closed theorem changed, trust base unchanged. *Still open:* `From` = the sending
+member's id (`send` sets it; the transport side needs it against its local id), and `MsgMarshals`
+for every sent message (no responses, known enums: the entries' types, a log-wide fact), which the
+encoder's spec takes.
 *Rejected:* (b) weakening `wireEq` to the fields `Process` reads (a change to `Net.lean`'s
 interface and the server proofs).

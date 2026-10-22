@@ -179,8 +179,11 @@ trust-boundary spec.
    (`ErrExceedSizeLimit = errors.New(...)`), which every result reaching rafthttp's package
    initializer does: the baseline 540 -> 541 (the eight example collections +1). `decode` (the limit `readBytesLimit`, an untranslated variable)
    waits for the package variables' values.
-   **Next**: the msgappv2 pair; the `MsgApp` shape and `MsgMarshals` in `SentMsgOk` (raft's side:
-   `maybeSendAppend`, `send`, the queued-message invariant) and in `netBundle`.
+   **Done 2026-10-22, the `MsgApp` shape in `SentMsgOk`** (D33a): `AppShape`, a premise of
+   `raft.send` (`maybeSendAppend` proves it), carried to `netBundle` by the server's payload; no
+   closed statement changed, trust base unchanged.
+   **Next**: the msgappv2 pair; `From` = the sender's id and `MsgMarshals` (no responses, known
+   enums, including the entries') for the messages handed to `Send`.
 4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
    `Process`. The simplest complete delivery path; first proof that the mailbox design works.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),

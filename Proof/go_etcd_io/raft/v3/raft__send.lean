@@ -70,7 +70,7 @@ with transfer off `SentMsgOk` -- its fields from the case's facts `args`, the no
 (`Hidnz`), its term past `0` (`Hxfs`). -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · simp only [Hty1, $args,*]; nofun
   · simp only [Hty1, $args,*]; tyd
   · simp only [Hfr1]; first | exact Hidnz | exact Hsrc0
@@ -80,7 +80,15 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     simp only [Hty1, Hte1, $args,*] at h hz
     all_goals first | exact Hxfs.2 hns hz | exact absurd (by tyd) h
   · intro h1 h2 h3 h4; simp only [Hty1, Hfr1, Hto1, $args,*] at h1 h2 h3 h4 ⊢
-    all_goals exact $ft))
+    all_goals exact $ft
+  -- (2026-10-22, D33a) a `MsgApp`'s shape, the caller's (`send` stamps only `From`, `Term`)
+  · intro h
+    first
+    | exact Hsh1 h
+    | (have h' : m1.Type' = MsgApp := by simp only at h; rw [Hty1]; exact h
+       have Hs := Hsh1 h'
+       unfold AppShape at Hs ⊢; simp only at Hs ⊢; exact Hs)
+    | (simp only at h; exact absurd h (by tyd))))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -196,7 +204,7 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn
+  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh
   wp_start as H
   iNamed H
   -- (2026-10-19, D21 M2r) the node's id nonzero, and the modes' facts
@@ -226,6 +234,9 @@ theorem raft.send.wp_proof
   have Hte1 : m1.Term' = m.Term' := by rw [← Hm1]
   have Hto1 : m1.To' = m.To' := by rw [← Hm1]
   have Hfr1 : m1.From' = src := by rw [← Hm1]
+  -- (2026-10-22, D33a) a `MsgApp`'s shape, the caller's: `send` stamps only `From` and `Term`
+  have Hsh1 : m1.Type' = MsgApp → AppShape ⟨m1, ents, sn, ctx, rs⟩ := by
+    intro h; rw [Hty1] at h; have := Hsh h; subst Hm1; exact this
   have Hsrc : m.Type' ≠ MsgReadIndex → m.Type' ≠ MsgTransferLeader → src = id := by
     intro Hne Hne2
     rcases Hfrom with Hf | Hf | Hf | Hf

@@ -330,6 +330,14 @@ def sentTypes : List w32 :=
   [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp,
    MsgReadIndex, MsgReadIndexResp, MsgPreVote, MsgPreVoteResp, MsgSnap]
 
+/-- (2026-10-22, D33a) **The shape of a `MsgApp` raft sends**: no vote, not a rejection, no
+hint, no snapshot, no context, no responses -- the fields the msgappv2 codec's short frame does not
+carry (its decoder sets them to their defaults). Raft's one `MsgApp` (`maybeSendAppend`) sets only
+`To`, `Type`, `Index`, `LogTerm`, `Entries`, `Commit` (and `send`, `From` and `Term`). -/
+def AppShape (st : MsgSt) : Prop :=
+  st.msg.Vote' = W64 0 ∧ st.msg.Reject' = false ∧ st.msg.RejectHint' = W64 0 ∧
+  st.snap = none ∧ st.ctx = [] ∧ st.resps = []
+
 /-- (2026-10-19, D21 M2r, D21g (A)) **What a sender in the no-transfer mode promises of a message
 it queues** (from D22 S-a to S-c: in both modes), beyond its protocol abstraction (`isRaftMsg`
 carries it to the receiver): a type of
@@ -337,13 +345,23 @@ carries it to the receiver): a type of
 read-index request, and from a node other than its destination unless it is a read-index request
 (forwarded, it keeps its requester), a vote or pre-vote response, or an accepting `MsgAppResp`
 (the self-addressed responses `acceptReady` steps). What a receiver's `NetMsgOk` needs of a
-message addressed to it (`NetMsgOk.of_sent`, `InvRawnode.lean`). -/
+message addressed to it (`NetMsgOk.of_sent`, `InvRawnode.lean`). (2026-10-22, D33a) And a `MsgApp`
+of raft's shape (`AppShape`), what rafthttp's msgappv2 codec needs to carry it whole. -/
 def SentMsgOk (st : MsgSt) : Prop :=
   st.msg.Type' ∈ sentTypes ∧ st.msg.From' ≠ W64 0 ∧
   (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
   (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex) → st.msg.Term' ≠ W64 0) ∧
   (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
-     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To')
+     (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
+  (st.msg.Type' = MsgApp → AppShape st)
+
+/-- (2026-10-22, D33a) `SentMsgOk` carries over to a message with the same scalars, if it is not
+a `MsgApp` (whose shape reads the rest): e.g. a `MsgSnap` with its snapshot replaced. -/
+theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg)
+    (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st' := by
+  obtain ⟨a, b, c, d, e, -⟩ := H
+  unfold SentMsgOk; rw [hm]
+  exact ⟨a, b, c, d, e, fun h => absurd h hna⟩
 
 /-- (2026-10-19, D21 M2r) **The modes' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the
 queued messages `l`): with leader transfer off (`NGhost.xf`) no transferee is recorded and every

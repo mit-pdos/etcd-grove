@@ -126,7 +126,7 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
       · -- `SentMsgOk` reads only the message, which the merge keeps (D22 S-c: under the
         -- no-transfer mode alone, `MsgSnap` included)
         ipureintro
-        exact Hsent
+        exact fun h => (Hsent h).of_msg rfl (by rw [Hty]; simp [MsgSnap, MsgApp])
       isplitr
       rotate_left
       · -- (D22 S-r) the merged snapshot's data certificate: the committed prefix `A`
