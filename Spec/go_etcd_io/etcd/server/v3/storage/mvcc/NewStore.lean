@@ -58,7 +58,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   premise `0 ≤ cfg.CompactionBatchLimit` (`NewStore` keeps it, and the compaction job would
   loop forever: `issues/etcd-compaction-negative-batch-limit.md`), so `isStore`'s limit is
   positive.
-* The store's stop channel (`storeStop`) and the right to close the store once (`storeCloser`:
+* A quarter of the four fields `store.Restore` writes (`fieldShare`; D22 receiver epochs, S3,
+  2026-10-22: until then `isStore` held them `↦□`, and `NewStore` returned the stop channel's,
+  `storeStop`): the watchable store's share (`newWatchableStore` keeps it under its `s.mu`), and
+  the right to close the store once (`storeCloser`, with another quarter:
   the channel's close, the scheduler's stop token and the compaction jobs' queue; D19m (C),
   2026-10-18: until then `NewStore` gave the stop token up for good, `isStore` holding
   `schedLive`, and `Close`'s contract was false). The caller that will not close the store gives
@@ -97,7 +100,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
-      mvcc.storeStop s ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
+      mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
 
 end spec
 

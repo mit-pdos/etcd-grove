@@ -938,6 +938,14 @@ def logCh (log : Log) : Nat := (log.map List.length).sum
 theorem logCh_snoc (log : Log) (cs : List Change) : logCh (log ++ [cs]) = logCh log + cs.length := by
   simp [logCh]
 
+/-- **The index had all the events of `log`** (persistent; a lower bound of the index's event
+count, a physical name: D22 receiver epochs, S1): what a certificate no longer says. The store's
+`s.revMu` keeps it of the committed log, and a read transaction of the log it read. -/
+def idxNevLb (γ : IdxNames) (log : Log) : IProp GF := monoNatLbOwn γ.nev (evsOf log).length
+
+instance idxNevLb_persistent (γ : IdxNames) (log : Log) : Persistent (idxNevLb (GF := GF) γ log) := by
+  unfold idxNevLb; infer_instance
+
 /-- The writer's handle: the history's authority (`ilog` committed, `pend` put so far), a
 lower bound of the event count at its last write, and half the committed log's authority; and
 (D19b, 2026-10-18) a time receipt per change of the log and the pending revision (`⧗`: each
@@ -962,6 +970,26 @@ theorem idxWriter_lt (γ : IdxNames) (ilog : Log) (pend : List Change) :
   icases persistent_entails_left (receipt_lt _) $$ Hr with ⟨Hr, %h⟩
   iframe Ha Hb Hc Hr
   ipureintro; exact ⟨h, H⟩
+
+/-- **The writer's count of its events** (persistent, kept): the index had every event of the
+writer's log and pending revision (D22 receiver epochs, S1: what a commit gives `s.revMu`, beside
+the certificate). -/
+theorem idxWriter_nevLb (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxWriter (GF := GF) γ ilog pend ⊢ idxWriter γ ilog pend ∗ idxNevLb γ (ilog ++ [pend]) := by
+  unfold idxWriter idxNevLb
+  iintro ⟨Ha, #Hb, %H, Hc, Hr⟩
+  iframe Ha Hc Hr Hb
+  ipureintro; exact H
+
+/-- The writer's count of its committed log's events, with no pending change. -/
+theorem idxWriter_nevLb_nil (γ : IdxNames) (ilog : Log) :
+    idxWriter (GF := GF) γ ilog [] ⊢ idxWriter γ ilog [] ∗ idxNevLb γ ilog := by
+  have hevs : evsOf (ilog ++ [[]]) = evsOf ilog := by
+    rw [evsOf_append ilog []]; simp [evsOfRev]
+  have h := idxWriter_nevLb (GF := GF) γ ilog []
+  unfold idxNevLb at h ⊢
+  rw [hevs] at h
+  exact h
 
 /-- The writer's handle once **sealed**: the pending revision `pend` (not empty) is final, its
 commit marker already in the history (so the history's lower bound `histOf (ilog ++ [pend])`
@@ -1092,11 +1120,14 @@ theorem idxWriterB_wf (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Boo
     iintro ⟨-, -, %Hw, -⟩
     ipureintro; exact Hw.1
 
-/-- The certificate of a committed log `log`: its history is a prefix of the index's, the
-index had all its events, and `log` is a prefix of the committed log (so two certificates
-are of logs in prefix order: `idxCert_prefix`). -/
+/-- The certificate of a committed log `log`: its history is a prefix of the index's, and `log`
+is a prefix of the committed log (so two certificates are of logs in prefix order:
+`idxCert_prefix`). It names only the store's logical names (the history and the committed log),
+not the index's event count (D22 receiver epochs, S1, 2026-10-22: the count is per index, and a
+restore builds a new index; that the index had all the log's events is `idxNevLb`, which a
+reader learns under the lock that pins the current index, `idxKnows`). -/
 def idxCert (γ : IdxNames) (log : Log) : IProp GF :=
-  iprop(monoListLbOwn γ.hist (histOf log) ∗ monoNatLbOwn γ.nev (evsOf log).length ∗
+  iprop(monoListLbOwn γ.hist (histOf log) ∗
     ⌜LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ ∗
     monoListLbOwn γ.log log ∗ ⌜logCh log < receiptBound GF⌝)
 
@@ -1107,7 +1138,7 @@ instance idxCert_persistent (γ : IdxNames) (log : Log) : Persistent (idxCert (G
 theorem idxCert_sealed (γ : IdxNames) (log : Log) :
     idxCert (GF := GF) γ log ⊢ idxSealed γ log := by
   unfold idxCert idxSealed
-  iintro ⟨Hl, -, %h, -, %h'⟩
+  iintro ⟨Hl, %h, -, %h'⟩
   iframe Hl
   isplitl
   · ipureintro; exact h
@@ -1117,14 +1148,14 @@ theorem idxCert_sealed (γ : IdxNames) (log : Log) :
 theorem idxCert_prefix (γ : IdxNames) (log log' : Log) :
     idxCert (GF := GF) γ log ∗ idxCert γ log' ⊢ ⌜log <+: log' ∨ log' <+: log⌝ := by
   unfold idxCert
-  iintro ⟨⟨-, -, -, Hl, -⟩, ⟨-, -, -, Hl', -⟩⟩
+  iintro ⟨⟨-, -, Hl, -⟩, ⟨-, -, Hl', -⟩⟩
   iapply mono_list_lb_valid γ.log log log' $$ Hl Hl'
 
 /-- The committed log (any part of its authority) extends every certificate's. -/
 theorem idxLogAuth_cert_prefix (γ : IdxNames) (q : Qp) (ilog log : Log) :
     idxLogAuth (GF := GF) γ q ilog ∗ idxCert γ log ⊢ ⌜log <+: ilog⌝ := by
   unfold idxCert
-  iintro ⟨Ha, ⟨-, -, -, Hl, -⟩⟩
+  iintro ⟨Ha, ⟨-, -, Hl, -⟩⟩
   ihave %h := mono_list_auth_lb_valid γ.log q ilog log $$ Ha Hl
   ipureintro; exact h.2
 
@@ -1139,13 +1170,11 @@ theorem idxWriter_cert_prefix (γ : IdxNames) (ilog : Log) (pend : List Change) 
 theorem idxCert_nil (γ : IdxNames) : ⊢ |==> idxCert (GF := GF) γ [] := by
   unfold idxCert
   imod monoListLbOwn_nil (GF := GF) (A := HistItem) γ.hist with #H1
-  imod monoNatLbOwn_0 (GF := GF) γ.nev with #H2
   imod monoListLbOwn_nil (GF := GF) (A := List Change) γ.log with #H3
   imodintro
   have h1 : histOf [] = ([] : List HistItem) := rfl
-  have h2 : (evsOf []).length = 0 := rfl
-  rw [h1, h2]
-  iframe H1 H2 H3
+  rw [h1]
+  iframe H1 H3
   isplitl
   · ipureintro
     exact ⟨⟨fun h => absurd rfl h, fun r cs i k hr _ => by simp at hr⟩, by simp, by simp⟩
@@ -1216,8 +1245,6 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
   iframe Hlother
   · isplitl []
     · iexact Hlb
-    isplitl []
-    · iexact Hnev
     iframe Hllb
     isplitl
     · ipureintro
@@ -1267,8 +1294,6 @@ theorem idxWriterSealed_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
   iframe Hlother
   · isplitl []
     · iexact Hlb
-    isplitl []
-    · iexact Hnev
     iframe Hllb
     isplitl
     · ipureintro
@@ -1304,14 +1329,15 @@ def IdxKnow.log : IdxKnow → Log
 @[simp] theorem IdxKnow.log_writer (ilog : Log) (pend : List Change) :
     (IdxKnow.writer ilog pend).log = ilog ++ [pend] := rfl
 
-/-- The resource of the knowledge: the certificate, or the writer's handle (which the index's
-readers give back as is). -/
+/-- The resource of the knowledge: the certificate with the index's count of its events (the
+count is the index's own, a physical name: `idxNevLb`; D22 receiver epochs, S1), or the writer's
+handle (which the index's readers give back as is). -/
 def idxKnows (γ : IdxNames) : IdxKnow → IProp GF
-  | .cert log => idxCert γ log
+  | .cert log => iprop(idxCert γ log ∗ idxNevLb γ log)
   | .writer ilog pend => idxWriter γ ilog pend
 
 theorem idxKnows_cert (γ : IdxNames) (log : Log) :
-    idxKnows (GF := GF) γ (.cert log) = idxCert γ log := rfl
+    idxKnows (GF := GF) γ (.cert log) = iprop(idxCert γ log ∗ idxNevLb γ log) := rfl
 theorem idxKnows_writer (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxKnows (GF := GF) γ (.writer ilog pend) = idxWriter γ ilog pend := rfl
 
@@ -1341,17 +1367,20 @@ theorem idxKnows_facts (γ : IdxNames) (kn : IdxKnow) (log : Log) (hlog : kn.log
     simp only [IdxKnow.log] at hlog
     subst hlog
     rw [idxKnows_cert]
-    iintro #Hkn #Hlb Hnev
+    iintro ⟨#Hkn, #Hcnt⟩ #Hlb Hnev
     ihave #Hcert0 : idxCert γ log' $$ []
     · iexact Hkn
     iunfold idxCert at Hkn
-    icases Hkn with ⟨#Hclb, #Hcnt, %Hcwf, -⟩
-    ihave %Hcmp := mono_list_lb_valid γ.hist _ _ $$ Hclb Hlb
+    icases Hkn with ⟨#Hclb, %Hcwf, -⟩
+    iunfold idxNevLb at Hcnt
     ihave %Hcnt' := monoNatLbOwn_valid γ.nev q _ _ $$ Hnev Hcnt
+    ihave %Hcmp := mono_list_lb_valid γ.hist _ _ $$ Hclb Hlb
     iframe Hnev
     isplitl []
     · ipureintro; exact ⟨Hcmp, Hcnt'.2, Hcwf.1, Hcwf.2.1, Hcwf.2.2⟩
-    iexact Hcert0
+    iframe Hcert0
+    iunfold idxNevLb
+    iexact Hcnt
   | writer ilog' pend' =>
     simp only [IdxKnow.log] at hlog
     subst hlog

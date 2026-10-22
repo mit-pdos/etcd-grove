@@ -34,7 +34,7 @@ abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
     (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev crev Z ∗ mvcc.txReader γ rt log ∗
-      s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.idxPin γ ti ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       mvcc.muHeld s γ crev ∗ traceutil.ownTrace trace te }}
     (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!

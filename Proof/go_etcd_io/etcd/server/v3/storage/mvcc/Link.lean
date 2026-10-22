@@ -513,10 +513,6 @@ theorem schema.bucket.wp_String :
     schema.bucket.String.spec (GF := GF) (hG := hG) :=
   schema.bucket.String.wp_proof schema.bucket.wp_Name
 
-theorem mvcc.store.wp_checkPrevCompactionCompleted :
-    mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=
-  mvcc.store.checkPrevCompactionCompleted.wp_proof mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_UnsafeReadFinishedCompact
-
 theorem zap.Logger.wp_Info :
     zap.Logger.Info.spec (GF := GF) (hG := hG) :=
   zap.Logger.Info.wp_proof
@@ -767,6 +763,10 @@ theorem schedule.job.wp_Name :
 theorem mvcc.store.wp_Close :
     mvcc.store.Close.spec (GF := GF) (hG := hG) :=
   mvcc.store.Close.wp_proof
+
+theorem mvcc.store.wp_checkPrevCompactionCompleted :
+    mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=
+  mvcc.store.checkPrevCompactionCompleted.wp_proof mvcc.wp_UnsafeReadScheduledCompact mvcc.wp_UnsafeReadFinishedCompact
 
 theorem mvcc.store.wp_compactBarrier :
     mvcc.store.compactBarrier.spec (GF := GF) (hG := hG) :=

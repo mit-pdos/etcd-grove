@@ -1591,7 +1591,7 @@ def revMinted (E : apply.AEnv GF) (log log' : mvcc.Log) : IProp GF :=
 theorem idxCert_len (γ : mvcc.IdxNames) (log : mvcc.Log) :
     mvcc.idxCert (GF := GF) γ log ⊢ ⌜log.length < 2 ^ 63⌝ := by
   unfold mvcc.idxCert
-  iintro ⟨-, -, %H, -⟩
+  iintro ⟨-, %H, -⟩
   ipureintro; exact H.2.1
 
 /-- Two certified logs have a certified common extension, one of them (the vertical slice's unit

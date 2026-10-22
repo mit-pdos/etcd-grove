@@ -107,12 +107,15 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
       %d %_ %_ [$(frameH `HKeyG) $(frameH `Hlocked) $(frameH `Hbv) $(frameH `Hib)
           $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
     · ipureintro; exact mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
+    icases mvcc.muHeld_idx s γ crev ti $$ [Hmu] with ⟨Hidxf, HmuI⟩
+    · iframe Hmu Hidx
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$(frameH `HtiS) $(frameH `Hw)
         $(frameH `Hkey)] as Hw
     · ipureintro
       refine ⟨rfl, hpos, Hb63, mvcc.LogWf'.append_change Hwf' Hne _ (fun _ h => by cases h)⟩
+    ihave Hmu := HmuI $$ Hidxf
     (try wp_auto)
     -- `tw.changes = append(tw.changes, kv)`
     wp_apply wp_slice_literal (l := [«$r0_ptr»])
@@ -134,14 +137,14 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
         mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
-        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
+        $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
       iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
       simp only [named]
       rw [mvcc.pendPuts_append ilog pend (.put k v leaseID) _ hkvm']
       simp only [mvcc.revOf, mvcc.Change.isDel]
-      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+      iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
       isplitl []
       · ipureintro; exact Hbudget
@@ -190,9 +193,16 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   have HBM : pend.length + 1 < mvcc.putMax γ := by have := mvcc.putMax_ge γ; omega
   have Hb := HBM
   have Hb63 : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hb (mvcc.kbPutMax_le _)
-  icombine Hidx HidxS gives %Hti_eq
-  have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
-  subst Hti_eq'
+  iunfold mvcc.idxPin at Hidx
+  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
+  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
+  · iframe HpinS Hpin0
+  subst Hoo
+  simp only at Ho0
+  have Ho1 := Ho0.symm
+  subst Ho1
+  ihave #Hidx : mvcc.idxPin γ ti $$ []
+  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -239,7 +249,9 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   -- `tw.s.kvindex.Get(key, rev)` by the writer
   ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
   · rw [mvcc.idxKnows_writer]; iexact Hw
-  icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+  icases mvcc.muHeld_crev_idx s γ crev ti $$ [Hmu] with ⟨Hcu, Hidxf, Hmub⟩
+  · iframe Hmu Hidx
+  (try wp_auto)
   wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0 _ crev)
     $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as ⟨Hti, Hw, Hcu, -⟩
   · ipureintro; rw [mvcc.IdxKnow.log_writer]
@@ -247,7 +259,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       word
     simp only [List.length_append, List.length_singleton]
     refine ⟨⟨Hcrev.1, by have := Hcrev.2; omega⟩, by omega, by omega⟩
-  ihave Hmu := Hmub $$ Hcu
+  ihave Hmu := Hmub $$ Hcu Hidxf
   rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer]
   cases hg : mvcc.kiGet (mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k) (W64 (ilog.length : Int)) with
   | some a =>

@@ -17,7 +17,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
@@ -25,11 +25,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 with no view, `metaReadTx`; racy with the job, which writes `finishedCompactRev`: the result only
 decides whether the next compaction's hash is stored, which the model ignores). Of a store whose
 backend supports the compaction (`storeCmp`: the real backend's model promises nothing of the
-`Meta` bucket, its hook's). -/
+`Meta` bucket, its hook's). The store's fields for its compaction (`storeStop`; D22 receiver epochs,
+S3: until then `isStore`'s `↦□`). -/
 abbrev mvcc.store.checkPrevCompactionCompleted.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames),
   mvcc.storeCmp γ →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ ∗
+      mvcc.storeStop s γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"checkPrevCompactionCompleted")) (Val #()))
   {{ (b : Bool), RET #b; True }}
 

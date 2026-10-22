@@ -15154,6 +15154,104 @@ numbers (neither the Go state nor the abstract state counts restores).
   physical, so `Restore` must exclude compacted stores; "current backend" is per object, not global
   (`lessor.Recover(newbe)` runs before `kv.Restore`).
 
+## D22 receiver epochs, S1-S5 carried out: S1-S4 done, S5 designed; stopped before S5 (2026-10-22)
+
+The store-level steps of the simplest true `Restore` plan (`notes/snapshot-receiver-epochs.md`, §4;
+"D22m revisited" above), on branch `worktree-agent-ac204083d5bd27672`, each commit a full build.
+mvcc files and four outside (`txn/RangeLemmas`, `txn/Write`, `InvRequest`: patterns of `idxCert`;
+`NewServer`: a pattern of `storeReader`); no raft, bbolt, alarm-store or `raftNode__start` file;
+no re-translation. Trust base unchanged (543 axioms, 2 sorries; every collection unchanged). No
+top-level statement changed; mvcc-internal specs did (listed per step). **S5 is not done**: what is
+left of the report's S3 (the physical names existential) joined it, and together they are much
+larger than the report's "about 25 files, mostly framing" (below).
+
+**S1: `idxCert` without the index's event count** (`InvIndex`). The certificate names only the
+history and the committed log; the count is `idxNevLb γ log` (persistent, physical), kept by
+`s.revMu` of the committed log (`revMuInv`'s `Hnev`), by a read transaction of the log it read
+(`storeTxnReadIs`'s `Hnev`; the report put it in `muHeld`: the transaction's record is where its
+log is), by the compaction job of its log (`compactJobPre`), and given with the certificate to the
+index's readers (`idxKnows .cert := idxCert ∗ idxNevLb`). The writer's count: `idxWriter_nevLb(_nil)`.
+`treeIndex.Compact.spec` takes `idxNevLb`. The tree's names stay `γ.idx` (the record update to
+`π`'s `nev`/`cmp` is S5's).
+
+**S2: the writer's state out of the batch lock.** The batch lock's resource `writerRes` is now the
+backend's only: the batch lock's key (`writerKey`, `StoreNames.wk`), half the ghost of the log the
+view is of (`StoreNames.wv`), half the bucket's view at it, **its certificate** (the compaction job
+reads the view under the batch lock without the writer's state) and `compactRes`. The writer's
+state `writerL` (the index writer, half of `clog`, half the view's log ghost, half of `currentRev`,
+the certificate, half the budget, the lessor's slot) is in `writerInv` (an `inv`, in `isStore`):
+`writerL ∨ writerKey ∗ wDep`. `muInv q` holds `ghostVar γ.wr q ()` (`StoreNames.wr`); a writer
+checks the state out with the key and a part of it (`writerInv_checkout`, one later credit) and
+back in before `Unlock` (`writerInv_checkin`). *Deviation:* the report's `W` (key, view ½,
+`compactRes`) leaves the view's log untied to the writer's: the view's log ghost `wv` ties them (a
+per-backend name, with `wk`: the new backend's batch lock gets fresh ones).
+
+**S3a: the four fields out of `isStore`.** `s.b`, `s.kvindex`, `s.fifoSched`, `s.stopc`: their
+points-to (`storeFields`) are shared by `fieldShare s γ q`: half in `muInv` (a transaction's part in
+`muHeld`), a quarter in the right to close (`storeCloser`), a quarter returned by `NewStore` (in
+place of `storeStop s`) for the watchable store's `s.mu` (`wsFields`, a conjunct of
+`watchStoreInv`: `syncWatchers` reads `s.store.b` there). *Interim:* which objects they name is
+pinned for good (`objsPin γ o`, a discarded `dghostVar` of `StoreObjs`, `StoreNames.cur`;
+`idxPin γ ti`): S5 makes it a ghost variable the shares hold fractions of, which is what lets
+`Restore` move it; with the pin, `Restore` cannot be true yet. Spec changes: `NewStore` (post),
+`rangeKeys` (`idxPin` and a fraction of `kvindex`, returned), `Range`/`storeTxnRead.End` (`idxPin`
+for `↦□`), `store.restore` (axiom: fractions of `b`, `kvindex`, returned: still true), the
+compaction's (`storeStop s γ`: the fields `↦□`, **made only from the right to close**,
+`compactRight_of_closer`, so a store with it is never restored; `checkPrevCompactionCompleted`
+takes it). `store.Close`'s axiom is unchanged textually; `storeCloser` now holds more (a field
+share), so it stays true. Persistent `↦□` of the four fields now exist only in compaction-land
+(`storeStop`, `storeStopped`).
+
+**S3b: `s.revMu`'s restoring mode.** `revMuInv s γ q := ∃ m, dghostVar γ.rst (q/2) m ∗ (if m then
+revMuRest s q else revMuBody s γ q)` (`revMuBody` the old body, `revMuRest` only the counters'
+halves at any values). The flag's other half is in `fieldShare` (at `false`), so every reader of
+`s.revMu` refutes the mode (`revMuInv_open`, `_held` for a transaction, `_ws` for the watch side);
+the compaction from `storeStop`'s discarded flag. *Deviation:* a `dghostVar` (not a ghost variable
+in `muInv`/`watchStoreInv`), so that the compaction, which reads `s.revMu` holding `s.mu` but not a
+field share, has it down for good.
+
+**S4: the readers' pool.** `readerPool γ` (an `inv`, in `isStore`): `∃ k, ownTokAuth γ.tk k ∗
+ownTokAuth γ.tko (N - k) ∗ k slots of the index's lock (idxSlot) ∗ (N - k) deposits (wDep)`.
+`storeReader(C)` holds a ticket (`ownToks γ.tk 1`) in place of its slot; `store.Read`/`Write` check a
+slot out under `s.mu` shared (`readerPool_checkout`, depositing a `wDep`), the transaction holds an
+out-ticket (`txReader`'s/`storeTxnWriteIs`'s `Htko`), `End` checks it in. `wDep` is now half a
+reader's fraction (`wDep_halves`): a reader deposits one half in the pool and keeps the other in
+`txReader`; a writer deposits one in the pool, one in `writerInv`. *Deviation:* the backend's
+reader tokens (`storeRT`) stay with the readers: pooling them removes `storeRT` from `storeReader`,
+which `storeReader_rt`'s 22 apply users and `NewServer`'s storage-version monitor take it from, and
+the apply thread's own token (the report's "`kvOwn` bundles it") and the monitor's need backend
+tokens beyond `NewStore`'s (the backend hands out exactly its readers' worth): a server change,
+with S5/S7.
+
+**S5: designed, not done.** What it must do (the report's S3 remainder and S5):
+1. A record `StorePhys` = the objects and the physical names (`idx.nev`, `idx.cmp`, `bucket`, `hook`,
+   `hookFn`, `kb`, `cmeta`, `fin`, `sch`, `wk`, `wv`); `γ.withPhys π`; `γ.cur` a ghost variable of
+   `StorePhys` (replacing `objsPin`), fractions in `fieldShare` (½ of its total), `revMuInv` (⅛),
+   `writerInv` (⅛), `readerPool` (⅛), the writer's fragment (⅛). Each share holds `□ physOk s γ π`:
+   what `isStore` now holds of the objects (`isKeyBackendG` at `γ.withPhys π`, `storeRegd`,
+   `hookP`, `isTreeIndex`, `isFifo`, the stop channel), which `isStore` drops (it keeps the guards,
+   the lessor, the logger, `cfg`, `hashes`, the three invariants, `idxCert [[],[]]`).
+2. `revMuBody`'s `bucketView`/`idxNevLb`, `writerL`'s `idxWriter`/`wv`, `writerRes`, the pool's slots
+   at `γ.withPhys π`; `isStore s (γ.withPhys π) = isStore s γ` by `rfl` (logical fields only).
+3. Transactions at the `π` their `muHeld` pins (`isTxnRead`/`storeTxnWriteIs` internally at
+   `γ.withPhys π`; `Range`/`rangeKeys`/`End` instantiated there; `txn/RangeLemmas`, `txn/Write`
+   adapt), the readers' `storeRT` pooled (S4's deviation, with the server's own tokens).
+4. The writer's fragment: `hookIs γ P f` non-persistent (`cur ⅛ π ∗ ⌜γ.withPhys π = γ⌝` with the
+   hook facts), taken and returned by `store.Write`/`End`; every txn/apply user that keeps `#Hhook`
+   threads it (the report's 25 files).
+Estimate: 60-80 files (mvcc ~35, txn ~10, apply ~25, server ~5), several build iterations.
+
+**For S6-S8.** `Restore`'s precondition must collect: `muInv 1` (`s.mu.Lock`: all of `γ.wr`, so
+`writerInv` holds `writerL` and the pool every slot: `nReaders - k = 0`), `revMuInv 1` (twice:
+`revMu.Lock`; the window in restoring mode, flag up with all of `fieldShare`'s halves), the
+watchable store's `wsFields 1` (its caller, holding the watchable `s.mu`), `storeCloser` (the last
+field quarter, the stop tokens), `crevFrozen` (no compaction right: `compactRight_of_closer` would
+have consumed the closer). The new backend's batch lock holds its `lateW` unregistered: the
+writer's state in `writerInv` must carry the new backend's `writerRes` (fresh `wk`, `wv`) and
+`lateReg` until the next writer's `Unlock` registers it (a third disjunct of `writerInv`, or
+`writerL` with an optional pending registration). The old batch lock keeps its `writerRes` (its
+`wk`/`wv` names are dead) for good: harmless.
+
 ## D22c revisited: tracking the image's other buckets instead of the determinism axiom (2026-10-22, proposed)
 
 The user prefers tracking the buckets a received image's `Recover`s read (lease, auth, members,

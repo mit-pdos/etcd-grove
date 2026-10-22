@@ -1472,12 +1472,39 @@ theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
     monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
   subst h; exact .rfl
 
+/-- **The watchable store's share of its inner store's fields** (D22 receiver epochs, S3,
+2026-10-22): `syncWatchers` reads `s.store.b` under the watchable store's `s.mu` and the inner
+store's `s.revMu`, not the inner store's `s.mu` (and `store.Restore`, called by
+`watchableStore.Restore` under the watchable store's `s.mu`, writes it before taking `s.revMu`):
+the quarter `NewStore` returns (`fieldShare`), at the lock's fraction. -/
+def wsFields (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
+  iprop(∃ st : Loc, s.[watchableStore, go!"store"] ↦□ st ∗ fieldShare st γ.st q.half.half)
+
+instance wsFields_fractional (s : Loc) (γ : WsNames) : Fractional (wsFields (GF := GF) s γ) where
+  fractional q1 q2 := by
+    have hf := fun st => (fieldShare_fractional (GF := GF) st γ.st).fractional q1.half.half q2.half.half
+    unfold wsFields
+    rw [Qp_half_add, Qp_half_add]
+    constructor
+    · iintro ⟨%st, #Hst, H⟩
+      icases (hf st).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists st; iframe Hst H1
+      · iexists st; iframe Hst H2
+    · iintro ⟨⟨%st1, #Hst1, H1⟩, ⟨%st2, #Hst2, H2⟩⟩
+      icombine Hst1 Hst2 gives %Heq
+      subst Heq
+      iexists st1
+      iframe Hst1
+      iapply (hf st1).2
+      iframe H1 H2
+
 /-- **The lock invariant** of `s.mu` (see the module docstring); D25: with the released length's
 authority at the notified log's length (`End` bumps it before notifying, inside its critical
-section). -/
+section); D22 receiver epochs, S3: with the share of the inner store's fields (`wsFields`). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
   iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ monoNatAuthOwn γ.rel q σ.Lmu.length ∗
-    ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
+    wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
 
 /-! ## The store -/
 
@@ -1506,6 +1533,28 @@ def isWatchableStore (s st : Loc) (γ : WsNames) : IProp GF :=
     "#Hstopc" ∷ s.[watchableStore, go!"stopc"] ↦□ stc ∗
     "#Hstop" ∷ isStopChan stc ∗
     "%Hwq" ∷ ⌜γ.st.watchQ = true⌝)
+
+/-- **A holder of a watchable store's `s.mu` finds the inner store's `s.revMu` not restoring**
+(its share of the inner store's fields has the restoring flag down; D22 receiver epochs, S3). -/
+theorem revMuInv_open_ws (s st : Loc) (γ : WsNames) (q q' : Qp) :
+    s.[watchableStore, go!"store"] ↦□ st ∗ revMuInv (GF := GF) st γ.st q ∗ wsFields s γ q' ⊢
+      revMuBody st γ.st q ∗ dghostVar γ.st.rst (DFrac.own q.half) false ∗ wsFields s γ q' := by
+  iintro ⟨#Hst, H, Hw⟩
+  iunfold wsFields at Hw
+  icases Hw with ⟨%st', #Hst', Hf⟩
+  icombine Hst Hst' gives %Heq
+  subst Heq
+  iunfold fieldShare at Hf
+  icases Hf with ⟨%o, #Hp, Hf, Hr⟩
+  icases revMuInv_open st γ.st q _ $$ [H Hr] with ⟨H, Hrr, Hr⟩
+  · iframe H Hr
+  iframe H Hrr
+  iunfold wsFields
+  iexists st
+  iframe Hst
+  iunfold fieldShare
+  iexists o
+  iframe Hp Hf Hr
 
 instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
     Persistent (isWatchableStore (GF := GF) s st γ) := by

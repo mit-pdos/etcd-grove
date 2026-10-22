@@ -983,7 +983,7 @@ theorem NewServer.wp_proof
   iunfold mvcc.watchReader at HwrSV
   icases HwrSV with ⟨HwrSV, -⟩
   iunfold mvcc.storeReader at HwrSV
-  icases HwrSV with ⟨%-, -, -, -, -, HrtSV, -⟩
+  icases HwrSV with ⟨-, -, -, HrtSV, -⟩
   -- (D19i part 2) the storage version monitor's backend access
   ihave HSV : srvSVRes s γw.st $$ [HbmSV HrtSV HlgSV]
   · unfold srvSVRes srvBemuReader
