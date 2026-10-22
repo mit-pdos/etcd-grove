@@ -2474,8 +2474,7 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
     isplitl []
     · ipureintro
       refine ⟨?_, rfl⟩
-      simp [opGetModel, opFold, OpFull.getInit, OpFull.newOp, OpModel.zero, opDeleteModel,
-        OpFull.deleteInit, opDeletePanics, opGetPanics, OpFull.deletePanics]
+      simp [op_simps, opDeletePanics, opGetPanics, OpFull.deletePanics]
     rw [Hw]
     unfold kvReqPre
     icases Hau with (#Hau | ⟨#Ho, Hau⟩)

@@ -108,7 +108,7 @@ theorem leasingKV.acquire.wp_proof
   wp_apply hLV key $$ [$Hcv] as %lc0 #Hlc0
   try wp_auto
   -- the else-operations: `op`, `OpGet(pfx + key)`
-  ihave #Hnil := concurrency.optsAt_nil (GF := GF)
+  ihave #Hnil := optsAt_nil (GF := GF)
   wp_apply hGet (pfx ++ key) slice.nil [] $$ [$Hcv $Hnil] as %opL #HopL
   · ipureintro; exact concurrency.keyOp_not_panics
   wp_apply wp_slice_literal (l := [opv, opL])

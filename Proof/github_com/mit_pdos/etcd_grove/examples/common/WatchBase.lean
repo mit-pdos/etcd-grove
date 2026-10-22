@@ -127,12 +127,6 @@ def collectOk (R : Nat → GoString → GoString → IProp GF) (P : List (GoStri
         e.Put' = true ∧ sint.Z e.Rev' = 2 + i ∧ (e.Key', e.Val') ∈ P⌝ ∗
     □ ∀ (i : Nat) (e : wev), ⌜evs[i]? = some e⌝ -∗ R (2 + i) e.Key' e.Val')
 
-theorem isProgressNotify_events' {r : RespModel} (h : r.isProgressNotify = true) :
-    r.events = [] := by
-  unfold RespModel.isProgressNotify at h
-  simp only [Bool.and_eq_true, List.isEmpty_iff] at h
-  exact h.1.1.1.1
-
 /-- **Receiving from a client watch channel** (`etcdWatch_recv_au` as a triple). -/
 theorem wp_etcdWatch_receive [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF]
     (ch : Loc) (γ : EtcdWatchNames) (pfx : GoString) (n : Nat) (cursor : w64) :

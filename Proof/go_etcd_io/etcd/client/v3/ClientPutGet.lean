@@ -1,8 +1,8 @@
 /-
 **`(*Client).Put`/`Get` by the client `New` returns** (item 9, point 7, 2026-10-18): the methods
 of `*Client` promoted from its embedded `KV` interface reduce to the `*kv`'s (`kv.Put`/`kv.Get`)
-that `New` stores in the `KV` field (`isNewClient`), so `PutThenGet.lean`'s `client_put_own` and
-`client_get_own` hold of the calls the adequacy example makes (`cli.Put(ctx, k, v)`,
+that `New` stores in the `KV` field (`isNewClient`), so `client_put_end_to_end` and `client_get_end_to_end` at
+`PutThenGet.lean`'s updates hold of the calls the adequacy example makes (`cli.Put(ctx, k, v)`,
 `cli.Get(ctx, k)`). Lean-first (no Rocq counterpart).
 
 The reduction is the translation's method-set rules `Client.TypeAssumptions.ptr_Put_unfold` and
@@ -58,15 +58,26 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **The client's invariant at a log's state** (`putGetInv_alloc`; every log's state is sorted
-by key, `mvcc.stateAfter_sorted`): from the client's `etcdKV` at `kvStateOf l` (the bootstrap
-log's model, as the server's allocation gives it, `srvBootOut`). -/
+/-- **The client's invariant at a log's state** (allocated with the put not fired; every log's
+state is sorted by key, `mvcc.stateAfter_sorted`): from the client's `etcdKV` at `kvStateOf l`
+(the bootstrap log's model, as the server's allocation gives it, `srvBootOut`). -/
 theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString)
     (hW : γr.kv.wl.writes (.put (putKeyOp key val))) (Em : CoPset) :
-    etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢ |={Em}=> ∃ γf : GName, putGetInv γr γf key val :=
-  putGetInv_alloc γr key val (kvStateOf l) (mvcc.stateAfter_sorted l) hW Em
+    etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢ |={Em}=> ∃ γf : GName, putGetInv γr γf key val := by
+  iintro Hσ
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
+  imod inv_alloc kvClientN Em (iprop(∃ (σ : KVState) (n : Nat), etcdKV γr.kv σ ∗
+      monoNatAuthOwn γf 1 n ∗ ⌜putGetOk key val σ n⌝)) $$ [Hσ Hm] with #Hinv
+  · inext; iexists kvStateOf l, 0; iframe Hσ Hm
+    ipureintro; exact ⟨mvcc.stateAfter_sorted l, fun h => absurd h (by omega)⟩
+  imodintro
+  iexists γf
+  iunfold putGetInv
+  iframe Hinv
+  ipureintro; exact hW
 
-/-- **`cli.Put(ctx, key, val)` by `New`'s client `cl`** (`client_put_own` through the `KV` field):
+/-- **`cli.Put(ctx, key, val)` by `New`'s client `cl`** (`client_put_end_to_end` at `putAu_of_putGetInv`, through the
+`KV` field):
 `nil`, the reply and the put's flag; or an error. -/
 theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
     (γr : ReadNames) (γf : GName) (cid mid : w64) (ci : GoInterfaceOk)
@@ -89,13 +100,31 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_own api [ep] E γr γf cid mid ci cd key val sl F) $$ [] as %resp %err Hout
+  ihave #Hau := putAu_of_putGetInv γr γf key val $$ Hinv
+  -- (2026-10-19, D21 M6) a persistent update, its result persistent
+  ihave Hau' := putAuOk_of_box api [ep] γr.kv _ _ $$ Hau
+  wp_apply (client_put_end_to_end api [ep] E γr cid mid ci cd key val sl
+    (fun _ => iprop(□ monoNatLbOwn γf 1)) F) $$ [Hau'] as %resp %err Hout
   · iframe #
   iapply HΦ
-  iexact Hout
+  icases Hout with (⟨%Herr, %m, Hm, Hp⟩ | %Herr)
+  · ihave Hp := putReplied_mono E γr F _ (fun _ => iprop(□ monoNatLbOwn γf 1))
+      (fun _ => monoNatLbOwn γf 1) cid mid m (fun _ => intuitionistically_elim) $$ Hp
+    ileft
+    ihave #Hlb : monoNatLbOwn γf 1 $$ [Hp]
+    · iunfold putReplied at Hp
+      icases Hp with ⟨%hm, %x, %x', %l, %skip, -, -, -, -, -, #Hq⟩
+      iexact Hq
+    isplitr
+    · ipureintro; exact Herr
+    isplitl
+    · iexists m; iframe
+    · iexact Hlb
+  · iright
+    ipureintro; exact Herr
 
-/-- **`cli.Get(ctx, key)` by `New`'s client `cl`, after its put fired** (`client_get_own` through
-the `KV` field): `nil` and a reply whose first key-value's value is `val`; or an error. -/
+/-- **`cli.Get(ctx, key)` by `New`'s client `cl`, after its put fired** (`client_get_end_to_end`
+at `getAu_of_putGetInv`, then `client_get_value`, through the `KV` field): `nil` and a reply whose first key-value's value is `val`; or an error. -/
 theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv GF)
     (γr : ReadNames) (γf : GName) (c cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
@@ -116,10 +145,25 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_get_own api [ep] E γr γf c cid mid ci cd key val sl F) $$ [] as %resp %err Hout
+  ihave #Hau := getAu_of_putGetInv γr γf key val $$ [Hinv Hlb]
+  · iframe #
+  wp_apply (client_get_end_to_end api [ep] E γr c cid mid ci cd key sl
+    (fun σ => iprop(⌜(mvcc.findKey key σ.kvs).map EtcdKv.value = some val⌝)) F) $$ []
+    as %resp %err Hout
   · iframe #
   iapply HΦ
-  iexact Hout
+  icases Hout with (⟨%Herr, %m, Hm, #Hq⟩ | %Herr)
+  · ileft
+    ihave Hv := client_get_value E γr c cid mid key F _ m $$ Hq
+    icases Hv with ⟨%σ, %Hσ, %Hval, -⟩
+    isplitr
+    · ipureintro; exact Herr
+    iexists m
+    iframe Hm
+    ipureintro
+    rw [Hval, Hσ]
+  · iright
+    ipureintro; exact Herr
 
 end e2e
 
@@ -444,7 +488,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
         fun t h => by simp [irrDeleteRange, apply.irrEmpty] at h⟩
       simp only [irrDeleteRange, Option.some.injEq] at h
       subst h
-      simp [txn.deleteOpOf, OpFull.newOp, OpModel.zero]
+      simp [txn.deleteOpOf, op_simps]
     have hop : op' = txn.deleteOpOf key [] false := Hz hnz
     subst hop
     iexists m, kvStateOf y.log

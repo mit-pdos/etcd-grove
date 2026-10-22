@@ -74,15 +74,6 @@ theorem ptsto_w64_half_whole (l : Loc) (v1 v2 : w64) :
   have : (1 / 2 : Rat) + 1 ≤ 1 := h
   grind
 
-/-- A `w64` field in two halves. -/
-theorem ptsto_w64_halves (l : Loc) (v : w64) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-        typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) := by
-  have h := typedPointsto_frac_add (GF := GF) l v (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at h
-  exact h.1
-
 /-- Two halves of a `Loc` field: the same value, the whole field. -/
 theorem ptsto_loc_combine (l v1 v2 : Loc) :
     typedPointsto (GF := GF) l v1 (DFrac.own (1 : Qp).half) ∗
@@ -164,7 +155,7 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
     -- the next lifetime's start, at `recvc`'s position
     imod ghost_map_insert_persist sent.length true (HM sent.length (Nat.le_refl _)) $$ Hpa
       with ⟨Hpa, #Hls'⟩
-    icases ptsto_w64_halves _ _ $$ Hrev with ⟨Hrev1, Hrev2⟩
+    icases ptsto_split_half _ _ $$ Hrev with ⟨Hrev1, Hrev2⟩
     imodintro
     iexists sent.length, nr, sent
     iframe Hgx

@@ -92,7 +92,7 @@ theorem txnLeasing.serverTxn.wp_proof
   ihave #Huopsat : opsAt uops (b.thenOs ++ b.elseOs) $$ []
   · unfold opsAt; iexists uv2; iframe #; ipureintro; exact Huv2l
   ihave #Hcmps : cmpsAt csl b.cmps $$ []
-  · iapply cmpsSetAt_cmpsAt_c
+  · iapply cmpsSetAt_cmpsAt
     unfold cmpsSetAt; iexists cvs; iframe #; ipureintro; exact Hcl
   ihave #Hthen : opsAt tsl b.thenOs $$ []
   · unfold opsAt; iexists tvs; iframe #; ipureintro; exact Htl

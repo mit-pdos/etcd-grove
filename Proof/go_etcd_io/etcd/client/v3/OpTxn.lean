@@ -128,7 +128,7 @@ theorem OpTxn.wp_proof (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG)) :
     iapply HΦ
     isplitl []
     · unfold opFullAt opAt OpFields opSortAt
-      simp only [OpFull.txnInit, OpFull.newOp, OpModel.zero]
+      simp only [OpFull.txnInit, op_simps]
       ihave #Hnil := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
       iframe #
       simp

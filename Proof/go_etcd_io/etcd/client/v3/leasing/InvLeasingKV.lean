@@ -141,9 +141,6 @@ def leasingXBody (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
 def leasingX (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q : Qp) : IProp GF :=
   iprop(∃ x : Loc × GoChan × List LeaseCacheSt, leasingXBody lkv γ st x q)
 
-/-- Halving distributes over a sum of fractions. -/
-theorem Qp_half_add (p q : Qp) : (p + q).half = p.half + q.half := Subtype.ext (by simp; grind)
-
 /-- A points-to at half the fraction is fractional. -/
 theorem half_pointsto_fractional_loc (l : Loc) (v : Loc) :
     Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q.half)) where

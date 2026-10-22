@@ -11,9 +11,9 @@ member's (`srvKVInvs E γr`: the KV invariant, the raft log's).
   entries, watchkv's `wk_log`'s second case).
 * `revAtH γr r k v`: revision `r` of a history log is the put of `k ↦ v`; two agree
   (`revAtH_agree`: history logs are in prefix order, `histLog_two`).
-* `evFactH`, `chain_hist`, `prog_step_hist`, `resp_hist`: watchkv's `evFact`, `chain_wk`,
-  `prog_step_wk`, `resp_wk` at the history model (`etcdModelOfHistory`), their steps' logs
-  history logs.
+* `evFactH`, `wkSteps_hist`, `resp_hist`: watchkv's `evFact`, `wkSteps_srv`, `resp_wk` at the
+  history model (`etcdModelOfHistory`), its steps' logs history logs; `resp_hist` is watchkv's
+  generic `resp_gen` at `wkSteps_hist`.
 * `okFactH`, `okFactH_of_reply`: what the program knows of a successful put, from a member's
   reply (`putReplied`: the member's certified log, a history log, `histLog_of_cert`).
 -/
@@ -35,8 +35,7 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
-open watchkv (workload WkLog Cur step_wk prog_wk kvRaftOf_wk putNv_value putNv_modRev
-  isProgressNotify_events')
+open watchkv (workload WkLog Cur kvRaftOf_wk)
 
 section facts
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -109,101 +108,31 @@ abbrev evFactH (γr : ReadNames) (P : List (GoString × GoString)) (r : Nat) (e 
     IProp GF :=
   common.evFactR (revAtH γr) P r e
 
-/-- **The chain of a watch's batches at the cluster** (watchkv's `chain_wk`, over the history). -/
-theorem chain_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) :
-    ∀ (bs : List Batch) (prev : w64) (n : Nat), Cur n prev → (∀ b ∈ bs, BatchOk b) →
-      ⊢ srvKVInvs (GF := GF) E γr -∗
-        watchChain (EM := v3rpc.etcdModelOfHistory γr.raft γr.kv) wkPfx prev bs ={⊤}=∗
-        □ ∀ (j : Nat) (e : EvModel), ⌜bs.flatten[j]? = some e⌝ -∗ evFactH γr P (2 + n + j) e
-  | [], _, _, _, _ => by
-    iintro #Hinvs -
-    imodintro
-    iintro !> %j %e %h
-    simp at h
-  | b :: bs, prev, n, hcur, hok => by
-    iintro #Hinvs Hch
-    iunfold watchChain at Hch
-    icases Hch with ⟨#Hcert, %Hlt, Hrest⟩
-    iunfold etcdStepCertBody at Hcert
-    icases Hcert with ⟨%cs, #Hm, #Hstep, -, -⟩
-    ihave #Hstep' : v3rpc.histStep γr.raft γr.kv prev (batchRev b) wkPfx cs $$ []
-    · iexact Hstep
-    iunfold v3rpc.histStep at Hstep'
-    iclear Hstep
-    icases Hstep' with ⟨%L, #HL, %Hs⟩
-    obtain ⟨h0, -, hr1, hnone, hcs⟩ := Hs
-    imod hist_wk E γr P hwl hlog L $$ Hinvs HL with %Hwk
-    iunfold evsMatch at Hm
-    icases Hm with ⟨%Hml, #Hmv⟩
-    obtain ⟨hbne, hbrev⟩ := hok b (List.mem_cons_self ..)
-    have hcsne : txn.revEvs L wkPfx (sint.Z (batchRev b)).toNat ≠ [] := by
-      rw [hcs]; intro h; rw [h] at Hml; exact hbne (List.length_eq_zero_iff.mp Hml.1)
-    obtain ⟨hr, k, v, hkv, hL, he⟩ :=
-      step_wk Hwk wkPfx hpk n prev (batchRev b) hcur Hlt hr1 hnone hcsne
-    rw [hcs] at he
-    subst he
-    obtain ⟨e0, rfl⟩ : ∃ e0, b = [e0] := by
-      have hlen : b.length = 1 := by rw [Hml.1]; rfl
-      match b, hlen with
-      | [e0], _ => exact ⟨e0, rfl⟩
-    obtain ⟨hty, hkey, hrev⟩ := Hml.2 0 e0 _ rfl rfl
-    ihave #Hval := Hmv $$ %0 %e0 %_ %rfl %rfl
-    simp only [txn.changeEv, txn.putNv_key, putNv_modRev] at hty hkey hrev
-    have hcur' : Cur (n + 1) (batchRev [e0]) := Or.inr ⟨by omega, by omega⟩
-    imod chain_hist E γr P hwl hlog hpk bs (batchRev [e0]) (n + 1) hcur'
-      (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb')) $$ Hinvs Hrest with #Hrest
-    imodintro
-    iintro !> %j %e %hj
-    cases j with
-    | zero =>
-      simp only [List.flatten_cons, List.singleton_append, List.getElem?_cons_zero,
-        Option.some.injEq] at hj
-      subst hj
-      iunfold evFactH
-      iunfold common.evFactR
-      isplitr
-      · ipureintro
-        refine ⟨hty, ?_⟩
-        rw [hrev]; simp only [Nat.add_zero]; word
-      iexists v, _
-      iframe Hval
-      isplitr
-      · ipureintro
-        refine ⟨by simp [txn.changeEv, putNv_value], ?_⟩
-        rw [hkey]; exact hkv
-      iunfold revAtH
-      iexists L
-      iframe HL
-      ipureintro
-      rw [hkey]; simpa using hL
-    | succ j =>
-      simp only [List.flatten_cons, List.singleton_append, List.getElem?_cons_succ] at hj
-      ihave H := Hrest $$ %j %e %hj
-      rw [show 2 + n + (j + 1) = 2 + (n + 1) + j by omega]
-      iexact H
-
-/-- **A progress step at the cluster** (watchkv's `prog_step_wk`, over the history). -/
-theorem prog_step_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat) (c p : w64) (hcur : Cur n c) :
+/-- **The cluster's history's steps are a watchkv server's** (`hist_wk`). -/
+theorem wkSteps_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
+    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []]) :
     ⊢ srvKVInvs (GF := GF) E γr -∗
-      EtcdStep (self := v3rpc.etcdModelOfHistory γr.raft γr.kv) c p wkPfx [] ={⊤}=∗
-        ⌜c = p ∨ Cur n p⌝ := by
-  iintro #Hinvs #Hstep
-  ihave #Hstep' : v3rpc.histStep γr.raft γr.kv c p wkPfx [] $$ []
+      watchkv.wkSteps (v3rpc.etcdModelOfHistory γr.raft γr.kv) P (revAtH γr) := by
+  iintro #Hinvs
+  iunfold watchkv.wkSteps
+  iintro !> %r0 %r1 %evs #Hstep
+  ihave #Hstep' : v3rpc.histStep γr.raft γr.kv r0 r1 wkPfx evs $$ []
   · iexact Hstep
   iunfold v3rpc.histStep at Hstep'
   icases Hstep' with ⟨%L, #HL, %Hs⟩
-  obtain ⟨-, hle, hp, -, hnone⟩ := Hs
   imod hist_wk E γr P hwl hlog L $$ Hinvs HL with %Hwk
   imodintro
-  ipureintro
-  exact prog_wk Hwk wkPfx hpk n c p hcur hle hp hnone
+  iexists L
+  isplitr
+  · ipureintro; exact ⟨Hwk, Hs⟩
+  iintro !> %r %k %v %h
+  iunfold revAtH
+  iexists L
+  iframe HL
+  ipureintro; exact h
 
-/-- **One response of a watch at the cluster** (watchkv's `resp_wk`, over the history): its events
-are puts of the plan at the revisions after the position's, which becomes the last's. -/
+/-- **One response of a watch at the cluster** (watchkv's `resp_gen` at `wkSteps_hist`): its
+events are puts of the plan at the revisions after the position's, which becomes the last's. -/
 theorem resp_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
     (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
     (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat) (c c' : w64)
@@ -214,57 +143,8 @@ theorem resp_hist (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × G
       ⌜Cur (n + r.events.length) c'⌝ ∗
       □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗ evFactH γr P (2 + n + j) e := by
   iintro #Hinvs Hok
-  iunfold watchRespOk at Hok
-  icases Hok with (⟨%H, -⟩ | %H | ⟨%H, #Hs, -⟩ | ⟨%H, Hc⟩)
-  · exact absurd H.1 hne
-  · obtain ⟨-, he, -, rfl⟩ := H
-    imodintro
-    rw [he]
-    isplitr
-    · ipureintro; simpa using hcur
-    iintro !> %j %e %h
-    simp at h
-  · obtain ⟨-, hp, hle, rfl, -⟩ := H
-    have he := isProgressNotify_events' hp
-    ihave Hcp : iprop(|={⊤}=> ⌜c = r.hdrRev ∨ Cur n r.hdrRev⌝) $$ []
-    · icases Hs with (%h | #Hst)
-      · imodintro; ipureintro; left; exact h
-      · iapply prog_step_hist E γr P hwl hlog hpk n c r.hdrRev hcur $$ Hinvs Hst
-    imod Hcp with %Hcp
-    imodintro
-    rw [he]
-    isplitr
-    · ipureintro
-      simp only [List.length_nil, Nat.add_zero]
-      rcases Hcp with rfl | h
-      · exact hcur
-      · exact h
-    iintro !> %j %e %h
-    simp at h
-  · obtain ⟨-, hne', -, -, hlast⟩ := H
-    imod chain_hist E γr P hwl hlog hpk (splitBatches r.events) c n hcur
-      (splitBatches_ok r.events) $$ Hinvs Hc with #Hch
-    irevert Hch
-    rw [splitBatches_flatten]
-    iintro #Hch
-    have hlen : 0 < r.events.length := List.length_pos_iff.mpr hne'
-    obtain ⟨el, hel⟩ : ∃ el, r.events[r.events.length - 1]? = some el :=
-      ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have hl : r.events.getLast? = some el := by
-      rw [List.getLast?_eq_getElem?]; exact hel
-    rw [hl] at hlast
-    simp at hlast
-    ihave #Hf := Hch $$ %(r.events.length - 1) %el %hel
-    iunfold evFactH at Hf
-    iunfold common.evFactR at Hf
-    icases Hf with ⟨%Hfe, -⟩
-    imodintro
-    isplitr
-    · ipureintro
-      right
-      refine ⟨by omega, ?_⟩
-      rw [← hlast, Hfe.2]; push_cast; omega
-    iexact Hch
+  ihave #HS := wkSteps_hist E γr P hwl hlog $$ Hinvs
+  iapply watchkv.resp_gen _ P (revAtH γr) hpk n c c' v r hne hcur $$ HS Hok
 
 /-- **What the program knows of a successful put it logged** (persistent; watchkv's `okFact`,
 over the history). -/

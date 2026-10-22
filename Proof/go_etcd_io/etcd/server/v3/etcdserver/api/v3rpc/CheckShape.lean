@@ -34,7 +34,7 @@ namespace EtcdGrove
 namespace v3rpc
 
 /-- A range passing `checkRangeRequest` has a valid sort target. -/
-theorem validSortTarget_of_rangeCheck' (o : OpFull) (h : rangeCheck o = none) :
+theorem validSortTarget_of_rangeCheck (o : OpFull) (h : rangeCheck o = none) :
     txn.validSortTarget o := by
   unfold rangeCheck at h
   unfold txn.validSortTarget
@@ -55,7 +55,7 @@ theorem opGets_of_check : ∀ (n : Int) (u : ReqOp) (t : TxnOp), opCheck n u = n
     ReqOp.toTxnOp u = some t → txn.opPlain t → txn.OpNoCut t → txn.OpGetsOk t
   | _, .range o, t, hc, ht, hp, hn => by
     simp only [ReqOp.toTxnOp, Option.some.injEq] at ht; subst ht
-    exact ⟨hp, validSortTarget_of_rangeCheck' o hc, hn⟩
+    exact ⟨hp, validSortTarget_of_rangeCheck o hc, hn⟩
   | _, .put o, t, _, ht, _, _ => by
     simp only [ReqOp.toTxnOp, Option.some.injEq] at ht; subst ht
     unfold txn.putTxnOp; split <;> (try split) <;> trivial

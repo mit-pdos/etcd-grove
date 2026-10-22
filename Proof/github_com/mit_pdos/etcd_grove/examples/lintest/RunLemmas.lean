@@ -180,7 +180,7 @@ theorem final_histOk {n m : Nat} {hs : List (List Operation)} {ps : List (Nat ×
     obtain ⟨-, ⟨cid, hok⟩, hl⟩ := hc.2 c h p hc' hp
     rw [hok.1, hl]
   refine ⟨?_, ?_⟩
-  · rw [flatten_length hs m hl, hn]; exact hb
+  · rw [Perennial.join_same_len_length (c := m) hs hl, hn]; exact hb
   · intro o ho
     obtain ⟨h, hh, hoh⟩ := List.mem_flatten.1 ho
     obtain ⟨c, hc'⟩ := List.getElem?_of_mem hh

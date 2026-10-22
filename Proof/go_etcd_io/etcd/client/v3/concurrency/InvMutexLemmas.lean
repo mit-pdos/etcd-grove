@@ -30,7 +30,7 @@ theorem ownerOp_fields (pfx : GoString) (hp : pfx ≠ []) :
     (ownerOp pfx).keysOnly = false ∧ (ownerOp pfx).base.minModRev = W64 0 ∧
     (ownerOp pfx).base.maxModRev = W64 0 ∧ (ownerOp pfx).base.minCreateRev = W64 0 ∧
     (ownerOp pfx).base.maxCreateRev = W64 0 := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, hp, OpFull.effSortOrder]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, hp, OpFull.effSortOrder]
 
 theorem lastCreateOp_fields (pfx : GoString) (n : w64) (hp : pfx ≠ []) :
     (lastCreateOp pfx n).key = pfx ∧ (lastCreateOp pfx n).base.rangeEnd = prefixRangeEnd pfx ∧
@@ -39,7 +39,7 @@ theorem lastCreateOp_fields (pfx : GoString) (n : w64) (hp : pfx ≠ []) :
     (lastCreateOp pfx n).keysOnly = false ∧ (lastCreateOp pfx n).base.minModRev = W64 0 ∧
     (lastCreateOp pfx n).base.maxModRev = W64 0 ∧ (lastCreateOp pfx n).base.minCreateRev = W64 0 ∧
     (lastCreateOp pfx n).base.maxCreateRev = n := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, hp, OpFull.effSortOrder]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, hp, OpFull.effSortOrder]
 
 theorem keyOp_fields (key : GoString) :
     (keyOp key).key = key ∧ (keyOp key).base.rangeEnd = [] ∧
@@ -48,7 +48,7 @@ theorem keyOp_fields (key : GoString) :
     (keyOp key).keysOnly = false ∧ (keyOp key).base.minModRev = W64 0 ∧
     (keyOp key).base.maxModRev = W64 0 ∧ (keyOp key).base.minCreateRev = W64 0 ∧
     (keyOp key).base.maxCreateRev = W64 0 := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, OpFull.effSortOrder]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, OpFull.effSortOrder]
 
 theorem rangeIn_key (key : GoString) (o : OpFull) (s : List EtcdKv)
     (hk : o.key = key) (he : o.base.rangeEnd = []) (v : EtcdKv) :
@@ -86,7 +86,7 @@ theorem rangeIn_prefix_all (pfx : GoString) (o : OpFull) (s : List EtcdKv) (hp :
   intro v hv; exact (inRange_prefix pfx v.key hp).2 (hwf.2 v hv)
 
 theorem ownerOp_t (pfx : GoString) : (ownerOp pfx).t = W64 1 := by
-  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, h]
+  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, op_simps, h]
 
 theorem ownerOp_under (pfx : GoString) (hp : pfx ≠ []) :
     KeyRangeUnder pfx (ownerOp pfx).key (ownerOp pfx).base.rangeEnd := by
@@ -95,10 +95,10 @@ theorem ownerOp_under (pfx : GoString) (hp : pfx ≠ []) :
   exact keyRangeUnder_prefix pfx hp
 
 theorem ownerOp_txnOpOf (pfx : GoString) : txnOpOf (ownerOp pfx) = some (.get (ownerOp pfx)) := by
-  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, h, txnOpOf]
+  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, op_simps, h]
 
 theorem ownerOp_not_panics (_pfx : GoString) : ¬ opGetPanics (withTopM (W64 2) (W64 1)) := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opGetPanics]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, opGetPanics]
 
 /-- **The owner get** (`OpGet(pfx, WithFirstCreate()...)`) on a state with some key lists exactly
 one key, the one with the smallest create revision. -/
@@ -125,7 +125,7 @@ theorem ownerOp_kvs (pfx key : GoString) (rev : w64) (s kvs : List EtcdKv) (hp :
     · have := (List.pairwise_cons.1 hsorted).1 v hv'; simpa [kvLeBy] using this
 
 theorem lastCreateOp_t (pfx : GoString) (n : w64) : (lastCreateOp pfx n).t = W64 1 := by
-  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, h]
+  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, op_simps, h]
 
 theorem lastCreateOp_under (pfx : GoString) (n : w64) (hp : pfx ≠ []) :
     KeyRangeUnder pfx (lastCreateOp pfx n).key (lastCreateOp pfx n).base.rangeEnd := by
@@ -136,11 +136,11 @@ theorem lastCreateOp_under (pfx : GoString) (n : w64) (hp : pfx ≠ []) :
 theorem lastCreateOp_rev (pfx : GoString) (n : w64) :
     (lastCreateOp pfx n).base.rev = W64 0 ∧ (lastCreateOp pfx n).base.serializable = false ∧
       (lastCreateOp pfx n).isPrefixGet pfx = false := by
-  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, h, OpFull.isPrefixGet]
+  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, op_simps, h, OpFull.isPrefixGet]
 
 theorem lastCreateOp_not_panics (n : w64) :
     ¬ opGetPanics (withTopM (W64 2) (W64 2) ++ [withMaxCreateRevM n]) := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opGetPanics]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, opGetPanics]
 
 /-- **`waitDeletes`'s get** (`OpGet(pfx, WithLastCreate()..., WithMaxCreateRev(n))`, `n ≥ 0`; `0`
 is no filter): nothing means no key was created at or before `n`; anything listed is in the
@@ -173,16 +173,16 @@ theorem lastCreateOp_kvs (pfx : GoString) (n : w64) (s kvs : List EtcdKv) (hp : 
 theorem keyOp_t (key : GoString) : (keyOp key).t = W64 1 ∧ (keyOp key).key = key ∧
     (keyOp key).base.rangeEnd = [] ∧ (keyOp key).base.rev = W64 0 ∧
     (keyOp key).base.serializable = false := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps]
 
 theorem keyOp_isPrefixGet (pfx key : GoString) : (keyOp key).isPrefixGet pfx = false := by
-  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, h, OpFull.isPrefixGet, prefixRangeEnd_ne_nil]
+  by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, op_simps, h, OpFull.isPrefixGet, prefixRangeEnd_ne_nil]
 
 theorem keyOp_not_panics : ¬ opGetPanics ([] : List (OpFull → OpFull)) := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opGetPanics]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, opGetPanics]
 
 theorem keyOp_txnOpOf (key : GoString) : txnOpOf (keyOp key) = some (.get (keyOp key)) := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, txnOpOf]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps]
 
 /-- **A single-key get** (`OpGet(key)`) lists the key's key-value, if present, and nothing
 otherwise. -/
@@ -212,11 +212,11 @@ theorem keyOp_kvs (pfx key : GoString) (s kvs : List EtcdKv) (hwf : EtcdStateWf 
 /-- `OpPut(key, "", WithLease(id))` in a transaction. -/
 theorem putOp_txnOpOf (key : GoString) (id : w64) :
     txnOpOf (opPutModel key [] [withLeaseM id]) = some (.put key [] id) := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, txnOpOf]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps]
 
 theorem putOp_not_panics (key : GoString) (id : w64) :
     ¬ (opPutModel key [] [withLeaseM id]).putPanics := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, OpFull.putPanics]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, OpFull.putPanics]
 
 theorem acquireTxn_under (pfx key : GoString) (lease : w64) (hp : pfx ≠ []) (hk : pfx <+: key) :
     (acquireTxn pfx key lease).Under pfx := by
@@ -342,11 +342,11 @@ theorem acquireTxn_else (pfx key : GoString) (lease r : w64) (s : List EtcdKv)
 /-! ## Deletes -/
 
 theorem deleteOp_not_panics (key : GoString) : ¬ opDeletePanics key [] := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opDeletePanics, opGetPanics, OpFull.deletePanics]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps, opDeletePanics, opGetPanics, OpFull.deletePanics]
 
 theorem deleteOp_fields (key : GoString) :
     (opDeleteModel key []).key = key ∧ (opDeleteModel key []).base.rangeEnd = [] := by
-  simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit]
+  simp [ownerOp, lastCreateOp, keyOp, op_simps]
 
 section iprop
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -379,18 +379,6 @@ theorem deleteTxn_absent (pfx key : GoString) (r : w64) (s : List EtcdKv) :
     iexists s
     iframe H
     ipureintro; exact habs
-
-/-- No options: the nil slice. -/
-theorem optsAt_nil : ⊢ optsAt (GF := GF) slice.nil [] := by
-  unfold optsAt
-  iexists ([] : List GoFunc)
-  isplitl
-  · iapply ownSlice_nil
-  isplitl
-  · ipureintro; rfl
-  imodintro
-  iintro %i %f %g %Hf %Hg
-  simp at Hf
 
 /-- **`Lock`'s last step.** `myKey` was created at `rev ≤ r ≤ R0`, `waitDeletes` saw no key
 created before `rev` at `R0`, and `myKey` is present at `R ≥ R0`: no key at `R` was created before

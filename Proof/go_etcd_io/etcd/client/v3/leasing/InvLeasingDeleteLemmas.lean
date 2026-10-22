@@ -109,10 +109,10 @@ theorem opCommitted_delete (lo : w64) (o : OpFull) (resp : Loc) :
   exact ⟨Hhm, Hp0, Hdrn, Hf⟩
 
 theorem rangeDeleteOp_key (key e : GoString) : (leasing.rangeDeleteOp key e).key = key := by
-  simp [leasing.rangeDeleteOp, opDeleteModel, opFold, withRangeM, OpFull.deleteInit, OpFull.newOp]
+  simp [leasing.rangeDeleteOp, op_simps]
 
 theorem rangeDeleteOp_end (key e : GoString) : (leasing.rangeDeleteOp key e).base.rangeEnd = e := by
-  simp [leasing.rangeDeleteOp, opDeleteModel, opFold, withRangeM, OpFull.deleteInit, OpFull.newOp]
+  simp [leasing.rangeDeleteOp, op_simps]
 
 end lemmas
 

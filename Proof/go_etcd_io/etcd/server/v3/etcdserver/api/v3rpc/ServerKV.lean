@@ -421,21 +421,6 @@ theorem writeRev_ne_zero (log : mvcc.Log) (pend : List mvcc.Change) (h1 : 2 ≤ 
   · unfold mvcc.writeRev; split <;> omega
   · unfold mvcc.writeRev; split <;> omega
 
-/-- A range passing `checkRangeRequest` has a valid sort target. -/
-theorem validSortTarget_of_rangeCheck (o : OpFull) (h : rangeCheck o = none) :
-    txn.validSortTarget o := by
-  unfold rangeCheck at h
-  unfold txn.validSortTarget
-  split at h
-  · cases h
-  split at h
-  · cases h
-  split at h
-  · cases h
-  rename_i h3
-  simp only [sortTargetKnown, Bool.not_eq_true', decide_eq_false_iff_not] at h3
-  exact Classical.not_not.1 h3
-
 mutual
 /-- The model of a checked operation is a get only for a range. -/
 theorem toTxnOp_get (u : ReqOp) (o : OpFull) (h : ReqOp.toTxnOp u = some (.get o)) :

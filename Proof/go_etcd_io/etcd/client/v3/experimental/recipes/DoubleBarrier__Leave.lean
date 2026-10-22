@@ -168,8 +168,7 @@ theorem DoubleBarrier.Leave.wp_proof
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2, by
-      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-        OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
   iclear HG HKV
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM] = leaveOp (key ++ go!"/waiters") := rfl
   rw [Hop]
@@ -326,7 +325,7 @@ theorem DoubleBarrier.Leave.wp_proof
     wp_if_destruct
     · -- the only waiter, and the caller: delete `key/ready`, then the key
       ihave #Hnilo : optsAt (GF := GF) slice.nil ([] : List (OpFull → OpFull)) $$ []
-      · iapply concurrency.optsAt_nil
+      · iapply optsAt_nil
       iunfold isEtcdDeleteKVTodo at HDel
       obtain ⟨hdk, hde⟩ := concurrency.deleteOp_fields (key ++ go!"/ready")
       (try wp_auto)

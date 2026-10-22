@@ -27,6 +27,7 @@ that returned before another was called comes first (if `b` follows `a` in the l
 module
 
 public import Proof.github_com.anishathalye.porcupine.Theory
+public import Perennial.Std.List
 
 @[expose] public section
 
@@ -91,15 +92,6 @@ theorem clientRecs_pairwise (c : Nat) (Lc : List (α × Int)) :
   intro i k hi hk hik
   simp only [clientRecs, List.getElem_mapIdx]
   exact hik
-
-theorem flatten_length {β : Type} (hs : List (List β)) (m : Nat)
-    (hl : ∀ h ∈ hs, h.length = m) : hs.flatten.length = hs.length * m := by
-  induction hs with
-  | nil => simp
-  | cons h t ih =>
-    simp only [List.flatten_cons, List.length_append, List.length_cons]
-    rw [hl h (List.mem_cons_self), ih (fun h' hh' => hl h' (List.mem_cons_of_mem _ hh'))]
-    rw [Nat.succ_mul, Nat.add_comm]
 
 theorem flatten_getElem? {β : Type} (hs : List (List β)) (m : Nat)
     (hl : ∀ h ∈ hs, h.length = m) (c j : Nat) (hj : j < m) :
@@ -252,7 +244,7 @@ theorem LogOk.linearizable (H : LogOk M m hs Lcs L) : Linearizable M hs.flatten 
   refine ⟨L.map (gidx m), ?_, ?_, ?_, ?_⟩
   · exact H.nodup_map
   · intro k
-    rw [H.mem_iff k, flatten_length hs m H.hlen]
+    rw [H.mem_iff k, Perennial.join_same_len_length (c := m) hs H.hlen]
     simp
   · rw [H.vals]; exact H.runs
   · rw [List.pairwise_map]

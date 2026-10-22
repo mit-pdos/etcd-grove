@@ -201,7 +201,7 @@ theorem leafWire_txnOpOf (o : OpFull) (op : TxnOp) (h : txnOpOf o = some op) :
   · rw [if_neg h1] at h ⊢
     by_cases h2 : o.t = W64 2
     · rw [if_pos h2] at h ⊢
-      simp only [txn.putTxnOp, putWireOf, txn.putOpOf, OpFull.newOp]
+      simp only [txn.putTxnOp, putWireOf, txn.putOpOf, op_simps]
       by_cases hv : o.ignoreValue = true <;> by_cases hl : o.ignoreLease = true <;>
         (try simp only [Bool.not_eq_true] at hv) <;> (try simp only [Bool.not_eq_true] at hl) <;>
         simp only [hv, hl, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte, true_and, false_and,

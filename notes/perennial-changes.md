@@ -157,6 +157,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
   provable); then this repository's `hash` translation goes.
 
+### Std, PostLifting: generic lemmas the client, the cache and the examples each proved a copy of
+
+- **Missing.** Facts about Perennial's and Lean's own definitions, proved in several places here
+  (`notes/dedup-plan.md`, C1-C4 and D): a points-to at `q` as two halves and back, with agreement
+  (twelve copies by value type: `ptsto_w64_halves`, `loc_halves`, `chan_split`, ...), half a
+  points-to fractional (`half_pointsto_fractional_loc`/`_chan`); `N.@x` disjoint from `N.@y` and
+  `N.@z` (the `*_mask` lemmas); setting the first entry of a `replicate` padding (five copies);
+  one more function of a `foldl (fun o g => g o)` (`opFold_take_succ`, `stmOptsFold_take_succ`,
+  `cfgApply_take_succ`); indexing and prefix facts Lean core lacks (`zip_get_snd`,
+  `getElem?_snoc_cases`, `prefix_drop_cons`, the `crl_*_mid` three, `flatten_getElem?`, ...);
+  `GoStringLt` on cons cells (`client/v3/PrefixRange.lean`).
+- **Needed by.** `Proof/go_etcd_io/etcd/{client,cache}/v3/`, `examples/{linkvtxn,lintest}`.
+- **Workaround here.** The local copies stay until the pin moves (CLAUDE.md: no `Proof/Lib`).
+- **Proposed change.** Perennial branch `dedup-lemmas` (`f97c83add`, off the pin `537c426e0`;
+  worktree `/shared/perennial-dd`): `typedPointsto_half_split`/`_half_combine`/`_half_fractional`
+  (`Golang/Theory/PostLifting.lean`), `mask_ndot_ne2` (`Std/Namespaces.lean`), the list lemmas
+  (`Std/List.lean`, sections `list_index`, `subslice_take`, `join_same_len_index`),
+  `goStringLt_cons_iff`/`_nil_cons`/`_not_nil` (`Golang/Defn/String.lean`). Theorems only.
+  Then, here: each copy deleted and its uses pointed at Perennial's (the `_take_succ` three stay
+  one-liners over `foldl_apply_take_succ`: `opFold` and its kin are in specs' statements).
+- **Status.** Branch built (its changed modules); not landed (landing pushes to GitHub, which
+  this machine cannot reach). Found 2026-10-22.
+
 ## Landed
 
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork

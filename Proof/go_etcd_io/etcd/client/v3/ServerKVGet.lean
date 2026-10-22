@@ -66,7 +66,7 @@ theorem wire_fields (o : OpFull) :
     (rangeWireOf o).base.maxModRev = o.base.maxModRev ∧
     (rangeWireOf o).base.minCreateRev = o.base.minCreateRev ∧
     (rangeWireOf o).base.maxCreateRev = o.base.maxCreateRev ∧ (rangeWireOf o).t = W64 1 := by
-  simp [rangeWireOf, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+  simp [rangeWireOf, txn.rangeOpOf, op_simps]
 
 theorem wire_rangeSel (o : OpFull) (s : List EtcdKv) : rangeSel s (rangeWireOf o) = rangeSel s o := by
   obtain ⟨h1, h2, -, -, -, -, -, h8, h9, h10, h11, -⟩ := wire_fields o
@@ -85,10 +85,8 @@ theorem wire_sort (o : OpFull) (hx : o.getExact) :
   have zo := w32_zero_iff o.sortOrder ho0 (by omega)
   have zt := w32_zero_iff o.sortTarget ht0 ht1
   cases hs : o.base.sortSet
-  · simp [rangeWireOf, txn.rangeOpOf, OpFull.newOp, OpModel.zero, sortOrderWire, sortTargetWire,
-      OpFull.effSortOrder, hs, sext_zero]
-  · simp only [rangeWireOf, txn.rangeOpOf, OpFull.newOp, OpModel.zero, sortOrderWire,
-      sortTargetWire, OpFull.effSortOrder, hs, ↓reduceIte, eo, et, zo, zt]
+  · simp [rangeWireOf, txn.rangeOpOf, op_simps, sortOrderWire, sortTargetWire, OpFull.effSortOrder, hs, sext_zero]
+  · simp only [rangeWireOf, txn.rangeOpOf, op_simps, sortOrderWire, sortTargetWire, OpFull.effSortOrder, hs, ↓reduceIte, eo, et, zo, zt]
     by_cases a : o.sortOrder = W64 0 <;> by_cases b : o.sortTarget = W64 0 <;> simp [a, b] <;>
       simp_all
 

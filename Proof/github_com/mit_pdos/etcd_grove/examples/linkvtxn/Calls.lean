@@ -89,8 +89,7 @@ theorem txnNoZeroEnd_txnOf (cs : List (linkv.MCmp GoString GoString))
     | cons op ops ih =>
       simp only [List.map_cons, txnOpsNoZeroEnd]
       refine ⟨?_, ih⟩
-      cases op <;> simp [linkv.tOpOf, txnOpNoZeroEnd, txn.rangeOpOf, txn.deleteOpOf, OpFull.newOp,
-        OpModel.zero]
+      cases op <;> simp [linkv.tOpOf, txnOpNoZeroEnd, txn.rangeOpOf, txn.deleteOpOf, op_simps]
   refine ⟨?_, hops t, hops e⟩
   intro c hc
   simp only [linkv.txnOf, List.mem_map] at hc
@@ -133,7 +132,7 @@ theorem txnModelIn_txnOf (cs : List (linkv.MCmp GoString GoString))
   · cases m <;> simp only [linkv.tOpOf, reduceCtorEq, TxnOp.get.injEq] at hm
     subst hm
     refine ⟨rfl, ?_⟩
-    simp [txn.cutEarly, OpFull.effSortOrder, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+    simp [txn.cutEarly, OpFull.effSortOrder, txn.rangeOpOf, op_simps]
 
 /-- **An input `Gen` may return** (`ValidIn`), its transactions not empty: a transaction with no
 operations is served without a linearizable read (`issues/etcd-txn-empty-serializable.md`). -/
@@ -151,7 +150,7 @@ theorem txnSerializable_txnOf (cs : List (linkv.MCmp GoString GoString))
     | cons op ops =>
       simp only [List.map_cons, List.all_cons, Bool.and_eq_false_iff]
       left
-      cases op <;> simp [linkv.tOpOf, txn.opIsSerGet, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+      cases op <;> simp [linkv.tOpOf, txn.opIsSerGet, txn.rangeOpOf, op_simps]
   simp only [txn.txnSerializable, linkv.txnOf, List.all_append, Bool.and_eq_false_iff]
   cases t with
   | nil =>
@@ -268,7 +267,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     ipureintro
     first
       | rfl
-      | (refine ⟨?_, rfl⟩; simp [opGetPanics, opFold, OpFull.newOp, withRangeM])
+      | (refine ⟨?_, rfl⟩; simp [opGetPanics, op_simps])
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
   · ileft

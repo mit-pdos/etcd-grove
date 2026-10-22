@@ -94,8 +94,7 @@ theorem ckWatch_opts :
       ¬ opWatchPanics ckPfx [withPrefixM, withRevM (W64 2)] := by
   have h : ckPfx ≠ [] := by decide
   refine ⟨?_, ?_, ?_⟩ <;>
-    simp [opWatchModel, opWatchPanics, OpFull.watchPanics, opFold, OpFull.getInit, OpFull.newOp,
-      OpModel.zero, withPrefixM, withRevM, h]
+    simp [opWatchModel, opWatchPanics, OpFull.watchPanics, op_simps, h]
 
 set_option maxHeartbeats 1600000 in
 theorem Main.wp_proof
@@ -406,7 +405,7 @@ theorem Main.wp_proof
     ipureintro; exact ckWatch_opts.2.2
   have hre : (withPrefixM (OpFull.getInit ckPfx)).base.rangeEnd = prefixRangeEnd ckPfx := by
     have h : ckPfx ≠ [] := by decide
-    simp [withPrefixM, OpFull.getInit, OpFull.newOp, h]
+    simp [op_simps, h]
   rw [hre, Hcfe.1]
   (try wp_auto)
   icases typedPointsto_split _ _ _ $$ «$r0» with Hr0

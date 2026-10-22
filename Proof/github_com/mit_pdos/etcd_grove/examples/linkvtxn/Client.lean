@@ -53,14 +53,13 @@ theorem opWire_clientTOp (m : linkv.MOp GoString GoString) :
   cases m <;> simp only [clientTOp, opWire, linkv.tOpOf] <;> rfl
 
 theorem clientOp_get_ok : ¬ opGetPanics [] := by
-  simp [opGetPanics, opFold, OpFull.newOp]
+  simp [opGetPanics, op_simps]
 
 theorem clientOp_put_ok (k v : GoString) : ¬ (opPutModel k v []).putPanics := by
-  simp [opPutModel, opFold, OpFull.putInit, OpFull.newOp, OpFull.putPanics, OpModel.zero]
+  simp [op_simps, OpFull.putPanics]
 
 theorem clientOp_del_ok (k : GoString) : ¬ opDeletePanics k [] := by
-  simp [opDeletePanics, opGetPanics, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp,
-    OpFull.deletePanics, OpModel.zero]
+  simp [opDeletePanics, opGetPanics, op_simps, OpFull.deletePanics]
 
 /-- **The transaction the builder holds** for the model's `cs`, `t`, `e`. -/
 def clientTxn (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString)) :
@@ -76,28 +75,6 @@ theorem txnWireOf_clientTxn (cs : List (linkv.MCmp GoString GoString))
   · exact List.map_congr_left (fun m _ => opWire_clientTOp m)
 
 end client
-
-section iris
-open Iris Iris.BI Iris.ProofMode
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- No options: the nil slice. -/
-theorem optsAt_nil : ⊢ optsAt (GF := GF) slice.nil [] := by
-  unfold optsAt
-  iexists ([] : List GoFunc)
-  isplitl
-  · iapply ownSlice_nil
-  isplitl
-  · ipureintro; rfl
-  imodintro
-  iintro %i %f %g %Hf %Hg
-  simp at Hf
-
-end iris
 
 end linkvtxn
 end EtcdGrove

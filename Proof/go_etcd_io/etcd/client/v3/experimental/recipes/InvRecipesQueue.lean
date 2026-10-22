@@ -65,8 +65,7 @@ theorem firstRevOp_fields (kp : GoString) (hp : kp ≠ []) :
     (firstRevOp kp).keysOnly = false ∧ (firstRevOp kp).base.minModRev = W64 0 ∧
     (firstRevOp kp).base.maxModRev = W64 0 ∧ (firstRevOp kp).base.minCreateRev = W64 0 ∧
     (firstRevOp kp).base.maxCreateRev = W64 0 := by
-  simp [firstRevOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-    OpFull.getInit, OpFull.newOp, OpModel.zero, hp, OpFull.effSortOrder]
+  simp [firstRevOp, op_simps, hp, OpFull.effSortOrder]
 
 theorem firstKeyOp_fields (kp : GoString) (hp : kp ≠ []) :
     (firstKeyOp kp).t = W64 1 ∧ (firstKeyOp kp).key = kp ∧
@@ -77,16 +76,13 @@ theorem firstKeyOp_fields (kp : GoString) (hp : kp ≠ []) :
     (firstKeyOp kp).keysOnly = false ∧ (firstKeyOp kp).base.minModRev = W64 0 ∧
     (firstKeyOp kp).base.maxModRev = W64 0 ∧ (firstKeyOp kp).base.minCreateRev = W64 0 ∧
     (firstKeyOp kp).base.maxCreateRev = W64 0 := by
-  simp [firstKeyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-    OpFull.getInit, OpFull.newOp, OpModel.zero, hp, OpFull.effSortOrder]
+  simp [firstKeyOp, op_simps, hp, OpFull.effSortOrder]
 
 theorem firstRevOp_not_panics : ¬ opGetPanics (withTopM (W64 3) (W64 1)) := by
-  simp [opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, OpFull.getInit,
-    OpFull.newOp, OpModel.zero, opGetPanics]
+  simp [op_simps, opGetPanics]
 
 theorem firstKeyOp_not_panics : ¬ opGetPanics (withTopM (W64 0) (W64 1)) := by
-  simp [opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, OpFull.getInit,
-    OpFull.newOp, OpModel.zero, opGetPanics]
+  simp [op_simps, opGetPanics]
 
 /-- A prefix get with no revision filter selects the keys with the prefix. -/
 theorem prefixGet_sel_mem (kp : GoString) (o : OpFull) (s : List EtcdKv) (hp : kp ≠ [])

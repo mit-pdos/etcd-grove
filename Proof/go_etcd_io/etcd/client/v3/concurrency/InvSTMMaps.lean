@@ -18,10 +18,6 @@ namespace concurrency
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency go_etcd_io.etcd.api.v3
 
-theorem stm_deleteOp_txnOpOf (key : GoString) :
-    txnOpOf (opDeleteModel key []) = some (.delete (opDeleteModel key [])) := by
-  simp [opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero, txnOpOf]
-
 /-! ## Map sizes -/
 
 /-! ## `readSet.first` -/
@@ -138,30 +134,6 @@ theorem writesAt_insert (pfx k : GoString) (wsMap : GMap GoString stmPut)
     iexact Hw
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at Hsp Hw'
     iapply Hall $$ %k' %sp' %w' %Hsp %Hw'
-
-/-- A read added to the read set. -/
-theorem readsAt_insert (pfx k : GoString) (rsMap : GMap GoString Loc)
-    (reads : GMap GoString ReadM) (p : Loc) (e : ReadM) :
-    readsAt (GF := GF) pfx rsMap reads ∗ readRespAt pfx k p e ⊢
-      readsAt pfx (GMap.insert k p rsMap) (GMap.insert k e reads) := by
-  unfold readsAt
-  iintro ⟨⟨%Hdom, #Hall⟩, #Hr⟩
-  isplitr
-  · ipureintro
-    intro k'
-    by_cases h : k' = k
-    · subst h; simp
-    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_insert_ne _ _ (Ne.symm h)]
-      exact Hdom k'
-  imodintro
-  iintro %k' %p' %e' %Hp %He
-  by_cases h : k' = k
-  · subst h
-    rw [GMap.lookup_insert] at Hp He
-    cases Hp; cases He
-    iexact Hr
-  · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at Hp He
-    iapply Hall $$ %k' %p' %e' %Hp %He
 
 /-- The empty pointwise relation. -/
 theorem pointwise_nil {A B : Type} (P : A → B → IProp GF) :

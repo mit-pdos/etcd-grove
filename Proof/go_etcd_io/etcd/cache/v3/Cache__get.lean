@@ -52,7 +52,7 @@ theorem restoreMap_sorted (m : KvMap) (h : m.Pairwise kvLess) : restoreMap m = m
 /-- The cache's get is a range. -/
 theorem opGetModel_withPrefix_t (pfx : GoString) :
     (opGetModel pfx [withPrefixM]).t = W64 1 := by
-  simp only [opGetModel, opFold, List.foldl, withPrefixM, OpFull.getInit]
+  simp only [op_simps, List.foldl]
   by_cases h : pfx = [] <;> simp [h]
 
 /-- The cache's prefix get is a prefix get. -/
@@ -60,18 +60,16 @@ theorem opGetModel_withPrefix_isPrefixGet (pfx : GoString) :
     (opGetModel pfx [withPrefixM]).isPrefixGet pfx = true := by
   by_cases h : pfx = []
   · subst h
-    simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero,
-      OpFull.isPrefixGet]
-  · simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero,
-      OpFull.isPrefixGet, h]
+    simp [op_simps, OpFull.isPrefixGet]
+  · simp [op_simps, OpFull.isPrefixGet, h]
 
 /-- The cache's prefix get is not serializable (so it is linearizable). -/
 theorem opGetModel_withPrefix_serializable (pfx : GoString) :
     (opGetModel pfx [withPrefixM]).base.serializable = false := by
   by_cases h : pfx = []
   · subst h
-    simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero]
-  · simp [opGetModel, opFold, withPrefixM, OpFull.getInit, OpFull.newOp, OpModel.zero, h]
+    simp [op_simps]
+  · simp [op_simps, h]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -164,10 +162,10 @@ theorem Cache.get.wp_proof
   wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
   · iframe Hctx Hopts HRB
     ipureintro
-    refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
-      (by simp [opGetModel, opFold, withPrefixM, withLimitM, withCountOnlyM, OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp))⟩
+    refine ⟨?_, opGetModel_withPrefix_t cf.pfx, (by simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)),
+      (by simp [op_simps] <;> (try split) <;> (try simp))⟩
     rintro ⟨-, h⟩
-    simp [opFold, withPrefixM, OpFull.newOp] at h
+    simp [op_simps] at h
   iunfold kvGetResultC at Hres
   icases Hres with (%Herr | ⟨%Herr, %r, #Hrev, #Hreach, #Hread, -, %Hle0, Hkvs⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

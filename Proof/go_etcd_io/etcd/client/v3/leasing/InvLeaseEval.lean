@@ -114,5 +114,38 @@ def respOpFresh (p : Loc) (o : OpFull) (e : LeaseEntry) : IProp GF :=
 
 end defs
 
+section lemmas
+open Iris.ProofMode
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
+variable [sem : go.Semantics]
+
+/-- A comparison with its operand set is a comparison. -/
+theorem cmpSetAt_cmpAt (c : go_etcd_io.etcd.client.v3.Cmp) (m : CmpModel) :
+    cmpSetAt (GF := GF) c m ⊢ cmpAt c m := by
+  unfold cmpSetAt cmpAt compareAt
+  iintro ⟨%Hc, %ksl, %esl, %u, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, -⟩
+  iframe %Hc
+  iexists ksl, esl, u
+  iframe #
+
+/-- Comparisons with their operands set are comparisons. -/
+theorem cmpsSetAt_cmpsAt (sl : GoSlice) (ms : List CmpModel) :
+    cmpsSetAt (GF := GF) sl ms ⊢ cmpsAt sl ms := by
+  unfold cmpsSetAt cmpsAt
+  iintro ⟨%cs, #Hsl, %Hlen, #H⟩
+  iexists cs
+  iframe #
+  isplitr
+  · ipureintro; exact Hlen
+  imodintro
+  iintro %i %c %m %Hc %Hm
+  iapply cmpSetAt_cmpAt
+  iapply H $$ %i %c %m %Hc %Hm
+
+end lemmas
+
 end EtcdGrove
 end Perennial

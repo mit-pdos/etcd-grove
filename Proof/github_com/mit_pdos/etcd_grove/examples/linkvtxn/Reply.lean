@@ -102,7 +102,7 @@ theorem rangeKvsOk_getOp (k : GoString) (sel kvs : List EtcdKv)
   have hord : (linkv.getOp k).effSortOrder = W64 0 := by simp [OpFull.effSortOrder]
   rw [h0 hord] at hk
   rw [hk]
-  simp [txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+  simp [txn.rangeOpOf, op_simps]
 
 /-- A transaction operation's result, against the model's. -/
 theorem tresOf_eq (op : TOp) (mop : linkv.MOp GoString GoString) (hop : decTOp op = some mop)
@@ -119,7 +119,7 @@ theorem tresOf_eq (op : TOp) (mop : linkv.MOp GoString GoString) (hop : decTOp o
       obtain ⟨-, kvs', hk, rfl⟩ := h
       rw [rangeKvsOk_getOp _ _ _ hk]
       have hl : txn.leaseZ (txn.fastKeysOnly (linkv.getOp op.Key')) = id := by
-        funext v; simp [txn.leaseZ, txn.fastKeysOnly, txn.rangeOpOf, OpFull.newOp]
+        funext v; simp [txn.leaseZ, txn.fastKeysOnly, txn.rangeOpOf, op_simps]
       rw [hl, List.map_id]
       simp only [tresOf, if_pos h0, linkv.resOf]
       cases sel <;> rfl

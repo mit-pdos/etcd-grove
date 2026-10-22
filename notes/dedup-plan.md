@@ -1,10 +1,44 @@
 # Plan: duplicated and near-duplicated lemmas in the examples, the client and the cache
 
-Status: audit done (2026-10-22, on `lean` `790c961cc8`), nothing applied. Follows the clean-ups of
-2026-10-21/22 (`notes/decisions.md` D34-D36; `notes/STATUS.md`, "Clean-up: unused declarations
-removed, ...", "Clean-up: the watch client's joins, ..."). The dead-declaration pass
-(`etc/dead-decls.py`) is **not** part of this audit: it needs an up-to-date `lake build`, which was
-a full rebuild when the audit ran; run it first (section "Pending" below).
+Status: audit done (2026-10-22, on `lean` `790c961cc8`); steps applied on branch `dedup`
+(2026-10-22), see "Progress" below. Follows the clean-ups of 2026-10-21/22 (`notes/decisions.md`
+D34-D36; `notes/STATUS.md`, "Clean-up: unused declarations removed, ...", "Clean-up: the watch
+client's joins, ..."). The dead-declaration pass (`etc/dead-decls.py`) is **not** part of this
+audit (section "Pending" below).
+
+## Progress (branch `dedup`, 2026-10-22)
+
+- **A, done.** Every exact duplicate merged into the file its users import: `isProgressNotify_events`
+  in `cache/v3/InvStore.lean` (next to `RespModel`); `optsAt_nil` in `client/v3/InvOp.lean`;
+  `deleteOp_txnOpOf` in `cache/v3/InvEtcdTxn.lean`; `readsAt_insert` in `concurrency/InvSTM.lean`;
+  `cmpSetAt_cmpAt`, `cmpsSetAt_cmpsAt` in `leasing/InvLeaseEval.lean`; `validSortTarget_of_rangeCheck`
+  in `v3rpc/CheckShape.lean`; `ptsto_w64_halves` gone for `ptsto_split_half`. `kvClientN_mask` and
+  linkvtxn's masks wait for C4's Perennial lemma.
+- **B, done.** `PutThenGet.lean`'s `client_put_own`, `client_get_own`, `putGetInv_alloc` inlined into
+  their only users, `ClientPutGet.lean`'s `client_Put_own`, `client_Get_own`, `putGetInv_alloc_log`.
+- **C7, done.** One proof, generic in the model: `watchkv/WatchFacts.lean`'s `chain_gen`,
+  `prog_step_gen`, `resp_gen` over `wkSteps EM P R` (the model's steps are of watchkv logs whose puts
+  give `R`); `wkSteps_srv` (from `wk_log`) and linkv3p's `wkSteps_hist` (from `hist_wk`) instantiate
+  it, `resp_wk` and `resp_hist` are three-line corollaries. `chain_wk`, `prog_step_wk`, `chain_hist`,
+  `prog_step_hist` gone. `cachekv`'s variant not attempted (as planned).
+- **C5 (i), done.** The `op_simps` simp set (`client/v3/OpSimpAttr.lean`, tagged in `InvOp.lean` and,
+  for `txnOpOf`, `cache/v3/InvEtcdTxn.lean`); the 130 simp lists that named the option models now
+  say `op_simps`. **(ii), (iii) not applied:** the seven `*Txn_under` proofs differ in what each
+  operation's `Under` needs (a key's prefix, `keyOp`'s or `opDeleteModel`'s fields, `ownerOp_under`),
+  so a generic lemma saves little over the `refine`; the comparison pair needs a target-indexed field
+  and positivity premise; the `MyKey` pairs need their (different) struct types abstracted. With
+  `op_simps` the `_rev`/`_txnOpOf` pairs are one-line `simp`s each.
+- **C8, checked, left.** `resOfL` and `kvsOfL` are not maps of each other: they read different
+  fields of the generated `Output` struct; only their four length lemmas share a proof, and merging
+  them would move the work to the call sites.
+- **C3, D: the local copies wait for Perennial.** Step 1's branch is Perennial's `dedup-lemmas`
+  (`notes/perennial-changes.md`, "Std, PostLifting: generic lemmas ..."): C1's half lemmas, C2's
+  `set_length_append_replicate`, C3's `foldl_apply_take_succ`, C4's `mask_ndot_ne2`, D's list and
+  `GoStringLt` lemmas. Not landed (no push from this machine). Found already upstream, and used
+  now: `flatten_length` is Perennial's `join_same_len_length`, `prefix_snoc_cases` Lean's
+  `List.prefix_concat_iff`, leasing's `Qp_half_add` Perennial's.
+- **C6, E: not started**, each waiting on the decision the plan names (Perennial's `tokJoin` with owed
+  tokens; where the kv model lives; common's parameters).
 
 ## Goal
 
@@ -203,11 +237,15 @@ unchanged, `etc/dead-decls.py` for what the step made unused; then `notes/STATUS
 
 ## Pending
 
-`etc/dead-decls.py --assume-built --prefix Proof/go_etcd_io/etcd/client` and `--prefix
-Proof/github_com/mit_pdos/etcd_grove/examples` (and `--prefix Proof/go_etcd_io/etcd/cache`): not
-run by this audit (the build was stale: `common/Link.olean` missing; a full rebuild was started).
-The 2026-10-21 clean-up ran it over everything, so expect little, but `examples/common` (D33) and
-D35/D36's moves came after it.
+`etc/dead-decls.py --assume-built` over `client`, the examples and `cache` (run 2026-10-22 on
+branch `dedup`, after its steps): nothing these steps left unused. What it lists predates them:
+generated `wp_initialize'`/`get_isPkgInit_wf_inst`, derived `DecidableEq` instances, the type
+abbreviations `watchkv.wkv`/`wev`/`wrec` and `cachekv.ckv`/`crec`/`ckKV` (unfolded at elaboration,
+so unused in proof terms but used in the source), and about twenty lemmas (`client.sext_zero`,
+`client.etcdReached_zero`, `client.grpcCfgOk_of_started`, `recipes.putKv_mem`/`_wf`, linkvtxn's
+`absStore_nil`, `rangeWireOf_list`, `absVR_encVR`, `kvVR_eq`, `CfgEquiv.trans`, linkv's
+`kvOpStep_put_sorted`, `kvOpStep_get`, `findKey_mem`, `absSt_init`, `PSet.Closed.perm`,
+`EtcdModel.etcdReadAt_timeless`, `OpT.top`, `WatcherPub.trivial`, ...): a proof-cleanup pass's.
 
 The scripts of the audit (statement extraction, exact and near-duplicate matching, the pure-lemma
 listing) were session-scratch Python; they are easy to rewrite from the description above if a

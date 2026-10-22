@@ -83,8 +83,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     as %gresp %gerr ⟨-, #Hgr, -⟩
   · ipureintro
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1, by
-      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-        OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
   iunfold kvGetResultR at Hgr
   icases Hgr with (%Hgne | ⟨%Hgnil, %g, #HgRev, #Hg, %Hgle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by
@@ -237,7 +236,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     refine ⟨by simp [cmpOpOf], ?_⟩
     simp [cmpKeyM, cmpArgOf]
   (try wp_auto)
-  ihave #Hnil := concurrency.optsAt_nil (GF := GF)
+  ihave #Hnil := optsAt_nil (GF := GF)
   wp_apply hPut (go!"__" ++ kp) [] slice.nil [] $$ [$Hcv $Hnil] as %opB #HopB
   · ipureintro; exact putOp_not_panics' _ _
   (try wp_auto)
@@ -304,7 +303,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   ihave HB := txnBuild_conv B _ (seqBuild kp key val g) (by rfl) $$ HB
   wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
   · ipureintro; exact ⟨seqTxn_under pfx kp key val g Hk.2 Hpk, TxnModel.exactGets_of_noGets _ (by simp [seqBuild, seqTxn])
-        (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩
+        (by simp [seqBuild, seqTxn, compareM, cmpKeyM]) (by simp [seqBuild, seqTxn, op_simps])⟩
   ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)

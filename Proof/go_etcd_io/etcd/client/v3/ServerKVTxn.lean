@@ -47,7 +47,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v
 
 theorem deleteWire_key (o : OpFull) : (deleteWireOf o).key = o.key ∧
     (deleteWireOf o).base.rangeEnd = o.base.rangeEnd := by
-  simp [deleteWireOf, txn.deleteOpOf, OpFull.newOp, OpModel.zero]
+  simp [deleteWireOf, txn.deleteOpOf, op_simps]
 
 theorem rangeIn_rangeWire (s : List EtcdKv) (o : OpFull) : rangeIn s (rangeWireOf o) = rangeIn s o := by
   obtain ⟨h1, h2, -⟩ := wire_fields o

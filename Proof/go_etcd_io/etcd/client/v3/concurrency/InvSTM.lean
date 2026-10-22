@@ -589,6 +589,40 @@ instance applySpec_persistent (pfx : GoString) (apply : GoFunc) (Q : STMSt → P
 
 end defs
 
+section lemmas
+open Iris.ProofMode
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
+variable [sem : go.Semantics]
+
+/-- A read added to the read set. -/
+theorem readsAt_insert (pfx k : GoString) (rsMap : GMap GoString Loc)
+    (reads : GMap GoString ReadM) (p : Loc) (e : ReadM) :
+    readsAt (GF := GF) pfx rsMap reads ∗ readRespAt pfx k p e ⊢
+      readsAt pfx (GMap.insert k p rsMap) (GMap.insert k e reads) := by
+  unfold readsAt
+  iintro ⟨⟨%Hdom, #Hall⟩, #Hr⟩
+  isplitr
+  · ipureintro
+    intro k'
+    by_cases h : k' = k
+    · subst h; simp
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h), GMap.lookup_insert_ne _ _ (Ne.symm h)]
+      exact Hdom k'
+  imodintro
+  iintro %k' %p' %e' %Hp %He
+  by_cases h : k' = k
+  · subst h
+    rw [GMap.lookup_insert] at Hp He
+    cases Hp; cases He
+    iexact Hr
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm h)] at Hp He
+    iapply Hall $$ %k' %p' %e' %Hp %He
+
+end lemmas
+
 end concurrency
 end EtcdGrove
 end Perennial

@@ -40,7 +40,7 @@ theorem IsOptsWithPrefix.wp_proof (wp_NewOp : NewOp.spec (GF := GF) (hG := hG)) 
     simp only [named]
     iframe
     isplitl []
-    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, opFold, List.foldl_nil]
+    · simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, op_simps, List.foldl_nil]
       iexact Hat
     ipureintro; constructor <;> word
   iclear Hat

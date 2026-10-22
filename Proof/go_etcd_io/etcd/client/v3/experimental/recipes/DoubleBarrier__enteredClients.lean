@@ -75,8 +75,7 @@ theorem DoubleBarrier.enteredClients.wp_proof
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.1, (waitersOp_t _).1, by
-      simp [OpFull.getExact, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM,
-        OpFull.getInit, OpFull.newOp, OpModel.zero] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
   have Hop : opGetModel (key ++ go!"/waiters") [withPrefixM, withSortM (W64 2) (W64 1)] =
       waitersOp (key ++ go!"/waiters") := rfl
   rw [Hop]

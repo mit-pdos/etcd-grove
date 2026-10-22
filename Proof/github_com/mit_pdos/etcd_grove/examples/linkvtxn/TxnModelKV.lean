@@ -146,7 +146,7 @@ theorem absM_delete (s : List EtcdKv) (k : GoString) :
   have hf : (fun v : EtcdKv => !inRange (delOp k).key (delOp k).base.rangeEnd v.key) =
       (fun v => !decide (v.key = k)) := by
     funext v
-    simp [txn.deleteOpOf, OpFull.newOp, inRange]
+    simp [txn.deleteOpOf, op_simps, inRange]
   rw [hf]
   unfold absM MStore.del
   rw [findKey_filter_ne]
@@ -158,7 +158,7 @@ theorem absM_delete (s : List EtcdKv) (k : GoString) :
 theorem rangeIn_delOp (s : List EtcdKv) (k : GoString) :
     rangeIn s (delOp k) = s.filter (fun v => decide (v.key = k)) := by
   unfold rangeIn
-  simp [txn.deleteOpOf, OpFull.newOp, inRange]
+  simp [txn.deleteOpOf, op_simps, inRange]
 
 /-- **A delete's count**: `1` if the key is there, else `0`. -/
 theorem rangeIn_delOp_length (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (k : GoString) :
@@ -171,7 +171,7 @@ theorem rangeIn_delOp_length (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (k :
 theorem rangeIn_getOp (s : List EtcdKv) (k : GoString) :
     rangeIn s (getOp k) = s.filter (fun v => decide (v.key = k)) := by
   unfold rangeIn
-  simp [txn.rangeOpOf, OpFull.newOp, OpModel.zero, inRange]
+  simp [txn.rangeOpOf, op_simps, inRange]
 
 /-- **A get's selection reads the model store.** -/
 theorem rangeSel_getOp (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (k : GoString) :
@@ -180,7 +180,7 @@ theorem rangeSel_getOp (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (k : GoStr
   have hf : (rangeIn s (getOp k)).filter (kvFilterOk (getOp k)) = rangeIn s (getOp k) := by
     rw [List.filter_eq_self]
     intro v _
-    simp [kvFilterOk, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+    simp [kvFilterOk, txn.rangeOpOf, op_simps]
   rw [hf, rangeIn_getOp, filter_key_sorted k s hs]
   unfold absM
   cases findKey k s <;> rfl
@@ -702,7 +702,7 @@ theorem opsPlain_tOpOf : ∀ ops : List (MOp GoString GoString), txn.opsPlain (o
   | op :: ops => by
     simp only [List.map_cons, txn.opsPlain]
     refine ⟨?_, opsPlain_tOpOf ops⟩
-    cases op <;> simp [tOpOf, txn.opPlain, txn.rangeOpOf, OpFull.newOp, OpModel.zero]
+    cases op <;> simp [tOpOf, txn.opPlain, txn.rangeOpOf, op_simps]
 
 /-- **The instance's transactions are plain** (`txnPlain`, the server's specs' premise). -/
 theorem txnPlain_txnOf (cs : List (MCmp GoString GoString)) (t e : List (MOp GoString GoString)) :

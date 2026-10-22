@@ -78,7 +78,7 @@ theorem leasingKV.revokeRange.wp_proof
   wp_apply HG $$ [] as %gresp %gerr #Hgres
   · iframe Hctx Hopts H0
     ipureintro
-    simp [opGetPanics, opGetModel, opFold, withRangeM, OpFull.getInit, OpFull.newOp]
+    simp [opGetPanics, op_simps]
   iunfold kvGetResult at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, %gm, -, -, -, -, -, Hgr⟩)
   · obtain ⟨g, rfl⟩ : ∃ g, gerr = GoInterface.ok g := by
@@ -89,7 +89,7 @@ theorem leasingKV.revokeRange.wp_proof
     iapply HΦ $$ Hrd
   subst Hgnil
   have HoP : (opGetModel (pfx ++ b) [withRangeM L]).isPrefixGet [] = false := by
-    simp [OpFull.isPrefixGet, opGetModel, opFold, withRangeM, OpFull.getInit, OpFull.newOp]
+    simp [OpFull.isPrefixGet, op_simps]
     intros; exact HL
   rw [ite_eq_right (c := (opGetModel (pfx ++ b) [withRangeM L]).isPrefixGet [] = true)
     (by rw [HoP]; simp)]
@@ -97,7 +97,7 @@ theorem leasingKV.revokeRange.wp_proof
   rw [ite_eq_left (show (opGetModel (pfx ++ b) [withRangeM L]).base.rev = W64 0 ∧
       KeyRangeUnder [] (opGetModel (pfx ++ b) [withRangeM L]).key
         (opGetModel (pfx ++ b) [withRangeM L]).base.rangeEnd from
-    ⟨by simp [opGetModel, opFold, withRangeM, OpFull.getInit, OpFull.newOp, OpModel.zero],
+    ⟨by simp [op_simps],
      fun _ _ => List.nil_prefix⟩)]
   icases Hgr with ⟨%s', %gsl, %gps, %gkvs, -, -, #Hgsl, #Hgps, #Hgkvs, -⟩
   wp_auto

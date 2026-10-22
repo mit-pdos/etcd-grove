@@ -49,7 +49,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
     refine ⟨by simp [cmpOpOf], ?_⟩
     simp [cmpKeyM, cmpArgOf]
   (try wp_auto)
-  ihave #Hnil := concurrency.optsAt_nil (GF := GF)
+  ihave #Hnil := optsAt_nil (GF := GF)
   wp_apply hDel key slice.nil [] $$ [$Hcv $Hnil] as %opDel #HopDel
   · ipureintro; exact concurrency.deleteOp_not_panics key
   (try wp_auto)
@@ -101,14 +101,14 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
       · simp at Hv
     · ipureintro
       refine ⟨?_, rfl, rfl⟩
-      simp [txnOpOf, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp]
+      simp [op_simps]
   inext
   iintro HB
   (try wp_auto)
   ihave HB := txnBuild_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
   wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact ⟨deleteRevTxn_under pfx key rev Hk.1, TxnModel.exactGets_of_noGets _ (by simp [deleteRevTxn])
-        (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, opDeleteModel, opFold, OpFull.deleteInit, OpFull.newOp, OpModel.zero])⟩
+        (by simp [deleteRevTxn, compareM, cmpKeyM]) (by simp [deleteRevTxn, op_simps])⟩
   iunfold txnCommitResultTok at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
