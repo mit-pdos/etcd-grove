@@ -109,7 +109,8 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists mvcc.wsInit
     isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
     rotate_left
-    · iframe Hrel Hwsf; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
+    · iframe Hrel Hwsf; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h,
+        fun w st h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt

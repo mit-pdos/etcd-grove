@@ -364,13 +364,6 @@ theorem mvcc.NewStore.wp_proof
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
-  imod (inv_alloc mvcc.writerN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
-      mvcc.curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (mvcc.writerL «$r0_ptr» (γ.withPhys p) ∨ mvcc.writerKey (γ.withPhys p) ∗ mvcc.wDep γ)))
-    $$ [HL HcurWi] with #Hwi
-  · inext; iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iexact HL
-  ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
-  · iunfold mvcc.writerInv; iexact Hwi
   ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres]
   · iunfold mvcc.writerRes
     iexists [[], []]
@@ -381,6 +374,16 @@ theorem mvcc.NewStore.wp_proof
     iframe #
     ipureintro; simp
   imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
+  -- (S6) the writer's state with the store registered
+  imod (inv_alloc mvcc.writerN ⊤ iprop(∃ (p : mvcc.PhysNames) (o : mvcc.StoreObjs),
+      mvcc.curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
+      (mvcc.writerL «$r0_ptr» (γ.withPhys p) ∗ mvcc.writerReg «$r0_ptr» (γ.withPhys p) ∨
+        mvcc.writerKey (γ.withPhys p) ∗ mvcc.wDep γ ∗ mvcc.storeRegd «$r0_ptr» (γ.withPhys p))))
+    $$ [HL HcurWi] with #Hwi
+  · inext; iexists γ.phys, _; rw [mvcc.StoreNames.withPhys_self]; iframe HcurWi; ileft; iframe HL
+    iunfold mvcc.writerReg; ileft; iexact Hregd
+  ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
+  · iunfold mvcc.writerInv; iexact Hwi
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
   · iframe Hlocked HW HP

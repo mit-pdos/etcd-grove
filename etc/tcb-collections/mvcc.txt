@@ -18,6 +18,7 @@ axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
+axiom mvcc.store.Restore.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof

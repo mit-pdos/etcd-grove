@@ -1704,25 +1704,6 @@ def writerL (s : Loc) (γ : StoreNames) : IProp GF :=
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hlrd" ∷ lease.lessorRdOf γ.leases)
 
-/-- The writer's invariant's name. -/
-abbrev writerN : Namespace := nroot.@"mvcc_writer"
-
-/-- **The writer's invariant** (persistent; D22 receiver epochs, S2, 2026-10-22): the writer's
-state checked in, or the batch lock's key with a reader's part of `s.mu`'s deposit ghost (a writer,
-holding the batch lock and `s.mu` shared, has the state out). A writer finds the state in (it
-holds the key: `writerInv_checkout`); so does the holder of `s.mu` exclusively (`store.Restore`,
-which takes neither the batch lock nor a writer's state from it: all of the deposit ghost). (S5b) At
-the current objects and physical names, with an eighth of the fraction of them: a writer finds the
-state at its pin's (`writerInv_checkout`). -/
-def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
-  inv writerN iprop(∃ (p : PhysNames) (o : StoreObjs),
-    curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-    (writerL s (γ.withPhys p) ∨ writerKey (γ.withPhys p) ∗ wDep γ))
-
-instance writerInv_persistent (s : Loc) (γ : StoreNames) : Persistent (writerInv (GF := GF) s γ) := by
-  unfold writerInv; infer_instance
-
-
 /-! ### The batch lock's resource, late-bound (the real backend)
 
 The backend's batch lock holds its client's resource `W` from the backend's creation, but the
@@ -1819,6 +1800,56 @@ theorem storeW_register (s : Loc) (γ : StoreNames) :
         iexists s, γ
         iframe H HW
       iexact H
+    · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr' H2
+      cases Hc
+
+/-- The writer's invariant's name. -/
+abbrev writerN : Namespace := nroot.@"mvcc_writer"
+
+/-- **The writer's registration in its backend** (D22 receiver epochs, S6, 2026-10-22): the store
+`(s, γ)` registered in its backend's late-bound lock slot (`storeRegd`), or not yet, with the right
+to register it and the batch lock's resource to deposit (`kbRegRight`, `writerRes`): after
+`store.Restore`, whose new backend's batch lock holds its unregistered `lateW` (`Restore` does not
+take the batch lock), until the next writer's `LockInsideApply` registers it
+(`writerInv_checkout`). `NewStore` registers at its first `Unlock`. -/
+def writerReg (s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop(storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ)
+
+/-- **The writer's invariant** (persistent; D22 receiver epochs, S2, 2026-10-22): the writer's
+state checked in, or the batch lock's key with a reader's part of `s.mu`'s deposit ghost (a writer,
+holding the batch lock and `s.mu` shared, has the state out). A writer finds the state in (it
+holds the key: `writerInv_checkout`); so does the holder of `s.mu` exclusively (`store.Restore`,
+which takes neither the batch lock nor a writer's state from it: all of the deposit ghost). (S5b) At
+the current objects and physical names, with an eighth of the fraction of them: a writer finds the
+state at its pin's (`writerInv_checkout`). (S6) Checked in with the backend's registration
+(`writerReg`: pending after a restore), checked out with the store registered (`storeRegd`, until
+S6 in `physOk`: a restored backend is registered only at its first writer's lock). -/
+def writerInv (s : Loc) (γ : StoreNames) : IProp GF :=
+  inv writerN iprop(∃ (p : PhysNames) (o : StoreObjs),
+    curAt (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
+    (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
+      writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p)))
+
+instance writerInv_persistent (s : Loc) (γ : StoreNames) : Persistent (writerInv (GF := GF) s γ) := by
+  unfold writerInv; infer_instance
+
+/-- **A pending registration, made at the writer's lock** (D22 receiver epochs, S6): the lock's
+resource (unregistered, for the real backend: the right to register's other half), the right to
+register and the writer's resource register the store; mvcc's assumed backend's lock holds the
+writer's resource itself. -/
+theorem storeW_pending (s : Loc) (γ : StoreNames) :
+    storeW (GF := GF) s γ ∗ kbRegRight γ.kb ∗ writerRes s γ ==∗ writerRes s γ ∗ storeRegd s γ := by
+  unfold storeW kbRegRight storeRegd
+  cases hk : γ.kb with
+  | none => simp only; iintro ⟨H, -, -⟩; imodintro; iframe H
+  | some d =>
+    simp only
+    unfold lateW lateReg
+    iintro ⟨(H1 | ⟨%s', %γ', #Hr', -⟩), H2, HW⟩
+    · imod dghostVar_update_halves (some (s, γ)) d.gx _ _ $$ H1 H2 with ⟨H1, -⟩
+      imod dghostVar_persist d.gx _ _ $$ H1 with #H
+      imodintro
+      iframe H HW
     · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr' H2
       cases Hc
 
@@ -2300,16 +2331,16 @@ theorem storeFields_split (s : Loc) (o : StoreObjs) (q1 q2 : Qp) :
 /-- **What the store's objects `o` are at its names `γ`** (persistent; D22 receiver epochs, S5b:
 until then `isStore`'s, at the pinned objects): the backend's contract at `γ`'s view, tokens, put
 condition and lock resource, with the batch lock's invariant recorded (`hookP`) and the deposit
-witness; the store registered in its backend; the tree index; the scheduler. A share of the
-fields holds it of the current objects and names (`fieldShareAt`), and so does the compaction's
-`storeStop`. -/
+witness; the tree index; the scheduler. A share of the fields holds it of the current objects
+and names (`fieldShareAt`), and so does the compaction's `storeStop`. (D22 receiver epochs, S6: the
+store's registration in its backend, `storeRegd`, moved to the writer's invariant, `writerInv`: a
+restored backend is registered only at its first writer's lock.) -/
 def physOk (s : Loc) (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ (Ph Dep : IProp GF),
     "#Hhook" ∷ hookP γ Ph ∗
     "#Hbk" ∷ isKeyBackendG o.b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) ∗
     "#Hdep" ∷ □ Dep ∗
-    "#Hreg" ∷ storeRegd s γ ∗
     "#Hti" ∷ isTreeIndex o.ti γ.idx ∗
     "#HisSched" ∷ schedule.isFifo o.ssched γ.sch)
 
@@ -2894,6 +2925,28 @@ def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : 
 instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackend (GF := GF) b s γ P) := by
   unfold storeBackend; infer_instance
+
+/-- **The store's backend contract with the deposit witness `True`** (D22 receiver epochs, S6,
+2026-10-22): `storeBackend` with its witness fixed, as the real backend's is
+(`storeBackendT_of_backend`: its batch lock holds the late-bound resource from its creation, so no
+first `Unlock` deposits it). What `store.Restore` takes of its new backend: it never locks the new
+backend's batch transaction, so it has no witness of its own. -/
+def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) : IProp GF :=
+  isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ) (storeW s γ)
+    (kbWi γ.kb) iprop(True) (storeCmp γ) P (hookFn γ)
+
+instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
+    Persistent (storeBackendT (GF := GF) b s γ P) := by
+  unfold storeBackendT; infer_instance
+
+/-- The contract with the witness `True` is the contract. -/
+theorem storeBackend_of_T (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
+    storeBackendT (GF := GF) b s γ P ⊢ storeBackend b s γ P := by
+  iintro #H
+  iunfold storeBackendT at H
+  iunfold storeBackend
+  iexists iprop(True)
+  iexact H
 
 set_option synthInstance.maxSize 8192 in
 set_option synthInstance.maxHeartbeats 800000 in
@@ -3914,37 +3967,66 @@ theorem hookP_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f : val
     iapply H
     iexact HP
 
-/-- **A writer checks the writer's state out** (one later credit): with the batch lock's key (the
-state is in: another writer's deposit would be a second key) and its part of `s.mu`'s deposit
-ghost, both deposited, at its pin (S5b: the state is at the current names, the pin's). -/
+/-- The batch lock's resource and the registration (done or pending) give the writer's resource,
+the store registered (S6). -/
+theorem writerReg_get (s : Loc) (γ : StoreNames) :
+    storeW (GF := GF) s γ ∗ writerReg s γ ==∗ writerRes s γ ∗ storeRegd s γ := by
+  iintro ⟨HW, Hrg⟩
+  iunfold writerReg at Hrg
+  icases Hrg with (#Hreg | ⟨Hrr, HWr⟩)
+  · ihave HWr := storeW_get s γ $$ [$Hreg $HW]
+    imodintro; iframe HWr Hreg
+  · iapply storeW_pending s γ $$ [$HW $Hrr $HWr]
+
+/-- **A writer checks the writer's state out** (one later credit), with the batch lock's resource
+(`storeW`, from its `LockInsideApply`) and its part of `s.mu`'s deposit ghost, at its pin (S5b: the
+state is at the current names, the pin's): the state is in (another writer's deposit would be a
+second key); the store is registered in its backend (S6: if the registration is pending, after a
+restore, it is made now: `storeW_pending`); the writer gets the batch lock's resource but its key,
+which it deposits with its part of the deposit ghost. -/
 theorem writerInv_checkout (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
-    ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ writerKey γ -∗ wDep γ ={⊤}=∗
-      writerL s γ ∗ curAt γ dq o := by
-  iintro Hlc #Hi Hpin Hk Hd
+    ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ storeW s γ -∗ wDep γ ={⊤}=∗
+      writerL s γ ∗ storeRegd s γ ∗
+      (∃ L : Log, ghostVar γ.wv (1 : Qp).half L ∗ bucketView γ (1 : Qp).half (bucketMap L) ∗
+        idxCert γ.idx L ∗ ⌜L ≠ []⌝ ∗ compactRes γ) ∗ curAt γ dq o := by
+  iintro Hlc #Hi Hpin HW Hd
   iunfold writerInv at Hi
   imod inv_acc (E := ⊤) (N := writerN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∨ writerKey (γ.withPhys p) ∗ wDep γ)))
+      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))
     (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
   imod (lc_fupd_elim_later (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∨ writerKey (γ.withPhys p) ∗ wDep γ)))) $$ Hlc HP with HP
+      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))) $$ Hlc HP with HP
   icases HP with ⟨%p, %o', Hc, HP⟩
   ihave %Hv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hv
   rw [StoreNames.withPhys_self]
-  icases HP with (HL | ⟨Hk', -⟩)
-  · imod Hclose $$ [Hc Hk Hd] with -
-    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; iright; iframe Hk Hd
-    imodintro; iframe HL Hpin
-  · iunfold writerKey at Hk Hk'
+  icases HP with (⟨HL, Hrg⟩ | ⟨Hk', -, #Hreg'⟩)
+  · imod writerReg_get s γ $$ [$HW $Hrg] with ⟨HWr, #Hreg⟩
+    iunfold writerRes at HWr
+    icases HWr with ⟨%L, Hwk, Hwv, Hbv, #Hcert, %Hne, Hcres⟩
+    imod Hclose $$ [Hc Hwk Hd] with -
+    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; iright; iframe Hwk Hd Hreg
+    imodintro
+    iframe HL Hreg Hpin
+    iexists L
+    iframe Hwv Hbv Hcert Hcres
+    ipureintro; exact Hne
+  · ihave HWr := storeW_get s γ $$ [$Hreg' $HW]
+    iunfold writerRes at HWr
+    icases HWr with ⟨%L, Hk, -⟩
+    iunfold writerKey at Hk Hk'
     ihave %Hv := ghostVar_valid_2 γ.wk () 1 () 1 $$ Hk Hk'
     exact absurd Hv.1 (Qp_one_add_not_le 1)
 
 /-- **A writer checks the writer's state back in** (one later credit), at its pin, getting the
 batch lock's key and its part of `s.mu`'s deposit ghost back: the state is out (a second state's
-half of the view's log ghost, with the writer's and the batch lock's, would be three halves). -/
+half of the view's log ghost, with the writer's and the batch lock's, would be three halves); the
+store stays registered (S6). -/
 theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o : StoreObjs) :
     ⊢ £ 1 -∗ writerInv (GF := GF) s γ -∗ curAt γ dq o -∗ writerL s γ -∗
       ghostVar γ.wv (1 : Qp).half L ={⊤}=∗
@@ -3953,17 +4035,19 @@ theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o 
   iunfold writerInv at Hi
   imod inv_acc (E := ⊤) (N := writerN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∨ writerKey (γ.withPhys p) ∗ wDep γ)))
+      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))
     (by exact CoPset.subseteq_top) $$ Hi with ⟨HP, Hclose⟩
   imod (lc_fupd_elim_later (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
-      (writerL s (γ.withPhys p) ∨ writerKey (γ.withPhys p) ∗ wDep γ)))) $$ Hlc HP with HP
+      (writerL s (γ.withPhys p) ∗ writerReg s (γ.withPhys p) ∨
+        writerKey (γ.withPhys p) ∗ wDep γ ∗ storeRegd s (γ.withPhys p))))) $$ Hlc HP with HP
   icases HP with ⟨%p, %o', Hc, HP⟩
   ihave %Hvv := curAt_pin γ p _ _ o o' $$ [Hpin Hc]
   · iframe Hpin Hc
   obtain ⟨rfl, rfl⟩ := Hvv
   rw [StoreNames.withPhys_self]
-  icases HP with (HL' | ⟨Hk, Hd⟩)
+  icases HP with (⟨HL', -⟩ | ⟨Hk, Hd, #Hreg⟩)
   · iunfold writerL at HL HL'
     icases HL with ⟨%l1, %n1, HL⟩
     icases HL' with ⟨%l2, %n2, HL'⟩
@@ -3974,7 +4058,8 @@ theorem writerInv_checkin (s : Loc) (γ : StoreNames) (L : Log) (dq : DFrac) (o 
     ihave %Hv3 := ghostVar_valid_2 γ.wv l1 1 L (1 : Qp).half $$ Hwv12 Hv
     exact absurd Hv3.1 (Qp_one_add_not_le _)
   · imod Hclose $$ [Hc HL] with -
-    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; ileft; iexact HL
+    · inext; iexists γ.phys, o'; rw [StoreNames.withPhys_self]; iframe Hc; ileft; iframe HL
+      iunfold writerReg; ileft; iexact Hreg
     imodintro; iframe Hk Hd Hv Hpin
 
 /-- **A transaction checks a slot out of the readers' pool** (one later credit), with an idle
