@@ -263,6 +263,9 @@ exists only because a reader's slot and token are exclusive, bounded, and must a
   swap, and only it holds `storeWT`. About 25 files, mostly framing.
 - **S6. Axioms of `store.Restore` and `watchableStore.Restore`**, true of the Go code. About 4 files
   (Spec, Link, `etc/tcb-baseline.txt`).
+  *Done 2026-10-22* (`notes/decisions.md`, "D22 receiver epochs, S6 carried out"): `store.Restore`
+  an axiom, `watchableStore.Restore` proved over it; it took more than the estimate: the restored
+  backend's pending registration (`writerReg`) and the watch side (item 3 there).
   - *Pre:* `isStore s γ`; the watchable `s.mu` share; `storeCloser`; `crevFrozen γ`; the writer's
     `cur` fragment; `ownToks γ.revs (|L'|-|L|)`; `⌜L <+: L'⌝`; `restoreLogOk`; the new backend's key
     contract over `keyImage L'` with `bkNoCmp`; its token stock (`bkRTx`×N, `wbTok`s) and `lateReg`;

@@ -52,9 +52,8 @@ theorem mvcc.watcherGroup.choose.wp_proof
     · ipureintro; exact ⟨Hdom, Hst⟩
     (try wp_auto)
     iapply HΦ
-    iframe HST
     ileft
-    iframe Hg
+    iframe Hg HST
     ipureintro
     exact ⟨⟨rfl, by rw [← hsz]; exact Hif⟩, Hm⟩
   wp_apply hNew as %gv Hgv
@@ -153,10 +152,10 @@ theorem mvcc.watcherGroup.choose.wp_proof
     exact Hdom w (by rw [GMap.lookup_weaken hr HW'.1]; rfl)
   (try wp_auto)
   iapply HΦ
-  iframe HST
   iright
   iexists W'
-  iframe Hret
+  iframe Hret HST
+
   isplitl []
   · ipureintro
     refine ⟨HW'.1, by rw [hsz] at Hif; omega, HW'.2⟩

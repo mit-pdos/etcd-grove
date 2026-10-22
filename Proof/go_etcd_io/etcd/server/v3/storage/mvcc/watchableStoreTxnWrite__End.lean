@@ -103,7 +103,7 @@ theorem mvcc.syncedBelow_of (γ : mvcc.WsNames) (σ : mvcc.WsState) (hok : mvcc.
   icases Hw with ⟨-, -, -, %evsw, %d, %he', -, -, #Hpop⟩
   iunfold mvcc.popFacts at Hpop
   rw [if_pos hws]
-  icases Hpop with ⟨-, Hwf⟩
+  icases Hpop with ⟨-, Hwf, -⟩
   iunfold mvcc.evsWf at Hwf
   icases Hwf with ⟨%L, #Hs, -, %Hf⟩
   ihave #Hs' := mvcc.evLog_sealed _ _ $$ Hs
@@ -485,7 +485,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
   icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
-  obtain ⟨Hset, Hsrb⟩ := HsetR
+  obtain ⟨Hset, Hsrb, Hurst⟩ := HsetR
   icases persistent_entails_right (mvcc.body_pin s stw st γ σ ilog pend chs ps) $$
     [$HP $Hwlog $Hcore] with ⟨%Hpin, HP, Hwlog, Hcore⟩
   obtain ⟨hLmu, hbel⟩ := Hpin
@@ -510,7 +510,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     [$Hws0 $HP $Hlb $Hrlb $Hesl $Hdone] as ⟨Hesl, %σ', HP, %Hσ'⟩
   · ipureintro
     exact ⟨⟨hLmu, hbel, by rw [← hLmu]; exact Hset.2, by omega, Hwfc.2.2.2.2⟩, hdl, hevd⟩
-  obtain ⟨hLmu', hab, hbel', hvic', hMeq⟩ := Hσ'
+  obtain ⟨hLmu', hab, hbel', hvic', hMeq, hWuEq, hSTEq⟩ := Hσ'
   have hLL : σ.Lmu.length = σ'.Lmu.length := by rw [hLmu, hLmu']
   (try wp_auto)
   ihave Hte : mvcc.isTxnEnd mw st γ.st trace (.write ilog pend puts deletes putSize) $$ [Hcw]
@@ -543,7 +543,16 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
       have := Hsrb w γw h0 hs
       have hl := hLL
       simp only [List.length_append, List.length_singleton]; omega
-    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP Hrel Hwsf; ipureintro; exact ⟨hs'', hsr''⟩
+    -- (D22 receiver epochs, S6) the unsynced members untouched, the notified log longer
+    have hur'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).unsRst := by
+      intro w st hu hst
+      have hu' : (σ.Wu !! w).isSome := by rw [← hWuEq]; exact hu
+      have hst' : σ.ST !! w = some st := by rw [← hSTEq w hu']; exact hst
+      rcases Hurst w st hu' hst' with h | h
+      · left; have hl := hLL; simp only [List.length_append, List.length_singleton]; omega
+      · right; exact h
+    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP Hrel Hwsf; ipureintro
+    exact ⟨hs'', hsr'', hur''⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd Hc Htrc Hfrag

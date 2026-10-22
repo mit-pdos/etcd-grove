@@ -151,6 +151,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher
@@ -941,6 +942,10 @@ theorem mvcc.watchableStore.wp_progressAll :
 theorem mvcc.watchableStore.wp_NewWatchStream :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.NewWatchStream.wp_proof mvcc.watchableStore.wp_watch mvcc.watchableStore.wp_progress mvcc.watchableStore.wp_progressAll mvcc.watchableStore.wp_rev
+
+theorem mvcc.watchableStore.wp_Restore :
+    mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.Restore.wp_proof mvcc.store.wp_Restore mvcc.wp_newWatcherGroup mvcc.watcherGroup.wp_add
 
 theorem mvcc.watchableStore.wp_Write :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) :=

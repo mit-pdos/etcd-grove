@@ -217,16 +217,6 @@ theorem WsOk_vs {σ : WsState} (h : WsOk σ) (v : GoSlice) : WsOk { σ with vs :
   ⟨h.ws_wu, h.ws_v, h.wu_v, h.v_one, h.live_st, h.live_e, h.st_m, h.wo_m, h.m_st, h.wo_st,
     h.wo_live, h.st_flags, h.wo_flags, h.synced_d⟩
 
-/-- A map with values computed from the key. -/
-def gmapMapK {K V V' : Type} (f : K → V → V') (m : GMap K V) : GMap K V' :=
-  ⟨fun k => (m.lookup k).map (f k),
-   by
-    obtain ⟨l, hl⟩ := m.finite
-    exact ⟨l, fun k h => hl k (by simpa using h)⟩⟩
-
-theorem gmapMapK_lookup {K V V' : Type} (f : K → V → V') (m : GMap K V) (k : K) :
-    gmapMapK f m !! k = (m !! k).map (f k) := rfl
-
 section proof
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -282,7 +272,7 @@ theorem memberRes_synced (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (st : 
   have hl : σ.live w := Or.inl hW
   unfold memberRes popFacts
   simp only [hl, hW, ↓reduceIte]
-  iintro ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hE, Ha, Hl, %Hp, #Hwf⟩
+  iintro ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hE, Ha, Hl, %Hp, #Hwf, -⟩
   iexists γw, r, fcs, evsw, d
   iframe Hm Hf Hc Hfo Ha Hl Hwf
   ipureintro; exact ⟨hM, Hsr, hE, Hp⟩
@@ -639,7 +629,7 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
         rw [‹σ.ST !! w = none›] at this; cases this
     · intro w h; rw [hlive]; exact hok.wo_live w h
     · intro w st' h
-      show _ ∧ _ ∧ ((notifyState σ N STi Wsi Bv Out vs' vm).live w →
+      show _ ∧ ((notifyState σ N STi Wsi Bv Out vs' vm).live w →
         (st'.victim = true ↔ ((notifyState σ N STi Wsi Bv Out vs' vm).victimOf w).isSome)) ∧
         (st'.ch = null ↔ ¬ (notifyState σ N STi Wsi Bv Out vs' vm).live w)
       rw [hlive, hvo]
@@ -647,18 +637,18 @@ theorem notify_final (σ : WsState) (N : Nat) (hLmu : σ.Lmu.length = N) (hok : 
       by_cases hk : w ∈ keys
       · obtain ⟨st, h1, h2⟩ := hrel.st_done w (by rw [htk]; exact hk)
         rw [h] at h2; cases h2
-        obtain ⟨hc, hr, hv, hch⟩ := hok.st_flags w st h1
+        obtain ⟨hc, hv, hch⟩ := hok.st_flags w st h1
         have hws : (σ.Ws !! w).isSome := hBtWs w ((hkeys w).1 hk)
-        refine ⟨hc, hr, fun _ => ?_, hch⟩
+        refine ⟨hc, fun _ => ?_, hch⟩
         rw [hok.ws_v w hws]; simp
       · rw [hrel.st_rest w (by rw [htk]; exact hk)] at h
-        obtain ⟨hc, hr, hv, hch⟩ := hok.st_flags w st' h
+        obtain ⟨hc, hv, hch⟩ := hok.st_flags w st' h
         have hb : Bv !! w = none := by
           cases hb : Bv !! w with
           | none => rfl
           | some _ => exact absurd (hBvkeys w (by rw [hb]; rfl)) hk
         rw [hb]
-        refine ⟨hc, hr, fun hl => ?_, hch⟩
+        refine ⟨hc, fun hl => ?_, hch⟩
         rw [Option.or_none]; exact hv hl
     · exact hok.wo_flags
     · intro w γw ed hw hM hed
@@ -735,6 +725,9 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
       simp only [popFacts_synced γ _ k _ _ st _ _ hw', Option.map_none, Option.getD_none,
         List.append_nil]
       iintro ⟨-, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, Ha, Hl, %Hmin, #Hwf⟩⟩
+      have hn : sint.nat st.minRev = N + 1 := by
+        show (sint.Z st.minRev).toNat = _; rw [Hmin.2]; simp
+      rw [hn]
       iexists γw, r, fcs
       iframe Hm Hf Hc Hfo Ha Hl Hwf
       ipureintro
@@ -831,7 +824,7 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
         | none => rfl
         | some _ => exact absurd ((hkeys k).2 (by rw [h]; rfl)) hk
       iintro ⟨⟨#Hlb, #Hrlb, #Hfxs⟩, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, %evsw, %d, %hEk, Ha, Hl,
-        %Hp, #Hwf⟩⟩
+        %Hp, #Hwf, #Hwm⟩⟩
       icases (BigSepM.bigSepM_lookup_acc hWsik).1 $$ Hfxs with ⟨⟨%fcs0, #Hf0⟩, -⟩
       ihave %Hag := watcherFixed_agree k r r0 fcs fcs0 $$ [$Hf $Hf0]
       obtain ⟨hrr, -⟩ := Hag
@@ -853,7 +846,9 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
       · ipureintro; exact hE'k
       isplitr
       · ipureintro; exact ⟨Hp.1, by omega⟩
+      iframe Hwm
       by_cases hlo : γw.lo ≤ N
+
       · -- delivered up to `N`; nothing at `N`
         have hdN : d = N := by omega
         have hminN : sint.Z st.minRev ≤ N := by omega
@@ -956,7 +951,8 @@ theorem mvcc.watchableStore.notify.wp_proof
     iframe Hst Hmem Hout
     ipureintro
     refine ⟨⟨Hvlen, mvcc.WsOk_vs Hok vs'⟩, hLmu, fun w γw ed hw => ?_, fun w γw ed hw => ?_,
-      ⟨fun w st h1 hst => ?_, fun w st h => ?_⟩, by first | rfl | trivial⟩
+      ⟨fun w st h1 hst => ?_, fun w st h => ?_⟩, by first | rfl | trivial, by first | rfl | trivial,
+      fun _ _ => by first | rfl | trivial⟩
     · rw [hWse] at hw; cases hw
     · rw [hWse] at hw; cases hw
     · have := hvic.1 w st h1 hst; omega
@@ -1093,7 +1089,7 @@ theorem mvcc.watchableStore.notify.wp_proof
         have : sint.Z (W64 (N : Int) : w64) = N := by word
         rw [this]; omega
     have hvic0 : stw.victim = false := by
-      have h1 := (Hok.st_flags key stw hST).2.2.1 (Or.inl (by simp [hWs]))
+      have h1 := (Hok.st_flags key stw hST).2.1 (Or.inl (by simp [hWs]))
       have h2 := Hok.ws_v key (by simp [hWs])
       rw [h2] at h1; simpa using h1
     have hlo1 : ∀ γw', σ.M !! key = some γw' → γw'.lo ≤ N + 1 := by
@@ -1279,7 +1275,17 @@ theorem mvcc.watchableStore.notify.wp_proof
       | none => rw [hb] at h; cases h
       | some B => obtain ⟨r, _, hW, -⟩ := mvcc.batchOf_some hb; rw [hW]; rfl)
     PB keys hkeys STi Wsi (GMap.fmap Prod.snd PBv) Out PBr Hrel vs' vm hvo'
-  exact ⟨hLmu, habove, hns.1, hns.2, rfl⟩
+  refine ⟨hLmu, habove, hns.1, hns.2, rfl, rfl, fun w hu => ?_⟩
+  have hnk : w ∉ keys := by
+    intro hk
+    have h := (hkeys w).1 hk
+    cases hb : mvcc.batchOf σ.Ws σ.ST (mvcc.evsOfRevM N (stateAfter ilog) pend) !! w with
+    | none => rw [hb] at h; cases h
+    | some B =>
+      obtain ⟨r, _, hW, -⟩ := mvcc.batchOf_some hb
+      have := Hok.ws_wu w (by rw [hW]; rfl)
+      rw [this] at hu; cases hu
+  exact Hrel.st_rest w (by rw [List.take_length]; exact hnk)
 
 end proof
 end EtcdGrove
