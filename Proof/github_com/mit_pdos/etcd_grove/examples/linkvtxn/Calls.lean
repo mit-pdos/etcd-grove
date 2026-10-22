@@ -223,7 +223,11 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
+
+-- the generic part (any caller of `New`'s client: also `client/v3/kubernetes`, 2026-10-22):
+-- the client's and the server's package assumptions, not linkvtxn's
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **What a linearizable range's reply says** (`linkv/Apply.lean`'s `getReply_state`, for any
 range at the latest revision): the client's read update fired at a state `σ` (`□ Q σ`) whose
@@ -339,6 +343,14 @@ theorem readUpds_box (ms : List (client.SrvAt GF)) (Q : KVState → IProp GF) :
       iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu (GF := GF) x.γr.kv Q)) :=
     BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
   exact intuitionistic_alias
+end proofs
+
+section proofs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
 /-- `cli.Get(ctx, key)` by `New`'s client of the members `ms`, with a read update or none (see
 the file header). -/

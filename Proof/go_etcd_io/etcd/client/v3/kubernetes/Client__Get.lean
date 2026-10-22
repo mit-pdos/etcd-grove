@@ -1,0 +1,181 @@
+/-
+Lean-first (no Rocq counterpart).
+
+The proof of `kubernetes.Client.Get`: the options `[WithRev(0), WithLimit(1)]`, then
+`client_range_any` through the client's `*kv` (as linkvtxn's `client_Get_st`), and the response's
+`KV` from the selection (`srvRangeOk_getKey1`). One `sorry`: the key-value pointer is not `nil`
+(see there).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
+public import Spec.go_etcd_io.etcd.client.v3.WithRev
+public import Spec.go_etcd_io.etcd.client.v3.WithLimit
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace kubernetes
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open go_etcd_io.etcd.server.v3.etcdserver linkvtxn
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+
+theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
+    (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG)) :
+    Client.Get.spec (GF := GF) (hG := hG) := by
+  intro _ _ kc ms V ci cd key opts Q hrev
+  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, #Hau⟩
+  wp_auto
+  wp_apply wp_WithRev opts.Revision' as %f1 #Hf1
+  wp_apply wp_WithLimit (W64 1) as %f2 #Hf2
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  ipersist Hsl
+  wp_auto
+  generalize hsl : slice.mk sl _ _ = optsSl
+  have hfs : [f1, zero_val GoFunc].set (sint.nat (W64 (0 + 1))) f2 = [f1, f2] := by
+    show [f1, zero_val GoFunc].set 1 f2 = [f1, f2]; rfl
+  ihave #Hopts : optsAt optsSl ([withRevM (W64 0), withLimitM (W64 1)] : List (OpFull → OpFull))
+    $$ []
+  · iunfold optsAt
+    iexists _
+    iframe Hsl
+    isplitr
+    · ipureintro; rw [hfs]; rfl
+    imodintro
+    iintro %i %f %g %Hf %Hg
+    rw [hfs] at Hf
+    rcases i with _ | _ | i
+    · cases Hf; cases Hg; rw [← hrev]; iexact Hf1
+    · cases Hf; cases Hg; iexact Hf2
+    · simp at Hf
+  iunfold isNewClient at Hcl
+  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  ihave #Hopts' := optsAt_res optsSl _ iprop(True) $$ Hopts
+  ihave #Hrr := kvRegs_range ms $$ Hregs
+  ihave #Hst' := srvStart_both ms $$ Hst
+  have hm : ∀ (k : Nat) (x : client.SrvAt GF), ms[k]? = some x →
+      iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) ⊢
+      iprop(⌜Q = fun _ => iprop(True)⌝ ∨
+        (⌜(rangeWireOf (opGetModel key [withRevM (W64 0), withLimitM (W64 1)])).base.serializable
+            = false⌝ ∗ kvReadAu x.γr.kv Q)) :=
+    fun _ _ _ => by
+      iintro (%h | #h)
+      · ileft; ipureintro; exact h
+      · iright; iframe h; ipureintro; rfl
+  ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
+  wp_auto
+  wp_apply (client.client_range_any api ms (W64 0) ci cd key optsSl
+      [withRevM (W64 0), withLimitM (W64 1)] iprop(True) Q) $$ []
+    as %resp %err ⟨-, Hout⟩
+  · iframe #
+    isplitl []
+    · rw [show (opGetModel key [withRevM (W64 0), withLimitM (W64 1)]).base.sortSet = false
+        from rfl]
+      iapply sortNamesIf_false
+    ipureintro
+    first
+      | rfl
+      | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp [withRevM, withLimitM])
+  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
+  · subst Herr
+    ihave Hs := rangeReply_state' x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
+    icases Hs with ⟨%σ, #HQ, %Hσ⟩
+    obtain ⟨hsel, hrevσ, hb⟩ := Hσ
+    rw [rangeWireOf_getKey1] at hsel
+    have hkvs := srvRangeOk_getKey1 key σ.kvs m.kvs m.more hsel
+    iunfold rangeRespMsg at Hm
+    icases Hm with ⟨%Hnn, %h, %sl2, %ps, #Hh, #Hhf, #Hkvf2, #Hsl2, #Hkvs, #Hmore, #Hcount⟩
+    iunfold hdrFull at Hhf
+    icases Hhf with ⟨%Hhn, -, -, #Hrevf, -, -⟩
+    wp_auto
+    iunfold txn.kvsIs at Hkvs
+    icases Hkvs with ⟨%Hlen, #Hall⟩
+    ihave %Hsll := ownSlice_len _ _ _ $$ Hsl2
+    cases hk : mvcc.findKey key σ.kvs with
+    | none =>
+      rw [hk] at hkvs
+      have hps : ps = [] := by
+        apply List.eq_nil_of_length_eq_zero; rw [Hlen, hkvs]; rfl
+      subst hps
+      wp_if_destruct
+      · exfalso; simp at Hsll; word
+      · iapply HΦ
+        ileft
+        isplitl []
+        · ipureintro; rfl
+        iexists σ
+        iframe HQ
+        isplitl []
+        · ipureintro; exact ⟨hrevσ, hb⟩
+        rw [hk]
+        simp only [kvOut]
+        ipureintro; first | rfl | trivial
+    | some v =>
+      rw [hk] at hkvs
+      obtain ⟨p0, Hp0⟩ : ∃ p0, ps[0]? = some p0 := by
+        have : 0 < ps.length := by rw [Hlen, hkvs]; simp
+        exact ⟨ps[0], List.getElem?_eq_getElem this⟩
+      have hv0 : m.kvs[0]? = some v := by rw [hkvs]; rfl
+      ihave #Hkv := Hall $$ %0 %p0 %v %Hp0 %hv0
+      wp_if_destruct
+      · have Hbnd0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl2.len := by
+          have := Hsll.1
+          constructor <;> word
+        simp only [Hbnd0, _root_.and_self, ↓reduceIte]
+        wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ DFrac.discard p0 Hbnd0.1 $$ [Hsl2] as -
+        · iframe Hsl2; ipureintro; exact Hp0
+        iapply HΦ
+        ileft
+        isplitl []
+        · ipureintro; rfl
+        iexists σ
+        iframe HQ
+        isplitl []
+        · ipureintro; exact ⟨hrevσ, hb⟩
+        rw [hk]
+        simp only [kvOut]
+        iframe Hkv
+        ipureintro
+        -- `p0 ≠ null`: the server's response predicate `txn.kvIs` does not say its pointer is not
+        -- `nil` (its field points-tos do not imply it); `notes/k8s-etcd3-plan.md`, "From the etcd
+        -- client proof", item 3: `txn.kvIs` carrying `⌜l ≠ null⌝` (from the struct's typed
+        -- points-to in `txn.kvAt_persist'`) closes it
+        sorry
+      · exfalso
+        have h1 : ps.length = 1 := by rw [Hlen, hkvs]; rfl
+        obtain ⟨h2, h3⟩ := Hsll
+        rw [h1] at h2
+        apply Hif
+        word
+  · cases err with
+    | nil => exact absurd rfl Herr
+    | ok ei => ?_
+    wp_auto
+    iapply HΦ
+    iright
+    ipureintro; exact Herr
+
+end proof
+
+end kubernetes
+end EtcdGrove
+end Perennial

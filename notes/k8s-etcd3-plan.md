@@ -1,15 +1,18 @@
 # Plan: the Kubernetes etcd3 storage backend (`k8s.io/apiserver/pkg/storage/etcd3`)
 
-Status: planned (2026-10-22). Decisions: D30 in `notes/decisions.md` (D30a-f; later ones of
-this work are appended there as D30g, ...). The translation survey is on branch `k8s-etcd3-goose`
-(`notes/k8s-etcd3-goose.md`, not merged into `lean`): the store translates and builds with the
-pinned translator except six functions left names-only; its gaps G1-G3 are under "What blocks
-where", and the Perennial changes they call for in `notes/perennial-changes.md`.
+Status: started (2026-10-22, branch `k8s-etcd3`: `lean` with `k8s-etcd3-goose` merged). Decisions:
+D30 in `notes/decisions.md` (D30a-j; D30g-j proposed). The translation survey is branch
+`k8s-etcd3-goose` (`notes/k8s-etcd3-goose.md`): the store translates and builds with the pinned
+translator except six functions left names-only; its gaps G1-G3 are under "What blocks where", and
+the Perennial changes they call for in `notes/perennial-changes.md`. Done so far: phase 2's model
+(`Proof/k8s_io/apiserver/pkg/storage/etcd3/Model.lean`), phase 3's `Client.Get` (one `sorry`,
+request 3 below); `notes/STATUS.md` has the details.
 
-Next step: merge `k8s-etcd3-goose` into `lean` (phases 1-4 build on its Goose project
-`k8s-apiserver` and `examples/k8setcd3`). It also changes the etcd project's configuration (it
-translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`), so it waits on an OK
-from the etcd client proof's owner. Then phase 1.
+Next steps: phase 3's `OptimisticPut`, `OptimisticDelete` and `Count` (linkvtxn's `client_Txn_st`/
+`txn_Commit_st` pattern), a `--k8s` link mode, then phase 1. Merging `k8s-etcd3` into `lean` waits
+on an OK from the etcd client proof's owner (the survey changes the etcd project's configuration:
+it translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`), and D30g on the
+user.
 
 ## Goal
 
@@ -180,7 +183,12 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    phase 5, and by the driver once it lists: soundness first ("What blocks where").
 2. `Txn`/`DeleteRange` errors: what the caller learns about whether its update fired (at most
    once already holds: `kvOpAu1`). Needed by phase 4's error cases.
-3. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
+3. (2026-10-22) `txn.kvIs l v` (a response's key-value, `server/v3/etcdserver/txn/Requests.lean`)
+   should carry `⌜l ≠ null⌝`. The store branches on `getResp.KV == nil`, so
+   `kubernetes.Client.Get`'s spec needs a found key's pointer non-nil. Its one `sorry` is
+   exactly that. The fix: `txn.kvAt_persist'` takes it from the struct's typed points-to
+   (`typedPointsto_not_null`), and the dozen destructuring sites gain a pattern.
+4. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
    watches under any prefix (the contract's `V.pfx` is fixed).
 
 ## Open
