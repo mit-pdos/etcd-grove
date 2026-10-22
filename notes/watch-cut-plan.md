@@ -185,6 +185,9 @@ settles Q4, so linkv3p's translation and proofs are untouched. One run under `-r
   (Q1 (b), per the scoping).
 - The bridge forwards streams (`bridge.New`'s spec, `forwards`).
 - `notes/decisions.md` D30, and ask. **Approved 2026-10-21.**
+- **Done (2026-10-21):** D30's "Carried out". `NewStream` over a list, each address with its own
+  content and spec, the stream at some address of the list; the bridge and `forwards` forward
+  streams (`isGrpcStream_forwards`). No axiom added.
 
 ### W2. The server side: a cluster-wide watch spec
 

@@ -19,6 +19,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Base
 public import Proof.net.InvNet
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.google_golang_org.grpc.InvGrpcStream
 
 @[expose] public section
 

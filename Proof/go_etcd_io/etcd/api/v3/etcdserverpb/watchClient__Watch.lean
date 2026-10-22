@@ -67,8 +67,9 @@ theorem watchClient.Watch.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
-  iapply (wp_NewStream conn addr ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequest
-    v3rpc.pbWatchResponse Up Spec ctx cd _ copts ([sm] ++ vs))
+  -- (D30) the one-address case
+  iapply (wp_NewStream conn [addr] ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequest
+    v3rpc.pbWatchResponse (fun _ => Up) (fun _ => Spec) ctx cd _ copts ([sm] ++ vs))
   · iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
@@ -77,7 +78,7 @@ theorem watchClient.Watch.wp_proof
   inext
   iintro %cs %err Hres
   wp_auto
-  icases Hres with (⟨%Herr, %γ, %Dn, %cd', #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto

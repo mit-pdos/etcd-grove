@@ -525,7 +525,9 @@ before the watch-resume fixes F1–F4). D30 approved. W2a done: mvcc's progress 
 (`startRead` removed; the watcher's bit `now` is the server's). W2b done: the lifting lemma
 (`kv_cert_cmp`, `KVCertCmp.lean`). W2c done: linkv3p's members serve the watch stream and export its
 registration (`memberServed`); `linkv3p_safe`'s step bound is now `n + 2 ≤ 2^29` (watchkv's), and
-its collection gains 8 axioms already in watchkv's. Next: W1 (D30's specs), then W3.
+its collection gains 8 axioms already in watchkv's. W1 done: D30 carried out (`NewStream` over a list of addresses,
+the stream at one of them with its spec; the bridge forwards streams; no axiom added). Next: W3,
+the watch client over several members.
 
 ## Read retries (2026-10-21, branch `read-retry`)
 

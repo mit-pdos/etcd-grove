@@ -12644,3 +12644,15 @@ one-element case:
 `bridge.New.wp_proof` (strengthened: it also forwards streams). The one-endpoint watch examples
 (watchkv, cachekv) frame `isGrpcStreams [addr]` as their `isGrpcStream`. The lease keep-alive
 stream stays at one address in the lessor's specs, an instance of the new statement.
+
+**Carried out** (2026-10-21, `notes/watch-cut-plan.md` W1):
+- `isGrpcStreams addrs name Up Spec` (`InvGrpcStream.lean`): reducible, by recursion, as
+  `isGrpcRpcs`. At one address it is that address's `isGrpcStream`.
+- `NewStream`'s spec returns `∃ a, ⌜a ∈ addrs⌝ ∗ cliStreamIs cs γ Req Rep (Up a) Dn cd' ∗ ... ∗ Spec
+  a γ Dn`.
+- The two stubs over it (`watchClient.Watch`, `leaseClient.LeaseKeepAlive`) keep their one-address
+  specs: they instantiate it at `[addr]` with constant families. The watch stub's list form is
+  W3's.
+- `bridge.New` gains the stream forwarding, and so does linkv3p's `forwards`, with
+  `isGrpcStream_forwards`.
+- Trust base: 530 axioms, 2 sorries, unchanged; the collections unchanged.

@@ -956,6 +956,27 @@ instance isGrpcStream_persistent {Req Rep : StreamMsg GF} (addr name : GoString)
     Persistent (isGrpcStream addr name Up Spec) := by
   unfold isGrpcStream; infer_instance
 
+/-- **The streaming method `name` of every server at `addrs`, each with its own content and
+specification** (persistent; D30): what a stream on a connection to `addrs` needs, wherever grpc's
+balancer sends it. Reducible, by recursion, so that at one address it is that address's
+`isGrpcStream` (as `isGrpcRpcs`, D27). -/
+@[reducible] def isGrpcStreams {Req Rep : StreamMsg GF} : List GoString → GoString →
+    (GoString → Nat → Req.M → IProp GF) → (GoString → StreamSpec Rep) → IProp GF
+  | [], _, _, _ => iprop(True)
+  | [a], name, Up, Spec => isGrpcStream a name (Up a) (Spec a)
+  | a :: b :: rest, name, Up, Spec =>
+    iprop(isGrpcStream a name (Up a) (Spec a) ∗ isGrpcStreams (b :: rest) name Up Spec)
+
+instance isGrpcStreams_persistent {Req Rep : StreamMsg GF} (addrs : List GoString)
+    (name : GoString) (Up : GoString → Nat → Req.M → IProp GF) (Spec : GoString → StreamSpec Rep) :
+    Persistent (isGrpcStreams addrs name Up Spec) := by
+  induction addrs with
+  | nil => unfold isGrpcStreams; infer_instance
+  | cons a rest ih =>
+    cases rest with
+    | nil => unfold isGrpcStreams; infer_instance
+    | cons b bs => unfold isGrpcStreams; infer_instance
+
 /-- A served stream handler that meets `Spec` registers it. -/
 theorem isGrpcStream_intro {Req Rep : StreamMsg GF} (addr name : GoString) (mh : val)
     (srv : GoInterface) (ics : List GoFunc) (S : IProp GF) (Up : Nat → Req.M → IProp GF)
