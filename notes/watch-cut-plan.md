@@ -251,6 +251,10 @@ revision both have. Not yet used: W3 imports it.
   as they are). Each epoch's stream is at some member: the run's state names it, and the per-epoch
   facts (`regFacts`, `cur2Ok`, the coverage) are that member's. The resume invariants are already
   `EM`-level (`startOk`, `resumeOk`), so they cross epochs unchanged.
+- **W3a done (2026-10-22):** `v3rpc.etcdModelOfHistory γ γk` (`api/v3rpc/HistoryModel.lean`). Its
+  laws are `ClientModel`'s over `histLog` (`histLog_two` in place of `srvLog_two`). A member's
+  facts convert by `histLog_of_cert`, `histStep_of_srv` and `histReached_of_cert`, at a member whose
+  names agree (`memberOf`). Not yet used: W3b.
 - **W3c:** the watch stub over a list (`watchClient.Watch` at `addrs`), `openWatchClient`, and
   `isNewClient_watcher` for `eps` a list.
 
