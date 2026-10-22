@@ -129,7 +129,8 @@ theorem store.conditionalDelete.wp_proof
         | nil => exact absurd rfl Hvres
         | ok ei =>
           (try wp_auto)
-          wp_apply wp_refresh Obj c st s (GoInterface.ok ei) f hs.2.2.2 $$ [$Hos]
+          icases (ownState_split c st s) $$ Hos with ⟨%x', Hos, -⟩
+          wp_apply wp_refresh Obj c st s (GoInterface.ok ei) f x' hs.2.2.2 $$ [$Hos]
             as %st' %err' ⟨%Heq, Hos⟩
           obtain ⟨rfl, rfl⟩ := Heq
           (try wp_auto)

@@ -435,6 +435,52 @@ def updOut {E : Type} (c : StoreCfg GF Obj) (key : GoString) (z : Obj)
     (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).update key false z (fun _ _ => none) f).1 = c.abs σ⌝ ∗
       respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out))
 
+/-- **The model's `update` of a key the state lacks** (`ignoreNotFound` false): "not found",
+nothing changed. -/
+theorem update_none {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hv : mvcc.findKey key σ.kvs = none) (z : Obj) (pre : Obj → Nat → Option E)
+    (f : Obj → Nat → Except E Obj) :
+    (c.abs σ).update key false z pre f = (c.abs σ, .err (.notFound key σ.rev)) := by
+  unfold KSt.update KSt.current
+  rw [c.abs_none σ key hv]
+  rfl
+
+/-- **The model's `update` when `tryUpdate` fails on the stored object**: its error, nothing
+changed. -/
+theorem update_err {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (kv : EtcdKv) (hv : mvcc.findKey key σ.kvs = some kv)
+    (s : OState Obj) (hs : stOfKv c kv s) (z : Obj) (f : Obj → Nat → Except E Obj) (e : E)
+    (he : f s.o (uint.nat s.rev) = .error e) :
+    (c.abs σ).update key false z (fun _ _ => none) f = (c.abs σ, .err (.user e)) := by
+  obtain ⟨hrev, hfs, hdc, -⟩ := hs
+  have hd : c.S.dec kv.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+    simp [ObjCodec.dec, hfs, hdc]
+  have hit := c.abs_some σ key hpk kv hv _ _ hd
+  unfold KSt.update KSt.current
+  rw [hit]
+  simp only [← hrev, he]
+
+/-- **The model's `update` when the store skips the write** (`store.go:547`: not stale, and the
+result's encoding is the stored data): the stored object at its resource version, nothing
+changed (`noop_iff`: the result is the object, canonical). -/
+theorem update_skip {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (kv : EtcdKv) (hv : mvcc.findKey key σ.kvs = some kv)
+    (s : OState Obj) (hs : stOfKv c kv s) (z : Obj) (f : Obj → Nat → Except E Obj) (o' : Obj)
+    (hok : f s.o (uint.nat s.rev) = .ok o')
+    (hn : (!s.stale && decide (c.S.encode o' = s.data)) = true) :
+    (c.abs σ).update key false z (fun _ _ => none) f = (c.abs σ, .obj s.o (uint.nat s.rev)) := by
+  obtain ⟨hrev, hfs, hdc, -⟩ := hs
+  have hd : c.S.dec kv.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+    simp [ObjCodec.dec, hfs, hdc]
+  have hit := c.abs_some σ key hpk kv hv _ _ hd
+  obtain ⟨heq, -⟩ := (ObjCodec.noop_iff c.S.toObjCodec kv.value s.data s.stale s.o o' hfs hdc).1 hn
+  subst heq
+  have hc : (!s.stale && decide (c.S.encode s.o = s.data)) = true := hn
+  unfold KSt.update KSt.current
+  rw [hit]
+  simp only [← hrev, hok]
+  simp [hc]
+
 end steps
 
 end k8s

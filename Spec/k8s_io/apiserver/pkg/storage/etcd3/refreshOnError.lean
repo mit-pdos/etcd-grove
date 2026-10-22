@@ -3,7 +3,7 @@
 of `notes/k8s-etcd3-plan.md`). Lean-first (no Rocq counterpart).
 
 For a state just read from etcd (`current`): the state and the error, unchanged (the closure is not
-called). The stale case (a cached object, `Delete`'s `cachedExistingObject`) is not used yet.
+called; the state's object is not read, `ownStateX`). The stale case (a cached object, `Delete`'s `cachedExistingObject`) is not used yet.
 -/
 module
 
@@ -30,13 +30,13 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 abbrev refreshOnError.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (Obj : Type) [DecidableEq Obj] (c : StoreCfg GF Obj) (st : Loc) (s : OState Obj)
-    (err : GoInterface) (f : GoFunc),
+    (err : GoInterface) (f : GoFunc) (x : GoInterface),
   s.current = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ ownState c st s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ ownStateX c st s x }}
     (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.etcd3.refreshOnError)) (Val #st))
       (Val #err)) (Val #f))
   {{ (st' : Loc) (err' : GoInterface), RET (PairV #st' #err');
-      ⌜st' = st ∧ err' = err⌝ ∗ ownState c st s }}
+      ⌜st' = st ∧ err' = err⌝ ∗ ownStateX c st s x }}
 
 end spec
 

@@ -15,6 +15,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.NewInternalError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyExistsError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyNotFoundError
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
+public import Proof.k8s_io.apiserver.pkg.storage.Preconditions__Check
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
@@ -32,11 +33,14 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Create
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Get
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GuaranteedUpdate
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__deleteOnce
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__getCurrentState
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__stateFromEtcdResponse
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateOnce
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateState
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__validateMinimumResourceVersion
 public import Proof.strings.Contains
 public import Proof.k8s_io.component_base.tracing.Start
@@ -129,6 +133,10 @@ theorem metrics.OperationLatencyTracker.wp_Record :
     EtcdGrove.metrics.OperationLatencyTracker.Record.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metrics.OperationLatencyTracker.Record.wp_proof
 
+theorem storage.Preconditions.wp_Check :
+    EtcdGrove.storage.Preconditions.Check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.Preconditions.Check.wp_proof
+
 theorem strings.wp_Contains :
     EtcdGrove.strings.Contains.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.Contains.wp_proof
@@ -208,6 +216,18 @@ theorem store.wp_validateMinimumResourceVersion :
 theorem store.wp_Get :
     EtcdGrove.k8s.store.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.Get.wp_proof store.wp_prepareKey store.wp_validateMinimumResourceVersion storage.wp_NewKeyNotFoundError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.OperationLatencyTracker.wp_Record kubernetes.Client.wp_Get
+
+theorem store.wp_updateState :
+    EtcdGrove.k8s.store.updateState.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.updateState.wp_proof
+
+theorem store.wp_updateOnce :
+    EtcdGrove.k8s.store.updateOnce.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.updateOnce.wp_proof store.wp_stateFromEtcdResponse wp_txnError metrics.wp_RecordEtcdRequest storage.wp_NewInternalError tracing.Span.wp_AddEvent «attribute».wp_String «attribute».wp_Int klog.wp_V klog.Verbose.wp_Infof kubernetes.Client.wp_OptimisticPut
+
+theorem store.wp_GuaranteedUpdate :
+    EtcdGrove.k8s.store.GuaranteedUpdate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.GuaranteedUpdate.wp_proof store.wp_prepareKey wp_getTypeName conversion.wp_EnforcePtr store.wp_getCurrentState storage.Preconditions.wp_Check store.wp_updateState store.wp_updateOnce wp_refreshOnError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
 
 end links_hasLC
 

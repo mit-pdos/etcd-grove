@@ -30,20 +30,20 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem refreshOnError.wp_proof : refreshOnError.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ c st s err f hcur
+  intro _ _ Obj _ c st s err f x hcur
   wp_start as Hs
-  iunfold ownState at Hs
-  icases Hs with ⟨%x, %m, %dsl, %Hst, Hst, Hobj, #Hdsl, Hm⟩
+  iunfold ownStateX at Hs
+  icases Hs with ⟨%m, %dsl, %Hst, Hst, #Hdsl, Hm⟩
   wp_auto
   simp only [hcur]
   wp_auto
   iapply HΦ
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
-  iunfold ownState
+  iunfold ownStateX
   rw [hcur]
-  iexists x, m, dsl
-  iframe Hst Hobj Hdsl Hm
+  iexists m, dsl
+  iframe Hst Hdsl Hm
   ipureintro; exact Hst
 
 end proof
