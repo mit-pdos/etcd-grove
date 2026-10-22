@@ -38,9 +38,9 @@ upstream: unchecked
 - **How the proof handles it**: the generic specs of the store (planned,
   `notes/k8s-etcd3-plan.md`) describe the store's rule, not the Model's. The Lean model's item
   carries whether its stored value is the codec's current encoding and not stale, and when every
-  item is canonical it coincides with `correctness.Model`. The closed driver theorem checks with
-  the unmodified `correctness.Model`, so its codec must be canonical on the traffic's keys
-  (`notes/decisions.md`, D30g).
+  item is canonical it coincides with `correctness.Model`. The closed driver theorem (planned) checks against a fixed
+  copy of the Model in `examples/k8setcd3/`, trusted until upstream fixes it, so that its
+  non-canonical codec can be checked (`notes/decisions.md`, D30g).
 - **Possible fixes**: let the Model know whether an item needs a rewrite. For example, a
   `Model.Items` entry could record the item's encoding (or a "stale" bit set by a seeding
   helper), and `update` could compare encodings as the store does. Or document that the Model

@@ -1,7 +1,7 @@
 # Plan: the Kubernetes etcd3 storage backend (`k8s.io/apiserver/pkg/storage/etcd3`)
 
 Status: started (2026-10-22, branch `k8s-etcd3`: `lean` with `k8s-etcd3-goose` merged). Decisions:
-D30 in `notes/decisions.md` (D30a-j; D30g-j proposed). The translation survey is branch
+D30 in `notes/decisions.md` (D30a-j; D30h-j proposed). The translation survey is branch
 `k8s-etcd3-goose` (`notes/k8s-etcd3-goose.md`): the store translates and builds with the pinned
 translator except six functions left names-only; its gaps G1-G3 are under "What blocks where", and
 the Perennial changes they call for in `notes/perennial-changes.md`. Done so far: phase 2's model
@@ -11,8 +11,7 @@ request 3 below); `notes/STATUS.md` has the details.
 Next steps: phase 3's `OptimisticPut`, `OptimisticDelete` and `Count` (linkvtxn's `client_Txn_st`/
 `txn_Commit_st` pattern), a `--k8s` link mode, then phase 1. Merging `k8s-etcd3` into `lean` waits
 on an OK from the etcd client proof's owner (the survey changes the etcd project's configuration:
-it translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`), and D30g on the
-user.
+it translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`).
 
 ## Goal
 
@@ -50,7 +49,7 @@ Two results:
   the Model's at one linearization point whatever the suggestion was, exactly the class of
   #35415, #43152, #48394, #54780, #77619, #82303, #89828, #113380, #138724.
 
-## The codec contract (not canonical in the specs; canonical in the driver, D30g)
+## The codec contract (and why the driver's codec is non-canonical; D30g)
 
 The specs quantify over a codec, versioner and transformer with a contract. It must be weak
 enough to hold of the real ones:
@@ -65,17 +64,19 @@ enough to hold of the real ones:
 **`correctness.Model` is wrong on that path (2026-10-22, D30g).** On a no-op update of
 non-canonical or stale data the store rewrites the object at a new resource version, as its
 own unit test requires, while the Model skips the write and rejects the response
-(`issues/k8s-correctness-model-noop-rewrite.md`, reproduced). Proposed (D30g, waiting on the
-user):
+(`issues/k8s-correctness-model-noop-rewrite.md`, reproduced). Decided (D30g):
 - The Lean model's items carry a bit `canon` (the stored value is the codec's current encoding
   and not stale), and `update` writes unless the object is unchanged and `canon` holds. This is
   the store's rule, and the generic specs are stated with it. On states whose items are all
   canonical it is `correctness.Model`.
-- The driver checks with the unmodified `correctness.Model`, so its codec is canonical on the
-  traffic's keys. ~~The driver's codec must be non-canonical too~~ (D30b's original plan: seed
-  keys in a non-canonical encoding, a transformer that reports `stale`). That would make the
-  driver theorem false with the maintainers' Model. The contract's proof for the driver's codec
-  is still a real proof (no axiom).
+- **The driver's codec stays non-canonical** (D30b), for example a decoder that accepts several
+  encodings of one object (a field order, optional padding or a version tag). The driver seeds
+  some keys in a non-canonical encoding before the traffic starts, as an older API server or a
+  different serializer would have left them, and its transformer sometimes reports `stale` (a
+  function of the stored value). It checks against a **fixed `correctness.Model`**: a patched
+  copy of the package in `examples/k8setcd3/`, whose items carry their stored form, so that
+  `update` compares as the store does. That copy is trusted until upstream fixes the Model. The
+  contract's proof for the driver's codec is a real proof (no axiom).
 
 ## The driver and failed writes
 
