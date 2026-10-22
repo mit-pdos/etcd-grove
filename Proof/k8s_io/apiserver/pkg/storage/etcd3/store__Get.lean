@@ -140,7 +140,7 @@ theorem store.Get.wp_proof
     wp_apply wp_validateMin sp _
     (try wp_auto)
     iunfold contractOk at Hcon
-    icases Hcon with ⟨#Henc, #Hver, #Htr, #Hdec, #Hzero⟩
+    icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero⟩
     cases hf : mvcc.findKey (c.pathPrefix ++ k) σ.kvs with
     | none =>
       iunfold kubernetes.kvOut at Hkv

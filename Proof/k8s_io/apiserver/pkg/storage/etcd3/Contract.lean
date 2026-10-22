@@ -37,6 +37,7 @@ module
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Model
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.etcd3
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.reflect.Values
 
 @[expose] public section
 
@@ -115,11 +116,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The objects**: the pure contract and the ownership of an object in the heap (`objAt x o rv`:
-the `runtime.Object` `x` holds the body `o` with resource version string `rv`). -/
+the `runtime.Object` `x` holds the body `o` with resource version string `rv`). An object is a
+non-nil pointer to a struct of the Go type `objTy` (what `conversion.EnforcePtr` requires, and what
+`NewFunc()` gives for a typed resource), not `runtime.Unstructured` (D30b: one Go type per store),
+and `reflect.New(objTy)` makes the zero object (`newObj`), as the store makes the objects it
+decodes into. -/
 structure ObjSpec (GF : BundledGFunctors) (Obj : Type) extends ObjCodec Obj where
   objAt : GoInterface → Obj → GoString → IProp GF
   /-- an object is not the `nil` interface -/
   objAt_ne_nil : ∀ x o rv, objAt x o rv ⊢ ⌜x ≠ GoInterface.nil⌝
+  /-- the Go type of the objects' structs -/
+  objTy : go.GoType
+  /-- an object is a non-nil `*objTy` -/
+  objAt_ptr : ∀ x o rv, objAt x o rv ⊢
+    ⌜∃ p : Loc, p ≠ null ∧ x = interface.mkOk (go.GoType.PointerType objTy) #p⌝
+  /-- `reflect.New(objTy)`'s allocation is the zero object -/
+  newObj : ∀ p : Loc, reflectM.reflNew objTy p ⊢
+    |==> objAt (interface.mkOk (go.GoType.PointerType objTy) #p) zero []
+
+/-- **The objects' Go type** is a `runtime.Object` and not a `runtime.Unstructured` (the type
+assertions the store makes, `typeSetContains`). -/
+def ObjSpec.tyOk (S : ObjSpec GF Obj) : Prop :=
+  go.typeSetContains (go.GoType.PointerType S.objTy)
+      k8s_io.apimachinery.pkg.runtime.Object.ty = true ∧
+    go.typeSetContains (go.GoType.PointerType S.objTy)
+      k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false
 
 /-- `runtime.Encode(codec, x)`: the bytes of the object's encoding (after
 `PrepareObjectForStorage`: no resource version), or an error. -/
@@ -208,7 +229,8 @@ def zeroOk (S : ObjSpec GF Obj) : IProp GF :=
 was made with, and `runtime.SetZeroValue`, meet the object specification `S`. -/
 def contractOk (S : ObjSpec GF Obj) (codec : GoInterface) (vi ti di : GoInterfaceOk) :
     IProp GF :=
-  iprop(encodeOk S codec ∗ versionerOk S vi ∗ transformerOk S ti ∗ decoderOk S di ∗ zeroOk S)
+  iprop(⌜S.tyOk⌝ ∗ encodeOk S codec ∗ versionerOk S vi ∗ transformerOk S ti ∗ decoderOk S di ∗
+    zeroOk S)
 
 instance contractOk_persistent (S : ObjSpec GF Obj) (codec : GoInterface)
     (vi ti di : GoInterfaceOk) : Persistent (contractOk S codec vi ti di) := by

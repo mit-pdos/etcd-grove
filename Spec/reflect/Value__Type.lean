@@ -31,8 +31,8 @@ variable [reflect.Assumptions]
 abbrev reflect.Value.Type.spec : Prop :=
   ∀ (vp : Loc) (dq : DFrac) (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.reflect ∗ vp ↦{dq} v ∗ ⌜reflElem v T p⌝ }}
-    (App (App (Val (GoInstruction (MethodResolve
-      (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type"))) (Val #vp)) (Val #()))
+    (App (Val #(methods (go.GoType.PointerType _root_.Perennial.reflect.Value.ty) go!"Type" #vp))
+      (Val #()))
   {{ (rt : _root_.Perennial.reflect.Type'), RET #rt; vp ↦{dq} v ∗ ⌜reflType rt T⌝ }}
 
 end spec
