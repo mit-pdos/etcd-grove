@@ -159,10 +159,13 @@ theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
 /-- The conf-change bytes the cluster admits: none. -/
 def ccOkS (_ty : w32) (_bs : List w8) : Prop := False
 
-/-- A replica's node, in the cluster's static mode. -/
+/-- A replica's node, in the cluster's static mode, taking snapshots of the cluster's data
+(D22 S-r). -/
 theorem kvStat_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkS) (Hmd : γn.mode = .static)
-    (Hns : γn.raft.reNoXfer = false) (Hsn : γn.snapIn = false) : KVStat γn :=
-  ⟨Hmd, fun ty bs h => by rw [Hok] at h; exact h, Hns, Hsn⟩
+    (Hns : γn.raft.reNoXfer = false) (Hsn : γn.snapIn = true)
+    (Hsok : γn.raft.reSnapOkRaw = kvSnapOk) (Hdyn : γn.raft.reDyn = none)
+    (Htrk : γn.raft.reTracked = none) : KVStat γn :=
+  ⟨Hmd, fun ty bs h => by rw [Hok] at h; exact h, Hns, Hsn, Hsok, Hdyn, Htrk⟩
 
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
@@ -211,6 +214,8 @@ def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (s
       nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
     nodeDriver γn id n [] hsZero ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
     id ↪[γr.seq] W64 0 ∗
+    -- (D22 S-r) the storage's snapshot token, for `run`
+    runStor γr st memStorEmpty ∗
     -- (2026-10-15, stage N; static since D22 S-r) the node's mode and the driver's view of its
     -- configuration
     ⌜KVStat γn⌝ ∗ nodeCfg γn 0 (cfgState (GMap.listToSet clusterIds) ∅))
@@ -246,7 +251,7 @@ theorem StartCluster.wp_proof
   -- (2026-10-21, D22 S-r) in the static mode, admitting no conf change (until then
   -- `raft_dyn_alloc`, the dynamic mode of `RemoveMember(3)`)
   imod ownRaftGhost_alloc_snap (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
-    ccOkS (fun _ _ => True)
+    ccOkS kvSnapOk
     (fun γ => iprop(∃ γr : RKVNames, ⌜γr.raft = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
       ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s)))
     clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide) $$ []
@@ -267,6 +272,11 @@ theorem StartCluster.wp_proof
   -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
   have Hnx := Hcfg'.2.2.2.1
   have HccOk := Hcfg'.2.2.1
+  -- (D22 S-r) snapshots on, of the cluster's data (`kvSnapOk`)
+  have HnoSnap := Hcfg'.2.2.2.2.1
+  have Hsok := Hcfg'.2.2.2.2.2.2
+  have Hdyn := Hcfg'.2.1
+  have Htrk := Hcfg'.2.2.2.2.2.1
   -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
   -- own receipts)
   imod budget_alloc (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb0⟩
@@ -312,7 +322,8 @@ theorem StartCluster.wp_proof
     simp only [Hbnd, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z k) _ DFrac.discard id0 Hk.1 $$ [Hvsl] as -
     · iframe Hvsl; ipureintro; exact Hid0
-    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl] as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca⟩
+    wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
+      as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca, Hstok, %Hcap⟩
     -- (D22 S-b′3) the storage's certificate registry tied to raft's names
     imod memCertInv_alloc γr.raft γs ⊤ $$ Hca with #Hci
     ihave #Hcl : certLink (GF := GF) γr.raft (kvStorIface st) $$ []
@@ -345,13 +356,13 @@ theorem StartCluster.wp_proof
     wp_apply (wp_RestartNode γr.raft .static
       bud _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
-      (kv.kvConfState clusterIds) false
+      (kv.kvConfState clusterIds) true
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl (fun _ => rfl) rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
-      (fun _ => rfl) rfl (fun h => by cases h))
+      (fun _ => rfl) rfl (fun _ => ⟨HnoSnap, rfl⟩))
       $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hcl]
       as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
     obtain ⟨Hr, Hb, Hs, Hmd, Hsn, rfl⟩ := Hnd
@@ -378,7 +389,7 @@ theorem StartCluster.wp_proof
       unfold peerOk
       iexists γn, n
       iframe HisNode
-      ipureintro; exact ⟨Hr, Hb, rfl⟩
+      ipureintro; exact ⟨Hr, Hb, rfl, Hsn⟩
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
           ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
@@ -411,7 +422,16 @@ theorem StartCluster.wp_proof
         isplitr
         · iexists ms, γs
           iframe Hrec
-        ipureintro; exact kvStat_cluster γn (by rw [Hr]; exact HccOk) Hmd (by rw [Hr]; exact HnsR) Hsn
+        isplitl [Hstok]
+        · unfold runStor
+          iexists ms, γs, vsl, clusterIds
+          iframe Hrec Hstok Hci Hvoters Hvsl
+          ipureintro
+          exact ⟨Hcap, by rw [Hcfg], clusterIds_nodup, by decide, by decide, by decide,
+            Int.le_refl _⟩
+        ipureintro
+        exact kvStat_cluster γn (by rw [Hr]; exact HccOk) Hmd (by rw [Hr]; exact HnsR) Hsn
+          (by rw [Hr]; exact Hsok) (by rw [Hr]; exact Hdyn) (by rw [Hr]; exact Htrk)
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
@@ -475,14 +495,14 @@ theorem StartCluster.wp_proof
       icases Hdrv with ⟨⟨%nd, %st, %Hlk, Hres⟩, Hdrv⟩
       obtain ⟨HMl, HSl⟩ := Hlk
       unfold drvRes
-      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq, %Hmd, Hncfg⟩
+      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq, Hrs, %Hmd, Hncfg⟩
       obtain ⟨Hr, Hb, Hs, rfl⟩ := Hgn
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       wp_apply wp_map_lookup1 go.uint64 _ mS S id0 DFrac.discard $$ HmS as -
       simp only [HMl, HSl, Option.getD_some]
       wp_apply (wp_New γr γn id0 n st _ (cfgState (GMap.listToSet clusterIds) ∅))
-          $$ [Hnode Hseq Hncfg]
-      · iframe Hreg Hnode Hsrec Hc0 Hseq Hncfg
+          $$ [Hnode Hseq Hncfg Hrs]
+      · iframe Hreg Hnode Hsrec Hc0 Hseq Hncfg Hrs
         isplitr
         · ipureintro; exact Hr
         isplitr
@@ -514,7 +534,7 @@ theorem StartCluster.wp_proof
         HMl $$ Hpeers
       unfold peerOk
       icases Hpeer with ⟨%γn', %n', %Hgn', #HisNode'⟩
-      obtain ⟨-, Hb', Hn'⟩ := Hgn'
+      obtain ⟨-, Hb', Hn', -⟩ := Hgn'
       have Hnn : n' = n := by
         simp only [interface.mkOk, GoInterface.ok.injEq] at Hn'
         injection Hn' with _ h

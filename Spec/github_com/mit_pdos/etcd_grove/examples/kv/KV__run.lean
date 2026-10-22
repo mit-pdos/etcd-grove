@@ -1,10 +1,12 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*KV).run(send)` (kv.go:117): the replica's driver of its node: append each
+`(*KV).run(send)` (kv.go): the replica's driver of its node: (D22 S-r, 2026-10-21) install a
+`Ready`'s snapshot (its data, decoded, replaces the store's state; `ApplySnapshot`), append each
 `Ready`'s entries to the storage, send its messages (`send`, a callback, gets what a
 transport needs: each message legitimately sent, of a term within the budget, and its
 read credit), note its read states, apply its committed entries (counting them: the
-applied index), answer the reads whose index is applied (`answer`), `Advance`.
+applied index), answer the reads whose index is applied (`answer`), `Advance`; (D22 S-r) every `snapEvery`
+applied entries take a snapshot (`encodeState`, `CreateSnapshot`) and compact (`Compact`).
 -/
 module
 
@@ -37,6 +39,8 @@ abbrev KV.run.spec : Prop :=
       -- static mode (`KVStat`), and the driver's view of its configuration, the initial one
       ⌜KVStat γp.node⌝ ∗ nodeCfg γp.node 0 c0 ∗
       nodeDriver γp.node id n [] hsZero ∗ runOwn γr r [] ∗
+      -- (D22 S-r, 2026-10-21) the storage's snapshot token, at a fresh storage (`runStor`)
+      runStor γr st memStorEmpty ∗
       sendSpec send γp.node }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"run")) (Val #send))
   {{ RET #(); True }}

@@ -79,6 +79,7 @@ whose authority is in `kvStorInv`) so that a storage's tokens are of its own nam
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
+public import Proof.go_etcd_io.raft.v3.MemCertLink
 
 @[expose] public section
 
@@ -170,10 +171,11 @@ def kvStorCut (st : Storage) (n : Int) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
     memStorCut γs n)
 
-/-- (D19i part 1) The floor's witness: its `MemoryStorage`'s. -/
+/-- (D19i part 1) The floor's witness: its `MemoryStorage`'s; (D22 S-r) below `2^61`, as the
+storage's extent is (what a snapshot taken at the floor needs, `SnapListsOk`). -/
 def kvStorFloor (st : Storage) (x : w64) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memFloorTok ms γs x)
+    memFloorTok ms γs x ∗ ⌜uint.Z x < 2 ^ 61⌝)
 
 /-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: its `MemoryStorage`'s. -/
 def kvStorCert (st : Storage) (k : SnapTrip) : IProp GF :=
@@ -472,12 +474,25 @@ def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (firstOcc ods) k⌝ ∗
     "%HA" ∷ ⌜AppliedOk A (firstOcc ods)⌝)
 
+/-- (D22 S-r, 2026-10-21) **What the applier holds of its storage `st`**, at the application's
+view `σt` of the `MemoryStorage`'s snapshot and boundary: the storage's snapshot token
+(`memSnapTok`: the right to install a snapshot, take one and compact), the certificate
+registry's invariant at raft's names (to register the snapshots it takes), the storage's cap
+(`NewStorage`'s, `2^64`), and the cluster's voters (`Storage.voters`), the configuration of every
+snapshot it takes. The application's snapshot is at its boundary or past it. -/
+def runStor (γr : RKVNames) (st : Loc) (σt : StorState) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (vs : List w64),
+    kvStorRec st ms γs ∗ memSnapTok ms γs σt ∗ memCertInv γr.raft γs ∗
+    st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ vs ∗
+    ⌜γs.cap = 2 ^ 64 ∧ GMap.listToSet vs = γr.raft.reCfg ∧ vs.Nodup ∧ vs ≠ [] ∧ W64 0 ∉ vs ∧
+      (vs.length : Int) ≤ 2 ^ 62 ∧ uint.Z σt.prev.index' ≤ uint.Z σt.ss.index'⌝)
+
 end ghost
 
 /-! ## The cluster's mode (2026-10-21, D22 S-r; from 2026-10-15, stage N, until then dynamic)
 
 The replicas' nodes are in raft's **static** mode, where a node takes snapshots (D22 S-d4:
-`NodeNames.snapIn` needs it): the voters are the cluster's for good, and the cluster admits no
+`NodeNames.snapIn` needs it; the cluster's data certificate `kvSnapOk`, `Base.lean`): the voters are the cluster's for good, and the cluster admits no
 configuration change (raft's `reCCOk` refuses every bytes, at allocation), so no committed entry
 is a conf change (`kvStat_type0`) and `run`'s `ApplyConfChange` branch is dead. From stage N to
 D22 S-r the cluster was in the dynamic mode of one change, `RemoveMember(3)`'s (`KVCC`, `RunCfg`,
@@ -491,8 +506,10 @@ variable [FfiSyntax]
 admitted, leader transfer on (`node.TransferLeadership`'s premise; D22 S-a: `RaftNames.reNoXfer`). -/
 def KVStat (γn : NodeNames) : Prop :=
   γn.mode = .static ∧ (∀ ty bs, ¬ γn.raft.reCCOk ty bs) ∧ γn.raft.reNoXfer = false ∧
-  -- the node takes no `MsgSnap` yet (`NodeNames.snapIn`; S-r's item 5 turns it on)
-  γn.snapIn = false
+  -- (D22 S-r) the node takes snapshots (`NodeNames.snapIn`), of the cluster's data (`kvSnapOk`,
+  -- `RaftNames.reSnapOkRaw`), in the static mode with no tracked bound
+  γn.snapIn = true ∧ γn.raft.reSnapOkRaw = kvSnapOk ∧ γn.raft.reDyn = none ∧
+  γn.raft.reTracked = none
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/

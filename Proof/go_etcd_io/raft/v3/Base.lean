@@ -231,7 +231,11 @@ def isInitialized : IProp GF :=
     -- (item 8, 2026-10-17) `ErrStopped` and `ErrProposalDropped` as the `errors.New` errors they
     -- are (`node.go`, `raft.go`), which the server's and the read loop's facts take from here
     "#ErrStoppedNew" ∷ EtcdGrove.errorsNewVar ErrStopped go!"raft: stopped" ∗
-    "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped")
+    "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped" ∗
+    -- (D22 S-r, 2026-10-21) `ErrSnapOutOfDate`, the error `MemoryStorage.ApplySnapshot` and
+    -- `CreateSnapshot` return for a snapshot not newer than the storage's (their specs take its
+    -- value), which an application that takes snapshots reads from here
+    "#ErrSnapOOD" ∷ (∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

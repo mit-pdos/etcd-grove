@@ -5,7 +5,9 @@ driver's token at the empty committed log) and its storage; it starts `run`. Sin
 2026-10-21 (D22 S-r; from stage N, 2026-10-15, in raft's dynamic mode of the cluster's conf changes,
 `KVCC`) the node is in raft's static mode (`KVStat`: no conf change admitted), with the driver's
 view of its configuration (`nodeCfg`), which `run` keeps. The replica's
-seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) starts its sequence numbers.
+seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) starts its sequence numbers. (D22
+S-r, 2026-10-21) And what `run` holds of the storage to install and take snapshots (`runStor`: its
+snapshot token at the fresh storage, its certificate registry, its voters).
 -/
 module
 
@@ -37,6 +39,8 @@ abbrev New.spec : Prop :=
       -- static mode (`KVStat`), and the driver's view of its configuration, the initial one
       ⌜KVStat γn⌝ ∗ nodeCfg γn 0 c0 ∗
       ⌜γn.stor = kvStorIface st⌝ ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗ isCommitted γr.raft [] ∗ id ↪[γr.seq] (W64 0) ∗
+      -- (D22 S-r, 2026-10-21) the storage's snapshot token, for `run` (`runStor`)
+      runStor γr st memStorEmpty ∗
       sendSpec send γn }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.New))
       (Val #id)) (Val #(interface.mkOk (go.GoType.PointerType node.ty) #n))) (Val #st))
