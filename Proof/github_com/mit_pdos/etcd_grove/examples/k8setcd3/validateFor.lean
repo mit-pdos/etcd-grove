@@ -33,60 +33,46 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iunfold validateD
   imodintro
-  iintro %ctx %x %o %r %Ψ Ho HΨ
-  iunfold objAtD at Ho
-  icases Ho with ⟨%p, %n, %Hx, Hp⟩
-  obtain ⟨rfl, Hpn, Hrv⟩ := Hx
+  iintro %ctx %p %name %vl %n %Ψ Hp HΨ
+  icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   wp_pure
   wp_pure
   iStructNamed Hp
   (try wp_auto)
   wp_if_destruct
-  · have hr : rejects [] o.1.2 = false := rfl
-    ihave Ho : objAtD (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr r) $$ [Name Value ResourceVersion]
-    · iunfold objAtD
-      iexists p, n
-      isplitr
-      · ipureintro; exact ⟨rfl, Hpn, Hrv⟩
-      iapply typedPointsto_combine p _ _ Hpn
+  · have hr : rejects [] vl = false := rfl
+    ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+    · iapply typedPointsto_combine p _ _ Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
     (try wp_auto)
-    iapply HΨ $$ Ho
+    iapply HΨ $$ Hp
     rw [hr]
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro; trivial
   · have hne := Hif
     (try wp_auto)
     wp_if_destruct
-    · have hr : rejects o.1.2 o.1.2 = true := by simp [rejects, hne]
+    · have hr : rejects reject vl = true := by simp [rejects, hne, Hif]
       ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8setcd3.drvInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
       icases Hi with ⟨-, -, -, -, ⟨%eD, #HeD, -⟩, -⟩
-      ihave Ho : objAtD (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr r) $$ [Name Value ResourceVersion]
-      · iunfold objAtD
-        iexists p, n
-        isplitr
-        · ipureintro; exact ⟨rfl, Hpn, Hrv⟩
-        iapply typedPointsto_combine p _ _ Hpn
+      ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+      · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
       (try wp_auto)
-      iapply HΨ $$ Ho
+      iapply HΨ $$ Hp
       rw [hr]
       simp only [↓reduceIte]
       iexact HeD
-    · have hr : rejects reject o.1.2 = false := by simp [rejects, Hif]
-      ihave Ho : objAtD (interface.mkOk (go.GoType.PointerType objTyD) #p) o (rvStr r) $$ [Name Value ResourceVersion]
-      · iunfold objAtD
-        iexists p, n
-        isplitr
-        · ipureintro; exact ⟨rfl, Hpn, Hrv⟩
-        iapply typedPointsto_combine p _ _ Hpn
+    · have hr : rejects reject vl = false := by simp [rejects, Hif]
+      ihave Hp : p ↦ Obj.mk name vl n $$ [Name Value ResourceVersion]
+      · iapply typedPointsto_combine p _ _ Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
       (try wp_auto)
-      iapply HΨ $$ Ho
+      iapply HΨ $$ Hp
       rw [hr]
       simp only [Bool.false_eq_true, ↓reduceIte]
       ipureintro; trivial

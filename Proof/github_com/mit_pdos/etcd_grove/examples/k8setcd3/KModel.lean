@@ -98,8 +98,8 @@ structure GSt where
 instance GSt_decEq : DecidableEq GSt := fun a b =>
   decidable_of_iff (a.items = b.items ∧ a.rv = b.rv) (by cases a; cases b; simp)
 
-/-- `notFound(st, key)`. -/
-def notFoundL (st : GSt) (key : GoString) : Output := ⟨W64 1, mkeyL key, st.rv, [], [], W64 0⟩
+/-- `notFound(st, key)` of a store at the resource version `rv`. -/
+def notFoundL (rv : w64) (key : GoString) : Output := ⟨W64 1, mkeyL key, rv, [], [], W64 0⟩
 
 /-- `objOut(o)`. -/
 def objOutL (o : Obj) : Output := ⟨W64 0, [], W64 0, o.Name', o.Value', o.ResourceVersion'⟩
@@ -125,7 +125,7 @@ def mcreateL (x : Input) (st : GSt) : GSt × Output :=
 /-- `mdelete(in, st)`. -/
 def mdeleteL (x : Input) (st : GSt) : GSt × Output :=
   let it := (lookupL st.items x.Key').1
-  if !(lookupL st.items x.Key').2 then (st, notFoundL st x.Key')
+  if !(lookupL st.items x.Key').2 then (st, notFoundL st.rv x.Key')
   else if rejects x.Reject' it.obj'.Value' then (st, rejectedL)
   else
     (⟨delItemL st.items x.Key', st.rv + W64 1⟩,
@@ -137,7 +137,7 @@ def updatedL (x : Input) (o : Obj) : Obj := { o with Value' := if x.NoOp' then o
 /-- `mupdate(in, st)`. -/
 def mupdateL (x : Input) (st : GSt) : GSt × Output :=
   let it := (lookupL st.items x.Key').1
-  if !(lookupL st.items x.Key').2 then (st, notFoundL st x.Key')
+  if !(lookupL st.items x.Key').2 then (st, notFoundL st.rv x.Key')
   else if rejects x.Reject' it.obj'.Value' then (st, rejectedL)
   else
     let r := updatedL x it.obj'
@@ -150,7 +150,7 @@ def mupdateL (x : Input) (st : GSt) : GSt × Output :=
 /-- `mget(in, st)`. -/
 def mgetL (x : Input) (st : GSt) : Output :=
   if !(lookupL st.items x.Key').2 then
-    (if x.IgnoreNotFound' then zeroOutL else notFoundL st x.Key')
+    (if x.IgnoreNotFound' then zeroOutL else notFoundL st.rv x.Key')
   else objOutL (lookupL st.items x.Key').1.obj'
 
 /-- `mstep(in, st)`. -/

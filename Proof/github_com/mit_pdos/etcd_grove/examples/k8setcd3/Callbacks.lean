@@ -59,16 +59,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumptions]
 
-/-- **`validateFor(reject)`'s closure** (persistent): on an object, `nil` or the value of
-`errDeleteRejected`, as `rejD`. -/
+/-- **`validateFor(reject)`'s closure** (persistent): on a `*Obj` (the store's objects, the
+model's copies), `nil` or the value of `errDeleteRejected`, as `rejects`. -/
 def validateD (reject : GoString) (vf : GoFunc) : IProp GF :=
-  iprop(□ ∀ (ctx x : GoInterface) (o : DObj) (r : w64) (Ψ : val → IProp GF),
-    objAtD x o (rvStr r) -∗
-    ▷ (∀ err : GoInterface, objAtD x o (rvStr r) -∗
-        (if rejects reject o.1.2 then
+  iprop(□ ∀ (ctx : GoInterface) (p : Loc) (name vl : GoString) (n : w64) (Ψ : val → IProp GF),
+    p ↦ github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.mk name vl n -∗
+    ▷ (∀ err : GoInterface, p ↦ github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.mk name vl n -∗
+        (if rejects reject vl then
           globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errDeleteRejected ↦□ err
         else ⌜err = GoInterface.nil⌝) -∗ Ψ #err) -∗
-    WP (App (App (Val #vf) (Val #ctx)) (Val #x)) {{ Ψ }})
+    WP (App (App (Val #vf) (Val #ctx))
+      (Val #(interface.mkOk (go.GoType.PointerType objTyD) #p))) {{ Ψ }})
 
 instance validateD_persistent (reject : GoString) (vf : GoFunc) :
     Persistent (validateD (GF := GF) reject vf) := by
@@ -113,10 +114,17 @@ theorem validateD_ok (c : StoreCfg GF DObj) (hc : c.S = driverSpec) (eD : GoInte
   simp only [driverSpec, driverCodec]
   imodintro
   iintro %ctx %x %o %r %Ψ Ho HΨ
-  iapply Hv $$ Ho
+  iunfold objAtD at Ho
+  icases Ho with ⟨%p, %n, %Hx, Hp⟩
+  obtain ⟨rfl, Hpn, Hrv⟩ := Hx
+  iapply Hv $$ Hp
   inext
-  iintro %err Ho Herr
-  iapply HΨ $$ Ho
+  iintro %err Hp Herr
+  iapply HΨ $$ [Hp]
+  · iunfold objAtD
+    iexists p, n
+    iframe Hp
+    ipureintro; exact ⟨rfl, Hpn, Hrv⟩
   unfold rejD
   cases hr : rejects reject o.1.2
   · isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Herr
