@@ -114,6 +114,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
   the specs above, each with the subset proofs use.
 - **Status.** Not started.
+- **Also `hash` (2026-10-22, branch `kvhasher`).** Perennial does not translate `hash`, so mvcc's
+  `kvHasher` (a `hash.Hash32` field) was an axiomatized type with `sorry` instances, the
+  repository's last two `sorry`s. Workaround here: `hash` types-only in this repository
+  (`Code/hash.toml`, `-lean-root hash=`, as `encoding/hex`), which makes Goose translate
+  `kvHasher` as a struct. Proposed: `hash`'s interfaces in Perennial's standard library (and
+  `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
+  provable); then this repository's `hash` translation goes.
 
 ## Landed
 
