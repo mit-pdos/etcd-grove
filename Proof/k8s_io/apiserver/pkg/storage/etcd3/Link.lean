@@ -10,18 +10,25 @@ module
 
 public import Proof.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Proof.strings.HasSuffix
+public import Proof.k8s_io.apiserver.pkg.storage.NewInternalError
+public import Proof.k8s_io.apiserver.pkg.storage.NewKeyExistsError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyNotFoundError
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareKey
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.component_base.tracing.Span__End
+public import Proof.reflect.TypeOf
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Create
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Get
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__validateMinimumResourceVersion
 public import Proof.strings.Contains
 public import Proof.k8s_io.component_base.tracing.Start
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.txnError
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
 
@@ -41,6 +48,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+
+theorem reflect.wp_TypeOf :
+    EtcdGrove.reflect.TypeOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.TypeOf.wp_proof
 
 theorem «attribute».wp_Int :
     EtcdGrove.«attribute».Int.spec (GF := GF) (hG := hG) :=
@@ -69,6 +80,14 @@ theorem strings.wp_HasSuffix :
     EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.HasSuffix.wp_proof
 
+theorem storage.wp_NewInternalError :
+    EtcdGrove.storage.NewInternalError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewInternalError.wp_proof
+
+theorem storage.wp_NewKeyExistsError :
+    EtcdGrove.storage.NewKeyExistsError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewKeyExistsError.wp_proof
+
 theorem storage.wp_NewKeyNotFoundError :
     EtcdGrove.storage.NewKeyNotFoundError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.NewKeyNotFoundError.wp_proof
@@ -85,6 +104,10 @@ theorem storage.wp_PrepareKey :
     EtcdGrove.storage.PrepareKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.PrepareKey.wp_proof strings.wp_HasSuffix strings.wp_Contains fmt.wp_Errorf
 
+theorem metrics.wp_RecordEtcdRequest :
+    EtcdGrove.metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metrics.RecordEtcdRequest.wp_proof
+
 theorem tracing.Span.wp_AddEvent :
     EtcdGrove.tracing.Span.AddEvent.spec (GF := GF) (hG := hG) :=
   EtcdGrove.tracing.Span.AddEvent.wp_proof
@@ -93,17 +116,29 @@ theorem tracing.Span.wp_End :
     EtcdGrove.tracing.Span.End.spec (GF := GF) (hG := hG) :=
   EtcdGrove.tracing.Span.End.wp_proof
 
+theorem wp_getTypeName :
+    EtcdGrove.k8s.getTypeName.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.getTypeName.wp_proof reflect.wp_TypeOf
+
 theorem store.wp_prepareKey :
     EtcdGrove.k8s.store.prepareKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.prepareKey.wp_proof storage.wp_PrepareKey
 
-theorem store.wp_validateMinimumResourceVersion :
-    EtcdGrove.k8s.store.validateMinimumResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.validateMinimumResourceVersion.wp_proof
+theorem wp_txnError :
+    EtcdGrove.k8s.txnError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.txnError.wp_proof
 
 theorem tracing.wp_Start :
     EtcdGrove.tracing.Start.spec (GF := GF) (hG := hG) :=
   EtcdGrove.tracing.Start.wp_proof
+
+theorem store.wp_Create :
+    EtcdGrove.k8s.store.Create.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.Create.wp_proof store.wp_prepareKey wp_getTypeName wp_txnError storage.wp_NewKeyExistsError storage.wp_NewInternalError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.wp_RecordEtcdRequest kubernetes.Client.wp_OptimisticPut
+
+theorem store.wp_validateMinimumResourceVersion :
+    EtcdGrove.k8s.store.validateMinimumResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.validateMinimumResourceVersion.wp_proof
 
 theorem store.wp_Get :
     EtcdGrove.k8s.store.Get.spec (GF := GF) (hG := hG) :=

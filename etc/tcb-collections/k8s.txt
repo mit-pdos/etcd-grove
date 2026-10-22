@@ -22,7 +22,9 @@ axiom grpcServesStream
 axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom metrics.OperationLatencyTracker.Record.wp_proof
+axiom metrics.RecordEtcdRequest.wp_proof
 axiom proto.Clone.wp_proof
+axiom reflect.TypeOf.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom status.FromError.wp_proof
 axiom strings.Contains.wp_proof

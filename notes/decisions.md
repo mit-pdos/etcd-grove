@@ -15128,3 +15128,14 @@ from the plan.
   `absK_update`) state the matching item as a premise. The general fix, for the etcd client
   proof's owner: the server's specs could give that persistent fact themselves (the mvcc log is
   known there), and every caller would then get it for free.
+- **D30k: the object contract and the store's write updates, as carried out** (2026-10-22).
+  The contract (`Contract.lean`) is a premise of WPs of the exact calls the store makes on its
+  codec, versioner, transformer and decoder (and `runtime.Encode`, `runtime.SetZeroValue`), so a
+  names-only function among them needs no axiom here. The transformer's reading is a function of
+  the stored value (`fromS`, with staleness), its writing a relation (`toS`: encryption may be
+  randomized). For that reason the store's one-shot update (D30h) is relational: `k8sAu1` asks
+  for any next state of the store whose model is the operation's, which the store chooses (the
+  transaction it sends) in `k8sAu1_kvAu1`. Its precondition gives the state as the store's (`kvWf`)
+  with room for one revision (`σ.rev + 2 < 2 ^ 63`: the abstraction reads mod revisions as
+  numbers below `2 ^ 63`), so the caller (the driver) must bound its traffic's revisions.
+  Rejected: a fixed transaction in the caller's update (the caller cannot know the stored bytes).

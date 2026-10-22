@@ -12,15 +12,23 @@ GetAuditIDTruncated:
 OperationLatencyTracker__Record:
 HasSuffix:
 strings_Contains:
+RecordEtcdRequest:
+TypeOf:
 # linked in their own packages' Link.lean
 fmt_Errorf: @
 Client__Get: @
+Client__OptimisticPut: @
 #
 # k8s.io/apiserver/pkg/storage
 PrepareKey: HasSuffix strings_Contains fmt_Errorf
 NewKeyNotFoundError:
+NewKeyExistsError:
+NewInternalError:
 #
 # k8s.io/apiserver/pkg/storage/etcd3 (`store.go`)
 store__prepareKey: PrepareKey
 store__validateMinimumResourceVersion:
+getTypeName: TypeOf
+txnError:
 store__Get: store__prepareKey store__validateMinimumResourceVersion NewKeyNotFoundError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated OperationLatencyTracker__Record Client__Get
+store__Create: store__prepareKey getTypeName txnError NewKeyExistsError NewInternalError tracing_Start Span__AddEvent Span__End attribute_String attribute_Int GetAuditIDTruncated RecordEtcdRequest Client__OptimisticPut

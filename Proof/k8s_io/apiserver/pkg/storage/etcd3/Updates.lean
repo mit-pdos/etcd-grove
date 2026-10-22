@@ -9,7 +9,8 @@ Lean-first (no Rocq counterpart).
   sends), and the caller learns `Φ σ`. Relational, since the caller cannot name the transaction:
   its value is the transformer's (encryption may be randomized).
 - `k8sAu1_kvAu1`: such an update gives the client's update (`kvAu1`) for a transaction whose step
-  keeps the store's states and moves the model as `step` (`StepOk`).
+  keeps the store's states and moves the model as `step` (`StepOk`), whose result also says the
+  state it fired at was the store's.
 -/
 module
 
@@ -49,7 +50,8 @@ def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop
 /-- **The caller's update gives the client's** for a transaction whose step is the model's. -/
 theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) :
-    k8sAu1 γk c step Φ ⊢ kvAu1 γk (kvOpStep op) Φ := by
+    k8sAu1 γk c step Φ ⊢
+      kvAu1 γk (kvOpStep op) (fun σ => iprop(Φ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝)) := by
   unfold kvAu1
   refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
   iintro ⟨-, HAU⟩
@@ -74,9 +76,12 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     icases Hcl with ⟨-, Hcommit⟩
     obtain ⟨hwf', habs⟩ := h σ Hwf.1 Hwf.2
     ispecialize Hcommit $$ %(kvOpStep op σ)
-    iapply Hcommit
-    iframe Hkv
-    ipureintro; exact ⟨hwf', habs⟩
+    imod Hcommit $$ [Hkv] with HΦ
+    · iframe Hkv
+      ipureintro; exact ⟨hwf', habs⟩
+    imodintro
+    iframe HΦ
+    ipureintro; exact Hwf
 
 end defs
 
