@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/bbolt#939 issue open: proposes removing the MADV_RANDOM hint (page faults on Linux 6.4+), which would remove this path
 ---

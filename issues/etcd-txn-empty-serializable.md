@@ -1,13 +1,17 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-10-21
+links:
+  - etcd-io/etcd#20418 issue closed: stale reads from a paused process (robustness); different cause
+candidate: issues/upstream/etcd-txn-empty-serializable/
 ---
 
 # server/etcdserver: a transaction with comparisons and no operations is served without a linearizable read
 
 ## Status
 
-A bug in the read path (a linearizability violation of a public request), by code inspection; no
-reproduction yet. A `Txn` whose `Success` and `Failure` lists are both empty (`Txn(ctx).If(cmps...)
+A bug in the read path (a linearizability violation of a public request), found by code inspection,
+reproduced on 2026-10-21 at upstream `main` 7ff040cb8 by an integration test. A `Txn` whose `Success` and `Failure` lists are both empty (`Txn(ctx).If(cmps...)
 .Commit()`, or `.Then()`/`.Else()` with no operations) is read-only and, vacuously, "serializable":
 the server answers it from the member's local state without the read index, so its verdict
 (`Succeeded`) and header revision can be stale, although the request asked for no serializable
@@ -36,6 +40,14 @@ the reply's revision is older than the put's. A transaction with at least one no
 range in either branch (or any write) is not affected: it takes the read index (or goes through
 raft).
 
+Reproduced (2026-10-21, upstream `main` 7ff040cb8, go1.27.1): `TestTxnCompareOnlyLinearizable` in
+`tests/integration/clientv3/txn_test.go` on the fix branch `fix/etcd-txn-empty-serializable`
+(`~/etcd-fixes/etcd-txn-empty-serializable`, test commit bf3c1135b). A 3-member integration cluster; a
+follower partitioned from the others (`InjectPartition`); `Put(foo, bar)` through the leader returns at
+revision 2; then `Txn(ctx).If(Compare(Version("foo"), "=", 0)).Commit()` at the follower returns
+`Succeeded: true` at revision 1. The same txn with `Then(OpGet("foo"))` fails with `context deadline
+exceeded` (1s): it waits for the read index instead of answering stale.
+
 ## Expected
 
 A transaction is linearizable unless every one of its ranges asks to be serializable; one with
@@ -54,9 +66,10 @@ get), and `linkvtxn.Apply`'s input premise says so (`GenIn`,
 ## Possible fixes
 
 `IsTxnSerializable` returns `false` when both lists are empty (a one-line guard), or `Txn` calls
-`LinearizableReadNotify` for a read-only transaction with no operations. The first also changes
-`IsTxnSerializable`'s other callers (the apply path's read-only fast path and its warnings), which
-look unaffected.
+`LinearizableReadNotify` for a read-only transaction with no operations. `IsTxnSerializable` has one
+caller (`(*EtcdServer).Txn`), which wants the corrected answer, so the candidate fixes the helper
+(fix commit e3010762c; alternatives in the candidate's `meta.md`). `IsTxnReadonly`, also vacuously true,
+is right (no writes) for both its callers.
 
 ## Found
 

@@ -7,6 +7,7 @@ import (
 
 	"go.etcd.io/raft/v3"
 	pb "go.etcd.io/raft/v3/raftpb"
+	"google.golang.org/protobuf/proto"
 )
 
 // quietLogger is a raft.Logger that discards what raft logs; Fatal and Panic panic, as raft
@@ -29,10 +30,10 @@ func (quietLogger) Panicf(format string, v ...interface{})   { panic(format) }
 // deliverable says whether the transport passes m on: a message of a type a node of the
 // cluster sends its peers (a proposal or a read-index request forwarded to the leader,
 // unstamped; a replication, election or read-index message, or a leader's MsgTimeoutNow to
-// the target of a leadership transfer, which carries nothing: pre-vote and snapshots are
-// off), from a node to another, of a term (but the forwarded ones, which carry none), and
+// the target of a leadership transfer, which carries nothing: pre-vote is off), from a node to another, of a term (but the forwarded ones, which carry none), and
 // with no context but on a heartbeat or its response, where it is the leader's read-index
-// position, or on a vote request, where it marks a transfer's campaign. raft sends nothing
+// position, or on a vote request, where it marks a transfer's campaign; and a leader's snapshot
+// (MsgSnap: of a term, carrying a snapshot, of an index below maxIndex, no context). raft sends nothing
 // else but a transfer request a follower forwards to its leader (MsgTransferLeader, stamped
 // with the follower's term), which the transport drops: a transfer is asked of the leader
 // itself (Register.TransferLeadership). What raft promises of a Ready's messages does not
@@ -50,6 +51,10 @@ func deliverable(m *pb.Message) bool {
 		}
 	case pb.MsgTimeoutNow:
 		if m.GetTerm() == 0 || m.Entries != nil {
+			return false
+		}
+	case pb.MsgSnap:
+		if m.GetTerm() == 0 || m.Snapshot == nil || m.Snapshot.GetMetadata().GetIndex() >= maxIndex {
 			return false
 		}
 	case pb.MsgVote, pb.MsgHeartbeat, pb.MsgHeartbeatResp:
@@ -101,13 +106,19 @@ func deliver(peers map[uint64]raft.Node, tr *transfers, ms []*pb.Message) {
 			continue
 		}
 		// the wire's copy: a fresh message, its scalar cells shared (raft never writes them),
-		// its entries slice its own (the receiver may adopt it), no snapshot or responses (a
+		// its entries slice its own (the receiver may adopt it), its snapshot a clone (the
+		// receiver writes a snapshot's unset fields, pb.EnsureSnapshot), no responses (a
 		// deliverable message carries none); stepped instead of raft's own object, which raft
 		// still reads after handing it out (issues/raft-ready-messages-read-after-handout.md)
+		var sn *pb.Snapshot
+		if m.Snapshot != nil {
+			sn = proto.Clone(m.Snapshot).(*pb.Snapshot)
+		}
 		c := &pb.Message{
 			Type: m.Type, To: m.To, From: m.From, Term: m.Term, LogTerm: m.LogTerm,
 			Index: m.Index, Entries: append([]*pb.Entry(nil), m.Entries...), Commit: m.Commit,
 			Vote: m.Vote, Reject: m.Reject, RejectHint: m.RejectHint, Context: m.Context,
+			Snapshot: sn,
 		}
 		nd.Step(context.Background(), c)
 	}

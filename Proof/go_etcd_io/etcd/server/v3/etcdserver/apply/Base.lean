@@ -369,7 +369,76 @@ end go_etcd_io.etcd.server.v3.etcdserver.api
 -- of the raft v3.7 retarget (2026-10-16; until then etcd's own raft dependency, types only,
 -- stated here).
 
--- `server/v3/storage` (names only: `Quota`, `BackendQuota`)
+-- (D22 S-f, 2026-10-19: moved here from the server's `BaseApply.lean`, unchanged) `config` and
+-- `snap`, which `storage` imports since `OpenSnapshotBackend` is translated, and the packages
+-- `config` imports (`otelgrpc`, `transport` and its `crypto/tls`, `featuregate`, `v3discovery`)
+
+namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc :=
+  build_get_is_pkg_init_wf
+
+end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
+
+-- `crypto/tls` (names only: the types `transport.TLSInfo`'s fields name; unit N4, 2026-10-17)
+namespace crypto.tls
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.crypto.tls :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
+  build_get_is_pkg_init_wf
+
+end crypto.tls
+
+namespace go_etcd_io.etcd.client.pkg.v3.transport
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.transport :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.client.pkg.v3.transport
+
+namespace go_etcd_io.etcd.pkg.v3.featuregate
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.featuregate
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
+
+namespace go_etcd_io.etcd.server.v3.config
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.config
+
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.snap
+
+-- `server/v3/storage` (names only: `Quota`, `BackendQuota`; with bodies: the hooks and, D22 S-f,
+-- `OpenSnapshotBackend`)
 namespace go_etcd_io.etcd.server.v3.storage
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=

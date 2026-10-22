@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `callPut(cli, key, val)` (linkvtxn.go): a put of `key ↦ val` through `New`'s client `cli`
-configured for one attempt, with an update fired at most once: the failed call's output
+that sends a write at most once, with an update fired at most once: the failed call's output
 (`errOut`), or the reply's at the state `σ` the update fired at (`Q σ`): `σ`'s next revision.
 -/
 module

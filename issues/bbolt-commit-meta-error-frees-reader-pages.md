@@ -1,9 +1,11 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/bbolt#262 issue closed: a fault in rollback's db.meta (a concurrent remap), a different cause
   - etcd-io/bbolt#152 issue closed: a rollback panic with NoFreelistSync, a different path
+  - etcd-io/bbolt#331 issue closed: a crash between the data pages' sync and the meta's, a different path
+candidate: issues/upstream/bbolt-commit-meta-error-frees-reader-pages/
 ---
 
 # A `Commit` whose meta write fails after reaching the file frees pages open readers still use
@@ -15,7 +17,7 @@ links:
   `batchTx.commit`: `lg.Fatal("failed to commit tx")`); any bbolt user that keeps the `DB` open
   after a failed `Commit` meets it.
 - **Where**: bbolt v1.5.0 (the version the bbolt proof pins, branch `bbolt`); upstream `main`
-  unchanged as of 2026-10-19.
+  unchanged as of 2026-10-21 (a4ef197).
   - `tx.go:267-271`, `Tx.Commit`: on a `writeMeta` error it calls `tx.rollback()`.
   - `tx.go:595-625`, `Tx.writeMeta`: writes the meta page through `db.ops.writeAt`, then
     `fdatasync`; either can fail after the meta's bytes are in the file.
@@ -64,9 +66,13 @@ links:
   requires the current meta to be the old one; `Commit`'s spec (not written yet) must give back
   nothing when `writeMeta` fails with a reader open. Design note: `notes/bbolt-proof-plan.md`,
   "The spill and `Commit`".
-- **Possible fixes**: after a `writeMeta` error, do not reload from `db.meta()`: reload from the
-  freelist page of the meta the transaction started from (`tx.db.meta()` read before
-  `writeMeta`), or keep the writer's pending entry (`Rollback` only the allocations) when the new
-  meta may have reached the file; or, simplest, treat a `writeMeta` failure as fatal for the `DB`
-  (the outcome is unknown: refuse further transactions until reopened).
+- **Possible fixes**: in `Tx.rollback`, when `db.meta()` is the transaction's own meta (its write
+  reached the file), leave the freelist as a successful `Commit` does (keep `pending[txid]` and the
+  allocations) and only close the transaction; this also covers `Update`'s rollback after a panic in
+  the same window. The candidate (`issues/upstream/bbolt-commit-meta-error-frees-reader-pages/`) does
+  this; its `meta.md` explains why the others are worse: reloading from the freelist of the meta the
+  transaction started from is wrong (the new meta stays current, and the old freelist lists the new
+  tree's pages as free); a fix in `Commit` misses the panic path; undoing the meta write is not
+  reliable; treating the error as fatal for the `DB` is a new API decision that still needs this fix
+  for open readers.
 - **Found**: 2026-10-12, the bbolt proof (`Commit`'s error paths); reproduced 2026-10-19.

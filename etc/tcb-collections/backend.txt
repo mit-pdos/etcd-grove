@@ -10,6 +10,7 @@ roots ^Proof/go_etcd_io/etcd/server/v3/storage/backend/Link\.lean$
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledInsideUnittest.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
+axiom backend.backend.Snapshot.wp_proof
 axiom backend.boltLogger
 axiom backend.boltLogger_persistent
 axiom backend.fileHolds
@@ -37,6 +38,9 @@ axiom backend.rtxSnap_persistent
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
+axiom backend.snapshot.Close.wp_proof
+axiom backend.snapshot.Size.wp_proof
+axiom backend.snapshot.WriteTo.wp_proof
 axiom backend.txBytes
 axiom backend.txBytes_acc
 axiom backend.txBytes_persistent

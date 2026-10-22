@@ -313,9 +313,34 @@ structure RaftNames where
   /-- The no-snapshot mode (2026-10-19, D21 stage M3): every node's raft struct is in it
   (`NGhost.ns`, `NsLink`), so that no node sends a `MsgSnap` (`isRaftMsg`): its leaders' progress
   stays at `Next ≥ 2` and its storage's first index at most `2`. Only for a cluster started from
-  a bootstrap log (`ownRaftGhost_alloc_boot`), whose log past it is the leaders'. -/
+  a bootstrap log (`ownRaftGhost_alloc_boot`), whose log past it is the leaders'. (2026-10-19,
+  D22 S-a) No longer also the no-transfer mode (`reNoXfer`). -/
   reNoSnap : Bool
+  /-- What the no-snapshot mode needs of the boot (D22 S-a): a leader's last index past the
+  bootstrap log (`ownRaftGhost_ns_last`, the rejection handling's `Hnsb`), and a node's term past
+  `0` (`ownStepGhost_boot_term`), which `SentMsgOk`'s stamped terms need (`XfOk`). -/
   reNoSnap_ok : reNoSnap = true → reBootRaw ≠ []
+  /-- The no-transfer mode (2026-10-19, D22 S-a, split from `reNoSnap`): every node's raft
+  struct has leader transfer off (`NGhost.xf`, `NsLink`), so that no node records a transferee or
+  queues a `MsgTimeoutNow` or a forwarded `MsgTransferLeader` (`XfOk`), and `RawNode.Step` takes
+  no `MsgTransferLeader`. It needs nothing of the boot; with the no-snapshot mode it gives what
+  the receiver's `NetMsgOk` comes from (`SentMsgOk`, `isRaftMsg`). (2026-10-20, D22 S-c) Alone: a
+  node in it is past term `0` (`NGhost.bt`, its bootstrap log's), so that `SentMsgOk` is of this
+  mode only, and the no-snapshot mode can be left (S-l) without losing the receiver's facts. -/
+  reNoXfer : Bool
+  /-- What the no-transfer mode needs of the boot (2026-10-20, D22 S-c): a bootstrap log, so that a
+  node in the mode is past term `0` (`NGhost.bt`, set at `Bootstrap`), which `SentMsgOk`'s stamped
+  terms need; a cluster without one (`RestartNode`'s fresh nodes) is out of it
+  (`ownRaftGhost_noXfer_of_commit`). Every current no-transfer cluster (the server's, putget's,
+  putget3's) starts from a bootstrap log. -/
+  reNoXfer_ok : reNoXfer = true → reBootRaw ≠ []
+  /-- The snapshots' data the cluster admits (2026-10-21, D22 S-r): the application's relation
+  between a committed log prefix (instance-free, `BootEntry`, as `reBootRaw`) and the data of a
+  snapshot at its length (`snapDataOk`): fixed at allocation, as `reCCOk`, so that raft carries a
+  snapshot's data certificate from the storage that took it to the one that installs it without
+  knowing what it says. `fun _ _ => True` for an application that states nothing of its data. Read
+  it as `RaftNames.reSnapOk`. -/
+  reSnapOkRaw : List BootEntry → List w8 → Prop
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
@@ -419,12 +444,24 @@ theorem BootEntry.map_toEntry_ofEntry [FfiSyntax] (L : List EntryM) :
 def RaftNames.reBoot [FfiSyntax] (γ : RaftNames) : List EntryM :=
   γ.reBootRaw.map BootEntry.toEntry
 
+/-- The snapshots' data the cluster admits (2026-10-21, D22 S-r; `RaftNames.reSnapOkRaw`): of a
+committed log prefix and a snapshot's data. -/
+def RaftNames.reSnapOk [FfiSyntax] (γ : RaftNames) (L : List EntryM) (d : List w8) : Prop :=
+  γ.reSnapOkRaw (L.map BootEntry.ofEntry) d
+
 /-- The no-snapshot mode is of a cluster with a bootstrap log (2026-10-19, D21 M3). -/
 theorem RaftNames.noSnap_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoSnap = true) :
     γ.reBoot ≠ [] := by
   unfold RaftNames.reBoot
   intro he
   exact γ.reNoSnap_ok h (List.map_eq_nil_iff.1 he)
+
+/-- (2026-10-20, D22 S-c) The no-transfer mode is of a cluster with a bootstrap log. -/
+theorem RaftNames.noXfer_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoXfer = true) :
+    γ.reBoot ≠ [] := by
+  unfold RaftNames.reBoot
+  intro he
+  exact γ.reNoXfer_ok h (List.map_eq_nil_iff.1 he)
 
 def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
   γ.reDyn.map fun f => f ext
@@ -537,6 +574,31 @@ theorem EvSorted_snoc (L : List Aev) (e : Aev) :
     exact Hle e1 (List.mem_of_getElem? H1)
 
 end aev
+
+section snapcert_pure
+variable [FfiSyntax]
+
+/-- The configuration a `ConfState`'s lists denote; `AutoLeave` only when joint (what
+`Restore` keeps of it). -/
+def csCfgM (vo v l ln : List w64) (al : Bool) : CfgM :=
+  { incoming := GMap.listToSet v, outgoing := GMap.listToSet vo,
+    learners := GMap.listToSet l, learnersNext := GMap.listToSet ln,
+    autoLeave := if vo = [] then false else al }
+
+/-- `SnapScope`'s facts of a snapshot's lists and index. -/
+def SnapListsOk (k : SnapTrip) : Prop :=
+  CSWf k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext ∧
+  k.cl.voters.Nodup ∧ k.cl.learners.Nodup ∧ k.cl.outgoing.Nodup ∧ k.cl.learnersNext.Nodup ∧
+  (k.cl.voters.length + k.cl.learners.length + k.cl.outgoing.length +
+    k.cl.learnersNext.length : Int) ≤ 2 ^ 62 ∧
+  (k.cl.outgoing = [] → k.al = false) ∧
+  uint.Z k.sid.index' < 2 ^ 61
+
+/-- The configuration a snapshot's lists denote. -/
+def SnapTrip.cfgM (k : SnapTrip) : CfgM :=
+  csCfgM k.cl.outgoing k.cl.voters k.cl.learners k.cl.learnersNext k.al
+
+end snapcert_pure
 
 section ghost
 variable [FfiSyntax]
@@ -1392,6 +1454,100 @@ instance logRecs_persistent (γ : RaftNames) (b : entryID) (es : List EntryM) :
 instance logRecs_timeless (γ : RaftNames) (b : entryID) (es : List EntryM) :
     Timeless (logRecs (GF := GF) γ b es) := by
   unfold logRecs; infer_instance
+
+/-- The application's certificate of the snapshot `k` (2026-10-15, stage S; moved here from
+`SnapConf.lean` and restated, D22 S-b′3, 2026-10-20): what a receiver of a `MsgSnap` needs of the
+snapshot -- `SnapScope`'s facts (`SnapListsOk`), and what the mode asks (`GMode.SnapOk`):
+statically the ghost state's voters, not joint, (D19p) its ids within the tracked bound;
+dynamically A3 for any recorded full-log prefix ending at the snapshot's id. **Every part under
+`k.cl.Has x`**: a receiver reads the lists only once `restore` found itself in them (the
+`!found` exit comes first, D22j), and etcd's empty `ConfState` names no node, so the certificate
+holds of it in either mode (`raftSnapCert_empty`). Persistent; it names no node, so whoever holds
+it may hand it along; the `.snap` message carries it (`isMessage`). -/
+def raftSnapCert (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(⌜∀ x, k.cl.Has x → SnapListsOk k⌝ ∗
+    ⌜γ.reDyn = none → ∀ x, k.cl.Has x → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
+      ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T⌝ ∗
+    □ (∀ (x : w64), ⌜k.cl.Has x⌝ -∗ ∀ (D : DynCfg), ⌜γ.dyn = some D⌝ -∗ ∀ (fp : List EntryM),
+        logRecs γ base0 fp -∗ ⌜FullOk k.sid fp⌝ -∗ ⌜D.fold fp = some k.cfgM⌝))
+
+instance raftSnapCert_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
+
+instance raftSnapCert_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (raftSnapCert (GF := GF) γ k) := by
+  unfold raftSnapCert; infer_instance
+
+/-- (D22 S-b′3) A snapshot whose `ConfState` names no node (etcd's empty one) is certified, in
+either mode. -/
+theorem raftSnapCert_empty (γ : RaftNames) (k : SnapTrip) (h : ∀ x, ¬ k.cl.Has x) :
+    ⊢ raftSnapCert (GF := GF) γ k := by
+  unfold raftSnapCert
+  isplitr; · ipureintro; intro x hx; exact absurd hx (h x)
+  isplitr; · ipureintro; intro _ x hx; exact absurd hx (h x)
+  imodintro
+  iintro %x %hx
+  exact absurd hx (h x)
+
+/-- (D22 S-b′3) A static cluster's snapshot with the static configuration's lists. -/
+theorem raftSnapCert_static (γ : RaftNames) (k : SnapTrip) (hd : γ.dyn = none)
+    (hl : SnapListsOk k)
+    (hs : γ.reDyn = none → GMap.listToSet k.cl.voters = γ.reCfg ∧ k.cl.outgoing = [] ∧
+      ∀ T, γ.reTracked = some T → k.cfgM.voters ∪ k.cfgM.learners ⊆ T) :
+    ⊢ raftSnapCert (GF := GF) γ k := by
+  unfold raftSnapCert
+  isplitr; · ipureintro; intro _ _; exact hl
+  isplitr; · ipureintro; intro h _ _; exact hs h
+  imodintro
+  iintro %x %_ %D %hD
+  rw [hd] at hD; cases hD
+
+/-- (D22 S-r, 2026-10-21) The configuration certificate does not read a snapshot's data. -/
+theorem raftSnapCert_dat (γ : RaftNames) (k : SnapTrip) (d : List w8) :
+    raftSnapCert (GF := GF) γ { k with dat := d } = raftSnapCert γ k := rfl
+
+/-- **A snapshot's data certificate** (2026-10-21, D22 S-r): the data `d` of a snapshot at index `i`
+is what the application admits (`RaftNames.reSnapOk`, fixed at allocation) of the committed log
+prefix of length `i`. Persistent. Raft never mints one: the application does, where it takes a
+snapshot (`CreateSnapshot`), and raft carries it with the snapshot -- through the storage's
+certificate registry (`storCertOk`), on the `MsgSnap` (`netP`, `isRaftMsg`) and to the `Ready` that
+hands the snapshot to the receiver (`readySnapData`'s certificate) -- as it carries the
+configuration certificate (`raftSnapCert`). -/
+def snapDataOk (γ : RaftNames) (i : w64) (d : List w8) : IProp GF :=
+  iprop(∃ L : List EntryM, isCommitted γ L ∗ ⌜L.length = uint.nat i ∧ γ.reSnapOk L d⌝)
+
+instance snapDataOk_persistent (γ : RaftNames) (i : w64) (d : List w8) :
+    Persistent (snapDataOk (GF := GF) γ i d) := by
+  unfold snapDataOk; infer_instance
+
+instance snapDataOk_timeless (γ : RaftNames) (i : w64) (d : List w8) :
+    Timeless (snapDataOk (GF := GF) γ i d) := by
+  unfold snapDataOk; infer_instance
+
+/-- (D22 S-r) Both certificates of a snapshot `k`: its configuration's (`raftSnapCert`) and its
+data's (`snapDataOk`). What the storage's registry ties its entries to (`storCertOk`). -/
+def raftSnapCertD (γ : RaftNames) (k : SnapTrip) : IProp GF :=
+  iprop(raftSnapCert γ k ∗ snapDataOk γ k.sid.index' k.dat)
+
+instance raftSnapCertD_persistent (γ : RaftNames) (k : SnapTrip) :
+    Persistent (raftSnapCertD (GF := GF) γ k) := by
+  unfold raftSnapCertD; infer_instance
+
+instance raftSnapCertD_timeless (γ : RaftNames) (k : SnapTrip) :
+    Timeless (raftSnapCertD (GF := GF) γ k) := by
+  unfold raftSnapCertD; infer_instance
+
+/-- (D22 S-r) A cluster that admits every data (`reSnapOk` trivial) certifies a snapshot's data at
+the length of a committed prefix. -/
+theorem snapDataOk_triv (γ : RaftNames) (L : List EntryM) (i : w64) (d : List w8)
+    (hok : ∀ L d, γ.reSnapOkRaw L d) (hl : L.length = uint.nat i) :
+    isCommitted (GF := GF) γ L ⊢ snapDataOk γ i d := by
+  iintro #H
+  unfold snapDataOk
+  iexists L
+  iframe H
+  ipureintro; exact ⟨hl, hok _ _⟩
 
 def leadFrags (γt : GName) (l0 l : List EntryM) : IProp GF :=
   iprop([∗list] k ↦ e ∈ l,

@@ -5,7 +5,7 @@
 A closed theorem about the operational semantics of `cachekv`'s program (`examples/cachekv`): the
 package's initialization (which initializes its import closure: etcd's server, its gRPC layer,
 the client, the cache, raft, ...) followed by `Main(nw, nops)` -- the writers' `nw * nops` Puts
-picked, one etcd member started in process, a client configured for one attempt per call, a
+picked, one etcd member started in process, a client with etcd's default configuration, a
 cache of the prefix `ck/` over it, the cache's watch of the prefix from revision `2`, `nw` writer
 goroutines, the watch read up to the highest revision a successful Put returned, and watchkv's
 check, which panics unless the watched events are exactly the writes (puts only, gap-free from
@@ -77,7 +77,7 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
@@ -143,7 +143,7 @@ theorem cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := cachekv.wp_Main (GF := putgetGF) n id bootLog nw nops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

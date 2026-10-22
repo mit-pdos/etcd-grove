@@ -99,15 +99,30 @@ inductive MsgType where
   | preVote | preVoteResp | readIndex | readIndexResp
   deriving DecidableEq, Inhabited
 
+/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
+`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
+`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). (Moved here from
+`Defs.lean` on 2026-10-20, D22 S-b′: a `snap` message carries them.) -/
+structure CSLists where
+  voters : List w64
+  learners : List w64
+  outgoing : List w64
+  learnersNext : List w64
+  deriving DecidableEq, Inhabited
+
+/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
 /-- Every field of a `MessageM` the protocol reads. `entries` is the list behind
 `Message.Entries`; see `absMsg` (`Defs.lean`) for why the abstraction of a physical
 message needs that list as an argument.
 
 `index`/`logterm` of a `snap` are the snapshot's `Metadata.Index`/`Metadata.Term`, and
-`voters` its `Metadata.ConfState.Voters` -- all behind the pointer `Message.Snapshot`,
-read by `absSnap` (`Defs.lean`). Every other message has `voters = []`. -/
+`cl`/`al` its `Metadata.ConfState`'s lists and `AutoLeave` (D22 S-b′, 2026-10-20; until then
+`voters`, the incoming voters) -- all behind the pointer `Message.Snapshot`, read by `absSnap`
+(`Defs.lean`). Every other message has empty lists. -/
 structure Msg [FfiSyntax] where
-  mkV ::
+  mkS ::
   ty : MsgType
   /-- the sender (Go `m.From`) -/
   src : w64
@@ -125,11 +140,56 @@ structure Msg [FfiSyntax] where
   rejecthint : w64
   /-- `Entries` -/
   entries : List EntryM
-  /-- a `snap`'s `ConfState.Voters`; `[]` otherwise -/
-  voters : List w64
+  /-- (D22 S-b′, 2026-10-20; until then `voters`, the incoming voters only) a `snap`'s
+  `ConfState` lists; empty otherwise -/
+  cl : CSLists
+  /-- (D22 S-b′) a `snap`'s `ConfState.AutoLeave`; `false` otherwise -/
+  al : Bool
   /-- `Context` (2026-10-12, for read-index): the bytes `Message.Context` holds; `[]`
   for every message but a heartbeat and its response carrying a read position -/
   ctx : List w8
+
+section snaptrip
+variable [FfiSyntax]
+
+/-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
+`ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
+(`LogState.ksn`) and what the application certifies (`raftSnapCert`, `SnapConf.lean`). -/
+structure SnapTrip where
+  sid : entryID
+  cl : CSLists
+  al : Bool
+  /-- (D22 S-r, 2026-10-21) the snapshot's data: what the application's data certificate is
+  about (`snapDataOk`, `Ghost.lean`); raft's configuration certificate (`raftSnapCert`) does not
+  read it. -/
+  dat : List w8
+
+/-- A `snap` message's snapshot, as raft records it (`SnapTrip`): its id, lists and
+`AutoLeave` (D22 S-b′, 2026-10-20). The protocol's message has no data (`[]`): the configuration
+certificate does not read it (`raftSnapCert_dat`). -/
+def msgSnapTrip (m : Msg) : SnapTrip := ⟨⟨m.logterm, m.index⟩, m.cl, m.al, []⟩
+
+/-- `id` is in one of the sets `restore`'s `found` search reads: an incoming voter, a learner or
+an outgoing voter (2026-10-14, reconfiguration stage B8; a staged learner is an outgoing voter,
+`CSWf`). -/
+def CSLists.Has (cl : CSLists) (id : w64) : Prop :=
+  id ∈ cl.voters ∨ id ∈ cl.learners ∨ id ∈ cl.outgoing
+
+/-- A well-formed `ConfState`: at least one voter, no `0` id (which `Changer.apply` skips),
+a learner neither an incoming nor an outgoing voter, a staged learner an outgoing voter that
+is neither an incoming voter nor a learner, no staged learner when not joint. These are
+`checkInvariants`' conditions on the configuration it denotes (`csCfgM_cfgInv`), with "a staged
+learner is no incoming voter", which every reachable configuration has (`CCGood`-like:
+`makeLearner` removes the id from the incoming voters before staging it, `makeVoter` unstages
+it). Duplicates are allowed (`Restore` is idempotent on them). -/
+def CSWf (vo v l ln : List w64) : Prop :=
+  v ≠ [] ∧
+  (∀ x, x ∈ vo ∨ x ∈ v ∨ x ∈ l ∨ x ∈ ln → x ≠ W64 0) ∧
+  (∀ x, x ∈ l → x ∉ v ∧ x ∉ vo) ∧
+  (∀ x, x ∈ ln → x ∈ vo ∧ x ∉ v ∧ x ∉ l) ∧
+  (vo = [] → ln = [])
+
+end snaptrip
 
 section msgs
 variable [FfiSyntax]
@@ -141,7 +201,14 @@ nothing that reduces, injects or rewrites a message has to unfold anything by ha
 changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
     (es : List EntryM) : Msg :=
-  Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
+  Msg.mkS t0 fr to0 tm rj ix lt cm rh es ⟨[], [], [], []⟩ false []
+
+/-- The twelve-field constructor of before D22 S-b′ (2026-10-20): the incoming voters only, the
+other lists empty and no `AutoLeave`. Reducible, as `Msg.mk`, so that its 26 call sites are
+unchanged. -/
+@[reducible] def Msg.mkV (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
+    (es : List EntryM) (vs : List w64) (cx : List w8) : Msg :=
+  Msg.mkS t0 fr to0 tm rj ix lt cm rh es ⟨vs, [], [], []⟩ false cx
 
 /-- A message with no payload: every replication field zero. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=

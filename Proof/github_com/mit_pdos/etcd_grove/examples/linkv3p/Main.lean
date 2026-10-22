@@ -54,7 +54,7 @@ theorem Main.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops sched steps Hbf Htb Hrb48 HrbN Hck Haf Hbuq
-    Hnoc Hms hAs H0 H31 Hops Hmul
+    Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, #Hsched, Htok, #Hprem⟩
   -- `context`'s `closedchan`, from its package's facts
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
@@ -68,7 +68,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the cluster, at putget's workload (no lease), its clients' watch environment unused
   wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg putgetWorkload [] Hbf putgetWorkload_noGrant
-      Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms)
+      Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

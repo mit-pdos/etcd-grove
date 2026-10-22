@@ -55,6 +55,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
   wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap])) $$ [$Hphys $Hm] as Hphys
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   iapply HΦ
   iexact Hphys
 
@@ -157,8 +158,9 @@ theorem raft.handleAppendEntries.wp_proof
       · obtain ⟨-, -, hp, -, -, hcm, -, hsn, -, -, hst, -⟩ := Hma
         exact ⟨hp, hsn, hst, by rw [hcm]; exact plogCommitTo_ge _ _⟩
     ihave Hphys := Hlogback $$ %ls' Hlog
-      %(⟨fun h => (Hgh0.1 h).elim (fun h1 => .inl (Hmagh.2 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)),
-         fun _ => Hkeep⟩)
+      %(⟨⟨fun h => (Hgh0.1.1 h).elim (fun h1 => .inl (Hmagh.2.1 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)),
+          Hgh0.1.2.keep Hmagh.2.2.1 Hmagh.1 Hkeep.2.2.2⟩,
+         fun _ => Hkeep, Hkeep.2.2.1⟩)
       %(fun h => absurd h Hnl)
     cases Hpm : plogMaybeAppend s.logst.prev (s.logst.sents ++ s.logst.uents)
         (entryID.mk m.LogTerm' m.Index') ents with
@@ -181,7 +183,7 @@ theorem raft.handleAppendEntries.wp_proof
       iframe
       ipureintro
       exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
-        ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, rfl⟩)
+        ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, Hmagh.2.2.2, rfl⟩)
     | none =>
       -- rejected: `a.prev` does not match
       rw [Hpm] at Hma

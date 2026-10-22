@@ -13,8 +13,9 @@ instance's invariant `linkvInv γ γr.kv` with the server's `etcdKV`: `Proof/...
 The mask `linkvE` is the server's invariants open where it fires a client's update and the
 instance's.
 
-Premises: what `New` returns for a client configured with `MaxUnaryRetries: 1` (`isNewClient`,
-`clientKVOnce`), the server's `Put` and `Range` registered with etcd's specs at the client's
+Premises: what `New` returns for a client that sends a write at most once (`isNewClient`,
+`clientWriteOnce`: one attempt, or a refusal-free member, D29), the server's `Put` and `Range`
+registered with etcd's specs at the client's
 endpoint (`etcd_kv_served`), the instance's invariant, the packages' facts, and `errors.As`'s
 target (`background_ctx`, the client's context lemma). Stated under the cache package's assumptions,
 which the client's lemmas take (as `putget.Main.spec`).
@@ -48,7 +49,7 @@ abbrev Apply.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv -∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 -∗
-    isNewClient cl [ep] V -∗ clientKVOnce cl [ep] -∗
+    isNewClient cl [ep] V -∗ EtcdGrove.client.clientWriteOnce cl [ep] -∗
     isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) -∗
     isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) -∗
     linkvInv γ γr.kv -∗

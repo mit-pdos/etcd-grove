@@ -94,7 +94,7 @@ theorem unstable.truncateAndAppend.wp_proof
       · iexact Hpksn
       · iexact Hlogger
       ipureintro
-      constructor
+      refine ⟨?_, ?_, rfl⟩
       · unfold w64Min; rw [ite_eq_right (by omega)]
       · simp only [truncOffsetInProgress, ite_eq_left Hcont]
     iunfold entsPts; iexists lsb; iframe Hesl Hbb
@@ -130,7 +130,7 @@ theorem unstable.truncateAndAppend.wp_proof
       · iexact Hpksn
       · iexact Hlogger
       ipureintro
-      constructor
+      refine ⟨?_, ?_, rfl⟩
       · unfold w64Min
         split
         · rfl
@@ -183,7 +183,7 @@ theorem unstable.truncateAndAppend.wp_proof
       · iexact Hpksn
       · iexact Hlogger
       ipureintro
-      constructor
+      refine ⟨?_, ?_, rfl⟩
       · unfold w64Min; rw [ite_eq_right (by omega)]
       · simp only [truncOffsetInProgress, ite_eq_right Hcont, ite_eq_right Hrep, w64Min]
         split <;> first | rfl | (apply BitVec.eq_of_toNat_eq; word) | omega

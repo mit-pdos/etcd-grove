@@ -58,13 +58,16 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   premise `0 ≤ cfg.CompactionBatchLimit` (`NewStore` keeps it, and the compaction job would
   loop forever: `issues/etcd-compaction-negative-batch-limit.md`), so `isStore`'s limit is
   positive.
-* The store's stop channel (`storeStop`) and the right to close the store once (`storeCloser`:
+* A quarter of the four fields `store.Restore` writes (`fieldShare`; D22 receiver epochs, S3,
+  2026-10-22: until then `isStore` held them `↦□`, and `NewStore` returned the stop channel's,
+  `storeStop`): the watchable store's share (`newWatchableStore` keeps it under its `s.mu`), and
+  the right to close the store once (`storeCloser`, with another quarter:
   the channel's close, the scheduler's stop token and the compaction jobs' queue; D19m (C),
   2026-10-18: until then `NewStore` gave the stop token up for good, `isStore` holding
   `schedLive`, and `Close`'s contract was false). The caller that will not close the store gives
   the token up for the compaction right (`compactRight_of_closer`).
-* The backend records no compaction (`backendNoCompaction`, a named premise: `restore`'s, D19l
-  (v), 2026-10-18), so `restore` schedules none.
+* The backend records no compaction (`kbNoCmp`, consumed by `restore`: D19l (v) (A), D22 S-g,
+  2026-10-19; until then the opaque premise `backendNoCompaction`), so `restore` schedules none.
 * Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
   compaction right's half of that revision's authority is returned (`crevUB γ.idx ½ (-1)`; with
   the closer's queue and the stop token given up it is the compaction right `compactRight γ (-1)`
@@ -74,10 +77,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
-  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 → mvcc.backendNoCompaction →
+  0 ≤ sint.Z cfg.CompactionBatchLimit' → receiptBound GF ≤ 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb ∧ γ.kb = kb⌝ → mvcc.storeBackend b s γ P) ∗
-      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
+      mvcc.kbView kb γb 1 (∅ : mvcc.Bucket) ∗ mvcc.kbNoCmp kb γb ∗ mvcc.kbRegRight kb ∗ mvcc.kbWT kb ∗ mvcc.kbWT kb ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), mvcc.kbRT kb) ∗
       lease.lessorRdOf γl ∗ mvcc.isLessor le γl ∗
       mvcc.idxFresh γi ∗ ghostMapAuth γok 1 (∅ : GMap w64 mvcc.Log) }}
@@ -97,7 +100,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.storeReaderC s γ) ∗
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
-      mvcc.storeStop s ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
+      mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
 
 end spec
 

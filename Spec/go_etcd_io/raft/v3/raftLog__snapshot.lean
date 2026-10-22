@@ -79,7 +79,9 @@ abbrev raftLog.snapshot.spec : Prop :=
           -- (2026-10-15, stage S) one the node may send; (D19i part 1) or one the application
           -- took, at or below the floor (its certificate is the application's: A3, `SnapObl`)
           (snapTrip sv sv.Metadata'.ConfState'.lists ∈ ls.ksn ∨
-           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝)) }}
+           uint.Z sv.Metadata'.Index' ≤ uint.Z ls.fl)⌝ ∗
+        -- (D22 S-b′3, 2026-10-20) certified in the storage's registry, either way
+        storCert ls.storage (snapTrip sv sv.Metadata'.ConfState'.lists))) }}
 
 end spec
 

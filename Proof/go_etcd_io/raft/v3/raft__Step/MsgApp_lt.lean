@@ -67,7 +67,9 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (D22 S-d3b) a truncation's mark (`AppTrunc`)
+        "%Htrunc" ∷ ⌜AppTrunc m ents s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hlt
   wp_start as H
   iNamed H
@@ -104,7 +106,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
-      keep_frame rfl rfl rfl rfl rfl⟩
+      and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩
   all_goals -- with pre-vote or `checkQuorum` on, a stale leader message is answered with a
     -- bare `MsgAppResp` at the node's term (2026-10-04, 2026-10-17)
     wp_auto
@@ -128,11 +130,12 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hfid, rfl⟩)))
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) $$ [$Hphys $Hack] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
     refine ⟨nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl,
-      keep_frame rfl rfl rfl rfl rfl⟩
+      and_assoc.mp ⟨keep_frame rfl rfl rfl rfl rfl, AppTrunc.of_ip rfl⟩⟩
     refine StepCD.frame ?_ (by rframe)
     exact .zeroAck _ _
 

@@ -1,12 +1,16 @@
 # Types and names only: function and method bodies are axiomatized, except the server's backend
-# hooks (hooks.go: `BackendHooks`, `NewBackendHooks`, `OnPreCommitUnsafe`, `SetConfState`), with
-# bodies.
+# hooks (hooks.go: `BackendHooks`, `NewBackendHooks`, `OnPreCommitUnsafe`, `SetConfState`) and
+# (D22 S-f, 2026-10-19) `OpenSnapshotBackend` (backend.go: the received snapshot's db file renamed
+# onto the backend's path and opened), with bodies; `OpenBackend` (its goroutine may panic: bbolt's
+# `Open` failing) stays names only, an axiom.
 # `backend` for the struct `BackendQuota` (a field of the apply package's capped applier);
 # `raftpb` and `semver` for the interface `Storage` (the raft wrapper's WAL), whose methods'
 # signatures name them (otherwise an axiomatized type); `sync`, `zap`, `cindex`, `schema` and
-# `proto` for the hooks.
-translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "BackendHooks.SetConfState"]
-imports = ["!*", "sync", "go.uber.org/zap", "google.golang.org/protobuf/proto",
+# `proto` for the hooks; `fmt`, `os`, `config` and `snap` for `OpenSnapshotBackend`.
+translate = ["!*", "NewBackendHooks", "BackendHooks.OnPreCommitUnsafe", "BackendHooks.SetConfState",
+  "OpenSnapshotBackend"]
+imports = ["!*", "sync", "go.uber.org/zap", "google.golang.org/protobuf/proto", "fmt", "os",
+  "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
   "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/storage/backend",
   "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/raft/v3/raftpb",
   "github.com/Masterminds/semver/v3"]

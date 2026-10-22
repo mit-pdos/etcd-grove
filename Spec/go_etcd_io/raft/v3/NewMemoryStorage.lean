@@ -36,14 +36,18 @@ D17d (2026-10-18): also the application's snapshot token (`memSnapTok`, at the e
 which `ApplySnapshot`, `CreateSnapshot`, `InitialState` and the application's `Snapshot` take.
 
 (2026-10-19, D21 M3) At a cap the caller chooses (`MemStorNames.cap`), at least the empty storage's
-boundary `0`: no compaction or applied snapshot passes it. -/
+boundary `0`: no compaction or applied snapshot passes it.
+
+(D22 S-b′2, 2026-10-20) And the empty certificate registry's authority (`memCertAuth`), which the
+application puts in the invariant tying the registry to raft's certificates (`memCertInv`,
+`MemstorageInstance.lean`). -/
 abbrev NewMemoryStorage.spec : Prop :=
   ∀ (cap : Int), uint.Z (memStorEmpty : StorState).prev.index' ≤ cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions NewMemoryStorage [])) (Val #()))
   {{ (ms : Loc) (γs : MemStorNames), RET #ms; ⌜γs.cap = cap⌝ ∗ ownMemoryStorage ms γs memStorEmpty ∗
       memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      memSnapTok ms γs memStorEmpty }}
+      memSnapTok ms γs memStorEmpty ∗ memCertAuth γs }}
 
 end spec
 

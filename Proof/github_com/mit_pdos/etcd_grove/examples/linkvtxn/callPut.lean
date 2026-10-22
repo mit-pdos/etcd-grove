@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `callPut`: `client_Put_st`, then the output from the reply's header revision.
+The proof of `callPut`: `client.client_Put_st`, then the output from the reply's header revision.
 -/
 module
 
@@ -37,10 +37,12 @@ theorem callPut.wp_proof : callPut.spec (GF := GF) (hG := hG) := by
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
-  wp_apply (client_Put_st cl ms V context.backgroundCtxVal cd key val slice.nil Q) $$ [Hau]
+  ihave #Hrr := client.kvRegs_put ms $$ Hregs
+  ihave #Hst' := client.srvStart_idx ms $$ Hst
+  wp_apply (client.client_Put_st cl ms V context.backgroundCtxVal cd key val slice.nil Q) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iexact Hau

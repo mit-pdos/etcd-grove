@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `Main(clients, ops)` (`examples/linkv/linkv.go`; D20 (c)): one etcd member started in process (as
-`examples/putget`'s `Main`, on `linkv`'s ports), a client configured for one attempt per call
-(`MaxUnaryRetries: 1`), and `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the
+`examples/putget`'s `Main`, on `linkv`'s ports), a client with etcd's default
+configuration (its default retries; D29), and `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the
 history `Illegal`.
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address
@@ -44,7 +44,7 @@ abbrev Main.spec : Prop :=
   putget.BootFacts id bootLog →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
+  storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →

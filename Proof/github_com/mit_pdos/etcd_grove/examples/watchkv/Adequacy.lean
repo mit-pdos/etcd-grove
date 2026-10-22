@@ -5,7 +5,7 @@
 A closed theorem about the operational semantics of `watchkv`'s program (`examples/watchkv`): the
 package's initialization (which initializes its import closure: etcd's server, its gRPC layer,
 the client, raft, ...) followed by `Main(nw, nops)` -- the writers' `nw * nops` Puts picked, one
-etcd member started in process, a client configured for one attempt per call, a prefix watch on
+etcd member started in process, a client with etcd's default configuration, a prefix watch on
 `wk/` from revision `1`, `nw` writer goroutines, the watch read up to the highest revision a
 successful Put returned, and the check, which panics unless the watched events are exactly the
 writes (puts only, gap-free from revision `2`, each of a Put attempted, every successful Put the
@@ -82,7 +82,7 @@ theorem watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
@@ -148,7 +148,7 @@ theorem watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := watchkv.wp_Main (GF := putgetGF) n id bootLog nw nops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

@@ -44,7 +44,7 @@ abbrev startCluster.spec : Prop :=
   BootFacts id₁ id₂ id₃ bootLog → W.noGrant → lg ≠ null →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
+  storage.dbOpensOk → v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
       netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗

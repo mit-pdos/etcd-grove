@@ -117,7 +117,7 @@ theorem MainWatch.wp_proof
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS ESL ENG ESE CRE CEC N id₁ id₂ id₃ bootLog nw nops sched steps Hbf Htb Hrb48
-    HrbN Hck Haf Hbuq Hnoc Hms hAs H0 H31 Hops Hmul
+    HrbN Hck Haf Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
   ihave #Heo : client.eofOk (GF := GF) $$ []
@@ -156,7 +156,7 @@ theorem MainWatch.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg (watchkv.workload (trs.map pairOf)) wkPfx Hbf
-      (watchkv.workload_noGrant _) Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms)
+      (watchkv.workload_noGrant _) Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)

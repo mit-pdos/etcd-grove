@@ -1,13 +1,19 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#4203 issue closed: related, flagged: asked in 2016 whether a Ready's conf change must be applied before Advance (maintainer: 'probably fair'); closed by etcd-io/etcd#4049, whose Advance comment allows Advance while applying without that exception; the safety consequence was not raised (maintainer called delaying a conf change apply safe)
   - etcd-io/raft#300 pr closed: same root cause (HardState.Commit not persisted with the entries), different symptom (force-new-cluster drops a committed entry); closed, resolved on the etcd side
   - etcd-io/raft#80 issue open: related, not this bug: the pendingConfIndex > applied proposal check gives false positives; proposes tracking the configuration explicitly
+candidate: issues/upstream/raft-advance-before-applyconfchange/
 ---
 
 # raft: document that a Ready's conf changes must be applied before Advance, and that entries and HardState must be persisted atomically
+
+**2026-10-21**: superseded by the candidate `issues/upstream/raft-advance-before-applyconfchange/`, which takes
+the first precondition (conf changes applied before `Advance`, and before a `MsgStorageApply`'s responses) with a
+three-node `Node` reproduction on `main`; the atomic-persistence precondition and the `ApplyConfChange`
+rejection inconsistency are not in it.
 
 ## Summary
 

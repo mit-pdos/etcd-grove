@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-The proof of `callDel`: `client_Delete_st`, then the output from the reply's header revision and count (`delOut`).
+The proof of `callDel`: `client.client_Delete_st`, then the output from the reply's header revision and count (`delOut`).
 -/
 module
 
@@ -37,10 +37,12 @@ theorem callDel.wp_proof : callDel.spec (GF := GF) (hG := hG) := by
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
-  wp_apply (client_Delete_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ [Hau]
+  ihave #Hrr := client.kvRegs_del ms $$ Hregs
+  ihave #Hst' := client.srvStart_idx ms $$ Hst
+  wp_apply (client.client_Delete_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ [Hau]
     as %resp %err Hout
   · iframe #
     iexact Hau

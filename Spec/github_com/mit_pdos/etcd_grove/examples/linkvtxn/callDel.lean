@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`callDel(cli, key)` (linkvtxn.go): a delete of `key` through `New`'s client `cli` configured
-for one attempt, with an update fired at most once: the failed call's output (`errOut`), or the
+`callDel(cli, key)` (linkvtxn.go): a delete of `key` through `New`'s client `cli`
+that sends a write at most once, with an update fired at most once: the failed call's output (`errOut`), or the
 reply's (`delOut`) at the state `σ` the update fired at (`Q σ`): the state's revision after the
 delete, and the number of keys it deleted.
 -/

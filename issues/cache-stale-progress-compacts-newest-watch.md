@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/etcd#20221 issue closed: same trigger on the server side (a member switched to by a multi-endpoint client sent progress notifications below the watch's start revision); not the cache's missing check
   - etcd-io/etcd#20229 pr merged: the server fix of that trigger (progressIfSync sends no progress while rev < w.startRev; backported to 3.5 and 3.6, #20245, #20241), which keeps a fixed etcd from sending the stale progress this finding needs; the demux still accepts one

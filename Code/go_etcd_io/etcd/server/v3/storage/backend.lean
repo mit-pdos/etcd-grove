@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.bytes
 public import Perennial.Code.fmt
+public import Perennial.Code.io
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
 public import Perennial.Code.time
@@ -174,8 +175,6 @@ def bucketBuffer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/backend.bucketBuffer" [])
 
 attribute [irreducible] bucketBuffer.ty
-
-axiom Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def bucketBufferInitialSize [FfiSyntax] [GoGlobalContext] : val :=
   #(512 : Int)
@@ -3049,7 +3048,7 @@ noncomputable def bucketBuffer.CopyUsed.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.backend where
-  pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
+  pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -3057,6 +3056,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.backend)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3130,6 +3130,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.io.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
@@ -3174,18 +3176,15 @@ class Backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
 
 attribute [instance] Backend.TypeAssumptions.underlying
 
-axiom Snapshot : Type
-axiom Snapshot.zero_val : ZeroVal Snapshot
-attribute [instance] Snapshot.zero_val
+abbrev Snapshot [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"WriteTo" (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))])
 
 class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Snapshot.underlying Snapshot
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
-  isUnderlying : go.IsUnderlying Snapshot.underlying Snapshot.underlying
 
-attribute [instance] Snapshot.TypeAssumptions.type_repr
-  Snapshot.TypeAssumptions.underlying
-  Snapshot.TypeAssumptions.isUnderlying
+attribute [instance] Snapshot.TypeAssumptions.underlying
 
 structure txReadBufferCache [FfiSyntax] where
   mk ::
@@ -4307,6 +4306,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   newBucketBuffer_unfold : FuncUnfold newBucketBuffer [] newBucketBuffer.impl
   import_bytes_Assumption : _root_.Perennial.bytes.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_io_Assumption : _root_.Perennial.io.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -4361,6 +4361,7 @@ attribute [instance] Assumptions.Backend_instance
   Assumptions.newBucketBuffer_unfold
   Assumptions.import_bytes_Assumption
   Assumptions.import_fmt_Assumption
+  Assumptions.import_io_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_time_Assumption

@@ -4,7 +4,7 @@
 
 As `linkv/Adequacy.lean`'s, for `examples/linkvtxn`: the package's initialization (which
 initializes its import closure) followed by `Main(clients, ops)` -- one etcd member started in
-process, a client configured for one attempt per call, `clients` clients of `ops` random
+process, a client with etcd's default configuration, `clients` clients of `ops` random
 operations each through it (`lintest.Run`: gets, lists, puts, deletes, multi-operation
 transactions and compare-and-sets, robustness's `EtcdPutDeleteLease` workload without leases and
 stale reads), the recorded history checked by porcupine against the model of etcd's KV
@@ -115,7 +115,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -178,7 +178,7 @@ theorem linkvtxn_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := linkvtxn.wp_Main (GF := linkvtxnGF) n id bootLog clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

@@ -6,7 +6,7 @@ linkv's closed theorem (`linkv/Adequacy.lean`) for `examples/linkv3`: the packag
 (which initializes its import closure: etcd's server, its gRPC layer, the client, raft, linkv,
 porcupine, the driver `lintest`, ...) followed by `Main(clients, ops)` -- three etcd members started
 in process (putget3's `startMember`: each serving its raft handler on its own peer listener), a
-client to the first configured for one attempt per call, linkv's `Check(cli, clients, ops, 0)`
+client to the first with etcd's default configuration, linkv's `Check(cli, clients, ops, 0)`
 (`clients` clients of `ops` random operations each, the history checked by porcupine against the
 key-value model), and a panic ("linkv3: porcupine found the history not linearizable") if porcupine
 answers `Illegal` -- started from a fresh state (no package initialized, one thread): for every real
@@ -77,7 +77,7 @@ theorem linkv3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3.BootFacts id₁ id₂ id₃ bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -140,7 +140,7 @@ theorem linkv3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := linkv3.wp_Main (GF := linkvGF) n id₁ id₂ id₃ bootLog clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Ha₁ Ha₂ Ha₃ Hac Htok]
   · iframe; iframe #

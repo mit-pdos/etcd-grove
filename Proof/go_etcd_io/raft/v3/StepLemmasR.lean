@@ -196,7 +196,6 @@ inductive StepCF : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      uint.Z m.index ≤ uint.Z s.commit →
       StepCF s [m]
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
@@ -427,9 +426,9 @@ theorem StepCF.toR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {c : C
     intro r hp _ hz; subst hp
     exact StepR.pci_keep (.snapFastfwd m r h1 h2 h3 h4 h5 h6 h7)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
-  | snapStale m s h1 h2 h3 h4 h5 h6 =>
+  | snapStale m s h1 h2 h3 h4 h5 =>
     intro r hp _ hz; subst hp
-    exact StepR.pci_keep (.snapStale m r h1 h2 h3 h4 h5 h6)
+    exact StepR.pci_keep (.snapStale m r h1 h2 h3 h4 h5)
       (by simp [psendMsgs, padoptLeader]) (fun h => absurd h h5) hz
   | takeReads s =>
     intro r hp _ hz; subst hp
@@ -590,6 +589,16 @@ theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : MessageM} {s s1 s' : NStat
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
+/-- An id `restore`'s `found` search finds is an id of the configuration the `ConfState`
+denotes. -/
+theorem snapCfg_ids {sv : SnapshotM} {scfg : CSLists} {id : w64} (h : scfg.Has id) :
+    id ∈ (snapCfg sv scfg).ids := by
+  unfold snapCfg csCfgM CfgM.ids CfgM.voters
+  rcases h with h | h | h
+  · exact GMap.elem_of_union_l _ (GMap.elem_of_union_l _ ((GMap.elem_of_list_to_set _ _).2 h))
+  · exact GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h)
+  · exact GMap.elem_of_union_l _ (GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h))
+
 /-- What `raft.Step`'s `MsgSnap` branch delivers (2026-10-14, reconfiguration stage B8): the
 `StepC c` witness, and at every ghost part over `c`, for any prefix `fp'` the snapshot `sid` may
 cover (`FullOk`) and any configuration state `cs'` over the configuration `cn` its `ConfState`
@@ -601,14 +610,14 @@ def StepCDS (c c' cn : CfgM) (id : w64) (B : Int) (sid : entryID) (s : NState) (
     (s' : NState) : Prop :=
   StepC c id B (toPState s) recv (toPState s') ∧
   ∀ (Adm : List EntryM → CCState → Prop) (dec : CCDec) (g : RGh) (fp' : List EntryM)
-    (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → cs'.cfg = cn → id ∈ cn.ids →
+    (cs' : CCState), g.cfg.cfg = c → FullOk sid fp' → cs'.cfg = cn →
     Adm fp' cs' → ∃ g', g'.cfg.cfg = c' ∧ StepR Adm dec id B (rOf s g) recv (rOf s' g')
 
 /-- A frame step (with no configuration change), as `StepCDS`. -/
 theorem StepCDS.frame {c cn : CfgM} {id : w64} {sid : entryID} {s : NState} {recv : List Msg}
     {s' : NState} (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
     StepCDS c c cn id B sid s recv s' := by
-  refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ _ => ⟨g, hc, ?_⟩⟩
+  refine ⟨h.toC, fun Adm dec g _ _ hc _ _ _ => ⟨g, hc, ?_⟩⟩
   rw [rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
@@ -616,8 +625,8 @@ theorem StepCDS.frame {c cn : CfgM} {id : w64} {sid : entryID} {s : NState} {rec
 theorem StepCDS.trans_frame {c c' cn : CfgM} {id : w64} {sid : entryID} {s s1 s' : NState}
     {r1 r2 : List Msg} (h1 : StepCF c id (toPState s) r1 (toPState s1)) (hf : RFrame s s1)
     (h2 : StepCDS c c' cn id B sid s1 r2 s') : StepCDS c c' cn id B sid s (r1 ++ r2) s' := by
-  refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hcs hid hA => ?_⟩
-  obtain ⟨g', hc', H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hcs hid hA
+  refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g fp' cs' hc hfp hcs hA => ?_⟩
+  obtain ⟨g', hc', H2⟩ := h2.2 Adm dec g fp' cs' hc hfp hcs hA
   refine ⟨g', hc', .trans _ _ _ _ _ ?_ H2⟩
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)

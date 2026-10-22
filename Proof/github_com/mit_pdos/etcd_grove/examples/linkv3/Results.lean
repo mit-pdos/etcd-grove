@@ -5,7 +5,7 @@ Rocq counterpart).
 
 * **`linkv3_Main`** (`Link.lean`'s `linkv3.wp_Main`): `Main(clients, ops)` -- three etcd members
   started in process (putget3's `startMember`), a client to the first (`127.0.0.1:23811`)
-  configured for one attempt per call, linkv's `Check(cli, clients, ops, 0)`, and a panic if
+  with etcd's default configuration, linkv's `Check(cli, clients, ops, 0)`, and a panic if
   porcupine answers `Illegal` -- does not panic and returns `Ok` or `Unknown`. From
   `isPkgInit linkv3`, the right to listen on the four addresses, the main thread's token and
   `Main`'s named premises (`Spec/github_com/mit_pdos/etcd_grove/examples/linkv3/Main.lean`).
@@ -67,7 +67,7 @@ theorem linkv3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3.BootFacts id₁ id₂ id₃ bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -84,7 +84,7 @@ theorem linkv3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkv3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hnoc clients ops Hc0 Hc31 Hops Hmul
+  linkv3_adequate Hctx Hms hAs id₁ id₂ id₃ bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops Hmul
     HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

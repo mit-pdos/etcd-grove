@@ -1,7 +1,7 @@
 /-
 `Main(clients, ops)` (`examples/linkv3/linkv3.go`; D20, D21, 2026-10-19): three etcd members
 started in process as putget3's (`startMember`, on linkv3's names and ports), a client connected
-to the first, configured for one attempt per call (`MaxUnaryRetries: 1`), and linkv's
+to the first, with etcd's default configuration (its default retries; D29), and linkv's
 `Check(cli, clients, ops, 0)`, with a panic if porcupine reports the history `Illegal`.
 Lean-first (no Rocq counterpart).
 
@@ -44,7 +44,7 @@ abbrev Main.spec : Prop :=
   BootFacts id₁ id₂ id₃ bootLog →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
-  mvcc.backendNoCompaction → v3rpc.ServerMethodSets →
+  storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →

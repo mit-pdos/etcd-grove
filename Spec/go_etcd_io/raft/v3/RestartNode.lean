@@ -45,7 +45,7 @@ abbrev RestartNode.spec : Prop :=
   ∀ (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (c : Loc) (cv : Config)
     (lok si : GoInterfaceOk)
     (σ : StorState)
-    (hs : HardStateM) (csm : ConfStateM),
+    (hs : HardStateM) (csm : ConfStateM) (sn : Bool),
   -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -80,6 +80,9 @@ abbrev RestartNode.spec : Prop :=
   (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
+  -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only
+  -- outside the no-snapshot mode and in the static mode
+  (sn = true → γ.reNoSnap = false ∧ md = .static) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       -- (2026-10-16, stage R5) `NewRawNode`'s (`newRaft`'s, stage R4, D7; stage R6b: `al`)
@@ -92,13 +95,16 @@ abbrev RestartNode.spec : Prop :=
       -- then `ownRaftGhost γ cv.ID' initPState`, the static mode's)
       rnInit γ md cv.ID' (GMap.listToSet csm.Voters') ∗ isCommitted γ [] ∗
       -- the cluster's term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) }}
+      inv budgetN (budgetInv bud) ∗ termLB bud (W64 0) ∗
+      -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in the
+      -- no-snapshot mode)
+      certLink γ (interface.ok si) }}
     (App (Val #(functions RestartNode [])) (Val #c))
   {{ (nd : GoInterface), RET #nd;
       ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
-         nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] ∗
+         γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         -- (2026-10-15, stage N) the driver's view of the configuration: the initial one
         nodeCfg γn 0 (cfgState (GMap.listToSet csm.Voters') ∅) }}
 

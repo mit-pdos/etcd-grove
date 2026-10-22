@@ -3,8 +3,9 @@
 `Check(cli, clients, ops, timeout)` (`examples/linkvtxn/linkvtxn.go`; linkv-txn stage G, as
 `examples/linkv`'s): `lintest.Run` with the
 model `Model()`, the closure `func(input any) any { return Apply(cli, input) }`, the generator
-`Gen` and the clock `lintest.CounterClock()`. Over `New`'s one-attempt client `cli` (`Apply.spec`'s
-premises: `isNewClient`, `clientKVOnce`, etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered
+`Gen` and the clock `lintest.CounterClock()`. Over `New`'s client `cli` (`Apply.spec`'s
+premises: `isNewClient`, `clientWriteOnce`: a write sent at most once, etcd's `Put`, `Range`,
+`DeleteRange` and `Txn` registered
 at its endpoint) and
 the instance's invariant with the library state at the model's start (`linkvInv γ γr.kv`,
 `linkvState γ (linkv.pInit TS)`, what `linkvInv_alloc` gives), under `Run`'s bounds on `clients` and `ops`
@@ -45,7 +46,7 @@ abbrev Check.spec : Prop :=
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn ∗
       context.isClosedchanInit ∗
-      isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
+      isNewClient cl [ep] V ∗ EtcdGrove.client.clientWriteOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E γr cid mid) ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/DeleteRange" (EtcdGrove.client.etcdDeleteSpec E γr cid mid) ∗

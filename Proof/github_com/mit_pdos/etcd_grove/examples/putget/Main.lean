@@ -84,7 +84,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
@@ -139,7 +139,7 @@ theorem Main.wp_proof
   imod (putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
     #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
   imod (netNames_alloc (srvNet γ bud) putgetDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
   ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
@@ -164,7 +164,7 @@ theorem Main.wp_proof
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
       · unfold cfgOk; simp
       · exact ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
     isplitr
@@ -182,10 +182,10 @@ theorem Main.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hnoc
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, -⟩)
   · -- `NewServer` failed: `Main` returns
     cases err with
@@ -200,7 +200,7 @@ theorem Main.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
@@ -249,8 +249,9 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]

@@ -99,7 +99,7 @@ theorem EtcdServer.applyEntries.wp_proof
       iframe Hlog
       rw [show A ++ unapplied ai [] = A by simp [unapplied]]; iexact Hka
     ipureintro
-    refine ⟨Hok, ?_, Or.inl rfl⟩
+    refine ⟨Hok, ?_, Or.inl rfl, Or.inl ⟨by simp [unapplied], rfl⟩⟩
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     have : (0 : Int) ≤ uint.Z ai := by word
     omega
@@ -194,7 +194,7 @@ theorem EtcdServer.applyEntries.wp_proof
         ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
     · rw [show ai + 1 - 1 = ai by word]
       iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr Hgr HKV Hao HW HWA Hfs Hbc' Hlog Hka Hkb'
-    obtain ⟨hli, -, hok2, hci2, hstop⟩ := Hpost
+    obtain ⟨hli, hlt, hok2, hci2, hstop⟩ := Hpost
     -- `apply` never asks to stop (D19m: no member removed), so `stopWithDelay` is not reached
     subst hstop
     have hlast : ms.getLast? = (ms.drop k).getLast? := by
@@ -220,7 +220,7 @@ theorem EtcdServer.applyEntries.wp_proof
       · ipureintro; rw [hun]; exact Hx'
       iframe Hlog'
       rw [hun]; iexact Hka
-    ipureintro; exact ⟨hok2, hfin, Or.inr hci2⟩
+    ipureintro; exact ⟨hok2, hfin, Or.inr hci2, Or.inr (by rw [hun]; exact hlt)⟩
   · -- `off ≥ len(entries)`: every entry is already applied
     (try wp_auto)
     obtain ⟨mL, hmL, hmLi⟩ := entriesFrom_last f0 ms Hfrom (by
@@ -242,7 +242,7 @@ theorem EtcdServer.applyEntries.wp_proof
       iframe Hlog
       rw [hun, List.append_nil]; iexact Hka
     ipureintro
-    refine ⟨Hok, ?_, Or.inl rfl⟩
+    refine ⟨Hok, ?_, Or.inl rfl, Or.inl ⟨hun, rfl⟩⟩
     rw [hmL]
     simp only [Option.map_some, Option.getD_some]
     have : ¬ uint.Z ai + 1 - uint.Z f0 < ents.length := by rw [← hoff, ← hlenu]; exact Hif

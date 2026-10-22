@@ -4,13 +4,15 @@ upstream: unchecked
 
 # A second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` is about to open
 
-- **Status**: a bug by code reading, **not reproduced**: a race between the raft goroutine and the
+- **Status**: a bug by code reading, reproduced only at the unit level (the fork's regression test,
+  "Fixed in the fork" below, delays the apply goroutine by holding `bemu`; not reproduced in a
+  cluster): a race between the raft goroutine and the
   apply goroutine that ends in `lg.Panic("failed to open snapshot backend")` on a follower. It
   needs two snapshots handed out by raft in quick succession (a second `MsgSnap` of a higher index
   already stepped while the first batch is processed, e.g. from a new leader) and the apply
   goroutine delayed for the few fsyncs of the second round inside a window of a few statements.
   Rare; found while designing the proof's invariant on the snapshot directory.
-- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, the pin of `etc/goose.py` on branch `raft-retarget`, where this was found):
+- **Where** (the etcd fork's `goose-lean` at `de825d8c6`, where this was found; the same code at the pin of `etc/goose.py`, `2aed163b1`):
   - `server/etcdserver/raft.go:271-291` (`raftNode.start`, a batch with a snapshot): after
     `storage.Sync()`, `notifyc <- struct{}{}` (`:279`, the "snapshot persisted" signal), then
     `raftStorage.ApplySnapshot` and `r.storage.Release(raftSnap)` (`:286`); the second
@@ -46,5 +48,16 @@ upstream: unchecked
   `Release` from the apply goroutine after `applySnapshot`, or `ReleaseSnapDBs` given the applied
   snapshot's index), or have the raft goroutine wait for `applySnapshot`'s open (a second signal)
   before `Release`.
+- **Fixed in the fork** (2026-10-22, `goose-lean` `188113160`, the pin of `etc/goose.py`): the
+  raft goroutine no longer calls `Release`; `applySnapshot` calls `s.r.storage.Release(toApply.snapshot)`
+  (the WAL and the `.snap.db` files below the snapshot) right after `s.bemu.Unlock()`, once
+  `OpenSnapshotBackend` has renamed the snapshot's own file (the `raftAfterWALRelease` failpoint moves
+  with it). The WAL is still fsynced before `Release` (the raft goroutine's `Sync` precedes the
+  `notifyc` that `applySnapshot` waits on, etcd-io/etcd#10219); its locks are released a little later.
+  Regression test `TestSnapshotDBKeptUntilOpened` (`server/etcdserver/server_test.go`, deterministic:
+  a fake raft node hands out snapshots 2 and 4 while the test holds `bemu`, so `applySnapshot(2)` waits
+  before its open; the test waits until the raft goroutine has appended the second batch's entry,
+  past where it released, and checks `<2>.snap.db` is still there): fails 5 of 5 without the fix,
+  passes 10 of 10 with it (`-race`).
 - **Found**: 2026-10-20, stage S-j2 of track T-S, stating the removal fact `Rm` of the snapshot
   directory for `applySnapshot`'s precondition.

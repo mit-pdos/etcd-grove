@@ -109,12 +109,12 @@ func Main(clients int, ops int) porcupine.CheckResult {
 	}
 	go gs.Serve(l)
 
-	// One attempt per call (MaxUnaryRetries: 1): a Put is sent at most once, so the cluster
-	// applies it at most once (decision D21i).
+	// etcd's default client configuration (its default retries): the members never answer with a
+	// refusal (authentication off, voters), so a Put is sent at most once and the cluster applies it
+	// at most once, while a read may be retried (decision D29).
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:       []string{clientAddr},
-		Logger:          lg,
-		MaxUnaryRetries: 1,
+		Endpoints: []string{clientAddr},
+		Logger:    lg,
 	})
 	if err != nil {
 		return porcupine.Unknown

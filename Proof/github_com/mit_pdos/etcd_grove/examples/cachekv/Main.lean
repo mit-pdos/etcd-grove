@@ -6,8 +6,8 @@ watchkv's `Main` (`Proof/.../watchkv/Main.lean`) with the watch through etcd's c
 picks the writers' Puts `trs` first; the server's start is putget's, at the workload of the Puts
 picked (`watchkv.watchkv_alloc` at `trs.map pairOf`), with `NewServer`'s watchable-store readers
 and one watch run slot, and the ghost step `watchkv.wk_served` (the KV specs and the watch server's
-facts at the address, `srvNoDupKeys` from the workload). Then `clientv3.New` (one attempt per
-call); the client's KV state in the client's invariant (`client.kvClientInv`, so that the cache's
+facts at the address, `srvNoDupKeys` from the workload). Then `clientv3.New` (etcd's default
+configuration; the member refusal-free, `etcd_noRefusal`, so `clientWriteOnce`, D29); the client's KV state in the client's invariant (`client.kvClientInv`, so that the cache's
 gets have the ranges' updates, `client.kvRangeAu_of_inv`, and the writers' puts theirs, `put_au`);
 the cache's client (`client.isEtcdClient_of_new_r`); `cache.New` (`New.spec` at the server's
 model, the default configuration); a context (`WithCancel(Background())`); the cache's watch of
@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 public import Proof.go_etcd_io.etcd.client.v3.CacheClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Alloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Served
@@ -185,7 +186,7 @@ theorem Main.wp_proof
       Cache.Watch.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS ESL ENG ESE CRE CEC N id bootLog nw nops Hbf Htb Hrb48 HrbN Hck Haf
-    Hbuq Hnoc Hms hAs H0 H31 Hops Hmul
+    Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -274,7 +275,7 @@ theorem Main.wp_proof
   imod (watchkv.watchkv_alloc (trs.map pairOf) id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
     #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
   imod (netNames_alloc (srvNet γ bud) ckDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
   ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
@@ -299,7 +300,7 @@ theorem Main.wp_proof
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
       · unfold cfgOk; simp
       · exact ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
     isplitr
@@ -317,10 +318,10 @@ theorem Main.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hnoc
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, -, HWR⟩)
   · -- `NewServer` failed: `Main` returns
     cases err with
@@ -335,7 +336,7 @@ theorem Main.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
@@ -389,8 +390,9 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   -- (D23) one watch run slot: two of the watchable store's readers, one of the request path's
   ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
@@ -413,6 +415,11 @@ theorem Main.wp_proof
   · iframe #
   ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23851" gs q p srv lis R.E
+      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HE.2) $$
+    [Hgsn Hlis]
+  · iframe Hgsn Hlis; iframe #
   imod (watchkv.wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23851" [] null null ckPfx null) go!"127.0.0.1:23851"
       gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
       1 1 Hregs.1 rfl rfl (by simp) Hms.watch_impl Hregs.2 rfl rfl)
@@ -447,7 +454,7 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     ipureintro; exact Htb31
-  icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -457,8 +464,11 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Hcerr
   wp_auto
-  ihave #Hone := Hone $$ []
-  · ipureintro; trivial
+  -- (D29) a write sent at most once: the member is refusal-free
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23851"] $$ []
+  · iunfold client.clientWriteOnce; iright; ipureintro
+    intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    subst ha; exact Hnr
   -- the client's KV state in the client's invariant (its revision a monotone counter), which the
   -- cache's gets (`kvRangeAu`) and the writers' puts (`put_au`) open
   imod client.kvClientInv_alloc ρ.rd _ ⊤ $$ Hetcd with ⟨%γm, #Hkci⟩

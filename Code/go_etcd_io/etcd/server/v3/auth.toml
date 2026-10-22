@@ -2,7 +2,8 @@
 # unit P2), with bodies: `IsAuthEnabled`, `Revision`, the permission checks the KV path calls
 # (`IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted` through `isOpPermitted`,
 # `isRangeOpPermitted` and the permission cache's `checkKeyPoint`/`checkKeyInterval`), and
-# `IsAdminPermitted`; `AuthInfoFromCtx` (with `authInfoFromToken`), and the error variables
+# `IsAdminPermitted`, and `lockedReadTx`, their read transaction of the current backend
+# under `beMu`; `AuthInfoFromCtx` (with `authInfoFromToken`), and the error variables
 # they return. Names only: `AuthInfoFromTLS` (its peer's `credentials.TLSInfo` and the x509
 # chains are axiomatized types), `hasRootRole` (`u.Roles` of the axiomatized protobuf
 # `authpb.User`), `redactToken` (`crypto/sha256`) and the rest (the admin requests, the token
@@ -16,7 +17,7 @@
 translate = ["!*", "AuthInfo",
   "authStore.IsAuthEnabled", "authStore.Revision",
   "authStore.isOpPermitted", "authStore.IsPutPermitted", "authStore.IsRangePermitted",
-  "authStore.IsDeleteRangePermitted", "authStore.IsAdminPermitted",
+  "authStore.IsDeleteRangePermitted", "authStore.IsAdminPermitted", "authStore.lockedReadTx",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",

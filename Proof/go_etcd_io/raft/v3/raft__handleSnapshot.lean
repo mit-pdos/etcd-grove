@@ -60,7 +60,7 @@ theorem raft.handleSnapshot.wp_proof
     (wp_SnapshotMetadata_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hin Hscope Hfid Hns
+  intro c r id s ml m ents sn ctx rs sv cl Hrole Hvotes Hsn Hcl Hscope Hfid Hns
   subst Hsn
   wp_start as H
   iNamed H
@@ -68,29 +68,23 @@ theorem raft.handleSnapshot.wp_proof
   wp_apply wp_GetSnapshot.1 $$ [$Hm] as %ps ⟨Hsnap, Hmback⟩
   ihave %Hps : ⌜ps ≠ null⌝ $$ [Hsnap]
   · simp only [snapOpt]; iunfold ownSnapM at Hsnap; iNamed Hsnap; ipureintro; exact Hnn
-  wp_apply wp_EnsureSnapshot $$ [$Hsnap] as %sp ⟨Hsnap, %Hsp⟩
-  ihave Hsnap := ownSnapW_E $$ Hsnap
+  -- (D22 S-d4 item 4) every pointer field set
+  wp_apply wp_EnsureSnapshot.1 $$ [$Hsnap] as %sp ⟨Hsnap, %Hsp⟩
   obtain rfl := Hsp Hps
   simp only [Option.getD_some]
-  wp_apply wp_Snapshot_GetMetadata_E $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
-  icases smPts_not_null $$ Hmd with ⟨%Hpm, Hmd⟩
-  wp_apply wp_SnapshotMetadata_GetIndex pm _ _ $$ [Hmd] as Hmd
-  · iunfold smOpt; iright; iexact Hmd
-  ihave Hsnap := Hsback $$ [Hmd]
-  · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
-  wp_apply wp_Snapshot_GetMetadata_E $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
-  icases smPts_not_null $$ Hmd with ⟨%Hpm, Hmd⟩
-  wp_apply wp_SnapshotMetadata_GetTerm pm _ _ $$ [Hmd] as Hmd
-  · iunfold smOpt; iright; iexact Hmd
-  ihave Hsnap := Hsback $$ [Hmd]
-  · iapply smOpt_not_null _ _ _ Hpm $$ Hmd
-  wp_auto
-  wp_apply wp_raft_restore c _ _ _ sp sv cl Hrole Hvotes Hcl Hin Hscope Hns
-    $$ [$Hphys $Hsnap] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
+  wp_apply wp_Snapshot_GetMetadata_S $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
+  wp_apply wp_SnapshotMetadata_GetIndex_S pm _ _ $$ [$Hmd] as Hmd
+  ihave Hsnap := Hsback $$ Hmd
+  wp_apply wp_Snapshot_GetMetadata_S $$ [$Hsnap] as %pm ⟨Hmd, Hsback⟩
+  wp_apply wp_SnapshotMetadata_GetTerm_S pm _ _ $$ [$Hmd] as Hmd
+  ihave Hsnap := Hsback $$ Hmd
+  try wp_auto
+  wp_apply wp_raft_restore c _ _ _ sp sv cl Hrole Hvotes Hcl Hscope Hns
+    $$ [$Hphys $Hsnap $Hcert] as %b %s1 ⟨Hphys, Hsnap, %Hres⟩
   ihave Hm := Hmback $$ [Hsnap]
   · simp only [snapOpt]; iapply ownSnapE_weaken $$ Hsnap
   generalize Hc1 : restoreCfg c sv cl b = c1
-  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hmt, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, il, rfl⟩
+  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hin, Hmt, rfl, rfl⟩ | ⟨Hlt, Hin, Hnm, rfl, prs, pvs, il, rfl⟩
   · -- obsolete: acknowledge the commit index
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -127,6 +121,7 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_ %c1
     iframe Hphys
     isplitr
@@ -134,7 +129,8 @@ theorem raft.handleSnapshot.wp_proof
       exact Or.inl ⟨Hst, rfl⟩
     ipureintro
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
-    exact Or.inr ⟨fun h => absurd Hst (Int.not_le.2 h.1), Hc1.symm⟩
+    exact Or.inr ⟨fun h => Hst.elim (fun H => absurd H (Int.not_le.2 h.1)) (fun H => H h.2.1),
+      Hc1.symm⟩
   · -- fast-forward: acknowledge the new commit index, the snapshot's
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -171,14 +167,15 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_ %c1
     iframe Hphys
     isplitr
     · ipureintro
-      exact Or.inr (Or.inl ⟨Hlt, Hmt, rfl⟩)
+      exact Or.inr (Or.inl ⟨Hlt, Hin, Hmt, rfl⟩)
     ipureintro
     simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte] at Hc1
-    exact Or.inr ⟨fun h => h.2 Hmt, Hc1.symm⟩
+    exact Or.inr ⟨fun h => h.2.2 Hmt, Hc1.symm⟩
   · -- a restore: acknowledge the new last index, the snapshot's
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -219,14 +216,15 @@ theorem raft.handleSnapshot.wp_proof
     wp_apply wp_raft_send _ _ _ _ _ _ [] none [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) (fun h => absurd h (by simp [MsgSnap]))
       $$ [$Hphys $Hr] as Hphys
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_ %c1
     iframe Hphys
     isplitr
     · ipureintro
-      exact Or.inr (Or.inr ⟨Hlt, Hnm, prs, pvs, il, rfl⟩)
+      exact Or.inr (Or.inr ⟨Hlt, Hin, Hnm, prs, pvs, il, rfl⟩)
     ipureintro
     simp only [restoreCfg, ↓reduceIte] at Hc1
-    exact Or.inl ⟨⟨Hlt, Hnm⟩, Hc1.symm⟩
+    exact Or.inl ⟨⟨Hlt, Hin, Hnm⟩, Hc1.symm⟩
 
 end proof
 

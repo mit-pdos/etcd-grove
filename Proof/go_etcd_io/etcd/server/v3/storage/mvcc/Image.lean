@@ -1,0 +1,93 @@
+/-
+**A database image's key view** (D22 S-f, 2026-10-19; `notes/decisions.md`, "D22 S-f carried
+out"): what a received backend image says to the mvcc store that restores from it (D22 S-g).
+Lean-first (no Rocq counterpart).
+
+`keyImage log D`: bbolt's data `D` holds, in the `Key` bucket, the bucket of the log `log`
+(`bucketMap`: an entry per change of every revision), and, in the `Meta` bucket, neither of the
+compaction's keys (`scheduledCompactRev`, `finishedCompactRev`): the image of a store that never
+compacted, which is the server's KV model's (its workload has no compaction: `apply.dispatchOk`).
+D19l (v) (A) would replace "neither key" by the keys a model of the compactions gives
+(`notes/snapshot-path-s0.md`, part 2, exception 2: the key bucket's physical content then
+depends on the compaction job's progress, its logical view does not). The image's other buckets
+are the server's (`etcdserver/InvImage.lean`).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace mvcc
+
+open Iris Iris.BI backend
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+/-- **`D`'s key view is the log `log`'s, with no compaction recorded** (see the file header). -/
+def keyImage (log : Log) (D : Data) : Prop :=
+  (∀ k, dget D keyName k = (bucketMap log).lookup k) ∧
+  dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
+  dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
+
+/-- **`D` records no compaction**: its `Meta` bucket holds neither compaction key (what a backend
+opened over `D` gives as `bkNoCmp`, `storage.OpenBackend`'s axiom; D22 S-g). -/
+def noCmpData (D : Data) : Prop :=
+  dget D go_etcd_io.etcd.server.v3.storage.schema.metaName schedKeyBytes = none ∧
+  dget D go_etcd_io.etcd.server.v3.storage.schema.metaName finKeyBytes = none
+
+/-- A key image records no compaction. -/
+theorem keyImage_noCmp {log : Log} {D : Data} (h : keyImage log D) : noCmpData D := h.2
+
+/-- The readers' view of a backend opened over a key image, under the bridge's parameters, is
+its log's bucket (what `newPost`'s `bView` and the store's `restore` read). -/
+theorem keyView_of_dget {P : BParams} (hP : bridgeParams P) {m : Bucket} {D : Data}
+    (h : ∀ k, dget D keyName k = m.lookup k) : keyView (vData P (D, ⟨∅, W64 0⟩)) m := by
+  intro n k
+  rw [vData_lookup]
+  obtain ⟨-, -, hHB, -⟩ := hP
+  rw [hHB n]
+  by_cases hn : n = keyName
+  · subst hn
+    simp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte]
+    rw [vOf_emptyR]
+    exact h k
+  · have hn' : n ≠ go_etcd_io.etcd.server.v3.storage.schema.keyName := hn
+    simp only [hn', ne_eq, not_false_eq_true, decide_true, ↓reduceIte]
+
+/-- The readers' view of a key image (`keyView_of_dget`). -/
+theorem keyView_of_keyImage {P : BParams} (hP : bridgeParams P) {log : Log} {D : Data}
+    (h : keyImage log D) : keyView (vData P (D, ⟨∅, W64 0⟩)) (bucketMap log) :=
+  keyView_of_dget hP h.1
+
+/-- Conversely, a backend data whose readers' view is a bucket `m` holds `m` in its `Key`
+bucket (what the snapshot's observation, `backend.Snapshot.spec`, gives of `sData P D`). -/
+theorem dget_of_keyView {P : BParams} (hP : bridgeParams P) {m : Bucket} {D : Data}
+    (h : keyView (sData P D) m) (k : GoString) : dget D keyName k = m.lookup k := by
+  have := h keyName k
+  unfold sData at this
+  rw [vData_lookup] at this
+  obtain ⟨-, -, hHB, -⟩ := hP
+  rw [hHB keyName] at this
+  simp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte,
+    vOf_emptyR] at this
+  exact this
+
+end lemmas
+
+end mvcc
+end EtcdGrove
+end Perennial

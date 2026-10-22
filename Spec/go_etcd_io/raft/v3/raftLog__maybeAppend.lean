@@ -106,7 +106,11 @@ abbrev raftLog.maybeAppend.spec : Prop :=
             ls'.unpersisted = ls.unpersisted ∧ ls'.stored = ls.stored ∧
             ls'.storage = ls.storage ∧ ls'.fl = ls.fl⌝ ∗
       -- (2026-10-10) entries still to be handed out stay so (`NGhost.unst`)
-      ⌜ls'.snap = ls.snap ∧ (nextUnstable ls ≠ [] → nextUnstable ls' ≠ [])⌝ }}
+      ⌜ls'.snap = ls.snap ∧ (nextUnstable ls ≠ [] → nextUnstable ls' ≠ []) ∧
+        -- (D22 S-d3a) and the ghost fields `SnpOk` reads
+        SnpKeep ls ls' ∧
+        -- (D22 S-d3b) `offsetInProgress` moved back only by a truncation (`TruncAt`)
+        (uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress)⌝ }}
 
 end spec
 

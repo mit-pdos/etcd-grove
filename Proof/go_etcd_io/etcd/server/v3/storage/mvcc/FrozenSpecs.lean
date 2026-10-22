@@ -157,7 +157,7 @@ abbrev mvcc.storeTxnCommon.Range.specFrozen : Prop :=
     (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev ∗ mvcc.txReader γ rt log ∗
-      s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.idxPin γ ti ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       mvcc.muHeld s γ (-1) ∗ traceutil.ownTrace trace te }}
     (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!
@@ -193,7 +193,7 @@ abbrev mvcc.storeTxnRead.End.specFrozen : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev ∗ mvcc.txReader γ rt log ∗
-      s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.idxPin γ ti ∗
       mvcc.muHeld s γ (-1) ∗
       sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗ mvcc.idxReader ti γ.idx }}
     (App (Val (tr @!! go.GoType.PointerType storeTxnRead.ty @!! go!"End")) (Val #()))

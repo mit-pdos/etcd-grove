@@ -617,6 +617,64 @@ theorem csPts_nn (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     ipureintro; exact Hal
   · ipureintro; exact Hnn
 
+/-- An owned-or-nil conf state is a snapshot's nested conf state (`csOptA`'s first two cases). -/
+theorem csOpt_csOptA (p : Loc) (dq : DFrac) (c : ConfStateM) :
+    csOpt (GF := GF) p dq c ⊢ csOptA p dq c := by
+  iunfold csOpt
+  iunfold csOptA
+  iintro (%H | H)
+  · ileft; ipureintro; exact H
+  · iright; ileft; iexact H
+
+/-- A freshly allocated `*pb.SnapshotMetadata` (hidden fields zero) whose conf state and cells
+hold `md`'s is an owned metadata holding `md`. -/
+theorem smPts_of_struct (p : Loc) (v : raftpb.SnapshotMetadata) (md : SnapshotMetadataM)
+    (E : CoPset) (Hu : v.unknownFields' = slice.nil) :
+    (p ↦ v ∗ csOpt v.ConfState' (DFrac.own 1) md.ConfState' ∗ cellRO v.Index' md.Index' ∗
+      cellRO v.Term' md.Term' : IProp GF) ⊢ |={E}=> smPts p (DFrac.own 1) md := by
+  iintro ⟨Hp, Hc, #cI, #cT⟩
+  ihave Hc := csOpt_csOptA _ _ _ $$ Hc
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, ConfState, Index, Term, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.SnapshotMetadata p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  iunfold smPts
+  iexists v.ConfState', v.Index', v.Term', []
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cI cT Hpb
+
+/-- A freshly allocated `*pb.Snapshot` (hidden fields zero) whose data and metadata hold
+`s`'s is an owned snapshot holding `s`. -/
+theorem ownSnapM_of_struct (p : Loc) (v : raftpb.Snapshot) (s : SnapshotM) (E : CoPset)
+    (Hu : v.unknownFields' = slice.nil) :
+    (p ↦ v ∗ v.Data' ↦* s.Data' ∗ smOpt v.Metadata' (DFrac.own 1) s.Metadata' : IProp GF) ⊢
+      |={E}=> ownSnapM p (DFrac.own 1) s := by
+  iintro ⟨Hp, Hd, Hm⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨state, Data, Metadata, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  iunfold ownSnapM
+  iexists v.Data', v.Metadata', []
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe Hpb
+
 /-- A freshly allocated `*pb.HardState` (hidden fields zero) whose cells hold `hs`'s, frozen
 (D4: a hard state is never written after `hardState()` builds it). -/
 theorem hsRO_of_struct (p : Loc) (v : raftpb.HardState) (hs : HardStateM) (E : CoPset)

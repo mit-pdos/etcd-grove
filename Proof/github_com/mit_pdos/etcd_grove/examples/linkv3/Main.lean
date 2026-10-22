@@ -8,7 +8,8 @@ the initial cluster's map; the ghost state of the cluster and its members (`clus
 `bootstrap`'s order, the client's `etcdKV` at the first member's names); `startMember` for each
 member, the thread token passed along; `v3rpc.Server`, `Listen` at the first member's client
 address, `etcd_kv_started` (etcd's `Put` and `Range` registered at the address), `go gs.Serve(l)`,
-`clientv3.New` (with `MaxUnaryRetries: 1`, so `clientKVOnce`). Then linkv's `Main`
+`clientv3.New` (etcd's default configuration; the first member refusal-free,
+`etcd_noRefusal`, so `clientWriteOnce`, D29). Then linkv's `Main`
 (`Proof/.../linkv/Main.lean`): the instance's invariant at the cluster's start store
 (`linkvInv_alloc_boot`: the bootstrap log changes no KV state) and `linkv.Check(cli, clients, ops,
 0)`, which returns `Ok` (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error
@@ -28,6 +29,7 @@ public import Spec.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 
 @[expose] public section
 
@@ -79,7 +81,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Check : linkv.Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id₁ id₂ id₃ bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hac, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -168,15 +170,15 @@ theorem Main.wp_proof
   -- (in `bootstrap`'s order: `linkv3-2`, `-3`, `-1`; the client's `etcdKV` at `linkv3-1`'s names)
   imod (cluster3_alloc id₂ id₃ id₁ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₂,
     %ρ₃, %ρ₁, %E₂, %E₃, %E₁, %Φs, %γn, %Hal, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hmb₁, Hsl₁, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hγn1, hγn2, hlog₁, hwl₁⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁⟩ := Hal
   obtain ⟨hn23, hn21, hn31⟩ := id_ne id₂ id₃ id₁ bootLog Hbf
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3]) Hlg Hck Haf Hbuq Hnoc) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
+      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo) $$ [Ha₁ Htok Hmb₁ Hsl₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
   · cases err₁ with
@@ -188,14 +190,14 @@ theorem Main.wp_proof
   wp_auto
   iunfold memberUp at Hup₁
   icases Hup₁ with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi, Hbemu,
-    Hlts, Hlgs, Hrds, Hsts⟩
+    Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   iunfold srvGoRes at Hgo
   icases Hgo with ⟨Hwgr, Htok⟩
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3, hn21]) Hlg Hck Haf Hbuq Hnoc)
+      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3, hn21]) Hlg Hck Haf Hbuq Hdbo)
     $$ [Ha₂ Htok Hmb₂ Hsl₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
   icases Hr₂ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₂⟩)
@@ -213,8 +215,8 @@ theorem Main.wp_proof
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
       (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen hγn1 hγn2
-      (by simp [dir3, hn31, hn23.symm]) Hlg Hck Haf Hbuq Hnoc)
+      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (by simp [dir3, hn31, hn23.symm]) Hlg Hck Haf Hbuq Hdbo)
     $$ [Ha₃ Htok Hmb₃ Hsl₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
   icases Hr₃ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₃⟩)
@@ -269,11 +271,17 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started s₁ E ρ₁.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p s₁ C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal clientAddr₁ gs q p s₁ lis E
+      { ρ₁ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HEo) $$
+    [Hgsn Hlis]
+  · iframe Hgsn Hlis; iframe #
   imod (client.etcd_kv_started clientAddr₁ gs q p s₁ lis E { ρ₁ with wait := γw } ρ₁.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
     $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, -, -⟩
@@ -308,7 +316,7 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint clientAddr₁; decide)
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -318,8 +326,11 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr
   wp_auto
-  ihave #Hone := Hone $$ []
-  · ipureintro; trivial
+  -- (D29) a write sent at most once: the member is refusal-free
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [clientAddr₁] $$ []
+  · iunfold client.clientWriteOnce; iright; ipureintro
+    intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
   imod (linkv.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃) bootLog
       Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd

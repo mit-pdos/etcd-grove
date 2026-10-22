@@ -45,7 +45,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₃.rd.kv.log0 = [[], []] ∧
+        γ.reNoXfer = true ∧ γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₃.rd.kv.log0 = [[], []] ∧
         ρ₃.rd.kv.wl = putgetWorkload⌝ ∗
       memberBoot putgetWorkload γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
       memberBoot putgetWorkload γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
@@ -83,7 +83,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       rfl Hbf.boot Hpol Hbf.idLow Hbf.idLow0)
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
       #Hpm, #Hrc, Hms, Hwns⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hc0, hch, hlog, hiss, hwl⟩ := Hγ
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hc0, hch, hlog, hiss, hwl⟩ := Hγ
   have Hpol' : srvCCPolicy ⟨γ, [], W64 0⟩ := by
     intro ty d h
     simp only at h ⊢
@@ -134,7 +134,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   iexists γ, bud, ρ₁, ρ₂, ρ₃, env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
   isplitr
-  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, Hγn.1, Hγn.2, by rw [hlog₃, hlog], by rw [hwl₃, hwl]⟩
+  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hlog₃, hlog], by rw [hwl₃, hwl]⟩
   rw [etcdKV_congr ρ₃.rd.kv γk hst₃,
     show kvModel ρ₃.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
       unfold kvModel; rw [hc0₃, hch₃, hlog₃]]

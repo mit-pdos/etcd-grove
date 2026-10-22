@@ -33,7 +33,7 @@ theorem raftLog.snapshot.wp_proof
   iNamed H
   iNamed Hlog
   ihave #Hsto : isStorageWith (ownStorage lv.storage') (appendTok lv.storage')
-      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') lv.storage' $$ [HisStorage]
+      (appendedTok lv.storage') (storCut lv.storage') (storFloor lv.storage') (storCert lv.storage') lv.storage' $$ [HisStorage]
   · unfold isStorage; iexact HisStorage
   unfold isStorageWith
   icases Hsto with ⟨%isv, #Hsto⟩
@@ -45,6 +45,7 @@ theorem raftLog.snapshot.wp_proof
     ihave #Hp2 := Hpksn
     iunfold pendKsn at Hp2
     icases Hp2 $$ %sid %rfl with ⟨%sv, #Hsv, %Hsid, %Hk⟩
+    ihave #Hsv := ownSnapS_M _ _ _ $$ Hsv
     ihave %Hnn := (show ownSnapM (GF := GF) lv.unstable'.snapshot' DFrac.discard sv ⊢
       ⌜lv.unstable'.snapshot' ≠ null⌝ by iintro H; iNamed H; ipureintro; exact Hnn) $$ Hsv
     rw [decide_eq_false Hnn]
@@ -59,6 +60,10 @@ theorem raftLog.snapshot.wp_proof
     · ipureintro; rfl
     iexists sv
     iframe Hc
+    isplitr
+    rotate_left
+    · ihave ⟨#Hkc, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkcert
+      rw [← Hstor]; iexact Hkc
     ipureintro
     obtain ⟨Hp, -, Hsid0⟩ : LogStoreOk (some sid) σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     subst Hp
@@ -71,6 +76,7 @@ theorem raftLog.snapshot.wp_proof
     ihave %Hnosnap := (ownSnap_None _).1 $$ Husnap
     rw [decide_eq_true Hnosnap]
     wp_auto
+    take_storage Hsn
     -- (D19i part 1) what raft knows of the compaction: its own boundary, or the application's
     ihave Hn : (∃ n : Int, (⌜n ≤ 0⌝ ∨ storCut (GF := GF) lv.storage' n) ∗
         ⌜uint.Z ls.prev.index' ≠ 0 ∨ 1 ≤ n⌝) $$ []
@@ -96,7 +102,7 @@ theorem raftLog.snapshot.wp_proof
     icases Herr with (%Herr | ⟨%Herr, Hv⟩)
     · ileft; ipureintro; exact Herr
     iright
-    icases Hv with ⟨%sv, Hv, %Hsv⟩
+    icases Hv with ⟨%sv, Hv, %Hsv, Hvc⟩
     obtain ⟨Hnz', Hwhich⟩ := Hsv
     obtain ⟨Hp, Hstored, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hsn ▸ Hstore
     -- (stage R8a) the storage is compacted -- its boundary is the log's, or (D19i part 1) the
@@ -110,21 +116,26 @@ theorem raftLog.snapshot.wp_proof
     · ipureintro; exact Herr
     iexists sv
     iframe Hv
+    isplitr
+    rotate_left
+    · icases Hvc with (%Hz | #Hvc)
+      · exact absurd Hz Hnz
+      · rw [← Hstor]; iexact Hvc
     ipureintro
-    rcases Hwhich with ⟨Hid, Hal, Hcs⟩ | ⟨Hgt, Hge, Hle, Ht⟩
+    rcases Hwhich with ⟨Hid, Hal, Hcs, Hdt⟩ | ⟨Hgt, Hge, Hle, Ht⟩
     · have Hss : σ.ss.index' ≠ W64 0 := by
         rw [← Hid]; simp only [snapId]; exact Hnz
       have Hk := Hsksn Hss
-      rw [← Hid, ← Hal, ← Hcs] at Hk
+      rw [← Hid, ← Hal, ← Hcs, ← Hdt] at Hk
       rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
       · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
       · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht
         exact ⟨Hnz, Hle, Ht, .inl Hk⟩
     · -- (D19i part 1) the application's snapshot, at or below the floor: committed, and an
       -- entry of the log (`termAt_log_below`)
-      obtain ⟨HflE, Hfla, Hflip, Hab⟩ := Hfl
+      obtain ⟨HflE, Hfla, Hflip, Hab, -⟩ := Hfl
       rw [HflE] at Hle
-      have Hip := Hflip Hsn
+      have Hip := Hflip
       have Hpers := Hpersist Hsn
       rw [← Hpend.1] at Hpers
       refine ⟨Hnz, by omega, ?_, .inr Hle⟩

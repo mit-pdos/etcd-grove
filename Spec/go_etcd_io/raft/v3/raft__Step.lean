@@ -112,6 +112,39 @@ theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : MessageM} {ents : List Ent
 def StepMsg [FfiSyntax] (m : MessageM) : Prop :=
   m.Type' ∈ stepMsgTypes
 
+/-! ### A snapshot's acknowledgement (D22 S-d2, 2026-10-21)
+
+The acknowledgement `RawNode.Advance` steps after a `Ready` that handed out a snapshot carries
+it (`newStorageAppendRespMsg`, `rawnode.go:266`: `Snapshot` set), and both arms of `Step` that
+take a `MsgStorageAppendResp` apply it (`appliedSnap`, after the `stableTo` of the entries the
+`Ready` also handed out, in the current-term arm). The application's receipt is absorbed before
+the step (`ownRaftLog_absorb_snap`: the storage at the pending snapshot, `sat`); the arm opens
+the `sapp` window from it (`ownRaftLog_sapp`). -/
+
+/-- The log the acknowledgement's `stableTo` sees: with a snapshot acknowledged and the storage
+at the pending snapshot, in the `sapp` window. -/
+def ackLog [FfiSyntax] (ls : LogState) (sn : Option SnapshotM) : LogState :=
+  match sn with
+  | none => ls
+  | some _ => if ls.sat then { ls with sapp := true } else ls
+
+/-- The entry the acknowledgement's `stableTo` is called at, if it is: in the current-term arm
+(`Term` `0` or the node's) with an `Index`. -/
+def ackStableId [FfiSyntax] (m : MessageM) (t : w64) : Option entryID :=
+  if (m.Term' = W64 0 ∨ m.Term' = t) ∧ m.Index' ≠ W64 0 then some ⟨m.LogTerm', m.Index'⟩
+  else none
+
+/-- The log after the acknowledgement of a snapshot `sv` at a node of term `t`: `stableTo` (if
+called) in the `sapp` window, then `appliedSnap`'s `stableSnapTo` and `appliedTo`. -/
+def ackSnapLog [FfiSyntax] (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) : LogState :=
+  logAppliedTo
+    (logStableSnap
+      (match ackStableId m t with
+       | some id => logStableTo (ackLog ls (some sv)) id
+       | none => ackLog ls (some sv))
+      sv.Metadata'.Index')
+    sv.Metadata'.Index' (W64 0)
+
 /-- What a `Step` of one of the messages `RawNode` steps itself leaves of the node's
 physical state beyond the protocol (2026-10-09): the term, the entries a `Ready` handed
 out that the application has not appended yet (`unpersisted`), the pending snapshot,
@@ -185,6 +218,15 @@ theorem NetFrame.ns [FfiSyntax] {s s' : NState} (H : NetFrame s s') : s'.gh = s.
 
 theorem LocalFrame.ns [FfiSyntax] {s s' : NState} (H : LocalFrame s s') : s'.gh = s.gh :=
   H.2.2.2.2.2.2.2.2.1
+
+/-- (D22 S-b′3) ... and the storage (`ghostRest`'s certificate link is of it). -/
+theorem NetFrame.nsst [FfiSyntax] {s s' : NState} (H : NetFrame s s') :
+    s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage :=
+  ⟨H.ns, H.2.2.2.2.2.1⟩
+
+theorem LocalFrame.nsst [FfiSyntax] {s s' : NState} (H : LocalFrame s s') :
+    s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage :=
+  ⟨H.ns, H.2.2.2.2.2.2.1⟩
 
 theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
@@ -291,6 +333,69 @@ theorem RespStep.of_fresh [FfiSyntax] {m : MessageM} {s s' : NState}
     (h3 : m.Type' ≠ MsgPreVoteResp) (hge : uint.Z s.term ≤ uint.Z m.Term') :
     RespStep m s s' :=
   ⟨fun _ hlt => absurd hlt (Int.not_lt.2 hge), fun h => absurd h h3⟩
+
+/-- (2026-10-20, D22 S-c) What a `MsgSnap`'s step leaves of the state beyond the protocol, and how
+it moves the term: as `NetFrame`, but for the log's boundary and its pending snapshot, which a
+restore sets (`logRestore`: the snapshot's id, and the snapshot pending), and with `applied` kept;
+the term as `TermStep`'s, but for `offsetInProgress`, which a restore moves to the snapshot's index
+plus one (back, when the snapshot is below the log's last index). The role is a follower's after
+a snapshot of the current or a later term, and unchanged after a stale one (`PreCandStep`). What
+the `RawNode` predicate needs to survive a `MsgSnap` (`RawNode.Step`). -/
+def SnapStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+  s'.logst.applying = s.logst.applying ∧
+  s'.logst.unpersisted = s.logst.unpersisted ∧
+  s'.logst.stored = s.logst.stored ∧
+  s'.logst.storage = s.logst.storage ∧
+  s'.prevote = s.prevote ∧
+  s'.gh = s.gh ∧
+  s'.logst.fl = s.logst.fl ∧ s'.logst.applied = s.logst.applied ∧
+  uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') ∧
+  PreCandStep m s s'
+
+/-- (D22 S-d3b, 2026-10-21) **What a `MsgApp`'s step does to the in-progress entries**: it moves
+`offsetInProgress` back only by a truncation (`TruncAt`: above the commit index, at an entry of the
+message's batch the log did not have), and only at the message's term. With the leader's log the
+message carries (`isMessage`), this is what the `RawNode` keeps of a batch a `Ready` handed out
+that a `MsgApp` cut (`ackLostW`, `InvRawnode.lean`), for a later restore's Log Matching. -/
+def AppTrunc [FfiSyntax] (m : MessageM) (ents : List EntryM) (s s' : NState) : Prop :=
+  uint.Z s'.logst.inprogress < uint.Z s.logst.inprogress →
+  s'.term = m.Term' ∧ TruncAt s.logst ents s'.logst.inprogress
+
+/-- A step that keeps `offsetInProgress`. -/
+theorem AppTrunc.of_ip [FfiSyntax] {m : MessageM} {ents : List EntryM} {s s' : NState}
+    (h : s'.logst.inprogress = s.logst.inprogress) : AppTrunc m ents s s' :=
+  fun hl => absurd hl (by rw [h]; exact Int.lt_irrefl _)
+
+/-- A dropped snapshot's step. -/
+theorem SnapStep.refl [FfiSyntax] (m : MessageM) (s : NState) : SnapStep m s s :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
+    fun h => ⟨rfl, .inl h⟩⟩
+
+/-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
+log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the
+log already has: the commit index fast-forwarded), or `restore`'s third exit -- at the message's
+term, past the commit index, of a snapshot whose last entry the log did not have (`!matchTerm`),
+the log now the snapshot alone. The `RawNode` needs the restore's facts for the acknowledgement of
+a `Ready` the restore came between (`ackBaseW`, `InvRawnode.lean`). -/
+def SnapLogStep [FfiSyntax] (sv : SnapshotM) (m : MessageM) (s s' : NState) : Prop :=
+  (s'.logst.prev = s.logst.prev ∧ s'.logst.snap = s.logst.snap ∧
+   s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents ∧
+   s'.logst.inprogress = s.logst.inprogress) ∨
+  (s'.term = m.Term' ∧ s'.logst.prev = snapId sv ∧ s'.logst.snap = some (snapId sv) ∧
+   s'.logst.sents ++ s'.logst.uents = [] ∧
+   uint.Z s.logst.committed < uint.Z sv.Metadata'.Index' ∧
+   ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv))
+
+theorem SnapLogStep.refl [FfiSyntax] (sv : SnapshotM) (m : MessageM) (s : NState) :
+    SnapLogStep sv m s s :=
+  .inl ⟨rfl, rfl, rfl, rfl⟩
+
+/-- (2026-10-20, D22 S-c) The configuration after a `MsgSnap` holding the snapshot `sn`: `c`, or the
+one the snapshot's `ConfState` denotes (`snapCfg`), after a restore. -/
+def SnapCfgOut [FfiSyntax] (id : w64) (sn : Option SnapshotM) (c c' : CfgM) : Prop :=
+  c' = c ∨ ∃ sv, sn = some sv ∧ c' = snapCfg sv sv.Metadata'.ConfState'.lists ∧
+    -- (D22 S-b′4) its `ConfState` naming the node
+    sv.Metadata'.ConfState'.lists.Has id
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -419,19 +524,31 @@ abbrev raft.Step.spec : Prop :=
      (m.From' = W64 0 ∨ m.From' = id)) →
   -- The two local acknowledgements `RawNode.Advance` steps (2026-10-05), as
   -- `acceptReady` builds them (`InvRawnode.lean`, `appendAckMsg`, `applyAckMsg`). A
-  -- `MsgStorageAppendResp` carries no snapshot (a pending snapshot is out of `Ready`'s
-  -- scope; `appliedSnap` is phase 2), is not from a later term (it would make the node
+  -- `MsgStorageAppendResp` (until D22 S-d2 carrying no snapshot) is not from a later term (it would make the node
   -- step down to a term no message brought), and -- when its `stableTo` runs (`Term`
   -- `0` or current, a nonzero `Index`) -- acknowledges only persisted entries
   -- (`StableOk`: Go compares only the term at `Index`). A `MsgStorageApplyResp` is
   -- local (`Term = 0`); its entries' last index is committed (the bound is in `"Hm"`,
   -- where the list is named).
+  -- (D22 S-d2, 2026-10-21) It may carry a snapshot (until then `sn = none`), the one the
+  -- storage is at if it is the pending one (`sat`; the application's receipt absorbed before
+  -- the step), at or below the log's boundary (the pending one, or older after a second restore),
+  -- in the static mode (the dynamic mode takes no snapshot), with `appliedTo`'s auto-leave
+  -- premise; the `StableOk` is of the log in the window the arm opens (`ackLog`).
   (m.Type' = MsgStorageAppendResp →
-     sn = none ∧
+     (∀ sv, sn = some sv →
+        snapHit s.logst.snap sv.Metadata'.Index' = s.logst.sat ∧
+        uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.prev.index' ∧
+        md.isDyn = false ∧ (c.autoLeave = true → s.role ≠ .leader) ∧
+        -- (D22 S-d4 item 3) with a snapshot pending and the storage back, the storage holds the
+        -- log up to the acknowledged snapshot (`LogState.sxt`; `appliedSnap` moves `applying` there)
+        (s.logst.snap ≠ none → s.logst.lent = false →
+          uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) ∧
+        (∀ k, s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index')) ∧
      uint.Z m.Term' ≤ uint.Z s.term ∧
      (m.Term' = W64 0 ∨ m.Term' = s.term →
       m.Index' ≠ W64 0 →
-      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧
+      StableOk (ackLog s.logst sn) (entryID.mk m.LogTerm' m.Index')) ∧
      -- (2026-10-10) `stableTo` may hand out every unstable entry still to come
      -- (`NGhost.unst`): `RawNode.Advance` steps it only after `acceptReady` reset the flag
      s.gh.unst = false) →
@@ -515,19 +632,29 @@ abbrev raft.Step.spec : Prop :=
       -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
       -- `CSWf`, no repeats, `AutoLeave` off when not joint, the index below `2^61` -- a pending
       -- snapshot becomes the `Storage`'s boundary, which `isStorage`'s `Hbounded` bounds the
-      -- same way), the node one of its ids (`CSLists.Has`); what the mode asks of it
+      -- same way) (since D22 S-b, D22j, naming the node or not: `restore`'s `!found` exit refuses
+      -- it, `Step.snapStale`; until then a premise `CSLists.Has`); what the mode asks of it
       -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the
       -- `ConfState` the fold of the snapshot's prefix); and the abstraction `absSnap`
       -- (`Defs.lean`) -- the snapshot's metadata, not `m`'s own `Index`/`LogTerm` -- was
-      -- legitimately sent. Transport/client assumptions like the rest.
+      -- legitimately sent. Transport/client assumptions like the rest. (Since D22 S-b′4,
+      -- 2026-10-20, the scope and the static mode's need are the message certificate's, under
+      -- the lists' naming the node, `SnapScopeIf`/`GMode.SnapOkIf`: only the index bound and,
+      -- dynamically, `GMode.SnapOk` (`GMode.SnapDyn`) are left.)
       -- (stage R4) the snapshot the message holds (`sn = some sv`, owned in `"Hm"`) and the
       -- lists of its `ConfState` (until the retarget the read-only slices, `ownCSL`)
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
          ∃ (sv : SnapshotM) (scfg : CSLists),
+           -- (D22 S-b′4, 2026-10-20) the index bound only: the lists' scope and, statically, what
+           -- the mode asks come from the message's certificate (under its naming the node)
            ⌜sn = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-             SnapScope sv scfg ∧ scfg.Has id⌝ ∗
-           md.SnapOk γ sv scfg ∗
-           isMessage γ (absSnap m sv scfg)) }}
+             uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+           md.SnapDyn γ sv scfg ∗
+           -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`): its snapshot's configuration
+           -- certificate, which the step registers in the storage (`certLink`) before the restore
+           isMessageC γ (absSnap m sv scfg) ∗
+           -- (D22 S-r, 2026-10-21) and its data certificate, registered with it
+           snapDataOk γ sv.Metadata'.Index' sv.Data') }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -541,13 +668,26 @@ abbrev raft.Step.spec : Prop :=
       "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
-      "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
-      -- for every other message but a snapshot, what is kept of the log (2026-10-09)
-      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → NetFrame s s'⌝ ∗
+      -- (D22 S-d2) but for a snapshot's acknowledgement, which moves the log as `ackSnapLog` says
+      -- and nothing else
+      "%Hlocal" ∷ ⌜((m.Type' = MsgStorageAppendResp → sn = none) → LocalStepOk m ents s s') ∧
+                   (m.Type' = MsgStorageAppendResp → ∀ sv, sn = some sv →
+                      s' = { s with logst := ackSnapLog s.logst m s.term sv })⌝ ∗
+      -- for every other message but a snapshot (and its acknowledgement), what is kept of the
+      -- log (2026-10-09)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp →
+                   (m.Type' = MsgStorageAppendResp → sn = none) → NetFrame s s'⌝ ∗
       -- and how the term moves (2026-10-09)
       "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
       -- and what a response does to the role and the term (2026-10-10)
       "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
+      -- (2026-10-20, D22 S-c) for a snapshot, what is kept of the state and how the term moves
+      -- (`SnapStep`), and the configuration afterwards (`SnapCfgOut`)
+      "%Hsnapfr" ∷ ⌜m.Type' = MsgSnap → SnapStep m s s' ∧ SnapCfgOut id sn c c' ∧
+                     -- (D22 S-d3b) and what it did to the log (`SnapLogStep`)
+                     ∀ sv, sn = some sv → SnapLogStep sv m s s'⌝ ∗
+      -- (D22 S-d3b, 2026-10-21) a `MsgApp`'s truncation's mark (`AppTrunc`)
+      "%Htrunc" ∷ ⌜m.Type' = MsgApp → AppTrunc m ents s s'⌝ ∗
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗

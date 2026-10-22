@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftLog.acceptUnstable.wp_proof
     (wp_unstable_acceptInProgress : unstable.acceptInProgress.spec (GF := GF) (hG := hG)) :
     raftLog.acceptUnstable.spec (GF := GF) (hG := hG) := by
-  intro l ls Hunp0 Hs0
+  intro l ls Hunp0
   wp_start as H
   iNamed H
   iNamed Hlog
@@ -46,8 +46,6 @@ theorem raftLog.acceptUnstable.wp_proof
   have Hnw' : uint.Z lv.unstable'.offset' + (ls.uents.length : Int) < 2^64 := by omega
   -- the batch handed out (2026-10-10): `uents` from `offsetInProgress` on, which starts
   -- above the storage's boundary and at most one past what it holds (`LogPersistOk`)
-  obtain ⟨Hsp, -, -⟩ : LogStoreOk none σ ls.prev ls.sents ls.uents := Hs0 ▸ Hstore
-  have Hp0 := Hpersist Hs0
   have Hhead : ∀ e0, (nextUnstable ls).head? = some e0 →
       uint.Z e0.Index' = uint.Z ls.inprogress ∧
       uint.Z ls.inprogress - uint.Z lv.unstable'.offset' < (ls.uents.length : Int) := by
@@ -63,7 +61,8 @@ theorem raftLog.acceptUnstable.wp_proof
   obtain ⟨Hip0, Hip1⟩ := Hnip
   iclear Husnap Hpksn Hu_logger
   icases ownUnstable_reopen _ _ _ $$ Hlback Hun
-    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hipv⟩
+    with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hipv, %Hsipv⟩
+  clear Hsip
   -- the new `offsetInProgress` is the end of the log
   have Hend : uint.Z uv'.offsetInProgress'
       = uint.Z lv.unstable'.offset' + (ls.uents.length : Int) := by
@@ -75,17 +74,20 @@ theorem raftLog.acceptUnstable.wp_proof
       word
   have Hipo : uint.Z (logEnd ls) - uint.Z uv'.offset' = (ls.uents.length : Int) := by
     simp only [logEnd, logLast]; word
+  have Hsip : uv'.snapshotInProgress' = (ls.sip || ls.snap.isSome) := Hsipv
+  have HsipnN : ls.snap = none → (ls.sip || ls.snap.isSome) = false := by
+    intro h; rw [Hsipn h, h]; rfl
   have HpendN : PendLogOk σ
       { ls with inprogress := logEnd ls, unpersisted := nextUnstable ls,
-                stored := ls.sents ++ ls.uents } := by
+                stored := ls.sents ++ ls.uents, sip := ls.sip || ls.snap.isSome } := by
     refine ⟨Hpend.1, fun _ e0 He0 => ?_⟩
     obtain ⟨Hi, Hlt⟩ := Hhead e0 He0
     word
   have HpersistN : ls.snap = none → LogPersistOk σ ls.sents
       ls.uents (uint.Z (logEnd ls) - uint.Z uv'.offset') (nextUnstable ls)
       (ls.sents ++ ls.uents) := by
-    intro _
-    obtain ⟨-, -, H3, H4⟩ := Hp0
+    intro Hs
+    obtain ⟨-, -, H3, H4⟩ := Hpersist Hs
     refine ⟨?_, fun _ => H4.symm, H3, H4⟩
     rw [H4]
     exact (List.prefix_append_right_inj ls.sents).mpr (List.take_prefix _ _)
@@ -93,9 +95,17 @@ theorem raftLog.acceptUnstable.wp_proof
   unfold logAcceptUnstable
   reseal_raftLog
   all_goals first
+    | exact Hsip
+    | exact HsipnN
     | (simp only [logEnd, logLast]; word)
-    | exact ⟨Hfl.1, Hfl.2.1, fun _ => by
-        have := Hfl.2.2.1 Hs0; simp only [logEnd, logLast]; word, Hfl.2.2.2⟩
+    | exact ⟨Hfl.1, Hfl.2.1, by
+        have := Hfl.2.2.1; simp only [logEnd, logLast]; word, Hfl.2.2.2.1, Hfl.2.2.2.2⟩
+    -- (D22 S-d1b) a snapshot now in progress: the storage will hold the whole log
+    | exact ⟨fun _ => LogPersistRel_full _ _ _, fun hs hf => by
+        cases h : ls.snap with
+        | none => exact absurd h hs
+        | some _ => simp [h] at hf⟩
+    | (intro h; cases h; done)
 
 end proof
 

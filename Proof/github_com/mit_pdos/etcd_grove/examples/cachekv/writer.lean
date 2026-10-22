@@ -65,11 +65,21 @@ theorem writer.wp_proof :
       rw [← hP]; exact List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
     ihave Hau := put_au γr γm P hwl x.key' x.val' hxP $$ Hkv
     (try wp_auto)
-    wp_apply (watchkv.client_Put_rev cl ep V E γr cid mid context.backgroundCtxVal cd x.key' x.val'
-        slice.nil (fun _ => iprop(True)) []) $$ [Hau] as %resp %err Hout
+    ihave #Hput1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
+        isGrpcRpc y.addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec y.E y.γr y.cid y.mid) $$ []
+    · iapply BigSepL.bigSepL_singleton.2; iexact Hput
+    ihave #HF1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
+        mvcc.idxCert y.E.γ.idx [] $$ []
+    · iapply BigSepL.bigSepL_singleton.2; iexact HF0
+    wp_apply (client.client_Put_rep cl [⟨ep, E, γr, cid, mid⟩] V context.backgroundCtxVal cd
+        x.key' x.val' slice.nil (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
     · iframe #
-    icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | %Herr)
-    · subst Herr
+      isplitr; · iExactEq Hnc; rfl
+      isplitr; · iExactEq Hone; rfl
+      iapply BigAndL.bigAndL_singleton.2; iexact Hau
+    icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | %Herr)
+    · simp only [List.mem_singleton] at hy
+      subst hy Herr
       ihave #Hok := okFact_of_reply E γr [] x.key' x.val' _ cid mid m $$ Hr
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [] as ⟨Hown, Hinv⟩

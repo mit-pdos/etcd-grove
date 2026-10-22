@@ -3,7 +3,8 @@
 counterpart). `srv_netRaftOk`: the server `s`, as the transport's `Raft` (`tv.Raft`, the
 `*EtcdServer` interface value), meets `netRaftOk` from its `Process`, `IsIDRemoved`,
 `ReportUnreachable`, `ReportSnapshot` (their specs), each call borrowing an `lgMu` reader slot
-(`srvLgReader`, which `Process`'s `Logger()` reads with): what `rafthttp.Transport.Start` takes.
+(`srvLgReader`, which `Process`'s `Logger()` reads with): what `rafthttp.Transport.Start` takes,
+at any snapshot directory `γd` (D22 S-i).
 -/
 module
 
@@ -40,9 +41,9 @@ theorem srv_netRaftOk
     (wp_IsIDRemoved : EtcdServer.IsIDRemoved.spec (GF := GF) (hG := hG))
     (wp_ReportUnreachable : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
     (wp_ReportSnapshot : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG))
-    (γn : NetNames GF) (s : Loc) (id : w64) :
+    (γn : NetNames GF) (γd : GName) (s : Loc) (id : w64) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvProcOk γn s id ⊢ netRaftOk γn id (srvLgReader s) (srvIface s) := by
+      srvProcOk γn s id ⊢ netRaftOk γn id γd (srvLgReader s) (srvIface s) := by
   iintro ⟨#Hpkg, #Hok⟩
   iunfold netRaftOk
   iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
@@ -50,7 +51,7 @@ theorem srv_netRaftOk
   · ipureintro; rfl
   isplitr
   · iintro !> %ctx %cd %ml %Φ !> ⟨#Hctx, Hlr, Hrecv⟩ HΦ
-    wp_apply wp_Process γn s id ctx cd ml $$ [Hlr Hrecv] as %err Hlr
+    wp_apply wp_Process γn γd s id ctx cd ml $$ [Hlr Hrecv] as %err Hlr
     · iframe #; iframe Hlr Hrecv
     iapply HΦ $$ Hlr
   isplitr

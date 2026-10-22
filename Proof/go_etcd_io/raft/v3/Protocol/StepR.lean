@@ -321,7 +321,6 @@ inductive StepR : RState → List Msg → RState → Prop where
       m.src ≠ id →
       m.term = r.p.term →
       r.p.role ≠ .leader →
-      uint.Z m.index ≤ uint.Z r.p.commit →
       StepR r [m] { r with
         p := psendMsgs (padoptLeader r.p m.src)
           [Msg.mk .appResp id m.src r.p.term false r.p.commit (W64 0) (W64 0) (W64 0) []] }

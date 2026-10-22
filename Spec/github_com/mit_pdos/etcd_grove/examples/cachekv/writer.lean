@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `writer(cli, w, tried, lo, hi)` (cachekv.go): the Puts `tried[lo:hi]` through `New`'s client
-configured for one attempt, each with the writer's update (`put_au`: the workload lets the
+that sends a write at most once (`clientWriteOnce`), each with the writer's update (`put_au`: the workload lets the
 client deposit the plan's puts), logging each that returned no error in `w` with `okFact`
 (`wsInv`, the log's lock invariant).
 -/
@@ -36,7 +36,7 @@ abbrev writer.spec : Prop :=
   0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      isNewClient cl [ep] V ∗ clientKVOnce cl [ep] ∗
+      isNewClient cl [ep] V ∗ EtcdGrove.client.clientWriteOnce cl [ep] ∗
       isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
       tsl ↦*□ tried ∗ ckKV γr γm ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.cachekv.writes go!"mu" w)

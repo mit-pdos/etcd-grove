@@ -43,7 +43,7 @@ theorem callList.wp_proof (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
   wp_auto
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
   wp_apply wp_WithRange listTo as %f #Hf
   (try wp_auto)

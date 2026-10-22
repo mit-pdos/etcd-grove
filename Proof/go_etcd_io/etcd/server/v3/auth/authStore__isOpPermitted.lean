@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__Revision
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
 public import Spec.go_etcd_io.etcd.server.v3.auth.hasRootRole
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
 public import Spec.go_uber_org.zap.Uint64
 public import Spec.go_uber_org.zap.ByteString
 public import Spec.go_uber_org.zap.Error
@@ -44,12 +45,13 @@ theorem auth.authStore.isOpPermitted.wp_proof
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
+    (h_lockedReadTx : auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG))
     (h_isRangeOpPermitted : auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG)) :
     auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) := by
   intro st R user rev key re k e dk de pt
   wp_start as ⟨#Hinv, Hrd, Hk, He, %Hpt, %Hlen⟩
   iunfold authRd at Hrd
-  icases Hrd with ⟨Hen, Hca, HR⟩
+  icases Hrd with ⟨Hen, Hca, Hbr, HR⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave Hai : (authInit : IProp GF) $$ []
@@ -66,7 +68,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
   icases HeOR' with ⟨%eOR, #HeORa, -⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, ⟨%be, #Hbe, #Hbeok⟩, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (h_IsAuthEnabled st R) $$ [$Hinv $Hen] as %en Hen
@@ -110,20 +112,11 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iexists ErrAuthOldRevision, eOR
     iframe HeORa
     ipureintro; simp
-  iunfold authBackendOk at Hbeok
-  icases Hbeok with ⟨%bi, %Hbi, #HRT⟩
-  subst Hbi
-  wp_auto
-  wp_apply HRT as %tx Htx
-  iunfold authReadTxOk at Htx
+  wp_apply (h_lockedReadTx st R) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
+  iunfold authReadTxLocked at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Tk, #HRL, #HUG, #HRU⟩
-  wp_auto
-  wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
-  iapply HRL $$ HR
-  inext
-  iintro Htok
+  icases Htx with ⟨%Tk, Htok, #HUG, #HRU⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #user))
   iapply HUG $$ Htok

@@ -59,7 +59,8 @@ def memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) : IProp
     ([∗list] _x ∈ List.replicate 64 (), srvLeadTimeReader s) ∗
     ([∗list] _x ∈ List.replicate (64 - 2) (), srvLgReader s) ∗
     ([∗list] _x ∈ List.replicate 64 (), E.RD) ∗
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ))
+    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗
+    ([∗list] _x ∈ List.replicate 64 (), srvBemuReader s))
 
 /-- See the file header. -/
 abbrev startMember.spec : Prop :=
@@ -70,10 +71,10 @@ abbrev startMember.spec : Prop :=
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet ps → γ.reDyn = none → γ.reCCOk = ccOk ps → γ.reBoot = bootLog →
-  γ.reNoSnap = true → bootLog.length ≤ 2 ^ 60 →
+  γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ bud → γn.dir = dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → mvcc.backendNoCompaction →
+  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget3 ∗
       netAddrFree (GF := GF) peerAddr ∗ threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗

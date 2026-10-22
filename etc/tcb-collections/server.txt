@@ -51,6 +51,7 @@ axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
 axiom backend.optsAt
@@ -67,6 +68,9 @@ axiom backend.rtxSnap_persistent
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
+axiom backend.snapshot.Close.wp_proof
+axiom backend.snapshot.Size.wp_proof
+axiom backend.snapshot.WriteTo.wp_proof
 axiom backend.txBytes
 axiom backend.txBytes_acc
 axiom backend.txBytes_persistent
@@ -97,6 +101,7 @@ axiom bbolt.Tx.DB_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
@@ -108,6 +113,8 @@ axiom fmt.Errorf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
+axiom io.Pipe.wp_proof
+axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -121,6 +128,7 @@ axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.HashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom newCorruptionChecker.wp_proof
+axiom os.Rename.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
@@ -152,9 +160,14 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
+axiom snap.Message.CloseNotify.wp_proof
+axiom snap.Message.GetTo.wp_proof
+axiom snap.NewMessage.wp_proof
+axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom sort.Stable.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
+axiom storage.OpenBackend.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom time.Duration.Seconds.wp_proof

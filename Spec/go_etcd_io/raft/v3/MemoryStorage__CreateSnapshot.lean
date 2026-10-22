@@ -57,7 +57,11 @@ storage, so it no longer takes `ownMemoryStorage`: the application's token (the 
 and boundary, `σt`) and the floor's witness (`memFloorTok ms γs x`, raft's published floor at
 least `x`, which also tells that the storage holds entries up to `x`). The premise: a newer `i`
 is at or above the boundary and at most `x`. The owner's view is unchanged: raft learns the new
-snapshot from `Snapshot()` (an application's snapshot at or below the floor). -/
+snapshot from `Snapshot()` (an application's snapshot at or below the floor).
+
+(D22 S-b′2, 2026-10-20) The new snapshot comes with its certificate in the storage's registry, at
+any term (`memStorCert`; an any-term entry, `CertKey`, gives it), since the call reads the term
+from the storage: the snapshot's home keeps it (`memSnapHome`). -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x i : w64) (cs : Loc) (dq : DFrac)
     (oc : Option ConfStateM) (data : GoSlice) (bs : List w8) (eood : GoInterface),
@@ -70,6 +74,10 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
                | none => iprop(⌜cs = null⌝)
                | some c => ownCSM cs dq c) ∗
       "Hdata" ∷ data ↦* bs ∗
+      -- (D22 S-b′2, 2026-10-20) the new snapshot certified in the storage's registry, at whatever
+      -- term the storage has at `i` (the call reads it)
+      "#Hcert" ∷ □ (∀ t : w64, memStorCert γs
+        (snapTrip (memSnapCreated σt i t oc bs) (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists)) ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
       (Val #i)) (Val #cs)) (Val #data))
@@ -83,7 +91,8 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
         ownSnapM snap' (DFrac.own 1) (memSnapCreated σt i t oc bs) ∗
         memSnapTok ms γs { σt with ss := entryID.mk t i,
                                    scs := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists,
-                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave' })) }}
+                                   sal := (memSnapCreated σt i t oc bs).Metadata'.ConfState'.AutoLeave',
+                                   sdat := bs })) }}
 
 end spec
 

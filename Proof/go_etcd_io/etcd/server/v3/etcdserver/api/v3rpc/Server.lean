@@ -338,8 +338,8 @@ theorem v3rpc.Server.wp_proof
   ihave #HdC := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdC
   ihave #HdA := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdA
   ihave #HdM := v3rpc.pbDescIs_grpc _ _ _ _ _ $$ HdM
-  wp_apply (hNewKV s C.A C.n C.lg C.qb C.mid Hbuq) $$ [Hlr Hbr]
-    as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp, Hlr, Hbr⟩
+  wp_apply (hNewKV s C.A C.n C.lg C.qb Hbuq) $$ []
+    as %kv ⟨%q, %p, %cid, %mid', %Hkv, #Hq, #Hp⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hkv
   (try wp_auto)
@@ -362,7 +362,7 @@ theorem v3rpc.Server.wp_proof
       v3rpc.watchDesc_nodup wsds HwD, ⟨_, rfl, v3rpc.ServerMethodSets.watch_te⟩⟩
     exact v3rpc.ServerMethodSets.watch_impl
   (try wp_auto)
-  wp_apply (hNewL s C.A C.lg0 C.lg C.qb C.mid Hbuq) $$ [Hlr Hbr] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, -, -, Hlr, Hbr⟩
+  wp_apply (hNewL s C.A C.lg0 C.lg C.qb Hbuq) $$ [] as %lv ⟨%ql, %lp, %lcid, %lmid, %Hlv, -, -⟩
   · iframe; iframe #; ipureintro; exact Hlgn
   subst Hlv
   (try wp_auto)

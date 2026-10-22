@@ -35,8 +35,8 @@ theorem raftLog.hasNextUnstableSnapshot.wp_proof
   isplitl
   · reseal_raftLog
   ipureintro
-  intro Hs
-  rw [Hp Hs]
+  simp only [unstableOf] at Hp
+  rw [← Hp]
   simp
 
 end proof

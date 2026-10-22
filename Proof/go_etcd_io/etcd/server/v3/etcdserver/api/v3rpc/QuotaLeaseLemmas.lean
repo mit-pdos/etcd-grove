@@ -30,28 +30,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`quotaLeaseServer.LeaseGrant` meets the embedded service's spec**, with the reader slot of
-`leadTimeMu` and the auth store's reader resource `E.RD` the alarm needs (from its spec). -/
+/-- **`quotaLeaseServer.LeaseGrant` meets the embedded service's spec**, with the quota check's
+reader slots (`quotaRd`, from its spec). -/
 theorem v3rpc.quotaLease_grantHandlerOk_of
     (wp_Grant : v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG))
     {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (q s : Loc) (ls : GoInterfaceOk)
-    (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) :
+    (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         v3rpc.quotaLeaseServerAt q ls s ∗
-        grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ∗
-        isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ⊢
+        grpcHandlerOk #(methods ls.ty go!"LeaseGrant" ls.v) S Spec ⊢
       grpcHandlerOk (q @!! go.GoType.PointerType v3rpc.quotaLeaseServer.ty @!! go!"LeaseGrant")
-        iprop(S ∗ srvLeadTimeReader s ∗ E.RD) Spec := by
-  iintro ⟨#Hp1, #Hp2, #Hq, #Hh, #Hsrv, #HNR⟩
+        iprop(S ∗ v3rpc.quotaRd s) Spec := by
+  iintro ⟨#Hp1, #Hp2, #Hq, #Hh⟩
   unfold grpcHandlerOk
-  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hlt, Hard⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
-  iapply (wp_Grant Req Rep Spec q s ls E ρ S m Φ ci cd r) $$ [HS Hlt Hard HSpec]
+  iintro %m %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hqr⟩, #Hctx, #Hrc, #Hr, HSpec⟩ HΨ
+  iapply (wp_Grant Req Rep Spec q s ls S m Φ ci cd r) $$ [HS Hqr HSpec]
   · iframe; iframe #
     unfold grpcHandlerOk
     iexact Hh
   inext
-  iintro %resp %err ⟨HS, Hlt, Hard, Hres⟩
+  iintro %resp %err ⟨HS, Hqr, Hres⟩
   iapply HΨ
   iframe
 

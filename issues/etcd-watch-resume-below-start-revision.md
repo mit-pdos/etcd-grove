@@ -6,6 +6,14 @@ links: []
 
 # A watch from a future revision can resume below its start revision after a reconnect
 
+- **Server step corrected** (2026-10-21): step 1 below does not happen on a real server. Every
+  supported branch's `progressIfSync` (`server/storage/mvcc/watchable_store.go`: `main`, release-3.4
+  to 3.6, the fork pin) returns without a progress notification when a watcher's start revision is
+  above the store's (`if rev < w.startRev { return false }`), for `WithProgressNotify` (`progress`)
+  and `RequestProgress` (`progressAll`) alike. Not yet checked: a `RequestProgress` broadcast
+  computed before this watch's create but sent (watch stream) after its `Created` (control stream),
+  which the client would broadcast to the new substream. Until such a path is shown, the bug needs
+  an older server.
 - **Status**: bug (a watch delivers events below the start revision it asked for), in the same code
   at upstream `main` and at the pinned `upamanyus/etcd` `a8a459955`. Reproduced deterministically
   (3 runs of 3); fixed on the fork branch `watch-resume-fixes` (`16f73d6eb`, on `a8a459955`; not

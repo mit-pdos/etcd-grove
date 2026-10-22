@@ -37,6 +37,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
+public import Proof.go_etcd_io.raft.v3.MemCertLink
 
 @[expose] public section
 
@@ -111,6 +112,60 @@ theorem kvStorCut_intro (s ms : Loc) (γs : MemStorNames) (n : Int) :
     iframe Hrec Hc
     ipureintro; rfl
   iexact H
+
+/-- (D22 S-r) The floor's witness, at a known storage: its `MemoryStorage`'s, below `2^61`. -/
+theorem kvStorFloor_at (s ms : Loc) (γs : MemStorNames) (x : w64) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ storFloor (kvStorIface s) x -∗
+      memFloorTok ms γs x ∗ ⌜uint.Z x < 2 ^ 61⌝ := by
+  iintro #Hrec Hc
+  ihave Hc : kvStorFloor (kvStorIface s) x $$ [Hc]
+  · iexact Hc
+  unfold kvStorFloor
+  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc, %Hx⟩
+  have := kvStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
+  subst H1 H2
+  iframe Hc
+  ipureintro; exact Hx
+
+theorem kvStorCert_at (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ storCert (kvStorIface s) k -∗ memStorCert γs k := by
+  iintro #Hrec Hc
+  ihave Hc : kvStorCert (kvStorIface s) k $$ [Hc]
+  · iexact Hc
+  unfold kvStorCert
+  icases Hc with ⟨%s', %ms', %γs', %Hst, #Hrec', Hc⟩
+  have := kvStorIface_inj (GF := GF) _ _ Hst
+  subst this
+  icases kvStorRec_agree s ms ms' γs γs' $$ Hrec Hrec' with ⟨%H1, %H2⟩
+  subst H1 H2
+  iexact Hc
+
+theorem kvStorCert_intro (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
+    ⊢ kvStorRec (GF := GF) s ms γs -∗ memStorCert γs k -∗ storCert (kvStorIface s) k := by
+  iintro #Hrec Hc
+  ihave H : kvStorCert (kvStorIface s) k $$ [Hc]
+  · unfold kvStorCert
+    iexists s, ms, γs
+    iframe Hrec Hc
+    ipureintro; rfl
+  iexact H
+
+/-- (D22 S-b′3, 2026-10-20) A store storage whose `MemoryStorage`'s registry is tied to `γ`
+(`memCertInv`) meets `storCertOk γ`. -/
+theorem kvStorCertOk_intro (γ : RaftNames) (s ms : Loc) (γs : MemStorNames) :
+    ⊢ memCertInv (GF := GF) γ γs -∗ kvStorRec s ms γs -∗ storCertOk γ (kvStorIface s) := by
+  iintro #Hinv #Hrec
+  unfold storCertOk
+  isplit
+  · iintro !> %k %E %hE #Hc
+    ihave #Hc := kvStorCert_at s ms γs k $$ Hrec Hc
+    iapply memCert_read γ γs k E hE $$ Hinv Hc
+  · iintro !> %k %E %hE #Hk
+    imod memCert_register γ γs k E hE $$ Hinv Hk with #Hc
+    imodintro
+    iapply kvStorCert_intro s ms γs k $$ Hrec Hc
 
 /-- **The store's storage is a raft `Storage`.** -/
 theorem kvStorage_isStorage
@@ -221,15 +276,17 @@ theorem kvStorage_isStorage
     ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
     -- the store's answer is non-empty outright; the clause asks it only once compacted
-    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv⟩)
+    icases Hr with (%Herr | ⟨%Herr, %sv, Hv, %Hsv, #Hc⟩)
     · ileft; ipureintro; exact Herr
     iright
     isplitr
     · ipureintro; exact Herr
     iexists sv
     iframe Hv
-    ipureintro
-    exact ⟨fun _ => Hsv.1, Hsv.2⟩
+    isplitr
+    · ipureintro
+      exact ⟨fun _ => Hsv.1, Hsv.2⟩
+    iright; iapply kvStorCert_intro s ms γs _ $$ Hrec Hc
   isplitr
   · imodintro
     iintro %σ %p Hown %Hpo
@@ -264,13 +321,14 @@ theorem kvStorage_isStorage
   imodintro
   iintro %σ %x Hown %Hx
   ihave Hown := kvOwnStorage_at s ms γs σ $$ Hrec Hown
+  icases ownMemoryStorage_bounded ms γs σ $$ Hown with ⟨%Hb, Hown⟩
   imod memStorage_floor ms γs σ x Hx $$ Hown with ⟨Hown, Hfw⟩
   ihave Hown := kvOwnStorage_intro s ms γs _ $$ Hrec Hown
   ihave H : kvStorFloor (kvStorIface s) x $$ [Hfw]
   · unfold kvStorFloor
     iexists s, ms, γs
     iframe Hrec Hfw
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, by have := Hx.2.2; omega⟩
   imodintro
   iframe Hown H
 

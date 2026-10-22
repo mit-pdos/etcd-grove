@@ -2,7 +2,7 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `callTxn`: the comparisons and operations (`cmpsFor`, `opsOf`), the builder
-(`client_Txn_st`, `If`, `Then`, `Else`: the model's transaction, `clientTxn`), `txn_Commit_st`,
+(`client.client_Txn_st`, `If`, `Then`, `Else`: the model's transaction, `clientTxn`), `txn_Commit_st`,
 then the output from the reply (`txnRes`, `withRes`).
 -/
 module
@@ -61,9 +61,9 @@ theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply context.wp_Background
   imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
-  imod (srvStart_alloc (GF := GF) ms) with #Hst
+  imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
-  wp_apply (client_Txn_st cl ms V context.backgroundCtxVal cd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
+  wp_apply (client.client_Txn_st cl ms V context.backgroundCtxVal cd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
   · iframe #
   subst Htv
   (try wp_auto)

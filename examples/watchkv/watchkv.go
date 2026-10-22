@@ -238,12 +238,12 @@ func Main(nw int, nops int) int {
 	}
 	go gs.Serve(l)
 
-	// One attempt per call (MaxUnaryRetries: 1, as linkv's): a Put is sent at most once, so the
-	// server applies it at most once (decision D21i).
+	// etcd's default client configuration (its default retries, as linkv's): the server never
+	// answers with a refusal (authentication off, a voter), so a Put is sent at most once and the
+	// server applies it at most once (decision D29).
 	cli, err := clientv3.New(clientv3.Config{
-		Endpoints:       []string{clientAddr},
-		Logger:          lg,
-		MaxUnaryRetries: 1,
+		Endpoints: []string{clientAddr},
+		Logger:    lg,
 	})
 	if err != nil {
 		return Failed

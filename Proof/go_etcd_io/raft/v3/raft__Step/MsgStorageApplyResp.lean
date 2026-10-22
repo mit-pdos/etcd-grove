@@ -159,9 +159,16 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
     icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
+    icases ownRaftLog_quiet _ _ $$ Hlog with ⟨%Hq0, Hlog⟩
     ihave Hphys := Hback $$ Hlog
+    -- (D22 S-d2) `appliedTo` is stated on the struct in the windows
+    ihave Hphys := ownRaftPhysCV_toW c r id s $$ Hphys
     wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He).1
-      (fun h => absurd (Hlast e He).2 (Int.not_le.2 h)) Hal $$ [$Hphys] as Hphys
+      (fun h => absurd (Hlast e He).2 (Int.not_le.2 h)) Hal Hq0.1
+      (fun h => absurd (Hq0.2.symm.trans h) (by decide))
+      (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
+      (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
+      (fun h => absurd (Hq0.2.symm.trans h) (by decide)) $$ [$Hphys] as Hphys
     try wp_auto
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es5 ⟨#Hes5, Hm⟩
     wp_apply _P.payloadsSize $$ [$Hes5] as %psz -

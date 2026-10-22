@@ -84,10 +84,7 @@ theorem Check.wp_proof
     iexact Hinv
   have HA0 := wp_Apply γ cl [⟨ep, E, γr, cid, mid⟩] V hAs (List.cons_ne_nil _ _)
   simp only [List.map_cons, List.map_nil] at HA0
-  -- one attempt: a write sent at most once (D21 M6; `clientWriteOnce`'s first case, D29)
-  ihave #Hone' : client.clientWriteOnce (GF := GF) cl [ep] $$ []
-  · iunfold client.clientWriteOnce; ileft; iexact Hone
-  ihave #HA := HA0 $$ Hpkg Pcli Hcl Hone' Hregs Hinvs
+  ihave #HA := HA0 $$ Hpkg Pcli Hcl Hone Hregs Hinvs
   wp_apply wp_Model as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   ihave #Hm := isModel_of_step linkvtxnS m $$ [Hinit Hstep Heh]
   · iframe Hinit Hstep Heh

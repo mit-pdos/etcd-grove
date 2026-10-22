@@ -5,7 +5,7 @@
 A closed theorem about the operational semantics of `linkv`'s program (`examples/linkv`): the
 package's initialization (which initializes its import closure: etcd's server, its gRPC layer,
 the client, raft, porcupine, the driver `lintest`, ...) followed by `Main(clients, ops)` -- one
-etcd member started in process, a client configured for one attempt per call, `clients` clients
+etcd member started in process, a client with etcd's default configuration, `clients` clients
 of `ops` random operations each through it (`lintest.Run`), the recorded history checked by
 porcupine against the model of a key-value store, and a panic ("linkv: porcupine found the history
 not linearizable") if porcupine answers `Illegal` -- started from a fresh state (no package
@@ -123,7 +123,7 @@ theorem linkv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
@@ -186,7 +186,7 @@ theorem linkv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := linkv.wp_Main (GF := linkvGF) n id bootLog clients ops Hbf
-    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hnoc Hms hAs
+    (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

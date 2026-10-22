@@ -79,6 +79,7 @@ whose authority is in `kvStorInv`) so that a storage's tokens are of its own nam
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Base
+public import Proof.go_etcd_io.raft.v3.MemCertLink
 
 @[expose] public section
 
@@ -110,17 +111,17 @@ class KVStor (GF : BundledGFunctors) where
   kvStorName : GName
 
 abbrev MemStorRec :=
-  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int
+  Loc × GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Int × GName
 
 def memStorRec (ms : Loc) (γs : MemStorNames) : MemStorRec :=
-  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap)
+  (ms, γs.hist, γs.done, γs.ep, γs.sn, γs.sw, γs.lk, γs.ok, γs.ak, γs.cb, γs.bd, γs.cap, γs.cert)
 
 theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
     memStorRec ms1 γs1 = memStorRec ms2 γs2 → ms1 = ms2 ∧ γs1 = γs2 := by
   intro h
   cases γs1; cases γs2
   simp only [memStorRec, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h
   exact ⟨rfl, rfl⟩
 
 def kvStorN : Namespace := nroot.@"kv_storage"
@@ -170,10 +171,16 @@ def kvStorCut (st : Storage) (n : Int) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
     memStorCut γs n)
 
-/-- (D19i part 1) The floor's witness: its `MemoryStorage`'s. -/
+/-- (D19i part 1) The floor's witness: its `MemoryStorage`'s; (D22 S-r) below `2^61`, as the
+storage's extent is (what a snapshot taken at the floor needs, `SnapListsOk`). -/
 def kvStorFloor (st : Storage) (x : w64) : IProp GF :=
   iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
-    memFloorTok ms γs x)
+    memFloorTok ms γs x ∗ ⌜uint.Z x < 2 ^ 61⌝)
+
+/-- (D22 S-b′2) The snapshot `k` is certified in the storage's registry: its `MemoryStorage`'s. -/
+def kvStorCert (st : Storage) (k : SnapTrip) : IProp GF :=
+  iprop(∃ (s ms : Loc) (γs : MemStorNames), ⌜st = kvStorIface s⌝ ∗ kvStorRec s ms γs ∗
+    memStorCert γs k)
 
 /-- The store's storage model: every `Storage` is a registered store storage. -/
 instance kvStorageModel : StorageModel GF where
@@ -188,6 +195,8 @@ instance kvStorageModel : StorageModel GF where
   storCap := fun _ _ => iprop(False)
   storCap_persistent := fun _ _ => by infer_instance
   storCut_cap := fun _ _ _ => by iintro ⟨-, %H⟩; exact H.elim
+  storCert := kvStorCert
+  storCert_persistent := fun st k => by unfold kvStorCert; infer_instance
 
 /-- The registry: each registered storage keeps half of its `MemoryStorage` field here
 (so that a storage is registered once: a new one has the whole field). -/
@@ -397,8 +406,9 @@ def isReplica (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc
     "#HisNode" ∷ isNode γp.node id n ∗
     "%Hraft" ∷ ⌜γp.node.raft = γr.raft⌝ ∗
     "%Hstor" ∷ ⌜γp.node.stor = kvStorIface st⌝ ∗
-    -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (`KVCC`): leader transfer on
-    "%Hns" ∷ ⌜γp.node.raft.reNoSnap = false⌝ ∗
+    -- (2026-10-19, D21 M2r) leader transfer on (`KVStat`; D22 S-a: `RaftNames.reNoXfer`, until
+    -- then out of raft's no-snapshot mode)
+    "%Hns" ∷ ⌜γp.node.raft.reNoXfer = false⌝ ∗
     "#Hmu" ∷ sync.isMutex (r.[RKV, go!"mu"]) (lockInv γr γp id r) ∗
     "#Hinv" ∷ rkvInv γr)
 
@@ -450,10 +460,10 @@ instance rsOk_persistent (γ : RaftNames) (v : ReadState) : Persistent (rsOk (GF
   unfold rsOk; infer_instance
 
 /-- The applier's state (the `run` goroutine's): the store's map, every key's value (a key it
-lacks has the value `[]`, as for Go's lookup), and the applied-encodings table, at the
-committed prefix `ap` it applied. -/
+lacks has the value `[]`, as for Go's lookup), and the applied-encodings table (2026-10-22: each
+with its answer, `AppliedOk`), at the committed prefix `ap` it applied. -/
 def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
-  iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (mA : Loc) (A : GMap (List w8) Bool)
+  iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (mA : Loc) (A : GMap (List w8) (List w8))
       (ods : List (Option (List w8))),
     "HmK" ∷ r.[RKV, go!"kv"] ↦ mK ∗
     "HK" ∷ mK ↦$ K ∗
@@ -464,44 +474,46 @@ def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = kvFold (firstOcc ods) k⌝ ∗
     "%HA" ∷ ⌜AppliedOk A (firstOcc ods)⌝)
 
+/-- (D22 S-r, 2026-10-21) **What the applier holds of its storage `st`**, at the application's
+view `σt` of the `MemoryStorage`'s snapshot and boundary: the storage's snapshot token
+(`memSnapTok`: the right to install a snapshot, take one and compact), the certificate
+registry's invariant at raft's names (to register the snapshots it takes), the storage's cap
+(`NewStorage`'s, `2^64`), and the cluster's voters (`Storage.voters`), the configuration of every
+snapshot it takes. The application's snapshot is at its boundary or past it. -/
+def runStor (γr : RKVNames) (st : Loc) (σt : StorState) : IProp GF :=
+  iprop(∃ (ms : Loc) (γs : MemStorNames) (vsl : GoSlice) (vs : List w64),
+    kvStorRec st ms γs ∗ memSnapTok ms γs σt ∗ memCertInv γr.raft γs ∗
+    st.[RStorage, go!"voters"] ↦□ vsl ∗ vsl ↦*□ vs ∗
+    ⌜γs.cap = 2 ^ 64 ∧ GMap.listToSet vs = γr.raft.reCfg ∧ vs.Nodup ∧ vs ≠ [] ∧ W64 0 ∉ vs ∧
+      (vs.length : Int) ≤ 2 ^ 62 ∧ uint.Z σt.prev.index' ≤ uint.Z σt.ss.index'⌝)
+
 end ghost
 
-/-! ## The cluster's configuration changes (2026-10-15, stage N)
+/-! ## The cluster's mode (2026-10-21, D22 S-r; from 2026-10-15, stage N, until then dynamic)
 
-The replicas' nodes are in raft's dynamic mode: the voters change by the conf-change entries
-their `run`s apply (`node.ApplyConfChange`, before the `Advance` that acknowledges them). A pure
-decoder (`CCDec`) cannot read an entry's bytes, so the cluster's conf changes are fixed in
-advance: every conf-change entry carries the change `op` (raft's `reCCOk`, at allocation), and
-the decoder answers `op` (`ccDecOf`). `op` applies at the initial configuration `c0`, giving
-`c1`, and again at `c1`, giving `c1` (a removal of a voter: removing it again is nothing); so
-the configuration a replica's node is at is `c0` or `c1` (`RunCfg`). -/
+The replicas' nodes are in raft's **static** mode, where a node takes snapshots (D22 S-d4:
+`NodeNames.snapIn` needs it; the cluster's data certificate `kvSnapOk`, `Base.lean`): the voters are the cluster's for good, and the cluster admits no
+configuration change (raft's `reCCOk` refuses every bytes, at allocation), so no committed entry
+is a conf change (`kvStat_type0`) and `run`'s `ApplyConfChange` branch is dead. From stage N to
+D22 S-r the cluster was in the dynamic mode of one change, `RemoveMember(3)`'s (`KVCC`, `RunCfg`,
+the conf-change branch of `run` live); a dynamic node takes no `MsgSnap`. `RemoveMember`'s spec
+stays generic (`CCAllowed`), for a cluster that admits the change. -/
 
 section ccfg
 variable [FfiSyntax]
 
-/-- The decoder of a cluster whose conf-change entries all carry the change `op`. -/
-def ccDecOf (op : CCOp) : CCDec := fun _ _ => some op
-
-/-- A replica's node in the dynamic mode of a cluster whose conf changes are all `op` (see
-the section header). -/
-def KVCC (γn : NodeNames) (op : CCOp) (c0 c1 : CCState) : Prop :=
-  (∃ h0 h1, γn.mode = .dyn (ccDecOf op) c0 h0 h1) ∧
-  (∀ ty bs, γn.raft.reCCOk ty bs →
-    ty = W32 1 ∧ ∃ m, ccDecodeV1 bs = some m ∧ ccV2Of (.v1 m) = op) ∧
-  ccStepB op c0 = some c1 ∧ ccStepB op c1 = some c1 ∧ c1.cfg.autoLeave = false ∧
-  -- (2026-10-19, D21 M2r) out of raft's no-snapshot mode (a cluster without a bootstrap log), in
-  -- which leader transfer is on (`node.TransferLeadership`'s premise)
-  γn.raft.reNoSnap = false
+/-- A replica's node in the cluster's static mode (see the section header): no conf change
+admitted, leader transfer on (`node.TransferLeadership`'s premise; D22 S-a: `RaftNames.reNoXfer`). -/
+def KVStat (γn : NodeNames) : Prop :=
+  γn.mode = .static ∧ (∀ ty bs, ¬ γn.raft.reCCOk ty bs) ∧ γn.raft.reNoXfer = false ∧
+  -- (D22 S-r) the node takes snapshots (`NodeNames.snapIn`), of the cluster's data (`kvSnapOk`,
+  -- `RaftNames.reSnapOkRaw`), in the static mode with no tracked bound
+  γn.snapIn = true ∧ γn.raft.reSnapOkRaw = kvSnapOk ∧ γn.raft.reDyn = none ∧
+  γn.raft.reTracked = none
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/
 def rmCC (id : w64) : CCV1M := { type := W32 1, nodeId := id, context := [], id := W64 0 }
-
-/-- What `run` knows of its node's configuration, at the committed log `D` applied up to
-position `len`: the configuration index `ca` of the last conf change applied, past which `D`
-has no conf entry before `len`, and the configuration, `c0` or `c1`. -/
-def RunCfg (D : List EntryM) (len ca : Nat) (cfg c0 c1 : CCState) : Prop :=
-  ca ≤ len ∧ NoConfIn D ca len ∧ (cfg = c0 ∨ cfg = c1)
 
 end ccfg
 

@@ -30,7 +30,7 @@ abbrev mvcc.store.compactBarrier.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (ch : GoChan) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ schedule.schedLive γ.sch ∗ mvcc.barrierCtx ctx cd ∗ mvcc.compactCloser ch Q ∗ □ Q }}
+      mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ schedule.schedLive γ.sch ∗ mvcc.barrierCtx ctx cd ∗ mvcc.compactCloser ch Q ∗ □ Q }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactBarrier"))
       (Val #(GoInterface.ok ctx))) (Val #ch))
   {{ RET #(); True }}

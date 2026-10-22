@@ -3,7 +3,7 @@ The cache watch example's results (`examples/cachekv/cachekv.go`), restated, wit
 of each printed in the build log (`#print axioms`). Lean-first (no Rocq counterpart).
 
 * **`cachekv_Main`** (`Link.lean`'s `cachekv.wp_Main`): `Main(nw, nops)` -- the Puts picked, one
-  etcd member started in process, a one-attempt client, a cache of the prefix over it, the cache's
+  etcd member started in process, a client with etcd's default configuration, a cache of the prefix over it, the cache's
   watch of the prefix from revision `2`, `nw` writers, the watch read up to the highest successful
   revision, and a check that panics unless the watched events are exactly the writes -- does not
   panic and returns `Ok`, `Failed` or `WatchEnded`. From `isPkgInit cachekv`, the right to listen
@@ -68,7 +68,7 @@ theorem cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hnoc : mvcc.backendNoCompaction)
+    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (nw nops : w64)
     (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
@@ -85,7 +85,7 @@ theorem cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  cache_adequate Hctx Hcec Hms hAs id bootLog Hbf Hck Haf Hbuq Hnoc nw nops H0 H31 Hops Hmul
+  cache_adequate Hctx Hcec Hms hAs id bootLog Hbf Hck Haf Hbuq Hdbo nw nops H0 H31 Hops Hmul
     HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

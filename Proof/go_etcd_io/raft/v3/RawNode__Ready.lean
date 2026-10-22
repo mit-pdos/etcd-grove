@@ -48,14 +48,15 @@ theorem RawNode.Ready.wp_proof
   iNamed H
   wp_auto
   wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
-    as %rd %ce %es %ms %sts %h H
+    as %rd %ce %es %ms %sts %h %L H
   iNamed H
-  imod ownRawNodeReady_handout γ rn id rs rd ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr, -⟩
-  wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms $$ [$Hrn] as %steps H
+  imod ownRawNodeReady_handout γ rn id rs rd ce es ms L $$ Hrn with ⟨Hrn, Happ, Hcr, -⟩
+  wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms h L $$ [$Hrn $Hhard] as %steps H
   iNamed H
-  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps
-  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard
-  ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
+  iapply HΦ $$ %rd %ce %es %ms %sts %h %steps %L
+  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_own Hmsgs_ok Hcr Happ Hrs Hrs_ok Hhard Hhsw
+    Hsnapz
+  ipureintro; exact ⟨Hmsgs_term, Hpsn⟩
 
 end proof
 

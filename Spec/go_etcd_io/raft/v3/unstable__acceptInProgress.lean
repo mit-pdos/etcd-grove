@@ -30,8 +30,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 Every unstable entry is in progress afterwards. With the indices contiguous from
 `offset` (what `ownRaftLog`'s `LogIndicesOk` and `Hoffset` give) the last entry's index
-is `offset + len - 1`, so `offsetInProgress` becomes `offset + len`;
-`snapshotInProgress` is not tracked. -/
+is `offset + len - 1`, so `offsetInProgress` becomes `offset + len`; a pending snapshot is
+in progress afterwards (`sip`, since D22 S-d1, 2026-10-20; until then not tracked). -/
 abbrev unstable.acceptInProgress.spec : Prop :=
   ∀ (u : Loc) (us : UnstableSt),
   (∀ (k : Nat) (e : EntryM), us.ents[k]? = some e →
@@ -42,7 +42,7 @@ abbrev unstable.acceptInProgress.spec : Prop :=
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"acceptInProgress"))
       (Val #()))
   {{ (ip : w64), RET #();
-      ownUnstable u { us with inprogress := ip } ∗
+      ownUnstable u { us with inprogress := ip, sip := us.sip || us.snap.isSome } ∗
       ⌜(us.ents = [] → ip = us.inprogress) ∧
         (us.ents ≠ [] → uint.Z ip = uint.Z us.offset + (us.ents.length : Int))⌝ }}
 

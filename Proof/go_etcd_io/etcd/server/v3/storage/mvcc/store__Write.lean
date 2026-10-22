@@ -31,10 +31,9 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %Dep, Hs⟩
+  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %Dep, %scfg, %ssched, %sstop, %shs, Hs⟩
   iNamed Hs
   iunfold mvcc.storeReaderC at Hrd
-  icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
   wp_auto_lc 1
   -- the caller's hook is the store's
@@ -53,22 +52,22 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or
   -- above the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
-  wp_auto_lc 1
+  wp_auto_lc 3
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
+  -- a slot of the index's lock, out of the readers' pool (D22 receiver epochs, S4)
+  icases (mvcc.wDep_halves γ).1 $$ Hwr with ⟨Hwr, Hwr2⟩
+  imod mvcc.readerPool_checkout γ $$ Hlc3 Hpool HtkR Hwr2 with ⟨Hslot, Htko⟩
+  iunfold mvcc.idxSlot at Hslot
+  icases Hslot with ⟨%ti2, #HidxR, HtiR⟩
+  icases mvcc.fieldShare_open s γ _ b ti ssched sstop $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
+  · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
   icases mvcc.crevUB_get_lb γ.idx _ cm $$ HcrevM with ⟨HcrevM, #Hlbc⟩
   ihave #HclM0 := HclM
-  ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
-  · iunfold mvcc.muHeld
-    iframe Hmul
-    iunfold mvcc.muInvAt
-    iframe HcmpM HcrevM
-    iframe #
-    ipureintro; exact HcM
   -- `tx := s.b.BatchTx()`
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
@@ -76,6 +75,15 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   wp_apply HB as %bt #Hbt
   (try wp_auto)
+  ihave Hfs := mvcc.fieldShare_close s γ _ _ ti ssched sstop $$ [Hpin Hfb Hfidx Hfsch Hfstop Hfrst]
+  · iframe Hpin Hfb Hfidx Hfsch Hfstop Hfrst
+  ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM Hfs]
+  · iunfold mvcc.muHeld
+    iframe Hmul Hfs
+    iunfold mvcc.muInvAt
+    iframe HcmpM HcrevM
+    iframe #
+    ipureintro; exact HcM
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
@@ -89,7 +97,16 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   iunfold mvcc.writerRes at HW
-  iNamed HW
+  icases HW with ⟨%L, Hwk, HwvW, Hbv, #HcertW, %HneW, Hcres⟩
+  -- the writer's state, checked out of the writer's invariant (D22 receiver epochs, S2): the
+  -- batch lock's key and the transaction's part of `s.mu`'s deposit ghost deposited
+  imod mvcc.writerInv_checkout s γ $$ Hlc2 Hwi Hwk Hwr with HL
+  iunfold mvcc.writerL at HL
+  icases HL with ⟨%ilog, %ntok, HL⟩
+  iNamed HL
+  icases mvcc.ghostVar_join_halves γ.wv ilog L $$ [Hwv HwvW] with ⟨Hwv, %HL⟩
+  · iframe Hwv HwvW
+  subst HL
   -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
   -- the writer's)
   iunfold mvcc.crevSafe at HclM0
@@ -119,7 +136,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists ti2, bt, Locked, chs, [], ntok, P0, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmuh HrevMuR HtiR HrtR Hcres Hlrd
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmuh HrevMuR HtiR HrtR Hcres Hlrd
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

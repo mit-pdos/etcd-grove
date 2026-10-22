@@ -38,11 +38,17 @@ theorem NewRawNode.wp_proof
   intro c cv lok si σ hs csm R Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs Hasync
     Happ Hprev Hents Hss Hpe Hhs Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hfl0
   wp_start as ⟨Hc, #Hlg, #Hst, HSt, Hinit⟩
+  -- (D22 S-b′3) an empty storage has no snapshot to certify
+  have Hss0 : σ.ss.index' = W64 0 := by
+    rcases Hss with h | h
+    · word
+    · rw [h, Hprev]
+  ihave #Hic := initKsnCert_zero (GF := GF) (interface.ok si) σ Hss0
   wp_auto
   wp_apply wp_newRaft c cv lok si σ hs csm R Hvalid Hlok Hsto Hmi Hdpf Hros Hdccv Hmcs
     (by rw [Hents]; intro k e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
     Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hfl0
-    $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost⟩
+    $$ [$Hc $Hlg $Hst $HSt $Hic $Hinit] as %r %s %cv' ⟨HR, Hphys, Hc, %HAW, %Hpost⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   try wp_auto
@@ -77,6 +83,7 @@ theorem NewRawNode.wp_proof
         ⟨by rw [Hp, Hprev], by rw [Hse, Hents], Hue, by rw [Hsd, Hents], Hcm0, Happ0, Hapg0, Hun,
           Hsn, Hsg⟩
         Hgh Hpv Hsdr' Hdom
+        (by simp only [hardstateVal, nodeHardstate, hsZero]; rw [Ht, HT, Hv, HV, Hcm0])
       $$ «$r0» Hphys ss Hhp [] []
     all_goals first
       | iapply ownSlice_nil

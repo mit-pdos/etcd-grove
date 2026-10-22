@@ -341,7 +341,8 @@ theorem watchStoreInv_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG 
     (s : Loc) (γ : WsNames) : Fractional (watchStoreInv (GF := GF) s γ) := by
   unfold watchStoreInv
   refine fractional_exists_agree _ (fun σ => wFractional_sep (watchStoreBody_fractional hsplit s γ σ)
-    (wFractional_sep (monoNatAuthOwn_fractional γ.rel σ.Lmu.length) (wFractional_persistent _))) ?_
+    (wFractional_sep (monoNatAuthOwn_fractional γ.rel σ.Lmu.length)
+      (wFractional_sep (wsFields_fractional s γ) (wFractional_persistent _)))) ?_
   intro σ1 σ2 q1 q2
   unfold watchStoreBody
   iintro ⟨⟨⟨H1, -⟩, -⟩, ⟨⟨H2, -⟩, -⟩⟩

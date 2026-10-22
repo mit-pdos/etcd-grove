@@ -230,6 +230,7 @@ axiom auth.NewTokenProvider.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
 axiom backend.optsAt
@@ -291,6 +292,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolverOwn
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
+axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.Errorf.wp_proof

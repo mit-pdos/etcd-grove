@@ -1,13 +1,14 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-21
 links:
   - etcd-io/raft#441 pr merged: related, not this bug: EnsureSnapshot/EnsureSnapshotMetadata no longer reassign non-nil fields, after a race found in etcd-io/etcd#21778 (ApplySnapshot writing its argument); EnsureConfState still writes AutoLeave
+candidate: issues/upstream/raft-memorystorage-initialstate-unlocked/
 ---
 
 # raft: `MemoryStorage.InitialState` accesses its fields without the mutex
 
-**Status**: open (not reported upstream). **Also in raft v3.7.0** (2026-10-15, the retarget's
+**Status**: open (not reported upstream; candidate drafted 2026-10-21, at raft `main` 1931ff5be, still unlocked). **Also in raft v3.7.0** (2026-10-15, the retarget's
 inventory): `storage.go:128-134` still takes no lock, and now also *writes*: `pb.EnsureConfState(cs)`
 sets the stored snapshot's `ConfState.AutoLeave` when it is nil (`raftpb/util.go:20-28`), and
 returns `ms.hardState` and that `ConfState` uncloned (the caller shares them with the storage).

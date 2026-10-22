@@ -139,8 +139,8 @@ theorem RawNode.ReadIndex.wp_proof
   have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
-  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne)
-  obtain ⟨Ht1, -, Ht3, -, -, Hpcs⟩ := Htm (by msg_ne)
+  obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩ := Hfr (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne))
+  obtain ⟨Ht1, -, Ht3, Hip4, -, Hpcs⟩ := Htm (by msg_ne)
   have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (zero_val MessageM).Term' = 0 := rfl
   simp only [H0] at Ht3
@@ -150,7 +150,7 @@ theorem RawNode.ReadIndex.wp_proof
     rw [Int.max_eq_left h0] at Ht3
     word
   have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha (tc_le_of_gh Hgh) Hstok
-  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+  ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 (by msg_ne)) $$ Hstrecs
   ihave #Hpost : iprop(∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr) $$ []
   · iexists Lc
     iframe Hrq Hrd
@@ -163,8 +163,8 @@ theorem RawNode.ReadIndex.wp_proof
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) 
     (Hpvoff.step rfl rfl Hpre Hgh (by rw [Hterm]; exact Hpvoff.2.2.1) Hpcs (by msg_ne))
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        (RNFl.keep Hrnfl Hfl' Hap' Ha)
-    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr'
+        (RNFl.keep Hrnfl Hfl' Hap' Ha) (Hloan.keep Hgh Hsn Hfl' Hsd Hu Ha Hc)
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
 
 end proof
 

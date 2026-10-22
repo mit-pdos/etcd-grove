@@ -5,8 +5,8 @@ Lean-first (no Rocq counterpart).
 As `linkv/Main.lean`, whose steps this follows verbatim at `linkvtxn`'s configuration (the
 server's start is putget's `Main`'s): the ghost state `NewServer` takes
 (`putget.putget_alloc`), `NewServer`, `Start`, `v3rpc.Server`, `Listen`, `etcd_kv_started`
-(etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the address), `go gs.Serve(l)`, `clientv3.New` (with
-`MaxUnaryRetries: 1`, so `clientKVOnce`). Then the instance's invariant at the server's start
+(etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at the address), `go gs.Serve(l)`, `clientv3.New` (etcd's
+default configuration; the member refusal-free, `etcd_noRefusal`, so `clientWriteOnce`, D29). Then the instance's invariant at the server's start
 store (`linkvInv_alloc_boot`: the bootstrap log changes no KV state) and `Check(cli, clients, ops,
 0)`, which returns `Ok` (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error
 ends `Main` with `Unknown`.
@@ -29,6 +29,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Alloc
 
 @[expose] public section
@@ -83,7 +84,7 @@ theorem Main.wp_proof
     (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hnoc Hms hAs
+  intro CS ESL ESE N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
@@ -139,7 +140,7 @@ theorem Main.wp_proof
   imod (putget.putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
     #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
   -- (D21 M2) the raft network, the one member's slot
   imod (netNames_alloc (srvNet γ bud) linkvtxnDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
   ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
@@ -164,7 +165,7 @@ theorem Main.wp_proof
     isplitr
     · iapply Hboot
       ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr⟩
+      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
       · unfold cfgOk; simp
       · exact ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
     isplitr
@@ -182,10 +183,10 @@ theorem Main.wp_proof
     isplitr; · ipureintro; exact Hck
     isplitr; · ipureintro; exact Haf
     isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hnoc
+    isplitr; · ipureintro; exact Hdbo
     iapply Htk
     ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, Hbuilt, Hgap,
+  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
     Hserve, Hsv, Hmon, -⟩)
   · -- `NewServer` failed: `Main` returns
     cases err with
@@ -200,7 +201,7 @@ theorem Main.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts⟩
+  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   iunfold srvMonitorCfg at Hmon
   icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
@@ -249,11 +250,17 @@ theorem Main.wp_proof
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
   ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) $$ [Hlts Hlgs Hrds Hsts Hrslots]
+      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
+      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
   · iframe
   ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
   rw [HC.1]
+  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
+  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23796" gs q p srv lis E
+      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HE.2) $$
+    [Hgsn Hlis]
+  · iframe Hgsn Hlis; iframe #
   imod (client.etcd_kv_started go!"127.0.0.1:23796" gs q p srv lis E { ρ with wait := γw } ρ.rd
       cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
     $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, #HDel, #HTxn⟩
@@ -287,7 +294,7 @@ theorem Main.wp_proof
       · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
       · simp [Hlg]
     ipureintro; exact Htb
-  icases Hcl with (⟨%Hcerr, #Hnc, Hone⟩ | %Hcfail)
+  icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
     cases cerr with
@@ -297,8 +304,11 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr
   wp_auto
-  ihave #Hone := Hone $$ []
-  · ipureintro; trivial
+  -- (D29) a write sent at most once: the member is refusal-free
+  ihave #Hwo : client.clientWriteOnce (GF := GF) cl [go!"127.0.0.1:23796"] $$ []
+  · iunfold client.clientWriteOnce; iright; ipureintro
+    intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
+    subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
   imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot (by rw [hwl]; intro; trivial) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩

@@ -17,13 +17,18 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__TransferLeade
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__do
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__install
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KV__run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.NewStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.decode
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.decodeState
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.encode
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.encodeState
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.fits
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.getBytes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.getMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Main
@@ -42,6 +47,10 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Warn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.tick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.transfers__take
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.within
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.less
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.putBytes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.putMap
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.sortStrings
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.raft.v3.Link
 
@@ -118,13 +127,49 @@ theorem kv.KV.wp_apply [KVStor GF] :
     kv.KV.apply.spec (GF := GF) (hG := hG) :=
   kv.KV.apply.wp_proof kv.wp_decode raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
 
+theorem kv.KV.wp_install [KVStor GF] :
+    kv.KV.install.spec (GF := GF) (hG := hG) :=
+  kv.KV.install.wp_proof kv.wp_decode
+
 theorem kv.wp_fits [KVStor GF] :
     kv.fits.spec (GF := GF) (hG := hG) :=
   kv.fits.wp_proof raftpb.Entry.wp_GetIndex
 
+theorem kv.wp_putBytes :
+    kv.putBytes.spec (GF := GF) (hG := hG) :=
+  kv.putBytes.wp_proof
+
+theorem kv.wp_less :
+    kv.less.spec (GF := GF) (hG := hG) :=
+  kv.less.wp_proof
+
+theorem kv.wp_sortStrings :
+    kv.sortStrings.spec (GF := GF) (hG := hG) :=
+  kv.sortStrings.wp_proof kv.wp_less
+
+theorem kv.wp_putMap :
+    kv.putMap.spec (GF := GF) (hG := hG) :=
+  kv.putMap.wp_proof kv.wp_putBytes kv.wp_sortStrings
+
+theorem kv.wp_encodeState :
+    kv.encodeState.spec (GF := GF) (hG := hG) :=
+  kv.encodeState.wp_proof kv.wp_putMap
+
+theorem kv.wp_getBytes :
+    kv.getBytes.spec (GF := GF) (hG := hG) :=
+  kv.getBytes.wp_proof
+
+theorem kv.wp_getMap :
+    kv.getMap.spec (GF := GF) (hG := hG) :=
+  kv.getMap.wp_proof kv.wp_getBytes
+
+theorem kv.wp_decodeState :
+    kv.decodeState.spec (GF := GF) (hG := hG) :=
+  kv.decodeState.wp_proof kv.wp_getMap
+
 theorem kv.KV.wp_run [KVStor GF] :
     kv.KV.run.spec (GF := GF) (hG := hG) :=
-  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer node.wp_Ready node.wp_Advance MemoryStorage.wp_Append proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
+  kv.KV.run.wp_proof kv.wp_fits kv.KV.wp_apply kv.KV.wp_answer kv.KV.wp_install kv.wp_encodeState kv.wp_decodeState node.wp_Ready node.wp_Advance MemoryStorage.wp_Append MemoryStorage.wp_ApplySnapshot MemoryStorage.wp_CreateSnapshot MemoryStorage.wp_Compact proto.wp_UnmarshalConfChange node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
 
 theorem kv.wp_NewStorage [KVStor GF] :
     kv.NewStorage.spec (GF := GF) (hG := hG) :=
@@ -172,7 +217,7 @@ theorem kv.wp_New [KVStor GF] :
 
 theorem kv.wp_deliverable :
     kv.deliverable.spec (GF := GF) (hG := hG) :=
-  kv.deliverable.wp_proof raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo
+  kv.deliverable.wp_proof raftpb.Message.wp_GetType raftpb.Message.wp_GetTerm raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTo raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
 theorem kv.transfers.wp_take [StorageModel GF] :
     kv.transfers.take.spec (GF := GF) (hG := hG) :=
@@ -180,7 +225,7 @@ theorem kv.transfers.wp_take [StorageModel GF] :
 
 theorem kv.wp_deliver [StorageModel GF] :
     kv.deliver.spec (GF := GF) (hG := hG) :=
-  kv.deliver.wp_proof kv.wp_deliverable kv.transfers.wp_take node.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetTo
+  kv.deliver.wp_proof kv.wp_deliverable kv.transfers.wp_take node.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetTo proto.wp_CloneSnapshot
 
 theorem kv.wp_tick [StorageModel GF] :
     kv.tick.spec (GF := GF) (hG := hG) :=
