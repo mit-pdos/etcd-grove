@@ -117,7 +117,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -129,8 +129,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ihave HP : mvcc.watchStoreBody s γ 1 σ $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo
         Hmeta Hwt Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HP Hrel]
-    · inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel; ipureintro; exact ⟨Hset, Hsrb⟩
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HP Hrel Hwsf]
+    · inext; iunfold mvcc.watchStoreInv; iexists σ; iframe HP Hrel Hwsf; ipureintro; exact ⟨Hset, Hsrb⟩
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.watchReader
@@ -144,6 +144,15 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
+  -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
+  iunfold mvcc.wsFields at Hwsf
+  icases Hwsf with ⟨%st', #Hst', Hwsf⟩
+  ihave #Hstp : s.[watchableStore, go!"store"] ↦□ st $$ []
+  · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
+  icombine Hstp Hst' gives %Hsteq
+  subst Hsteq
+  icases mvcc.fieldShare_open st γ.st _ _ _ _ _ $$ [HpinS Hwsf] with ⟨Hfb, Hfidx, Hfsch, Hfstop⟩
+  · iframe HpinS Hwsf
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
@@ -939,8 +948,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     isplitr
     · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by unfold mvcc.outRes; exact .rfl)) $$ Hout
     ipureintro; exact hokf
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf Hrel]
-  · inext; iunfold mvcc.watchStoreInv; iexists σf; iframe HPf Hrel; ipureintro
+  ihave Hwsf := mvcc.fieldShare_close st γ.st _ _ _ _ _ $$ [HpinS Hfb Hfidx Hfsch Hfstop]
+  · iframe HpinS Hfb Hfidx Hfsch Hfstop
+  ihave Hwsf : mvcc.wsFields s γ 1 $$ [Hwsf]
+  · iunfold mvcc.wsFields; iexists st; iframe Hstp Hwsf
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf Hrel Hwsf]
+  · inext; iunfold mvcc.watchStoreInv; iexists σf; iframe HPf Hrel Hwsf; ipureintro
     exact ⟨mvcc.WsState.settled_congr Hl.set rfl rfl rfl rfl rfl rfl hvo, Hsrb⟩
   (try wp_auto)
   iapply HΦ

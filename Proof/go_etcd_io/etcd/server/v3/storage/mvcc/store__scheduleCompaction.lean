@@ -223,6 +223,8 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch⟩
+  · iframe Hpin Hstop
   ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, #HBT, #HForce, #HSize, #HSizeU, #HCmp⟩
@@ -636,13 +638,10 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   wp_apply +noauto time.wp_After as %tch %γt #Hbag
   wp_auto_lc 2
-  ihave #Hstop0 := Hstop
-  iunfold mvcc.storeStop at Hstop0
-  icases Hstop0 with ⟨%stc, #Hstc, #Hstcc⟩
+  ihave #Hstc := Hstopc
+  ihave #Hstcc := Hstopch
   iunfold mvcc.isStopChan at Hstcc
   icases Hstcc with ⟨%γs, #Hstcc⟩
-  icombine Hstopc Hstc gives %Hsteq
-  subst Hsteq
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   wp_apply_core chan.wp_select_blocking

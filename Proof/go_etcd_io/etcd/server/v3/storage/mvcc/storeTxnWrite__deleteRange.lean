@@ -31,7 +31,7 @@ set_option hygiene false in
 /-- The rest of `deleteRange` after `kvindex.Range(key, end, rrev, 0, false)`, in both branches of
 `rrev` (`tw.beginRev`, or one more when `tw.changes` is non-empty): the keys deleted one by one. -/
 local macro "del_range_tail" : tactic => `(tactic| (
-    ihave Hmu := Hmub $$ Hcu
+    ihave Hmu := Hmub $$ Hcu Hidxf
     rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer, hks']
     (try wp_auto)
     iunfold mvcc.ownKeys at Hkeys
@@ -172,9 +172,16 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
-  icombine Hidx HidxS gives %Hti_eq
-  have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
-  subst Hti_eq'
+  iunfold mvcc.idxPin at Hidx
+  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
+  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
+  · iframe HpinS Hpin0
+  subst Hoo
+  simp only at Ho0
+  have Ho1 := Ho0.symm
+  subst Ho1
+  ihave #Hidx : mvcc.idxPin γ ti $$ []
+  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -242,7 +249,9 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     -- `keys, _, _, _, _ := tw.s.kvindex.Range(key, end, rrev, 0, false)` by the writer
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+    icases mvcc.muHeld_crev_idx s γ crev ti $$ [Hmu] with ⟨Hcu, Hidxf, Hmub⟩
+    · iframe Hmu Hidx
+    (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 (ilog.length : Int)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
       as %keys %modifies %creates %vers %total
@@ -283,7 +292,9 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     -- `keys, _, _, _, _ := tw.s.kvindex.Range(key, end, rrev, 0, false)` by the writer
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+    icases mvcc.muHeld_crev_idx s γ crev ti $$ [Hmu] with ⟨Hcu, Hidxf, Hmub⟩
+    · iframe Hmu Hidx
+    (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 ((ilog.length : Int) - 1)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
       as %keys %modifies %creates %vers %total

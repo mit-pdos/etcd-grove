@@ -60,6 +60,8 @@ theorem mvcc.store.compactBarrier.wp_proof
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch⟩
+  · iframe Hpin Hstop
   wp_apply Herr as %err
   cases err with
   | nil =>
@@ -75,11 +77,7 @@ theorem mvcc.store.compactBarrier.wp_proof
   | ok e =>
     -- cancelled: unless the store is stopped, another barrier, under `s.mu`
     wp_auto
-    ihave #Hstop' := Hstop
-    iunfold mvcc.storeStop at Hstop'
-    icases Hstop' with ⟨%c0, #Hc0, #Hsc⟩
-    icombine Hstopc Hc0 gives %Heq
-    subst Heq
+    ihave #Hsc := Hstopch
     iunfold mvcc.isStopChan at Hsc
     icases Hsc with ⟨%γst, #Hsc⟩
     wp_apply_core chan.wp_select_nonblocking_alt [iprop(True)]

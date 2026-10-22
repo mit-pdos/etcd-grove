@@ -145,6 +145,10 @@ structure StoreNames where
   /-- (S2) the log the batch lock's view is of (`ghostVar Log`): half in the batch lock's resource
   (`writerRes`), half in the writer's state (`writerL`); per backend -/
   wv : GName := 0
+  /-- (D22 receiver epochs, S3, 2026-10-22) the store's objects (`StoreObjs`: the values of the four
+  fields `store.Restore` writes), pinned (`objsPin`, persistent until S5, when it becomes a ghost
+  variable the locks share) -/
+  cur : GName := 0
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -176,9 +180,23 @@ instance kbReal_countable : Pos.Countable KBReal :=
 
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
-    (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
+    (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb, x.cmeta, x.fin, x.sch, x.cok, x.watchQ, x.wr, x.wk, x.wv, x.cur))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
+
+/-- **The store's objects** (D22 receiver epochs, S3, 2026-10-22): the values of the four fields
+`store.Restore` writes (`s.b`, `s.kvindex`'s tree index, `s.fifoSched`, `s.stopc`). Their
+points-to are shared by the locks that guard their readers (`storeFields`, `fieldShare`), not
+persistent; which objects they are is pinned (`objsPin`). -/
+structure StoreObjs [FfiSyntax] where
+  b : GoInterface
+  ti : Loc
+  ssched : GoInterface
+  sstop : Loc
+
+instance storeObjs_countable [FfiSyntax] : Pos.Countable StoreObjs :=
+  countableOfLeftInverse (fun x : StoreObjs => (x.b, x.ti, x.ssched, x.sstop))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -1806,6 +1824,153 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
       · iapply (hcrev c).2; iframe Hcrev1 Hcrev2
       ipureintro; exact Hc1
 
+/-- **The store's objects are `o`** (persistent; D22 receiver epochs, S3, 2026-10-22: the
+interim pin, until S5, which makes it a ghost variable the locks share, so that `store.Restore`
+can move it). -/
+def objsPin (γ : StoreNames) (o : StoreObjs) : IProp GF := dghostVar γ.cur DFrac.discard o
+
+instance objsPin_persistent (γ : StoreNames) (o : StoreObjs) : Persistent (objsPin (GF := GF) γ o) := by
+  unfold objsPin; infer_instance
+
+theorem objsPin_agree (γ : StoreNames) (o o' : StoreObjs) :
+    objsPin (GF := GF) γ o ∗ objsPin γ o' ⊢ ⌜o = o'⌝ := by
+  unfold objsPin
+  iintro ⟨H1, H2⟩
+  iapply dghostVar_agree γ.cur o DFrac.discard o' DFrac.discard $$ H1 H2
+
+/-- **The four fields `store.Restore` writes, at the objects `o`**, at the fraction `dq`
+(D22 receiver epochs, S3: until then `↦□` in `isStore`). -/
+def storeFields (s : Loc) (o : StoreObjs) (dq : DFrac) : IProp GF :=
+  iprop("Hfb" ∷ (s.[store, go!"b"] ↦{dq} o.b : IProp GF) ∗
+    "Hfidx" ∷ (s.[store, go!"kvindex"] ↦{dq}
+      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #o.ti : GoInterface) : IProp GF) ∗
+    "Hfsch" ∷ (s.[store, go!"fifoSched"] ↦{dq} o.ssched : IProp GF) ∗
+    "Hfstop" ∷ (s.[store, go!"stopc"] ↦{dq} o.sstop : IProp GF))
+
+instance storeFields_persistent (s : Loc) (o : StoreObjs) :
+    Persistent (storeFields (GF := GF) s o DFrac.discard) := by
+  unfold storeFields; simp only [named]; infer_instance
+
+theorem storeFields_split (s : Loc) (o : StoreObjs) (q1 q2 : Qp) :
+    storeFields (GF := GF) s o (DFrac.own (q1 + q2)) ⊣⊢
+      storeFields s o (DFrac.own q1) ∗ storeFields s o (DFrac.own q2) := by
+  have hb : ∀ v : GoInterface, (s.[store, go!"b"] ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢
+      s.[store, go!"b"] ↦{DFrac.own q1} v ∗ s.[store, go!"b"] ↦{DFrac.own q2} v :=
+    fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1) (DFrac.own q2)
+  have hi : ∀ v : GoInterface, (s.[store, go!"kvindex"] ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢
+      s.[store, go!"kvindex"] ↦{DFrac.own q1} v ∗ s.[store, go!"kvindex"] ↦{DFrac.own q2} v :=
+    fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1) (DFrac.own q2)
+  have hs : ∀ v : GoInterface, (s.[store, go!"fifoSched"] ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢
+      s.[store, go!"fifoSched"] ↦{DFrac.own q1} v ∗ s.[store, go!"fifoSched"] ↦{DFrac.own q2} v :=
+    fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1) (DFrac.own q2)
+  have ht : ∀ v : Loc, (s.[store, go!"stopc"] ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢
+      s.[store, go!"stopc"] ↦{DFrac.own q1} v ∗ s.[store, go!"stopc"] ↦{DFrac.own q2} v :=
+    fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1) (DFrac.own q2)
+  unfold storeFields
+  simp only [named]
+  constructor
+  · iintro ⟨Hb, Hi, Hs, Ht⟩
+    icases (hb _).1 $$ Hb with ⟨Hb1, Hb2⟩
+    icases (hi _).1 $$ Hi with ⟨Hi1, Hi2⟩
+    icases (hs _).1 $$ Hs with ⟨Hs1, Hs2⟩
+    icases (ht _).1 $$ Ht with ⟨Ht1, Ht2⟩
+    iframe Hb1 Hi1 Hs1 Ht1 Hb2 Hi2 Hs2 Ht2
+  · iintro ⟨⟨Hb1, Hi1, Hs1, Ht1⟩, ⟨Hb2, Hi2, Hs2, Ht2⟩⟩
+    isplitl [Hb1 Hb2]
+    · iapply (hb _).2; iframe Hb1 Hb2
+    isplitl [Hi1 Hi2]
+    · iapply (hi _).2; iframe Hi1 Hi2
+    isplitl [Hs1 Hs2]
+    · iapply (hs _).2; iframe Hs1 Hs2
+    iapply (ht _).2; iframe Ht1 Ht2
+
+/-- **A share `q` of the fields `store.Restore` writes** (D22 receiver epochs, S3): at the pinned
+objects. `s.mu`'s resource holds half its fraction (`muInv`; a transaction's part, `muHeld`), the
+right to close the store a quarter (`storeCloser`), and a watchable store's `s.mu` a quarter
+(`syncWatchers` reads `s.store.b` under it, not under `s.mu`): `NewStore` returns it. -/
+def fieldShare (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
+  iprop(∃ o : StoreObjs, objsPin γ o ∗ storeFields s o (DFrac.own q))
+
+instance fieldShare_fractional (s : Loc) (γ : StoreNames) : Fractional (fieldShare (GF := GF) s γ) where
+  fractional q1 q2 := by
+    unfold fieldShare
+    constructor
+    · iintro ⟨%o, #Hp, H⟩
+      icases (storeFields_split s o q1 q2).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists o; iframe Hp H1
+      · iexists o; iframe Hp H2
+    · iintro ⟨⟨%o1, #Hp1, H1⟩, ⟨%o2, #Hp2, H2⟩⟩
+      ihave %Ho := objsPin_agree γ o1 o2 $$ [Hp1 Hp2]
+      · iframe Hp1 Hp2
+      subst Ho
+      iexists o1
+      iframe Hp1
+      iapply (storeFields_split s o1 q1 q2).2
+      iframe H1 H2
+
+/-- A share at the pinned objects `⟨b, ti, ssched, sstop⟩`: its four points-to. -/
+theorem fieldShare_open (s : Loc) (γ : StoreNames) (q : Qp) (b : GoInterface) (ti : Loc)
+    (ssched : GoInterface) (sstop : Loc) :
+    objsPin (GF := GF) γ ⟨b, ti, ssched, sstop⟩ ∗ fieldShare s γ q ⊢
+      (s.[store, go!"b"] ↦{DFrac.own q} b : IProp GF) ∗
+      (s.[store, go!"kvindex"] ↦{DFrac.own q}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      (s.[store, go!"fifoSched"] ↦{DFrac.own q} ssched : IProp GF) ∗
+      (s.[store, go!"stopc"] ↦{DFrac.own q} sstop : IProp GF) := by
+  unfold fieldShare
+  iintro ⟨#Hp, ⟨%o, #Hp', H⟩⟩
+  ihave %Ho := objsPin_agree γ o _ $$ [Hp Hp']
+  · iframe Hp Hp'
+  subst Ho
+  iunfold storeFields at H
+  iNamed H
+  iframe Hfb Hfidx Hfsch Hfstop
+
+/-- The four points-to at the pinned objects: a share. -/
+theorem fieldShare_close (s : Loc) (γ : StoreNames) (q : Qp) (b : GoInterface) (ti : Loc)
+    (ssched : GoInterface) (sstop : Loc) :
+    objsPin (GF := GF) γ ⟨b, ti, ssched, sstop⟩ ∗
+      (s.[store, go!"b"] ↦{DFrac.own q} b : IProp GF) ∗
+      (s.[store, go!"kvindex"] ↦{DFrac.own q}
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      (s.[store, go!"fifoSched"] ↦{DFrac.own q} ssched : IProp GF) ∗
+      (s.[store, go!"stopc"] ↦{DFrac.own q} sstop : IProp GF) ⊢ fieldShare s γ q := by
+  unfold fieldShare
+  iintro ⟨#Hp, Hfb, Hfidx, Hfsch, Hfstop⟩
+  iexists ⟨b, ti, ssched, sstop⟩
+  iframe Hp
+  iunfold storeFields
+  iframe Hfb Hfidx Hfsch Hfstop
+
+/-- **The tree index `ti` is the store's** (persistent; D22 receiver epochs, S3: the interim pin's,
+until then `s.kvindex ↦□`; S4 replaces it with the readers' pool). -/
+def idxPin (γ : StoreNames) (ti : Loc) : IProp GF :=
+  iprop(∃ o : StoreObjs, objsPin γ o ∗ ⌜o.ti = ti⌝)
+
+instance idxPin_persistent (γ : StoreNames) (ti : Loc) : Persistent (idxPin (GF := GF) γ ti) := by
+  unfold idxPin; infer_instance
+
+/-- A share's `kvindex` at a pinned tree index, lent. -/
+theorem fieldShare_idx (s : Loc) (γ : StoreNames) (q : Qp) (ti : Loc) :
+    fieldShare (GF := GF) s γ q ∗ idxPin γ ti ⊢
+      (s.[store, go!"kvindex"] ↦{DFrac.own q} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      ((s.[store, go!"kvindex"] ↦{DFrac.own q} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) -∗
+        fieldShare s γ q) := by
+  unfold fieldShare idxPin
+  iintro ⟨⟨%o, #Hp, H⟩, ⟨%o', #Hp', %Ho⟩⟩
+  ihave %He := objsPin_agree γ o o' $$ [Hp Hp']
+  · iframe Hp Hp'
+  subst He Ho
+  iunfold storeFields at H
+  iNamed H
+  iframe Hfidx
+  iintro Hfidx
+  iexists o
+  iframe Hp
+  iunfold storeFields
+  iframe Hfb Hfidx Hfsch Hfstop
+
 /-- `s.mu`'s resource at fraction `q`, at the compaction revision `c` (`-1`: none): half
 `compactMainRev`'s points-to and a quarter of the compaction revision's authority (`s.revMu`
 holds as much; the compaction right, half the authority, is `compactRight`), with a certified
@@ -1822,7 +1987,7 @@ def muInvAt (s : Loc) (γ : StoreNames) (q : Qp) (c : Int) : IProp GF :=
 ghost at the fraction (D22 receiver epochs, S2: a holder of `s.mu` exclusively has all of it, so
 no writer has the writer's state out, `writerInv`). -/
 def muInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
-  iprop(∃ c : Int, muInvAt s γ q c ∗ ghostVar γ.wr q ())
+  iprop(∃ c : Int, muInvAt s γ q c ∗ ghostVar γ.wr q () ∗ fieldShare s γ q.half)
 
 instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF := GF) s γ) where
   fractional q1 q2 := by
@@ -1833,29 +1998,33 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
     have hwr := (ghostVar_fractional (GF := GF) γ.wr ()).fractional q1 q2
+    have hfs := (fieldShare_fractional (GF := GF) s γ).fractional q1.half q2.half
     unfold muInv muInvAt
     rw [Qp_half_add, Qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
-      icases H with ⟨%c, H, Hwr⟩
+      icases H with ⟨%c, H, Hwr, Hfs⟩
       iNamed H
       icases (hcmp _).1 $$ HcmpM with ⟨Hm1, Hm2⟩
       icases (hcrev c).1 $$ HcrevM with ⟨Hv1, Hv2⟩
       icases hwr.1 $$ Hwr with ⟨Hw1, Hw2⟩
-      isplitl [Hm1 Hv1 Hw1]
-      · iexists c; simp only [named]; iframe Hm1 Hv1 Hw1; iframe #; ipureintro; exact HcM
-      · iexists c; simp only [named]; iframe Hm2 Hv2 Hw2; iframe #; ipureintro; exact HcM
+      icases hfs.1 $$ Hfs with ⟨Hf1, Hf2⟩
+      isplitl [Hm1 Hv1 Hw1 Hf1]
+      · iexists c; simp only [named]; iframe Hm1 Hv1 Hw1 Hf1; iframe #; ipureintro; exact HcM
+      · iexists c; simp only [named]; iframe Hm2 Hv2 Hw2 Hf2; iframe #; ipureintro; exact HcM
     · iintro ⟨H1, H2⟩
-      icases H1 with ⟨%c, H1, Hw1⟩
-      icases H2 with ⟨%c2, H2, Hw2⟩
+      icases H1 with ⟨%c, H1, Hw1, Hf1⟩
+      icases H2 with ⟨%c2, H2, Hw2, Hf2⟩
       iNamedSuffix H1 "1"
       iNamedSuffix H2 "2"
       ihave %Hcc := crevUB_agree γ.idx _ _ c c2 HcM1 HcM2 $$ HcrevM1 HcrevM2
       subst Hcc
       iexists c
-      isplitr [Hw1 Hw2]
+      isplitr [Hw1 Hw2 Hf1 Hf2]
       rotate_left
-      · iapply hwr.2; iframe Hw1 Hw2
+      · isplitl [Hw1 Hw2]
+        · iapply hwr.2; iframe Hw1 Hw2
+        iapply hfs.2; iframe Hf1 Hf2
       simp only [named]
       isplitl [HcmpM1 HcmpM2]
       · iapply (hcmp _).2; iframe HcmpM1 HcmpM2
@@ -1868,7 +2037,26 @@ instance muInv_fractional (s : Loc) (γ : StoreNames) : Fractional (muInv (GF :=
 /-- `s.mu` held shared by a transaction, at the compaction revision `c`: the reader's token and
 its part of `s.mu`'s resource (given back at `End`). -/
 def muHeld (s : Loc) (γ : StoreNames) (c : Int) : IProp GF :=
-  iprop(sync.ownRWMutexRLocked (muAddr s) (muInv s γ) ∗ muInvAt s γ sync.rfrac c)
+  iprop(sync.ownRWMutexRLocked (muAddr s) (muInv s γ) ∗ muInvAt s γ sync.rfrac c ∗
+    fieldShare s γ sync.rfrac.half)
+
+/-- A transaction's part of the store's `kvindex`, at a pinned index, lent (D22 receiver epochs,
+S3: until then `↦□` in `isStore`). -/
+theorem muHeld_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
+    muHeld (GF := GF) s γ c ∗ idxPin γ ti ⊢
+      (s.[store, go!"kvindex"] ↦{DFrac.own sync.rfrac.half} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      ((s.[store, go!"kvindex"] ↦{DFrac.own sync.rfrac.half} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) -∗
+        muHeld s γ c) := by
+  iintro ⟨H, #Hp⟩
+  iunfold muHeld at H
+  icases H with ⟨Hl, Ha, Hf⟩
+  icases fieldShare_idx s γ _ ti $$ [Hf] with ⟨Hi, Hb⟩
+  · iframe Hf Hp
+  iframe Hi
+  iintro Hi
+  ihave Hf := Hb $$ Hi
+  iunfold muHeld
+  iframe Hl Ha Hf
 
 /-- A transaction's part of the compaction revision's authority, lent (to the index's reads). -/
 theorem muHeld_crev (s : Loc) (γ : StoreNames) (c : Int) :
@@ -1876,13 +2064,13 @@ theorem muHeld_crev (s : Loc) (γ : StoreNames) (c : Int) :
       crevUB γ.idx sync.rfrac.half.half c ∗ (crevUB γ.idx sync.rfrac.half.half c -∗ muHeld s γ c) := by
   iintro H
   iunfold muHeld at H
-  icases H with ⟨Hl, Ha⟩
+  icases H with ⟨Hl, Ha, Hf⟩
   iunfold muInvAt at Ha
   iNamed Ha
   iframe HcrevM
   iintro Hc
   iunfold muHeld
-  iframe Hl
+  iframe Hl Hf
   iunfold muInvAt
   iframe HcmpM Hc
   iframe #
@@ -1898,7 +2086,7 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) :
         crevUB γ.idx sync.rfrac.half.half c -∗ muHeld s γ c) := by
   iintro H
   iunfold muHeld at H
-  icases H with ⟨Hl, Ha⟩
+  icases H with ⟨Hl, Ha, Hf⟩
   iunfold muInvAt at Ha
   iNamed Ha
   ihave #Hcl := HclM
@@ -1911,7 +2099,68 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) :
   · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
   iintro Hm Hc
   iunfold muHeld
-  iframe Hl
+  iframe Hl Hf
+  iunfold muInvAt
+  iframe Hm Hc
+  iframe #
+  ipureintro; exact HcM
+
+/-- A transaction's part of the compaction revision's authority and of the store's `kvindex` (at
+a pinned index), lent (to the index's reads; D22 receiver epochs, S3). -/
+theorem muHeld_crev_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
+    muHeld (GF := GF) s γ c ∗ idxPin γ ti ⊢
+      crevUB γ.idx sync.rfrac.half.half c ∗
+      (s.[store, go!"kvindex"] ↦{DFrac.own sync.rfrac.half} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      (crevUB γ.idx sync.rfrac.half.half c -∗
+        (s.[store, go!"kvindex"] ↦{DFrac.own sync.rfrac.half} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) -∗
+        muHeld s γ c) := by
+  iintro ⟨H, #Hp⟩
+  iunfold muHeld at H
+  icases H with ⟨Hl, Ha, Hf⟩
+  icases fieldShare_idx s γ _ ti $$ [Hf] with ⟨Hi, Hfb⟩
+  · iframe Hf Hp
+  iunfold muInvAt at Ha
+  iNamed Ha
+  iframe HcrevM Hi
+  iintro Hc Hi
+  ihave Hf := Hfb $$ Hi
+  iunfold muHeld
+  iframe Hl Hf
+  iunfold muInvAt
+  iframe HcmpM Hc
+  iframe #
+  ipureintro; exact HcM
+
+/-- A transaction's part of `compactMainRev`, of the compaction revision's authority and of the
+store's `kvindex` (at a pinned index), lent (to `rangeKeys`; D22 receiver epochs, S3). -/
+theorem muHeld_cmp_idx (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
+    muHeld (GF := GF) s γ c ∗ idxPin γ ti ⊢
+      (s.[store, go!"compactMainRev"] ↦{DFrac.own sync.rfrac.half} (W64 c : w64) : IProp GF) ∗
+      crevUB γ.idx sync.rfrac.half.half c ∗ ⌜-1 ≤ c ∧ c < 2 ^ 63⌝ ∗
+      (s.[store, go!"kvindex"] ↦{DFrac.own sync.rfrac.half} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      ((s.[store, go!"compactMainRev"] ↦{DFrac.own sync.rfrac.half} (W64 c : w64) : IProp GF) -∗
+        crevUB γ.idx sync.rfrac.half.half c -∗
+        (s.[store, go!"kvindex"] ↦{DFrac.own sync.rfrac.half} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) -∗
+        muHeld s γ c) := by
+  iintro ⟨H, #Hp⟩
+  iunfold muHeld at H
+  icases H with ⟨Hl, Ha, Hf⟩
+  icases fieldShare_idx s γ _ ti $$ [Hf] with ⟨Hi, Hfb⟩
+  · iframe Hf Hp
+  iunfold muInvAt at Ha
+  iNamed Ha
+  ihave #Hcl := HclM
+  iunfold crevSafe at Hcl
+  icases Hcl with ⟨%log₀, #Hc0, %Hlt⟩
+  iunfold idxCert at Hc0
+  icases Hc0 with ⟨-, %Hwf, -⟩
+  iframe HcmpM HcrevM Hi
+  isplitl []
+  · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
+  iintro Hm Hc Hi
+  ihave Hf := Hfb $$ Hi
+  iunfold muHeld
+  iframe Hl Hf
   iunfold muInvAt
   iframe Hm Hc
   iframe #
@@ -1921,8 +2170,11 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) :
 deposit witness: `NewStore`'s first `Unlock` deposited the batch lock's resource), index,
 lessor, logger, and the two locks' guards; and what compaction uses: the configuration (a
 positive `CompactionBatchLimit`: the job's loop needs it to end,
-`issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel's field (its
-channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The scheduler is
+`issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel (`Close` closes
+it: `storeCloser`), the hash storage. **The four fields `store.Restore` writes** (`b`, `kvindex`,
+`fifoSched`, `stopc`) are not here (D22 receiver epochs, S3, 2026-10-22: until then `↦□`): their
+points-to are shared by the locks (`fieldShare`); the objects they name are pinned (`objsPin`,
+until S5). The scheduler is
 `isFifo`, not `isScheduler`: that it is never stopped (`schedLive`) is not the store's but the
 compaction's (`compactRight`, `compactJobPre`), since `NewStore` returns the stop token for its
 caller to give up only once the store will not be closed (D19m (C), 2026-10-18: `storeCloser`). The fields `restore`
@@ -1935,7 +2187,7 @@ puts (`putMax`) without a premise on the transaction's size. -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (Dep : IProp GF)
       (scfg : StoreConfig) (ssched : GoInterface) (sstop shs : Loc),
-    "#Hb" ∷ s.[store, go!"b"] ↦□ b ∗
+    "#Hpin" ∷ objsPin γ ⟨b, ti, ssched, sstop⟩ ∗
     "#Hhook" ∷ hookP γ Ph ∗
     "#Hbk" ∷ isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph (hookFn γ) ∗
@@ -1943,8 +2195,6 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hreg" ∷ storeRegd s γ ∗
     "#Hle" ∷ s.[store, go!"le"] ↦□ le ∗
     "#Hlessor" ∷ isLessor le γ.leases ∗
-    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "#Hti" ∷ isTreeIndex ti γ.idx ∗
     "#Hlg" ∷ s.[store, go!"lg"] ↦□ lg ∗
     "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
@@ -1952,9 +2202,7 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#HrevMu" ∷ sync.isRWMutexGuard (revMuAddr s) (revMuInv s γ) ∗
     "#Hcfg" ∷ s.[store, go!"cfg"] ↦□ scfg ∗
     "%Hcfgl" ∷ ⌜0 < sint.Z scfg.CompactionBatchLimit'⌝ ∗
-    "#Hsched" ∷ s.[store, go!"fifoSched"] ↦□ ssched ∗
     "#HisSched" ∷ schedule.isFifo ssched γ.sch ∗
-    "#Hstopc" ∷ s.[store, go!"stopc"] ↦□ sstop ∗
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface) ∗
     "#HhsOk" ∷ mvcc.hashStorageOk shs ∗
@@ -1989,8 +2237,7 @@ transaction's `End` gives it back): its transactions observe the compaction revi
 move (`store.Compact`, by the holder of the compaction right). -/
 def storeReaderC (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ ti : Loc,
-    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hidx" ∷ idxPin γ ti ∗
     "Hmu" ∷ sync.ownRWMutex (muAddr s) (muInv s γ) ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
@@ -2004,8 +2251,7 @@ statements over `storeReader` are corollaries (`spec_frozen`: `storeReader_toC`,
 `storeReader_of`). -/
 def storeReader (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ ti : Loc,
-    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hidx" ∷ idxPin γ ti ∗
     "Hmu" ∷ sync.ownRWMutex (muAddr s) (muInv s γ) ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
@@ -2164,8 +2410,7 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log) (rev : w6
     "#Hs" ∷ isStore s γ ∗
     "#Htr" ∷ storeTxnReadIs tr s rt trace γ log rev crev Z ∗
     "Hrd" ∷ txReader γ rt log ∗
-    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hidx" ∷ idxPin γ ti ∗
     "Hmu" ∷ muHeld s γ crev ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
@@ -2178,14 +2423,14 @@ theorem muHeld_frozen (s : Loc) (γ : StoreNames) (crev : Int) :
     ⊢ crevFrozen (GF := GF) γ -∗ muHeld s γ crev ={⊤}=∗ muHeld s γ crev ∗ ⌜crev = -1⌝ := by
   iintro #Hf H
   iunfold muHeld at H
-  icases H with ⟨Hl, Ha⟩
+  icases H with ⟨Hl, Ha, Hfs⟩
   iunfold muInvAt at Ha
   iNamed Ha
   imod crevFrozen_agree γ _ crev HcM $$ Hf HcrevM with ⟨HcrevM, %Hc⟩
   imodintro
   iframe
   isplitl
-  · iunfold muHeld; iframe Hl
+  · iunfold muHeld; iframe Hl Hfs
     iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
   ipureintro; exact Hc
 
@@ -2399,8 +2644,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (p
     "%Hps" ∷ ⌜ps.length = pend.length⌝ ∗
     "Hkvs" ∷ changesAre ps ilog pend ∗
     "#Hs" ∷ isStore s γ ∗
-    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hidx" ∷ idxPin γ ti ∗
     "#Hhook" ∷ hookIs γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) ∗
@@ -2445,8 +2689,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) 
     "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
     "%Hps" ∷ ⌜ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
     "#Hs" ∷ isStore s γ ∗
-    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
-      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hidx" ∷ idxPin γ ti ∗
     "#Hhook" ∷ hookIs γ Pw fw ∗
     "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
       (storeW s γ) Dep (storeCmp γ) Locked Pw (hookFn γ) ∗
@@ -3044,13 +3287,36 @@ instance isStopChan_persistent (c : Loc) : Persistent (isStopChan (GF := GF) c) 
 def stopCloser (c : Loc) : IProp GF :=
   iprop(∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) Broadcast.Pending)
 
-/-- The store's stop channel (persistent; `NewStore` returns it): its `stopc` field and the
-channel (the compaction job's loop selects on it). -/
-def storeStop (s : Loc) : IProp GF :=
-  iprop(∃ c : GoChan, s.[store, go!"stopc"] ↦□ c ∗ isStopChan c)
+/-- **The store's fields for good, for its compaction** (persistent; D22 receiver epochs, S3,
+2026-10-22: until then `NewStore` returned the stop channel's `↦□` and `isStore` the others'):
+the four fields `store.Restore` writes, read-only, at the pinned objects, and the stop channel
+(the compaction job's loop selects on it). Only the compaction right is made with it
+(`compactRight_of_closer`, which gives up the right to close the store, so a store with it is
+never restored: `store.Restore` takes the right to close). -/
+def storeStop (s : Loc) (γ : StoreNames) : IProp GF :=
+  iprop(∃ o : StoreObjs, objsPin γ o ∗ storeFields s o DFrac.discard ∗ isStopChan o.sstop)
 
-instance storeStop_persistent (s : Loc) : Persistent (storeStop (GF := GF) s) := by
-  unfold storeStop; infer_instance
+instance storeStop_persistent (s : Loc) (γ : StoreNames) : Persistent (storeStop (GF := GF) s γ) := by
+  unfold storeStop storeFields; simp only [named]; infer_instance
+
+/-- The compaction's fields at the pinned objects `⟨b, ti, ssched, sstop⟩` (read-only), and the stop
+channel. -/
+theorem storeStop_fields (s : Loc) (γ : StoreNames) (b : GoInterface) (ti : Loc)
+    (ssched : GoInterface) (sstop : Loc) :
+    objsPin (GF := GF) γ ⟨b, ti, ssched, sstop⟩ ∗ storeStop s γ ⊢
+      (s.[store, go!"b"] ↦□ b : IProp GF) ∗
+      (s.[store, go!"kvindex"] ↦□
+        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) : IProp GF) ∗
+      (s.[store, go!"fifoSched"] ↦□ ssched : IProp GF) ∗
+      (s.[store, go!"stopc"] ↦□ sstop : IProp GF) ∗ isStopChan sstop := by
+  unfold storeStop
+  iintro ⟨#Hp, ⟨%o, #Hp', #H, #Hc⟩⟩
+  ihave %Ho := objsPin_agree γ o _ $$ [Hp Hp']
+  · iframe Hp Hp'
+  subst Ho
+  iunfold storeFields at H
+  iNamed H
+  iframe #
 
 /-- **The right to close the store** `s` (`store.Close`: `close(s.stopc)`, once, and
 `s.fifoSched.Stop()`; `NewStore` returns it): the stop channel's close (`stopCloser`), the
@@ -3061,8 +3327,43 @@ no tracked `Schedule` after `Stop` either; `Scheduler.Stop`'s spec takes both). 
 `Close`'s contract let a holder of `isStore` compact after `Close`. A caller that will not close
 the store gives the token up for the compaction right (`compactRight_of_closer`), or drops this. -/
 def storeCloser (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop((∃ c : GoChan, s.[store, go!"stopc"] ↦□ c ∗ stopCloser c) ∗
-    schedule.schedStopTok γ.sch ∗ compactQueue γ (-1))
+  iprop((∃ o : StoreObjs, objsPin γ o ∗ isStopChan o.sstop ∗ stopCloser o.sstop) ∗
+    schedule.schedStopTok γ.sch ∗ compactQueue γ (-1) ∗ fieldShare s γ (1 : Qp).half.half)
+
+/-- **The compaction right, from the right to close the store** (D22 receiver epochs, S3): the
+scheduler's stop token given up for good (`schedLive`), the closer's share of the fields
+discarded (`storeStop`, for the compaction's jobs, which run without the store's locks), with the
+compaction right's half of the revision's authority (`NewStore`'s). The store is then never
+closed, nor restored. -/
+theorem compactRight_of_closer (s : Loc) (γ : StoreNames) :
+    storeCloser (GF := GF) s γ ∗ crevUB γ.idx (1 : Qp).half (-1) ==∗
+      compactRight γ (-1) ∗ storeStop s γ := by
+  unfold storeCloser fieldShare
+  iintro ⟨⟨⟨%o, #Hp, #Hsc, -⟩, Htok, Hq, ⟨%o', #Hp', Hf⟩⟩, Hcu⟩
+  ihave %Ho := objsPin_agree γ o o' $$ [Hp Hp']
+  · iframe Hp Hp'
+  subst Ho
+  iunfold schedule.schedStopTok at Htok
+  icases Htok with ⟨%n, #Hn, Hd⟩
+  imod dghostVar_persist n 1 () $$ Hd with #Hd
+  iunfold storeFields at Hf
+  iNamed Hf
+  ipersist Hfb
+  ipersist Hfidx
+  ipersist Hfsch
+  ipersist Hfstop
+  imodintro
+  isplitl [Hcu Hq]
+  · iunfold compactRight
+    iframe Hcu Hq
+    iunfold schedule.schedLive
+    iexists n
+    iframe Hn Hd
+  iunfold storeStop
+  iexists o
+  iframe Hp Hsc
+  iunfold storeFields
+  iframe Hfb Hfidx Hfsch Hfstop
 
 end hookLc
 

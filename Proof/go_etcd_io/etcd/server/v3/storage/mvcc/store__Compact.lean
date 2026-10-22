@@ -39,7 +39,7 @@ theorem mvcc.store.Compact.wp_of_le
     (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool) (htr : trace ≠ null)
     (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
+      mvcc.isStore s γ ∗ mvcc.storeStop s γ ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
@@ -58,6 +58,8 @@ theorem mvcc.store.Compact.wp_of_le
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch⟩
+  · iframe Hpin Hstop
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []

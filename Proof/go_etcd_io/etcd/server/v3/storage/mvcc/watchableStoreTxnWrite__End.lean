@@ -484,7 +484,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   icases persistent_entails_right (mvcc.body_pin s stw st γ σ ilog pend chs ps) $$
     [$HP $Hwlog $Hcore] with ⟨%Hpin, HP, Hwlog, Hcore⟩
@@ -529,7 +529,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   imod Hcommit $$ %(σ'.Lmu ++ [pend]) %(⟨by simpa using hab, List.prefix_append _ _⟩) Hwlog Hc Hq
     with ⟨HP, Hwlog⟩
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HP Hrel Hwsf]
   · have hs'' : ({ σ' with Lmu := σ'.Lmu ++ [pend] } : mvcc.WsState).settled := by
       refine ⟨?_, ?_⟩
       · show σ'.syncedBelow (σ'.Lmu ++ [pend]).length
@@ -543,7 +543,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
       have := Hsrb w γw h0 hs
       have hl := hLL
       simp only [List.length_append, List.length_singleton]; omega
-    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP Hrel; ipureintro; exact ⟨hs'', hsr''⟩
+    inext; iunfold mvcc.watchStoreInv; iexists _; iframe HP Hrel Hwsf; ipureintro; exact ⟨hs'', hsr''⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd Hc Htrc

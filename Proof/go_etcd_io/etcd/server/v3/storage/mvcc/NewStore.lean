@@ -53,8 +53,7 @@ theorem mvcc.slot_take (Q : IProp GF) :
 /-- The store's reader handles (of a store that may be compacted) from the reader slots of its
 two locks and its index's, and the backend's reader tokens. -/
 theorem mvcc.storeReaders_of_slots (s ti : Loc) (γ : mvcc.StoreNames) : ∀ (n : Nat),
-    s.[store, go!"kvindex"] ↦□
-        (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    mvcc.idxPin (GF := GF) γ ti ∗
       ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.muAddr s) (mvcc.muInv (GF := GF) s γ)) ∗
       ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ)) ∗
       ([∗list] _x ∈ List.replicate n (), mvcc.idxReader ti γ.idx) ∗
@@ -175,19 +174,24 @@ theorem mvcc.NewStore.wp_proof
   -- ghost of the log the bucket's view is of
   imod ghostVar_alloc (GF := GF) () with ⟨%γwr, Hwr⟩
   imod ghostVar_alloc (GF := GF) () with ⟨%γwk, Hwk⟩
-  imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwv, Hwv⟩
-  icases ghostVar_halves γwv _ $$ Hwv with ⟨Hwv1, Hwv2⟩
+  imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwv, Hwvg⟩
+  icases ghostVar_halves γwv _ $$ Hwvg with ⟨Hwv1, Hwv2⟩
+  -- the store's objects, pinned (D22 receiver epochs, S3: until S5)
+  imod (dghostVar_alloc (GF := GF) (⟨b, ti, sc, stopc⟩ : mvcc.StoreObjs)) with ⟨%γcur, Hpin⟩
+  imod (dghostVar_persist (GF := GF) γcur 1 _) $$ Hpin with #Hpin
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv⟩ :
+      hγwv, hγcur⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
-      γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv⟩, rfl, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur⟩, rfl, rfl, rfl,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   rw [← hγwr] at *
   rw [← hγwk] at *
   rw [← hγwv] at *
+  ihave #Hpin : mvcc.objsPin γ ⟨b, ti, sc, stopc⟩ $$ []
+  · iunfold mvcc.objsPin; rw [hγcur]; iexact Hpin
   ihave #HhookP : mvcc.hookP γ P $$ []
   · iunfold mvcc.hookP; rw [hγh]; iexact Hh
   ihave #Hhook : mvcc.hookInit γ P f $$ []
@@ -222,15 +226,11 @@ theorem mvcc.NewStore.wp_proof
   -- the fixed fields, and the views' `kv`
   iStructNamedPrefix Hrv "R"
   iStructNamedPrefix Hwv "W"
-  ipersist b
   ipersist le
-  ipersist kvindex
   ipersist lg
   ipersist Rkv
   ipersist Wkv
   ipersist cfg
-  ipersist fifoSched
-  ipersist stopc
   ipersist hashes
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
   ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P $$ [Hbk]
@@ -335,12 +335,22 @@ theorem mvcc.NewStore.wp_proof
       DFrac.own (1 : Qp).half} (W64 (-1) : w64) : IProp GF) $$ [compactMainRev]
   · rw [← hsplit]; iexact compactMainRev
   icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcmp2 with ⟨HcmpA, HcmpB⟩
-  imod sync.init_RWMutex (mvcc.muInv «$r0_ptr» γ) (mvcc.muAddr «$r0_ptr») $$ [HcmpA HcuM Hwr] mu
+  -- the four fields `store.Restore` writes (D22 receiver epochs, S3): half to `s.mu`, the rest to
+  -- `restore` (lent), then a quarter each to the right to close and the watchable store's share
+  ihave Hfs : mvcc.fieldShare «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half) $$ [b kvindex fifoSched stopc]
+  · rw [Qp.half_add_half]
+    iunfold mvcc.fieldShare
+    iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
+    iframe Hpin
+    iunfold mvcc.storeFields
+    iframe b kvindex fifoSched stopc
+  icases ((mvcc.fieldShare_fractional «$r0_ptr» γ).fractional _ _).1 $$ Hfs with ⟨Hfm, Hfr⟩
+  imod sync.init_RWMutex (mvcc.muInv «$r0_ptr» γ) (mvcc.muAddr «$r0_ptr») $$ [HcmpA HcuM Hwr Hfm] mu
     with Hmus
   · inext
     iunfold mvcc.muInv
     iexists -1
-    iframe Hwr
+    iframe Hwr Hfm
     iunfold mvcc.muInvAt
     iframe HcmpA HcuM
     isplitl []
@@ -352,7 +362,7 @@ theorem mvcc.NewStore.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv «$r0_ptr» γ 1)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP, Hwr⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr, Hfm⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   ihave %Hcm := mvcc.crevUB_agree γ.idx _ _ cm (-1) HcM (by decide) $$ HcrevM HcuR
@@ -372,10 +382,19 @@ theorem mvcc.NewStore.wp_proof
   · rw [hbm]; iexact Hbv2
   ihave Hncmp : mvcc.kbNoCmp γ.kb γ.bucket $$ [Hncmp]
   · rw [hγk, hγb]; iexact Hncmp
+  iunfold mvcc.fieldShare at Hfr
+  icases Hfr with ⟨%o, #Hpin', Hfr⟩
+  ihave %Ho := mvcc.objsPin_agree γ o ⟨GoInterface.ok bi, ti, sc, stopc⟩ $$ [Hpin Hpin']
+  · iframe Hpin Hpin'
+  subst Ho
+  iunfold mvcc.storeFields at Hfr
+  iNamedSuffix Hfr "R"
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
       %(1 : Qp).half %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ %([] : mvcc.Log)
-      %mvcc.restoreLogOk_nil %(fun h => by simp at h) [$Hbv2 $HcurB $HcmpF $revMu $Hncmp]
-      as ⟨Hbv2, -, HcurB, HcmpF, revMu⟩
+      %(DFrac.own (1 : Qp).half) %(DFrac.own (1 : Qp).half)
+      %mvcc.restoreLogOk_nil %(fun h => by simp at h)
+      [$Hbv2 $HcurB $HcmpF $revMu $Hncmp $HfbR $HfidxR]
+      as ⟨Hbv2, -, HcurB, HcmpF, revMu, HfbR, HfidxR⟩
   · rw [mvcc.restoreIdxPre_nil]; iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
   ihave Hbv2 : mvcc.bucketView γ (1 : Qp).half (∅ : mvcc.Bucket) $$ [Hbv2]
@@ -415,11 +434,11 @@ theorem mvcc.NewStore.wp_proof
     ipureintro; simp
   icases sync.ownRWMutex_slots_guard _ _ $$ Hrevs with ⟨Hrevs, #Hrevg⟩
   -- the deferred `s.mu.Unlock()`
-  wp_apply sync.RWMutex.wp_Unlock $$ [$Hmul HcmpA HcrevM Hwr] as Hmu1
+  wp_apply sync.RWMutex.wp_Unlock $$ [$Hmul HcmpA HcrevM Hwr Hfm] as Hmu1
   · inext
     iunfold mvcc.muInv
     iexists -1
-    iframe Hwr
+    iframe Hwr Hfm
     iunfold mvcc.muInvAt
     iframe HcmpA HcrevM
     iframe #
@@ -453,7 +472,10 @@ theorem mvcc.NewStore.wp_proof
   isplitl [Hmus Hrevs Hird Hrts]
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
     iframe Hmus Hrevs Hird Hrts
-    iexact kvindex
+    iunfold mvcc.idxPin
+    iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
+    iframe Hpin
+    ipureintro; rfl
   -- the compaction jobs' queue: the index compactor's token at `-1` beside the scheduler's
   -- queue, whose last name saves the initial `True` (2026-10-13, unit 5c)
   ihave Hcq : mvcc.compactQueue γ (-1) $$ [Hq0 Hcmp0]
@@ -470,16 +492,28 @@ theorem mvcc.NewStore.wp_proof
     iintro ⟨-, H⟩
     iexact H
   -- the right to close: the stop channel's close, the scheduler's stop token, the queue (D19m (C))
-  isplitl [Hstop HsStop Hcq]
+  -- the rest of the fields: a quarter to the right to close, a quarter to the caller (the
+  -- watchable store's share; D22 receiver epochs, S3)
+  ihave Hfr : mvcc.fieldShare «$r0_ptr» γ ((1 : Qp).half.half + (1 : Qp).half.half)
+      $$ [HfbR HfidxR HfschR HfstopR]
+  · rw [Qp.half_add_half]
+    iunfold mvcc.fieldShare
+    iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
+    iframe Hpin
+    iunfold mvcc.storeFields
+    iframe HfbR HfidxR HfschR HfstopR
+  icases ((mvcc.fieldShare_fractional «$r0_ptr» γ).fractional _ _).1 $$ Hfr with ⟨Hfc, Hfw⟩
+  isplitl [Hstop HsStop Hcq Hfc]
   · iunfold mvcc.storeCloser
-    iframe Hcq
+    iframe Hcq Hfc
     isplitl [Hstop]
-    · iexists stopc; iframe stopc
+    · iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩; iframe Hpin
+      isplitl []
+      · iunfold mvcc.isStopChan; iexists γstop; iexact Hstop0
       iunfold mvcc.stopCloser; iexists γstop; iexact Hstop
     rw [hγs]; iexact HsStop
-  isplitl []
-  · iunfold mvcc.storeStop; iexists stopc; iframe stopc
-    iunfold mvcc.isStopChan; iexists γstop; iexact Hstop0
+  isplitl [Hfw]
+  · iexact Hfw
   -- the compaction right's half of the revision's authority at `-1`
   iexact Hright
 

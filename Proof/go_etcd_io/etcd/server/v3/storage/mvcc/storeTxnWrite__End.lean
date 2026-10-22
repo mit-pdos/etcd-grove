@@ -33,9 +33,16 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
-  icombine Hidx HidxS gives %Hti_eq
-  have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
-  subst Hti_eq'
+  iunfold mvcc.idxPin at Hidx
+  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
+  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
+  · iframe HpinS Hpin0
+  subst Hoo
+  simp only at Ho0
+  have Ho1 := Ho0.symm
+  subst Ho1
+  ihave #Hidx : mvcc.idxPin γ ti $$ []
+  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
   have hsplit := dfrac_own_half_half (1 : Qp)
@@ -87,9 +94,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact Hif (hpend.1 rfl)
     (try wp_auto)
     iunfold mvcc.muHeld at Hmu
-    icases Hmu with ⟨Hmu, Hmua⟩
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr] as Hmu
-    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua; iunfold mvcc.wDep at Hwr; iexact Hwr
+    icases Hmu with ⟨Hmu, Hmua, Hfs⟩
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hfs] as Hmu
+    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs; iunfold mvcc.wDep at Hwr; iexact Hwr
     (try wp_auto)
     iapply HΦ
     iframe HZ
@@ -205,9 +212,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
       iunfold mvcc.muHeld at Hmu
-      icases Hmu with ⟨Hmu, Hmua⟩
-      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr] as Hmu
-      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua; iunfold mvcc.wDep at Hwr; iexact Hwr
+      icases Hmu with ⟨Hmu, Hmua, Hfs⟩
+      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hfs] as Hmu
+      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs; iunfold mvcc.wDep at Hwr; iexact Hwr
       (try wp_auto)
       iapply HΦ
       iframe HZ

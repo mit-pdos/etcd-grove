@@ -1472,12 +1472,39 @@ theorem relAuth_of_eq (γ : WsNames) (q : Qp) (L1 L2 : Log) (h : L1 = L2) :
     monoNatAuthOwn (GF := GF) γ.rel q L1.length ⊢ monoNatAuthOwn γ.rel q L2.length := by
   subst h; exact .rfl
 
+/-- **The watchable store's share of its inner store's fields** (D22 receiver epochs, S3,
+2026-10-22): `syncWatchers` reads `s.store.b` under the watchable store's `s.mu` and the inner
+store's `s.revMu`, not the inner store's `s.mu` (and `store.Restore`, called by
+`watchableStore.Restore` under the watchable store's `s.mu`, writes it before taking `s.revMu`):
+the quarter `NewStore` returns (`fieldShare`), at the lock's fraction. -/
+def wsFields (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
+  iprop(∃ st : Loc, s.[watchableStore, go!"store"] ↦□ st ∗ fieldShare st γ.st q.half.half)
+
+instance wsFields_fractional (s : Loc) (γ : WsNames) : Fractional (wsFields (GF := GF) s γ) where
+  fractional q1 q2 := by
+    have hf := fun st => (fieldShare_fractional (GF := GF) st γ.st).fractional q1.half.half q2.half.half
+    unfold wsFields
+    rw [Qp_half_add, Qp_half_add]
+    constructor
+    · iintro ⟨%st, #Hst, H⟩
+      icases (hf st).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists st; iframe Hst H1
+      · iexists st; iframe Hst H2
+    · iintro ⟨⟨%st1, #Hst1, H1⟩, ⟨%st2, #Hst2, H2⟩⟩
+      icombine Hst1 Hst2 gives %Heq
+      subst Heq
+      iexists st1
+      iframe Hst1
+      iapply (hf st1).2
+      iframe H1 H2
+
 /-- **The lock invariant** of `s.mu` (see the module docstring); D25: with the released length's
 authority at the notified log's length (`End` bumps it before notifying, inside its critical
-section). -/
+section); D22 receiver epochs, S3: with the share of the inner store's fields (`wsFields`). -/
 def watchStoreInv (s : Loc) (γ : WsNames) (q : Qp) : IProp GF :=
   iprop(∃ σ : WsState, watchStoreBody s γ q σ ∗ monoNatAuthOwn γ.rel q σ.Lmu.length ∗
-    ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
+    wsFields s γ q ∗ ⌜σ.settled ∧ σ.srBelow σ.Lmu.length⌝)
 
 /-! ## The store -/
 

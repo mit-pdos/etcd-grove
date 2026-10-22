@@ -54,9 +54,16 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   have HBM : pend.length + 1 < mvcc.putMax γ := by have := mvcc.putMax_ge γ; omega
   have Hbm := HBM
   have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
-  icombine Hidx HidxS gives %Hti_eq
-  have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
-  subst Hti_eq'
+  iunfold mvcc.idxPin at Hidx
+  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
+  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
+  · iframe HpinS Hpin0
+  subst Hoo
+  simp only at Ho0
+  have Ho1 := Ho0.symm
+  subst Ho1
+  ihave #Hidx : mvcc.idxPin γ ti $$ []
+  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
   -- package facts: `ErrRevisionNotFound`, the `Key` bucket, zap, protobuf, traceutil
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -137,12 +144,15 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     ipureintro; exact mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm
   inext
   iintro ⟨Hlocked, Hbv⟩
+  icases mvcc.muHeld_idx s γ crev ti $$ [Hmu] with ⟨Hidxf, HmuI⟩
+  · iframe Hmu Hidx
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw
   · ipureintro
     refine ⟨rfl, hpos, Hb, mvcc.LogWf'.append_change Hwf' Hne _ (fun k' h => ?_)⟩
     rw [← mvcc.Change.del.inj h]; exact Hpresent
+  ihave Hmu := HmuI $$ Hidxf
   (try wp_auto)
   -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
   -- `tw.changes = append(tw.changes, kv)`

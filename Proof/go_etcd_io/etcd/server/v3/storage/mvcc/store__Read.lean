@@ -46,7 +46,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP, Hwr⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
+  icases mvcc.fieldShare_open s γ _ _ _ _ _ $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop⟩
+  · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
@@ -109,9 +111,11 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     ipersist Ctrace
     ipersist Ttx
     (try wp_auto)
-    ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
+    ihave Hfs := mvcc.fieldShare_close s γ _ _ _ _ _ $$ [Hpin Hfb Hfidx Hfsch Hfstop]
+    · iframe Hpin Hfb Hfidx Hfsch Hfstop
+    ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM Hfs]
     · iunfold mvcc.muHeld
-      iframe Hmul
+      iframe Hmul Hfs
       iunfold mvcc.muInvAt
       iframe HcmpM HcrevM
       iframe #

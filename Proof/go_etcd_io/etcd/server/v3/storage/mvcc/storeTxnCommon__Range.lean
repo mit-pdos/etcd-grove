@@ -58,13 +58,14 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   · rw [mvcc.idxKnows_cert]; isplitr
     · iexact Hcert0
     iexact HnevT
-  icases mvcc.muHeld_cmp s γ crev $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
+  icases mvcc.muHeld_cmp_idx s γ crev ti $$ [Hmu] with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
+  · iframe Hmu Hidx
   wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m Tok γ (.cert log) log rev
-      ctx cd todo key endk k e ro _ _ crev log te (by assumption))
-    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hcert0 $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
-    as %r %err ⟨%Htodo, -, -, -, Htok, -, Hti, Hcmp, Hcu, Hown, Hout⟩
+      ctx cd todo key endk k e ro _ _ crev log te _ (by assumption))
+    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hcert0 $Hkn $Hidx $Hidxf $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
+    as %r %err ⟨%Htodo, -, -, -, Htok, -, Hti, Hidxf, Hcmp, Hcu, Hown, Hout⟩
   · ipureintro; exact ⟨Hsub, ⟨List.prefix_refl _, HcrevT.2⟩, rfl, HneT, hrv, Hcb⟩
-  ihave Hmu := Hmub $$ Hcmp Hcu
+  ihave Hmu := Hmub $$ Hcmp Hcu Hidxf
   (try wp_auto)
   iapply HΦ
   iframe Hti Hout Hmu Hown

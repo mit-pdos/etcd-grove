@@ -31,7 +31,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %Dep, Hs⟩
+  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %Dep, %scfg, %ssched, %sstop, %shs, Hs⟩
   iNamed Hs
   iunfold mvcc.storeReaderC at Hrd
   icases Hrd with ⟨%ti2, Hrd⟩
@@ -56,19 +56,14 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP, Hwr⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
+  icases mvcc.fieldShare_open s γ _ b ti ssched sstop $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop⟩
+  · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
   icases mvcc.crevUB_get_lb γ.idx _ cm $$ HcrevM with ⟨HcrevM, #Hlbc⟩
   ihave #HclM0 := HclM
-  ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
-  · iunfold mvcc.muHeld
-    iframe Hmul
-    iunfold mvcc.muInvAt
-    iframe HcmpM HcrevM
-    iframe #
-    ipureintro; exact HcM
   -- `tx := s.b.BatchTx()`
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
@@ -76,6 +71,15 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   wp_apply HB as %bt #Hbt
   (try wp_auto)
+  ihave Hfs := mvcc.fieldShare_close s γ _ _ ti ssched sstop $$ [Hpin Hfb Hfidx Hfsch Hfstop]
+  · iframe Hpin Hfb Hfidx Hfsch Hfstop
+  ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM Hfs]
+  · iunfold mvcc.muHeld
+    iframe Hmul Hfs
+    iunfold mvcc.muInvAt
+    iframe HcmpM HcrevM
+    iframe #
+    ipureintro; exact HcM
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)

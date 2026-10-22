@@ -46,7 +46,7 @@ theorem mvcc.newWatchableStore.wp_proof
     iexists l; iexact lg
   wp_apply (hNewStore _ _ _ _ _ _ _ _ f true γi γok Hcfg0 Hrb0)
     $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hifresh $Hok0] as %st
-    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, -,
+    ⟨%γs, ⟨%hγb, %hγl, %hγk, %hγw, %hγi, %hγok⟩, #Hst, Hok, #HhookP, Hviews, Hreaders, Htoks, #Hcert, HlogQ, Hsclose, Hfw,
       Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right's
   -- half of the revision's authority given up, the readers those of a never-compacted store (the
@@ -101,12 +101,15 @@ theorem mvcc.newWatchableStore.wp_proof
   · have h : (if true = true then mvcc.logQ (GF := GF) γs [[], []] else iprop(True)) =
         mvcc.logQ γs [[], []] := by simp
     rw [← h]; iexact HlogQ
-  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel]
+  -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
+  ihave Hwsf : mvcc.wsFields «$r0_ptr» γ 1 $$ [Hfw]
+  · iunfold mvcc.wsFields; iexists st; iframe store; iexact Hfw
+  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ Hrel Hwsf]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
     isplitl [Hwst Hwl1 Hsy Hun victims Hmeta Hwt HlogQ]
     rotate_left
-    · iframe Hrel; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
+    · iframe Hrel Hwsf; ipureintro; exact ⟨mvcc.wsInit_settled, fun w γw h => by simp [mvcc.wsInit, GMap.lookup_empty] at h⟩
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
     iframe Hwst Hsy Hun victims Hmeta Hwt

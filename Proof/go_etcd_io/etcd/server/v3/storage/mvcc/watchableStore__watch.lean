@@ -683,7 +683,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -832,14 +832,14 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
         ipureintro; exact Hvlen
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
         isplitl [Hrel]
         · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
-        ipureintro
+        iframe Hwsf; ipureintro
         exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
           mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
       (try wp_auto)
@@ -942,14 +942,14 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
         ipureintro; exact Hvlen
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
         isplitl [Hrel]
         · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
-        ipureintro
+        iframe Hwsf; ipureintro
         exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
           mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
       (try wp_auto)
@@ -1062,14 +1062,14 @@ theorem mvcc.watchableStore.watch.wp_proof
           iunfold mvcc.watcherOwn
           iframe minRev victim compacted restore ch
           ipureintro; exact Hvlen
-        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+        wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
         · inext
           iunfold mvcc.watchStoreInv
           iexists _
           iframe Hbody
           isplitl [Hrel]
           · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
-          ipureintro
+          iframe Hwsf; ipureintro
           exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
             mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
         (try wp_auto)
@@ -1173,14 +1173,14 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
         ipureintro; exact Hvlen
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
       · inext
         iunfold mvcc.watchStoreInv
         iexists _
         iframe Hbody
         isplitl [Hrel]
         · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
-        ipureintro
+        iframe Hwsf; ipureintro
         exact ⟨mvcc.WsState.settled_addW Hok Hset _ w r st0 γw hM,
           mvcc.WsState.srBelow_addW Hsrb _ w r st0 γw (fun h => by rw [hlo]; exact hlosr (hsrw ▸ h))⟩
       (try wp_auto)

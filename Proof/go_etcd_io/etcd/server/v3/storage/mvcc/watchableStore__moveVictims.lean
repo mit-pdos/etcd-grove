@@ -126,7 +126,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.watchStoreInv at HP
-  icases HP with ⟨%σ, HP, Hrel, %HsetR⟩
+  icases HP with ⟨%σ, HP, Hrel, Hwsf, %HsetR⟩
   obtain ⟨Hset, Hsrb⟩ := HsetR
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
@@ -144,11 +144,11 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     (Ψ := fun _ x => iprop([∗map] w ↦ b ∈ x.2, mvcc.outW (GF := GF) γ w b))
     (l := σ.vbs.zip σ.VB)).2 $$ [Hvbs Hmov]
   · iframe Hvbs Hmov
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
   · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody
     isplitl [Hrel]
     · iapply (mvcc.relAuth_of_eq γ _ σ.Lmu _ (by rfl)); iexact Hrel
-    ipureintro
+    iframe Hwsf; ipureintro
     exact ⟨mvcc.takeState_settled Hset slice.nil, Hsrb⟩
   ihave %Hvsl := ownSlice_len $$ Hvs
   have Hone := Hok.v_one
@@ -435,7 +435,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     wp_auto_lc 1
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
     iunfold mvcc.watchStoreInv at HP
-    icases HP with ⟨%σ1, HP, Hrel, %HsetR1⟩
+    icases HP with ⟨%σ1, HP, Hrel, Hwsf, %HsetR1⟩
     obtain ⟨Hset1, Hsrb1⟩ := HsetR1
     wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
     wp_auto_lc 2
@@ -679,11 +679,11 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
     iintro HrevMuR
     wp_auto
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
     · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody
       isplitl [Hrel]
       · iapply (mvcc.relAuth_of_eq γ _ σ1.Lmu _ HL1.symm); iexact Hrel
-      ipureintro; exact ⟨Hset', Hsrb'⟩
+      iframe Hwsf; ipureintro; exact ⟨Hset', Hsrb'⟩
     wp_for_post
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     iframe HΦ Hmur HmuR HrevMuR HtiR HrtR s HvsM HvcapM
@@ -719,7 +719,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       wp_auto_lc 1
       imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.watchStoreInv s γ 1)) $$ Hlc1 HP with HP
       iunfold mvcc.watchStoreInv at HP
-      icases HP with ⟨%σ2, HP, Hrel, %HsetR2⟩
+      icases HP with ⟨%σ2, HP, Hrel, Hwsf, %HsetR2⟩
       obtain ⟨Hset2, Hsrb2⟩ := HsetR2
       iunfold mvcc.watchStoreBody at HP
       iNamed HP
@@ -742,11 +742,11 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         · ipureintro; exact Hvlen
         iapply (BigSepM.bigSepM_mono (fun {k x} hk => ?_)) $$ Hnvb
         iintro H; iframe H; ipureintro; exact (Hn.2.2.1 k x hk).1
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody Hrel Hwsf]
       · inext; iunfold mvcc.watchStoreInv; iexists _; iframe Hbody
         isplitl [Hrel]
         · iapply (mvcc.relAuth_of_eq γ _ σ2.Lmu _ (by rfl)); iexact Hrel
-        ipureintro
+        iframe Hwsf; ipureintro
         exact ⟨mvcc.appendState_settled Hok Hset2 NV vs' nvv (fun w x h => (HNV2 w x h).1), Hsrb2⟩
       (try wp_auto)
       iapply HΦ $$ HR

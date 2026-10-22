@@ -174,7 +174,7 @@ receiver epochs, S1). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller
 physical bound; now the job derives it, `CompactSmall_of_cert`.) And the scheduler never stopped
 (`schedLive`, from the compaction right: the job's barrier is untracked; D19m (C), 2026-10-18). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
-  iprop(isStore s γ ∗ storeStop s ∗ schedule.schedLive γ.sch ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
+  iprop(isStore s γ ∗ storeStop s γ ∗ schedule.schedLive γ.sch ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
     ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
 
