@@ -362,8 +362,6 @@ axiom membership.RaftCluster.String.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom mvcc.store.Close.wp_proof
-axiom mvcc.store.HashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom net.Listen.wp_proof
 axiom netAddrFree
@@ -409,8 +407,6 @@ axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
-axiom schedule.NewFIFOScheduler.wp_proof
-axiom schedule.Scheduler.Schedule.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
@@ -444,7 +440,6 @@ axiom types.ID.String.wp_proof
 axiom types.ID.String_ptr.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom utf8.ValidString.wp_proof
-axiom v2stats.NewLeaderStats.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof

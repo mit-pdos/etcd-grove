@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-22 (examples-common, branch `examples-common`: the examples' shared Go code in one package, `examples/common` (D33), translated and proved once: the one-member start (`StartServer`), a cluster member's (`NewMember`, `StartMember`), the gRPC service (`Serve`, with the caller's ghost step), the client (`NewClient`), the ghost-state allocations (`alloc1`, `alloc3`), the watch workload's `Gen`, `GenAll`, `Writer`, `MaxRev`, `Collect`, `Attempted`, `Check`; 46 example spec/proof files deleted or moved to common; no closed theorem's statement changed, trust base unchanged; see "The examples' shared code"); 2026-10-22 (retry-bound clean-up, branch `retry-bound`: the client's retry-bound tracking (`maxAfter`, `retryOptsMax`, `optApplyMax`'s bound; D21 M6) deleted, `optApplyMax` now `optApplyKeep`; four intermediate specs lose a parameter or conjunct, no closed theorem's statement changed, trust base unchanged; see the clean-up section); 2026-10-22 (Perennial idioms, branch `perennial-idioms`: the synchronous SPSC channel, the thread-token join and `wp_fork_tok_upd` moved to Perennial (landed: the pin `537c426e0`; branch `idioms`, `537c426e0`) and the watch client's local copies deleted; needs that branch until the pin moves; no statement of a closed theorem changed, trust base unchanged; see "Perennial idioms: the watch client's three workarounds upstreamed"); 2026-10-22 (clean-up, branch `cleanup`: the watch client's `closeSubstream`/`run` joined again (CPU 52s -> 7s, 148s -> 131s), the one-attempt client machinery deleted (D31's follow-up), `gen-init.py`'s `CLOSEDCHAN` variant and kv's re-proof of raft's initialization removed; no statement of a closed theorem changed, trust base unchanged; see "Clean-up: the watch client's joins, the one-attempt client, the init variants"); 2026-10-22 (the repository is sorry-free: mvcc's `kvHasher` translated, its `hash.Hash32` field's package `hash` types-only here, so its generated instances are no longer `sorry -- axiomatized type`; trust base 543 axioms, 0 sorries; see "`kvHasher` translated: no sorry left"); 2026-10-22 (client-default: linkv, linkv3, linkvtxn, watchkv and cachekv use etcd's default client configuration, their members refusal-free (`etcd_noRefusal`, D29); one family of client call lemmas in `client/v3/ClientPutGet.lean`; D31; see "The examples' clients"); 2026-10-22 (watches across a cut, W4: `linkv3p_watch_safe`, watchkv's watch workload over linkv3p's partitioned cluster, the watch resumed at any member, its events the cluster's committed history's; no axiom added; see "Watches across a cut"); 2026-10-22 (watches across a cut, W1–W3: D32 carried out; mvcc's progress bound from etcd's own guard, no client start read; the clients' model over the cluster's history; the watch client's epochs at any member of its connection; see "Watches across a cut"); 2026-10-22 (D22 fork fixes: the etcd pin at `goose-lean` `188113160`, the alarm store recovered in place (`8fd98af04`) and a snapshot's older files released by `applySnapshot` after its open (`188113160`), each with its regression test; no proof change, trust base 543 axioms, 2 sorries; see "D22 fork fixes: the snapshot file's release and the alarm store's race"); 2026-10-22 (D22 receiver epochs, S1-S4 of the simplest true `Restore`: the certificate without the index's count, the writer's state out of the batch lock into `writerInv`, the four fields `Restore` writes out of `isStore` into lock-held shares, `s.revMu`'s restoring mode, the readers' pool of the index's slots; S5 (the physical names existential, the writer's fragment) designed, not done; trust base unchanged; see "D22 receiver epochs, S1-S4"); 2026-10-22 (the kv example's snapshot liveness: a `do` whose operation a snapshot covers is answered at the install, from the table of the operations applied, now with each one's answer; `kv_porcupine_safe` unchanged; see "The kv example's snapshot liveness: done"); 2026-10-22 (D22 S-r carried out: snapshots in the kv example, replicas compact and catch up by `MsgSnap`, `kv_porcupine_safe` re-closed with its statement and axioms unchanged; the data certificate `snapDataOk`; see "D22 S-r carried out (proof)"); 2026-10-21 (raft-retarget merged into lean: D22's snapshot track (S-0..S-d4, S-f..S-i, S-g/S-h, the three fork fixes) with lean's proof-perf, init facts, linkv3p/kv and watch-resume work; the etcd pin `goose-lean` `2aed163b1` (both sides' fork commits); lean's six examples ported to the server's D22 contract; trust base 543 axioms, 2 sorries; see "Merge of raft-retarget into lean (D22)"); 2026-10-21 (clean-up, on branch `clean-up`: `etc/dead-decls.py`, about 7,900 lines of unused declarations removed, proposals registered once and proposed any number of times (`prop_register`; `propMulti` gone), the adequacy coverage of the linked results, see "Clean-up"); 2026-10-21 (read retries: linkv3p's clients have the default retries, so a read held by a cut is retried on the next member, while a write is still sent at most once: the members are refusal-free; D29, 2 axioms; see "Read retries"); 2026-10-21 (keepalive: the client's configuration may enable gRPC keepalive, linkv3p's clients do and its members accept the pings, failover on a silent partition; D28, 2 axioms; see "Keepalive and failover on a silent partition"); 2026-10-21 (client-member cuts in linkv3p, K0, K1, K3: `linkv3p_safe` re-closed with client-member cuts through a copy of etcd's bridge, part of the network (D26: 5 trust-boundary axioms, its code not verified), a finding (`issues/etcd-bridge-blackhole-twice-panic.md`); older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)".
+**Last updated:** 2026-10-22 (examples-common, branch `examples-common`: the examples' shared Go code in one package, `examples/common` (D33), translated and proved once: the one-member start (`StartServer`), a cluster member's (`NewMember`, `StartMember`), the gRPC service (`Serve`, with the caller's ghost step), the client (`NewClient`), the ghost-state allocations (`alloc1`, `alloc3`), the watch workload's `Gen`, `GenAll`, `Writer`, `MaxRev`, `Collect`, `Attempted`, `Check`; 46 example spec/proof files deleted or moved to common; no closed theorem's statement changed, trust base unchanged; see "The examples' shared code"); 2026-10-22 (retry-bound clean-up, branch `retry-bound`: the client's retry-bound tracking (`maxAfter`, `retryOptsMax`, `optApplyMax`'s bound; D21 M6) deleted, `optApplyMax` now `optApplyKeep`; four intermediate specs lose a parameter or conjunct, no closed theorem's statement changed, trust base unchanged; see the clean-up section); 2026-10-22 (Perennial idioms, branch `perennial-idioms`: the synchronous SPSC channel, the thread-token join and `wp_fork_tok_upd` moved to Perennial (landed: the pin `537c426e0`; branch `idioms`, `537c426e0`) and the watch client's local copies deleted; needs that branch until the pin moves; no statement of a closed theorem changed, trust base unchanged; see "Perennial idioms: the watch client's three workarounds upstreamed"); 2026-10-22 (clean-up, branch `cleanup`: the watch client's `closeSubstream`/`run` joined again (CPU 52s -> 7s, 148s -> 131s), the one-attempt client machinery deleted (D31's follow-up), `gen-init.py`'s `CLOSEDCHAN` variant and kv's re-proof of raft's initialization removed; no statement of a closed theorem changed, trust base unchanged; see "Clean-up: the watch client's joins, the one-attempt client, the init variants"); 2026-10-22 (the repository is sorry-free: mvcc's `kvHasher` translated, its `hash.Hash32` field's package `hash` types-only here, so its generated instances are no longer `sorry -- axiomatized type`; trust base 543 axioms, 0 sorries; see "`kvHasher` translated: no sorry left"); 2026-10-22 (client-default: linkv, linkv3, linkvtxn, watchkv and cachekv use etcd's default client configuration, their members refusal-free (`etcd_noRefusal`, D29); one family of client call lemmas in `client/v3/ClientPutGet.lean`; D31; see "The examples' clients"); 2026-10-22 (watches across a cut, W4: `linkv3p_watch_safe`, watchkv's watch workload over linkv3p's partitioned cluster, the watch resumed at any member, its events the cluster's committed history's; no axiom added; see "Watches across a cut"); 2026-10-22 (watches across a cut, W1–W3: D32 carried out; mvcc's progress bound from etcd's own guard, no client start read; the clients' model over the cluster's history; the watch client's epochs at any member of its connection; see "Watches across a cut"); 2026-10-22 (D22 fork fixes: the etcd pin at `goose-lean` `188113160`, the alarm store recovered in place (`8fd98af04`) and a snapshot's older files released by `applySnapshot` after its open (`188113160`), each with its regression test; no proof change, trust base 543 axioms, 2 sorries; see "D22 fork fixes: the snapshot file's release and the alarm store's race"); 2026-10-22 (D22 receiver epochs, S1-S4 of the simplest true `Restore`: the certificate without the index's count, the writer's state out of the batch lock into `writerInv`, the four fields `Restore` writes out of `isStore` into lock-held shares, `s.revMu`'s restoring mode, the readers' pool of the index's slots; S5 (the physical names existential, the writer's fragment) designed, not done; trust base unchanged; see "D22 receiver epochs, S1-S4"); 2026-10-22 (the kv example's snapshot liveness: a `do` whose operation a snapshot covers is answered at the install, from the table of the operations applied, now with each one's answer; `kv_porcupine_safe` unchanged; see "The kv example's snapshot liveness: done"); 2026-10-22 (D22 S-r carried out: snapshots in the kv example, replicas compact and catch up by `MsgSnap`, `kv_porcupine_safe` re-closed with its statement and axioms unchanged; the data certificate `snapDataOk`; see "D22 S-r carried out (proof)"); 2026-10-21 (raft-retarget merged into lean: D22's snapshot track (S-0..S-d4, S-f..S-i, S-g/S-h, the three fork fixes) with lean's proof-perf, init facts, linkv3p/kv and watch-resume work; the etcd pin `goose-lean` `2aed163b1` (both sides' fork commits); lean's six examples ported to the server's D22 contract; trust base 543 axioms, 2 sorries; see "Merge of raft-retarget into lean (D22)"); 2026-10-21 (clean-up, on branch `clean-up`: `etc/dead-decls.py`, about 7,900 lines of unused declarations removed, proposals registered once and proposed any number of times (`prop_register`; `propMulti` gone), the adequacy coverage of the linked results, see "Clean-up"); 2026-10-21 (read retries: linkv3p's clients have the default retries, so a read held by a cut is retried on the next member, while a write is still sent at most once: the members are refusal-free; D29, 2 axioms; see "Read retries"); 2026-10-21 (keepalive: the client's configuration may enable gRPC keepalive, linkv3p's clients do and its members accept the pings, failover on a silent partition; D28, 2 axioms; see "Keepalive and failover on a silent partition"); 2026-10-21 (client-member cuts in linkv3p, K0, K1, K3: `linkv3p_safe` re-closed with client-member cuts through a copy of etcd's bridge, part of the network (D26: 5 trust-boundary axioms, its code not verified), a finding (`issues/etcd-bridge-blackhole-twice-panic.md`); older entries: `notes/status-history.md`, "Last updated entries (all 164, until 2026-10-22)".; 2026-10-22 (v2stats's `NewLeaderStats` translated and proved, no longer an axiom; `ServerStats`'s three (`NewServerStats`, `BecomeLeader`, `RecvAppendReq`) stay axioms, its type has an anonymous struct field Goose does not translate; trust base 537 axioms, 0 sorries; see "The FIFO scheduler proved"); 2026-10-22 (the FIFO scheduler proved: `pkg/v3/schedule`'s `fifo` translated with its body, `NewFIFOScheduler`, `Scheduler.Schedule` and `Scheduler.Stop` no longer axioms, nor mvcc's `store.Close` and `store.HashStorage` (translated); trust base 538 axioms, 0 sorries; see "The FIFO scheduler proved")
 
 This file is where the port is now: a summary checked against the repository, then the
 sections that still describe the current design or state, by area. Its history -- the
@@ -36,8 +36,8 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
 
 ### Trust base
 
-- `etc/tcb-baseline.txt`: **543 axioms, 0 `sorry`s** (sorry-free since 2026-10-22, "`kvHasher`
-  translated: no sorry left" below).
+- `etc/tcb-baseline.txt`: **537 axioms, 0 `sorry`s** (sorry-free since 2026-10-22, "`kvHasher`
+  translated: no sorry left" below; 537 since "The FIFO scheduler proved" and v2stats's `NewLeaderStats`).
 - Collections (`etc/tcb-collections/*.txt`; the counts are each file's `axiom` lines; no
   collection has a `sorry` line):
 
@@ -49,33 +49,33 @@ record is `notes/decisions.md`; the Rocq development's notes are on branch `main
   | `btree` | 0 | the cache's B-tree (k8s fork of google/btree) |
   | `cache` | 7 | etcd's `cache` package (but `cache_end_to_end_client`) |
   | `cache-client` | 87 | the cache over etcd's client and server (`cache_end_to_end_client`) |
-  | `cachekv` | 481 | `cachekv`'s closed theorem `cache_safe` |
+  | `cachekv` | 476 | `cachekv`'s closed theorem `cache_safe` |
   | `client` | 109 | the client's KV path over gRPC (`client/v3/Link.lean`) |
   | `concurrency` | 7 | `client/v3/concurrency` |
   | `kv` | 18 | the key-value store example (`kv_porcupine_safe`) |
   | `lease` | 24 | the client's lessor (`client/v3/lease.go`) |
   | `lease-served` | 65 | the Lease service's unary path from the gRPC handlers |
   | `leasing` | 3 | `client/v3/leasing` |
-  | `linkv` | 463 | `linkv_safe` |
-  | `linkv3` | 465 | `linkv3_safe` |
-  | `linkv3p` | 488 | `linkv3p_safe` and `linkv3p_watch_safe` |
-  | `linkvtxn` | 463 | `linkvtxn_safe` |
-  | `mvcc` | 36 | mvcc's KV core |
-  | `mvcc-compaction` | 22 | mvcc's compaction |
-  | `putget` | 462 | `putget_safe` |
-  | `putget3` | 464 | `putget3_safe` |
+  | `linkv` | 458 | `linkv_safe` |
+  | `linkv3` | 460 | `linkv3_safe` |
+  | `linkv3p` | 483 | `linkv3p_safe` and `linkv3p_watch_safe` |
+  | `linkvtxn` | 458 | `linkvtxn_safe` |
+  | `mvcc` | 33 | mvcc's KV core |
+  | `mvcc-compaction` | 21 | mvcc's compaction |
+  | `putget` | 457 | `putget_safe` |
+  | `putget3` | 459 | `putget3_safe` |
   | `raft` | 13 | raft (`Proof/go_etcd_io/raft/v3/Link.lean`, `Results.lean`) |
   | `raft-witness` | 19 | the witness part (`RaftWitness/`: raft and kvwitness) |
   | `read` | 10 | the server's linearizable read loop |
   | `recipes` | 35 | `client/v3/experimental/recipes` |
-  | `server` | 190 | etcd's server (`etcdserver/Link.lean`) |
+  | `server` | 185 | etcd's server (`etcdserver/Link.lean`) |
   | `server-raft` | 7 | the server's raft wrapper (`raft.go`) |
   | `slice` | 55 | the vertical slice, client to server |
   | `snapshot` | 42 | the snapshot path (track T-S, D22) |
   | `txn` | 22 | the server's txn package |
   | `v3rpc` | 98 | the gRPC KV service |
   | `watch` | 60 | the gRPC watch service over mvcc's watch stream |
-  | `watchkv` | 478 | `watch_safe` |
+  | `watchkv` | 473 | `watch_safe` |
 
   `#print axioms` of a closed theorem counts more (Lean's three, the generated declarations of
   untranslated types and values, Perennial's trusted specs): `kv_porcupine_safe` 342 (section
@@ -999,6 +999,104 @@ statement: `counter_adequate`
 # Initialization, Perennial and the trust base
 
 In status-history.md: "Item 8: package initialization", "The TCB and verified-code scripts" (CLAUDE.md describes them now), the Perennial pin moves before `lean` was followed, the axiom audit's stages (B1-B4b), "Sorry-free (2026-10-09)" (sorries came back later), the standard-library axioms.
+
+## The FIFO scheduler proved (2026-10-22, branch `fifo-sched`)
+
+`pkg/v3/schedule`'s `fifo` (mvcc's compaction jobs, the server's apply jobs) translated with its
+body (`Code/go_etcd_io/etcd/pkg/v3/schedule.toml`: `NewFIFOScheduler`, `Schedule`, `Stop`, the
+worker `run` and `executeJob`; `Pending`/`Scheduled`/`Finished`/`WaitFinish` names only, unused)
+and proved against the existing contracts (`isFifo`, the FIFO chain of saved postconditions,
+`Proof/go_etcd_io/etcd/pkg/v3/schedule/Defs.lean`, "The `fifo` scheduler"): the lock invariant
+holds the pending jobs' resources, the queue's other half (`schedQueue` is now half the
+authority), the baton (the last tracked job's `Post`) and the worker's state; `f.resume` and
+`f.donec` are in invariants, closed only by the worker once stopped; the context's `PDone` is the
+`stopped` flag, which `Stop` sets before cancelling it. `Scheduler.Schedule`/`Stop` are proved from
+`(*fifo)`'s. Statements unchanged except `isFifo`'s definition (it now carries the `*fifo`'s facts
+at the later-credit instance; `isFifoOf`). `verify.Assert` (an existing axiom) now reaches the
+`mvcc` collection.
+
+- **mvcc's `store.Close` and `store.HashStorage`** translated (`mvcc.toml`) and proved: `Close`
+  closes `stopc` with the closer's right and stops the scheduler with its stop token and the
+  compaction queue's scheduler queue (`storeCloser`), both read through the closer's field share;
+  `HashStorage` reads `s.hashes` (`isStore`).
+- **Trust base**: 543 → 538 axioms (`NewFIFOScheduler`, `Scheduler.Schedule`, `Scheduler.Stop`,
+  `store.Close`, `store.HashStorage` gone), 0 sorries; collections updated.
+- **v2stats** (the same pass, the server's statistics): `NewLeaderStats` translated and proved
+  (over zap's `NewNop`), 538 → 537 axioms. `NewServerStats`, `ServerStats.BecomeLeader` and
+  `ServerStats.RecvAppendReq` stay trust-boundary axioms: `serverStats` has an anonymous struct
+  field (`LeaderInfo`), which Goose does not translate, so the type is axiomatized. Proving them
+  would take a fork commit naming that struct (or Goose support for anonymous structs), the rate
+  queue's ring-buffer invariant, and `isServerStats` threaded through the server's invariants
+  (decided 2026-10-22: not now; statistics no result depends on).
+- **A Perennial gap**: `context.WithCancel`'s specs do not say the cancel function is not `nil`,
+  which `Schedule`'s panic check needs; worked around by a local copy
+  (`schedule/WithCancel.lean`), `notes/perennial-changes.md`.
+## Perennial idioms: the watch client's three workarounds upstreamed (2026-10-22, branch `perennial-idioms`)
+
+- **The Perennial pin is `537c426e0`** (Perennial `lean`: the three idioms, landed 2026-10-22,
+  on `a39a3d14c`).
+- **What moved to Perennial** (each general, no etcd names; `notes/perennial-changes.md`):
+  - the synchronous SPSC channel: `Proof/go_etcd_io/etcd/client/v3/SyncSpsc.lean` deleted, its
+    definitions and lemmas now Perennial's `Idioms/SyncSpsc.lean` (same names, in `Perennial`;
+    `flagsOk` is `sspscFlagsOk`); `InvWatch.lean` and `WatchRecon.lean` import it;
+  - the thread-token join: `InvWcJoin.lean`'s local join (`WcjNames`, `wcjInv`, `isWcj`,
+    `wcjAdder`, `wcjDone`, `wcjDoneB`, `wcj_init`'s body, `wcjAdder_wand`, `wp_wcj_Add`/`Done`/
+    `Wait`) deleted for `sync.tokJoin` at `wcjN` with the receipt `wcjL γS` (a running token of
+    the stream's wait group); what stays is etcd's: the lending law `wcj_law` (the borrowed slots'
+    tokens are in the stream's counter invariant), `wcj_init`, `wp_wgsWg_Add_wcj` (now through
+    `lend_acc`), `wp_wcj_fork` (through `unlend_acc`) and the shared adder (`wgsWgShared`);
+  - `wp_fork_tok_upd`: the local copy deleted, Perennial's used.
+- **Proofs.** `waitCancelSubstreams` re-proved mechanically (the join's specs renamed);
+  `newWatchClient`, `run`, `serveSubstream` and the rest unchanged. No statement of a closed
+  theorem changed (every `Results.lean`'s `theorem ... :=` headers identical); the trust base
+  unchanged.
+
+## Clean-up: the watch client's joins, the one-attempt client, the init variants (2026-10-22, branch `cleanup`)
+
+- **The watch client's proofs joined again** (proof-perf, as lean `7617c74d89`/`b9234c174f` did for
+  the versions before D25). `watchGRPCStream.closeSubstream`: the removal from `substreams`/`resuming`
+  was verified 17 times (the `outc`-nil case twice, the live case's three ways out of the `select`
+  times five ways of closing); the `if ws.outc != nil { select }` is joined (`wp_join ... at next`)
+  over its four ways, the close-or-fork `if` over its ways, so the removal is verified once and the
+  macros `close_tail`/`close_rest` are gone. `watchGRPCStream.run`: the seven `if err := Send(..);
+  err != nil { log }` statements joined in frame mode (the next iteration verified once), the
+  substream-closing loop bound to its invariant only (`wp_join at (doFor ..) with [IH2]`), the
+  unused-variables linter off for the theorem. CPU (user+sys, `lake env lean`, quiet machine):
+  closeSubstream 52.2s -> 6.6s, run 148.0s -> 131.2s. Fingerprint unchanged.
+- **The one-attempt client machinery deleted** (D31's follow-up; `notes/decisions.md` D31, "Done").
+  Deleted: `clientKVOnce`, `kvOnce`, `isEtcdConn1`, `etcdInterceptorOk1`, `AttemptMode.one` (and
+  `modePre`'s case), `clientKVOnce_api`; the one-attempt disjunct of `reqPre`, `kvReqPre`,
+  `txnReqPre`, `putAuOk`, `txnAuOk`; `writeOnce`/`clientWriteOnce`/`txnWriteOnce` are now the
+  refusal-free case alone (pure); the `MaxUnaryRetries' = 1` clauses of `New.spec`, `newClient.spec`,
+  `Client.dial(WithBalancer).spec`, `Client.dialSetupOpts.spec`, the retry-bound clause of
+  `Client.unaryClientInterceptor.spec`, `NewKV.spec`'s `kvOnce` clause; `etcdInterceptorOkM_split`
+  over two modes. No axiom mentioned the one-attempt configuration (the interceptor, `dial` and
+  `New` are proved), so the trust base is unchanged (543 axioms, 2 sorries, every collection). The
+  examples' closed theorems' statements and their definitions are unchanged (fingerprint); the
+  client results `client_put_end_to_end`, `client_delete_end_to_end`, `client_txn_end_to_end`,
+  `putAuOk_of_box`, `txnAuOk_of_box` keep their text but `putAuOk`/`txnAuOk` lost the one-attempt
+  disjunct (their update is persistent only; the at-most-once write is `Failover.lean`'s), and
+  `AttemptMode` lost `.one` (reached through `isEtcdConn` by most client/cache/recipes results,
+  which use `.any`/`.write` only: their meaning is unchanged). Not done: the retry-bound tracking
+  (`optApplyMax`'s bound, `maxAfter`, `retryOptsMax`'s bound, D21 M6) is now used by no result's
+  conclusion and could go too (`withMax`, `withBackoff`, `reuseOrNewWithCallOptions` specs).
+- **The init variants the init facts made redundant, removed** (the "Init facts" follow-up).
+  `etc/gen-init.py`'s `CLOSEDCHAN` variant is gone (`gen_cc`, `lb_cc`, `CC_*`, the re-proof of
+  `context`'s initialization `context_wp_initialize'_closedchan`, `PorcupineInitTable`): porcupine,
+  lintest and the counter are generated in the ordinary form. kv joins `ROOTS`, so
+  `examples/kv/Init.lean` is generated (its hand-written re-proof of raft's initialization,
+  `go_etcd_io.raft.v3.wp_initialize'_closedchan` with `CCInitTable`/`KVInitTable`, is gone), and kv
+  and the counter join `PROGRAMS` (new generated `kv/PkgTable.lean`, `lintest/counter/PkgTable.lean`).
+  Their adequacy proofs take the generated table and get `context.isClosedchanInit`, which their
+  `Main.spec`s still take, from `context`'s `isPkgInit` (`context.isClosedchanInit_of_init`,
+  `iPkgInit`); `RaftWitness/`'s `kvwitness/Init.lean` (hand-written: the part is not generated) is
+  the ordinary form too, its adequacy at a plain table. Regenerated files that changed:
+  `Proof/github_com/anishathalye/porcupine/Init.lean`, `examples/lintest/Init.lean`,
+  `examples/lintest/counter/Init.lean`, `examples/kv/Init.lean` (now generated), the new
+  `examples/kv/PkgTable.lean` and `examples/lintest/counter/PkgTable.lean`, and the part's copies
+  `RaftWitness/Proof/github_com/anishathalye/porcupine/Init.lean`,
+  `RaftWitness/.../examples/lintest/Init.lean`. Closed theorems unchanged (fingerprint identical);
+  trust base unchanged.
 
 ## `kvHasher` translated: no sorry left (2026-10-22, branch `kvhasher`)
 

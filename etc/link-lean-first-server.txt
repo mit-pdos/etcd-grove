@@ -431,7 +431,9 @@ bootstrappedRaft__newRaftNode: StartNode newRaftNode
 # mvcc's `New` and `watchableStore.Close` and the backend's `SetTxPostLockInsideApplyHook` are
 # linked in their packages' Links (`@`).
 v2stats_NewServerStats:
-v2stats_NewLeaderStats:
+# `NewLeaderStats` translated and proved (2026-10-22), over zap's `NewNop` (mvcc's `@`).
+zap_NewNop: @
+v2stats_NewLeaderStats: zap_NewNop
 membership_RaftCluster__String:
 membership_RaftCluster__SetVersionChangedNotifier:
 types_URLs__StringSlice:

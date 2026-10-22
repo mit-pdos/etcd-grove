@@ -751,7 +751,7 @@ theorem v2stats.wp_NewServerStats :
 
 theorem v2stats.wp_NewLeaderStats :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) :=
-  v2stats.NewLeaderStats.wp_proof
+  v2stats.NewLeaderStats.wp_proof zap.wp_NewNop
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=

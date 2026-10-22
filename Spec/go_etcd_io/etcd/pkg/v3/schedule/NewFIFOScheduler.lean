@@ -1,5 +1,6 @@
 /-
-`schedule.NewFIFOScheduler`: the trust boundary (`pkg/v3/schedule` is names-only). Lean-first.
+`schedule.NewFIFOScheduler` (`schedule.go`), proved since 2026-10-22, when the scheduler was translated
+with its body (the trust boundary until then). Lean-first.
 -/
 module
 
@@ -17,8 +18,9 @@ open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
 /-- `schedule.NewFIFOScheduler(lg)`, with a non-nil logger (`verify.Assert` otherwise), returns a
 scheduler (`isFifo`, persistent: a `Scheduler` interface value with its names; its goroutine holds

@@ -1,6 +1,6 @@
 /-
-`Scheduler.Schedule` on the scheduler `NewFIFOScheduler` returns: the trust boundary (`fifo`'s
-methods are names-only). Lean-first (2026-10-13, mvcc's compaction, unit 5a; strengthened in place
+`Scheduler.Schedule` on the scheduler `NewFIFOScheduler` returns, proved from `(*fifo).Schedule` since
+2026-10-22 (the trust boundary until then, when `fifo`'s methods were names-only). Lean-first (2026-10-13, mvcc's compaction, unit 5a; strengthened in place
 with the FIFO order by the request path's unit 4c, 2026-10-13, as agreed with the mvcc session:
 `Proof/go_etcd_io/etcd/pkg/v3/schedule/Defs.lean`).
 -/

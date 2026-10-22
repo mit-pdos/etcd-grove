@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.sync
+public import Code.go_uber_org.zap
+public import Code.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -41,8 +44,6 @@ def fifo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/schedule.fifo" [])
 
 attribute [irreducible] fifo.ty
-
-axiom fifo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 noncomputable def NewJob [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/schedule.NewJob"
@@ -85,8 +86,295 @@ noncomputable def NewJob.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false []))))) (Var "do"))
   (App (Val (GoInstruction (CompositeLiteral job.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"do")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [])) (Var "$v1")))])))))))))))
 
+/-- NewFIFOScheduler returns a Scheduler that schedules jobs in FIFO
+    order sequentially
+
+    go: schedule.go:91:6 -/
+noncomputable def NewFIFOScheduler.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc fifo.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #(W64 1)))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #(W64 1)))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val (GoInstruction (CompositeLiteral fifo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"resume")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0"))), (KeyedElement (some (KeyField go!"donec")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v1"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v2")))]))))))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fifo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType fifo.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.NewCond []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef fifo.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef fifo.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithCancel []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType fifo.ty) go!"run"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType fifo.ty) Scheduler.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))))
+  (App (Val doExecute)
+  (Fork
+  (App (Var "$go") (Val #()))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "$l1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "$l0") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"finishCond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType fifo.ty)))) (Pair (Var "f") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (Let "$a1" (Val #(go!"the logger should not be nil"))
+  (Let "$a2" (Val #slice.nil)
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assert []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
+
+/-- Schedule schedules a job that will be ran in FIFO order sequentially.
+
+    go: schedule.go:106:16 -/
+noncomputable def fifo.Schedule.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "j"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fifo.ty)))) (Var "f"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc Job.ty))) (Var "j"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad Job.ty))) (Var "j"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType Job.ty)))) (LiteralValue [(KeyedElement none (ElementExpression Job.ty (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType Job.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Job.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Job.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"resume"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (Let "$v0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue []))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (SendCase (go.GoType.StructType []) (Var "$ch0") (Var "$v0")) (App (Val doExecute)
+  (Val #())))]))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.context.CancelFunc.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.context.CancelFunc.ty))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"schedule: schedule to stopped scheduler")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #())))))))))))
+
+/-- Stop stops the scheduler and cancels all pending jobs.
+
+    go: schedule.go:150:16 -/
+noncomputable def fifo.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fifo.ty)))) (Var "f"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.context.CancelFunc.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Fst (App (Val (chan.receive (go.GoType.StructType []))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"cancel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #())))))))))
+
+/-- go: schedule.go:158:16 -/
+noncomputable def fifo.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fifo.ty)))) (Var "f"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (Val #true))) (Lam BAnon
+  (Let "todo" (App (Val (GoInstruction (GoAlloc Job.ty))) (App (Val (GoInstruction (GoZeroVal Job.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Job.ty))) (Pair (App (Val (GoInstruction (GoLoad Job.ty))) (Var "todo")) (App (Val (GoInstruction (Convert go.untypedNil Job.ty))) (Val UntypedNil)))))
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"resume"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))) (Val #()))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (App (Val doExecute)
+  (Val #())))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (Let "pendings" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Job.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType Job.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (Var "pendings"))
+  (Let "todo" (App (Val (GoInstruction (GoAlloc Job.ty))) (App (Val (GoInstruction (GoZeroVal Job.ty))) (Val #())))
+  (App (App (Val (slice.forRange Job.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Job.ty))) (Var "todo"))
+  (Let "$a1" (Val #true)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType fifo.ty) go!"executeJob"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Job.ty))) (Pair (Var "todo") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Job.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Job.ty)))) (Pair (Var "pendings") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #()))))))]))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Job.ty))) (Var "todo"))
+  (Let "$a1" (Val #false)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType fifo.ty) go!"executeJob"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Job.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Job.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Job.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Job.ty))) (Pair (Var "todo") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"scheduled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"scheduled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #(W64 1))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #())))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"resume"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"donec"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))))))
+
+/-- go: schedule.go:192:16 -/
+noncomputable def fifo.executeJob.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "todo"
+  (Lam "updatedFinishedStats"
+  (App (App (Val wrapDeferRecover) (Lam BAnon
+  (Val #())))
+  (Lam "$defer"
+  (Lam "$panic"
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fifo.ty)))) (Var "f"))
+  (Let "updatedFinishedStats" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "updatedFinishedStats"))
+  (Let "todo" (App (Val (GoInstruction (GoAlloc Job.ty))) (Var "todo"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (App (Val (GoInstruction (MethodResolve Job.ty go!"Do"))) (App (Val (GoInstruction (GoLoad Job.ty))) (Var "todo"))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$f" (Lam BAnon
+  (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val recoverPanic)
+  (Var "$panic"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"execute job failed"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"job"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve Job.ty go!"Name"))) (App (Val (GoInstruction (GoLoad Job.ty))) (Var "todo"))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"panic"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Any []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "err") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "updatedFinishedStats")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Job.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType Job.ty)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Job.ty)]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Unlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"finishCond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))))) (Val #())))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Cond.ty) go!"Broadcast"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"finishCond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Job.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"pendings"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef fifo.ty go!"finished"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"finished"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f")))) (Val #(W64 1))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.sync.Locker.ty go!"Lock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.sync.Locker.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.sync.Cond.ty go!"L"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)))) (App (Val (GoInstruction (StructFieldRef fifo.ty go!"finishCond"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fifo.ty)))) (Var "f"))))))) (Val #()))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.schedule where
-  pkgImportedPkgs := [pkg_id.context]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -94,8 +382,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.schedule)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _root_.Perennial.context.initialize') (Val #())))))))
+  (App (Val _root_.Perennial.context.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.initialize') (Val #()))))))))
 
 abbrev Job [FfiSyntax] : Type := GoInterface
 
@@ -164,18 +461,98 @@ class Scheduler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
 
 attribute [instance] Scheduler.TypeAssumptions.underlying
 
-axiom fifo : Type
-axiom fifo.zero_val : ZeroVal fifo
-attribute [instance] fifo.zero_val
+structure fifo [FfiSyntax] where
+  mk ::
+  mu' : _root_.Perennial.sync.Mutex
+  resume' : GoChan
+  scheduled' : w64
+  finished' : w64
+  pendings' : GoSlice
+  ctx' : _root_.Perennial.context.Context
+  cancel' : _root_.Perennial.context.CancelFunc
+  finishCond' : Loc
+  donec' : GoChan
+  lg' : Loc
+
+instance fifo.zero_val [FfiSyntax] : ZeroVal fifo :=
+  ⟨fifo.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def fifo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"resume" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"scheduled" go.int),
+(go.field_decl.FieldDecl go!"finished" go.int),
+(go.field_decl.FieldDecl go!"pendings" (go.GoType.SliceType Job.ty)),
+(go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
+(go.field_decl.FieldDecl go!"cancel" _root_.Perennial.context.CancelFunc.ty),
+(go.field_decl.FieldDecl go!"finishCond" (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)),
+(go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
+
+@[irreducible] def fifo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  fifo.fieldsUnsealed
+
+instance equals_unfold_fifo [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold fifo.fields fifo.fieldsUnsealed :=
+  ⟨by unfold fifo.fields; rfl⟩
+
+@[reducible] def fifo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType fifo.fields)
 
 class fifo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fifo.underlying fifo
   underlying : go.UnderlyingDirectedEq fifo.ty fifo.underlying
-  isUnderlying : go.IsUnderlying fifo.underlying fifo.underlying
+  get_mu : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : fifo) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : fifo)))
+  get_resume : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"resume") #x (Val #(x.resume'))
+  set_resume : ∀ (x : fifo) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"resume") (PairV #x #y) (Val #(({ x with resume' := y } : fifo)))
+  get_scheduled : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"scheduled") #x (Val #(x.scheduled'))
+  set_scheduled : ∀ (x : fifo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"scheduled") (PairV #x #y) (Val #(({ x with scheduled' := y } : fifo)))
+  get_finished : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"finished") #x (Val #(x.finished'))
+  set_finished : ∀ (x : fifo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"finished") (PairV #x #y) (Val #(({ x with finished' := y } : fifo)))
+  get_pendings : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"pendings") #x (Val #(x.pendings'))
+  set_pendings : ∀ (x : fifo) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"pendings") (PairV #x #y) (Val #(({ x with pendings' := y } : fifo)))
+  get_ctx : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"ctx") #x (Val #(x.ctx'))
+  set_ctx : ∀ (x : fifo) (y : _root_.Perennial.context.Context), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : fifo)))
+  get_cancel : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"cancel") #x (Val #(x.cancel'))
+  set_cancel : ∀ (x : fifo) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : fifo)))
+  get_finishCond : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"finishCond") #x (Val #(x.finishCond'))
+  set_finishCond : ∀ (x : fifo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"finishCond") (PairV #x #y) (Val #(({ x with finishCond' := y } : fifo)))
+  get_donec : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"donec") #x (Val #(x.donec'))
+  set_donec : ∀ (x : fifo) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"donec") (PairV #x #y) (Val #(({ x with donec' := y } : fifo)))
+  get_lg : ∀ (x : fifo), go.IsGoStepPureDetTagged under (StructFieldGet fifo.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : fifo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet fifo.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : fifo)))
+  ptr_Schedule_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"Schedule" fifo.Schedule.impl
+  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"Stop" fifo.Stop.impl
+  ptr_executeJob_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"executeJob" fifo.executeJob.impl
+  ptr_run_unfold : MethodUnfold (go.GoType.PointerType fifo.ty) go!"run" fifo.run.impl
 
 attribute [instance] fifo.TypeAssumptions.type_repr
   fifo.TypeAssumptions.underlying
-  fifo.TypeAssumptions.isUnderlying
+  fifo.TypeAssumptions.get_mu
+  fifo.TypeAssumptions.set_mu
+  fifo.TypeAssumptions.get_resume
+  fifo.TypeAssumptions.set_resume
+  fifo.TypeAssumptions.get_scheduled
+  fifo.TypeAssumptions.set_scheduled
+  fifo.TypeAssumptions.get_finished
+  fifo.TypeAssumptions.set_finished
+  fifo.TypeAssumptions.get_pendings
+  fifo.TypeAssumptions.set_pendings
+  fifo.TypeAssumptions.get_ctx
+  fifo.TypeAssumptions.set_ctx
+  fifo.TypeAssumptions.get_cancel
+  fifo.TypeAssumptions.set_cancel
+  fifo.TypeAssumptions.get_finishCond
+  fifo.TypeAssumptions.set_finishCond
+  fifo.TypeAssumptions.get_donec
+  fifo.TypeAssumptions.set_donec
+  fifo.TypeAssumptions.get_lg
+  fifo.TypeAssumptions.set_lg
+  fifo.TypeAssumptions.ptr_Schedule_unfold
+  fifo.TypeAssumptions.ptr_Stop_unfold
+  fifo.TypeAssumptions.ptr_executeJob_unfold
+  fifo.TypeAssumptions.ptr_run_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Job_instance : Job.TypeAssumptions
@@ -183,14 +560,22 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Scheduler_instance : Scheduler.TypeAssumptions
   fifo_instance : fifo.TypeAssumptions
   NewJob_unfold : FuncUnfold NewJob [] NewJob.impl
+  NewFIFOScheduler_unfold : FuncUnfold NewFIFOScheduler [] NewFIFOScheduler.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
 
 attribute [instance] Assumptions.Job_instance
   Assumptions.job_instance
   Assumptions.Scheduler_instance
   Assumptions.fifo_instance
   Assumptions.NewJob_unfold
+  Assumptions.NewFIFOScheduler_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_sync_Assumption
+  Assumptions.import_zap_Assumption
+  Assumptions.import_verify_Assumption
 
 end go_etcd_io.etcd.pkg.v3.schedule
 

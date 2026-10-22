@@ -1,6 +1,9 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# `NewLeaderStats` with its body (2026-10-22; the server's constructor calls it). The rest is names
+# only: `ServerStats`'s type has an anonymous struct field (`serverStats.LeaderInfo`), which Goose
+# does not translate, so its methods (`BecomeLeader`, `RecvAppendReq`) and `NewServerStats` stay
+# trust-boundary axioms.
+translate = ["!*", "NewLeaderStats"]
+imports = ["!*", "sync", "time", "go.uber.org/zap", "go.etcd.io/raft/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

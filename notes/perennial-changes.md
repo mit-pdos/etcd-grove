@@ -37,6 +37,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   declaration's elaboration does not depend on its siblings'.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
+### Specs: `context.WithCancel`'s cancel function not `nil`
+
+- **Missing.** `context.WithCancel`'s specs (`context.WithCancel.spec`, `wp_WithCancel_Background`,
+  `wp_WithCancel_gen_of`, ...) return the cancel function with its triple (`cancelSpec`) but not
+  that it is not `nil`, which is true (it is the closure `func() { c.cancel(true, Canceled, nil) }`,
+  a `func.mk`; the proof's `simp only [recv_eq_func_mk]` sees it) and which a caller that tests the
+  function against `nil` needs.
+- **Needed by.** `pkg/v3/schedule`'s `fifo.Schedule` (2026-10-22, branch `fifo-sched`): it panics
+  when `f.cancel == nil`, and before `Stop` `f.cancel` is the context's cancel function.
+- **Workaround here.** `Proof/go_etcd_io/etcd/pkg/v3/schedule/WithCancel.lean`: local copies of
+  `wp_WithCancel_gen_of` and `wp_WithCancel_Background_of` with `⌜cancel ≠ func.nil⌝` added
+  (`wp_WithCancel_Background_nn`); no axiom.
+- **Proposed change.** `⌜cancel ≠ func.nil⌝` in the postconditions of `WithCancel`'s specs (and of
+  `WithTimeout`/`WithDeadline`'s, whose cancel functions are closures too).
+- **Status.** Not started (found 2026-10-22).
+
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
