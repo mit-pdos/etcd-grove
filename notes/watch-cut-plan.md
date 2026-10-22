@@ -361,6 +361,20 @@ and `[[], []]` is the history log of the empty committed prefix (`log0 = [[], []
 (the watcher's facts at every connection to the three bridges, `WatchEnv.lean`). `srvNoDupKeys` is
 the caller's (W4d: watchkv's `srvNoDupKeys_wk`, from the workload).
 
+**W4d and W4e done (2026-10-22).** linkv3p's copies of watchkv's helpers, ported (`genPut`,
+`genAll`, `attempted`, `maxRev`, `checkWatch`: the proofs watchkv's, renamed; `WatchBase.lean`).
+watchkv's server-level facts restated over the history (`WatchHist.lean`): `hist_wk` (a history log
+is a watchkv log: the KV model of a committed prefix of plain entries), `revAtH` and its agreement
+(`histLog_two`), `chain_hist`, `prog_step_hist`, `resp_hist`, `okFactH_of_reply` (a member's
+certified log of a put is a history log, `histLog_of_cert`), `histRead_zero`. The writers through
+the failover clients (`WatchWrites.lean`: `memberPut`, `client_Put_hist`, `wsInvH`; `writer` picks
+its client as `Apply` does). `collect` at the history model. `MainWatch`'s proof: `startCluster` at
+`workload (trs.map pairOf)`, each member's `memberWatch` (`srvNoDupKeys_wk`) and stream at its bridge,
+`watchEnv_conn`, the watch through the first client, the partitioner, then watchkv's `Main`. The
+closed theorem `linkv3p_watch_safe` (`AdequacyWatch.lean`, `Results.lean`): `linkv3p_safe`'s
+hypotheses but `Run`'s bounds, plus watchkv's (`watch_safe`'s class premises, `ContextErrsClient`,
+the bounds on `nw` and `nops`); `n + 2 ≤ 2^29`. No axiom added.
+
 - `Main` builds the watch environment from the members (no more `noWatch`). The watch workload's
   proofs follow watchkv's (`Writes`, `WatchFacts`, the checker's).
 - The closed theorem covers the watch check (`linkv3p_safe` extended, or a second theorem over the

@@ -288,6 +288,7 @@ axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
+axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
@@ -307,8 +308,13 @@ axiom goose_adequacy_start
 axiom grpc.ChainStreamInterceptor.wp_proof
 axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.GenericClientStream.CloseSend.wp_proof
+axiom grpc.GenericClientStream.Context.wp_proof
+axiom grpc.GenericClientStream.Recv.wp_proof
+axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.GenericServerStream.Context.wp_proof
 axiom grpc.GenericServerStream.Recv.wp_proof
 axiom grpc.GenericServerStream.Send.wp_proof
@@ -439,6 +445,7 @@ axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof

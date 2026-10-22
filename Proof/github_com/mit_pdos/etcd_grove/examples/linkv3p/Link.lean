@@ -9,26 +9,40 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
+public import Proof.go_etcd_io.etcd.client.v3.WithCreatedNotify
+public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.WithProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.New
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Blackhole
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
+public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.net.http.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.attempted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.checkWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.clientStep
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.collect
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.genAll
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.genPut
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.maxRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.peerStep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.writer
 public import Proof.net.Listen
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -53,9 +67,49 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
 variable [NaInvG GF]
 
+theorem v3.wp_WithCreatedNotify :
+    EtcdGrove.WithCreatedNotify.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithCreatedNotify.wp_proof
+
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_WithPrefix :
+    EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
+
+theorem v3.wp_WithProgressNotify :
+    EtcdGrove.WithProgressNotify.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithProgressNotify.wp_proof
+
+theorem v3.wp_WithRev :
+    EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRev.wp_proof
+
 theorem zap.wp_NewNop :
     EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.NewNop.wp_proof
+
+theorem wp_genPut :
+    EtcdGrove.linkv3p.genPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.genPut.wp_proof
+
+theorem wp_genAll :
+    EtcdGrove.linkv3p.genAll.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.genAll.wp_proof wp_genPut
+
+theorem wp_maxRev :
+    EtcdGrove.linkv3p.maxRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.maxRev.wp_proof
+
+theorem wp_attempted :
+    EtcdGrove.linkv3p.attempted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.attempted.wp_proof
+
+theorem wp_checkWatch :
+    EtcdGrove.linkv3p.checkWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.checkWatch.wp_proof wp_attempted
 
 end links
 
@@ -148,6 +202,18 @@ theorem wp_partitioner :
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startCluster wp_partitioner wp_Check
+
+theorem wp_writer :
+    EtcdGrove.linkv3p.writer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.writer.wp_proof
+
+theorem wp_collect :
+    EtcdGrove.linkv3p.collect.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.collect.wp_proof client.v3.WatchResponse.wp_Err
+
+theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.MainWatch.wp_proof wp_genAll zap.wp_NewNop wp_startCluster wp_partitioner wp_writer wp_maxRev wp_collect wp_checkWatch context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 
 end links_hasLC
 
