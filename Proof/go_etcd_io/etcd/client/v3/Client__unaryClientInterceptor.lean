@@ -65,22 +65,20 @@ theorem Client.unaryClientInterceptor.wp_proof
     (wp_refresh : Client.refreshToken.spec (GF := GF) (hG := hG))
     (wp_isSafeRetry : isSafeRetry.spec (GF := GF) (hG := hG)) :
     Client.unaryClientInterceptor.spec (GF := GF) (hG := hG) := by
-  intro c sl ros ks
+  intro c sl ros
   wp_start as ⟨#Hc, #Hsl, #Hros⟩
   ihave Hci : (go_etcd_io.etcd.cache.v3.clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hci with ⟨-, ⟨%dp, %dov, #Hdp, #Hdov, #Hdbf, %Hdpol⟩, -⟩
   wp_auto
   ipersist c
-  wp_apply_raw wp_reuse dp sl ros ks dov.max' true $$ []
+  wp_apply_raw wp_reuse dp sl ros true $$ []
   · iframe #
-    unfold retryOptsMax
+    unfold retryOptsAt
     iexists dov
     iframe #
-    isplitr
-    · unfold optionsOk
-      iexact Hdbf
-    ipureintro; rfl
+    unfold optionsOk
+    iexact Hdbf
   inext
   iintro %io ⟨#Hio, %-, #Hiopol⟩
   -- (D29) the interceptor's options keep the default policy, `nonRepeatable`
@@ -134,9 +132,8 @@ theorem Client.unaryClientInterceptor.wp_proof
   (try wp_auto)
   ipersist Hg'
   ipersist Hr
-  ihave #Hros'' := optApplyMax_of_retryApplyOks ros' $$ Hros'
-  wp_apply wp_reuse io r ros' (ros'.map fun _ => (none : Option w64)) (maxAfter dov.max' ks) false
-      $$ [] as %co ⟨#Hcom, %Hco0, -⟩
+  ihave #Hros'' := optApplyKeep_of_retryApplyOks ros' $$ Hros'
+  wp_apply wp_reuse io r ros' false $$ [] as %co ⟨#Hco, %Hco0, -⟩
   · iframe #
   have Hopt : ∀ w ∈ gs ++ [pv], grpcOptOk [p_ptr] w := by
     intro w hw
@@ -146,11 +143,9 @@ theorem Client.unaryClientInterceptor.wp_proof
       subst hw
       exact Or.inr ⟨p_ptr, by simp, Hpv⟩
   ihave Hpb := grpcPeerBuf_zero p_ptr $$ p
-  rw [maxAfter_nones] at *
-  ihave #Hco := retryOptsMax_at co _ $$ Hcom
-  ihave #Hco' := Hcom
-  iunfold retryOptsMax at Hco'
-  icases Hco' with ⟨%cov, #Hcov, #Hcovk, %Hcovm⟩
+  ihave #Hco' := Hco
+  iunfold retryOptsAt at Hco'
+  icases Hco' with ⟨%cov, #Hcov, #Hcovk⟩
   -- (D29) a write's call options are scalars: its options are the interceptor's, `nonRepeatable`
   ihave %Hcovpol : ⌜md = AttemptMode.write → cov.retryPolicy' = W8 1⌝ $$ []
   · cases md
