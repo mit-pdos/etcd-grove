@@ -661,7 +661,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
             m.hdr.revision = W64 ((if (linkv.MIn.txn cs t e).isWrite then
               (kvOpStep (opIn (.txn cs t e)) σ).rev else σ.rev : Nat) : Int) ∧
             σ.rev + 3 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = linkv.txnOf cs t e := by rw [hb, txnWireOf_clientTxn]
   have hp : client.TxnModel.plain b.model := by rw [hb]; exact clientTxn_plain cs t e
@@ -696,7 +696,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       ileft
       ipureintro; rw [hw]; exact hro
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, %Herr2, #Hse⟩)
     · ileft
       isplitl []
       · ipureintro; exact Herr
@@ -720,7 +720,10 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         omega
       · unfold kvStateOf; simp only; omega
     · iright
-      ipureintro; exact Herr
+      iframe Hse
+      isplitl []
+      · ipureintro; exact Herr
+      ipureintro; exact Herr2.1
   · -- writing
     simp only [↓reduceIte]
     simp only [hwr, Bool.not_true] at hro
@@ -745,7 +748,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hone
       iexact Hau'
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, %Herr2, #Hse⟩)
     · ileft
       isplitl []
       · ipureintro; exact Herr
@@ -767,7 +770,10 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
       · unfold kvStateOf; simp only; omega
     · iright
-      ipureintro; exact Herr
+      iframe Hse
+      isplitl []
+      · ipureintro; exact Herr
+      ipureintro; exact Herr2.1
 
 /-- `opRespsMsg` element by element. -/
 theorem opRespsMsg_getElem (ps : List Loc) (ms : List OpRespM) :

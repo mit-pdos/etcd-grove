@@ -94,7 +94,7 @@ theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
     as %resp %err Hout
   · iframe #
     iframe
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
     iunfold txnRespMsg at Hm

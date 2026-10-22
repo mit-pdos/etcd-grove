@@ -10,7 +10,7 @@ each member (`kvOpAu1`, as linkvtxn's `callTxn`): linkv's transaction `txnOf [.m
 [.put key val] (g ? [.get key] : [])`. The answer is about the state `σ` the update fired at
 (`Q σ`): `Succeeded` the server's verdict there, `Revision` the state's after the transaction,
 and with `GetOnFailure`, on a failed comparison, `KV` the key's key-value (`nil` if none). Or an
-error (the update fired at most once). The lease is `0` (the store's configuration, D30d).
+error of the client (`clientErr`, `statusErrOk`: its `Error()` returns some string; the update fired at most once). The lease is `0` (the store's configuration, D30d).
 -/
 module
 
@@ -62,7 +62,7 @@ abbrev Client.OptimisticPut.spec : Prop :=
         (if opts.GetOnFailure' && !resp.Succeeded' then
           kvOut resp.KV' (single (σ.kvs.filter fun v => decide (v.key = key)))
         else iprop(⌜resp.KV' = null⌝))) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      ⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err }}
 
 end spec
 

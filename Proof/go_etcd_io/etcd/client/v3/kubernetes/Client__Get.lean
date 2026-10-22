@@ -94,7 +94,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     first
       | rfl
       | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp [withRevM, withLimitM])
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, %Herr2, #Hse⟩)
   · subst Herr
     ihave Hs := rangeReply_state' x.E x.γr (W64 0) x.cid x.mid _ [] Q m rfl rfl $$ Hq
     icases Hs with ⟨%σ, #HQ, %Hσ⟩
@@ -165,7 +165,10 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     wp_auto
     iapply HΦ
     iright
-    ipureintro; exact Herr
+    iframe Hse
+    isplitl []
+    · ipureintro; exact Herr
+    ipureintro; exact Herr2.1
 
 end proof
 

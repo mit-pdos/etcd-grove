@@ -156,7 +156,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     · iframe #
       iframe
       done
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, %Herr2, #Hse⟩)
     · subst Herr
       obtain ⟨hok, -, hrev, hb⟩ := Hσ
       iunfold txnRespMsg at Hm
@@ -185,7 +185,10 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       wp_auto
       iapply HΦ
       iright
-      ipureintro; exact Herr
+      iframe Hse
+      isplitl []
+      · ipureintro; exact Herr
+      ipureintro; exact Herr2
   · -- `GetOnFailure`: the else branch gets the key
     (try wp_auto)
     ihave #Hnil := optsAt_nil (GF := GF)
@@ -228,7 +231,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       as %resp %err Hout
     · iframe #
       iframe
-    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, %Herr2, #Hse⟩)
     · subst Herr
       obtain ⟨hok, hrel, hrev, hb⟩ := Hσ
       iunfold txnRespMsg at Hm
@@ -299,7 +302,10 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       wp_auto
       iapply HΦ
       iright
-      ipureintro; exact Herr
+      iframe Hse
+      isplitl []
+      · ipureintro; exact Herr
+      ipureintro; exact Herr2
 
 end proof
 
