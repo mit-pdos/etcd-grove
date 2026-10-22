@@ -1,0 +1,100 @@
+# Changes to Perennial this repository needs
+
+A running list of the Perennial changes (Goose, the standard-library models and specs, the proof
+framework) that proofs here are waiting on or working around. Each is a general change, designed
+and reviewed on its own on a branch off Perennial's `lean` and landed by Perennial's workflow
+(CLAUDE.md, "Changes to Perennial"); never a change shaped by one proof. Add an entry when a
+proof hits a limitation (with the local workaround); move it to "Landed" with the Perennial commit
+when the pin reaches it, and drop the workaround.
+
+Each entry: what is missing, who needs it, the workaround here, the proposed change, status.
+
+Started 2026-10-22 with the Kubernetes etcd3 store survey (`notes/k8s-etcd3-plan.md`, branch
+`k8s-etcd3-goose`, `notes/k8s-etcd3-goose.md` there). Earlier limitations are recorded where
+they were found (`notes/STATUS.md`, `notes/decisions.md`) and not yet collected here.
+
+Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
+
+## Open
+
+### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
+
+- **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
+  over func(...) (only integers, maps, slices, channels and arrays are supported)`). The iterator
+  functions themselves, closures calling `yield`, already translate.
+- **Needed by.** The k8s etcd3 store's `GetList` (`store.go:825`, over `pagedChunks` or
+  `streamChunks`): every list. Blocks `notes/k8s-etcd3-plan.md`'s phase 5. The standard library
+  increasingly returns iterators (`maps.Keys`, `slices.All`, ...).
+- **Workaround here.** `store.GetList` names-only (survey branch's `etcd3.toml`); alternatives: a
+  Goose fork of k8s.io/apiserver rewriting the loop, or a trusted model.
+- **Proposed.** Desugar the loop as Go's compiler does: call the iterator with a closure for the
+  body that returns `false` on `break`, and records a `return` (with its values) or a labelled
+  `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
+  called after it returned `false` (Go panics).
+- **Status.** Not started. The largest item here.
+
+### Goose: field selection through a type alias of a struct
+
+- **Missing.** `getStructInfo` (`goose/types.go:358`) matches `*types.Named` without
+  `types.Unalias`, so a selector on a value of an alias type (`clientv3.Event = mvccpb.Event`) is
+  rejected (`[impossible(go)]: expected (pointer to) struct type for base of selector`).
+- **Needed by.** The k8s etcd3 watcher (`parseEvent`, `event.go:80`; `watchChan.startWatching`,
+  `watcher.go:516`) and compactor (`compactor.fromWatchResponse`, `compact.go:308`). Not the
+  store's unary methods.
+- **Workaround here.** The three functions names-only (survey branch's `etcd3.toml`); the
+  compactor configured off.
+- **Proposed.** `types.Unalias` on the type and on a pointer's element in `getStructInfo`. Tried
+  in a scratch copy of the pinned translator: the three translate and their `Code` and
+  `GeneratedProof` elaborate; nothing else changes.
+- **Status.** Not started; small. Needed before the watcher.
+
+### Goose: imports of packages whose types a body names, and same-named packages
+
+- **Missing.** When a body uses a method or value whose type belongs to a package the Go file
+  does not import, Goose adds no import for it, and `pkgRef` (`goose/goose.go:2967`) refers to it
+  through an imported package of the same name if there is one. The second is a silent
+  mistranslation: `storage.InvalidError.Error` calls apimachinery's `utilerrors.Aggregate.Error`,
+  emitted as the standard library's `errors.Aggregate`.
+- **Needed by.** The k8s etcd3 store: `utilfeature.DefaultFeatureGate.Enabled` names
+  `featuregate.FeatureGate` (`New`, `store.Delete`, nine functions in all);
+  `storage.InvalidError.Error`.
+- **Workaround here.** `util/feature.toml` imports `featuregate` names-only, so the name reaches
+  importers; `InvalidError.Error` names-only (unreached by the store's paths).
+- **Proposed.** Import the Lean module of every package whose types a translated body names, and
+  make `pkgRef` an error, never a substitution, when the package is not imported under its own
+  name.
+- **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+
+### Specs: `reflect`
+
+- **Missing.** Perennial translates `reflect` (`Perennial/Code/reflect.lean`) but has no specs.
+- **Needed by.** The k8s etcd3 store's unary methods: apimachinery's `conversion.EnforcePtr`
+  (`reflect.ValueOf`, `Kind`, `Elem`) and `reflect.New(v.Type())` in `Delete` and
+  `GuaranteedUpdate`; lists add `MakeSlice`, `Append` and `Value`'s methods (`growSlice`,
+  `getNewItemFunc`). Plan phase 1.
+- **Workaround here.** None yet; local trust-boundary specs if the Perennial change is not ready
+  by phase 1.
+- **Proposed.** Specs of the `reflect` subset generic code uses on pointers and slices: `ValueOf`,
+  `TypeOf`, `Kind`, `Elem`, `New`, `Indirect`, `MakeSlice`, `Append`, `Len`, `Cap`, `Set`,
+  `Interface`, over Perennial's model of interface values and types.
+- **Status.** Not started.
+
+### Standard library: packages not translated, and functions without specs
+
+- **Missing translations.** `encoding/json`, `encoding/base64`, `iter`, `path` (Perennial
+  translates none of them).
+- **Missing specs.** `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
+  some of `strings`; `fmt.Sprint`, `Sprintln`, `Fprintf`; `os.Getenv`; `json.Marshal`,
+  `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`.
+- **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
+  base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
+- **Workaround here.** The four packages names-only in this repository's configuration (survey
+  branch: `Code/encoding/{json,base64}.toml`, `Code/iter.toml`, `Code/path.toml`); specs as
+  needed, local until proposed.
+- **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
+  the specs above, each with the subset proofs use.
+- **Status.** Not started.
+
+## Landed
+
+(none yet)
