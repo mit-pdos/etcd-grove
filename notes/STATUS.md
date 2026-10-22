@@ -195,6 +195,11 @@ removed, ..., adequacy coverage" below.
 - **The witness part.** The premises W4 left (`notes/raft-witness.md`, "W4"): configuration
   changes and snapshots only at witness-free configurations (status-history.md, "Witness
   support, W3b-A").
+- **Client and examples, duplication.** `notes/dedup-plan.md` (2026-10-22): 9 exact duplicate
+  lemmas, the points-to-halves, set-replicate, option-fold, namespace-mask and option-model
+  families, the watch facts proved twice over two models, the thread-token wait groups of the cache
+  and leasing (Perennial's `tokJoin` plus owed tokens), the witness part's 26 identical files;
+  ordered steps, the Perennial lemmas first. Nothing applied yet.
 - **Client.** The retry-bound tracking (`optApplyMax`'s bound, `maxAfter`, `retryOptsMax`) is used
   by no result's conclusion and could go ("Clean-up: the watch client's joins, ..." below).
   `concurrency`, `recipes` and `leasing` are verified but in no closed theorem.
@@ -234,6 +239,9 @@ Landed: the three proof idioms (a synchronous SPSC channel, a thread-token join,
 
 - `client-cut-plan.md`: cuts between clients and members in linkv3p. **Finished** (2026-10-21,
   K0-K4; K2 dropped, D26).
+- `dedup-plan.md`: duplicated and near-duplicated lemmas in the examples, the client and the
+  cache (an audit of 2026-10-22: exact duplicates, lemma families, Perennial candidates, the
+  witness part's copies). **Active**, audit done, nothing applied.
 - `k8s-etcd3-plan.md`: the Kubernetes etcd3 storage backend. **Active**, planned (D30).
 - `keepalive-plan.md`: keepalive and failover on a silent partition. **Finished** (2026-10-21,
   D28).
