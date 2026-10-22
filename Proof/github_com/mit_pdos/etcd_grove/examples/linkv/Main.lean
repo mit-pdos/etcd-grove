@@ -1,16 +1,16 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv/Main.lean` (D20 (c), 2026-10-19).
-Lean-first (no Rocq counterpart).
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv/Main.lean` (over the examples' shared
+start since 2026-10-22, D33). Lean-first (no Rocq counterpart).
 
-The server's start is putget's `Main` (`Proof/.../putget/Main.lean`, whose steps this follows
-verbatim up to the client, at `linkv`'s configuration): the ghost state `NewServer` takes
-(`putget.putget_alloc`), `NewServer`, `Start`, `v3rpc.Server`, `Listen`, `etcd_kv_started`
-(etcd's `Put` and `Range` registered at the address), `go gs.Serve(l)`, `clientv3.New` (etcd's
-default configuration; the member refusal-free, `etcd_noRefusal` before `etcd_kv_started`, so
-`clientWriteOnce`, D29). Then the instance's invariant at the server's start
-store (`linkvInv_alloc_boot`: the bootstrap log changes no KV state) and `Check(cli, clients, ops,
-0)`, which returns `Ok` (`timeout = 0`), so the panic on `Illegal` is not taken. Every step's error
-ends `Main` with `Unknown`.
+The server's start is putget's `Main`'s (`Proof/.../putget/Main.lean`), at `linkv`'s
+configuration: `Main`'s premises in the shared start's form (`common.bootPremise_of`); the ghost
+state `NewServer` takes (`common.alloc1` at the leases-off workload `putgetWorkload`);
+`common.StartServer`; `common.Serve` with the ghost step `common.grpcUp_noRefusal` (the member
+refusal-free, D29) then `common.kv_served` (etcd's KV calls registered at the address);
+`common.NewClient` (etcd's default configuration; `clientWriteOnce`, D29). Then the instance's
+invariant at the server's start store (`linkvInv_alloc_boot`: the bootstrap log changes no KV
+state) and `Check(cli, clients, ops, 0)`, which returns `Ok` (`timeout = 0`), so the panic on
+`Illegal` is not taken. Every step's error ends `Main` with `Unknown`.
 -/
 module
 
@@ -18,20 +18,13 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Boot
 public import Spec.go_uber_org.zap.NewNop
-public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Start
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
-public import Spec.net.Listen
-public import Spec.google_golang_org.grpc.Server__Serve
-public import Spec.go_etcd_io.etcd.client.v3.New
-public import Perennial.Spec.context.Background
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAlloc
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
-public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartServer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClient
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Served
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
-public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Alloc
 
 @[expose] public section
 
@@ -54,35 +47,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
 
-omit package_sem in
-/-- `client.grpcCfgOk_of_started` with the logger's premise inside (so that `iapply` finds the
-configuration from `srvServeFacts`). -/
-theorem grpcCfgOk_of_started' [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-    [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
-    (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (tos : List GoInterface) :
-    ⌜cfg.Logger' ≠ null⌝ ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
-        srvWatchBuilt s E ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        v3rpc.eofVar ∗ v3rpc.runsNoRequireLeader ∗
-        cfg.TracerOptions' ↦*□ tos ⊢
-      ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
-        ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ := by
-  iintro ⟨%hlg, H⟩
-  iapply (client.grpcCfgOk_of_started s E ρ γr cfg tos hlg) $$ H
-
+set_option maxHeartbeats 800000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
-    (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
-    (wp_NewServer : ∀ [MemStorReg GF] [go_etcd_io.etcd.cache.v3.Assumptions],
-      NewServer.spec (GF := GF) (hG := hG))
-    (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
-    (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG))
-    (wp_New : clientv3.New.spec (GF := GF) (hG := hG))
+    (wp_StartServer : common.StartServer.spec (GF := GF) (hG := hG))
+    (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
+    (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
@@ -90,17 +60,19 @@ theorem Main.wp_proof
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
-  -- `io.EOF` and `context`'s `closedchan`, from their packages' facts
-  ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
-  · iapply v3rpc.eofVar_of_init
-    iPkgInit
+  -- `Main`'s premises in the shared start's form
+  ihave #Hb := common.bootPremise_of N [id] bootLog linkvDir go!"linkv" go!"linkv"
+      (common.urls1 go!"linkv" go!"127.0.0.1:23801" go!"127.0.0.1:23791") id cfgOk urlsOk (putget.ccOk id)
+      (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
+      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
+  ihave #Hcom : common.commonPremises (GF := GF) $$ []
+  · iunfold common.commonPremises; iframe #
+  -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
   -- the imports' package facts
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
-  · iPkgInit
-  ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
@@ -114,187 +86,62 @@ theorem Main.wp_proof
   (try wp_auto)
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
-  -- `peer`, the configuration's URLs and map
-  wp_apply wp_slice_literal
-  try (isplitr; (ipureintro; rfl))
-  iintro %peer ⟨Hpeer, -⟩
-  simp only [go.arrayLiteralSize, List.foldl]
-  wp_auto
-  wp_apply wp_map_make1 (K := GoString) (V := go_etcd_io.etcd.client.pkg.v3.types.URLs)
-    as %pm Hpm
-  wp_apply wp_mapInsert $$ Hpm as Hpm
-  wp_apply wp_slice_literal
-  try (isplitr; (ipureintro; rfl))
-  iintro %curls ⟨Hcurls, -⟩
-  simp only [go.arrayLiteralSize, List.foldl]
-  (try wp_auto)
-  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc⟩
-  (try wp_auto)
-  -- the storage registry (D19r (B)), `bootstrap`'s to join
-  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%γreg, Hreg⟩
-  letI : MemStorReg GF := ⟨γreg⟩
-  -- the configuration's URLs, read-only from here on (D19r (F))
-  imod ownSlice_persist _ _ _ $$ Hpeer with #Hpeer
-  imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
-  imod ownMap_persist _ _ _ $$ Hpm with #Hpm
-  -- the ghost state `NewServer` takes (`putget_alloc`)
-  imod (putget.putget_alloc id bootLog Hbf (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %Hal, Hghost,
-    #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx, Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev,
-    Hnk, #Hkvinv, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hal
-  -- (D21 M2) the raft network, the one member's slot
-  imod (netNames_alloc (srvNet γ bud) linkvDir (GMap.insert id () ∅)) with ⟨%γn, %Hγn, Hslots⟩
-  ihave Hslot := (BigSepM.bigSepM_insert (GMap.lookup_empty id)).1 $$ Hslots
-  icases Hslot with ⟨Hslot, -⟩
-  have hblen : γ.reBoot.length ≤ 2 ^ 60 := by
-    rw [hboot, Hbf.boot.1]; simp
-  wp_apply (wp_NewServer _ ⟨[peerURL], [clientURL], GMap.insert go!"linkv"
-      (slice.mk peer (W64 (max (max (0 + 1) 0) 0)) (W64 (max (max (0 + 1) 0) 0))) ∅,
-      fun _ => [peerURL]⟩ γ bud id bootLog ρ E₀ N Φs γn linkvDir hraft hpol hc0 hch hlog hcok
-      (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl Htb Hrb48 HrbN
-      -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48` (`Main`'s)
-      (by
-        have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl
-        have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
-        simp only [hne, if_false, h48]
-        omega)
-      hblen
-      hpfx hΦs ⟨fgp, Hfgp, rfl⟩)
-    $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hslot] as %srv %err Hres
-  · iframe
-    iframe #
-    isplitr
-    · iapply Hboot
-      ipureintro
-      refine ⟨?_, ?_, hcfg, hdyn, hcc, hboot, htr, htx⟩
-      · unfold cfgOk; simp
-      · exact ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩
-    isplitr
-    · iunfold bootCfgRO
-      isplitr; · iExactEq Hpeer; rfl
-      isplitr; · iExactEq Hcurls; rfl
-      isplitr; · iExactEq Hpm; rfl
-      iapply (BigSepM.bigSepM_insert (GMap.lookup_empty _)).2
-      isplitr
-      · iExactEq Hpeer; rfl
-      iapply BigSepM.bigSepM_empty.2; itrivial
-    isplitl [Hreg]
-    · iunfold memStorRegAuth; iexact Hreg
-    isplitr; · ipureintro; exact Hγn
-    isplitr; · ipureintro; exact Hck
-    isplitr; · ipureintro; exact Haf
-    isplitr; · ipureintro; exact Hbuq
-    isplitr; · ipureintro; exact Hdbo
-    iapply Htk
-    ipureintro; rfl
-  icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γn, %b, %HE, #Hwb, -, -, Hbuilt, Hgap,
-    Hserve, Hsv, Hmon, -⟩)
-  · -- `NewServer` failed: `Main` returns
-    cases err with
+  -- the ghost state `NewServer` takes (`alloc1`)
+  imod (common.alloc1 putgetWorkload id bootLog Hbf.idLow Hbf.boot linkvDir (by omega))
+    with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, Hslot, Hetcd⟩
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog, hwl⟩ := Hal
+  have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
+  -- `StartServer("linkv", "127.0.0.1:23801", clientAddr, lg)`
+  wp_apply (wp_StartServer N go!"linkv" go!"127.0.0.1:23801" go!"127.0.0.1:23791" lg bootLog
+      linkvDir id γ bud ρ E₀ Φs γn putgetWorkload putgetWorkload_noGrant Htb Hrb48 HrbN hcfg
+      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hslot]
+    as %srv %err Hr
+  · iframe; iframe #
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
+  · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Herr
   wp_auto
-  -- `s.Start()`
-  ihave Hsb := isServerBuilt_of_gap srv γA ci TM E ρ ρ.rd _ γn b (W64 0) (W64 0) (W64 0) bootKV N
-    $$ [Hbuilt Hgap]
-  · iframe
-  iunfold srvServeBuilt at Hserve
-  icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
-  icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
-  iunfold srvMonitorCfg at Hmon
-  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
-  ihave #Hoff : srvMonitorsOff srv $$ []
-  · iunfold srvMonitorsOff
-    isplitr; · iExactEq Hmc; rfl
-    isplitr; · iExactEq Hmd; rfl
-    iexists _
-    iframe Hmf Hfgc
-  wp_apply (wp_Start srv γA ci TM E ρ ρ.rd _ γn b (W64 0) (W64 0) (W64 0) bootKV N HrbN rfl)
-    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, -⟩
+  iunfold common.memberUp at Hup
+  icases Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, #Hwb, #Hsf, Hwpi,
+    Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms, -, HWR⟩
+  obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
+  -- `Serve(s, clientAddr)`: (D29) the member never refuses (authentication off, a voter, the
+  -- members' axiom), and etcd's KV calls registered at the address
+  haveI := Hms
+  wp_apply (wp_Serve srv go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cfg
+      (fun cid mid _ => iprop(common.etcdKVAt go!"127.0.0.1:23791" E { ρ with wait := γw } ρ.rd cid mid ∗
+        ⌜noRefusalAt go!"127.0.0.1:23791"⌝))
+      (by rw [HElg]; exact Hlg) HEtr HEw Hms Hbuq)
+    $$ [Haddr Hlg3 Hbemu Hgo Hwpi HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
   · iframe; iframe #
-  (try wp_auto)
-  -- `v3rpc.Server(s, nil, nil)`: its configuration from `NewServer`'s and `Start`'s
-  ihave ⟨%C, #Hgc, %HC⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
-      ⌜C.A = v3rpc.srvKVAns srv E { ρ with wait := γw } ρ.rd (W64 0) [] .none ∧ C.E = E⌝ $$ []
-  · iapply (grpcCfgOk_of_started' srv E { ρ with wait := γw } ρ.rd _ [])
-    iframe #
-    isplitr
-    · ipureintro; exact Hlg
-    iapply ownSlice_nil
-  wp_apply (wp_Server Hms srv C _ slice.nil [] Hbuq) $$ [Hlg3 Hbemu Hgo Hwpi]
-    as %gs ⟨%q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
-      Hgsn, %Hregs, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
-      Hwpi2⟩
-  · iframe; iframe #
-    isplitr
-    · ipureintro; simp
-    isplitr
-    · iapply ownSlice_nil
-    ipureintro; intro v hv; cases hv
-  -- `net.Listen("tcp", clientAddr)`
-  wp_apply (wp_Listen go!"tcp" go!"127.0.0.1:23791") $$ [Haddr] as %lis %lerr Hlis
-  · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
-  rotate_left
-  · cases lerr with
-    | nil => exact absurd rfl Hlerr
+    iintro %gs %lis %cid %mid %R Hg
+    ihave ⟨Hg, %Hnr⟩ := common.grpcUp_noRefusal srv E { ρ with wait := γw } ρ.rd gs lis
+      go!"127.0.0.1:23791" cid mid R HEo $$ [Hg]
+    · iframe; iframe #
+    imod (common.kv_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23791" cid mid R Hrb48)
+      $$ [Hg Hlts Hlgs Hrds Hsts Hrslots Hbms] with ⟨Hserv, #Hkv⟩
+    · iframe; iframe #
+    imodintro
+    iframe Hserv Hkv
+    ipureintro; exact Hnr
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, #Hkv, %Hnr⟩)
+  · cases serr with
+    | nil => exact absurd rfl Hserr
     | ok ei => ?_
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  subst Hlerr
+  subst Hserr
   wp_auto
-  -- the ghost step between `Listen` and `go gs.Serve(l)`: etcd's KV specs at the address
-  haveI := Hms
-  icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-  icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨-, -, Hrds⟩
-  ihave Hslots := client.etcdGrpcSlots_of_started srv E ρ.rd 1 (64 - 2) 64
-      (Int.toNat sync.rwmutex.actualMaxReaders) 64 (by omega) (by omega)
-      (by have := sync.actualMaxReaders_ge_2; omega) (by omega)
-      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
-  · iframe
-  ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
-  rw [HC.1]
-  -- (D29) the member never refuses: authentication off, a voter (the members' axiom)
-  ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23791" gs q p srv lis E
-      { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HE.2) $$
-    [Hgsn Hlis]
-  · iframe Hgsn Hlis; iframe #
-  imod (client.etcd_kv_started go!"127.0.0.1:23791" gs q p srv lis E { ρ with wait := γw } ρ.rd
-      cid mid C.n il im iu ims is svcs regs sregs 1 Hregs.1)
-    $$ [Hgsn Hlis Hslots] with ⟨Hserv, -, #HPut, #HRange, -, -⟩
-  · iframe; iframe #
-    iintro !>
-    imodintro
-    iunfold idCred
-    ipureintro; exact Hrb48
-  -- `go gs.Serve(l)`
-  wp_apply wp_fork $$ [Hserv]
-  · wp_apply (wp_Serve gs lis) $$ [$Hserv] as %serr -
-    ipureintro; exact isPanic_intoVal serr
-  -- `clientv3.New(Config{Endpoints: {clientAddr}, Logger: lg})`
-  wp_apply wp_slice_literal
-  try (isplitr; (ipureintro; rfl))
-  iintro %eps ⟨Heps, -⟩
-  simp only [go.arrayLiteralSize, List.foldl]
-  (try wp_auto)
-  imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_New _ [go!"127.0.0.1:23791"]
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23791" [] null null [] null)) $$ [] as %cl %cerr Hcl
-  · iframe #
-    iunfold clientCfgOk
-    simp only
-    iframe #
-    isplitr
-    · isplitr
-      · iapply ownSlice_nil
-      ipureintro
-      refine ⟨?_, ?_⟩
-      · exact plainEndpoints_singleton _ (by unfold plainEndpoint; decide)
-      · simp [Hlg]
-    ipureintro; exact Htb
+  iunfold common.etcdKVAt at Hkv
+  icases Hkv with ⟨#HPut, #HRange, -, -⟩
+  -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
+  wp_apply (wp_NewClient go!"127.0.0.1:23791" lg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23791" [] null null [] null) Hlg
+      (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail

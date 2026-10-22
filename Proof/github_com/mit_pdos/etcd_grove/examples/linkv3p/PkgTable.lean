@@ -46,6 +46,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.dustin.go_humanize, isPkgInit (PROP := IProp GF) pkg_id.github_com.dustin.go_humanize),
    (pkg_id.github_com.goose_lang.primitive, isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive),
    (pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus, isPkgInit (PROP := IProp GF) pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus),
+   (pkg_id.github_com.mit_pdos.etcd_grove.examples.common, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest),
@@ -661,23 +662,27 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h6, h30, h87, h116, h43, h73, h4, h118, h83, h46, h18, h20, h119, h120, h38, h113, h115, h5, h121, h19, h42, h36, h27, h60, h78, h31, h35, h86, h112, h0, h12, h52, h58, h91, h85, h104, h122, h100, h103, h25, h81, h45, h95, True.intro⟩
-  have h124 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
+  have h124 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h7, h18, h27, h45, h52, h116, h123, h115, True.intro⟩
+  have h125 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h4, h1, h5, h15, True.intro⟩
-  have h125 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn (getIsPkgInit (GF := GF)) := by
+  have h126 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h7, h5, h15, h16, h18, h30, h25, h27, h45, h52, h116, h123, h115, h124, True.intro⟩
-  have h126 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge (getIsPkgInit (GF := GF)) := by
+    exact ⟨h6, h5, h15, h16, h18, h30, h25, h45, h124, h125, True.intro⟩
+  have h127 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h12, h7, h4, True.intro⟩
-  have h127 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p (getIsPkgInit (GF := GF)) := by
+  have h128 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h7, h8, h4, h5, h15, h16, h18, h20, h21, h25, h27, h45, h52, h116, h123, h115, h125, h124, h126, True.intro⟩
-  exact h127
+    exact ⟨h6, h7, h8, h4, h5, h15, h16, h18, h20, h21, h25, h27, h45, h52, h116, h123, h115, h126, h125, h127, True.intro⟩
+  exact h128
 
 end table
 

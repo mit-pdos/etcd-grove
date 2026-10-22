@@ -11,16 +11,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.sync.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Init
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.cache.v3.Init
-public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.v3.Init
-public import Proof.go_etcd_io.etcd.server.v3.config.Init
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Init
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Init
-public import Proof.go_etcd_io.etcd.server.v3.features.Init
 public import Proof.go_uber_org.zap.Init
-public import Proof.net.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -66,29 +61,20 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.features.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.config.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1))
-    $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.cache.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1))
+  wp_apply _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.wp_initialize'_res _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.cache.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
-      EtcdGrove.ExternalInit.github_com_goose_lang_primitive _root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ Hinit.2.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
+      EtcdGrove.ExternalInit.github_com_goose_lang_primitive _root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ Hinit.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.1))
+  wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1))
     $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initRes_carry _ _ _ _ _ (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1))

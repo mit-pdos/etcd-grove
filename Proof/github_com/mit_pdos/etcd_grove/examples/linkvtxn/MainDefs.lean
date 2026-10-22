@@ -8,7 +8,7 @@ names, so its premises are putget's (`Proof/.../putget/Defs.lean`, whose header 
 `linkvtxn`'s configuration: `cfgOk` (member and cluster token `linkvtxn`, data directory `linkvtxn.etcd`,
 raft's clock), `urlsOk` (peer URL `http://127.0.0.1:23806`, client URL `http://127.0.0.1:23796`)
 and the peer directory `linkvtxnDir`. The pure facts (`putget.BootFacts`), the conf-change policy
-(`putget.ccOk`) and the allocation (`putget.putget_alloc`) are putget's, which name no
+(`putget.ccOk`) are putget's and the allocation (`common.alloc1`) the shared start's, which name no
 configuration.
 -/
 module

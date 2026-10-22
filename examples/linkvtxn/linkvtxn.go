@@ -14,7 +14,6 @@ package linkvtxn
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -23,13 +22,9 @@ import (
 
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/mvccpb"
-	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/server/v3/config"
-	"go.etcd.io/etcd/server/v3/etcdserver"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 
@@ -842,46 +837,18 @@ const clientAddr = "127.0.0.1:23796"
 // illegal. An error from a step before Check ends Main without a check.
 func Main(clients int, ops int) porcupine.CheckResult {
 	lg := zap.NewNop()
-	peer := types.URLs{{Scheme: "http", Host: "127.0.0.1:23806"}}
-	cfg := config.ServerConfig{
-		Name:                "linkvtxn",
-		DataDir:             "linkvtxn.etcd",
-		InitialPeerURLsMap:  types.URLsMap{"linkvtxn": peer},
-		PeerURLs:            peer,
-		ClientURLs:          types.URLs{{Scheme: "http", Host: clientAddr}},
-		InitialClusterToken: "linkvtxn",
-		NewCluster:          true,
-		TickMs:              100,
-		ElectionTicks:       10,
-		// etcd's default snapshot count; the catch-up entries past the theorem's step bound (as
-		// examples/linkv's)
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		Logger:                 lg,
-		ServerFeatureGate:      features.NewDefaultServerFeatureGate("linkvtxn", lg),
-	}
-	s, err := etcdserver.NewServer(cfg)
+	s, err := common.StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}
-	s.Start()
-
-	gs := v3rpc.Server(s, nil, nil)
-	l, err := net.Listen("tcp", clientAddr)
-	if err != nil {
+	if err := common.Serve(s, clientAddr); err != nil {
 		return porcupine.Unknown
 	}
-	go gs.Serve(l)
 
 	// etcd's default client configuration (its default retries): the server never answers with a
 	// refusal (authentication off, a voter), so a write is sent at most once and the server applies
 	// it at most once, while a read may be retried (decision D29).
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: []string{clientAddr},
-		Logger:    lg,
-	})
+	cli, err := common.NewClient(clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}

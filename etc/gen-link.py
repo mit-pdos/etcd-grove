@@ -44,6 +44,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean
+       etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -337,11 +338,18 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.cachekv",
                   "github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions",
                   "The cache watch example's proofs (`examples/cachekv`)", [""]),
+    # the examples' shared start (examples/common, D33): a member's configuration and server
+    # (over the server's, `@`), its gRPC service (over v3rpc's, `@`) and a client (over the
+    # client's `New`, `@`), which the examples' Links take as `@` callees
+    "--common": ("link-lean-first-common.txt",
+                 "github_com.mit_pdos.etcd_grove.examples.common",
+                 "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
+                 "The examples' shared start's proofs (`examples/common`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--common": "common", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

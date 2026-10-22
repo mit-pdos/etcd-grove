@@ -1,0 +1,21 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean`
+# (all Lean-first; D33), read by `etc/gen-link.py --common`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `common`; the examples' Links take them as `@` callees.
+#
+# `newServer` and `StartServer`: a member's configuration and server, and the one member's start
+# (the server's results, linked in its `Link.lean`; the feature gate's trust-boundary axiom)
+etcdserver_NewServer: @
+EtcdServer__Start: @
+features_NewDefaultServerFeatureGate:
+common_newServer: features_NewDefaultServerFeatureGate etcdserver_NewServer
+common_StartServer: common_newServer EtcdServer__Start
+# `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
+# grpc's trust-boundary axioms)
+v3rpc_Server: @
+net_Listen:
+grpc_Server__Serve:
+common_Serve: v3rpc_Server net_Listen grpc_Server__Serve
+# `NewClient`: a client of one address (the client's `New`, linked in its `Link.lean`)
+client_v3_New: @
+common_NewClient: client_v3_New

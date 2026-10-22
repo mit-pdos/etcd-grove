@@ -69,8 +69,8 @@ callTxn: cmpsFor opsOf thenOf elseOf txnRes withRes
 call: callGet callList callPut callDel callTxn
 linkvtxn_Apply: call isWrite
 #
-# the generator, `Check` (over the driver's, `@`) and `Main` (over the server's, v3rpc's and the
-# client's, `@`), as linkv's (linkv-txn stage G)
+# the generator, `Check` (over the driver's, `@`) and `Main` (over the examples' shared start's,
+# `common`'s, `@`), as linkv's (linkv-txn stage G)
 workloadKeys:
 pick:
 genFrom: workloadKeys pick
@@ -78,12 +78,8 @@ linkvtxn_Gen: genFrom
 Run: @
 CounterClock: @
 linkvtxn_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkvtxn_Apply
-etcdserver_NewServer: @
-EtcdServer__Start: @
-v3rpc_Server: @
-client_v3_New: @
+common_StartServer: @
+common_Serve: @
+common_NewClient: @
 zap_NewNop:
-features_NewDefaultServerFeatureGate:
-net_Listen:
-grpc_Server__Serve:
-linkvtxn_Main: zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New linkvtxn_Check
+linkvtxn_Main: zap_NewNop common_StartServer common_Serve common_NewClient linkvtxn_Check

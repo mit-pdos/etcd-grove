@@ -13,8 +13,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.closure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.entriesEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.entryLess
-public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
-public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.insertSorted
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Check
@@ -22,15 +20,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.lookup
-public import Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.removeAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.set
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.step
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
-public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 
 @[expose] public section
 
@@ -114,14 +109,6 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv.Assumptions]
 variable [NaInvG GF]
 
-theorem features.wp_NewDefaultServerFeatureGate :
-    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
-
-theorem grpc.Server.wp_Serve :
-    EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
-
 theorem wp_Apply :
     EtcdGrove.linkv.Apply.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv.Apply.wp_proof
@@ -130,13 +117,9 @@ theorem wp_Check :
     EtcdGrove.linkv.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
-
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv.Main.wp_proof zap.wp_NewNop features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.v3.clientv3.wp_New wp_Check
+  EtcdGrove.linkv.Main.wp_proof zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient wp_Check
 
 end links_hasLC
 

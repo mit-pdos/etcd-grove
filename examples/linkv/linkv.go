@@ -18,20 +18,15 @@ package linkv
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
 
-	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/server/v3/config"
-	"go.etcd.io/etcd/server/v3/etcdserver"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 
@@ -284,46 +279,18 @@ const clientAddr = "127.0.0.1:23791"
 // Check ends Main without a check (the specs allow every step to fail).
 func Main(clients int, ops int) porcupine.CheckResult {
 	lg := zap.NewNop()
-	peer := types.URLs{{Scheme: "http", Host: "127.0.0.1:23801"}}
-	cfg := config.ServerConfig{
-		Name:                   "linkv",
-		DataDir:                "linkv.etcd",
-		InitialPeerURLsMap:     types.URLsMap{"linkv": peer},
-		PeerURLs:               peer,
-		ClientURLs:             types.URLs{{Scheme: "http", Host: clientAddr}},
-		InitialClusterToken:    "linkv",
-		NewCluster:             true,
-		TickMs:                 100,
-		ElectionTicks:          10,
-		// etcd's default snapshot count; the catch-up entries past the theorem's step bound (as
-		// examples/putget's: NewServer's run bound, receiptBound <= SnapshotCatchUpEntries + 1)
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		Logger:                 lg,
-		ServerFeatureGate:      features.NewDefaultServerFeatureGate("linkv", lg),
-	}
-	s, err := etcdserver.NewServer(cfg)
+	s, err := common.StartServer("linkv", "127.0.0.1:23801", clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}
-	s.Start()
-
-	gs := v3rpc.Server(s, nil, nil)
-	l, err := net.Listen("tcp", clientAddr)
-	if err != nil {
+	if err := common.Serve(s, clientAddr); err != nil {
 		return porcupine.Unknown
 	}
-	go gs.Serve(l)
 
 	// etcd's default client configuration (its default retries): the server never answers with a
 	// refusal (authentication off, a voter), so a Put is sent at most once and the server applies it
 	// at most once, while a read may be retried (decision D29).
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: []string{clientAddr},
-		Logger:    lg,
-	})
+	cli, err := common.NewClient(clientAddr, lg)
 	if err != nil {
 		return porcupine.Unknown
 	}

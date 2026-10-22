@@ -386,6 +386,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "kv")],
     ),
     Project(
+        name="common",
+        # The examples' shared start of etcd (`examples/common`): a member's configuration and
+        # server (one member's, `StartServer`), its gRPC service on a listener (`Serve`), a
+        # client of one address (`NewClient`), each translated and proved once. A Go module of
+        # this repository, with putget's replaces (keep them in step); the examples' go.mod
+        # replace it by this directory. Its imports are the etcd project's translations (names
+        # reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "common"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "common")],
+    ),
+    Project(
         name="putget",
         # The adequacy example of etcd's server and client (open-work item 9): one member
         # started in-process, a client's Put and Get of one key. A Go module of this

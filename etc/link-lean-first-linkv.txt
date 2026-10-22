@@ -24,15 +24,10 @@ linkv_Apply:
 Run: @
 CounterClock: @
 linkv_Check: Run CounterClock linkv_Model linkv_Gen linkv_Apply
-# `Main`: putget's start of the server and the client (the server's, v3rpc's and the client's
-# results, linked in their `Link.lean`s; zap's, the feature gate's, `net`'s and grpc's
-# trust-boundary axioms), then `Check`
-etcdserver_NewServer: @
-EtcdServer__Start: @
-v3rpc_Server: @
-client_v3_New: @
+# `Main`: the examples' shared start (`common`'s `StartServer`, `Serve`, `NewClient`, linked in its
+# `Link.lean`; zap's trust-boundary axiom), then `Check`
+common_StartServer: @
+common_Serve: @
+common_NewClient: @
 zap_NewNop:
-features_NewDefaultServerFeatureGate:
-net_Listen:
-grpc_Server__Serve:
-linkv_Main: zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New linkv_Check
+linkv_Main: zap_NewNop common_StartServer common_Serve common_NewClient linkv_Check

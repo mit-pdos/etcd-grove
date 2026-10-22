@@ -2,18 +2,13 @@
 module
 
 public import Perennial.Code.context
-public import Code.net
 public import Perennial.Code.sync
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.go_uber_org.zap
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.cache.v3
-public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
-public import Code.go_etcd_io.etcd.server.v3.config
-public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-public import Code.go_etcd_io.etcd.server.v3.features
+public import Code.github_com.mit_pdos.etcd_grove.examples.common
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -98,7 +93,7 @@ noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
 
 /-- Gen picks a key under the prefix and a value, from a small set.
 
-    go: cachekv.go:90:6 -/
+    go: cachekv.go:87:6 -/
 noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -144,7 +139,7 @@ noncomputable def Gen.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- writer does the Puts tried[lo:hi] through cli, in order, logging in w each that returned no
     error, with its reply's revision.
 
-    go: cachekv.go:101:6 -/
+    go: cachekv.go:98:6 -/
 noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "w"
@@ -218,7 +213,7 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- genAll picks n Puts (Gen): the writers' Puts, writer i's at [i*nops, (i+1)*nops).
 
-    go: cachekv.go:115:6 -/
+    go: cachekv.go:112:6 -/
 noncomputable def genAll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (App (Val exceptionDo)
@@ -246,7 +241,7 @@ noncomputable def genAll.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- maxRev is the highest revision of the successful Puts oks (0 if there is none).
 
-    go: cachekv.go:124:6 -/
+    go: cachekv.go:121:6 -/
 noncomputable def maxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "oks"
   (App (Val exceptionDo)
@@ -279,7 +274,7 @@ noncomputable def maxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
     rejection, the compaction's), with Canceled set: their Err() is not nil because of it (the
     cache never sets a response's unexported closeErr), so collect tests the fields.
 
-    go: cachekv.go:139:6 -/
+    go: cachekv.go:136:6 -/
 noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -350,7 +345,7 @@ noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- attempted reports whether (key, val) is one of the Puts tried.
 
-    go: cachekv.go:165:6 -/
+    go: cachekv.go:162:6 -/
 noncomputable def attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tried"
   (Lam "key"
@@ -383,7 +378,7 @@ noncomputable def attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
     gap-free from revision 2, each a put some writer attempted (tried), and every successful Put
     (oks) the event at its revision with its key and value.
 
-    go: cachekv.go:177:6 -/
+    go: cachekv.go:174:6 -/
 noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "tried"
@@ -483,7 +478,7 @@ noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
     prefix from revision 2, runs nw writers of nops Puts each, then reads the watch and checks it
     against the writes.
 
-    go: cachekv.go:209:6 -/
+    go: cachekv.go:206:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
@@ -497,37 +492,11 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "peer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$v0" (Val #(go!"cachekv"))
-  (Let "$v1" (Val #(go!"cachekv.etcd"))
-  (Let "$v2" (Let "$k0" (Val #(go!"cachekv"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1")))]))))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$v4" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "$v5" (Val #(go!"cachekv"))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (Val #(W64 100))
-  (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.DefaultSnapshotCount))
-  (Let "$v10" (Val #(W64 281474976710656))
-  (Let "$v11" (Val #(W64 128))
-  (Let "$v12" (Val #(W64 1572864))
-  (Let "$v13" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v14" (Let "$a0" (Val #(go!"cachekv"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v7"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v8"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v13"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v14")))])))))))))))))))))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.NewServer []))) (Val #())) (Var "$a0")))
+  (Let "__p" (Let "$a0" (Val #(go!"cachekv"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val peerAddr))
+  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.StartServer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -538,32 +507,9 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))
-  (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))
-  (Let "$a3" (Val #slice.nil)
-  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
-  (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "l"))
-  (Let "$go" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty) go!"Serve"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Var "gs")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.New []))) (Val #())) (Var "$a0")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -722,22 +668,18 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (Fork
-  (App (Var "$go") (Var "$a0")))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Serve []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed)))
   (App (Val doExecute)
-  (Val #()))))))
+  (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "l") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val Failed)))
@@ -748,16 +690,12 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Pair (Var "cfg") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Pair (Var "peer") (Var "$r0")))))))))
-  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType kv.ty)))) (Pair (Var "tried") (Var "$r0"))))))))))))
 
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -770,15 +708,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -790,17 +721,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.cache.v3.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.config.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))))
 
 structure kv [FfiSyntax] where
   mk ::
@@ -982,18 +905,13 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   check_unfold : FuncUnfold check [] check.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
-  import_net_Assumption : _root_.Perennial.net.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_cache_Assumption : _root_.Perennial.go_etcd_io.etcd.cache.v3.Assumptions
-  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
-  import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
-  import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import_common_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Assumptions
 
 attribute [instance] Assumptions.kv_instance
   Assumptions.putRec_instance
@@ -1008,18 +926,13 @@ attribute [instance] Assumptions.kv_instance
   Assumptions.check_unfold
   Assumptions.Main_unfold
   Assumptions.import_context_Assumption
-  Assumptions.import_net_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_primitive_Assumption
   Assumptions.import_zap_Assumption
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_cache_Assumption
-  Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
-  Assumptions.import_config_Assumption
-  Assumptions.import_etcdserver_Assumption
-  Assumptions.import_v3rpc_Assumption
-  Assumptions.import_features_Assumption
+  Assumptions.import_common_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.cachekv
 

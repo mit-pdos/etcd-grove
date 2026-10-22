@@ -14,27 +14,23 @@
 // if the watch channel closes, or a response reports an error (a cancel, a compaction, the
 // client's close), before that, Main returns WatchEnded without a check.
 //
-// Main calls only what the proofs specify: putget's start (etcdserver.NewServer, Start,
-// v3rpc.Server, net.Listen, (*grpc.Server).Serve on a goroutine), clientv3.New, the client's Put
-// and Watch, context.WithCancel and WatchResponse.Err. An error from a step of the start ends Main
+// Main calls only what the proofs specify: the examples' shared start (examples/common's
+// StartServer, Serve and NewClient: etcdserver.NewServer, Start, v3rpc.Server, net.Listen,
+// (*grpc.Server).Serve on a goroutine, clientv3.New), the client's Put and Watch, context.WithCancel and WatchResponse.Err. An error from a step of the start ends Main
 // with Failed.
 package watchkv
 
 import (
 	"context"
-	"net"
 	"sync"
 
 	"github.com/goose-lang/primitive"
 	"go.uber.org/zap"
 
 	"go.etcd.io/etcd/api/v3/mvccpb"
-	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/server/v3/config"
-	"go.etcd.io/etcd/server/v3/etcdserver"
-	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
+
+	"github.com/mit-pdos/etcd-grove/examples/common"
 )
 
 // The client address (a plain host:port, clientv3.New's premise) and the peer address: not any
@@ -205,46 +201,18 @@ func Main(nw int, nops int) int {
 	tried := genAll(nw * nops)
 
 	lg := zap.NewNop()
-	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
-	cfg := config.ServerConfig{
-		Name:                "watchkv",
-		DataDir:             "watchkv.etcd",
-		InitialPeerURLsMap:  types.URLsMap{"watchkv": peer},
-		PeerURLs:            peer,
-		ClientURLs:          types.URLs{{Scheme: "http", Host: clientAddr}},
-		InitialClusterToken: "watchkv",
-		NewCluster:          true,
-		TickMs:              100,
-		ElectionTicks:       10,
-		// etcd's default snapshot count; the catch-up entries past the theorem's step bound (as
-		// examples/putget's: NewServer's run bound, receiptBound <= SnapshotCatchUpEntries + 1)
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		Logger:                 lg,
-		ServerFeatureGate:      features.NewDefaultServerFeatureGate("watchkv", lg),
-	}
-	s, err := etcdserver.NewServer(cfg)
+	s, err := common.StartServer("watchkv", peerAddr, clientAddr, lg)
 	if err != nil {
 		return Failed
 	}
-	s.Start()
-
-	gs := v3rpc.Server(s, nil, nil)
-	l, err := net.Listen("tcp", clientAddr)
-	if err != nil {
+	if err := common.Serve(s, clientAddr); err != nil {
 		return Failed
 	}
-	go gs.Serve(l)
 
 	// etcd's default client configuration (its default retries, as linkv's): the server never
 	// answers with a refusal (authentication off, a voter), so a Put is sent at most once and the
 	// server applies it at most once (decision D29).
-	cli, err := clientv3.New(clientv3.Config{
-		Endpoints: []string{clientAddr},
-		Logger:    lg,
-	})
+	cli, err := common.NewClient(clientAddr, lg)
 	if err != nil {
 		return Failed
 	}

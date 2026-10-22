@@ -20,18 +20,14 @@ WithPrefix: getPrefix
 WithRev:
 WithProgressNotify:
 WithCreatedNotify:
-# `Main`: putget's start of the server and the client (the server's, v3rpc's and the client's
-# results, linked in their `Link.lean`s; zap's, the feature gate's, `net`'s and grpc's
-# trust-boundary axioms), the client's watcher (its `Watch`, linked in the client's `Link.lean`;
-# a context's `Err`, in `context`'s), then the writers, `collect` and `check`
-etcdserver_NewServer: @
-EtcdServer__Start: @
-v3rpc_Server: @
-client_v3_New: @
+# `Main`: the examples' shared start of the server and the client (`common`'s `StartServer`,
+# `Serve`, `NewClient`, linked in its `Link.lean`; zap's trust-boundary axiom), the client's
+# watcher (its `Watch`, linked in the client's `Link.lean`; a context's `Err`, in `context`'s),
+# then the writers, `collect` and `check`
 context_ErrAny: @
 watcher__Watch: @
+common_StartServer: @
+common_Serve: @
+common_NewClient: @
 zap_NewNop:
-features_NewDefaultServerFeatureGate:
-net_Listen:
-grpc_Server__Serve:
-watchkv_Main: watchkv_genAll watchkv_writer watchkv_maxRev watchkv_collect watchkv_check zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve client_v3_New context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
+watchkv_Main: watchkv_genAll watchkv_writer watchkv_maxRev watchkv_collect watchkv_check zap_NewNop common_StartServer common_Serve common_NewClient context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

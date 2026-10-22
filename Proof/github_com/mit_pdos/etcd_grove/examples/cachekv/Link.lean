@@ -18,16 +18,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.collect
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.genAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.maxRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.writer
-public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
-public import Proof.google_golang_org.grpc.Server__Serve
-public import Proof.net.Listen
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_etcd_io.etcd.cache.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 
 @[expose] public section
 
@@ -101,21 +97,9 @@ theorem wp_collect :
     EtcdGrove.cachekv.collect.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cachekv.collect.wp_proof
 
-theorem features.wp_NewDefaultServerFeatureGate :
-    EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
-
-theorem net.wp_Listen :
-    EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
-
-theorem grpc.Server.wp_Serve :
-    EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof
-
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.cachekv.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cachekv.Main.wp_proof wp_genAll wp_writer wp_maxRev wp_collect wp_check zap.wp_NewNop features.wp_NewDefaultServerFeatureGate wp_NewServer EtcdServer.wp_Start v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.v3.clientv3.wp_New context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch
+  EtcdGrove.cachekv.Main.wp_proof wp_genAll wp_writer wp_maxRev wp_collect wp_check zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_RequestProgress wp_New Cache.wp_Watch
 
 end links_hasLC
 

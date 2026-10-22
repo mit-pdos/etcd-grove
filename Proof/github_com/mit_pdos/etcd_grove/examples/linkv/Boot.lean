@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # The server's start store is empty (D20 (c), 2026-10-19)
 
-A new member's KV state is the KV model of its bootstrap log (`putget_alloc`'s `etcdKV` at
+A new member's KV state is the KV model of its bootstrap log (`common.alloc1`'s `etcdKV` at
 `kvStateOf (kvModel γk (bootEntries bootLog))`, with `γk.log0 = [[], []]`). The bootstrap log is
 conf changes only (`BootLogOk`: every entry of type `1`), which change no KV state (`kvEntry`
 dispatches only normal entries), so the model is the start log `[[], []]`, whose state has no key:
