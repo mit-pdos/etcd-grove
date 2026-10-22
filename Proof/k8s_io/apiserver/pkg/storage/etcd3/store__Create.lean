@@ -167,7 +167,7 @@ theorem store.Create.wp_proof
       have hm : ∀ (i : Nat) (x : client.SrvAt GF), c.ms[i]? = some x →
           k8sAu1 (GF := GF) x.γr.kv c (fun s => (s.create (E := Empty) (c.pathPrefix ++ k) o 0).1) Ψ ⊢
           kvOpAu1 x.γr.kv (.txn (kubernetes.optPutTxn (c.pathPrefix ++ k) v (W64 0) false))
-            (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝)) :=
+            (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) :=
         fun i x hx => by
           iintro HAU
           unfold kvOpAu1
@@ -182,7 +182,7 @@ theorem store.Create.wp_proof
       wp_apply (wp_kPut (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
             #c.kc)) c.ms c.V ci' cd (c.pathPrefix ++ k) vsl v (W64 0)
-          ⟨false, zero_val _⟩ (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝)) rfl) $$ [Hau']
+          ⟨false, zero_val _⟩ (fun σ => iprop(Ψ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) rfl) $$ [Hau']
         as %resp %perr Hput
       · iframe #
         iexact Hau'
@@ -191,7 +191,7 @@ theorem store.Create.wp_proof
       (try wp_auto)
       wp_apply wp_RecordEtcdRequest
       (try wp_auto)
-      icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse⟩)
+      icases Hput with (⟨%Hpe, %σ, ⟨HΨ, %Hwfσ, -⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse⟩)
       · -- the transaction ran at σ
         subst Hpe
         obtain ⟨hsucc, hrevσ, hb⟩ := Hσ

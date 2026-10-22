@@ -65,6 +65,8 @@ structure StoreCfg (GF : BundledGFunctors) (Obj : Type) where
   /-- the metrics tracker and its `Get` tracker -/
   mt : Loc
   lt : Loc
+  /-- the caller's history of etcd's key-values by key and mod revision (D30j) -/
+  γh : GName
 
 /-- The model's prefix: the store's keys (`pathPrefix` and the resource's). -/
 def StoreCfg.pfx (c : StoreCfg GF Obj) : GoString := c.pathPrefix ++ c.resourcePrefix
@@ -123,6 +125,27 @@ prefix (`KWf`). -/
 def kvWf (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
   σ.kvs.Pairwise etcdKvLess ∧ KWf c.S.dec c.pfx (linkv.absSt σ)
 
+/-- **The state's key-values, seen in the caller's history** (persistent; D30j): each key at its
+mod revision has its value in the ghost map `γh`, which the caller extends at each commit (a key's
+mod revision is the commit's, a new one). Two states seen there agree on a key at a mod revision. -/
+def kvSeen (γh : GName) (σ : KVState) : IProp GF :=
+  iprop(□ ∀ v : EtcdKv, ⌜v ∈ σ.kvs⌝ → ghostMapElem γh (v.key, v.modRev) DFrac.discard v.value)
+
+instance kvSeen_persistent (γh : GName) (σ : KVState) : Persistent (kvSeen (GF := GF) γh σ) := by
+  unfold kvSeen; infer_instance
+
+/-- **Two states seen in the history agree** on a key-value's value at a mod revision. -/
+theorem kvSeen_agree (γh : GName) (σ1 σ2 : KVState) (v1 v2 : EtcdKv) (h1 : v1 ∈ σ1.kvs)
+    (h2 : v2 ∈ σ2.kvs) (hk : v1.key = v2.key) (hm : v1.modRev = v2.modRev) :
+    kvSeen (GF := GF) γh σ1 ∗ kvSeen γh σ2 ⊢ ⌜v1.value = v2.value⌝ := by
+  unfold kvSeen
+  iintro ⟨#H1, #H2⟩
+  ihave #E1 : ghostMapElem γh (v2.key, v2.modRev) DFrac.discard v1.value $$ []
+  · rw [← hk, ← hm]
+    iapply H1 $$ %v1 %h1
+  ihave #E2 := H2 $$ %v2 %h2
+  iapply ghostMapElem_agree $$ E1 E2
+
 /-- The model state of etcd's state for the store `c`. -/
 def StoreCfg.abs (c : StoreCfg GF Obj) (σ : KVState) : KSt Obj :=
   absK c.S.dec c.pfx (linkv.absSt σ)
@@ -148,8 +171,8 @@ theorem prepareKeyM_prefix (pp rp key k : GoString) (r : Bool) (h : prepareKeyM 
   have last : ∀ k0 : GoString, (if rp <+: k0 then some k0 else none) = some k → rp <+: k := by
     intro k0 hk0
     by_cases hp : rp <+: k0
-    · rw [if_pos hp] at hk0; cases hk0; exact hp
-    · rw [if_neg hp] at hk0; cases hk0
+    · rw [ite_eq_left hp] at hk0; cases hk0; exact hp
+    · rw [ite_eq_right hp] at hk0; cases hk0
   apply (List.prefix_append_right_inj pp).2
   unfold prepareKeyM at h
   split at h

@@ -38,7 +38,7 @@ variable {Obj : Type} [DecidableEq Obj]
 /-- **The caller's update for a write** (see the file header). -/
 def k8sAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
     (Φ : KVState → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ }>
+  iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ }>
       @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
     <{ ∀∀ (σ' : KVState), etcdKV γk σ' ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ)⌝, COMM Φ σ }>)
 
@@ -51,7 +51,8 @@ def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop
 theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) :
     k8sAu1 γk c step Φ ⊢
-      kvAu1 γk (kvOpStep op) (fun σ => iprop(Φ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝)) := by
+      kvAu1 γk (kvOpStep op)
+        (fun σ => iprop(Φ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) := by
   unfold kvAu1
   refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
   iintro ⟨-, HAU⟩
@@ -62,7 +63,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
   imod HAC with HAC
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at HAC
   isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  icases HAC with ⟨%σ, ⟨Hkv, %Hwf⟩, Hcl⟩
+  icases HAC with ⟨%σ, ⟨Hkv, %Hwf, #Hseen⟩, Hcl⟩
   imodintro
   iexists σ
   iframe Hkv
@@ -70,7 +71,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
   · iintro Hkv
     icases Hcl with ⟨Habort, -⟩
     iapply Habort
-    iframe Hkv
+    iframe Hkv Hseen
     ipureintro; exact Hwf
   · iintro Hkv
     icases Hcl with ⟨-, Hcommit⟩
@@ -80,7 +81,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     · iframe Hkv
       ipureintro; exact ⟨hwf', habs⟩
     imodintro
-    iframe HΦ
+    iframe HΦ Hseen
     ipureintro; exact Hwf
 
 end defs
