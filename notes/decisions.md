@@ -15400,3 +15400,20 @@ stream stays at one address in the lessor's specs, an instance of the new statem
 - `bridge.New` gains the stream forwarding, and so does linkv3p's `forwards`, with
   `isGrpcStream_forwards`.
 - Trust base: 530 axioms, 2 sorries, unchanged; the collections unchanged.
+
+## D22c decided: a backend specification over all its client-visible state, no determinism axiom (2026-10-22 · the user)
+
+The user: no determinism axiom (S-h's `snapOf γB D ∗ srvRestSole γB ∗ …`); instead the backend's
+specification covers all the state it exposes to clients, every bucket, not only the key bucket
+and the meta keys (`isKeyBackendG`'s view today; the other buckets are `bridgeParams`' hook
+buckets, unconstrained). This generalizes "D22c revisited"'s minimal tracking design
+(`notes/snapshot-rest-buckets.md`: `RB`, `rbData`, `rbOwn`, `restModel`): the backend model holds
+each bucket's contents, each writer's spec states its effect (the reachable ones: `NewAuthStore`'s
+`authRevision`, `applyConfChange`/`AddMember`, `UpdateAttributes`, `SetVersion`; the others shown
+unreachable under the workload premises), the apply thread holds the buckets it alone writes at
+their model of the applied log, `backend.Snapshot`'s observation and the image (`dbImage`) cover
+them, and the `Recover` axioms are stated over them. `UpdateAttributes` saves the in-memory member
+(exception 7): the in-memory member list held as ghost state, option (i) (assumed, the session's
+recommendation; the alternative, a proof that the boot entries validate with `ccContextOf` giving
+the member record, not chosen). `bootOk`'s fresh-directory premise covers every bucket. Sequenced
+with the server-level receiver steps, after S5 (both touch `isKeyBackendG`'s users).
