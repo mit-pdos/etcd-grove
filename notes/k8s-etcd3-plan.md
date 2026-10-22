@@ -1,7 +1,9 @@
 # Plan: the Kubernetes etcd3 storage backend (`k8s.io/apiserver/pkg/storage/etcd3`)
 
-Status: planned (2026-10-22). The translation survey (what Goose/Perennial lack for this code) is
-on branch `k8s-etcd3-goose`, `notes/k8s-etcd3-goose.md`; its gaps feed phase 0.
+Status: planned (2026-10-22). The translation survey is on branch `k8s-etcd3-goose`
+(`notes/k8s-etcd3-goose.md`, not merged into `lean`): the store translates and builds with the
+pinned translator except six functions left names-only; its gaps G1-G3 are under "What blocks
+where".
 
 ## Goal
 
@@ -113,11 +115,50 @@ when the update function is made, so it is.
    nondeterministic), porcupine with `correctness.Model`, `Replay.Validate`; failed writes as
    above. Then faults: partitions and client cuts from linkv3p's schedule.
 
+## What blocks where
+
+**Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
+came back: `store.listReadError` (`store.go:923`, `errors.Is(err, ErrFutureRev)` ->
+`TooLargeResourceVersion`), `interpretListError` (`errors.go:66`, `err == ErrCompacted` -> 410,
+by interface equality, so the client must return rpctypes' own value) and `interpretWatchError`
+(the watcher). `Get`, `Create`, `Delete`, `GuaranteedUpdate`, `Stats` and
+`GetCurrentResourceVersion` return etcd's errors unchanged, and `Get`'s
+`TooLargeResourceVersion` comes from a local comparison (`validateMinimumResourceVersion`).
+So phases 1-4 never wait on it; phase 5 does, in two strengths:
+- *soundness* (`ErrFutureRev` returned only when the revision is above the current one,
+  `ErrCompacted` only when below the compaction revision): without it a valid list may come back
+  `TooLargeResourceVersion` or 410, which the Model rejects. Needed by the driver once its
+  traffic has lists (25% of `TestCorrectness`'s).
+- *completeness* (such a revision gives that error): needed only for the generic spec to say a
+  future-revision list returns `TooLargeResourceVersion` (and a compacted one 410); the driver
+  can treat any other error as a failed read.
+
+A driver without list traffic (phase 6 first, then lists) does not need it at all.
+
+**Translation (the survey).**
+- G2, range over a function: `store.GetList` loops over an `iter.Seq2` (`store.go:825`) on
+  every path, the ordinary `pagedChunks` included. Goose does not translate it, so phase 5 is
+  blocked on it before error identity: Goose support (the general fix, a Perennial change), a
+  Goose fork of k8s.io/apiserver rewriting the loop (as the etcd fork), or a trusted model.
+- G1, field selection through a type alias (`clientv3.Event = mvccpb.Event`): blocks
+  `parseEvent` and the compactor, so the watcher, not this plan; a one-line Goose fix
+  (`types.Unalias` in `getStructInfo`), tried on a scratch translator.
+- G3, a type of a package the file does not import: worked around in configuration, except
+  `storage.InvalidError.Error` (names-only).
+- `reflect` is on every unary path (`conversion.EnforcePtr`, `reflect.New(v.Type())` in `Delete`,
+  `GuaranteedUpdate`; `MakeSlice`/`Append` in lists) and Perennial's `reflect` has no specs:
+  phase 1 needs them, either as an independent Perennial change or as local trust-boundary specs.
+- No specs yet for `strconv`'s parse/format functions, `encoding/json`, `encoding/base64` and
+  `path` (continue tokens, `prepareKey`), or for the names-only apimachinery functions the unary
+  path calls (`meta.Accessor`, `runtime.Encode`, the error constructors; klog, metrics, tracing
+  and feature gates as no-ops).
+
 ## From the etcd client proof (coordinate with its owner)
 
 1. `Range`'s error side: `ErrFutureRev` exactly when the revision is above the current one,
    `ErrCompacted` exactly when below the compaction revision (the compaction revision in the
-   model), and `errors.Is` on the returned error. Needed by phase 5.
+   model), as rpctypes' own error values (`interpretListError` compares with `==`). Needed by
+   phase 5, and by the driver once it lists: soundness first ("What blocks where").
 2. `Txn`/`DeleteRange` errors: what the caller learns about whether its update fired (at most
    once already holds: `kvOpAu1`). Needed by phase 4's error cases.
 3. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
@@ -125,7 +166,7 @@ when the update function is made, so it is.
 
 ## Open
 
-- The survey's gaps (phase 0); how `reflect` is handled.
+- How `reflect` is specified (Perennial change or local specs); how G2 is resolved.
 - Whether `correctness.Model` translates (it uses `reflect.DeepEqual` on objects); if not, the
   driver needs a translatable copy of its checks, which then becomes trusted.
 - Which in-process etcd setup the driver starts from (linkv3p's three members, or one member
