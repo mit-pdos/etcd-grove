@@ -47,7 +47,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
   icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
-  icases mvcc.fieldShare_open s γ _ _ _ _ _ $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop⟩
+  icases mvcc.fieldShare_open s γ _ _ _ _ _ $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
   · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
@@ -57,7 +57,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrevl, HP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ sync.rfrac)) $$ Hlc1 HP with HP
-  iunfold mvcc.revMuInv at HP
+  icases mvcc.revMuInv_open s γ _ _ $$ [HP Hfrst] with ⟨HP, HrstR, Hfrst⟩
+  · iframe HP Hfrst
+  iunfold mvcc.revMuBody at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
   icases mvcc.logLent_agree γ.idx _ log oa $$ [$Hlog $HoA] with ⟨Hlog, HoA, %HoaL⟩
@@ -91,10 +93,10 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin⟩
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev HrstR]
       as HrevMuR
     · inext
-      iunfold mvcc.revMuInv
+      iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
       iexists log, ntok, cm
       simp only [named]
       iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev
@@ -111,8 +113,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     ipersist Ctrace
     ipersist Ttx
     (try wp_auto)
-    ihave Hfs := mvcc.fieldShare_close s γ _ _ _ _ _ $$ [Hpin Hfb Hfidx Hfsch Hfstop]
-    · iframe Hpin Hfb Hfidx Hfsch Hfstop
+    ihave Hfs := mvcc.fieldShare_close s γ _ _ _ _ _ $$ [Hpin Hfb Hfidx Hfsch Hfstop Hfrst]
+    · iframe Hpin Hfb Hfidx Hfsch Hfstop Hfrst
     ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM Hfs]
     · iunfold mvcc.muHeld
       iframe Hmul Hfs

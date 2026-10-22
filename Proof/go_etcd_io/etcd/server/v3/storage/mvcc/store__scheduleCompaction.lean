@@ -223,7 +223,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   ihave #Hs0 := Hs
   iunfold mvcc.isStore at Hs0
   iNamed Hs0
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch⟩
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
   · iframe Hpin Hstop
   ihave #Hbk' := mvcc.isKeyBackendG_cmp _ s γ _ _ _ Hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'

@@ -117,7 +117,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     wp_apply +noauto sync.RWMutex.wp_Lock $$ [$HrevMu] as ⟨Hlk, HP⟩
     wp_auto_lc 1
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HP with HP
-    iunfold mvcc.revMuInv at HP
+    icases mvcc.revMuInv_open_held s γ _ crev $$ [HP Hmu] with ⟨HP, HrstR, Hmu⟩
+    · iframe HP Hmu
+    iunfold mvcc.revMuBody at HP
     icases HP with ⟨%log, %ntokL, %cL, HP⟩
     iNamedSuffix HP "L"
     obtain ⟨HcL1, HcL2⟩ := HcL
@@ -195,10 +197,10 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · exfalso
       exact hne' (hpend.2 Hif)
     · (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL]
+      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL HrstR]
         as HrevMu
       · inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists (ilog ++ [pend]), n, cL
         simp only [named]
         iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL

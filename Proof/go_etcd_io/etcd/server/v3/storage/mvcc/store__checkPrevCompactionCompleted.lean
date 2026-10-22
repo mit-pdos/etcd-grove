@@ -35,7 +35,7 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   wp_start as ⟨#Hs, #Hstop⟩
   iunfold mvcc.isStore at Hs
   iNamed Hs
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch⟩
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
   · iframe Hpin Hstop
   ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'

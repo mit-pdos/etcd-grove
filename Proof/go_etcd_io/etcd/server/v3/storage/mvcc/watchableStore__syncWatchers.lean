@@ -151,12 +151,14 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
   icombine Hstp Hst' gives %Hsteq
   subst Hsteq
-  icases mvcc.fieldShare_open st γ.st _ _ _ _ _ $$ [HpinS Hwsf] with ⟨Hfb, Hfidx, Hfsch, Hfstop⟩
+  icases mvcc.fieldShare_open st γ.st _ _ _ _ _ $$ [HpinS Hwsf] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
   · iframe HpinS Hwsf
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
-  iunfold mvcc.revMuInv at HQ
+  icases mvcc.revMuInv_open st γ.st _ _ $$ [HQ Hfrst] with ⟨HQ, HrstR, Hfrst⟩
+  · iframe HQ Hfrst
+  iunfold mvcc.revMuBody at HQ
   icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
   imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ HfrzR HcrevQ with ⟨HcrevQ, %HcQ1⟩
@@ -900,10 +902,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_apply (hSize (mvcc.unsyncedAddr s) v.Wu 1) $$ [$Hunsynced] as ⟨Hunsynced, -⟩
   (try wp_auto)
   -- the deferred `s.store.revMu.RUnlock()`
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ]
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR]
     as HrevMuR
   · inext
-    iunfold mvcc.revMuInv
+    iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
     iexists C, ntok, -1
     simp only [named]
     iframe
@@ -948,8 +950,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     isplitr
     · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by unfold mvcc.outRes; exact .rfl)) $$ Hout
     ipureintro; exact hokf
-  ihave Hwsf := mvcc.fieldShare_close st γ.st _ _ _ _ _ $$ [HpinS Hfb Hfidx Hfsch Hfstop]
-  · iframe HpinS Hfb Hfidx Hfsch Hfstop
+  ihave Hwsf := mvcc.fieldShare_close st γ.st _ _ _ _ _ $$ [HpinS Hfb Hfidx Hfsch Hfstop Hfrst]
+  · iframe HpinS Hfb Hfidx Hfsch Hfstop Hfrst
   ihave Hwsf : mvcc.wsFields s γ 1 $$ [Hwsf]
   · iunfold mvcc.wsFields; iexists st; iframe Hstp Hwsf
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf Hrel Hwsf]

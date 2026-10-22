@@ -179,14 +179,20 @@ theorem mvcc.NewStore.wp_proof
   -- the store's objects, pinned (D22 receiver epochs, S3: until S5)
   imod (dghostVar_alloc (GF := GF) (⟨b, ti, sc, stopc⟩ : mvcc.StoreObjs)) with ⟨%γcur, Hpin⟩
   imod (dghostVar_persist (GF := GF) γcur 1 _) $$ Hpin with #Hpin
+  -- `s.revMu`'s restoring flag, down: half the lock's, half the fields' shares' (S3)
+  imod (dghostVar_alloc (GF := GF) false) with ⟨%γrst, Hrst⟩
+  icases ((dghostVar_fractional (GF := GF) γrst false).fractional (1 : Qp).half (1 : Qp).half).1
+    $$ [Hrst] with ⟨HrstF, HrstR⟩
+  · rw [Qp.half_add_half]; iexact Hrst
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur⟩ :
+      hγwv, hγcur, hγrst⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
-      γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur⟩, rfl, rfl, rfl,
-      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst⟩, rfl, rfl,
+      rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  rw [← hγrst] at *
   rw [← hγwr] at *
   rw [← hγwk] at *
   rw [← hγwv] at *
@@ -337,11 +343,12 @@ theorem mvcc.NewStore.wp_proof
   icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcmp2 with ⟨HcmpA, HcmpB⟩
   -- the four fields `store.Restore` writes (D22 receiver epochs, S3): half to `s.mu`, the rest to
   -- `restore` (lent), then a quarter each to the right to close and the watchable store's share
-  ihave Hfs : mvcc.fieldShare «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half) $$ [b kvindex fifoSched stopc]
+  ihave Hfs : mvcc.fieldShare «$r0_ptr» γ ((1 : Qp).half + (1 : Qp).half)
+      $$ [b kvindex fifoSched stopc HrstF]
   · rw [Qp.half_add_half]
     iunfold mvcc.fieldShare
     iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
-    iframe Hpin
+    iframe Hpin HrstF
     iunfold mvcc.storeFields
     iframe b kvindex fifoSched stopc
   icases ((mvcc.fieldShare_fractional «$r0_ptr» γ).fractional _ _).1 $$ Hfs with ⟨Hfm, Hfr⟩
@@ -383,7 +390,7 @@ theorem mvcc.NewStore.wp_proof
   ihave Hncmp : mvcc.kbNoCmp γ.kb γ.bucket $$ [Hncmp]
   · rw [hγk, hγb]; iexact Hncmp
   iunfold mvcc.fieldShare at Hfr
-  icases Hfr with ⟨%o, #Hpin', Hfr⟩
+  icases Hfr with ⟨%o, #Hpin', Hfr, HrstQ⟩
   ihave %Ho := mvcc.objsPin_agree γ o ⟨GoInterface.ok bi, ti, sc, stopc⟩ $$ [Hpin Hpin']
   · iframe Hpin Hpin'
   subst Ho
@@ -421,9 +428,9 @@ theorem mvcc.NewStore.wp_proof
     · simp only [mvcc.revQ, mvcc.logQ, mvcc.idxLogAuth, hγw, ↓reduceIte]; iapply hq.1 $$ Hil
   icases Hsplit with ⟨Hil, HlogQ⟩
   imod sync.init_RWMutex (mvcc.revMuInv «$r0_ptr» γ) (mvcc.revMuAddr «$r0_ptr»)
-    $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR] revMu with Hrevs
+    $$ [HcurB Hc2 Hbv2 HauthR Hil HcmpB HcuR HrstR] revMu with Hrevs
   · inext
-    iunfold mvcc.revMuInv
+    iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
     iexists [[], []], 2 ^ 63 - 5, -1
     simp only [named]
     rw [mvcc.bucketMap_init, ← hone]
@@ -495,11 +502,11 @@ theorem mvcc.NewStore.wp_proof
   -- the rest of the fields: a quarter to the right to close, a quarter to the caller (the
   -- watchable store's share; D22 receiver epochs, S3)
   ihave Hfr : mvcc.fieldShare «$r0_ptr» γ ((1 : Qp).half.half + (1 : Qp).half.half)
-      $$ [HfbR HfidxR HfschR HfstopR]
+      $$ [HfbR HfidxR HfschR HfstopR HrstQ]
   · rw [Qp.half_add_half]
     iunfold mvcc.fieldShare
     iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
-    iframe Hpin
+    iframe Hpin HrstQ
     iunfold mvcc.storeFields
     iframe HfbR HfidxR HfschR HfstopR
   icases ((mvcc.fieldShare_fractional «$r0_ptr» γ).fractional _ _).1 $$ Hfr with ⟨Hfc, Hfw⟩

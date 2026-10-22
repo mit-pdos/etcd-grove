@@ -80,7 +80,7 @@ theorem mvcc.store.compact.wp_proof
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch⟩
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
   · iframe Hpin Hstop
   wp_func_lits
   (try wp_auto)
