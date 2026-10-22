@@ -17,6 +17,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Tactics: `word`'s caches shared between parallel declarations
+
+- **Missing.** Deterministic elaboration under a parallel build. `word`'s caches
+  (`Perennial/Std/Word/Cache.lean`: `wordCache` and `failCache`, process-global `IO.Ref`s) are
+  shared between the declarations Lean elaborates in parallel within one module, so whether a
+  `word` call hits the cache, and hence the heartbeats a proof uses, depends on which declaration
+  ran first. A proof near its heartbeat limit then fails on some runs only (and a cached failure
+  could in principle leak between contexts). The same class as the flaky `stepLeader.lean` build
+  (`notes/flaky-stepleader-build.md`, fixed in Perennial `fb1ecb030`, "no global mutable state
+  shared between parallel declarations").
+- **Needed by.** `Proof/go_etcd_io/raft/v3/raft__Step/MsgStorageAppendResp.lean`'s
+  `wp_Step_MsgStorageAppendResp_snap` (D22 S-d3b): it ran out of 1000000 heartbeats once under a
+  parallel full build (2026-10-21) and passes alone, on the same tree. Any proof near its limit.
+- **Workaround here.** That theorem's limit raised to 4000000, with a comment citing
+  `notes/STATUS.md`, "`word`'s shared cache" (what is proved is unchanged).
+- **Proposed change.** The caches keyed per declaration, or held in the tactic's own state
+  (`MetaM`/`TacticM` state, or an environment extension reset per declaration), so that a
+  declaration's elaboration does not depend on its siblings'.
+- **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
+
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range
