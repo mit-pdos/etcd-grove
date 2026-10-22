@@ -47,7 +47,7 @@ Two results:
   the Model's at one linearization point whatever the suggestion was, exactly the class of
   #35415, #43152, #48394, #54780, #77619, #82303, #89828, #113380, #138724.
 
-## The codec contract (and why the driver's codec is non-canonical)
+## The codec contract (not canonical in the specs; canonical in the driver, D30g)
 
 The specs quantify over a codec, versioner and transformer with a contract. It must be weak
 enough to hold of the real ones:
@@ -59,12 +59,20 @@ enough to hold of the real ones:
   when the stored data is not canonical) lives exactly there, and `GuaranteedUpdate`'s no-op
   check compares bytes (`bytes.Equal(data, origState.data)`).
 
-**The driver's codec must be non-canonical too**, or the driver never exercises that path: e.g.
-a decoder that accepts several encodings of one object (a field order, optional padding or a
-version tag), with the driver seeding some keys in a non-canonical encoding before the traffic
-starts (as an older API server, or a different serializer, would have left them), and a
-transformer that sometimes reports `stale`. The contract's proof for the driver's codec is then
-a real proof (no axiom).
+**`correctness.Model` is wrong on that path (2026-10-22, D30g).** On a no-op update of
+non-canonical or stale data the store rewrites the object at a new resource version, as its
+own unit test requires, while the Model skips the write and rejects the response
+(`issues/k8s-correctness-model-noop-rewrite.md`, reproduced). Proposed (D30g, waiting on the
+user):
+- The Lean model's items carry a bit `canon` (the stored value is the codec's current encoding
+  and not stale), and `update` writes unless the object is unchanged and `canon` holds. This is
+  the store's rule, and the generic specs are stated with it. On states whose items are all
+  canonical it is `correctness.Model`.
+- The driver checks with the unmodified `correctness.Model`, so its codec is canonical on the
+  traffic's keys. ~~The driver's codec must be non-canonical too~~ (D30b's original plan: seed
+  keys in a non-canonical encoding, a transformer that reports `stale`). That would make the
+  driver theorem false with the maintainers' Model. The contract's proof for the driver's codec
+  is still a real proof (no axiom).
 
 ## The driver and failed writes
 

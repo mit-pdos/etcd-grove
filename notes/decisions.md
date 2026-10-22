@@ -15064,3 +15064,26 @@ from the plan.
   repository's Goose configuration (G1, G3: names-only functions, an import through
   `util/feature.toml`), the general fixes listed in `notes/perennial-changes.md`; neither G1 nor
   G3 blocks phases 1-4.
+- **D30g: the Model and non-canonical data** (2026-10-22, proposed, waiting on the user's
+  confirmation since it amends D30b and D30c). `correctness.Model` disagrees with the store when
+  the stored data is non-canonical or stale. The store skips a no-op update only when the new
+  encoding is byte-equal to the stored one and not stale (`store.go:547`, the #48394 fix), and
+  otherwise rewrites it at a new resource version. The Model skips it whenever the objects are
+  equal up to the resource version, so it rejects the store's correct response
+  (`issues/k8s-correctness-model-noop-rewrite.md`, reproduced by a Go test). So a "Lean copy of
+  `correctness.Model`" (D30a) cannot be the spec of the store on non-canonical data, and a driver
+  whose codec is non-canonical (D30b) cannot be checked with the unmodified Model (D30c): its
+  porcupine check would reject correct runs, and `k8setcd3_porcupine_safe` would be false.
+  Proposed resolution:
+  - **The generic specs** use the Lean model with one more bit per item: whether its stored
+    value is the codec's current encoding of the object and not stale (`canon`, from the
+    abstraction of `KVState`: `encode (decode v) = v` and the transformer's verdict). `update`
+    writes unless the object is unchanged *and* the item is canonical. That is the store's rule,
+    so #48394's path is in the specs. A lemma shows that on states whose items are all canonical
+    the model is `correctness.Model`'s.
+  - **The driver** checks with the unmodified `correctness.Model`, so the trusted spec stays the
+    maintainers'. Its codec is therefore canonical on everything the traffic touches: no
+    non-canonical seeding and no `stale` transformer. The non-canonical path is covered only by
+    the generic specs. Rejected: a non-canonical driver checked against a patched Model, since
+    the patched Model (which must know each item's stored form) would then be our trusted spec
+    and no longer Kubernetes'. That could be revisited if upstream fixes the Model.
