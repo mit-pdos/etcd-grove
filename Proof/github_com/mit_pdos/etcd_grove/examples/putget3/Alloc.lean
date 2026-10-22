@@ -46,11 +46,11 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
 premises'. -/
-def memberBoot (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM) (ρ : ReqNames)
+def memberBoot (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM) (ρ : ReqNames)
     (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
-      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = putgetWorkload ∧
+      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = W ∧
       ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
     ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗ raftCommitInv γ ∗
     inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
@@ -86,12 +86,12 @@ theorem id_nz (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : BootFacts
   rw [e]; decide
 
 /-- **`memberBoot` from the allocations**, for one member (the common step of `putget3_alloc`). -/
-theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM)
+theorem memberBoot_of (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM)
     (issued cnt : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (id : w64) (idx : mvcc.IdxNames) (cok rev : GName)
     (Hiss : γk.ids.issued = issued) (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
-    (Hwl : γk.wl = putgetWorkload)
+    (Hwl : γk.wl = W)
     (Hpol : srvCCPolicy ⟨γ, [], W64 0⟩)
     (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev)) :
     ⊢ ownRaftGhost γ id (bootPState bootLog) -∗ isCommitted γ bootLog -∗ raftCommitInv γ -∗
@@ -105,7 +105,7 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.wl = γk.wl⌝ ∗
-        memberBoot γ bud bootLog ρ (env₀ idx cok rev) Φs id := by
+        memberBoot W γ bud bootLog ρ (env₀ idx cok rev) Φs id := by
   iintro Hghost #Hcomm #Hcinv #Hbinv #Hlb #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC⟩ Hwn Hidx Hcok Hrev
   imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
@@ -137,9 +137,9 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
         γn.N = srvNet γ bud ∧ γn.dir = dir3 id₁ id₂ id₃ ∧ ρ₁.rd.kv.wl = putgetWorkload⌝ ∗
-      memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
-      memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
-      memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
       etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
@@ -196,13 +196,13 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   ihave ⟨Hg₃, -⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
     (GMap.lookup_empty _)).1 $$ Hgs
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
+  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
       Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
+  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
       Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, -, Hb₂⟩
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
+  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
       Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, -, Hb₃⟩
   -- the raft network: a slot per member

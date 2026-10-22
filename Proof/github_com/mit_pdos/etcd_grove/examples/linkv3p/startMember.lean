@@ -87,7 +87,7 @@ theorem startMember.wp_proof
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
-    Φs γn
+    Φs γn W hW
     Htb Hrb48 HrbN hcfg hdyn hcc hboot htr hblen Hγn1 Hγn2 Hdir Hlg Hck Haf Hbuq Hnoc Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,
     Hslot⟩
@@ -127,7 +127,7 @@ theorem startMember.wp_proof
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client],
       GMap.insert name₃ sl₃ (GMap.insert name₂ sl₂ (GMap.insert name₁ sl₁ ∅)), initURLs3⟩
       γ bud id bootLog ρ E₀ N Φs γn dir hraft hpol hc0 hch hlog hcok
-      (by rw [hwl]; exact putgetWorkload_noGrant) Hlg (by simp) rfl (by omega) Hrb48 HrbN
+      (by rw [hwl]; exact hW) Hlg (by simp) rfl (by omega) Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
       (by
         have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl

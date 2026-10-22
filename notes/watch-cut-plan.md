@@ -335,6 +335,23 @@ revision both have. Not yet used: W3 imports it.
     over committed prefixes).
   - **W4e:** the adequacy and the closed theorem `linkv3p_watch_safe`; the gates.
 
+**W4a and W4b done (2026-10-22).** `startCluster` and `MainWatch` in Go (`TestMainWatch`: 3
+writers of 300 puts on `TestMainRun`'s schedule, under `-race`). `startCluster.spec`: for any
+workload `W` granting no lease and any watch prefix `pfx`, `ok = false` or the thread token and
+`clusterUp` (`Defs.lean`: each member's `memberAt`, its pure boot facts kept from `memberBoot`, its
+watch server and `Watch` stream; the clients at `watchEnv`, the three members at their bridges, the
+history model). `Main`'s proof is `startCluster` at `putgetWorkload`, its theorem unchanged. The
+trust base is unchanged (530 axioms, 2 sorries; linkv3p's 480).
+
+**W4c's design (2026-10-22).** The watched logs of the clients (`WEnv.WL`) are the *prefixes* of
+history logs (`histWL`), not the history logs: a member watches logs of at most two revisions (the
+start log's prefixes, `[]` and `[[]]` among them) that no certificate names and no committed raft
+prefix models exactly. The laws for `histWL` are the history log's, through `stateAt_of_prefix`
+and `revEvs_prefix`. A member's watched log of more than two revisions is a history log
+(`histLog_of_cert`); one of at most two is a prefix of `NewStore`'s start log `[[], []]`, which
+the member's store has sealed (`isStore`'s `idxCert γ.idx [[], []]`, reached from `isWatchServer`),
+and `[[], []]` is the history log of the empty committed prefix (`log0 = [[], []]`).
+
 - `Main` builds the watch environment from the members (no more `noWatch`). The watch workload's
   proofs follow watchkv's (`Writes`, `WatchFacts`, the checker's).
 - The closed theorem covers the watch check (`linkv3p_safe` extended, or a second theorem over the

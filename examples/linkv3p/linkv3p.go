@@ -27,8 +27,10 @@
 package linkv3p
 
 import (
+	"context"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -37,6 +39,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
+	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/config"
@@ -241,11 +244,11 @@ func newClient(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
 	})
 }
 
-// Main starts the three members of a new cluster, a bridge to each member's client address,
-// connects three clients to the three bridges (each client to every bridge: failover), starts the partitioner on sched and runs Check; it panics if porcupine finds the history illegal. An
-// error from a step before Check ends Main without a check (the specs allow every step to fail).
-func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
-	lg := zap.NewNop()
+// startCluster starts the three members of a new cluster, a bridge to each member's client
+// address, and three clients, each of every bridge (failover). It returns the members, the
+// bridges and the clients, and false if a step failed (the specs allow every step to fail).
+func startCluster(lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge, []*clientv3.Client,
+	bool) {
 	peer1 := types.URLs{{Scheme: "http", Host: peerAddr1}}
 	peer2 := types.URLs{{Scheme: "http", Host: peerAddr2}}
 	peer3 := types.URLs{{Scheme: "http", Host: peerAddr3}}
@@ -253,29 +256,29 @@ func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
 
 	s1, err := startMember("linkv3p-1", peer1, peerAddr1, clientAddr1, cluster, lg)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	s2, err := startMember("linkv3p-2", peer2, peerAddr2, clientAddr2, cluster, lg)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	s3, err := startMember("linkv3p-3", peer3, peerAddr3, clientAddr3, cluster, lg)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	srvs := []*etcdserver.EtcdServer{s1, s2, s3}
 
 	br1, err := startBridge(bridgeAddr1, clientAddr1)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	br2, err := startBridge(bridgeAddr2, clientAddr2)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	br3, err := startBridge(bridgeAddr3, clientAddr3)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	brs := []bridge.Bridge{br1, br2, br3}
 
@@ -283,22 +286,236 @@ func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
 	eps := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}
 	cli1, err := newClient(eps, lg)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	cli2, err := newClient(eps, lg)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	cli3, err := newClient(eps, lg)
 	if err != nil {
-		return porcupine.Unknown
+		return nil, nil, nil, false
 	}
 	clis := []*clientv3.Client{cli1, cli2, cli3}
+	return srvs, brs, clis, true
+}
 
+// Main starts the cluster (startCluster: three members, a bridge to each, three clients each of
+// every bridge), starts the partitioner on sched and runs Check; it panics if porcupine finds the
+// history illegal. A failed start ends Main without a check.
+func Main(clients int, ops int, sched []Step) porcupine.CheckResult {
+	srvs, brs, clis, ok := startCluster(zap.NewNop())
+	if !ok {
+		return porcupine.Unknown
+	}
 	go partitioner(srvs, brs, sched)
 	r := Check(clis, clients, ops, 0)
 	if r == porcupine.Illegal {
 		panic("linkv3p: porcupine found the history not linearizable")
 	}
 	return r
+}
+
+// The watch workload (notes/watch-cut-plan.md, W4): examples/watchkv's, over the cluster. The
+// writers put random keys under wprefix, each put through a client picked at random; a watch of
+// the prefix from revision 1, through the first client, opened before any write and kept across
+// cuts (the client re-opens its stream at a reachable member and resumes it); then the check that
+// the watch reported exactly the writes (checkWatch, watchkv's check).
+
+// The prefix every writer's key is under, and the one the watch covers.
+const wprefix = "wk/"
+
+// MainWatch's results: the check passed, a step of the start failed, or the watch ended before it
+// had reported every successful put.
+const (
+	WatchOk     = 0
+	WatchFailed = 1
+	WatchEnded  = 2
+)
+
+// A kv is a key and a value.
+type kv struct {
+	key string
+	val string
+}
+
+// A putRec is a put that returned no error: its reply's header revision, its key and value.
+type putRec struct {
+	rev int64
+	key string
+	val string
+}
+
+// An event is a watched event: its revision (its key-value's mod revision), key, value, and
+// whether it is a put.
+type event struct {
+	rev int64
+	key string
+	val string
+	put bool
+}
+
+// The writers' log: every put that returned no error.
+type writes struct {
+	mu sync.Mutex
+	ok []putRec
+}
+
+// genPut picks a key under the prefix and a value, from a small set.
+func genPut() kv {
+	keys := []string{"wk/k0", "wk/k1", "wk/k2"}
+	vals := []string{"a", "b", "c", "d"}
+	n := primitive.RandomUint64()
+	k := keys[n%uint64(len(keys))]
+	n = n / uint64(len(keys))
+	return kv{key: k, val: vals[n%uint64(len(vals))]}
+}
+
+// genAll picks n puts (genPut): the writers' puts, writer i's at [i*nops, (i+1)*nops).
+func genAll(n int) []kv {
+	var all []kv
+	for i := 0; i < n; i++ {
+		all = append(all, genPut())
+	}
+	return all
+}
+
+// writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
+// logging in w each that returned no error, with its reply's revision.
+func writer(clis []*clientv3.Client, w *writes, tried []kv, lo int, hi int) {
+	ctx := context.Background()
+	for k := lo; k < hi; k++ {
+		p := tried[k]
+		cli := clis[primitive.RandomUint64()%uint64(len(clis))]
+		resp, err := cli.Put(ctx, p.key, p.val)
+		if err == nil {
+			w.mu.Lock()
+			w.ok = append(w.ok, putRec{rev: resp.Header.Revision, key: p.key, val: p.val})
+			w.mu.Unlock()
+		}
+	}
+}
+
+// maxRev is the highest revision of the successful puts oks (0 if there is none).
+func maxRev(oks []putRec) int64 {
+	var m int64
+	for _, p := range oks {
+		if p.rev > m {
+			m = p.rev
+		}
+	}
+	return m
+}
+
+// collect reads the watch channel wch until an event at revision upTo or above (at once if
+// upTo is 0), returning the events read and true; false if the channel closed, or a response
+// reported an error, before.
+func collect(wch clientv3.WatchChan, upTo int64) ([]event, bool) {
+	var evs []event
+	var last int64 // the last event's revision
+	if upTo == 0 {
+		return evs, true
+	}
+	for wresp := range wch {
+		if wresp.Err() != nil {
+			return evs, false
+		}
+		// Gooseable: mvccpb.Event rather than its alias clientv3.Event (the same type)
+		var es []*mvccpb.Event = wresp.Events
+		for _, e := range es {
+			evs = append(evs, event{rev: e.Kv.ModRevision, key: string(e.Kv.Key),
+				val: string(e.Kv.Value), put: e.Type == mvccpb.Event_PUT})
+			last = e.Kv.ModRevision
+		}
+		if len(evs) > 0 && last >= upTo {
+			return evs, true
+		}
+	}
+	return evs, false
+}
+
+// attempted reports whether (key, val) is one of the puts tried.
+func attempted(tried []kv, key string, val string) bool {
+	for _, p := range tried {
+		if p.key == key && p.val == val {
+			return true
+		}
+	}
+	return false
+}
+
+// checkWatch panics unless the events evs are the writes: all puts, at strictly increasing
+// revisions, gap-free from revision 2, each a put some writer attempted (tried), and every
+// successful put (oks) the event at its revision with its key and value.
+func checkWatch(evs []event, tried []kv, oks []putRec) {
+	var prev int64 // the previous event's revision
+	for i, e := range evs {
+		if !e.put {
+			panic("linkv3p: a watched event is not a put")
+		}
+		if i > 0 && e.rev <= prev {
+			panic("linkv3p: the watched revisions do not increase")
+		}
+		if e.rev != int64(i)+2 {
+			panic("linkv3p: the watched revisions are not those from 2 on, without a gap")
+		}
+		if !attempted(tried, e.key, e.val) {
+			panic("linkv3p: a watched put no writer attempted")
+		}
+		prev = e.rev
+	}
+	for _, p := range oks {
+		i := p.rev - 2
+		if i < 0 || i >= int64(len(evs)) {
+			panic("linkv3p: a successful put's revision was not watched")
+		}
+		e := evs[i]
+		if e.key != p.key || e.val != p.val {
+			panic("linkv3p: the event at a successful put's revision is not that put")
+		}
+	}
+}
+
+// MainWatch picks the writers' puts, starts the cluster (startCluster), opens a watch of the
+// prefix from revision 1 through the first client, starts the partitioner on sched, runs nw
+// writers of nops puts each, then reads the watch and checks it against the writes.
+func MainWatch(nw int, nops int, sched []Step) int {
+	// The writers' puts, picked before the members start (the puts attempted).
+	tried := genAll(nw * nops)
+
+	srvs, brs, clis, ok := startCluster(zap.NewNop())
+	if !ok {
+		return WatchFailed
+	}
+
+	// The watch, from revision 1: every write is after it, whenever a member registers it.
+	wctx, cancel := context.WithCancel(context.Background())
+	wch := clis[0].Watcher.Watch(wctx, wprefix, clientv3.WithPrefix(), clientv3.WithRev(1),
+		clientv3.WithProgressNotify(), clientv3.WithCreatedNotify())
+
+	go partitioner(srvs, brs, sched)
+	w := &writes{}
+	var wg sync.WaitGroup
+	for i := 0; i < nw; i++ {
+		lo := i * nops
+		wg.Add(1)
+		go func() {
+			writer(clis, w, tried, lo, lo+nops)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	// The successful puts, taken out of the log.
+	w.mu.Lock()
+	oks := w.ok
+	w.ok = nil
+	w.mu.Unlock()
+	evs, ok2 := collect(wch, maxRev(oks))
+	cancel()
+	if !ok2 {
+		return WatchEnded
+	}
+	checkWatch(evs, tried, oks)
+	return WatchOk
 }

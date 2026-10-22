@@ -567,11 +567,11 @@ type wPut struct {
 	ok       bool
 }
 
-// checkWatch fails the test unless the events evs are the writes puts, as watchkv's check: all
+// checkEvents fails the test unless the events evs are the writes puts, as watchkv's check: all
 // puts, at revisions 2, 3, ... without a gap or a repeat (a fresh cluster is at revision 1, and
 // every write is a put of one key), each a put some writer attempted, and every put that returned
 // no error the event at its reply's revision with its key and value.
-func checkWatch(t *testing.T, evs []wEvent, puts []wPut) {
+func checkEvents(t *testing.T, evs []wEvent, puts []wPut) {
 	t.Helper()
 	tried := map[[2]string]bool{}
 	for _, p := range puts {
@@ -742,7 +742,7 @@ func TestWatchFailover(t *testing.T) {
 	<-watchDone
 	mu.Lock()
 	defer mu.Unlock()
-	checkWatch(t, evs, puts)
+	checkEvents(t, evs, puts)
 	t.Logf("%d events, revisions 2 to %d, no gap or repeat", len(evs), evs[len(evs)-1].rev)
 
 	// the stalls: no event for 5s or more (the run's puts succeed every few milliseconds)
@@ -771,5 +771,56 @@ func TestWatchFailover(t *testing.T) {
 		if !ok {
 			t.Fatalf("no put succeeded during member %d's blackhole: no failover for writes", i+1)
 		}
+	}
+}
+
+// TestMainWatch runs MainWatch for real (notes/watch-cut-plan.md, W4): three members in a fresh
+// directory, 3 writers of 300 puts each, on TestMainRun's schedule (each member isolated in turn
+// for three seconds, member 3's client blackholed during the first isolation, member 2's client
+// connections dropped as it ends). The check must pass. Then it asks each member, which MainWatch
+// left running, for the prefix's revision (so that the check was not vacuous). It runs in a child
+// process (inChild), as TestMainRun.
+func TestMainWatch(t *testing.T) {
+	if inChild(t, "TestMainWatch") {
+		return
+	}
+	t.Chdir(t.TempDir())
+	var sched []Step
+	for m := 0; m < 3; m++ {
+		delay := time.Duration(0)
+		if m == 0 {
+			delay = 500 * time.Millisecond
+		}
+		sched = append(sched, isolate(delay, m)...)
+		if m == 0 {
+			sched = append(sched, Step{Kind: ClientBlackhole, A: 2})
+		}
+		sched = append(sched, heal(3*time.Second, m)...)
+		if m == 0 {
+			sched = append(sched, Step{Kind: ClientUnblackhole, A: 2}, Step{Kind: ClientDrop, A: 1})
+		}
+	}
+	start := time.Now()
+	if r := MainWatch(3, 300, sched); r != WatchOk {
+		t.Fatalf("got %v", r)
+	}
+	t.Logf("MainWatch took %v", time.Since(start))
+	for i, addr := range []string{clientAddr1, clientAddr2, clientAddr3} {
+		cli, err := clientv3.New(clientv3.Config{Endpoints: []string{addr}, Logger: zap.NewNop()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		resp, err := cli.Get(ctx, wprefix, clientv3.WithPrefix())
+		cancel()
+		cli.Close()
+		if err != nil {
+			t.Fatalf("member %d: %v", i+1, err)
+		}
+		if resp.Header.Revision < 100 {
+			t.Fatalf("member %d: the puts did not take effect: revision %d", i+1,
+				resp.Header.Revision)
+		}
+		t.Logf("member %d: revision %d, keys %d", i+1, resp.Header.Revision, len(resp.Kvs))
 	}
 }

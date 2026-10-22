@@ -47,9 +47,9 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
         γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₃.rd.kv.log0 = [[], []] ∧
         ρ₃.rd.kv.wl = putgetWorkload⌝ ∗
-      memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
-      memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
-      memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
+      memberBoot putgetWorkload γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
       etcdKV ρ₃.rd.kv (kvStateOf (kvModel ρ₃.rd.kv (bootEntries bootLog))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
@@ -106,13 +106,13 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   ihave ⟨Hg₃, -⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
     (GMap.lookup_empty _)).1 $$ Hgs
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
+  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
       Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, -, Hb₁⟩
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
+  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
       Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, -, Hb₂⟩
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
+  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
       Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network: a slot per member

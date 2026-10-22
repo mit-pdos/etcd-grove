@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header): putget3's
 `putget3_alloc` at the directory `dir`, with the client's `etcdKV` at the third member's names
 (and that member's start log). -/
-theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
+theorem cluster3_alloc (W : SrvWorkload) (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (Hbf : putget3.BootFacts id₁ id₂ id₃ bootLog) (dir : w64 → List GoString)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ₁ ρ₂ ρ₃ : ReqNames)
@@ -48,12 +48,12 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
         γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
-        ρ₁.rd.kv.wl = putgetWorkload ∧
+        ρ₁.rd.kv.wl = W ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
         ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl⌝ ∗
-      memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
-      memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
-      memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
+      memberBoot W γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
+      memberBoot W γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
+      memberBoot W γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
       etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
@@ -78,7 +78,7 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     rw [GMap.elem_of_list_to_set]; simp
   imod (srvClusterBoot_alloc (GF := GF) (GMap.listToSet [id₁, id₂, id₃])
       (GMap.listToSet [id₁, id₂, id₃]) (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog
-      putgetWorkload Φs
+      W Φs
       (fun h => GMap.not_elem_of_empty id₁ (h ▸ Hin₁))
       (by
         rw [GMap.elem_of_list_to_set]
@@ -110,13 +110,13 @@ theorem cluster3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   ihave ⟨Hg₃, -⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
     (GMap.lookup_empty _)).1 $$ Hgs
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
+  imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
       Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
+  imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
       Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
-  imod (memberBoot_of γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
+  imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
       Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network: a slot per member

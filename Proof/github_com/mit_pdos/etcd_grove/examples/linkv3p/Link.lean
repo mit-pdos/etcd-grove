@@ -25,6 +25,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.peerStep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Proof.net.Listen
 public import Proof.go_uber_org.zap.NewNop
@@ -128,6 +129,10 @@ theorem wp_newClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.newClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.newClient.wp_proof client.v3.clientv3.wp_New
 
+theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.linkv3p.startCluster.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.linkv3p.startCluster.wp_proof wp_startMember wp_startBridge wp_newClient
+
 theorem wp_peerStep :
     EtcdGrove.linkv3p.peerStep.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.peerStep.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_CutPeer EtcdServer.wp_MendPeer
@@ -142,7 +147,7 @@ theorem wp_partitioner :
 
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startMember wp_startBridge wp_newClient wp_partitioner wp_Check
+  EtcdGrove.linkv3p.Main.wp_proof zap.wp_NewNop wp_startCluster wp_partitioner wp_Check
 
 end links_hasLC
 
