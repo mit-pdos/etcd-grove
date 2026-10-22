@@ -146,6 +146,27 @@ theorem kvSeen_agree (γh : GName) (σ1 σ2 : KVState) (v1 v2 : EtcdKv) (h1 : v1
   ihave #E2 := H2 $$ %v2 %h2
   iapply ghostMapElem_agree $$ E1 E2
 
+/-- **A key-value seen in the history has its value in every state seen there**, at its key and
+mod revision. -/
+theorem kvSeen_same (γh : GName) (σ0 σ : KVState) (kv0 : EtcdKv) (h0 : kv0 ∈ σ0.kvs) :
+    kvSeen (GF := GF) γh σ0 ∗ kvSeen γh σ ⊢
+      ⌜∀ v ∈ σ.kvs, v.key = kv0.key → v.modRev = kv0.modRev → v.value = kv0.value⌝ := by
+  have hv : ∀ v : EtcdKv, kvSeen (GF := GF) γh σ0 ∗ kvSeen γh σ ⊢
+      ⌜v ∈ σ.kvs → v.key = kv0.key → v.modRev = kv0.modRev → v.value = kv0.value⌝ := by
+    intro v
+    by_cases h1 : v ∈ σ.kvs
+    · by_cases h2 : v.key = kv0.key
+      · by_cases h3 : v.modRev = kv0.modRev
+        · iintro ⟨#H0, #H⟩
+          ihave %he := kvSeen_agree γh σ0 σ kv0 v h0 h1 h2.symm h3.symm $$ [H0 H]
+          · iframe H0 H
+          ipureintro
+          exact fun _ _ _ => he.symm
+        · iintro -; ipureintro; exact fun _ _ h => absurd h h3
+      · iintro -; ipureintro; exact fun _ h => absurd h h2
+    · iintro -; ipureintro; exact fun h => absurd h h1
+  exact (BI.forall_intro hv).trans (BI.pure_forall.2.trans (BI.pure_mono fun h v => h v))
+
 /-- The model state of etcd's state for the store `c`. -/
 def StoreCfg.abs (c : StoreCfg GF Obj) (σ : KVState) : KSt Obj :=
   absK c.S.dec c.pfx (linkv.absSt σ)

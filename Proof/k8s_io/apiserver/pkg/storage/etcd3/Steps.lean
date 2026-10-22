@@ -14,7 +14,9 @@ linkv's `absSt_kvOpStep`), and keeps the store's states (`KWf_*`, sortedness by
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Updates
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.State
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.TxnModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Enc
 
 @[expose] public section
 
@@ -82,6 +84,145 @@ theorem create_out (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ) (pk v 
     exact hc
   · rw [hok] at hc
     exact hc
+
+/-- **`Delete`'s model step** (no preconditions for now; `validate`, the caller's
+`validateDeletion`). -/
+def delStep {E : Type} (key : GoString) (validate : Obj → Nat → Option E) (s : KSt Obj) : KSt Obj :=
+  (s.delete key (fun _ _ => none) validate).1
+
+/-- **The model's `delete` at a state where the key's key-value is the one the store read**
+(`s`, read from `kv0`; at the same mod revision, so the same value) and `validateDeletion`
+passed on it: the item goes, answered with the store's object at the next revision. -/
+theorem delete_at {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoString)
+    (hpk : c.pfx <+: key) (v kv0 : EtcdKv) (hv : mvcc.findKey key σ.kvs = some v)
+    (s : OState Obj) (hs : stOfKv c kv0 s) (hval : v.value = kv0.value)
+    (hmod : v.modRev = s.rev) (validate : Obj → Nat → Option E)
+    (hok : validate s.o (uint.nat s.rev) = none) :
+    (c.abs σ).delete key (fun _ _ => none) validate =
+      (⟨(c.abs σ).delItem key, (c.abs σ).rv + 1⟩, .obj s.o (σ.rev + 1)) := by
+  obtain ⟨-, hfs, hdc, -⟩ := hs
+  have hd : c.S.dec v.value = some (s.o, !s.stale && decide (c.S.encode s.o = s.data)) := by
+    simp [ObjCodec.dec, hval, hfs, hdc]
+  have hit := c.abs_some σ key hpk v hv _ _ hd
+  unfold KSt.delete
+  rw [hit]
+  simp only [hmod, hok]
+  rfl
+
+/-- `OptimisticDelete`'s transaction is linkv's `delTxn` on the wire. -/
+theorem kvOpStep_optDel (k : GoString) (rev : w64) (g : Bool) (σ : KVState) :
+    kvOpStep (.txn (kubernetes.optDelTxn k rev g)) σ =
+      kvOpStep (linkv.opOf [] [] (delTxn k rev g)) σ := by
+  cases g <;> rfl
+
+/-- **`deleteOnce`'s transaction** (`OptimisticDelete(key, r, GetOnFailure: true)`, `r` a mod
+revision, so not `0`) at a state of the store: if it fails, nothing changed; if it succeeds, the
+key had a key-value at mod revision `r`, and the key is gone at the next revision, a state of the
+store. -/
+theorem del_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
+    (hb : σ.rev + 2 < 2 ^ 63) (pk : GoString) (r : w64) (hr : r ≠ W64 0) :
+    ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (kubernetes.optDelTxn pk r true)).1 =
+        false → kvOpStep (.txn (kubernetes.optDelTxn pk r true)) σ = σ) ∧
+    ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (kubernetes.optDelTxn pk r true)).1 =
+        true → ∃ v, mvcc.findKey pk σ.kvs = some v ∧ v.modRev = r ∧
+      kvWf c (kvOpStep (.txn (kubernetes.optDelTxn pk r true)) σ) ∧
+      c.abs (kvOpStep (.txn (kubernetes.optDelTxn pk r true)) σ) =
+        ⟨(c.abs σ).delItem pk, (c.abs σ).rv + 1⟩ ∧
+      (kvOpStep (.txn (kubernetes.optDelTxn pk r true)) σ).rev = σ.rev + 1) := by
+  have hs := hwf.1
+  have habs := linkv.absSt_kvOpStep [] [] [] σ hs (delTxn pk r true)
+  have hout := linkv.mStep_txn_out [] [] [] σ hs [.mod pk r] [.del pk] [.get pk]
+  have heq : delTxn pk r true = .txn [.mod pk r] [.del pk] [.get pk] := rfl
+  have ht : kubernetes.optDelTxn pk r true = linkv.txnOf [.mod pk r] [.del pk] [.get pk] := rfl
+  rw [← heq] at hout
+  rw [kvOpStep_optDel] at ⊢
+  rw [ht]
+  -- the step is the identity when the model's step is
+  have hid : (linkv.mStep [] (delTxn pk r true) (linkv.absSt σ)).1 = linkv.absSt σ →
+      kvOpStep (linkv.opOf [] [] (delTxn pk r true)) σ = σ := by
+    intro h1
+    have hrev := congrArg linkv.MSt.rev (habs.trans h1)
+    rcases linkvtxn.kvOpStep_cases (linkv.opOf [] [] (delTxn pk r true)) σ with h | h
+    · exact h
+    · simp only [linkv.absSt] at hrev
+      omega
+  cases hf : mvcc.findKey pk σ.kvs with
+  | none =>
+    have hx : (linkv.absSt σ).kv pk = none := by simp [linkv.absSt, linkv.absM, hf]
+    have hm := mStep_delTxn_none [] (linkv.absSt σ) pk r true hx hr
+    rw [hm] at hout
+    simp only [linkv.MOut.txn.injEq] at hout
+    refine ⟨fun _ => hid (by rw [hm]), fun h => ?_⟩
+    rw [h] at hout
+    exact absurd hout.2.1 (by decide)
+  | some v =>
+    have hx : (linkv.absSt σ).kv pk = some (linkv.absVR v) := by
+      simp [linkv.absSt, linkv.absM, hf]
+    have hm := mStep_delTxn [] (linkv.absSt σ) pk r true (linkv.absVR v) hx
+    by_cases hmr : v.modRev = r
+    · have hmr' : (linkv.absVR v).mod = r := hmr
+      rw [if_pos hmr'] at hm
+      have hout' := hout
+      rw [hm] at hout'
+      simp only [linkv.MOut.txn.injEq] at hout'
+      have hst : linkv.absSt (kvOpStep (linkv.opOf [] [] (delTxn pk r true)) σ) =
+          ⟨(linkv.absSt σ).kv.del pk, (linkv.absSt σ).rev + 1⟩ := by rw [habs, hm]
+      refine ⟨fun h => ?_, fun _ => ⟨v, rfl, hmr, ⟨linkv.kvOpStep_sorted _ σ hs, ?_⟩, ?_, ?_⟩⟩
+      · rw [h] at hout'
+        exact absurd hout'.2.1 (by decide)
+      · rw [hst]
+        exact KWf_del c.S.dec c.pfx (linkv.absSt σ) hwf.2 hb pk
+      · unfold StoreCfg.abs
+        rw [hst, absK_del]
+        rfl
+      · have := congrArg linkv.MSt.rev hst
+        simp only [linkv.absSt] at this
+        exact this
+    · have hmr' : ¬ (linkv.absVR v).mod = r := hmr
+      rw [if_neg hmr'] at hm
+      rw [hm] at hout
+      simp only [linkv.MOut.txn.injEq] at hout
+      refine ⟨fun _ => hid (by rw [hm]), fun h => ?_⟩
+      rw [h] at hout
+      exact absurd hout.2.1 (by decide)
+
+/-- **The key's key-values at its mod revision `s.rev` have `kv0`'s value** (what the store's
+history `kvSeen` tells of a state). -/
+def sameAt (key : GoString) (r : w64) (kv0 : EtcdKv) (σ : KVState) : Prop :=
+  ∀ v ∈ σ.kvs, v.key = key → v.modRev = r → v.value = kv0.value
+
+/-- **`deleteOnce`'s transaction is the model's `delete` when it succeeds**, and the identity when
+it fails, at a state of the store where the key's key-value at the store's mod revision is the
+one it read (`sameAt`) and `validateDeletion` passed on it. -/
+theorem delStepOk {E : Type} (c : StoreCfg GF Obj) (key : GoString) (hpk : c.pfx <+: key)
+    (kv0 : EtcdKv) (s : OState Obj) (hs : stOfKv c kv0 s) (hr : s.rev ≠ W64 0)
+    (validate : Obj → Nat → Option E) (hok : validate s.o (uint.nat s.rev) = none) :
+    ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → sameAt key s.rev kv0 σ →
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optDelTxn key s.rev true)).1 = true →
+        kvWf c (kvOpStep (.txn (kubernetes.optDelTxn key s.rev true)) σ) ∧
+        c.abs (kvOpStep (.txn (kubernetes.optDelTxn key s.rev true)) σ) =
+          delStep key validate (c.abs σ)) ∧
+      ((txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
+          (kubernetes.optDelTxn key s.rev true)).1 = false →
+        kvOpStep (.txn (kubernetes.optDelTxn key s.rev true)) σ = σ) := by
+  intro σ hwf hb hsame
+  have hc := del_cases c σ hwf hb key s.rev hr
+  refine ⟨fun h => ?_, hc.1⟩
+  obtain ⟨v, hv, hm, hwf', habs, -⟩ := hc.2 h
+  refine ⟨hwf', ?_⟩
+  rw [habs]
+  unfold delStep
+  have hval := hsame v (mvcc.findKey_mem hv) (mvcc.findKey_key hv) hm
+  rw [delete_at c σ key hpk v kv0 hv s hs hval hm validate hok]
+
+/-- A failed transaction's key-value of the key (`GetOnFailure`'s range) is the key's, in a
+state sorted by key. -/
+theorem single_filter (k : GoString) (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) :
+    kubernetes.single (s.filter fun v => decide (v.key = k)) = mvcc.findKey k s := by
+  cases h : mvcc.findKey k s with
+  | none => rw [client.filter_key_of_findKey_none k s h]; rfl
+  | some kv => rw [client.filter_key_of_findKey k s hs kv h]; rfl
 
 end steps
 

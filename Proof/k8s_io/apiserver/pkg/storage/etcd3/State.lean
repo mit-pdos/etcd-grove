@@ -57,6 +57,28 @@ def stOfKv (c : StoreCfg GF Obj) (kv : EtcdKv) (s : OState Obj) : Prop :=
   s.rev = kv.modRev ∧ c.S.fromS kv.value = some (s.data, s.stale) ∧
     c.S.decode s.data = some s.o ∧ s.current = true
 
+/-- **The store's answer for the key `key` at the state `σ`** (`stateFromEtcdResponse` of a read
+at `σ`): "not found" at `σ`'s revision, or a new `*objState` of its key-value. -/
+def stAt (c : StoreCfg GF Obj) (key : GoString) (σ : KVState) (st : Loc) (err : GoInterface) :
+    IProp GF :=
+  match mvcc.findKey key σ.kvs with
+  | none => iprop(⌜st = null⌝ ∗ storageErrIs err (W64 1) key (W64 (σ.rev : Int)))
+  | some kv => iprop(⌜err = GoInterface.nil⌝ ∗ ∃ s, ownState c st s ∗ ⌜stOfKv c kv s⌝)
+
+/-- **`getCurrentState`'s closure `f`** (persistent: called at each retry): it reads the key
+through the client, the caller's read update firing at a state `σ` (`□ R σ`), and answers
+`stAt`, or fails with the client's error. -/
+def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : KVState → IProp GF) (f : GoFunc) :
+    IProp GF :=
+  iprop(□ ∀ Ψ : val → IProp GF,
+    ▷ (∀ (st : Loc) (err : GoInterface),
+        (⌜err ≠ GoInterface.nil⌝ ∨ ∃ σ, □ R σ ∗ stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
+    WP (App (Val #f) (Val #())) {{ Ψ }})
+
+instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (R : KVState → IProp GF)
+    (f : GoFunc) : Persistent (getStateOk c key R f) := by
+  unfold getStateOk; infer_instance
+
 end defs
 
 end k8s
