@@ -157,6 +157,7 @@ theorem mvcc.NewStore.wp_proof
   imod mvcc.idxWriter_commit γi ([] ++ [[]]) [] (by simp) $$ Hiw Hil with ⟨Hiw, Hil, #Hcert⟩
   have hlog : (([] : mvcc.Log) ++ [[]] ++ [[]]) = [[], []] := rfl
   rw [hlog]
+  icases mvcc.idxWriter_nevLb_nil γi [[], []] $$ Hiw with ⟨Hiw, #Hnev0⟩
   imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γc, Hc⟩
   icases ghostVar_halves γc _ $$ Hc with ⟨Hc1, Hc2⟩
   imod ownTokAuth_alloc (GF := GF) with ⟨%γr, Hauth⟩

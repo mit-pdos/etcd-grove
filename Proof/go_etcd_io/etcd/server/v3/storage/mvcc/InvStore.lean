@@ -496,8 +496,9 @@ theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
     rw [idxKnows_cert]
     iintro #H
     iframe H
+    icases H with ⟨#H, -⟩
     iunfold idxCert at H
-    icases H with ⟨-, -, %Hc, -⟩
+    icases H with ⟨-, %Hc, -⟩
     ipureintro; exact Hc
   | writer ilog pend =>
     rw [idxKnows_writer]
@@ -1646,6 +1647,7 @@ def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
       IProp GF) ∗
     "Hclog" ∷ ghostVar γ.clog q.half log ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
+    "#Hnev" ∷ idxNevLb γ.idx log ∗
     "#Hok" ∷ certOk γ log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "Hbucket" ∷ bucketView γ q.half (bucketMap log) ∗
@@ -1720,6 +1722,8 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
       · iapply (hclog log).2; iframe Hclog1 Hclog2
       isplitr
       · iexact Hcert1
+      isplitr
+      · iexact Hnev1
       isplitr
       · iexact Hok1
       isplitr
@@ -1829,7 +1833,7 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) :
   iunfold crevSafe at Hcl
   icases Hcl with ⟨%log₀, #Hc0, %Hlt⟩
   iunfold idxCert at Hc0
-  icases Hc0 with ⟨-, -, %Hwf, -⟩
+  icases Hc0 with ⟨-, %Hwf, -⟩
   iframe HcmpM HcrevM
   isplitl []
   · ipureintro; exact ⟨HcM, by have := Hlt.1; omega⟩
@@ -1997,7 +2001,9 @@ which observed the compaction revision `crev` (its fields, read-only): its reade
 may have deleted, `txReader`), `firstRev` is `crev` (`store.Read` reads it from
 `s.compactMainRev`), `rev` is `log`'s last revision, `crev` one of its revisions (or `-1`), and
 the reader's tag `Z` (persistent, carried from `store.Read` to `End`: the frozen readers'
-`crevFrozen γ`, `True` for a compacting client's).
+`crevFrozen γ`, `True` for a compacting client's), and the index's count of the log's events
+(`idxNevLb`, read under `s.revMu` with the log: a certificate no longer says it; D22 receiver
+epochs, S1).
 
 **The frozen transaction by default** (2026-10-13, unit 6a): `crev` defaults to `-1` and `Z` to
 `crevFrozen γ`, so `storeTxnReadIs tr s rt trace γ log rev` is the transaction of a store never
@@ -2012,6 +2018,7 @@ def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNa
     "#Htrace" ∷ (txCommon tr).[storeTxnCommon, go!"trace"] ↦□ trace ∗
     "#Htx" ∷ tr.[storeTxnRead, go!"tx"] ↦□ (GoInterface.ok rt : GoInterface) ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
+    "#Hnev" ∷ idxNevLb γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝ ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
@@ -2039,7 +2046,7 @@ theorem idxCert_lastRev (γ : StoreNames) (log : Log) (hne : log ≠ []) :
     idxCert (GF := GF) γ.idx log ⊢ ⌜0 ≤ sint.Z (W64 ((log.length : Int) - 1) : w64)⌝ := by
   iintro H
   iunfold idxCert at H
-  icases H with ⟨-, -, %Hcwf, -⟩
+  icases H with ⟨-, %Hcwf, -⟩
   ipureintro
   have hpos : 0 < log.length := List.length_pos_iff.2 hne
   unfold sint.Z W64
@@ -2056,7 +2063,7 @@ theorem storeTxnReadIs_rev (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ :
   iunfold storeTxnReadIs at H
   iNamed H
   iunfold idxCert at Hcert
-  icases Hcert with ⟨-, -, %Hcwf, -⟩
+  icases Hcert with ⟨-, %Hcwf, -⟩
   ipureintro
   have hpos : 0 < log.length := List.length_pos_iff.2 Hne
   rw [Hrev]; unfold sint.Z W64

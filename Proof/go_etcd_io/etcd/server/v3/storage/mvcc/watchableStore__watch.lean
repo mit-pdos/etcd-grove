@@ -713,7 +713,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   · iapply (mvcc.relAuth_of_eq γ _ C σ.Lmu HCL); iexact Hrel
   ihave %HCwf : ⌜C.length < 2 ^ 63⌝ $$ [HcertQ]
   · iunfold mvcc.idxCert at HcertQ
-    icases HcertQ with ⟨-, -, %H, -⟩
+    icases HcertQ with ⟨-, %H, -⟩
     ipureintro; exact H.2.1
   -- the watcher's range, first revision, and fixed fields
   generalize hw : «$r0_ptr» = w at *

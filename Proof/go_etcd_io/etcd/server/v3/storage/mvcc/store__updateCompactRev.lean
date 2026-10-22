@@ -160,7 +160,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iexact Hbc0
   · ihave #Hcert' := Hcert
     iunfold mvcc.idxCert at Hcert'
-    icases Hcert' with ⟨-, -, %Hwf, -⟩
+    icases Hcert' with ⟨-, %Hwf, -⟩
     have hc : sint.Z (W64 c' : w64) = c' := by
       have := Hwf.2.1
       word

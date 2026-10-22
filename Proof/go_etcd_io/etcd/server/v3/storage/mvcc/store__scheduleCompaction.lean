@@ -214,7 +214,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   intro s γ rev prev
   wp_start as ⟨#Hjob, Htok⟩
   iunfold mvcc.compactJobPre at Hjob
-  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, %Hrev'⟩
+  icases Hjob with ⟨#Hs, #Hstop, -, %Hcmp, #Hlb, %log, #Hcert, #Hnevc, %Hrev'⟩
   have Hrev : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := ⟨Hrev'.1, Hrev'.2.1⟩
   have Hnd : mvcc.NoDelPutAt log (sint.Z rev) := Hrev'.2.2
   ihave %Hsmall : ⌜mvcc.CompactSmall log (sint.Z rev)⌝ $$ []
@@ -278,7 +278,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩, -⟩
   ihave #Hc2 := Hcert
   iunfold mvcc.idxCert at Hc2
-  icases Hc2 with ⟨-, -, %Hlwf, -⟩
+  icases Hc2 with ⟨-, %Hlwf, -⟩
   have Hrz : sint.Z rev < 2 ^ 63 - 1 := by have := Hrev.2; have := Hlwf.2.1; omega
   irename «end» => endP
   -- the batches
@@ -318,7 +318,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   · iapply mvcc.idxCert_prefix $$ [Hcert HcertW]
     iframe Hcert HcertW
   iunfold mvcc.idxCert at HcW'
-  icases HcW' with ⟨-, -, %HilWf, -⟩
+  icases HcW' with ⟨-, %HilWf, -⟩
   ispecialize HRng $$ []
   · ipureintro; trivial
   wp_bind (App (App (App (App (Val #(methods bt.ty _ bt.v)) (Val #bK)) (Val #lst)) (Val #endS)) (Val #_))

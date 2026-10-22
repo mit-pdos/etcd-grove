@@ -449,7 +449,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       with ⟨%HpC, ⟨HlogQ, -⟩⟩
     ihave %HCwf : ⌜C.length < 2 ^ 63⌝ $$ [HcertQ]
     · iunfold mvcc.idxCert at HcertQ
-      icases HcertQ with ⟨-, -, %H, -⟩
+      icases HcertQ with ⟨-, %H, -⟩
       ipureintro; exact H.2.1
     wp_auto
     ihave Hbody : mvcc.watchStoreBody s γ 1 σ1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt

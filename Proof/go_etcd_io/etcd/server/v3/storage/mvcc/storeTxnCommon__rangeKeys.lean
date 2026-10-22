@@ -717,7 +717,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 ihave %Hcc' := mvcc.crevUB_lb γ.idx qc c c' Hc0.1 Hk'.1 $$ Hcu Hlb'
                 ihave %Hcmp' := mvcc.idxCert_prefix γ.idx lc log' $$ [$Hlc $Hc']
                 iunfold mvcc.idxCert at Hc'
-                icases Hc' with ⟨-, -, %Hb', -⟩
+                icases Hc' with ⟨-, %Hb', -⟩
                 exfalso
                 refine mvcc.rangeAnswers_not_del lc log log' Hlcp.1 ⟨Hlen, Hcs⟩ ⟨Hb'.2.1, Hb'.2.2⟩
                   Hcmp' c' Hk'.1 (by omega) Hk'.2.2 _ k e _ ?_ a hmem false Hk'.2.1

@@ -128,6 +128,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- the committed log's authority: `s.revMu`'s fraction and the caller's (`logQPre`)
     ihave HlogH := mvcc.revQ_commit_pre γ ilog pend hne' $$ [$HlogL $Hq]
     imod mvcc.idxWriterB_commit γ.idx ilog pend sealed (by omega) $$ Hw HlogH with ⟨Hw, HlogH, #Hcert'⟩
+    icases mvcc.idxWriter_nevLb_nil γ.idx (ilog ++ [pend]) $$ Hw with ⟨Hw, #Hnev'⟩
     icases mvcc.revQ_commit_post γ ilog pend hne' $$ HlogH with ⟨HlogL, Hq⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by

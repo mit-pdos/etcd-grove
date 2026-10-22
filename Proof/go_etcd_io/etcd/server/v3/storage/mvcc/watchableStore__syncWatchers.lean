@@ -245,7 +245,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   rw [← hminR] at hm0 hm1 hm2
   ihave %HCwf : ⌜mvcc.LogWf' C ∧ C.length < 2 ^ 63 ∧ ∀ cs ∈ C, cs.length < 2 ^ 63⌝ $$ [HcertQ]
   · iunfold mvcc.idxCert at HcertQ
-    icases HcertQ with ⟨-, -, %H, -⟩
+    icases HcertQ with ⟨-, %H, -⟩
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
   wp_apply (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')

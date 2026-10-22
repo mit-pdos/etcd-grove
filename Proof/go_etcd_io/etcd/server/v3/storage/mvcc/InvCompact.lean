@@ -160,7 +160,7 @@ theorem CompactSmall_of_cert (s : Loc) (γ : StoreNames) (log : Log) (c : Int) :
   iunfold isStore at Hs
   iNamed Hs
   iunfold idxCert at Hc
-  icases Hc with ⟨-, -, -, -, %Hlt⟩
+  icases Hc with ⟨-, -, -, %Hlt⟩
   ipureintro
   exact CompactSmall_of_logCh c (by have : (2 : Nat) ^ 48 < 2 ^ 62 := by decide
                                     omega)
@@ -169,12 +169,13 @@ theorem CompactSmall_of_cert (s : Loc) (γ : StoreNames) (log : Log) (c : Int) :
 backend supporting the compaction (`storeCmp`), a lower bound `rev` of the compaction revision
 (`Compact` set it), a certified log with revision `rev`, which does not delete a key and put it
 again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job deletes carry it,
-`delKey`; 2026-10-13, unit 6a). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's
+`delKey`; 2026-10-13, unit 6a), with the index's count of its events (`idxNevLb`: D22
+receiver epochs, S1). (Until 2026-10-18 also `CompactSmall` at `rev`, the caller's
 physical bound; now the job derives it, `CompactSmall_of_cert`.) And the scheduler never stopped
 (`schedLive`, from the compaction right: the job's barrier is untracked; D19m (C), 2026-10-18). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ storeStop s ∗ schedule.schedLive γ.sch ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
-    ∃ log : Log, idxCert γ.idx log ∗
+    ∃ log : Log, idxCert γ.idx log ∗ idxNevLb γ.idx log ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :

@@ -158,7 +158,7 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   iNamedSuffix HtrT "T"
   ihave #HcT := HcertT
   iunfold mvcc.idxCert at HcT
-  icases HcT with ⟨-, -, %Hp, -⟩
+  icases HcT with ⟨-, %Hp, -⟩
   isplitl
   · iunfold mvcc.isTxnRead
     iexists trw, tr, ti, rt, ranges

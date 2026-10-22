@@ -283,7 +283,7 @@ theorem isTxn_kindOk (mw s : Loc) (γ : mvcc.StoreNames) (kind : TxnKind) :
     iunfold storeTxnReadIs at Htr
     iNamed Htr
     iunfold idxCert at Hcert
-    icases Hcert with ⟨-, -, %Hc, -⟩
+    icases Hcert with ⟨-, %Hc, -⟩
     ipureintro
     have hpos := List.length_pos_iff.2 Hne
     have hz := lastRev_sint log.length hpos (by have := Hc.2.1; omega)
