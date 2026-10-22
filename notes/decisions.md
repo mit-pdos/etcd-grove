@@ -15105,3 +15105,27 @@ numbers (neither the Go state nor the abstract state counts restores).
   takes an exclusive "on backend d" fragment (not in S-j2's design either); `compactedAt` is
   physical, so `Restore` must exclude compacted stores; "current backend" is per object, not global
   (`lessor.Recover(newbe)` runs before `kv.Restore`).
+
+## D22c revisited: tracking the image's other buckets instead of the determinism axiom (2026-10-22, proposed)
+
+The user prefers tracking the buckets a received image's `Recover`s read (lease, auth, members,
+`members_removed`, cluster, alarm) in the backend model over S-h's D22c determinism axiom (`snapOf
+γB D ∗ srvRestSole γB ∗ …`). A read-only check (`notes/snapshot-rest-buckets.md`, file:line
+evidence at the pin `2aed163b`) found, for `putget`/`putget3`'s workload with snapshots on: the
+reachable writes are bucket creation and `NewAuthStore`'s `authRevision = 1` at boot, and after
+boot only `members` (boot `AddNode`s through `applyConfChange`/`AddMember`; `ClusterMemberAttrSet`
+through `UpdateAttributes`) and `cluster` (`ClusterVersionSet` through `SetVersion`); lease, auth,
+alarm, downgrade and member remove/promote writers are unreachable under the existing premises. None
+of the reachable writers' specs states its bucket effect today (`applyConfChange` an axiom; the
+membership appliers through `isCluster`'s clauses from `bootOk`; `NewLessor`/`NewAuthStore`/
+`NewAlarmStore` silent on contents), and the backend model leaves every non-key bucket unconstrained
+(`bridgeParams`' hook buckets). The minimal design: the backend's rest buckets tracked (`RB`,
+`rbData`, a ghost name half in the batch lock, half the apply thread's `rbOwn`; puts and deletes on
+them require `rbOwn`), the apply thread holding `rbOwn (restModel (pre ++ A))`, about 8-10
+trust-boundary statements restated (no new axiom), and `bootOk`'s fresh-directory premise widened to
+every rest bucket. About 40-55 files, against 4-6 for the axiom route; it also makes `clusterBktOf` a
+definition and would discharge D22j (B). Harder than it looks: `UpdateAttributes` saves the
+in-memory member (exception 7: the in-memory members as ghost state, or a proof that the boot
+entries validate, with `ccContextOf` giving the member record); `NewAuthStore`'s axiom writes
+`authRevision` and must take the fragment; the cluster bucket stores `semver.MustParse(v).String()`;
+equal `members` across members needs distinct peer URLs and ids and identical bootstrap lists.
