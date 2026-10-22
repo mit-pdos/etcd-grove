@@ -37,7 +37,7 @@ theorem mvcc.rangeEvents.wp_proof
   wp_start as ⟨#Hbk, Hrt, #Hfrz, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
-    icases Hcert with ⟨-, -, %H, -⟩
+    icases Hcert with ⟨-, %H, -⟩
     ipureintro; exact H
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, -, #HR, -, -⟩

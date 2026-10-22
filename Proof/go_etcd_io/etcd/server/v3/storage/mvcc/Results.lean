@@ -282,7 +282,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s γ ∗
-        mvcc.storeStop s ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} :=
+        mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.crevUB γ.idx (1 : Qp).half (-1) }} :=
   mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
     backend.backend.wp_Size backend.backend.wp_SizeInUse

@@ -122,11 +122,11 @@ theorem raftLog.snapshot.wp_proof
       · exact absurd Hz Hnz
       · rw [← Hstor]; iexact Hvc
     ipureintro
-    rcases Hwhich with ⟨Hid, Hal, Hcs⟩ | ⟨Hgt, Hge, Hle, Ht⟩
+    rcases Hwhich with ⟨Hid, Hal, Hcs, Hdt⟩ | ⟨Hgt, Hge, Hle, Ht⟩
     · have Hss : σ.ss.index' ≠ W64 0 := by
         rw [← Hid]; simp only [snapId]; exact Hnz
       have Hk := Hsksn Hss
-      rw [← Hid, ← Hal, ← Hcs] at Hk
+      rw [← Hid, ← Hal, ← Hcs, ← Hdt] at Hk
       rcases Hssnap Hsn with Hz | ⟨Hle, Ht⟩
       · exfalso; apply Hnz; rw [← Hid] at Hz; simp only [snapId] at Hz; word
       · rw [← Hid] at Hle Ht; simp only [snapId] at Hle Ht

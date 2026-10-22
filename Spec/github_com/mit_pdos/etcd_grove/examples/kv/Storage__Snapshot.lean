@@ -49,7 +49,7 @@ abbrev Storage.Snapshot.spec : Prop :=
         -- non-empty; the view's snapshot or (D19i part 1) a newer one, at or below the floor
         ⌜sv.Metadata'.Index' ≠ W64 0 ∧
           ((snapId sv = σ.ss ∧ sv.Metadata'.ConfState'.AutoLeave' = σ.sal ∧
-            sv.Metadata'.ConfState'.lists = σ.scs) ∨
+            sv.Metadata'.ConfState'.lists = σ.scs ∧ sv.Data' = σ.sdat) ∨
            (uint.Z σ.ss.index' < uint.Z sv.Metadata'.Index' ∧
             uint.Z σ.prev.index' ≤ uint.Z sv.Metadata'.Index' ∧
             uint.Z sv.Metadata'.Index' ≤ uint.Z σ.fl ∧

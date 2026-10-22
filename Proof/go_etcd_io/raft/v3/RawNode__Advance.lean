@@ -699,14 +699,14 @@ theorem RawNode.Advance.wp_proof
     ihave Hphys := Hback0 $$ Hlog0
     have Hpvs : ∀ sp, s.logst.snap = some sp → s.logst.prev = sp := fun sp h => (Hsf0.2.2.2 _ h).1
     -- the storage back: absorbed, the log at the snapshot (`sat`), the mirror's lent flag down
-    obtain ⟨Hr1, Hr2, Hr3, Hr4, Hr5, Hr6, Hr7⟩ := Hσr
+    obtain ⟨Hr1, Hr2, Hr3, Hr4, Hr5, Hr6, Hr7, Hr8⟩ := Hσr
     icases ownRaftPhysC_log_at_snp cf rnv.raft' id s $$ Hphys with ⟨Hlog, %Hgh0, Hback⟩
     have Hlt : s.logst.lent = true := by
       rw [Hgh0.1.2.1, Hloan.1, hsl]; rfl
-    have Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal ∈ s.logst.ksn := by
+    have Hk : σr.ss.index' ≠ W64 0 → SnapTrip.mk σr.ss σr.scs σr.sal σr.sdat ∈ s.logst.ksn := by
       intro _
       have := (Hgh0.1.2.2.1 _ Hsnp).2.1
-      rw [Hr2, Hr6, Hr7]; exact this
+      rw [Hr2, Hr6, Hr7, Hr8]; exact this
     ihave HSt : ownStorage s.logst.storage σr $$ [HSt]
     · rw [← Hstor]; iexact HSt
     ihave Hlog := ownRaftLog_absorb_snap s.log s.logst σr Hlt

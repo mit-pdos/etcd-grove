@@ -73,18 +73,21 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
     (D : backend.Data)
     (HE : ↑raftLogN ⊆ E) (Hty : st.msg.Type' = MsgSnap) (Hsn : st.snap = some sn0)
     (Hix : uint.Z sn0.Metadata'.Index' ≤ uint.Z ai)
-    (HAlen : (A.length : Int) = uint.Z ai) (HAlast : A.getLast?.map EntryM.Term' = some at_) :
+    (HAlen : (A.length : Int) = uint.Z ai) (HAlast : A.getLast?.map EntryM.Term' = some at_)
+    -- (D22 S-r, 2026-10-21) the cluster admits the merged snapshot's (empty) data at `A`: its
+    -- content is the backend's (D22c); the servers' cluster admits every data
+    (Hsok : γ.reSnapOk A []) :
     ⊢ raftCommitInv (GF := GF) γ -∗ isRaftMsg γ st -∗ termLB bud st.msg.Term' -∗
       rnRtBound γ st.msg.Term' ai -∗ isCommitted γ A -∗
       -- (D22 S-b′3, 2026-10-20) the merged content's configuration certificate (S-l mints it
       -- from `ep.confState`'s content: `raftSnapCert_empty`, `raftSnapCert_static`)
-      raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave'⟩ -∗
+      raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave', []⟩ -∗
       msgOwn ml DFrac.discard (mergedSt st c ai at_) -∗
       backend.readerStreams rc (fun bs => backend.boltImage bs D) -∗ srvImage γ ai D ={E}=∗
       netSnapBundle (srvNet γ bud) ml rc := by
   iintro #Hinv #Hrm #Htlb #Hbnd #HA #Hcc #Hml Hrs #Himg
   iunfold isRaftMsg at Hrm
-  icases Hrm with ⟨%Hns, %Hsent, %a, %Habs, #Hmsgs⟩
+  icases Hrm with ⟨%Hns, %Hsent, ⟨%a, %Habs, #Hmsgs⟩, -⟩
   -- the abstraction of raft's `MsgSnap`
   have Ha : a = some (absSnap st.msg sn0 sn0.Metadata'.ConfState'.lists) := by
     rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, Hsv, rfl⟩
@@ -124,6 +127,19 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
         -- no-transfer mode alone, `MsgSnap` included)
         ipureintro
         exact Hsent
+      isplitr
+      rotate_left
+      · -- (D22 S-r) the merged snapshot's data certificate: the committed prefix `A`
+        unfold msgDat
+        iintro !> %sv %Hsv
+        simp only [mergedSt] at Hsv
+        obtain ⟨-, Hsv⟩ := Hsv
+        cases Hsv
+        unfold snapDataOk
+        iexists A
+        iframe HA
+        ipureintro
+        exact ⟨by have := HAlen; word, Hsok⟩
       iexists some (absSnap st.msg (SnapshotM.mk [] (SnapshotMetadataM.mk c ai at_))
         (ConfStateM.lists c))
       isplitr
@@ -142,7 +158,7 @@ theorem srvMergedBundle (γ : RaftNames) (bud : BudgetNames) (E : CoPset) (ml : 
         · rw [Heq, Hvo]; iexact Hm'
         unfold msgCert; iright
         rw [show msgSnapTrip (absSnap st.msg (SnapshotM.mk [] (SnapshotMetadataM.mk c ai at_))
-            (ConfStateM.lists c)) = (⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave'⟩ : SnapTrip) from rfl]
+            (ConfStateM.lists c)) = (⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave', []⟩ : SnapTrip) from rfl]
         iexact Hcc
       iapply BigSepL.bigSepL_nil.2; iempintro
     · simp only [mergedSt]; iexact Htlb

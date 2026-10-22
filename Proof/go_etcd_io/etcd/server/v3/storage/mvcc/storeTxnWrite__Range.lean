@@ -96,19 +96,20 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     · iframe Hlocked Hbv
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
-    icases mvcc.muHeld_cmp s γ crev $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
+    icases mvcc.muHeld_cmp_idx s γ crev ti $$ [Hmu] with ⟨Hcmp, Hcu, %Hcb, Hidxf, Hmub⟩
+    · iframe Hmu Hidx
     wp_apply (hKeys (mvcc.txCommonW tw) s trace ti bt (DFrac.own 1)
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd todo key endk k e ro _ _ crev ilog te (by assumption))
-      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hcert $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
-      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hcmp, Hcu, Hown, Hout⟩
+        ctx cd todo key endk k e ro _ _ crev ilog te _ (by assumption))
+      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hcert $Hkn $Hidx $Hidxf $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
+      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hidxf, Hcmp, Hcu, Hown, Hout⟩
     · ipureintro
       refine ⟨?_, ⟨List.prefix_append _ _, Hcrev.2⟩, rfl, by simp, ?_, Hcb⟩
       · rw [mvcc.bucketMap_append ilog pend Hne]; exact fun _ _ h => h
       · rw [hwrZ]; have := mvcc.writeRev_lt ilog pend Hne; omega
-    ihave Hmu := Hmub $$ Hcmp Hcu
+    ihave Hmu := Hmub $$ Hcmp Hcu Hidxf
     rw [mvcc.idxKnows_writer]
     (try wp_auto)
     -- the transaction back: the `storeTxnCommon`, then the `storeTxnWrite`
@@ -130,7 +131,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iunfold mvcc.storeTxnWriteIs
     iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hwv Htko Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 

@@ -2,6 +2,8 @@ package kv
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -145,6 +147,11 @@ func TestRead(t *testing.T) {
 	}
 }
 
+// snapAt is a snapshot at index i.
+func snapAt(i uint64) *pb.Snapshot {
+	return &pb.Snapshot{Metadata: &pb.SnapshotMetadata{Index: proto.Uint64(i), Term: proto.Uint64(1)}}
+}
+
 func TestDeliverable(t *testing.T) {
 	hb := []byte{1, 0, 0, 0, 0, 0, 0, 0}
 	cases := []struct {
@@ -166,6 +173,12 @@ func TestDeliverable(t *testing.T) {
 		{&pb.Message{Type: pb.MsgTransferLeader.Enum(), From: proto.Uint64(3), To: proto.Uint64(1), Term: proto.Uint64(3)}, false},
 		{&pb.Message{Type: pb.MsgApp.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3)}, true},
 		{&pb.Message{Type: pb.MsgApp.Enum(), From: proto.Uint64(1), To: proto.Uint64(1), Term: proto.Uint64(3)}, false},
+		{&pb.Message{Type: pb.MsgSnap.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3), Snapshot: snapAt(5)}, true},
+		{&pb.Message{Type: pb.MsgSnap.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3)}, false},
+		{&pb.Message{Type: pb.MsgSnap.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Snapshot: snapAt(5)}, false},
+		{&pb.Message{Type: pb.MsgSnap.Enum(), From: proto.Uint64(1), To: proto.Uint64(1), Term: proto.Uint64(3), Snapshot: snapAt(5)}, false},
+		{&pb.Message{Type: pb.MsgSnap.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3), Snapshot: snapAt(maxIndex)}, false},
+		{&pb.Message{Type: pb.MsgSnap.Enum(), From: proto.Uint64(1), To: proto.Uint64(2), Term: proto.Uint64(3), Snapshot: snapAt(5), Context: hb}, false},
 	}
 	for i, c := range cases {
 		if got := deliverable(c.m); got != c.want {
@@ -429,5 +442,179 @@ func TestCheck(t *testing.T) {
 		if r := Check(StartCluster([]uint64{1, 2, 3}), clock, 8, 50); r != porcupine.Ok {
 			t.Fatalf("clock %d: got %v", i, r)
 		}
+	}
+}
+
+// TestEncodeState checks that decodeState reads back what encodeState writes, that the encoding
+// does not depend on the maps' iteration order, and that decodeState refuses what it did not
+// write.
+func TestEncodeState(t *testing.T) {
+	kv := map[string]string{"b": "2", "a": "1", "": "e", "ab": ""}
+	ops := map[string]string{string(encode(1, 2, opPut, "a", "1")): "1", "x": "", "y": "v"}
+	b := encodeState(kv, ops)
+	for i := 0; i < 20; i++ {
+		if c := encodeState(kv, ops); string(c) != string(b) {
+			t.Fatalf("encodeState is not deterministic")
+		}
+	}
+	kv2, ops2, ok := decodeState(b)
+	if !ok || len(kv2) != len(kv) || len(ops2) != len(ops) {
+		t.Fatalf("decodeState(encodeState) = %v, %v, %v", kv2, ops2, ok)
+	}
+	for k, v := range kv {
+		if kv2[k] != v {
+			t.Fatalf("key %q: %q, want %q", k, kv2[k], v)
+		}
+	}
+	for o := range ops {
+		if v, ok := ops2[o]; !ok || v != ops[o] {
+			t.Fatalf("op %q: %q, %v, want %q", o, v, ok, ops[o])
+		}
+	}
+	if _, _, ok := decodeState(b[:len(b)-1]); ok {
+		t.Fatalf("decodeState accepted a truncated encoding")
+	}
+	if _, _, ok := decodeState(append(b, 0)); ok {
+		t.Fatalf("decodeState accepted trailing bytes")
+	}
+	if _, _, ok := decodeState(encodeState(map[string]string{}, map[string]string{})); !ok {
+		t.Fatalf("decodeState refused the empty state")
+	}
+}
+
+// TestSnapshotCatchUp cuts replica 3 off (no message to it is delivered, and none from it but
+// its proposals), runs more than 2*snapEvery operations, so that the others take snapshots and
+// compact their logs past what replica 3 has, and then heals the cut: replica 3 catches up by a
+// snapshot (a MsgSnap is delivered to it), serves the latest values, and applies operations after
+// it. An operation replica 3 proposed while cut off, committed by the others, is among those the
+// snapshot covers: replica 3 never applies its entry, and answers it at the install, with the
+// key's value after it. Replica 3 does not tick until the cut heals, so that it stays a follower
+// of the leader it knew (and forwards its proposal to it).
+func TestSnapshotCatchUp(t *testing.T) {
+	voters := []uint64{1, 2, 3}
+	peers := make(map[uint64]raft.Node)
+	storages := make(map[uint64]*Storage)
+	for _, id := range voters {
+		st := NewStorage(voters)
+		peers[id] = raft.RestartNode(&raft.Config{
+			ID:              id,
+			ElectionTick:    10,
+			HeartbeatTick:   1,
+			Storage:         st,
+			MaxSizePerMsg:   1 << 20,
+			MaxInflightMsgs: 256,
+			Logger:          quietLogger{},
+		})
+		storages[id] = st
+	}
+	tr := &transfers{left: timeouts}
+	var mu sync.Mutex
+	cut := false
+	healed := false
+	snaps := 0
+	send := func(ms []*pb.Message) {
+		var pass []*pb.Message
+		mu.Lock()
+		for _, m := range ms {
+			if cut && (m.GetTo() == 3 || (m.GetFrom() == 3 && m.GetType() != pb.MsgProp)) {
+				continue
+			}
+			if m.GetType() == pb.MsgSnap && m.GetTo() == 3 && deliverable(m) {
+				snaps++
+			}
+			pass = append(pass, m)
+		}
+		mu.Unlock()
+		deliver(peers, tr, pass)
+	}
+	stop := make(chan struct{})
+	defer func() {
+		close(stop)
+		for _, nd := range peers {
+			nd.Stop()
+		}
+	}()
+	regs := make(map[uint64]*KV)
+	for _, id := range voters {
+		regs[id] = New(id, peers[id], storages[id], send)
+		go func(id uint64, nd raft.Node) {
+			tk := time.NewTicker(5 * time.Millisecond)
+			defer tk.Stop()
+			for {
+				select {
+				case <-tk.C:
+					mu.Lock()
+					tick := id != 3 || healed
+					mu.Unlock()
+					if tick {
+						nd.Tick()
+					}
+				case <-stop:
+					return
+				}
+			}
+		}(id, peers[id])
+	}
+	// replica 3 follows a leader (one of the others: it does not tick)
+	regs[3].Put("w", "a")
+	mu.Lock()
+	cut = true
+	mu.Unlock()
+	// replica 3's operation, committed by the others while it is cut off
+	ans := make(chan string, 1)
+	go func() { ans <- regs[3].do(opAppend, "w", "b") }()
+	op := string(encode(3, 2, opAppend, "w", "b"))
+	for deadline := time.Now().Add(10 * time.Second); ; {
+		regs[1].mu.Lock()
+		_, done := regs[1].applied[op]
+		regs[1].mu.Unlock()
+		if done {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("replica 3's operation was not committed while it was cut off")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	const n = 2*snapEvery + 50
+	for i := 0; i < n; i++ {
+		regs[uint64(1+i%2)].Put(fmt.Sprintf("k%d", i%7), fmt.Sprint(i))
+	}
+	regs[1].Append("k0", "+")
+	if fi, _ := storages[1].FirstIndex(); fi <= 3 {
+		t.Fatalf("replica 1 did not compact its log past replica 3's operation (first index %d)", fi)
+	}
+	mu.Lock()
+	cut = false
+	healed = true
+	mu.Unlock()
+	// replica 3's operation, answered when it installs the snapshot that covers it
+	select {
+	case v := <-ans:
+		if v != "ab" {
+			t.Fatalf("replica 3's operation answered %q, want %q", v, "ab")
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("replica 3's operation, covered by the snapshot it installed, was not answered")
+	}
+	// an operation of replica 3's, applied once it has caught up
+	if v, want := regs[3].Get("k0"), regs[1].Get("k0"); v != want {
+		t.Fatalf("replica 3: Get(k0) = %q, want %q", v, want)
+	}
+	for k := 0; k < 7; k++ {
+		key := fmt.Sprintf("k%d", k)
+		want := regs[1].Get(key)
+		if v := regs[3].Read(key); v != want {
+			t.Fatalf("replica 3: Read(%s) = %q, want %q", key, v, want)
+		}
+	}
+	regs[3].Put("k1", "z")
+	if v := regs[3].Get("k1"); v != "z" {
+		t.Fatalf("replica 3: Get after its Put = %q", v)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if snaps == 0 {
+		t.Fatalf("no MsgSnap was delivered to replica 3")
 	}
 }

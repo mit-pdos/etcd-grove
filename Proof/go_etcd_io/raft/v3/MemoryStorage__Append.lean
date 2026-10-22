@@ -53,7 +53,7 @@ private theorem append_close (ms : Loc) (γs : MemStorNames) (σ σL S0 : StorSt
     (Hccap : uint.Z c.index' ≤ γs.cap)
     (Hcb : uint.Z c.index' < uint.Z e0.Index')
     (Hhi : uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1)
-    (Hsb : (S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal) ∨
+    (Hsb : (S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal ∧ S0.sdat = σL.sdat) ∨
       uint.Z S0.ss.index' < uint.Z e0.Index')
     (Hok : HistOk (H ++ [storAbsorb { σ with pend := p }]))
     (Hpb : uint.Z σ.prev.index' + ((storApp σ p).length : Int) < 2^61) :
@@ -62,12 +62,12 @@ private theorem append_close (ms : Loc) (γs : MemStorNames) (σ σL S0 : StorSt
       memstorageFields ms { memCut σL c with ents := storApp (memCut σL c) p, pend := [] } -∗
       ghostVar γs.cb (1 : Qp).half c -∗ monoNatAuthOwn γs.bd 1 (uint.Z c.index').toNat -∗
       (⌜c = σL.prev⌝ ∨ memFlLb γs c.index') -∗ ghostVar γs.sn memQ (snapPart S0) -∗
-      (⌜S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal⌝ ∨
+      (⌜S0.ss = σL.ss ∧ S0.scs = σL.scs ∧ S0.sal = σL.sal ∧ S0.sdat = σL.sdat⌝ ∨
         (⌜uint.Z σL.ss.index' < uint.Z S0.ss.index' ∧ uint.Z σL.prev.index' ≤ uint.Z S0.ss.index' ∧
             termAt σL.prev σL.ents S0.ss.index' = some S0.ss.term'⌝ ∗ memFlLb γs S0.ss.index')) -∗
       memstorageInv ms γs := by
   iintro Hd #Hlb Hlk Hf Hcbv Hbd #Hcfl Hsq #Hsrel
-  obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5, -⟩ := Hde
+  obtain ⟨Hp1, Hp2, Hp3, Hp4, Hp5, -, Hp7⟩ := Hde
   have HcokS : CutOk σ c := by
     obtain ⟨h1, h2, h3⟩ := Hcok.1
     refine ⟨by rw [Hp1]; exact h1, ?_, by rw [Hp1, Hp2]; exact h3⟩
@@ -112,7 +112,7 @@ private theorem append_close (ms : Loc) (γs : MemStorNames) (σ σL S0 : StorSt
   icases Hsrel with (%Hs | ⟨%Hs, #Hc⟩)
   · ileft; ipureintro
     simp only [storAbsorb]
-    rw [Hp3, Hp4, Hp5]; exact Hs
+    rw [Hp3, Hp4, Hp5, Hp7]; exact Hs
   · iright
     iframe Hc
     ipureintro
@@ -210,7 +210,7 @@ theorem MemoryStorage.Append.wp_proof
       ipureintro
       have := Hflw Lc w Hpre.2 hw
       omega
-  ihave %Hsb : ⌜(S.ss = σL.ss ∧ S.scs = σL.scs ∧ S.sal = σL.sal) ∨
+  ihave %Hsb : ⌜(S.ss = σL.ss ∧ S.scs = σL.scs ∧ S.sal = σL.sal ∧ S.sdat = σL.sdat) ∨
       uint.Z S.ss.index' < uint.Z e0.Index'⌝ $$ [Hhist]
   · icases Hsrel with (%Hs | ⟨%Hs, #Hc⟩)
     · ipureintro; left; exact Hs

@@ -652,7 +652,9 @@ abbrev raft.Step.spec : Prop :=
            md.SnapDyn γ sv scfg ∗
            -- (D22 S-b′3, 2026-10-20) certified (`isMessageC`): its snapshot's configuration
            -- certificate, which the step registers in the storage (`certLink`) before the restore
-           isMessageC γ (absSnap m sv scfg)) }}
+           isMessageC γ (absSnap m sv scfg) ∗
+           -- (D22 S-r, 2026-10-21) and its data certificate, registered with it
+           snapDataOk γ sv.Metadata'.Index' sv.Data') }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗

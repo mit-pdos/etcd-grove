@@ -37,6 +37,10 @@ abbrev raftLog.appliedTo.spec : Prop :=
   -- (D22 S-d4 item 3) with a snapshot pending and the storage not lent, past `applying` only up to
   -- what the storage holds (`LogState.sxt`, `StorExtOk`)
   (ls.snap ≠ none → ls.lent = false → uint.Z ls.applying < uint.Z i → uint.Z i ≤ uint.Z ls.sxt) →
+  -- (D22 S-r, 2026-10-21) and, with a pending snapshot not yet handed out, below its index
+  -- (`SipOk`: `applying` stays below it until a `Ready` hands it out)
+  (ls.snap ≠ none → ls.sip = false → uint.Z ls.applying < uint.Z i →
+    uint.Z i < uint.Z ls.prev.index') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftLogW l ls }}
     (App (App (Val (l @!! go.GoType.PointerType raftLog.ty @!! go!"appliedTo")) (Val #i))
       (Val #size))

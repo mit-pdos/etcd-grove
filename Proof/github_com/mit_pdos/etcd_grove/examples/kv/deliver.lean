@@ -21,6 +21,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.deliverable
 public import Spec.go_etcd_io.raft.v3.node__Step
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import Spec.google_golang_org.protobuf.proto.CloneSnapshot
 
 @[expose] public section
 
@@ -42,17 +43,31 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [StorageModel GF]
 
+omit [StorageModel GF] in
+/-- (D22 S-r) A `nil` snapshot pointer, of no snapshot. -/
+theorem snapOpt_none_null (p : Loc) (dq : DFrac) (s : Option SnapshotM) (h : s = none) :
+    snapOpt (GF := GF) p dq s ⊢ ⌜p = null⌝ := by
+  subst h; simp only [snapOpt]; exact .rfl
+
+omit [StorageModel GF] in
+theorem snapOpt_some_iff (p : Loc) (dq : DFrac) (s : Option SnapshotM) (sv : SnapshotM)
+    (h : s = some sv) : snapOpt (GF := GF) p dq s ⊣⊢ ownSnapM p dq sv := by
+  subst h; simp only [snapOpt]; exact .rfl
+
+omit [StorageModel GF] in
+theorem snapOpt_null_none (dq : DFrac) (s : Option SnapshotM) (h : s = none) :
+    ⊢ snapOpt (GF := GF) (null : Loc) dq s := by
+  subst h; simp only [snapOpt]; ipureintro; trivial
+
 set_option hygiene false in
 /-- The tail of an iteration that steps the wire's copy of the message `q` into its node `n`:
-`m`'s fields taken apart (`iNamed`), the copy's struct built from its loads and the appended
-entries slice, owned (`msgPtsC_of_struct`), made `stepP` (`stepP_deliverable`), `Node.Step`.
-Expects `Hmq : msgPtsC q.loc _ DFrac.discard false q.st`, the tick credit `Htc`, the read credit
-`Hc1`, `Hmsg`, `Hmlb`, `HisNode`, and the loop's `Hk1`. -/
-local macro "deliver_step" : tactic =>
+the copy's struct built from `m`'s fields' loads (`iNamed`), the appended entries slice and
+(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `stepP`
+(`stepP_deliverable`), `Node.Step`. Expects the tick credit `Htc`, the read credit `Hc1`, `Hmsg`,
+`Hsnf`, `Hmlb`, `HisNode`, `Hsi`, and the loop's `Hk1`. -/
+local macro "deliver_tail " snc:term : tactic =>
   `(tactic| (
-    iunfold msgPtsC at Hmq
-    iNamed Hmq
-    wp_auto
+    try wp_auto
     wp_apply wp_slice_append slice.nil ([] : List Loc) es els DFrac.discard $$ [Hes]
       as %s' ⟨Hs, Hcap, -⟩
     · iframe Hes
@@ -62,20 +77,20 @@ local macro "deliver_step" : tactic =>
     rw [List.nil_append]
     -- `wp_auto` allocated the copy (`«$r0_ptr»`, its struct `«$r0»`) and stored it in `c`
     imod msgPtsC_of_struct «$r0_ptr»
-        (⟨zero_val _, pty, pto, pfr, pte, plt, pix, s', pco, pvo, null, prj, prh, cs, slice.nil,
+        (⟨zero_val _, pty, pto, pfr, pte, plt, pix, s', pco, pvo, $snc, prj, prh, cs, slice.nil,
           slice.nil, 0⟩ : raftpb.Message)
-        (DFrac.own 1) true els ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ ⊤ rfl
-        $$ [«$r0» Hs Hcap] with Hmc
-    · simp only [↓reduceIte, snapOpt]
-      iframe «$r0» Hs Hcap
+        (DFrac.own 1) true els ⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩ ⊤ rfl
+        $$ [«$r0» Hs Hcap Hsnc] with Hmc
+    · simp only [↓reduceIte]
+      iframe «$r0» Hs Hcap Hsnc
       iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs
       iapply ownSlice_nil
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-    ihave Ht1 : stTks γn.raft (⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ : MsgSt) $$ [Ht1]
+    ihave Ht1 : stTks γn.raft (⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩ : MsgSt) $$ [Ht1]
     · unfold stTks; iexact Ht1
-    imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, none, q.st.ctx, []⟩ Hd rfl
-      $$ Hmsg Hmlb Hmc Hc1 Ht1 Htc with Hstep
+    imod stepP_deliverable γn q.st.msg.To' «$r0_ptr» ⟨q.st.msg, q.st.ents, q.st.snap, q.st.ctx, []⟩
+      Hd rfl Hsi $$ Hmsg Hsnf Hmlb Hmc Hc1 Ht1 Htc with Hstep
     wp_apply +noauto wp_node_Step γn q.st.msg.To' n «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
@@ -88,11 +103,21 @@ local macro "deliver_step" : tactic =>
     iframe
     ipureintro; constructor <;> word))
 
+set_option hygiene false in
+/-- The wire's copy of the message `q` (`Hmq`): `m`'s fields taken apart (`iNamed`). The proof
+then clones its snapshot, if any (D22 S-r), and runs `deliver_tail`. -/
+local macro "deliver_pre" : tactic =>
+  `(tactic| (
+    iunfold msgPtsC at Hmq
+    iNamed Hmq
+    wp_auto))
+
 theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG))
     (wp_take : transfers.take.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
-    (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
+    (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
+    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
   intro γ bud peers tr P msl ms
   wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok, Hcr, Htks⟩
@@ -165,8 +190,10 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         HPt $$ HP
       unfold peerOk
       icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
-      obtain ⟨Hr, Hbud, rfl⟩ := Hnd
+      obtain ⟨Hr, Hbud, rfl, Hsi0⟩ := Hnd
+      have Hsi : q.st.msg.Type' = MsgSnap → γn.snapIn = true := fun _ => Hsi0
       ihave #Hmsg := raftMsg_deliverable γ q.st Hd $$ Hmok
+      ihave #Hsnf := raftMsg_snap γ q.st Hd $$ Hmok
       try simp only [Option.isSome_some, Option.getD_some, _root_.decide_true, Bool.not_true]
       wp_auto
       subst Hr Hbud
@@ -191,7 +218,23 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           rw [ite_eq_left Htn']
           simp only [↓reduceIte]
           iexact Hb
-        deliver_step
+        deliver_pre
+        by_cases Hsq : q.st.snap = none
+        · ihave %Hpn := snapOpt_none_null ps _ q.st.snap Hsq $$ Hsn
+          subst Hpn
+          try rw [decide_eq_true rfl]
+          try wp_auto
+          ihave Hsnc := snapOpt_null_none (GF := GF) (DFrac.own 1) q.st.snap Hsq
+          deliver_tail (null : Loc)
+        · obtain ⟨sv, Hsq⟩ := Option.ne_none_iff_exists'.1 Hsq
+          ihave Hsn := (snapOpt_some_iff ps _ q.st.snap sv Hsq).1 $$ Hsn
+          icases ownSnapM_not_null ps _ sv $$ Hsn with ⟨Hsn, %Hpn⟩
+          try rw [decide_eq_false Hpn]
+          try wp_auto
+          wp_apply wp_CloneSnapshot.1 ps _ sv $$ [$Hsn] as %snc ⟨-, Hsnc⟩
+          try wp_auto
+          ihave Hsnc := (snapOpt_some_iff snc (DFrac.own 1) q.st.snap sv Hsq).2 $$ Hsnc
+          deliver_tail snc
       · rw [decide_eq_false Htn]
         wp_auto
         imod tickCred_zero (GF := GF) γn.bud with Htc0
@@ -199,7 +242,23 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         · have Htn' : ¬ q.st.msg.Type' = MsgTimeoutNow := Htn
           rw [ite_eq_right Htn']
           iexact Htc0
-        deliver_step
+        deliver_pre
+        by_cases Hsq : q.st.snap = none
+        · ihave %Hpn := snapOpt_none_null ps _ q.st.snap Hsq $$ Hsn
+          subst Hpn
+          try rw [decide_eq_true rfl]
+          try wp_auto
+          ihave Hsnc := snapOpt_null_none (GF := GF) (DFrac.own 1) q.st.snap Hsq
+          deliver_tail (null : Loc)
+        · obtain ⟨sv, Hsq⟩ := Option.ne_none_iff_exists'.1 Hsq
+          ihave Hsn := (snapOpt_some_iff ps _ q.st.snap sv Hsq).1 $$ Hsn
+          icases ownSnapM_not_null ps _ sv $$ Hsn with ⟨Hsn, %Hpn⟩
+          try rw [decide_eq_false Hpn]
+          try wp_auto
+          wp_apply wp_CloneSnapshot.1 ps _ sv $$ [$Hsn] as %snc ⟨-, Hsnc⟩
+          try wp_auto
+          ihave Hsnc := (snapOpt_some_iff snc (DFrac.own 1) q.st.snap sv Hsq).2 $$ Hsnc
+          deliver_tail snc
   · iapply HΦ; itrivial
 
 end proof

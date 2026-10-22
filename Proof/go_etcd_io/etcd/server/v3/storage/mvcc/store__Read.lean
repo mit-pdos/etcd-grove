@@ -31,22 +31,28 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
   · iexists te; iexact Htrc
   iunfold mvcc.idxCert at Hc0
-  icases Hc0 with ⟨-, -, -, #Hl0, -⟩
+  icases Hc0 with ⟨-, -, #Hl0, -⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
   iunfold mvcc.storeReaderC at Hrd
-  icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
   (try wp_auto)
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or above
   -- the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
-  wp_auto_lc 1
+  wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
-  icases HmuP with ⟨%cm, HmuP⟩
+  icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
+  -- a slot of the index's lock, out of the readers' pool (D22 receiver epochs, S4)
+  icases (mvcc.wDep_halves γ).1 $$ Hwr with ⟨Hwr, Hwr2⟩
+  imod mvcc.readerPool_checkout γ $$ Hlc2 Hpool HtkR Hwr2 with ⟨Hslot, Htko⟩
+  iunfold mvcc.idxSlot at Hslot
+  icases Hslot with ⟨%ti2, #HidxR, HtiR⟩
+  icases mvcc.fieldShare_open s γ _ _ _ _ _ $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
+  · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
   icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
@@ -55,7 +61,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrevl, HP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ sync.rfrac)) $$ Hlc1 HP with HP
-  iunfold mvcc.revMuInv at HP
+  icases mvcc.revMuInv_open s γ _ _ $$ [HP Hfrst] with ⟨HP, HrstR, Hfrst⟩
+  · iframe HP Hfrst
+  iunfold mvcc.revMuBody at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
   icases mvcc.logLent_agree γ.idx _ log oa $$ [$Hlog $HoA] with ⟨Hlog, HoA, %HoaL⟩
@@ -89,10 +97,10 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin⟩
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev HrstR]
       as HrevMuR
     · inext
-      iunfold mvcc.revMuInv
+      iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
       iexists log, ntok, cm
       simp only [named]
       iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev
@@ -109,9 +117,11 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     ipersist Ctrace
     ipersist Ttx
     (try wp_auto)
-    ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
+    ihave Hfs := mvcc.fieldShare_close s γ _ _ _ _ _ $$ [Hpin Hfb Hfidx Hfsch Hfstop Hfrst]
+    · iframe Hpin Hfb Hfidx Hfsch Hfstop Hfrst
+    ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM Hfs]
     · iunfold mvcc.muHeld
-      iframe Hmul
+      iframe Hmul Hfs
       iunfold mvcc.muInvAt
       iframe HcmpM HcrevM
       iframe #
@@ -140,11 +150,11 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
         | exact ⟨Hne, trivial, Htrnn, HcM, Hc.2⟩
         | exact ⟨Hne, Htrnn, HcM, Hc.2⟩
         | exact ⟨Hne, rfl, Htrnn, HcM, Hc.2⟩
-    isplitl [Htok]
+    isplitl [Htok Hwr Htko]
     · iunfold mvcc.txReader
       iexists (mvcc.bucketMap log), m', Rd, Tok
       simp only [named]
-      iframe Htok Hthin
+      iframe Htok Hthin Hwr Htko
       isplitr
       · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
       ipureintro; exact fun _ _ h => h

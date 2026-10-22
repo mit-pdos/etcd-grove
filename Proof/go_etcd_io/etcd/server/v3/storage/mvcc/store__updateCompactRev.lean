@@ -66,6 +66,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
+  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
+  · iframe Hpin Hstop
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
@@ -73,7 +75,9 @@ theorem mvcc.store.updateCompactRev.wp_proof
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨Hwl, HR⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HR with HR
-  iunfold mvcc.revMuInv at HR
+  icases mvcc.revMuInv_open s γ _ _ $$ [HR Hrstd] with ⟨HR, HrstR, -⟩
+  · iframe HR Hrstd
+  iunfold mvcc.revMuBody at HR
   icases HR with ⟨%log, %ntok, %c', HR⟩
   iNamed HR
   iunfold mvcc.muInvAt at HmuA
@@ -133,10 +137,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
         iframe #
         ipureintro; trivial
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
         inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists log, ntok, c'
         simp only [named]
         iframe
@@ -160,7 +164,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       iexact Hbc0
   · ihave #Hcert' := Hcert
     iunfold mvcc.idxCert at Hcert'
-    icases Hcert' with ⟨-, -, %Hwf, -⟩
+    icases Hcert' with ⟨-, %Hwf, -⟩
     have hc : sint.Z (W64 c' : w64) = c' := by
       have := Hwf.2.1
       word
@@ -173,10 +177,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
     rw [hl]
     wp_if_destruct
     · -- `rev > s.currentRev`: `ErrFutureRev`
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
         inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists log, ntok, c'
         simp only [named]
         iframe
@@ -253,7 +257,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
         imod Hupd $$ HQ with ⟨HP, HPost⟩
         ihave HP0 := HPP0 $$ HP
         iunfold mvcc.writerRes at HW
-        icases HW with ⟨%ilog, %ntok', HW⟩
+        icases HW with ⟨%ilog, HW⟩
         iNamed HW
         iunfold mvcc.compactRes at Hcres
         icases Hcres with ⟨%sch, %fin, %n, Hmeta, Hfin, %Hn⟩
@@ -262,12 +266,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
         imodintro
         iframe HP0 HPost
         iunfold mvcc.writerRes
-        iexists ilog, ntok'
+        iexists ilog
         simp only [named]
         iframe
         iframe #
-        isplitr
-        · ipureintro; exact Hbudget
         isplitr
         · ipureintro; exact Hne
         iunfold mvcc.compactRes
@@ -285,10 +287,10 @@ theorem mvcc.store.updateCompactRev.wp_proof
       inext
       iintro -
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hrev Hclog Hbucket Htoks Hlog Hcmp Hcrev HrstR]
       · iframe #
         inext
-        iunfold mvcc.revMuInv
+        iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
         iexists log, ntok, sint.Z rev
         simp only [named]
         rw [hrw]

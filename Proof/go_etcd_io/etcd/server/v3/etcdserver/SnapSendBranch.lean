@@ -57,7 +57,9 @@ theorem snapBranch_send
     (Hty : st.msg.Type' = MsgSnap) (Hsn : st.snap = some sn0)
     (Hix : uint.Z sn0.Metadata'.Index' ≤ uint.Z ai)
     (HAlen : (A.length : Int) = uint.Z ai) (HAlast : A.getLast?.map EntryM.Term' = some at_)
-    (HN : γn.N = srvNet γ bud) :
+    (HN : γn.N = srvNet γ bud)
+    -- (D22 S-r, 2026-10-21) the cluster admits the merged snapshot's (empty) data
+    (Hsok : γ.reSnapOk A []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
         srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
@@ -68,7 +70,7 @@ theorem snapBranch_send
         -- (D22 S-b′3, 2026-10-20) the merged content's configuration certificate, of whatever
         -- `ep.confState` holds
         □ (∀ c : ConfStateM, csOpt cs DFrac.discard c -∗
-          raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave'⟩) ∗
+          raftSnapCert γ ⟨⟨at_, ai⟩, ConfStateM.lists c, c.AutoLeave', []⟩) ∗
         srvMemberIDAddr s ↦□ id ∗ srvInflight s ∗ srvStoppingAddr s ↦□ stg ∗ stopChan stg ∗
         rnTransportAddr (srvRAddr s) ↦□ tr ∗ netTransport γn tr }}
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap"))
@@ -83,7 +85,7 @@ theorem snapBranch_send
     ipureintro; exact Hlgnn
   ihave #HimgD := Himg $$ %D %HQ
   ihave #Hcc := Hccs $$ %c Hcso
-  imod srvMergedBundle γ bud ⊤ ml st sn0 c ai at_ A rc D (by simp) Hty Hsn Hix HAlen HAlast
+  imod srvMergedBundle γ bud ⊤ ml st sn0 c ai at_ A rc D (by simp) Hty Hsn Hix HAlen HAlast Hsok
     $$ Hinv Hrm Htlb Hbnd HA Hcc Hml Hrs HimgD with Hbun
   wp_apply hSMS s mg ml rc lg id stg tr γn $$ [Hgr Hlr Hbun] as ⟨Hgr, Hlr⟩
   · iframe #; iframe Hgr Hlr

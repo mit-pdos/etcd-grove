@@ -129,7 +129,7 @@ theorem NewMemoryStorage.wp_proof
     · ipureintro; exact ⟨CutOk.self _, Int.le_refl _⟩
     isplitr
     · ipureintro; exact Hcap
-    ileft; ipureintro; exact ⟨rfl, rfl, rfl⟩
+    ileft; ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   iapply wp_fupd
   wp_apply wp_EnsureSnapshot.1 null none $$ [] as %sp ⟨Hsp, -⟩
   · simp only [snapOpt]; ipureintro; trivial
@@ -158,7 +158,7 @@ theorem NewMemoryStorage.wp_proof
     · iunfold memSnapOwn
       iexists sp, _
       iframe snapshot Hsp
-      ipureintro; exact ⟨rfl, rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     iunfold memSnapCertOk; ileft; ipureintro; rfl
   imodintro
   iapply HΦ $$ %«$r0_ptr» %(⟨γh, γd, γe, γsn, γsw, γlk, γok, γak, γcb, γbd, cap, γct⟩ : MemStorNames)

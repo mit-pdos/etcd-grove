@@ -93,11 +93,11 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
   iunfold memSnapHome at Hhome
   icases Hhome with ⟨%σ1, Hsn, Hsnh, #Hcert1⟩
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
-  obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
+  obtain ⟨Hs1, Hs2, Hs3, Hs4⟩ := snapPart_inj Hag
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %HagS
-  obtain ⟨HS1, -, -⟩ := snapPart_inj HagS
-  ihave Hsn := memSnapOwn_congr ms σ1 σt Hs1 Hs2 Hs3 $$ Hsn
-  ihave #Hcertt := memSnapCertOk_congr γs σ1 σt Hs1 Hs2 Hs3 $$ Hcert1
+  obtain ⟨HS1, -, -, -⟩ := snapPart_inj HagS
+  ihave Hsn := memSnapOwn_congr ms σ1 σt Hs1 Hs2 Hs3 Hs4 $$ Hsn
+  ihave #Hcertt := memSnapCertOk_congr γs σ1 σt Hs1 Hs2 Hs3 Hs4 $$ Hcert1
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp0, %sv0, Hsnapshot, Hsnap0, %Hsnap_id⟩
   have Hss : σt.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
@@ -215,12 +215,12 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     imod ghostVar_update_halves (memStorApplied sv).prev γs.cb _ _ $$ Hcb Hcbt with ⟨Hcb, Hcbt⟩
     imod mono_nat_own_update (uint.Z (memStorApplied sv).prev.index').toNat
       (by simp only [memStorApplied, snapId]; omega) $$ Hbd with ⟨Hbd, -⟩
-    ihave #Hcerta := memSnapCertOk_of_sv γs (memStorApplied sv) sv ⟨rfl, rfl, rfl⟩ $$ Hcertn
+    ihave #Hcerta := memSnapCertOk_of_sv γs (memStorApplied sv) sv ⟨rfl, rfl, rfl, rfl⟩ $$ Hcertn
     imod memSnap_put ms γs 1 (memStorApplied sv) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hp'] Hsnh Hcerta with Hk
     · iunfold memSnapOwn
       iexists p', sv
       iframe
-      ipureintro; exact ⟨rfl, rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     iunfold memSnapKeys at Hk
     icases Hk with (⟨-, Hlk, Hok⟩ | ⟨%Hk, -⟩ | ⟨%Hk, -⟩)
     rotate_left
@@ -265,7 +265,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
         simp only [memStorApplied, snapId]; exact Int.le_refl _
       isplitr
       · ipureintro; simp only [memStorApplied, snapId]; exact Hcap
-      ileft; ipureintro; exact ⟨rfl, rfl, rfl⟩
+      ileft; ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     iapply HΦ
     iframe Hsnap
     iright

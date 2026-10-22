@@ -1187,6 +1187,31 @@ instance pendingRel_pers (γ : RaftNames) (id : w64) (st : MsgSt) (p : Pending) 
     Persistent (pendingRel (GF := GF) γ id st p) := by
   cases p <;> unfold pendingRel <;> infer_instance
 
+/-- (2026-10-21, D22 S-r) **A `MsgSnap`'s data certificate**: the snapshot it carries has the data
+the cluster admits at its index (`snapDataOk`). Vacuous for every other message. What a `Ready`
+says of the messages it hands out (`isRaftMsg`), and what `node.Step` takes of one from the
+network (`netP`). -/
+def msgDat (γ : RaftNames) (st : MsgSt) : IProp GF :=
+  iprop(□ (∀ sv : SnapshotM, ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sv⌝ -∗
+    snapDataOk γ sv.Metadata'.Index' sv.Data'))
+
+instance msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat (GF := GF) γ st) := by
+  unfold msgDat; infer_instance
+
+/-- No data certificate is needed of a message other than a `MsgSnap`. -/
+theorem msgDat_of_ne (γ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgSnap) :
+    ⊢ msgDat (GF := GF) γ st := by
+  unfold msgDat
+  iintro !> %sv %Hs
+  exact absurd Hs.1 h
+
+/-- ... nor of one without a snapshot. -/
+theorem msgDat_of_none (γ : RaftNames) (st : MsgSt) (h : st.snap = none) :
+    ⊢ msgDat (GF := GF) γ st := by
+  unfold msgDat
+  iintro !> %sv %Hs
+  rw [h] at Hs; cases Hs.2
+
 /-- A message `Ready` hands to the application to send: what it contributes to the
 protocol's messages (`msgAbs`: nothing, for a type the protocol does not describe) was
 legitimately sent (`isMessage`). (2026-10-16, stage R5: on the message's state; `msgAbs` is
@@ -1199,15 +1224,24 @@ S-c) in the no-transfer mode alone: its types exclude the transfer messages (adm
 `MsgSnap`), and its stamped terms are past `0`, which the mode's bootstrap log gives
 (`NGhost.bt`, `XfOk`; until S-c the no-snapshot mode's). (2026-10-20, D22 S-b′3) Certified
 (`isMessageC`): a `MsgSnap` carries its snapshot's configuration certificate (`raftSnapCert`),
-which the `Ready` took from the storage's registry (`qSrc`, `certLink`). -/
+which the `Ready` took from the storage's registry (`qSrc`, `certLink`). (2026-10-21, D22 S-r)
+And its snapshot's data certificate (`msgDat`), from the same registry. -/
 def isRaftMsg (γ : RaftNames) (st : MsgSt) : IProp GF :=
   iprop(⌜γ.reNoSnap = true → st.msg.Type' ≠ MsgSnap⌝ ∗
     ⌜γ.reNoXfer = true → SentMsgOk st⌝ ∗
-    ∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x)
+    (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
+    msgDat γ st)
 
 instance isRaftMsg_pers (γ : RaftNames) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ st) := by
   unfold isRaftMsg; infer_instance
+
+/-- (D22 S-r) A message's data certificate, out of `isRaftMsg`. -/
+theorem isRaftMsg_dat (γ : RaftNames) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ st ⊢ msgDat γ st := by
+  unfold isRaftMsg
+  iintro ⟨-, -, -, #H⟩
+  iexact H
 
 /-- The records of what the storage holds (2026-10-10): `L` (after `b`) is a log with
 records (`logRecs`), as `ownLogGhost` keeps of the node's log; `ownRawNode` keeps it of

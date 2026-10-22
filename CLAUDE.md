@@ -262,8 +262,9 @@ Perennial (the Go framework, its standard-library models and Goose) is a shared,
 general-purpose dependency. Do not change it to unblock a particular proof: no model
 assumption, axiom or spec added to Perennial because a proof here is stuck, and no
 change shaped by one proof's needs. When a proof hits a limitation of Perennial (a missing
-or too-weak spec, a translator gap, a tactic problem), record it (`notes/STATUS.md`, and
-`notes/decisions.md` for the reasoning), work around it locally in this repository (a lemma,
+or too-weak spec, a translator gap, a tactic problem), record it (an entry in
+`notes/perennial-changes.md`, the running list of the Perennial changes this repository
+needs; `notes/STATUS.md`, and `notes/decisions.md` for the reasoning), work around it locally in this repository (a lemma,
 a clearly marked trust-boundary axiom here, or a local override, like `stepLeader.lean`'s
 `iframe ∗`), and propose the general fix as an independent Perennial change, designed and
 reviewed on its own. Pin bumps that bring such general changes are fine. (The cautionary

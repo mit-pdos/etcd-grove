@@ -68,7 +68,7 @@ theorem MemoryStorage.Snapshot.wp_proof
         by_cases hn : n ≤ 0
         · left; exact hn
         · right; omega
-    ihave %Hrel : ⌜(S.ss = σ0.ss ∧ S.scs = σ0.scs ∧ S.sal = σ0.sal) ∨
+    ihave %Hrel : ⌜(S.ss = σ0.ss ∧ S.scs = σ0.scs ∧ S.sal = σ0.sal ∧ S.sdat = σ0.sdat) ∨
         (uint.Z σ0.ss.index' < uint.Z S.ss.index' ∧ uint.Z σ0.prev.index' ≤ uint.Z S.ss.index' ∧
           termAt σ0.prev σ0.ents S.ss.index' = some S.ss.term' ∧
           uint.Z S.ss.index' ≤ uint.Z σ.fl)⌝ $$ [Hview]
@@ -86,7 +86,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iunfold memSnapHome at Hhome
     icases Hhome with ⟨%σp, Hown, Hsnh, #Hcert⟩
     icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %Hag
-    obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
+    obtain ⟨Hs1, Hs2, Hs3, Hs4⟩ := snapPart_inj Hag
     iunfold memSnapOwn at Hown
     icases Hown with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
     wp_auto
@@ -98,7 +98,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     simp only [Option.getD_some]
     wp_apply wp_CloneSnapshot.1 r (DFrac.own 1) sv $$ [Hr] as %p' ⟨Hr, Hp'⟩
     · iframe Hr
-    ihave #Hcsv := memSnapCertOk_sv γs σp sv ⟨Hsnap_id.1, Hsnap_id.2.1, Hsnap_id.2.2⟩ $$ Hcert
+    ihave #Hcsv := memSnapCertOk_sv γs σp sv Hsnap_id $$ Hcert
     imod memSnap_put ms γs 1 σp ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hr] Hsnh Hcert with Hk
     · iunfold memSnapOwn
       iexists r, sv
@@ -142,7 +142,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     have Hsid : snapId sv = S.ss := Hsnap_id.1.trans Hs1.symm
     have Hidx : sv.Metadata'.Index' = S.ss.index' := by rw [← Hsid]; rfl
     have Htm : sv.Metadata'.Term' = S.ss.term' := by rw [← Hsid]; rfl
-    obtain ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3⟩, Hve, Hvi⟩ := Hvw
+    obtain ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3, Hvs4⟩, Hve, Hvi⟩ := Hvw
     have := (word.unsigned_range σ.prev.index').1
     have Hcp := Hcok.1.1
     have HcS := Hcok.2
@@ -153,16 +153,17 @@ theorem MemoryStorage.Snapshot.wp_proof
         have : uint.Z σ.prev.index' ≠ 0 := fun hz => h (by word)
         intro hz; rw [hz] at HcS; have : uint.Z (W64 0) = 0 := rfl; omega
       · intro hz; rw [hz] at HcS; have : uint.Z (W64 0) = 0 := rfl; omega
-    rcases Hrel with ⟨Hr1, Hr2, Hr3⟩ | ⟨Hr1, Hr2, Hr3, Hr4⟩
+    rcases Hrel with ⟨Hr1, Hr2, Hr3, Hr4⟩ | ⟨Hr1, Hr2, Hr3, Hr4⟩
     · left
-      refine ⟨Hsid.trans (Hr1.trans Hvs1), ?_, ?_⟩
-      · rw [Hsnap_id.2.2, ← Hs3, Hr3, Hvs3]
+      refine ⟨Hsid.trans (Hr1.trans Hvs1), ?_, ?_, ?_⟩
+      · rw [Hsnap_id.2.2.1, ← Hs3, Hr3, Hvs3]
       · rw [Hsnap_id.2.1, ← Hs2, Hr2, Hvs2]
+      · rw [Hsnap_id.2.2.2, ← Hs4, Hr4, Hvs4]
     · right
       rw [Hidx, Htm, ← Hvs1, ← Hvp]
       refine ⟨Hr1, Hr2, Hr4, ?_⟩
       rw [Hvp]
-      exact memView_termAt_below σ σ0 ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3⟩, Hve, Hvi⟩
+      exact memView_termAt_below σ σ0 ⟨Hvp, ⟨Hvs1, Hvs2, Hvs3, Hvs4⟩, Hve, Hvi⟩
         Hpend.1 Hpend.2 _ _ Hr3 Hr4 (by rw [← Hvp]; exact Hr2)
   · -- the application's: the lock's key and the application's
     intro ms γs σ
@@ -188,7 +189,7 @@ theorem MemoryStorage.Snapshot.wp_proof
     iunfold memSnapHome at Hhome
     icases Hhome with ⟨%σp, Hown, Hsnh, #Hcert⟩
     icases ghostVar_agree γs.sn _ _ _ _ $$ Hsv Hsnh with %Hag
-    obtain ⟨Hs1, Hs2, Hs3⟩ := snapPart_inj Hag
+    obtain ⟨Hs1, Hs2, Hs3, Hs4⟩ := snapPart_inj Hag
     iunfold memSnapOwn at Hown
     icases Hown with ⟨%sp, %sv, Hsnapshot, Hsnap, %Hsnap_id⟩
     wp_auto
@@ -231,7 +232,8 @@ theorem MemoryStorage.Snapshot.wp_proof
     iexists sv
     iframe Hp'
     ipureintro
-    exact ⟨Hsnap_id.1.trans Hs1.symm, Hsnap_id.2.2.trans Hs3.symm, Hsnap_id.2.1.trans Hs2.symm⟩
+    exact ⟨Hsnap_id.1.trans Hs1.symm, Hsnap_id.2.2.1.trans Hs3.symm, Hsnap_id.2.1.trans Hs2.symm,
+      Hsnap_id.2.2.2.trans Hs4.symm⟩
 
 end proof
 

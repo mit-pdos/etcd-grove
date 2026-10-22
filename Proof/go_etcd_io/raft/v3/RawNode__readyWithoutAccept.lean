@@ -611,7 +611,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
         have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl
         omega
       refine ⟨⟨by trivial, Hss, Hsp, Hk, Hi0, rfl, Hce0, Hdpre, Hlen, Hapl, Hnx⟩,
-        ⟨rfl, Hce0, Hdpre, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_⟩
+        ⟨rfl, Hce0, Hdpre, ?_, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_⟩
+      · -- (D22 S-r) past the committed log handed out: `applying` is below the snapshot
+        have : uint.Z (snapId svs).index' = uint.Z svs.Metadata'.Index' := rfl
+        have := uint_Z_nonneg s.logst.applying
+        rw [Hdlen, Hlen]; omega
       · have := Hflb.1
         show uint.Z s.logst.fl ≤ uint.Z (snapId svs).index'
         omega

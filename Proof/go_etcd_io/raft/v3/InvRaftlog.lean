@@ -287,10 +287,10 @@ instance ownSnap_pers (p : Loc) (snap : Option entryID) :
 /-- The snapshots a log built on the storage at `σ` may send at first (2026-10-15, stage S): the
 storage's, unless it is the empty one. -/
 def initKsn (σ : StorState) : List SnapTrip :=
-  if σ.ss.index' = W64 0 then [] else [SnapTrip.mk σ.ss σ.scs σ.sal]
+  if σ.ss.index' = W64 0 then [] else [SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat]
 
 theorem initKsn_mem (σ : StorState) (h : σ.ss.index' ≠ W64 0) :
-    SnapTrip.mk σ.ss σ.scs σ.sal ∈ initKsn σ := by
+    SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ initKsn σ := by
   unfold initKsn; rw [ite_eq_right h]; exact List.mem_singleton_self _
 
 /-- (D22 S-b′3, 2026-10-20) The storage's initial snapshot, if any, is certified in its registry:
@@ -670,29 +670,24 @@ abbrev SipOk (ls : LogState) (off : w64) : Prop :=
   -- (D22 S-d3a, 2026-10-21) a pending snapshot not yet handed out: nothing after it is in progress
   -- (`restore` sets `offsetInProgress` to the offset, a truncation keeps it there, only
   -- `acceptUnstable` moves it, and sets `snapshotInProgress`), so a snapshot `Ready` hands out
-  -- every entry after the snapshot, which the storage then holds (`stored`); and `applying` is at
-  -- most the snapshot's index (`restore` is past the commit index, and nothing is applied while
-  -- a snapshot is pending)
-  (ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z ls.applying ≤ uint.Z ls.prev.index')
+  -- every entry after the snapshot, which the storage then holds (`stored`); and `applying` is
+  -- below the snapshot's index (`restore` is past the commit index, and nothing is applied while
+  -- a snapshot is pending; D22 S-r, 2026-10-21: strictly, until then at most)
+  (ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z ls.applying < uint.Z ls.prev.index')
 
-/-- (D22 S-d3a) `applying` moved to `a`, below `offsetInProgress` (or not past `applying`): with
-a pending snapshot not yet handed out, `offsetInProgress` is the offset, right after the
-snapshot, so `a` is at most the snapshot's index. -/
+/-- (D22 S-d3a) `applying` moved to `a`: with a pending snapshot not yet handed out, (D22 S-r) not
+past `applying` or below the snapshot's index (until S-r: below `offsetInProgress`, the offset right
+after the snapshot, so at most its index). -/
 theorem SipOk.applying_lt {ls : LogState} {σ : StorState} {off a : w64} (H : SipOk ls off)
-    (Hst : LogStoreOk ls.snap σ ls.prev ls.sents ls.uents)
-    (Hoff : uint.Z off = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)
-    (Ha : uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.inprogress) :
-    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a ≤ uint.Z ls.prev.index' := by
+    (_Hst : LogStoreOk ls.snap σ ls.prev ls.sents ls.uents)
+    (_Hoff : uint.Z off = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)
+    (Ha : ls.snap ≠ none → ls.sip = false →
+      uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.prev.index') :
+    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a < uint.Z ls.prev.index' := by
   intro h1 h2
   obtain ⟨Hio, Hapl⟩ := H.2 h1 h2
   refine ⟨Hio, ?_⟩
-  obtain ⟨sid, hs⟩ := Option.ne_none_iff_exists'.1 h1
-  rw [hs] at Hst
-  obtain ⟨-, Hse, -⟩ := Hst
-  rw [Hse] at Hoff
-  simp only [List.length_nil, Int.natCast_zero, Int.add_zero] at Hoff
-  rw [Hio] at Ha
-  omega
+  rcases Ha h1 h2 with h | h <;> omega
 
 /-- (D22 S-d2, 2026-10-21) What the log says while the storage is at the pending snapshot
 (`LogState.sat`): the application's receipt of the snapshot in progress absorbed -- the storage
@@ -757,7 +752,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
   -- (2026-10-15, stage S) the snapshots `raftLog.snapshot` may return are ones the node may
   -- send (`ksn`): the storage's, once it is not the empty one, and the pending one
-  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn⌝ ∗
+  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn⌝ ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   -- (D22 S-b′3, 2026-10-20) and each is certified in the storage's registry (`storCert`): the
   -- storage's from its own registry (`newRaft`'s premise), a restored one registered from its
@@ -842,7 +837,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
     lv.storage' = ls.storage →
     PendLogOk σ ls →
     FlOk σ ls →
-    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
+    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn) →
     lv.unstable'.snapshotInProgress' = ls.sip →
     (ls.snap = none → ls.sip = false) →
     (ls.lent = true → ls.snap ≠ none) →
@@ -919,8 +914,9 @@ theorem SipOk.applying_ltW {ls : LogState} {σ : StorState} {off a : w64} (H : S
     (Hst : LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents)
     (Hsapp : ls.sapp = true → SappOk σ ls)
     (Hoff : uint.Z off = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)
-    (Ha : uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.inprogress) :
-    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a ≤ uint.Z ls.prev.index' := by
+    (Ha : ls.snap ≠ none → ls.sip = false →
+      uint.Z a ≤ uint.Z ls.applying ∨ uint.Z a < uint.Z ls.prev.index') :
+    ls.snap ≠ none → ls.sip = false → ls.inprogress = off ∧ uint.Z a < uint.Z ls.prev.index' := by
   intro h1 h2
   have hs : ls.sapp = false := by
     cases hh : ls.sapp with
@@ -950,7 +946,7 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "HStorage" ∷ lentStor ls.lent lv.storage' σ ∗
   "%Hstore" ∷ ⌜LogStoreOk (snapV ls) σ ls.prev ls.sents ls.uents⌝ ∗
   "#Husnap" ∷ ownSnap lv.unstable'.snapshot' ls.snap ∗
-  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn⌝ ∗
+  "%Hsksn" ∷ ⌜σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn⌝ ∗
   "#Hpksn" ∷ pendKsn lv.unstable'.snapshot' ls.snap ls.ksn ∗
   "#Hkcert" ∷ ([∗list] k ∈ ls.ksn, storCert lv.storage' k) ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
@@ -1013,7 +1009,7 @@ theorem ownRaftLogW_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorStat
     lv.storage' = ls.storage →
     PendLogOk σ ls →
     FlOk σ ls →
-    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal ∈ ls.ksn) →
+    (σ.ss.index' ≠ W64 0 → SnapTrip.mk σ.ss σ.scs σ.sal σ.sdat ∈ ls.ksn) →
     lv.unstable'.snapshotInProgress' = ls.sip →
     (ls.snap = none → ls.sip = false) →
     (ls.lent = true → ls.snap ≠ none) →

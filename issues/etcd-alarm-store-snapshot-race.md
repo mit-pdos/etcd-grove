@@ -57,5 +57,11 @@ candidate: issues/upstream/etcd-alarm-store-snapshot-race/
   `applySnapshot` calls it instead of `restoreAlarms`, so `s.alarmStore` is written only by `NewServer` (the
   comparison is in the candidate's `meta.md`). For the proof this makes the field read-only for good again
   (`srvAlarmStoreAddr s ↦□` holds through the snapshot path); `Recover` needs a spec on the store's lock invariant.
+- **Fixed in the fork** (2026-10-22, `goose-lean` `8fd98af04`, under `188113160`, the pin of
+  `etc/goose.py`): the upstream candidate's fix (`d396a0fc7`, `AlarmStore.Recover` called by
+  `applySnapshot`, the two unit tests given an alarm store) with its test `TestV3AlarmsDuringSnapshotInstall`
+  (`tests/integration/v3_alarm_test.go`) in one commit. With `-race`, the test fails 5 of 5 without
+  the fix (two or three `DATA RACE` reports each: `restoreAlarms` against `Alarms`, and `Get` against
+  `NewAlarmStore`'s initialization) and passes 15 of 15 with it.
 - **Found**: 2026-10-20, stage S-j2 of track T-S, listing the server fields `applySnapshot` writes
   against the proof's read-only facts of them.
