@@ -439,7 +439,6 @@ axiom types.ID.String.wp_proof
 axiom types.ID.String_ptr.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom utf8.ValidString.wp_proof
-axiom v2stats.NewLeaderStats.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof

@@ -2,6 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.raft.v3
+public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
@@ -16,25 +20,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
-
-namespace LeaderStats
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
-
-instance LeaderStats_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats :=
-  sorry -- axiomatized type
-
-instance LeaderStats_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaderStats
 
 namespace leaderStats
 section def_
@@ -93,7 +78,7 @@ instance leaderStats_access_store_Followers (l : Loc) (v : go_etcd_io.etcd.serve
 end def_
 end leaderStats
 
-namespace FollowerStats
+namespace LeaderStats
 section def_
 
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
@@ -101,16 +86,71 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
 
-instance FollowerStats_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats :=
-  sorry -- axiomatized type
+instance LeaderStats_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) v.lg' dq ∗
+    "leaderStats" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) v.leaderStats' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) v.Mutex' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance FollowerStats_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats.underlying :=
-  sorry -- axiomatized type
+instance LeaderStats_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats.underlying := by
+  solve_into_val_typed_struct
+
+instance LeaderStats_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaderStats_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaderStats_access_load_leaderStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) v.leaderStats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) v.leaderStats' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaderStats_access_store_leaderStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (leaderStats' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) v.leaderStats' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"leaderStats" l) leaderStats' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderStats' := leaderStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaderStats_access_load_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance LeaderStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (Mutex' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats go!"Mutex" l) Mutex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LeaderStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
-end FollowerStats
+end LeaderStats
 
 namespace LatencyStats
 section def_
@@ -294,6 +334,80 @@ instance CountsStats_access_store_Success (l : Loc) (v : go_etcd_io.etcd.server.
 end def_
 end CountsStats
 
+namespace FollowerStats
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
+
+instance FollowerStats_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats where
+  typedPointstoDef l v dq := iprop(
+    "Latency" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) v.Latency' dq ∗
+    "Counts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) v.Counts' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) v.Mutex' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance FollowerStats_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats.underlying := by
+  solve_into_val_typed_struct
+
+instance FollowerStats_access_load_Latency (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) v.Latency' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) v.Latency' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance FollowerStats_access_store_Latency (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (Latency' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) v.Latency' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Latency" l) Latency' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latency' := Latency' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance FollowerStats_access_load_Counts (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) v.Counts' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) v.Counts' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance FollowerStats_access_store_Counts (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (Counts' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) v.Counts' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Counts" l) Counts' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Counts' := Counts' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance FollowerStats_access_load_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance FollowerStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (Mutex' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats go!"Mutex" l) Mutex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end FollowerStats
+
 namespace RequestStats
 section def_
 
@@ -303,12 +417,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
 
 instance RequestStats_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats where
+  typedPointstoDef l v dq := iprop(
+    "SendingTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) v.SendingTime' dq ∗
+    "Size" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) v.Size' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance RequestStats_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats.underlying := by
+  solve_into_val_typed_struct
+
+instance RequestStats_access_load_SendingTime (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) v.SendingTime' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) v.SendingTime' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance RequestStats_access_store_SendingTime (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (SendingTime' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) v.SendingTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"SendingTime" l) SendingTime' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendingTime' := SendingTime' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance RequestStats_access_load_Size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) v.Size' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) v.Size' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance RequestStats_access_store_Size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (Size' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) v.Size' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats go!"Size" l) Size' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := Size' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.RequestStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end RequestStats
@@ -322,34 +474,121 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
 
 instance statsQueue_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue where
+  typedPointstoDef l v dq := iprop(
+    "items" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) v.items' dq ∗
+    "size" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) v.size' dq ∗
+    "front" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) v.front' dq ∗
+    "back" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) v.back' dq ∗
+    "totalReqSize" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) v.totalReqSize' dq ∗
+    "rwl" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) v.rwl' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance statsQueue_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue.underlying := by
+  solve_into_val_typed_struct
+
+instance statsQueue_access_load_items (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) v.items' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) v.items' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_store_items (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (items' : (GoArray Loc 200)) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) v.items' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"items" l) items' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := items' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_load_size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) v.size' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) v.size' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_store_size (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (size' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) v.size' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"size" l) size' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := size' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_load_front (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) v.front' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) v.front' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_store_front (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (front' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) v.front' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"front" l) front' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with front' := front' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_load_back (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) v.back' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) v.back' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_store_back (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (back' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) v.back' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"back" l) back' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with back' := back' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_load_totalReqSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) v.totalReqSize' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) v.totalReqSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_store_totalReqSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (totalReqSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) v.totalReqSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"totalReqSize" l) totalReqSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with totalReqSize' := totalReqSize' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_load_rwl (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) v.rwl' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) v.rwl' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance statsQueue_access_store_rwl (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (rwl' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) v.rwl' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue go!"rwl" l) rwl' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rwl' := rwl' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.statsQueue) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end statsQueue
-
-namespace ServerStats
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
-
-instance ServerStats_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats :=
-  sorry -- axiomatized type
-
-instance ServerStats_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ServerStats
 
 namespace serverStats
 section def_
@@ -369,6 +608,63 @@ instance serverStats_into_val_typed :
 
 end def_
 end serverStats
+
+namespace ServerStats
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
+
+instance ServerStats_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats where
+  typedPointstoDef l v dq := iprop(
+    "serverStats" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) v.serverStats' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) v.Mutex' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance ServerStats_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats.underlying := by
+  solve_into_val_typed_struct
+
+instance ServerStats_access_load_serverStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) v.serverStats' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) v.serverStats' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerStats_access_store_serverStats (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (serverStats' : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.serverStats) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) v.serverStats' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"serverStats" l) serverStats' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverStats' := serverStats' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerStats_access_load_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance ServerStats_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (Mutex' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats go!"Mutex" l) Mutex' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := Mutex' } : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ServerStats
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 end
