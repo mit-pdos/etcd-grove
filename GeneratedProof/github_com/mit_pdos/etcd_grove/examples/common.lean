@@ -10,6 +10,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.net
+public import GeneratedProof.net.http
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.common
 

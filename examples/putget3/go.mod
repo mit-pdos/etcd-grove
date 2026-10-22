@@ -11,7 +11,11 @@ replace (
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
 )
 
+// The examples' shared start (examples/common), as translated.
+replace github.com/mit-pdos/etcd-grove/examples/common => ../common
+
 require (
+	github.com/mit-pdos/etcd-grove/examples/common v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.0.0-00010101000000-000000000000

@@ -29,7 +29,6 @@ package linkv3p
 import (
 	"context"
 	"net"
-	"net/http"
 	"sync"
 	"time"
 
@@ -42,11 +41,10 @@ import (
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/server/v3/config"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
-	"go.etcd.io/etcd/server/v3/features"
 
+	"github.com/mit-pdos/etcd-grove/examples/common"
 	"github.com/mit-pdos/etcd-grove/examples/linkvtxn"
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
@@ -96,43 +94,16 @@ type Step struct {
 }
 
 // startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
-// URL http://peerAddr): the server (configured as putget3's, with linkv3p's cluster token), its
-// raft handler served on a listener at peerAddr, the server started, and its gRPC server served
-// on a listener at client.
+// URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
+// examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
+// server served on a listener at client.
 func startMember(name string, peer types.URLs, peerAddr string, client string,
 	cluster types.URLsMap, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	cfg := config.ServerConfig{
-		Name:    name,
-		DataDir: name + ".etcd",
-		// the three members: a new cluster
-		InitialPeerURLsMap:  cluster,
-		PeerURLs:            peer,
-		ClientURLs:          types.URLs{{Scheme: "http", Host: client}},
-		InitialClusterToken: "linkv3p",
-		NewCluster:          true,
-		// as putget3: raft's clock, etcd's default snapshot count, the catch-up entries past
-		// the theorem's step bound (NewServer's run bound, D21 M3), etcd's default request
-		// limits
-		TickMs:                 100,
-		ElectionTicks:          10,
-		SnapshotCount:          etcdserver.DefaultSnapshotCount,
-		SnapshotCatchUpEntries: 1 << 48,
-		MaxTxnOps:              128,
-		MaxRequestBytes:        1536 * 1024,
-		// NewServer's premises, as putget3
-		Logger:            lg,
-		ServerFeatureGate: features.NewDefaultServerFeatureGate(name, lg),
-	}
-	s, err := etcdserver.NewServer(cfg)
+	// the server (configured as putget3's, with linkv3p's cluster token) and its raft handler
+	s, err := common.NewMember(name, peer, peerAddr, client, cluster, "linkv3p", lg)
 	if err != nil {
 		return nil, err
 	}
-	// the member's peer URL is served by its own transport (D21b's deployment fact)
-	l, err := net.Listen("tcp", peerAddr)
-	if err != nil {
-		return nil, err
-	}
-	go http.Serve(l, s.RaftHandler())
 	// the member's client address, before the server starts (an error leaves nothing running)
 	cl, err := net.Listen("tcp", client)
 	if err != nil {

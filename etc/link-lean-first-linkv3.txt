@@ -3,21 +3,12 @@
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
 # `linkv3`.
 #
-# `startMember`: putget3's start of one member (the server's results, linked in its `Link.lean`;
-# the feature gate's, `net.Listen`'s, `RaftHandler`'s and `http.Serve`'s trust-boundary axioms)
-etcdserver_NewServer: @
-EtcdServer__Start: @
-features_NewDefaultServerFeatureGate:
-net_Listen:
-EtcdServer__RaftHandler:
-http_Serve:
-linkv3_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start net_Listen EtcdServer__RaftHandler http_Serve
-# `Main`: putget3's start of the cluster and the client (v3rpc's and the client's results, linked
-# in their `Link.lean`s; zap's and grpc's trust-boundary axioms), then linkv's `Check` (linked in
-# linkv's `Link.lean`)
-v3rpc_Server: @
-client_v3_New: @
+# `Main`: the examples' shared start of the cluster and the client (`common`'s `StartMember`,
+# `Serve`, `NewClient`, linked in its `Link.lean`; zap's trust-boundary axiom), then linkv's
+# `Check` (linked in linkv's `Link.lean`)
+common_StartMember: @
+common_Serve: @
+common_NewClient: @
 linkv_Check: @
 zap_NewNop:
-grpc_Server__Serve:
-linkv3_Main: zap_NewNop linkv3_startMember v3rpc_Server net_Listen grpc_Server__Serve client_v3_New linkv_Check
+linkv3_Main: zap_NewNop common_StartMember common_Serve common_NewClient linkv_Check

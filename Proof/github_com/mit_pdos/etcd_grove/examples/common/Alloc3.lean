@@ -1,19 +1,22 @@
 /-
-**The ghost state `Main` allocates before the members** (D21 stage M5, 2026-10-19). Lean-first (no
-Rocq counterpart). putget's `putget_alloc` (`putget/Alloc.lean`) for three members.
+**The ghost state a three-member example's `Main` allocates before its members** (2026-10-22, D33).
+Lean-first (no Rocq counterpart). What putget3's `putget3_alloc`, linkv3's and linkv3p's
+`cluster3_alloc` were, once, at a workload `W` and a peer-URL directory `dir`.
 
-`putget3_alloc`: for the three-member cluster `[id₁, id₂, id₃]` and its bootstrap log
-(`BootFacts`), at the leases-off workload `putgetWorkload`: each member's names chosen before its
-`NewServer` (`newServerNames_alloc`), the claimers' facts at each member's prefix that member's
-(`srvFloorFact` of its stand-in environment; the prefixes are distinct, D21e (A)); the cluster's
-resources once (`srvClusterBoot_alloc`), the term budget once (`budget_alloc_boot`), each member's
-names and share (`srvMemberBoot_alloc`); the raft network with a slot per member and the directory
-`dir3` (`netNames_alloc`); and the client's `etcdKV` at the bootstrap log's model, at the first
-member's names. What one member's `NewServer` takes is `memberBoot`.
+`alloc3`: for the three-member cluster `[id₁, id₂, id₃]` (in `bootstrap`'s order) and its bootstrap
+log (`BootLogOk` under `ccOk`; the ids' 16 low bits distinct and not `0`, D21e (A)): each member's
+names chosen before its `NewServer` (`newServerNames_alloc`), the claimers' facts at each member's
+prefix that member's (`srvFloorFact` of its stand-in environment; the prefixes are distinct); the
+cluster's resources once (`srvClusterBoot_alloc`), the term budget once (`budget_alloc_boot`), each
+member's names and share (`srvMemberBoot_alloc`, `memberBoot_of`); the raft network with a slot per
+member and the directory `dir` (`netNames_alloc`); and the client's `etcdKV` at the bootstrap log's
+model, at the first member's names, the others' KV names agreeing with them in state variable and
+workload, and their KV models one (the cluster's `etcdKV`, D21 M4: an invariant over it allocated
+at one member's names is every member's).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAlloc
 
 @[expose] public section
@@ -24,7 +27,7 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace putget3
+namespace common
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
@@ -34,58 +37,35 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **The stand-in apply environment** (`NewServer.spec`'s `E₀`; putget's `env₀`). -/
-def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
-  { s := null,
-    γ := { idx := idx, bucket := 0, clog := 0, leases := 0, revs := 0, hook := 0, hookFn := 0,
-           kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0⟩, cok := cok, watchQ := false },
-    P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authOn := false,
-    FS := iprop(True), ciC := fun _ => True }
-
-/-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
-resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
-premises'. -/
-def memberBoot (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM) (ρ : ReqNames)
-    (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) : IProp GF :=
-  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ srvCCPolicy ρ.rd.raft ∧
-      ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
-      ρ.rd.kv.log0 = [[], []] ∧ ρ.rd.kv.cok = E₀.γ.cok ∧ ρ.rd.kv.wl = W ∧
-      ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ Φs ρ.ids.pfx = srvFloorFact E₀⌝ ∗
-    ownRaftGhost γ id (bootPState bootLog) ∗ isCommitted γ bootLog ∗ raftCommitInv γ ∗
-    inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) ∗
-    idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ idNoZero ρ.ids ∗
-    srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-    idShare ρ.ids ∗ rdCred γ (2 ^ 48) ∗ idWaitTok ρ.ids ∗
-    mvcc.idxFresh E₀.γ.idx ∗
-    ghostMapAuth E₀.γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗
-    ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
-    srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv)
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- The three prefixes are distinct. -/
-theorem pfx_ne (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : BootFacts id₁ id₂ id₃ bootLog) :
+theorem pfx_ne (id₁ id₂ id₃ : w64) (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0) :
     idPfxOf (W16 (uint.Z id₁)) ≠ idPfxOf (W16 (uint.Z id₂)) ∧
     idPfxOf (W16 (uint.Z id₁)) ≠ idPfxOf (W16 (uint.Z id₃)) ∧
     idPfxOf (W16 (uint.Z id₂)) ≠ idPfxOf (W16 (uint.Z id₃)) := by
-  have h := (idPfxsOf_ok [id₁, id₂, id₃] Hbf.idLow Hbf.idLow0).1
+  have h := (idPfxsOf_ok [id₁, id₂, id₃] Hlow Hlow0).1
   simp only [idPfxsOf, List.map_cons, List.map_nil, List.nodup_cons, List.mem_cons,
     List.not_mem_nil, or_false] at h
   refine ⟨fun e => h.1 (Or.inl e), fun e => h.1 (Or.inr e), fun e => h.2.1 e⟩
 
 /-- The three ids are distinct. -/
-theorem id_ne (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : BootFacts id₁ id₂ id₃ bootLog) :
+theorem id_ne (id₁ id₂ id₃ : w64) (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0) :
     id₁ ≠ id₂ ∧ id₁ ≠ id₃ ∧ id₂ ≠ id₃ := by
-  obtain ⟨h1, h2, h3⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
+  obtain ⟨h1, h2, h3⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   exact ⟨fun e => h1 (by rw [e]), fun e => h2 (by rw [e]), fun e => h3 (by rw [e])⟩
 
 /-- No id is `0`. -/
-theorem id_nz (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : BootFacts id₁ id₂ id₃ bootLog) :
+theorem id_nz (id₁ id₂ id₃ : w64) (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0) :
     ∀ id ∈ [id₁, id₂, id₃], id ≠ W64 0 := by
   intro id hid e
-  apply Hbf.idLow0 id hid
+  apply Hlow0 id hid
   rw [e]; decide
 
-/-- **`memberBoot` from the allocations**, for one member (the common step of `putget3_alloc`). -/
+/-- **`memberBoot` from the allocations**, for one member (the common step of `alloc3`). -/
 theorem memberBoot_of (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bootLog : List EntryM)
     (issued cnt : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (id : w64) (idx : mvcc.IdxNames) (cok rev : GName)
@@ -129,21 +109,29 @@ theorem memberBoot_of (W : SrvWorkload) (γ : RaftNames) (bud : BudgetNames) (bo
   iexact H0
 
 /-- **What `Main` takes of the ghost state, for its cluster** (see the file header). -/
-theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
-    (Hbf : BootFacts id₁ id₂ id₃ bootLog) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
+theorem alloc3 (W : SrvWorkload) (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
+    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
+    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
+    (Hboot : BootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog) (dir : w64 → List GoString)
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
       ⌜γ.reCfg = GMap.listToSet [id₁, id₂, id₃] ∧ γ.reDyn = none ∧
         γ.reCCOk = ccOk [id₁, id₂, id₃] ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γ.reNoXfer = true ∧ γn.N = srvNet γ bud ∧ γn.dir = dir3 id₁ id₂ id₃ ∧ ρ₁.rd.kv.wl = putgetWorkload⌝ ∗
-      memberBoot putgetWorkload γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
-      memberBoot putgetWorkload γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
-      memberBoot putgetWorkload γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
+        γ.reNoXfer = true ∧ γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
+        ρ₁.rd.kv.wl = W ∧
+        ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
+        ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl ∧
+        kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
+        ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []]⌝ ∗
+      memberBoot W γ bud bootLog ρ₁ E₁ Φs id₁ ∗ netSlot γn id₁ ∗
+      memberBoot W γ bud bootLog ρ₂ E₂ Φs id₂ ∗ netSlot γn id₂ ∗
+      memberBoot W γ bud bootLog ρ₃ E₃ Φs id₃ ∗ netSlot γn id₃ ∗
       etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
-  obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
-  obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ bootLog Hbf
-  have Hnz := id_nz id₁ id₂ id₃ bootLog Hbf
+  obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
+  obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
+  have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
   istart
   imod newServerNames_alloc (GF := GF) with ⟨%idx₁, %cok₁, %rev₁, Hidx₁, Hcok₁, Hrev₁⟩
   imod newServerNames_alloc (GF := GF) with ⟨%idx₂, %cok₂, %rev₂, Hidx₂, Hcok₂, Hrev₂⟩
@@ -164,13 +152,13 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     rw [GMap.elem_of_list_to_set]; simp
   imod (srvClusterBoot_alloc (GF := GF) (GMap.listToSet [id₁, id₂, id₃])
       (GMap.listToSet [id₁, id₂, id₃]) (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog
-      putgetWorkload Φs
+      W Φs
       (fun h => GMap.not_elem_of_empty id₁ (h ▸ Hin₁))
       (by
         rw [GMap.elem_of_list_to_set]
         intro h
         exact Hnz _ h rfl)
-      rfl Hbf.boot Hpol Hbf.idLow Hbf.idLow0)
+      rfl Hboot Hpol Hlow Hlow0)
     with ⟨%γ, %issued, %cnt, %γk, %Hγ, #Hcinv, #Hcomm, -, Hghosts, #Hkv, Hetcd, #Hcl, #H0,
       #Hpm, #Hrc, Hms, Hwns⟩
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hc0, hch, hlog, hiss, hwl⟩ := Hγ
@@ -196,17 +184,17 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
   ihave ⟨Hg₃, -⟩ := (BigSepM.bigSepM_insert
     (Φ := fun k (_ : Unit) => ownRaftGhost (GF := GF) γ k (bootPState bootLog))
     (GMap.lookup_empty _)).1 $$ Hgs
-  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
+  imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₁ idx₁ cok₁ rev₁ hiss hc0 hch hlog hwl
       Hpol' HΦ₁) $$ Hg₁ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
-  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
+  imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₂ idx₂ cok₂ rev₂ hiss hc0 hch hlog hwl
       Hpol' HΦ₂) $$ Hg₂ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hidx₂ Hcok₂ Hrev₂
-    with ⟨%ρ₂, -, Hb₂⟩
-  imod (memberBoot_of putgetWorkload γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
+    with ⟨%ρ₂, %Hρ₂, Hb₂⟩
+  imod (memberBoot_of W γ bud bootLog issued cnt γk Φs id₃ idx₃ cok₃ rev₃ hiss hc0 hch hlog hwl
       Hpol' HΦ₃) $$ Hg₃ Hcomm Hcinv Hbinv Hlb Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hidx₃ Hcok₃ Hrev₃
-    with ⟨%ρ₃, -, Hb₃⟩
+    with ⟨%ρ₃, %Hρ₃, Hb₃⟩
   -- the raft network: a slot per member
-  imod (netNames_alloc (srvNet γ bud) (dir3 id₁ id₂ id₃)
+  imod (netNames_alloc (srvNet γ bud) dir
       (GMap.insert id₁ () (GMap.insert id₂ () (GMap.insert id₃ () (∅ : GMap w64 Unit)))))
     with ⟨%γn, %Hγn, Hslots⟩
   ihave ⟨Hs₁, Hslots⟩ := (BigSepM.bigSepM_insert
@@ -220,11 +208,18 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (Φ := fun k (_ : Unit) => netSlot (GF := GF) γn k)
     (GMap.lookup_empty _)).1 $$ Hslots
   obtain ⟨hst₁, hc0₁, hch₁, hlog₁, hwl₁⟩ := Hρ₁
+  obtain ⟨hst₂, hc0₂, hch₂, hlog₂, hwl₂⟩ := Hρ₂
+  obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hwl₃⟩ := Hρ₃
   imodintro
   iexists γ, bud, ρ₁, ρ₂, ρ₃, env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃
   isplitr
-  · ipureintro; exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hwl₁, hwl]⟩
+  · ipureintro
+    exact ⟨hcfg, hdyn, hcc, hboot, htr, htx, Hγn.1, Hγn.2, by rw [hlog₁, hlog], by rw [hwl₁, hwl],
+      by rw [hst₂, hst₁], by rw [hwl₂, hwl₁], by rw [hst₃, hst₁], by rw [hwl₃, hwl₁],
+      by funext B; unfold kvModel; rw [hc0₂, hch₂, hlog₂, hc0₁, hch₁, hlog₁],
+      by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
+      by rw [hlog₂, hlog], by rw [hlog₃, hlog]⟩
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModel ρ₁.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
       unfold kvModel; rw [hc0₁, hch₁, hlog₁]]
@@ -232,6 +227,6 @@ theorem putget3_alloc (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
 
 end alloc
 
-end putget3
+end common
 end EtcdGrove
 end Perennial

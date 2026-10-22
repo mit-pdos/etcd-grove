@@ -4,20 +4,17 @@
 # `linkv3p`. Perennial's standard-library results (`time.Sleep`, `primitive.RandomUint64`) are
 # used directly by the proofs, not linked here.
 #
-# `startMember`: linkv3's start of one member plus its gRPC server (the server's, v3rpc's and the
-# client's results, linked in their `Link.lean`s; the feature gate's, `net.Listen`'s,
-# `RaftHandler`'s, `http.Serve`'s, grpc's `KeepaliveEnforcementPolicy`'s and `Serve`'s trust-boundary
-# axioms)
-etcdserver_NewServer: @
+# `startMember`: the examples' shared `NewMember` (linked in `common`'s `Link.lean`), the
+# server's `Start` (linked in its `Link.lean`), then its gRPC server (v3rpc's results, linked in
+# its `Link.lean`; `net.Listen`'s, grpc's `KeepaliveEnforcementPolicy`'s and `Serve`'s
+# trust-boundary axioms)
+common_NewMember: @
 EtcdServer__Start: @
 v3rpc_Server: @
-features_NewDefaultServerFeatureGate:
 net_Listen:
-EtcdServer__RaftHandler:
-http_Serve:
 grpc_Server__Serve:
 grpc_KeepaliveEnforcementPolicy:
-linkv3p_startMember: features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start net_Listen EtcdServer__RaftHandler http_Serve grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve
+linkv3p_startMember: common_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve
 # `newClient`: the client's `New` (linked in the client's `Link.lean`)
 client_v3_New: @
 linkv3p_newClient: client_v3_New

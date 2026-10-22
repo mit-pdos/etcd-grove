@@ -3,16 +3,10 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.github_com.anishathalye.porcupine
+public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.common
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.linkv
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
-public import GeneratedProof.go_etcd_io.etcd.client.v3
-public import GeneratedProof.go_etcd_io.etcd.server.v3.config
-public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
-public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import GeneratedProof.go_uber_org.zap
-public import GeneratedProof.net
-public import GeneratedProof.net.http
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.linkv3
 

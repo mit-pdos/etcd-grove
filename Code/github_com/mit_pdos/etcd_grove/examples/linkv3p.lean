@@ -3,7 +3,6 @@ module
 
 public import Perennial.Code.context
 public import Code.net
-public import Code.net.http
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.github_com.anishathalye.porcupine
@@ -14,10 +13,9 @@ public import Code.google_golang_org.grpc.keepalive
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
-public import Code.go_etcd_io.etcd.server.v3.config
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
-public import Code.go_etcd_io.etcd.server.v3.features
+public import Code.github_com.mit_pdos.etcd_grove.examples.common
 public import Code.github_com.mit_pdos.etcd_grove.examples.linkvtxn
 public import Code.github_com.mit_pdos.etcd_grove.examples.lintest
 public import Code.github_com.mit_pdos.etcd_grove.third_party.bridge
@@ -175,11 +173,11 @@ noncomputable def MainWatch [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.MainWatch"
 
 /-- startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
-    URL http://peerAddr): the server (configured as putget3's, with linkv3p's cluster token), its
-    raft handler served on a listener at peerAddr, the server started, and its gRPC server served
-    on a listener at client.
+    URL http://peerAddr): the server and its raft handler served on a listener at peerAddr (the
+    examples' shared NewMember, with linkv3p's cluster token), the server started, and its gRPC
+    server served on a listener at client.
 
-    go: linkv3p.go:102:6 -/
+    go: linkv3p.go:100:6 -/
 noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -194,30 +192,14 @@ noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "peerAddr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "peerAddr"))
   (Let "peer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
-  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
-  (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!".etcd"))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$v4" (Let "$v0" (Val #(go!"http"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "$v5" (Val #(go!"linkv3p"))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (Val #(W64 100))
-  (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.DefaultSnapshotCount))
-  (Let "$v10" (Val #(W64 281474976710656))
-  (Let "$v11" (Val #(W64 128))
-  (Let "$v12" (Val #(W64 1572864))
-  (Let "$v13" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v14" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v7"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v8"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v13"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v14")))])))))))))))))))))
-  (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.NewServer []))) (Val #())) (Var "$a0")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (Var "peerAddr"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
+  (Let "$a5" (Val #(go!"linkv3p"))
+  (Let "$a6" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewMember []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -226,21 +208,6 @@ noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (Let "$a0" (Val #(go!"tcp"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "peerAddr"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.Listen []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "l" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.net.Listener.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (Var "l"))
-  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"RaftHandler"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
-  (Let "$go" (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.Serve []))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (Val #(go!"tcp"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
@@ -285,9 +252,6 @@ noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "cl") (Var "$r0")))))))))))))
-  (App (Val doExecute)
-  (Fork
-  (App (App (Var "$go") (Var "$a0")) (Var "$a1"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
@@ -296,23 +260,12 @@ noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.net.Listener.ty))) (Pair (Var "l") (Var "$r0")))))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (Val doReturn)
-  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Pair (Var "cfg") (Var "$r0"))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))))))))))))))
 
 /-- startBridge starts a bridge at addr to the member's client address client: the listener, then
     the bridge's accept loop (bridge.New).
 
-    go: linkv3p.go:153:6 -/
+    go: linkv3p.go:124:6 -/
 noncomputable def startBridge.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "client"
@@ -349,7 +302,7 @@ noncomputable def startBridge.impl [FfiSyntax] [GoGlobalContext] : val :=
     b in both directions (etcd's CutPeer/MendPeer, as its integration tests'
     InjectPartition/RecoverPartition).
 
-    go: linkv3p.go:164:6 -/
+    go: linkv3p.go:135:6 -/
 noncomputable def peerStep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "kind"
@@ -402,7 +355,7 @@ noncomputable def peerStep.impl [FfiSyntax] [GoGlobalContext] : val :=
     blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
     unguarded, so a second one would panic (issues/etcd-bridge-blackhole-twice-panic.md).
 
-    go: linkv3p.go:183:6 -/
+    go: linkv3p.go:154:6 -/
 noncomputable def clientStep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "brs"
   (Lam "holed"
@@ -451,7 +404,7 @@ noncomputable def clientStep.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- partitioner applies the schedule sched to the members srvs and their bridges brs: each step,
     after its delay.
 
-    go: linkv3p.go:203:6 -/
+    go: linkv3p.go:174:6 -/
 noncomputable def partitioner.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "brs"
@@ -503,7 +456,7 @@ noncomputable def partitioner.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Apply runs one operation through a client of clis picked at random (linkvtxn.Apply).
 
-    go: linkv3p.go:216:6 -/
+    go: linkv3p.go:187:6 -/
 noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "input"
@@ -525,7 +478,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
     clients clis (one per member, each operation's picked at random), and returns porcupine's
     verdict against linkvtxn's model.
 
-    go: linkv3p.go:224:6 -/
+    go: linkv3p.go:195:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "clients"
@@ -563,7 +516,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
     these members never send, so it is sent at most once (notes/read-retry-plan.md). Keepalive
     closes a connection that stops answering (notes/keepalive-plan.md).
 
-    go: linkv3p.go:235:6 -/
+    go: linkv3p.go:206:6 -/
 noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"
@@ -585,7 +538,7 @@ noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
     address, and three clients, each of every bridge (failover). It returns the members, the
     bridges and the clients, and false if a step failed (the specs allow every step to fail).
 
-    go: linkv3p.go:250:6 -/
+    go: linkv3p.go:221:6 -/
 noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
@@ -854,7 +807,7 @@ noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
     every bridge), starts the partitioner on sched and runs Check; it panics if porcupine finds the
     history illegal. A failed start ends Main without a check.
 
-    go: linkv3p.go:306:6 -/
+    go: linkv3p.go:277:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -924,7 +877,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- genPut picks a key under the prefix and a value, from a small set.
 
-    go: linkv3p.go:365:6 -/
+    go: linkv3p.go:336:6 -/
 noncomputable def genPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -969,7 +922,7 @@ noncomputable def genPut.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- genAll picks n puts (genPut): the writers' puts, writer i's at [i*nops, (i+1)*nops).
 
-    go: linkv3p.go:375:6 -/
+    go: linkv3p.go:346:6 -/
 noncomputable def genAll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "n"
   (App (Val exceptionDo)
@@ -998,7 +951,7 @@ noncomputable def genAll.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
     logging in w each that returned no error, with its reply's revision.
 
-    go: linkv3p.go:385:6 -/
+    go: linkv3p.go:356:6 -/
 noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "w"
@@ -1078,7 +1031,7 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- maxRev is the highest revision of the successful puts oks (0 if there is none).
 
-    go: linkv3p.go:400:6 -/
+    go: linkv3p.go:371:6 -/
 noncomputable def maxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "oks"
   (App (Val exceptionDo)
@@ -1109,7 +1062,7 @@ noncomputable def maxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
     upTo is 0), returning the events read and true; false if the channel closed, or a response
     reported an error, before.
 
-    go: linkv3p.go:413:6 -/
+    go: linkv3p.go:384:6 -/
 noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -1177,7 +1130,7 @@ noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- attempted reports whether (key, val) is one of the puts tried.
 
-    go: linkv3p.go:438:6 -/
+    go: linkv3p.go:409:6 -/
 noncomputable def attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tried"
   (Lam "key"
@@ -1210,7 +1163,7 @@ noncomputable def attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
     revisions, gap-free from revision 2, each a put some writer attempted (tried), and every
     successful put (oks) the event at its revision with its key and value.
 
-    go: linkv3p.go:450:6 -/
+    go: linkv3p.go:421:6 -/
 noncomputable def checkWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "tried"
@@ -1310,7 +1263,7 @@ noncomputable def checkWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
     prefix from revision 1 through the first client, starts the partitioner on sched, runs nw
     writers of nops puts each, then reads the watch and checks it against the writes.
 
-    go: linkv3p.go:482:6 -/
+    go: linkv3p.go:453:6 -/
 noncomputable def MainWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
@@ -1489,7 +1442,7 @@ noncomputable def MainWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType kv.ty)))) (Pair (Var "tried") (Var "$r0"))))))))))))))
 
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.net.http, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.common, pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1512,14 +1465,10 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1541,13 +1490,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.v3.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.config.initialize') (Val #()))))))
-  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.features.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1796,7 +1743,6 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MainWatch_unfold : FuncUnfold MainWatch [] MainWatch.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
-  import_http_Assumption : _root_.Perennial.net.http.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
@@ -1807,10 +1753,9 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
-  import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
   import_v3rpc_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
-  import_features_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.features.Assumptions
+  import_common_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.Assumptions
   import_linkvtxn_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions
   import_lintest_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions
   import_bridge_Assumption : _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions
@@ -1840,7 +1785,6 @@ attribute [instance] Assumptions.Step_instance
   Assumptions.MainWatch_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_net_Assumption
-  Assumptions.import_http_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption
@@ -1851,10 +1795,9 @@ attribute [instance] Assumptions.Step_instance
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
-  Assumptions.import_config_Assumption
   Assumptions.import_etcdserver_Assumption
   Assumptions.import_v3rpc_Assumption
-  Assumptions.import_features_Assumption
+  Assumptions.import_common_Assumption
   Assumptions.import_linkvtxn_Assumption
   Assumptions.import_lintest_Assumption
   Assumptions.import_bridge_Assumption

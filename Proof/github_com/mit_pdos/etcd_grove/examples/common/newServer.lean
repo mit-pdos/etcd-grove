@@ -2,7 +2,7 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/common/newServer.lean` (2026-10-22, D33).
 Lean-first (no Rocq counterpart).
 
-The steps (putget3's `startMember` up to `NewServer`, which was putget's `Main`'s): the
+The steps (putget3's `startMember`'s up to `NewServer`, which were putget's `Main`'s): the
 configuration's literal (its client URLs, the feature gate); a fresh storage registry (D19r (B):
 each member's `bootstrap` joins its own); `NewServer` (its premises from the literal, the member's
 ghost state and `bootstrap`'s contract); on success, `memberBuilt` from its postcondition

@@ -10,10 +10,16 @@ EtcdServer__Start: @
 features_NewDefaultServerFeatureGate:
 common_newServer: features_NewDefaultServerFeatureGate etcdserver_NewServer
 common_StartServer: common_newServer EtcdServer__Start
+# `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
+# `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
+net_Listen:
+EtcdServer__RaftHandler:
+http_Serve:
+common_NewMember: common_newServer net_Listen EtcdServer__RaftHandler http_Serve
+common_StartMember: common_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms)
 v3rpc_Server: @
-net_Listen:
 grpc_Server__Serve:
 common_Serve: v3rpc_Server net_Listen grpc_Server__Serve
 # `NewClient`: a client of one address (the client's `New`, linked in its `Link.lean`)

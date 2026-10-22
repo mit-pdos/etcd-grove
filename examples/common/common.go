@@ -5,12 +5,14 @@
 // (Proof/github_com/mit_pdos/etcd_grove/examples/common/).
 //
 // Every function calls only what the proofs specify: etcdserver.NewServer (over bootstrap's
-// contract), (*EtcdServer).Start, v3rpc.Server, net.Listen, (*grpc.Server).Serve on a goroutine,
-// clientv3.New. An error from a step is returned; the specs allow every step to fail.
+// contract), (*EtcdServer).Start, (*EtcdServer).RaftHandler, http.Serve and (*grpc.Server).Serve
+// on goroutines, v3rpc.Server, net.Listen, clientv3.New. An error from a step is returned; the
+// specs allow every step to fail.
 package common
 
 import (
 	"net"
+	"net/http"
 
 	"go.uber.org/zap"
 
@@ -62,6 +64,35 @@ func StartServer(name string, peerAddr string, clientAddr string,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
 	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, lg)
+	if err != nil {
+		return nil, err
+	}
+	s.Start()
+	return s, nil
+}
+
+// NewMember builds member name of a new cluster whose initial members' peer URLs are cluster and
+// whose token is token, its peer URLs peer (the one URL http://peerAddr) and its one client URL
+// http://client, and serves its raft handler on a listener at peerAddr; it does not start it.
+func NewMember(name string, peer types.URLs, peerAddr string, client string,
+	cluster types.URLsMap, token string, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	s, err := newServer(name, peer, client, cluster, token, lg)
+	if err != nil {
+		return nil, err
+	}
+	// the member's peer URL is served by its own transport (D21b's deployment fact)
+	l, err := net.Listen("tcp", peerAddr)
+	if err != nil {
+		return nil, err
+	}
+	go http.Serve(l, s.RaftHandler())
+	return s, nil
+}
+
+// StartMember starts member name of a new cluster: NewMember, then the server started.
+func StartMember(name string, peer types.URLs, peerAddr string, client string,
+	cluster types.URLsMap, token string, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	s, err := NewMember(name, peer, peerAddr, client, cluster, token, lg)
 	if err != nil {
 		return nil, err
 	}

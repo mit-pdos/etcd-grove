@@ -159,7 +159,7 @@ instance clientOk_persistent (γ : linkvtxn.LinkvNames) (cl : Loc) :
     Persistent (clientOk (GF := GF) γ cl) := by
   unfold clientOk; infer_instance
 
-/-- **A member started and served** (the success of `startMember`): putget3's `memberUp` reduced
+/-- **A member started and served** (the success of `startMember`): the shared start's `common.memberUp` reduced
 to what `Main` needs of it -- the server's request and read views (at its apply environment `E`,
 agreeing with the stand-in `E₀`, auth off), the `GoAttach` resources with the thread token
 (`srvGoRes`), the member's place in the network (`srvNetMember`: what the partitioner's

@@ -21,6 +21,7 @@ replace (
 
 require (
 	github.com/anishathalye/porcupine v1.3.1
+	github.com/mit-pdos/etcd-grove/examples/common v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/linkv v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
@@ -43,7 +44,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
-	github.com/mit-pdos/etcd-grove/examples/common v0.0.0-00010101000000-000000000000 // indirect
 	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect

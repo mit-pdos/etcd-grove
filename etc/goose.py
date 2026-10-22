@@ -388,8 +388,9 @@ PROJECTS = [
     Project(
         name="common",
         # The examples' shared start of etcd (`examples/common`): a member's configuration and
-        # server (one member's, `StartServer`), its gRPC service on a listener (`Serve`), a
-        # client of one address (`NewClient`), each translated and proved once. A Go module of
+        # server (one member's, `StartServer`; a cluster's, `NewMember`, `StartMember`), its gRPC
+        # service on a listener (`Serve`), a client of one address (`NewClient`), each translated
+        # and proved once. A Go module of
         # this repository, with putget's replaces (keep them in step); the examples' go.mod
         # replace it by this directory. Its imports are the etcd project's translations (names
         # reached through the empty root).

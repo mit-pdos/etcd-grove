@@ -4,7 +4,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/startCluster.lean
 counterpart).
 
 The three peer URL slices and the initial cluster's map; the ghost state of the cluster and its
-members (`cluster3_alloc` at the workload `W`, the ids in the names' order, the client's `etcdKV`
+members (`common.alloc3` at the workload `W`, the ids in the names' order, the client's `etcdKV`
 at the first member's names), each member's pure boot facts kept (`memberBoot`'s: its names, what
 `memberAt` records); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`), its watch server kept; the servers' slice; `startBridge` for each
@@ -19,6 +19,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc3
 
 @[expose] public section
 
@@ -33,7 +34,8 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises memberBoot id_ne)
+open putget3 (httpURL ccOk commonPremises)
+open common (memberBoot)
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -113,12 +115,14 @@ theorem startCluster.wp_proof
       (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
         (GMap.insert name₁ (slice.mk peer₁ (W64 1) (W64 1)) ∅)) $$ []
   · iExactEq Hpm; rfl
-  -- the ghost state of the cluster and its members (`cluster3_alloc`, in `bootstrap`'s order,
+  -- the ghost state of the cluster and its members (`common.alloc3`, in `bootstrap`'s order,
   -- which is the names'; the client's `etcdKV` at `linkv3p-1`'s names)
-  imod (cluster3_alloc W id₁ id₂ id₃ bootLog Hbf (dir3 id₁ id₂ id₃) (by omega)) with ⟨%γ, %bud, %ρ₁,
-    %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂, Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
-  obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ bootLog Hbf
+  imod (common.alloc3 W id₁ id₂ id₃ bootLog Hbf.idLow Hbf.idLow0 Hbf.boot (dir3 id₁ id₂ id₃)
+      (by omega)) with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, Hsl₁, Hmb₂,
+    Hsl₂, Hmb₃, Hsl₃, Hetcd⟩
+  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hwl₁, hst₂, hwl₂, hst₃, hwl₃, -⟩ :=
+    Hal
+  obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- the three members, each served
   iunfold memberBoot at Hmb₁
