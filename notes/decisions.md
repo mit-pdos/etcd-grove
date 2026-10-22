@@ -15155,3 +15155,16 @@ from the plan.
   handing `W` back on a conflict (`del_cases`: a failed transaction leaves etcd's state exactly
   as it was). `Delete`'s spec answers `delOut`: the write's `Φ σ`, or a read-like answer at `□ Q σ`
   with `W` back, or the client's error. `Create` keeps `k8sAu1` (it never retries).
+- **D30m: the driver's checker is a hand-written Go copy of `correctness.Model`, for now**
+  (2026-10-22, the user's choice). The real `correctness.Model` (`testing/correctness/model.go`)
+  is written over `runtime.Object` (`map[string]runtime.Object`, `meta.Accessor`, `NewFunc`) and
+  compares states and write responses with `reflect.DeepEqual`, errors included; its `Step` re-runs
+  the traffic's own `tryUpdate` and `validateDeletion` closures (the survey of
+  `test/integration/apiserver/storage/` and `correctness/`, 2026-10-22). Translating it needs
+  trusted models of `reflect.DeepEqual`, `runtime.Object`/`meta` accessors and more. So phase 6's
+  driver checks against a Go copy of the Model specialized to the driver's own object type, as
+  close to the original as possible (the same operations, the same answers and errors, the same
+  no-op rule with D30g's canonical bit, `Step` re-running the same closures), with a Go test
+  comparing it with the real (fixed) Model on random traffic. Later (the plan's "Open"):
+  translate a copy of the real `correctness` package, with trusted models for `reflect` and
+  whatever else it needs, so that the trusted spec is the maintainers' Model itself.

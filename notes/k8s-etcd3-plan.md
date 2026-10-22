@@ -204,6 +204,13 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
 
 ## Open
 
+- **The real `correctness` package as the driver's checker** (D30m: for now a hand-written Go copy
+  of `correctness.Model`, as close to it as possible). Later: translate a copy of
+  `k8s.io/apiserver/pkg/storage/testing/correctness` (the Model, with D30g's fix), with trusted
+  models for what it needs: `reflect.DeepEqual` (states and write responses, errors included),
+  `runtime.Object` and `meta.Accessor`/`ListAccessor`, `map[string]runtime.Object`, the
+  closures in its requests; then the driver theorem's trusted spec is the maintainers' Model.
+
 - How `reflect` is specified (Perennial change or local specs); how G2 is resolved.
 - Whether `correctness.Model` translates (it uses `reflect.DeepEqual` on objects); if not, the
   driver needs a translatable copy of its checks, which then becomes trusted.
