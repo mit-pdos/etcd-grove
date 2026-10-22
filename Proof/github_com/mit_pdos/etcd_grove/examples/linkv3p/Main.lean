@@ -54,7 +54,8 @@ which `clientv3.New` takes as the caller's choice; `isNewClient_watcher` would n
 member's apply environment and null for the rest. -/
 def noWatch (E : apply.AEnv GF) (addr : GoString) : EtcdGrove.client.WEnv GF :=
   ⟨⟨null, E, null, ⟨E.γ, 0, 0, 0, 0, 0⟩, W64 0, W64 0, null, W64 0⟩, addr, [], null, null, [], null,
-    v3rpc.etcdModelOfServer E, fun _ => iprop(False)⟩
+    v3rpc.etcdModelOfServer E, fun _ => iprop(False),
+    fun _ => (addr, ⟨null, E, null, ⟨E.γ, 0, 0, 0, 0, 0⟩, W64 0, W64 0, null, W64 0⟩), 1⟩
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 8192 in

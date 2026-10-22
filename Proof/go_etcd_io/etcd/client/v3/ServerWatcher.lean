@@ -123,8 +123,7 @@ theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
     icases Hw with ⟨%cs, %vs, -, -, -, -, -, -, -, Hsf, -⟩
     iunfold watchSrvFacts at Hsf
     icases Hsf with ⟨-, Hcf⟩
-    iunfold watchConnFacts at Hcf
-    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, -, %h, -⟩
+    ihave ⟨-, %h⟩ := watchConnFacts_cur V $$ Hcf
     ipureintro; exact h
   obtain ⟨hst, hp⟩ := hf
   unfold isEtcdWatcher

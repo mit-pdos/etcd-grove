@@ -35,11 +35,13 @@ receive fails (its error to `errc`, with the producer's side back, `errP`) or th
 abbrev watchGRPCStream.serveWatchClient.spec : Prop :=
   ∀ (V : WEnv GF) (G : WgsPrm GF) (callSl : GoSlice) (wc : GoInterface) (γs : StreamNames)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
-    (e : Nat) (γc : GName) (sent : List Loc),
+    (e : Nat) (γc : GName) (i : Nat) (sent : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isWGS V G callSl ∗
-      v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp V.R.γ) Dn cd' ∗ v3rpc.watchSpec V.R γs Dn ∗
+      -- (W3b) a stream at the member `i`
+      v3rpc.cliWatchStreamIs wc γs (v3rpc.watchUp (V.mem i).2.γ) Dn cd' ∗
+      v3rpc.watchSpec (V.mem i).2 γs Dn ∗
       cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-      monoListIdxOwn G.γep e ((γs, sent.length, γc) : EpInfo) ∗ sspscProducer G.γr sent ∗
+      monoListIdxOwn G.γep e ((γs, sent.length, γc, i) : EpInfo) ∗ sspscProducer G.γr sent ∗
       monoNatAuthOwn γc 1 sent.length }}
     (App (Val (G.wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"serveWatchClient")) (Val #wc))
   {{ RET #(); True }}

@@ -182,6 +182,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF) (s : Loc)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hV : V.addr = ep) (hE : V.R.E = E)
     (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -199,7 +200,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany, Hopts, %Hcfg,
     %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_new context.wp_ErrAny hAs client.v3.watcher.wp_Watch
-    client.v3.watcher.wp_RequestProgress cl ep V s E γr cid mid hV hE hWM hff $$ []
+    client.v3.watcher.wp_RequestProgress cl ep V s E γr cid mid hV hE hWM hm hn hff $$ []
   · iframe #
   iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #

@@ -287,7 +287,26 @@ revision both have. Not yet used: W3 imports it.
     returns a stream at some member, `NewStream`'s axiom, D30). At a reconnection every substream
     is queued (`RunSt.reconnect`), whose state reads no member, so it carries to the next epoch's
     environment.
-- **W3c:** the watch stub over a list (`watchClient.Watch` at `addrs`), `openWatchClient`, and
+- **W3b-2 done (2026-10-22): epochs at members.**
+  - The design above, carried out. `WEnv.atIdx` is a `def`, so `V0.atIdx i` stays one term. `rfl`
+    lemmas show what reads no member: `wsIs`, `stopBody`, `recvElem`, `reqP`, `closingP`,
+    `respcE`. `bufE`, which is recursive, and through it `wsRun`, `resumeBody`, `lifeSt` and
+    `wsLife` need induction and rewriting.
+  - `wsElem_recon_at`: a reconnected substream at any member. `isWGS_atIdx`: the gRPC watch
+    stream's facts at any member (`watchConnFacts_atIdx`).
+  - `watchClient.Watch` over a list (`isGrpcStreams`). `openWatchClient`, `newWatchClient` and
+    `serveWatchClient` give or take the stream's member; `EpInfo`, `prodBack` and `epochSt`
+    record it; `respcE` reads each epoch's responses at its member.
+  - `run`: the base environment is `V0`. The loop's invariant holds the epoch's member `mi`,
+    `runCore (V0.atIdx mi) …`, the stream at `(V0.atIdx mi).R`, and `isWGS (V0.atIdx mi)`. The body
+    generalizes `V0.atIdx mi` to `V` and re-derives the member's facts, so its proof text is
+    unchanged. The reconnection switches the same way to the new stream's member `mi2`, and the
+    teardown to the last epoch's. `closeStream` stays at `V0`: the watcher's lock invariant is
+    stated there.
+  - A client of one endpoint gives its one member (`watchConnFacts_of_addr`,
+    `isNewClient_watcher`: `V.mem = fun _ => (V.addr, V.R)`, `V.nm = 1`); every concrete
+    environment is `srvWEnv`. Closed theorems unchanged; trust base unchanged.
+- **W3c (folded into W3b-2):** the watch stub over a list (`watchClient.Watch` at `addrs`), `openWatchClient`, and
   `isNewClient_watcher` for `eps` a list.
 
 - `WEnv` without a fixed server: the shared names, and the members' addresses.

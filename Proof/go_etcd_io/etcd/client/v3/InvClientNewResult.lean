@@ -95,13 +95,24 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (V : WEnv GF) (conn : Loc) (ics : List GoFunc) :
+    (V : WEnv GF) (conn : Loc) (ics : List GoFunc)
+    -- (W3b) a client of one server: its one member
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗
       grpcConn (GF := GF) conn [V.addr] ics [] ∗ watchAddrFacts V ⊢
       watchConnFacts { V with conn := conn, ics := ics } := by
-  unfold watchAddrFacts watchConnFacts
+  obtain ⟨R, addr, ics0, conn0, wc, pfx, lg, WM, WL, mem, nm⟩ := V
+  simp only at hm hn ⊢
+  subst hm hn
+  unfold watchAddrFacts watchConnFacts watchMemberFacts
+  have ha : WEnv.addrs (GF := GF) ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ =
+      [addr] := rfl
+  have hat : ∀ i, WEnv.atIdx (GF := GF) ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL,
+      fun _ => (addr, R), 1⟩ i = ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ :=
+    fun _ => rfl
+  simp only [ha, hat]
   iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H6, #H7, %H11, #H12⟩
   ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
   ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
@@ -109,9 +120,15 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
   ihave #H10 := clientWatchVars_of_init $$ P1
   iframe #
   isplitr
-  · ipureintro; exact H11
-  iapply (show watchLaws (GF := GF) V ⊢ watchLaws { V with conn := conn, ics := ics } from by
-    unfold watchLaws; exact .rfl) $$ H12
+  · iintro !> %i %hi
+    iframe #
+    isplitr
+    · ipureintro; exact H11.1
+    iapply (show watchLaws (GF := GF) ⟨R, addr, ics0, conn0, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ ⊢
+        watchLaws ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ from by
+      unfold watchLaws; exact .rfl) $$ H12
+  ipureintro
+  exact ⟨H11.2, by simp, 0, by decide, by first | rfl | trivial⟩
 
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
@@ -157,7 +174,8 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (cl : Loc) (eps : List GoString) (V : WEnv GF) (hV : eps = [V.addr]) :
+    (cl : Loc) (eps : List GoString) (V : WEnv GF) (hV : eps = [V.addr])
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗
@@ -175,7 +193,7 @@ theorem isNewClient_watcher [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.
   iapply (show watchConnFacts (GF := GF) { V with conn := conn, ics := ics } ⊢
       watchConnFacts { V with conn := conn, ics := ics, wc := wc, lg := lg } from by
     unfold watchConnFacts; exact .rfl)
-  iapply watchConnFacts_of_addr wp_ErrAny hAs
+  iapply watchConnFacts_of_addr wp_ErrAny hAs V conn ics hm hn
   iframe P1 P2 P3 Hf
   iexact Hc
 

@@ -41,7 +41,7 @@ theorem watchGRPCStream.close.wp_proof
   iunfold watchSrvFacts at Hsf
   icases Hsf with ⟨-, #Hcf⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, #Heof, -, #Hcea, -, -⟩
+  icases Hcf with ⟨-, -, -, -, #Heof, -, #Hcea, -, -⟩
   iunfold ctxErrClientAllW at Hcea
   ihave #Hce := Hcea $$ %G.ctx %G.cd HisCtx
   iunfold context.cancelSpec at Hcspec
