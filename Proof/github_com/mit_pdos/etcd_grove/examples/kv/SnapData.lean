@@ -188,7 +188,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 def rdCommon (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗ entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft q.st ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
       termLB γ.bud q.st.msg.Term') ∗
     ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗

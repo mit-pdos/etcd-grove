@@ -199,8 +199,52 @@ trust-boundary spec.
    (a no-op, as the metrics), and rafthttp's `linkHeartbeatMessage_init` (the heartbeat
    variable's untranslated initializer, `gen-init.py`'s custom kind); only the last is reached by
    a linked result yet (the baseline 541 -> 542).
-   **Next**: `From` = the sender's id and `MsgMarshals` (no responses, known enums, including the
-   entries') for the messages handed to `Send`; then stage 4 (the pipeline).
+   **Done 2026-10-22, what the encoders need of a sent message** (D33a, "The sent messages'
+   facts"): no responses, for every message raft queues in every mode (`XfOk`, `isRaftMsg`; a
+   forwarded request's from `raft.Step`, `NetMsgOk`, `fwdP`), and a `MsgApp` from its sender
+   (`AppFrom id`, with the node's id in `XfOk`, `isRaftMsg` and `NodeNames`). `MsgMarshals` is now
+   only "no responses": protobuf-go keeps an enum value outside the declared ones (**Open enums**
+   below), so the enum bounds the wire model had are dropped and no entry-type invariant is needed.
+   `Send` takes messages with no responses and `Process` gets copies with none (`netBundle`,
+   `netSnapBundle`, `netRecv`). No axiom added, baseline 542. The server's bundle keeps the sender
+   existential: tying it to the transport's id is stage 6's (`srvEr` indexed by the member id).
+   **Next**: stage 4 (the pipeline).
+
+   **Open enums** (checked 2026-10-22). `raft.proto` is proto2, whose enums are closed: the spec
+   says a decoder puts an undeclared value in the unknown fields. protobuf-go does not: it treats
+   every enum as open (the protobuf "Enum behavior" page lists Go as non-conformant). The wire model
+   (`PbMessage.lean`) relies on the Go behavior, checked by this test against the pinned raft
+   (`raft37-goose-lean-a1`, `c8217eb`; run as `enumtest/enum_test.go` in a checkout of it, `go
+   test ./enumtest/`; it passes, the unknown fields empty):
+
+   ```go
+   package enumtest
+
+   import (
+       "testing"
+
+       "google.golang.org/protobuf/proto"
+       pb "go.etcd.io/raft/v3/raftpb"
+   )
+
+   func TestOpenEnums(t *testing.T) {
+       m := &pb.Message{Type: pb.MessageType(99).Enum(), To: proto.Uint64(2), From: proto.Uint64(1),
+           Entries: []*pb.Entry{{Type: pb.EntryType(5).Enum(), Index: proto.Uint64(7), Data: []byte("x")},
+               {Type: pb.EntryType(-3).Enum(), Index: proto.Uint64(8)}}}
+       bs, err := proto.Marshal(m)
+       if err != nil {
+           t.Fatal(err)
+       }
+       m2 := &pb.Message{}
+       if err := proto.Unmarshal(bs, m2); err != nil {
+           t.Fatal(err)
+       }
+       if !proto.Equal(m, m2) || m2.GetType() != 99 || m2.Entries[0].GetType() != 5 ||
+           m2.Entries[1].GetType() != -3 || len(m2.ProtoReflect().GetUnknown()) != 0 {
+           t.Fatalf("not round-tripped: %v", m2)
+       }
+   }
+   ```
 4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
    `Process`. The simplest complete delivery path; first proof that the mailbox design works.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),

@@ -360,7 +360,7 @@ theorem raft.appendEntry.wp_proof
     let s' : NState := { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term li)) }
     wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) $$ [$Hphys $Hr] as Hphys
+      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom
       rw [Hlast2]

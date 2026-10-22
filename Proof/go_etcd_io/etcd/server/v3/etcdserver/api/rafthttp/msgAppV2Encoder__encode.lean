@@ -320,7 +320,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
           ihave ⟨%es, %els, #HEs, #Hes, #Hents⟩ := msgOwn_ents ml st $$ Hm
           ihave %Hesl := ownSlice_len _ _ _ $$ Hes
           ihave %Hel := BigSepL2.bigSepL2_length $$ Hents
-          ihave %He := ents_enc els st.ents Hok.1.2.2 $$ Hents
+          ihave %He := ents_enc els st.ents $$ Hents
           have Hn : st.ents.length < 2 ^ 63 := by
             have := Hesl.1; unfold sint.nat at this; word
           have Hfr := Hok.short_frame (cs := cst) hb c1 c2 c3 He Hn
@@ -511,7 +511,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
                 $$ [Hes] as Hes
               · iframe; iframe #; ipureintro; rw [hjz]; exact Hp
               (try wp_auto)
-              have hme : uint.Z e.Type' ≤ 2 := Hok.1.2.2 e (List.mem_of_getElem? He')
+              have hme : (pbEntry (GF := GF)).marshals e := trivial
               have wpMA := wp_MarshalAppend pbEntry opts_ptr (DFrac.own 1) p e
                 (slice.slice buf w8 (W64 0) (W64 0)) [] hme
               simp only [pbEntry_ty, pbEntry_ro, pbEntry_wire, List.nil_append] at wpMA
@@ -590,7 +590,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
                 $$ [Hes] as Hes
               · iframe; iframe #; ipureintro; rw [hjz]; exact Hp
               (try wp_auto)
-              have hme : uint.Z e.Type' ≤ 2 := Hok.1.2.2 e (List.mem_of_getElem? He')
+              have hme : (pbEntry (GF := GF)).marshals e := trivial
               have wpMM := wp_MustMarshalMessage pbEntry p e hme
               simp only [pbEntry_ty, pbEntry_ro, pbEntry_wire] at wpMM
               wp_apply wpMM $$ [] as %d ⟨Hd, -, -⟩

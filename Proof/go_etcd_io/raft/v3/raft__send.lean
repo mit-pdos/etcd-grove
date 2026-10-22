@@ -70,7 +70,7 @@ with transfer off `SentMsgOk` -- its fields from the case's facts `args`, the no
 (`Hidnz`), its term past `0` (`Hxfs`). -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨fun _ => ?_, fun hns _ => ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩
   · simp only [Hty1, $args,*]; nofun
   · simp only [Hty1, $args,*]; tyd
   · simp only [Hfr1]; first | exact Hidnz | exact Hsrc0
@@ -88,7 +88,15 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     | (have h' : m1.Type' = MsgApp := by simp only at h; rw [Hty1]; exact h
        have Hs := Hsh1 h'
        unfold AppShape at Hs ⊢; simp only at Hs ⊢; exact Hs)
-    | (simp only at h; exact absurd h (by tyd))))
+    | (simp only at h; exact absurd h (by tyd))
+  -- (2026-10-22, D33a) no responses (the premise)
+  · first | exact Hrs | (simp only; exact Hrs)
+  · refine ⟨by first | exact Hrs | (simp only; exact Hrs), fun h => ?_⟩
+    simp only at h ⊢
+    try rw [Hfr1]
+    try first
+      | rfl
+      | exact Hsrc (by rw [← Hty1, h]; tyne) (by rw [← Hty1, h]; tyne)))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -204,7 +212,7 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh
+  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs
   wp_start as H
   iNamed H
   -- (2026-10-19, D21 M2r) the node's id nonzero, and the modes' facts
@@ -367,7 +375,9 @@ theorem raft.send.wp_proof
     · ipureintro; intro _ x hx; cases hx
     · ipureintro
       exact ⟨fun h => absurd (HxfF.symm.trans h) (by decide),
-        fun _ h => absurd (HxfF.symm.trans h) (by decide)⟩
+        fun _ h => absurd (HxfF.symm.trans h) (by decide),
+        Hrs, fun h => by
+          simp only [Hty1] at h; rw [h] at Hty; exact absurd Hty (by decide)⟩
     · iapply tsSrc_ne; simp only [Hty1]; exact HnS
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     rfl

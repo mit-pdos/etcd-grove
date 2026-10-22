@@ -516,7 +516,7 @@ theorem StartCluster.wp_proof
         iintro ⟨Hmsl, Hmsok, Hcr, Htks⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms)
+        wp_apply (wp_deliver γr.raft _ bud mP «$r0_ptr» M msl ms)
           $$ [$Hmsl $Hmsok $Hcr $Htks]
         · iframe #
         iapply HΦ'

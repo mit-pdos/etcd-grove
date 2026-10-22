@@ -577,9 +577,8 @@ theorem msgOwn_ents (ml : Loc) (st : MsgSt) :
   iframe
   iexact Hents
 
-/-- The encodings of a message's entries (`pbEnc` of each, `pbEnc_ok`) are encodings of them, if
-their types are known. -/
-theorem ents_enc (els : List Loc) (ents : List EntryM) (hm : ∀ e ∈ ents, uint.Z e.Type' ≤ 2) :
+/-- The encodings of a message's entries (`pbEnc` of each, `pbEnc_ok`) are encodings of them. -/
+theorem ents_enc (els : List Loc) (ents : List EntryM) :
     ([∗list] p;e ∈ els;ents, entRO (GF := GF) p e) ⊢
       ⌜List.Forall₂ EntEnc ents (els.map (pbEnc raftpb.Entry.ty))⌝ := by
   induction els generalizing ents with
@@ -595,9 +594,9 @@ theorem ents_enc (els : List Loc) (ents : List EntryM) (hm : ∀ e ∈ ents, uin
     have Hpe := pbEnc_ok (pbEntry (GF := GF)) p e
     simp only [pbEntry_ro, pbEntry_marshals, pbEntry_wire, pbEntry_ty] at Hpe
     ihave %h1 := Hpe $$ He
-    ihave %h2 := ih es (fun e' h' => hm e' (by simp [h'])) $$ Hr
+    ihave %h2 := ih es $$ Hr
     ipureintro
-    exact .cons ⟨h1.1 (hm e (by simp)), h1.2⟩ h2
+    exact .cons ⟨h1.1 trivial, h1.2⟩ h2
 
 end preds
 

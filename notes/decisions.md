@@ -15489,3 +15489,35 @@ frames it has already read (`V2Frame.unique`). Unlike `messageDecoder`, the msga
 each entry, not only at the end: `V2Compat.short_len`, `short_ent`, `short_end`. *Rejected:* a
 `Clone`-free heartbeat branch (the code clones `linkHeartbeatMessage`; a generic `proto.Clone` spec
 with `PbType.eqv`, and the variable's initializer as a package fact, are the honest statement).
+
+**The sent messages' facts: no responses, `From`, open enums (2026-10-22; the user: "do the From =
+sender id and MsgMarshals facts", then "Drop enum bounds").** *Open enums.* `MsgMarshals` asked
+every enum to be a declared value (`MessageType` `0`-`23`, the entries' `EntryType` `0`-`2`), on the
+proto2 spec's closed enums. Proving the entries' bound would have needed a log-wide invariant
+(every entry raft makes, receives or restores is of a declared type; a premise on the WAL's
+entries). A Go test on the pinned raftpb showed protobuf-go keeps undeclared values (types `99`, `5`,
+`-3` round-trip, no unknown fields; `notes/rafthttp-plan.md`, "Open enums"), so the bounds were
+stronger than the code needs: dropped, with the user's agreement. `MsgMarshals` is "no responses",
+`EntWireOk` the decoding alone, `pbEntry.marshals` `True`. The accepted axioms (`pbEnc_ok`, the
+generic `proto` specs) keep their names and now cover more messages, which the test supports.
+*Rejected:* the entry-type invariant (unneeded), and keeping the bounds (a model stricter than Go).
+*No responses.* `SentMsgOk` gains `st.resps = []` and `raft.send` the premise `rs = []`: raft builds
+every message without responses, and forwards three it received (`stepFollower`'s `MsgProp`,
+`MsgReadIndex`, `MsgTransferLeader`), so `raft.Step` takes `Hnors` (in its `"Hm"`, for those types)
+and `stepFollower` the premise; `NetMsgOk` and `fwdP` say a network message has none (the transport's
+`netRecv`: a copy unmarshalled from an encoding of a message with none), the local ones are built
+without. The outbox invariant `XfOk` records it for every queued message in every mode (not only
+`SentMsgOk`'s no-transfer mode: the kv example runs with transfer on), and `isRaftMsg` hands it out.
+The transport's boundary: `netBundle` and `netSnapBundle` (what `Send`/`SendSnapshot` take) require
+no responses, and `netRecv` gives the copy none, consistently (the `Transport.Start` axiom asks more
+and promises more; it holds of rafthttp since the wire carries no responses); stage 6 will need
+`pbMessage`'s decoding to say that a decoded message has none. *`From`.* `AppFrom id st` (`MsgApp →
+From = id`): `send` stamps `From = r.id` but on a forwarded read-index or transfer request, never a
+`MsgApp`. It needs the node's id where the queues and the `Ready`s' messages are described: `XfOk`
+and `isRaftMsg` take it, and `NodeNames` has the node's `id` (`isNode`'s `⌜γ.id = id⌝`, set by
+`StartNode`/`RestartNode`) so that `readyData` states `isRaftMsg γ.raft γ.id`. *Deferred:* the
+server's payload keeps the sender existential (`srvMsgNet`, `srvNet.P`: `∃ sid, isRaftMsg γ sid st`);
+tying `sid` to the transport's local id needs the server's raft environment `srvEr` indexed by the
+member id and `γ.node.id = γ.id`, which `Send`'s spec will ask for in stage 6. No axiom added or
+removed (542); no exported result's statement changed; internal specs changed (`raft.send`,
+`raft.Step`, `stepFollower`, the `Ready` specs, the kv example's `deliver`).

@@ -86,7 +86,7 @@ theorem raft.sendHeartbeat.wp_proof
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, rfl⟩)
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) $$ [$Hphys $Hm] as Hphys
+      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
   · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨%Hok, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa

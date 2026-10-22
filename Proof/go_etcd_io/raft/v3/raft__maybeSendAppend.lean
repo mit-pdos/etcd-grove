@@ -192,7 +192,7 @@ local macro "msa_send" : tactic => `(tactic| (
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
-      $$ [Hphys Hm] as Hphys
+      rfl $$ [Hphys Hm] as Hphys
   · iframe
     iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩

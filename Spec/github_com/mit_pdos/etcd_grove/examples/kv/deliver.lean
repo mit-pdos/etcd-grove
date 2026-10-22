@@ -35,13 +35,13 @@ variable [StorageModel GF]
 
 /-- See the file header. -/
 abbrev deliver.spec : Prop :=
-  ∀ (γ : RaftNames) (bud : BudgetNames) (peers tr : Loc) (P : GMap w64 GoInterface)
+  ∀ (γ : RaftNames) (sid : w64) (bud : BudgetNames) (peers tr : Loc) (P : GMap w64 GoInterface)
     (msl : GoSlice) (ms : List QMsg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, peerOk γ bud id nd) ∗
       isTransfers bud tr ∗
       msl ↦* ms.map QMsg.loc ∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ q.st ∗
+      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ sid q.st ∗
         termLB bud q.st.msg.Term') ∗
       ([∗list] q ∈ ms, rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
       -- (2026-10-19, D21 M6) a forwarded proposal's tickets

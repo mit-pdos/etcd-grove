@@ -10,8 +10,9 @@ its wire content;
 - `ro l m`: a `*T` holding `m`, **read-only for good** (persistent): what `Size` and `Marshal` read.
   Because nothing can change it, its encoding is a function of its address (`pbEnc T.ty l`), which
   is what makes `Size` and `Marshal` of one message agree;
-- `marshals m`: the messages whose encoding decodes back to them (e.g. no out-of-range value of a
-  closed proto2 enum, which a decoder puts in the unknown fields);
+- `marshals m`: the messages whose encoding decodes back to them (e.g. raft's `Message` without
+  `responses`, which the model's wire content leaves out; not an enum's range: protobuf-go keeps an
+  undeclared value of a proto2 enum, `notes/rafthttp-plan.md`, "Open enums");
 - `wire m bs`: `bs` is an encoding of `m` (what decoding `bs` gives back is `m`'s wire content);
 - `eqv m m'`: `m` and `m'` have the same wire content (`proto.Clone` keeps it);
 - `blank l`: a zero `*T` the receiver owns; `dec l m`: a decoded (or cloned) `*T` holding `m`,

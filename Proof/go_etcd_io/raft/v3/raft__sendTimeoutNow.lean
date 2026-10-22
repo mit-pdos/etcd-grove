@@ -48,7 +48,7 @@ theorem raft.sendTimeoutNow.wp_proof
     Or.inr (Or.inr (Or.inl (Or.inr ⟨rfl, rfl, Hto, rfl, Hxo⟩)))
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none [] [] [] (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) $$ [$Hphys $Hm] as Hphys
+      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
   · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
   iapply HΦ

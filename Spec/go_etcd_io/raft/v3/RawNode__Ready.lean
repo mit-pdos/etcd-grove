@@ -95,7 +95,7 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages, a response at half
       "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ q.st) ∗
+      "#Hmsgs_ok" ∷ ([∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
       -- each message's read credit (2026-10-13)
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗

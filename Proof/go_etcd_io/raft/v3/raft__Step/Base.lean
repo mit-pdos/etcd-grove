@@ -93,6 +93,16 @@ macro "notsnap_tac" : tactic =>
     | nonsnap Hty | nonsnap Hty' | nonsnap Hty3 | nonsnap Hty2 | nonsnap Hty1
     | (intro hsnap; simp_all [Perennial.EtcdGrove.MsgSnap]))
 
+set_option hygiene false in
+/-- (2026-10-22, D33a) `stepFollower`'s premise that a forwarded message (`MsgProp`, `MsgReadIndex`,
+`MsgTransferLeader`) has no responses, at a branch that steps another type: vacuous, by the branch's
+type hypothesis (as `notsnap_tac`). -/
+macro "notfwd_tac" : tactic =>
+  `(tactic| (intro hf; exfalso; rcases hf with hf | hf | hf <;> revert hf <;> first
+    | nonsnap Hty | nonsnap Hty' | nonsnap Hty3 | nonsnap Hty2 | nonsnap Hty1
+    | (intro hf; simp_all [Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgReadIndex,
+        Perennial.EtcdGrove.MsgTransferLeader])))
+
 /-- `RFrame s s'` (`StepLemmasR.lean`) for a branch's end state `s'` built from `s` by record
 updates and the code's transition functions (2026-10-14, stage B7). -/
 macro "rframe" : tactic =>

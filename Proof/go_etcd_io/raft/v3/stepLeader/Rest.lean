@@ -986,7 +986,7 @@ theorem wp_stepLeader_hbresp
             fun h => Hloc (Or.inr h), rfl⟩))
           (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
           (fun h => by simp [readIndexRespMsg, MsgApp] at h)
-        $$ [$Hphys $Hresp] as Hphys
+        rfl $$ [$Hphys $Hresp] as Hphys
       · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
       have Hstep : readRespond id cur q =
           sendMsgs cur [absMsgFrom .readIndexResp (readIndexRespMsg mm rv.index') id cur.term

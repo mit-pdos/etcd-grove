@@ -346,22 +346,32 @@ read-index request, and from a node other than its destination unless it is a re
 (forwarded, it keeps its requester), a vote or pre-vote response, or an accepting `MsgAppResp`
 (the self-addressed responses `acceptReady` steps). What a receiver's `NetMsgOk` needs of a
 message addressed to it (`NetMsgOk.of_sent`, `InvRawnode.lean`). (2026-10-22, D33a) And a `MsgApp`
-of raft's shape (`AppShape`), what rafthttp's msgappv2 codec needs to carry it whole. -/
+of raft's shape (`AppShape`), what rafthttp's msgappv2 codec needs to carry it whole; and no
+message with responses (raft sets them only on its local storage messages), what both of rafthttp's
+codecs need to marshal it (`MsgMarshals`). -/
 def SentMsgOk (st : MsgSt) : Prop :=
   st.msg.Type' ∈ sentTypes ∧ st.msg.From' ≠ W64 0 ∧
   (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex → st.msg.Term' = W64 0) ∧
   (¬ (st.msg.Type' = MsgProp ∨ st.msg.Type' = MsgReadIndex) → st.msg.Term' ≠ W64 0) ∧
   (st.msg.Type' ≠ MsgReadIndex → st.msg.Type' ≠ MsgVoteResp → st.msg.Type' ≠ MsgPreVoteResp →
      (st.msg.Type' = MsgAppResp → st.msg.Reject' = true) → st.msg.From' ≠ st.msg.To') ∧
-  (st.msg.Type' = MsgApp → AppShape st)
+  (st.msg.Type' = MsgApp → AppShape st) ∧
+  st.resps = []
 
-/-- (2026-10-22, D33a) `SentMsgOk` carries over to a message with the same scalars, if it is not
-a `MsgApp` (whose shape reads the rest): e.g. a `MsgSnap` with its snapshot replaced. -/
+/-- (2026-10-22, D33a) `SentMsgOk` carries over to a message with the same scalars and no
+responses, if it is not a `MsgApp` (whose shape reads the rest): e.g. a `MsgSnap` with its
+snapshot replaced. -/
 theorem SentMsgOk.of_msg {st st' : MsgSt} (H : SentMsgOk st) (hm : st'.msg = st.msg)
-    (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st' := by
-  obtain ⟨a, b, c, d, e, -⟩ := H
+    (hr : st'.resps = []) (hna : st.msg.Type' ≠ MsgApp) : SentMsgOk st' := by
+  obtain ⟨a, b, c, d, e, -, -⟩ := H
   unfold SentMsgOk; rw [hm]
-  exact ⟨a, b, c, d, e, fun h => absurd h hna⟩
+  exact ⟨a, b, c, d, e, fun h => absurd h hna, hr⟩
+
+/-- (2026-10-22, D33a) **A `MsgApp` is from its sender** `id`: `send` stamps `From = r.id` into every
+message but a forwarded read-index or transfer request, and raft's one `MsgApp` (`maybeSendAppend`)
+is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sender, the decoder
+sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
+def AppFrom (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgApp → st.msg.From' = id
 
 /-- (2026-10-19, D21 M2r) **The modes' facts** (`ownRaftPhys`'s `Hxf`, at the state `s` and the
 queued messages `l`): with leader transfer off (`NGhost.xf`) no transferee is recorded and every
@@ -370,53 +380,60 @@ queued message is of a type the model describes (so neither a `MsgTimeoutNow` no
 and with transfer off too every queued message is `SentMsgOk`. (2026-10-19, D22 S-a, to
 2026-10-20, D22 S-c) The term was the no-snapshot mode's (`NGhost.ns`), so that `SentMsgOk` was of
 both modes and its types excluded `MsgSnap`: leaving the no-snapshot mode (S-l) would have lost the
-receiver's facts. -/
-def XfOk (s : NState) (l : List QMsg) : Prop :=
+receiver's facts. (2026-10-22, D33a) And in every mode, no queued message has responses (`send`'s
+premise): what a `Ready` says of its messages (`isRaftMsg`), so that a transport can marshal them. -/
+def XfOk (id : w64) (s : NState) (l : List QMsg) : Prop :=
   (s.gh.xf = true → s.lt = W64 0 ∧ ∀ m ∈ l, mtypeOf m.st.msg.Type' ≠ none) ∧
-  (s.gh.bt = true → s.term ≠ W64 0 ∧ (s.gh.xf = true → ∀ m ∈ l, SentMsgOk m.st))
+  (s.gh.bt = true → s.term ≠ W64 0 ∧ (s.gh.xf = true → ∀ m ∈ l, SentMsgOk m.st)) ∧
+  (∀ m ∈ l, m.st.resps = [] ∧ AppFrom id m.st)
 
 /-- Out of both modes. -/
-theorem XfOk.off {s : NState} {l : List QMsg} (hx : s.gh.xf = false) (hn : s.gh.bt = false) :
-    XfOk s l :=
-  ⟨fun h => absurd (hx.symm.trans h) (by decide), fun h => absurd (hn.symm.trans h) (by decide)⟩
+theorem XfOk.off {id : w64} {s : NState} {l : List QMsg} (hx : s.gh.xf = false) (hn : s.gh.bt = false)
+    (hr : ∀ m ∈ l, m.st.resps = [] ∧ AppFrom id m.st) : XfOk id s l :=
+  ⟨fun h => absurd (hx.symm.trans h) (by decide), fun h => absurd (hn.symm.trans h) (by decide), hr⟩
 
 /-- The empty queues, with no transferee with transfer off and, past term `0` for good, a term
 past `0`. -/
-theorem XfOk.nil {s : NState} (hl : s.gh.xf = true → s.lt = W64 0)
-    (hn : s.gh.bt = true → s.term ≠ W64 0) : XfOk s [] :=
+theorem XfOk.nil {id : w64} {s : NState} (hl : s.gh.xf = true → s.lt = W64 0)
+    (hn : s.gh.bt = true → s.term ≠ W64 0) : XfOk id s [] :=
   ⟨fun h => ⟨hl h, fun _ hm => by cases hm⟩,
-   fun h => ⟨hn h, fun _ _ hm => by cases hm⟩⟩
+   fun h => ⟨hn h, fun _ _ hm => by cases hm⟩, fun _ hm => by cases hm⟩
 
 /-- The same flags, transferee and term, at the same queues. -/
-theorem XfOk.of_fields {s s' : NState} {l : List QMsg} (H : XfOk s l) (hx : s'.gh.xf = s.gh.xf)
-    (hn : s'.gh.bt = s.gh.bt) (hl : s'.lt = s.lt) (ht : s'.term = s.term) : XfOk s' l := by
-  obtain ⟨H1, H2⟩ := H
-  refine ⟨fun h => ?_, fun h => ?_⟩
+theorem XfOk.of_fields {id : w64} {s s' : NState} {l : List QMsg} (H : XfOk id s l) (hx : s'.gh.xf = s.gh.xf)
+    (hn : s'.gh.bt = s.gh.bt) (hl : s'.lt = s.lt) (ht : s'.term = s.term) : XfOk id s' l := by
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨fun h => ?_, fun h => ?_, H3⟩
   · rw [hx] at h; rw [hl]; exact H1 h
   · rw [hn] at h; rw [hx, ht]; exact H2 h
 
 /-- The term raised. -/
-theorem XfOk.term_le {s : NState} {l : List QMsg} {v : w64} (H : XfOk s l)
-    (Hle : uint.Z s.term ≤ uint.Z v) : XfOk { s with term := v } l := by
-  obtain ⟨H1, H2⟩ := H
-  refine ⟨H1, fun h => ?_⟩
+theorem XfOk.term_le {id : w64} {s : NState} {l : List QMsg} {v : w64} (H : XfOk id s l)
+    (Hle : uint.Z s.term ≤ uint.Z v) : XfOk id { s with term := v } l := by
+  obtain ⟨H1, H2, H3⟩ := H
+  refine ⟨H1, fun h => ?_, H3⟩
   obtain ⟨b, c⟩ := H2 h
   refine ⟨fun hv => b ?_, c⟩
   subst hv
   word
 
 /-- A message queued: its own facts at the node's flags. -/
-theorem XfOk.snoc {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk s l)
+theorem XfOk.snoc {id : w64} {s : NState} {l : List QMsg} {q : QMsg} (H : XfOk id s l)
     (hx : s.gh.xf = true → mtypeOf q.st.msg.Type' ≠ none)
     (hn : s.gh.bt = true → s.gh.xf = true → SentMsgOk q.st)
-    (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk s l' := by
-  refine ⟨fun h => ⟨(H.1 h).1, fun m hm => ?_⟩, fun h => ⟨(H.2 h).1, fun hx' m hm => ?_⟩⟩
+    (hr : q.st.resps = [] ∧ AppFrom id q.st)
+    (l' : List QMsg) (hl : ∀ m ∈ l', m ∈ l ∨ m = q) : XfOk id s l' := by
+  refine ⟨fun h => ⟨(H.1 h).1, fun m hm => ?_⟩, fun h => ⟨(H.2.1 h).1, fun hx' m hm => ?_⟩,
+    fun m hm => ?_⟩
   · rcases hl m hm with hm | rfl
     · exact (H.1 h).2 m hm
     · exact hx h
   · rcases hl m hm with hm | rfl
-    · exact (H.2 h).2 hx' m hm
+    · exact (H.2.1 h).2 hx' m hm
     · exact hn h hx'
+  · rcases hl m hm with hm | rfl
+    · exact H.2.2 m hm
+    · exact hr
 
 /-- (2026-10-17) The ceiling raised. -/
 theorem OutTermOk.mono_tc {t tc tc' : w64} {m : MessageM}
@@ -1007,7 +1024,7 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF)
   -- (2026-10-19, D21 M2r) leader transfer off and the no-snapshot mode: no transferee, the queued
   -- messages' types and (in the no-snapshot and, D22 S-a, no-transfer modes) their `SentMsgOk`,
   -- the term past `0` in the no-snapshot mode (`XfOk`)
-  "%Hxf" ∷ ⌜XfOk s (msgs ++ msgsAA)⌝ ∗
+  "%Hxf" ∷ ⌜XfOk id s (msgs ++ msgsAA)⌝ ∗
 
   -- `r.preVote`, recorded (since 2026-10-04; until then a scope conjunct pinned it to
   -- `false`). Never written after `newRaft`.
@@ -1114,7 +1131,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     (s.role ≠ .follower → id ∈ cfg) →
     PrvalsOk s →
     LogNsOk s →
-    XfOk s (msgs ++ msgsAA) →
+    XfOk id s (msgs ++ msgsAA) →
     ⊢ raftOwn (GF := GF) r rv -∗
       isLogger lok -∗
       ownTracker cfg rv.trk' ⟨s.votes, s.progress, s.prvals⟩ -∗
@@ -1206,7 +1223,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     (s.role ≠ .follower → id ∈ V) →
     PrvalsOk s →
     LogNsOk s →
-    XfOk s (msgs ++ msgsAA) →
+    XfOk id s (msgs ++ msgsAA) →
     ⊢ raftOwn (GF := GF) r rv -∗
       isLogger lok -∗
       ownTrackerC c rv.trk' ⟨s.votes, s.progress, s.prvals⟩ -∗
@@ -1281,7 +1298,7 @@ theorem ownRaftPhysCVW_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s :
     (s.role ≠ .follower → id ∈ V) →
     PrvalsOk s →
     LogNsOk s →
-    XfOk s (msgs ++ msgsAA) →
+    XfOk id s (msgs ++ msgsAA) →
     ⊢ raftOwn (GF := GF) r rv -∗
       isLogger lok -∗
       ownTrackerC c rv.trk' ⟨s.votes, s.progress, s.prvals⟩ -∗
@@ -1841,7 +1858,7 @@ theorem ownRaftPhys_intro_trk (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     GhLogOk s.gh s.logst →
     (s.role ≠ .follower → id ∈ cfg) →
     LogNsOk s →
-    XfOk s (msgs ++ msgsAA) →
+    XfOk id s (msgs ++ msgsAA) →
     ⊢ raftOwn (GF := GF) r rv -∗
       isLogger lok -∗
       ownRaftLog rv.raftLog' s.logst -∗
@@ -2108,7 +2125,7 @@ theorem ownRaftPhysC_xf (r : Loc) (id : w64) (s : NState) :
   iintro H
   iNamed_physC H
   isplitr
-  · ipureintro; exact ⟨fun h => (Hxf.1 h).1, fun h => (Hxf.2 h).1⟩
+  · ipureintro; exact ⟨fun h => (Hxf.1 h).1, fun h => (Hxf.2.1 h).1⟩
   resealC c s
 
 /-- Changing only the outbox, up to permutation. -/
@@ -2461,7 +2478,7 @@ theorem ownRaftPhysC_set_ns (r : Loc) (id : w64) (s : NState) (Hrole : s.role �
   iNamed_physC H
   ihave #Hnscap' : NsCap (GF := GF) true s.logst.storage $$ []
   · unfold NsCap; iintro !> %_; iexact Hcap
-  have Hxf' : XfOk { s with gh := { s.gh with ns := true } } (msgs ++ msgsAA) :=
+  have Hxf' : XfOk id { s with gh := { s.gh with ns := true } } (msgs ++ msgsAA) :=
     Hxf.of_fields rfl rfl rfl rfl
   iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with ns := true } } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2485,8 +2502,8 @@ theorem ownRaftPhysC_set_bt (r : Loc) (id : w64) (s : NState)
   icases outboxRel_nil_types msgs msgsAA $$ Houtbox with ⟨%Hnone, Houtbox⟩
   ihave Houtbox : outboxRel (GF := GF) s.outbox msgs msgsAA $$ [Houtbox]
   · rw [Hob]; iexact Houtbox
-  have Hxf' : XfOk { s with gh := { s.gh with bt := true } } (msgs ++ msgsAA) :=
-    ⟨Hxf.1, fun _ => ⟨Ht, fun hx m hm => absurd (Hnone m hm) ((Hxf.1 hx).2 m hm)⟩⟩
+  have Hxf' : XfOk id { s with gh := { s.gh with bt := true } } (msgs ++ msgsAA) :=
+    ⟨Hxf.1, fun _ => ⟨Ht, fun hx m hm => absurd (Hnone m hm) ((Hxf.1 hx).2 m hm)⟩, Hxf.2.2⟩
   iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with bt := true } } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2503,9 +2520,9 @@ theorem ownRaftPhysC_xf_off (r : Loc) (id : w64) (s : NState) :
       ownRaftPhysCV c V r id { s with gh := { s.gh with xf := false } } := by
   iintro H
   iNamed_physC H
-  have Hxf' : XfOk { s with gh := { s.gh with xf := false } } (msgs ++ msgsAA) :=
+  have Hxf' : XfOk id { s with gh := { s.gh with xf := false } } (msgs ++ msgsAA) :=
     ⟨fun h => absurd h Bool.false_ne_true,
-     fun h => ⟨(Hxf.2 h).1, fun h' => absurd h' Bool.false_ne_true⟩⟩
+     fun h => ⟨(Hxf.2.1 h).1, fun h' => absurd h' Bool.false_ne_true⟩, Hxf.2.2⟩
   iapply ownRaftPhysCV_intro c _ _ _ { s with gh := { s.gh with xf := false } } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -3010,7 +3027,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
            -- (2026-10-19, D21 M2r) a type the model describes with transfer off, and `SentMsgOk`
            -- in the no-snapshot and (D22 S-a) no-transfer modes (`XfOk`)
            ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧
-             (s.gh.bt = true → s.gh.xf = true → SentMsgOk st')⌝ -∗
+             (s.gh.bt = true → s.gh.xf = true → SentMsgOk st') ∧ st'.resps = [] ∧ AppFrom id st'⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.logst.storage st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
@@ -3029,8 +3046,8 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
     unfold qSrcs
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ q => qSrc (GF := GF) s.logst.storage q)).2
     unfold qSrc; iexact Hq
-  have Hxf' : XfOk s ((msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA) :=
-    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2 _ (fun m hm => by
+  have Hxf' : XfOk id s ((msgs ++ [(⟨l', st'⟩ : QMsg)]) ++ msgsAA) :=
+    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2 _ (fun m hm => by
       simp only [List.mem_append, List.mem_singleton] at hm
       rcases hm with (hm | rfl) | hm
       · exact .inl (List.mem_append_left _ hm)
@@ -3078,7 +3095,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
            -- (2026-10-19, D21 M2r) a type the model describes with transfer off, and `SentMsgOk`
            -- in the no-snapshot and (D22 S-a) no-transfer modes (`XfOk`)
            ⌜(s.gh.xf = true → mtypeOf st'.msg.Type' ≠ none) ∧
-             (s.gh.bt = true → s.gh.xf = true → SentMsgOk st')⌝ -∗
+             (s.gh.bt = true → s.gh.xf = true → SentMsgOk st') ∧ st'.resps = [] ∧ AppFrom id st'⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.logst.storage st'.msg.Type' st'.snap -∗
            ownRaftPhysCV (GF := GF) c V r id { s with outbox := s.outbox ++ absList [a] }) := by
@@ -3097,8 +3114,8 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
     unfold qSrcs
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ q => qSrc (GF := GF) s.logst.storage q)).2
     unfold qSrc; iexact Hq
-  have Hxf' : XfOk s (msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)])) :=
-    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2 _ (fun m hm => by
+  have Hxf' : XfOk id s (msgs ++ (msgsAA ++ [(⟨l', st'⟩ : QMsg)])) :=
+    Hxf.snoc (q := ⟨l', st'⟩) Hxq.1 Hxq.2.1 Hxq.2.2 _ (fun m hm => by
       simp only [List.mem_append, List.mem_singleton] at hm
       rcases hm with hm | hm | rfl
       · exact .inl (List.mem_append_left _ hm)
@@ -3244,7 +3261,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
         "%Hgh_out" ∷ ⌜s.gh.outlb ≤ ms1.length + ms2.length⌝ ∗
         "%Hgh_unst" ∷ ⌜LogGhOk s s.logst⌝ ∗
         -- (2026-10-19, D21 M2r) the modes' facts of the queues
-        "%Hxf" ∷ ⌜XfOk s (ms1 ++ ms2)⌝ ∗
+        "%Hxf" ∷ ⌜XfOk id s (ms1 ++ ms2)⌝ ∗
         -- (D22 S-b′3) their certificates' source
         "#Hscert" ∷ qSrcs s.logst.storage (ms1 ++ ms2) ∗
         "Hlog" ∷ ownRaftLog s.log s.logst ∗
@@ -3272,7 +3289,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
             ⌜g.ns = s.gh.ns ∧ LogNsKeep s ls' ∧ ∀ m ∈ o, m ∈ s.outbox⌝ -∗
             ⌜s.role = .leader → uint.Z (logLast s.logst) ≤ uint.Z (logLast ls')⌝ -∗
             -- (2026-10-19, D21 M2r) the modes' facts of the new queues
-            ⌜XfOk { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
+            ⌜XfOk id { s with outbox := o, logst := ls', gh := g, rd := rd' } (ms1' ++ ms2')⌝ -∗
             qSrcs ls'.storage (ms1' ++ ms2') -∗
             ownRaftLog s.log ls' -∗
             ownRaftPhysCV c V r id { s with outbox := o, logst := ls', gh := g, rd := rd' })) := by

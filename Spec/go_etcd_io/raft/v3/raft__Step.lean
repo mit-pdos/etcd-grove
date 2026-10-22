@@ -609,6 +609,10 @@ abbrev raft.Step.spec : Prop :=
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
                       (ents.length : Int) < 2^61⌝ ∗
+         -- (2026-10-22, D33a) a message a follower forwards to the leader has no responses
+         -- (`send`'s premise; raft sets them only on its local storage messages)
+         "%Hnors" ∷ ⌜m.Type' = MsgProp ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader →
+                      rs = []⌝ ∗
          -- (D19i part 1) and at most `applying` (`RawNode.Advance` acknowledges entries
          -- `Ready` handed out; `appliedTo` then leaves `applying`)
          "%Happly" ∷ ⌜m.Type' = MsgStorageApplyResp →

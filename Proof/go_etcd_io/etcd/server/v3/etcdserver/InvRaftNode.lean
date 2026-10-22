@@ -251,7 +251,7 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
       γ.node.raft.reNoSnap = true⌝ ∗
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗
-    □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
+    □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft γ.node.id st ∗
         termLB γ.node.bud st.msg.Term' ∗
         rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
         stTks γ.node.raft st -∗ E.M m) ∗
@@ -410,11 +410,11 @@ theorem txnCtx_nodeCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
 (2026-10-19, D21 stage M1). -/
 theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
     ∀ ms : List QMsg,
-      ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft st ∗
+      ⊢ □ (∀ (m : Loc) (st : MsgSt), msgOwn m DFrac.discard st ∗ isRaftMsg γ.node.raft γ.node.id st ∗
           termLB γ.node.bud st.msg.Term' ∗
           rdCred γ.node.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
           stTks γ.node.raft st -∗ E.M m) -∗
-        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.node.raft q.st ∗
+        ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.node.raft γ.node.id q.st ∗
           termLB γ.node.bud q.st.msg.Term') -∗
         ([∗list] q ∈ ms, rdCred γ.node.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) -∗
         ([∗list] q ∈ ms, stTks γ.node.raft q.st)
@@ -429,7 +429,7 @@ theorem rnMsgOk_of_raft (E : RNEnv GF) (γ : RNNames) :
   | q :: ms => by
     iintro #HM H Hc Htk
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗
-      isRaftMsg γ.node.raft q.st ∗ termLB γ.node.bud q.st.msg.Term'))).1 $$ H with ⟨⟨Hm, #Hrm, #Htl⟩, Hrest⟩
+      isRaftMsg γ.node.raft γ.node.id q.st ∗ termLB γ.node.bud q.st.msg.Term'))).1 $$ H with ⟨⟨Hm, #Hrm, #Htl⟩, Hrest⟩
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => rdCred (GF := GF) γ.node.raft
       (if q.st.msg.Type' = MsgReadIndex then 1 else 0))).1 $$ Hc with ⟨Hc1, Hcrest⟩
     icases (BigSepL.bigSepL_cons (Φ := fun _ (q : QMsg) => stTks (GF := GF) γ.node.raft q.st)).1

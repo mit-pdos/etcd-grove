@@ -83,7 +83,8 @@ budget `bud` reached (`termLB`), with its read credit, one for a `MsgReadIndex` 
 what a peer's `node.Step` takes of a network message (`netP`) but the receiver's own facts
 (`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. -/
 def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (m : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (∃ sid, isRaftMsg γ sid st) ∗
+    termLB bud st.msg.Term' ∗
     rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
     -- (2026-10-19, D21 M6) a forwarded proposal's tickets
     stTks γ st)
@@ -98,7 +99,7 @@ once: the transport's at-most-once promise for a `once` message (`Transport.Star
 cluster's start): what the sender's backend snapshot gives (S-h) and the receiver's
 `OpenSnapshotBackend` reads (S-j). -/
 def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
-  P st := iprop(isRaftMsg γ st ∗ termLB bud st.msg.Term')
+  P st := iprop((∃ sid, isRaftMsg γ sid st) ∗ termLB bud st.msg.Term')
   O st := iprop(rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ st)
   once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
   P_pers st := by infer_instance
@@ -137,6 +138,10 @@ theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
   iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
   icases H with ⟨%st, #Hm, #Hr, #Ht, Hc, Htk⟩
+  icases Hr with ⟨%sid, #Hr⟩
+  ihave #Hr' := Hr
+  iunfold isRaftMsg at Hr'
+  icases Hr' with ⟨-, -, -, -, %Hrs⟩
   iunfold srvMsgNoSnap at Hns
   icases Hns with ⟨%st', #Hm', %Hns⟩
   ihave %Hty := msgOwn_type_agree m st st' $$ [Hm Hm']
@@ -147,9 +152,10 @@ theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (m : Loc) :
   iframe Hm Hc Htk
   isplitr
   · imodintro
-    iframe Hr Ht
+    iframe Ht
+    iexists sid; iexact Hr
   ipureintro
-  rw [Hty]; exact Hns
+  rw [Hty]; exact ⟨Hns, Hrs.1⟩
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
@@ -164,8 +170,8 @@ def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.A
 /-- **A cluster in the no-snapshot mode sends no snapshot** (D21 M3, 2026-10-19; `isRaftMsg`'s
 clause, from raft's invariant `LogNsOk`). Until then (D19p) of a one-member cluster: with raft's
 tracked bound one node, a `MsgSnap`'s sender and receiver would be the same. -/
-theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (sid : w64) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ sid st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
   iintro Hr
   iunfold isRaftMsg at Hr
   icases Hr with ⟨%H, -⟩

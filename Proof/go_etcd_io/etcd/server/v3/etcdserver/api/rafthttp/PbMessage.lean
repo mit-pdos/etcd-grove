@@ -10,9 +10,12 @@ Read it against `raftpb/raft.proto` (raft v3.7, `syntax = "proto2"`):
   read alike, and so do a nil sub-message and an empty one (`SnapshotM`'s metadata), so the
   model need not say which was sent; a present `snapshot` stays present (`some`);
 - the messages that marshal (`MsgMarshals`): no `responses` (they would be encoded from messages
-  `msgOwn` does not own; raft sets them only on its local storage messages), and every enum a
-  value of its closed proto2 enum (`MessageType` `0`-`23`, `EntryType` `0`-`2`): a decoder puts any
-  other value in the unknown fields, and the getter reads the default;
+  `msgOwn` does not own; raft sets them only on its local storage messages). Any enum value
+  marshals and decodes back: protobuf-go treats proto2's closed enums as open, so a `MessageType`
+  or `EntryType` outside the declared values is kept, not moved to the unknown fields
+  (`notes/rafthttp-plan.md`, "Open enums", with the Go test that checks it). (Until 2026-10-22 the
+  model required declared values, `MessageType` `0`-`23` and `EntryType` `0`-`2`, as proto2's
+  closed enums would);
 - decoding (`msgDecode`, opaque) is a function of the bytes: two messages of which the same bytes
   are an encoding agree on the wire (`pbMessage_wire_eq`, `wireEq`). The unknown fields of the
   message, its entries and snapshot are not in the model: an encoding carries them, and decoding
@@ -57,9 +60,9 @@ def wireOf (st : MsgSt) : MsgWire := ⟨st.msg, st.ents, st.snap, st.ctx⟩
 decode. -/
 opaque msgDecode (bs : List w8) : Option MsgWire
 
-/-- **The messages that marshal** (see the file header): no `responses`, every enum known. -/
+/-- **The messages that marshal** (see the file header): no `responses`. -/
 def MsgMarshals (st : MsgSt) : Prop :=
-  st.resps = [] ∧ uint.Z st.msg.Type' ≤ 23 ∧ ∀ e ∈ st.ents, uint.Z e.Type' ≤ 2
+  st.resps = []
 
 /-- **`bs` is an encoding of the message `st`**: it marshals, and `bs` decodes to its wire
 content. -/
@@ -98,10 +101,10 @@ def pbMessage : PbType GF where
 /-- **Decoding a `raftpb.Entry`'s bytes** (opaque): the entry, or `none`. -/
 opaque entDecode (bs : List w8) : Option EntryM
 
-/-- **`bs` is an encoding of the entry `e`**: its type a known `EntryType` (`0`-`2`, a closed
-proto2 enum), and `bs` decodes to it. -/
+/-- **`bs` is an encoding of the entry `e`**: `bs` decodes to it (every entry marshals, of any
+`EntryType` value: the file header). -/
 def EntWireOk (e : EntryM) (bs : List w8) : Prop :=
-  uint.Z e.Type' ≤ 2 ∧ entDecode bs = some e
+  entDecode bs = some e
 
 /-- **A `*raftpb.Entry` at the bytes** (a trusted wire model, read against `raft.proto`'s `Entry`:
 `Term`, `Index`, `Type`, `Data`, all in `EntryM`): read-only for good and decoded alike, a log
@@ -111,7 +114,7 @@ def pbEntry : PbType GF where
   M := EntryM
   ro l e := entRO l e
   ro_persistent l e := entRO_persistent l e
-  marshals e := uint.Z e.Type' ≤ 2
+  marshals _ := True
   wire := EntWireOk
   eqv e e' := e = e'
   blank l := iprop(l ↦ (zero_val raftpb.Entry))
@@ -121,7 +124,7 @@ def pbEntry : PbType GF where
 @[simp] theorem pbEntry_M : (pbEntry (GF := GF)).M = EntryM := rfl
 @[simp] theorem pbEntry_ro (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).ro l e = entRO l e := rfl
 @[simp] theorem pbEntry_marshals (e : EntryM) :
-    (pbEntry (GF := GF)).marshals e = (uint.Z e.Type' ≤ 2) := rfl
+    (pbEntry (GF := GF)).marshals e = True := rfl
 @[simp] theorem pbEntry_wire : (pbEntry (GF := GF)).wire = EntWireOk := rfl
 @[simp] theorem pbEntry_blank (l : Loc) :
     (pbEntry (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
@@ -130,7 +133,7 @@ def pbEntry : PbType GF where
 /-- One encoding is of one entry. -/
 theorem EntWireOk.inj {e e' : EntryM} {bs : List w8} (h : EntWireOk e bs) (h' : EntWireOk e' bs) :
     e = e' :=
-  Option.some.inj (h.2.symm.trans h'.2)
+  Option.some.inj (h.symm.trans h')
 
 /-- **Two messages of which the same bytes are an encoding agree on the wire.** -/
 theorem pbMessage_wire_eq {st st' : MsgSt} {bs : List w8} (h : MsgWireOk st bs)

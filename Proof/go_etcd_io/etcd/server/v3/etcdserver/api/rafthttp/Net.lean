@@ -86,10 +86,11 @@ def wireEq (st st' : MsgSt) : Prop :=
 
 /-- **A message handed to `Send`**, with its bundle: read-only for good (the transport's writer
 goroutines marshal it after `Send` returns), its persistent part and its one-shot part; (D22 S-i)
-not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). -/
+not a `MsgSnap`, which goes by `SendSnapshot` (`netSnapBundle`). (2026-10-22, D33a) With no
+responses: what marshals (`MsgMarshals`), so that the receiver's copy has none either (`netRecv`). -/
 def netBundle (N : NetPayload GF) (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ (□ N.P st) ∗ N.O st ∗
-    ⌜st.msg.Type' ≠ MsgSnap⌝)
+    ⌜st.msg.Type' ≠ MsgSnap ∧ st.resps = []⌝)
 
 /-- **A snapshot message handed to `SendSnapshot`** (D22 S-i): the raft message `ml` of the merged
 message, a `MsgSnap` with a snapshot of index `i`, with its bundle (read-only for good, as
@@ -98,7 +99,7 @@ complete streams are bbolt images of some `D` (`boltImage`) with the payload's c
 `N.img i D` (for the server, `srvImage`: the committed state through `i`). -/
 def netSnapBundle (N : NetPayload GF) (ml : Loc) (rc : GoInterface) : IProp GF :=
   iprop(∃ (st : MsgSt) (sn : SnapshotM) (D : backend.Data), msgOwn ml DFrac.discard st ∗
-    (□ N.P st) ∗ N.O st ∗ ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn⌝ ∗
+    (□ N.P st) ∗ N.O st ∗ ⌜st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = []⌝ ∗
     backend.readerStreams rc (fun bs => backend.boltImage bs D) ∗
     □ N.img sn.Metadata'.Index' D)
 
@@ -139,10 +140,11 @@ instance netSnapRecv_persistent (γd : GName) (st : MsgSt) :
 
 /-- **A message received by member `id`** at `ml`: a fresh copy, owned with its entries' slots
 and capacity, of a message `st` sent into the network to `id`, with its bundle; (D22 S-i) a
-`MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). -/
+`MsgSnap`'s database saved in `id`'s snapshot directory `γd` (`netSnapRecv`). (2026-10-22, D33a)
+Unmarshalled from the wire, the copy has no responses (the wire carries none: `MsgMarshals`). -/
 def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :=
   iprop(∃ st st' : MsgSt, msgPtsC ml (DFrac.own 1) (DFrac.own 1) true st' ∗
-    ⌜wireEq st st' ∧ st.msg.To' = id⌝ ∗ (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
+    ⌜wireEq st st' ∧ st.msg.To' = id ∧ st'.resps = []⌝ ∗ (□ γn.N.P st) ∗ γn.N.O st ∗ netSnapRecv γd st)
 
 /-- **The receiver's `Raft`** (`rafthttp.Raft`, persistent): `Process` of a received message with
 a context the node API takes, given one of the receiver's resources `R` (back after the call),
