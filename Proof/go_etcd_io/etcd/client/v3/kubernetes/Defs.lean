@@ -10,6 +10,8 @@ reuse, as linkv3p does): a read update or an update fired at most once at each m
 answer as a function of the state `σ` the update fired at.
 
 - `kvOut`: a response's `KV` field, `nil` or a key's key-value;
+- `kvIs_ne_null`: a response's key-value pointer is not `nil` (the package's one `sorry`, a gap of
+  the server's response predicate);
 - `getKey1Op`, `srvRangeOk_getKey1`: `Get`'s range, `OpGet(key, WithRev(0), WithLimit(1))` on the
   wire, selects the key's first key-value (`findKey`).
 -/
@@ -102,6 +104,27 @@ def kvOut (p : Loc) (kv : Option EtcdKv) : IProp GF :=
 
 instance kvOut_persistent (p : Loc) (kv : Option EtcdKv) : Persistent (kvOut (GF := GF) p kv) := by
   unfold kvOut; cases kv <;> infer_instance
+
+/-- **A response's key-value pointer is not `nil`** (`sorry`). The server's response predicate
+`txn.kvIs` does not say it (its field points-tos do not imply it), and the store branches on
+`KV == nil`. `notes/k8s-etcd3-plan.md`, "From the etcd client proof", request 3: `txn.kvIs`
+carrying `⌜l ≠ null⌝` (from the struct's typed points-to, `txn.kvAt_persist'`) proves it. -/
+theorem kvIs_ne_null (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ ⌜l ≠ null⌝ := by
+  sorry
+
+/-- A key-value as a response's `KV` (`kvIs_ne_null`). -/
+theorem kvOut_some (l : Loc) (v : EtcdKv) : txn.kvIs (GF := GF) l v ⊢ kvOut l (some v) := by
+  iintro #H
+  ihave %Hn := kvIs_ne_null l v $$ H
+  simp only [kvOut]
+  isplitr
+  · ipureintro; exact Hn
+  · iexact H
+
+/-- The one key-value of a list, if it has exactly one (`len(Kvs) == 1`). -/
+def single {α : Type} : List α → Option α
+  | [v] => some v
+  | _ => none
 
 end defs
 

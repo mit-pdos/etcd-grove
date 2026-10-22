@@ -3,8 +3,7 @@ Lean-first (no Rocq counterpart).
 
 The proof of `kubernetes.Client.Get`: the options `[WithRev(0), WithLimit(1)]`, then
 `client_range_any` through the client's `*kv` (as linkvtxn's `client_Get_st`), and the response's
-`KV` from the selection (`srvRangeOk_getKey1`). One `sorry`: the key-value pointer is not `nil`
-(see there).
+`KV` from the selection (`srvRangeOk_getKey1`; not `nil`: `kvIs_ne_null`).
 -/
 module
 
@@ -152,14 +151,8 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         isplitl []
         · ipureintro; exact ⟨hrevσ, hb⟩
         rw [hk]
-        simp only [kvOut]
-        iframe Hkv
-        ipureintro
-        -- `p0 ≠ null`: the server's response predicate `txn.kvIs` does not say its pointer is not
-        -- `nil` (its field points-tos do not imply it); `notes/k8s-etcd3-plan.md`, "From the etcd
-        -- client proof", item 3: `txn.kvIs` carrying `⌜l ≠ null⌝` (from the struct's typed
-        -- points-to in `txn.kvAt_persist'`) closes it
-        sorry
+        iapply kvOut_some
+        iexact Hkv
       · exfalso
         have h1 : ps.length = 1 := by rw [Hlen, hkvs]; rfl
         obtain ⟨h2, h3⟩ := Hsll
