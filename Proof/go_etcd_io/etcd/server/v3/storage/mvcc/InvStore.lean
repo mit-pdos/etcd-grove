@@ -100,7 +100,8 @@ real backend). -/
 structure StoreNames where
   idx : IdxNames
   bucket : GName
-  /-- `ghostVar Log`: the committed log, half under `s.revMu`, half under the batch lock -/
+  /-- `ghostVar Log`: the committed log, half under `s.revMu`, half the writer's state's (`writerL`,
+  in `writerInv`; until D22 receiver epochs S2 under the batch lock) -/
   clog : GName
   /-- the lessor's ghost map (`lease.lessorMu`): its live set, half the lease owner's
   (`lease.leaseOwn`, what `Attach` needs), and its location -/
@@ -1732,7 +1733,7 @@ theorem certFree_certOkNext (γ : StoreNames) (ilog : Log) (pend : List Change) 
   iapply certFree_certOk $$ H
 
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
-`currentRev` (half of it: the writer holds the other half under the batch lock), half the
+`currentRev` (half of it: the writer's state holds the other half, `writerL`), half the
 committed-log ghost variable, the index's certificate of `log` and the bucket's authority
 (`bucketMap log`, half of it: the batch lock holds the other half), half the revision
 budget's authority with its bound for `log`, and half the committed log's authority (the index
@@ -2404,8 +2405,10 @@ set_option synthInstance.maxHeartbeats 800000 in
 instance isStore_persistent (s : Loc) (γ : StoreNames) : Persistent (isStore (GF := GF) s γ) := by
   unfold isStore; infer_instance
 
-/-- A transaction's tokens, for a store that may be compacted: a reader slot of each of `s.mu`,
-`s.revMu` and the index's lock, and a reader's token of the backend (`storeRT`). **The reader the
+/-- A transaction's tokens, for a store that may be compacted: a reader slot of each of `s.mu` and
+`s.revMu`, a ticket of the readers' pool (D22 receiver epochs, S4: the pool hands out a slot of
+the index's lock for the transaction, `readerPool`), and a reader's token of the backend
+(`storeRT`). **The reader the
 store's specs take** (2026-10-13, unit 6a: `store.Read`/`Write`/`Rev`, the read view's; a
 transaction's `End` gives it back): its transactions observe the compaction revision, which may
 move (`store.Compact`, by the holder of the compaction right). -/
@@ -2415,8 +2418,8 @@ def storeReaderC (s : Loc) (γ : StoreNames) : IProp GF :=
     "Htk" ∷ ownToks γ.tk 1 ∗
     "Hrt" ∷ storeRT γ)
 
-/-- A transaction's tokens (a reader slot of each of `s.mu`, `s.revMu` and the index's lock, and
-a reader's token of the backend), **for a store that is never compacted** (`crevFrozen`): the
+/-- A transaction's tokens (a reader slot of each of `s.mu` and `s.revMu`, a ticket of the
+readers' pool, and a reader's token of the backend), **for a store that is never compacted** (`crevFrozen`): the
 readers of the txn, apply, request path and watchable store, whose statements are of a store
 never compacted; the store's specs take `storeReaderC` (2026-10-13, unit 6a), and their
 statements over `storeReader` are corollaries (`spec_frozen`: `storeReader_toC`,
@@ -2785,9 +2788,11 @@ theorem changesAre_snoc (ps : List Loc) (ilog : Log) (pend : List Change) (c : C
 /-- The `storeTxnWrite` at `tw` of a write transaction of the store `s` at the committed log
 `ilog`, with the pending changes `pend` (the next revision's, not yet visible to readers): its
 fields (`beginRev` is `ilog`'s last revision, `changes` the key-values written), the batch
-transaction locked with the pending puts, the batch lock's resource (`writerRes`, with the
-pending changes in the index writer's handle), the revision token the transaction was opened
-with, and the transaction's tokens: `s.mu` held shared at the compaction revision `crev` the
+transaction locked with the pending puts, the writer's state (`writerL`, checked out of
+`writerInv`, with the pending changes in the index writer's handle) and the batch lock's resource
+(`writerRes`: the view's half, the compaction's part; its key deposited in `writerInv`), both
+halves of the view's log ghost, the revision token the transaction was opened with, and the
+transaction's tokens (with its slot of the index's lock, out of the readers' pool): `s.mu` held shared at the compaction revision `crev` the
 transaction observed (one of `ilog`'s revisions, or `-1`), and the reader's tag `Z` (persistent,
 given back at `End`). By default the frozen transaction (`crev = -1`, `Z = crevFrozen γ`: a store
 never compacted, as the packages above mvcc state it; 2026-10-13, unit 6a). -/
