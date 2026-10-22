@@ -102,6 +102,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompactionCompleted
@@ -816,6 +817,10 @@ theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.store.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
   mvcc.store.Compact.wp_proof mvcc.store.wp_checkPrevCompactionCompleted mvcc.store.wp_updateCompactRev traceutil.Trace.wp_Step mvcc.store.wp_compact
+
+theorem mvcc.store.wp_Restore :
+    mvcc.store.Restore.spec (GF := GF) (hG := hG) :=
+  mvcc.store.Restore.wp_proof
 
 theorem mvcc.store.wp_Rev :
     mvcc.store.Rev.spec (GF := GF) (hG := hG) :=

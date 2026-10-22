@@ -238,6 +238,9 @@ schedule_Scheduler__Stop: schedule_fifo__Stop
 # The store's `Close` (translated 2026-10-22): `close(s.stopc)`, the scheduler's `Stop`.
 store__Close: schedule_Scheduler__Stop
 watchableStore__Close: store__Close
+# The store's `Restore` (translated; D22 receiver epochs S6, 2026-10-22: the trust boundary, an
+# axiom until S-g2, see its spec's docstring).
+store__Restore:
 schedule_job__Do:
 schedule_job__Name:
 schedule_NewJob: schedule_job__Do
