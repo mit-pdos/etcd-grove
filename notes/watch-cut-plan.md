@@ -232,6 +232,28 @@ revision both have. Not yet used: W3 imports it.
 
 ### W3. The client: the watch over several members
 
+**The design (2026-10-22, from reading the client's proof).**
+- The client's contract (`isEtcdRangeWatcher`, `watchRespOk`) is stated over an `EtcdModel`
+  (`V.EM`), today `etcdModelOfServer V.R.E`, one member's. Its facts (an event's state, a step, a
+  reached revision) all come from certified logs (`evLog`, `srvStep`'s `certOk`).
+- `EtcdModel`'s laws are plain entailments (`⊢`), so a cluster model cannot open the certificates'
+  invariant inside them, and `kv_cert_cmp` is a fancy update. But "the KV model of a committed
+  raft prefix" (`srvRLogLb γ A ∗ ⌜kvModel γk A = log⌝`) is persistent, and two such logs compare
+  by a plain entailment (`srvRLogLb_prefix`, `kvRaftOf_prefix`).
+- **W3a: the history model** `etcdModelOfHistory γ γk`. Its logs are the KV models of committed
+  raft prefixes, carrying their well-formedness. It names no member. Its laws are
+  `ClientModel.lean`'s, with the comparison of two logs replaced. A member's certified facts become
+  its facts by `kv_cert_read`, an update, which the client's proof makes inside its WPs.
+  `etcdRevToken` is `False` there: no watch result produces one.
+- **W3b: the watch client over a family of members.** `WEnv` keeps one `EM` and gains the members
+  (their watch servers and addresses), with premises that each member's facts convert into `EM`'s
+  (the identity for `etcdModelOfServer` at one member, so watchkv's and the cache's statements stay
+  as they are). Each epoch's stream is at some member: the run's state names it, and the per-epoch
+  facts (`regFacts`, `cur2Ok`, the coverage) are that member's. The resume invariants are already
+  `EM`-level (`startOk`, `resumeOk`), so they cross epochs unchanged.
+- **W3c:** the watch stub over a list (`watchClient.Watch` at `addrs`), `openWatchClient`, and
+  `isNewClient_watcher` for `eps` a list.
+
 - `WEnv` without a fixed server: the shared names, and the members' addresses.
 - `openWatchClient`, `run`'s reconnection and the resume invariants over the shared history.
 - `isNewClient_watcher` for `eps` a list.
