@@ -105,7 +105,11 @@ variable [ext : FfiSyntax]
 /-- **What a watcher is over** (fixed by `NewWatchFromWatchClient`): the watch server's values
 (`R`: its store's names, its ids, its environment), the address it is served at and the client's
 connection to it (its stream interceptors `ics`), the stub (`wc`, a `*watchClient`), the prefix
-the watches are under (`pfx`), the logger (`lg`). -/
+the watches are under (`pfx`), the logger (`lg`); (W3 of `notes/watch-cut-plan.md`, 2026-10-22)
+the clients' model the watch contract is stated in (`WM`: the server's, `etcdModelOfServer R.E`,
+for a client of one server; the cluster's history's for a client of several), and the logs the
+watch events are of, as that model sees them (`WL`: what a watched log of the server becomes,
+`watchLaws`). -/
 structure WEnv (GF : BundledGFunctors) where
   R : v3rpc.WSrv GF
   addr : GoString
@@ -114,6 +118,8 @@ structure WEnv (GF : BundledGFunctors) where
   wc : Loc
   pfx : GoString
   lg : Loc
+  WM : EtcdModel GF
+  WL : mvcc.Log → IProp GF
 
 end envs
 
@@ -157,8 +163,100 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- The clients' model at the watcher's server. -/
+/-- The clients' model at the watcher's server (the KV calls' model; the watch contract's is
+`V.WM`). -/
 abbrev WEnv.EM (V : WEnv GF) : EtcdModel GF := v3rpc.etcdModelOfServer V.R.E
+
+/-! ## The watch contract's model (W3) -/
+
+/-- **A step's pure facts at a log** (`v3rpc.srvStep`'s): `r0 ≤ r1` within the log, no event under
+`pfx` strictly between them, and `evs` are `r1`'s. -/
+def stepPure (log : mvcc.Log) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) : Prop :=
+  0 ≤ sint.Z r0 ∧ sint.Z r0 ≤ sint.Z r1 ∧ sint.Z r1 < log.length ∧
+    (∀ x : Nat, sint.Z r0 < x → x < sint.Z r1 → txn.revEvs log pfx x = []) ∧
+    txn.revEvs log pfx (sint.Z r1).toNat = evs
+
+/-- **The watch contract's model, from the watcher's logs** (persistent; W3): a log of `WL`
+gives the model's reached revisions, states and steps at it (plain entailments: the contract's
+facts are built under `□`), and a watched log of the server (sealed and certified, small) is one
+of `WL`, by an update (for the cluster's history, `v3rpc.histLog_of_cert` opens the certificates'
+invariant). -/
+def watchLaws (V : WEnv GF) : IProp GF :=
+  iprop((□ ∀ (L : mvcc.Log) (r : w64), V.WL L -∗ ⌜sint.Z r < L.length⌝ -∗
+      etcdReached (EM := V.WM) r) ∗
+    (□ ∀ (L : mvcc.Log) (r : w64) (pfx : GoString), V.WL L -∗
+      ⌜0 ≤ sint.Z r ∧ sint.Z r < L.length⌝ -∗
+      □ etcdState (self := V.WM) r pfx (txn.underPfx pfx (mvcc.stateAt L (sint.Z r).toNat))) ∗
+    (□ ∀ (L : mvcc.Log) (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv), V.WL L -∗
+      ⌜stepPure L r0 r1 pfx evs⌝ -∗ EtcdStep (self := V.WM) r0 r1 pfx evs) ∗
+    (□ ∀ L : mvcc.Log, mvcc.evLog V.R.γ.st L -∗ ⌜txn.LogSmall L⌝ ={⊤}=∗ □ V.WL L))
+
+instance watchLaws_persistent (V : WEnv GF) : Persistent (watchLaws V) := by
+  unfold watchLaws; infer_instance
+
+/-- **The server's watched logs** (the watch contract's logs for a client of one server): a
+watched log of the server, small, at the server's store names. -/
+def srvWL (R : v3rpc.WSrv GF) (L : mvcc.Log) : IProp GF :=
+  iprop(mvcc.evLog R.γ.st L ∗ ⌜txn.LogSmall L ∧ R.γ.st = R.E.γ⌝)
+
+instance srvWL_persistent (R : v3rpc.WSrv GF) (L : mvcc.Log) : Persistent (srvWL R L) := by
+  unfold srvWL; infer_instance
+
+/-- **A client of one server** (the watch contract at the server's model). -/
+abbrev srvWEnv (R : v3rpc.WSrv GF) (addr : GoString) (ics : List GoFunc) (conn wc : Loc)
+    (pfx : GoString) (lg : Loc) : WEnv GF :=
+  ⟨R, addr, ics, conn, wc, pfx, lg, v3rpc.etcdModelOfServer R.E, srvWL R⟩
+
+/-- **The watch laws of a client of one server** (`watchLaws` at `etcdModelOfServer`, `srvWL`):
+the server model's facts of a certified log (`etcdReached_of_certOk`, `srvEtcdState`, `srvStep`),
+the conversion the identity. -/
+theorem watchLaws_srv (V : WEnv GF) (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
+    (hWL : V.WL = srvWL V.R) (hst : V.R.γ.st = V.R.E.γ) : ⊢ watchLaws V := by
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL⟩ := V
+  simp only at hWM hWL hst ⊢
+  subst hWM hWL
+  iunfold watchLaws
+  simp only
+  isplitr
+  · iintro !> %L %r #HL %h
+    iunfold srvWL at HL
+    icases HL with ⟨#He, -⟩
+    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
+    irevert Hc; rw [hst]; iintro #Hc
+    iapply v3rpc.etcdReached_of_certOk R.E L r h $$ Hc
+  isplitr
+  · iintro !> %L %r %pfx #HL %h
+    iunfold srvWL at HL
+    icases HL with ⟨#He, %Hs⟩
+    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
+    irevert Hsl; rw [hst]; iintro #Hsl
+    imodintro
+    rw [v3rpc.etcdModelOfServer_etcdState]
+    unfold v3rpc.srvEtcdState v3rpc.srvLog
+    iexists L
+    isplitl
+    · iframe Hsl; ipureintro; exact Hs.1
+    ipureintro; exact ⟨h.1, h.2, rfl⟩
+  isplitr
+  · iintro !> %L %r0 %r1 %pfx %evs #HL %h
+    iunfold srvWL at HL
+    icases HL with ⟨#He, %Hs⟩
+    ihave #Hsl := mvcc.evLog_sealed _ _ $$ He
+    ihave #Hc := mvcc.evLog_certOk _ _ $$ He
+    irevert Hsl Hc; rw [hst]; iintro #Hsl #Hc
+    rw [v3rpc.etcdModelOfServer_EtcdStep]
+    unfold v3rpc.srvStep v3rpc.srvLog
+    iexists L
+    iframe Hsl Hc
+    isplitr
+    · ipureintro; exact Hs.1
+    ipureintro; exact h
+  · iintro !> %L #He %Hs
+    imodintro
+    imodintro
+    iunfold srvWL
+    iframe He
+    ipureintro; exact ⟨Hs, hst⟩
 
 /-! ## The premises about the server and the transport -/
 
@@ -281,7 +379,9 @@ def watchConnFacts (V : WEnv GF) : IProp GF :=
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     v3rpc.watchDescOk ∗ mvcc.watchTokPool V.R.γ ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
-    eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
+    eofOk ∗ errorsNewOk ∗ ctxErrClientAllW ∗ clientWatchVars ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ ∗
+    -- (W3) the watch contract's model, from the watcher's logs
+    watchLaws V)
 
 instance watchConnFacts_persistent (V : WEnv GF) : Persistent (watchConnFacts V) := by
   unfold watchConnFacts; infer_instance
@@ -306,7 +406,7 @@ def createOf (key ed : GoString) (rv : w64) (pn : Bool) (sr : Bool) : v3rpc.Crea
 completeness), etcd had reached the revision before its start. (Until W2 of
 `notes/watch-cut-plan.md`, 2026-10-21, also mvcc's `startRead`, which the server no longer needs.) -/
 def startOk (V : WEnv GF) (sr : Bool) (rev : w64) : IProp GF :=
-  iprop(⌜sr = false⌝ ∨ etcdReached (EM := V.EM) (rev - W64 1))
+  iprop(⌜sr = false⌝ ∨ etcdReached (EM := V.WM) (rev - W64 1))
 
 instance startOk_persistent (V : WEnv GF) (sr : Bool) (rev : w64) :
     Persistent (startOk V sr rev) := by
@@ -374,7 +474,7 @@ def wsReqOk (pfx : GoString) (P : WsPrm GF) : Prop :=
 contract's SPSC channel, with the consumer's resources (`Watch` returns them). -/
 def retcP (V : WEnv GF) (o : OpFull) (rev : w64) (sr : Bool) (outc : Loc) : IProp GF :=
   iprop(∃ γ : EtcdWatchNames,
-    isSpsc γ.spsc outc (rangeWatchElem (EM := V.EM) γ V.pfx o rev) (fun _ => iprop(True)) ∗
+    isSpsc γ.spsc outc (rangeWatchElem (EM := V.WM) γ V.pfx o rev) (fun _ => iprop(True)) ∗
     spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
     monoListIdxOwn γ.cur 0 (rev - W64 1) ∗ monoListIdxOwn γ.cur2 0 (rev - W64 1) ∗
     ⌜γ.cpl = cplCond sr o rev⌝)
@@ -404,7 +504,7 @@ unless the watch promises no completeness (`cpl` false), the contract of the wat
 def recvCmpl (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜P.γ.cpl = false⌝ ∨ ∃ h2B h2A : w64, monoListIdxOwn P.γh2 k.toNat h2B ∗
-    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ watchRespOk (EM := V.EM) P.o.key h2B h2A v r)
+    monoListIdxOwn P.γh2 (k.toNat + 1) h2A ∗ watchRespOk (EM := V.WM) P.o.key h2B h2A v r)
 
 instance recvCmpl_persistent (V : WEnv GF) (P : WsPrm GF) (k : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
@@ -516,7 +616,7 @@ def recvElem (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
       r.canceled = false⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
-    rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
+    rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)
@@ -531,7 +631,7 @@ each lifetime of the goroutine has its own `donec`: owned fields, `LifePrm`.) -/
 def wsIs (V : WEnv GF) (P : WsPrm GF) : IProp GF :=
   iprop(wrRO (wsF P.ws go!"initReq") P ∗
     wsF P.ws go!"recvc" ↦□ P.recvc ∗
-    isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.EM) P.γ V.pfx P.o P.rev)
+    isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.WM) P.γ V.pfx P.o P.rev)
       (fun _ => iprop(True)) ∗
     isSspsc P.γr P.recvc (recvElem V P) (fun _ => iprop(True)) ∗
     context.isContext P.ctx P.cs ∗
@@ -927,7 +1027,7 @@ def recvLive (V : WEnv GF) (P : WsPrm GF) (k : Int) (wr : Loc) : IProp GF :=
       r.canceled = false⌝ ∗
     eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     monoListIdxOwn P.γhi k.toNat hiB ∗ monoListIdxOwn P.γhi (k.toNat + 1) hiA ∗
-    rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
+    rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗ recvCmpl V P k v r ∗
     (if r.created then
       iprop(⌜r.events = []⌝ ∗
         ∃ rv : w64, wsReqF P.ws go!"rev" ↦{DFrac.own (1 : Qp).half} rv)

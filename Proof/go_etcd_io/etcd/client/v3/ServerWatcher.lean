@@ -46,10 +46,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 start-read watch from `etcdRead (rev - 1)`. -/
 theorem startOk_of_etcdRead (V : WEnv GF) (rev : w64) (hst : V.R.γ.st = V.R.E.γ)
     (h1 : 0 < sint.Z rev) :
-    etcdRead (EM := V.EM) (rev - W64 1) ⊢ startOk V true rev := by
+    etcdRead (EM := V.WM) (rev - W64 1) ⊢ startOk V true rev := by
   iintro #H
   unfold startOk
-  iright; iapply etcdRead_reached (EM := V.EM) (rev - W64 1) $$ H
+  iright; iapply etcdRead_reached (EM := V.WM) (rev - W64 1) $$ H
 
 /-- **etcd's client's watcher meets the clients' range-watch contract** at the server's model
 (the closable one: the channel may be closed). -/
@@ -58,7 +58,7 @@ theorem isEtcdRangeWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx := by
+    isEtcdRangeWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hw⟩
   unfold isEtcdRangeWatcher
   iintro !> %ctx %cs %key %sl %gs %rev %Φ !> ⟨#Hctx, #Hopts, %Hpre⟩ HΦ
@@ -116,7 +116,7 @@ theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx := by
+    isEtcdWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx := by
   iintro ⟨#P1, #P2, #P3, #Hw⟩
   ihave %hf : ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ $$ [Hw]
   · iunfold isClientWatcher at Hw
@@ -124,7 +124,7 @@ theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
     iunfold watchSrvFacts at Hsf
     icases Hsf with ⟨-, Hcf⟩
     iunfold watchConnFacts at Hcf
-    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, -, %h⟩
+    icases Hcf with ⟨-, -, -, -, -, -, -, -, -, -, %h, -⟩
     ipureintro; exact h
   obtain ⟨hst, hp⟩ := hf
   unfold isEtcdWatcher
@@ -153,10 +153,10 @@ theorem isEtcdWatcher_of_watcher (wp_Watch : watcher.Watch.spec (GF := GF) (hG :
   iapply HΦ
   isplitr
   · unfold isEtcdWatchChan
-    iexists rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev
+    iexists rangeWatchElem (EM := V.WM) γ V.pfx (opWatchModel key gs) rev
     iframe Hs
     iintro !> %i %v H
-    iapply etcdWatchElem_of_rangeWatchElem (EM := V.EM) γ V.pfx (opWatchModel key gs) rev hc hkey
+    iapply etcdWatchElem_of_rangeWatchElem (EM := V.WM) γ V.pfx (opWatchModel key gs) rev hc hkey
       i v $$ H
   unfold etcdWatchConsumer
   iexists []

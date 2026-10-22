@@ -421,9 +421,10 @@ theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (L2 : mvcc.Lo
     (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr) X rg)
     (hmem : ev ∈ mvcc.watchEvents L2 rg a d) (hd : d ≤ L2.length) (hlo : sint.Z P.rev ≤ (a : Int))
     (hst : V.R.γ.st = V.R.E.γ) (hnd : txn.NoDupKeysPerRev L2) :
-    mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗ mvcc.kvPtrFixed kv ev.kv ⊢
-      rangeWatchEvOk (EM := V.EM) V.pfx P.o P.rev (evModelOf ev kv) := by
-  iintro ⟨#Hce, #Hsm, #Hkv⟩
+    mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗ mvcc.kvPtrFixed kv ev.kv ∗
+      □ V.WL L2 ∗ watchLaws V ⊢
+      rangeWatchEvOk (EM := V.WM) V.pfx P.o P.rev (evModelOf ev kv) := by
+  iintro ⟨#Hce, #Hsm, #Hkv, #HWL, #Hlaws⟩
   ihave #Hc := mvcc.evLog_sealed _ _ $$ Hce
   ihave #Hok := mvcc.evLog_certOk _ _ $$ Hce
   ihave %Hw := v3rpc.sealed_pure _ L2 $$ Hc
@@ -458,12 +459,14 @@ theorem ev_ok (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (L2 : mvcc.Lo
   irevert Hc Hsm Hok
   rw [hst]
   iintro #Hc #Hsm #Hok
-  ihave #Hreach := v3rpc.etcdReached_of_certOk V.R.E L2 (W64 (j : Int)) hjr $$ Hok
-  ihave ⟨#Hst, %Hwfs⟩ := v3rpc.etcdState_of_sealed V.R.E L2 (W64 (j : Int)) V.pfx (by rw [hjz]; omega)
-    hjr $$ [Hsm Hc]
-  · iframe #
-    unfold storeSmall
-    iexact Hsm
+  -- (W3) the contract's model's facts, from the watched log's (`watchLaws`)
+  iunfold watchLaws at Hlaws
+  icases Hlaws with ⟨#Hlr, #Hls, -, -⟩
+  ihave #Hreach := Hlr $$ %L2 %(W64 (j : Int)) HWL %hjr
+  have hjr2 : 0 ≤ sint.Z (W64 (j : Int)) ∧ sint.Z (W64 (j : Int)) < (L2.length : Int) :=
+    ⟨by rw [hjz]; omega, hjr⟩
+  ihave #Hst := Hls $$ %L2 %(W64 (j : Int)) %V.pfx HWL %hjr2
+  have Hwfs := v3rpc.underPfx_wf L2 (sint.Z (W64 (j : Int))).toNat V.pfx
   ihave ⟨#Hval, #Hdel, -⟩ := kvPtrFixed_facts kv ev.kv $$ Hkv
   rw [show (sint.Z (W64 (j : Int))).toNat = j by rw [hjz]; simp] at Hwfs
   irevert Hst; rw [show (sint.Z (W64 (j : Int))).toNat = j by rw [hjz]; simp]; iintro #Hst
@@ -606,13 +609,13 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
     (hhi : (evsOf Dm w = [] ∧ hi = hb) ∨
       ∃ e, (evsOf Dm w).getLast? = some e ∧ hi = e.kv.modRev) :
-    srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
+    srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗ watchLaws V ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
       mvcc.watcherIs V.R.γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ∗
       (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
         ⌜evsOf Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
       sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
     |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
-      rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hi ((es.getLast?.map EvModel.rev).getD hi)
+      rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hi ((es.getLast?.map EvModel.rev).getD hi)
         ⟨es, W64 0, false, false, hdr⟩ ∗
       ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = hb) ∨
         ∃ e, (evsOf (Dm ++ [m]) w).getLast? = some e ∧
@@ -622,7 +625,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
       (∃ kvs : List Loc, ⌜es = List.zipWith evModelOf ρ.evs kvs ∧ kvs.length = ρ.evs.length⌝ ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜ρ.evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
           mvcc.kvPtrFixed kv ev.kv)) := by
-  iintro ⟨#Hsm, #Hnd, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
+  iintro ⟨#Hsm, #Hnd, #Hlaws, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
   ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps ρ.evs hps $$ [Hsl Hevs]
   · iframe #
   have hsnoc : evsOf (Dm ++ [m]) w = evsOf Dm w ++ (if ρ.evs ≠ [] then ρ.evs else []) := by
@@ -674,6 +677,15 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
   ihave #HLc := mvcc.evLog_certOk _ _ $$ HLe
   ihave Hnd' := Hnd $$ %L HL HLc
   imod Hnd' with %HLnd
+  -- (W3) the watched log, as the contract's model sees it
+  ihave #Hsm' := Hsm
+  iunfold srvLogsSmall at Hsm'
+  ihave %HLs := Hsm' $$ %L HL
+  ihave #Hlaws' := Hlaws
+  iunfold watchLaws at Hlaws'
+  icases Hlaws' with ⟨-, -, -, #Hconv⟩
+  ihave HHWL0 := Hconv $$ %L HLe %HLs
+  imod HHWL0 with #HWL
   imodintro
   -- the start revision (D25: the registration's, at or above the watch's)
   ihave %Hlor : ⌜sint.Z rr ≤ (lo : Int)⌝ $$ []

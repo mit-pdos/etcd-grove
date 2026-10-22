@@ -2697,7 +2697,7 @@ theorem client_watcher_rangeWatcher (V : WEnv GF) (w : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx :=
+    isEtcdRangeWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx :=
   isEtcdRangeWatcher_of_watcher v3.watcher.wp_Watch V w
 
 /-- **etcd's client's watcher is the cache's** (K2e-8): a `*watcher` over etcd's server meets the
@@ -2709,7 +2709,7 @@ theorem client_watcher_etcdWatcher (V : WEnv GF) (w : Loc) (hff : prefixRangeEnd
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗ isClientWatcher V w ⊢
-    isEtcdWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx :=
+    isEtcdWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx :=
   isEtcdWatcher_of_watcher v3.watcher.wp_Watch V w hff
 
 /-- **etcd's client's watcher is the cache's progress notifier** (K2e-9): `RequestProgress`
@@ -2737,7 +2737,7 @@ theorem client_newWatcher_rangeWatcher (V : WEnv GF) (c : Loc) (callSl : GoSlice
       (App (Val (@! go_etcd_io.etcd.client.v3.NewWatcher)) (Val #c))
     {{ (wi : GoInterface), RET #wi; ∃ (w : Loc),
         ⌜wi = GoInterface.ok (watcherIfaceOf w)⌝ ∗
-        isEtcdRangeWatcher (EM := V.EM) (watcherIfaceOf w) V.pfx }} := by
+        isEtcdRangeWatcher (EM := V.WM) (watcherIfaceOf w) V.pfx }} := by
   iintro %Φ ⟨#P1, #P2, #P3, #Hf, %Hc, #Hconn, #Hcall, #Hvs, #Hok, #Hlg, %Hb⟩ HΦ
   iapply (v3.wp_NewWatcher V c callSl vs) $$ [] [HΦ]
   · iframe #; ipureintro; exact ⟨Hc, Hb⟩

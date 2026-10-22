@@ -284,7 +284,8 @@ theorem Main.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   wp_apply (wp_New _ [clientAddr₁]
-      ⟨R, clientAddr₁, [], null, null, [], null⟩) $$ [] as %cl %cerr Hcl
+      ⟨R, clientAddr₁, [], null, null, [], null, v3rpc.etcdModelOfServer R.E,
+        EtcdGrove.client.srvWL R⟩) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only

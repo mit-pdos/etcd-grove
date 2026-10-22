@@ -93,7 +93,7 @@ theorem watchGRPCStream.run.wp_proof
   icases Hsf' with ⟨#Hstub, #Hconn⟩
   iunfold watchConnFacts at Hconn
   icases Hconn with ⟨#Hgc, #Hgs, #Hdesc, #Htoks, #Hsmall, #HnoDup,
-    #Heof, #HerrNew, #Hcea, #Hvars, %Hpre⟩
+    #Heof, #HerrNew, #Hcea, #Hvars, %Hpre, #Hlaws⟩
   -- S2 and S3, facts of the verified server (unit W-M2)
   ihave #HS2 := srvProgressAllAnswers_holds V.R
   ihave #HS3 := srvEventIdsAssigned_holds V.R
@@ -343,7 +343,7 @@ theorem watchGRPCStream.run.wp_proof
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk G.γr γcur γcur2 (cplOf P0)) outc recvc G.γr γhi γh2 γx
         P0.sr γps
       imod start_spsc (V := go_etcd_io.etcd.client.v3.WatchResponse) outc
-        (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev) (fun _ => iprop(True)) γo
+        (rangeWatchElem (EM := V.WM) Ppre.γ V.pfx P0.o P0.rev) (fun _ => iprop(True)) γo
         $$ Houtc [Houto] with ⟨%γsp, #Hosp, Hoprod, Hocons⟩
       · iright; iexact Houto
       imod start_sspsc (V := Loc) recvc (client.recvElem V Ppre) (fun _ => iprop(True)) γrc2
@@ -351,9 +351,9 @@ theorem watchGRPCStream.run.wp_proof
       let P : WsPrm GF := WsPrm.mk P0.o P0.rev P0.ctx P0.cs P0.key P0.ed P0.cn P0.pn P0.wbl
         P0.flt P0.retc P0.γret «$r0_ptr» (EtcdWatchNames.mk γsp γcur γcur2 (cplOf P0)) outc recvc γrr γhi γh2 γx
         P0.sr γps
-      have eq1 : (isSpsc γsp outc (rangeWatchElem (EM := V.EM) Ppre.γ V.pfx P0.o P0.rev)
+      have eq1 : (isSpsc γsp outc (rangeWatchElem (EM := V.WM) Ppre.γ V.pfx P0.o P0.rev)
           (fun _ => iprop(True)) : IProp GF) =
-          isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.EM) P.γ V.pfx P.o P.rev)
+          isSpsc P.γ.spsc P.outc (rangeWatchElem (EM := V.WM) P.γ V.pfx P.o P.rev)
             (fun _ => iprop(True)) := rfl
       have eq2 : (isSspsc γrr recvc (client.recvElem V Ppre) (fun _ => iprop(True)) : IProp GF) =
           isSspsc P.γr P.recvc (client.recvElem V P) (fun _ => iprop(True)) := rfl
@@ -1996,7 +1996,7 @@ theorem watchGRPCStream.run.wp_proof
           iapply (client.bcast_elem V G n γs (S := S) (S' := S.recvMvcc m) X ws' S.Dm.length m ρ h sl hsrc
             hevn ⟨hcomp0, hca0, hcr0⟩ Hhn HX hinj rfl (fun ph h => Hph1 ws' ph h) rfl rfl hid
             Hpre.1)
-          iframe Hha Hea Hw' Hmvcc HDw Hsmall
+          iframe Hha Hea Hw' Hmvcc HDw Hsmall Hlaws
           iapply Hcall $$ %X %ws' %HX
         imod (BigSepM.bigSepM_fupd ⊤ _ _) $$ HelM with HelM
         icases client.bigSepM_choice_inj (client.dummyWsPrm G G.γr, ([] : List Loc), client.dummyDn G)

@@ -38,7 +38,7 @@ theorem recvCmpl_reached (V : WEnv GF) (P : WsPrm GF) (k : Int)
     (hr : r.events = [] ∧ r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0)
     (hv : v.closeErr' = GoInterface.nil ∧ v.CompactRevision' = r.compactRev ∧
       v.Canceled' = r.canceled) :
-    recvCmpl V P k v r ⊢ ⌜P.γ.cpl = false⌝ ∨ etcdReached (EM := V.EM) r.hdrRev := by
+    recvCmpl V P k v r ⊢ ⌜P.γ.cpl = false⌝ ∨ etcdReached (EM := V.WM) r.hdrRev := by
   unfold recvCmpl
   iintro (%H | ⟨%h2B, %h2A, -, -, #Hok⟩)
   · ileft; ipureintro; exact H
@@ -53,7 +53,7 @@ theorem recvCmpl_reached (V : WEnv GF) (P : WsPrm GF) (k : Int)
       have hp := H.2.2.1
       simp [RespModel.isProgressNotify, hr.1, hr.2.1, hr.2.2.1, hr.2.2.2] at hp
       exact hn hp
-    rw [hh0]; iapply (etcdReached_zero (EM := V.EM))
+    rw [hh0]; iapply (etcdReached_zero (EM := V.WM))
   · iexact Hre
   · exact absurd hr.1 H.2.1
 
@@ -83,7 +83,7 @@ theorem mvccOk_revLb (γs : StreamNames) (γ : mvcc.WsNames) (j : Nat) (m : v3rp
 /-- **The resume fact of an event-less response** at a notified log's last revision. -/
 theorem resumeF_evless (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (L : mvcc.Log)
     (hr : r.events = []) (hL : sint.Z r.hdrRev + 1 = (L.length : Int)) :
-    mvcc.notifiedLb V.R.γ L ∗ (⌜P.γ.cpl = false⌝ ∨ etcdReached (EM := V.EM) r.hdrRev) ⊢
+    mvcc.notifiedLb V.R.γ L ∗ (⌜P.γ.cpl = false⌝ ∨ etcdReached (EM := V.WM) r.hdrRev) ⊢
       resumeF V P r := by
   iintro ⟨#HL, #Hre⟩
   unfold resumeF
@@ -94,14 +94,14 @@ theorem resumeF_evless (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (L : mvcc.Lo
   rw [hp]
   unfold startOk
   iright
-  iapply etcdReached_mono (EM := V.EM) r.hdrRev (r.hdrRev + W64 1 - W64 1) (by word) $$ Hre
+  iapply etcdReached_mono (EM := V.WM) r.hdrRev (r.hdrRev + W64 1 - W64 1) (by word) $$ Hre
 
 /-- **The resume fact of a response with events**, the last at a revision `j` of a delivered
 log (released: `relLb`, the log's length). -/
 theorem resumeF_events (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (e : EvModel) (n j : Nat)
     (hlast : r.events.getLast? = some e) (he : e.rev = W64 (j : Int)) (hj : j < n)
     (hn : n < 2 ^ 63) :
-    mvcc.relLb V.R.γ n ∗ etcdReached (EM := V.EM) e.rev ⊢ resumeF V P r := by
+    mvcc.relLb V.R.γ n ∗ etcdReached (EM := V.WM) e.rev ⊢ resumeF V P r := by
   iintro ⟨#Hn, #Hre⟩
   unfold resumeF
   iright
@@ -109,7 +109,7 @@ theorem resumeF_events (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (e : EvModel
   rw [hp]
   unfold startOk
   iright
-  iapply etcdReached_mono (EM := V.EM) e.rev (e.rev + W64 1 - W64 1) (by word) $$ Hre
+  iapply etcdReached_mono (EM := V.WM) e.rev (e.rev + W64 1 - W64 1) (by word) $$ Hre
 
 /-- **The resume fact of a response with events, delivered**: the events (`r.events`, made of the
 mvcc events `evs`) end the watcher's delivered events of a delivered log `L` (released,
@@ -119,7 +119,7 @@ theorem resumeF_delivered (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (evs : Li
     (c c' : w64) (hes : r.events = List.zipWith evModelOf evs kvs) (hlen : kvs.length = evs.length)
     (hne : evs ≠ []) (h2 : pre ++ evs = mvcc.watchEvents L rg lo d) :
     mvcc.evLog V.R.γ.st L ∗ mvcc.relLb V.R.γ L.length ∗
-      rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev c c' r ⊢ resumeF V P r := by
+      rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev c c' r ⊢ resumeF V P r := by
   iintro ⟨#HL, #Hrl, #Hok⟩
   ihave #Hs := mvcc.evLog_sealed _ _ $$ HL
   ihave %Hsp := mvcc.idxSealed_pure _ _ $$ Hs
@@ -140,7 +140,7 @@ theorem resumeF_delivered (V : WEnv GF) (P : WsPrm GF) (r : RespModel) (evs : Li
   have hmem : ev ∈ mvcc.watchEvents L rg lo d := by
     rw [← h2]; exact List.mem_append_right _ (List.mem_of_getLast? hev)
   obtain ⟨j, -, -, hj, hm⟩ := mvcc.watchEvents_rev_ge L rg lo d ev hmem
-  ihave #Hre : etcdReached (EM := V.EM) (evModelOf ev kv).rev $$ []
+  ihave #Hre : etcdReached (EM := V.WM) (evModelOf ev kv).rev $$ []
   · iunfold rangeWatchRespOk at Hok
     icases Hok with ⟨-, #Hevs⟩
     obtain ⟨i, hi⟩ := List.getElem?_of_mem (List.mem_of_getLast? hrl)

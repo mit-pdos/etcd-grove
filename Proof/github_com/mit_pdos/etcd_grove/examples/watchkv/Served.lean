@@ -64,7 +64,9 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
     (hwreg : (go!"/etcdserverpb.Watch/Watch", (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
       interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs) :
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
+    -- (W3) the watch contract at the server's model
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -99,6 +101,7 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd
+  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
   imodintro
   iframe Htok' Hput Hrange
   unfold watchAddrFacts

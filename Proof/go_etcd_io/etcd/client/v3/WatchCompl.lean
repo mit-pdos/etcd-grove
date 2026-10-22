@@ -212,6 +212,21 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 open Iris Iris.BI Iris.ProofMode
 
+/-- **A step's pure facts at a well-formed log, from its watch events** (W3: `srvStep_of_watch`'s
+pure part, `stepPure`). -/
+theorem stepPure_of_watch (log : mvcc.Log) (rng : mvcc.WatchRange) (pfx : GoString)
+    (hcov : ∀ k, rng.covers k = true ↔ pfx <+: k) (r0 r1 : Nat) (h01 : r0 ≤ r1)
+    (h1 : r1 < log.length) (hwf : mvcc.LogWf' log) (hlen : log.length < 2 ^ 63)
+    (hnone : ∀ x : Nat, r0 < x → x < r1 → mvcc.watchEvents log rng x (x + 1) = []) :
+    stepPure log (W64 (r0 : Int)) (W64 (r1 : Int)) pfx
+      ((mvcc.watchEvents log rng r1 (r1 + 1)).map v3rpc.evmToEtcd) := by
+  obtain ⟨hz, hs⟩ := v3rpc.watchStreamSpec_step log hwf hlen rng pfx hcov r0 r1 hnone
+  have e0 : sint.Z (W64 (r0 : Int)) = r0 := by word
+  have e1 : sint.Z (W64 (r1 : Int)) = r1 := by word
+  refine ⟨by omega, by omega, by omega, fun x hx1 hx2 => hz x (by omega) (by omega), ?_⟩
+  rw [e1]
+  simpa using hs
+
 /-- **One revision's watch events, as one batch's step** (`etcdStepCertBody`): from `p` to `b`,
 no watch event in `[p + 1, b)`, the events of `b` (with their key-values read-only at `kvs`). -/
 theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (pfx : GoString)
@@ -221,10 +236,12 @@ theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (p
     (hAne : mvcc.watchEvents L rg b (b + 1) ≠ []) :
     mvcc.evLog V.R.γ.st L ∗ srvLogsSmall V.R ∗
       □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜(mvcc.watchEvents L rg b (b + 1))[k]? = some ev⌝ →
-        ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv) ⊢
-      etcdStepCertBody (EM := V.EM) pfx (W64 (p : Int))
+        ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv) ∗ □ V.WL L ∗ watchLaws V ⊢
+      etcdStepCertBody (EM := V.WM) pfx (W64 (p : Int))
         (List.zipWith evModelOf (mvcc.watchEvents L rg b (b + 1)) kvs) := by
-  iintro ⟨#HL, #Hsm, #Hkv⟩
+  iintro ⟨#HL, #Hsm, #Hkv, #HWL, #Hlaws⟩
+  iunfold watchLaws at Hlaws
+  icases Hlaws with ⟨#Hlr, -, #Hlst, -⟩
   ihave #Hs := mvcc.evLog_sealed _ _ $$ HL
   ihave #Hc := mvcc.evLog_certOk _ _ $$ HL
   irevert Hs Hc; rw [hst]; iintro #Hs #Hc
@@ -241,8 +258,8 @@ theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (p
     rw [mvcc.watchEvents_append L rg (show p + 1 ≤ x by omega) (show x ≤ b by omega),
       mvcc.watchEvents_append L rg (show x ≤ x + 1 by omega) (show x + 1 ≤ b by omega)] at this
     exact (List.append_eq_nil_iff.1 (List.append_eq_nil_iff.1 this).2).1
-  ihave #Hstep := v3rpc.srvStep_of_watch V.R.E L rg pfx hcov p b (by omega) hb hnone' $$ [Hsl Hc]
-  · iframe #
+  ihave #Hstep := Hlst $$ %L %_ %_ %pfx %_ HWL
+    %(stepPure_of_watch L rg pfx hcov p b (by omega) hb Hw.1 hlen hnone')
   generalize hA : mvcc.watchEvents L rg b (b + 1) = A at *
   unfold etcdStepCertBody
   iexists A.map v3rpc.evmToEtcd
@@ -300,7 +317,7 @@ theorem stepCert_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) (p
     rw [← hA] at hev
     exact (hcov _).1 (List.mem_filter.1 hev).2
   rw [hbr]
-  iapply v3rpc.etcdReached_of_certOk V.R.E L (W64 (b : Int)) (by word) $$ Hc
+  iapply Hlr $$ %L %(W64 (b : Int)) HWL %(by word)
 
 /-- **A block of watch events as the cache's chain of steps** (`watchChain`): the watch events of
 `[b, d)` of a sealed log (`d` within it), a range covering exactly the keys under `pfx`, no watch
@@ -313,8 +330,8 @@ theorem watchChain_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) 
       kvs.length = (mvcc.watchEvents L rg b d).length →
       mvcc.evLog V.R.γ.st L ∗ srvLogsSmall V.R ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜(mvcc.watchEvents L rg b d)[k]? = some ev⌝ →
-          ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv) ⊢
-      watchChain (EM := V.EM) pfx (W64 (p : Int))
+          ⌜kvs[k]? = some kv⌝ → mvcc.kvPtrFixed kv ev.kv) ∗ □ V.WL L ∗ watchLaws V ⊢
+      watchChain (EM := V.WM) pfx (W64 (p : Int))
         (splitBatches (List.zipWith evModelOf (mvcc.watchEvents L rg b d) kvs))
   | 0, p, b, kvs, hn, _, _, _ => by
     rw [mvcc.watchEvents_empty L rg (show d ≤ b by omega)]
@@ -322,7 +339,7 @@ theorem watchChain_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) 
     simp only [List.zipWith_nil_left, splitBatches]
     unfold watchChain; itrivial
   | n + 1, p, b, kvs, hn, hpb, hnone, hkl => by
-    iintro ⟨#HL, #Hsm, #Hkv⟩
+    iintro ⟨#HL, #Hsm, #Hkv, #HWL, #Hlaws⟩
     ihave #Hs := mvcc.evLog_sealed _ _ $$ HL
     ihave %Hw := v3rpc.sealed_pure _ L $$ Hs
     have hlen : L.length < 2 ^ 63 := Hw.2
@@ -334,7 +351,7 @@ theorem watchChain_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) 
       rw [hevs] at hkl ⊢
       iapply watchChain_of_watch V L rg pfx hcov d hd hst n p (b + 1) kvs (by omega) (by omega)
         (by rw [mvcc.watchEvents_append L rg hpb (show b ≤ b + 1 by omega), hnone, hA]; rfl) hkl
-      iframe HL Hsm
+      iframe HL Hsm HWL Hlaws
       iintro !> %k %ev %kv %h1 %h2
       iapply Hkv $$ %k %ev %kv %h1 %h2
     · -- the events at `b`: the first batch, then the rest from `b`
@@ -382,7 +399,7 @@ theorem watchChain_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) 
           (by rw [hAe]; simp [hkl']) (by rw [hAe]; exact hA)
         rw [hAe] at H1
         iapply H1
-        iframe HL Hsm
+        iframe HL Hsm HWL Hlaws
         iintro !> %k %ev %kv %h1 %h2
         iapply Hkv $$ %k %ev %kv
           %(by rw [List.getElem?_append_left (by
@@ -398,7 +415,7 @@ theorem watchChain_of_watch (V : WEnv GF) (L : mvcc.Log) (rg : mvcc.WatchRange) 
         (by omega) (by omega) (mvcc.watchEvents_empty L rg (Nat.le_refl _)) (by rw [hBe]; simp [hkl'])
       rw [hBe] at H2
       iapply H2
-      iframe HL Hsm
+      iframe HL Hsm HWL Hlaws
       iintro !> %k %ev %kv %h1 %h2
       rw [List.getElem?_drop] at h2
       iapply Hkv $$ %(A.length + k) %ev %kv
@@ -501,11 +518,12 @@ theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rp
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel)
     (hr : r.events = List.zipWith evModelOf evs kvs) (hv : ¬ watchErr v) :
     cur2Ok V γs rr Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st L2 ∗ srvLogsSmall V.R ∗
+      □ V.WL L2 ∗ watchLaws V ∗
       □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
         mvcc.kvPtrFixed kv ev.kv) ⊢
-      ∃ c2' : w64, watchRespOk (EM := V.EM) pfx c2 c2' v r ∗
+      ∃ c2' : w64, watchRespOk (EM := V.WM) pfx c2 c2' v r ∗
         cur2Ok V γs rr (Dm ++ [m]) X w rg lo c2' := by
-  iintro ⟨#Hc, #HL2, #Hsm, #Hkv⟩
+  iintro ⟨#Hc, #HL2, #Hsm, #HWL, #Hlaws, #Hkv⟩
   unfold cur2Ok
   icases Hc with ⟨⟨%L, %q, #HL, %Hq⟩, -⟩
   obtain ⟨hc2, h1, hlo, hq, hq63⟩ := Hq
@@ -546,7 +564,7 @@ theorem cmpl_events (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rp
       (Nat.le_refl _) (mvcc.watchEvents_empty L2 rg (Nat.le_refl _)) hkl'
     rw [← hev] at H
     iapply H
-    iframe HL2 Hsm
+    iframe HL2 Hsm HWL Hlaws
     iintro !> %k %ev %kv %h1 %h2
     iapply Hkv $$ %k %ev %kv %h1 %h2
   isplitr
@@ -586,10 +604,14 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     (hr : r.events = [] ∧ r.created = false ∧ r.canceled = false ∧ r.compactRev = W64 0 ∧
       r.hdrRev = x.rev) :
     cur2Ok V γs rr Dm X w rg lo c2 ∗ mvcc.evLog V.R.γ.st Lc ∗ srvLogsSmall V.R ∗
-      etcdReached (EM := V.EM) (rr - W64 1) ∗ chanPos γs x ⊢
-      ∃ c2' : w64, watchRespOk (EM := V.EM) pfx c2 c2' v r ∗
+      □ V.WL Lc ∗ watchLaws V ∗
+      etcdReached (EM := V.WM) (rr - W64 1) ∗ chanPos γs x ⊢
+      ∃ c2' : w64, watchRespOk (EM := V.WM) pfx c2 c2' v r ∗
         cur2Ok V γs rr (Dm ++ [m]) X w rg lo c2' := by
-  iintro ⟨#Hc, #HLc, #Hsm, #Hr0, #Hpos⟩
+  iintro ⟨#Hc, #HLc, #Hsm, #HWL, #Hlaws, #Hr0, #Hpos⟩
+  ihave #Hlaws' := Hlaws
+  iunfold watchLaws at Hlaws'
+  icases Hlaws' with ⟨#Hlr, -, #Hlst, -⟩
   obtain ⟨hre, hrc, hrca, hrcomp, hrh⟩ := hr
   have hdd : dd = p + 1 := by omega
   subst hdd
@@ -620,11 +642,9 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
     have := W64_inj_of_lt (a := p) (b := 0) (by omega) (by omega) (by simpa using h)
     exact hp0 this
   -- etcd reached `p`
-  ihave #Hreach : etcdReached (EM := V.EM) (W64 (p : Int)) $$ []
+  ihave #Hreach : etcdReached (EM := V.WM) (W64 (p : Int)) $$ []
   · rcases hd3 with h | h
-    · ihave #Hok := mvcc.evLog_certOk _ _ $$ HLc
-      irevert Hok; rw [hst]; iintro #Hok
-      iapply v3rpc.etcdReached_of_certOk V.R.E Lc (W64 (p : Int)) (by word) $$ Hok
+    · iapply Hlr $$ %Lc %(W64 (p : Int)) HWL %(by word)
     · have : W64 (p : Int) = rr - W64 1 := by
         have : (p : Int) = sint.Z rr - 1 := by omega
         word
@@ -655,17 +675,12 @@ theorem cmpl_prog (V : WEnv GF) (γs : StreamNames) (rr : w64) (Dm : List v3rpc.
   ihave %Hsmall : ⌜txn.LogSmall Lc⌝ $$ []
   · iunfold srvLogsSmall at Hsm
     iapply Hsm; iexact Hs
-  ihave #Hsl : v3rpc.srvLog V.R.E Lc $$ []
-  · unfold v3rpc.srvLog; rw [← hst]; iframe Hs; ipureintro; exact Hsmall
-  ihave #HcLc : mvcc.certOk V.R.E.γ Lc $$ []
-  · rw [← hst]; iapply mvcc.evLog_certOk; iexact HLc
   have hpe : mvcc.watchEvents Lc rg p (p + 1) = [] :=
     watchEvents_sub_nil Lc rg hnone0 (by omega) (Nat.le_succ p) (Nat.le_refl _)
-  have HS := v3rpc.srvStep_of_watch V.R.E Lc rg pfx hcov q p (by omega) (by omega)
+  have HS := stepPure_of_watch Lc rg pfx hcov q p (by omega) (by omega) Hwc.1 Hwc.2
     (fun y h1 h2 => watchEvents_sub_nil Lc rg hnone0 (by omega) (Nat.le_succ y) (by omega))
   rw [hpe, List.map_nil] at HS
-  ihave #Hstep := HS $$ [Hsl HcLc]
-  · iframe #
+  ihave #Hstep := Hlst $$ %Lc %_ %_ %pfx %_ HWL %HS
   iexists W64 (p : Int)
   isplitr
   · unfold watchRespOk

@@ -45,7 +45,9 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     mvcc.watchTokPool V.R.γ ∗
     srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
-    eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝)
+    eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ ∗
+    -- (W3) the watch contract's model, from the watcher's logs
+    watchLaws V)
 
 instance watchAddrFacts_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : Persistent (watchAddrFacts V) := by
@@ -100,13 +102,16 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
       grpcConn (GF := GF) conn [V.addr] ics [] ∗ watchAddrFacts V ⊢
       watchConnFacts { V with conn := conn, ics := ics } := by
   unfold watchAddrFacts watchConnFacts
-  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H6, #H7, %H11⟩
+  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H6, #H7, %H11, #H12⟩
   ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
   ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
   ihave #H2 := watchDescOk_of_init $$ P2
   ihave #H10 := clientWatchVars_of_init $$ P1
   iframe #
-  ipureintro; exact H11
+  isplitr
+  · ipureintro; exact H11
+  iapply (show watchLaws (GF := GF) V ⊢ watchLaws { V with conn := conn, ics := ics } from by
+    unfold watchLaws; exact .rfl) $$ H12
 
 /-- **What `New` returns** (persistent; see the file header): the client `cl`, connected to the
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the

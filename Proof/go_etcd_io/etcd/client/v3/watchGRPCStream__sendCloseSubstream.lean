@@ -47,7 +47,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
   -- the second cursor (K2e-7) stays too: a canceled response
   ihave Hc2e : iprop(|==> (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64,
       monoListIdxOwn P.γ.cur2 sent.length c2 ∗ monoListIdxOwn P.γ.cur2 (sent.length + 1) c2' ∗
-      watchRespOk (EM := V.EM) P.o.key c2 c2' v (RespModel.mk [] (W64 0) true false (W64 0))))
+      watchRespOk (EM := V.WM) P.o.key c2 c2' v (RespModel.mk [] (W64 0) true false (W64 0))))
       $$ [Hc2a]
   · iunfold cur2Auth at Hc2a
     icases Hc2a with (%Hcf | ⟨%C2, Ha2, %HC2⟩)
@@ -77,7 +77,7 @@ theorem watchGRPCStream.sendCloseSubstream.wp_proof :
     (by rw [List.getElem?_append_left (by omega)]; exact Hc) $$ Hlb
   ihave #Hi2 := monoListIdxOwn_get (GF := GF) (sent.length + 1) c
     (by rw [List.getElem?_append_right (by omega)]; simp [HC]) $$ Hlb
-  ihave Hel : rangeWatchElem (GF := GF) (EM := V.EM) P.γ V.pfx P.o P.rev (sent.length : Int) v $$ [HRevision]
+  ihave Hel : rangeWatchElem (GF := GF) (EM := V.WM) P.γ V.pfx P.o P.rev (sent.length : Int) v $$ [HRevision]
   · unfold rangeWatchElem
     iexists (RespModel.mk [] (W64 0) true false (W64 0)), c, c
     simp only [Int.toNat_natCast]

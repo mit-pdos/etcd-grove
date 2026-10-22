@@ -145,6 +145,7 @@ the watcher's prefix (not all `0xff`; non-empty by `watchConnFacts`), returns wh
 (`isServerRead`, `sortNamesOk`, the client's read updates `kvAnyAu`). -/
 theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (addr : GoString)
     (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hE : V.R.E = E)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -164,7 +165,7 @@ theorem cache_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w api : Loc) (a
     %Hcfg, %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_server client.v3.watcher.wp_Watch
     client.v3.watcher.wp_RequestProgress cl V w
-    api [addr] s E γr cid mid hE hff $$ []
+    api [addr] s E γr cid mid hE hWM hff $$ []
   · iframe #
   iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
@@ -180,6 +181,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF) (s : Loc)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (hV : V.addr = ep) (hE : V.R.E = E)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (sl : GoSlice) (gs : List (Config → Config)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 ∗ context.isClosedchanInit ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -197,7 +199,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hnc, #Hf, #Hsrd, #Hrpc, #Hsn, #Hany, Hopts, %Hcfg,
     %Hb⟩ HΦ
   ihave #Hcl := client.isEtcdClient_of_new context.wp_ErrAny hAs client.v3.watcher.wp_Watch
-    client.v3.watcher.wp_RequestProgress cl ep V s E γr cid mid hV hE hff $$ []
+    client.v3.watcher.wp_RequestProgress cl ep V s E γr cid mid hV hE hWM hff $$ []
   · iframe #
   iapply (cache_New (EM := v3rpc.etcdModelOfServer E) cl V.pfx sl gs) $$ [Hopts] HΦ
   iframe #
@@ -223,7 +225,9 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
     (hwreg : (go!"/etcdserverpb.Watch/Watch", (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
       interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs) :
+        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
+    -- (W3) the watch contract at the server's model
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
@@ -257,6 +261,7 @@ theorem etcd_cache_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : 
   ihave #Hsm : client.srvLogsSmall V.R $$ []
   · iapply client.srvLogsSmall_of_read V.R s γr Hlink
     rw [hE]; iexact Hsrd
+  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
   imodintro
   iframe Htok' Hrange
   unfold watchAddrFacts

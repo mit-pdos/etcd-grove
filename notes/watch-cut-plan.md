@@ -255,6 +255,23 @@ revision both have. Not yet used: W3 imports it.
   laws are `ClientModel`'s over `histLog` (`histLog_two` in place of `srvLog_two`). A member's
   facts convert by `histLog_of_cert`, `histStep_of_srv` and `histReached_of_cert`, at a member whose
   names agree (`memberOf`). Not yet used: W3b.
+- **W3b-1 done (2026-10-22): the contract's model a field.**
+  - `WEnv` gains `WM`, the watch contract's model, and `WL`, the watcher's logs as `WM` sees them.
+    `V.EM` stays the server's (the KV calls').
+  - `watchLaws V`, part of `watchConnFacts` and `watchAddrFacts`: reached revisions, states and
+    steps of `WM` at a `WL` log (plain entailments), and a watched log of the server becomes a `WL`
+    log by an update. `watchLaws_srv` proves it for a client of one server (`srvWEnv`:
+    `etcdModelOfServer R.E`, `srvWL R`).
+  - The six places the client made the model's facts from the server's (`ev_ok`,
+    `stepCert_of_watch`, `cmpl_prog`, and those through `srvStep_of_watch` and
+    `etcdReached_of_certOk`) take `□ V.WL L ∗ watchLaws V`. Their callers convert the log once,
+    before the □-quantified contract: `dispatch_content`, `prog_cmpl` and the `cmpl_events`
+    closures. `cmpl_step`, `prog_cmpl`, `reg_pre`'s and `bcast_pre`'s completeness steps are now
+    updates at `⊤`.
+  - The KV-and-watch compositions (`isEtcdClient_of_*`, the cache's end-to-end results,
+    `queue_end_to_end_client`) take `hWM : V.WM = etcdModelOfServer V.R.E`. Every concrete
+    environment gives it by `rfl`.
+  - Statements of the closed theorems unchanged; trust base unchanged.
 - **W3c:** the watch stub over a list (`watchClient.Watch` at `addrs`), `openWatchClient`, and
   `isNewClient_watcher` for `eps` a list.
 
