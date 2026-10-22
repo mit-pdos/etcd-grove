@@ -2777,6 +2777,31 @@ noncomputable def store.Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))))))
 
+/-- go: kvstore.go:515:17 -/
+noncomputable def store.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType store.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.Scheduler.ty go!"Stop"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.Scheduler.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"fifoSched"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef store.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))
+  (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
+
+/-- go: kvstore.go:548:17 -/
+noncomputable def store.HashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType store.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad HashStorage.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"hashes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))))))))
+
 /-- go: kvstore_compaction.go:28:17 -/
 noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -8321,11 +8346,13 @@ class store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 (App (Val (GoInstruction (MethodResolve ReadView.ty go!"Range"))) (App (Val (GoInstruction (StructFieldGet store.ty go!"ReadView"))) (Var "$r"))))
   Rev_unfold : MethodUnfold store.ty go!"Rev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReadView.ty go!"Rev"))) (App (Val (GoInstruction (StructFieldGet store.ty go!"ReadView"))) (Var "$r"))))
+  ptr_Close_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Close" store.Close.impl
   ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Compact" store.Compact.impl
   ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve WriteView.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad WriteView.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"WriteView"))) (Var "$r")))))
   ptr_FirstRev_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"FirstRev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReadView.ty go!"FirstRev"))) (App (Val (GoInstruction (GoLoad ReadView.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"ReadView"))) (Var "$r")))))
+  ptr_HashStorage_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"HashStorage" store.HashStorage.impl
   ptr_Put_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Put" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve WriteView.ty go!"Put"))) (App (Val (GoInstruction (GoLoad WriteView.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"WriteView"))) (Var "$r")))))
   ptr_Range_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Range" (LamV "$r"
@@ -8377,9 +8404,11 @@ attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.Put_unfold
   store.TypeAssumptions.Range_unfold
   store.TypeAssumptions.Rev_unfold
+  store.TypeAssumptions.ptr_Close_unfold
   store.TypeAssumptions.ptr_Compact_unfold
   store.TypeAssumptions.ptr_DeleteRange_unfold
   store.TypeAssumptions.ptr_FirstRev_unfold
+  store.TypeAssumptions.ptr_HashStorage_unfold
   store.TypeAssumptions.ptr_Put_unfold
   store.TypeAssumptions.ptr_Range_unfold
   store.TypeAssumptions.ptr_Read_unfold

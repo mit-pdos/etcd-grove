@@ -198,7 +198,6 @@ time_Ticker__Reset:
 # (unit 5c: `Time.Unix`, untranslated in Perennial's `time`: the compaction job's deferred
 # `dbCompactionLast.Set(float64(time.Now().Unix()))`; an axiom)
 time_Time__Unix:
-store__Close:
 kvsToEvents: proto_Unmarshal isTombstone BytesToRev watcherGroup__contains
 rangeEvents: NewRevBytes RevToBytes kvsToEvents
 watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
@@ -212,7 +211,6 @@ ChanBufLen:
 ReportEventReceived:
 newWatchableStore: zap_NewNop NewStore newWatcherGroup adt_ownIvt_split
 mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syncVictimsLoop
-watchableStore__Close: store__Close
 watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev
 # Compaction (unit 5a, 2026-10-13; Compact.lean, InvCompact.lean, notes/decisions.md "mvcc:
 # compaction"): the compaction functions specified, their proofs pending (`sorry`: units 5b/5c);
@@ -237,6 +235,9 @@ schedule_fifo__Schedule:
 schedule_fifo__Stop:
 schedule_Scheduler__Schedule: schedule_fifo__Schedule
 schedule_Scheduler__Stop: schedule_fifo__Stop
+# The store's `Close` (translated 2026-10-22): `close(s.stopc)`, the scheduler's `Stop`.
+store__Close: schedule_Scheduler__Stop
+watchableStore__Close: store__Close
 schedule_job__Do:
 schedule_job__Name:
 schedule_NewJob: schedule_job__Do

@@ -124,8 +124,6 @@ axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom mvcc.store.Close.wp_proof
-axiom mvcc.store.HashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom newCorruptionChecker.wp_proof
 axiom os.Rename.wp_proof

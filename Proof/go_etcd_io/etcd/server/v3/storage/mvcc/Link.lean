@@ -787,7 +787,7 @@ theorem schedule.job.wp_Name :
 
 theorem mvcc.store.wp_Close :
     mvcc.store.Close.spec (GF := GF) (hG := hG) :=
-  mvcc.store.Close.wp_proof
+  mvcc.store.Close.wp_proof schedule.Scheduler.wp_Stop
 
 theorem mvcc.store.wp_checkPrevCompactionCompleted :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=
