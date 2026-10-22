@@ -1,0 +1,8 @@
+# The standard library's `internal/bytealg` (Perennial does not translate it): `LastIndexByteString`
+# with its body (the pure Go of `lastindexbyte_generic.go`), which `path`'s `Split` and `Base` call
+# (D33, stage 2). The rest names only.
+translate = ["!*", "LastIndexByteString"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

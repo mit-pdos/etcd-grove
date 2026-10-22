@@ -1,7 +1,7 @@
-# rafthttp stage 2: the HTTP boundary (design, for review)
+# rafthttp stage 2: the HTTP boundary (design; reviewed by the user 2026-10-22)
 
-D33 (A), `notes/rafthttp-plan.md` stage 2. Drafted 2026-10-22 for the user's review **before** any
-Lean statement or proof depends on it. Nothing here is in Lean yet.
+D33 (A), `notes/rafthttp-plan.md` stage 2. Drafted and reviewed 2026-10-22 (decisions at the end);
+the Lean statements follow it.
 
 ## What the translated code calls
 
@@ -49,12 +49,18 @@ sender proved about those bytes.
    either the whole body or an error, never a truncated body with `EOF`. The pipeline handler
    relies on this before unmarshalling.
 4. **Response streams are prefixes.** The handler's `ResponseWriter` is an exclusive token
-   holding the bytes `w` written so far. `Write(b)` needs `□ Resp_a(req, w ++ b)` and may be
-   called from any goroutine the token is passed to; this is the stream writer's use. The client's
-   response, if `RoundTrip` returned one, has some status and headers (arbitrary: the code only
-   classifies them, and a wrong classification is a loss). Its body reader yields pieces whose
-   concatenation `r` is always a prefix of some `w` with `□ Resp_a(req, w)`. It ends with `EOF` or
-   an error at any time.
+   holding the status it set and the bytes `w` written so far. `Write(b)` needs
+   `□ Resp_a(req, w ++ b)` and may be called from any goroutine the token is passed to; this is the
+   stream writer's use. The client's response, if `RoundTrip` returned one, has **the status the
+   handler set** (`WriteHeader`, or `http.Error`'s; `200` if it wrote without setting one) and
+   unconstrained headers (the code reads them only in version checks, which at worst reject). Its
+   body reader yields pieces whose concatenation `r` is always a prefix of some `w` with
+   `□ Resp_a(req, w)`. It ends with `EOF` or an error at any time.
+   (Revised 2026-10-22: the first draft let the status be arbitrary, but a `403`/`410` is
+   reported as `errMemberRemoved` on `Transport.ErrorC`, which stops the member, and today's
+   contract promises nothing on `ErrorC`. The handlers answer `403`/`410` only when `IsIDRemoved`
+   holds of the sender, never in the static clusters proved:
+   `issues/etcd-rafthttp-misaddressed-403-member-removed.md`.)
 5. **Failures.** Any `RoundTrip`, body read or `Write` may fail at any time; a cancelled request
    context makes them fail. `Flush` returns; it does not matter for safety. A handler's panic is
    recovered by `Serve` (the pipeline handler panics on a `Process` error that is not a
@@ -106,10 +112,22 @@ handler, need either `path` translated with bodies (it is plain Go over strings)
 pure model. The proposal is to translate it; the fallback is a trusted model. Once these are
 translated, the two `opaqueInitsOk` accepted at stage 1 (`path`, `pkg/v3/ioutil`) can go too.
 
-## Questions for review
+## Decisions (the user, 2026-10-22)
 
-1. The closed-world statement of model point 2 (received requests are sent requests, so persistent
-   facts about the bytes carry over): acceptable as the HTTP trust statement?
-2. Status codes and response headers arbitrary on the client side (model point 4): fine for
-   safety, it only loses messages. Agreed?
-3. `path`: translate with bodies (preferred), or a trusted pure model?
+1. The closed-world statement of model point 2 (received requests are sent requests, so
+   persistent facts about the bytes carry over): **accepted**.
+2. The client sees the status the handler set (model point 4, revised); headers unconstrained:
+   **agreed**.
+3. `path`: **translated with bodies** (not a trusted model).
+4. **Dynamic clusters** (the user: "we will have a dynamic cluster, so `errMemberRemoved` will be
+   important"): the boundary stays as revised (the status the handler set, faithfully). What
+   changes is rafthttp's spec: today's "nothing on `Transport.ErrorC`" (true of a static cluster
+   only) becomes "`errMemberRemoved` for member `X` only with a witness that `X` was removed".
+   The response protocol's status clause: a `403`/`410` only after the answering member's
+   `Raft.IsIDRemoved(from)` returned true. **The removal is a parameter** of rafthttp's spec, a
+   persistent predicate `removed X` supplied by the membership model (whoever builds the dynamic
+   cluster's), and `IsIDRemoved`'s contract promises `true` only of removed ids. So rafthttp's
+   proof does not depend on how removal is modelled. The server's handling of `ErrorC` (`run`
+   stops the member on `errMemberRemoved`) then needs a spec that stopping a removed member is
+   correct; today's `NewServer` assumes nothing arrives.
+

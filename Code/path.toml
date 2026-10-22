@@ -1,7 +1,10 @@
-# Names only (a standard-library package Perennial does not translate): `Dir`, `Base` and `Join`,
-# which rafthttp's stream handler and reader call (D33, stage 1).
-translate = ["!*"]
-imports = ["!*"]
+# The standard library's `path` (Perennial does not translate it), with the bodies rafthttp needs
+# (D33, stage 2; the user chose a translation over a trusted model, 2026-10-22): `Join`, `Clean`
+# (with its `lazybuf`), `Dir`, `Base`, `Split`. The rest (`Match`, `Ext`, `IsAbs`, `ErrBadPattern`)
+# names only.
+translate = ["!*", "lazybuf.index", "lazybuf.append", "lazybuf.string", "Clean", "Split", "Join",
+  "Base", "Dir"]
+imports = ["!*", "strings", "internal/bytealg"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

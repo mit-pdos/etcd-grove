@@ -116,6 +116,15 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.xia
 end github_com.xiang90.probing
 
 -- (D33, rafthttp's stage 1: the packages its message path names, names only)
+namespace internal.bytealg
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
+  build_get_is_pkg_init_wf
+
+end internal.bytealg
+
 namespace path
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=

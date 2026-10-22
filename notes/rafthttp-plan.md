@@ -136,7 +136,18 @@ trust-boundary spec.
    invariants (`Proof/.../rafthttp/`). Reviewed with the user before proofs rely on them. Also
    the package variables' values (translated initializers, or facts), which stages 4-6 read.
    **Design drafted 2026-10-22 for review: `notes/rafthttp-http-boundary.md`** (bytes and routing,
-   per-address request/response protocols carrying persistent facts, the mailbox; three questions).
+   per-address request/response protocols carrying persistent facts, the mailbox), **reviewed by the
+   user 2026-10-22** (decisions at its end: the closed world accepted, the status faithful, `path`
+   translated, the removal a parameter of rafthttp's spec for dynamic clusters). Since then:
+   `path` translated with bodies (`Clean`, `Join`, `Split`, `Base`, `Dir`, with `internal/bytealg`'s
+   `LastIndexByteString`; **trust base +1**, awaiting approval: `bytealg`'s `init()`, which detects CPU
+   features and cannot be translated, assumed to run, `initFuncsOk`); **the boundary drafted in Lean**, `Proof/net/http/Boundary.lean`
+   (definitions and spec statements, not axioms; nothing uses them yet): `HReq`, `Proto`, `HttpNet`,
+   the client's `reqOwn`/`respAt`/`respReader`/`roundTripperOk`, the server's `reqAt`/`bodyReader`/
+   `respWriter`/`handlerOk`, and the statements of `Serve`, `NewRequest`, the bodies' `Read`,
+   `Write`/`WriteHeader`/`Flush`, `io.ReadAll`/`io.ReadFull`. Still to draft: routing
+   (`NewServeMux`/`Handle`), `http.Error`, `urlOf`'s link to `url.URL.String`,
+   `encoding/binary`'s `Read`/`Write`, the header `Get`/`Set` triples.
 3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
    encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
    only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`
