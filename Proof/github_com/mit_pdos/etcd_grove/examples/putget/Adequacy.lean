@@ -9,7 +9,7 @@ the client, raft, ...) followed by `Main()` -- one etcd member started in proces
 fresh state (no package initialized, one thread): for every real execution of `n` steps, the main
 thread's result, if it has one, is `#()`, no thread is stuck, and no thread has ended in a panic.
 
-It follows from `EtcdGrove.goose_adequacy_start` (`Proof/runtime/Start.lean`: Perennial's
+It follows from `EtcdGrove.goose_adequacy_start` (through `common/Adequacy.lean`'s `etcd_adequate`) (`Proof/runtime/Start.lean`: Perennial's
 `goose_adequacy` whose WP proof also receives program start's rights, D19d) with the read
 package's two metric names and the client address `127.0.0.1:23790`, instantiated with the disk
 FFI (the proofs are generic over the FFI) and a ghost-state bundle `putgetGF`, from `putget`'s
@@ -38,6 +38,7 @@ FFI (the proofs are generic over the FFI) and a ghost-state bundle `putgetGF`, f
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.PkgTable
 public import Proof.runtime.Start
@@ -140,49 +141,17 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy_start (GF := putgetGF) (n + 1) (n + 2) putgetProgram σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial
-    putgetNames [go!"127.0.0.1:23790"] (by decide) (by decide) HNs HAs ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN HT HL
-  have Hprem0 := Hprem hG
-  have Hctx0 := Hctx hG
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC putgetGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
-  haveI := Hctx0
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok Hrights
-  ihave Hown : ownInitializing
-      (github_com.mit_pdos.etcd_grove.examples.putget.getIsPkgInit (GF := putgetGF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  iunfold startRights at Hrights
-  simp only [putgetNames, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Haddr, -⟩⟩
-  ihave #Hprem' := Hprem0
-  imodintro
-  unfold putgetProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.putget.wp_initialize' _
-      github_com.mit_pdos.etcd_grove.examples.putget.getIsPkgInit_wf) $$ [Hown Hn1 Hn2]
-    as ⟨_, #Hinit⟩
-  · iframe Hown
-    iunfold read.readRegPerm
-    iframe
+  refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.putget.initialize'
+    ((@! github_com.mit_pdos.etcd_grove.examples.putget.Main) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+    n κs t2 σ2 Hsteps fun hG HN HT => ?_
+  letI : HeapGS .hasLC putgetGF := heapAt hG lctx
+  haveI := Hctx hG
+  unfold progOk
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget.getIsPkgInit_wf, ?_⟩
+  ihave #Hprem' := Hprem hG
+  iintro #Hinit Htok Has
+  icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := putget.wp_Main (GF := putgetGF) n id bootLog Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
   wp_apply hM $$ [Haddr Htok]

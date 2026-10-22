@@ -17,7 +17,7 @@ for every real execution of `n` steps, the main thread's result, if it has one, 
 resumes across members (the client watcher's reconnection, at any member of its connection, D32)
 and its events are the cluster's committed history's (`etcdModelOfHistory`).
 
-It follows, as `linkv3p_adequate`, from `EtcdGrove.goose_adequacy_start` with the read package's
+It follows, as `linkv3p_adequate`, from `EtcdGrove.goose_adequacy_start` (through `common/Adequacy.lean`'s `etcd_adequate`) with the read package's
 two metric names and the nine addresses, over linkv's ghost-state bundle `linkvGF`, from
 `linkv3p`'s `wp_initialize'` and `linkv3p.wp_MainWatch` (`Link.lean`).
 
@@ -27,6 +27,7 @@ watchkv's bounds on `nw` and `nops`.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Adequacy
 
 @[expose] public section
@@ -93,54 +94,22 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
-      (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
-    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
-    cases h : v.isPanic
-    · rfl
-    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
-      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy_start (GF := linkvGF) (n + 1) (n + 2) (linkv3pWatchProgram nw nops steps) σ g
-    (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2))
-    (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
+  refine etcd_adequate (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.linkv3p.initialize'
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch)) (Val #nw))
+      (Val #nops)) (schedLit steps))
+    (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) trivial trivial
-    linkv3pNames linkv3pAddrs (by decide) (by decide) HNs HAs ?_
-    n κs t2 σ2 Hsteps' (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
-  intro hG HN HT HL
-  have Hprem0 := Hprem hG
-  have Hctx0 := Hctx hG
-  have Hcec0 := Hcec hG
-  obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG
-  subst Hlctx
-  subst HL
-  letI : HeapGS .hasLC linkvGF := ⟨G, ⟨fl, σ.goState.goLctx, nh, gs⟩⟩
-  haveI := Hctx0
-  haveI := Hcec0
-  unfold IsInit at Hinit
-  rw [Hinit]
-  iintro _ _ Hgs Htok Hrights
-  ihave Hown : ownInitializing
-      (github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit (GF := linkvGF)) $$ [Hgs]
-  · rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    imodintro
-    iapply BigSepM.bigSepM_empty.2
-    itrivial
-  iunfold startRights at Hrights
-  simp only [linkv3pNames, linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
-  icases Hrights with ⟨⟨Hn1, Hn2, -⟩, ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩⟩
-  ihave #Hprem' := Hprem0
-  imodintro
-  unfold linkv3pWatchProgram
-  wp_apply (github_com.mit_pdos.etcd_grove.examples.linkv3p.wp_initialize' _
-      github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit_wf) $$ [Hown Hn1 Hn2]
-    as ⟨_, #Hinit⟩
-  · iframe Hown
-    iunfold read.readRegPerm
-    iframe
+        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+    n κs t2 σ2 Hsteps' fun hG HN HT => ?_
+  letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
+  haveI := Hctx hG
+  haveI := Hcec hG
+  unfold progOk
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.linkv3p.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit_wf, ?_⟩
+  ihave #Hprem' := Hprem hG
+  iintro #Hinit Htok Has
+  simp only [linkv3pAddrs, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]
+  icases Has with ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, -⟩
   -- the schedule's slice literal: the array of an abstract list takes one pure step
   -- (`pure_wp_array_lit_full`, before the generic automation unfolds it), then the slice over it
   -- (`wp_slice_literal`)
@@ -193,6 +162,7 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · exact Or.inl rfl
   · exact Or.inr (Or.inl rfl)
   · exact Or.inr (Or.inr rfl)
+
 
 end adequacy
 

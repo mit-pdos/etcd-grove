@@ -53,6 +53,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `WithTimeout`/`WithDeadline`'s, whose cancel functions are closures too).
 - **Status.** Not started (found 2026-10-22).
 
+### Proof idioms: a closed theorem from a program's initializer and body
+
+- **Missing.** A form of `goose_adequacy` for the usual closed theorem: a program
+  `init #() ;; body` run from a fresh state (`IsInit`) with one thread, the receipt and thread
+  bounds `n + 1`, `n + 2` of an `n`-step execution, the right to initialize (`ownInitializing`)
+  from the empty package state, and the conclusion with `v.isPanic = false` for each final value
+  (from `UnrecoveredPanic`'s exclusion). Every closed theorem repeated these steps.
+- **Needed by.** The examples' closed theorems (2026-10-22, D36): kv's, the counter's and
+  kvwitness's over `goose_adequacy`; the etcd examples' over this repository's
+  `goose_adequacy_start` (`Proof/runtime/Start.lean`), which stays here.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/common/Adequacy.lean`:
+  `init_adequate` (over `goose_adequacy`, its WP obligation `progOk0`: the initializer's triple
+  and the body's WP from the package's predicate and the main thread's token, at every ghost-state
+  instance at the state's local context), `adequate_of_unrecovered`, `ownInitializing_of_empty`;
+  no axiom. (`etcd_adequate`, the same over `goose_adequacy_start`, is this repository's.)
+- **Proposed change.** `init_adequate`, `adequate_of_unrecovered` and `ownInitializing_of_empty`
+  in `Perennial/GooseLang/Adequacy.lean` (or beside `IsInit` in `Perennial/Golang/Theory/Pkg.lean`).
+- **Status.** Not started (2026-10-22).
+
 ### Goose: range over a function (`iter.Seq`/`iter.Seq2`)
 
 - **Missing.** Goose rejects `for k, v := range f` when `f` is a function (`[unsupported]: range

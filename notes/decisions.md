@@ -15551,3 +15551,31 @@ used by `progress_ok` and `watchGRPCStream.run`'s proof). Not merged: the server
 `ServerKVGet/Put/Txn.lean` (`kv_get_server`, `kv_put_result`, `kv_txn_commit`, ...), whose
 results are about the recipes' and the cache's contracts at the server's model, not the client's
 calls.
+
+## D36: the examples' closed theorems through one generic lemma (2026-10-22)
+
+**Problem.** Every example's adequacy theorem (putget, putget3, linkvtxn, linkv3p's two, watchkv,
+cachekv over `goose_adequacy_start`; kv, the counter, kvwitness's two over `goose_adequacy`)
+repeated about forty lines between its `Main`'s spec and its conclusion: the `isPanic` form of the
+panic conclusion, the call of the adequacy theorem at the bounds `n + 1`, `n + 2`, the ghost-state
+instance at the state's local context, the package state's `ownInitializing`, program start's
+rights, the initializer's triple.
+
+**Decision.** `examples/common/Adequacy.lean` (common's Lean side; kv, the counter and kvwitness
+import it too): `etcd_adequate` (over `goose_adequacy_start`, the read package's two metric names
+for the initializer's `read.readRegPerm`, the addresses `As` for the body) and `init_adequate`
+(over `goose_adequacy`), each parameterized by the program's initializer and body, the result set
+`φ` and the ghost-state bundle `GF` (`GooseGpreS`), with the program's proof as one obligation at
+every instance `heapWith hG lctx` (`progOk`/`progOk0`: some `getInit` and package predicate `I`
+with the initializer's triple, and the body's WP from `I`, the main thread's token and the
+addresses). Each closed theorem is an instance: its proof gives its `wp_initialize'` and proves its
+body from its `Main` (linkv3p's with the schedule's slice literal first). No adequacy theorem had a
+different shape: kv's `kv_adequate`, kvwitness's `kv_adequate`/`kv_witness_adequate` (the
+`AdequacyLinked` files) only apply the `_of` theorems to the linked `Main` results, unchanged.
+
+`init_adequate` and its helpers are generic in Perennial's terms: proposed for Perennial
+(`notes/perennial-changes.md`, "a closed theorem from a program's initializer and body"); kept here
+until it lands.
+
+**Statements.** Every `*_adequate` and `*_safe` theorem's header byte-identical; fingerprint
+unchanged but for the new module's roots-free definitions; no axiom added.
