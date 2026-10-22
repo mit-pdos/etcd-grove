@@ -64,6 +64,9 @@ opaque reflPtr (w : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : 
 /-- `rt` is the `reflect.Type` of `T`. -/
 opaque reflType (rt : _root_.Perennial.reflect.Type') (T : go.GoType) : Prop
 
+/-- `z` is the (non-addressable) zero `reflect.Value` of `T` (what `reflect.Zero` gives). -/
+opaque reflZero (z : _root_.Perennial.reflect.Value) (T : go.GoType) : Prop
+
 /-- The zeroed `T` that `reflect.New` allocated at `p` (opaque). -/
 opaque reflNew (T : go.GoType) (p : Loc) : IProp GF
 

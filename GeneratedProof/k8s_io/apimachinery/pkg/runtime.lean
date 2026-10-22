@@ -2,8 +2,11 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.io
+public import GeneratedProof.k8s_io.apimachinery.pkg.conversion
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
+public import Perennial.GeneratedProof.reflect
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.runtime
 
@@ -513,12 +516,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
 instance structField_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.structField :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.structField where
+  typedPointstoDef l v dq := iprop(
+    "structType" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' dq ∗
+    "field" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance structField_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.structField k8s_io.apimachinery.pkg.runtime.structField.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.structField k8s_io.apimachinery.pkg.runtime.structField.underlying := by
+  solve_into_val_typed_struct
+
+instance structField_access_load_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance structField_access_store_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (structType' : reflect.Type') :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) structType' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with structType' := structType' } : k8s_io.apimachinery.pkg.runtime.structField) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance structField_access_load_field (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance structField_access_store_field (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (field' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"field" l) field' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := field' } : k8s_io.apimachinery.pkg.runtime.structField) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end structField
@@ -532,12 +573,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
 instance fieldInfo_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldInfo :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldInfo where
+  typedPointstoDef l v dq := iprop(
+    "name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' dq ∗
+    "nameValue" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' dq ∗
+    "omitempty" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' dq ∗
+    "omitzero" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance fieldInfo_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldInfo k8s_io.apimachinery.pkg.runtime.fieldInfo.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.fieldInfo k8s_io.apimachinery.pkg.runtime.fieldInfo.underlying := by
+  solve_into_val_typed_struct
+
+instance fieldInfo_access_load_name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_store_name (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (name' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"name" l) name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : k8s_io.apimachinery.pkg.runtime.fieldInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_load_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_store_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (nameValue' : reflect.Value) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) nameValue' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nameValue' := nameValue' } : k8s_io.apimachinery.pkg.runtime.fieldInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_load_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_store_omitempty (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (omitempty' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) v.omitempty' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitempty" l) omitempty' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with omitempty' := omitempty' } : k8s_io.apimachinery.pkg.runtime.fieldInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_load_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance fieldInfo_access_store_omitzero (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (omitzero' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) v.omitzero' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"omitzero" l) omitzero' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with omitzero' := omitzero' } : k8s_io.apimachinery.pkg.runtime.fieldInfo) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fieldInfo
@@ -570,12 +683,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
 instance unstructuredConverter_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.unstructuredConverter :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.unstructuredConverter where
+  typedPointstoDef l v dq := iprop(
+    "mismatchDetection" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' dq ∗
+    "comparison" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance unstructuredConverter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.unstructuredConverter k8s_io.apimachinery.pkg.runtime.unstructuredConverter.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.unstructuredConverter k8s_io.apimachinery.pkg.runtime.unstructuredConverter.underlying := by
+  solve_into_val_typed_struct
+
+instance unstructuredConverter_access_load_mismatchDetection (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance unstructuredConverter_access_store_mismatchDetection (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (mismatchDetection' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) v.mismatchDetection' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"mismatchDetection" l) mismatchDetection' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mismatchDetection' := mismatchDetection' } : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance unstructuredConverter_access_load_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance unstructuredConverter_access_store_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (comparison' : k8s_io.apimachinery.pkg.conversion.Equalities) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) comparison' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with comparison' := comparison' } : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end unstructuredConverter
@@ -771,12 +922,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
 instance notRegisteredErr_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.notRegisteredErr :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.notRegisteredErr where
+  typedPointstoDef l v dq := iprop(
+    "schemeName" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' dq ∗
+    "gvk" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' dq ∗
+    "target" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' dq ∗
+    "t" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance notRegisteredErr_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.notRegisteredErr k8s_io.apimachinery.pkg.runtime.notRegisteredErr.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.notRegisteredErr k8s_io.apimachinery.pkg.runtime.notRegisteredErr.underlying := by
+  solve_into_val_typed_struct
+
+instance notRegisteredErr_access_load_schemeName (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_store_schemeName (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (schemeName' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) v.schemeName' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"schemeName" l) schemeName' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with schemeName' := schemeName' } : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_load_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_store_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (gvk' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) gvk' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with gvk' := gvk' } : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_load_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (target' : k8s_io.apimachinery.pkg.runtime.GroupVersioner) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) v.target' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"target" l) target' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with target' := target' } : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance notRegisteredErr_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (t' : reflect.Type') :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) t' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := t' } : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end notRegisteredErr
@@ -1662,12 +1885,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.runtime.Assumptions]
 
 instance spliceBuffer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.spliceBuffer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.runtime.spliceBuffer where
+  typedPointstoDef l v dq := iprop(
+    "raw" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance spliceBuffer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.spliceBuffer k8s_io.apimachinery.pkg.runtime.spliceBuffer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.runtime.spliceBuffer k8s_io.apimachinery.pkg.runtime.spliceBuffer.underlying := by
+  solve_into_val_typed_struct
+
+instance spliceBuffer_access_load_raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance spliceBuffer_access_store_raw (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (raw' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) v.raw' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"raw" l) raw' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raw' := raw' } : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance spliceBuffer_access_load_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance spliceBuffer_access_store_buf (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (buf' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.spliceBuffer go!"buf" l) buf' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : k8s_io.apimachinery.pkg.runtime.spliceBuffer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end spliceBuffer

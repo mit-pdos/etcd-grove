@@ -118,6 +118,13 @@ instance k8s_io_apimachinery_pkg_types_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.types :=
   build_get_is_pkg_init_wf
 
+instance k8s_io_apimachinery_pkg_conversion_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_conversion_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_apimachinery_pkg_runtime_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime :=
   define_is_pkg_init iprop(True)
@@ -221,13 +228,6 @@ instance k8s_io_apiserver_pkg_storage_value_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance k8s_io_apiserver_pkg_storage_value_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.value :=
-  build_get_is_pkg_init_wf
-
-instance k8s_io_apimachinery_pkg_conversion_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_apimachinery_pkg_conversion_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_apiserver_pkg_endpoints_request_is_pkg_init_inst :
