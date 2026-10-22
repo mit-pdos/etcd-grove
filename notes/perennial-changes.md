@@ -131,10 +131,16 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   are not modelled, or a hand-written typed points-to that only allows moving the value), plus
   specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
   values. Designed and reviewed on its own (Perennial's trusted base).
-- **Workaround here.** None yet: waiting on the user's choice between this change, a Goose fork
-  of `k8s.io/apiserver` that passes the store's `newFunc` instead of a `reflect.Value`, or
-  trusted models of the functions that take one.
-- **Status.** Not started.
+- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
+  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
+  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
+  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
+  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
+  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
+  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
+  interfaces as two words), outside the semantics, so the model will be trusted, its principles
+  proved from it.
+- **Status.** Not started in Perennial.
 
 ## Landed
 
