@@ -176,6 +176,17 @@ The closed theorem (`k8setcd3_safe`, as `linkvtxn_safe`), in stages:
   of key-values (`kvSeen`, D30j's local option: the invariant owns `γh`'s authority).
 - **6g. `Apply`, `Check`, `Main`, adequacy.**
 
+Done (2026-10-22): **6a** (`KModel.lean`: `kSpec st0`, linkv's `PendSpec` of `mstepL`, stated
+on the Go records; `KSteps.lean`: the configurations, `Bounded` on items plus pending inputs;
+every function of the Go model proved, `Model(st0)` against `k8setcd3S g0`), **6b**
+(`ItemList.lean`, `Refine.lean`: `KRel`, `outOf`, `refine_create/delete/update/get`), **6c**
+(`driver_contractOk`), **6d** (`validateD`, `tryUpdateD`, the exact sentinel error; the store's
+`validateOk`/`tryUpdateOk` of them). The store's specs now carry the error shapes 6f needs
+(`unkErr`: an outcome-unknown error is the client's, an `InternalError` or the codec's;
+`KUserErr`: a callback's error keeps its identity). Still to do: 6e, 6f, 6g; 6f's `errOut`
+needs a client error told apart from the sentinels ("From the etcd client proof", item 5), a
+marked trust-boundary assumption until that lands.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
