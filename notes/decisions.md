@@ -15025,3 +15025,42 @@ minted datum (`waiterOk`); `opKey o = (id, seq)` from `decode`; so the two are e
 facts at the snapshot's committed log and returns `runOwn` there; `run`'s install branch calls it in
 place of its own lock section. `putMap`/`getMap` are the halves of the former proofs over any
 prefix/rest. `kv_porcupine_safe`'s statement is unchanged; no axiom or `sorry` added.
+
+## D30: Kubernetes' etcd3 storage backend: what is proved and how (2026-10-22 · decided with the user; `notes/k8s-etcd3-plan.md`)
+
+The plan for verifying `k8s.io/apiserver/pkg/storage/etcd3`'s `*store` is
+`notes/k8s-etcd3-plan.md` (its reasoning, phases and blockers); the translation survey is branch
+`k8s-etcd3-goose` (`notes/k8s-etcd3-goose.md`). This entry records the decisions, so that the
+ones made later while doing the proof are tracked here too: later sub-decisions of this work are
+D30g, D30h, ... appended below (a decision of its own scope gets its own number), each linked
+from the plan.
+
+- **D30a: the spec target** (the user). A logically atomic triple per `storage.Interface` method,
+  stated with a Lean copy of Kubernetes' `correctness.Model` through an abstraction of the etcd
+  specs' `KVState` under the store's prefix; no new ghost state. Rejected: aiming at the closed
+  driver theorem first, with the method specs whatever its proof needs.
+- **D30b: objects** (the user). The specs are generic in the codec, versioner and transformer,
+  over a contract taken as a premise. The contract does not assume a canonical encoding (stored
+  bytes may differ from re-encoding what they decode to; a transformer may report `stale`): the
+  path of #48394. The driver instantiates it with a simple concrete codec that is non-canonical,
+  so that it exercises that path, with the contract proved for it. Rejected: verifying the real
+  Pod codec (scheme, conversion, protobuf), which none of the bugs is in.
+- **D30c: the driver** (the user). A closed theorem (`k8setcd3_porcupine_safe`, as
+  `kv_porcupine_safe`) for a Go program in `examples/` running `TestCorrectness`'s traffic and
+  checks (`RunUnaryTraffic`, porcupine with `correctness.Model`, `Replay`) over in-process etcd
+  members, after the method specs. First version: a failed write ends the run unchecked (each
+  client stops at it; `Main` skips the check), a failed read is dropped from the history.
+  Rejected: checking the history up to the failure, which can reject a correct store (the write
+  may have taken effect and a concurrent read seen it). Later: linkvtxn's pending failed writes
+  around `correctness.Model`.
+- **D30d: the fixed configuration** (the plan, phase 0). `EtcdRangeStream` and
+  `ListFromCacheSnapshot` off, compaction interval 0, `ttl = 0`,
+  `AllowUnsafeMalformedObjectDeletion` off, for the proofs and the driver.
+- **D30e: the order** (the user: the watcher later). The unary methods first (phases 1-4: they
+  need only "some error, the write fired at most once" from the client); `GetList` after Goose's
+  range over a function (G2) and `Range`'s error identity from the etcd client proof; the
+  watcher (`watcher.go`) and the watch cache after the store.
+- **D30f: the translation gaps** (CLAUDE.md, "Changes to Perennial"). Worked around in this
+  repository's Goose configuration (G1, G3: names-only functions, an import through
+  `util/feature.toml`), the general fixes listed in `notes/perennial-changes.md`; neither G1 nor
+  G3 blocks phases 1-4.

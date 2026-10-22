@@ -1,6 +1,7 @@
 # Plan: the Kubernetes etcd3 storage backend (`k8s.io/apiserver/pkg/storage/etcd3`)
 
-Status: planned (2026-10-22). The translation survey is on branch `k8s-etcd3-goose`
+Status: planned (2026-10-22). Decisions: D30 in `notes/decisions.md` (D30a-f; later ones of
+this work are appended there as D30g, ...). The translation survey is on branch `k8s-etcd3-goose`
 (`notes/k8s-etcd3-goose.md`, not merged into `lean`): the store translates and builds with the
 pinned translator except six functions left names-only; its gaps G1-G3 are under "What blocks
 where", and the Perennial changes they call for in `notes/perennial-changes.md`.
