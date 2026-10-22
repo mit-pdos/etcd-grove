@@ -2,7 +2,7 @@
 
 A triage of every file in this directory (2026-10-18, the files added since placed 2026-10-20, the
 watch-resume findings re-ranked 2026-10-21, the fork's fixes of the alarm store's race and the
-snapshot file's release noted 2026-10-22; upstream states as of 2026-10-21): the order in which we would bring the
+snapshot file's release noted 2026-10-22, the msgappv2 decoder's lengths added 2026-10-22; upstream states as of 2026-10-21): the order in which we would bring the
 findings to etcd's and raft's maintainers, by how much they matter to them and how likely they
 are to act. Criteria, roughly in this order:
 
@@ -285,6 +285,12 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   (2026-10-21): the same for the integration tests' bridge, a second `Blackhole` (and the panic
   leaves the bridge's mutex held); no upstream test reaches it, the fix is the guard
   `UnpauseConnections` already has.
+- **Robustness against a non-etcd peer**:
+  [etcd-rafthttp-msgappv2-unbounded-lengths](etcd-rafthttp-msgappv2-unbounded-lengths.md)
+  (2026-10-22): the msgappv2 stream decoder allocates whatever entry count and sizes the stream
+  says (a panic at `2^63`, or exhaustion), where the other stream codec caps messages at
+  `readBytesLimit`; between etcd members the counts are an encoder's, so only a misbehaving peer or
+  a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-newauthstore-nil-tp](etcd-auth-newauthstore-nil-tp.md),

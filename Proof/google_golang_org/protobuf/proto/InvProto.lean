@@ -13,7 +13,9 @@ its wire content;
 - `marshals m`: the messages whose encoding decodes back to them (e.g. no out-of-range value of a
   closed proto2 enum, which a decoder puts in the unknown fields);
 - `wire m bs`: `bs` is an encoding of `m` (what decoding `bs` gives back is `m`'s wire content);
-- `blank l`: a zero `*T` the receiver owns; `dec l m`: a decoded `*T` holding `m`, owned.
+- `eqv m m'`: `m` and `m'` have the same wire content (`proto.Clone` keeps it);
+- `blank l`: a zero `*T` the receiver owns; `dec l m`: a decoded (or cloned) `*T` holding `m`,
+  owned.
 
 That `Marshal` of an `ro` at `m` (with `marshals m`) is a `wire` encoding of `m`, and that
 `Unmarshal` of bytes into a `blank` gives a `dec` at some `m` of which the bytes are a `wire`
@@ -56,6 +58,8 @@ structure PbType (GF : BundledGFunctors) where
   marshals : M → Prop
   /-- `bs` is an encoding of `m`. -/
   wire : M → List w8 → Prop
+  /-- `m` and `m'` have the same wire content (what `proto.Clone` keeps). -/
+  eqv : M → M → Prop
   /-- A zero `*T` the receiver owns. -/
   blank : Loc → IProp GF
   /-- A decoded `*T` holding `m`, owned. -/
@@ -66,6 +70,15 @@ attribute [instance] PbType.ro_persistent
 /-- **The encoding of the read-only-for-good `*T` at `l`** (`proto.Marshal`'s result, `proto.Size`
 its length): a function of the address, since nothing can change the message (`PbType.ro`). -/
 opaque pbEnc (ty : go.GoType) (l : Loc) : List w8
+
+/-- **The trust boundary: what `pbEnc` is.** The encoding of a read-only-for-good `*T` holding `m`
+is an encoding of `m` if `m` marshals (`T.wire`, the instance's wire model), and shorter than
+`2^63` bytes (protobuf-go sizes it as an `int`). (2026-10-22, D33a: what `Size` and `Marshal`
+return, stated of the message itself, so that a writer may be permitted the frame of an encoding
+before the encoding is computed: the msgappv2 encoder writes the entries' count before it sizes
+them.) -/
+axiom pbEnc_ok (T : PbType GF) (l : Loc) (m : T.M) :
+    T.ro l m ⊢ ⌜(T.marshals m → T.wire m (pbEnc T.ty l)) ∧ (pbEnc T.ty l).length < 2 ^ 63⌝
 
 end defs
 

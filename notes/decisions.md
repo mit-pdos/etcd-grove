@@ -15477,3 +15477,15 @@ for every sent message (no responses, known enums: the entries' types, a log-wid
 encoder's spec takes.
 *Rejected:* (b) weakening `wireEq` to the fields `Process` reads (a change to `Net.lean`'s
 interface and the server proofs).
+
+**The msgappv2 pair (2026-10-22).** The stream's frames as a pure relation (`V2Frame`, in
+`rafthttp/MsgAppV2.lean`) of the codec state, the wire content carried, the bytes and the next state,
+rather than an encoding function: protobuf's encoding is a relation here (`wire`, an encoding up to
+unknown fields), and the relation is all both sides need. The decoder's spec is stated against what
+it can know of the stream, that the bytes it reads are compatible with some frame (`V2Compat`), not
+against a whole stream: a stream reader (stage 5) gets that from the response protocol and the
+frames it has already read (`V2Frame.unique`). Unlike `messageDecoder`, the msgappv2 decoder panics
+(`MustUnmarshalMessage`) on bytes that are not an encoding, so its proof needs this knowledge for
+each entry, not only at the end: `V2Compat.short_len`, `short_ent`, `short_end`. *Rejected:* a
+`Clone`-free heartbeat branch (the code clones `linkHeartbeatMessage`; a generic `proto.Clone` spec
+with `PbType.eqv`, and the variable's initializer as a package fact, are the honest statement).

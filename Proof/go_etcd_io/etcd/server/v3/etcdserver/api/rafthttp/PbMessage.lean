@@ -76,6 +76,7 @@ def pbMessage : PbType GF where
   ro_persistent l st := msgOwn_persistent l st
   marshals := MsgMarshals
   wire := MsgWireOk
+  eqv st st' := wireOf st = wireOf st'
   blank l := iprop(l ↦ (zero_val raftpb.Message))
   dec l st := msgPtsC l (DFrac.own 1) (DFrac.own 1) true st
 
@@ -85,10 +86,51 @@ def pbMessage : PbType GF where
     (pbMessage (GF := GF)).ro l st = msgOwn l DFrac.discard st := rfl
 @[simp] theorem pbMessage_marshals : (pbMessage (GF := GF)).marshals = MsgMarshals := rfl
 @[simp] theorem pbMessage_wire : (pbMessage (GF := GF)).wire = MsgWireOk := rfl
+@[simp] theorem pbMessage_eqv (st st' : MsgSt) :
+    (pbMessage (GF := GF)).eqv st st' = (wireOf st = wireOf st') := rfl
 @[simp] theorem pbMessage_blank (l : Loc) :
     (pbMessage (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Message)) := rfl
 @[simp] theorem pbMessage_dec (l : Loc) (st : MsgSt) :
     (pbMessage (GF := GF)).dec l st = msgPtsC l (DFrac.own 1) (DFrac.own 1) true st := rfl
+
+/-! ### Entries (the msgappv2 codec's short frame marshals them one by one) -/
+
+/-- **Decoding a `raftpb.Entry`'s bytes** (opaque): the entry, or `none`. -/
+opaque entDecode (bs : List w8) : Option EntryM
+
+/-- **`bs` is an encoding of the entry `e`**: its type a known `EntryType` (`0`-`2`, a closed
+proto2 enum), and `bs` decodes to it. -/
+def EntWireOk (e : EntryM) (bs : List w8) : Prop :=
+  uint.Z e.Type' ≤ 2 ∧ entDecode bs = some e
+
+/-- **A `*raftpb.Entry` at the bytes** (a trusted wire model, read against `raft.proto`'s `Entry`:
+`Term`, `Index`, `Type`, `Data`, all in `EntryM`): read-only for good and decoded alike, a log
+entry (`entRO`); blank, a zero struct. -/
+def pbEntry : PbType GF where
+  ty := raftpb.Entry.ty
+  M := EntryM
+  ro l e := entRO l e
+  ro_persistent l e := entRO_persistent l e
+  marshals e := uint.Z e.Type' ≤ 2
+  wire := EntWireOk
+  eqv e e' := e = e'
+  blank l := iprop(l ↦ (zero_val raftpb.Entry))
+  dec l e := entRO l e
+
+@[simp] theorem pbEntry_ty : (pbEntry (GF := GF)).ty = raftpb.Entry.ty := rfl
+@[simp] theorem pbEntry_M : (pbEntry (GF := GF)).M = EntryM := rfl
+@[simp] theorem pbEntry_ro (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).ro l e = entRO l e := rfl
+@[simp] theorem pbEntry_marshals (e : EntryM) :
+    (pbEntry (GF := GF)).marshals e = (uint.Z e.Type' ≤ 2) := rfl
+@[simp] theorem pbEntry_wire : (pbEntry (GF := GF)).wire = EntWireOk := rfl
+@[simp] theorem pbEntry_blank (l : Loc) :
+    (pbEntry (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
+@[simp] theorem pbEntry_dec (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).dec l e = entRO l e := rfl
+
+/-- One encoding is of one entry. -/
+theorem EntWireOk.inj {e e' : EntryM} {bs : List w8} (h : EntWireOk e bs) (h' : EntWireOk e' bs) :
+    e = e' :=
+  Option.some.inj (h.2.symm.trans h'.2)
 
 /-- **Two messages of which the same bytes are an encoding agree on the wire.** -/
 theorem pbMessage_wire_eq {st st' : MsgSt} {bs : List w8} (h : MsgWireOk st bs)

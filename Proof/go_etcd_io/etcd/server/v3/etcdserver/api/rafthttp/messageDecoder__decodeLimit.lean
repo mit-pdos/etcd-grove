@@ -52,7 +52,7 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
     wp_if_destruct
     · ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
-      icases Hei with ⟨%e, #He⟩
+      icases Hei with ⟨⟨%e, #He⟩, -⟩
       wp_auto
       iapply HΦ
       iexists _
@@ -80,7 +80,7 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         wp_auto
         have wpU := wp_Unmarshal pbMessage buf ys2 (DFrac.own 1) m_ptr
         simp only [pbMessage_ty, pbMessage_blank, pbMessage_dec, pbMessage_wire] at wpU
-        wp_apply wpU $$ [$Hbuf $m] as %err3 ⟨Hbuf, Hdec⟩
+        wp_apply wpU $$ [$Hbuf $m] as %err3 ⟨Hbuf, -, Hdec⟩
         (try wp_auto)
         iapply HΦ
         iexists _

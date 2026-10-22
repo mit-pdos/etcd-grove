@@ -3,9 +3,10 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
-error. Its initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an
-`errors.New` call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
-`opaqueInitsOk` the others.
+error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
+variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
+(`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
+states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others.
 -/
 module
 
@@ -100,7 +101,6 @@ axiom opaqueInitsOk :
         snapResponseReadTimeout.init,
         errUnsupportedStreamType.init,
         supportedStream.init,
-        linkHeartbeatMessage.init,
         linkHeartbeatSize.init,
         errMemberRemoved.init,
         errMemberNotFound.init] : List val),
@@ -122,6 +122,11 @@ it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
 axiom errorsNewVarsInit :
     ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrExceedSizeLimit.init, ErrExceedSizeLimit, go!"rafthttp: error limit exceeded")] : List (val × GoString × GoString)) →
     EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
+
+/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/
+axiom linkHeartbeatMessage_init :
+    {{ (True : IProp GF) }} (App (Val linkHeartbeatMessage.init) (Val #()))
+    {{ RET #(); EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -226,7 +231,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk snapResponseReadTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk errUnsupportedStreamType.init (by mem_tac))
   wp_apply (opaqueInitsOk supportedStream.init (by mem_tac))
-  wp_apply (opaqueInitsOk linkHeartbeatMessage.init (by mem_tac))
+  wp_apply linkHeartbeatMessage_init as #HlinkHeartbeatMessage
   wp_apply (opaqueInitsOk linkHeartbeatSize.init (by mem_tac))
   wp_apply (opaqueInitsOk errMemberRemoved.init (by mem_tac))
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
@@ -240,8 +245,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
-  iexists _
-  iframe HErrExceedSizeLimit
+  isplitr
+  · iexists _; iexact HErrExceedSizeLimit
+  iexact HlinkHeartbeatMessage
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

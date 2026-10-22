@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.raft.v3.InvPbMsg
 
 @[expose] public section
 
@@ -155,11 +156,17 @@ end go_etcd_io.etcd.pkg.v3.httputil
 -- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
+/-- The state of `linkHeartbeatMessage` (`raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}`). -/
+def hbSt : EtcdGrove.MsgSt :=
+  ⟨⟨EtcdGrove.MsgHeartbeat, 0, 0, 0, 0, 0, 0, 0, false, 0⟩, [], none, [], []⟩
+
 /-- rafthttp's package fact (2026-10-22, rafthttp stage 3): `ErrExceedSizeLimit`
 (`msg_codec.go`, `errors.New`), the message decoder's error for a message over its limit, holds a
-non-nil error. -/
+non-nil error; `linkHeartbeatMessage` (`stream.go`), which the msgappv2 decoder clones for a
+heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it). -/
 abbrev rafthttpInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e)
+  iprop((∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e) ∗
+    EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

@@ -22,7 +22,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `proto.Unmarshal(b, m)` of any bytes into a zero `*T` the caller owns returns an error, or `nil`
-and the `*T` holding some `m` of which the bytes are an encoding; `b` is read, not kept.
+and the `*T` holding some `m` of which the bytes are an encoding; `b` is read, not kept. Bytes that
+are an encoding of some message decode: the error is `nil`.
 
 Against protobuf-go v1.36.11 (`proto/decode.go`): `Unmarshal` resets the message, then decodes;
 it copies `bytes` fields out of the buffer (the default options do not alias it). -/
@@ -32,7 +33,7 @@ abbrev proto.UnmarshalPb.spec : Prop :=
       T.blank l }}
     (App (App (Val (@! google_golang_org.protobuf.proto.Unmarshal)) (Val #b))
       (Val #(interface.mkOk (go.GoType.PointerType T.ty) #l)))
-  {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗
+  {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗ ⌜(∃ m : T.M, T.wire m bs) → err = GoInterface.nil⌝ ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ m : T.M, T.dec l m ∗ ⌜T.wire m bs⌝) }}
 
 end spec

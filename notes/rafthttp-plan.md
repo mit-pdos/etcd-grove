@@ -182,8 +182,25 @@ trust-boundary spec.
    **Done 2026-10-22, the `MsgApp` shape in `SentMsgOk`** (D33a): `AppShape`, a premise of
    `raft.send` (`maybeSendAppend` proves it), carried to `netBundle` by the server's payload; no
    closed statement changed, trust base unchanged.
-   **Next**: the msgappv2 pair; `From` = the sender's id and `MsgMarshals` (no responses, known
-   enums, including the entries') for the messages handed to `Send`.
+   **Done 2026-10-22, the msgappv2 pair** (`msgappv2_codec.go`, D33a): `msgAppV2Encoder.encode`
+   and `msgAppV2Decoder.decode` proved over a pure model of the stream's frames
+   (`rafthttp/MsgAppV2.lean`: `V2St`, the codec state; `V2Frame frm to cs w bs cs'`, the
+   heartbeat, AppEntries and App frames; frames self-delimiting, `V2Frame.unique`). The encoder
+   writes a frame of its message's wire content (given an `MsgApp` of raft's shape from `frm` to
+   `to`, or the link heartbeat: `V2EncOk`); the decoder, knowing only that what it reads is
+   compatible with a frame (`V2Compat`), reads one and returns a message of its content, owned,
+   and the next state. Also proved: `isLinkHeartbeatMessage`, `pbutil.MustUnmarshalMessage`
+   generically (`MustUnmarshalMessagePb`). `proto.MarshalOptions` translated (a struct of options;
+   protobuf now imports `internal/pragma`, and raft's `Init.lean` runs its initializer). A finding:
+   `issues/etcd-rafthttp-msgappv2-unbounded-lengths.md` (the decoder allocates whatever lengths
+   the stream says). **New axioms, awaiting the user's approval**: `proto.ClonePb` and
+   `proto.MarshalAppendPb` (generic, `InvProto.lean`'s vocabulary), `pbEnc_ok` (what `pbEnc` is: a
+   frozen message's encoding is an encoding of it, below `2^63` bytes), `v2stats.FollowerStats.Succ`
+   (a no-op, as the metrics), and rafthttp's `linkHeartbeatMessage_init` (the heartbeat
+   variable's untranslated initializer, `gen-init.py`'s custom kind); only the last is reached by
+   a linked result yet (the baseline 541 -> 542 once accepted).
+   **Next**: `From` = the sender's id and `MsgMarshals` (no responses, known enums, including the
+   entries') for the messages handed to `Send`; then stage 4 (the pipeline).
 4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
    `Process`. The simplest complete delivery path; first proof that the mailbox design works.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),

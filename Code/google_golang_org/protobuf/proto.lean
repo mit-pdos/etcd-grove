@@ -2,6 +2,7 @@
 module
 
 public import Code.google_golang_org.protobuf.reflect.protoreflect
+public import Code.google_golang_org.protobuf.internal.pragma
 public import Perennial.Golang.Defn
 public import TrustedCode.google_golang_org.protobuf.proto
 
@@ -39,8 +40,6 @@ def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 attribute [irreducible] mergeOptions.ty
 
 axiom UnmarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom MarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 @[reducible] def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage.ty
@@ -173,7 +172,7 @@ noncomputable def String [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.String"
 
 instance info' : PkgInfo pkg_id.google_golang_org.protobuf.proto where
-  pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect]
+  pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.internal.pragma]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -181,6 +180,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.protobuf.proto)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -197,7 +197,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val errUnknown.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.protobuf.internal.pragma.initialize') (Val #()))))))))
 
 axiom UnmarshalOptions : Type
 axiom UnmarshalOptions.zero_val : ZeroVal UnmarshalOptions
@@ -212,18 +214,54 @@ attribute [instance] UnmarshalOptions.TypeAssumptions.type_repr
   UnmarshalOptions.TypeAssumptions.underlying
   UnmarshalOptions.TypeAssumptions.isUnderlying
 
-axiom MarshalOptions : Type
-axiom MarshalOptions.zero_val : ZeroVal MarshalOptions
-attribute [instance] MarshalOptions.zero_val
+structure MarshalOptions [FfiSyntax] where
+  mk ::
+  NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals
+  AllowPartial' : Bool
+  Deterministic' : Bool
+  UseCachedSize' : Bool
+
+instance MarshalOptions.zero_val [FfiSyntax] : ZeroVal MarshalOptions :=
+  ⟨MarshalOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def MarshalOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
+(go.field_decl.FieldDecl go!"AllowPartial" go.bool),
+(go.field_decl.FieldDecl go!"Deterministic" go.bool),
+(go.field_decl.FieldDecl go!"UseCachedSize" go.bool)]
+
+@[irreducible] def MarshalOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  MarshalOptions.fieldsUnsealed
+
+instance equals_unfold_MarshalOptions [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold MarshalOptions.fields MarshalOptions.fieldsUnsealed :=
+  ⟨by unfold MarshalOptions.fields; rfl⟩
+
+@[reducible] def MarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MarshalOptions.fields)
 
 class MarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MarshalOptions.underlying MarshalOptions
   underlying : go.UnderlyingDirectedEq MarshalOptions.ty MarshalOptions.underlying
-  isUnderlying : go.IsUnderlying MarshalOptions.underlying MarshalOptions.underlying
+  get_NoUnkeyedLiterals : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
+  set_NoUnkeyedLiterals : ∀ (x : MarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"NoUnkeyedLiterals") (PairV #x #y) (Val #(({ x with NoUnkeyedLiterals' := y } : MarshalOptions)))
+  get_AllowPartial : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"AllowPartial") #x (Val #(x.AllowPartial'))
+  set_AllowPartial : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"AllowPartial") (PairV #x #y) (Val #(({ x with AllowPartial' := y } : MarshalOptions)))
+  get_Deterministic : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"Deterministic") #x (Val #(x.Deterministic'))
+  set_Deterministic : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"Deterministic") (PairV #x #y) (Val #(({ x with Deterministic' := y } : MarshalOptions)))
+  get_UseCachedSize : ∀ (x : MarshalOptions), go.IsGoStepPureDetTagged under (StructFieldGet MarshalOptions.underlying go!"UseCachedSize") #x (Val #(x.UseCachedSize'))
+  set_UseCachedSize : ∀ (x : MarshalOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MarshalOptions.underlying go!"UseCachedSize") (PairV #x #y) (Val #(({ x with UseCachedSize' := y } : MarshalOptions)))
 
 attribute [instance] MarshalOptions.TypeAssumptions.type_repr
   MarshalOptions.TypeAssumptions.underlying
-  MarshalOptions.TypeAssumptions.isUnderlying
+  MarshalOptions.TypeAssumptions.get_NoUnkeyedLiterals
+  MarshalOptions.TypeAssumptions.set_NoUnkeyedLiterals
+  MarshalOptions.TypeAssumptions.get_AllowPartial
+  MarshalOptions.TypeAssumptions.set_AllowPartial
+  MarshalOptions.TypeAssumptions.get_Deterministic
+  MarshalOptions.TypeAssumptions.set_Deterministic
+  MarshalOptions.TypeAssumptions.get_UseCachedSize
+  MarshalOptions.TypeAssumptions.set_UseCachedSize
 
 structure mergeOptions [FfiSyntax] where
   mk ::
@@ -257,12 +295,14 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   mergeOptions_instance : mergeOptions.TypeAssumptions
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
+  import_pragma_Assumption : _root_.Perennial.google_golang_org.protobuf.internal.pragma.Assumptions
 
 attribute [instance] Assumptions.UnmarshalOptions_instance
   Assumptions.MarshalOptions_instance
   Assumptions.mergeOptions_instance
   Assumptions.«init.0_unfold»
   Assumptions.import_protoreflect_Assumption
+  Assumptions.import_pragma_Assumption
 
 end google_golang_org.protobuf.proto
 
