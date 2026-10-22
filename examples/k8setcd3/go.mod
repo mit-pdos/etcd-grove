@@ -16,7 +16,7 @@ replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206
 
 require (
 	github.com/anishathalye/porcupine v1.3.1
-	github.com/goose-lang/primitive v0.2.1
+	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0

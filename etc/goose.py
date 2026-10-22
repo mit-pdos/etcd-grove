@@ -584,14 +584,18 @@ PROJECTS = [
         # translation, with `client/v3/kubernetes`). A Go module of this repository
         # (examples/k8setcd3) requiring k8s.io/apiserver at a master pseudo-version (2026-10-21)
         # and replacing etcd's modules by the etcd fork at the etcd pin; the API server's other
-        # dependencies names only (their .toml).
+        # dependencies names only (their .toml). Also the driver itself (the package `.`,
+        # notes/k8s-etcd3-plan.md phase 6), whose imports beyond the store are the etcd, lintest
+        # and porcupine projects' translations (names reached through the empty root).
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8setcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
-                    "iter=", "path="],
+                    "iter=", "path=", "github.com/mit-pdos/etcd-grove=",
+                    "github.com/anishathalye/porcupine="],
         packages=[
+            ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # types and names only (their .toml): what the two name
@@ -632,7 +636,8 @@ PROJECTS = [
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
-               os.path.join("encoding", "base64"), "iter", "path"],
+               os.path.join("encoding", "base64"), "iter", "path",
+               os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),
     Project(
