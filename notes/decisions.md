@@ -15400,3 +15400,30 @@ stream stays at one address in the lessor's specs, an instance of the new statem
 - `bridge.New` gains the stream forwarding, and so does linkv3p's `forwards`, with
   `isGrpcStream_forwards`.
 - Trust base: 530 axioms, 2 sorries, unchanged; the collections unchanged.
+
+## D33: rafthttp verified over a bytes-level HTTP boundary (2026-10-22 · proposed, awaiting the user's approval; `notes/rafthttp-plan.md`)
+
+**Context.** D21b (A) kept `rafthttp` names-only behind a trusted network contract (`Net.lean`:
+`netBundle`, `netRecv`, `netRaftOk`, the five `Transport` axioms, `RaftHandler`'s and
+`net/http.Serve`'s specs), noting (B) "verify rafthttp over a network model" as very large. The
+user asked (2026-10-22) to push the boundary down below the network contract.
+
+**Decision proposed.** Translate rafthttp's message path (not metrics, probing, nor the snapshot
+stream) and prove `Net.lean`'s contract from trust-boundary specs of `net/http` at the level of
+bytes: routing of a request to the handler served at its address, the request body and a
+response stream each a prefix of the bytes sent (the latter of those written and flushed, from any
+goroutine), connections failing at any time, cancellation, recovered handler panics. Ghost state
+moves through a **mailbox** invariant keyed by a message's wire content (a multiset), with a
+per-connection stream invariant relating a stream's bytes to its messages' encodings; the server
+and example proofs keep `Net.lean`'s contract as their interface.
+
+- **(A, recommended)** the bytes-level boundary above, with the mailbox.
+- **(B)** a resource-passing HTTP boundary (requests and flushed writes carry resources): simpler
+  proofs, a stronger and less standard trust statement.
+- **(C)** keep D21b (A) (today's contract assumed).
+
+**Stays assumed.** `netProcSlots` (as today), no-op specs of zap, prometheus and the probes,
+`rate.Limiter.Wait`, the version checks as arbitrary, `proto` and `encoding/binary`'s existing or
+new boundary specs, and the snapshot stream (`SendSnapshot`'s `netSnapBundle` contract, the D22
+owner's area). **Stages** and risks (the msgappv2 delta codec against `wireEq`, the stream writer)
+in the plan.

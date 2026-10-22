@@ -1,0 +1,157 @@
+# Plan: rafthttp verified, the trust boundary pushed down to HTTP
+
+Stage 1 (scoping) of 2026-10-22, at `lean` `a00708b853`; proposed as D33 (`notes/decisions.md`,
+awaiting the user's approval). Nothing proved yet. The inventory below is of the etcd pin
+(`upamanyus/etcd` `188113160d`; `server/etcdserver/api/rafthttp`, test files excluded; the fork has
+no commits in the package: `CutPeer`/`MendPeer` are upstream's test hooks).
+
+## Goal
+
+Today rafthttp is names-only and its behaviour is assumed (D21b (A)): five axioms
+(`Transport.Start`, `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`), `EtcdServer.RaftHandler`'s
+(`raftHandlerOf`) and `net/http.Serve`'s, over the network contract of
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Net.lean`: a message given to `Send`
+with its bundle (`netBundle`: persistent `P`, one-shot `O`) reaches the `Process` of the member
+holding the slot of its `To` as a fresh copy (`netRecv`, `wireEq`), possibly lost; the snapshot
+stream saves the database before `Process` (`netSnapBundle`, `snapDirInv`). Every multi-member
+result (`linkv3_safe`, `linkv3p_safe`, `linkv3p_watch_safe`, reconfiguration) rests on it.
+
+The goal: translate rafthttp's message path and prove that contract from trust-boundary specs of
+`net/http` (and the few other packages it calls), so that the five transport axioms and
+`RaftHandler`'s become theorems and what remains assumed is a generic statement about HTTP. **The
+server's and the examples' proofs keep `Net.lean`'s contract as their interface** (it becomes the
+transport's proved spec), so none of them changes.
+
+## What rafthttp does (the inventory)
+
+About 2,600 lines without metrics (`stream.go` 607, `http.go` 417, `transport.go` 332, `peer.go`
+246, `msgappv2_codec.go` 189, `snapshot_sender.go` 146, `util.go` 142, `pipeline.go` 131, `remote.go`
+72, `probing_status.go` 68, `peer_status.go` 63, `msg_codec.go` 44, `urlpick.go` 34; `metrics.go` 159).
+
+- **Send.** `Transport.Send` looks the destination up (`peers`/`remotes` under `t.mu`) and calls
+  `peer.send`, which drops the message if the peer is paused (`CutPeer`) and otherwise picks a
+  channel without blocking (full: dropped, `ReportUnreachable`): a stream writer's `msgc` (4096)
+  if its stream is working (MsgApp to the `msgappv2` stream, others to the `message` stream), else
+  the pipeline's `msgc` (64). MsgSnap goes by `SendSnapshot`, never `Send` (D22 S-i).
+- **Streams are pulled.** The *receiver* B dials the sender A: `streamReader.dial` sends
+  `GET /raft/stream/{msgapp|message}/<B>` (headers: from, to, versions, cluster id, peer URLs) by
+  `RoundTrip`; A's `streamHandler` checks it, writes `200`, flushes, hands the `ResponseWriter` to
+  A's `streamWriter` goroutine (`attachOutgoingConn`) and blocks until the writer closes it.
+  The writer encodes each message into the response and flushes (batches of up to 2048). B's
+  `decodeLoop` reads `resp.Body`, decodes, and puts each message on `recvc`/`propc` (4096, non-
+  blocking: full, dropped); two goroutines per peer call `Raft.Process`. A broken stream drops the
+  writer's queued messages (`closeUnlocked` replaces `msgc`) and the reader redials (rate-limited).
+- **Pipeline.** Four goroutines per peer POST one marshalled message each to `/raft`
+  (`createPostRequest`), read the response, map the status (`204` ok, `403` removed, `412`
+  incompatible); no retry. The receiver's `pipelineHandler` reads the body (`io.ReadAll`),
+  unmarshals and calls `Process` synchronously in net/http's handler goroutine.
+- **Codecs.** `messageEncoder`: an 8-byte big-endian length and `proto.Marshal`. `msgappv2`: a
+  one-byte tag (heartbeat, "AppEntries", full message) and **a stateful delta encoding**: an
+  AppEntries frame carries only the entries and the commit index, and the decoder rebuilds From,
+  To, Term, LogTerm and Index from its own state (`msgappv2_codec.go:192-199`), in lockstep with the
+  encoder's (a fresh pair per connection).
+- **Delivery is at most once and unordered across paths** (four pipeline workers, stream and
+  pipeline interleaved, `recvc`/`propc` drained separately): what the contract says (possibly
+  lost, no order), so nothing is lost by not proving FIFO.
+- **`CutPeer`/`MendPeer`** pause/resume the peer (drop outgoing, drop stream-inbound after
+  decoding; pipeline and snapshot inbound still processed) or stop/start a remote's pipeline
+  (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`, with the race noted 2026-10-22).
+
+External calls: `net/http` (`RoundTripper.RoundTrip`, `NewRequest`, `Request.WithContext`, headers,
+`Response.StatusCode`/`Body`, `ResponseWriter.Header/WriteHeader/Write`, `http.Flusher`,
+`http.Error`, `ServeMux`, `Transport.CloseIdleConnections`); `io`, `bytes`, `encoding/binary`
+(`Read`/`Write` through reflection), `context`, `time` (ticker, `AfterFunc`), `sync`, `errors`,
+`fmt`, `strings`, `path`, `net/url`; zap; `xiang90/probing`; `x/time/rate`; semver; prometheus;
+`client/pkg/v3/{transport,types}`; `pkg/v3/{pbutil,ioutil,httputil}`; raftpb and `proto`;
+`snap`; `v2stats`.
+
+## The proposed boundary (D33)
+
+**HTTP at the level of bytes**, true of `net/http` over TCP, with the closed-world facts the
+current specs already make (`netAddrFree`, `netListenerAt`: the program's peer addresses are its
+own):
+
+1. **Routing.** `http.Serve(l, mux)` on the listener bound at `a` runs, for each request sent to
+   `http://a/...`, the handler the mux registered for its path, on its own goroutine, with the
+   request's method, path, headers and a body reader; it recovers a handler's panic (the
+   connection dropped). A request reaches only the server listening at its URL's address.
+2. **A request's body.** The handler's body reader yields, in order, a prefix of the bytes the
+   client's request body produced, then EOF only if they were all sent; or an error.
+3. **A response stream.** `RoundTrip` returns an error or a response whose status and headers are
+   those the handler set before its first write or flush, and whose body reader yields, in order,
+   a prefix of the bytes the handler wrote **and flushed** (from any goroutine, before it closed
+   the connection), then EOF or an error. A connection may fail at any time (both sides then see
+   errors). This is the per-connection byte-stream fact the streams rely on; it names the
+   connection (a ghost name shared by the handler's `ResponseWriter` and the client's body).
+4. **Cancellation.** A request's context cancelled makes `RoundTrip` or a body read return an
+   error.
+
+**Ghost state does not cross the wire.** Bytes carry no Iris resources, so the bundles move through
+an invariant, the **mailbox**: `Send` deposits each message's bundle keyed by its wire content
+(the `MsgSt` up to `wireEq`; a multiset: the same content may be sent twice); the receiver, having
+decoded bytes into a message, proves it equal on the wire to a deposited one and withdraws that
+bundle (the persistent part copied, the one-shot part taken; a second delivery of the same bytes
+uses the payload's `dup` for a message not `once`, which is what `NetPayload` provides). Per
+connection, a stream's invariant relates the bytes written so far to the encodings of the messages
+deposited for it (with the encoder's states), so a decoded prefix names deposited messages.
+Proposed alternative (B): a resource-passing HTTP boundary (a request or a flushed write carries a
+resource to the handler or the reader). Simpler proofs, but a stronger and less standard trust
+statement (Go's HTTP carries no resources); recommendation (A), the bytes-level one with the
+mailbox.
+
+**Stays assumed** (beside HTTP): the concurrency bound `netProcSlots` (2^29 concurrent `Process`
+calls: handler goroutines are unbounded, as today, a physical fact); `time`, `rate.Limiter.Wait`
+(returns or the context's error), zap, prometheus and the probes as no-op specs; the semver
+checks with arbitrary results (they can only cause a rejection, a loss); `proto`'s marshal and
+unmarshal over raftpb (existing specs); `encoding/binary`'s `Read`/`Write` of `uint64`/`uint8`.
+**The snapshot stream** (`snapshot_sender.go`, `snapshotHandler`, `SaveDBFrom`) stays an axiom in
+this track (D22's owner's area): `SendSnapshot` keeps today's `netSnapBundle` contract as its own
+trust-boundary spec.
+
+## Stages
+
+0. **(this) Scoping**: the inventory, the boundary, D33 drafted. Stop for approval.
+1. **Translation.** rafthttp's message path with bodies (`transport.go`, `peer.go`, `stream.go`,
+   `pipeline.go`, `remote.go`, `http.go`'s pipeline and stream handlers, `msg_codec.go`,
+   `msgappv2_codec.go`, `urlpick.go`, `peer_status.go`, `util.go`'s request helpers); metrics,
+   probing and the snapshot sender names-only. Goose gaps found here (the inventory's list:
+   interface embedding in `outgoingConn`, a function-local type in the snapshot sender, Go 1.26's
+   `new(expr)` in the codec, `binary.Read` through reflection, an unchecked `w.(http.Flusher)`)
+   are worked around (trusted models, `Code/**.toml`) or recorded in
+   `notes/perennial-changes.md`.
+2. **The HTTP boundary.** The specs of 1-4 above (`Spec/net/http/`), replacing `net.http.Serve`'s
+   current spec (which mentions the raft network) by the generic one, and the mailbox and stream
+   invariants (`Proof/.../rafthttp/`). Reviewed with the user before proofs rely on them.
+3. **Codecs.** `messageEncoder`/`Decoder` and the msgappv2 pair: decoding the bytes of an
+   encoding gives a message equal on the wire (`wireEq`). **Risk**: the msgappv2 decoder rebuilds
+   only From, To, Term, LogTerm, Index, Entries and Commit of an AppEntries frame; `wireEq`
+   compares the whole message, so the encoder's tag choice must imply the other fields are the
+   decoder's defaults. Either raft's MsgApps satisfy that (a fact from raft's side, of the kind
+   `SentMsgOk` states), or `wireEq` is weakened to the fields `Process` reads (a change to
+   `Net.lean`'s interface, then checked against the server's proof), or it is a finding.
+4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
+   `Process`. The simplest complete delivery path; first proof that the mailbox design works.
+5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
+   `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
+   The hardest stage.
+6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
+   it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
+   then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.
+
+## Costs and risks
+
+- Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine
+  handing a `ResponseWriter` to another, a select with nil-able cases, a queue replaced on close).
+- The mailbox keyed by wire content needs `MsgSt` content equality to be decidable enough to
+  count deposits (a multiset of contents; GMap over an encodable key). Two equal messages sent
+  concurrently are interchangeable, which is what makes the multiset sound.
+- `wireEq` and the msgappv2 delta encoding (stage 3's risk above).
+- Coordination: the snapshot stream and `SaveDBFrom` are the D22 owner's; this track keeps
+  `SendSnapshot`'s contract unchanged, so the two can proceed independently. `Net.lean`'s
+  interface is shared: changes to it (stage 3's weakening, if needed) go through both.
+
+## Open
+
+- D33: approve the bytes-level HTTP boundary (A) with the mailbox, or prefer (B).
+- Whether `remote`s (members not yet in the peer map) are in scope: today's specs allow
+  `AddRemote`, so yes, with their pipeline only.

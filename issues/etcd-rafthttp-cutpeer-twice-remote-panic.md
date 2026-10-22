@@ -65,5 +65,11 @@ links:
 - **Possible fixes**: make `remote.Pause`/`Resume` idempotent (a `paused` flag under a mutex, as
   `peer` has, or a guarded `pipeline.stop`), or have `remote.Pause` pause rather than stop the
   pipeline (drop in `send` while paused, as `peer.send` does).
+- **A data race in the same hook** (by code reading, 2026-10-22, the rafthttp plan's inventory,
+  `notes/rafthttp-plan.md`): `remote.Resume` (`MendPeer`) is `pipeline.start()`, which assigns
+  `p.msgc` and `p.stopc` (`pipeline.go:64-66`), while `remote.send` reads `g.pipeline.msgc` with
+  no lock (`remote.go:54-55`); `Transport.Send` holds `t.mu.RLock` for it, but `MendPeer` releases
+  that lock before calling `Resume` (`transport.go:249-262`). A `Send` to a remote concurrent with
+  `MendPeer` of it is a data race (the race detector would report it); test hook only, as above.
 - **Found**: 2026-10-20, stating the axiom of `Transport.CutPeer` for the partition example
   (`notes/partition-plan.md`, stage S1).
