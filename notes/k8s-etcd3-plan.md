@@ -88,7 +88,9 @@ when the update function is made, so it is.
    and their workarounds. Pin `k8s.io/apiserver` (the mirror at kubernetes master `d9cafe4`) with
    etcd replaced by this repo's fork pin. Fixed configuration for the proofs and the driver:
    `EtcdRangeStream` off (lists use paginated `Range`s, not `GetStream`), no compactor
-   (`CompactionInterval` 0), `ttl = 0` (no leases), `AllowUnsafeMalformedObjectDeletion` off.
+   (`CompactionInterval` 0, and `ListFromCacheSnapshot` off: either starts a compactor
+   goroutine in `NewCompactor`, the second its watch loop, which reaches G1's
+   `fromWatchResponse`), `ttl = 0` (no leases), `AllowUnsafeMalformedObjectDeletion` off.
 1. **Object boundary.** The contract above for `runtime.Codec`, `storage.Versioner` and
    `value.Transformer`; the store's `reflect`/`conversion.EnforcePtr` uses (from the survey:
    trusted models or Perennial support). The store invariant: every value under the prefix
@@ -141,10 +143,13 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
   blocked on it before error identity: Goose support (the general fix, a Perennial change), a
   Goose fork of k8s.io/apiserver rewriting the loop (as the etcd fork), or a trusted model.
 - G1, field selection through a type alias (`clientv3.Event = mvccpb.Event`): blocks
-  `parseEvent` and the compactor, so the watcher, not this plan; a one-line Goose fix
-  (`types.Unalias` in `getStructInfo`), tried on a scratch translator.
+  `parseEvent` and the compactor's watch loop, so the watcher, not phases 1-6 (with the compactor
+  configured off, phase 0); a one-line Goose fix (`types.Unalias` in `getStructInfo`), tried on a
+  scratch translator; needed before the watcher.
 - G3, a type of a package the file does not import: worked around in configuration, except
-  `storage.InvalidError.Error` (names-only).
+  `storage.InvalidError.Error` (names-only), which nothing on the store's paths calls
+  (`ParseResourceVersion` builds an `InvalidError` for a malformed resource version, but only
+  its type is used); not blocking.
 - `reflect` is on every unary path (`conversion.EnforcePtr`, `reflect.New(v.Type())` in `Delete`,
   `GuaranteedUpdate`; `MakeSlice`/`Append` in lists) and Perennial's `reflect` has no specs:
   phase 1 needs them, either as an independent Perennial change or as local trust-boundary specs.
