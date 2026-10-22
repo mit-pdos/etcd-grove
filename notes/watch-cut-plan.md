@@ -272,6 +272,21 @@ revision both have. Not yet used: W3 imports it.
     `queue_end_to_end_client`) take `hWM : V.WM = etcdModelOfServer V.R.E`. Every concrete
     environment gives it by `rfl`.
   - Statements of the closed theorems unchanged; trust base unchanged.
+- **W3b-2, the design (2026-10-22): epochs at members.**
+  - `WEnv` gains its members, `mem : Nat → GoString × WSrv` and `nm`; `V.atIdx i` is `V` at member
+    `i` (its `addr` and `R`). A predicate that reads neither `R` nor `addr` is the same at every
+    member by definition. Those are all of `run`'s but a registration's facts (`regFacts`,
+    `cursorOk`, `cur2Ok`: a substream's `.reg` phase), the epochs' responses (`respcE`) and the
+    member facts.
+  - `watchConnFacts` holds each member's facts (`watchMemberFacts (V.atIdx i)`: its token pool,
+    small logs, no duplicate keys, store names, its logs' conversion) and the stream registered at
+    every member's address (`isGrpcStreams`, D30); the laws of `WM` read no member.
+  - `EpInfo` records each epoch's member, and `respcE` reads an epoch's responses at it.
+  - `run`'s loop invariant quantifies the epoch's environment, named `V` in the loop's body, so the
+    body's proof is unchanged: `V = V0.atIdx i` for the stream's member `i` (`newWatchClient`
+    returns a stream at some member, `NewStream`'s axiom, D30). At a reconnection every substream
+    is queued (`RunSt.reconnect`), whose state reads no member, so it carries to the next epoch's
+    environment.
 - **W3c:** the watch stub over a list (`watchClient.Watch` at `addrs`), `openWatchClient`, and
   `isNewClient_watcher` for `eps` a list.
 
