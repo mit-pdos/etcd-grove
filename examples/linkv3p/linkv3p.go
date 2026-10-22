@@ -1,4 +1,4 @@
-// Package linkv3p is linkv3 (examples/linkv3) under network partitions: three etcd members started
+// Package linkv3p is linkv3 (examples/linkv3, retired) under network partitions: three etcd members started
 // in-process as examples/putget3 starts them, each serving its raft handler on its own peer
 // listener and etcd's gRPC API on its own client listener, a client connected to each member,
 // a partitioner goroutine that cuts and mends the links between members, and between each client

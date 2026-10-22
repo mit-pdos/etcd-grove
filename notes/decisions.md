@@ -15280,7 +15280,7 @@ equal `members` across members needs distinct peer URLs and ids and identical bo
 
 **Problem.** linkv, linkv3, linkvtxn, watchkv and cachekv configured their clients with
 `MaxUnaryRetries: 1` (D21i (A)) so that a write is sent at most once, and each example proved its
-own wrappers of `New`'s client's calls (`linkv/Apply.lean`'s `client_Put_once`, `client_Get_plain`,
+own wrappers of `New`'s client's calls (`linkv/Apply.lean`'s, deleted with linkv in D34: `client_Put_once`, `client_Get_plain`,
 `client_Get_au`; `linkvtxn/Calls.lean`'s `client_*_st`; `watchkv/Writes.lean`'s `client_Put_rev`,
 which cachekv used too). Since D29 a write is also sent at most once by a client with the default
 retries if its members are refusal-free (`clientWriteOnce`'s second case), as linkv3p's are.
@@ -15473,3 +15473,41 @@ client `127.0.0.1:23871`, peer `23881`, watchkv to `23872`/`23882`, cachekv to `
 runs the packages in parallel. `etc/verified-code.{py,go}` count a project
 whose directory is inside a module (an example) as the module at that directory's import path, so
 their report is as before.
+
+## D34: linkv and linkv3 retired; their shared pieces moved to linkvtxn and linkv3p (2026-10-22 · decided by the user)
+
+**Problem.** `linkv_safe` (one member, random Puts and Gets against a values-only key-value model,
+D20 (c)) and `linkv3_safe` (linkv's workload over three members, a client to the first, D20) are
+subsumed in substance: `linkvtxn_safe` is the one-member instance over Puts, Gets, Deletes, Txns and
+compare-and-sets against etcd's KV model, on exactly `linkv_safe`'s axioms; `linkv3p_safe` the
+three-member one with a client at every member and any partition schedule (the empty schedule is
+linkv3's cluster). The two examples cost a Go package each, their translations, 46 Spec/Proof
+modules and two closed theorems' upkeep (every change to the start, the client or the server's
+specs re-proved there too).
+
+**Decision.** Delete both examples (Go, Goose projects and translations, Spec/Proof trees, their
+`etc/gen-init.py` roots and package tables, `etc/gen-link.py` modes `--linkv`/`--linkv3` and link
+lists, the collections `linkv.txt`/`linkv3.txt`). What the remaining examples took from linkv
+moves to its user, **with its names unchanged** (namespace `Perennial.EtcdGrove.linkv`, so no proof
+and no statement is re-spelled):
+- to `linkvtxn/`: `Proph.lean` (typed prophecies), `PendModel.lean` (the pending-write porcupine
+  model), `TxnModel.lean` (robustness's KV model), `TxnModelKV.lean` (its relation to etcd's
+  state), and `ModelKV.lean` reduced to the client's plain put/get (`putOp`, `getOp`,
+  `findKey_putKv_val`, `kvOpStep_put_eq`, `kvOpStep_put_sorted`, `kvOpStep_get`; linkv's
+  values-only `absKV` and `KVModel.lean` go with linkv); `linkv.kvRaftOf_boot` into
+  `linkvtxn/Boot.lean`;
+- to `linkv3p/Adequacy.lean`: the ghost-state bundle `linkvGF` (`linkvGF_allG`,
+  `linkvGF_gooseGpreS`, `linkvGF_naInvG`, `linkvHeapAt`), which `linkv3p_safe`'s and
+  `linkv3p_watch_safe`'s statements name.
+
+Nothing went to `examples/common`'s Lean side: no other example used these pieces. No Go package
+imported `examples/linkv` but `examples/linkv3`.
+
+**Statements.** Every remaining closed theorem's statement is textually unchanged (each
+`Results.lean`'s `theorem … :=` headers compared before and after), and its names resolve to the
+same declarations (only their modules moved).
+
+**Trust base.** Unchanged: `etc/tcb-baseline.txt` still 537 axioms, 0 `sorry`s (every axiom the
+two retired theorems reached is reached by a remaining result: `linkv_safe`'s are exactly
+`linkvtxn_safe`'s, `linkv3_safe`'s putget3's and linkv3p's); every remaining collection unchanged;
+the collections `linkv.txt` and `linkv3.txt` deleted.

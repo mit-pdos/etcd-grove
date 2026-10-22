@@ -13,7 +13,8 @@ gates and notes) is in STATUS's S3b entry.
 
 An end-to-end safety theorem for a three-member etcd cluster whose members get cut off from one
 another during the run, with clients at every member: `linkv3p_safe`, the shape of `linkv3_safe`
-(`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Results.lean`) with one more input, the
+(`Proof/github_com/mit_pdos/etcd_grove/examples/linkv3/Results.lean`; linkv3 retired on 2026-10-22,
+`notes/decisions.md` D34) with one more input, the
 partition schedule, universally quantified:
 
 > For every `clients`, `ops` and every schedule `sched`, every real execution of `n` steps of

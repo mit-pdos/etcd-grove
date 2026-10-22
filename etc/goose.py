@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, bridge,
+  --project    only this project (raft, etcd, kv, putget, putget3, linkvtxn, porcupine, bridge,
                lintest, raft-witness or kvwitness; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -420,26 +420,11 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
     ),
     Project(
-        name="linkv",
-        # The lintest driver instantiated with etcd (D20): one member started in-process, as
-        # in putget, and lintest.Run's clients doing Put and Get through one client, checked
-        # by porcupine against a key-value model. A package of the examples' Go module
-        # (examples/go.mod); its imports are the etcd, lintest and
-        # porcupine projects' translations (names reached through the empty root).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "linkv"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv")],
-    ),
-    Project(
         name="linkvtxn",
         # The lintest driver over etcd's KV API as its robustness tester drives it
-        # (notes/linkv-txn-plan.md, stage D): linkv's member and client, and lintest.Run's
-        # clients doing gets, lists, puts, deletes and transactions, checked by porcupine against
+        # (notes/linkv-txn-plan.md, stage D): one member started in-process and a client to it,
+        # as in putget, and lintest.Run's clients doing gets, lists, puts, deletes and
+        # transactions, checked by porcupine against
         # the robustness model's Go form (Model, the Lean TxnModel's). A package of the
         # examples' Go module (examples/go.mod; its tests' robustness model is etcd's tests/v3,
         # test-only); its imports are the etcd, lintest and porcupine projects'
@@ -454,25 +439,9 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkvtxn")],
     ),
     Project(
-        name="linkv3",
-        # linkv over a three-member cluster (D20, D21): three members started in-process as in
-        # putget3, a client to the first, and linkv's workload (`linkv.Check`, imported). A
-        # package of the examples' Go module (examples/go.mod); its imports
-        # are the etcd, linkv, lintest and porcupine projects' translations (names reached
-        # through the empty root).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "linkv3"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
-        packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "linkv3")],
-    ),
-    Project(
         name="linkv3p",
-        # linkv3 under network partitions (notes/partition-plan.md): three members started
-        # in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
+        # linkvtxn's workload under network partitions (notes/partition-plan.md): three members
+        # started in-process as in putget3, each serving its gRPC API, a client to each, a partitioner
         # goroutine cutting and mending links on `Main`'s schedule (etcd's `CutPeer`/`MendPeer`),
         # and linkvtxn's workload (`Gen`, `Apply`, `Model`, imported; its own `Apply` picks the
         # member; linkv's until 2026-10-20, notes/linkv3p-txn-plan.md). A package of the

@@ -1,13 +1,13 @@
 // Package linkvtxn is the lintest driver instantiated with etcd over the KV API etcd's robustness
 // tester drives (notes/linkv-txn-plan.md, stage D): one etcd member started in-process (as
-// examples/linkv does), a client connected to it, and lintest.Run with concurrent clients doing
+// examples/putget does), a client connected to it, and lintest.Run with concurrent clients doing
 // gets, lists, puts, deletes, multi-operation transactions and compare-and-sets of a few keys,
 // checked by porcupine against a model of etcd's KV (Model, the Go form of the Lean model
-// Proof/github_com/mit_pdos/etcd_grove/examples/linkv/TxnModel.lean: robustness's EtcdState, a
+// Proof/github_com/mit_pdos/etcd_grove/examples/linkvtxn/TxnModel.lean: robustness's EtcdState, a
 // key's value, mod revision and version, the store's revision). Main panics if porcupine finds
 // the history not linearizable; the theorem to prove is that it does not.
 //
-// Apply resolves a prophecy with whether the call returned no error (as examples/linkv), and,
+// Apply resolves a prophecy with whether the call returned no error (as the retired examples/linkv did), and,
 // for a read (a get, a list, a transaction with no write), another with the revision the reply
 // was read at. A prophecy has no effect when the program runs.
 package linkvtxn
