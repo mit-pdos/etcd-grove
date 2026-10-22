@@ -90,9 +90,13 @@ project's configuration and waits on the client proof's owner).
   `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean` (`True`, but the metrics package's
   `ErrTransactionConflict`).
 
-Next: `Delete` (`conditionalDelete`, `deleteOnce`: D30j's mod-revision history and the abort of the
-one-shot update on a conflict), `GuaranteedUpdate` (`updateOnce`, `tryUpdate`'s repeatable spec,
-D30h's persistent part for the no-op path), then `Get`'s minimum resource version.
+- The caller's history of key-values (`kvSeen`, D30j's local option) is in the write updates,
+  ready for `Delete`'s and `GuaranteedUpdate`'s conflict checks.
+
+Next: `Delete` and `GuaranteedUpdate`, **blocked**: they keep `conversion.EnforcePtr(out)`'s
+`reflect.Value` in variables, whose generated typed points-to (Perennial's axiomatized
+`reflect.Value`) is `sorry` (`notes/perennial-changes.md`; the options in the plan's "What blocks
+where"). Then `Get`'s minimum resource version.
 
 ## Merge of raft-retarget into lean (D22) (2026-10-21)
 

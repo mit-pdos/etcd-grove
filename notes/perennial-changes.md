@@ -113,6 +113,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   needed, local until proposed.
 - **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
   the specs above, each with the subset proofs use.
+- **Status.** Not started. (2026-10-22) Local trust-boundary specs here for `strings.HasSuffix`,
+  `strings.Contains` (`Spec/strings/`).
+
+### `reflect.Value` held in a variable: its typed points-to is `sorry`
+
+- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
+  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
+  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
+  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
+- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
+  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
+  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
+  where"). `Get` and `Create` do not use it.
+- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
+  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
+  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
+  values. Designed and reviewed on its own (Perennial's trusted base).
+- **Workaround here.** None yet: waiting on the user's choice between this change, a Goose fork
+  of `k8s.io/apiserver` that passes the store's `newFunc` instead of a `reflect.Value`, or
+  trusted models of the functions that take one.
 - **Status.** Not started.
 
 ## Landed

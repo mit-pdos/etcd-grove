@@ -9,7 +9,8 @@ has the details): phase 1's contract, phase 2's model, phase 3's client (`Get`, 
 `OptimisticDelete`; one `sorry`, `kvIs_ne_null`: request 3 below), and phase 4's `store.Get` and
 `store.Create`, linked.
 
-Next steps: phase 4's `Delete` and `GuaranteedUpdate`, then `Get`'s minimum resource version.
+Next steps: phase 4's `Delete` and `GuaranteedUpdate`, blocked on how `reflect.Value` is handled
+("What blocks where"); then `Get`'s minimum resource version.
 Merging `k8s-etcd3` into `lean` waits on an OK from the etcd client proof's owner (the survey
 changes the etcd project's configuration: it translates `client/v3/kubernetes` and owns only
 `k8s_io/utils/third_party`).
@@ -172,6 +173,14 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
 - `reflect` is on every unary path (`conversion.EnforcePtr`, `reflect.New(v.Type())` in `Delete`,
   `GuaranteedUpdate`; `MakeSlice`/`Append` in lists) and Perennial's `reflect` has no specs:
   phase 1 needs them, either as an independent Perennial change or as local trust-boundary specs.
+- (2026-10-22) **`reflect.Value` in a variable rests on a `sorry`**: Perennial's generated typed
+  points-to of the axiomatized `reflect.Value` is `sorry`, and `Delete` and `GuaranteedUpdate`
+  pass `v := conversion.EnforcePtr(out)` through parameters (`conditionalDelete`, `deleteOnce`,
+  `updateOnce`, `getCurrentState`, `stateFromEtcdResponse`). This blocks both, waiting on a
+  choice (`notes/perennial-changes.md`): a Perennial change (an opaque `reflect.Value` with real
+  instances and specs of `New`, `Value.Type`/`Addr`/`Interface`), a Goose fork of
+  `k8s.io/apiserver` passing the store's `newFunc` instead (as the etcd fork), or trusted models of
+  the functions that take a `reflect.Value`.
 - No specs yet for `strconv`'s parse/format functions, `encoding/json`, `encoding/base64` and
   `path` (continue tokens, `prepareKey`), or for the names-only apimachinery functions the unary
   path calls (`meta.Accessor`, `runtime.Encode`, the error constructors; klog, metrics, tracing
