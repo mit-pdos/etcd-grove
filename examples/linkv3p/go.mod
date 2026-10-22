@@ -3,11 +3,11 @@ module github.com/mit-pdos/etcd-grove/examples/linkv3p
 go 1.27
 
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261018220001-8a24be2a324f
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261018220001-8a24be2a324f
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261018220001-8a24be2a324f
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261018220001-8a24be2a324f
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261018220001-8a24be2a324f
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261020173053-b3c29bc17f26
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261020173053-b3c29bc17f26
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261020173053-b3c29bc17f26
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261020173053-b3c29bc17f26
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261020173053-b3c29bc17f26
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
 )
 
@@ -26,6 +26,7 @@ require (
 	github.com/mit-pdos/etcd-grove/examples/linkvtxn v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/examples/lintest v0.0.0-00010101000000-000000000000
 	github.com/mit-pdos/etcd-grove/third_party/bridge v0.0.0-00010101000000-000000000000
+	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0
@@ -55,7 +56,6 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/xiang90/probing v0.0.0-20221125231312-a49e3df8f510 // indirect
 	go.etcd.io/bbolt v1.5.0 // indirect
-	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/raft/v3 v3.7.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -77,4 +77,4 @@ require (
 )
 
 // linkvtxn's differential test's (robustness's model): in its module graph, so replaced here too.
-replace go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261018220001-8a24be2a324f
+replace go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261020173053-b3c29bc17f26

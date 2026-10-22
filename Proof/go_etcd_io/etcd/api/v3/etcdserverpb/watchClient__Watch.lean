@@ -32,7 +32,7 @@ theorem watchClient.Watch.wp_proof
     (wp_CloseSend : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG))
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG)) :
     watchClient.Watch.spec (GF := GF) (hG := hG) := by
-  intro wc conn addr ics Up Spec ctx cd opts vs
+  intro wc conn addrs ics Up Spec ctx cd opts vs
   wp_start as ⟨#Hstub, #Hconn, #Hstr, #Hdesc, #Hctx, #Hopts, #Hok⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm ⟨#Hsm, %Hsms⟩
@@ -67,7 +67,7 @@ theorem watchClient.Watch.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   ihave #Hok3 := streamCallOptsOk_of ([sm] ++ vs) $$ Hok2
-  iapply (wp_NewStream conn addr ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequest
+  iapply (wp_NewStream conn addrs ics go!"/etcdserverpb.Watch/Watch" v3rpc.pbWatchRequest
     v3rpc.pbWatchResponse Up Spec ctx cd _ copts ([sm] ++ vs))
   · iframe #
     iexists _
@@ -77,7 +77,7 @@ theorem watchClient.Watch.wp_proof
   inext
   iintro %cs %err Hres
   wp_auto
-  icases Hres with (⟨%Herr, %γ, %Dn, %cd', #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', %Ha, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto
@@ -85,7 +85,7 @@ theorem watchClient.Watch.wp_proof
     ipersist ClientStream
     ihave #Hw := cliBidiStreamIs_of_raw (GF := GF) (Req := v3rpc.pbWatchRequest)
       (Rep := v3rpc.pbWatchResponse) etcdserverpb.WatchRequest etcdserverpb.WatchResponse
-      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ Up Dn cd' $$ [ClientStream]
+      wp_Send wp_Recv wp_CloseSend wp_Context «$r0_ptr» cs γ (Up a) Dn cd' $$ [ClientStream]
     · iframe #
       iintro !> %l Hl
       iexists _
@@ -95,8 +95,10 @@ theorem watchClient.Watch.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists γ, Dn, cd'
+    iexists a, γ, Dn, cd'
     iframe
+    isplitr
+    · ipureintro; exact Ha
     iexact Hw
   · ihave #Herr' := Herr
     iunfold cliStreamErr at Herr'

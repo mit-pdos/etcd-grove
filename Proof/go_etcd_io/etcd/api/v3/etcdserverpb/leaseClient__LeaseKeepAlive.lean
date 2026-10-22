@@ -81,8 +81,10 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   ihave #Hgrpc : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc $$ []
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
-  iapply (wp_NewStream conn addr [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive" pbLeaseKeepAliveRequest
-    pbLeaseKeepAliveResponse (fun _ _ => iprop(True)) Spec ctx cd _ copts ([sm] ++ vs))
+  -- (D32) the one-address case
+  iapply (wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
+    pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ _ _ => iprop(True)) (fun _ => Spec)
+    ctx cd _ copts ([sm] ++ vs))
   · iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]
@@ -91,7 +93,7 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   inext
   iintro %cs %err Hres
   wp_auto
-  icases Hres with (⟨%Herr, %γ, %Dn, %cd', #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
+  icases Hres with (⟨%Herr, %a, %γ, %Dn, %cd', -, #Hcs, HSt, HRt, HSpec⟩ | ⟨%Hcs, #Herr⟩)
   · subst Herr
     iapply wp_fupd
     wp_auto

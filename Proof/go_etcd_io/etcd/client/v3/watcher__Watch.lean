@@ -102,7 +102,7 @@ theorem watcher.Watch.wp_proof
   wp_apply wp_key as %ckey -
   ihave Hinv : iprop(∃ (b : Bool) (cc : Loc), "ok" ∷ ok_ptr ↦ b ∗
       "closeCh" ∷ closeCh_ptr ↦ cc ∗
-      "Hcc" ∷ closeChRes (EM := V.EM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) cc) $$ [ok closeCh]
+      "Hcc" ∷ closeChRes (EM := V.WM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) cc) $$ [ok closeCh]
   · iexists false, _
     iframe
     unfold closeChRes
@@ -120,7 +120,7 @@ theorem watcher.Watch.wp_proof
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst]
     · inext; unfold watcherMu; iexists map.nil; iframe Hst; ileft; ipureintro; rfl
     wp_apply chan.wp_make1 (V := go_etcd_io.etcd.client.v3.WatchResponse) as %ch %γch ⟨#Hch, %-, Hcho⟩
-    imod watch_spsc_alloc (EM := V.EM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) ch γch $$ Hch [Hcho]
+    imod watch_spsc_alloc (EM := V.WM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) ch γch $$ Hch [Hcho]
       with ⟨%γw, #Hs, Hp, -, Hc, #Hi0, #Hi02, %Hc2⟩
     · ileft; iexact Hcho
     wp_apply wp_spsc_close γw.spsc ch _ (fun _ => iprop(True)) [] $$ [$Hs $Hp]
@@ -135,7 +135,7 @@ theorem watcher.Watch.wp_proof
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hst HM]
     · inext; unfold watcherMu; iexists map.nil; iframe Hst; iright; iexists M; iframe HM; iframe #
     wp_apply chan.wp_make1 (V := go_etcd_io.etcd.client.v3.WatchResponse) as %ch %γch ⟨#Hch, %-, Hcho⟩
-    imod watch_spsc_alloc (EM := V.EM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) ch γch $$ Hch [Hcho]
+    imod watch_spsc_alloc (EM := V.WM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) ch γch $$ Hch [Hcho]
       with ⟨%γw, #Hs, Hp, -, Hc, #Hi0, #Hi02, %Hc2⟩
     · ileft; iexact Hcho
     wp_apply wp_spsc_close γw.spsc ch _ (fun _ => iprop(True)) [] $$ [$Hs $Hp]
@@ -196,7 +196,7 @@ theorem watcher.Watch.wp_proof
     iframe HM
     iframe #
   wp_join iprop(∃ (cc' : Loc) (γw : EtcdWatchNames), closeCh_ptr ↦ cc' ∗
-      isSpsc γw.spsc cc' (rangeWatchElem (EM := V.EM) γw V.pfx (opWatchModel key gs) rev)
+      isSpsc γw.spsc cc' (rangeWatchElem (EM := V.WM) γw V.pfx (opWatchModel key gs) rev)
         (fun _ => iprop(True)) ∗
       spscProducer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListAuthOwn γw.cur 1 [rev - W64 1] ∗
@@ -207,7 +207,7 @@ theorem watcher.Watch.wp_proof
   · wp_apply +noauto chan.wp_make2 (V := go_etcd_io.etcd.client.v3.WatchResponse) (W64 1)
       as %ch %γch ⟨#Hch, %-, Hcho⟩
     · ipureintro; word
-    imod watch_spsc_alloc (EM := V.EM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) ch γch $$ Hch [Hcho]
+    imod watch_spsc_alloc (EM := V.WM) V.pfx (opWatchModel key gs) rev (cplCond sr (opWatchModel key gs) rev) ch γch $$ Hch [Hcho]
       with ⟨%γw, #Hs, Hp, Ha, Hc, #Hi0, #Hi02, %Hc2⟩
     · iright; iexact Hcho
     wp_auto
@@ -316,7 +316,7 @@ theorem watcher.Watch.wp_proof
         ipersist HRevision
         imod monoListAuthOwn_update_app (GF := GF) [rev - W64 1] $$ Ha with ⟨Ha, #Hlb⟩
         ihave #Hi1 := monoListIdxOwn_get (GF := GF) 1 (rev - W64 1) rfl $$ Hlb
-        ihave Hel := rangeWatchElem_canceled (EM := V.EM) γw V.pfx (opWatchModel key gs) rev 0
+        ihave Hel := rangeWatchElem_canceled (EM := V.WM) γw V.pfx (opWatchModel key gs) rev 0
           (rev - W64 1) ⟨«$v0_ptr», slice.nil, 0, true, false, GoInterface.ok i, []⟩ ⟨rfl, rfl, rfl, rfl, Hhn⟩ (Or.inr Hc2.1) $$ [HRevision]
         · iframe #
           rw [show (W64 0 : w64) = (zero_val etcdserverpb.ResponseHeader).Revision' from rfl]
@@ -380,7 +380,7 @@ theorem watcher.Watch.wp_proof
       ipersist HRevision
       imod monoListAuthOwn_update_app (GF := GF) [rev - W64 1] $$ Ha with ⟨Ha, #Hlb⟩
       ihave #Hi1 := monoListIdxOwn_get (GF := GF) 1 (rev - W64 1) rfl $$ Hlb
-      ihave Hel := rangeWatchElem_canceled (EM := V.EM) γw V.pfx (opWatchModel key gs) rev 0
+      ihave Hel := rangeWatchElem_canceled (EM := V.WM) γw V.pfx (opWatchModel key gs) rev 0
         (rev - W64 1) ⟨«$v0_ptr», slice.nil, 0, true, false, GoInterface.ok i, []⟩ ⟨rfl, rfl, rfl, rfl, Hhn⟩ (Or.inr Hc2.1) $$ [HRevision]
       · iframe #
         rw [show (W64 0 : w64) = (zero_val etcdserverpb.ResponseHeader).Revision' from rfl]

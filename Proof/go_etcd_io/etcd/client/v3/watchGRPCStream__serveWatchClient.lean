@@ -29,7 +29,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem watchGRPCStream.serveWatchClient.wp_proof :
     watchGRPCStream.serveWatchClient.spec (GF := GF) (hG := hG) := by
-  intro V G callSl wc γs Dn cd' e γc sent0
+  intro V G callSl wc γs Dn cd' e γc i sent0
   wp_start as ⟨#Hwgs, #Hcs, #Hspec, Htok, #Hep, Hprod, Hcnt⟩
   ihave #Hwgs' := Hwgs
   iunfold isWGS at Hwgs'
@@ -38,7 +38,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
   iunfold watchSrvFacts at Hfacts
   icases Hfacts with ⟨-, #Hfacts⟩
   iunfold watchConnFacts at Hfacts
-  icases Hfacts with ⟨-, -, -, -, -, -, #Heof, -⟩
+  icases Hfacts with ⟨-, -, -, -, #Heof, -⟩
   iunfold v3rpc.cliWatchStreamIs at Hcs
   iunfold cliBidiStreamIs at Hcs
   icases Hcs with ⟨%ci, %Hci, -, #HRecv, -⟩
@@ -82,7 +82,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
       iapply sspsc_send_au G.γr G.respc _ _ sent resp _ $$ Hspsc [$Hlc1 $Hlc2 $Hlc3] [Hprod Hm HDn]
       · iframe
         iunfold respcE
-        iexists e, sent0.length, γs, γc
+        iexists e, sent0.length, γs, γc, i
         simp only [Int.toNat_natCast]
         iframe Hep Hcl
         isplitr
@@ -145,7 +145,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
         · iright; iexact Heofe
         iframe Hst
         iunfold prodBack
-        iexists e, sent0.length, γs, γc, sent
+        iexists e, sent0.length, γs, γc, i, sent
         iframe Hep Hprod Hcnt
         ipureintro; omega
       inext
@@ -194,7 +194,7 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
         · ileft; iexact Hse
         iframe Hst
         iunfold prodBack
-        iexists e, sent0.length, γs, γc, sent
+        iexists e, sent0.length, γs, γc, i, sent
         iframe Hep Hprod Hcnt
         ipureintro; omega
       inext

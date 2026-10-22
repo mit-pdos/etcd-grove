@@ -40,11 +40,12 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
       callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))
   {{ (ws err : GoInterface), RET (PairV #ws #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γs : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
-          (cd' : context.ContextDesc (IProp GF)),
-        v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp V.R.γ) Dn cd' ∗
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs : StreamNames)
+          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF)),
+        -- (W3b) the stream at some member `i` of the connection's (D32)
+        ⌜i < V.nm⌝ ∗ v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2.γ) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
-        cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗ v3rpc.watchSpec V.R γs Dn) ∨
+        cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗ v3rpc.watchSpec (V.mem i).2 γs Dn) ∨
       (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err) }}
 
 end spec

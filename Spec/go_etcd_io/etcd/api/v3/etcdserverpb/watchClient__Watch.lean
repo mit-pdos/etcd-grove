@@ -26,29 +26,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.Watch(ctx, opts...)` on a stub on a connection to the server at `addr` (`watchStubAt`,
-`grpcConn` with no default call options), for the stream specification `Spec` and the client's
-content `Up` the server registered for the method (`isGrpcStream`): `NewStream` of
-`"/etcdserverpb.Watch/Watch"` with `grpc.StaticMethod()` before the options and the service's
-first `StreamDesc` (`watchDescOk`), wrapped in a `GenericClientStream[WatchRequest,
-WatchResponse]`: the client end of a fresh watch stream (`cliWatchStreamIs`, both tokens at `[]`,
-the stream's `Spec γ Dn`), or a `nil` stream and a client error. -/
+/-- `c.Watch(ctx, opts...)` on a stub on a connection to the servers at `addrs` (`watchStubAt`,
+`grpcConn` with no default call options), for the stream specification and the client's content
+each server registered for the method (`isGrpcStreams`: per address, D32, 2026-10-22; until then
+one address): `NewStream` of `"/etcdserverpb.Watch/Watch"` with `grpc.StaticMethod()` before the
+options and the service's first `StreamDesc` (`watchDescOk`), wrapped in a
+`GenericClientStream[WatchRequest, WatchResponse]`: the client end of a fresh watch stream at some
+address `a` of `addrs` (`cliWatchStreamIs`, both tokens at `[]`, `a`'s content and stream
+specification `Spec a γ Dn`), or a `nil` stream and a client error. -/
 abbrev watchClient.Watch.spec : Prop :=
-  ∀ (wc conn : Loc) (addr : GoString) (ics : List GoFunc) (Up : Nat → v3rpc.WatchReqM → IProp GF)
-    (Spec : StreamSpec (GF := GF) v3rpc.pbWatchResponse) (ctx : GoInterfaceOk)
+  ∀ (wc conn : Loc) (addrs : List GoString) (ics : List GoFunc)
+    (Up : GoString → Nat → v3rpc.WatchReqM → IProp GF)
+    (Spec : GoString → StreamSpec (GF := GF) v3rpc.pbWatchResponse) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      v3rpc.watchStubAt wc conn ∗ grpcConn conn [addr] ics [] ∗
-      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addr
+      v3rpc.watchStubAt wc conn ∗ grpcConn conn addrs ics [] ∗
+      isGrpcStreams (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addrs
         go!"/etcdserverpb.Watch/Watch" Up Spec ∗
       v3rpc.watchDescOk ∗ ctxOk ctx cd ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (Val (wc @!! go.GoType.PointerType etcdserverpb.watchClient.ty @!! go!"Watch"))
       (Val #(GoInterface.ok ctx))) (Val #opts))
   {{ (cs err : GoInterface), RET (PairV #cs #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (γ : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
-          (cd' : context.ContextDesc (IProp GF)),
-        v3rpc.cliWatchStreamIs cs γ Up Dn cd' ∗ cliSendTok (Req := v3rpc.pbWatchRequest) γ [] ∗
-        cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗ Spec γ Dn) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames)
+          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF)),
+        ⌜a ∈ addrs⌝ ∗ v3rpc.cliWatchStreamIs cs γ (Up a) Dn cd' ∗
+        cliSendTok (Req := v3rpc.pbWatchRequest) γ [] ∗
+        cliRecvTok (Rep := v3rpc.pbWatchResponse) γ [] ∗ Spec a γ Dn) ∨
       (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err) }}
 
 end spec

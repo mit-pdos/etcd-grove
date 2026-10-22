@@ -687,6 +687,7 @@ contract is `client.isEtcdRangeWatcher_of_watcher` at the linked `watcher.Watch`
 theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api : Loc)
     (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64)
     (kp : GoString) (hkp : kp ≠ []) (hE : V.R.E = E) (hV : V.pfx = kp)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
@@ -727,8 +728,14 @@ theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api :
   subst hE hV
   iintro %Φ ⟨#Pr, #Pc, #Ppb, #Pctx, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hp, #Hr, #Hd, #Ht, #Hsn, #Hcei,
     #Hnp⟩ HΦ
-  ihave #Hrw := client.isEtcdRangeWatcher_of_watcher client.v3.watcher.wp_Watch V w $$ []
+  ihave #Hrw0 := client.isEtcdRangeWatcher_of_watcher client.v3.watcher.wp_Watch V w $$ []
   · iframe #
+  -- (W3) the watcher's contract is at the server's model
+  ihave #Hrw : isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer V.R.E) (client.watcherIfaceOf w)
+      V.pfx $$ []
+  · iapply (show isEtcdRangeWatcher (EM := V.WM) (client.watcherIfaceOf w) V.pfx ⊢
+        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer V.R.E) (client.watcherIfaceOf w) V.pfx
+      from by rw [hWM]) $$ Hrw0
   iapply (queue_end_to_end cl (client.watcherIfaceOf w) api addr s V.R.E γw γr cid mid V.pfx hkp
     hAs) $$ [] HΦ
   iframe #

@@ -47,7 +47,7 @@ theorem watcher.RequestProgress.wp_proof
   iunfold watchSrvFacts at Hf'
   icases Hf' with ⟨-, Hcf⟩
   iunfold watchConnFacts at Hcf
-  icases Hcf with ⟨-, -, -, -, -, -, -, #HeN, #HcA, -, -⟩
+  icases Hcf with ⟨-, -, -, -, -, #HeN, #HcA, -, -⟩
   iunfold ctxErrClientAllW at HcA
   ihave #Hce := HcA $$ %ctx %cs Hctx
   iunfold ctxErrClient at Hce

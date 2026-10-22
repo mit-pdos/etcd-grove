@@ -281,7 +281,7 @@ theorem Main.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   wp_apply (wp_New _ [go!"127.0.0.1:23796"]
-      ⟨R, go!"127.0.0.1:23796", [], null, null, [], null⟩) $$ [] as %cl %cerr Hcl
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null)) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only

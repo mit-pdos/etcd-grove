@@ -82,7 +82,7 @@ abbrev startMember.spec : Prop :=
       sl₁ ↦*□ initURLs3 name₁ ∗ sl₂ ↦*□ initURLs3 name₂ ∗ sl₃ ↦*□ initURLs3 name₃ ∗
       bootPremise N ps bootLog dir name peerAddr client id ∗ commonPremises ∗
       context.isClosedchanInit ∗
-      memberBoot γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id }}
+      memberBoot putgetWorkload γ bud bootLog ρ E₀ Φs id ∗ netSlot γn id }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.putget3.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))

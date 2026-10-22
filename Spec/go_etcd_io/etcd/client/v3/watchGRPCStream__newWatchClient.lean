@@ -64,13 +64,17 @@ abbrev watchGRPCStream.newWatchClient.spec : Prop :=
       ownBroadcastChan rc' γrc' (monoNatLbOwn G.γend (n + 2)) .Pending ∗
       monoNatAuthOwn G.γend 1 (n + 1) ∗
       ⌜gOk (S.reconnect l') U⌝ ∗ ghostMapAuth G.γws 1 U ∗
-      (∀ γs' : StreamNames, [∗map] ws ↦ _u ∈ U, wsElem V G (n + 1) γs' (S.reconnect l') ws) ∗
+      -- (W3b) on any next stream, at any member (a queued substream reads no member)
+      (∀ (γs' : StreamNames) (i' : Nat),
+        [∗map] ws ↦ _u ∈ U, wsElem (V.atIdx i') G (n + 1) γs' (S.reconnect l') ws) ∗
       wgAdder G.wgs ∗ threadTok ∗
-      ((⌜err = GoInterface.nil⌝ ∗ ∃ (γs' : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
-          (cd' : context.ContextDesc (IProp GF)) (γc : GName),
-        v3rpc.cliWatchStreamIs wc γs' (v3rpc.watchUp V.R.γ) Dn cd' ∗
-        cliSendTok (Req := v3rpc.pbWatchRequest) γs' [] ∗ v3rpc.watchSpec V.R γs' Dn ∗
-        monoListAuthOwn G.γep 1 (eps ++ [((γs', sent.length, γc) : EpInfo)])) ∨
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (γs' : StreamNames)
+          (Dn : Nat → v3rpc.WatchRespM → IProp GF) (cd' : context.ContextDesc (IProp GF))
+          (γc : GName),
+        -- (W3b) the stream at the member `i`, which its epoch records
+        ⌜i < V.nm⌝ ∗ v3rpc.cliWatchStreamIs wc γs' (v3rpc.watchUp (V.mem i).2.γ) Dn cd' ∗
+        cliSendTok (Req := v3rpc.pbWatchRequest) γs' [] ∗ v3rpc.watchSpec (V.mem i).2 γs' Dn ∗
+        monoListAuthOwn G.γep 1 (eps ++ [((γs', sent.length, γc, i) : EpInfo)])) ∨
        (⌜wc = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err ∗
         sspscProducer G.γr sent ∗ monoListAuthOwn G.γep 1 eps)) }}
 

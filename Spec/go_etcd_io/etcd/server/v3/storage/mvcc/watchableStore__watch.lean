@@ -34,13 +34,12 @@ invariant keeps (`chanRegFact`); the watcher is on `γc` (`P.OC`). -/
 abbrev mvcc.watchableStore.watch.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (key endk fcs : GoSlice) (k e : List w8) (fs : List GoFunc)
     (startRev id : w64) (ch : GoChan) (γc : mvcc.WatchChanNames) (L : List Loc)
-    (Back : Loc → IProp GF) (sr : Bool),
+    (Back : Loc → IProp GF),
   let P := mvcc.storeWatchParams s st γ
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗
       key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗
       P.CR ch γc L ∗ P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev ∧ id ≠ W64 (-1)⌝ ∗
-      P.SR sr startRev ∗
       (∀ w : Loc, ⌜w ≠ null⌝ -∗ |==> (mvcc.chanIdAssigned γc id w ∗ Back w)) }}
     (App (App (App (App (App (App
       (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"watch")) (Val #key))
@@ -48,7 +47,7 @@ abbrev mvcc.watchableStore.watch.spec : Prop :=
   {{ (w : Loc) (c : GoFunc), RET (PairV #w #c);
       ⌜w ≠ null⌝ ∗ P.IW w ∗ P.OC w γc ∗ mvcc.cancelSpec P c w ∗ P.CR ch γc (w :: L) ∗ P.R ∗
       (∃ lo : Nat, P.IWF w (mvcc.watchRangeOf k e endk startRev id) fcs lo) ∗
-      ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ ∗ P.WS w sr ∗ Back w }}
+      ⌜(w :: L).length + 3 ≤ 2 ^ 63⌝ ∗ P.WS w ∗ Back w }}
 
 end spec
 

@@ -29,6 +29,8 @@ public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.Failover
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.HistoryModel
+public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 
 @[expose] public section
 
@@ -175,6 +177,12 @@ def memberServed (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E₀ 
     isGrpcRpc client go!"/etcdserverpb.KV/DeleteRange"
       (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
     isGrpcRpc client go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
+    -- (W2 of `notes/watch-cut-plan.md`, 2026-10-21) the member's watch server, its `Watch` stream
+    -- served at the client address
+    (∃ (pw : Loc) (R : v3rpc.WSrv GF), v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+      isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) client
+        go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
+        (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn)) ∗
     -- (D29, 2026-10-21) the member never answers with a refusal (`etcd_noRefusal`)
     ⌜noRefusalAt client⌝)
 
@@ -187,11 +195,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The address `a` serves what `b` serves, method by method** (persistent; what a bridge's start
-gives, from the bridge's trust-boundary spec of `New`), and (D29) `a` is refusal-free if `b` is. -/
+gives, from the bridge's trust-boundary spec of `New`), and (D29) `a` is refusal-free if `b` is,
+and (D32) `a` serves `b`'s stream methods. -/
 def forwards (a b : GoString) : IProp GF :=
   iprop((□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
     grpcServes b name mh srv ics S -∗ grpcServes a name mh srv ics S) ∗
-    ⌜noRefusalAt b → noRefusalAt a⌝)
+    ⌜noRefusalAt b → noRefusalAt a⌝ ∗
+    (□ ∀ (name : GoString) (mh : val) (srv : GoInterface) (ics : List GoFunc) (S : IProp GF),
+      grpcServesStream b name mh srv ics S -∗ grpcServesStream a name mh srv ics S))
 
 instance forwards_persistent (a b : GoString) : Persistent (forwards (GF := GF) a b) := by
   unfold forwards; infer_instance
@@ -201,7 +212,7 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
     forwards (GF := GF) a b ∗ isGrpcRpc b name Spec ⊢ isGrpcRpc a name Spec := by
   iintro ⟨#Hf, #Hr⟩
   iunfold forwards at Hf
-  icases Hf with ⟨#Hf, -⟩
+  icases Hf with ⟨#Hf, -, -⟩
   unfold isGrpcRpc
   icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
   iexists mh, srv, ics, S
@@ -209,7 +220,96 @@ theorem isGrpcRpc_forwards {Req Rep : ProtoMsg GF} (a b name : GoString) (Spec :
   · iapply Hf $$ %name %mh %srv %ics %S Hs
   · iexact Hm
 
+/-- (D32) A stream method registered at `b` is registered at an address that forwards to `b`. -/
+theorem isGrpcStream_forwards {Req Rep : StreamMsg GF} (a b name : GoString)
+    (Up : Nat → Req.M → IProp GF) (Spec : StreamSpec Rep) :
+    forwards (GF := GF) a b ∗ isGrpcStream b name Up Spec ⊢ isGrpcStream a name Up Spec := by
+  iintro ⟨#Hf, #Hr⟩
+  iunfold forwards at Hf
+  icases Hf with ⟨-, -, #Hf⟩
+  unfold isGrpcStream
+  icases Hr with ⟨%mh, %srv, %ics, %S, #Hs, #Hm⟩
+  iexists mh, srv, ics, S
+  isplitl
+  · iapply Hf $$ %name %mh %srv %ics %S Hs
+  · iexact Hm
+
 end forwards
+
+section cluster
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- (W4 of `notes/watch-cut-plan.md`) The members, each at its bridge's address with its watch
+server. -/
+def memAt3 (R₁ R₂ R₃ : v3rpc.WSrv GF) : Nat → GoString × v3rpc.WSrv GF
+  | 0 => (bridgeAddr₁, R₁)
+  | 1 => (bridgeAddr₂, R₂)
+  | _ => (bridgeAddr₃, R₃)
+
+/-- **The clients' watch environment** (W4): the three members at their bridges, the watch
+contract at the cluster's committed history (`etcdModelOfHistory`, at the first member's names,
+which the others' agree with), under the prefix `pfx`. `clientv3.New` takes it as its caller's
+choice (`isNewClient`); a client that never watches needs none of its facts. -/
+def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
+    EtcdGrove.client.WEnv GF :=
+  ⟨R₁, bridgeAddr₁, [], null, null, pfx, null, v3rpc.etcdModelOfHistory γr.raft γr.kv,
+    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3⟩
+
+/-- **A member of the started cluster** (persistent; W4: what `startCluster` gives of each, from
+`memberServed` and its bridge's start): its place in the network, its bridge's address serving
+its client address's, its read view, etcd's KV specs registered at its client address and the
+address refusal-free, its watch server and `Watch` stream there, its names agreeing with the
+cluster's (the raft names, what the KV model reads). -/
+def memberAt (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames) (E : apply.AEnv GF)
+    (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : RaftNames) : IProp GF :=
+  iprop(srvNetMember γn s id ∗ forwards b c ∗ isServerRead s E ρ.rd ∗
+    isGrpcRpc c go!"/etcdserverpb.KV/Put" (EtcdGrove.client.etcdPutSpec E ρ.rd cid mid) ∗
+    isGrpcRpc c go!"/etcdserverpb.KV/Range" (EtcdGrove.client.etcdRangeSpec E ρ.rd cid mid) ∗
+    isGrpcRpc c go!"/etcdserverpb.KV/DeleteRange"
+      (EtcdGrove.client.etcdDeleteSpec E ρ.rd cid mid) ∗
+    isGrpcRpc c go!"/etcdserverpb.KV/Txn" (EtcdGrove.client.etcdTxnSpec E ρ.rd ρ.rd cid mid) ∗
+    ⌜noRefusalAt c⌝ ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
+    isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) c
+      go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R.γ)
+      (fun γs Dn => v3rpc.watchStreamSpec γs R.γ R.cid R.mid Dn) ∗
+    ⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧ ρ.rd.kv.c0 = W64 0 ∧
+      ρ.rd.kv.ch0 = apply.alarmChain false false false ∧ ρ.rd.kv.log0 = [[], []]⌝)
+
+instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqNames)
+    (E : apply.AEnv GF) (cid mid : w64) (R : v3rpc.WSrv GF) (b c : GoString) (γ : RaftNames) :
+    Persistent (memberAt γn s id ρ E cid mid R b c γ) := by
+  unfold memberAt; infer_instance
+
+/-- **The cluster started** (W4: `startCluster`'s success): the members' slice, the bridges' and
+the clients'; each member (`memberAt`), each bridge owned and not blackholed, each client
+`clientv3.New`'s over the three bridges at the watch environment (`watchEnv`, the prefix `pfx`);
+the client's view of etcd's KV at the start store; the members' KV names agreeing, at the workload
+`W`. -/
+def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload) (pfx : GoString)
+    (srvs brs clis : GoSlice) : IProp GF :=
+  iprop(∃ (γ : RaftNames) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
+      (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ cl₁ cl₂ cl₃ : Loc)
+      (br₁ br₂ br₃ : GoInterface),
+    srvs ↦*□ [s₁, s₂, s₃] ∗ brs ↦*□ [br₁, br₂, br₃] ∗ clis ↦*□ [cl₁, cl₂, cl₃] ∗
+    memberAt γn s₁ id₁ ρ₁ E₁ cid₁ mid₁ R₁ bridgeAddr₁ clientAddr₁ γ ∗
+    memberAt γn s₂ id₂ ρ₂ E₂ cid₂ mid₂ R₂ bridgeAddr₂ clientAddr₂ γ ∗
+    memberAt γn s₃ id₃ ρ₃ E₃ cid₃ mid₃ R₃ bridgeAddr₃ clientAddr₃ γ ∗
+    bridge.ownBridge br₁ clientAddr₁ false ∗ bridge.ownBridge br₂ clientAddr₂ false ∗
+    bridge.ownBridge br₃ clientAddr₃ false ∗
+    isNewClient cl₁ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
+    isNewClient cl₂ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
+    isNewClient cl₃ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
+    etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) ∗
+    ⌜ρ₁.rd.kv.wl = W ∧ ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
+      ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl⌝)
+
+end cluster
 
 end linkv3p
 end EtcdGrove

@@ -31,10 +31,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- A create without start-read needs nothing. -/
 theorem startOk_false (V : WEnv GF) (rev : w64) : ⊢ startOk V false rev := by
-  unfold startOk mvcc.startRead
-  isplitl
-  · ileft; ipureintro; rfl
-  · ileft; ipureintro; rfl
+  unfold startOk
+  ileft; ipureintro; rfl
 
 /-- What a promised completeness says of the watch's start revision. -/
 theorem cplCond_rev {sr : Bool} {o : OpFull} {rev : w64} (h : cplCond sr o rev = true) :
@@ -88,7 +86,7 @@ theorem recvCmpl_at (V : WEnv GF) (P : WsPrm GF) (k : Int) (v : go_etcd_io.etcd.
     (r : RespModel) (c2 : w64) :
     recvCmpl V P k v r ∗ (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 k.toNat c2) ⊢
       ∃ h2A : w64, (⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 (k.toNat + 1) h2A) ∗
-        (⌜P.γ.cpl = false⌝ ∨ watchRespOk (EM := V.EM) P.o.key c2 h2A v r) := by
+        (⌜P.γ.cpl = false⌝ ∨ watchRespOk (EM := V.WM) P.o.key c2 h2A v r) := by
   unfold recvCmpl
   iintro ⟨#Hc, #Hp⟩
   icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
@@ -120,8 +118,8 @@ theorem resumeOk_step (V : WEnv GF) (P : WsPrm GF) (rv hl c2 hiA h2A nr0 nr' : w
     (h0 : (sint.Z rv < sint.Z (r.hdrRev + W64 1) ∧ nr0 = r.hdrRev + W64 1) ∨
       (¬ sint.Z rv < sint.Z (r.hdrRev + W64 1) ∧ nr0 = rv))
     (h1 : (r.events = [] ∧ nr' = nr0) ∨ (∃ e, r.events.getLast? = some e ∧ nr' = e.rev + W64 1)) :
-    resumeOk V P rv hl c2 ∗ rangeWatchRespOk (EM := V.EM) V.pfx P.o P.rev hl hiA r ∗
-      (⌜P.γ.cpl = false⌝ ∨ watchRespOk (EM := V.EM) P.o.key c2 h2A v r) ∗ resumeF V P r ⊢
+    resumeOk V P rv hl c2 ∗ rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hl hiA r ∗
+      (⌜P.γ.cpl = false⌝ ∨ watchRespOk (EM := V.WM) P.o.key c2 h2A v r) ∗ resumeF V P r ⊢
       resumeOk V P nr' hiA h2A := by
   iintro ⟨Hro, Hrw, #Hw, #Hf⟩
   iunfold resumeOk at Hro

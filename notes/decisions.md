@@ -15310,3 +15310,86 @@ retries if its members are refusal-free (`clientWriteOnce`'s second case), as li
 
 **Trust base.** No axiom added: `etcd_noRefusal` (D29) now reaches the five examples' collections
 (each +1). The closed theorems' statements do not change; the configuration they speak of does.
+
+## D32: a watch over several endpoints: streams over a list of addresses, forwarded by the bridge (2026-10-21 · approved by the user; `notes/watch-cut-plan.md` W1)
+
+**Problem.** A production client's watch fails over. When the member it streams from is cut,
+keepalive closes the connection, and the watch client re-opens the stream on the same `ClientConn`.
+grpc's balancer then sends the new stream to a reachable member (`TestWatchFailover`, W0: three
+resumes across members, no gap or repeat). Two parts of the trust boundary stop this from being
+stated:
+- `ClientConn.NewStream`'s axiom takes `grpcConn conn [addr]`, one address (D27 narrowed it).
+- The bridge's `New` forwards unary methods only (`grpcServes`, D26). linkv3p's clients reach the
+  members through bridges, so a watch through them has no registration to open.
+
+**Options.**
+- (a) **One spec shared by the members.** Each address registers the same stream spec, as each
+  registers the same KV spec for `Invoke` (D27). This does not work for watches (the plan's
+  scoping, "The lifting lemma, scoped"). The watch stream's spec (`watchDn`) is about the serving
+  member's own mvcc ghost state: its watcher registrations, its notified log, its released
+  revisions, the coverage of its progress responses, and its member id in the header. The client's
+  resume proof uses all of it, and none of it is cluster-wide.
+- (b) **A stream at some member of the list, with that member's spec** (proposed). Each address
+  registers its own content and spec. A stream opened over the list is at one of the addresses,
+  existentially, with that address's.
+- (c) Watches stay at one endpoint: no failover for watches.
+
+**Decision: (b)** (approved by the user, 2026-10-21). No axiom added. Two specs restated, each with the old statement as the
+one-element case:
+- **`grpc.ClientConn.NewStream`.** It takes `grpcConn conn addrs ics []` and a registration at
+  every address, each with its own content and spec: `isGrpcStreams addrs method Up Spec := [∗ list]
+  a ∈ addrs, isGrpcStream a method (Up a) (Spec a)`, with `Up` and `Spec` functions of the address.
+  On success it returns a client stream for some `a ∈ addrs`: `cliStreamIs cs γ Req Rep (Up a) Dn
+  cd'` and `Spec a γ Dn`. The error case is unchanged. `a` is ghost: the client's code never learns
+  it, and its proof case-splits on it.
+  - True of grpc-go v1.84: `newClientStream` takes one transport from the picker (round-robin over
+    the READY subchannels of the resolver's addresses, waiting for one under `WaitForReady`). Every
+    message of the stream goes on that one HTTP/2 stream, so on one server's handler run.
+  - grpc's transparent retry of a stream's creation, already inside the boundary, may move the
+    stream to another subchannel, but only when the first server did not process it (a refused
+    stream, a GOAWAY before it). Either way the handler that runs is one address's, once.
+  - etcd's service configuration has no retry policy, so grpc never replays a stream's messages on
+    a second server after one has processed them. The retrying `serverStreamingRetryingStream`
+    stays excluded (`ClientStreams`, as now).
+- **`bridge.New`.** Its forwarding fact gains the stream registrations: `□ ∀ name mh srv ics S,
+  grpcServesStream addr name mh srv ics S -∗ grpcServesStream a name mh srv ics S`. linkv3p's
+  `forwards` gains the same conjunct.
+  - Why it holds: the reasons of D26, for streams. The bridge copies bytes. An HTTP/2 stream's
+    messages are length-prefixed frames, and grpc hands a receiver only whole messages, in order,
+    each once. So each side receives a prefix of what the other sent, which a slow or cut
+    connection delivers anyway.
+  - A cut ends the stream with an error on the client's `Recv`/`Send` (`cliStreamErr`, as a
+    keepalive close does, D28), and the stream specs already allow that at every point.
+  - The `:authority` names the bridge address, which etcd's server ignores.
+
+**What the client proof must then do (W3, not part of the boundary).**
+- Each epoch's stream is at a member the proof does not know in advance. The watch client's
+  environment (`WEnv`) holds every member's names: their watch servers, and a budget of watch
+  tokens at each member, which a create's content spends (`watchUp`).
+- The events of the epochs are joined into one history by the lifting lemma. Two members' certified
+  logs are in prefix order (`kv_cert_read`, `srvRLogLb_prefix`, `kvRaftOf_prefix`), so a revision's
+  events agree across members.
+- A create resumed at another member needs `startRead` at that member, which the client cannot give
+  after a failover: a lagging member has no member-local bound reaching the resume revision. W2
+  gives `startRead` a cluster-wide case and re-proves mvcc's progress guarantee from etcd's own
+  guard (`progressIfSync`: no progress notification to a watcher whose start revision is above the
+  store's, upstream `973847aa24`). This is a change to mvcc's watch specs inside the verified code,
+  not to the trust boundary.
+
+**Trust base.** No axiom added or removed. Two axioms change their statements:
+`grpc.ClientConn.NewStream.wp_proof` (generalized: the old one is the one-element case) and
+`bridge.New.wp_proof` (strengthened: it also forwards streams). The one-endpoint watch examples
+(watchkv, cachekv) frame `isGrpcStreams [addr]` as their `isGrpcStream`. The lease keep-alive
+stream stays at one address in the lessor's specs, an instance of the new statement.
+
+**Carried out** (2026-10-21, `notes/watch-cut-plan.md` W1):
+- `isGrpcStreams addrs name Up Spec` (`InvGrpcStream.lean`): reducible, by recursion, as
+  `isGrpcRpcs`. At one address it is that address's `isGrpcStream`.
+- `NewStream`'s spec returns `∃ a, ⌜a ∈ addrs⌝ ∗ cliStreamIs cs γ Req Rep (Up a) Dn cd' ∗ ... ∗ Spec
+  a γ Dn`.
+- The two stubs over it (`watchClient.Watch`, `leaseClient.LeaseKeepAlive`) keep their one-address
+  specs: they instantiate it at `[addr]` with constant families. The watch stub's list form is
+  W3's.
+- `bridge.New` gains the stream forwarding, and so does linkv3p's `forwards`, with
+  `isGrpcStream_forwards`.
+- Trust base: 530 axioms, 2 sorries, unchanged; the collections unchanged.

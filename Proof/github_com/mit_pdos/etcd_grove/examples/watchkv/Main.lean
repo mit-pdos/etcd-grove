@@ -379,9 +379,9 @@ theorem Main.wp_proof
       { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs.1 HE.2) $$
     [Hgsn Hlis]
   · iframe Hgsn Hlis; iframe #
-  imod (wk_served ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩ go!"127.0.0.1:23831"
+  imod (wk_served (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null) go!"127.0.0.1:23831"
       gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-      1 1 Hregs.1 rfl rfl (by simp) Hms.watch_impl Hregs.2)
+      1 1 Hregs.1 rfl rfl (by simp) Hms.watch_impl Hregs.2 rfl rfl)
     $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HPut, #HRange, #HWF⟩
   · iframe; iframe #
     iintro !>
@@ -400,7 +400,7 @@ theorem Main.wp_proof
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   wp_apply (wp_New _ [go!"127.0.0.1:23831"]
-      ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩) $$ [] as %cl %cerr Hcl
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null)) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
     simp only
@@ -430,12 +430,11 @@ theorem Main.wp_proof
     subst ha; exact Hnr
   -- the client's `Watcher`, with the watch server's facts (D19f), etcd's watch contract
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-    [go!"127.0.0.1:23831"] ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩ rfl
-    $$ [Pcli Ppb Pctx Hnc HWF]
+    [go!"127.0.0.1:23831"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null) rfl
+    rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
   · iframe #
   ihave #Hew := client.isEtcdWatcher_of_watcher wp_Watch
-    { R := R, addr := go!"127.0.0.1:23831", ics := ics, conn := conn, wc := wc, pfx := wkPfx,
-      lg := lgw } w (show prefixRangeEnd wkPfx ≠ [W8 0] by decide) $$ [Pcli Ppb Pctx Hcw]
+    (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" ics conn wc wkPfx lgw) w (show prefixRangeEnd wkPfx ≠ [W8 0] by decide) $$ [Pcli Ppb Pctx Hcw]
   · iframe #
   (try wp_auto)
   -- `wctx, cancel := context.WithCancel(context.Background())`
@@ -561,7 +560,7 @@ theorem Main.wp_proof
     ipersist lo
     wp_apply wp_fork $$ [Hdone]
     · (try wp_auto)
-      wp_apply (wp_writer cl go!"127.0.0.1:23831" ⟨R, go!"127.0.0.1:23831", [], null, null, wkPfx, null⟩
+      wp_apply (wp_writer cl go!"127.0.0.1:23831" (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23831" [] null null wkPfx null)
           R.E ρ.rd cid mid «$r0_ptr» tsl trs (k * nops) (k * nops + nops) (trs.map pairOf) hAs hwl
           rfl (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
           (by

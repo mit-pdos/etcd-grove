@@ -44,7 +44,28 @@ CounterClock: @
 linkvtxn_Model: @
 linkvtxn_Gen: @
 linkv3p_Check: Run CounterClock linkvtxn_Model linkvtxn_Gen linkv3p_Apply
-# `Main`: the start of the cluster, the bridges and the clients, the partitioner forked, the check
-# (zap's trust-boundary axiom; the rest linkv3p's own)
+# `startCluster`: the members, the bridges and the clients (W4 of `notes/watch-cut-plan.md`)
+linkv3p_startCluster: linkv3p_startMember linkv3p_startBridge linkv3p_newClient
+# `Main`: the start of the cluster, the partitioner forked, the check (zap's trust-boundary axiom;
+# the rest linkv3p's own)
 zap_NewNop:
-linkv3p_Main: zap_NewNop linkv3p_startMember linkv3p_startBridge linkv3p_newClient linkv3p_partitioner linkv3p_Check
+linkv3p_Main: zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_Check
+# `MainWatch` (W4 of `notes/watch-cut-plan.md`): watchkv's workload over the cluster: linkv3p's
+# copies of watchkv's helpers (`genPut`, `genAll`, `attempted`, `checkWatch`, `maxRev`, `writer`,
+# `collect`), the cluster's start, the partitioner, the client's options and `Watch`
+linkv3p_genPut:
+linkv3p_genAll: linkv3p_genPut
+linkv3p_attempted:
+linkv3p_checkWatch: linkv3p_attempted
+linkv3p_maxRev:
+linkv3p_writer:
+WatchResponse__Err: @
+linkv3p_collect: WatchResponse__Err
+getPrefix:
+WithPrefix: getPrefix
+WithRev:
+WithProgressNotify:
+WithCreatedNotify:
+context_ErrAny: @
+watcher__Watch: @
+linkv3p_MainWatch: linkv3p_genAll zap_NewNop linkv3p_startCluster linkv3p_partitioner linkv3p_writer linkv3p_maxRev linkv3p_collect linkv3p_checkWatch context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
