@@ -93,10 +93,13 @@ project's configuration and waits on the client proof's owner).
 - The caller's history of key-values (`kvSeen`, D30j's local option) is in the write updates,
   ready for `Delete`'s and `GuaranteedUpdate`'s conflict checks.
 
-Next: `Delete` and `GuaranteedUpdate`, **blocked**: they keep `conversion.EnforcePtr(out)`'s
-`reflect.Value` in variables, whose generated typed points-to (Perennial's axiomatized
-`reflect.Value`) is `sorry` (`notes/perennial-changes.md`; the options in the plan's "What blocks
-where"). Then `Get`'s minimum resource version.
+- `reflect`'s reasoning principles, as axioms for now (the user's choice, 2026-10-22; a trusted
+  model with proved principles later, in Perennial): `Proof/reflect/Values.lean` (`reflect.Value`'s
+  typed points-to, `reflElem`/`reflPtr`/`reflType`/`reflNew`) and the specs of `reflect.New`,
+  `Value.Addr`/`Type`/`Interface`, `conversion.EnforcePtr` (`notes/perennial-changes.md`). This
+  unblocks `Delete` and `GuaranteedUpdate`, which keep `EnforcePtr(out)`'s `Value` in variables.
+
+Next: `Delete`, `GuaranteedUpdate`. Then `Get`'s minimum resource version.
 
 ## Merge of raft-retarget into lean (D22) (2026-10-21)
 
