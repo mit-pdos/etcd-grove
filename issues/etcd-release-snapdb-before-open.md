@@ -1,5 +1,12 @@
 ---
-upstream: unchecked
+upstream: known
+checked: 2026-10-16
+links:
+  - etcd-io/etcd#18055 issue open: this bug (robustness test; root cause by ahrtr, "lock the snapshot file until it has been applied")
+  - etcd-io/etcd#20133 issue closed: duplicate (Antithesis, main 3be967f, default configuration)
+  - etcd-io/etcd#20657 issue closed: duplicate (3.5.18, two snapshots at index 17 and 18)
+  - etcd-io/etcd#21082 pr closed: an earlier fix attempt, unmerged
+  - etcd-io/etcd#22046 pr open: keep snapshot db files until they have been applied, with a test
 ---
 
 # A second snapshot's `Release` can delete the `.snap.db` file `applySnapshot` is about to open
@@ -59,5 +66,10 @@ upstream: unchecked
   before its open; the test waits until the raft goroutine has appended the second batch's entry,
   past where it released, and checks `<2>.snap.db` is still there): fails 5 of 5 without the fix,
   passes 10 of 10 with it (`-race`).
+- **Upstream** (from the search of branch `bug-triage`, 2026-10-16, which filed the same bug as
+  `issues/etcd-snapshot-db-released-before-apply.md`): known, etcd-io/etcd#18055, open, reproduced
+  upstream by the robustness tests and Antithesis (two closed duplicates); the fix PR #22046 keeps
+  the snapshot's `.snap.db` files until they have been applied. Our fork's fix above is another
+  form of the same idea; supporting #22046 is the useful step, not a new report.
 - **Found**: 2026-10-20, stage S-j2 of track T-S, stating the removal fact `Rm` of the snapshot
   directory for `applySnapshot`'s precondition.

@@ -21,6 +21,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
+public import GeneratedProof.hash
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync
@@ -49,12 +50,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 instance kvHasher_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher where
+  typedPointstoDef l v dq := iprop(
+    "hash" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) v.hash' dq ∗
+    "compactRevision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"compactRevision" l) v.compactRevision' dq ∗
+    "revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"revision" l) v.revision' dq ∗
+    "keep" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"keep" l) v.keep' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance kvHasher_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.underlying := by
+  solve_into_val_typed_struct
+
+instance kvHasher_access_load_hash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) v.hash' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) v.hash' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_store_hash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (hash' : hash.Hash32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) v.hash' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) hash' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hash' := hash' } : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_load_compactRevision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"compactRevision" l) v.compactRevision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"compactRevision" l) v.compactRevision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_store_compactRevision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (compactRevision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"compactRevision" l) v.compactRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"compactRevision" l) compactRevision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compactRevision' := compactRevision' } : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_load_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"revision" l) v.revision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"revision" l) v.revision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_store_revision (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (revision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"revision" l) v.revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"revision" l) revision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revision' := revision' } : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_load_keep (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"keep" l) v.keep' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"keep" l) v.keep' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kvHasher_access_store_keep (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (keep' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"keep" l) v.keep' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"keep" l) keep' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keep' := keep' } : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end kvHasher

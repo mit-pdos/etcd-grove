@@ -161,9 +161,9 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 /-! The compaction functions' results (units 5a-5c): the meta keys, the index's side (unit 5b),
 the store's side (unit 5c: `Compact`, `updateCompactRev`, `compact` scheduling the job tracked on
 the FIFO scheduler, the job `scheduleCompaction`, the barriers, `compactLockfree`), over mvcc's
-assumed backend (`storeCmp`). The scheduler's `NewJob`/`job.Do`/`job.Name` are pending (`sorry`:
-the request path's unit 4d), so every result that schedules a job rests on them; the job's
-hasher is axiomatized (`kvHasher`'s generated instance, `sorry -- axiomatized type`). -/
+assumed backend (`storeCmp`). The job's hasher is translated as a struct (2026-10-22: its `hash`
+field's `hash.Hash32` names-only, `Code/hash.toml`), its methods' specs the trust boundary
+(`kvHasher.Hash`, `kvHasher.WriteKeyValue`, `newKVHasher`: `crc32` has no model). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_SetFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetScheduledCompact

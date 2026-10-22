@@ -5,10 +5,12 @@ premises Go's code needs, which the specs of `hashStorage.Store`, `kvHasher.Writ
 
 * `hashStorageOk h`: the `*hashStorage` `h` has a non-nil logger (`Store` logs through it first;
   `NewHashStorage` sets it, `NewStore` passes the store's).
-* `kvHasherOk h`: the `kvHasher` value `h` (an axiomatized type: Goose does not translate its
-  `hash.Hash32` field) is one `newKVHasher` returned or `WriteKeyValue` left, so its `hash` is
-  the `crc32` digest `newKVHasher` made (a zero `kvHasher`'s nil `hash` panics in `Write` and
-  `Sum32`). Opaque, as the type.
+* `kvHasherOk h`: the `kvHasher` value `h` is one `newKVHasher` returned or `WriteKeyValue`
+  left, so its `hash` is the `crc32` digest `newKVHasher` made (a zero `kvHasher`'s nil `hash`
+  panics in `Write` and `Sum32`). Opaque: `hash/crc32` has no model, so what a digest is cannot
+  be stated (until 2026-10-22 `kvHasher` itself was an axiomatized type, its generated instances
+  `sorry`; it is now translated, its `hash.Hash32` field's package `hash` types-only,
+  `Code/hash.toml`).
 * `bucketKeyOk k`: `k` is a key of the `key` bucket as `BytesToBucketKey` accepts it (it panics
   otherwise): a revision's 17 bytes (`main`, `'_'`, `sub`, both non-negative), maybe one mark
   byte.
@@ -42,8 +44,7 @@ instance mvcc.hashStorageOk_persistent (h : Loc) : Persistent (mvcc.hashStorageO
 
 end defs
 
-/-- **A hasher `newKVHasher` made** (opaque: `kvHasher` is an axiomatized type; see the file
-header). -/
+/-- **A hasher `newKVHasher` made** (opaque: `crc32` has no model; see the file header). -/
 opaque mvcc.kvHasherOk [FfiSyntax] : kvHasher → Prop
 
 /-- **A key of the `key` bucket** (`BytesToBucketKey` accepts it; see the file header). -/

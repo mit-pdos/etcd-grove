@@ -170,7 +170,7 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "net=",
+                    "net=", "hash=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "github.com/xiang90/probing=", "crypto/tls=",
@@ -321,6 +321,9 @@ PROJECTS = [
             "google.golang.org/grpc/credentials/insecure",
             "google.golang.org/grpc/resolver",
             "crypto/tls",
+            # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
+            # `kvHasher.hash` field, so that Goose translates `kvHasher`
+            "hash",
             # names only (item 4, the server start): what `v3rpc.Server` names: grpc-prometheus
             # (its server metrics and interceptors), grpc's health service and its protobuf
             # package (the registration, the serving status), grpc's reflection interface
@@ -343,7 +346,7 @@ PROJECTS = [
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               "net", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
+               "net", "hash", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
                os.path.join("github_com", "xiang90"),

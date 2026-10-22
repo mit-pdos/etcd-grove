@@ -4,7 +4,8 @@ packages it imports that no other proof module provides: `pkg/v3/traceutil`,
 `pkg/v3/schedule`, `go-humanize` (moved here from the server's `BaseApply.lean` on 2026-10-13: the
 compaction job calls `humanize.Bytes`) and opentelemetry's `otel/trace` with the packages of the
 types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and types only, but
-`schedule`'s jobs: `NewJob`, `job.Do`). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
+`schedule`'s jobs: `NewJob`, `job.Do`) and `hash` (a standard-library package Perennial does not
+translate: types only, here, the type of `kvHasher`'s `hash` field). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
 cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
 (`etcdserver/Base.lean`: `schema`), the backend's (`storage/backend/Base.lean`: `backend`,
 `client/pkg/v3/verify`, prometheus's `client_golang/prometheus`), the btree's
@@ -34,6 +35,7 @@ public import Perennial.Proof.time
 public import Perennial.Proof.bytes
 public import Perennial.Proof.math
 public import Perennial.Proof.strings
+public import Perennial.Proof.io
 
 @[expose] public section
 
@@ -51,6 +53,15 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+namespace hash
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.hash :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.hash :=
+  build_get_is_pkg_init_wf
+
+end hash
 
 namespace go_etcd_io.etcd.pkg.v3.traceutil
 

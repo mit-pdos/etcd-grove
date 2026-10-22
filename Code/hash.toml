@@ -1,0 +1,9 @@
+# Types only (a standard-library package Perennial does not translate): the interfaces `Hash`
+# and `Hash32`, the type of mvcc's `kvHasher.hash` field (`hash.go`), so that Goose translates
+# `kvHasher` (which it otherwise axiomatizes, with `sorry` instances). No function or method is
+# translated; `io` for the `io.Writer` that `Hash` embeds.
+translate = ["!*"]
+imports = ["!*", "io"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
