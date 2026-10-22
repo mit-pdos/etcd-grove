@@ -240,6 +240,19 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    (`typedPointsto_not_null`), and the dozen destructuring sites gain a pattern.
 4. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
    watches under any prefix (the contract's `V.pfx` is fixed).
+5. (2026-10-22; the owner is on it) **A client error is not the driver's sentinel.** The driver's
+   `errOut` (as the correctness test) classifies by identity: `*storage.StorageError` of code
+   NotFound/Exists, then `err == errDeleteRejected || err == errUpdateRejected`, else `EOther`
+   (outcome unknown, the prophecy's `false`). The store returns the client's errors unchanged
+   (`Client.Get`/`OptimisticPut`/`OptimisticDelete`: `err ≠ nil ∗ ⌜clientErr err⌝ ∗
+   statusErrOk err`). `clientErr`'s leaf fact already rules out a `*StorageError` (it has
+   `Unwrap`), but the sentinels are `errors.New` leaves too: nothing says `err` is not
+   `interface.mkOk (*errors.errorString) #x` for the driver's cell `x`. Wanted: a persistent fact
+   in the error postcondition (and `ctxErrClient`'s, for the caller's context errors; trivial for
+   `context.Background()`) that tells it apart, e.g. D19k's message cells: an `*errorString`
+   error at `x` has `errStrCell x m` for `m` among the client's `errors.New` messages
+   (`"context canceled"`, ...), so `errStrCell_ne` separates it from the driver's
+   `"k8setcd3: deletion rejected"`.
 
 ## Open
 
