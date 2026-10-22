@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import Proof.go_etcd_io.raft.v3.raft__Step.Dispatch
 
 @[expose] public section
 
@@ -33,14 +34,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-set_option hygiene false in
-/-- A getter call on the message `Hm`, by the specs `wp_Get*` (the proof's hypotheses). -/
-local macro "wp_getter" : tactic =>
-  `(tactic| first
-    | (wp_apply +noauto wp_GetType.1 m dq dqe cap st $$ [Hm] as Hm; iexact Hm)
-    | (wp_apply +noauto wp_GetTerm.1 m dq dqe cap st $$ [Hm] as Hm; iexact Hm)
-    | (wp_apply +noauto wp_GetFrom.1 m dq dqe cap st $$ [Hm] as Hm; iexact Hm)
-    | (wp_apply +noauto wp_GetTo.1 m dq dqe cap st $$ [Hm] as Hm; iexact Hm))
+open Lean Elab Tactic in
+/-- A getter call on the message `Hm`, by the spec `wp_Get*` (the proof's hypotheses) of the
+getter the next redex calls (`raft__Step/Dispatch.lean`); fails at once if the next redex is no
+call of a message getter. (2026-10-22) It used to try the four specs in turn, and a spec that does
+not fit costs a failed `wp_apply`: the proof's 80 cases spent most of their time there. -/
+local elab "wp_getter" : tactic => do
+  let some g ← StepProof.nextMethod? | throwError "wp_getter: the next redex is not a method call"
+  unless ["GetType", "GetTerm", "GetFrom", "GetTo"].contains g do
+    throwError "wp_getter: {g} is not a message getter"
+  StepProof.evalTacticString s!"(wp_apply +noauto wp_{g}.1 m dq dqe cap st $$ [Hm] as Hm; iexact Hm)"
 
 set_option hygiene false in
 /-- A read of `m.Entries` or `m.Context` in place: the fields out of `Hm`, the load, the
