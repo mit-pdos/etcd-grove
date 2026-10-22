@@ -15064,3 +15064,44 @@ from the plan.
   repository's Goose configuration (G1, G3: names-only functions, an import through
   `util/feature.toml`), the general fixes listed in `notes/perennial-changes.md`; neither G1 nor
   G3 blocks phases 1-4.
+
+## D22m revisited: the simplest true `Restore`, from the scoping pass (2026-10-22)
+
+The scoping pass the user asked for after the merge into `lean` (read-only; the full report with
+file:line evidence is `notes/snapshot-receiver-epochs.md`), aiming at the simplest plan: no epoch
+numbers (neither the Go state nor the abstract state counts restores).
+- **Logical names stay fixed and are updated in place:** the committed log (`idx.log`), the index
+  history (`idx.hist`), `clog`, the revision budget `revs`, `cok`, `leases`, `watchQ` (and
+  `idx.crev` for a frozen store): the restored log extends the old one (`kvRaftOf_prefix`;
+  `applySnapshot` panics on a snapshot not newer) and the history extends with it (`histOf`
+  prefix-monotone). **Physical names** (`idx.nev`, `idx.cmp`, `kb`/`bucket`, `hook`/`hookFn`,
+  `cmeta`/`fin`, `sch`; on the server `ApplyNames.mt/wr/pend/m0`, `TM`, `E.P`/`E.f`) go into an
+  existential record `π`, named by a ghost variable `γ.cur` holding the record itself, so that the
+  lock invariants' shares agree on it. `idxCert` splits (its `nev` lower bound into `idxKnows .cert`).
+- **Go holds the lock throughout** for every reader that uses a physical object (read and write
+  transactions under `s.mu`, the watch paths under the watchable store's lock, the storage-version
+  monitor under `bemu`); the compaction job (no lock: `Restore`'s `fifoSched.Stop()` waits for it;
+  the server never compacts) and `Backend()`'s callers (persistent `isBackend` only) are harmless.
+- **Three corrections to the sketch, the first two also gaps of D22m (A) and S-j2's design:** (1) the
+  writer's logical state (`writerRes`: half the log, `clog`, the budget, the history authority, half
+  of `currentRev`'s points-to) sits in the old backend's batch lock, which Go's `Restore` never
+  takes: it moves once into an invariant gated by `s.mu`, which a writer checks out under the batch
+  lock; (2) `Restore` releases `revMu` with `currentRev = 1` and sets it later: `revMuInv` gains a
+  restoring mode (no verified reader sees it: they hold `s.mu` or the watchable store's lock); (3)
+  one reader-ticket pool (not per epoch): readers own index reader slots and backend tokens between
+  transactions, and `oldbe.Close` needs every `bOpen` share back.
+- **Size:** steps S1-S8 of the report, each building, about 140 files touched (about 60 mechanical;
+  of the 457 files that mention the names, 313 are unchanged), against D22m (A)'s restatement of
+  every predicate over `(σ, γ)` with per-epoch pools. Kept from S-j2: the existential server record
+  (its `SrvEpoch` without the epoch), the `Recover`/`SetBackend` axioms, the closers re-made and
+  `srvWTPool` refilled as one invariant over the current backend, the watch flag `restore = true`.
+- **Then true specs exist:** after S1-S5 and S7 nothing persistent names a field `Restore` writes, so
+  `store.Restore`/`watchableStore.Restore` can be true axioms (D22m decided), and `applySnapshot`'s
+  stores to `s.be`, `s.uberApply`, `s.alarmStore` provable (a verified `Alarms()` needs the
+  alarm-store race fixed: the fork fix under way).
+- **Risks:** persistent contracts tied to one backend (`isApplyLessor`, `isAuthStore`,
+  `isAlarmStore`, `isCluster` held by the request path, `InvRead.lean:127-128`; `NewAlarmStore`'s
+  post, `hookIs`, `srvWTPool`'s invariant) become false after a `Recover` unless each write triple
+  takes an exclusive "on backend d" fragment (not in S-j2's design either); `compactedAt` is
+  physical, so `Restore` must exclude compacted stores; "current backend" is per object, not global
+  (`lessor.Recover(newbe)` runs before `kv.Restore`).
