@@ -150,6 +150,9 @@ instance bemuP_fractional (s : Loc) : Fractional (bemuP (GF := GF) s) := by
       icombine H1 H2 gives %H
       ipureintro; exact H)
 
+-- (2026-10-22) the unused-variables linter walks the proof's info tree: 30s of this module's
+-- CPU (on the build's critical path)
+set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option pp.maxSteps 200000 in
 set_option maxHeartbeats 0 in

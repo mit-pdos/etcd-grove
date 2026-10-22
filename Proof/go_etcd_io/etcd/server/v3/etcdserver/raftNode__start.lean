@@ -38,6 +38,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+-- (2026-10-22) the unused-variables linter walks the proof's info tree: 8s of this module's CPU
+set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
 theorem raftNode.start.wp_proof
