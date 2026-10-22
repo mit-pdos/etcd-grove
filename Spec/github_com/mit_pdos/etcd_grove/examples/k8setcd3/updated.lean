@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `updated(in, o)` (k8setcd3.go): `errUpdateRejected`'s error on an object of value `in.Reject`
-(`rejects`), otherwise a new object, `updObj`'s (`o`'s resource version kept).
+(`rejects`), otherwise a new object, `o` with the value `in.Val` unless `in.NoOp` (`o`'s resource version kept).
 -/
 module
 
@@ -27,16 +27,16 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumpt
 
 /-- See the file header. -/
 abbrev updated.spec : Prop :=
-  ∀ (inp : Input) (p : Loc) (dq : DFrac) (o : DObj) (n : w64),
+  ∀ (inp : Input) (p : Loc) (dq : DFrac) (name vl : GoString) (n : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ∗
-      p ↦{dq} Obj.mk o.1.1 o.1.2 n }}
+      p ↦{dq} Obj.mk name vl n }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8setcd3.updated)) (Val #inp))
       (Val #p))
-  {{ (q : Loc) (err : GoInterface), RET (PairV #q #err); p ↦{dq} Obj.mk o.1.1 o.1.2 n ∗
-      (if rejects inp.Reject' o.1.2 then
+  {{ (q : Loc) (err : GoInterface), RET (PairV #q #err); p ↦{dq} Obj.mk name vl n ∗
+      (if rejects inp.Reject' vl then
         globalAddr github_com.mit_pdos.etcd_grove.examples.k8setcd3.errUpdateRejected ↦□ err
       else ⌜err = GoInterface.nil ∧ q ≠ null⌝ ∗
-        q ↦ Obj.mk (updObj inp o).1.1 (updObj inp o).1.2 n) }}
+        q ↦ Obj.mk name (if inp.NoOp' then vl else inp.Val') n) }}
 
 end spec
 

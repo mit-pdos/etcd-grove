@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumptions]
 
 theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
-  intro inp p dq o n
+  intro inp p dq name vl n
   wp_start as Hp
   icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hpn⟩
   iStructNamed Hp
@@ -31,9 +31,9 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
   iStructNamed «in»
   wp_if_destruct
   · -- `in.Reject` empty: not rejected
-    have hr : rejects inp.Reject' o.1.2 = false := by
+    have hr : rejects inp.Reject' vl = false := by
       simp [rejects, Hif]
-    ihave Hp : p ↦{dq} Obj.mk o.1.1 o.1.2 n $$ [Name Value ResourceVersion]
+    ihave Hp : p ↦{dq} Obj.mk name vl n $$ [Name Value ResourceVersion]
     · iapply typedPointsto_combine p _ dq Hpn
       simp only [TypedPointsto.typedPointstoDef]
       iframe
@@ -65,9 +65,9 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
     (try wp_auto)
     wp_if_destruct
     · -- rejected
-      have hr : rejects inp.Reject' o.1.2 = true := by
-        simp [rejects, hne, Hif]
-      ihave Hp : p ↦{dq} Obj.mk o.1.1 o.1.2 n $$ [Name Value ResourceVersion]
+      have hr : rejects inp.Reject' inp.Reject' = true := by
+        simp [rejects, hne]
+      ihave Hp : p ↦{dq} Obj.mk name inp.Reject' n $$ [Name Value ResourceVersion]
       · iapply typedPointsto_combine p _ dq Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
@@ -80,9 +80,9 @@ theorem updated.wp_proof : updated.spec (GF := GF) (hG := hG) := by
       simp only [↓reduceIte]
       iframe Hp
       iexact HeU
-    · have hr : rejects inp.Reject' o.1.2 = false := by
+    · have hr : rejects inp.Reject' vl = false := by
         simp [rejects, Hif]
-      ihave Hp : p ↦{dq} Obj.mk o.1.1 o.1.2 n $$ [Name Value ResourceVersion]
+      ihave Hp : p ↦{dq} Obj.mk name vl n $$ [Name Value ResourceVersion]
       · iapply typedPointsto_combine p _ dq Hpn
         simp only [TypedPointsto.typedPointstoDef]
         iframe

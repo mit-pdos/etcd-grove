@@ -41,7 +41,7 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
   obtain ⟨rfl, Hpn, Hrv⟩ := Hx
   wp_pure
   (try wp_auto)
-  wp_apply wp_updated inp p (DFrac.own 1) o n $$ [$Hp] as %q %err ⟨-, Hres⟩
+  wp_apply wp_updated inp p (DFrac.own 1) o.1.1 o.1.2 n $$ [$Hp] as %q %err ⟨-, Hres⟩
   cases hr : rejects inp.Reject' o.1.2
   · isimp only [hr, Bool.false_eq_true, ↓reduceIte] at Hres
     icases Hres with ⟨%Herr, Hq⟩
