@@ -94,8 +94,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact Hif (hpend.1 rfl)
     (try wp_auto)
     -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
-    imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti] Htko with ⟨Htk, Hwr2⟩
-    · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti
+    imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti Hrt] Htko with ⟨Htk, Hwr2⟩
+    · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti Hrt
     iunfold mvcc.muHeld at Hmu
     icases Hmu with ⟨Hmu, Hmua, Hfs⟩
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hwr2 Hfs] as Hmu
@@ -104,10 +104,10 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     (try wp_auto)
     iapply HΦ
     iframe HZ
-    isplitl [Hmu HrevMu Htk Hrt]
+    isplitl [Hmu HrevMu Htk]
     · iunfold mvcc.storeReaderC
       simp only [named]
-      iframe Hmu HrevMu Htk Hrt
+      iframe Hmu HrevMu Htk
     unfold mvcc.commitLog
     rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
@@ -216,8 +216,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
       -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
-      imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti] Htko with ⟨Htk, Hwr2⟩
-      · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti
+      imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti Hrt] Htko with ⟨Htk, Hwr2⟩
+      · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti Hrt
       iunfold mvcc.muHeld at Hmu
       icases Hmu with ⟨Hmu, Hmua, Hfs⟩
       wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hwr2 Hfs] as Hmu
@@ -226,10 +226,10 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       (try wp_auto)
       iapply HΦ
       iframe HZ
-      isplitl [Hmu HrevMu Htk Hrt]
+      isplitl [Hmu HrevMu Htk]
       · iunfold mvcc.storeReaderC
         simp only [named]
-        iframe Hmu HrevMu Htk Hrt
+        iframe Hmu HrevMu Htk
       unfold mvcc.commitLog
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']

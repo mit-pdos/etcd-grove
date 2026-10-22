@@ -145,7 +145,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iNamedSuffix Hs "S"
   -- the inner store's fields: the watchable store's share (D22 receiver epochs, S3)
   iunfold mvcc.wsFields at Hwsf
-  icases Hwsf with ⟨%st', #Hst', Hwsf⟩
+  icases Hwsf with ⟨%st', #Hst', Hwsf, Hwsd⟩
   ihave #Hstp : s.[watchableStore, go!"store"] ↦□ st $$ []
   · iunfold mvcc.isWatchableStore at HwsAll; iNamed HwsAll; iexact Hst
   icombine Hstp Hst' gives %Hsteq
@@ -155,6 +155,12 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
+  -- a slot of the readers' pool, for the snapshot's backend token: checked out under the watchable
+  -- store's lock, with its deposit (D22 receiver epochs, S5a)
+  imod mvcc.readerPool_checkout_ws γ.st $$ Hlc2 HpoolS HtkR [Hwsd] with ⟨Hslot, Htkw⟩
+  · iunfold mvcc.wsDep; iexact Hwsd
+  iunfold mvcc.idxSlot at Hslot
+  icases Hslot with ⟨%tiS, #HidxS, HtiS, HrtR⟩
   icases mvcc.revMuInv_open st γ.st _ _ $$ [HQ Hfrst] with ⟨HQ, HrstR, Hfrst⟩
   · iframe HQ Hfrst
   iunfold mvcc.revMuBody at HQ
@@ -258,10 +264,14 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     icases HcertQ with ⟨-, %H, -⟩
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
-  wp_apply (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
+  wp_apply (lc := 1) (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
     $$ [$HbkS $HrtR $HfrzR $HbucketQ $HcertQ $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap,
       %Hpslen, #HevIs⟩
   · ipureintro; rw [hcur1]; omega
+  -- the slot back in the readers' pool, the watchable store's deposit back (S5a)
+  imod mvcc.readerPool_checkin_ws γ.st $$ Hlc1 HpoolS [HtiS HrtR] Htkw with ⟨HtkR, Hwsd⟩
+  · iunfold mvcc.idxSlot; iexists tiS; iframe HidxS HtiS HrtR
+  iunfold mvcc.wsDep at Hwsd
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp
   rw [hnat1] at Hpslen ⊢
@@ -951,8 +961,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro; exact hokf
   ihave Hwsf := mvcc.fieldShare_close st γ.st _ _ _ _ _ $$ [HpinS Hfb Hfidx Hfsch Hfstop Hfrst]
   · iframe HpinS Hfb Hfidx Hfsch Hfstop Hfrst
-  ihave Hwsf : mvcc.wsFields s γ 1 $$ [Hwsf]
-  · iunfold mvcc.wsFields; iexists st; iframe Hstp Hwsf
+  ihave Hwsf : mvcc.wsFields s γ 1 $$ [Hwsf Hwsd]
+  · iunfold mvcc.wsFields; iexists st; iframe Hstp Hwsf Hwsd
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HPf Hrel Hwsf]
   · inext; iunfold mvcc.watchStoreInv; iexists σf; iframe HPf Hrel Hwsf; ipureintro
     exact ⟨mvcc.WsState.settled_congr Hl.set rfl rfl rfl rfl rfl rfl hvo, Hsrb⟩

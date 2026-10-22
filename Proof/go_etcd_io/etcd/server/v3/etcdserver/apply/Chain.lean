@@ -301,18 +301,20 @@ def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
 the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
-half of its notified log; unit N4), every lease of its state live, and the auth store's reader resource
-(`E.RD`, 2026-10-14, unit A2). -/
+half of its notified log; unit N4), every lease of its state live, the auth store's reader resource
+(`E.RD`, 2026-10-14, unit A2), and the sole writer's own resources on the store's backend
+(`mvcc.writerOwn`, D22 receiver epochs, S5a: its backend token, which the writes under the batch
+lock borrow; until then the reader slots' own). -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗
-    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD)
+    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD ∗ mvcc.writerOwn E.γ)
 
 open Iris.ProofMode in
 /-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
 theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ E.RD ∗ (E.RD -∗ kvOwn E log) := by
   unfold kvOwn
-  iintro ⟨Hsr, Hsw, Hll, Hrd⟩
+  iintro ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
   iframe Hrd
   iintro Hrd
   iframe

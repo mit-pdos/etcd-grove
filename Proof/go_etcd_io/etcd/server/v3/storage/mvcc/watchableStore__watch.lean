@@ -869,12 +869,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
         simp only [named]
-        iframe HmuR HrevMuR HtkR HrtR
+        iframe HmuR HrevMuR HtkR
         iframe #
       isplitr
       · iexists lo
@@ -982,12 +982,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
         simp only [named]
-        iframe HmuR HrevMuR HtkR HrtR
+        iframe HmuR HrevMuR HtkR
         iframe #
       isplitr
       · iexists lo
@@ -1105,12 +1105,12 @@ theorem mvcc.watchableStore.watch.wp_proof
           icases Hwc with ⟨Hic, Hinv, -⟩
           rw [← hwc]
           iframe Hic Hinv HCR
-        isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+        isplitl [Hmur HmuR HrevMuR HtkR]
         · iunfold mvcc.watchReader
           iframe Hmur
           iunfold mvcc.storeReader
           simp only [named]
-          iframe HmuR HrevMuR HtkR HrtR
+          iframe HmuR HrevMuR HtkR
           iframe #
         isplitr
         · iexists lo
@@ -1219,12 +1219,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
         simp only [named]
-        iframe HmuR HrevMuR HtkR HrtR
+        iframe HmuR HrevMuR HtkR
         iframe #
       isplitr
       · iexists lo

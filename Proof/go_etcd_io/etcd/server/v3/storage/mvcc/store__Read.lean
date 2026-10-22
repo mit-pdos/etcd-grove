@@ -50,7 +50,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   icases (mvcc.wDep_halves γ).1 $$ Hwr with ⟨Hwr, Hwr2⟩
   imod mvcc.readerPool_checkout γ $$ Hlc2 Hpool HtkR Hwr2 with ⟨Hslot, Htko⟩
   iunfold mvcc.idxSlot at Hslot
-  icases Hslot with ⟨%ti2, #HidxR, HtiR⟩
+  icases Hslot with ⟨%ti2, #HidxR, HtiR, HrtR⟩
   icases mvcc.fieldShare_open s γ _ _ _ _ _ $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
   · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP

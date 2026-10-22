@@ -41,8 +41,8 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   wp_apply HRU $$ [$Htok] as Hrt
   (try wp_auto)
   -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
-  imod mvcc.readerPool_checkin γ $$ Hlc1 HpoolS [Hti0] Htko with ⟨Htk, Hwr2⟩
-  · iunfold mvcc.idxSlot; iexists ti; iframe Hidx0 Hti0
+  imod mvcc.readerPool_checkin γ $$ Hlc1 HpoolS [Hti0 Hrt] Htko with ⟨Htk, Hwr2⟩
+  · iunfold mvcc.idxSlot; iexists ti; iframe Hidx0 Hti0 Hrt
   -- `tr.s.mu.RUnlock()`
   iunfold mvcc.muHeld at Hmu0
   icases Hmu0 with ⟨Hmu0, Hmua, Hfs⟩
@@ -54,7 +54,7 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   iframe HZT
   iunfold mvcc.storeReaderC
   simp only [named]
-  iframe Hmu0 HrevMu0 Htk Hrt
+  iframe Hmu0 HrevMu0 Htk
 
 end proof
 

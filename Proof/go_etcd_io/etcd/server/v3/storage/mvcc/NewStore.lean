@@ -51,29 +51,27 @@ theorem mvcc.slot_take (Q : IProp GF) :
   iframe H1 Hs
 
 /-- The store's reader handles (of a store that may be compacted) from the reader slots of its
-two locks, the readers' tickets (D22 receiver epochs, S4: the index's slots are in the readers'
-pool) and the backend's reader tokens. -/
+two locks and the readers' tickets (D22 receiver epochs, S4: the index's slots are in the readers'
+pool; S5a: so are the backend's reader tokens). -/
 theorem mvcc.storeReaders_of_slots (s : Loc) (γ : mvcc.StoreNames) : ∀ (n : Nat),
     ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.muAddr s) (mvcc.muInv (GF := GF) s γ)) ∗
       ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ)) ∗
-      ([∗list] _x ∈ List.replicate n (), ownToks γ.tk 1) ∗
-      ([∗list] _x ∈ List.replicate n (), mvcc.storeRT γ) ⊢
+      ([∗list] _x ∈ List.replicate n (), ownToks γ.tk 1) ⊢
       [∗list] _x ∈ List.replicate n (), mvcc.storeReaderC s γ
   | 0 => by rw [List.replicate_zero]; iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
   | n + 1 => by
     rw [List.replicate_succ]
-    iintro ⟨Hm, Hr, Hk, Ht⟩
+    iintro ⟨Hm, Hr, Hk⟩
     icases BigSepL.bigSepL_cons.1 $$ Hm with ⟨Hm1, Hm⟩
     icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hr1, Hr⟩
     icases BigSepL.bigSepL_cons.1 $$ Hk with ⟨Hk1, Hk⟩
-    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨Ht1, Ht⟩
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hm1 Hr1 Hk1 Ht1]
+    isplitl [Hm1 Hr1 Hk1]
     · iunfold mvcc.storeReaderC
       simp only [named]
-      iframe Hm1 Hr1 Hk1 Ht1
+      iframe Hm1 Hr1 Hk1
     · iapply mvcc.storeReaders_of_slots s γ n
-      iframe Hm Hr Hk Ht
+      iframe Hm Hr Hk
 
 /-- `n` tokens, one by one. -/
 theorem mvcc.ownToks_ones (γ : GName) : ∀ (n : Nat),
@@ -88,19 +86,22 @@ theorem mvcc.ownToks_ones (γ : GName) : ∀ (n : Nat),
     iapply mvcc.ownToks_ones γ n
     iexact Hn
 
-/-- The slots of the pinned index's lock, as the readers' pool's (D22 receiver epochs, S4). -/
+/-- The slots of the pinned index's lock, with the backend's reader tokens, as the readers'
+pool's (D22 receiver epochs, S4; S5a: with the tokens). -/
 theorem mvcc.idxSlots_of (γ : mvcc.StoreNames) (ti : Loc) : ∀ (n : Nat),
-    mvcc.idxPin (GF := GF) γ ti ∗ ([∗list] _x ∈ List.replicate n (), mvcc.idxReader ti γ.idx) ⊢
+    mvcc.idxPin (GF := GF) γ ti ∗ ([∗list] _x ∈ List.replicate n (), mvcc.idxReader ti γ.idx) ∗
+      ([∗list] _x ∈ List.replicate n (), mvcc.storeRT γ) ⊢
       [∗list] _x ∈ List.replicate n (), mvcc.idxSlot γ
   | 0 => by rw [List.replicate_zero]; iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
   | n + 1 => by
     rw [List.replicate_succ]
-    iintro ⟨#Hp, Hi⟩
+    iintro ⟨#Hp, Hi, Ht⟩
     icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨Hi1, Hi⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨Ht1, Ht⟩
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hi1]
-    · iunfold mvcc.idxSlot; iexists ti; iframe Hp Hi1
-    · iapply mvcc.idxSlots_of γ ti n; iframe Hp Hi
+    isplitl [Hi1 Ht1]
+    · iunfold mvcc.idxSlot; iexists ti; iframe Hp Hi1 Ht1
+    · iapply mvcc.idxSlots_of γ ti n; iframe Hp Hi Ht
 
 theorem mvcc.NewStore.wp_proof
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -213,18 +214,24 @@ theorem mvcc.NewStore.wp_proof
   imod ownTokAuth_add mvcc.nReaders γtk 0 $$ Htka with ⟨Htka, Htks⟩
   rw [Nat.zero_add]
   imod ownTokAuth_alloc (GF := GF) with ⟨%γtko, Htkoa⟩
+  -- (S5a) the watchable store's deposit ghost, and the tickets out under its lock
+  imod ghostVar_alloc (GF := GF) () with ⟨%γwsd, Hwsd⟩
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γtkw, Htkwa⟩
   obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs, hγok, hγw, hγwr, hγwk,
-      hγwv, hγcur, hγrst, hγtk, hγtko⟩ :
+      hγwv, hγcur, hγrst, hγtk, hγtko, hγwsd, hγtkw⟩ :
       ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
       γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs ∧ γ.cok = γok ∧
       γ.watchQ = wq ∧ γ.wr = γwr ∧ γ.wk = γwk ∧ γ.wv = γwv ∧ γ.cur = γcur ∧ γ.rst = γrst ∧
-      γ.tk = γtk ∧ γ.tko = γtko :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko⟩,
+      γ.tk = γtk ∧ γ.tko = γtko ∧ γ.wsd = γwsd ∧ γ.tkw = γtkw :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs, γok, wq, γwr, γwk, γwv, γcur, γrst, γtk, γtko,
+        γwsd, γtkw⟩,
       rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
-      rfl⟩
+      rfl, rfl, rfl⟩
   rw [← hγrst] at *
-  rw [← hγtk, ← hγtko]
+  rw [← hγtk, ← hγtko, ← hγtkw]
+  ihave Hwsd : mvcc.wsDep γ $$ [Hwsd]
+  · iunfold mvcc.wsDep; rw [hγwsd]; iexact Hwsd
   rw [← hγwr] at *
   rw [← hγwk] at *
   rw [← hγwv] at *
@@ -347,24 +354,6 @@ theorem mvcc.NewStore.wp_proof
   · inext; ileft; iexact HL
   ihave #Hwi : mvcc.writerInv «$r0_ptr» γ $$ []
   · iunfold mvcc.writerInv; iexact Hwi
-  -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
-  ihave Hslots := mvcc.idxSlots_of γ ti _ $$ [Hird]
-  · iframe Hird
-    iunfold mvcc.idxPin
-    iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
-    iframe Hpin
-    ipureintro; rfl
-  imod (inv_alloc mvcc.poolN ⊤ (mvcc.poolBody γ)) $$ [Htka Htkoa Hslots] with #Hpool
-  · inext
-    iunfold mvcc.poolBody
-    iexists mvcc.nReaders
-    rw [Nat.sub_self, List.replicate_zero]
-    iframe Htka Htkoa Hslots
-    isplitl []
-    · iapply BigSepL.bigSepL_nil_intro; iempintro
-    ipureintro; exact Nat.le_refl _
-  ihave #Hpool : mvcc.readerPool γ $$ []
-  · iunfold mvcc.readerPool; iexact Hpool
   ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hwk Hwv2 Hbv1 Hcres]
   · iunfold mvcc.writerRes
     iexists [[], []]
@@ -384,6 +373,27 @@ theorem mvcc.NewStore.wp_proof
   -- `s.b.ForceCommit()`
   wp_apply HForce $$ [$Hrt1 $Hwt2] as Hrt1
   ispecialize Hrts $$ Hrt1
+  -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
+  -- (S5a) each slot with a reader token of the backend
+  ihave Hslots := mvcc.idxSlots_of γ ti _ $$ [Hird Hrts]
+  · iframe Hird Hrts
+    iunfold mvcc.idxPin
+    iexists ⟨GoInterface.ok bi, ti, sc, stopc⟩
+    iframe Hpin
+    ipureintro; rfl
+  imod (inv_alloc mvcc.poolN ⊤ (mvcc.poolBody γ)) $$ [Htka Htkoa Htkwa Hslots] with #Hpool
+  · inext
+    iunfold mvcc.poolBody
+    iexists mvcc.nReaders, 0, 0
+    rw [List.replicate_zero]
+    iframe Htka Htkoa Htkwa Hslots
+    isplitl []
+    · iapply BigSepL.bigSepL_nil_intro; iempintro
+    isplitl []
+    · iapply BigSepL.bigSepL_nil_intro; iempintro
+    ipureintro; omega
+  ihave #Hpool : mvcc.readerPool γ $$ []
+  · iunfold mvcc.readerPool; iexact Hpool
   (try wp_auto)
   -- `s.mu.Lock()`: the lock initialized with half `compactMainRev` and a quarter of the
   -- compaction revision's authority at `-1`, one slot taken
@@ -526,9 +536,9 @@ theorem mvcc.NewStore.wp_proof
     iframe ReadView WriteView
     iframe #
     iunfold mvcc.kvOver; ileft; ipureintro; rfl
-  isplitl [Hmus Hrevs Htks Hrts]
+  isplitl [Hmus Hrevs Htks]
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» γ
-    iframe Hmus Hrevs Hrts
+    iframe Hmus Hrevs
     iapply mvcc.ownToks_ones
     iexact Htks
   -- the compaction jobs' queue: the index compactor's token at `-1` beside the scheduler's
@@ -569,6 +579,8 @@ theorem mvcc.NewStore.wp_proof
     rw [hγs]; iexact HsStop
   isplitl [Hfw]
   · iexact Hfw
+  isplitl [Hwsd]
+  · iexact Hwsd
   -- the compaction right's half of the revision's authority at `-1`
   iexact Hright
 
