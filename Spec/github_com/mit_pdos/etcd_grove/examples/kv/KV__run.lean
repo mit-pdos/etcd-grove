@@ -1,7 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `(*KV).run(send)` (kv.go): the replica's driver of its node: (D22 S-r, 2026-10-21) install a
-`Ready`'s snapshot (its data, decoded, replaces the store's state; `ApplySnapshot`), append each
+`Ready`'s snapshot (its data, decoded, replaces the store's state, `install`, which answers this
+replica's waiters among the operations it covers (2026-10-22); `ApplySnapshot`), append each
 `Ready`'s entries to the storage, send its messages (`send`, a callback, gets what a
 transport needs: each message legitimately sent, of a term within the budget, and its
 read credit), note its read states, apply its committed entries (counting them: the

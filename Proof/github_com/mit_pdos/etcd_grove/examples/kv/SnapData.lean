@@ -6,8 +6,8 @@ Lean-first (no Rocq counterpart).
 What `run` needs to install and to take a snapshot (`KV__run.lean`), outside the spec/proof
 discipline (lemmas on `Base.lean`'s `StateEnc` and raft's predicates):
 
-* the data a replica's state encodes (`stateEnc_intro`: `encodeState`'s bindings and operations
-  of the maps `runOwn` holds encode the replicated state of its client history), and what a
+* the data a replica's state encodes (`stateEnc_intro`: `encodeState`'s bindings of the two
+  maps `runOwn` holds encode the replicated state of its client history), and what a
   decoded snapshot gives back (`maps_of_stateEnc`: `decodeState`'s maps are `runOwn`'s of the
   history the data encodes);
 * an entry's data fact pins its client datum (`entDataIs_odOf`, `entsDataIs_odOf`: `Base.lean`'s
@@ -33,34 +33,29 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
-/-- The bindings `kvs` and the operations `ops` of a replica's maps `K` and `A` (`encodeState`'s
-`KVsOf`, `OpsOf`) encode the replicated state of the history `H` the maps hold (`runOwn`). -/
-theorem stateEnc_intro (H : List (List w8)) (K : GMap (List w8) (List w8))
-    (A : GMap (List w8) Bool) (kvs : List (List w8 × List w8)) (ops : List (List w8))
+/-- The bindings `kvs` and `ops` of a replica's maps `K` and `A` (`encodeState`'s `KVsOf`)
+encode the replicated state of the history `H` the maps hold (`runOwn`). -/
+theorem stateEnc_intro (H : List (List w8)) (K A : GMap (List w8) (List w8))
+    (kvs ops : List (List w8 × List w8))
     (Hval : ∀ k, (K !! k).getD [] = kvFold H k) (HA : AppliedOk A H)
-    (HKw : KVsWf kvs) (HK : ∀ k, kvs.lookup k = K !! k)
-    (HOw : OpsWf ops) (HO : ∀ o, o ∈ ops ↔ (A !! o).isSome) :
+    (HK : KVsOf K kvs) (HO : KVsOf A ops) :
     StateEnc H (encState kvs ops) := by
-  refine ⟨kvs, ops, rfl, HKw, HOw, fun k => by rw [HK k]; exact Hval k, fun o => ?_⟩
-  rw [HO o, HA o]
-  by_cases h : o ∈ H ∧ (decodeOp o).isSome
-  · rw [if_pos h]; simp only [Option.isSome_some, true_iff]; exact h
-  · rw [if_neg h]; simp only [Option.isSome_none, Bool.false_eq_true, false_iff]; exact h
+  refine ⟨kvs, ops, rfl, HK.1, HO.1, fun k => by rw [HK.2 k]; exact Hval k, ?_⟩
+  have He : (fun o => ops.lookup o) = (fun o => A !! o) := funext HO.2
+  rw [He]; exact HA
 
 /-- What `decodeState` gives back of data that encodes the history `H` (`StateEnc`, at the
-bindings `kvs` and the operations `ops`): maps as `runOwn` holds them at `H`. -/
-theorem maps_of_stateEnc (H : List (List w8)) (kvs : List (List w8 × List w8))
-    (ops : List (List w8)) (K : GMap (List w8) (List w8)) (A : GMap (List w8) Bool)
+bindings `kvs` and `ops`): maps as `runOwn` holds them at `H`. -/
+theorem maps_of_stateEnc (H : List (List w8)) (kvs ops : List (List w8 × List w8))
+    (K A : GMap (List w8) (List w8))
     (Hk : ∀ k, (kvs.lookup k).getD [] = kvFold H k)
-    (Ho : ∀ o, o ∈ ops ↔ o ∈ H ∧ (decodeOp o).isSome)
+    (Ho : AnsTab (fun o => ops.lookup o) H)
     (HK : ∀ k, K !! k = kvs.lookup k)
-    (HAo : ∀ o, A !! o = if o ∈ ops then some true else none) :
+    (HAo : ∀ o, A !! o = ops.lookup o) :
     (∀ k, (K !! k).getD [] = kvFold H k) ∧ AppliedOk A H := by
-  refine ⟨fun k => by rw [HK k]; exact Hk k, fun o => ?_⟩
-  rw [HAo o]
-  by_cases h : o ∈ ops
-  · rw [if_pos h, if_pos ((Ho o).1 h)]
-  · rw [if_neg h, if_neg (fun h' => h ((Ho o).2 h'))]
+  refine ⟨fun k => by rw [HK k]; exact Hk k, ?_⟩
+  have He : (fun o => A !! o) = (fun o => ops.lookup o) := funext HAo
+  unfold AppliedOk; rw [He]; exact Ho
 
 section ghost
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

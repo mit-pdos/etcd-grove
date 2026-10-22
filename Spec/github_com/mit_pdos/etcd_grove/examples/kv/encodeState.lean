@@ -1,8 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `encodeState(kv, applied)` (kv.go, D22 S-r): the store's map and applied table as a snapshot's
-data (`encState`), of some list of its bindings and some list of its operations (in Go, in
-increasing order; see `less.spec`).
+data (`encState`), of some list of the map's bindings and some list of the table's (in Go, each
+in increasing order of the keys; see `less.spec`). (2026-10-22, the snapshot-liveness fix: the
+table maps each operation applied to its answer, and both are written by `putMap`.)
 -/
 module
 
@@ -25,23 +26,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 
-/-- The bindings `kvs` are the map `K`'s, and well formed for `decodeState` (`KVsWf`). -/
-def KVsOf (K : GMap GoString GoString) (kvs : List (GoString × GoString)) : Prop :=
-  KVsWf kvs ∧ ∀ k, kvs.lookup k = K !! k
-
-/-- The operations `ops` are the table `A`'s keys, and well formed (`OpsWf`). -/
-def OpsOf (A : GMap GoString Bool) (ops : List GoString) : Prop :=
-  OpsWf ops ∧ ∀ o, o ∈ ops ↔ (A !! o).isSome
-
 /-- See the file header. -/
 abbrev encodeState.spec : Prop :=
-  ∀ (mK mA : Loc) (K : GMap GoString GoString) (A : GMap GoString Bool) (dq1 dq2 : DFrac),
+  ∀ (mK mA : Loc) (K A : GMap GoString GoString) (dq1 dq2 : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       mK ↦${dq1} K ∗ mA ↦${dq2} A }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.encodeState)) (Val #mK)) (Val #mA))
   {{ (s : GoSlice), RET #s; mK ↦${dq1} K ∗ mA ↦${dq2} A ∗
-      ∃ (kvs : List (GoString × GoString)) (ops : List GoString),
-        s ↦* encState kvs ops ∗ ⌜KVsOf K kvs ∧ OpsOf A ops⌝ }}
+      ∃ (kvs ops : List (GoString × GoString)),
+        s ↦* encState kvs ops ∗ ⌜KVsOf K kvs ∧ KVsOf A ops⌝ }}
 
 end spec
 

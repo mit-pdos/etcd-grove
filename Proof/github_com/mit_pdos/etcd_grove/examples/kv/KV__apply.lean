@@ -32,11 +32,20 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
 set_option hygiene false in
-/-- `apply` from `if replica == r.id` on (the waiter's removal, the lookup of the key's value
-`v := r.kv[key]` and its handoff), with the new map `Kn` (`HvalN`) in `HK`. -/
+/-- `apply` from `v := r.kv[key]` on (2026-10-22: the answer `v` recorded in the table of the
+operations applied, `r.applied[...] = v`; then the waiter's removal and its handoff), with the
+new map `Kn` (`HvalN`) in `HK`. -/
 local macro "apply_rest" : tactic => `(tactic| (
     have HvK : (Kn !! key).getD [] = kvFold (firstOcc ods ++ [em.Data']) (dkey em.Data') := by
       rw [kvFold_snoc, HvalN, show dkey em.Data' = key by simp [dkey, Hdec]]
+    wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
+    try wp_auto
+    wp_apply wp_Entry_GetData.1 e DFrac.discard em $$ [$(frameH `Hpbinit) $(frameH `He)]
+      as %ds2 ⟨#Hd2, -⟩
+    wp_apply wp_bytes_to_string ds2 em.Data' DFrac.discard $$ [$(frameH `Hd2)] as -
+    wp_apply wp_mapInsert go.string mA A em.Data' ((Kn !! key).getD (zero_val (List w8)))
+      $$ [$(frameH `HA)] as HA
+    try wp_auto
     wp_if_destruct
     · -- this replica's operation: its waiter, if any
       wp_apply wp_map_lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.string) mW W sq
@@ -45,7 +54,6 @@ local macro "apply_rest" : tactic => `(tactic| (
       | none =>
         simp only [Option.getD_none, Option.isSome_none, decide_false, Bool.false_eq_true]
         try wp_auto
-        wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
         wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hwaiters Hrds]
         · inext
           unfold lockInv
@@ -74,7 +82,6 @@ local macro "apply_rest" : tactic => `(tactic| (
         · rw [Hif]; iexact Hmint
         subst Hd0
         try wp_auto
-        wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
         wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hwaiters Hrds]
         · inext
           unfold lockInv
@@ -104,7 +111,6 @@ local macro "apply_rest" : tactic => `(tactic| (
         iapply Hfin $$ %Kn %HvalN HmK HK HmA HA
     · -- another replica's operation
       try wp_auto
-      wp_apply wp_map_lookup1 go.string go.string mK Kn key (DFrac.own 1) $$ [$(frameH `HK)] as HK
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) Hns HmW HW Hseq Hwaiters Hrds]
       · inext
         unfold lockInv
@@ -228,12 +234,13 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
       wp_auto
       wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
       iNamed HR
-      -- `string(e.GetData())`
+      -- `_, done := r.applied[string(e.GetData())]`
       wp_apply wp_Entry_GetData.1 e DFrac.discard em $$ [$Hpbinit $He] as %ds1 ⟨#Hd1, -⟩
       wp_apply wp_bytes_to_string ds1 em.Data' DFrac.discard $$ [$Hd1] as -
-      wp_apply wp_map_lookup1 go.string go.bool mA A em.Data' (DFrac.own 1) $$ [$HA] as HA
+      wp_apply wp_map_lookup2 go.string go.string mA A em.Data' (DFrac.own 1) $$ [$HA] as HA
       have Hdsome : (decodeOp em.Data').isSome := by rw [Hdec]; rfl
-      rw [show (zero_val Bool) = false from rfl, appliedOk_lookup A _ em.Data' HA Hdsome]
+      rw [appliedOk_lookup A _ em.Data' HA Hdsome]
+      try wp_auto
       wp_if_destruct
       · -- applied before: unlock, skip
         wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hwaiters Hrds]
@@ -244,26 +251,30 @@ theorem KV.apply.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG))
           ipureintro; exact HWdom
         iapply HΦ
         iapply Hkeep $$ HmK HK HmA HA
-        ipureintro; exact Hskip (.inr Hif)
-      have Hnew := Hif
-      -- the first occurrence of `em.Data'`: the operation applied
+        ipureintro; exact Hskip (.inr (of_decide_eq_true Hif))
+      have Hnew : em.Data' ∉ firstOcc ods := fun h => Hif (decide_eq_true h)
+      -- the first occurrence of `em.Data'`: the operation applied, its answer recorded
       iclear Hkeep
       ihave Hfin : iprop(∀ Kn : GMap (List w8) (List w8),
           ⌜∀ k, (Kn !! k).getD [] = kvApply (kvFold (firstOcc ods)) em.Data' k⌝ -∗
           r.[RKV, go!"kv"] ↦ mK -∗ mK ↦$ Kn -∗
-          r.[RKV, go!"applied"] ↦ mA -∗ mA ↦$ A.insert em.Data' true -∗
+          r.[RKV, go!"applied"] ↦ mA -∗
+          mA ↦$ A.insert em.Data' ((Kn !! key).getD (zero_val (List w8))) -∗
           runOwn γr r (ap ++ [em])) $$ []
       · iintro %Kn %HvalN HmK HK HmA HA'
         unfold runOwn
-        iexists mK, Kn, mA, A.insert em.Data' true, ods ++ [some em.Data']
+        have HvK : (Kn !! key).getD (zero_val (List w8)) =
+            kvFold (firstOcc ods ++ [em.Data']) (dkey em.Data') := by
+          rw [show zero_val (List w8) = [] from rfl, kvFold_snoc, HvalN,
+            show dkey em.Data' = key by simp [dkey, Hdec]]
+        iexists mK, Kn, mA, A.insert em.Data' ((Kn !! key).getD (zero_val (List w8))),
+          ods ++ [some em.Data']
         rw [← Hraft, firstOcc_snoc, occStep_nmem _ em.Data' Hnew]
         iframe HmK HK HmA HA' Hce Hods'
         ipureintro
-        refine ⟨fun k => ?_, appliedOk_insert A _ em.Data' HA Hnew Hdsome⟩
-        rw [kvFold_snoc]; exact HvalN k
-      wp_apply wp_Entry_GetData.1 e DFrac.discard em $$ [$Hpbinit $He] as %ds2 ⟨#Hd2, -⟩
-      wp_apply wp_bytes_to_string ds2 em.Data' DFrac.discard $$ [$Hd2] as -
-      wp_apply wp_mapInsert go.string mA A em.Data' true $$ [$HA] as HA
+        refine ⟨fun k => ?_, ?_⟩
+        · rw [kvFold_snoc]; exact HvalN k
+        · rw [HvK]; exact appliedOk_insert A _ em.Data' HA Hnew Hdsome
       have HappE : kvApply (kvFold (firstOcc ods)) em.Data' =
           kvNext kd key val (kvFold (firstOcc ods)) := by simp [kvApply, Hdec]
       wp_if_destruct

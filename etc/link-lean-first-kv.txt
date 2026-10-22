@@ -45,8 +45,10 @@ putBytes:
 getBytes:
 less:
 sortStrings: less
-encodeState: putBytes sortStrings
-decodeState: getBytes
+putMap: putBytes sortStrings
+getMap: getBytes
+encodeState: putMap
+decodeState: getMap
 NewStorage: NewMemoryStorage
 Storage__InitialState:
 Storage__Snapshot: MemoryStorage__Snapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
@@ -59,7 +61,8 @@ KV__Read: encode node__ReadIndex
 KV__TransferLeadership: node__TransferLeadership
 KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
-KV__run: fits KV__apply KV__answer encodeState decodeState node__Ready node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
+KV__install: decode
+KV__run: fits KV__apply KV__answer KV__install encodeState decodeState node__Ready node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
 kv_New: KV__run
 # the cluster driver (examples/kv/cluster.go)
 kv_quietLogger__Debugf:

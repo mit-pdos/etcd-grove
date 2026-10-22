@@ -460,10 +460,10 @@ instance rsOk_persistent (γ : RaftNames) (v : ReadState) : Persistent (rsOk (GF
   unfold rsOk; infer_instance
 
 /-- The applier's state (the `run` goroutine's): the store's map, every key's value (a key it
-lacks has the value `[]`, as for Go's lookup), and the applied-encodings table, at the
-committed prefix `ap` it applied. -/
+lacks has the value `[]`, as for Go's lookup), and the applied-encodings table (2026-10-22: each
+with its answer, `AppliedOk`), at the committed prefix `ap` it applied. -/
 def runOwn (γr : RKVNames) (r : Loc) (ap : List EntryM) : IProp GF :=
-  iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (mA : Loc) (A : GMap (List w8) Bool)
+  iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (mA : Loc) (A : GMap (List w8) (List w8))
       (ods : List (Option (List w8))),
     "HmK" ∷ r.[RKV, go!"kv"] ↦ mK ∗
     "HK" ∷ mK ↦$ K ∗

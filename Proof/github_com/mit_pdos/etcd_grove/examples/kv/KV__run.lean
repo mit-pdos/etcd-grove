@@ -18,7 +18,8 @@ bounds it below `2^64`). A `Ready` comes with or without a snapshot (`readyDataL
 * with a snapshot: its data certificate (`readyOut`'s certificate in the storage's registry, read
   through `memCertInv`) says that the data encodes the replicated state of a committed prefix as
   long as the snapshot's index, which is the loan's committed log (`isCommitted_agree`); its
-  decoded maps (`decodeState`) are `runOwn`'s at that log (`maps_of_stateEnc`); the storage
+  decoded maps (`decodeState`) are `runOwn`'s at that log (`maps_of_stateEnc`), which `install`
+  puts in place, answering this replica's waiters among the snapshot's operations; the storage
   installs it (`ApplySnapshot`, newer than the application's snapshot: `snapIndex` is at most the
   applied index, below the snapshot's), then takes the entries after it (`memStorage_handout`,
   `memStorage_absorb`), the receipt `snapReceipt`;
@@ -36,6 +37,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__answer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__install
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.fits
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.encodeState
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.decodeState
@@ -100,6 +102,7 @@ theorem KV.run.wp_proof
     (wp_fits : kv.fits.spec (GF := GF) (hG := hG))
     (wp_apply : kv.KV.apply.spec (GF := GF) (hG := hG))
     (wp_answer : kv.KV.answer.spec (GF := GF) (hG := hG))
+    (wp_install : kv.KV.install.spec (GF := GF) (hG := hG))
     (wp_encodeState : kv.encodeState.spec (GF := GF) (hG := hG))
     (wp_decodeState : kv.decodeState.spec (GF := GF) (hG := hG))
     (wp_node_Ready : node.Ready.spec (GF := GF) (hG := hG))
@@ -291,13 +294,14 @@ theorem KV.run.wp_proof
       · rw [HdEq]; iexact Hd
       try wp_auto
       try rw [← Hptr]
-      -- the store's state replaced, under the lock
-      iunfold runOwn at Hrun
-      iNamed Hrun
-      wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
-      try wp_auto
-      wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked HR]
-      · inext; iexact HR
+      -- the store's state replaced (`install`, 2026-10-22: which answers this replica's waiters
+      -- among the snapshot's operations): `runOwn` at the loan's committed log
+      obtain ⟨HvalS, HAS⟩ := maps_of_stateEnc _ kvs ops K' A' Hk Ho HKA.1 HKA.2
+      rw [← Hods_eq] at HvalS HAS
+      ihave #Hodsn' : iprop([∗list] e;o ∈ l.dlv;odsn, entDataIs γr.raft e o) $$ []
+      · rw [← Hraft]; iexact Hodsn
+      wp_apply wp_install γr γp r id n st ds l.dlv odsn mK' mA' K' A' HvalS HAS
+        $$ [$Hpkg $Hrep $Hrun $HK' $HA' $Hdl' $Hodsn'] as Hrun
       try wp_auto
       try rw [← Hptr]
       -- `applied = rd.Snapshot.GetMetadata().GetIndex()`, `snapIndex = applied`
@@ -325,16 +329,6 @@ theorem KV.run.wp_proof
         omega
       -- the entries after the snapshot: handed to the storage
       have Hσ' : ({ memStorApplied l.snap with fl := σ.fl } : StorState).prev = snapId l.snap := rfl
-      -- `runOwn` at the loan's committed log
-      ihave Hrun : runOwn γr r l.dlv $$ [HmK HmA HK' HA']
-      · unfold runOwn
-        iexists mK', K', mA', A', odsn
-        iframe HmK HmA HK' HA'
-        rw [← Hraft]
-        iframe Hdl Hodsn
-        ipureintro
-        rw [Hods_eq]
-        exact maps_of_stateEnc _ kvs ops K' A' Hk Ho HKA.1 HKA.2
       have Hidx : (l.dlv.length : Int) = uint.Z l.snap.Metadata'.Index' := by
         rw [Hdlv]; exact Int.toNat_of_nonneg (by word)
       by_cases Hes0 : es = []
@@ -533,7 +527,7 @@ theorem KV.run.wp_proof
       -- the snapshot's certificates: the cluster's voters, and the data of the applied log
       ihave %Hods_eq := entsDataIs_odOf γr.raft (D0 ++ ce) ods $$ Hods
       have HSE : StateEnc (firstOcc ods) (encState kvs ops) :=
-        stateEnc_intro _ K A kvs ops Hval HA Hko.1.1 Hko.1.2 Hko.2.1 Hko.2.2
+        stateEnc_intro _ K A kvs ops Hval HA Hko.1 Hko.2
       have Ha61 : uint.Z a' < 2 ^ 61 := by omega
       ihave #Hsd : snapDataOk γr.raft a' (encState kvs ops) $$ []
       · unfold snapDataOk
