@@ -26,7 +26,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.call
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.isWrite
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section

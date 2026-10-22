@@ -1,7 +1,7 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# linkvtxn: the Go model's configurations, against `linkv/PendModel.lean`'s (linkv-txn stage E)
+# linkvtxn: the Go model's configurations, against `linkvtxn/PendModel.lean`'s (linkv-txn stage E)
 
 `examples/linkvtxn/linkvtxn.go`'s `Model()` keeps a state as a list of configurations (`mcfg`),
 each a store and the failed writes that may still take effect (`pend`, a list of `Input`s). As

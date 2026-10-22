@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 # linkvtxn: the Go model's store against the robustness model (linkv-txn stage E)
 
-The abstraction of `ModelLemmas.lean`'s pure Go store to `linkv/TxnModel.lean`'s (`absSt`), the
+The abstraction of `ModelLemmas.lean`'s pure Go store to `linkvtxn/TxnModel.lean`'s (`absSt`), the
 decoders of the Go `Input` and `Output` (`decIn`, `decOut`), and **`mstepL_abs`**: on a good store
 (`GoodSt`: entries sorted strictly by key, every key the workload's), `mstep` of a decodable input
 is the model's `mStep` (the state, and the output decoded), and keeps the store good.

@@ -7,7 +7,7 @@ Lean-first (no Rocq counterpart).
 configurations (`mcfg`), each a store (`store`: a list of `entry`s sorted by key, and the
 revision) and the pending failed writes (a list of `Input`s). Here are the pure functions its
 helpers compute, as their specs state them (`Spec/.../linkvtxn/<fn>.lean`), and how they abstract
-to `linkv/TxnModel.lean`'s model (`txnSpec`, as `linkv/PendModel.lean`'s `pSeq`):
+to `linkvtxn/TxnModel.lean`'s model (`txnSpec`, as `linkvtxn/PendModel.lean`'s `pSeq`):
 
 - the store's helpers: `lookupL`, `setKeyL` (`setR`), `delKeyL`, `putL`, `holdsL`, `runOpsL`;
   the input's and output's fields as lists (`cmpsOfL`, `thenOfL`, `elseOfL`, `resOfL`,
@@ -23,7 +23,7 @@ This file has the definitions and the store-level lemmas; `Steps.lean` has the c
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.TxnModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModel
 public import Code.github_com.mit_pdos.etcd_grove.examples.linkvtxn
 
 @[expose] public section

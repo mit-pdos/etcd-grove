@@ -17,12 +17,14 @@ key's value (`mvcc.findKey`). On a state sorted by key (every log's is, `mvcc.st
 - so the model's `CStep` on the configuration `⟨absKV σ, pend⟩` follows `kvOpStep`
   (`cstep_putOk`, `cstep_putErr_applied`, `cstep_getOk`), and the bootstrap's empty store is
   the model's initial one (`absKV_empty`).
+
+The client's put and get (`putOp`, `getOp`) and the server's step on them (`kvOpStep_put_eq`,
+`kvOpStep_put_sorted`, `kvOpStep_get`) are `linkvtxn/ModelKV.lean`'s.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.KVModel
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelDefs
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.ModelKV
 
 @[expose] public section
 
@@ -41,42 +43,6 @@ variable [ext : FfiSyntax]
 def absKV (σ : KVState) : Store GoString GoString :=
   fun k => (mvcc.findKey k σ.kvs).map EtcdKv.value
 
-/-- The put of `k ↦ v` with no options (`client/v3/Results.lean`'s `putKeyOp`: what
-`cli.Put(ctx, k, v)` sends). -/
-abbrev putOp (k v : GoString) : OpFull := txn.putOpOf k v (W64 0) false false false
-
-/-- The get of `k` with no options (`client/v3/Results.lean`'s `getKeyOp`: what
-`cli.Get(ctx, k)` sends). -/
-abbrev getOp (k : GoString) : OpFull :=
-  txn.rangeOpOf k [] (W64 0) (W64 0) (W32 0) (W32 0) false false false (W64 0) (W64 0) (W64 0)
-    (W64 0)
-
-/-- The put of `k ↦ v` finds the value it wrote (`client/v3/Results.lean`'s
-`findKey_putKv_value`, restated to keep the client's proof out of the imports). -/
-theorem findKey_putKv_val (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (r : w64)
-    (k v : GoString) (l : w64) :
-    ∃ nv, mvcc.findKey k (putKv r k v l s) = some nv ∧ nv.key = k ∧ nv.value = v := by
-  unfold putKv
-  simp only
-  rw [mvcc.findKey_btInsert _ s hs]
-  cases h : s.find? (fun v => decide (v.key = k)) with
-  | none =>
-    refine ⟨{ key := k, createRev := r, modRev := r, version := W64 1, value := v, lease := l },
-      ?_, rfl, rfl⟩
-    simp
-  | some kv =>
-    have hk : kv.key = k := by simpa using List.find?_some h
-    refine ⟨{ kv with modRev := r, version := kv.version + W64 1, value := v, lease := l }, ?_,
-      hk, rfl⟩
-    simp [hk]
-
-/-- What `kvOpStep` does with a plain put: commit its one change at the next revision. -/
-theorem kvOpStep_put_eq (k v : GoString) (σ : KVState) :
-    kvOpStep (.put (putOp k v)) σ =
-      ⟨putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs, σ.rev + 1⟩ := by
-  simp [kvOpStep, KVState.commit, txn.needsPrev, txn.putOpOf, OpFull.newOp, txn.putChangeOf,
-    txn.putValOf, txn.putLeaseOf, mvcc.applyChanges, mvcc.applyChange]
-
 /-- **A put steps the store as the model's put.** -/
 theorem absKV_put (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess) :
     absKV (kvOpStep (.put (putOp k v)) σ) = (absKV σ).set k v := by
@@ -91,19 +57,8 @@ theorem absKV_put (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLe
   · simp only [hk, ite_false]
     rw [mvcc.findKey_putKv_other hs _ k' k v _ (Ne.symm hk)]
 
-/-- A put keeps the state sorted. -/
-theorem kvOpStep_put_sorted (k v : GoString) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess) :
-    (kvOpStep (.put (putOp k v)) σ).kvs.Pairwise etcdKvLess := by
-  rw [kvOpStep_put_eq]
-  exact mvcc.putKv_sorted hs _ k v _
-
-/-- **A get changes nothing.** -/
-theorem kvOpStep_get (k : GoString) (σ : KVState) : kvOpStep (.range (getOp k)) σ = σ := rfl
-
 /-- The empty state's store is the model's initial one. -/
 theorem absKV_empty (r : Nat) : absKV ⟨[], r⟩ = fun _ => none := rfl
-
-/-! ### The model's steps follow the server's -/
 
 end kv
 

@@ -3,11 +3,11 @@ Lean-first (no Rocq counterpart).
 
 # linkv: a deterministic store with failed writes, as a porcupine model (linkv-txn stage C)
 
-The construction of `KVModel.lean` (2026-10-19, values-only puts and gets), generic: a
-deterministic sequential store (`step : I → St → St × O`, the operation's effect and its answer)
+The construction of linkv's `KVModel.lean` (2026-10-19, values-only puts and gets; linkv retired,
+D34), generic: a deterministic sequential store (`step : I → St → St × O`, the operation's effect and its answer)
 whose writes (`isWrite`) may fail with an unknown effect. A write that returned an error may
 have taken effect, or not, and possibly *after* its call returned (the proposal still in raft:
-`KVModel.lean`'s header, etcd's robustness checker's `NonDeterministicModel` and its infinite
+linkv's `KVModel.lean` header, etcd's robustness checker's `NonDeterministicModel` and its infinite
 return times); a failed write is left **pending** and may take effect at any later time, at most
 once, or never (`Silent`); a failed read constrains nothing. `SeqModel.step` is a function, so
 the model's state is the **set of configurations** the history may have reached (`PSet`, the
@@ -17,6 +17,8 @@ unchanged. An answer is `ok o` (the call returned `o`) or `err`.
 
 `TxnModel.lean` instantiates it with etcd's KV operations (gets, lists, puts, deletes, flat
 transactions, every answer with its revision).
+Moved from `examples/linkv/` when linkv was retired (2026-10-22, `notes/decisions.md` D34); the
+names keep their namespace `linkv`.
 -/
 module
 

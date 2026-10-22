@@ -18,7 +18,7 @@ operation's result, as `call`'s `vrOf` and `TRes{...}`), `errOut` the one of a f
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Steps
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.TxnModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModelKV
 
 @[expose] public section
 

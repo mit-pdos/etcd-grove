@@ -33,7 +33,7 @@ The client's calls are the client package's (`client/v3/ClientPutGet.lean`, D31:
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv.Apply
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Proph
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Perennial.Proof.context.Link
 

@@ -23,11 +23,13 @@ gets, puts and deletes. On a sorted state:
 - the state's shape is kept (`kvOpStep_sorted`; `kvOpStep_keysIn` for inputs of the workload's
   keys, what `list` needs), the start is the model's (`absSt_init`), and the transactions are
   plain and flat (`txnPlain_txnOf`, `opsFlat_tOpOf`).
+Moved from `examples/linkv/` when linkv was retired (2026-10-22, `notes/decisions.md` D34); the
+names keep their namespace `linkv`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.TxnModel
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.ModelKV
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.TxnModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.ModelKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
 
 @[expose] public section

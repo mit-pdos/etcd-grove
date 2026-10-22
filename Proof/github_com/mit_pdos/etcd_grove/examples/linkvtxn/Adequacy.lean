@@ -8,7 +8,7 @@ process, a client with etcd's default configuration, `clients` clients of `ops` 
 operations each through it (`lintest.Run`: gets, lists, puts, deletes, multi-operation
 transactions and compare-and-sets, robustness's `EtcdPutDeleteLease` workload without leases and
 stale reads), the recorded history checked by porcupine against the model of etcd's KV
-(`linkv/TxnModel.lean`'s, robustness's `EtcdState`), and a panic ("linkvtxn: porcupine found the
+(`linkvtxn/TxnModel.lean`'s, robustness's `EtcdState`), and a panic ("linkvtxn: porcupine found the
 history not linearizable") if porcupine answers `Illegal` -- started from a fresh state: for every
 real execution of `n` steps, the main thread's result, if it has one, is `Ok` or `Unknown`, no
 thread is stuck, and no thread has ended in a panic.

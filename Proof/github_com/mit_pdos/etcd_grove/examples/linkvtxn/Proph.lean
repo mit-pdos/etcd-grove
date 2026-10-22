@@ -36,7 +36,7 @@ them: `primitive.Assumptions.NewProph_unfold` (`NewProph.impl`), `ProphId.TypeAs
 the generated pointer-receiver wrappers `ptr_ResolveBool_unfold`/`ptr_ResolveU64_unfold` (load
 the `ProphId`, then call the value method), with the specs `primitive.wp_NewProph` and
 `ProphId.wp_ResolveBool`/`wp_ResolveU64` over the untyped `proph p pvs`. The Go program
-(`examples/linkv/linkv.go`, `Apply`) calls `p := primitive.NewProph()`, keeps `p` in a local
+(`examples/linkv/linkv.go`, `Apply`, and since `examples/linkvtxn/linkvtxn.go`) calls `p := primitive.NewProph()`, keeps `p` in a local
 variable (a heap cell, in the translation) and calls `p.ResolveBool(!out.Err)` on it: Go takes
 the variable's address, so the translation calls the pointer-receiver method
 (`MethodResolve (PointerType ProphId.ty) "ResolveBool"` on the cell), whose spec is
@@ -48,6 +48,8 @@ predeclared types or making them reducible, is to propose to Perennial on its ow
 is a `Bool` (`true`: the call returned no error), all the commit needs (an `ok` get's value is
 the one the server read at the commit). `ResolveU64` has no wrapper here: the program does not
 call it.
+Moved from `examples/linkv/` when linkv was retired (2026-10-22, `notes/decisions.md` D34); the
+names keep their namespace `linkv`.
 -/
 module
 

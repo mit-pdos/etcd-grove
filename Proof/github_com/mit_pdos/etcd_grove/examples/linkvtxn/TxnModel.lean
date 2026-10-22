@@ -22,10 +22,12 @@ Every answer carries its header revision (`MOut`: robustness's `EtcdResponse.Rev
 model is a `PendSpec` (`PendModel.lean`): a failed write (a put, a delete, a transaction with a
 write) may take effect later, at most once, or never; a failed read constrains nothing. Its
 relation to etcd's state and the server's step is `TxnModelKV.lean`.
+Moved from `examples/linkv/` when linkv was retired (2026-10-22, `notes/decisions.md` D34); the
+names keep their namespace `linkv`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.PendModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.PendModel
 public import Perennial.Std.Word
 
 @[expose] public section
