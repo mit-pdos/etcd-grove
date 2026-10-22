@@ -8,7 +8,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
   --project    only this project (raft, etcd, kv, putget, putget3, linkv, linkvtxn, porcupine, bridge,
-               lintest, raft-witness or kvwitness; repeatable; default: all).
+               lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -284,6 +284,11 @@ PROJECTS = [
             "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
+            # with bodies (client/v3/kubernetes.toml): the client the Kubernetes API server's
+            # etcd3 store calls (project k8s-apiserver; notes/k8s-etcd3-goose.md)
+            "go.etcd.io/etcd/client/v3/kubernetes",
+            # names only: grpc's logger, which the etcd3 store names (project k8s-apiserver)
+            "google.golang.org/grpc/grpclog",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
@@ -339,7 +344,8 @@ PROJECTS = [
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
-               "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
+               os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
+               "go_opentelemetry_io",
                "net", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
@@ -569,6 +575,65 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="k8s-apiserver",
+        # The survey of the Kubernetes API server's etcd3 storage backend
+        # (notes/k8s-etcd3-goose.md): `k8s.io/apiserver/pkg/storage/etcd3` and
+        # `k8s.io/apiserver/pkg/storage`, with bodies, over etcd's client (the etcd project's
+        # translation, with `client/v3/kubernetes`). A Go module of this repository
+        # (examples/k8setcd3) requiring k8s.io/apiserver at a master pseudo-version (2026-10-21)
+        # and replacing etcd's modules by the etcd fork at the etcd pin; the API server's other
+        # dependencies names only (their .toml).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8setcd3"),
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
+                    "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    "iter=", "path="],
+        packages=[
+            "k8s.io/apiserver/pkg/storage/etcd3",
+            "k8s.io/apiserver/pkg/storage",
+            # types and names only (their .toml): what the two name
+            "k8s.io/apimachinery/pkg/api/errors",
+            "k8s.io/apimachinery/pkg/api/validate/content",
+            "k8s.io/apimachinery/pkg/api/meta",
+            "k8s.io/apimachinery/pkg/apis/meta/v1",
+            "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
+            "k8s.io/apimachinery/pkg/conversion",
+            "k8s.io/apimachinery/pkg/fields",
+            "k8s.io/apimachinery/pkg/labels",
+            "k8s.io/apimachinery/pkg/runtime",
+            "k8s.io/apimachinery/pkg/runtime/schema",
+            "k8s.io/apimachinery/pkg/sharding",
+            "k8s.io/apimachinery/pkg/types",
+            "k8s.io/apimachinery/pkg/util/errors",
+            "k8s.io/apimachinery/pkg/util/runtime",
+            "k8s.io/apimachinery/pkg/util/validation/field",
+            "k8s.io/apimachinery/pkg/util/wait",
+            "k8s.io/apimachinery/pkg/watch",
+            "k8s.io/apiserver/pkg/audit",
+            "k8s.io/apiserver/pkg/endpoints/request",
+            "k8s.io/apiserver/pkg/features",
+            "k8s.io/apiserver/pkg/storage/etcd3/metrics",
+            "k8s.io/apiserver/pkg/storage/feature",
+            "k8s.io/apiserver/pkg/storage/value",
+            "k8s.io/apiserver/pkg/util/feature",
+            "k8s.io/apiserver/pkg/util/flowcontrol",
+            "k8s.io/component-base/tracing",
+            "k8s.io/component-base/featuregate",
+            "k8s.io/klog/v2",
+            "k8s.io/utils/clock",
+            "encoding/json",
+            "encoding/base64",
+            "iter",
+            "path",
+        ],
+        owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
+               os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
+               os.path.join("encoding", "base64"), "iter", "path"],
+        counted_modules=["k8s.io/apiserver"],
     ),
     Project(
         name="kvwitness",

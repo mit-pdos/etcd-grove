@@ -1,0 +1,8 @@
+# Translated with bodies: what the etcd3 store calls (preconditions, continue tokens, errors,
+# SelectionPredicate, the versioner; notes/k8s-etcd3-goose.md), except what does not elaborate
+# with the pinned Goose (names only, bodies axiomatized): `InvalidError.Error` calls
+# `field.ErrorList.ToAggregate().Error()`, whose receiver is the `Aggregate` interface of
+# k8s.io/apimachinery/pkg/util/errors, a package this file does not import: Goose refers to it
+# through the imported package of the same name, the standard library's `errors` (gap G3).
+translate = ["*", "!InvalidError.Error"]
+imports = ["*"]

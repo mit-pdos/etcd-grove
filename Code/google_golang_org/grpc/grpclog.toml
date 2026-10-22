@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized. (The Kubernetes API
+# server's etcd3 store names grpc's logger; project k8s-apiserver.)
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

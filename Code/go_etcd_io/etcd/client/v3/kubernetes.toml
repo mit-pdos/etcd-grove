@@ -1,0 +1,4 @@
+# Translated in full (every declaration, with bodies): the client the Kubernetes API
+# server's etcd3 store calls (project k8s-apiserver; notes/k8s-etcd3-goose.md).
+translate = ["*"]
+imports = ["*"]
