@@ -41,7 +41,7 @@ abbrev startMember.spec : Prop :=
     (ps : List w64) (bootLog : List EntryM) (dir : w64 → List GoString) (id : w64)
     (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF)
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
-  threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet ps → γ.reDyn = none → γ.reCCOk = ccOk ps → γ.reBoot = bootLog →
   γ.reNoSnap = true → bootLog.length ≤ 2 ^ 60 →
   γn.N = srvNet γ bud → γn.dir = dir → go!"http://" ++ peerAddr ∈ dir id →

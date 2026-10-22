@@ -24,7 +24,9 @@ plan, `notes/partition-plan.md`), restated, with the trust base of each printed 
   the history not linearizable"), and the main thread's result, if any, is `Ok` or `Unknown`;
   under linkv3's hypotheses (`linkv3_safe`) at linkv3p's configuration, v3rpc's method sets as
   an instance, `Run`'s bounds on `clients` and `ops` (`linkv_safe`'s, as `linkvtxn_safe`'s)
-  and the schedule's length below `2^63`.
+  and the schedule's length below `2^63`; executions of `n + 2 ≤ 2^29` steps (watchkv's bound,
+  since 2026-10-21: a member's watch run slot needs the thread bound below Go's `RWMutex`
+  reader bound; until then `2^31`).
 
 What the theorem says of partitions: the network model (`Transport.Start`'s axiom) lets any
 message be lost, so the proofs of raft and of etcd's server never needed delivery; this program
@@ -106,7 +108,7 @@ theorem linkv3p_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : g.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
+    (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=

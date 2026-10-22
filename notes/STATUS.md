@@ -523,8 +523,9 @@ and a resume at a lagging member needs a cluster-wide `startRead` case (W2). The
 before the watch-resume fixes F1–F4). D30 approved. W2a done: mvcc's progress bound comes from etcd's own guard
 (`progressIfSync`'s `rev < w.startRev`), so a watch's create needs nothing of the member it reaches
 (`startRead` removed; the watcher's bit `now` is the server's). W2b done: the lifting lemma
-(`kv_cert_cmp`, `KVCertCmp.lean`). Next: W2c (linkv3p's members serve the watch stream), then W1
-(D30's specs) and W3.
+(`kv_cert_cmp`, `KVCertCmp.lean`). W2c done: linkv3p's members serve the watch stream and export its
+registration (`memberServed`); `linkv3p_safe`'s step bound is now `n + 2 ≤ 2^29` (watchkv's), and
+its collection gains 8 axioms already in watchkv's. Next: W1 (D30's specs), then W3.
 
 ## Read retries (2026-10-21, branch `read-retry`)
 

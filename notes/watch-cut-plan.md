@@ -213,6 +213,20 @@ settles Q4, so linkv3p's translation and proofs are untouched. One run under `-r
 two members' certified logs of more than two revisions are in prefix order, so they agree at every
 revision both have. Not yet used: W3 imports it.
 
+**W2c done: linkv3p's members serve the watch stream.**
+- `startMember` keeps NewServer's 64 watchable-store readers (`grpcCfgOk_of_started_w'`, no longer
+  through putget3's `memberUp`) and one request-path reader, which make one watch run slot. Run
+  slots are a pool returned at a run's end (`grpc.serveStream`), so reconnects do not use them up.
+- `etcd_watch_served_chain` serves `/etcdserverpb.Watch/Watch` at the client address.
+  `memberServed` exports the member's watch server and the registration, which `Main` drops until
+  W4.
+- **The closed theorem's step bound drops** from `n + 2 ≤ 2^31` to `n + 2 ≤ 2^29`, as watchkv's:
+  a watch run slot needs `threadBound ≤ actualMaxReaders` (Go's `RWMutex` reader bound, just under
+  `2^30`). `linkv3p_safe` now covers executions of up to `2^29 - 2` steps.
+- linkv3p's trust base gains 8 axioms, all already in watchkv's (`grpc.serveStream`, the server
+  stream's `Context`/`Recv`/`Send`, ...): 480 entries. The global baseline is unchanged (530
+  axioms, 2 sorries).
+
 ### W3. The client: the watch over several members
 
 - `WEnv` without a fixed server: the shared names, and the members' addresses.
