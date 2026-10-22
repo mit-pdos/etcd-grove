@@ -1,0 +1,11 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-etcd3-goose.md). It imports `types`, `runtime`, `schema` and `time` (names only) so
+# that the types the etcd3 store and the storage package's versioner read objects through
+# (the `Object` interface `meta.Accessor` returns, `ObjectMeta`, `ListMeta`) are translated
+# (translate_types skips a type naming a package that is not imported).
+translate = ["!*"]
+imports = ["!*", "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/runtime",
+  "k8s.io/apimachinery/pkg/runtime/schema", "time"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
