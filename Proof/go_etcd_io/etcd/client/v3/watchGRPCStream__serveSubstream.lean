@@ -409,6 +409,8 @@ local macro "c2_fin" : tactic => `(tactic| (
   · first | exact HC.2 | simp
   · first | exact Or.inl rfl | exact Or.inl Hnr0P | exact Or.inr ⟨Hif, rfl⟩ | (right; exact ⟨by simpa using Hif, rfl⟩)))
 
+-- (2026-10-22) the unused-variables linter walks the proof's info tree: 7s of this module's CPU
+set_option linter.unusedVariables false in
 set_option maxRecDepth 10000 in
 set_option maxHeartbeats 8000000 in
 theorem watchGRPCStream.serveSubstream.wp_proof

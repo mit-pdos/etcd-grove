@@ -58,6 +58,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+-- (2026-10-22) the unused-variables linter walks the proof's info tree: 19s of this module's
+-- CPU
+set_option linter.unusedVariables false in
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 0 in
 theorem watchGRPCStream.run.wp_proof
