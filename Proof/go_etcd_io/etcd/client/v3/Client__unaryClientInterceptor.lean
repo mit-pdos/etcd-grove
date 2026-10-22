@@ -103,7 +103,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   unfold etcdInterceptorOkM
   iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ' %ctx %cd %inp %out %opts
     %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok⟩ HΨ
-  -- (D29) one attempt's precondition (`.write`) or any number's (`.any`)
+  -- (D29) a write's ordinary precondition, never retried (`.write`), or a persistent one (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
   ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) ∗
       ⌜md = AttemptMode.write → (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]

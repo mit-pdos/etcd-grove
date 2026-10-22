@@ -6,8 +6,8 @@ operation through a client of `clis` picked at random (`primitive.RandomUint64 %
 Logically atomic against the instance's model as linkvtxn's `Apply` (`Spec/.../linkvtxn/Apply.lean`,
 whose header explains the triple), in the form `lintest`'s `applySpec` takes for the closure
 `Check` passes: the same triple, over the slice of clients (read-only, non-empty) with linkvtxn's
-`Apply.spec`'s premises for each client (`clientOk`, `Defs.lean`: `New`'s one-attempt client of
-some members' endpoints, etcd's `Put`, `Range`, `DeleteRange` and `Txn` at each member's endpoint,
+`Apply.spec`'s premises for each client (`clientOk`, `Defs.lean`: `New`'s client of some members'
+endpoints, sending a write at most once, etcd's `Put`, `Range`, `DeleteRange` and `Txn` at each member's endpoint,
 the instance's invariant at each member's KV names). Stated under the cache package's assumptions and `errors.As`'s target,
 as linkvtxn's.
 -/

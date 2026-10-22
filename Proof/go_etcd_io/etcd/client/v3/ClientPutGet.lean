@@ -15,12 +15,12 @@ the lemmas of this file.
 
 - With a persistent update (any client): `client_Put_own`, `client_Get_own` (putget's
   `putGetInv`).
-- Through a client of the members `ms` (`Failover.lean`'s `SrvAt`; one member is `[x]`), each
+- Through a client of the members `ms` (`Results.lean`'s `SrvAt`; one member is `[x]`), each
   stated with the state `σ` its update fired at and the reply's fields as functions of `σ`:
   - `client_Get_st`: a linearizable get of one key, with a persistent read update (`kvReadAu`) or
     none: `□ Q σ`, the reply's key-values the state's of the key, its header revision `σ`'s;
   - `client_Put_rep`, `client_Put_st`: a put with an update fired at most once, on a client that
-    sends a write at most once (`clientWriteOnce`: one attempt, or refusal-free members, D29): a
+    sends a write at most once (`clientWriteOnce`: refusal-free members, D29): a
     member's `putReplied`; or `Q σ` and the reply's header revision;
   - `client_Delete_st`: a delete, as the put: `Q σ`, the reply's count and header revision;
   - `client_Txn_st`: `cli.Txn(ctx)`, the builder made from the client's `*kv`, with
@@ -32,7 +32,6 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
-public import Proof.go_etcd_io.etcd.client.v3.Failover
 public import Proof.go_etcd_io.etcd.client.v3.ReplyValues
 
 @[expose] public section
@@ -135,13 +134,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-
-/-- **The first key-value of a key's selection is the key's** (pure). -/
-theorem head_filter_key (s : List EtcdKv) (k : GoString) :
-    (s.filter (fun v => decide (v.key = k))).head?.map EtcdKv.value =
-      (mvcc.findKey k s).map EtcdKv.value := by
-  unfold mvcc.findKey
-  rw [List.head?_filter]
 
 /-- **What a linearizable range's reply says** (any range at the latest revision): the client's
 read update fired at a state `σ` (`□ Q σ`) whose key-values give the reply's (`srvRangeOk`), whose
@@ -292,7 +284,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q) $$ []
+  wp_apply (client_range_any api ms (W64 0) ci cd key sl [] iprop(True) Q []) $$ []
     as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
@@ -353,8 +345,10 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_any api ms ci cd key val sl Q) $$ [Hau] as %resp %err Hout
+  wp_apply (client_put_any api ms ci cd key val sl Q []) $$ [Hau] as %resp %err Hout
   · iframe #
+    iright
+    iframe #
     iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, -⟩)
@@ -432,8 +426,10 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_any api ms ci cd key sl Q) $$ [Hau] as %resp %err Hout
+  wp_apply (client_delete_any api ms ci cd key sl Q []) $$ [Hau] as %resp %err Hout
   · iframe #
+    iright
+    iframe #
     iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)

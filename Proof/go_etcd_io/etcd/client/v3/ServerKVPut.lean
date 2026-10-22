@@ -12,8 +12,6 @@ counterpart.
   for it;
   etcd's states at `r - 1` and `r` restricted to the prefix are the put's (`stateAfter_put`, the
   model's put commuting with the restriction to a prefix the key is under: `underPfx_putKv`).
-* `isEtcdPutKV_of_kv`: the same at any context, under the premise that every context's `Err()`
-  returns client errors (`ctxErrClientAll`).
 * `isEtcdDeleteKVTodo_of_kv`: `kv.Delete(context.TODO(), key, opts...)` returns `deleteResult`:
   the delete's revision is the log's next if it deleted a key, the last otherwise
   (`mvcc.writeRev`), and etcd's states around it are the delete's
@@ -381,31 +379,6 @@ theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : 
   · iframe #
   iexact HΦ
 
-/-- **A real `*kv` meets the clients' put contract at a context** (`isEtcdPutKV`) at the server's
-model, under the premise that every context's `Err()` returns client errors (`ctxErrClientAll`),
-for puts that stay puts (`t = 2`, as `isEtcdPutKVTodo`'s restriction): stated as the triple. -/
-theorem isEtcdPutKV_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (ctx : GoInterfaceOk)
-    (cs : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64)
-    (h : ¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
-      op.Under pfx ∧ (opPutModel key val gs).t = W64 2) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
-        ctxErrClientAll ∗ context.isContext ctx cs ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E }}
-      (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
-        (Val #(GoInterface.ok ctx))) (Val #key)) (Val #val)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        putResult (EM := v3rpc.etcdModelOfServer E) pfx lo op err }} := by
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hall, #Hctx, #Hopts, #Hlo, #Hany, #Hlp⟩ HΦ
-  iunfold ctxErrClientAll at Hall
-  ihave #Hce := Hall $$ %ctx %cs Hctx
-  ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
-  iapply (kv_put_result api addr s E γw γr cid mid ctx cs key val sl gs op lo pfx h) $$ []
-  · iframe #
-  iexact HΦ
-
 /-! ## The delete -/
 
 /-- **What a delete's reply gives the clients' model** (`deleteReplied` with its update's floor,
@@ -579,33 +552,6 @@ theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E
   iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   iapply (kv_delete_result api addr s E γw γr cid mid todoCtxVal cd key sl gs lo pfx Hp) $$ []
-  · iframe #
-  iexact HΦ
-
-/-- **A real `*kv` meets the clients' delete contract at a context** (`isEtcdDeleteKV`) at the
-server's model, under `ctxErrClientAll`, for deletes that stay deletes (`t = 3`) of a range end
-other than `[0]` (`isEtcdDeleteKVTodo`'s restrictions): stated as the triple. -/
-theorem isEtcdDeleteKV_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γw γr : ReadNames) (cid mid : w64) (pfx : GoString) (ctx : GoInterfaceOk)
-    (cs : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
-    (gs : List (OpFull → OpFull)) (lo : w64)
-    (h : ¬ opDeletePanics key gs ∧
-      KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
-      (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
-        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
-        ctxErrClientAll ∗ context.isContext ctx cs ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw }}
-      (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Delete" (kvIfaceOf api).v))
-        (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        deleteResult (EM := v3rpc.etcdModelOfServer E) pfx lo (opDeleteModel key gs) err }} := by
-  iintro %Φ ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hall, #Hctx, #Hopts, #Hlo, #Hnp⟩ HΦ
-  iunfold ctxErrClientAll at Hall
-  ihave #Hce := Hall $$ %ctx %cs Hctx
-  ihave #Hok := ctxOk_of_isContext ctx cs $$ Hctx
-  iapply (kv_delete_result api addr s E γw γr cid mid ctx cs key sl gs lo pfx h) $$ []
   · iframe #
   iexact HΦ
 

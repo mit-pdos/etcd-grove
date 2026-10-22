@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`call(cli, in)` (linkvtxn.go): one operation through `New`'s client `cli` (configured for one
-attempt), for an input `x` `Gen` may return (`GenIn`) that decodes to `i`, with the update its
+`call(cli, in)` (linkvtxn.go): one operation through `New`'s client `cli` (which sends a write at
+most once, `clientWriteOnce`), for an input `x` `Gen` may return (`GenIn`) that decodes to `i`, with the update its
 kind takes (`callUpd`: a write's, fired at most once; a read's read update, or none): the
 failed call's output (`errOut`), or a successful one at the state `σ` the update fired at
 (`callRes`), below `2 ^ 63`, which is the model's answer at `σ` (`outAt i σ`) when `σ` is good.

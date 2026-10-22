@@ -26,7 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Inv
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.go_etcd_io.etcd.client.v3.Failover
+public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.HistoryModel
@@ -143,7 +143,7 @@ instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List
 premises for a client `cl` of some members `ms` (at least one; all three since 2026-10-21,
 failover, `notes/decisions.md` D27) -- `New`'s client of their endpoints, with the default
 retries since 2026-10-21 (`isNewClient`; a write sent at most once, `clientWriteOnce`: the
-endpoints refusal-free, D29; until then configured for one attempt, `clientKVOnce`), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
+endpoints refusal-free, D29), etcd's `Put`, `Range`, `DeleteRange` and `Txn` registered at each
 member's endpoint with that member's apply environment, read names and ids (`kvRegsAt`), and the
 instance's invariant at each member's KV names (the cluster's state, D21 M4: `linkvInv_congr`,
 `Alloc.lean`). A list of clients is a `[∗list]` of these. (Until 2026-10-20, linkv's: `Put` and

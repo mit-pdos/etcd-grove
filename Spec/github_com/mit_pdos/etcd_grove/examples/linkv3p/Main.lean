@@ -1,8 +1,8 @@
 /-
 `Main(clients, ops, sched)` (`examples/linkv3p/linkv3p.go`; the partition plan's S3b, 2026-10-20):
 three etcd members started in process and served (`startMember`, on linkv3p's names and ports), a
-bridge to each member's client address (`startBridge`, etcd's test bridge), three one-attempt
-clients each connected to all three bridges (`newClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
+bridge to each member's client address (`startBridge`, etcd's test bridge), three clients (etcd's
+default retries) each connected to all three bridges (`newClient`; failover since 2026-10-21, D27), the partitioner forked on the schedule `sched` (`go
 partitioner(srvs, brs, sched)`: the links between members cut and mended, and the links between
 each client and its member blackholed, unblackholed or dropped, as its steps say, any steps;
 `notes/client-cut-plan.md`), and `Check(clis, clients, ops, 0)` (linkvtxn's KV workload since 2026-10-20, linkv's

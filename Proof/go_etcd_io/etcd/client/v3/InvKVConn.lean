@@ -771,8 +771,7 @@ def scalarOpts (vs : List GoInterface) : Prop :=
 /-- **The attempt modes of the retry interceptor's contract**: any number of attempts (a
 persistent precondition), or a write that is never retried (D29: a refusal-free connection and
 no retry option, so the call's policy is the default `nonRepeatable`, which the interceptor
-retries only after a refusal). (Until 2026-10-22 also one attempt, D21 M6: `MaxUnaryRetries: 1`,
-which no client configures since D31.) -/
+retries only after a refusal). -/
 inductive AttemptMode where
   | any
   | write
@@ -850,8 +849,7 @@ instance isEtcdConn_persistent (conn : Loc) (addr : List GoString) :
 
 /-- **A request's precondition on a connection, with the call options `vs`** (D29): persistent
 (any number of attempts), or ordinary on a refusal-free connection with scalar call options (a
-write, never retried). (Until 2026-10-22 also ordinary on a connection configured for one
-attempt, D21 M6.) -/
+write, never retried). -/
 def reqPre (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
     IProp GF :=
   iprop(□ ▷ P ∨ (⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
@@ -957,8 +955,7 @@ instance kvObjAt_persistent (api : Loc) (addr : List GoString) : Persistent (kvO
   unfold kvObjAt; infer_instance
 
 /-- **A request's precondition on a `*kv`** (D29): persistent, or ordinary over a refusal-free
-connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). (Until
-2026-10-22 also ordinary over a connection configured for one attempt, D21 M6.) -/
+connection (a write: the `*kv` passes its client's call options, scalars, `callOptsAt`). -/
 def kvReqPre (api : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
   iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
 

@@ -33,7 +33,7 @@ abbrev kv.Put.spec : Prop :=
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
       isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Spec ∗
-      -- (2026-10-19, D21 M6) ordinary on a client configured for one attempt
+      -- persistent, or ordinary over refusal-free members (a write sent at most once, D29)
       kvReqPre api addr (Spec (putWireOf (opPutModel key val gs)) Q) }}
     (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))

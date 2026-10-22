@@ -15511,3 +15511,43 @@ same declarations (only their modules moved).
 two retired theorems reached is reached by a remaining result: `linkv_safe`'s are exactly
 `linkvtxn_safe`'s, `linkv3_safe`'s putget3's and linkv3p's); every remaining collection unchanged;
 the collections `linkv.txt` and `linkv3.txt` deleted.
+
+## D35: the client's KV call results, one family: the `_end_to_end` results are instances of the `_any` ones (2026-10-22)
+
+**Problem.** The client package had two families of results for `kv.Put`, `kv.Get`, `kv.Delete`
+and a transaction's `Commit`, each proved from the generated methods' specs (`v3.kv.wp_Put`, ...):
+`client_put/get/delete/txn/range_end_to_end` (`Results.lean`: a connection to the addresses `addr`
+of one server, one spec registered at all of them, any floor `F`, a write's update persistent) and
+`client_put/range/delete/txn_any` (`Failover.lean`: a client of several members each with its own
+registration, the floor `[]`, a write's update fired at most once on refusal-free members, D29).
+The proofs repeated each other; neither statement implied the other.
+
+**Decision.** The `_any` results are the family, generalized so that the `_end_to_end` ones are
+their instances:
+- a floor `F` (common to the members), where they had `[]` (callers pass `[]`);
+- a write's update persistent (`□ [∧ list] …`) or fired at most once (`writeOnce ∗ [∧ list] …`), a
+  disjunction, where they had the second only (`kvReqPre`'s two cases); a transaction's
+  `□ [∧ list] txnUpdAt …` without the read-only condition (a persistent writing update is
+  `client_txn_end_to_end`'s case);
+- `client_txn_any` takes the members' write names `γw : SrvAt GF → ReadNames` (callers pass
+  `SrvAt.γr`, the same term as before), since `client_txn_end_to_end` has `γw ≠ γr`.
+
+The `_end_to_end` results keep their statements and are proved from the `_any` ones at
+`srvsAt addr E γr cid mid` (one member per address, all at the one server's environment, names and
+ids: `srvsAt_rpcs`, `srvsAt_sep`, `srvsAt_box`, `srvsAt_mem`); `client_get_end_to_end` is
+`client_range_end_to_end` with no options. `Failover.lean`'s content moved into `Results.lean`
+("The client's KV calls", before the `_end_to_end` results, which need it; `Failover.lean`
+imported `Results.lean`), so the `_any` results are listed there with `#print axioms` too.
+
+**Statements.** Every closed theorem and every exported result unchanged (fingerprint against
+`lean`: no line changed; removed only the dead `putReplied_ok`, `deleteReplied_ok`,
+`txnAuOk_of_box`, none listed with `#print axioms`). Trust base unchanged.
+
+**Also deleted** (referenced by no proof and no statement): `head_filter_key` (`ClientPutGet.lean`),
+`client_txn_value`, `client_txn_value_ro` (`ReplyValues.lean`; linkvtxn's `txn_Commit_st` unfolds
+`txnReplied` itself), `isEtcdKVE_of_kv` (`isEtcdKVE_of_kv_r` is what the cache's client uses),
+`isEtcdPutKV_of_kv`, `isEtcdDeleteKV_of_kv`. Kept: `RunSt.sentProgress` (a definition, not a field,
+used by `progress_ok` and `watchGRPCStream.run`'s proof). Not merged: the server-side family of
+`ServerKVGet/Put/Txn.lean` (`kv_get_server`, `kv_put_result`, `kv_txn_commit`, ...), whose
+results are about the recipes' and the cache's contracts at the server's model, not the client's
+calls.

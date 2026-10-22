@@ -68,8 +68,7 @@ instance txnKvIs_persistent (tp api : Loc) : Persistent (txnKvIs (GF := GF) tp a
   unfold txnKvIs; infer_instance
 
 /-- **A transaction's precondition on a `*txn`** (2026-10-20, linkv-txn stage A; `kvReqPre`'s):
-persistent, or (2026-10-21, D29) ordinary over a refusal-free connection. (Until 2026-10-22 also
-ordinary on a builder made from a `*kv` over a connection configured for one attempt, D21 M6.) -/
+persistent, or (2026-10-21, D29) ordinary over a refusal-free connection. -/
 def txnReqPre (tp : Loc) (addr : List GoString) (P : IProp GF) : IProp GF :=
   iprop(□ ▷ P ∨ (⌜∀ a ∈ addr, noRefusalAt a⌝ ∗ ▷ P))
 

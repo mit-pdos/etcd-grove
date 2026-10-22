@@ -6,7 +6,7 @@ Lean-first, no Rocq counterpart.
 to a gRPC server where etcd's `Range` is registered (`kvObjAt`, `etcd_kv_served`) and whose
 `Watcher` field is etcd's client watcher over the same server (`isClientWatcher V w`, `V.R.E = E`)
 meets the cache's client contract (`isEtcdClient`, `cache/v3/InvNew.lean`) at the server's model,
-for the watcher's prefix: its `Get`s (`isEtcdKVE_of_kv`, any context: the watcher's
+for the watcher's prefix: its `Get`s (`isEtcdKVE_of_kv_r`, any context: the watcher's
 `ctxErrClientAllW`), its watches (`isEtcdWatcher_of_watcher`, for a prefix not all `0xff`) and its
 progress requests (`isEtcdProgressNotifier_of_watcher`).
 -/

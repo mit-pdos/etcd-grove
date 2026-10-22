@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # linkvtxn: `call`'s client calls (linkv-txn stage F)
 
 `call`'s calls through `New`'s client of the members `ms` (since 2026-10-21, failover, D27: each
-attempt to one of them; `client/v3/Failover.lean`; the updates one per member, `[∧ list]`) are
+attempt to one of them; `client/v3/Results.lean`'s `_any` results; the updates one per member, `[∧ list]`) are
 the client package's (`client/v3/ClientPutGet.lean`, since 2026-10-22, D31: `client_Get_st`,
 `client_Put_st`, `client_Delete_st`, `client_Txn_st`). This file has the two that speak of the
 model's operations, each stated with the state `σ` its update fired at and the reply's fields as
@@ -14,8 +14,7 @@ functions of `σ` (what `Reply.lean`'s outputs take):
   reply's key-values the state's of the range, its header revision `σ`'s;
 - `txn_Commit_st`: a transaction the builder holds as the model's (`clientTxn`), with an update
   fired at most once (writing) or a read update or none (read-only): the reply's verdict, its
-  responses and revision the server's run at `σ` (`client.client_txn_value`,
-  `client.client_txn_value_ro`).
+  responses and revision the server's run at `σ` (from `txnReplied`).
 
 Each also bounds `σ`'s revision below `2^63` (the replies' logs are below it).
 `callUpd`/`callRes`: the update a call of the model input `i` takes, and the result it gives.
@@ -25,7 +24,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Reply
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.Link
-public import Proof.go_etcd_io.etcd.client.v3.Failover
+public import Proof.go_etcd_io.etcd.client.v3.Results
 
 @[expose] public section
 
@@ -261,7 +260,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   wp_pures
   wp_auto
   wp_apply (client.client_range_any api ms (W64 0) ci cd listFrom sl [withRangeM listTo]
-      iprop(True) Q) $$ [] as %resp %err ⟨-, Hout⟩
+      iprop(True) Q []) $$ [] as %resp %err ⟨-, Hout⟩
   · iframe #
     isplitl []
     · rw [show (opGetModel listFrom [withRangeM listTo]).base.sortSet = false from rfl]
@@ -339,11 +338,10 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
       exact intuitionistic_alias.trans (intuitionistically_mono (BigAndL.bigAndL_mono hm))
     ihave #Hau' := hbox $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q hp hin) $$ [Hobj] as %resp %err Hout
+    wp_apply (client.client_txn_any tp ms client.SrvAt.γr (W64 0) ci cd b Q [] hp hin) $$ [Hobj]
+      as %resp %err Hout
     · iframe Hobj
       iframe #
-      ileft
-      ipureintro; rw [hw]; exact hro
     iapply HΦ
     icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
     · ileft
@@ -386,7 +384,8 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [hw]
         iExactEq H; rfl
     ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q hp hin) $$ [Hobj Hau' Hone]
+    wp_apply (client.client_txn_any tp ms client.SrvAt.γr (W64 0) ci cd b Q [] hp hin)
+      $$ [Hobj Hau' Hone]
       as %resp %err Hout
     · iframe Hobj
       iframe #

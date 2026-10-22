@@ -102,8 +102,10 @@ theorem client_Put_hist [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client.client_put_any api ms ci cd key val sl Q) $$ [Hau] as %resp %err Hout
+  wp_apply (client.client_put_any api ms ci cd key val sl Q []) $$ [Hau] as %resp %err Hout
   · iframe #
+    iright
+    iframe #
     iexact Hau
   iapply HΦ
   icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)

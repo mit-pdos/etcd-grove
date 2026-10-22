@@ -34,10 +34,10 @@ def doRunOk (api : Loc) (addr : List GoString) (o : OpFull) (Sp : GrpcSpec (GF :
     (Qd : DelRespM → IProp GF) : IProp GF :=
   iprop((⌜o.t = W64 1⌝ ∗ sortNamesIf o.base.sortSet ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Range" Sr ∗
       □ ▷ Sr (rangeWireOf o) Qr) ∨
-    -- (2026-10-19, D21 M6) a put's precondition ordinary on a client configured for one attempt
+    -- a put's precondition persistent, or ordinary over refusal-free members (D29)
     (⌜o.t = W64 2⌝ ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" Sp ∗
       kvReqPre api addr (Sp (putWireOf o) Qp)) ∨
-    -- (2026-10-20, linkv-txn stage A) a delete's too
+    -- a delete's too
     (⌜o.t = W64 3⌝ ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" Sd ∗
       kvReqPre api addr (Sd (deleteWireOf o) Qd)))
 
