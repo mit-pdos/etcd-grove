@@ -193,12 +193,12 @@ trust-boundary spec.
    generically (`MustUnmarshalMessagePb`). `proto.MarshalOptions` translated (a struct of options;
    protobuf now imports `internal/pragma`, and raft's `Init.lean` runs its initializer). A finding:
    `issues/etcd-rafthttp-msgappv2-unbounded-lengths.md` (the decoder allocates whatever lengths
-   the stream says). **New axioms, awaiting the user's approval**: `proto.ClonePb` and
+   the stream says). **New axioms, accepted by the user**: `proto.ClonePb` and
    `proto.MarshalAppendPb` (generic, `InvProto.lean`'s vocabulary), `pbEnc_ok` (what `pbEnc` is: a
    frozen message's encoding is an encoding of it, below `2^63` bytes), `v2stats.FollowerStats.Succ`
    (a no-op, as the metrics), and rafthttp's `linkHeartbeatMessage_init` (the heartbeat
    variable's untranslated initializer, `gen-init.py`'s custom kind); only the last is reached by
-   a linked result yet (the baseline 541 -> 542 once accepted).
+   a linked result yet (the baseline 541 -> 542).
    **Next**: `From` = the sender's id and `MsgMarshals` (no responses, known enums, including the
    entries') for the messages handed to `Send`; then stage 4 (the pipeline).
 4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
