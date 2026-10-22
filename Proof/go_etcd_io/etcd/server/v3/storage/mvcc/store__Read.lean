@@ -37,16 +37,20 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   iunfold mvcc.isStore at Hs
   iNamed Hs
   iunfold mvcc.storeReaderC at Hrd
-  icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
   (try wp_auto)
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or above
   -- the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
-  wp_auto_lc 1
+  wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
   iunfold mvcc.muInv at HmuP
   icases HmuP with ⟨%cm, HmuP, Hwr, Hfs⟩
+  -- a slot of the index's lock, out of the readers' pool (D22 receiver epochs, S4)
+  icases (mvcc.wDep_halves γ).1 $$ Hwr with ⟨Hwr, Hwr2⟩
+  imod mvcc.readerPool_checkout γ $$ Hlc2 Hpool HtkR Hwr2 with ⟨Hslot, Htko⟩
+  iunfold mvcc.idxSlot at Hslot
+  icases Hslot with ⟨%ti2, #HidxR, HtiR⟩
   icases mvcc.fieldShare_open s γ _ _ _ _ _ $$ [Hpin Hfs] with ⟨Hfb, Hfidx, Hfsch, Hfstop, Hfrst⟩
   · iframe Hpin Hfs
   iunfold mvcc.muInvAt at HmuP
@@ -146,13 +150,11 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
         | exact ⟨Hne, trivial, Htrnn, HcM, Hc.2⟩
         | exact ⟨Hne, Htrnn, HcM, Hc.2⟩
         | exact ⟨Hne, rfl, Htrnn, HcM, Hc.2⟩
-    isplitl [Htok Hwr]
+    isplitl [Htok Hwr Htko]
     · iunfold mvcc.txReader
       iexists (mvcc.bucketMap log), m', Rd, Tok
       simp only [named]
-      iframe Htok Hthin
-      iunfold mvcc.wDep
-      iframe Hwr
+      iframe Htok Hthin Hwr Htko
       isplitr
       · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
       ipureintro; exact fun _ _ h => h

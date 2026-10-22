@@ -136,7 +136,6 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     iunfold mvcc.watchReader
     iframe Hmur
     iunfold mvcc.storeReader
-    iexists ti
     simp only [named]
     iframe
     iframe #
@@ -962,7 +961,6 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   iunfold mvcc.watchReader
   iframe Hmur
   iunfold mvcc.storeReader
-  iexists _
   simp only [named]
   iframe
   iframe #

@@ -884,13 +884,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
-        iexists ti
         simp only [named]
-        iframe HmuR HrevMuR HtiR HrtR
+        iframe HmuR HrevMuR HtkR HrtR
         iframe #
       isplitr
       · iexists lo
@@ -994,13 +993,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
-        iexists ti
         simp only [named]
-        iframe HmuR HrevMuR HtiR HrtR
+        iframe HmuR HrevMuR HtkR HrtR
         iframe #
       isplitr
       · iexists lo
@@ -1114,13 +1112,12 @@ theorem mvcc.watchableStore.watch.wp_proof
           icases Hwc with ⟨Hic, Hinv, -⟩
           rw [← hwc]
           iframe Hic Hinv HCR
-        isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+        isplitl [Hmur HmuR HrevMuR HtkR HrtR]
         · iunfold mvcc.watchReader
           iframe Hmur
           iunfold mvcc.storeReader
-          iexists ti
           simp only [named]
-          iframe HmuR HrevMuR HtiR HrtR
+          iframe HmuR HrevMuR HtkR HrtR
           iframe #
         isplitr
         · iexists lo
@@ -1225,13 +1222,12 @@ theorem mvcc.watchableStore.watch.wp_proof
         icases Hwc with ⟨Hic, Hinv, -⟩
         rw [← hwc]
         iframe Hic Hinv HCR
-      isplitl [Hmur HmuR HrevMuR HtiR HrtR]
+      isplitl [Hmur HmuR HrevMuR HtkR HrtR]
       · iunfold mvcc.watchReader
         iframe Hmur
         iunfold mvcc.storeReader
-        iexists ti
         simp only [named]
-        iframe HmuR HrevMuR HtiR HrtR
+        iframe HmuR HrevMuR HtkR HrtR
         iframe #
       isplitr
       · iexists lo

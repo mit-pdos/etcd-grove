@@ -55,7 +55,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · intro h
       rw [h] at h1
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
-  wp_auto_lc 2
+  wp_auto_lc 3
   -- the caller's invariant is the store's
   imod mvcc.hookIs_agree_lc ⊤ γ P Pw f fw $$ [$Hlc1 $HhookC $Hhook] with ⟨-, #HPPw, -⟩
   ihave HP := HPPw $$ HP
@@ -93,19 +93,21 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · exfalso
       exact Hif (hpend.1 rfl)
     (try wp_auto)
+    -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
+    imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti] Htko with ⟨Htk, Hwr2⟩
+    · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti
     iunfold mvcc.muHeld at Hmu
     icases Hmu with ⟨Hmu, Hmua, Hfs⟩
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hfs] as Hmu
-    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs; iunfold mvcc.wDep at Hwr; iexact Hwr
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hwr2 Hfs] as Hmu
+    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs
+      iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
     (try wp_auto)
     iapply HΦ
     iframe HZ
-    isplitl [Hmu HrevMu Hti Hrt]
+    isplitl [Hmu HrevMu Htk Hrt]
     · iunfold mvcc.storeReaderC
-      iexists ti
       simp only [named]
-      iframe Hmu HrevMu Hti Hrt
-      iframe #
+      iframe Hmu HrevMu Htk Hrt
     unfold mvcc.commitLog
     rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
@@ -213,19 +215,21 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
         ipureintro; simp; omega
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
+      -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
+      imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti] Htko with ⟨Htk, Hwr2⟩
+      · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti
       iunfold mvcc.muHeld at Hmu
       icases Hmu with ⟨Hmu, Hmua, Hfs⟩
-      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hfs] as Hmu
-      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs; iunfold mvcc.wDep at Hwr; iexact Hwr
+      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hwr2 Hfs] as Hmu
+      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs
+        iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
       (try wp_auto)
       iapply HΦ
       iframe HZ
-      isplitl [Hmu HrevMu Hti Hrt]
+      isplitl [Hmu HrevMu Htk Hrt]
       · iunfold mvcc.storeReaderC
-        iexists ti
         simp only [named]
-        iframe Hmu HrevMu Hti Hrt
-        iframe #
+        iframe Hmu HrevMu Htk Hrt
       unfold mvcc.commitLog
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']
