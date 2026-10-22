@@ -27,7 +27,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8setcd3
 
-open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output)
+open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output item)
 open Classical
 
 section go
@@ -126,6 +126,17 @@ theorem removeAt_perm (g : GCfg) (i : Nat) (hi : i < g.pend.length) (l : List In
   have h2 := List.perm_cons_erase hm
   exact List.Perm.cons_inv (h1.symm.trans (hl.trans h2))
 
+theorem mem_removeAtL {es : List Input} {i : Nat} {p : Input} (h : p ∈ removeAtL es i) :
+    p ∈ es := by
+  rcases List.mem_append.1 h with h | h
+  · exact List.mem_of_mem_take h
+  · exact List.mem_of_mem_drop h
+
+theorem length_removeAtL (es : List Input) (i : Nat) (h : i < es.length) :
+    (removeAtL es i).length = es.length - 1 := by
+  simp only [removeAtL, List.length_append, List.length_take, List.length_drop]
+  omega
+
 variable {st0} in
 /-- `succAt g i` is reached from `g`: its pending input takes effect. -/
 theorem reach_succAt (g : GCfg) (i : Nat) (hi : i < g.pend.length) :
@@ -169,23 +180,116 @@ theorem mem_succsUpTo (g h : GCfg) (j : Nat) :
     h ∈ succsUpTo g j ↔ ∃ i < j, succAt g i = h := by
   simp [succsUpTo]
 
+/-! ## The bound -/
+
+/-- **A configuration's bound**: its items and pending inputs fewer than `n` (the Go model's
+`make`s of `len + 1` never overflow; a step adds at most one to the count, a pending write taking
+effect nothing). -/
+def Bounded (n : Nat) (g : GCfg) : Prop := g.st.items.length + g.pend.length < n
+
+/-- `setItem`'s loop state's potential: the output's length, one more until `it` is written. -/
+def setPot (st : List item × Bool) : Nat := st.1.length + if st.2 then 0 else 1
+
+theorem setPot_step (it : item) (acc : List item × Bool) (e : item) :
+    setPot (setStepI it acc e) ≤ setPot acc + 1 := by
+  obtain ⟨o, d⟩ := acc
+  unfold setStepI setPot
+  cases d <;> by_cases h1 : go.GoStringLt it.key' e.key' <;> by_cases h2 : e.key' = it.key' <;>
+    simp [h1, h2, go.goStringLt_irrefl]
+
+theorem setPot_foldl (it : item) (l : List item) (acc : List item × Bool) :
+    setPot (l.foldl (setStepI it) acc) ≤ setPot acc + l.length := by
+  induction l generalizing acc with
+  | nil => simp
+  | cons e l ih =>
+    simp only [List.foldl_cons, List.length_cons]
+    have := ih (setStepI it acc e)
+    have := setPot_step it acc e
+    omega
+
+theorem setItemL_length (its : List item) (it : item) :
+    (setItemL its it).length ≤ its.length + 1 := by
+  have h := setPot_foldl it its ([], false)
+  unfold setItemL
+  simp only
+  generalize its.foldl (setStepI it) ([], false) = st at h
+  obtain ⟨o, d⟩ := st
+  cases d <;> simp_all [setPot] <;> omega
+
+theorem delItemL_length (its : List item) (k : GoString) :
+    (delItemL its k).length ≤ its.length := List.length_filter_le _ _
+
+theorem mcreateL_length (x : Input) (st : GSt) :
+    (mcreateL x st).1.items.length ≤ st.items.length + 1 := by
+  unfold mcreateL
+  split
+  · simp
+  · exact setItemL_length _ _
+
+theorem mdeleteL_length (x : Input) (st : GSt) :
+    (mdeleteL x st).1.items.length ≤ st.items.length + 1 := by
+  unfold mdeleteL
+  dsimp only
+  split
+  · simp
+  · split
+    · simp
+    · have := delItemL_length st.items x.Key'
+      simp only; omega
+
+theorem mupdateL_length (x : Input) (st : GSt) :
+    (mupdateL x st).1.items.length ≤ st.items.length + 1 := by
+  unfold mupdateL
+  dsimp only
+  split
+  · simp
+  · split
+    · simp
+    · split
+      · simp
+      · exact setItemL_length _ _
+
+/-- A step adds at most one item. -/
+theorem mstepL_length (x : Input) (st : GSt) :
+    (mstepL x st).1.items.length ≤ st.items.length + 1 := by
+  unfold mstepL
+  split
+  · exact mcreateL_length x st
+  · split
+    · exact mdeleteL_length x st
+    · split
+      · exact mupdateL_length x st
+      · simp
+
+/-- `succAt g i` keeps the bound. -/
+theorem succAt_bounded (n : Nat) (g : GCfg) (i : Nat) (hb : Bounded n g)
+    (hi : i < g.pend.length) : Bounded n (succAt g i) := by
+  have h1 := mstepL_length (pendAt g i) g.st
+  have h2 := length_removeAtL g.pend i hi
+  unfold Bounded at hb ⊢
+  simp only [succAt]
+  omega
+
+/-! ## `closure`: its loop invariant -/
+
 /-- `closure`'s loop invariant, on `out` and `work` (see `closure.lean`). -/
-def CloInv (gs : List GCfg) (out work : List GCfg) : Prop :=
-  (∀ g ∈ out ++ work, ∃ g₀ ∈ gs, linkv.PReach (kSpec st0) g₀ g) ∧
+def CloInv (gs : List GCfg) (n : Nat) (out work : List GCfg) : Prop :=
+  (∀ g ∈ out ++ work, (∃ g₀ ∈ gs, linkv.PReach (kSpec st0) g₀ g) ∧ Bounded n g) ∧
   (∀ g₀ ∈ gs, g₀ ∈ out ++ work) ∧
   (∀ g ∈ out, ∀ i < g.pend.length, succAt g i ∈ out ++ work)
 
-theorem cloInv_init (gs : List GCfg) : CloInv st0 gs [] gs := by
+theorem cloInv_init (gs : List GCfg) (n : Nat) (hb : ∀ g ∈ gs, Bounded n g) :
+    CloInv st0 gs n [] gs := by
   refine ⟨?_, ?_, ?_⟩
   · intro g hg
     simp only [List.nil_append] at hg
-    exact ⟨g, hg, .refl _⟩
+    exact ⟨⟨g, hg, .refl _⟩, hb g hg⟩
   · intro g hg; simpa using hg
   · intro g hg; cases hg
 
 /-- A configuration already in `out`: dropped. -/
-theorem cloInv_skip (gs : List GCfg) (out work : List GCfg) (h : GCfg)
-    (hI : CloInv st0 gs out (work ++ [h])) (hm : h ∈ out) : CloInv st0 gs out work := by
+theorem cloInv_skip (gs : List GCfg) (n : Nat) (out work : List GCfg) (h : GCfg)
+    (hI : CloInv st0 gs n out (work ++ [h])) (hm : h ∈ out) : CloInv st0 gs n out work := by
   obtain ⟨h1, h2, h3⟩ := hI
   have sub : ∀ g, g ∈ out ++ (work ++ [h]) → g ∈ out ++ work := by
     intro g hg
@@ -205,9 +309,9 @@ theorem cloInv_skip (gs : List GCfg) (out work : List GCfg) (h : GCfg)
   · intro g hg i hi; exact sub _ (h3 g hg i hi)
 
 /-- A configuration not yet in `out`: added, and its successors pushed. -/
-theorem cloInv_add (gs : List GCfg) (out work : List GCfg)
-    (h : GCfg) (hI : CloInv st0 gs out (work ++ [h])) (hm : h ∉ out) :
-    CloInv st0 gs (out ++ [h]) (work ++ succsUpTo h h.pend.length) := by
+theorem cloInv_add (gs : List GCfg) (n : Nat) (out work : List GCfg)
+    (h : GCfg) (hI : CloInv st0 gs n out (work ++ [h])) (hm : h ∉ out) :
+    CloInv st0 gs n (out ++ [h]) (work ++ succsUpTo h h.pend.length) := by
   obtain ⟨h1, h2, h3⟩ := hI
   have hh := h1 h (by simp)
   refine ⟨?_, ?_, ?_⟩
@@ -218,8 +322,8 @@ theorem cloInv_add (gs : List GCfg) (out work : List GCfg)
     · exact hh
     · exact h1 g (by simp [hg])
     · obtain ⟨i, hi, rfl⟩ := (mem_succsUpTo h g _).1 hg
-      obtain ⟨g₀, hg₀, hr⟩ := hh
-      exact ⟨g₀, hg₀, hr.trans (reach_succAt h i hi)⟩
+      obtain ⟨⟨g₀, hg₀, hr⟩, hb⟩ := hh
+      exact ⟨⟨g₀, hg₀, hr.trans (reach_succAt h i hi)⟩, succAt_bounded n h i hb hi⟩
   · intro g₀ hg₀
     have := h2 g₀ hg₀
     simp only [List.mem_append, List.mem_singleton] at this ⊢
@@ -238,13 +342,14 @@ theorem cloInv_add (gs : List GCfg) (out work : List GCfg)
       · exact Or.inl (Or.inr rfl)
     · exact Or.inr (Or.inr ((mem_succsUpTo _ _ _).2 ⟨i, hi, rfl⟩))
 
-/-- At the end of `closure`'s loop (`work` empty): `ClosureOk`, closed. -/
-theorem cloInv_done (gs : List GCfg) (out : List GCfg) (hI : CloInv st0 gs out []) :
-    ClosureOk st0 gs out ∧ GClosed st0 out := by
+/-- At the end of `closure`'s loop (`work` empty): `ClosureOk`, closed, bounded. -/
+theorem cloInv_done (gs : List GCfg) (n : Nat) (out : List GCfg) (hI : CloInv st0 gs n out []) :
+    ClosureOk st0 gs out ∧ GClosed st0 out ∧ ∀ g ∈ out, Bounded n g := by
   obtain ⟨h1, h2, h3⟩ := hI
   simp only [List.append_nil] at h1 h2 h3
   have hc : GClosed st0 out := closed_of_succ st0 out h3
-  exact ⟨⟨fun g hg => h1 g hg, fun g₀ hg₀ c hr => hc g₀ (h2 g₀ hg₀) c hr⟩, hc⟩
+  exact ⟨⟨fun g hg => (h1 g hg).1, fun g₀ hg₀ c hr => hc g₀ (h2 g₀ hg₀) c hr⟩, hc,
+    fun g hg => (h1 g hg).2⟩
 
 /-! ## `step` -/
 
@@ -350,6 +455,29 @@ theorem mem_stepAllL (gs : List GCfg) (x : Input) (y : Output) (h : GCfg) :
       · exact Or.inl (Or.inr h2)
       · exact Or.inr ⟨g', hg', h2⟩
 
+/-- A step keeps the bound, one more. -/
+theorem stepL_bounded (n : Nat) (g : GCfg) (x : Input) (y : Output) (hb : Bounded n g)
+    (g' : GCfg) (hg' : g' ∈ stepL g x y) : Bounded (n + 1) g' := by
+  unfold Bounded at hb ⊢
+  unfold stepL at hg'
+  split at hg'
+  · split at hg'
+    · simp only [List.mem_singleton] at hg'; subst hg'
+      simp only [List.length_cons]; omega
+    · simp only [List.mem_singleton] at hg'; subst hg'; omega
+  · split at hg'
+    · simp only [List.mem_singleton] at hg'; subst hg'
+      have := mstepL_length x g.st
+      simp only; omega
+    · cases hg'
+
+/-- `Step`'s loops keep the bound, one more. -/
+theorem stepAllL_bounded (n : Nat) (gs : List GCfg) (x : Input) (y : Output)
+    (hb : ∀ g ∈ gs, Bounded n g) : ∀ g' ∈ stepAllL gs x y, Bounded (n + 1) g' := by
+  intro g' hg'
+  obtain ⟨g, hg, hs⟩ := (mem_stepAllL gs x y g').1 hg'
+  exact stepL_bounded n g x y (hb g hg) g' hs
+
 /-! ## `Step` -/
 
 /-- **`Step`'s result** (see the file header): the `closure` `out` of `stepAllL gs x y`
@@ -384,6 +512,9 @@ theorem setOf_nonempty (gs : List GCfg) : (∃ c, setOf gs c) ↔ gs ≠ [] := b
 
 /-- `Init()`'s configuration: the seeded store, nothing pending. -/
 def gInit : GCfg := ⟨st0, []⟩
+
+theorem bounded_gInit : Bounded (st0.items.length + 1) (gInit st0) := by
+  unfold Bounded gInit; simp
 
 /-- The initial state: one configuration. -/
 theorem gok_init : GOk st0 [gInit st0] (linkv.pInit (kSpec st0)) := by
