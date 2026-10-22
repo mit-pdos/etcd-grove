@@ -27,10 +27,10 @@ namespace k8setcd3
 open k8s
 
 /-- The current encoding's tag (`tagV1`, `"v1:"`). -/
-def tagV1 : GoString := [W8 118, W8 49, W8 58]
+abbrev tagV1 : GoString := go!"v1:"
 
 /-- The older encoding's tag (`tagV0`, `"v0:"`). -/
-def tagV0 : GoString := [W8 118, W8 48, W8 58]
+abbrev tagV0 : GoString := go!"v0:"
 
 /-- **The driver's objects** without their resource version: a name shorter than 256 bytes and a
 value. -/
