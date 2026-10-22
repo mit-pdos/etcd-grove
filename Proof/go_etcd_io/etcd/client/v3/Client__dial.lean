@@ -64,7 +64,7 @@ theorem Client.dial.wp_proof
   · iPkgInit
   wp_auto
   wp_apply wp_dialSetupOpts c cfg cr sl [.resolvers [rb]] $$ [$Hc $Hcfg $Hds]
-    as %o1 ⟨%si, %ic, #Ho1, Ho1c, %Hsi, #Hic, #Hic1, #HicW⟩
+    as %o1 ⟨%si, %ic, #Ho1, Ho1c, %Hsi, #Hic, #HicW⟩
   iunfold dialOptsAt at Ho1
   icases Ho1 with ⟨%os1, #Hos1, %Hos1⟩
   iStructNamed Hcfg
@@ -129,20 +129,11 @@ theorem Client.dial.wp_proof
     have Hics : unaryIcsOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic]) = [ic] := by
       rw [List.append_assoc, unaryIcsOf_kaOpts]; rfl
-    isplitr
-    · iunfold isEtcdConn
-      iexists ic
-      iframe Hic HicW
-      rw [← Hics]
-      iexact Hconn
-    iintro %Hm
-    iunfold isEtcdConn1
+    iunfold isEtcdConn
     iexists ic
-    isplitr
-    · rw [← Hics]
-      iexact Hconn
-    iapply Hic1
-    ipureintro; exact Hm
+    iframe Hic HicW
+    rw [← Hics]
+    iexact Hconn
   · iright
     ipureintro; exact Herr
 

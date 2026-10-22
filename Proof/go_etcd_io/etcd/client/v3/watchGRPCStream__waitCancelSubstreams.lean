@@ -9,6 +9,7 @@ public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Wait
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sync.Results
 public import Proof.go_etcd_io.etcd.client.v3.WatchApiLemmas
 
 @[expose] public section
@@ -45,7 +46,7 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
   ihave Hsh : iprop(wgsWgShared (wgsF G.wgs go!"wg") γS γh n) $$ [Hsha Hu]
   · unfold wgsWgShared; iframe Hsha Hu; iframe #; ipureintro; exact Hb
   wp_auto
-  imod wcj_init wg_ptr γS Hb $$ wg with Hadd
+  imod wcj_init wg_ptr (wgsF G.wgs go!"wg") γS Hb $$ [$wg $HwgsS] with Hadd
   wp_apply chan.wp_make1 (V := Unit) as %dc %γd ⟨#Hdc, %-, Hdo⟩
   rename_i iv_ptr
   irename : (iv_ptr ↦ zero_val w64 : IProp GF) => iv
@@ -60,8 +61,9 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
   ipersist stopc
   ihave HI : iprop(∃ (k v : w64), "i" ∷ i_ptr ↦ k ∗ "iv" ∷ iv_ptr ↦ v ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (l.length : Int)⌝ ∗
-      "Hadd" ∷ wcjAdder wg_ptr γS (sint.nat k) iprop([∗list] ws ∈ l.take (sint.nat k),
-        wcOut V G (Pf ws) ∗ wgsShareTok (wgsF G.wgs go!"wg") γS γh) ∗
+      "Hadd" ∷ sync.tokJoin.ownAdder wcjN (wcjL γS) wg_ptr (sint.nat k)
+        iprop([∗list] ws ∈ l.take (sint.nat k),
+          wcOut V G (Pf ws) ∗ wgsShareTok (wgsF G.wgs go!"wg") γS γh) ∗
       "Hsh" ∷ wgsWgShared (wgsF G.wgs go!"wg") γS γh (n + sint.nat k) ∗ "Htt" ∷ threadTok ∗
       "Hin" ∷ ([∗list] ws ∈ l.drop (sint.nat k), wcIn V G (Pf ws))) $$ [i iv Hadd Hsh Htt Hin]
   · iexists W64 0, _
@@ -72,7 +74,7 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
     iframe i iv Hsh Htt Hin
     isplitr
     · ipureintro; constructor <;> word
-    iapply wcjAdder_wand $$ [] Hadd
+    iapply sync.tokJoin.ownAdder_wand $$ [] Hadd
     iintro -
     iapply BigSepL.bigSepL_nil.2
     itrivial
@@ -86,9 +88,10 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
     rw [ite_eq_left Hbnd]
     wp_apply wp_load_slice_index s (sint.Z k) l (DFrac.own 1) x Hk.1 $$ [Hs] as Hs
     · iframe; ipureintro; rw [← Hx]
-    wp_apply wp_wcj_Add iprop(wcOut V G (Pf x) ∗ wgsShareTok (wgsF G.wgs go!"wg") γS γh)
-      wg_ptr (wgsF G.wgs go!"wg") γS (sint.nat k) _ $$ [Hadd Htt] as ⟨Hadd, Hdone⟩
-    · iframe; iframe #
+    wp_apply sync.tokJoin.WaitGroup.wp_Add
+      iprop(wcOut V G (Pf x) ∗ wgsShareTok (wgsF G.wgs go!"wg") γS γh) wcjN (wcjL γS) wg_ptr
+      (sint.nat k) _ $$ [Hadd Htt] as ⟨Hadd, Hdone⟩
+    · iframe
     imod wgsWg_mint _ _ _ _ $$ Hsh with ⟨Hsh, Hstok⟩
     rw [ite_eq_left Hbnd]
     wp_apply wp_load_slice_index s (sint.Z k) l (DFrac.own 1) x Hk.1 $$ [Hs] as Hs
@@ -182,7 +185,8 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
           inext
           iintro Hdone
           wp_auto
-          wp_apply wp_wcj_Done wg_ptr γS _ $$ [Hdone Hstok Houtf Hrev Hretc Hrr Hdnf] as Htt
+          wp_apply sync.tokJoin.WaitGroup.wp_Done wcjN (wcjL γS) wg_ptr _
+            $$ [Hdone Hstok Houtf Hrev Hretc Hrr Hdnf] as Htt
           · iframe Hdone Hstok
             iframe #
             unfold wcOut
@@ -221,7 +225,8 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
           iapply broadcast_chan_receive _ _ _ _ _ $$ Hstop
           iintro -
           wp_auto
-          wp_apply wp_wcj_Done wg_ptr γS _ $$ [Hdone Hstok Hrun Hcl Hbl Houtf Hdnf Hgx Hel] as Htt
+          wp_apply sync.tokJoin.WaitGroup.wp_Done wcjN (wcjL γS) wg_ptr _
+            $$ [Hdone Hstok Hrun Hcl Hbl Houtf Hdnf Hgx Hel] as Htt
           · iframe Hdone Hstok
             iframe #
             unfold wcOut
@@ -244,7 +249,8 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
         cases err with
         | nil =>
           wp_auto
-          wp_apply wp_wcj_Done wg_ptr γS _ $$ [Hdone Hstok Hsb] as Htt
+          wp_apply sync.tokJoin.WaitGroup.wp_Done wcjN (wcjL γS) wg_ptr _
+            $$ [Hdone Hstok Hsb] as Htt
           · iframe Hdone Hstok
             iframe #
             unfold wcOut
@@ -266,7 +272,8 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
             icases Hprod with ⟨%sent, %C, Hprod, -, -⟩
             wp_apply wp_spsc_close P.γ.spsc P.outc _ (fun _ => iprop(True)) sent $$ [$Houtc $Hprod]
             (try wp_auto)
-            wp_apply wp_wcj_Done wg_ptr γS _ $$ [Hdone Hstok Houtf Hrc Hret Hrev Hdnf] as Htt
+            wp_apply sync.tokJoin.WaitGroup.wp_Done wcjN (wcjL γS) wg_ptr _
+              $$ [Hdone Hstok Houtf Hrc Hret Hrev Hdnf] as Htt
             · iframe Hdone Hstok
               iframe #
               unfold wcOut
@@ -281,7 +288,8 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
             (try wp_auto)
             first | iexact Htt | (iframe Htt; ipureintro; rfl)
           · wp_auto
-            wp_apply wp_wcj_Done wg_ptr γS _ $$ [Hdone Hstok Houtf Hrc Hret Hrev Hdnf] as Htt
+            wp_apply sync.tokJoin.WaitGroup.wp_Done wcjN (wcjL γS) wg_ptr _
+              $$ [Hdone Hstok Houtf Hrc Hret Hrev Hdnf] as Htt
             · iframe Hdone Hstok
               iframe #
               unfold wcOut
@@ -304,7 +312,7 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
     isplitr
     · ipureintro; constructor <;> word
     isplitl [Hadd]
-    · iapply wcjAdder_wand $$ [] Hadd
+    · iapply sync.tokJoin.ownAdder_wand $$ [] Hadd
       iintro ⟨H1, H2⟩
       iapply BigSepL.bigSepL_snoc.2
       iframe
@@ -322,7 +330,7 @@ theorem watchGRPCStream.waitCancelSubstreams.wp_proof :
   · wp_apply wp_with_defer
     iintro %defer Hdefer
     (try wp_auto)
-    wp_apply wp_wcj_Wait wg_ptr γS l.length _ $$ [Hadd] as ⟨HP, -⟩
+    wp_apply sync.tokJoin.WaitGroup.wp_Wait wcjN (wcjL γS) wg_ptr l.length _ $$ [Hadd] as ⟨HP, -⟩
     · iframe #; iframe
     imod inv_alloc wcdN ⊤ iprop(Rall ∨ ownTok γk) $$ [HP] with #Hinv
     · inext; ileft; iexact HP

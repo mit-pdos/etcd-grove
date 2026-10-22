@@ -317,35 +317,15 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   · iright
     ipureintro; exact Herr
 
-/-- The one-attempt `*kv` of `New`'s client: its `KV` field's. -/
-theorem clientKVOnce_api (cl api : Loc) (addrs : List GoString) :
-    clientF cl go!"KV" ↦□
-        interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
-      clientKVOnce (GF := GF) cl addrs ⊢ kvOnce api addrs := by
-  iintro ⟨#Hkvf, #Hone⟩
-  iunfold clientKVOnce at Hone
-  icases Hone with ⟨%api', #Hkvf', #Honce⟩
-  icombine Hkvf Hkvf' gives %Heq
-  have Heq' : api = api' := by
-    unfold interface.mkOk at Heq
-    simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at Heq
-    exact go.intoVal_inj Heq
-  subst Heq'
-  iexact Honce
-
 /-- A write through `New`'s client sent at most once (D29): its `*kv`'s (`KV` field's). -/
 theorem clientWriteOnce_api (cl api : Loc) (addrs : List GoString) :
     clientF cl go!"KV" ↦□
         interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
       clientWriteOnce (GF := GF) cl addrs ⊢ writeOnce api addrs := by
-  iintro ⟨#Hkvf, #Hw⟩
+  iintro ⟨-, #Hw⟩
   iunfold clientWriteOnce at Hw
   iunfold writeOnce
-  icases Hw with (#Hone | %Hnr)
-  · ileft
-    iapply clientKVOnce_api cl api addrs $$ [Hkvf Hone]
-    iframe #
-  · iright; ipureintro; exact Hnr
+  iexact Hw
 
 /-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` that sends a write at most
 once, with an update fired at most once, one per member (see the file header): `nil`, the reply's
@@ -513,9 +493,7 @@ theorem client_Txn_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   · ipureintro; exact Ht
   iunfold txnWriteOnce
   iunfold writeOnce at Hwo
-  icases Hwo with (#Ho | %Hnr)
-  · ileft; iexists api; iframe #
-  · iright; ipureintro; exact Hnr
+  iexact Hwo
 
 end family
 

@@ -198,13 +198,13 @@ theorem Main.wp_proof
     · exact Hb₃
   ihave #Hwo₁ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₁
       [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
-  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  · iunfold EtcdGrove.client.clientWriteOnce; ipureintro; exact hnr
   ihave #Hwo₂ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₂
       [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
-  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  · iunfold EtcdGrove.client.clientWriteOnce; ipureintro; exact hnr
   ihave #Hwo₃ : EtcdGrove.client.clientWriteOnce (GF := GF) cl₃
       [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] $$ []
-  · iunfold EtcdGrove.client.clientWriteOnce; iright; ipureintro; exact hnr
+  · iunfold EtcdGrove.client.clientWriteOnce; ipureintro; exact hnr
   ihave #Hok : ([∗list] cl ∈ [cl₁, cl₂, cl₃], clientOk γl cl) $$ []
   · iapply (BigSepL.bigSepL_cons (Φ := fun _ cl => clientOk (GF := GF) γl cl)).2
     isplitr

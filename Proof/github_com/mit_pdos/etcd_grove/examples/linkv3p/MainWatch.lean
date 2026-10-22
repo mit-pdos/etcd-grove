@@ -430,13 +430,13 @@ theorem MainWatch.wp_proof
   · rw [hms]
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iframe Hnc₁; iunfold client.clientWriteOnce; iright; ipureintro; exact hnr
+    · iframe Hnc₁; iunfold client.clientWriteOnce; ipureintro; exact hnr
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iframe Hnc₂; iunfold client.clientWriteOnce; iright; ipureintro; exact hnr
+    · iframe Hnc₂; iunfold client.clientWriteOnce; ipureintro; exact hnr
     iapply BigSepL.bigSepL_cons.2
     isplitr
-    · iframe Hnc₃; iunfold client.clientWriteOnce; iright; ipureintro; exact hnr
+    · iframe Hnc₃; iunfold client.clientWriteOnce; ipureintro; exact hnr
     iapply BigSepL.bigSepL_nil.2
     itrivial
   -- the KV invariant the writers' puts open (`wkKV`), and the log of the successful puts under its

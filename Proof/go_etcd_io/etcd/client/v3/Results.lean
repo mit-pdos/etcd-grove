@@ -2085,11 +2085,13 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
   iframe #
 
 /-- **A put's update, as the client takes it** (2026-10-19, D21 M6, D21i): persistent (fired at
-each committed occurrence: any client), or fired at most once on a client configured for one
-attempt (`kvOnce`, `MaxUnaryRetries: 1`). Since 2026-10-20 (linkv-txn stage A) a delete's too. -/
+each committed occurrence: any client). Since 2026-10-20 (linkv-txn stage A) a delete's too.
+(Until 2026-10-22 also fired at most once on a client configured for one attempt, `kvOnce`,
+`MaxUnaryRetries: 1`, which no client configures since D31; a write fired at most once goes
+through `Failover.lean`'s results, on refusal-free members.) -/
 def putAuOk (api : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     IProp GF :=
-  iprop(□ kvOpAu1 γk op Q ∨ (kvOnce api addr ∗ kvOpAu1 γk op Q))
+  iprop(□ kvOpAu1 γk op Q)
 
 /-- A persistent update is a put's update, its result persistent. -/
 theorem putAuOk_of_box (api : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp)
@@ -2097,16 +2099,15 @@ theorem putAuOk_of_box (api : Loc) (addr : List GoString) (γk : KVNames) (op : 
     kvOpAu (GF := GF) γk op Q ⊢ putAuOk api addr γk op (fun σ => iprop(□ Q σ)) := by
   iintro #H
   unfold putAuOk
-  ileft
   iintro !>
   iapply kvOpAu_one $$ H
 
 /-- **A writing transaction's update, as the client takes it** (2026-10-20, linkv-txn stage A;
-`putAuOk`'s, on a `*txn`): persistent, or fired at most once on a builder made from a `*kv` over a
-connection configured for one attempt. -/
+`putAuOk`'s, on a `*txn`): persistent. (Until 2026-10-22 also fired at most once on a builder
+made from a `*kv` over a connection configured for one attempt.) -/
 def txnAuOk (tp : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     IProp GF :=
-  iprop(□ kvOpAu1 γk op Q ∨ ((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addr) ∗ kvOpAu1 γk op Q))
+  iprop(□ kvOpAu1 γk op Q)
 
 /-- A persistent update is a writing transaction's update, its result persistent. -/
 theorem txnAuOk_of_box (tp : Loc) (addr : List GoString) (γk : KVNames) (op : KVOp)
@@ -2114,7 +2115,6 @@ theorem txnAuOk_of_box (tp : Loc) (addr : List GoString) (γk : KVNames) (op : K
     kvOpAu (GF := GF) γk op Q ⊢ txnAuOk tp addr γk op (fun σ => iprop(□ Q σ)) := by
   iintro #H
   unfold txnAuOk
-  ileft
   iintro !>
   iapply kvOpAu_one $$ H
 
@@ -2126,10 +2126,9 @@ revision's token) for the put
 `key ↦ val` the server decodes (no lease, no previous key-value, value and lease not ignored),
 and (2026-10-15, unit T2) `Q` of the state at which the caller's update over the whole state
 fired, linearizing the put (unit W-M3: in `putReplied`, the state of the log the put met); or an
-error and no reply. Since 2026-10-19 (D21 M6, D20 (b), D21i) the update is `putAuOk`: persistent,
-or an ordinary atomic update fired at most once (at the server's commit of the request) on a
-client configured for one attempt; on an error it fired once or not at all (an update built over a
-prophecy of the call's outcome can learn which at the firing).
+error and no reply. The update is `putAuOk`: persistent (from 2026-10-19 to 2026-10-22, D21 M6,
+also an ordinary atomic update fired at most once on a client configured for one attempt; a write
+fired at most once is `Failover.lean`'s `client_put_any`, on refusal-free members).
 Premises: the registration, the context's (`ctxErrClient`), the package's. -/
 theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF) (γr : ReadNames)
     (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key val : GoString)
@@ -2158,35 +2157,21 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
     isplitr
     · ipureintro; exact Hpm
     unfold putAuOk kvReqPre
-    icases Hau with (#Hau | ⟨#Ho, Hau⟩)
-    · ileft
-      imodintro
-      inext
-      rw [Hw]
-      unfold etcdPutSpec
-      iexists F
-      iframe HF
-      iexists Q
-      isplitr
-      · ipureintro; rfl
-      isplitr
-      · iexact Hau
-      iintro %m Hm
-      iexact Hm
-    · iright; ileft
-      iframe Ho
-      inext
-      rw [Hw]
-      unfold etcdPutSpec
-      iexists F
-      iframe HF
-      iexists Q
-      isplitr
-      · ipureintro; rfl
-      isplitl [Hau]
-      · iexact Hau
-      iintro %m Hm
-      iexact Hm
+    icases Hau with #Hau
+    ileft
+    imodintro
+    inext
+    rw [Hw]
+    unfold etcdPutSpec
+    iexists F
+    iframe HF
+    iexists Q
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iexact Hau
+    iintro %m Hm
+    iexact Hm
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -2272,8 +2257,8 @@ alone, no previous key-values) and (2026-10-15, unit T2) `□ Q` of the state at
 update over the whole state, `kvOpAu1 (.deleteRange (txn.deleteOpOf key [] false)) Q`,
 linearized the delete (unit W-M3: in `deleteReplied`, the state of the log the delete met); or an
 error and no reply. Since 2026-10-20 (linkv-txn stage A, as `client_put_end_to_end` since D21 M6)
-the update is `putAuOk`: persistent, or fired at most once on a client configured for one attempt;
-the reply gives `Q`, not `□ Q`; (linkv-txn stage F) any context a client call takes (`ctxOk`: `Background()`
+the update is `putAuOk`: persistent (until 2026-10-22 also fired at most once on a client
+configured for one attempt); the reply gives `Q`, not `□ Q`; (linkv-txn stage F) any context a client call takes (`ctxOk`: `Background()`
 too). -/
 theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -2300,33 +2285,20 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
     · have Hw : deleteWireOf (opDeleteModel key []) = txn.deleteOpOf key [] false := rfl
       rw [Hw]
       unfold putAuOk kvReqPre
-      icases Hnp with (#Hnp | ⟨#Ho, Hnp⟩)
-      · ileft
-        imodintro
-        inext
-        unfold etcdDeleteSpec
-        iexists F
-        iframe HF
-        iexists Q
-        isplitr
-        · ipureintro; simp [txn.deleteOpOf]
-        isplitr
-        · iexact Hnp
-        iintro %m Hm
-        iexact Hm
-      · iright; ileft
-        iframe Ho
-        inext
-        unfold etcdDeleteSpec
-        iexists F
-        iframe HF
-        iexists Q
-        isplitr
-        · ipureintro; simp [txn.deleteOpOf]
-        isplitl [Hnp]
-        · iexact Hnp
-        iintro %m Hm
-        iexact Hm
+      icases Hnp with #Hnp
+      ileft
+      imodintro
+      inext
+      unfold etcdDeleteSpec
+      iexists F
+      iframe HF
+      iexists Q
+      isplitr
+      · ipureintro; simp [txn.deleteOpOf]
+      isplitr
+      · iexact Hnp
+      iintro %m Hm
+      iexact Hm
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -2351,8 +2323,8 @@ state at which the caller's update over the whole state, `kvOpAu1 (.txn (txnWire
 linearized a writing transaction (plain in the KV model, `txn.txnPlain`, no range end `[0]`; a
 read-only one takes no update, `Q` trivial; unit W-M3: in `txnReplied`, the state of the log the
 transaction met); or an error and no reply. Since 2026-10-20 (linkv-txn stage A) a writing
-transaction's update is `txnAuOk`: persistent, or fired at most once on a builder over a client
-configured for one attempt; (stage B2) a linearizable read-only one may take a read update
+transaction's update is `txnAuOk`: persistent (until 2026-10-22 also fired at most once on a
+builder over a client configured for one attempt); (stage B2) a linearizable read-only one may take a read update
 (`kvReadAu`), whose `□ Q` at the state of the log read `txnReplied` carries. -/
 theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv GF) (γw γr : ReadNames)
     (c cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
@@ -2407,33 +2379,20 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
       iintro %m Hm
       iexact Hm
     · unfold txnAuOk
-      icases Hau with (#Hau | ⟨#Ho, Hau⟩)
-      · ileft
-        imodintro
-        inext
-        unfold etcdTxnSpec
-        isplitl []
-        · ipureintro; exact ⟨txnWireOf_plain _ hp, hin⟩
-        iexists Q
-        isplitr
-        · iright; iright; iframe Hau; ipureintro; exact Hw
-        iexists c, F
-        iframe #
-        iintro %m Hm
-        iexact Hm
-      · iright; ileft
-        iframe Ho
-        inext
-        unfold etcdTxnSpec
-        isplitl []
-        · ipureintro; exact ⟨txnWireOf_plain _ hp, hin⟩
-        iexists Q
-        isplitl [Hau]
-        · iright; iright; iframe Hau; ipureintro; exact Hw
-        iexists c, F
-        iframe #
-        iintro %m Hm
-        iexact Hm
+      icases Hau with #Hau
+      ileft
+      imodintro
+      inext
+      unfold etcdTxnSpec
+      isplitl []
+      · ipureintro; exact ⟨txnWireOf_plain _ hp, hin⟩
+      iexists Q
+      isplitr
+      · iright; iright; iframe Hau; ipureintro; exact Hw
+      iexists c, F
+      iframe #
+      iintro %m Hm
+      iexact Hm
   inext
   iintro %resp %err Hout
   iapply HΦ

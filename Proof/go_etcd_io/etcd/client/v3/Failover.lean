@@ -10,10 +10,10 @@ conjunction of the members' specs** (`anySpec`): the caller proves each conjunct
 resources, and the member whose handler runs uses its own (`isGrpcRpcs_anySpec`, from
 `isGrpcRpc_mono`). The reply is that member's: the results below say "some member `x` of `ms`".
 
-The write results are for a write sent at most once (`writeOnce`): a client configured for one
-attempt (`kvOnce`, D21 M6), or (2026-10-21, D29) a client of refusal-free members, whose retry
-interceptor never sends a write again (`noRefusalAt`). Either way an update fired at most once, by
-the one member the attempt reached. One member (`ms = [x]`) is the `client_*_end_to_end`
+The write results are for a write sent at most once (`writeOnce`, 2026-10-21, D29): a client of
+refusal-free members, whose retry interceptor never sends a write again (`noRefusalAt`), so an
+update fired at most once, by the one member the attempt reached. (Until 2026-10-22 also a client
+configured for one attempt, `kvOnce`, D21 M6; no client configures one since D31.) One member (`ms = [x]`) is the `client_*_end_to_end`
 results' case.
 -/
 module
@@ -104,28 +104,30 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **A write through the `*kv` `api` sent at most once** (persistent; D21 M6, D29): a client
-configured for one attempt, or a client of refusal-free members (any retry bound). -/
+/-- **A write through the `*kv` `api` sent at most once** (persistent; D29): a client of
+refusal-free members (any retry bound). (Until 2026-10-22 also a client configured for one
+attempt, D21 M6.) -/
 def writeOnce (api : Loc) (addrs : List GoString) : IProp GF :=
-  iprop(kvOnce api addrs ∨ ⌜∀ a ∈ addrs, noRefusalAt a⌝)
+  iprop(⌜∀ a ∈ addrs, noRefusalAt a⌝)
 
 instance writeOnce_persistent (api : Loc) (addrs : List GoString) :
     Persistent (writeOnce (GF := GF) api addrs) := by
   unfold writeOnce; infer_instance
 
-/-- **`New`'s client `cl` sends a write at most once** (persistent; D21 M6, D29): configured for
-one attempt (`clientKVOnce`), or a client of refusal-free members (any retry bound). -/
+/-- **`New`'s client `cl` sends a write at most once** (persistent; D29): a client of refusal-free
+members (any retry bound). (Until 2026-10-22 also configured for one attempt, `clientKVOnce`,
+D21 M6.) -/
 def clientWriteOnce (cl : Loc) (addrs : List GoString) : IProp GF :=
-  iprop(clientKVOnce cl addrs ∨ ⌜∀ a ∈ addrs, noRefusalAt a⌝)
+  iprop(⌜∀ a ∈ addrs, noRefusalAt a⌝)
 
 instance clientWriteOnce_persistent (cl : Loc) (addrs : List GoString) :
     Persistent (clientWriteOnce (GF := GF) cl addrs) := by
   unfold clientWriteOnce; infer_instance
 
-/-- **A transaction through the `*txn` `tp` sent at most once** (D21 M6, D29): `writeOnce` of the
-`*kv` it was made from, or refusal-free members. -/
+/-- **A transaction through the `*txn` `tp` sent at most once** (D29): refusal-free members.
+(Until 2026-10-22 also a builder over a `*kv` configured for one attempt, D21 M6.) -/
 def txnWriteOnce (tp : Loc) (addrs : List GoString) : IProp GF :=
-  iprop((∃ api : Loc, txnKvIs tp api ∗ kvOnce api addrs) ∨ ⌜∀ a ∈ addrs, noRefusalAt a⌝)
+  iprop(⌜∀ a ∈ addrs, noRefusalAt a⌝)
 
 /-- **etcd's KV registrations at a member** (persistent): etcd's `Put`, `Range`, `DeleteRange` and `Txn` at its address, at its apply environment, read names
 and ids (`etcd_kv_started`'s). -/
@@ -200,26 +202,16 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     unfold kvReqPre
     iright
     iunfold writeOnce at Ho
-    icases Ho with (#Ho | %Hnr)
-    · ileft
-      iframe Ho
-      inext
-      rw [Hw]
-      ihave Hsp := hs $$ [Hau]
-      · iframe #
-        iexact Hau
-      iExactEq Hsp
-      rfl
-    · iright
-      isplitl []
-      · ipureintro; exact Hnr
-      inext
-      rw [Hw]
-      ihave Hsp := hs $$ [Hau]
-      · iframe #
-        iexact Hau
-      iExactEq Hsp
-      rfl
+    icases Ho with %Hnr
+    isplitl []
+    · ipureintro; exact Hnr
+    inext
+    rw [Hw]
+    ihave Hsp := hs $$ [Hau]
+    · iframe #
+      iexact Hau
+    iExactEq Hsp
+    rfl
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -368,24 +360,15 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
     unfold kvReqPre
     iright
     iunfold writeOnce at Ho
-    icases Ho with (#Ho | %Hnr)
-    · ileft
-      iframe Ho
-      inext
-      ihave Hsp := hs $$ [Hau]
-      · iframe #
-        iexact Hau
-      iExactEq Hsp
-      rfl
-    · iright
-      isplitl []
-      · ipureintro; exact Hnr
-      inext
-      ihave Hsp := hs $$ [Hau]
-      · iframe #
-        iexact Hau
-      iExactEq Hsp
-      rfl
+    icases Ho with %Hnr
+    isplitl []
+    · ipureintro; exact Hnr
+    inext
+    ihave Hsp := hs $$ [Hau]
+    · iframe #
+      iexact Hau
+    iExactEq Hsp
+    rfl
   inext
   iintro %resp %err Hout
   iapply HΦ
@@ -472,24 +455,15 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoInter
       rfl
     · iright
       iunfold txnWriteOnce at Ho
-      icases Ho with (Ho | %Hnr)
-      · ileft
-        iframe Ho
-        inext
-        ihave Hsp := hs $$ [Hu]
-        · iframe #
-          iexact Hu
-        iExactEq Hsp
-        rfl
-      · iright
-        isplitl []
-        · ipureintro; exact Hnr
-        inext
-        ihave Hsp := hs $$ [Hu]
-        · iframe #
-          iexact Hu
-        iExactEq Hsp
-        rfl
+      icases Ho with %Hnr
+      isplitl []
+      · ipureintro; exact Hnr
+      inext
+      ihave Hsp := hs $$ [Hu]
+      · iframe #
+        iexact Hu
+      iExactEq Hsp
+      rfl
   inext
   iintro %resp %err Hout
   iapply HΦ

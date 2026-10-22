@@ -74,7 +74,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvClient
 public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxn
 public import Spec.google_golang_org.grpc.status.FromError
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
-public import Proof.go_etcd_io.etcd.client.v3.SyncSpsc
+public import Perennial.Golang.Theory.Chan.Idioms.SyncSpsc
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.MonoList

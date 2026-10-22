@@ -133,12 +133,9 @@ theorem Client.dialSetupOpts.wp_proof
       iexists o2, v
       iframe
       ipureintro; exact Hv
-  wp_join iprop(c_ptr ↦ c ∗ ∃ n : w64, unaryMaxRetries_ptr ↦ n ∗
-      ⌜cfg.MaxUnaryRetries' = W64 1 → n = W64 1⌝) with [c unaryMaxRetries]
-    as ⟨c, %nr, unaryMaxRetries, %Hnr⟩
-  all_goals try (first
-    | (iframe; ipureintro; intro h; exact h)
-    | (iframe; ipureintro; intro h; exfalso; rw [h] at Hif; exact Hif (by decide)))
+  wp_join iprop(c_ptr ↦ c ∗ ∃ n : w64, unaryMaxRetries_ptr ↦ n) with [c unaryMaxRetries]
+    as ⟨c, %nr, unaryMaxRetries⟩
+  all_goals try (iframe; iexists _; iframe)
   wp_join iprop(c_ptr ↦ c ∗ ∃ d : time.Duration, backoffWaitBetween_ptr ↦ d)
     with [c backoffWaitBetween] as ⟨c, %wb, backoffWaitBetween⟩
   all_goals try (iframe; iexists _; iframe)
@@ -178,7 +175,7 @@ theorem Client.dialSetupOpts.wp_proof
   · iapply BigSepL2.bigSepL2_cons.2; iframe Hm1
     iapply BigSepL2.bigSepL2_cons.2; iframe Hrro'
     iapply BigSepL2.bigSepL2_nil.2; itrivial
-  wp_apply wp_unaryIc c _ [m1, rro] [some nr, none] $$ [$Hc $Hl2 $Hros2] as %ic ⟨#Hic, #Hic1, #HicW⟩
+  wp_apply wp_unaryIc c _ [m1, rro] [some nr, none] $$ [$Hc $Hl2 $Hros2] as %ic ⟨#Hic, #HicW⟩
   wp_apply wp_WithUnaryInterceptor ic $$ [$Hgrpc] as %o4 %Ho4
   wp_apply wp_slice_literal (V := GoInterface) [o3, o4]
   isplitr
@@ -199,14 +196,7 @@ theorem Client.dialSetupOpts.wp_proof
     ipureintro
     simp only [List.append_assoc, List.cons_append]
     exact List.Forall₂.append Hka (List.Forall₂.append Hosds (.cons Hv (.cons Ho3 (.cons Ho4 .nil))))
-  isplitr
-  · ipureintro; exact Hsi
-  iintro %Hm
-  iapply Hic1
-  ipureintro
-  intro mx
-  rw [show maxAfter mx [some nr, none] = nr from rfl, Hnr Hm]
-  decide
+  ipureintro; exact Hsi
 
 end proof
 

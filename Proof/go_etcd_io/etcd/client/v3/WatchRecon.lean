@@ -8,7 +8,7 @@ goroutine starts from. Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.WatchRun
-public import Proof.go_etcd_io.etcd.client.v3.SyncSpsc
+public import Perennial.Golang.Theory.Chan.Idioms.SyncSpsc
 public import Proof.go_etcd_io.etcd.client.v3.MapSplit
 
 @[expose] public section

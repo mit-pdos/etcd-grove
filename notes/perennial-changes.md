@@ -140,4 +140,32 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Landed
 
-(none yet)
+### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork
+
+Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's findings" and
+"R4's findings"; `notes/STATUS.md`, "watch-resume"), proposed as general idioms.
+
+- **Missing.** (1) Perennial's SPSC idiom (`Idioms/Spsc.lean`) does not tie its pending channel
+  states to the sides' tokens, so the holder of both tokens of an unbuffered channel cannot show
+  that nothing is in flight (Go's synchronous handoff). (2) Its `WaitGroup` join idiom
+  (`sync.join`) bounds the `Add`s since the last `Wait` (`num_added < 2^31 - 1`), not the
+  goroutines running. (3) `wp_fork_tok`'s premise is a plain wand: no ghost update (no invariant
+  opened) at the fork step, which is not atomic (`Fork` may stutter).
+- **Needed by.** The watch client's reconnection: `respc` and every substream's `recvc` (`run`'s
+  epoch switch and a substream's restart need `sent = recv`); `waitCancelSubstreams`' local wait
+  group (one `Add(1)` per resuming substream, F4); its goroutines' inner `go` statement, which
+  refills a lent slot at the fork.
+- **Workaround here (until the pin moves).** `Proof/go_etcd_io/etcd/client/v3/SyncSpsc.lean` (a
+  copy of `Spsc.lean` with pending flags); `InvWcJoin.lean`'s local join (`wcjAdder`, `wcjDone`,
+  `wcjDoneB`, `wp_wcj_Add`/`Done`/`Wait`) and its copy of `wp_fork_tok`, `wp_fork_tok_upd`.
+- **Proposed change.** Perennial branch `idioms` (off `lean` `a39a3d14c`), one commit each:
+  `3c3e83e2c` `Idioms/SyncSpsc.lean` (`isSspsc`, `sspscProducer`/`sspscConsumer`, `sspsc_sync`,
+  the `recvAu`/`sendAu`/`closeAu` lemmas and `wp_sspsc_receive`/`send`/`close`); `9e52da638`
+  `wp_fork_tok_upd` in `GooseLang/Lifting.lean` (`wp_fork_tok` derived from it, statement
+  unchanged); `537c426e0` `Proof/sync/WaitGroupTokJoin.lean`, `sync.tokJoin` (`ownAdder`,
+  `ownDone`, `WaitGroup.wp_Add`/`wp_Done`/`wp_Wait`, the counter backed by thread tokens; a slot's
+  token lendable, `lend_acc`/`unlend_acc`, under a client's lending law `lendLaw N L`). New
+  definitions and theorems only; no existing statement changes. Reviewed (`trusted-delta.py`: no
+  tier 0-2 trust change), recorded with `etc/land.sh mark-reviewed`.
+- **Status.** Landed 2026-10-22: Perennial `lean` `537c426e0` (`3c3e83e2c`, `9e52da638`,
+  `537c426e0`), the pin since; the local copies are deleted (etcd-grove branch `perennial-idioms`).

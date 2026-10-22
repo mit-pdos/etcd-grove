@@ -18,8 +18,9 @@ never rejects the store's trace.
 It follows from Perennial's `goose_adequacy`, as the register's and the counter's
 (`lintest/counter/Adequacy.lean`): the disk FFI (the proofs are generic over the FFI), a
 concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `T = n + 2`
-(threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, which also
-gives `context`'s `isClosedchanInit`) and `Main`'s spec. This file proves it from `Main.spec`
+(threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`; `context`'s
+`isClosedchanInit`, which `Main.spec` takes, from `context`'s `isPkgInit`,
+`context.isClosedchanInit_of_init`) and `Main`'s spec. This file proves it from `Main.spec`
 as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the linked result
 `kvwitness.wp_Main` (`Link.lean`): `kv_adequate`.
 
@@ -109,19 +110,15 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
 
 /-- The post-initialization predicate of every package the store (transitively) imports, and
-of the store itself: what `ownInitializing` hands out for an initialized package. The entries
-of `context` and of the packages that import it, but raft (porcupine, lintest, the store),
-also carry `context.isClosedchanInit` (`Init.lean`). -/
+of the store itself: what `ownInitializing` hands out for an initialized package. -/
 def pkgInitTable : List (GoString × IProp GF) :=
   [(pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness ∗
-        context.isClosedchanInit)),
+      isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest,
-      iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-        context.isClosedchanInit)),
+      isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest),
    (pkg_id.github_com.anishathalye.porcupine,
-      iprop(isPkgInit pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit)),
-   (pkg_id.context, iprop(isPkgInit pkg_id.context ∗ context.isClosedchanInit)),
+      isPkgInit pkg_id.github_com.anishathalye.porcupine),
+   (pkg_id.context, isPkgInit pkg_id.context),
    (pkg_id.github_com.goose_lang.primitive, isPkgInit pkg_id.github_com.goose_lang.primitive),
    (pkg_id.sort, isPkgInit pkg_id.sort),
    (pkg_id.sync, isPkgInit pkg_id.sync),
@@ -165,9 +162,7 @@ def getIsPkgInit (s : GoString) : IProp GF :=
   ((pkgInitTable (GF := GF)).lookup s).getD iprop(True)
 
 theorem getIsPkgInit_kv :
-    github_com.mit_pdos.etcd_grove.examples.kvwitness.KVInitTable (getIsPkgInit (GF := GF)) := by
-  refine ⟨rfl, rfl, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨rfl, rfl, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_⟩ <;>
+    GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.kvwitness (getIsPkgInit (GF := GF)) := by
   repeat' (first | exact True.intro | apply And.intro | rfl)
 
 end pkgs
@@ -244,7 +239,10 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   imodintro
   unfold kvProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _
-    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg⟩
+  ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
   wp_apply (wp_Main Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
@@ -307,7 +305,10 @@ theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   imodintro
   unfold kvProgramWitness
   wp_apply (github_com.mit_pdos.etcd_grove.examples.kvwitness.wp_initialize' _
-    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg, #Hcc⟩
+    getIsPkgInit_kv) $$ Hown as ⟨_, #Hpkg⟩
+  ihave #Hcc : context.isClosedchanInit (GF := kvGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
   wp_apply (wp_MainWitness Hbound) $$ [Hpkg Hcc]
   · iframe #
   ipureintro
