@@ -11,6 +11,9 @@
   - No changelog commit: bbolt's `CHANGELOG/` entries are added in commits of their own, mostly by the
     maintainers after merging (the last 15 changelog commits touch no code but two).
 - **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
+  At the user's request (2026-10-23), "Anything else" explains the cause (`rollback` reloading the new meta's
+  freelist), against the skill's symptom-only rule; no code link there (the PR has them), so `check.py` warns
+  (length, the name `rollback`) but does not fail.
 - **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
   etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages push origin
   fix/bbolt-commit-meta-error-frees-reader-pages`; then check the issue's test link (`db_whitebox_test.go#L116-L159`).
