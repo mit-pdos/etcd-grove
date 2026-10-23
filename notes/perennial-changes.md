@@ -173,6 +173,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
 - **Status.** Not started.
 
+### `≤u` has no transitive instance (conversion to a defined type of a named interface)
+
+- **Limitation.** `InterfaceSemantics.convert_to_interface` needs `to ≤u go.InterfaceType elems`;
+  `≤u` (`UnderlyingEq`) is found from one `<u` step only (`unfold_to_underlying_eq`,
+  `Golang/Theory/PostLifting.lean`), and `UnderlyingDirectedEq`'s docstring mentions a transitive
+  instance that does not exist. A defined type of a named interface (`type Codec Serializer` in
+  `k8s.io/apimachinery/pkg/runtime`: `Codec <u Serializer.ty <u interface{Encoder; Decoder}`) then
+  has no conversion step.
+- **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
+- **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom.
+- **Proposed fix.** An instance `[t <u t'] [t' ≤u t''] : t ≤u t''` (in place of
+  `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
+- **Status.** Not started.
+
 ## Landed
 
 (none yet)
