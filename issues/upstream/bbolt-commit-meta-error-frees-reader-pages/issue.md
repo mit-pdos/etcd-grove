@@ -19,7 +19,7 @@ The read transaction sees two different values of a key it does not write, which
 
 This affects any application that keeps using the database after such a `Commit` error while read transactions are open.
 
-The cause, as far as I can tell: the failed `Commit` calls `Tx.rollback`, which assumes the meta the transaction started from is still current. It drops the pages the transaction freed from the pending list, then reloads the free pages from the freelist page of `db.meta()`. Here the transaction's own meta reached the file, so `db.meta()` returns it, and its freelist page lists the pages the transaction freed, which the read transaction still reads, as free. The `v3` transaction can then reuse them.
+The cause: the failed `Commit` calls `Tx.rollback`, which assumes the meta the transaction started from is still current. It drops the pages the transaction freed from the pending list, then reloads the free pages from the freelist page of `db.meta()`. Here the transaction's own meta reached the file, so `db.meta()` returns it, and its freelist page lists the pages the transaction freed, which the read transaction still reads, as free. The `v3` transaction can then reuse them.
 
 Also, after step 3 new transactions read `v2`, although that `Commit` returned an error. Is the outcome of a failed `Commit` meant to be unknown, and should its documentation say so?
 
