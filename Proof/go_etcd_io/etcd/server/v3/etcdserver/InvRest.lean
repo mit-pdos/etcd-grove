@@ -269,6 +269,25 @@ the stores' writers the workload does not reach would need; the apply thread hol
 model in `srvRestOwn` and never lends it). -/
 def srvRestRW (γB : backend.BNames) : IProp GF := iprop(∃ r, backend.rbOwn γB r)
 
+/-- **The server's `AEnv.RO` with its objects' backend parts `H`** (D22 receiver epochs, S7c,
+2026-10-23): `srvRestOwn` and `H`, the halves of the backend fields of the objects that write the
+backend (the alarm store's `alarmBeOn`, the auth store's `authBeOn`): the apply thread holds them
+with the rest buckets; the objects' writers' contracts take them in their write right
+(`srvRestRWH`), so that each names the backend the object is on, and their `Recover`s replace
+them. -/
+def srvRestOwnH (γB : backend.BNames) (c : Loc) (H : IProp GF) (r : apply.RestM) : IProp GF :=
+  iprop(srvRestOwn γB c r ∗ H)
+
+/-- **The server's `AEnv.RW` with its objects' backend parts `H`** (S7c). -/
+def srvRestRWH (γB : backend.BNames) (H : IProp GF) : IProp GF := iprop(srvRestRW γB ∗ H)
+
+/-- **`RW` lends `X`** (persistent; S7c): a write right holding the resources `X` a contract's
+writes take and give back (`srvRestRWH` lends each object's part). -/
+def rwLens (RW X : IProp GF) : IProp GF := iprop(□ (RW -∗ X ∗ (X -∗ RW)))
+
+instance rwLens_persistent (RW X : IProp GF) : Persistent (rwLens RW X) := by
+  unfold rwLens; infer_instance
+
 /-- **The apply thread's rest buckets at the applied log `A`** (`AEnv.RO` at `restModel` of the
 log through `A`, from the start's consistent index and the boot log). -/
 def srvRest (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) : IProp GF :=

@@ -59,9 +59,10 @@ as it is (`ccRaftOk`, `raftPropose`'s premise for `ApplyConfChange`). The server
 no other conf change (`srvCCPolicy`, `ccBootOk`).
 
 **Its effect on the rest buckets and the members** (D22, 2026-10-23: the backend over every
-bucket): the environment's `RO` is the server's (`srvRestOwn γB cl`: the backend's tracked
+bucket): the environment's `RO` is the server's (`srvRestOwnH γB cl H`: the backend's tracked
 buckets' half and the in-memory members of `s.cluster = cl`), taken at `rs` and given back at
-`ccRest v3 m rs`: with `v3`, `ValidateConfigurationChange` reads the `members` and
+`ccRest v3 m rs` (D22 receiver epochs, S7c: with the server's objects' backend parts `H`, which it
+leaves, a frame), with `v3`, `ValidateConfigurationChange` reads the `members` and
 `members_removed` buckets (`MustReadMembersFromBackend`, a read transaction: what the apply
 thread, their only writer, last wrote, `Unlock` having written back) and returns `nil` iff
 `membership.ccValidOn rs.bk m`; then `AddMember` saves the context's member
@@ -70,8 +71,8 @@ failed validation, or without `v3`, nothing. -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
-    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM),
-  ccApplyOk γs.raft.reCfg m → E.RO = srvRestOwn γB cl →
+    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (H : IProp GF),
+  ccApplyOk γs.raft.reCfg m → E.RO = srvRestOwnH γB cl H →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗

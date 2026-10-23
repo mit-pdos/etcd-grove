@@ -49,6 +49,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 
 @[expose] public section
 
@@ -95,6 +96,58 @@ def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
 alarm (`Activate`, the only writer of its map, is in its apply contract, which taking this token
 gives: the axiom's postcondition). -/
 opaque alarmFresh (a : Loc) : IProp GF
+
+/-- **The alarm store `a`'s apply contract on whichever backend it is on** (persistent; D22 receiver
+epochs, S7c, 2026-10-23; `v3alarm.NewAlarmStore.spec`'s, the trust boundary): for a real backend
+`d` (its contract at some `W`, `Pk`, its frozen post-lock hook `f`) and a write right `RW` lending
+the tracked buckets' half of `d` and the store's user's half of `a.be` at an alarm backend over
+`d` (`alarmBeOn`), the apply package's contract at `d`'s batch lock `Pk` and hook `f`. The user's
+half, with the lock's (`alarmLockInv`), is what pins the store's writes to `d`, so the contract
+stays true when `Recover` moves the store to another backend (the old user's half is gone, the new
+one names the new backend; until S7c the contract was for `NewAlarmStore`'s backend only, false
+once `Recover` runs). -/
+def alarmApplyOk (a : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
+    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.be) -∗
+    apply.isAlarmStore a γ Pk #f RW)
+
+instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
+  unfold alarmApplyOk; infer_instance
+
+/-- The schema auth backend `*authBackend` `abl` as an interface value. -/
+abbrev authBkIface (abl : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
+    #abl
+
+/-- **The auth store `st` is on the real backend at `be`** (D22 receiver epochs, S7c, 2026-10-23;
+not persistent): its user's half of `st.be` (the other half `beMu`'s, `auth.beP`), a schema auth
+backend over `be` with a logger (read-only). -/
+def authBeOn (st be : Loc) : IProp GF :=
+  iprop(∃ (abl lg : Loc), ⌜lg ≠ null⌝ ∗
+    auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} authBkIface abl ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        #be : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg)
+
+/-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
+`auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
+`alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
+def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
+    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
+    apply.isAuthStore (auth.authIface stl) γ Pk #f RD false RW)
+
+/-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c): the alarm store
+`al`'s and the auth store `st`'s user halves of their backend fields, the server's `H` of its
+environment's rest resource and write right (`srvRestOwnH`, `srvRestRWH`). -/
+def srvObjsOn (al st be : Loc) : IProp GF := iprop(alarmBeOn al be ∗ authBeOn st be)
+
+instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
+    Persistent (authApplyOk (GF := GF) stl RD) := by
+  unfold authApplyOk; infer_instance
 
 /-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
 lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure

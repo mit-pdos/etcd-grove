@@ -506,6 +506,7 @@ axiom utf8.ValidString.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof
+axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3compactor.New.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof

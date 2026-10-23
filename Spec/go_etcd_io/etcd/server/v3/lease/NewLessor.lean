@@ -68,6 +68,8 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   token, the tracked buckets' client half (`srvRestRW d.γB`), which its put needs; the server's
   apply thread holds that half at its model and never lends it (the workload has no lease
   request), so no lease is written.
+  (D22 receiver epochs, S7c, 2026-10-23) for any write right `RW` that holds that half (the
+  server's holds its objects' backend parts besides, `srvRestRWH`).
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of
   `isApplyLessor_of_lessorInv` until then): it read-locks the lessor's `mu` and returns the map's
   lease or `nil`; a lease's `ID` is never written after `NewLease`, its `TTL()` and `Keys()` take the
@@ -94,9 +96,9 @@ abbrev lease.NewLessor.spec : Prop :=
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl [] ∗ lessorCkptOk l ∗
-      □ (∀ f : GoFunc, backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-        lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ srvRestRW d.γB)
-          (mvcc.bkRTx d.γB d.P d.be)) ∗
+      □ (∀ (f : GoFunc) (RW : IProp GF), backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+        □ (RW -∗ srvRestRW d.γB) -∗
+        lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

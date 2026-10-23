@@ -9,6 +9,8 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Get
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Recover
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__restore
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Compare__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetRangeEnd
@@ -907,6 +909,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+theorem v3alarm.AlarmStore.wp_restore :
+    v3alarm.AlarmStore.restore.spec (GF := GF) (hG := hG) :=
+  v3alarm.AlarmStore.restore.wp_proof
+
+theorem v3alarm.AlarmStore.wp_Recover :
+    v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG) :=
+  v3alarm.AlarmStore.Recover.wp_proof v3alarm.AlarmStore.wp_restore
 
 theorem EtcdServer.wp_getAppliedIndex :
     EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) :=

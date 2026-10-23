@@ -157,10 +157,13 @@ instance tokenProviderOk_persistent (tp : GoInterface) :
     Persistent (tokenProviderOk (GF := GF) tp) := by
   unfold tokenProviderOk; infer_instance
 
-/-- What `beMu` guards at `q`: the backend `be`, with its contract (`Recover` replaces it under
-the write lock). -/
+/-- What `beMu` guards at `q`: the backend `be` at half the fraction, with its contract
+(`Recover` replaces it under the write lock). (D22 receiver epochs, S7c, 2026-10-23: the other half
+of `be` is the store's user's, the server's apply thread, `authBeOn`, which `Recover` takes with
+the write lock; so the user's half names the backend the store's writes go to. Until then `beMu`
+held all of it.) -/
 def beP (st : Loc) (R : IProp GF) (q : Qp) : IProp GF :=
-  iprop(∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own q} be ∗ authBackendOk be R)
+  iprop(∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R)
 
 /-- **A locked read transaction** `tx` for the read resource `R` (what `lockedReadTx` returns):
 its held token `H`, which `UnsafeGetUser(name)` keeps and `RUnlock()` turns back into `R`. -/
