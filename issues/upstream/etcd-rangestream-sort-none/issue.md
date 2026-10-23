@@ -35,7 +35,7 @@ Integration test: [`TestKVGetStreamSortByCreateRevision`](https://github.com/upa
 
 ### Anything else we need to know?
 
-#22615 (a fix of #22612) fixes this too: it makes `IsDefaultOrdering` false for a non-key target with `SortOrder: NONE`, and `RangeStream` checks `IsDefaultOrdering`, so with #22615 applied to `main` (22cc5d9ac) the test above gets `Unimplemented: RangeStream does not support custom sort orders`, as with `--order=ASCEND`. #22615 also needs `TestV3RangeRequest/sort`'s expectation for `RangeStream` updated (comment on #22615). #22616, the other fix of #22612, does not fix this.
+#22615 (a fix of #22612) fixes this too. It makes `IsDefaultOrdering` false for a non-key target with `SortOrder: NONE`, and `RangeStream` checks `IsDefaultOrdering`: with #22615 applied to `main` (22cc5d9ac), the test above gets `Unimplemented: RangeStream does not support custom sort orders`, as with `--order=ASCEND`. #22615 then also needs `TestV3RangeRequest/sort`'s expectation for `RangeStream` updated. #22616, the other fix of #22612, does not fix this.
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 

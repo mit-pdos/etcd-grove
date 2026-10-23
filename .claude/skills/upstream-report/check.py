@@ -22,6 +22,7 @@ PR_DISCLOSURE = "Written with the assistance of generative AI; I reviewed and te
 # Vocabulary of this repository that means nothing upstream.
 LOCAL_WORDS = r"\b(specs?|proofs?|premises?|Goose|Gooseable|ghost|verified code|Lean|Rocq|Perennial|Iris)\b"
 MAX_PROSE_WORDS = 250
+MAX_RAFT_ISSUE_WORDS = 380  # a raft issue also explains the cause
 MAX_PR_WORDS = 90
 
 failures = 0
@@ -169,7 +170,17 @@ def main():
         fail("issue.md missing")
     else:
         p = prose(issue)
-        if re.search(r"github\.com/etcd-io/[^/\s]+/blob/", issue):
+        raft = (fork or "").endswith("/etcd-raft") or "**Target**: etcd-io/raft" in meta
+        bbolt = (fork or "").endswith("/bbolt") or "**Target**: etcd-io/bbolt" in meta
+        code_links = re.findall(r"github\.com/etcd-io/[^/\s]+/blob/([^/\s]+)/", issue)
+        if raft:
+            # A raft issue explains the cause, linking the code at the base (SKILL.md, "The issue").
+            for rev in sorted(set(code_links)):
+                if not (re.fullmatch(r"[0-9a-f]{40}", rev) and (not base or rev.startswith(base[:7]))):
+                    fail(f"issue: links the code at {rev}, not by a permalink at the base")
+            if not code_links:
+                warn("issue: no permalink at the base; a raft issue explains the cause, linking the code")
+        elif code_links:
             fail("issue: links into the code; the root cause and code links belong in the PR")
         if re.search(r"release-\d", p):
             fail("issue: mentions a release branch; no claims about other releases in the issue")
@@ -187,10 +198,10 @@ def main():
                 fail(f"issue: names {t}, which the branch does not add")
         if base and base[:7] not in issue:
             fail(f"issue: does not name the base commit {base[:9]} the reproduction ran on")
-        if (fork or "").endswith("/bbolt") or "**Target**: etcd-io/bbolt" in meta:
-            # bbolt's issue form is free-form: no sections, the disclosure last.
+        if bbolt or raft:
+            # bbolt's and raft's issue forms are free-form: no sections, the disclosure last.
             if re.search(r"^#{1,6} ", issue, flags=re.M):
-                warn("issue: has headings; bbolt's issue form is free-form prose")
+                warn("issue: has headings; bbolt's and raft's issue forms are free-form prose")
             if not norm(issue).endswith(norm(ISSUE_DISCLOSURE)):
                 fail("issue: does not end with the standard disclosure, word for word")
             other = ""
@@ -202,10 +213,11 @@ def main():
             fail("issue: no 'Anything else we need to know?' section")
         elif not norm(other).endswith(norm(ISSUE_DISCLOSURE)):
             fail("issue: 'Anything else' does not end with the standard disclosure, word for word")
-        words = len(p.split())
-        if words > MAX_PROSE_WORDS:
-            warn(f"issue: {words} words of prose (outside code and <details>); aim for under {MAX_PROSE_WORDS}")
-        if code_diff:
+        words = len(re.sub(r"\]\([^)]*\)", "]", p).split())  # link targets are not words
+        limit = MAX_RAFT_ISSUE_WORDS if raft else MAX_PROSE_WORDS
+        if words > limit:
+            warn(f"issue: {words} words of prose (outside code and <details>); aim for under {limit}")
+        if code_diff and not raft:
             idents = set()
             for line in code_diff.splitlines():
                 if line.startswith(("+", "-", " ", "@@")) and not line.startswith(("+++", "---")):

@@ -16,7 +16,7 @@ The test below runs these steps (output trimmed):
         	Messages:   	progress response at revision 12 after the created response of the watcher on b, before its event at revision 2
 ```
 
-The Go client passes a progress response to every watch created before it arrives, so the watch on `b` is told it has every event up to revision 12, then receives its event at revision 2: a client that serves a read at revision 12 from that watch misses the put of `b`. The Go client, which reads the stream at once, hits this too, less often.
+The Go client passes a progress response to every watch created before the response arrives. So the watch on `b` is told it has every event up to revision 12, and only then receives its event at revision 2: a client serving a read at revision 12 from that watch misses the put of `b`. A client that reads the stream at once, as the Go client does, hits this too, less often.
 
 ### What did you expect to happen?
 

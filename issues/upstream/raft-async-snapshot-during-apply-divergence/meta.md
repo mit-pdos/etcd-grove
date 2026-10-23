@@ -137,7 +137,8 @@ No FAIL. WARNs, decided:
 
 - The comment added: `storageAppendHeld`'s doc comment says why nothing goes to the append thread and why it never
   holds without `AsyncStorageWrites`, which the code does not show; kept.
-- The issue's 276 words (aim 250): kept; the configuration (what the append thread does) is needed to show it is
-  not a misuse.
+- The issue's 397 words (aim 380, rewritten free-form with the cause after the 2026-10-23 review): kept; the
+  configuration (what the append thread does) is needed to show it is not a misuse, and the cause has two halves
+  (raft holds entries back for a snapshot but not a snapshot for entries; the threads may run in any order).
 - The PR's 148 words (aim 90): kept; the approved raft example has 136, and the cause has two halves (raft hands the
   snapshot out; the threads may run in any order) plus the overlap note.

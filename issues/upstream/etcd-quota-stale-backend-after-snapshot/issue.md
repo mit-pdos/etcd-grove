@@ -5,7 +5,7 @@ Title: A member that catches up by a snapshot rejects writes with "database spac
 In a cluster of members 0, 1 and 2:
 
 1. With no quota set, the cluster stores a 64 KiB value.
-2. While member 2 is down, the cluster deletes the key, compacts, defragments members 0 and 1, and takes enough writes that member 2 can only catch up by a snapshot.
+2. While member 2 is down, the cluster deletes the key, compacts, defragments members 0 and 1, and commits enough writes that member 2 can only catch up by a snapshot.
 3. Member 2 restarts with `--quota-backend-bytes=65536`, below its db's size, and catches up by the leader's snapshot, which is under 64 KiB.
 4. A small put through member 2 fails with `etcdserver: mvcc: database space exceeded`.
 
@@ -26,7 +26,7 @@ The put through member 2 should succeed: member 2's db (24 KiB) is under its quo
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestV3StorageQuotaAfterSnapshot`](https://github.com/upamanyus/etcd/blob/fix/etcd-quota-stale-backend-after-snapshot/tests/integration/v3_alarm_test.go#L129-L181) on branch [`upamanyus/etcd:fix/etcd-quota-stale-backend-after-snapshot`](https://github.com/upamanyus/etcd/tree/fix/etcd-quota-stale-backend-after-snapshot), off `main` (6782f5229). On `main` it fails as above, in 5 runs of 5.
+Integration test: [`TestV3StorageQuotaAfterSnapshot`](https://github.com/upamanyus/etcd/blob/fix/etcd-quota-stale-backend-after-snapshot/tests/integration/v3_alarm_test.go#L129-L181) on branch [`upamanyus/etcd:fix/etcd-quota-stale-backend-after-snapshot`](https://github.com/upamanyus/etcd/tree/fix/etcd-quota-stale-backend-after-snapshot), off `main` (6782f5229). On `main` it fails as above in 5 of 5 runs.
 
 ### Anything else we need to know?
 

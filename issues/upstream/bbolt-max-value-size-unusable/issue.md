@@ -14,7 +14,7 @@ On `main` (a4ef197), go1.26.9 linux/amd64, default options, `Bucket.Put` accepts
    panic: runtime error: slice bounds out of range [::2147483663] with length 2147483647
    ```
 
-The same happens for any key and value whose lengths add up to more than 2147483631 bytes (2 GiB − 17), although each is within `MaxKeySize` and `MaxValueSize`. `Put` should return `ErrValueTooLarge` for a key and value that bbolt cannot store, as it does for a value longer than `MaxValueSize`.
+The same happens for any key and value whose lengths add up to more than 2147483631 bytes (2 GiB − 17), even when each is within `MaxKeySize` and `MaxValueSize`. `Put` should return `ErrValueTooLarge` for a key and value that bbolt cannot store, as it does for a value longer than `MaxValueSize`.
 
 [`TestBucket_Put_MaxValueSizeWithKey`](https://github.com/upamanyus/bbolt/blob/fix/bbolt-max-value-size-unusable/bucket_test.go#L1231-L1251) (branch [`fix/bbolt-max-value-size-unusable`](https://github.com/upamanyus/bbolt/tree/fix/bbolt-max-value-size-unusable)) runs both cases; on `main` each fails (run one at a time with `-run 'TestBucket_Put_MaxValueSizeWithKey/^a$'` and `/^ab$`, output trimmed):
 
@@ -33,6 +33,6 @@ consistency check failed (1 errors)
 runtime error: slice bounds out of range [::2147483663] with length 2147483647
 ```
 
-A database left by the second case keeps the committed entry, and both `Get` and `Tx.Check` panic on it. Keeping a key and value under 2 GiB − 32 bytes in total avoids this.
+A database left by the second case keeps the committed entry, and both `Get` and `Tx.Check` panic on it. Keeping the lengths of a key and its value at most 2147483631 bytes together avoids this.
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
