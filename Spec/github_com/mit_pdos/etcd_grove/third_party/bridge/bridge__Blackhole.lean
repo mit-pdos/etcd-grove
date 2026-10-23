@@ -27,7 +27,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.third_party.bridge.Assumptions]
 
 /-- **`b.Blackhole()`** of a bridge that is not blackholed (a second `Blackhole` closes a closed
-channel, `issues/etcd-bridge-blackhole-twice-panic.md`): it returns, the bridge blackholed. -/
+channel, `issues/nonissues/etcd-bridge-blackhole-twice-panic.md`): it returns, the bridge blackholed. -/
 abbrev bridge.Blackhole.spec : Prop :=
   ∀ (b : Loc) (addr : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge ∗

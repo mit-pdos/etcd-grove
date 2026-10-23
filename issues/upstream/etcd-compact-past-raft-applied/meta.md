@@ -3,11 +3,13 @@
 - **Finding**: `issues/etcd-compact-past-raft-applied.md`
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-compact-past-raft-applied` in `~/etcd-fixes/etcd-compact-past-raft-applied`, two commits
-  (2026-10-21): 1fb0e1926 adds the test, which fails there; be0ad9592 is the fix (8967f11ae before its message was
-  rewritten, same tree). Not pushed.
-- **Base**: upstream `main` 7ff040cb84c9944d0c38a9f0dc9f12ed9c58223b (2026-10-21). `server/etcdserver/raft.go` and
-  `server.go`'s `applyAll`/`compactRaftLog` are as in the finding (checked at 22cc5d9ac); raft `v3.7.0`
-  (b867cf13f).
+  (rebuilt 2026-10-23 on the new base, both cherry-picked unchanged): e0846e9f3 adds the test, which fails there;
+  70f92483e is the fix. Not pushed (`git ls-remote origin` has no `fix/etcd-compact-past-raft-applied`). The
+  previous head, on 7ff040cb8, is kept as `backup/etcd-compact-past-raft-applied-v1` (be0ad9592; 1fb0e1926 its
+  tests commit; 8967f11ae before its message was rewritten, same tree).
+- **Base**: upstream `main` 3aaab3479b6c4f5fe1b2b8f33437093c2caae88a (2026-10-22). The 22 commits since 7ff040cb8
+  touch none of `server/etcdserver/`, `tests/integration/v3_leadership_test.go`, nor raft's version (v3.7.0,
+  b867cf13f): `raftNode.start`, `applyAll` and `compactRaftLog` are as in the finding, at the same lines.
 - **State**: draft
 
 Commit messages (drafts for the user to rewrite):
@@ -16,8 +18,35 @@ Commit messages (drafts for the user to rewrite):
 - `etcdserver: compact the raft log only after raft advances`, body: "Raft reads its log from its applied index
   until Advance, so a campaign right after the compaction could panic."
 
-Push (once approved): `git -C ~/etcd-fixes/etcd-compact-past-raft-applied push origin fix/etcd-compact-past-raft-applied`;
+Push (once approved): `git -C ~/etcd-fixes/etcd-compact-past-raft-applied push origin fix/etcd-compact-past-raft-applied`
+(never pushed, so no `--force-with-lease`);
 then check the issue's test link (`#L185-L222`, doc comment to closing brace) on GitHub.
+
+## Impact: does a restart clear it? (the user's question, 2026-10-23)
+
+Yes. The panic kills one member's process, the one that receives the transfer (or starts an election) in the
+window; the rest of the cluster keeps serving. Nothing on disk is damaged: the entries and hard state were saved
+before the window opens (`Save` precedes `notifyc`), and the backend has the applied entries with their consistent
+index. Checked 2026-10-23: the panicked test process leaves the member's data directory behind
+(`/tmp/TestMoveLeaderToRestartedMember570913632/004/...`); a copy, started alone with `etcd` built from the base
+(`go build` in `server/` at the tests commit), logged `restore consistentIndex` 158, `kvstore restored` with
+`current-rev` 151 (all 150 puts), `restarting local member` with `commit-index` 158, `newRaft ... applied: 0,
+lastindex: 158`, and then campaigned (pre-vote, no peers) four times without panicking. It could not rejoin, since
+its peers were gone with the test.
+
+What a restart does not do: by code reading, it reopens the window. A member with no snapshot on disk (fewer than
+`--snapshot-count` entries since the last one, 10000 by default) restarts with raft's applied index 0; if it has
+more than 100 entries to replay (`memorySnapshotCount`), the first batch makes an in-memory snapshot and compacts at
+index 1 (or `appliedi - SnapshotCatchUpEntries`), above 0, before `Advance`. With a snapshot on disk at index S, the
+window opens only if the first batch holds more than `SnapshotCatchUpEntries` (5000) entries, as in steady state. So
+a transfer or election that lands right after such a restart can crash the member again, but nothing makes it land
+there repeatedly: no crash loop is expected. The issue says this, marked as code reading.
+
+So the impact is a rare crash of one member, cleared by the restart a supervisor would do anyway; the reasons to
+upstream it are that it breaks `MemoryStorage.Compact`'s documented precondition, that the window widens with any
+proposal to compact more often (#17098), and that the fix is a two-line ordering change. Not measured: how often the
+window is hit without the failpoint (its width is the time between the follower's `notifyc` send and `Advance`,
+which includes `transport.Send`; not timed).
 
 ## Security
 
@@ -25,9 +54,15 @@ Not a security report by the skill's criterion: the trigger is a leader transfer
 operation) or an election that starts in a window of microseconds after a member applies a batch, and a single
 member crashes (and restarts cleanly). No client with ordinary access can aim it.
 
-## Duplicates checked (2026-10-21, with the token)
+## Duplicates checked (2026-10-21, with the token; rechecked 2026-10-23)
 
-Searches (issues and PRs): `"error scanning unapplied entries"`, `"unavailable due to compaction" panic`,
+2026-10-23 (unauthenticated): `"error scanning unapplied entries"` (0), `"unavailable due to compaction" panic` (5:
+the known #12134, #9079, #7470, and #16423/#9685 about raftexample), `compactRaftLog Advance` (0), `raftAdvancedC`
+(2: #22459, a test cleanup, and #20967, an upgrade issue; unrelated), raft `hasUnappliedConfChanges compaction` (0),
+`compaction panic` updated since 2026-10-20 (#22633, open: a v3.7.2 startup panic "unmarshal should never fail"
+replaying v2 WAL entries; a different panic). No duplicate, no open PR.
+
+2026-10-21 searches (issues and PRs): `"error scanning unapplied entries"`, `"unavailable due to compaction" panic`,
 `compact raft log applied Advance`, `compactRaftLog`, `raftAdvancedC`, raft `hasUnappliedConfChanges`, raft
 `Compact applied application responsibility`. No duplicate, no open PR fixing it. Related:
 
@@ -117,7 +152,24 @@ without `gofail enable`. CI runs it: the Prow presubmits `pull-etcd-integration-
 The snapshot itself (`CreateSnapshot(appliedi)` before `Advance`) is harmless to raft (a committed, applied
 prefix); it moves with the compaction anyway.
 
-## Verification (go1.27.2 linux/amd64, gofail v0.2.0)
+## Verification
+
+Rerun 2026-10-23 at the rebuilt branch (go1.27.3 linux/amd64, gofail v0.2.0), with failpoints enabled as below in a
+test binary built at each commit (`gofail enable server/etcdserver/`, `go get go.etcd.io/gofail@v0.2.0` in `server/`,
+`go test -c ./integration/` in `tests/`, then the tree restored):
+
+- At the tests commit e0846e9f3: panics 3 runs of 3, `panic: error scanning unapplied entries [1, 159): requested
+  index is unavailable due to compaction` from `hasUnappliedConfChanges` / `hup` / `stepFollower` on the
+  `MsgTimeoutNow`; the output in `issue.md` is from the first run.
+- At the fix 70f92483e: passes 5 of 5, and 3 of 3 with `-test.cpu 1`; the log shows `cannot campaign at term 2 since
+  there are still pending configuration changes to apply`. With the same binary, `-test.run
+  'TestMoveLeader|TestTransferLeader|TestFirstCommit|TestMember|TestRestart|TestV3LeaseRevoke|TestV3RangeStream|TestSnapshot'`
+  passes. Without failpoints: `cd server && go test ./etcdserver/...` ok; `go vet ./etcdserver/` and `go vet
+  ./integration/` clean; `gofmt -l` of the changed files empty; `cd tests && go test ./integration/ -count=1 -timeout 50m` ok (482 s;
+  the new test skips there, as it needs failpoints).
+- Restart of the panicked member: above, "Impact".
+
+Before the rebuild (at 7ff040cb8, go1.27.2):
 
 Failpoints enabled as `tests/robustness/Makefile`'s `gofail-enable` for `server/etcdserver/` only
 (`gofail enable server/etcdserver/ && (cd server && go get go.etcd.io/gofail@v0.2.0)`; reverted before committing).
@@ -153,6 +205,9 @@ Second pass (2026-10-21), as a maintainer: every return of the raft routine and 
 `TestConfigChangeBlocksApply` read once, served by a close; `TestApplyConfigChangeUpdatesConsistIndex` and
 `TestApplyMultiConfChangeShouldStop` (server_test.go) pass their own channel with one value to `apply`; no test
 calls `applyAll`. The test matches the package's failpoint tests (`SkipIfNoGoFail`, `gofail.Enable` mid-test,
-`TestV3RangeStreamWriteBetweenChunks`). Only the fix commit's body was rewritten, and `pr.md` shortened. The `check.py` WARNs on the fix's comments are
-kept: the field comment replaces one that restricted the channel to conf changes, the `notify etcdserver` line is
+`TestV3RangeStreamWriteBetweenChunks`). Only the fix commit's body was rewritten, and `pr.md` shortened. Third pass (2026-10-23, after the rebuild): every send on `notifyc` against its reads, for each kind of batch (a
+follower's snapshot batch sends at the snapshot, before `processMessages` and, with a conf change, once more; reads
+are `applySnapshot`'s and `applyAll`'s): each send completes before `Advance`, so `close(raftAdvancedC)` is always
+reached while the job waits. No change; no new bug. The `check.py` WARNs on the fix's comments are
+kept, and so is the issue's length (about 290 words of prose, over the 250 aimed for: the impact paragraph answers whether a restart clears the crash, which a maintainer triaging a panic asks first): the field comment replaces one that restricted the channel to conf changes, the `notify etcdserver` line is
 the existing comment re-indented, and the `applyAll` comment says why the wait is there.

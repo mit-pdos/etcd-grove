@@ -54,7 +54,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   obtain ⟨HwfL, HlenL, HpendL, HcsL⟩ := HwfL
   (try wp_auto)
   -- `ti.unsafeGet(key, atRev)`
-  wp_apply (hUnsafe ti t lg L sync.rfrac key k atRev e) $$ [$HtreeL] as ⟨HtreeL, -⟩
+  wp_apply (hUnsafe ti t lg L sync.rfrac key k atRev e) $$ [$HtreeL] as %cs ⟨HtreeL, -⟩
   · iframe #
     ipureintro
     exact ⟨Hlgnn, entries_not_emptyC L _ cmax HLL.1⟩
@@ -70,10 +70,10 @@ theorem mvcc.treeIndex.Get.wp_proof
   have hstab := mvcc.reader_answerC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩
     Hwf0 Hcs0 HLL.1 k r hrlt Hlen0 (by omega)
   have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
-      (GoInterface.ok e) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e) := by
+      (GoInterface.ok e) cs = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e) cs := by
     unfold mvcc.kiGetVal; rw [hr, hstab]
   rw [hval]
-  obtain ⟨m, c, v, i, hp⟩ := kiGetVal_pairs (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e)
+  obtain ⟨m, c, v, i, hp⟩ := kiGetVal_pairs (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e) cs
   rw [hp]
   wp_auto
   -- the deferred `ti.RUnlock()`

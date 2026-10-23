@@ -16,7 +16,9 @@ purpose, so an attacker-controlled input cannot reach it.
   `probe/main.go` (type switch, map lookup, `any` equality, `%T`, assertion to another interface)
   and `variants/main.go` (`type J I`, the unnamed interface, the value conversion) for the issue's
   "also"
-- **State**: draft (2026-10-19), not filed
+- **State**: ready to file (2026-10-23), not filed; checked 2026-10-23 with go1.27.3 (the newest release on
+  go.dev/dl), linux/amd64: `main.go`, `probe/main.go`, `variants/main.go` outputs unchanged from go1.27.2; `go vet`,
+  `gofmt -l` clean. `go env` in `issue.md` from go1.27.3. Not run at tip
 - **Upstream issue**: —
 
 The issue follows golang/go's bug-report template (Go version, `go env`, what did you do / see /
@@ -50,6 +52,13 @@ assertion panic itab`, `ifaceeq itab pointer conversion`, `"interface conversion
   shadows; a different mechanism. randall77 there: converting `*T` to `*U` through a data race is
   possible without `unsafe` and "not something we need to fix". Here no race or `unsafe` is
   needed.
+
+## Duplicates re-checked (2026-10-23)
+
+`repo:golang/go "types from different scopes" created:>2026-10-01` (0), `repo:golang/go itab pointer conversion
+interface identical underlying` (#25860, #71183, #49085, #29192: spec proposals, none this bug; #71183, closed, asks
+for `[]A` to `[]B` conversions), `repo:golang/go type assertion panic "not main.T"` (#82054, an unrelated compiler
+crash; #26094). No duplicate.
 
 ## Verification
 

@@ -177,7 +177,7 @@ theorem mvcc.keyIndex.put.wp_proof
     isplitr
     · ipureintro
       simp only [mvcc.genPut]
-      exact ⟨by rw [Hfields.1], by rw [ite_eq_left hrevs]; rfl⟩
+      exact ⟨by rw [Hfields.1], by rw [ite_eq_left hrevs] <;> rfl⟩
     simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil, mvcc.revVal_mk]
     iexact Hrevs
   · -- another revision of a live key

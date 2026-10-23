@@ -441,7 +441,7 @@ opaque transportRemotesCore (t : Loc) (rs : List w64) : IProp GF
 /-- **The transport `t`'s remotes are among `rs`** (persistent, opaque; the partition plan's S1,
 2026-10-20): `AddRemote` was called on `t` for the ids `rs` only, before it was given up for
 `transportStarted`, so `t.remotes` has no other key. `CutPeer`/`MendPeer` take `id ∉ rs`: a
-second `CutPeer` of a remote panics (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). Only
+second `CutPeer` of a remote panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). Only
 `Transport.Start`'s axiom gives it (with `transportStarted`, from `transportLive γn t rs`). -/
 def transportRemotes (t : Loc) (rs : List w64) : IProp GF :=
   iprop(□ transportRemotesCore t rs)

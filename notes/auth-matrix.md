@@ -64,3 +64,23 @@ principal, and with auth disabled always (`notes/auth-plan.md`, A1-A4). What the
 covers today (A0): the KV rows, `Watch`, `Compact`'s admin check (the `v3rpc` KV service is
 proved; the auth checks are proved for memory safety in the mode `off`), `LeaseRevoke`'s apply
 part; the other services' handlers are names-only.
+
+## What is proved of the table (A1, 2026-10-23)
+
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/AuthClass.lean` states the "keys" column as a
+class per request shape (`putClass`, `deleteClass`, `rangeClass`, `txnClass`), and the checks'
+specs say a passed check establishes it of the principal it checked (`notes/decisions.md`, "A1 of
+the auth plan"):
+
+- `Put`: `checkPutAuth` (the key's write, with `PrevKv` its read; the lease's keys are checked but
+  not stated: the lessor has no key model);
+- `Txn`: `checkTxnReqsPermission` (each op of both branches, nested transactions recursively),
+  `checkTxnPermission`/`CheckTxnAuth` (the comparisons' reads, then both branches);
+- `Range`, serializable: `doSerialize`'s `chk`, and `EtcdServer.Range`'s success post gives the
+  class of some auth info (the token's principal, or the empty one);
+- `Watch`: `serverWatchStream.isWatchPermitted` (the read of `[Key, RangeEnd)`).
+
+Not yet: the method-level statement for the principal the request's header names
+(`authApplierV3.Put`/`DeleteRange`/`Txn`/`Range`: the principal is hidden in the chain model's
+auth case), `RangeStream`, the lease rows, and everything outside the KV and watch services (A2,
+A3).

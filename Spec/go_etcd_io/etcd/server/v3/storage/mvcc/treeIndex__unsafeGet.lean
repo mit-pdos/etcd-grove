@@ -35,8 +35,8 @@ abbrev mvcc.treeIndex.unsafeGet.spec : Prop :=
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}
     (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"unsafeGet")) (Val #key))
       (Val #atRev))
-  {{ RET (mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
-      (GoInterface.ok e)); mvcc.ownTree t L q ∗ key ↦*□ k }}
+  {{ (cs : w64), RET (mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
+      (GoInterface.ok e) cs); mvcc.ownTree t L q ∗ key ↦*□ k }}
 
 end spec
 

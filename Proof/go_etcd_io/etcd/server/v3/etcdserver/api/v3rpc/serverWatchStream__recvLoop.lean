@@ -321,7 +321,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
       have hsr0 : 0 ≤ sint.Z c.startRev := by
         have := Hif; simp only [show sint.Z (W64 0) = 0 from rfl] at this; omega
       wp_apply hPerm sws r cr ks' es (if c.key = [] then [W8 0] else c.key) c.rangeEnd
-        (DFrac.own 1) (DFrac.own 1) $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr⟩
+        (DFrac.own 1) (DFrac.own 1) $$ [$HRD $Hks $Hes] as %perr ⟨HRD, Hks, Hes, #Hperr, -⟩
       · iframe #
         ipureintro
         split

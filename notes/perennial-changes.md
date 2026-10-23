@@ -148,6 +148,116 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   needed, local until proposed.
 - **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
   the specs above, each with the subset proofs use.
+- **Status.** Not started. (2026-10-22) Local trust-boundary specs here for `strings.HasSuffix`,
+  `strings.Contains` (`Spec/strings/`). (2026-10-23) Also `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`: Perennial's
+  `strings` has no body for it) and `path.Join` for the one case `etcd3.New` uses
+  (`Spec/path/Join.lean`: `Join(["/", p])` of a clean absolute `p` is `p`, `PathCleanAbs`).
+
+### `reflect.Value` held in a variable: its typed points-to is `sorry`
+
+- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
+  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
+  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
+  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
+- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
+  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
+  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
+  where"). `Get` and `Create` do not use it.
+- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
+  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
+  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
+  values. Designed and reviewed on its own (Perennial's trusted base).
+- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
+  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
+  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
+  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
+  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
+  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
+  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
+  interfaces as two words), outside the semantics, so the model will be trusted, its principles
+  proved from it.
+- **Status.** Not started in Perennial.
+
+### Goose: a names-only package's constants are values of unknown shape
+
+- **Need.** A names-only package's constants are axiomatized `val`s
+  (`k8s.io/apiserver/pkg/features.AllowUnsafeMalformedObjectDeletion`). Binding one (`let x :=
+  features.F`, as Goose translates a call argument) is a beta step whose premise is that the value
+  is not a panic (`pure_beta`), which nothing says of an axiom.
+- **Workaround here.** `Proof/k8s_io/apiserver/pkg/features/Values.lean`: a trust-boundary axiom
+  that this constant is not a panic value, used by `store.Delete`'s proof (`wp_pure` with it in
+  the context).
+- **Proposed fix.** Goose could translate a names-only package's constants (their values are
+  constant expressions, never code), or emit with each axiomatized constant the fact that it is a
+  value of its Go type (`#(c : V)` for a Lean type `V` of the constant's type), from which
+  `isPanic_intoVal` gives the premise.
+- **Status.** Not started.
+
+### Goose: interface types whose methods name an alias stay axiomatized (G1)
+
+- **Limitation.** Goose's `getStructInfo`/type translation does not see through type aliases
+  (`notes/k8s-etcd3-goose.md`, G1): a type naming an alias is skipped by `translate_types`, so it
+  is axiomatized. (2026-10-23) `k8s.io/apiserver/pkg/storage/feature.FeatureSupportChecker`
+  (`CheckClient(ctx, client, storage.Feature)`, `storage.Feature = string`) stays axiomatized even
+  with its imports configured (G4's fix made `client` concrete).
+- **Needed by.** `etcd3.New` calls `feature.DefaultFeatureSupportChecker.CheckClient(...)`.
+- **Workaround here.** The `storage/feature` package's fact (`checkerInit`,
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`) is the call's own WP, the variable's load
+  included, so no proof touches the axiomatized type's `sorry` instances.
+- **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
+- **Status.** Not started.
+
+### `≤u` has no transitive instance (conversion to a defined type of a named interface)
+
+- **Limitation.** `InterfaceSemantics.convert_to_interface` needs `to ≤u go.InterfaceType elems`;
+  `≤u` (`UnderlyingEq`) is found from one `<u` step only (`unfold_to_underlying_eq`,
+  `Golang/Theory/PostLifting.lean`), and `UnderlyingDirectedEq`'s docstring mentions a transitive
+  instance that does not exist. A defined type of a named interface (`type Codec Serializer` in
+  `k8s.io/apimachinery/pkg/runtime`: `Codec <u Serializer.ty <u interface{Encoder; Decoder}`) then
+  has no conversion step.
+- **Needed by.** The k8setcd3 driver's `Main` (`etcd3.New(..., codec{}, ...)`, 2026-10-23).
+- **Workaround here.** A local instance proved from the two `TypeAssumptions` (`haveI` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Main.lean`); no axiom.
+- **Proposed fix.** An instance `[t <u t'] [t' ≤u t''] : t ≤u t''` (in place of
+  `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
+- **Status.** Not started.
+
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Status.** Not started.
+
+### `os.Getenv`, `strconv.ParseBool` have no specs
+
+- **Limitation.** Both are names-only in Perennial (no body, no spec).
+- **Needed by.** `k8s.io/apiserver/pkg/storage/etcd3`'s `init` (`watcher.go`: whether
+  `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true), which the driver's initialization runs.
+- **Workaround here.** Trust-boundary specs (`Spec/os/Getenv.lean`, `Spec/strconv/ParseBool.lean`,
+  axioms in `Proof/`): each returns some value.
+- **Proposed fix.** Specs in Perennial (`ParseBool` can be translated: it is pure).
+- **Status.** Not started.
+
+### Goose: a type defined over a type of a package the file does not import (G3)
+
+- **Limitation.** `grpclog.LoggerV2` is `type LoggerV2 internal.LoggerV2`; `grpclog/internal` is
+  not translated, so `LoggerV2` is axiomatized and a conversion to it does not step.
+- **Needed by.** `etcd3`'s `init` (`logger.go`: `grpclog.SetLoggerV2(klogWrapper{})`).
+- **Workaround here.** `etcd3`'s `klogWrapper_toLoggerV2` (generated into its `Init.lean` from
+  `etc/gen-init.py`): the conversion returns some interface value.
+- **Proposed fix.** Translate `grpclog/internal` names-only (configuration here), or G3's general
+  fix in Goose (`notes/k8s-etcd3-goose.md`).
 - **Status.** Not started.
 - **Also `hash` (2026-10-22, branch `kvhasher`).** Perennial does not translate `hash`, so mvcc's
   `kvHasher` (a `hash.Hash32` field) was an axiomatized type with `sorry` instances, the
@@ -298,3 +408,15 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
   the error instead of admitting.
+
+### Sequential specs of an `RWMutex` no one else can reach
+
+- **Missing.** Perennial's `RWMutex` specs need the lock allocated (`isRWMutex`/`ownRWMutex`,
+  `init_RWMutex`); code that locks a mutex of an object not yet shared (etcd's `restoreIntoIndex`
+  on the index it is rebuilding, `restore` on `s.revMu` inside `NewStore`) has no spec.
+- **Workaround here.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/PlainRWMutex.lean`:
+  `plain.wp_RLock`/`wp_RUnlock`/`wp_Lock`/`wp_Unlock` on owned memory (values `rwZero`, `rwR1`,
+  `rwW`), and `plain.wp_Mutex_Lock`/`wp_Mutex_Unlock` for the trusted spin lock, proved over
+  Perennial's translation (no assumption).
+- **Proposed change.** The same lemmas in Perennial's `Proof/sync` (for `Mutex` and `RWMutex`),
+  stated for any number of nested readers if needed; not yet designed.

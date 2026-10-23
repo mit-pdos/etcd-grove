@@ -72,7 +72,11 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
    client program, a cluster configuration when that is what shows it). Build binaries only if it needs them. Run
    it at the base and make it:
    - visibly wrong on its own: the same request varied in one parameter, giving answers that contradict each other,
-     or an answer that misses what an earlier acknowledged request did;
+     or an answer that misses what an earlier acknowledged request did. Wrong under every linearization, not
+     only under the implementation's: an operation that has observed nothing yet may take effect at any point of
+     its interval, so a read transaction that reads once, after a later write, may rightly see it. Show the
+     transaction observing the old state first (it reads `v1`, then `v3`: no single snapshot gives both; the
+     2026-10-23 review of `bbolt-commit-meta-error-frees-reader-pages`);
    - minimal: the fewest steps, keys, values and options, choosing the variant of the bug that needs least setup;
    - legitimate: every component behaves as its documentation requires (raft's application applies a `Ready`'s
      committed conf changes before `Advance`, right after it learns they are committed; a client reads its
@@ -132,6 +136,11 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 
 The bug-report form's sections, as in `example/`. Only the symptom, the expectation and the reproduction: no root
 cause, code names, code links, history, other issues, or claims about other releases.
+
+bbolt's issue form is free-form (no template): no headings. Write the same content as plain paragraphs, in this
+order: the symptom with the setup it needs (base commit, Go version and platform, options) in the first sentence,
+the steps, the expectation in one sentence, the test link and its output, then any question, then the disclosure
+(the 2026-10-23 review). The sections below say what each part contains.
 
 - **Title**: the symptom and the condition, covering every case the issue shows.
 - **What happened?** The configuration that matters ("With `ReadOnlySafe`:"), then, for more than two events,

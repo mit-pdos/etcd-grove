@@ -51,7 +51,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     subst Hp
     wp_auto
     have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
-        (GoInterface.ok e) =
+        (GoInterface.ok e) (W64 0) =
         PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) := by
       rw [Hidx]; rfl
     rw [← h]
@@ -81,15 +81,15 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     · ipureintro; exact Hlgnn
     simp only [Hne z (List.mem_of_getElem? hi), Bool.false_eq_true, ↓reduceIte]
     icases Hr with ⟨%Hr, Hki⟩
-    subst Hr
+    obtain ⟨cs, rfl⟩ := Hr
     cases hg : mvcc.kiGet z.2.2 atRev with
     | none =>
-      rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) =
+      rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) cs =
         PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e)
         from by simp only [mvcc.kiGetVal, hg]]
       wp_auto
       have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
-          (GoInterface.ok e) =
+          (GoInterface.ok e) cs =
           PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) := by
         rw [Hidx]; simp only [Option.getD_some, mvcc.kiGetVal, hg]
       rw [← h]
@@ -114,13 +114,13 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
 
     | some r =>
       obtain ⟨m, c, v⟩ := r
-      rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) =
-        PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal c)) #v) #GoInterface.nil
+      rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) cs =
+        PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal ⟨c, cs⟩)) #v) #GoInterface.nil
         from by simp only [mvcc.kiGetVal, hg]]
       wp_auto
       have h : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
-          (GoInterface.ok e) =
-          PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal c)) #v) #GoInterface.nil := by
+          (GoInterface.ok e) cs =
+          PairV (PairV (PairV #(mvcc.revVal m) #(mvcc.revVal ⟨c, cs⟩)) #v) #GoInterface.nil := by
         rw [Hidx]; simp only [Option.getD_some, mvcc.kiGetVal, hg]
       rw [← h]
       iapply HΦ

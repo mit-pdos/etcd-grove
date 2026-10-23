@@ -69,11 +69,11 @@ revision, create revision and version are the answer's (the mains of the two rev
 the bucket has `v` at the mod revision (`BucketHas`: the change at `mod`, sub-revision
 included, wrote it). The created revision's sub-revision is the sub-revision of the first put
 of the key's generation; no result needs it, and it is not stated. -/
-def AnsKv (log : Log) (st : List EtcdKv) (a : GoString × Rev × Rev × w64) (v : EtcdKv) : Prop :=
-  findKey a.1 st = some v ∧ v.modRev = a.2.1.main ∧ v.createRev = a.2.2.1.main ∧
+def AnsKv (log : Log) (st : List EtcdKv) (a : GoString × Rev × w64 × w64) (v : EtcdKv) : Prop :=
+  findKey a.1 st = some v ∧ v.modRev = a.2.1.main ∧ v.createRev = a.2.2.1 ∧
     v.version = a.2.2.2 ∧ BucketHas log a.2.1 v
 
-theorem AnsKv.key {log : Log} {st : List EtcdKv} {a : GoString × Rev × Rev × w64} {v : EtcdKv}
+theorem AnsKv.key {log : Log} {st : List EtcdKv} {a : GoString × Rev × w64 × w64} {v : EtcdKv}
     (h : AnsKv log st a v) : v.key = a.1 :=
   findKey_key h.1
 

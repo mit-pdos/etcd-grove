@@ -195,16 +195,17 @@ local macro "txn_tail" : tactic => `(tactic| (
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv)) ∨
        (mvcc.errorfIs errv ∗ txn.roTxnRespRd respv ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) ∗
-      (∃ te, traceutil.ownTrace trc te)) trc false)
+      (∃ te, traceutil.ownTrace trc te)) (fun info => apply.txnClass E.authMode info t) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE, -⟩
+      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authMode E.RW a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE, -, #Hcl⟩
       · iframe # Ha Hard
       iapply HΦ'
       iframe Ha Hard HcE
+      iexact Hcl
     isplitr
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
@@ -272,7 +273,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       □ (⌜respv = null⌝ ∨ txn.txnRespShow respv ∗
         txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #respv) P) ∗
       (P -∗ srvLgReader s -∗ Φ v))) at (exceptionDo _) with [-defer trace]
-  · icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
+  · icases Hds with ⟨Hard, (⟨%Hs0, -, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
       ⟨%Hs0, #HsE, Hg⟩)⟩
     · subst Hs0
       wp_auto_lc 3

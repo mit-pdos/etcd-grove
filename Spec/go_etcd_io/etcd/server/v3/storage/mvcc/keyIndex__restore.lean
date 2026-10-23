@@ -36,7 +36,7 @@ abbrev mvcc.keyIndex.restore.spec : Prop :=
   {{ (r : val), RET r;
       if ki.gens = [] then
         ⌜r = #()⌝ ∗ ∃ gs' : GoSlice,
-          mvcc.ownKi p gs' (mvcc.kiRestore created modified ver) (DFrac.own 1)
+          mvcc.ownKi p gs' (mvcc.kiRestore created.main modified ver) (DFrac.own 1)
       else
         ⌜r = PanicV #(go!"'restore' got an unexpected non-empty generations")⌝ ∗
           mvcc.ownKi p gs ki (DFrac.own 1) }}

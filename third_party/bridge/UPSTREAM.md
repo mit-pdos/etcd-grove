@@ -14,5 +14,5 @@ etcd's integration tests put between a client and a member (`ClusterConfig.UseBr
   (`tests/framework/integration/cluster.go`, `dialer` and `Member.listenGRPC`), so this copy adds
   that `dialer`, copied, and an exported `New(addr, l)` over the two.
 - `bridge_test.go` (new): `TestBlackholeTwicePanics`, the reproduction of
-  `issues/etcd-bridge-blackhole-twice-panic.md` (a second `Blackhole` panics). Goose does not
+  `issues/nonissues/etcd-bridge-blackhole-twice-panic.md` (a second `Blackhole` panics). Goose does not
   translate test files.

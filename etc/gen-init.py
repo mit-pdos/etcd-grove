@@ -12,8 +12,8 @@ trust-boundary axiom `initFuncsOk` (it returns). The packages are the import clo
 of `ROOTS`, but Perennial's (with a `Link`), raft's (`Proof/go_etcd_io/raft/v3/Init.lean`), the
 B-tree's (`initialize.lean`) and `NOT_YET`; a package whose fact is not `True` or whose
 initializer runs translated code needs an entry in `SPECIAL` (the per-package doc, axioms, the
-hand-written steps `before` an item, `$inits` (before the `init` functions) and `$end`, and the
-`finish`).
+hand-written steps `before` an item, `$inits` (before the `init` functions) and `$end`, those
+`after` a translated `init` function's call, and the `finish`).
 
 Each theorem is proved in a form that keeps what is initialized (decision D19e,
 `Proof/runtime/PkgInit.lean`): `wp_initialize'_lb` (from `ownInitLb g σ0`, for every `σ0`) or,
@@ -45,7 +45,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc', 'go_etcd_io.etcd.serv
          'github_com.mit_pdos.etcd_grove.examples.linkv3p',
          'github_com.mit_pdos.etcd_grove.examples.linkvtxn',
          'github_com.mit_pdos.etcd_grove.examples.watchkv',
-         'github_com.mit_pdos.etcd_grove.examples.cachekv']
+         'github_com.mit_pdos.etcd_grove.examples.cachekv',
+         'go_etcd_io.etcd.client.v3.kubernetes',
+         'github_com.mit_pdos.etcd_grove.examples.k8setcd3']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -178,6 +180,174 @@ initializer runs its variables' untranslated initializers (`version.go`): string
                      pat='⟨%v@, H@⟩'),
     },
     finish=['ipersist HVersion', 'ipersist HV3_6'] + FIN_PRE[:6],
+)
+
+# The k8s etcd3 store's packages (stage 6g, 2026-10-23): their facts are in
+# `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`.
+_K3 = 'k8s_io.apiserver.pkg.storage.etcd3'
+SPECIAL[_K3 + '.metrics'] = dict(
+    doc='''Its fact (`metricsInit`, `storage/etcd3/Base.lean`): `ErrTransactionConflict` holds some
+error. Its initializer runs its variables' untranslated initializers (`metrics.go`); the
+trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
+(`errors.New("transaction conflict")`), `opaqueInitsOk` the others.''',
+    custom={'ErrTransactionConflict': dict(
+        doc='/-- `ErrTransactionConflict = errors.New("transaction conflict")` (`metrics.go`): an error. -/',
+        post='∃ e : GoInterface, globalAddr ErrTransactionConflict ↦ e', pat='⟨%e@, H@⟩')},
+    finish=['ipersist HErrTransactionConflict'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _', 'iexact HErrTransactionConflict'],
+)
+
+SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
+    doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
+gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
+(`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
+(`feature_gate.go`); the trust-boundary axiom `DefaultFeatureGate_init` states the one the fact
+reads (`DefaultMutableFeatureGate`, a `featuregate.NewFeatureGate()`, whose `Enabled` looks the
+feature up in its map and returns; which features are on is the deployment's), `opaqueInitsOk`
+the other.''',
+    custom={'DefaultFeatureGate': dict(
+        doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`, a `featuregate.NewFeatureGate()`): a gate whose `Enabled` returns some `bool` for any feature. -/',
+        post=('∃ g : GoInterfaceOk, globalAddr DefaultFeatureGate ↦ GoInterface.ok g ∗\n'
+              '      □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗\n'
+              '        WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }}'),
+        pat='⟨%g@, H@, #S@⟩')},
+    finish=['ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
+            'imodintro', 'iexists _', 'iframe #'],
+)
+
+SPECIAL['k8s_io.apiserver.pkg.storage.feature'] = dict(
+    doc='''Its fact (`checkerInit`, `storage/etcd3/Base.lean`): `CheckClient` on
+`DefaultFeatureSupportChecker`'s checker returns, stated as the call's own WP, the variable's load
+included (the interface type is axiomatized, Goose's gap G1). Its initializer initializes its
+imports and runs its variables' untranslated initializers (`feature_support_checker.go`); the
+trust-boundary axiom `DefaultFeatureSupportChecker_init` states the one the fact reads
+(`newDefaultFeatureSupportChecker()`, whose `CheckClient` starts, once per endpoint, a goroutine
+polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
+    custom={'DefaultFeatureSupportChecker': dict(
+        doc='/-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns (the variable never changes after). -/',
+        post=f'_root_.Perennial.{_K3}.checkerInit (GF := GF)',
+        pat='#H@')},
+    finish=FIN_PRE[:6],
+)
+
+SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
+    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
+Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
+six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
+`SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
+trust-boundary axioms `labels.Everything.wp_proof` and `fields.Everything.wp_proof`), initializes
+its imports and runs the translated initializers.''',
+    imports=['Perennial.Proof.context.NewErrorString', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
+             'Proof.k8s_io.apimachinery.pkg.fields.Everything'],
+    alloc_types={'Everything': 'SelectionPredicate', 'RangeStream': 'GoString',
+                 'RequestWatchProgress': 'GoString', 'tooLargeResourceVersionCauseMsg': 'GoString',
+                 'errCodeToMessage': 'Loc', 'ErrStorageNotReady': 'GoInterface',
+                 'ErrResourceVersionSetOnCreate': 'GoInterface',
+                 'ErrUnrecognizedEncodedVersion': 'GoInterface', 'ErrGenericInvalidKey': 'GoInterface',
+                 'ErrEmptyStartKey': 'GoInterface', 'ErrInvalidStartRV': 'GoInterface'},
+    before={'$end': [
+        'try wp_auto'] + ['wp_apply _root_.Perennial.context.wp_New_errorString as %_ -', 'try wp_auto'] * 6 + [
+        'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
+        'try wp_auto',
+        'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
+        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ -',
+        'try wp_auto',
+        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
+        'try wp_auto']},
+    finish=['ipersist HRequestWatchProgress'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _', 'iexact HRequestWatchProgress'],
+)
+
+# the driver's error variables and the tags of their `errors.New` results
+_K8E = [('errNotObj', 'NO'), ('errBadData', 'BD'), ('errBadRV', 'BR'), ('errNoList', 'NL'),
+        ('errDeleteRejected', 'DR'), ('errUpdateRejected', 'UR')]
+
+def _errVarOk(x, t):
+    """`errVarOk x` (the driver's `Base.lean`) of the `errors.New` result `x<t>` (`#M<t>`)."""
+    return [f'iexists x{t}', f'iframe H{x}',
+            'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
+            'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
+
+SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8setcd3'] = dict(
+    doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
+`errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
+`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns. Its initializer
+allocates them, initializes its imports and runs their translated initializers.''',
+    imports=['Perennial.Proof.context.NewErrorString'],
+    alloc_types={x: 'GoInterface' for x, _ in _K8E},
+    before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
+        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+    finish=[f'ipersist H{x}' for x, _ in _K8E] + FIN_PRE[:6] + ['imodintro', 'unfold drvInit'] +
+           [l for x, t in _K8E[:-1] for l in ['isplitr'] + ['· ' + m if j == 0 else '  ' + m
+                                                     for j, m in enumerate(_errVarOk(x, t))]] +
+           _errVarOk(*_K8E[-1]),
+)
+
+SPECIAL[_K3] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes its imports, runs
+the translated initializers (`errTooMany`, an `errors.New` error; `typeToMessage`, a map literal;
+`defaultWatcherMaxLimit`) and its translated `init` functions: `compact.go`'s makes
+`endpointsMap`, `logger.go`'s sets grpc's logger (`grpclog.SetLoggerV2`, names-only: the
+trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
+`fatalOnDecodeError` whether `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true (`os.Getenv` and
+`strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
+`strconv.ParseBool.wp_proof`).''',
+    pre=['section toLoggerV2',
+         'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+         'variable [go_gctx : GoGlobalContext]',
+         'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
+         'variable [sem : go.Semantics]',
+         '',
+         '/-- **The trust boundary: `logger.go`\'s conversion of a `klogWrapper` to `grpclog.LoggerV2`** (an',
+         'interface: a struct converted to it is the interface holding it). `type LoggerV2',
+         'internal.LoggerV2` names a package this translation does not import, so the type is',
+         'axiomatized (Goose\'s gap G3, `notes/k8s-etcd3-goose.md`) and the conversion does not step; the',
+         'axiom says it returns some interface value, which is all `SetLoggerV2`\'s spec needs. -/',
+         'axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :',
+         '    {{ (True : IProp GF) }}',
+         '      (App (Val (GoInstruction (Convert k8s_io.apiserver.pkg.storage.etcd3.klogWrapper.ty',
+         '        google_golang_org.grpc.grpclog.LoggerV2.ty))) (Val v))',
+         '    {{ (i : GoInterface), RET #i; True }}',
+         '',
+         'end toLoggerV2',
+         ''],
+    imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.sync.atomic.Link',
+             'Proof.google_golang_org.grpc.grpclog.SetLoggerV2', 'Proof.os.Getenv',
+             'Proof.strconv.ParseBool'],
+    alloc_types={'fatalOnDecodeError': "_root_.Perennial.sync.atomic.Bool'", 'defaultWatcherMaxLimit': 'w64',
+                 'typeToMessage': 'Loc', 'errTooMany': 'GoInterface', 'endpointsMap': 'Loc',
+                 'endpointsMapMu': '_root_.Perennial.sync.Mutex'},
+    before={'$inits': [
+        'try wp_auto',
+        'wp_apply _root_.Perennial.context.wp_New_errorString as %_ -',
+        'try wp_auto',
+        'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
+        'try wp_auto',
+        'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
+        'wp_alloc dd as Hdd', 'try wp_auto', 'wp_alloc tw as Htw', 'try wp_auto']},
+    after={
+        'init.«0»': ['wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string',
+                     '    (go.GoType.PointerType compactor.ty)) as %em Hem',
+                     'try wp_auto'],
+        'init.«1»': ['wp_apply klogWrapper_toLoggerV2 as %_ -', 'try wp_auto',
+                     'wp_apply EtcdGrove.grpclog.SetLoggerV2.wp_proof', 'try wp_auto'],
+        'init.«2»': ['wp_apply EtcdGrove.os.Getenv.wp_proof as %_ -', 'try wp_auto',
+                     'wp_apply EtcdGrove.strconv.ParseBool.wp_proof as %_ %_ -', 'try wp_auto',
+                     'ihave Hfod : _root_.Perennial.sync.atomic.ownBool (GF := GF) (globalAddr fatalOnDecodeError) (DFrac.own 1) false $$ [HfatalOnDecodeError]',
+                     '· rw [_root_.Perennial.sync.atomic.ownBool_unseal]',
+                     '  unfold _root_.Perennial.sync.atomic.ownBoolDef',
+                     "  have e : (zero_val _root_.Perennial.sync.atomic.Bool') =",
+                     "      ({ _0' := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
+                     "        _root_.Perennial.sync.atomic.Bool') := rfl",
+                     '  rw [← e]; iexact HfatalOnDecodeError',
+                     'wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
+                     '· iPkgInit',
+                     'iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+                     'iintro Hmask',
+                     'inext; iexists _; iframe Hfod; iintro _',
+                     'imod Hmask with _',
+                     'imodintro',
+                     'try wp_auto']},
 )
 
 def promvec(x, kind, labels, file='metrics.go'):
@@ -1374,6 +1544,9 @@ def gen(p, cfg=None):
             A('  wp_func_call')
             A('  wp_call')
             A('  try wp_auto')
+            # the hand-written steps of its body (`after`, keyed by the function's name)
+            for l in cfg.get('after', {}).get(x, []):
+                A('  ' + hdsub(l))
         elif kind == 'alloc':
             A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x}')
         else:
@@ -1515,7 +1688,9 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'github_com.mit_pdos.etcd_grove.examples.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.kv':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/kv/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.k8setcd3':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/PkgTable.lean'}
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

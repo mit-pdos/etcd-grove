@@ -1,7 +1,7 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
 Status: R0 done (2026-10-23, branch `restore-r0`); R1 done (2026-10-23, branch `restore-r1`, see
-"R1's findings"); R2-R6 to do. Removes two of mvcc's trust-boundary axioms,
+"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2, R4-R6 to do. Removes two of mvcc's trust-boundary axioms,
 `mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
 receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
 `restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
@@ -93,6 +93,54 @@ spec's per-change receipts, D22h), and every cached key index is the index's for
 cache only shortens `idx.KeyIndex`). The purge keeps that (it only deletes). `verify.Verify`'s
 check holds (revisions arrive in order: `UnsafeRange` returns keys sorted). `treeIndex.KeyIndex`
 and `treeIndex.Insert` are translated and specified (`InvIndex*.lean`).
+
+**R3's design point: who owns the index during the rebuild** (found 2026-10-23, starting R3).
+The goroutine calls `put`/`tombstone` on cached key indexes *outside* the tree's lock
+(`kiCache`), but `isTreeIndex`'s lock invariant (`idxLockInv`) owns every key index's contents.
+So during the rebuild the index cannot be a lock-protected `isTreeIndex`. etcd is right to do
+this: nothing else can reach the index then (`NewStore` has not returned; `Restore` holds `s.mu`).
+Chosen: **the index stays private memory until the rebuild ends.** `newTreeIndex` returns the
+tree and its `RWMutex` as plain memory owned by the caller; the goroutine owns them while it
+runs (`KeyIndex`/`Insert` lock and unlock a mutex nobody else can reach) and hands them back on
+`revc`; `store.restore` then allocates the lock (`init_RWMutex`) with `idxLockInv` at the
+rebuilt log. This needs sequential specs of `RWMutex`'s `RLock`/`RUnlock`/`Lock`/`Unlock` on
+memory no one else can reach (proved here over Perennial's translation of `sync`, a Perennial
+gap recorded in `notes/perennial-changes.md`). The same specs settle R4a for `NewStore`, where
+`s.revMu` is private memory too while `restore` runs; not for `Restore`, where `s.revMu` stays a
+live lock (`hashStorage.HashByRev` reads it without `s.mu`) with its restoring mode, so
+`restore`'s spec takes the lock in one of two ways. Rejected: a restoring mode inside
+`idxLockInv` (handing the contents back into the lock at the end needs a lock operation the code
+does not make).
+
+**R3's progress (2026-10-23, branch `restore-r3`).** Done, no axiom added:
+1. *A generation's `created` is its main revision in the model* (the decision after R1:
+   `Gen.created : w64`, `ownGen` constrains the Go field's `Main` only). `keyIndex.get`,
+   `treeIndex.unsafeGet`, `treeIndex.Get` and `treeIndex.Range` now return created revisions with
+   an unconstrained sub-revision; their callers (`put`, `rangeKeys`, `deleteRange`) read the main
+   revision only. This also makes the `store.restore` axiom's postcondition true (it claimed the
+   rebuilt index equal to the replayed one, which differed in `created`'s sub-revision).
+2. `PlainRWMutex.lean`: `RLock`/`RUnlock`/`Lock`/`Unlock` (and the trusted `Mutex`'s
+   `Lock`/`Unlock`) on private memory, proved.
+3. `IdxPriv.lean` (`ownIdxPriv`): `treeIndex.KeyIndex` and `treeIndex.Insert` restated on a
+   private index (their live-index specs were used by no proof; their only caller is the
+   goroutine).
+4. `restoreIntoIndex` proved (`InvRestore.lean`'s `rkvProt`/`revProt`, `idxRestore`): for bucket
+   entries `ents` in increasing revision order (`RestoreEntsOk`), the goroutine answers on
+   `revc` with the last revision, the private index at `idxRestore ents` (the code's own fold:
+   `put`/`tombstone` on a key the index has, `restore`/`restoreTombstone` on a new one), the
+   reader's token back and a receipt per entry. The cache (`rstCacheOk`), its purge and the
+   lookups through the tree are covered.
+
+5. R3b, `RestoreModel.lean`: `idxRestore (logEnts log 0 log.length) = indexOf (evsOf log)`
+   (`idxRestore_logEnts'`) for a well-formed log (`LogWf'`), pure: a new key's first entry is a
+   put with version `1` and its own main revision as create revision, so `restore` agrees with
+   `put` on a fresh key index; a tombstone is never a key's first entry (a delete only of a
+   present key). The state/index correspondence in the middle of a revision is `rev_step`'s.
+
+What R4 takes from R3: `restoreIntoIndex`'s spec with `ents := logEnts ([[], []] ++ R) 0 _`
+(`RestoreEntsOk` from `logEnts`' order, `logEnts_keys_sorted`-style), `idxRestore_logEnts'` to
+turn the returned index into `indexOf (evsOf log)`, and `init_RWMutex` on the private index
+with `idxLockInv` at that log.
 
 **R4. `store.restore`.** The chunk loop: the cursor `min` past every key handed to
 `restoreChunk`, the keys of the bucket below it sent in order (`readTx.UnsafeRange`'s spec over the

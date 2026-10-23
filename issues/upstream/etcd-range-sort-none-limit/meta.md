@@ -6,7 +6,10 @@
   1f10b22ed adds the test, which fails there; 6cb3f6108 is the fix. Force-pushed 2026-10-19 to `upamanyus/etcd` (replacing 972c22ce2); the issue's test link (`#L279-L310`) checked on GitHub: the test, doc comment to closing brace.
 - **Base**: upstream `main` 22cc5d9acd4a5953dfdfc2594dbeb53da89bb0d4 (2026-10-18; `range.go` unchanged since
   ea8b59433, the base of the first version)
-- **State**: filed (the issue and the PR, 2026-10-19)
+- **State**: filed (the issue and the PR, 2026-10-19); 2026-10-23: a comment for #22615 drafted (`comment-22615.md`, not posted): supports it over #22616, notes it
+  fixes RangeStream's case and breaks `TestV3RangeRequest/sort` as is (checked by running, go1.27.3; see
+  `../etcd-rangestream-sort-none/meta.md`). #22612: Jefftree (2026-10-21) finds the problem and fix sensible; neither PR has
+  `/ok-to-test` or a review yet
 - **Upstream issue**: [etcd-io/etcd#22612](https://github.com/etcd-io/etcd/issues/22612), filed 2026-10-19
 - **PR**: [etcd-io/etcd#22616](https://github.com/etcd-io/etcd/pull/22616), opened 2026-10-19 from this branch at 6cb3f6108; its body is `pr.md`
 

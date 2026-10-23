@@ -1,14 +1,17 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/raft#8 pr merged: added AsyncStorageWrites; its review (and etcd-io/etcd#14627's, where it started) does not discuss a snapshot handed out while committed entries are being applied
-candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
+candidate: issues/upstream/raft-async-snapshot-during-apply-divergence/
 ---
 
 # raft: with `AsyncStorageWrites`, a snapshot is handed out while earlier committed entries are being applied, and the documented thread model lets the application apply those entries on top of it
 
-- **Status**: a bug in raft's `AsyncStorageWrites` interface, or at least an unstated precondition. Reproduced
+- **Status**: a bug in raft's `AsyncStorageWrites` interface, or at least an unstated precondition. Upstream candidate (2026-10-23, split off
+  `raft-snapshot-during-apply-stale-confchange`'s): `issues/upstream/raft-async-snapshot-during-apply-divergence/`,
+  branch `fix/raft-async-snapshot-during-apply-divergence` (the hold, `storageAppendHeld`, with
+  `TestRawNodeAsyncSnapshotDuringApply`), whose `rawnode.go` change is identical to that candidate's. Reproduced
   by a Go test (public `RawNode` API, one internal read for the log line) at the pin and at etcd-io/raft `main`
   1931ff5. etcd does not enable `AsyncStorageWrites` (no use in etcd's sources), so etcd is not affected; other
   users not checked.

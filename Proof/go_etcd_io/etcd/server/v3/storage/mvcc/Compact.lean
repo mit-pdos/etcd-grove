@@ -1564,7 +1564,7 @@ theorem KeyDel_neg {log : Log} {c : Int} {key : GoString} (h : c < 0) : ¬ KeyDe
 or below `c`, is the one compaction keeps for the key. -/
 theorem kiGet_avail (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c) (hc : c < log.length)
     (hnd : NoDelPutAt log c) (k : GoString) (atRev : w64) (hca : c ≤ sint.Z atRev)
-    (r cr : Rev) (v : w64) (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v))
+    (r : Rev) (cr v : w64) (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v))
     (hr : sint.Z r.main ≤ c) :
     kiAvail (W64 c) (kiOfKey (evsOf log) k) = some r := by
   have hs := kiOfKey_KiS log hb k
@@ -1676,7 +1676,7 @@ the compaction revision does not delete a key and put it again (`NoDelPutAt`: el
 `issues/etcd-compaction-delete-then-put.md`). -/
 theorem named_not_del (log : Log) (hb : LogB log) (c : Int) (hc0 : -1 ≤ c)
     (hnd : NoDelPutAt log c) (k : GoString)
-    (atRev : w64) (hca : c ≤ sint.Z atRev) (r cr : Rev) (v : w64)
+    (atRev : w64) (hca : c ≤ sint.Z atRev) (r : Rev) (cr v : w64)
     (hget : kiGet (kiOfKey (evsOf log) k) atRev = some (r, cr, v)) (t : Bool) :
     ¬ KeyDel log c (revBytes r t) := by
   rintro ⟨hc, r', t', hk, h0, h1, hkeep⟩
@@ -1755,7 +1755,7 @@ theorem NoDelPutAt_prefix {log log' : Log} (hpre : log <+: log') {c : Int}
 
 /-- An answer of a range read is its key's index's answer. -/
 theorem rangeAnswers_get (log : Log) (endNil : Bool) (k e : GoString) (atRev : w64)
-    (a : GoString × Rev × Rev × w64) (ha : a ∈ rangeAnswers log endNil k e atRev) :
+    (a : GoString × Rev × w64 × w64) (ha : a ∈ rangeAnswers log endNil k e atRev) :
     kiGet (kiOfKey (evsOf log) a.1) atRev = some a.2 := by
   obtain ⟨key, m, c, v⟩ := a
   simp only
@@ -1795,7 +1795,7 @@ revision bytes of its modification, is not a key compaction at `c'` deletes (`Ke
 theorem rangeAnswers_not_del (lc log log' : Log) (hpre : lc <+: log) (hb : LogB log)
     (hb' : LogB log') (hcmp : lc <+: log' ∨ log' <+: lc) (c' : Int) (hc0 : -1 ≤ c')
     (hc' : c' < lc.length) (hnd : NoDelPutAt log' c') (endNil : Bool) (k e : GoString)
-    (atRev : w64) (hca : c' ≤ sint.Z atRev) (a : GoString × Rev × Rev × w64)
+    (atRev : w64) (hca : c' ≤ sint.Z atRev) (a : GoString × Rev × w64 × w64)
     (ha : a ∈ rangeAnswers log endNil k e atRev) (t : Bool) :
     ¬ KeyDel log' c' (revBytes a.2.1 t) := by
   intro hdel

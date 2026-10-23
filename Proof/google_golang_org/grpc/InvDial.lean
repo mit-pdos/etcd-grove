@@ -23,7 +23,7 @@ proof holds a descriptor of is one of these:
 An option a descriptor does not describe (`WithChainUnaryInterceptor`, `WithDefaultCallOptions`,
 per-RPC credentials, ...) has no descriptor: a dial that holds one is not covered
 (`clientv3.New`'s premises exclude `Config.DialOptions`,
-`issues/etcd-client-dialoptions-unary-interceptor.md`).
+`issues/nonissues/etcd-client-dialoptions-unary-interceptor.md`).
 
 **The unary chain** (`unaryIcsOf ds`): grpc's `chainUnaryClientInterceptors` runs `dopts.unaryInt`
 (the last `WithUnaryInterceptor`'s) first, then `dopts.chainUnaryInts`, which no descriptor sets:
