@@ -17,6 +17,14 @@ The model (the note's points 1-6):
   may fail with an error.
 * The response's status is the one the handler set (revised 2026-10-22: a `403`/`410` is
   `errMemberRemoved`, which matters in a dynamic cluster).
+* (2026-10-23, D33b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
+  fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
+  protocols are indexed by the ticket's name. Go's client never replays a `POST`
+  (`Request.isReplayable`), and its server runs one handler per request it reads. What a one-shot
+  payload needs: the receiver withdraws a deposit with the ticket, so only once.
+* A handler's contract is a WP whose postcondition also covers a panic (`Serve` recovers it), and
+  each invocation borrows one of `httpProcSlots` resources (the concurrency bound, a physical fact:
+  each handler is a goroutine with its own stack).
 
 `http.Request` and `http.Response` are axiomatized types (Goose does not translate their
 structs): the predicates speak of their fields' addresses.
@@ -29,6 +37,7 @@ public import GeneratedProof.net.url
 public import Perennial.Code.io
 public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
+public import Perennial.Ghost.DGhostVar
 
 @[expose] public section
 
@@ -71,14 +80,36 @@ variable [sem : go.Semantics]
 
 /-- **An address's protocol** (persistent predicates; see the file header). -/
 structure Proto (GF : BundledGFunctors) where
-  req : HReq → IProp GF
-  req_pers : ∀ R, Persistent (req R)
-  resp : HReq → w64 → List w8 → IProp GF
-  resp_pers : ∀ R st w, Persistent (resp R st w)
+  req : HReq → GName → IProp GF
+  req_pers : ∀ R γk, Persistent (req R γk)
+  resp : HReq → GName → w64 → List w8 → IProp GF
+  resp_pers : ∀ R γk st w, Persistent (resp R γk st w)
 
 /-- **The program's HTTP network**: each address's protocol, fixed for the run. -/
 structure HttpNet (GF : BundledGFunctors) where
   proto : GoString → Proto GF
+
+/-- **A request's ticket** (exclusive; D33b): allocated fresh by the client, given up to
+`RoundTrip`, received by the handler of the request. -/
+def reqTicket (γk : GName) : IProp GF := dghostVar γk (DFrac.own 1) ()
+
+/-- A ticket is exclusive. -/
+theorem reqTicket_excl (γk : GName) : reqTicket (GF := GF) γk ∗ reqTicket γk ⊢ False := by
+  unfold reqTicket
+  iintro ⟨H1, H2⟩
+  ihave %Hbad := dghostVar_valid_2 γk () _ () _ $$ H1 H2
+  exfalso
+  have h := DFrac.valid_own_op Hbad.1
+  exact absurd h (by decide)
+
+/-- A fresh ticket. -/
+theorem reqTicket_alloc : ⊢ |==> ∃ γk, reqTicket (GF := GF) γk := by
+  unfold reqTicket
+  iapply dghostVar_alloc
+
+/-- The concurrency bound (D21 M2's `netProcSlots`, the user's (A)): at most `2 ^ 29` handlers at
+once. -/
+def httpProcSlots : Nat := 2 ^ 29
 
 /-- **The URL string naming `host` and `path`** (opaque, pure): what
 `url.URL{Scheme: "http", Host: host, Path: path}.String()` returns. -/
@@ -86,6 +117,9 @@ opaque urlOf (host path : GoString) : GoString
 
 /-- `io.EOF`'s value (`io`'s package variable). -/
 def ioEOF (e : GoInterface) : IProp GF := globalAddr _root_.Perennial.io.EOF ↦□ e
+
+instance ioEOF_persistent (e : GoInterface) : Persistent (ioEOF (GF := GF) e) := by
+  unfold ioEOF; infer_instance
 
 /-! ### The client's side -/
 
@@ -128,27 +162,27 @@ opaque readerHas (rd : GoInterface) (bs : List w8) : IProp GF
 
 /-- **A response's body reader** for the request `R` to `a`, of status `st`, having read `r`
 (exclusive): its reads stay a prefix of what the handler wrote. -/
-opaque respReader (H : HttpNet GF) (rd : GoInterface) (R : HReq) (st : w64) (r : List w8) :
-  IProp GF
+opaque respReader (H : HttpNet GF) (rd : GoInterface) (R : HReq) (γk : GName) (st : w64)
+  (r : List w8) : IProp GF
 
 /-- **A received response** at `resp` for `R`, of status `st` (persistent field facts: its
 `StatusCode` is `st`, its `Header` some header map, its `Body` the reader `rd`). -/
 opaque respAt (resp : Loc) (st : w64) (rd : GoInterface) : IProp GF
 
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
-`NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R` with
-`□ (H.proto R.host).req R` either fails or returns a response whose status `st` is the handler's
-(with `□ ∃ w, resp R st w`) and whose body reader starts at `[]`. -/
+`NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R`, with
+its ticket `γk` and `□ (H.proto R.host).req R γk`, either fails or returns a response whose status
+`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`. -/
 def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜rt = GoInterface.ok ti⌝ ∗
-    □ (∀ (r : Loc) (R : HReq),
-      {{ reqOwn r R ∗ □ (H.proto R.host).req R }}
+    □ (∀ (r : Loc) (R : HReq) (γk : GName),
+      {{ reqOwn r R ∗ reqTicket γk ∗ □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           ⌜err ≠ GoInterface.nil⌝ ∨
           ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
-            respAt resp st rd ∗ (□ ∃ w, (H.proto R.host).resp R st w) ∗
-            respReader H rd R st [] }}))
+            respAt resp st rd ∗ (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
+            respReader H rd R γk st [] }}))
 
 /-! ### The server's side -/
 
@@ -170,27 +204,29 @@ opaque bodyReader (rd : GoInterface) (R : HReq) (r : List w8) : IProp GF
 /-- **A response writer** for the request `R` to `a`, with the status set (`none` before
 `WriteHeader`) and the bytes written `w` (exclusive; it may be passed to another goroutine, as the
 stream handler does). -/
-opaque respWriter (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (st : Option w64)
-  (w : List w8) : IProp GF
+opaque respWriter (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (γk : GName)
+  (st : Option w64) (w : List w8) : IProp GF
 
-/-- **A handler of the address `a`** (persistent): `ServeHTTP` of any request the network
-delivers to `a`, with its body reader and a fresh response writer, returns (a panic is recovered
-by `Serve`, so its postcondition is any). -/
-def handlerOk (H : HttpNet GF) (a : GoString) (h : GoInterface) : IProp GF :=
+/-- **A handler of the address `a`** (persistent), lending each invocation the resource `Rs`:
+`ServeHTTP` of any request the network delivers to `a`, with its ticket, its body reader and a
+fresh response writer, returns `Rs` (or panics, giving it back too: `Serve` recovers the panic). -/
+def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
-    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (rd : GoInterface),
-      {{ reqAt r R rd ∗ ⌜R.host = a⌝ ∗ □ (H.proto a).req R ∗ bodyReader rd R [] ∗
-          respWriter H wr a R none [] }}
-        (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
-      {{ (v : val), RET v; True }}))
+    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
+      reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicket γk -∗
+        bodyReader rd R [] -∗ respWriter H wr a R γk none [] -∗ Rs -∗
+        WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
+          {{ _v, Rs }}))
 
 /-! ### The specs (statements for review; see the file header) -/
 
-/-- `http.Serve(l, h)` on the listener bound at `a`, with a handler of `a`: returns an error if
-it returns (it serves each request on its own goroutine). -/
+/-- `http.Serve(l, h)` on the listener bound at `a`, with a handler of `a` and `httpProcSlots`
+copies of the resource its invocations borrow: returns an error if it returns (it serves each
+request on its own goroutine). -/
 def Serve_spec (H : HttpNet GF) : Prop :=
-  ∀ (l h : GoInterface) (a : GoString),
-    ⊢ {{ netListenerAt (GF := GF) l a ∗ handlerOk H a h }}
+  ∀ (l h : GoInterface) (a : GoString) (Rs : IProp GF),
+    ⊢ {{ netListenerAt (GF := GF) l a ∗ handlerOk H a Rs h ∗
+          [∗list] _x ∈ List.replicate httpProcSlots (), Rs }}
         (App (App (Val (@! _root_.Perennial.net.http.Serve)) (Val #l)) (Val #h))
       {{ (err : GoInterface), RET #err; True }}
 
@@ -210,35 +246,35 @@ def bodyRead_spec : Prop :=
 /-- A response body's `Read(p)`: some bytes, still a prefix of some `w` the handler wrote with
 `□ resp R st w`. -/
 def respRead_spec (H : HttpNet GF) : Prop :=
-  ∀ (rd : GoInterface) (ri : GoInterfaceOk) (R : HReq) (st : w64) (r : List w8) (p : GoSlice)
-    (xs : List w8),
+  ∀ (rd : GoInterface) (ri : GoInterfaceOk) (R : HReq) (γk : GName) (st : w64) (r : List w8)
+    (p : GoSlice) (xs : List w8),
     rd = GoInterface.ok ri →
-    ⊢ {{ respReader H rd R st r ∗ p ↦* xs }}
+    ⊢ {{ respReader H rd R γk st r ∗ p ↦* xs }}
         (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
           ∃ ys : List w8, ⌜ys.length = sint.nat n⌝ ∗
-          (□ ∃ w, ⌜r ++ ys <+: w⌝ ∗ (H.proto R.host).resp R st w) ∗
-          p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R st (r ++ ys) }}
+          (□ ∃ w, ⌜r ++ ys <+: w⌝ ∗ (H.proto R.host).resp R γk st w) ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R γk st (r ++ ys) }}
 
 /-- `ResponseWriter.Write(b)`: needs the protocol of what has then been written; may fail. -/
 def respWrite_spec (H : HttpNet GF) : Prop :=
-  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (st : Option w64)
-    (w : List w8) (b : GoSlice) (bs : List w8) (dq : DFrac),
+  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName)
+    (st : Option w64) (w : List w8) (b : GoSlice) (bs : List w8) (dq : DFrac),
     wr = GoInterface.ok wi →
-    ⊢ {{ respWriter H wr a R st w ∗ b ↦*{dq} bs ∗
-          □ (H.proto a).resp R (st.getD (W64 200)) (w ++ bs) }}
+    ⊢ {{ respWriter H wr a R γk st w ∗ b ↦*{dq} bs ∗
+          □ (H.proto a).resp R γk (st.getD (W64 200)) (w ++ bs) }}
         (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #b))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          b ↦*{dq} bs ∗ respWriter H wr a R (some (st.getD (W64 200))) (w ++ bs) }}
+          b ↦*{dq} bs ∗ respWriter H wr a R γk (some (st.getD (W64 200))) (w ++ bs) }}
 
 /-- `ResponseWriter.WriteHeader(st)` before any write: sets the status, which needs the protocol
 of the (still empty) response with it. -/
 def respWriteHeader_spec (H : HttpNet GF) : Prop :=
-  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (st : w64),
+  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName) (st : w64),
     wr = GoInterface.ok wi →
-    ⊢ {{ respWriter H wr a R none [] ∗ □ (H.proto a).resp R st [] }}
+    ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk st [] }}
         (App (Val #(methods wi.ty go!"WriteHeader" wi.v)) (Val #st))
-      {{ RET #(); respWriter H wr a R (some st) [] }}
+      {{ RET #(); respWriter H wr a R γk (some st) [] }}
 
 /-- `http.NewRequest(method, url, body)`, with a body reader holding `bs` and a URL naming `host`
 and `path` (`urlOf`, the URL `url.URL{Scheme: "http", Host: host, Path: path}.String()` gives, as
@@ -271,49 +307,68 @@ def HeaderGet_spec : Prop :=
 /-- `w.Header()` of a response writer: a header map the handler may `Set` freely (the client's
 view of response headers is unconstrained). -/
 def RespHeader_spec (H : HttpNet GF) : Prop :=
-  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (st : Option w64)
-    (w : List w8),
+  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName)
+    (st : Option w64) (w : List w8),
     wr = GoInterface.ok wi →
-    ⊢ {{ respWriter H wr a R st w }}
+    ⊢ {{ respWriter H wr a R γk st w }}
         (App (Val #(methods wi.ty go!"Header" wi.v)) (Val #()))
-      {{ (hm : Loc), RET #hm; respWriter H wr a R st w ∗ ∃ hs, hdrOwn hm hs }}
+      {{ (hm : Loc), RET #hm; respWriter H wr a R γk st w ∗ ∃ hs, hdrOwn hm hs }}
 
-/-- `io.ReadAll(rd)` of a request body: the whole body, or an error. -/
-def ReadAll_body_spec : Prop :=
-  ∀ (rd : GoInterface) (R : HReq) (e : GoInterface),
-    ⊢ {{ bodyReader (GF := GF) rd R [] ∗ ioEOF e }}
+/-- **A reader of the bytes `B`** (persistent, D33b): its `Read` from a state `Src r` (`r` read so
+far; `io.EOF`'s value `e`) reads `ys`, still a prefix of `B`, and returns `EOF` (`e`) only once `r ++ ys = B` -- the
+`io.Reader` contract of a request body (`bodyRead_spec`) and of any reader wrapping one. -/
+def prefixReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8) (e : GoInterface) :
+    IProp GF :=
+  iprop(∃ ri : GoInterfaceOk, ⌜rd = GoInterface.ok ri⌝ ∗
+    □ (∀ (r : List w8) (p : GoSlice) (xs : List w8),
+      {{ Src r ∗ p ↦* xs ∗ ioEOF e }}
+        (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
+      {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ r ++ ys <+: B ∧ (err = e → r ++ ys = B)⌝ ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ Src (r ++ ys) }}))
+
+instance prefixReaderOk_persistent (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8)
+    (e : GoInterface) : Persistent (prefixReaderOk rd Src B e) := by
+  unfold prefixReaderOk; infer_instance
+
+/-- `io.ReadAll(rd)` of a reader of `B` (D33b: over any reader keeping the prefix contract, a
+request body's or a wrapper's): the whole of `B`, or an error. -/
+def ReadAll_spec : Prop :=
+  ∀ (rd : GoInterface) (Src : List w8 → IProp GF) (B : List w8) (e : GoInterface),
+    ⊢ {{ prefixReaderOk rd Src B e ∗ Src [] ∗ ioEOF e }}
         (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ sl ↦* R.body }}
+          ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ sl ↦* B }}
 
 /-- `io.ReadFull(rd, p)` of a response body: `len(p)` bytes, still a prefix of what the handler
 wrote, or an error. -/
 def ReadFull_resp_spec (H : HttpNet GF) : Prop :=
-  ∀ (rd : GoInterface) (R : HReq) (st : w64) (r : List w8) (p : GoSlice) (xs : List w8),
-    ⊢ {{ respReader H rd R st r ∗ p ↦* xs }}
+  ∀ (rd : GoInterface) (R : HReq) (γk : GName) (st : w64) (r : List w8) (p : GoSlice)
+    (xs : List w8),
+    ⊢ {{ respReader H rd R γk st r ∗ p ↦* xs }}
         (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #rd)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
           ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ (err = GoInterface.nil → n = p.len)⌝ ∗
-          (□ ∃ w, ⌜r ++ ys <+: w⌝ ∗ (H.proto R.host).resp R st w) ∗
-          p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R st (r ++ ys) }}
+          (□ ∃ w, ⌜r ++ ys <+: w⌝ ∗ (H.proto R.host).resp R γk st w) ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R γk st (r ++ ys) }}
 
 /-- `w.(http.Flusher).Flush()` on a response writer: returns (it matters for latency, not for
 safety). -/
 def Flush_spec (H : HttpNet GF) : Prop :=
-  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (st : Option w64)
-    (w : List w8),
+  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName)
+    (st : Option w64) (w : List w8),
     wr = GoInterface.ok wi →
-    ⊢ {{ respWriter H wr a R st w }}
+    ⊢ {{ respWriter H wr a R γk st w }}
         (App (Val #(methods wi.ty go!"Flush" wi.v)) (Val #()))
-      {{ RET #(); respWriter H wr a R st w }}
+      {{ RET #(); respWriter H wr a R γk st w }}
 
 /-- `http.Error(w, msg, code)` before any write: the status `code`, the body `msg` and a newline. -/
 def Error_spec (H : HttpNet GF) : Prop :=
-  ∀ (wr : GoInterface) (a : GoString) (R : HReq) (msg : GoString) (code : w64),
-    ⊢ {{ respWriter H wr a R none [] ∗ □ (H.proto a).resp R code (msg ++ [W8 10]) }}
+  ∀ (wr : GoInterface) (a : GoString) (R : HReq) (γk : GName) (msg : GoString) (code : w64),
+    ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk code (msg ++ [W8 10]) }}
         (App (App (App (Val (@! _root_.Perennial.net.http.Error)) (Val #wr)) (Val #msg))
           (Val #code))
-      {{ RET #(); respWriter H wr a R (some code) (msg ++ [W8 10]) }}
+      {{ RET #(); respWriter H wr a R γk (some code) (msg ++ [W8 10]) }}
 
 /-! ### Routing (`http.ServeMux`) -/
 
@@ -349,27 +404,28 @@ def Handle_spec : Prop :=
 
 /-- **A handler of `a` for the requests routed to `pat`** (persistent): as `handlerOk`, for the
 requests whose path `route` sends to `pat`. -/
-def handlerFor (H : HttpNet GF) (a : GoString) (pats : List GoString) (pat : GoString)
-    (h : GoInterface) : IProp GF :=
+def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoString)
+    (pat : GoString) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
-    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (rd : GoInterface),
-      {{ reqAt r R rd ∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ ∗ □ (H.proto a).req R ∗
-          bodyReader rd R [] ∗ respWriter H wr a R none [] }}
-        (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
-      {{ (v : val), RET v; True }}))
+    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
+      reqAt r R rd -∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ -∗ □ (H.proto a).req R γk -∗
+        reqTicket γk -∗ bodyReader rd R [] -∗ respWriter H wr a R γk none [] -∗ Rs -∗
+        WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
+          {{ _v, Rs }}))
 
 /-- **A built mux is a handler of `a`** (the mux's dispatch, stated as what its `ServeHTTP` does):
 each registered handler handles what is routed to it; a request routed nowhere (or redirected,
 for a path not in `ServeMux`'s clean form) gets the mux's own `404`/`301` response, which the
 protocol must allow. -/
 def mux_handlerOk_spec (H : HttpNet GF) : Prop :=
-  ∀ (m : Loc) (regs : List (GoString × GoInterface)) (a : GoString),
+  ∀ (m : Loc) (regs : List (GoString × GoInterface)) (a : GoString) (Rs : IProp GF),
     ⊢ muxOwn (GF := GF) m regs -∗
-      ([∗list] reg ∈ regs, handlerFor H a (regs.map Prod.fst) reg.1 reg.2) -∗
-      (□ ∀ (R : HReq) (st : w64) (w : List w8),
-        ⌜route (regs.map Prod.fst) R.path = none⌝ → (H.proto a).req R -∗ (H.proto a).resp R st w) -∗
-      handlerOk H a (interface.mkOk (go.GoType.PointerType _root_.Perennial.net.http.ServeMux.ty)
-        #m)
+      ([∗list] reg ∈ regs, handlerFor H a Rs (regs.map Prod.fst) reg.1 reg.2) -∗
+      (□ ∀ (R : HReq) (γk : GName) (st : w64) (w : List w8),
+        ⌜route (regs.map Prod.fst) R.path = none⌝ → (H.proto a).req R γk -∗
+          (H.proto a).resp R γk st w) -∗
+      handlerOk H a Rs (interface.mkOk (go.GoType.PointerType
+        _root_.Perennial.net.http.ServeMux.ty) #m)
 
 /-! ### URLs -/
 

@@ -69,6 +69,51 @@ noncomputable def NewLimitedBufferReader [FfiSyntax] [GoGlobalContext] : GoStrin
 noncomputable def WriteAndSyncFile [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/ioutil.WriteAndSyncFile"
 
+/-- NewLimitedBufferReader returns a reader that reads from the given reader
+    but limits the amount of data returned to at most n bytes.
+
+    go: reader.go:22:6 -/
+noncomputable def NewLimitedBufferReader.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "n"
+  (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType limitedBufferReader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoAlloc limitedBufferReader.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (App (Val (GoInstruction (CompositeLiteral limitedBufferReader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"r")) (ElementExpression _root_.Perennial.io.Reader.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"n")) (ElementExpression go.int (Var "$v1")))]))))))))))))
+
+/-- go: reader.go:34:31 -/
+noncomputable def limitedBufferReader.Read.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "p"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (Let "np" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r")))))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "np"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef limitedBufferReader.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType limitedBufferReader.ty)))) (Var "r")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "np") (Var "$r0"))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.ioutil where
   pkgImportedPkgs := [pkg_id.io]
 
@@ -260,6 +305,7 @@ class limitedBufferReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocal
   set_r : ∀ (x : limitedBufferReader) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : limitedBufferReader)))
   get_n : ∀ (x : limitedBufferReader), go.IsGoStepPureDetTagged under (StructFieldGet limitedBufferReader.underlying go!"n") #x (Val #(x.n'))
   set_n : ∀ (x : limitedBufferReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : limitedBufferReader)))
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType limitedBufferReader.ty) go!"Read" limitedBufferReader.Read.impl
 
 attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.underlying
@@ -267,18 +313,21 @@ attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.set_r
   limitedBufferReader.TypeAssumptions.get_n
   limitedBufferReader.TypeAssumptions.set_n
+  limitedBufferReader.TypeAssumptions.ptr_Read_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PageWriter_instance : PageWriter.TypeAssumptions
   ReaderAndCloser_instance : ReaderAndCloser.TypeAssumptions
   exactReadCloser_instance : exactReadCloser.TypeAssumptions
   limitedBufferReader_instance : limitedBufferReader.TypeAssumptions
+  NewLimitedBufferReader_unfold : FuncUnfold NewLimitedBufferReader [] NewLimitedBufferReader.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
 
 attribute [instance] Assumptions.PageWriter_instance
   Assumptions.ReaderAndCloser_instance
   Assumptions.exactReadCloser_instance
   Assumptions.limitedBufferReader_instance
+  Assumptions.NewLimitedBufferReader_unfold
   Assumptions.import_io_Assumption
 
 end go_etcd_io.etcd.pkg.v3.ioutil

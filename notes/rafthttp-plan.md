@@ -247,6 +247,27 @@ trust-boundary spec.
    ```
 4. **Pipeline**, end to end: `pipeline.handle`/`post`, `pipelineHandler`, the mailbox withdrawal,
    `Process`. The simplest complete delivery path; first proof that the mailbox design works.
+   **Started 2026-10-23.** A gap found first: the pipeline carries one-shot messages (a
+   `MsgReadIndex`'s read credit, a forwarded `MsgProp`'s tickets), and with only persistent facts
+   crossing the wire a receiver cannot show no other delivery withdrew the same message's one-shot
+   part. Go delivers a POST at most once (the client never replays one: `Request.isReplayable` is
+   false for a `POST` without an `Idempotency-Key`; the server runs one handler per request read),
+   so the boundary says so: **a request ticket** (the user's choice, 2026-10-23; D33b). The steps:
+   - 4a. The boundary revised: `RoundTrip` takes a fresh exclusive ghost ticket (`reqTicket γk`)
+     and the handler receives it; the protocols are indexed by the ticket's name; the handler's
+     contract is a WP whose postcondition also covers a panic (`Serve` recovers one) and lends each
+     invocation one of `netProcSlots` receiver resources; `io.ReadAll` over any reader keeping the
+     prefix contract.
+   - 4b. The pipeline's protocol and mailbox: a `POST /raft` request's body encodes a message `st`
+     for the address's member, with `□ P st`, and a deposit per request, `inv (O st ∨ reqTicket
+     γk)`, which the ticket's holder withdraws once. `pbMessage`'s `eqv`: a decoded (or cloned)
+     copy of a message with no responses has none.
+   - 4c. The receiver: `pkg/v3/ioutil`'s `limitedBufferReader` translated (a per-read cap), and
+     `pipelineHandler.ServeHTTP` proved (the version checks with arbitrary results;
+     `addRemoteFromRequest` a premise until stage 6; `Process` by `netRaftOk`).
+   - 4d. The sender: `pipeline.post` (`createPostRequest`, `RoundTrip`, the response read and
+     checked, the picker), `pipeline.handle`, `start`/`stop`.
+   - 4e. The boundary specs the proofs use become axioms (for the user's acceptance).
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
    `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
    The hardest stage.
