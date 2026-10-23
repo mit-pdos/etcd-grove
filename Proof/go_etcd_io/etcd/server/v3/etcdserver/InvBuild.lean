@@ -171,22 +171,16 @@ theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (st : Msg
   icases Hr with ⟨%H, -⟩
   ipureintro; exact H hns
 
-/-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is a
-`MsgSnap` (`isRNMsgSnapC`), which no message of `srvEr`'s is. -/
-theorem srvMsgSnapC_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (m : Loc) :
-    rnMsgOk (srvEr ρ E ai₀ c₀ x₀ bud) m ∗ (∃ to : w64, msgAt m to MsgSnap) ⊢ (False : IProp GF) := by
-  iintro ⟨H1, H2⟩
-  iunfold rnMsgOk at H1
-  simp only [srvEr]
-  icases H1 with ⟨%to0, %ty0, -, ⟨-, HM⟩⟩
-  icases H2 with ⟨%to, H2⟩
-  iunfold msgAt at H2
-  icases H2 with ⟨%st', #Hst', %Hst'⟩
-  iunfold srvMsgNoSnap at HM
-  icases HM with ⟨%st, #Hst, %Hns⟩
-  ihave %Hag := msgOwn_type_agree m st st' $$ [$Hst $Hst']
-  exact absurd (Hag.trans Hst'.2) Hns
+/-- **The server's `msgSnapC` never delivers** (D19p) in raft's no-snapshot mode: what
+`processMessages` hands it is an owned `MsgSnap` with its protocol facts (`rnSnapMsg`, D22 S-l
+sender, 2026-10-22), which raft never sends in that mode (`isRaftMsg_not_snap`). -/
+theorem rnSnapMsg_false (γ : NodeNames) (hns : γ.raft.reNoSnap = true) (m : Loc) :
+    rnSnapMsg γ m ⊢ (False : IProp GF) := by
+  iintro H
+  iunfold rnSnapMsg at H
+  icases H with ⟨%st, -, %Hty, #Hrm, -⟩
+  ihave %Hne := isRaftMsg_not_snap γ.raft hns st $$ Hrm
+  exact absurd Hty Hne
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the

@@ -16,8 +16,8 @@ out"): the vocabulary of the specs of `createMergedSnapshotMessage`, `newSnapsho
   `rc`, with its `TotalSize` field read-only and its `closeC` a bag channel carrying nothing
   (`sendMergedSnap` reads both).
 * `msgOwn_store_Snapshot`: `m.Snapshot = snapshot` on an owned message (a `MsgSnap` a `Ready` hands
-  out is owned: `readyDq`; the server persists it at `rnReadyData`, InvRaftNode.lean, which S-l
-  must stop doing for a `MsgSnap` it diverts to `msgSnapC`).
+  out is owned: `readyDq`; since D22 S-l's sender items, 2026-10-22, the server keeps it owned,
+  `rnSnapMsg`, through `rnReadyData` and `processMessages` into `msgSnapC`'s bag).
 -/
 module
 
