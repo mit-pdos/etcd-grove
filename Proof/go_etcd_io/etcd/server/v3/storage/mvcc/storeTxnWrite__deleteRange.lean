@@ -245,8 +245,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 (ilog.length : Int)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
-      as %keys %modifies %creates %vers %total
-        ⟨Hti, Hw, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
+      as %keys %modifies %creates %vers %total %cl
+        ⟨Hti, Hw, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal, %Hcl⟩
     · ipureintro; rw [mvcc.IdxKnow.log_writer]
       have h1 : sint.Z (W64 (ilog.length : Int) : w64) = ilog.length := by
         have := Hbudget; word
@@ -287,8 +287,8 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (try wp_auto)
     wp_apply (hRange ti γ.idx (.writer ilog pend) key endk k e (W64 ((ilog.length : Int) - 1)) (W64 0) false e0 _ crev)
       $$ [$HtiS $Hti $Hkn $Hkey $Hend $Herr $Hcu]
-      as %keys %modifies %creates %vers %total
-        ⟨Hti, Hw, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
+      as %keys %modifies %creates %vers %total %cl
+        ⟨Hti, Hw, Hcu, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal, %Hcl⟩
     · ipureintro; rw [mvcc.IdxKnow.log_writer]
       have h1 : sint.Z (W64 ((ilog.length : Int) - 1) : w64) = ilog.length - 1 := by
         have := Hbudget; have := List.length_pos_iff.2 Hne; word

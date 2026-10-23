@@ -202,7 +202,7 @@ theorem ownGen_combine (gv : generation) (gm1 gm2 : Gen) (dq1 dq2 : DFrac) :
     obtain ⟨h1', h2'⟩ := Hp2
     have hrevs := map_revVal_inj _ _ Hrevs
     simp only [Gen.mk.injEq]
-    exact ⟨h1.symm.trans h1', revVal_inj (h2.symm.trans h2'), hrevs⟩
+    exact ⟨h1.symm.trans h1', h2.symm.trans h2', hrevs⟩
   subst hgm
   isplitl []
   · ipureintro; rfl

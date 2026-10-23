@@ -383,7 +383,7 @@ theorem kvsIs_nil : ⊢ kvsIs (GF := GF) [] [] := by
 /-- The fresh key-values of a range read, one per answer, made read-only: the selection the
 answers stand for (`AnsKv`). -/
 theorem zip_kvsIs (log : Log) (st : List EtcdKv) :
-    ∀ (ps : List Loc) (answers : List (GoString × Rev × Rev × w64)) (sel : List EtcdKv),
+    ∀ (ps : List Loc) (answers : List (GoString × Rev × w64 × w64)) (sel : List EtcdKv),
     List.Forall₂ (AnsKv log st) answers sel → ps.length = answers.length →
     ([∗list] pa ∈ ps.zip answers, ∃ kv : EtcdKv, ⌜findKey pa.2.1 st = some kv⌝ ∗
         kvPtrIs (GF := GF) true pa.1 kv) ⊢ |==> kvsIs ps sel

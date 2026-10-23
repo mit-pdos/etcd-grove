@@ -75,9 +75,10 @@ theorem mvcc.keyIndex.get.wp_proof
     -- no generation: the key is absent
     simp only [mvcc.genPtr]
     wp_apply (hGE.1 null rfl)
-    rw [show mvcc.kiGetVal ki atRev (GoInterface.ok e) =
-      PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e)
-      by simp [mvcc.kiGetVal, mvcc.kiGet, hfg]]
+    have hV : ∀ cs, mvcc.kiGetVal ki atRev (GoInterface.ok e) cs =
+      PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) :=
+      fun cs => by simp [mvcc.kiGetVal, mvcc.kiGet, hfg]
+    simp only [hV, exists_const]
     wp_end
   | some gi =>
     simp only [mvcc.genPtr]
@@ -94,9 +95,10 @@ theorem mvcc.keyIndex.get.wp_proof
     · -- an empty generation: the key is absent
       ispecialize Hback $$ %gv %gm Hel Hg
       rw [mvcc.set_same Hgm]
-      rw [show mvcc.kiGetVal ki atRev (GoInterface.ok e) =
-        PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e)
-        by simp only [mvcc.kiGetVal, mvcc.kiGet, hfg, Hgd, Hif, ↓reduceIte]]
+      have hV : ∀ cs, mvcc.kiGetVal ki atRev (GoInterface.ok e) cs =
+        PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) :=
+        fun cs => by simp only [mvcc.kiGetVal, mvcc.kiGet, hfg, Hgd, Hif, ↓reduceIte]
+      simp only [hV, exists_const]
       iapply HΦ
       iunfold mvcc.ownKi
       iframe Hmod Hgs Hback
@@ -136,9 +138,10 @@ theorem mvcc.keyIndex.get.wp_proof
         · iunfold mvcc.ownGen; iframe Hrevs Hcap; ipureintro; exact Hfields
         ispecialize Hback $$ %gv %gm Hel Hg
         rw [mvcc.set_same Hgm]
-        rw [show mvcc.kiGetVal ki atRev (GoInterface.ok e) =
-          PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e)
-          by simp only [mvcc.kiGetVal, mvcc.kiGet, hfg, Hgd, hne, Hw, ↓reduceIte]]
+        have hV : ∀ cs, mvcc.kiGetVal ki atRev (GoInterface.ok e) cs =
+          PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #(GoInterface.ok e) :=
+          fun cs => by simp only [mvcc.kiGetVal, mvcc.kiGet, hfg, Hgd, hne, Hw, ↓reduceIte]
+        simp only [hV, exists_const]
         iapply HΦ
         iunfold mvcc.ownKi
         iframe Hmod Hgs Hback
@@ -168,17 +171,17 @@ theorem mvcc.keyIndex.get.wp_proof
         ispecialize Hback $$ %gv %gm Hel Hg
         rw [mvcc.set_same Hgm]
         have hne1 : n ≠ -1 := fun h => Hif (by rw [h])
-        rw [show mvcc.kiGetVal ki atRev (GoInterface.ok e) =
-          PairV (PairV (PairV #(mvcc.revVal (gm.revs.getD n.toNat mvcc.Rev.zero))
-            #(mvcc.revVal gm.created))
-            #(gm.ver - W64 ((gm.revs.length : Int) - (n.toNat : Int) - 1))) #(GoInterface.nil)
-          by simp only [mvcc.kiGetVal, mvcc.kiGet, hfg, Hgd, hne, ↓reduceIte, ← hn, hne1]]
-        rw [show gm.ver - W64 ((gm.revs.length : Int) - (n.toNat : Int) - 1) =
-          gv.ver' - (gv.revs'.len - W64 n - W64 1) by rw [Hfields.1]; word, ← Hfields.2]
+        have hV : mvcc.kiGetVal ki atRev (GoInterface.ok e) gv.created'.Sub' =
+          PairV (PairV (PairV #(mvcc.revVal (gm.revs.getD n.toNat mvcc.Rev.zero)) #gv.created')
+            #(gv.ver' - (gv.revs'.len - W64 n - W64 1))) #(GoInterface.nil) := by
+          simp only [mvcc.kiGetVal, mvcc.kiGet, hfg, Hgd, hne, ↓reduceIte, ← hn, hne1]
+          rw [← Hfields.2, mvcc.revVal_eta,
+            show gm.ver - W64 ((gm.revs.length : Int) - (n.toNat : Int) - 1) =
+              gv.ver' - (gv.revs'.len - W64 n - W64 1) by rw [Hfields.1]; word]
         iapply HΦ
         iunfold mvcc.ownKi
         iframe Hmod Hgs Hback
-        ipureintro; rfl
+        ipureintro; exact ⟨_, hV.symm⟩
 
 end proof
 

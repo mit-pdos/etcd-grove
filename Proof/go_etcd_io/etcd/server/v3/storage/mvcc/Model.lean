@@ -165,16 +165,23 @@ def evsOf (log : Log) : List Ev :=
 
 /-! ## The key index (`key_index.go`) -/
 
-/-- A generation of a key: its versions' revisions, the revision it was created at and the
-number of versions (`ver`); a generation ends with the tombstone that deletes the key, and
-a new, empty one follows it. -/
+/-- A generation of a key: its versions' revisions, the main revision it was created at and
+the number of versions (`ver`); a generation ends with the tombstone that deletes the key, and
+a new, empty one follows it.
+
+`created` is the main revision only: the Go field's sub-revision is not a function of the log.
+`put` records the full revision of the generation's first change, `restore` (rebuilding the
+index from the backend, whose key-values keep `CreateRevision`'s main only) sub-revision `0`.
+No reader looks at it (a put's `CreateRevision`, `since`'s comparison and compaction read the
+main revision or the revisions), so the model leaves it out and the representation
+(`ownGen`) constrains only the field's `Main` (`notes/restore-plan.md`, "R1's findings"). -/
 structure Gen where
   ver : w64
-  created : Rev
+  created : w64
   revs : List Rev
 deriving Inhabited
 
-def Gen.empty : Gen := { ver := W64 0, created := Rev.zero, revs := [] }
+def Gen.empty : Gen := { ver := W64 0, created := W64 0, revs := [] }
 
 /-- The mutable part of a `keyIndex` (its key is fixed): the revision of its last change and
 its generations, oldest first (at least one once a revision was put). -/
@@ -186,9 +193,10 @@ deriving Inhabited
 /-- A fresh `keyIndex{key: k}`: no generations. -/
 def KeyIndex.fresh : KeyIndex := { modified := Rev.zero, gens := [] }
 
-/-- `g.revs = append(g.revs, rev); g.ver++`, and `g.created = rev` if `g` was empty. -/
+/-- `g.revs = append(g.revs, rev); g.ver++`, and `g.created = rev` (its main revision) if `g`
+was empty. -/
 def genPut (g : Gen) (rev : Rev) : Gen :=
-  { ver := g.ver + W64 1, created := if g.revs = [] then rev else g.created,
+  { ver := g.ver + W64 1, created := if g.revs = [] then rev.main else g.created,
     revs := g.revs ++ [rev] }
 
 /-- `keyIndex.put(main, sub)` (the revision must be above `modified`): the revision is
@@ -242,16 +250,16 @@ def kiTombstone (ki : KeyIndex) (rev : Rev) : KeyIndex :=
   { ki' with gens := ki'.gens ++ [Gen.empty] }
 
 /-- `ki.restore(lg, created, modified, ver)` on a key index with no generation (the restore plan,
-R1): one generation `{created, ver, [modified]}`, `modified` its last change. `restoreIntoIndex`
-calls it for a key's first entry read from the backend, with `created` the entry's
-`Revision{Main: CreateRevision}` (sub-revision `0`). -/
-def kiRestore (created modified : Rev) (ver : w64) : KeyIndex :=
+R1): one generation `{created, ver, [modified]}`, `modified` its last change; `created` the
+main revision of the Go argument (`Gen`). `restoreIntoIndex` calls it for a key's first entry
+read from the backend, with `created` the entry's `Revision{Main: CreateRevision}`. -/
+def kiRestore (created : w64) (modified : Rev) (ver : w64) : KeyIndex :=
   { modified := modified, gens := [{ ver := ver, created := created, revs := [modified] }] }
 
 /-- `ki.restoreTombstone(lg, main, sub)` on a key index with no generation: `restore` with
 `Revision{}` and version `1`, then a new empty generation. -/
 def kiRestoreTombstone (rev : Rev) : KeyIndex :=
-  { modified := rev, gens := [{ ver := W64 1, created := Rev.zero, revs := [rev] }, Gen.empty] }
+  { modified := rev, gens := [{ ver := W64 1, created := W64 0, revs := [rev] }, Gen.empty] }
 
 /-- `keyIndex.isEmpty()`: one generation, with no revision. -/
 def kiIsEmpty (ki : KeyIndex) : Bool :=
@@ -390,7 +398,7 @@ def pAbove (atRev : w64) (r : Rev) : Bool := decide (sint.Z atRev < sint.Z r.mai
 revision at or before `atRev`), the revision its generation was created at, and its version
 (the number of its generation's revisions up to it); nothing if the key is absent at
 `atRev`. -/
-def kiGet (ki : KeyIndex) (atRev : w64) : Option (Rev × Rev × w64) :=
+def kiGet (ki : KeyIndex) (atRev : w64) : Option (Rev × w64 × w64) :=
   match kiFindGen ki atRev with
   | none => none
   | some gi =>

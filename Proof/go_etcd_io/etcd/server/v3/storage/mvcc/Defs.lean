@@ -35,14 +35,16 @@ def revVal (r : Rev) : Revision := ⟨r.main, r.sub⟩
 
 @[simp] theorem revVal_zero : revVal Rev.zero = zero_val Revision := rfl
 @[simp] theorem revVal_mk (a b : w64) : revVal ⟨a, b⟩ = Revision.mk a b := rfl
+theorem revVal_eta (r : Revision) : revVal ⟨r.Main', r.Sub'⟩ = r := by cases r; rfl
 @[simp] theorem revOf_main (r : Revision) : (revOf r).main = r.Main' := rfl
 @[simp] theorem revOf_sub (r : Revision) : (revOf r).sub = r.Sub' := rfl
 
 /-- What `keyIndex.get` returns (`modified, created, ver, err`), with `e` the value of
-`ErrRevisionNotFound`. -/
-def kiGetVal (ki : KeyIndex) (atRev : w64) (e : GoInterface) : val :=
+`ErrRevisionNotFound` and `cs` the sub-revision of the generation's `created` field, which the
+model leaves out (`Gen`). -/
+def kiGetVal (ki : KeyIndex) (atRev : w64) (e : GoInterface) (cs : w64) : val :=
   match kiGet ki atRev with
-  | some (m, c, v) => PairV (PairV (PairV #(revVal m) #(revVal c)) #v) #(GoInterface.nil)
+  | some (m, c, v) => PairV (PairV (PairV #(revVal m) #(revVal ⟨c, cs⟩)) #v) #(GoInterface.nil)
   | none => PairV (PairV (PairV #(zero_val Revision) #(zero_val Revision)) #(W64 0)) #e
 
 end defs
@@ -96,11 +98,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The Go `generation` value `gv` holds the model generation `gm`: its `ver` and `created`,
-and its revisions in the slice `revs` (at fraction `dq`, with the slice's capacity at the same
+/-- The Go `generation` value `gv` holds the model generation `gm`: its `ver` and `created`'s
+main revision (`Gen`: its sub-revision is the field's own), and its revisions in the slice `revs` (at fraction `dq`, with the slice's capacity at the same
 fraction: `put` appends to it). -/
 def ownGen (gv : generation) (gm : Gen) (dq : DFrac) : IProp GF :=
-  iprop(⌜gv.ver' = gm.ver ∧ gv.created' = revVal gm.created⌝ ∗
+  iprop(⌜gv.ver' = gm.ver ∧ gv.created'.Main' = gm.created⌝ ∗
     gv.revs' ↦*{dq} gm.revs.map revVal ∗ ownSliceCap Revision gv.revs' dq)
 
 /-- A `generation` points-to as its fields (loads through a fractional struct points-to need

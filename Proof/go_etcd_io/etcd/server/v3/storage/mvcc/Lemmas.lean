@@ -33,9 +33,10 @@ theorem W64_add_one (x : Int) : W64 (x + 1) = W64 x + W64 1 := by
 /-- The revisions of a key index, in order. -/
 def kiRevs (ki : KeyIndex) : List Rev := (ki.gens.map Gen.revs).flatten
 
-/-- A generation as the code builds it: `created` its first revision, `ver` their number. -/
+/-- A generation as the code builds it: `created` its first revision's main, `ver` their
+number. -/
 def GenWf (g : Gen) : Prop :=
-  g.ver = W64 g.revs.length ∧ (g.revs ≠ [] → g.created = g.revs.headD Rev.zero)
+  g.ver = W64 g.revs.length ∧ (g.revs ≠ [] → g.created = (g.revs.headD Rev.zero).main)
 
 /-- A key index as the code builds it (see the module docstring). -/
 structure KiWf (ki : KeyIndex) : Prop where
@@ -52,7 +53,7 @@ def KiAbove (ki : KeyIndex) (rev : Rev) : Prop :=
 theorem genPut_revs (g : Gen) (rev : Rev) : (genPut g rev).revs = g.revs ++ [rev] := rfl
 theorem genPut_ver (g : Gen) (rev : Rev) : (genPut g rev).ver = g.ver + W64 1 := rfl
 theorem genPut_created (g : Gen) (rev : Rev) :
-    (genPut g rev).created = if g.revs = [] then rev else g.created := rfl
+    (genPut g rev).created = if g.revs = [] then rev.main else g.created := rfl
 
 theorem GenWf.put {g : Gen} (h : GenWf g) (rev : Rev) : GenWf (genPut g rev) := by
   refine ⟨?_, ?_⟩
@@ -233,7 +234,7 @@ revision (the new revision if the generation was empty) and version + 1. -/
 theorem kiGet_kiPut_above {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : KiAbove ki rev)
     {r : w64} (hr : sint.Z rev.main ≤ sint.Z r) :
     kiGet (kiPut ki rev) r =
-      some (rev, (if (ki.gens.getLastD Gen.empty).revs = [] then rev
+      some (rev, (if (ki.gens.getLastD Gen.empty).revs = [] then rev.main
         else (ki.gens.getLastD Gen.empty).created), (ki.gens.getLastD Gen.empty).ver + W64 1) := by
   have hne := hwf.ne
   have hpos := hwf.len_pos
@@ -255,7 +256,7 @@ theorem kiGet_kiPut_above {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : 
 /-! ### The generation's answer, and a put seen from below -/
 
 /-- What `kiGet` answers from the generation `kiFindGen` found. -/
-def genGet (g : Gen) (atRev : w64) : Option (Rev × Rev × w64) :=
+def genGet (g : Gen) (atRev : w64) : Option (Rev × w64 × w64) :=
   if g.revs = [] then none
   else
     let n := genWalk g.revs (pAbove atRev)

@@ -3303,7 +3303,7 @@ def kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
 /-- The key-values of a `RangeResult` (`KVs`): fresh, one per answer of the index, in order,
 each the state's key-value of the answer's key. -/
 def rangeKvs (full : Bool) (kvs : GoSlice) (st : List EtcdKv)
-    (answers : List (GoString × Rev × Rev × w64)) : IProp GF :=
+    (answers : List (GoString × Rev × w64 × w64)) : IProp GF :=
   iprop(∃ ps : List Loc, kvs ↦* ps ∗ ⌜ps.length = answers.length⌝ ∗
     [∗list] pa ∈ ps.zip answers, ∃ kv : EtcdKv, ⌜findKey pa.2.1 st = some kv⌝ ∗ kvPtrIs full pa.1 kv)
 

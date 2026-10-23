@@ -75,7 +75,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
   subst hr
   wp_if_destruct
   · -- `end == nil`: the one key, `ti.unsafeGet(key, atRev)`
-    wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
+    wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as %_ ⟨HtreeL, -⟩
     · iframe #
       ipureintro
       exact ⟨Hlgnn, hne⟩
@@ -173,7 +173,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
         · ipureintro; exact Hlgnn
         simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
         icases Hres with ⟨%Hres, Hki⟩
-        subst Hres
+        obtain ⟨_, rfl⟩ := Hres
         unfold mvcc.kiGetVal
         cases hg : mvcc.kiGet z.2.2 (W64 r) with
         | none =>
