@@ -276,3 +276,15 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   tier 0-2 trust change), recorded with `etc/land.sh mark-reviewed`.
 - **Status.** Landed 2026-10-22: Perennial `lean` `537c426e0` (`3c3e83e2c`, `9e52da638`,
   `537c426e0`), the pin since; the local copies are deleted (etcd-grove branch `perennial-idioms`).
+
+### `wp_apply`'s frame list can admit a goal silently
+
+- **Missing.** In `mvcc.restoreChunk.wp_proof` (2026-10-23), `wp_apply (wp_spsc_send …) $$
+  [$Hsp $Hprod HP]` followed by a bullet for `HP`'s subgoal elaborated with no error, but the
+  rest of the enclosing bullet never ran and the theorem got a `sorryAx` (found only through
+  "declaration uses `sorry`", located by printing the `sorryAx` terms' source names). Framing a
+  prepared hypothesis (`$HP'`) instead proved it.
+- **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
+  proof for the "declaration uses `sorry`" warning.
+- **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
+  the error instead of admitting.

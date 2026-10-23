@@ -42,6 +42,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restoreTombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue
@@ -68,6 +70,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewJob
@@ -373,6 +376,18 @@ theorem mvcc.keyIndex.wp_put :
     mvcc.keyIndex.put.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.put.wp_proof mvcc.Revision.wp_GreaterThan zap.wp_Int64 zap.Logger.wp_Panic
 
+theorem zap.wp_Int' :
+    zap.Int'.spec (GF := GF) (hG := hG) :=
+  zap.Int'.wp_proof
+
+theorem mvcc.keyIndex.wp_restore :
+    mvcc.keyIndex.restore.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.restore.wp_proof zap.wp_Int' zap.Logger.wp_Panic
+
+theorem mvcc.keyIndex.wp_restoreTombstone :
+    mvcc.keyIndex.restoreTombstone.spec (GF := GF) (hG := hG) :=
+  mvcc.keyIndex.restoreTombstone.wp_proof mvcc.keyIndex.wp_restore
+
 theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_put
@@ -532,10 +547,6 @@ theorem mvcc.treeIndex.wp_Compact [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem zap.wp_Duration :
     zap.Duration.spec (GF := GF) (hG := hG) :=
   zap.Duration.wp_proof
-
-theorem zap.wp_Int' :
-    zap.Int'.spec (GF := GF) (hG := hG) :=
-  zap.Int'.wp_proof
 
 theorem zap.wp_Uint32 :
     zap.Uint32.spec (GF := GF) (hG := hG) :=
@@ -759,6 +770,10 @@ theorem mvcc.readView.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
+
+theorem mvcc.wp_restoreChunk :
+    mvcc.restoreChunk.spec (GF := GF) (hG := hG) :=
+  mvcc.restoreChunk.wp_proof proto.wp_Unmarshal mvcc.wp_isTombstone
 
 theorem schedule.job.wp_Do :
     schedule.job.Do.spec (GF := GF) (hG := hG) :=
