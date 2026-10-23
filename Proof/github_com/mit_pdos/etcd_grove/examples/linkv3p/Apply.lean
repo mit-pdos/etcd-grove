@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 theorem Apply.wp_proof (wp_Apply : linkvtxn.Apply.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ γ cls clis hAs hne
+  intro _ CRE CEC γ cls clis hAs hne
   iintro #Hpkg #Plkv #Pcli #Hcls #Hok
   iintro %i
   imodintro

@@ -10,6 +10,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
+public import Proof.context.Link
+public import Proof.context.WithTimeoutBackground
 
 @[expose] public section
 
@@ -38,7 +40,8 @@ its callees' linked results (putget's). -/
 theorem putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     putget3.Main.spec (GF := GF) (hG := hG) :=
   putget3.Main.wp_proof zap.NewNop.wp_proof common.wp_StartMember common.wp_Serve
-    common.wp_NewClient context.wp_Background
+    common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
+    context.wp_ErrAny
 
 end results
 

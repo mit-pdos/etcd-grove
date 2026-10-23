@@ -56,7 +56,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     (wp_isWrite : isWrite.spec (GF := GF) (hG := hG)) :
     Apply.spec (GF := GF) (hG := hG) := by
-  intro _ γ cl ms V hAs hne
+  intro _ CRE CEC γ cl ms V hAs hne
   iintro #Hpkg #Pcli #Hcl #Hone #Hregs #Hinvs
   -- one member's invariant, for the commits made before the call
   obtain ⟨s0, hs0⟩ : ∃ s0, s0 ∈ ms := by

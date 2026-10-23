@@ -314,6 +314,7 @@ axiom grpc.GenericClientStream.Send.wp_proof
 axiom grpc.GenericServerStream.Context.wp_proof
 axiom grpc.GenericServerStream.Recv.wp_proof
 axiom grpc.GenericServerStream.Send.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof

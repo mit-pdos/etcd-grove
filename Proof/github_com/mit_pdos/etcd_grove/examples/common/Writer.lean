@@ -1,5 +1,7 @@
-/- Lean-first (no Rocq counterpart). The proof of `writer`: the loop over `tried[lo:hi]`; each
-successful Put's reply gives `okFact` (`okFact_of_reply`), logged under the lock. -/
+/- Lean-first (no Rocq counterpart). The proof of `writer`: the loop over `tried[lo:hi]`; each Put
+in a timeout context (`client.wp_WithTimeout_bg`, over the trust-boundary spec of
+`context.WithTimeout(Background(), d)` and `context.ErrAny`); each successful Put's reply gives
+`okFact` (`okFact_of_reply`), logged under the lock. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Writer
@@ -27,16 +29,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem Writer.wp_proof :
+theorem Writer.wp_proof
+    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Writer.spec (GF := GF) (hG := hG) := by
-  intro CS cl ep V E γr cid mid w tsl tried lo hi hAs hlo hlh hhi
+  intro CS CRE CEC cl ep V E γr cid mid w tsl tried lo hi hAs hlo hlh hhi
   wp_start as ⟨#Hnc, #Hone, #Hput, #Ht, #Hkv, #Hmu⟩
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   ihave %Htl := ownSlice_len $$ Ht
-  (try wp_auto)
-  wp_apply context.wp_Background
-  imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   (try wp_auto)
   imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
@@ -65,18 +68,27 @@ theorem Writer.wp_proof :
       List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
     ihave Hau := Hkv $$ %x.Key' %x.Val' %hxP
     (try wp_auto)
+    -- `ctx, cancel := context.WithTimeout(context.Background(), RequestTimeout)`
+    wp_apply context.wp_Background
+    (try wp_auto)
+    wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
+    (try wp_auto)
     ihave #Hput1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
         isGrpcRpc y.addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec y.E y.γr y.cid y.mid) $$ []
     · iapply BigSepL.bigSepL_singleton.2; iexact Hput
     ihave #HF1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
         mvcc.idxCert y.E.γ.idx [] $$ []
     · iapply BigSepL.bigSepL_singleton.2; iexact HF0
-    wp_apply (client.client_Put_rep cl [⟨ep, E, γr, cid, mid⟩] V context.backgroundCtxVal cd
+    wp_apply (client.client_Put_rep cl [⟨ep, E, γr, cid, mid⟩] V cctx cd
         x.Key' x.Val' slice.nil (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
     · iframe #
       isplitr; · iExactEq Hnc; rfl
       isplitr; · iExactEq Hone; rfl
       iapply BigAndL.bigAndL_singleton.2; iexact Hau
+    -- `cancel()`
+    (try wp_auto)
+    wp_apply Hcancel
     icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | ⟨%Herr, -⟩)
     · simp only [List.mem_singleton] at hy
       subst hy Herr

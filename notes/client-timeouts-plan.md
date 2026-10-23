@@ -1,6 +1,19 @@
 # Plan: the examples' clients configured as etcd's clients are in practice (timeouts)
 
-**Status.** Planned (2026-10-23). Nothing carried out.
+**Status.** T0 and T1 carried out (2026-10-23, branch `client-timeouts`; `notes/decisions.md`,
+"D-T1..D-T5"); T2's gates run with them; T3 (the Perennial lemma) not started
+(`notes/perennial-changes.md`, "`WithTimeout`/`WithDeadline` of `Background()`"). What differed
+from the plan below: (1) `NewClient(addr, lg)` stays, as `NewClients({addr}, lg)`, so the five
+one-endpoint callers and their proofs are untouched; (2) D-T4's "no statement changes" holds for
+the conclusions only: `putget_safe`, `putget3_safe`, `linkvtxn_safe` and `linkv3p_safe` gain the
+premise `ContextErrsClient` (Go's context error types), which the watch theorems already took,
+and every spec on the call chains takes it and `ContextReadErrs` as class premises; (3) D-T5 done
+(the policy on every member; D28's axiom in five more collections, nothing new in the baseline);
+(4) linkv3p's `TestFailover` rewritten as D-T1's risk foresaw: the blackholed member's calls fail
+at 5s, 10s and 15s (request timeouts, reads too), the keepalive close at 16s fails the calls in
+flight, then failover; `cutRun` accepts reads that failed at their request timeout;
+`TestWatchFailover`'s blackholes 18s (over the 16s close). The ten call-site proofs each use one
+lemma, `client.wp_WithTimeout_bg` (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`).
 
 ## Problem
 

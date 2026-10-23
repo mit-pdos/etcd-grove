@@ -26,6 +26,7 @@ under the cache package's assumptions, which the client's lemmas take.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -46,7 +47,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev Apply.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (γ : LinkvNames) (cl : Loc)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (γ : LinkvNames) (cl : Loc)
     (ms : List (client.SrvAt GF)) (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → ms ≠ [] →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn -∗

@@ -9,7 +9,7 @@ at the first member's names), each member's pure boot facts kept (`memberBoot`'s
 `memberAt` records); `startMember` for each member, the thread token passed along
 (`memberServed`'s `srvGoRes`), its watch server kept; the servers' slice; `startBridge` for each
 member's client address (the bridge owned, its address serving the member's, `forwards`) and the
-bridges' slice; the endpoints' slice and `newClient` of it for each client, at the watch
+bridges' slice; the endpoints' slice and `common.NewClients` of it for each client (linkv3p's `newClient` until 2026-10-23), at the watch
 environment of the three members (`watchEnv`); the clients' slice and `clusterUp`. Every step's
 error ends with `ok = false`.
 -/
@@ -17,7 +17,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startMember
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClients
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc3
 
@@ -49,7 +49,7 @@ set_option maxRecDepth 8192 in
 theorem startCluster.wp_proof
     (wp_startMember : startMember.spec (GF := GF) (hG := hG))
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
-    (wp_newClient : newClient.spec (GF := GF) (hG := hG)) :
+    (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
   intro CS ESL ESE N id₁ id₂ id₃ bootLog lg W pfx Hbf hW Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Htok, #Hprem⟩
@@ -257,7 +257,7 @@ theorem startCluster.wp_proof
     refine ⟨by simp, fun e he => ?_⟩
     simp only [List.mem_cons, List.not_mem_nil, or_false] at he
     rcases he with rfl | rfl | rfl <;> (unfold plainEndpoint; decide)
-  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+  wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₁ %cerr₁ Hcl₁
   · iframe #
   icases Hcl₁ with (Hok₁ | %Hcfail)
@@ -271,7 +271,7 @@ theorem startCluster.wp_proof
   icases Hok₁ with ⟨%Hcerr, #Hnc₁⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+  wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₂ %cerr₂ Hcl₂
   · iframe #
   icases Hcl₂ with (Hok₂ | %Hcfail)
@@ -285,7 +285,7 @@ theorem startCluster.wp_proof
   icases Hok₂ with ⟨%Hcerr, #Hnc₂⟩
   subst Hcerr
   wp_auto
-  wp_apply (wp_newClient _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
+  wp_apply (wp_NewClients _ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] lg
       (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) (by omega) Hlg hpl) $$ [] as %cl₃ %cerr₃ Hcl₃
   · iframe #
   icases Hcl₃ with (Hok₃ | %Hcfail)

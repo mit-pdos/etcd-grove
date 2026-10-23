@@ -1,7 +1,11 @@
 /-
 `Serve(s, addr)` (`examples/common/common.go`; 2026-10-22, D33): a started member's gRPC API served
-on a listener at `addr` -- `v3rpc.Server(s, nil, nil)`, `net.Listen("tcp", addr)`, `go
-gs.Serve(l)`; what the examples' `Main`s did after `Start`. Lean-first (no Rocq counterpart).
+on a listener at `addr` -- `v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(...))` (the
+clients' keepalive pings allowed every 5s, as etcd's `embed`; since 2026-10-23,
+`notes/client-timeouts-plan.md` D-T5, as linkv3p's `startMember` since D28), `net.Listen("tcp",
+addr)`, `go gs.Serve(l)`; what the examples' `Main`s did after `Start`. Lean-first (no Rocq
+counterpart). The policy is a neutral server option (D28's trust-boundary axiom
+`grpc.KeepaliveEnforcementPolicy`): the triple does not mention it.
 
 **The triple:** from a started member's views and serving resources (`memberUp`'s, at its apply
 environment `E`, request names `ρ`, read names `γr` and configuration `cfg`), the right to listen

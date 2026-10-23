@@ -2,7 +2,7 @@
 `startCluster(lg)` (`examples/linkv3p/linkv3p.go`; W4 of `notes/watch-cut-plan.md`, 2026-10-22):
 `Main`'s start (until W4 inline in it): the three members started and served (`startMember`), a
 bridge to each member's client address (`startBridge`), three clients each of every bridge
-(`newClient`, failover, D27). Lean-first (no Rocq counterpart).
+(`common.NewClients`, linkv3p's `newClient` until 2026-10-23; failover, D27). Lean-first (no Rocq counterpart).
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the nine addresses, the
 thread token and `Main`'s named premises (`linkv3p.premises`), `startCluster(lg)`, at a logger

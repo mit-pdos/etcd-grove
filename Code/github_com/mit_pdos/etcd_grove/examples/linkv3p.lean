@@ -118,9 +118,6 @@ noncomputable def Apply [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.Check"
 
-noncomputable def newClient [FfiSyntax] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.newClient"
-
 noncomputable def startCluster [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.startCluster"
 
@@ -471,35 +468,11 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Pair (Var "apply") (Var "$r0"))))))))))))))))
 
-/-- newClient connects a client with the default retries to the members (through their bridges)
-    at eps, each attempt to one of them: a read that fails with Unavailable is retried, on the next
-    member; a write is retried only after a refusal (a learner's, an authentication error), which
-    these members never send, so it is sent at most once (notes/read-retry-plan.md). Keepalive
-    closes a connection that stops answering (notes/keepalive-plan.md).
-
-    go: linkv3p.go:205:6 -/
-noncomputable def newClient.impl [FfiSyntax] [GoGlobalContext] : val :=
-  (LamV "eps"
-  (Lam "lg"
-  (App (Val exceptionDo)
-  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
-  (Let "__p" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v2" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 10)) (Val _root_.Perennial.time.Second)))
-  (Let "$v3" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (Val _root_.Perennial.time.Second)))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3")))]))))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.New []))) (Val #())) (Var "$a0")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (App (Val doReturn)
-  (Pair (Var "$ret0") (Var "$ret1")))))))))))
-
 /-- startCluster starts the three members of a new cluster, a bridge to each member's client
     address, and three clients, each of every bridge (failover). It returns the members, the
     bridges and the clients, and false if a step failed (the specs allow every step to fail).
 
-    go: linkv3p.go:220:6 -/
+    go: linkv3p.go:203:6 -/
 noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
@@ -627,7 +600,7 @@ noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -638,7 +611,7 @@ noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -649,7 +622,7 @@ noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (App (Val (GoInstruction (FuncResolve newClient []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -768,7 +741,7 @@ noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
     every bridge), starts the partitioner on sched and runs Check; it panics if porcupine finds the
     history illegal. A failed start ends Main without a check.
 
-    go: linkv3p.go:276:6 -/
+    go: linkv3p.go:263:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -839,7 +812,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
     logging in w each that returned no error, with its reply's revision.
 
-    go: linkv3p.go:308:6 -/
+    go: linkv3p.go:295:6 -/
 noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "w"
@@ -855,9 +828,6 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "lo"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -870,6 +840,17 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty))]))) (Val #())) (Var "$a0"))))))))))
   (Let "cli" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (Let "$a1" (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.RequestTimeout)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.KV.ty go!"Key"))) (Var "p")))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.KV.ty go!"Val"))) (Var "p")))
@@ -881,6 +862,7 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
@@ -902,9 +884,15 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -913,15 +901,13 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0")))))))))))))))))))
 
 /-- MainWatch picks the writers' puts, starts the cluster (startCluster), opens a watch of the
     prefix from revision 1 through the first client, starts the partitioner on sched, runs nw
     writers of nops puts each, then reads the watch and checks it against the writes.
 
-    go: linkv3p.go:325:6 -/
+    go: linkv3p.go:314:6 -/
 noncomputable def MainWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
@@ -1221,7 +1207,6 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   partitioner_unfold : FuncUnfold partitioner [] partitioner.impl
   Apply_unfold : FuncUnfold Apply [] Apply.impl
   Check_unfold : FuncUnfold Check [] Check.impl
-  newClient_unfold : FuncUnfold newClient [] newClient.impl
   startCluster_unfold : FuncUnfold startCluster [] startCluster.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   writer_unfold : FuncUnfold writer [] writer.impl
@@ -1252,7 +1237,6 @@ attribute [instance] Assumptions.Step_instance
   Assumptions.partitioner_unfold
   Assumptions.Apply_unfold
   Assumptions.Check_unfold
-  Assumptions.newClient_unfold
   Assumptions.startCluster_unfold
   Assumptions.Main_unfold
   Assumptions.writer_unfold

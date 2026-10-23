@@ -16313,3 +16313,55 @@ name their method (`/etcdserverpb.KV/Put`, `DeleteRange`, `Txn`). `etcd_noRefusa
 unchanged, its docstring's argument restated for the KV service (the `UserAdd` case and the watch
 stream's cancel reasons named as why the claim is so scoped). No closed theorem changed
 (fingerprint); `grpcInvokerOk`, an axiom's definition, claims less.
+
+## D-T1..D-T5: the examples' clients configured as etcd's clients are in practice (2026-10-23 · `notes/client-timeouts-plan.md`, T0 and T1 carried out on `client-timeouts`)
+
+**Problem.** The etcd examples made every client call with `context.Background()` (no request
+timeout) and configured no `DialTimeout`; keepalive was linkv3p's alone. No etcd client is used
+that way: etcdctl dials with a 2s timeout, gives each command 5s and pings every 2s with a 6s
+timeout; client/v3's documentation wraps every call in `context.WithTimeout`. The behaviour the
+models were built for, a call that fails at its deadline (its write perhaps applied later, its
+read not retried past the deadline), was never exercised.
+
+**Decisions** (the plan's D-T1 to D-T5, the user's choice of T0 and T1):
+
+- **D-T1.** One configuration in `examples/common` with etcdctl's defaults (`DialTimeout` 2s,
+  `RequestTimeout` 5s, `KeepAliveTime` 2s, which grpc raises to its 10s floor, `KeepAliveTimeout`
+  6s); `common.NewClients(eps, lg)` builds the `clientv3.Config` (`NewClient(addr, lg)` is
+  `NewClients({addr}, lg)`); linkv3p's `newClient` (10s / 2s) is gone. *Rejected:* the README's
+  5s dial timeout without keepalive; Kubernetes' values (30s / 10s: minutes-long failover tests).
+- **D-T2.** Every unary call under `ctx, cancel := context.WithTimeout(context.Background(),
+  common.RequestTimeout)`, `cancel()` right after the call, the README's form (no `defer`: none of
+  the examples' translated code uses it). Watches keep `WithCancel`. Ten call sites: putget's and
+  putget3's Put and Get, `common.Writer`'s Put, linkv3p's `writer`, linkvtxn's `callGet`,
+  `callList`, `callPut`, `callDel`, `callTxn`.
+- **D-T3.** The proofs use the existing trust-boundary spec `context.WithTimeoutBackground`
+  (the read loop's), through one lemma, `client.wp_WithTimeout_bg`
+  (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`): the context is `ctxOk` (an `isContext`)
+  and `ctxErrClient` (from `ctxErrClientAllW_of`), and `cancel` is callable. No new axiom;
+  `notes/perennial-changes.md` proposes `wp_WithTimeout_Background` to Perennial (the plan's T3),
+  after which the axiom becomes a theorem.
+- **D-T4.** The closed theorems' conclusions are unchanged; their premises gain
+  `ContextErrsClient` (the types of Go's `context.Canceled` and `DeadlineExceeded`: leaf errors,
+  no `EtcdError`, without `GRPCStatus`), which the watch theorems already took, since a timed-out
+  call's error now flows through the client: `putget_safe`, `putget3_safe`, `linkvtxn_safe`,
+  `linkv3p_safe` (`watch_safe`, `cache_safe` and `linkv3p_watch_safe` had it). Every spec on the
+  call chains takes `ContextReadErrs` and `ContextErrsClient` as class premises, as
+  `cache.v3.Assumptions`. Nontriviality by the Go tests: linkv3p's `TestFailover` now shows the
+  calls on the blackholed member's connection failing at 5s, 10s and 15s (request timeouts, reads
+  included: the client never retries past the caller's deadline) and the keepalive close at 16s
+  failing the calls in flight, then failover; its phases and checks are rewritten around that
+  (`cutRun` accepts a read that failed at its request timeout, no other read failure).
+- **D-T5.** `common.Serve` passes `grpc.KeepaliveEnforcementPolicy{MinTime: 5s}` (embed's
+  default), as linkv3p's `startMember`: a keepalive client needs it (grpc's own policy answers a
+  second ping within 5 minutes with `GOAWAY too_many_pings`, D28). D28's axiom enters the other
+  examples' collections; no new axiom. `KeepaliveParams` (embed's server-side pings) not added
+  (one more axiom, nothing a test observes).
+
+**What moved in the proofs.** `common`: `NewClients` (spec and proof: linkv3p's `newClient`'s),
+`NewClient` over it, `Serve` with the policy option, `Writer` with the timeout context; the ten
+call sites as D-T2, each `wp_WithTimeout_bg`, the call at the new context, `cancel`'s triple;
+linkv3p's `startCluster` over `common.NewClients`; the four closed theorems' premise; the Links of
+`common`, `linkvtxn`, `linkv3p` regenerated (`context_WithTimeoutBackground` a root, `context_ErrAny`
+an `@` callee of `context`'s Link, `grpc_KeepaliveEnforcementPolicy` common's), the initializers
+regenerated (`common` imports `time`, grpc and `keepalive` now).

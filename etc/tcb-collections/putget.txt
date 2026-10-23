@@ -306,6 +306,7 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof

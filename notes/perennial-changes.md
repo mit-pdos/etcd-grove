@@ -53,6 +53,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `WithTimeout`/`WithDeadline`'s, whose cancel functions are closures too).
 - **Status.** Not started (found 2026-10-22).
 
+### Specs: `context.WithTimeout`/`WithDeadline` of `Background()`
+
+- **Missing.** A spec of `context.WithTimeout(parent, d)` (and `WithDeadline`,
+  `WithDeadlineCause`) whose parent is `context.Background()` (or `TODO()`): Perennial's
+  `context.WithTimeout.spec` takes `isContext parent`, which `Background()`'s value is not (its
+  `Done()` is `nil`). `WithCancel` has the counterpart (`wp_WithCancel_Background`,
+  `WithCancelGen.lean`), and the pieces of the deadline case are there too (`wp_background_Deadline`,
+  `wp_propagateCancel_background`, `isContext_timerCtx_of`).
+- **Needed by.** The pattern of client/v3's documentation, `ctx, cancel :=
+  context.WithTimeout(context.Background(), timeout)` around each call: the examples' call sites
+  since 2026-10-23 (`notes/client-timeouts-plan.md`, D-T2, D-T3) and the server's read loop
+  (`sendReadIndex`, the request path's unit 4a).
+- **Workaround here.** The trust-boundary axiom `context.WithTimeoutBackground.wp_proof`
+  (`Spec/context/WithTimeoutBackground.lean`: an `isContext` of some descriptor and a callable
+  `cancel`), in the `read`, `server` and every etcd example's collection; the examples use it
+  through `client.wp_WithTimeout_bg` (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`).
+- **Proposed change.** `wp_WithTimeout_Background` and `wp_WithDeadline_Background` (the
+  `Background()` parent of `WithDeadlineCause`'s proof, as `wp_WithCancel_Background` is of
+  `WithCancel`'s), with the descriptor they give (`Deadline := some d`, `PDone := True`, fresh
+  Done names). Then the axiom here becomes a theorem (one axiom fewer in the baseline and in
+  those collections: the plan's T3).
+- **Status.** Not started (recorded 2026-10-23).
+
 ### Proof idioms: a closed theorem from a program's initializer and body
 
 - **Missing.** A form of `goose_adequacy` for the usual closed theorem: a program

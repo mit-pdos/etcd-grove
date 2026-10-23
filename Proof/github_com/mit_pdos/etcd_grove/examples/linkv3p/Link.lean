@@ -16,6 +16,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.New
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Blackhole
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__DropConnections
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.bridge__Unblackhole
+public import Proof.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
@@ -24,7 +25,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.MainWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.clientStep
-public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.partitioner
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.peerStep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.startBridge
@@ -111,6 +111,10 @@ theorem bridge.bridge.wp_Unblackhole :
     EtcdGrove.bridge.bridge.Unblackhole.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bridge.bridge.Unblackhole.wp_proof
 
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
+
 theorem grpc.wp_KeepaliveEnforcementPolicy :
     EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
@@ -139,13 +143,9 @@ theorem wp_startBridge :
     EtcdGrove.linkv3p.startBridge.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkv3p.startBridge.wp_proof net.wp_Listen bridge.wp_New
 
-theorem wp_newClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
-    EtcdGrove.linkv3p.newClient.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.newClient.wp_proof client.v3.clientv3.wp_New
-
 theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.startCluster.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.startCluster.wp_proof wp_startMember wp_startBridge wp_newClient
+  EtcdGrove.linkv3p.startCluster.wp_proof wp_startMember wp_startBridge common.wp_NewClients
 
 theorem wp_peerStep :
     EtcdGrove.linkv3p.peerStep.spec (GF := GF) (hG := hG) :=
@@ -165,7 +165,7 @@ theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64
 
 theorem wp_writer :
     EtcdGrove.linkv3p.writer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkv3p.writer.wp_proof
+  EtcdGrove.linkv3p.writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
 theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkv3p.MainWatch.spec (GF := GF) (hG := hG) :=

@@ -15,6 +15,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.elseOf
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.txnRes
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withRes
 public import Perennial.Proof.context.Link
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -39,15 +40,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
-theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
+theorem callTxn.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
     (wp_opsOf : opsOf.spec (GF := GF) (hG := hG)) (wp_thenOf : thenOf.spec (GF := GF) (hG := hG))
     (wp_elseOf : elseOf.spec (GF := GF) (hG := hG)) (wp_txnRes : txnRes.spec (GF := GF) (hG := hG))
     (wp_withRes : withRes.spec (GF := GF) (hG := hG)) :
     callTxn.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs x cs t e Q hx hne
+  intro _ CRE CEC cl ms V hAs x cs t e Q hx hne
   obtain ⟨hn, hcs, ht, he⟩ := decIn_txn x cs t e hx
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   wp_auto
+  -- `ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)`, first
+  wp_apply context.wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
+  (try wp_auto)
   wp_apply wp_elseOf x as %esl ⟨Hesl, -⟩
   wp_apply wp_opsOf esl (elseOfL x) (DFrac.own 1) e he $$ [$Hesl] as %eos ⟨-, #Heos⟩
   · iframe #
@@ -59,41 +70,42 @@ theorem callTxn.wp_proof (wp_cmpsFor : cmpsFor.spec (GF := GF) (hG := hG))
   wp_apply wp_cmpsFor x cs hcs hn $$ [] as %csl #Hcsl
   · iframe #
   (try wp_auto)
-  wp_apply context.wp_Background
-  imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   (try wp_auto)
-  wp_apply (client.client_Txn_st cl ms V context.backgroundCtxVal cd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
+  wp_apply (client.client_Txn_st cl ms V cctx ccd) as %tv ⟨%tp, %Htv, Hobj, Hkt⟩
   · iframe #
   subst Htv
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd TxnBuild.empty csl
+  wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) cctx ccd TxnBuild.empty csl
       (cs.map linkv.cmpOf)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd _ tos (t.map clientOp)
+  wp_apply (client.v3.txn.wp_Then tp (ms.map client.SrvAt.addr) cctx ccd _ tos (t.map clientOp)
       (t.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps t, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd _ eos (e.map clientOp)
+  wp_apply (client.v3.txn.wp_Else tp (ms.map client.SrvAt.addr) cctx ccd _ eos (e.map clientOp)
       (e.map clientTOp)) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨txnOpOf_clientOps e, rfl⟩
-  ihave Hobj : txnObjAt (GF := GF) tp (ms.map client.SrvAt.addr) context.backgroundCtxVal cd
+  ihave Hobj : txnObjAt (GF := GF) tp (ms.map client.SrvAt.addr) cctx ccd
       ⟨clientTxn cs t e, true, true, true⟩ $$ [Hobj]
   · iExactEq Hobj
     simp [TxnModel.empty, clientTxn]
   (try wp_auto)
-  wp_apply (txn_Commit_st tp ms context.backgroundCtxVal cd
+  wp_apply (txn_Commit_st tp ms cctx ccd
       ⟨clientTxn cs t e, true, true, true⟩ Q cs t e rfl hne) $$ [Hobj Hau Hkt]
     as %resp %err Hout
   · iframe #
     iframe
+  -- `cancel()`
+  (try wp_auto)
+  wp_apply Hccancel
   icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hok, hrel, hrev, hb⟩ := Hσ

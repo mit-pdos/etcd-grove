@@ -3,12 +3,17 @@
 `Writer(cli, w, tried, lo, hi)` (`examples/common/watch.go`; watchkv's `writer` until 2026-10-22,
 D33, which cachekv's repeated): the Puts `tried[lo:hi]` through `New`'s client that sends a write at
 most once (`clientWriteOnce`), each with the caller's update for a put tried (`kvOpAu1` of it: watchkv's
-`put_au` over its KV invariant, cachekv's over the client's), logging each that returned no error
-in `w` with `okFact` (`wsInv`, the log's lock invariant).
+`put_au` over its KV invariant, cachekv's over the client's), each in a context with the examples'
+request timeout (`context.WithTimeout(context.Background(), RequestTimeout)`, cancelled after the
+call; 2026-10-23, `notes/client-timeouts-plan.md` D-T2: the context is an `isContext` whose `Err()`
+returns client errors, by the premises `ContextReadErrs` and `ContextErrsClient` on Go's context
+errors), logging each that returned no error in `w` with `okFact` (`wsInv`, the log's lock
+invariant).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writes
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -29,7 +34,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 
 /-- See the file header. -/
 abbrev Writer.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ep : GoString) (V : client.WEnv GF)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (cl : Loc) (ep : GoString) (V : client.WEnv GF)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (w : Loc) (tsl : GoSlice)
     (tried : List wkv) (lo hi : w64),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

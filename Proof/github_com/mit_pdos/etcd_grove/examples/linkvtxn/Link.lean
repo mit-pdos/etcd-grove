@@ -36,6 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpsFor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.cmpsOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.configEqual
+public import Proof.context.WithTimeoutBackground
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.delKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.elseOf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.genFrom
@@ -75,6 +76,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withKVs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.withRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.workloadKeys
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Link
 
@@ -328,9 +330,13 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 variable [NaInvG GF]
 
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
+
 theorem wp_callGet :
     EtcdGrove.linkvtxn.callGet.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callGet.wp_proof wp_vrOf
+  EtcdGrove.linkvtxn.callGet.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_vrOf
 
 theorem wp_kvsFrom :
     EtcdGrove.linkvtxn.kvsFrom.spec (GF := GF) (hG := hG) :=
@@ -338,15 +344,15 @@ theorem wp_kvsFrom :
 
 theorem wp_callList :
     EtcdGrove.linkvtxn.callList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callList.wp_proof wp_kvsFrom wp_withKVs v3.wp_WithRange
+  EtcdGrove.linkvtxn.callList.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_kvsFrom wp_withKVs v3.wp_WithRange
 
 theorem wp_callPut :
     EtcdGrove.linkvtxn.callPut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callPut.wp_proof
+  EtcdGrove.linkvtxn.callPut.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
 theorem wp_callDel :
     EtcdGrove.linkvtxn.callDel.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callDel.wp_proof
+  EtcdGrove.linkvtxn.callDel.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
 theorem wp_txnRes :
     EtcdGrove.linkvtxn.txnRes.spec (GF := GF) (hG := hG) :=
@@ -354,7 +360,7 @@ theorem wp_txnRes :
 
 theorem wp_callTxn :
     EtcdGrove.linkvtxn.callTxn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.linkvtxn.callTxn.wp_proof wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
+  EtcdGrove.linkvtxn.callTxn.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
 
 theorem wp_call :
     EtcdGrove.linkvtxn.call.spec (GF := GF) (hG := hG) :=

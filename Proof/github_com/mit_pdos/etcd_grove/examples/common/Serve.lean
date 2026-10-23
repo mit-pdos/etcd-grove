@@ -2,15 +2,17 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/common/Serve.lean` (2026-10-22, D33).
 Lean-first (no Rocq counterpart).
 
-The steps (the examples' `Main`s' after `Start`): `v3rpc.Server(s, nil, nil)` (its `grpcCfgOk` from
-the started server's views, `grpcCfgOk_of_started_w`, which also gives 64 of the watchable store's
-readers); `net.Listen("tcp", addr)`, whose error is returned; the caller's ghost step (`grpcUp` from
+The steps (the examples' `Main`s' after `Start`): `v3rpc.Server(s, nil, nil, opt)` (its `grpcCfgOk`
+from the started server's views, `grpcCfgOk_of_started_w`, which also gives 64 of the watchable
+store's readers; `opt` the keepalive policy, a neutral option, D28, as linkv3p's `startMember`);
+`net.Listen("tcp", addr)`, whose error is returned; the caller's ghost step (`grpcUp` from
 `Server`'s and `Listen`'s results); `go gs.Serve(l)` with the right to serve it gave.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
+public import Spec.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Spec.net.Listen
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 
@@ -36,6 +38,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
 theorem Serve.wp_proof
+    (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
@@ -52,7 +55,7 @@ theorem Serve.wp_proof
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
   · iPkgInit
   (try wp_auto)
-  -- `v3rpc.Server(s, nil, nil)`: its configuration from `NewServer`'s and `Start`'s
+  -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
   ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk s C ∗
       ⌜C.A = v3rpc.srvKVAns s E ρ γr (W64 0) [] .none ∧ C.E = E⌝ ∗
       [∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ $$ [HWR]
@@ -60,16 +63,24 @@ theorem Serve.wp_proof
     iframe; iframe #
     rw [Htos]
     iapply ownSlice_nil
-  wp_apply (wp_Server Hms s C _ slice.nil [] Hbuq) $$ [Hlg3 Hbemu Hgo Hwp]
+  -- the server option: the keepalive policy, neutral (D28; D-T5)
+  wp_apply wp_KEP as %kv %Hkv
+  wp_apply wp_slice_literal (V := GoInterface) [kv]
+  try (isplitr; (ipureintro; rfl))
+  iintro %gslp ⟨Hgsl, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  imod ownSlice_persist _ _ _ $$ Hgsl with #Hgsl
+  wp_apply (wp_Server Hms s C _ _ [kv] Hbuq) $$ [Hlg3 Hbemu Hgo Hwp]
     as %gs ⟨%q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %cid, %mid, %R, %d',
       Hgsn, %Hregs, #Hq, #Hkvs, #Hws, %HR, #Hil, #Him, #Hiu, #Hims, #His, Hlg4, Hbemu2, Hgo2,
       Hwpi2⟩
   · iframe; iframe #
     isplitr
     · ipureintro; rw [Hwpi]; simp
-    isplitr
-    · iapply ownSlice_nil
-    ipureintro; intro v hv; cases hv
+    ipureintro; intro v hv
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    subst hv; exact Hkv
   -- `net.Listen("tcp", addr)`
   wp_apply (wp_Listen go!"tcp" addr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl

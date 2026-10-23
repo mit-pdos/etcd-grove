@@ -123,6 +123,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
     [context.DeadlineExceededIsError] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
@@ -147,6 +148,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG
+  haveI := Hcec hG
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.putget.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.putget.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG

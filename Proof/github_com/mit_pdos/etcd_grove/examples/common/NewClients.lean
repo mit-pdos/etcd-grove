@@ -1,23 +1,24 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/newClient.lean` (the partition
-plan's S3a, 2026-10-20). Lean-first (no Rocq counterpart). linkv3's `Main`'s `clientv3.New` step
-(`Proof/.../linkv3/Main.lean`): the endpoint slice literal, read-only; `New` over `clientCfgOk` of
-the configuration's literal (the default retries since 2026-10-21, D29).
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/common/NewClients.lean` (2026-10-23; linkv3p's
+`newClient` proof until then, the partition plan's S3a). Lean-first (no Rocq counterpart). `New` over
+`clientCfgOk` of the configuration's literal (the endpoints read-only, no dial options, no TLS, no
+credentials, the logger; `DialTimeout` and the keepalive pair unconstrained, the default retries).
 -/
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.newClient
-public import Spec.go_etcd_io.etcd.client.v3.New
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClients
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
-namespace linkv3p
+namespace common
 
 open Iris Iris.BI Iris.ProofMode
 
@@ -26,10 +27,10 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumptions]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptions]
 
-theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
-    newClient.spec (GF := GF) (hG := hG) := by
+theorem NewClients.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
+    NewClients.spec (GF := GF) (hG := hG) := by
   intro eps addrs lg V Htb Hlg Hplain
   wp_start as #Heps
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -37,7 +38,7 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   wp_auto
-  -- `clientv3.New(Config{Endpoints: eps, Logger: lg, DialKeepAliveTime: ..., ...})`
+  -- `clientv3.New(Config{Endpoints: eps, DialTimeout: ..., DialKeepAliveTime: ..., Logger: lg})`
   wp_apply (wp_New _ addrs V) $$ [] as %cl %cerr Hcl
   · iframe #
     iunfold clientCfgOk
@@ -64,6 +65,6 @@ theorem newClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
 
 end proof
 
-end linkv3p
+end common
 end EtcdGrove
 end Perennial
