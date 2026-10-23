@@ -16198,3 +16198,98 @@ definitions changed: `request_delivered` (`srvApplyKV`), `lessor_apply_contract`
    `E` and `b` per batch (`isServer` at them, persistent, re-established by S8). About 20 files
    (`InvApply`'s eleven protocol lemmas, `CindexBackend`, `InvServer`, `InvRun`, `applyAll`'s spec,
    `run`, `start`, `NewServer`, `bootOk`'s `consInv`): about the size of S7c-S7e together.
+
+## D22 receiver epochs, S7f carried out: the apply protocol's per-backend names (2026-10-23)
+
+S7f of the simplest true `Restore` plan ("D22 receiver epochs, S7 carried out", item 5 of its "What
+S8 uses"), on branch `worktree-agent-a5fae76133d772e18`, two commits, each a full build. After it the
+apply protocol is stated over the current backend's physical names, so `applySnapshot` (S8) can swap
+the backend while the old backend's `Close` (in its goroutine) still commits soundly through the
+shared hooks. No axiom added, no sorry; no closed theorem's text changed; `bootOk`'s text unchanged
+(its `inv applyN (consInv γA)`, `applyThread γA ⟨0, 0, 0, false⟩` and `newPost`'s `batchLockInv γA`
+now hold more: the registry, the current names' ghost variable, the batch lock's registration;
+allocatable as before, `consInv_alloc` proves it).
+
+**S7f-a (`36947ab197`): the protocol's names split** (`InvApply.lean`).
+- `ApplyPhys` (`mt`, `wr`, `pend`, `m0`): one backend's names. `ApplyNames` = the logical `ci`, `st`,
+  `fz` (the window's token stays logical: only the apply thread opens the window, never across a
+  swap), two new logical names `cur` (`ghostVar ApplyPhys`) and `reg` (`monoList ApplyPhys`), and
+  `ph : ApplyPhys`; `γ.mt`/`γ.wr`/`γ.pend`/`γ.m0` are abbreviations of `γ.ph`'s, so no user changed;
+  `γ.withPh π` (an abbreviation: the proof mode unifies its projections, unlike mvcc's
+  `withPhys`; `γ.withPh γ.ph = γ` by `rfl`, `consParts_ph` converts the opened parts).
+- `consInv γ := ∃ π l s mi w, ghostVar γ.cur ½ π ∗ (consInvAt ∨ consFrozen) (γ.withPh π) s mi w ∗
+  consRest (γ.withPh π) l (ciEff …)`: only logical names (`consInv_withPh`, `rfl`). `consRest`:
+  the registry's authority at `l ++ [γ.ph]` (the retired names, then the current) and
+  `retiredInv l c`: for each retired backend the invariant's half of its mirror, at most `c` =
+  `ciEff` of the current state. `ciEff` never decreases over the apply thread's steps
+  (`ciEff_le_of_lt`, `ciEff_load_le`), so the bound is kept (`retiredInv_mono`).
+- `curOwn γ := ghostVar γ.cur ½ γ.ph`, in `applyThread` and in `freezeY` (the window's holder has the
+  apply thread's place): every step of the apply thread opens the invariant at its own `γ.ph`
+  (`consInv_open`, `consInv_close`; the eleven protocol lemmas re-plumbed, statements unchanged).
+- `batchLockInv γ TM` and `hookDone γ TM` gain `applyRegd γ` (persistent: `γ.ph`'s index in the
+  registry). `commit_save_au` takes it (statement +1 premise) and has a **retired case**: the lock's
+  names are not the current ones, so its index is a retired entry (`reg_lookup`), whose mirror half
+  is in `retiredInv`; the commit reads `ci = k`, the verify premise `k ≠ 0 → mm.1 ≤ k` holds by the
+  bound (`k ≠ 0` is `ciEff`), and the mirror is updated (still within the bound). `commitOk` is then
+  of a state made of the stored index (the protocol's state is not a retired backend's concern; no
+  caller uses it). `ci_hook_backend(_run)`, `ci_saveSpec`, `ci_hookFnSpec` and the exported
+  `cindex_hook_backend`, `cindex_hookFnSpec` keep their text (`batchLockInv` holds the registration).
+- **`ci_swap_au`** (for S8, proved): at `ci.SetBackend(newbe)`'s store of 0 (the update its spec
+  takes), from `applyThread γ s` (out of the window), the new names `π'` (`ghostVar π'.mt 1
+  π'.m0.1`, `ghostVar π'.wr 1 false`), a new state `s'` (`k = 0`, not pending, `stOk` at `π'`) and
+  `ciEff γ s.k ≤ π'.m0.1`: the old names retired (their mirror half into `retiredInv`), the
+  registry extended, `cur` moved; it gives `applyThread (γ.withPh π') s'`, the new lock's mirror half
+  and `applyRegd (γ.withPh π')`. The swap must be atomic with `ci := 0`: with `ci` still the old
+  value, `π'`'s `k ≠ 0 → mi ≤ k` fails (`mi = π'.m0.1` is the snapshot's index), and with the old
+  names and `ci = 0`, `k = 0 → w = false` fails.
+- `consInv_alloc` (the boot backend: fresh names, the registry `[π]`; `BuildAlloc.lean`'s
+  docstring named it, it did not exist).
+
+**S7f-b (`45390449c3`): `run`'s loop invariant per backend.** `beSucc γ E γ' E'` (`InvApplyAll.lean`):
+`γ' = γ.withPh γ'.ph` and `E' = E.onBe p P f ciC RO RW` (`apply.AEnv.onBe`: the store's names at
+other physical names, another batch lock's `P`, `f`, the consistent index's `ciC`, `RO`, `RW`; the
+rest kept: `s`, the store's logical names, `RD`, `γrev`, `authOn`, `FS`, `γbe`); reflexive,
+transitive (`beSucc_refl`, `beSucc_trans`); what the raft contract and the write budget see does not
+change (`batchWaitOk_beSucc`, `srvWTPool_beSucc`, `beSucc_γbe`: `rfl` after the `onBe`).
+`applyAll`'s post now gives `∃ γ' TM' E' b', ⌜beSucc γ E γ' E'⌝ ∗ isServer s γ' ci TM' E' ρ γr ∗ …`
+with the apply thread's state, backend, KV and rest buckets at them (its proof: `γ`, `TM`, `E`, `b`,
+no snapshot yet). `applyRes C A` holds `∃ B : ApplyBe` (`γ`, `TM`, `E`, `b`), `beSucc C.γ C.E B.γ B.E`,
+`isServer` at `B`, and the rest at `B` (the `bemu` slot at `C.E.γbe`); `ApplyCtx` gains `ρ`;
+`run_job_body` takes no `isServer`/`TM` (they are in `applyRes`). `start`, `NewServer`,
+`isServerRun` unchanged.
+
+**Statements changed.** Closed theorems: none. Exported results: `applyAll_model`
+(`EtcdServer.applyAll.spec`'s post). Intermediate: `commit_save_au` (premise `applyRegd γ`),
+`frozen_thread_false` (the state's half, not `applyThread`), `run_job_body`, `applyRes`,
+`ApplyCtx`. Definitions: `ApplyNames`, `consInv`, `applyThread`, `freezeY`, `batchLockInv`,
+`hookDone`.
+
+**What S8 (`applySnapshot`) uses for the swap.**
+1. Before `OpenSnapshotBackend`: fresh `π' = ⟨mt', wr', pend', m0'⟩` (`ghostVar_alloc` of `m0'.1`,
+   of `false`, `token_alloc`), `m0'` the snapshot backend's stored meta keys. **Open issue**: the new
+   backend's batch lock needs its hooks' resource `batchLockInv (γ.withPh π') TM'` (with
+   `applyRegd`) at `Open` (its `isBackend`'s `hooksSpec` is for every commit), but the names are
+   registered only at `SetBackend`, and a hook run in between would store the old `ci` (below the
+   snapshot's index: `UnsafeSave`'s verify premise fails, and in Go the new backend would then be
+   reloaded at the old index: a double apply). Go relies on no commit happening: `backend.run`
+   commits only with `pending ≠ 0` and nothing writes the new backend before `SetBackend`. S8 needs
+   that fact from the backend's contract (e.g. `hooksSpec` assumed only with a pending write or a
+   forced commit, and the new backend's write right held by `applySnapshot` until after
+   `SetBackend`), or a "future" status in the registry whose hook triple is refuted by a token the
+   swap consumes; `ci_swap_au` would then take the registration from that status instead of
+   extending the registry.
+2. `consistentIndex.SetBackend.spec`'s update: `ci_swap_au γ s s' π'` with `s' = ⟨0, p', eff', false⟩`,
+   `stOk (γ.withPh π') s'` (e.g. `p' = eff' = m0'.1`), and `ciEff γ s.k ≤ m0'.1`: from
+   `applySnapshot`'s guard (snapshot index `> ep.appliedi`) and `loopOk`/`ciJ`, if the snapshot's
+   stored index is its index; note `ciJ` allows `ciEff = c₀ > ai₀` at the start (a backend ahead of
+   raft's snapshot), so S8 must show a snapshot below `c₀` cannot arrive or weaken the premise.
+3. The new lock's resource: `batchLockInv (γ.withPh π') (metaTM d'.γB d'.P)` from the swap's mirror
+   half, `pend'`, `metaTM` of the open backend, `applyRegd`.
+4. After the swap, `isServer s (γ.withPh π') ci TM' E' ρ γr` with `E' = E.onBe d'.phys … (srvCiC
+   (γ.withPh π') ci) (srvRestOwnH …) (srvRestRWH …)` (`hookSpec` at the new names from
+   `getTxPostLockInsideApplyHook`'s proof at them; `srvEnvOk`, `waitInv`, `srvAtomics`, `srvGenAt`
+   carry over: their `E` parts are logical), `applyBackend (γ.withPh π') ci newbe` (`ciOwner` from
+   `SetBackend`, `isMetaBackend newbe (readView (γ.withPh π'))` from the open's contract), and
+   `beSucc γ E (γ.withPh π') E'`: then `applyAll`'s post at `B'`.
+5. The old backend's `Close`: its commit runs the shared hooks with the old lock's
+   `batchLockInv γ TM` (registered, now retired): `commit_save_au`'s retired case, nothing to supply.
