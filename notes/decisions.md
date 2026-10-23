@@ -15562,7 +15562,7 @@ reads a response's headers through `hdrOwn` (the client sees them unconstrained)
 the whole cluster's addresses before any listener, where the per-address registration needs only
 the listener, as grpc's.
 
-## D33d: the streams' protocol: per-connection tokens registered under the ticket (2026-10-23 · rafthttp stage 5a; the user: "start stage 5", "carry on with 5a"; for review)
+## D33d: the streams' protocol: per-connection tokens registered under the ticket (2026-10-23 · rafthttp stage 5a; the user: "start stage 5", "carry on with 5a"; accepted by the user 2026-10-23)
 
 **Context.** A stream request carries many messages in its one response, each with a one-shot
 part that cannot cross the wire. The pipeline's deposit per request (D33b: `inv (O ∨ ticket)`,
