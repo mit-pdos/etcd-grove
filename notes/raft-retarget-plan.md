@@ -111,7 +111,7 @@ messages `[]*T`, hidden `state`/`sizeCache`/`unknownFields`, nil-safe getters, n
    an error. `ConfChangeV2.LeaveJoint` (111-114) tests the getters instead of `proto.Equal`.
    Spec: equivalent in every case the specs state. *R1*: not quite: since `proto.Equal` compares
    unknown fields, a `ConfState` with one is "not equivalent" to the same configuration and raft
-   panics (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the specs cover conf states
+   panics (`issues/nonissues/raft-confstate-unknown-fields-panic.md`, reproduced); the specs cover conf states
    without unknown fields (`InvPb.lean`'s `csPts`), a premise of the later `restore`/`newRaft` specs.
 8. `MemoryStorage`: `Snapshot()`/`CreateSnapshot` return deep clones (OLD: shallow value copies);
    `ApplySnapshot` stores a clone; `SetHardState` keeps the caller's pointer; `Append` keeps the

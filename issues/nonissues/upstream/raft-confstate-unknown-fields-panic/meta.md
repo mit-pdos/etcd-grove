@@ -8,7 +8,7 @@ node's own storage, never from a client. The panic needs a mixed-version cluster
 
 ## Candidate
 
-- **Finding**: `issues/raft-confstate-unknown-fields-panic.md`
+- **Finding**: `issues/nonissues/raft-confstate-unknown-fields-panic.md`
 - **Target**: etcd-io/raft, `main` (raftpb on protobuf-go v2; v3.7.0 has the same `Equivalent`, `proto.Equal` at
   `raftpb/confstate.go:48`)
 - **Branch**: `fix/raft-confstate-unknown-fields-panic` in `~/etcd-fixes/raft-confstate-unknown-fields-panic`, three

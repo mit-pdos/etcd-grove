@@ -276,10 +276,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   lightly maintained, our etcd-io/etcd#20704 was closed by the stale bot, and someone else's #21869
   (the same fix as `leasing-evictrange-key`) was closed under the AI-contribution policy. If
   filed again, one umbrella issue with small PRs rather than six issues.
-- **Test hooks**: [etcd-rafthttp-cutpeer-twice-remote-panic](etcd-rafthttp-cutpeer-twice-remote-panic.md):
-  a second `CutPeer` of a *remote* (a member that joined an existing cluster) panics, "close of
-  closed channel"; only the integration tests' partition injection calls it, a two-line
-  idempotence fix with a test. Searched upstream 2026-10-21: not reported.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
@@ -291,10 +287,9 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   restart; a self-inflicted loss of the whole cluster, with a one-line refusal in
   `mayRemoveMember` as the etcd fix; etcd-io/etcd#13848 hit the same panic through
   `--force-new-cluster` and was closed not planned),
-  [raft-config-clone-autoleave](raft-config-clone-autoleave.md),
-  [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialstate-unlocked.md),
-  [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) (a mixed-version
-  panic, hypothetical until a field is added).
+  [raft-config-clone-autoleave](raft-config-clone-autoleave.md) and
+  [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialstate-unlocked.md)
+  (candidate rechecked 2026-10-23; the user's choice is to upstream it).
 - **Test code**: [etcd-robustness-model-equal-mutates](etcd-robustness-model-equal-mutates.md) (test code: the
   robustness model's `Equal` sorts its arguments, against porcupine's contract; harmless, a cheap
   fix).
@@ -311,7 +306,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   (`not-filing`: `Campaign` returning nil after its own key was deleted is the same as the session
   expiring right after it returns; the guarantee is fencing on the key's create revision, which
   fails correctly), and the preconditions etcd or raft's applications meet, test helpers'
-  preconditions, raft behavior the review accepted ([raft-prevote-stale-grant](nonissues/raft-prevote-stale-grant.md),
+  preconditions (the integration bridge's second `Blackhole`, rafthttp's second `CutPeer` of a
+  remote), a raft regression with no realistic trigger
+  ([raft-confstate-unknown-fields-panic](nonissues/raft-confstate-unknown-fields-panic.md)),
+  raft behavior the review accepted ([raft-prevote-stale-grant](nonissues/raft-prevote-stale-grant.md),
   discussed upstream in 2017) and the documentation-only findings listed there.
 - **Client-triggered, with clients trusted**:
   [etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md) (a `UserAdd` or

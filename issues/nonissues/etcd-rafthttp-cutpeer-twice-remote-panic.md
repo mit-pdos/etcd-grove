@@ -7,6 +7,8 @@ links:
   - etcd-io/etcd#4427 issue closed: related, not this bug (2016: "close of closed channel" in peer.stop from Transport.Stop after a member removal, before CutPeer existed)
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a precondition of a test hook (`Pausable`, "a testing interface"); no test cuts a remote twice (checked at upstream `3aaab3479b`, 2026-10-23), the same pattern as `etcd-bridge-blackhole-twice-panic`.
+
 # server/etcdserver/api/rafthttp: a second `CutPeer` of a remote panics
 
 - **Status**: a test hook's undocumented precondition, not a bug any caller reaches (review of

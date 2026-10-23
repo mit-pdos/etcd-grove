@@ -142,7 +142,7 @@ sections were added at the top). Sections moved later are appended at the end, n
 - 2026-10-20 (linkv-txn stage E: the Go model of `examples/linkvtxn` proved against `pM (txnSpec wks)` and linked, see "linkv-txn stage E")
 - 2026-10-20 (partitions, S3b, branch `linkv3p`, worktree `/shared/etcd-grove-pt`: `linkv3p_safe`, the closed theorem of the three-member cluster under network partitions, for every schedule of cuts and mends; see "Partitions, S3b" below)
 - 2026-10-20 (partitions, S3a, branch `linkv3p`, worktree `/shared/etcd-grove-pt`: linkv3p's `startMember` (serving the member), `newClient`, `partitioner`, `Apply`, `Check` specified, proved and linked; `Main` and the closed theorem are S3b; see "Partitions, S3a" below)
-- 2026-10-20 (partitions, S1/S2, branch `linkv3p` in the worktree `/shared/etcd-grove-pt`: rafthttp's `Transport.CutPeer`/`MendPeer` as two trust-boundary axioms and etcd's `EtcdServer.CutPeer`/`MendPeer` proved; a second `CutPeer` of a remote panics (`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), so the transport's ghost state tracks its remotes, D24; see "Partitions, S1/S2" below)
+- 2026-10-20 (partitions, S1/S2, branch `linkv3p` in the worktree `/shared/etcd-grove-pt`: rafthttp's `Transport.CutPeer`/`MendPeer` as two trust-boundary axioms and etcd's `EtcdServer.CutPeer`/`MendPeer` proved; a second `CutPeer` of a remote panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), so the transport's ghost state tracks its remotes, D24; see "Partitions, S1/S2" below)
 - 2026-10-20 (partitions, S0, branch `linkv3p`: `examples/linkv3p`, linkv3 under network partitions, its Go test and its translation, with etcd's `CutPeer`/`MendPeer` translated; the plan `notes/partition-plan.md`; see "Partitions, S0" below)
 - 2026-10-21 (D22 S-r: the Go change of `examples/kv` made and tested on a side branch, untranslated; the proof designed -- the static-mode cluster, the replica's jump, a data certificate through the `Storage` model, the encoding lemmas -- not carried out)
 - 2026-10-21 (D22 S-d4 items 3-4: the floor raised after a restore since a `Ready` -- `LogState.sxt`, `StorExtOk`, `SnpExt` -- and the log's pending snapshot set, the `Ready`'s half set, `proto.CloneSnapshot.spec`'s fourth clause)
@@ -595,7 +595,7 @@ Stages S1 and S2 of `notes/partition-plan.md`, as amended by D24 (decisions.md).
 - **The finding.** Rafthttp's `CutPeer(id)` pauses `id`'s peer *and*, if there is one, `id`'s
   remote; a remote's `Pause` stops its pipeline, whose `stop` closes a channel unconditionally, so
   a second `CutPeer` of a remote without a `MendPeer` in between panics ("close of closed
-  channel"; reproduced with a test in package rafthttp, `issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`,
+  channel"; reproduced with a test in package rafthttp, `issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`,
   ranked among the test-hook items). The plan's S1 axiom (over `transportStarted` alone) was false
   as stated, since the theorem quantifies over every schedule.
 - **The transport's remotes in its ghost state** (D24 (c)): `transportLive γn t rs` (opaque,

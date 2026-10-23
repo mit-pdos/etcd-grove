@@ -34,7 +34,7 @@ Why it is true of the Go code (`transport.go`, `peer.go`, `stream.go` at the etc
 maps exist once `Start` ran; a missing entry does nothing). `id` is no remote (`transportRemotes
 t rs`, `id ∉ rs`: `t.remotes` gets a key only through `AddRemote`), so only the peer's branch runs:
 a remote's `Pause` stops its pipeline, and a second one panics
-(`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), which this premise excludes. On the peer
+(`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`), which this premise excludes. On the peer
 it calls `Pause`
 (`peer.go`): under the peer's lock it sets `paused` and pauses the peer's two stream readers
 (`stream.go`, `streamReader.pause`). A paused peer's `send` returns without sending (no

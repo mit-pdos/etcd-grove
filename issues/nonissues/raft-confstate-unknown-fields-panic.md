@@ -6,8 +6,10 @@ links:
   - etcd-io/raft#133 issue open: related (the witness proposal #168 implements)
   - etcd-io/raft#423 pr merged: removed gogoproto.nullable from ConfState; not about unknown fields
   - etcd-io/raft#432 pr merged: passes ConfState as a pointer; not about unknown fields
-candidate: issues/upstream/raft-confstate-unknown-fields-panic/
+candidate: issues/nonissues/upstream/raft-confstate-unknown-fields-panic/
 ---
+
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue today (investigated 2026-10-23): a real v3.7 regression, but it panics only once a newer raft adds and uses a `ConfState` field, which is unlikely (none added since 2019; the one proposal, the witness draft etcd-io/raft#168, is idle), and raft dropped unknown-field forward compatibility in 2021. Revive it if a field is added; the fix (on the pushed fork branch) is one line.
 
 # raft v3.7: a `ConfState` with an unknown field makes `newRaft` and snapshot restore panic
 

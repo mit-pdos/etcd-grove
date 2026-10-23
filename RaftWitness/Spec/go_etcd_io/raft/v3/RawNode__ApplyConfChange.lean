@@ -36,7 +36,7 @@ Returned: a fresh `*ConfState` holding the voters (`cfg`'s, in some order) and t
 
 **Any change, detached (2026-10-13, reconfiguration stage A2).** The premise is now `CCApplies`:
 for every learner set the node may track, the change is carried out (`ccApplyM` answers: no
-`confchange` error, no undefined transition, `issues/raft-unknown-transition-panic.md`), leaves
+`confchange` error, no undefined transition, `issues/nonissues/raft-unknown-transition-panic.md`), leaves
 the node a voter of either half (a removed or demoted leader would step down only with
 `Config.StepDownOnRemoval`, which the node's client-facing state does not record; a removed
 candidate would stay one) and tracks at most `2^62` ids. A shrinking change (`CCShrink`, the
