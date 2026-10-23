@@ -220,6 +220,11 @@ def errStrOk (e : GoInterface) : IProp GF :=
 instance errStrOk_persistent (e : GoInterface) : Persistent (errStrOk (GF := GF) e) := by
   unfold errStrOk; infer_instance
 
+/-- `nil` is an error whose `Error()` returns (vacuously). -/
+theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
+  unfold errStrOk
+  ileft; ipureintro; rfl
+
 /-- **A reader holding exactly `bs`** (exclusive; `bytes.NewBuffer(bs)` as an `io.Reader`, or `nil`
 for an empty body): what `NewRequest` takes as the body. -/
 opaque readerHas (rd : GoInterface) (bs : List w8) : IProp GF

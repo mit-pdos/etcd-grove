@@ -35,7 +35,7 @@ abbrev rafthttp.msgAppV2Encoder.encode.spec : Prop :=
           A (h ++ bs.take k)) }}
     (App (Val (enc @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder.ty @!! go!"encode")) (Val #ml))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; http.errStrOk err ∗
       ∃ (h' : List w8) (cs' : V2St), Wr h' ∗ v2EncOwn enc wi fs cs' ∗
         (⌜err = GoInterface.nil⌝ -∗ ⌜∃ bs, V2Frame frm to cs (wireOf st) bs cs' ∧ h' = h ++ bs⌝) }}
 

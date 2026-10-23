@@ -373,8 +373,6 @@ axiom ErrExceedSizeLimit.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def ConnReadTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnReadTimeout"
 
-axiom ConnReadTimeout.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ConnWriteTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnWriteTimeout"
 
@@ -6482,6 +6480,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"/raft"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6506,6 +6505,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val DefaultConnReadTimeout)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6546,7 +6546,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ConnWriteTimeout.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ConnReadTimeout.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr ConnReadTimeout))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val ErrExceedSizeLimit.init) (Val #()))))))
   (App (Val doExecute)
@@ -6654,7 +6654,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc RaftPrefix go.string)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc RaftPrefix go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ConnReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 
 abbrev encoder [FfiSyntax] : Type := GoInterface
 

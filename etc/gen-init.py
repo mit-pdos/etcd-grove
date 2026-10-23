@@ -169,8 +169,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) is
-translated and set.''',
+states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
+`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) are translated and set.''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
         errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
         errStopped="stopped",
@@ -180,10 +180,12 @@ translated and set.''',
         doc='/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/',
         post='EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt',
         pat='#H@')},
-    alloc_types={'RaftPrefix': 'GoString'},
+    alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64'},
+    # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step
+    before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto']},
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
-            'ipersist HRaftPrefix',
+            'ipersist HRaftPrefix', 'ipersist HConnReadTimeout',
             'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
@@ -1401,6 +1403,10 @@ def gen(p, cfg=None):
             A(f'  wp_apply wp_GlobalAlloc (V := {cfg.get("alloc_types", {}).get(x, "TODO")}) {x} _ as H{x}')
         else:
             A(f'  -- translated initializer of {x}')
+            # (2026-10-23) steps before a translated initializer too (a constant to unfold)
+            # (the store's match keeps the closing parentheses: `X))`)
+            for l in before.pop(x.rstrip(')'), []):
+                A('  ' + hdsub(l))
     for l in before.pop('$inits', []) + before.pop('$end', []):
         A('  ' + hdsub(l))
     assert not before, before

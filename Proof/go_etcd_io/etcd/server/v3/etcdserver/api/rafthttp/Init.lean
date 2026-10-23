@@ -6,8 +6,8 @@ Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` hol
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) is
-translated and set.
+states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
+`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) are translated and set.
 -/
 module
 
@@ -84,7 +84,6 @@ axiom opaqueInitsOk :
         snapshotReceiveSeconds.init,
         rttSec.init,
         readBytesLimit.init,
-        ConnReadTimeout.init,
         ConnWriteTimeout.init,
         proberInterval.init,
         statusMonitoringInterval.init,
@@ -186,6 +185,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
   wp_apply wp_GlobalAlloc (V := GoString) RaftPrefix _ as HRaftPrefix
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd30⟩
   wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd29⟩
@@ -255,7 +255,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk readBytesLimit.init (by mem_tac))
   wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
     as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
-  wp_apply (opaqueInitsOk ConnReadTimeout.init (by mem_tac))
+  -- translated initializer of ConnReadTimeout))
+  simp only [DefaultConnReadTimeout]
+  try wp_auto
   wp_apply (opaqueInitsOk ConnWriteTimeout.init (by mem_tac))
   wp_apply (errorsNewVarsInit errStopped.init errStopped go!"stopped" (by mem_tac))
     as ⟨%xerrStopped, HerrStopped, #MerrStopped, #CerrStopped⟩
@@ -283,6 +285,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HerrStopped
   ipersist HerrMemberRemoved
   ipersist HRaftPrefix
+  ipersist HConnReadTimeout
   iframe Hown
   imodintro
   isplitr

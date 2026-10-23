@@ -164,7 +164,8 @@ def hbSt : EtcdGrove.MsgSt :=
 (`msg_codec.go`, `errors.New`), the message decoder's error for a message over its limit, holds a
 non-nil error; `linkHeartbeatMessage` (`stream.go`), which the msgappv2 decoder clones for a
 heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it);
-(2026-10-23) `RaftPrefix` (`http.go`), the pipeline's path, is `"/raft"`, read-only for good. -/
+(2026-10-23) `RaftPrefix` (`http.go`), the pipeline's path, is `"/raft"`, read-only for good;
+(stage 5b) `ConnReadTimeout` (`peer.go`) is five seconds, read-only for good. -/
 abbrev rafthttpInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e) ∗
     EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
@@ -185,7 +186,10 @@ abbrev rafthttpInit : IProp GF :=
     (∃ v : Loc, globalAddr activePeers ↦□ v ∗
       ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝) ∗
     (∃ v : Loc, globalAddr disconnectedPeers ↦□ v ∗
-      ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝))
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝) ∗
+    -- (2026-10-23, rafthttp stage 5b) the stream writer's heartbeat period's base (`peer.go`,
+    -- translated): `DefaultConnReadTimeout`, five seconds, read-only for good (tests change it)
+    globalAddr ConnReadTimeout ↦□ (W64 5000000000))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

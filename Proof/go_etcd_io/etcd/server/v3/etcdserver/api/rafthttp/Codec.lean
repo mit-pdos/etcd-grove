@@ -6,7 +6,8 @@ the plan: `notes/rafthttp-plan.md`, stage 3.
 * `writerAt wi Wr A` (persistent): the contract of the `io.Writer` `wi` that the encoder writes to,
   by `Wr bs`, the bytes `bs` written so far, and the permission `A`: `Write(p)` of a slice holding
   `chunk`, given `□ A (bs ++ chunk)`, appends the first `k` bytes of `chunk` and returns `k`, all
-  of them unless the error is non-nil (the storage backend's `writerOk` with a permission: a
+  of them unless the error is non-nil, an error whose `Error()` returns (`http.errStrOk`, 2026-10-23,
+  stage 5b: the stream writer logs it) (the storage backend's `writerOk` with a permission: a
   response stream's writer may write only what the response protocol allows,
   `Proof/net/http/Boundary.lean`).
 * `readFullAt r Rd B` (persistent): the contract of `io.ReadFull` of the reader `r` the decoder
@@ -19,6 +20,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.encoding.binary.Defs
+public import Proof.net.http.Boundary
 
 @[expose] public section
 
@@ -45,7 +47,8 @@ def writerAt (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) : IProp GF :=
       (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ∃ k : Nat, p ↦*{dq} chunk ∗ Wr (bs ++ chunk.take k) ∗
-          ⌜sint.Z n = k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝ }})
+          ⌜sint.Z n = k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝ ∗
+          http.errStrOk err }})
 
 instance writerAt_persistent (wi : GoInterfaceOk) (Wr A : List w8 → IProp GF) :
     Persistent (writerAt wi Wr A) := by

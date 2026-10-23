@@ -52,21 +52,24 @@ theorem rafthttp.messageEncoder.encode.wp_proof
   ihave Hbw := wp_WriteUint64 wi (W64 (pbEnc raftpb.Message.ty ml).length) iprop(Wr h)
     (fun n' err => iprop(∃ k : Nat,
       Wr (h ++ (u64Be (W64 (pbEnc raftpb.Message.ty ml).length)).take k) ∗
-      ⌜sint.Z n' = k ∧ k ≤ 8 ∧ (err = GoInterface.nil → k = 8)⌝)) $$ []
+      ⌜sint.Z n' = k ∧ k ≤ 8 ∧ (err = GoInterface.nil → k = 8)⌝ ∗ http.errStrOk err)) $$ []
   · iintro !> %sl !> %Φ ⟨Hsl, HWr⟩ HΦ
     wp_apply Hwr $$ %sl %(DFrac.own 1) %(u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) %h
-      [$Hsl $HWr $HA1] as %n' %err ⟨%k, Hsl, HWr, %Hk⟩
+      [$Hsl $HWr $HA1] as %n' %err ⟨%k, Hsl, HWr, %Hk, #Herr⟩
     iapply HΦ
     iexists k
     iframe
+    iframe #
     ipureintro
     simp only [u64Be_length] at Hk
     exact Hk
-  wp_apply Hbw $$ [$HWr] as %err ⟨%n', %k, HWr, %Hk⟩
+  wp_apply Hbw $$ [$HWr] as %err ⟨%n', %k, HWr, %Hk, #Herr⟩
   cases err with
   | ok ei =>
     wp_auto
     iapply HΦ
+    isplitr
+    · first | iapply http.errStrOk_nil | iassumption
     iexists _
     iframe HWr
     iintro %Hnil
@@ -86,9 +89,11 @@ theorem rafthttp.messageEncoder.encode.wp_proof
       rw [List.append_assoc]; imodintro; iexact HA2
     wp_apply Hwr $$ %d %(DFrac.own 1) %(pbEnc raftpb.Message.ty ml)
       %(h ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) [$Hd $HWr $HA3]
-      as %n2 %err2 ⟨%k2, Hd, HWr, %Hk2⟩
+      as %n2 %err2 ⟨%k2, Hd, HWr, %Hk2, #Herr⟩
     (try wp_auto)
     iapply HΦ
+    isplitr
+    · first | iapply http.errStrOk_nil | iassumption
     iexists _
     iframe HWr
     iintro %Hnil

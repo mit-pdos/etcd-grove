@@ -18,7 +18,7 @@ translate = ["*", "!init.*",
   # the HTTP boundary (stage 2), where the proofs first read them
   "!errMemberNotFound", "!errMemberRemoved", "!linkHeartbeatSize", "!linkHeartbeatMessage", "!supportedStream",
   "!errUnsupportedStreamType", "!statusErrorInterval", "!statusMonitoringInterval", "!proberInterval", "!errStopped",
-  "!ConnWriteTimeout", "!ConnReadTimeout", "!ErrExceedSizeLimit", "!readBytesLimit", "!ErrClusterIDMismatch",
+  "!ConnWriteTimeout", "!ErrExceedSizeLimit", "!readBytesLimit", "!ErrClusterIDMismatch",
   "!errIncompatibleVersion", "!RaftSnapshotPrefix", "!RaftStreamPrefix", "!ProbingPrefix"]
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
   "net/url", "path", "strings", "sync", "time",

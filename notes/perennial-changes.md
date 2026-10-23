@@ -218,3 +218,22 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   tier 0-2 trust change), recorded with `etc/land.sh mark-reviewed`.
 - **Status.** Landed 2026-10-22: Perennial `lean` `537c426e0` (`3c3e83e2c`, `9e52da638`,
   `537c426e0`), the pin since; the local copies are deleted (etcd-grove branch `perennial-idioms`).
+
+### Small gaps met by rafthttp's stream writer (stage 5b, 2026-10-23)
+
+- **Missing.** (1) A typed points-to's halves: `typedPointsto l v (own 1) ⊣⊢ half ∗ half` is
+  proved only in an example (`goose/testdata/examples/channel/etcd_session/Base.lean`,
+  `pointsto_halves`), not the library. (2) `len(ch)` of a channel: `wp_auto` does not unfold
+  `functions go.len [chan]` (`FuncUnfold`'s `len_chan`) to `Channel.Len`, so `chan.wp_Len` applies
+  only after `wp_func_call; wp_call`. (3) `make([]T, n)` of a large concrete `n` (rafthttp's 1 MiB
+  `msgAppV2BufSize`): `wp_slice_make2`'s postcondition names `List.replicate n zero`, which the kernel
+  unfolds when a proof frames it (a deterministic timeout); a spec with the contents abstracted
+  (`∃ zs, sl ↦* zs ∗ ⌜zs.length = n⌝`) avoids it.
+- **Needed by.** `streamWriter.close` (the writer's fields split between its goroutine and its
+  lock), `streamWriter.closeUnlocked` (`len(cw.msgc)`), `newMsgAppV2Encoder` (its buffer).
+- **Workaround here.** `rafthttp/Writer.lean`'s `typedPointsto_halves` and
+  `typedPointsto_combine_halves`; `wp_func_call; wp_call` before `wp_Len`;
+  `newMsgAppV2Encoder.lean`'s `wp_make_bytes_abs`.
+- **Proposed change.** (1) The halves lemma in `Golang/Theory/PostLifting.lean`; (2) `len_chan`'s
+  unfolding in `wp_auto`'s simp set; (3) `wp_slice_make2_abs`/`make3_abs` beside the existing specs.
+  Not yet proposed.
