@@ -11,7 +11,7 @@ that moved, so a reference `notes/STATUS.md, "..."` to one of them resolves ther
 record is `notes/decisions.md`; the Rocq development's notes are on branch `main`
 (`git show main:notes/STATUS.md`).
 
-## Current summary (2026-10-22, at `lean` `8f9ad4d70f`)
+## Current summary (2026-10-23, at `lean` `6511e2f660`)
 
 ### Pins
 
