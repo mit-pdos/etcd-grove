@@ -271,3 +271,8 @@ store__scheduleCompaction: treeIndex__Compact binary_bigEndian__PutUint64 newKVH
 store__compact: schedule_NewJob context_Err store__compactBarrier store__scheduleCompaction zap_Error zap_Logger__Warn hashStorage__Store zap_Logger__Info schedule_Scheduler__Schedule traceutil_Trace__Step
 store__compactLockfree: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_TODO store__compact
 store__Compact: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_Trace__Step store__compact
+# Restore (kvstore.go, key_index.go; notes/restore-plan.md, R1): the key index's restore
+# constructors and one chunk of `restoreChunk`'s range scan (InvRestore.lean).
+keyIndex__restore: zap_Int zap_Logger__Panic
+keyIndex__restoreTombstone: keyIndex__restore
+restoreChunk: proto_Unmarshal isTombstone

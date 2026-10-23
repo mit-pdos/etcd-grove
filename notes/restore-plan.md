@@ -1,6 +1,7 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
-Status: R0 done (2026-10-23, branch `restore-r0`); R1-R6 to do. Removes two of mvcc's trust-boundary axioms,
+Status: R0 done (2026-10-23, branch `restore-r0`); R1 done (2026-10-23, branch `restore-r1`, see
+"R1's findings"); R2-R6 to do. Removes two of mvcc's trust-boundary axioms,
 `mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
 receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
 `restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
@@ -124,6 +125,26 @@ Then `mvcc.store.Restore.wp_proof` is a theorem; `watchableStore.Restore` uses i
 **R6. Close.** `etc/tcb-report.py --check --update` (537), the fingerprint (no closed theorem
 changed; `restore`'s spec changes with R4a, an intermediate spec), `etc/gates.sh`,
 `notes/STATUS.md`, a decision entry for R4a.
+
+## R1's findings (2026-10-23)
+
+Proved, no axiom added: `keyIndex.restore` and `keyIndex.restoreTombstone` (specs model-agnostic:
+an empty key index becomes `kiRestore created modified ver`, resp. `kiRestoreTombstone rev`, in
+`Model.lean`; a non-empty one panics), and `restoreChunk` (`InvRestore.lean`'s `rkvIs` relates a
+sent `revKeyValue` to its bucket entry; the spec is generic in the channel protocol `P`, a
+per-entry resource `Q` that R3/R4 choose, and the read capability `Rd`/`Tok` of `rangeKeys`).
+The channel protocol's instantiation moves to R3, which is where `P` is fixed.
+
+**The lemma "`restore` agrees with `put` on an empty key index" is false as planned.**
+`restoreIntoIndex` passes `created = Revision{Main: kv.CreateRevision}`, whose `Sub` is 0, while
+`put` records the full revision of the key's first put. They differ when a key's first put is
+not the first change of its transaction (`Sub > 0`). The model (`Lemmas.lean`, `created =
+revs.head`) follows `put`. etcd's behavior is the same either way: only `created.Main` is read
+(`put`'s `CreateRevision` takes `created.Main`; `keyIndex.since` compares `Revision{Main: rev}`
+with `created` by `GreaterThan`, which gives the same answer for `Sub` 0 and `Sub > 0`; compaction
+reads `revs`, not `created`). R3 needs a decision: (a) weaken the model's invariant to `created.main = revs.head.main` (and
+`created.sub = 0` after a restore), (b) compare key indexes up to `created.sub`, or (c) state the
+rebuilt index as equal to the replayed one only on what readers see.
 
 ## Order and size
 
