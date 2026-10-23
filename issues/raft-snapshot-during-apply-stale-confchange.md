@@ -12,10 +12,11 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   638f42739 also with a real leader `raft` (a temporary test, 2026-10-18,
   `issues/upstream/raft-snapshot-during-apply-stale-confchange/meta.md`, which also records why the
   candidate's earlier fixes were replaced: ignoring the snapshot made the leader's resend depend on
-  `ReportSnapshot`; deferring it (2026-10-18) can make the leader send it twice, measured 2026-10-21). The candidate's
-  `AsyncStorageWrites` hold is also its own candidate since 2026-10-23,
-  [raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md) (identical
-  `rawnode.go` change; the two merge cleanly); the candidate's changelog commit was dropped that day.
+  `ReportSnapshot`; deferring it (2026-10-18) can make the leader send it twice, measured 2026-10-21). Since 2026-10-23 the candidate
+  does not deal with `AsyncStorageWrites` (its fix and test are for the synchronous mode; the changelog commit was
+  dropped that day too): with it, the fix also needs
+  [raft-async-snapshot-during-apply-divergence](raft-async-snapshot-during-apply-divergence.md)'s hold, a
+  candidate of its own; the two merge cleanly and together fix the async case.
 - **Where** (etcd-io/raft at `40f8be730b18`):
   - `node.go:380-445` (`node.run`): while it waits for `Advance` (`advancec != nil`) it still
     steps the messages it receives (`case m := <-n.recvc: r.Step(m)`); `doc.go:110` ("when
@@ -154,9 +155,9 @@ candidate: issues/upstream/raft-snapshot-during-apply-stale-confchange/
   `AsyncStorageWrites`, so that no call can be for one; 2026-10-21, replaced); or, the candidate's fix
   (2026-10-21), switch raft's configuration to the snapshot's when the snapshot is applied
   (`appliedSnap`) instead of when it is restored, so that the configuration is always the one at
-  the applied index, and, with `AsyncStorageWrites`, hand nothing to the append thread while a
-  snapshot waits for the committed entries handed out before it, which can otherwise be applied
-  after it (the same ordering gap that diverges the state machine,
-  `raft-async-snapshot-during-apply-divergence.md`, which the hold also fixes).
+  the applied index. With `AsyncStorageWrites` that needs the snapshot applied after the committed
+  entries handed out before it, which `raft-async-snapshot-during-apply-divergence.md`'s fix (hand
+  nothing to the append thread while the snapshot waits for them) provides; the candidate leaves that
+  mode to it.
 - **Found**: 2026-10-14, while working out how the guard fix should treat snapshot restores
   (`raft-conf-lag-model/guard-fix.md`), reproduced by the tests above.

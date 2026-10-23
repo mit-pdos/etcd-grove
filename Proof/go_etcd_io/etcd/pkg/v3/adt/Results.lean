@@ -21,6 +21,14 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.adt.Interval.wp_Compare
 #print axioms Perennial.EtcdGrove.adt.wp_NewStringAffineInterval
 #print axioms Perennial.EtcdGrove.adt.wp_NewStringAffinePoint
+/-! The bytes-affine comparison (the auth plan's S2, 2026-10-23), and the pure meaning of the
+coverage queries over the model (`Contains.lean`) and the bytes-affine tree's proved facts
+(`BytesIvl.lean`; its `Insert`/`Intersects`/`Contains` are axioms there, listed by the TCB report). -/
+#print axioms Perennial.EtcdGrove.adt.BytesAffineComparable.wp_Compare
+#print axioms Perennial.EtcdGrove.adt.stab_point_iff
+#print axioms Perennial.EtcdGrove.adt.containsRes_iff
+#print axioms Perennial.EtcdGrove.adt.ownIvtB_of_empty
+#print axioms Perennial.EtcdGrove.adt.ownIvtB_persist
 
 /-! The model's lemmas `Insert`'s contract rests on (`Model.lean`). -/
 #print axioms Perennial.EtcdGrove.adt.ivtInsert_sorted

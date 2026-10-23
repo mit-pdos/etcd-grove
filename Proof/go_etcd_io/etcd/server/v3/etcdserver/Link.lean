@@ -37,12 +37,14 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChang
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberList
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MendPeer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NewUberApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Process
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RemoveMember
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ReportUnreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
@@ -59,6 +61,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfCh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__checkMembershipOperationPermission
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
@@ -79,6 +82,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInte
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__publishV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__purgeFile
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__requireAuthInfo
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__restoreAlarms
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__run
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
@@ -134,10 +138,13 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
+public import Proof.go_etcd_io.etcd.server.v3.auth.getMergedPerms
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
+public import Proof.go_etcd_io.etcd.server.v3.auth.isValidPermissionRange
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
@@ -738,6 +745,18 @@ theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
 
+theorem auth.wp_getMergedPerms :
+    auth.getMergedPerms.spec (GF := GF) (hG := hG) :=
+  auth.getMergedPerms.wp_proof adt.wp_NewIntervalTree adt.wp_NewBytesAffineInterval adt.wp_NewBytesAffinePoint
+
+theorem auth.authStore.wp_refreshRangePermCache :
+    auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) :=
+  auth.authStore.refreshRangePermCache.wp_proof zap.Logger.wp_Debug zap.wp_String zap.Logger.wp_Error auth.wp_getMergedPerms
+
+theorem auth.wp_isValidPermissionRange :
+    auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
+  auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
+
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.BackendPath.wp_proof
@@ -1137,6 +1156,14 @@ theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
 
+theorem EtcdServer.wp_requireAuthInfo :
+    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+
+theorem EtcdServer.wp_MemberList :
+    EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=
+  EtcdServer.MemberList.wp_proof EtcdServer.wp_requireAuthInfo membership.RaftCluster.wp_Members
+
 theorem rafthttp.Transport.wp_MendPeer :
     rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) :=
   rafthttp.Transport.MendPeer.wp_proof
@@ -1180,6 +1207,14 @@ theorem EtcdServer.wp_doSerialize :
 theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
+
+theorem EtcdServer.wp_checkMembershipOperationPermission :
+    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
+theorem EtcdServer.wp_RemoveMember :
+    EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RemoveMember.wp_proof EtcdServer.wp_checkMembershipOperationPermission raftpb.ConfChangeType.wp_Enum
 
 theorem EtcdServer.wp_ReportSnapshot :
     EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG) :=

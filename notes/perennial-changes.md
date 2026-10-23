@@ -409,6 +409,22 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
   the error instead of admitting.
 
+### Std, String: the successor string and the order's facts
+
+- **Missing.** Lemmas about `GoStringLt`/`GoStringLe` beyond the four in
+  `Perennial/Golang/Theory/String.lean`: that `k ++ "\x00"` is the immediate successor of `k`
+  (`GoStringLt k b → k ++ "\x00" = b ∨ GoStringLt (k ++ "\x00") b`, so `k < b ↔ k ++ "\x00" ≤ b`
+  and `k < key ++ "\x00" ↔ k ≤ key`), that a string is below its proper extensions, that `""` is
+  the least string, and `GoStringLe`'s transitivity/antisymmetry/totality.
+- **Needed by.** etcd's point interval `[k, k ++ "\x00")` (the watchable store's watchers on a
+  key, the auth store's point permissions and `checkKeyPoint`): `mvcc/InvWatchGroup.lean`
+  (`strLt_succ_le`, `succ_ne_empty`, `ivlCmp_point_iff`), `adt/Contains.lean` (the same three,
+  restated so that `auth` does not import `mvcc`), `auth/PermTree.lean` (`goStringLt_succ_iff`),
+  `adt/Model.lean` (`strLt_append`), the B-tree's and the cache's `goStringLe_*`.
+- **Workaround here.** The copies above.
+- **Proposed change.** The lemmas in `Perennial/Golang/Theory/String.lean`, with `GoStringLe`'s
+  order instance; the copies here then go.
+
 ### Sequential specs of an `RWMutex` no one else can reach
 
 - **Missing.** Perennial's `RWMutex` specs need the lock allocated (`isRWMutex`/`ownRWMutex`,

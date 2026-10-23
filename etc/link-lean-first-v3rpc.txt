@@ -204,6 +204,22 @@ NewQuotaLeaseServer: NewLeaseServer
 # the server's lease methods, whose triples are the contract `raftLessor s E S` (InvLease.lean, a
 # precondition, as `raftKV`), the quota wrapper's `LeaseGrant` (its `LeaseRevoke` is promoted:
 # QuotaLeaseLemmas.lean), the generated handlers of the Lease service's unary methods.
+# the auth plan's A2 (2026-10-23): auth.go's AuthAdmin guards, maintenance.go's guarded wrappers
+# (their inner maintenanceServer methods, names only, are the specs' contracts) and key.go's
+# kvServer.Compact (`InvAuthAdmin.lean`)
+AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+authMaintenanceServer__isPermitted: AuthAdmin__isPermitted
+authMaintenanceServer__requireAuthInfo: AuthAdmin__requireAuthInfo
+authMaintenanceServer__Defragment: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__Hash: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__HashKV: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__MoveLeader: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__Downgrade: authMaintenanceServer__isPermitted togRPCError
+authMaintenanceServer__Status: authMaintenanceServer__requireAuthInfo togRPCError
+authMaintenanceServer__Alarm: authMaintenanceServer__isPermitted authMaintenanceServer__requireAuthInfo togRPCError
+authMaintenanceServer__Snapshot: authMaintenanceServer__isPermitted togRPCError
+kvServer__Compact: AuthAdmin__isPermitted togRPCError header__fill
 LeaseServer__LeaseGrant: togRPCError header__fill
 LeaseServer__LeaseRevoke: togRPCError header__fill
 quotaLeaseServer__LeaseGrant: quotaAlarmer__check

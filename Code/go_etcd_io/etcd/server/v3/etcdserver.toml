@@ -70,6 +70,12 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "EtcdServer.restoreAlarms", "EtcdServer.NewUberApplier",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
+  # the auth plan's A2 (2026-10-23): the membership operations' admin guard and the member
+  # operations it guards (their callees mayRemoveMember, configure, the cluster's Members stay
+  # names only: the specs take their triples; not AddMember, UpdateMember, promoteMember: they
+  # call encoding/json's Marshal, which Perennial has no model of)
+  "EtcdServer.checkMembershipOperationPermission", "EtcdServer.RemoveMember",
+  "EtcdServer.MemberList",
   # (D21 M2, 2026-10-19) the inbound path from the transport: the `rafthttp.Raft` methods and
   # raft.Node's Step and reports, promoted through raftNode's embedded raftNodeConfig
   "EtcdServer.Process", "EtcdServer.IsIDRemoved", "EtcdServer.ReportUnreachable",
