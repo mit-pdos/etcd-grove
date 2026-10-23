@@ -187,8 +187,18 @@ def main():
                 fail(f"issue: names {t}, which the branch does not add")
         if base and base[:7] not in issue:
             fail(f"issue: does not name the base commit {base[:9]} the reproduction ran on")
-        other = section(issue, "Anything else we need to know?")
-        if other is None:
+        if (fork or "").endswith("/bbolt") or "**Target**: etcd-io/bbolt" in meta:
+            # bbolt's issue form is free-form: no sections, the disclosure last.
+            if re.search(r"^#{1,6} ", issue, flags=re.M):
+                warn("issue: has headings; bbolt's issue form is free-form prose")
+            if not norm(issue).endswith(norm(ISSUE_DISCLOSURE)):
+                fail("issue: does not end with the standard disclosure, word for word")
+            other = ""
+        else:
+            other = section(issue, "Anything else we need to know?")
+        if other == "":
+            pass
+        elif other is None:
             fail("issue: no 'Anything else we need to know?' section")
         elif not norm(other).endswith(norm(ISSUE_DISCLOSURE)):
             fail("issue: 'Anything else' does not end with the standard disclosure, word for word")

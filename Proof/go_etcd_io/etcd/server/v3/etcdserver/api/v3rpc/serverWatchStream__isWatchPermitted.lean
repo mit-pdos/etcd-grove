@@ -71,6 +71,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     iapply HΦ
     iframe
     iframe #
+    iintro %h; cases h
   (try wp_auto)
   iunfold apply.isAuthStore at Has2
   icases Has2 with ⟨%ai, %Hai, -, #HIRP, -⟩
@@ -84,13 +85,17 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -⟩
+    wp_apply HIRP $$ [$«$r0» $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -, #Hv⟩
     · iframe #
       ipureintro; word
     (try wp_auto)
     iapply HΦ
     iframe
     iframe #
+    iintro %h
+    subst h
+    iexists _
+    iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
   · ihave #Hap := v3rpc.authInfoIs_ptsto' a user rev $$ Hau
     iunfold authInfoIs at Hau
     icases Hau with ⟨%Hann, -, -⟩
@@ -101,13 +106,17 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
     · iframe #
     subst Hai
     (try wp_auto)
-    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -⟩
+    wp_apply HIRP $$ [$Hap $HRD] as %err2 ⟨-, -, -, HRD, #Herr2, -, #Hv⟩
     · iframe #
       ipureintro; word
     (try wp_auto)
     iapply HΦ
     iframe
     iframe #
+    iintro %h
+    subst h
+    iexists _
+    iapply (apply.classRes_of_permVerdict r.srv.E.authMode _ k e .read) $$ Hv
 
 end proof
 

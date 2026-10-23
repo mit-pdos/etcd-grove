@@ -49,7 +49,7 @@ theorem EtcdServer.doSerialize.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q t e
+  intro s E ρ γr ctx cd chk get G Q C t e
   wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
@@ -92,7 +92,7 @@ theorem EtcdServer.doSerialize.wp_proof
     iapply Hchk $$ [Hai Hard]
     · iframe
     inext
-    iintro %err' ⟨Hai, Hard, #HcE⟩
+    iintro %err' ⟨Hai, Hard, #HcE, HC⟩
     wp_auto
     cases err' with
     | ok ei =>
@@ -112,6 +112,7 @@ theorem EtcdServer.doSerialize.wp_proof
       · iframe HG Htrc
       inext
       iintro HQ
+      ihave HCi := HC $$ %rfl
       wp_auto
       iStructNamed Hai
       icombine Has Has2 gives %Heq
@@ -126,14 +127,18 @@ theorem EtcdServer.doSerialize.wp_proof
         iframe Hard
         ileft
         iframe HQ
-        ipureintro; rfl
+        isplitr
+        · ipureintro; rfl
+        iexists _; iexact HCi
       · wp_apply HRev as %x -
         wp_if_destruct
         · iapply HΦ
           iframe Hard
           ileft
           iframe HQ
-          ipureintro; rfl
+          isplitr
+          · ipureintro; rfl
+          iexists _; iexact HCi
         · iapply HΦ
           iframe Hard
           iright

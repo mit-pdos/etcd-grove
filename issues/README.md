@@ -220,7 +220,8 @@ its intervals as `checkIntervals` did, so a cached from-key range may never be i
 
 Found by the bbolt proof (branch `bbolt`, not merged: bbolt v1.5.0 on Perennial's provisional
 unsafe-memory model; `notes/STATUS.md` there, "bbolt"), each reproduced by a Go test kept next to
-it (copy it into bbolt's package directory) unless said otherwise; none filed:
+it (copy it into bbolt's package directory) unless said otherwise; filed: the first, as
+etcd-io/bbolt#1311 with PR #1312 (2026-10-23); none of the others:
 [bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
 (a `Commit` whose meta write reaches the file and then fails rolls back by reloading the new
 freelist: pages an open reader still reads are reused, its snapshot changes; and the "failed"
