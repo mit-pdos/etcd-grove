@@ -1,7 +1,8 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
 Status: R0 done (2026-10-23, branch `restore-r0`); R1 done (2026-10-23, branch `restore-r1`, see
-"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2, R4-R6 to do. Removes two of mvcc's trust-boundary axioms,
+"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2 done and R4 started
+(2026-10-23, branch `restore-r4`, see "R4's progress"); R5, R6 to do. Removes two of mvcc's trust-boundary axioms,
 `mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
 receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
 `restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
@@ -156,6 +157,41 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
   before R4; `NewStore`'s proof follows the choice.
 - Then `mvcc.store.restore.wp_proof` is a theorem; `NewStore` and `Restore` use it unchanged in
   shape (R4a aside).
+
+**R4's progress (2026-10-23, branch `restore-r4`).**
+1. *Stage 1, done*: `newTreeIndex` returns the private index (`ownIdxPriv`) and the lock's ghost
+   part (`idxLockG γ 0`); `store.restore`'s spec (still the axiom) takes them, with the writer's
+   handle and the caller's half of the committed log's authority at `[[], []]`, and gives back
+   `isTreeIndex` with every reader's token, the writer's handle, that half and the certificate at
+   `[[], []] ++ R` (`idx_publish`, `IdxPriv.lean`, makes the lock). It takes the whole of
+   `currentRev`: the old spec let it write `currentRev` with half of it when `R = []` ("modelled
+   as no write"), which no proof can do. `NewStore` locks `s.mu` as private memory
+   (`PlainRWMutex.lean`) and makes `s.mu`'s invariant (whose `physOk` names the index), the readers'
+   pool and the writer's invariant after `restore`. R4a for `NewStore` is settled by the same
+   specs: `restore` takes `s.revMu` as plain memory and gives it back so.
+2. *R2, done*: the five reporters and their locks translated, the package's facts hold each lock
+   as a guarded `RWMutex` (`reportVar`, made by mvcc's initializer), `setupMetricsReporter` proved.
+3. *Left: `restore`'s own proof*, which needs three extensions of the backend's contract
+   (`isKeyBackendG`, `keyReadSnap`/`keyReadLocked`, proved of the real backend in
+   `BackendBridge.lean`), each a design decision:
+   - **(R4b) a limited range read.** `restore` reads the `Key` bucket in chunks
+     (`UnsafeRange(Key, min, max, restoreChunkKeys)`); `keyRangeReadSpec` has limit `0` only.
+     Proposed: quantify it over the limit, the answer the first `limit` entries if positive
+     (`takeLimit`); the bridge's cursor lemmas already have the limit (`cursorRange_window`).
+   - **(R4c) the compaction keys under a key read transaction.** `restore` calls
+     `UnsafeReadFinishedCompact`/`UnsafeReadScheduledCompact` on its `ReadTx`, whose specs need
+     `metaReadSpec`, which only the compaction's `metaReadTx` has. Proposed: `keyReadLocked` also
+     gives `metaReadSpec` under its token; with `kbNoCmp` both find nothing (or: a variant of the
+     two specs that takes `kbNoCmp` and answers "not found").
+   - **(R4d) two readers of the same slices.** The goroutine reads each entry's key bytes
+     (`BytesToRev`, `isTombstone` on `rkv.key`) while `restore` keeps reading the bucket, both
+     under the one read transaction; `rdCap Rd Tok` lends the bytes only against the exclusive
+     token `Tok` (the real one holds the transaction's read lock: `rtTok`). Proposed: a
+     fractional reader's token (`rdCap` over `Tok q`), so `restore` lends a part to the goroutine
+     (`restoreIntoIndex`'s spec already takes its own `Tok`, returned on `revc`); the bridge must
+     show the real `rtTok` splits (the bbolt transaction's pages are immutable while it is open).
+   Also needed: `RT` (a reader's token, which `ReadTx` takes) in `restore`'s spec, lent by
+   `NewStore` from its slots.
 
 **R5. `store.Restore`.** The translated body over R4's spec, the ghost moves its spec's "why it is
 true" paragraph lists, as `InvStore` lemmas:
