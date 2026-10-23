@@ -291,6 +291,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   says (a panic at `2^63`, or exhaustion), where the other stream codec caps messages at
   `readBytesLimit`; between etcd members the counts are an encoder's, so only a misbehaving peer or
   a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority.
+  [etcd-rafthttp-stream-dial-bad-server-version-panic](etcd-rafthttp-stream-dial-bad-server-version-panic.md)
+  (2026-10-23): a stream dial's response with a malformed `X-Server-Version` panics the dialing
+  member (`semver.MustParse` outside any handler), with a test; between members the header is
+  always valid. A small fix (`semver.NewVersion` and a failed dial); low priority.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-newauthstore-nil-tp](etcd-auth-newauthstore-nil-tp.md),
