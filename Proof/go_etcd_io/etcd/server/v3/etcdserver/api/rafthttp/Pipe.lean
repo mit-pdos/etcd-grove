@@ -53,10 +53,12 @@ instance pipeDeposit_persistent (N : NetPayload GF) (γk : GName) (st : MsgSt) :
     Persistent (pipeDeposit N γk st) := by
   unfold pipeDeposit; infer_instance
 
-/-- **The raft network over HTTP**: the network's names and the member owning each host. -/
+/-- **The raft network over HTTP**: the network's names, the member owning each host, and
+(stage 5) the streams' registry (`Stream.lean`). -/
 structure RaftHttp (GF : BundledGFunctors) [FfiSyntax] where
   γn : NetNames GF
   owner : GoString → w64
+  γreg : GName
 
 /-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`,
 not a snapshot (which goes by `SendSnapshot`), without responses, for the member owning the
@@ -69,18 +71,6 @@ def pipeReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
 instance pipeReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     Persistent (pipeReq Rh R γk) := by
   unfold pipeReq; infer_instance
-
-/-- **A raft member's address's protocol** (stage 4: the pipeline's part; the streams' is stage
-5's): a `POST` to `/raft` is a pipeline request; its response is not a `403` (the status
-`errMemberRemoved` is reported for, which no member of a static cluster answers). -/
-def raftProto (Rh : RaftHttp GF) : http.Proto GF where
-  req R γk := iprop(⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk)
-  req_pers R γk := by infer_instance
-  resp R _γk st _w := iprop(⌜R.path = go!"/raft" → st ≠ W64 403⌝)
-  resp_pers R γk st w := by infer_instance
-
-/-- The raft network's HTTP network: every address's protocol is a raft member's. -/
-def raftHttpNet (Rh : RaftHttp GF) : http.HttpNet GF := ⟨fun _ => raftProto Rh⟩
 
 end defs
 

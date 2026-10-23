@@ -333,6 +333,69 @@ trust-boundary spec.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
    `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
    The hardest stage.
+   **Scoped 2026-10-23** (the user: "start stage 5"). Everything is translated with its body
+   (`stream.go`, `streamHandler`, `closeNotifier`, `peer.attachOutgoingConn`, `util.go`'s helpers).
+   The design (D33d, drafted for review):
+   - **One-shot parts over a stream.** A stream carries many messages per request, so the pipeline's
+     deposit per ticket does not do: the reader B withdraws the `i`-th frame's deposit with a token
+     of its own, `i ↪[γw] ()` of a ghost map `γw` it owns the authority of (B reads frames in order,
+     so it inserts `i` once). The writer A must deposit for B's `γw`, and B must know A's deposits
+     are for its `γw`: the request's ticket names it, in a **registry** (`Rh`'s ghost map from
+     ticket names to `γw`, its authority in an invariant), which B fills when it allocates the
+     ticket, fresh for the registry (`dghostVar_alloc_strong` over the map's finite domain). No
+     trust: the registry and the tokens are this repository's ghost state.
+   - **The stream's response protocol.** For a stream `GET` to A of type `t` by B (the path's id),
+     a `200` response's bytes are a prefix of a chain of frames (`t`'s codec: msgappv2's
+     `V2Frame A B` from the initial state, or the message codec's `msgFrame`) of messages each a
+     link heartbeat or a message to B with `□ P` and its deposit `inv (O st ∨ i ↪[γw] ())`; other
+     statuses carry nothing (the reader treats them as failures; a `410` is reported on `ErrorC`,
+     which stops the server: a loss). Frames are self-delimiting (`V2Frame.unique`, the message
+     frame's length), so a decoded frame is the chain's `i`-th: what the decoders' premises
+     (`V2Compat`, `readFullAt`'s knowledge) and B's withdrawal need.
+   - **The writer** holds the `respWriter` (handed over by `attachOutgoingConn` through `connc`)
+     with the chain written so far; each message it encodes is deposited first. (`run`'s five-way
+     select, `msgc` replaced on close: a queued message's bundle is dropped, a loss.)
+   - **Boundary items** (statements, for review at the end, as 4e): (1) **a fix to the draft
+     `handlerOk`** (a statement only: `Serve` is not an axiom yet): a handler's WP must give back
+     its `respWriter` (Go: "A ResponseWriter may not be used after the Handler.ServeHTTP method
+     has returned"; the draft lets a handler leak it to a goroutine that writes after the return,
+     which in Go writes to a released buffer); the stream handler gets it back from the writer
+     when the writer closes the connection (`closeNotifier`). (2) A response body's `Close` from
+     another goroutine while one reads (`streamReader.stop`/`close`; Go's body supports it): a
+     persistent closer fact. (3) `semver.MustParse` may panic (on a peer's malformed
+     `X-Server-Version`: the client side of the boundary does not constrain response headers);
+     the comparisons arbitrary. (4) `rate.Limiter.Wait`, `transport.IsClosedConnError`,
+     `httputil.GracefulClose`, `errors.Is` with arbitrary results where only a log or a status
+     depends on them.
+   - **`path`.** B's path is `path.Join(endpoint t, B's id)`, and A recovers `t` and the id by
+     `path.Dir` and `path.Base` (and `types.IDFromString`). Specs of `path`'s `Clean`, `Join`,
+     `Dir`, `Base` against pure models (translated with bodies since stage 2), and the lemmas
+     for a clean prefix and one segment.
+   The steps: **5a** the stream protocol (`Stream.lean`: the registry, chains, deposits,
+   withdrawal; `raftProto`'s stream part); **5b** the writer (`streamWriter`: `run`, `close`,
+   `closeUnlocked`, `writec`, `attach`, `stop`, `startStreamWriter`); **5c** the reader
+   (`decodeLoop`, then `dial`, `run`, `start`, `stop`, `close`, `pause`, `resume`); **5d** `path`
+   and the ids; **5e** `streamHandler.ServeHTTP`, `closeNotifier`, `peer.attachOutgoingConn`;
+   **5f** the boundary items as axioms, for the user's acceptance.
+   (The user asked whether a protocol state machine, as raft's, would help: no, the property is
+   per connection, with one writer and one reader and no order claimed; the pure framing model,
+   `Chain`, is the separation, and the risk is in the code's goroutine handoffs. A model of
+   connection epochs would earn its keep only for FIFO or liveness.)
+   **Done 2026-10-23: 5a** (`rafthttp/Stream.lean`; no axiom, baseline 548). Pure: `StreamCodec`
+   (state, frames, self-delimiting, non-empty) with `msgCodec` (`MsgFrameOf`) and `v2Codec`;
+   `Chain`, `chainBytes`, `Chain.agree` (two chains whose bytes extend one another are prefixes of
+   one another), `Chain.compat` and `Chain.frame` (the reader's next bytes, its decoded frame).
+   Ghost: the registry (`RaftHttp.γreg`, `streamRegInv`, `streamReg`; `stream_ticket_alloc`
+   allocates a ticket fresh for the registry, `streamReg_agree`), the reader's tokens (`streamRd`,
+   `stream_withdraw`, `streamRd_skip`), the deposits (`streamDeposit`, `stream_deposit`); the
+   protocol (`frameDep`, `streamSent`, `streamReq`, `streamResp`) with the writer's and the
+   reader's lemmas (`streamSent_extend`, `streamSent_chain`, `streamSent_compat`,
+   `streamSent_v2Compat`, `streamSent_frame`). `raftProto` moved to `Stream.lean`: a `GET` is a
+   stream request, a `200` a stream's response (the pipeline proofs unchanged in substance, through
+   `raftProto_resp_of`, `raftProto_req_of_pipe`, `raftProto_req_pipe`). `messageEncoder.encode`'s
+   spec gains the encoding's bound (`< 2^63`, from `Size`), which the message codec's frames need.
+   Still opaque: `idStr` (`ID.String`'s result) and so `streamPath` (5d ties them to `path.Join`).
+   For 5c: the decoders' specs must say a decoded copy has no responses (`netRecv`).
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.

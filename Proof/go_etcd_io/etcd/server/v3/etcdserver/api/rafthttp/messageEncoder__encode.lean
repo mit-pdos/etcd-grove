@@ -43,9 +43,12 @@ theorem rafthttp.messageEncoder.encode.wp_proof
   wp_apply wpS $$ [$Hm] as %n ⟨%Hn, %Hwire⟩
   have Hw0 := Hwire hm
   simp only [pbMessage_wire] at Hw0
+  have hlen : (pbEnc raftpb.Message.ty ml).length < 2 ^ 63 := by word
   have hn : n = W64 (pbEnc raftpb.Message.ty ml).length := by word
   subst hn
-  ihave ⟨#HA1, #HA2⟩ := HA $$ %(pbEnc raftpb.Message.ty ml) %Hw0
+  have Hw0' : MsgWireOk st (pbEnc raftpb.Message.ty ml) ∧
+      (pbEnc raftpb.Message.ty ml).length < 2 ^ 63 := ⟨Hw0, hlen⟩
+  ihave ⟨#HA1, #HA2⟩ := HA $$ %(pbEnc raftpb.Message.ty ml) %Hw0'
   ihave Hbw := wp_WriteUint64 wi (W64 (pbEnc raftpb.Message.ty ml).length) iprop(Wr h)
     (fun n' err => iprop(∃ k : Nat,
       Wr (h ++ (u64Be (W64 (pbEnc raftpb.Message.ty ml).length)).take k) ∗
@@ -91,7 +94,7 @@ theorem rafthttp.messageEncoder.encode.wp_proof
     iintro %Hnil
     iexists (pbEnc raftpb.Message.ty ml)
     ipureintro
-    refine ⟨Hw0, ?_⟩
+    refine ⟨Hw0, hlen, ?_⟩
     rw [List.take_of_length_le (by rw [Hk2.2.2 Hnil]; exact Nat.le_refl _)]
     simp [msgFrame]
 

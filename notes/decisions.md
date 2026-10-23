@@ -15561,3 +15561,23 @@ reads a response's headers through `hdrOwn` (the client sees them unconstrained)
 *Rejected:* one global `httpNetIs H` fact (the protocols fixed for every address at once): it needs
 the whole cluster's addresses before any listener, where the per-address registration needs only
 the listener, as grpc's.
+
+## D33d: the streams' protocol: per-connection tokens registered under the ticket (2026-10-23 · rafthttp stage 5a; the user: "start stage 5", "carry on with 5a"; for review)
+
+**Context.** A stream request carries many messages in its one response, each with a one-shot
+part that cannot cross the wire. The pipeline's deposit per request (D33b: `inv (O ∨ ticket)`,
+withdrawn by the ticket's holder) does not do: the ticket goes to the writer's handler, and the
+reader, which must withdraw, holds nothing exclusive of the connection.
+
+**Decision.** The reader owns the authority of a ghost map `γw` of frame indices and withdraws
+the `i`-th frame's deposit (`inv (O st ∨ i ↪[γw] ())`) with the token it inserts for `i` (it reads
+frames in order). The writer learns `γw`, and the reader that the writer's deposits are for its
+`γw`, through a registry: a ghost map from ticket names to `(γw, stream type, reader)`, its
+authority in an invariant, filled by the reader when it allocates the ticket, fresh for the map's
+finite domain (`dghostVar_alloc_strong`), so a ticket's entry is unique. What the writer writes is
+a prefix of a chain of its codec's frames, each a link heartbeat or a message to the reader with
+`□ P` and its deposit; frames are self-delimiting, so the reader's `i`-th decoded frame is the
+chain's `i`-th. All of it is this repository's ghost state and pure Lean: no trust.
+*Rejected:* a resource-carrying response (D33's (B), rejected then); per-frame tickets from the
+client (the client's ticket is consumed by `RoundTrip`); a protocol state machine as raft's (the
+property is per connection, with no order claimed).

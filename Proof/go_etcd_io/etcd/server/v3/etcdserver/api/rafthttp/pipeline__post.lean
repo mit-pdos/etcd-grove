@@ -138,8 +138,8 @@ theorem rafthttp.pipeline.post.wp_proof
   imod pipe_deposit Rh.γn.N γk st ⊤ $$ HO with #Hdep
   ihave #Hpr : ((raftHttpNet Rh).proto u.Host').req
       ⟨go!"POST", u.Host', go!"/raft", hdrs, bs⟩ γk $$ []
-  · simp only [raftHttpNet, raftProto]
-    iintro -
+  · simp only [raftHttpNet]
+    iapply raftProto_req_of_pipe _ _ _ rfl
     iunfold pipeReq
     iexists st
     iframe #
@@ -195,7 +195,7 @@ theorem rafthttp.pipeline.post.wp_proof
     iframe #
     ipureintro; exact Hrdnn
   -- the member's response is never a `403` (the protocol)
-  icases Hrw with ⟨%w, %Hst⟩
+  icases Hrw with ⟨%w, %Hst, -⟩
   have Hst' : rst ≠ W64 403 := Hst trivial
   iunfold postErr at Hcerr
   icases Hcerr with ⟨#HcerrS, (%Hcn | ⟨%H403, -⟩ | ⟨%e, %He, #Hne⟩)⟩

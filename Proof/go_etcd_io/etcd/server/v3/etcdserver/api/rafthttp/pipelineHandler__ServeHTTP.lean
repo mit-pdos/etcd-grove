@@ -124,9 +124,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           wp_apply hWarn hv.lg' _ _ $$ []
           · iframe #; ipureintro; exact Hhvok.1
           wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
-          · simp only [raftHttpNet, raftProto]
+          · simp only [raftHttpNet]
             isplitr
-            · imodintro; ipureintro; intro _; decide
+            · imodintro; iapply raftProto_resp_of <;> decide
             · ipureintro; decide
           -- `recvFailures.WithLabelValues(r.RemoteAddr).Inc()`
           wp_apply wp_slice_literal (V := GoString) [ra]
@@ -148,15 +148,14 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         · subst Herr
           -- the protocol: a `POST` to `/raft` carries a message
           ihave #Hpr : pipeReq Rh R γk $$ []
-          · simp only [raftProto]
-            iapply Hreq
+          · iapply raftProto_req_pipe $$ Hreq
             ipureintro; exact ⟨Hif, Hpath⟩
           iunfold pipeReq at Hpr
           icases Hpr with ⟨%st, %Hst, #HP, #Hdep⟩
           wp_auto
           -- `proto.Unmarshal(b, &m)`: the body is an encoding, so it decodes
           have hU := hUnmarshal pbMessage sl R.body (DFrac.own 1) m_ptr
-          simp only [pbMessage_ty, pbMessage_blank, pbMessage_wire, pbMessage_dec] at hU
+          simp only [pbMessage_ty, pbMessage_blank, pbMessage_wire] at hU
           wp_apply hU $$ [$Hsl $m] as %uerr ⟨Hsl, %Hok, Hdec⟩
           have Hue : uerr = GoInterface.nil := Hok ⟨st, Hst.1⟩
           subst Hue
@@ -215,9 +214,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             subst Hpn
             wp_auto
             wp_apply hWriteHeader (raftHttpNet Rh) _ wi a R γk (W64 204) rfl $$ [$Hw] as Hw
-            · simp only [raftHttpNet, raftProto]
+            · simp only [raftHttpNet]
               isplitr
-              · imodintro; ipureintro; intro _; decide
+              · imodintro; iapply raftProto_resp_of <;> decide
               · ipureintro; decide
             imodintro
             iexact HRs
@@ -249,12 +248,12 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             wp_apply hWarn hv.lg' _ _ $$ []
             · iframe #; ipureintro; exact Hhvok.1
             wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
-            · simp only [raftHttpNet, raftProto]
+            · simp only [raftHttpNet]
               isplitr
-              · imodintro; ipureintro; intro _; decide
+              · imodintro; iapply raftProto_resp_of <;> decide
               · ipureintro; decide
             -- `w.(http.Flusher).Flush()`, then `panic(err)`, which `Serve` recovers
-            rw [if_pos hfl]
+            rw [ite_cond_eq_true _ _ (eq_true hfl)]
             wp_auto
             wp_apply hFlush (raftHttpNet Rh) _ wi a R γk _ _ rfl $$ [$Hw] as Hw
             wp_apply wp_panic
@@ -279,9 +278,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         wp_auto
         wp_apply HErr
         wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
-        · simp only [raftHttpNet, raftProto]
+        · simp only [raftHttpNet]
           isplitr
-          · imodintro; ipureintro; intro _; decide
+          · imodintro; iapply raftProto_resp_of <;> decide
           · ipureintro; decide
         iexact HRs
       · iunfold EtcdGrove.errorsNewVar at HCM
@@ -291,18 +290,18 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         wp_auto
         wp_apply HErr
         wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
-        · simp only [raftHttpNet, raftProto]
+        · simp only [raftHttpNet]
           isplitr
-          · imodintro; ipureintro; intro _; decide
+          · imodintro; iapply raftProto_resp_of <;> decide
           · ipureintro; decide
         iexact HRs
   -- not a `POST`: `w.Header().Set("Allow", "POST")`, `405`
   wp_apply hRespHeader (raftHttpNet Rh) _ wi a R γk none [] rfl $$ [$Hw] as %hm' ⟨Hw, %hs', Hhm'⟩
   wp_apply hHeaderSet hm' hs' $$ [$Hhm'] as Hhm'
   wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
-  · simp only [raftHttpNet, raftProto]
+  · simp only [raftHttpNet]
     isplitr
-    · imodintro; ipureintro; intro _; decide
+    · imodintro; iapply raftProto_resp_of <;> decide
     · ipureintro; decide
   iexact HRs
 

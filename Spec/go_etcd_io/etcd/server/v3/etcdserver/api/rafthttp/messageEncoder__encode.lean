@@ -32,12 +32,13 @@ abbrev rafthttp.messageEncoder.encode.spec : Prop :=
       enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder, go!"w"] ↦□
         GoInterface.ok wi ∗
       writerAt wi Wr A ∗ Wr h ∗ msgOwn ml DFrac.discard st ∗
-      □ (∀ bs : List w8, ⌜MsgWireOk st bs⌝ -∗ A (h ++ u64Be (W64 bs.length)) ∗ A (h ++ msgFrame bs)) }}
+      □ (∀ bs : List w8, ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63⌝ -∗
+          A (h ++ u64Be (W64 bs.length)) ∗ A (h ++ msgFrame bs)) }}
     (App (Val (enc @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEncoder.ty @!! go!"encode")) (Val #ml))
   {{ (err : GoInterface), RET #err;
       ∃ h' : List w8, Wr h' ∗
-        (⌜err = GoInterface.nil⌝ -∗ ∃ bs : List w8, ⌜MsgWireOk st bs ∧ h' = h ++ msgFrame bs⌝) }}
+        (⌜err = GoInterface.nil⌝ -∗ ∃ bs : List w8, ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63 ∧ h' = h ++ msgFrame bs⌝) }}
 
 end spec
 

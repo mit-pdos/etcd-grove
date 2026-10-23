@@ -5,7 +5,7 @@ read-only, non-empty, each satisfying `P` (the peer's: its hosts are its member'
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pipe
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Stream
 
 @[expose] public section
 
