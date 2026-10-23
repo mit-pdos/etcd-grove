@@ -28,6 +28,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pipe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 
 @[expose] public section
 
@@ -248,12 +249,55 @@ def StreamTy.codec : StreamTy → w64 → w64 → StreamCodec
   | .msgAppV2, frm, to => v2Codec frm to
   | .message, _, _ => msgCodec
 
-/-- **A member id's string** (opaque, pure): `types.ID.String`'s result (stage 5d ties them). -/
-opaque idStr (id : w64) : GoString
-
 /-- The path of the stream of type `t` read by `rid` (`streamReader.dial`'s
-`path.Join(t.endpoint(), rid.String())`; stage 5d ties them). -/
-def streamPath (t : StreamTy) (rid : w64) : GoString := t.endpoint ++ go!"/" ++ idStr rid
+`path.Join(t.endpoint(), rid.String())`, `streamPath_join`). -/
+def streamPath (t : StreamTy) (rid : w64) : GoString := t.endpoint ++ go!"/" ++ types.idStr rid
+
+/-- A stream endpoint's segments. -/
+def StreamTy.segs : StreamTy → List (List w8)
+  | .msgAppV2 => [go!"raft", go!"stream", go!"msgapp"]
+  | .message => [go!"raft", go!"stream", go!"message"]
+
+theorem StreamTy.segs_plain (t : StreamTy) : ∀ s ∈ t.segs, path.plainSeg s := by
+  cases t <;> decide
+
+theorem StreamTy.endpoint_segs (t : StreamTy) : t.endpoint = path.segsPath t.segs := by
+  cases t <;> decide
+
+/-- `RaftStreamPrefix = path.Join(RaftPrefix, "stream")` (`http.go`). -/
+theorem raftStreamPrefix_join : path.joinModel [go!"/raft", go!"stream"] = go!"/raft/stream" := by
+  decide
+
+/-- `t.endpoint() = path.Join(RaftStreamPrefix, ...)` (`stream.go`). -/
+theorem StreamTy.endpoint_join (t : StreamTy) :
+    path.joinModel [go!"/raft/stream", (t.segs.getLast? ).getD []] = t.endpoint := by
+  cases t <;> decide
+
+/-- **The stream's path**: `path.Join(t.endpoint(), rid.String())`, of the segments
+`/raft/stream/<type>/<rid>`. -/
+theorem streamPath_segs (t : StreamTy) (rid : w64) :
+    streamPath t rid = path.segsPath (t.segs ++ [types.idStr rid]) := by
+  rw [streamPath, path.segsPath_snoc, StreamTy.endpoint_segs]; rfl
+
+theorem streamPath_join (t : StreamTy) (rid : w64) :
+    path.joinModel [t.endpoint, types.idStr rid] = streamPath t rid := by
+  rw [StreamTy.endpoint_segs, streamPath_segs]
+  exact path.joinModel_segs _ _ (by cases t <;> simp [StreamTy.segs]) t.segs_plain
+    (types.idStr_plain rid)
+
+/-- **The stream handler's reading of the path**: its `Base` is the reader's id string. -/
+theorem streamPath_base (t : StreamTy) (rid : w64) :
+    path.baseModel (streamPath t rid) = types.idStr rid := by
+  show path.baseModel (t.endpoint ++ [path.slash] ++ types.idStr rid) = _
+  exact path.baseModel_seg _ _ (types.idStr_plain rid)
+
+/-- **The stream handler's reading of the path**: its `Dir` is the endpoint. -/
+theorem streamPath_dir (t : StreamTy) (rid : w64) :
+    path.dirModel (streamPath t rid) = t.endpoint := by
+  show path.dirModel (t.endpoint ++ [path.slash] ++ types.idStr rid) = _
+  rw [StreamTy.endpoint_segs]
+  exact path.dirModel_segs _ _ (by cases t <;> simp [StreamTy.segs]) t.segs_plain
+    (types.idStr_plain rid)
 
 /-- **A stream connection's ghost names**: the reader's tokens `γw`, the type and the reader. -/
 abbrev StreamKey := GName × StreamTy × w64

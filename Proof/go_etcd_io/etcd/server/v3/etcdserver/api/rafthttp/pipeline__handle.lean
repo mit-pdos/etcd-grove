@@ -146,7 +146,7 @@ theorem rafthttp.pipeline.handle.wp_proof
           ipureintro
           refine ⟨HSFl, by simp, fun v hv => ?_⟩
           simp only [List.mem_singleton] at hv
-          subst hv; exact utf8Valid_of_ascii _ Hts
+          subst hv; exact utf8Valid_of_ascii _ (Hts ▸ types.idStr_ascii _)
         subst Hci
         iunfold prometheus.counterSpec at Hc
         icases Hc with ⟨#HInc, -⟩
@@ -192,7 +192,7 @@ theorem rafthttp.pipeline.handle.wp_proof
           ipureintro
           refine ⟨HSBl, by simp, fun v hv => ?_⟩
           simp only [List.mem_singleton] at hv
-          subst hv; exact utf8Valid_of_ascii _ Hts
+          subst hv; exact utf8Valid_of_ascii _ (Hts ▸ types.idStr_ascii _)
         subst Hci
         iunfold prometheus.counterSpec at Hc
         icases Hc with ⟨-, #HAdd⟩

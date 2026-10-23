@@ -387,7 +387,7 @@ theorem NewServer.wp_proof
   (try wp_auto)
   wp_apply h17 gvi lbl [go!"server_id"] _ _ $$ [Hlbl] as %gsi ⟨%gi, %Hgi, #Hgset, -⟩
   · iframe #; iframe Hlbl; ipureintro
-    exact ⟨Hgvil, prometheus.labelMapOk_one _ _ (utf8Valid_of_ascii _ Hids2)⟩
+    exact ⟨Hgvil, prometheus.labelMapOk_one _ _ (utf8Valid_of_ascii _ (Hids2 ▸ types.idStr_ascii _))⟩
   subst Hgi
   (try wp_auto)
   wp_apply Hgset

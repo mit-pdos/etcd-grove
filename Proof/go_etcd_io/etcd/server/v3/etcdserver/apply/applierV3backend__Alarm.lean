@@ -115,7 +115,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_auto
     wp_apply hWLV gv _ [go!"server_id", go!"alarm_type"] _ _ $$ [Hlsl] as %g ⟨%gi, %Hg, #Hgs, -⟩
     · iframe #; iframe Hlsl; ipureintro
-      exact ⟨Hgvl, prometheus.labelValuesOk_two _ _ _ _ (utf8Valid_of_ascii _ Hs1)
+      exact ⟨Hgvl, prometheus.labelValuesOk_two _ _ _ _ (utf8Valid_of_ascii _ (Hs1 ▸ types.idStr_ascii _))
         (utf8Valid_of_ascii _ Hs2)⟩
     subst Hg
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hgs
@@ -165,7 +165,7 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_auto
     wp_apply hWLV gv _ [go!"server_id", go!"alarm_type"] _ _ $$ [Hlsl] as %g ⟨%gi, %Hg, #Hgs, -⟩
     · iframe #; iframe Hlsl; ipureintro
-      exact ⟨Hgvl, prometheus.labelValuesOk_two _ _ _ _ (utf8Valid_of_ascii _ Hs1)
+      exact ⟨Hgvl, prometheus.labelValuesOk_two _ _ _ _ (utf8Valid_of_ascii _ (Hs1 ▸ types.idStr_ascii _))
         (utf8Valid_of_ascii _ Hs2)⟩
     subst Hg
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hgs

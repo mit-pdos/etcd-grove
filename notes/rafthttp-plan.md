@@ -458,7 +458,7 @@ trust-boundary spec.
    precondition-failed body against `errIncompatibleVersion`/`ErrClusterIDMismatch`,
    `reportCriticalError` on `errorc` (`srDial`'s `errorc` and `ErrorC` carry no channel fact yet:
    to add with the proof).
-   **For the user's review (5f)**:
+   **Accepted by the user (2026-10-23)**, the 5c trust items:
    * `http.errStrOk` now also says the error is of a well-formed error tree (`http.errTreeOk`:
      for a pointer target, Perennial's `errors.errorIsTree` and `TreeTyped`), what `errors.Is`
      needs (`run` asks `errors.Is(err, errUnsupportedStreamType)` of `dial`'s error and
@@ -477,6 +477,60 @@ trust-boundary spec.
      `ConfChangeType.String`'s); `ReadFull_resp_spec` states its bound and error, `respCloser` and
      `RespCloseAny_spec` (a response body closed from another goroutine, as `stop` does while
      `decodeLoop` reads; Go supports it).
+   **Done 2026-10-23: 5d, `path` and the ids** (not linked until stage 6; no axiom added, one
+   trust-boundary statement strengthened). Go's `path`, translated with bodies since stage 2, is
+   proved against pure models that follow its code (`Proof/path/Model.lean`: `cleanModel` with
+   the lazy buffer's output, `joinModel`, `splitModel`, `baseModel`, `dirModel`,
+   `lastIndexByte`): `Clean` (its lazy buffer `lbOwn`, `Proof/path/Defs.lean`, and the methods
+   `index`, `append`, `string`; the main loop, the backtracking of `..` and the copy of an element
+   as nested loops), `Join`, `Split`, `Base`, `Dir`, and `internal/bytealg.LastIndexByteString`.
+   `Proof/path/Segs.lean`: on a rooted path of plain segments (non-empty, no `/` or `.`), `Clean`
+   is the identity, `Join(segsPath segs, s)` appends `s`, `Base` gives the last segment and `Dir`
+   the rest. `types.idStr` (`Proof/go_etcd_io/etcd/client/pkg/v3/types/IDStr.lean`):
+   `strconv.FormatUint(id, 16)`, lowercase hex, a plain segment, ASCII. `Stream.lean`:
+   `streamPath t rid` is `Join(t.endpoint(), rid.String())` (`streamPath_join`), and the stream
+   handler's `Base` and `Dir` of it give back `idStr rid` and the endpoint (`streamPath_base`,
+   `streamPath_dir`). `streamType.endpoint` proved (`Join(RaftStreamPrefix, ...)`), given
+   `RaftStreamPrefix`'s value as a premise: its initializer (`path.Join(RaftPrefix, "stream")`) is
+   untranslated, and gen-init cannot run a callee's spec in a package initializer; stage 6
+   provides it (an init axiom, or translating it once gen-init can).
+   **Accepted by the user (2026-10-23)**: `types.ID.String`'s spec (and `String_ptr`'s) now says which
+   string it returns, `types.idStr id` (was: some ASCII string); a trust-boundary statement used
+   across the server, the axiom's name unchanged (the users now derive ASCII, `idStr_ascii`).
+   **Open for `dial` (needs the user's decision):** its no-panic spec rests on the peer's
+   `X-Server-Version` header, which the HTTP boundary does not model (a response's header map is
+   some map). A design: the protocol (`Proto`) gains a pure predicate on a response's headers
+   (`rhdr`), which `RoundTrip`'s response gives (`respAt`'s headers satisfy it) and which the
+   handler must establish before the first `Write`/`WriteHeader` commits the headers (a
+   `respWriter` tracking its header map, `w.Header().Set` updating it). raftProto's would be
+   "`X-Server-Version` parses as a semver" (rafthttp's handlers set `version.Version`). The
+   alternative, a premise of `dial`'s spec (that the peer's version header parses), leaves the
+   panic in the trust base as an assumption about peers.
+   **5e scoped (2026-10-23; the user chose the header model, `rhdr`).** Three steps:
+   **5e-1, the boundary's response headers** (accepted by the user, 2026-10-23):
+   * `canonKey` becomes a definition, Go's `textproto.CanonicalMIMEHeaderKey` (a key of token
+     bytes gets its first letter and each letter after `-` upper case, the rest lower case; any
+     other key is left as it is), so that distinct keys are known distinct (`X-Server-Version`
+     is not `Content-Type`).
+   * The protocol (`Proto`) gains `rhdr R hs`, a pure predicate on the headers a handler commits.
+     A fresh response writer comes with its header map, empty (`respHdrs wr []`, exclusive);
+     `w.Header()` before the commit lends it (`hdrOwn`, given back after a `Set`); the commit
+     (`WriteHeader`, the first `Write`, `http.Error`) needs `rhdr R hs` of the headers set.
+   * The client sees the committed headers but for the keys Go's server sets itself
+     (`srvKeys`: `Date`, `Content-Type`, `Content-Length`, `Transfer-Encoding`, `Connection`,
+     `X-Content-Type-Options`, which `http.Error` sets): `RoundTrip`'s response's header map
+     `hc` has some `hs` with `rhdr R hs` and `hdrGet hc k = hdrGet hs k` off `srvKeys`.
+   * A handler returns its response writer, committed (the D33 review's open item: Go's "A
+     ResponseWriter may not be used after the Handler.ServeHTTP method has returned"); the
+     stream handler gets it back from the writer when the connection closes (`closeNotifier`).
+   * raftProto's `rhdr`: `X-Server-Version` is unset or parses (`semver`); rafthttp's handlers
+     set it to `version.Version` or not at all. It needs `version.Version`'s value
+     (`"3.8.0-alpha.0"`: the version package's init fact, today some string) and that it parses,
+     and that `"2.0.0"` does (`serverVersion`'s default): a sufficient, decidable form of
+     Masterminds' grammar with a boundary fact that it parses.
+   Then the pipeline's proofs are revisited (its handler sets `Allow` and `X-Etcd-Cluster-ID`).
+   **5e-2**: `streamHandler.ServeHTTP`, `closeNotifier`, `peer.attachOutgoingConn`.
+   **5e-3**: `streamReader.dial`'s proof (5c's), over the response's `X-Server-Version`.
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.

@@ -138,8 +138,8 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
       refine ⟨HAPl, by simp, fun v hv => ?_⟩
       simp only [List.mem_cons, List.mem_nil_iff, _root_.or_false] at hv
       rcases hv with rfl | rfl
-      · exact utf8Valid_of_ascii _ Hls
-      · exact utf8Valid_of_ascii _ Hids'
+      · exact utf8Valid_of_ascii _ (Hls ▸ types.idStr_ascii _)
+      · exact utf8Valid_of_ascii _ (Hids' ▸ types.idStr_ascii _)
     subst Hgi
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hg
     icases Hg with ⟨-, #HDec, -⟩
@@ -158,8 +158,8 @@ theorem rafthttp.peerStatus.deactivate.wp_proof
       refine ⟨HDPl, by simp, fun v hv => ?_⟩
       simp only [List.mem_cons, List.mem_nil_iff, _root_.or_false] at hv
       rcases hv with rfl | rfl
-      · exact utf8Valid_of_ascii _ Hls2
-      · exact utf8Valid_of_ascii _ Hids2
+      · exact utf8Valid_of_ascii _ (Hls2 ▸ types.idStr_ascii _)
+      · exact utf8Valid_of_ascii _ (Hids2 ▸ types.idStr_ascii _)
     subst Hci
     iunfold prometheus.counterSpec at Hc
     icases Hc with ⟨#HInc, -⟩

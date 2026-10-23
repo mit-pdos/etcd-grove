@@ -93,7 +93,7 @@ local macro "dl_count_fail" : tactic => `(tactic| (
     ipureintro
     refine ⟨HRFl, by simp, fun v hv => ?_⟩
     simp only [List.mem_singleton] at hv
-    subst hv; exact utf8Valid_of_ascii _ Hids
+    subst hv; exact utf8Valid_of_ascii _ (Hids ▸ types.idStr_ascii _)
   subst Hci2
   iunfold prometheus.counterSpec at Hcnt2
   icases Hcnt2 with ⟨#HInc, -⟩
@@ -238,7 +238,7 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
         ipureintro
         refine ⟨HRBl, by simp, fun v hv => ?_⟩
         simp only [List.mem_singleton] at hv
-        subst hv; exact utf8Valid_of_ascii _ Hfs1
+        subst hv; exact utf8Valid_of_ascii _ (Hfs1 ▸ types.idStr_ascii _)
       subst Hci
       iunfold prometheus.counterSpec at Hcnt
       icases Hcnt with ⟨-, #HAdd⟩

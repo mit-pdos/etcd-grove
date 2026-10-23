@@ -75,8 +75,8 @@ theorem rafthttp.peerStatus.activate.wp_proof
       refine ⟨HAPl, by simp, fun v hv => ?_⟩
       simp only [List.mem_cons, List.mem_nil_iff, or_false] at hv
       rcases hv with rfl | rfl
-      · exact utf8Valid_of_ascii _ Hls
-      · exact utf8Valid_of_ascii _ Hids'
+      · exact utf8Valid_of_ascii _ (Hls ▸ types.idStr_ascii _)
+      · exact utf8Valid_of_ascii _ (Hids' ▸ types.idStr_ascii _)
     subst Hgi
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec at Hg
     icases Hg with ⟨#HInc, -, -⟩

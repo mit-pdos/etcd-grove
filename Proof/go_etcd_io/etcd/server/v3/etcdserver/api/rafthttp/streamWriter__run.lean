@@ -119,7 +119,7 @@ local macro "count_failure" : tactic => `(tactic| (
     ipureintro
     refine ⟨HSFl, by simp, fun v hv => ?_⟩
     simp only [List.mem_singleton] at hv
-    subst hv; exact utf8Valid_of_ascii _ Hps2
+    subst hv; exact utf8Valid_of_ascii _ (Hps2 ▸ types.idStr_ascii _)
   subst Hci2
   iunfold prometheus.counterSpec at Hcnt2
   icases Hcnt2 with ⟨#HInc, -⟩
@@ -171,7 +171,7 @@ local macro "msg_flush" : tactic => `(tactic| (
     ipureintro
     refine ⟨HSBl, by simp, fun v hv => ?_⟩
     simp only [List.mem_singleton] at hv
-    subst hv; exact utf8Valid_of_ascii _ Hps1
+    subst hv; exact utf8Valid_of_ascii _ (Hps1 ▸ types.idStr_ascii _)
   subst Hci
   iunfold prometheus.counterSpec at Hcnt
   icases Hcnt with ⟨-, #HAdd⟩
@@ -328,7 +328,7 @@ local macro "run_hb" : tactic => `(tactic| (
       ipureintro
       refine ⟨HSBl, by simp, fun v hv => ?_⟩
       simp only [List.mem_singleton] at hv
-      subst hv; exact utf8Valid_of_ascii _ Hps1
+      subst hv; exact utf8Valid_of_ascii _ (Hps1 ▸ types.idStr_ascii _)
     subst Hci
     iunfold prometheus.counterSpec at Hcnt
     icases Hcnt with ⟨-, #HAdd⟩
