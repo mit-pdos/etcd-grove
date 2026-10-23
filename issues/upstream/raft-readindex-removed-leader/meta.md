@@ -22,9 +22,19 @@ decides how to file, as for the sibling.
 - **State**: merged (filed 2026-10-19; the revision, 3009105, merged by ahrtr the same day as 1931ff5be). The
   bot's `/cherry-pick` to release-3.7 (conflict in `raft.go`) and release-3.6 (`raft_test.go`) failed; ahrtr
   asked for manual cherry-picks to release-3.7, release-3.6 and etcd's release-3.5 (`raft/`), and reopened #534
-  "to track the backport effort": not done, and no backport PR by anyone on raft's release-3.7/release-3.6 or
-  etcd's release-3.5 (2026-10-21). Before the merge, the PR description and the issue's
+  "to track the backport effort". The manual backports: etcd-io/raft#542 (release-3.7) and #541 (release-3.6),
+  merged 2026-10-23; etcd-io/etcd#22652 (release-3.5), open. Before the merge, the PR description and the issue's
   test link were still to be edited on GitHub by the user.
+- **Changelogs** (asked by ahrtr, #534 issuecomment-6374581035, 2026-10-23): each repository keeps its changelogs on
+  `main` only (raft's release-3.6 has no `CHANGELOG/`), so two PRs, not one per backport. Not pushed or opened:
+  - raft: `changelog/raft-readindex-removed-leader` in `~/etcd-fixes/raft-readindex-removed-leader-changelog`, off
+    upstream `main` c51f010: e711b62 replaces #535's `pull/TODO` link in `CHANGELOG-3.8.md`; ac400cb adds new
+    v3.7.1 and v3.6.1 sections linking the backport PRs (#542, #541), as raft's 3.7 changelog links its release-3.7
+    PR #442. No 3.8 entry for #536 (r4314301990: a backported fix gets none there). Body: `changelog-pr-raft.md`.
+  - etcd: `changelog/raft-readindex-removed-leader-3.5` in `~/etcd-fixes/raft-readindex-removed-leader-changelog-3.5`,
+    off upstream `main` f3221acd1: 4689641f2, under v3.5.36 (TBC) in a `### Package \`raft\`` section (3.4's
+    heading; 3.5 has no raft entry yet), linking #22652 (as 3.5 links its release-3.5 PRs). Body:
+    `changelog-pr-etcd.md`.
 - **Upstream issue**: [etcd-io/raft#534](https://github.com/etcd-io/raft/issues/534), filed 2026-10-19. Its test
   link (`blob/fix/raft-readindex-removed-leader/raft_test.go#L2227-L2260`) is off by 36 lines after the rebase;
   `issue.md` now has the permalink `blob/1917bb4/raft_test.go#L2263-L2296` and base 1d3216d84, to edit into the issue.

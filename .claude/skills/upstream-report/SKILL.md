@@ -35,7 +35,9 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 - Commits, so that the tests can be seen to fail before the fix: first the tests only (`*_test.go`, subject
   `<package>: test <what>`), then the fix (subject `<package>: <what changed>`, the PR's title). In raft, a bug fix
   the maintainers will backport to stable releases gets no changelog entry (the etcd-io/raft#536 review,
-  2026-10-19): leave it out of bug fixes unless a reviewer asks. Otherwise the changelog entry comes last, alone
+  2026-10-19): leave it out of bug fixes unless a reviewer asks. Once the backports merge, the maintainers ask for
+  entries in the stable releases' changelogs (etcd-io/raft#534, 2026-10-23): one PR per repository to its `main`
+  (raft's `CHANGELOG-3.<x>.md`, etcd's for its `raft/`), a new patch section linking each backport PR. Otherwise the changelog entry comes last, alone
   (`changelog: add entry for <what>`, no body, in `CHANGELOG/CHANGELOG-<next minor>.md` on `main`, the link
   `pull/TODO` until the PR exists): raft keeps its changelogs on `main`, mostly in commits of their own. In etcd, no
   changelog edit: its changelog is updated separately (few changelog commits touch code). Nor in bbolt, whose
