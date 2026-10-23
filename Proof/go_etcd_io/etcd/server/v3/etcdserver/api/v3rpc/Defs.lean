@@ -19,7 +19,7 @@ returns `nil`), or the first error the code meets (`CheckErr`, the `rpctypes` va
 `txnReqOk` are "the check returns `nil`". `checkTxnRequest`'s budget is per level: the nested
 operations of a transaction get `maxTxnOps` less the widest of its comparisons and branches
 (`opCheck`'s `n - opc`), so the total is not bounded by `maxTxnOps`
-(`issues/etcd-max-txn-ops-nested.md`).
+(`issues/nonissues/etcd-max-txn-ops-nested.md`).
 
 **`checkIntervals` as the code computes it** (`ivCheck`): the deletes of a level as affine
 intervals (`delIvl`: the point `[k, k + "\x00")` for an empty range end, `[k, end)` otherwise),

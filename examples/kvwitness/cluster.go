@@ -103,7 +103,7 @@ func deliver(peers map[uint64]raft.Node, tr *transfers, ms []*pb.Message) {
 		// the wire's copy: a fresh message, its scalar cells shared (raft never writes them),
 		// its entries slice its own (the receiver may adopt it), no snapshot or responses (a
 		// deliverable message carries none); stepped instead of raft's own object, which raft
-		// still reads after handing it out (issues/raft-ready-messages-read-after-handout.md)
+		// still reads after handing it out (issues/nonissues/raft-ready-messages-read-after-handout.md)
 		c := &pb.Message{
 			Type: m.Type, To: m.To, From: m.From, Term: m.Term, LogTerm: m.LogTerm,
 			Index: m.Index, Entries: append([]*pb.Entry(nil), m.Entries...), Commit: m.Commit,

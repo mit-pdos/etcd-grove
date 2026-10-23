@@ -30,7 +30,7 @@ Counterexamples (Go tests, in package `raft`; each passes by asserting the viola
   `issues/raft-readindex-singleton-stale.md`; the fix `readindex-singleton-fix.patch` makes both
   tests fail (no stale read) and leaves `go test ./...` passing otherwise.
 - `issues/raft-conf-lag-model/joiner_empty_confstate_test.go`: two different entries committed
-  at index 3 with faithful applications (A1 holds), `issues/raft-joiner-empty-confstate.md`.
+  at index 3 with faithful applications (A1 holds), `issues/nonissues/raft-joiner-empty-confstate.md`.
 
 Neither breaks the paper's core argument (I1-I3, `W`, the table, the case analysis). #1 is a
 code path the argument does not model, and #2 contradicts a scope claim. Both should be settled
@@ -317,7 +317,7 @@ Config.Applied` (`482-484`) without re-applying the conf entries in between.
 `MemoryStorage.InitialState` returns the *snapshot's* `ConfState`. If an application restarts
 with `Applied` past a conf entry newer than its stored `ConfState`, its configuration is behind
 `applied`: the window of `raft-advance-before-applyconfchange.md`, opened at restart. Noted in
-`issues/raft-joiner-empty-confstate.md` ("Related"); not reproduced.
+`issues/nonissues/raft-joiner-empty-confstate.md` ("Related"); not reproduced.
 
 ## Model runs
 

@@ -6,14 +6,14 @@
   finding's lines moved by a few: `rollback` is `tx.go:322-343`, the meta write `tx.go:605-619`).
 - **Branch**: `fix/bbolt-commit-meta-error-frees-reader-pages` in `~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages`
   (clone `~/etcd-bbolt`, remotes `upstream` etcd-io/bbolt, `origin` upamanyus/bbolt):
-  - `a6fa226cf` tx: test reader snapshot after a failed commit's meta write (`db_whitebox_test.go`)
-  - `e252fc804` tx: keep a failed commit's freed pages pending if its meta is current (`tx.go`)
+  - `406c281` tx: test reader snapshot after a failed commit's meta write (`db_whitebox_test.go`)
+  - `eb2b2e0` tx: keep a failed commit's freed pages pending if its meta is current (`tx.go`)
   - No changelog commit: bbolt's `CHANGELOG/` entries are added in commits of their own, mostly by the
     maintainers after merging (the last 15 changelog commits touch no code but two).
 - **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
 - **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
   etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages push origin
-  fix/bbolt-commit-meta-error-frees-reader-pages`; then check the issue's test link (`db_whitebox_test.go#L116-L156`).
+  fix/bbolt-commit-meta-error-frees-reader-pages`; then check the issue's test link (`db_whitebox_test.go#L116-L159`).
 
 ## Commands and results (go1.26.9 linux/amd64)
 
@@ -29,6 +29,21 @@
   test -count=1 . ./internal/... ./cmd/...`: all `ok` (root package 378 s); `tests/failpoint` with gofail, both
   freelist types: `ok`; `gofmt -l .`: nothing; `golangci-lint` v2.10.1 `run .`: 0 issues; `go vet .`: only
   `db_test.go:1507`, as at the base.
+- Rerun 2026-10-23 (upstream `main` still a4ef197, so no rebase; commits unchanged): at `a6fa226cf`, in a copy
+  (`git archive`), `go test -run TestTx_Commit_MetaWriteError -count=1 .` fails, `expected: "v1"`, `actual  :
+  "v3"` (also with `TEST_FREELIST_TYPE=hashmap`); at `e252fc804` it passes (both freelist types); `go test
+  -count=1 . ./internal/... ./cmd/...`: all `ok` (root package 426 s); `gofmt -l .`: nothing; `go vet .`: only
+  `db_test.go:1507`. Not rerun: `tests/failpoint` and `golangci-lint` (unchanged code since the 2026-10-21 run).
+- Revised 2026-10-23 after the user's review: the example read `k` only once, after the failed and the later
+  commit, and a read transaction that has observed nothing before then can be linearized after the `v3` commit,
+  so `v3` was not visibly wrong. The test now reads `k` in the read transaction before the failed commit (`v1`,
+  a setup check) and again after the `v3` commit, each time through `rtx.Bucket` (a bucket handle cached across
+  the commits keeps pointing at memory that is not reused and reads `v1` even at the base, so it does not show
+  the bug): one transaction reading `v1` and then `v3` has no snapshot. Commits rebuilt (earlier `a6fa226cf`,
+  `e252fc804`; never pushed): at `406c281` the test fails at the second read (`db_whitebox_test.go:158`,
+  `expected: "v1"`, `actual  : "v3"`), with `TEST_FREELIST_TYPE=array` and `hashmap`; at `eb2b2e0` it passes,
+  `-count=20`, both freelist types. `gofmt -l .`: nothing; `go vet .`: only `db_test.go:1507`. The fix commit is
+  unchanged. Not rerun: the full suites (only the test changed).
 - The panic path (not in the branch, a temporary test in a copy): `beforeSyncMetaPage` set to `panic("boom")`
   inside `db.Update`, recovered, then one more `Update`: the open reader reads `v3` at the base, `v1` with the fix.
   `Update`'s deferred `rollback` is the same code, so the fix in `rollback` covers it; a fix in `Commit` would not.
@@ -39,7 +54,7 @@
 kept: the fix's comment (it says why the early return is right, which the code does not); the issue's 266
 words (the five steps are needed); the PR's 105 words (about 35 of them the fixed sentences).
 
-## Duplicates (2026-10-21, repo:etcd-io/bbolt, issues and PRs)
+## Duplicates (2026-10-21, rechecked 2026-10-23: `rollback reader pages`, `commit error created:>2026-10-20`, nothing new; repo:etcd-io/bbolt, issues and PRs)
 
 Searched `writeMeta rollback`, `fdatasync error commit`, `rollback freelist reload`, `commit error pending pages`,
 `fsync failure rollback`, `commit failed meta`, `fsync error`, `freelist rollback reader`, `writeMeta`: nothing

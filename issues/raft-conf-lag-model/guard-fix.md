@@ -118,7 +118,7 @@ follower first), so nothing new can become unapplied.
 
 What it does not close:
 
-- **The joiner with an empty `ConfState`** ([raft-joiner-empty-confstate](../raft-joiner-empty-confstate.md),
+- **The joiner with an empty `ConfState`** ([raft-joiner-empty-confstate](../nonissues/raft-joiner-empty-confstate.md),
   found by the B1 review): `leaderlag_test.go`'s node 4 starts with empty storage and ends at
   `voters=(4)`; it could win alone. The guard fix does not help (node 4 does apply its
   changes; its configuration is wrong because its starting point is). The original
@@ -127,7 +127,7 @@ What it does not close:
   from `C0`'s `ConfState`, as that issue's fix asks, so the tests' safety checks are not
   vacuous because of it; in the leader-lag test node 4 never applies anything (node 1, on
   `C0`, does not replicate to it, and node 3 never leads).
-- **Non-atomic persistence** ([raft-commit-lost-with-entries-kept](../raft-commit-lost-with-entries-kept.md)):
+- **Non-atomic persistence** ([raft-commit-lost-with-entries-kept](../nonissues/raft-commit-lost-with-entries-kept.md)):
   the crash trace loses `HardState.Commit`, so the scan of `(applied, committed]` misses the
   conf entry; the queue is in memory and empty after the restart. Untouched.
 - **A restart with `Config.Applied` past a conf entry newer than the stored `ConfState`**

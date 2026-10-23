@@ -1,6 +1,7 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
+candidate: issues/upstream/etcd-robustness-model-equal-mutates/porcupine-issue.md (a documentation question for anishathalye/porcupine, not filed)
 links:
   - anishathalye/porcupine#11 issue closed: related, not this bug (a user's Step mutated its state; the origin of the documented "purely functional" model contract this finding cites)
 ---

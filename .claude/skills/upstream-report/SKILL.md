@@ -72,7 +72,11 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
    client program, a cluster configuration when that is what shows it). Build binaries only if it needs them. Run
    it at the base and make it:
    - visibly wrong on its own: the same request varied in one parameter, giving answers that contradict each other,
-     or an answer that misses what an earlier acknowledged request did;
+     or an answer that misses what an earlier acknowledged request did. Wrong under every linearization, not
+     only under the implementation's: an operation that has observed nothing yet may take effect at any point of
+     its interval, so a read transaction that reads once, after a later write, may rightly see it. Show the
+     transaction observing the old state first (it reads `v1`, then `v3`: no single snapshot gives both; the
+     2026-10-23 review of `bbolt-commit-meta-error-frees-reader-pages`);
    - minimal: the fewest steps, keys, values and options, choosing the variant of the bug that needs least setup;
    - legitimate: every component behaves as its documentation requires (raft's application applies a `Ready`'s
      committed conf changes before `Advance`, right after it learns they are committed; a client reads its

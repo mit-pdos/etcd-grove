@@ -7,9 +7,10 @@ membership changes in a row; a client of an application built on raft cannot cau
 
 ## Candidate
 
-- **Findings**: `issues/raft-advance-before-applyconfchange.md` (one finding in four files, with
-  `raft-document-confchange-before-advance.md`, `raft-track-confchange-application.md`,
-  `etcd-leader-advance-before-applyconfchange.md`)
+- **Findings**: `issues/raft-advance-before-applyconfchange.md`; related: `etcd-leader-advance-before-applyconfchange.md`
+  (etcd's half, its own candidate) and, judged not issues (`issues/nonissues/`), `raft-track-confchange-application.md`
+  (the guard fix, alternative (b) below); `raft-document-confchange-before-advance.md` was deleted on 2026-10-23 as a
+  duplicate of this candidate.
 - **Target**: etcd-io/raft, `main` (the same documentation and guards in v3.7.0, which etcd `main` uses)
 - **Branch**: `fix/raft-advance-before-applyconfchange` in `~/etcd-fixes/raft-advance-before-applyconfchange`, one
   commit: fd30b41a2 (documentation only: `doc.go`, `README.md`, `node.go`, `raft.go`; 9 lines added, 5 removed).
@@ -17,8 +18,9 @@ membership changes in a row; a client of an application built on raft cannot cau
   `~/etcd-fixes/raft-advance-before-applyconfchange-repro`, one commit, 3dcedb6af, adding
   `TestNodeAdvanceBeforeApplyConfChange` to `node_test.go` (lines 1063-1150). Not part of the PR (below). The issue
   links it there.
-- **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-19)
-- **State**: draft (2026-10-21). Not pushed.
+- **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-19; still `main` on 2026-10-23, so
+  not rebuilt)
+- **State**: draft (2026-10-23). Not pushed (neither branch is on the fork, `git ls-remote origin`, 2026-10-23).
 - **Upstream issue**: —
 - **PR**: —
 
@@ -43,7 +45,15 @@ for a documentation fix, step 7; `check.py` checks it). Committing the test on t
 rejected: as written it fails with the fix too, and rewritten to follow the documented order it would pass at the
 base as well, testing nothing the PR changes.
 
-## Duplicates checked (2026-10-21, with the token)
+## Duplicates checked (2026-10-21, with the token; again 2026-10-23)
+
+2026-10-23 (unauthenticated): `repo:etcd-io/raft Advance ApplyConfChange` (#8), `pendingConfIndex` (#44, #354,
+#381, #32), `hasUnappliedConfChanges` (#469, #456, #234, #32), `confchange updated:>=2026-10-18` (0),
+`repo:etcd-io/etcd ApplyConfChange Advance updated:>=2026-10-18` (0); every etcd-io/raft issue and PR created or
+updated since 2026-10-18 (version bumps, the read-index fixes #533-#536) and the 30 most recently updated open PRs:
+no duplicate, no open PR. #381 (TLA+ spec) and #458 (TLA+, the campaign guard) touch the guards' model, not the
+order of `Advance` and `ApplyConfChange`.
+
 
 `repo:etcd-io/raft Advance ApplyConfChange` (issues: 0; PRs: #8, async storage writes, unrelated),
 `repo:etcd-io/raft hasUnappliedConfChanges` (#456 open, TLA+ spec lacks the guard; #234 closed, async split brain
@@ -61,21 +71,25 @@ this fix.
 
 ## Other candidates
 
-- **`raft-snapshot-during-apply-stale-confchange`** (draft, branch off 638f42739): independent bug (it needs no
+- **`raft-snapshot-during-apply-stale-confchange`** (draft, off 1931ff5, fix 9dc2d50, no changelog commit since
+  2026-10-23): independent bug (it needs no
   lag: a faithful application, a snapshot stepped between `Ready` and `ApplyConfChange`) and independent fix
   (`handleSnapshot` defers a snapshot while `applying > applied`). The two fit together: that fix's meta says it
   "assumes conf changes are applied before `Advance`, as doc.go's example loop does"; this PR makes that the
   documented rule, so the case it leaves uncovered becomes a misuse. The ranking's "the track patch fixes it too"
   applies to the `track` patch (alternative (b) below), which this candidate does not take, so the snapshot
-  candidate is still needed. No conflict: `git merge-tree --write-tree` of this branch with its fix commit 5b24f1e
-  is clean (this PR touches only the `Config.AsyncStorageWrites` comment in `raft.go`). Its changelog commit
-  da0e9bf already conflicts with upstream `main` itself (`CHANGELOG-3.8.md`, since #535 landed): that candidate
-  needs a rebase before filing, unrelated to this one. Not mentioned in either PR (not a split).
+  candidate is still needed. No conflict: `git merge-tree --write-tree` of this branch with 9dc2d50 and with
+  `raft-async-snapshot-during-apply-divergence`'s b60b90c is clean (2026-10-23; this PR touches only comments,
+  in `raft.go` the `Config.AsyncStorageWrites` one). Not mentioned in either PR (not a split).
 - Also clean against `fix/raft-memorystorage-initialstate-unlocked`; against `fix/raft-confstate-unknown-fields-panic`
   and `fix/raft-joint-empty-transition-panic` only their changelog commits conflict, with `main` as well.
 - **`etcd-leader-advance-before-applyconfchange`** (etcd-io/etcd, `issues/upstream/etcd-leader-advance-before-applyconfchange/`):
-  etcd's leader does what this PR documents as not allowed. Separate repository, separate PR; file it after this
-  one is accepted (its expectation cites `Node.Advance`'s new sentence).
+  etcd's leader currently calls `Advance` before `ApplyConfChange` (`server/etcdserver/raft.go`: the leader's
+  `Advance` does not wait for the apply goroutine, which applies the conf change later), the order this PR
+  documents as not allowed. Investigated 2026-10-23: in etcd the bad execution is possible and no etcd check
+  prevents it (two concurrent membership changes can both commit, then a partition gives disjoint quorums), only
+  timing does; not reproduced on a cluster. Separate repository, separate PR, on hold: file it after this one is
+  accepted (its expectation cites `Node.Advance`'s new sentence). This PR does not mention etcd.
 
 ## Why the fix works
 
@@ -118,7 +132,13 @@ The test drives `Node`s through `newNodeTestHarness` (the package's harness for 
 `raft`s, which have no `Ready`/`Advance` cycle. It waits for each `Ready` up to 20 ms; 5/5 runs with `-race` fail
 the same way.
 
-## Verification (go1.26.9 linux/amd64, 2026-10-21)
+## Verification (go1.26.9 linux/amd64, 2026-10-21; rerun 2026-10-23)
+
+2026-10-23: reproduction branch 3dcedb6 fails (`node_test.go:1148`, `expected: "1/4 EntryNormal \"x\""`, `actual  :
+"2/4 EntryNormal \"\""`, `index 4 committed on nodes 1 and 3`), `-race -count=5` 5/5 the same way; fix branch
+fd30b41 `go test -count=1 ./...` ok, `gofmt -l` empty, `go vet ./...` clean; the fix changes only comments (the
+`node.go`/`raft.go` lines are `//`, the `doc.go` lines are inside its package comment block); the test spans
+`node_test.go` lines 1063-1150, as the issue links.
 
 - Reproduction branch 3dcedb6af (`go test -count=1 -run 'TestNodeAdvanceBeforeApplyConfChange$' .`): fails,
   `expected: "1/4 EntryNormal \"x\""`, `actual: "2/4 EntryNormal \"\""`; `-race -count=5`: fails 5/5 the same way.
@@ -183,9 +203,9 @@ for and every example follows, the check is right; making it right under the per
   to cancel) and `Node.ApplyConfChange`/`RawNode.ApplyConfChange` ("must not be called" for a rejected change):
   left alone; the new sentences say "apply" (see `ApplyConfChange`), which reads right under either.
 - Non-atomic persistence of entries and `HardState` hides a committed conf change from the campaign check after a
-  restart (`issues/raft-commit-lost-with-entries-kept.md`): a different precondition, not in this PR.
+  restart (`issues/nonissues/raft-commit-lost-with-entries-kept.md`): a different precondition, not in this PR.
 
-## check.py (2026-10-21)
+## check.py (2026-10-23)
 
 Run as `python3 -I .claude/skills/upstream-report/check.py raft-advance-before-applyconfchange`, with the
 documentation-only shape (one commit changing comments only, the reproduction on `repro/<slug>`): no FAIL. WARNs,

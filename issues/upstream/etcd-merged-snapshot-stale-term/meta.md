@@ -14,18 +14,26 @@ a gap of two terms with the intermediate leader still up.
 - **Target**: etcd-io/etcd, `main`. Since #7513 (2017) the merged snapshot's term is `etcdProgress.appliedt`, with
   `m.Term` unchanged. The release branches likely have the bug too (not checked).
 - **Branch**: `fix/etcd-merged-snapshot-stale-term` in `~/etcd-fixes/etcd-merged-snapshot-stale-term`, two commits:
-  cfc8d04bb (`etcdserver: test the term of a merged snapshot`) adds the test, which fails there; c5630c231
-  (`etcdserver: drop a queued MsgSnap older than the applied term`) is the fix. Not pushed.
-- **Base**: upstream `main` bf9cadf044f0531036a61c9b6dbeba8aef2a3b30 (2026-10-21; rebased from 6782f5229, the two
-  commits in between touch none of these files). `processMessages`, `applyAll`'s `msgSnapC` branch and
+  1645e3a35 (`etcdserver: test the term of a merged snapshot`) adds the test, which fails there; 4a88c8a8e
+  (`etcdserver: drop a queued MsgSnap older than the applied term`) is the fix. Never pushed (`git ls-remote
+  origin`, 2026-10-23). The previous head, c5630c231 (on bf9cadf04), is kept as the local branch
+  `backup/etcd-merged-snapshot-stale-term-v1`.
+- **Base**: upstream `main` 3aaab3479b6c4f5fe1b2b8f33437093c2caae88a (2026-10-23; rebuilt from bf9cadf04, whose 20
+  later commits are dependency bumps, CI and changelogs, touching none of these files; earlier, 6782f5229). `processMessages`, `applyAll`'s `msgSnapC` branch and
   `createMergedSnapshotMessage` match the finding's description at the fork pin. `applyAll` on `main` does not wait
   for `raftAdvancedC` (that wait is a fork fix, `issues/etcd-compact-past-raft-applied.md`). The bug does not depend
   on it.
-- **State**: draft
+- **State**: draft (revised 2026-10-23: the issue and the test are about the invariant the receiver breaks, its
+  log term above its current term, with the panic as a consequence; rebuilt on 3aaab3479)
 - **Upstream issue**: —
 - **PR**: —
 
-## Duplicates checked (2026-10-19, rechecked 2026-10-21)
+## Duplicates checked (2026-10-19, rechecked 2026-10-21 and 2026-10-23)
+
+2026-10-23 (github.com issue search, issues and PRs): `"merged snapshot" term`, `MsgSnap term updated:>=2026-10-21`
+(none), `"need non-empty snapshot"`, `snapshot term greater current term`, `createMergedSnapshotMessage`. Nothing
+new: #18459, #18235 (closed PRs) only contain the panic string; #22524 (open) is about readiness after a snapshot;
+#22184/#22185 (open) are a lock-order inversion. No open PR fixes it.
 
 Five searches: `createMergedSnapshotMessage`, `merged snapshot term` and `msgSnapC` (etcd-io/etcd), `"need non-empty
 snapshot"` (etcd-io/etcd and etcd-io/raft), and `snapshot term greater` (etcd-io/raft). None is a duplicate, and no
@@ -47,21 +55,29 @@ stale term` (etcd-io/etcd), and `MsgSnap term` / `snapshot term` updated since 2
 etcd-io/raft). Nothing new; #22516/#22524 (open, a member catching up from a snapshot stays unpublished) and #22510
 are about the receiver's publish, not the message's term.
 
-## Verification (go1.27.3 linux/amd64, 2026-10-21)
+## Verification (go1.27.3 linux/amd64, 2026-10-23, at base 3aaab3479)
 
 `TestMergedSnapshotTerm` (in `server/etcdserver/server_test.go`, after `TestSnapshotOrdering`, through the same
 harness: `newNopReadyNode`, `newSnapTransporter`, the real `raftNode` loop and `applyAll`) is the issue's example.
+Since 2026-10-23 it also delivers the merged `MsgSnap` to member 5, a real `raft.Node` (`raft.RestartNode` over a
+`MemoryStorage` at term 1, as `realisticRaftNode` builds one but with the term set; that helper leaves the term at
+0), and asserts the guarantee the receiver loses: its last log term (the installed snapshot's) is at most its term.
+Both members start from the same snapshot at index 1, term 1, with voters 1 to 5 (raft drops a snapshot whose
+`ConfState` lacks the receiver).
 
-- At the tests commit cfc8d04bb (`cd server; go test ./etcdserver -run TestMergedSnapshotTerm -count=20`): fails 20
-  of 20, `"2" is not less than or equal to "1"`, `snapshot term of the MsgSnap to 5`.
-- At the fix commit c5630c231: the same command passes 20 of 20; `go test ./etcdserver/... -count=1` is ok (every
-  package); `go test -race ./etcdserver -count=1` is ok, and `-race -run TestMergedSnapshotTerm -count=20` passes;
-  `go vet ./etcdserver/` is clean and `gofmt -l etcdserver` is empty.
-- Siblings that touch the same files: `git merge-tree --write-tree` of this branch with
-  `fix/etcd-alarm-store-snapshot-race` (d396a0fc7), `fix/etcd-auth-snapshot-closed-backend-panic` (8b64b1019) and
-  `fix/etcd-compact-past-raft-applied` (be0ad9592, which also edits `applyAll`, three lines above this change) is
-  clean for each; each merge builds (`go build ./...` in `server`), vets, and passes `go test ./etcdserver`. No
-  conflict note is needed in `pr.md`.
+- At the tests commit 1645e3a35 (`cd server; go test ./etcdserver -run 'TestMergedSnapshotTerm$' -count=20`):
+  fails 20 of 20, `"2" is not less than or equal to "1"`, `last log term of member 5, at term 1, after it installs
+  the MsgSnap`; raft logs `5 [commit: 3, lastindex: 3, lastterm: 2] restored snapshot [index: 3, term: 2]` after `5
+  became follower at term 1` (the issue's output).
+- At the fix commit 4a88c8a8e: the same command passes 20 of 20; `go test ./etcdserver/... -count=1` is ok (every
+  package); `go test -race ./etcdserver -count=1` is ok; `go vet ./etcdserver/` is clean and `gofmt -l etcdserver`
+  is empty.
+- Siblings that touch the same files (2026-10-23): `git merge-tree --write-tree` of this branch with
+  `fix/etcd-alarm-store-snapshot-race` (7569d2bbd), `fix/etcd-auth-snapshot-closed-backend-panic` (2680ccf2b, not
+  yet rebuilt on 3aaab3479) and `fix/etcd-compact-past-raft-applied` (70f92483e, which also edits `applyAll`, three
+  lines above this change) is clean for each; the merge with the last builds (`go build ./...` in `server`), vets
+  and passes `go test ./etcdserver` (the other two merges were built on 2026-10-21 only). No conflict note is
+  needed in `pr.md`.
 
 Not run: `tests/e2e`, `tests/integration` (run on the previous version of the fix, 2026-10-19: `-run
 'Snapshot|Snap'` ok), `make verify` (golangci-lint). The scenario end to end (a real cluster with a stalled fsync
@@ -69,22 +85,34 @@ and an asymmetric partition) was not reproduced. The finding's raft-level tests 
 (`merged_snapshot_stale_term_test.go`) and the gap-of-two panic (`stale_term_gap2_ack_test.go`, with hand-built
 messages), at raft v3.7.0 and the fork.
 
+## The invariant
+
+The issue leads with Raft's invariant that a member's current term is at least the term of every entry in its log
+(a member at term `T` knows of no later term, and every entry was made by the leader of its term). raft keeps it for
+its own messages: a leader's `MsgSnap` carries a snapshot of its own log, so `m.Term >= m.Snapshot.Metadata.Term`
+(etcd-io/raft#47 states this form), and a receiver at a lower term first raises its term to `m.Term`. The merged
+message breaks it at the receiver: member 5 at term 1 restores a snapshot of term 2 (raft's own log line shows
+`lastterm: 2` after `became follower at term 1`). The gap-of-two panic is a consequence of that state, in the issue's
+"Anything else".
+
 ## Why the test shows the bug and not a misuse
 
 The fake raft node hands out the Readys raft hands out in the finding's scenario, which `merged_snapshot_stale_term_test.go`
 plays with five real `RawNode`s:
 
-1. A follower's Ready at term 2, with member 2 as leader, the committed term-1 entry and two term-1 `MsgSnap`s.
+1. A follower's Ready at term 2, with member 2 as leader, the committed term-1 entry (index 2) and two term-1 `MsgSnap`s.
    raft emits these when the node stepped down during the stalled save: messages made while leader stay in `msgs`
    until the next Ready.
-2. The commit of member 2's term-2 entry.
+2. The commit of member 2's term-2 entry (index 3).
 3. A leader's Ready at term 3 with a term-3 `MsgSnap` to member 3.
 
 Ready 3 is there only as a sync point. Jobs run in order, and `sendMergedSnap` calls `SendSnapshot` within the job,
 so once the message to 3 arrives, every earlier merged message has been sent. With the fix, Ready 3's message is
-still sent, so the test also checks that the fix does not drop a current message. The assertion is the guarantee:
-no sent `MsgSnap` has a snapshot term above its own term. raft's own `MsgSnap`s always have it, because a leader's
-snapshot is of its log, whose terms are at most its term. etcd's server code uses only `Ready`'s documented fields.
+still sent, so the test also checks that the fix does not drop a current message. The assertion is the guarantee at
+the receiver: member 5, a real raft node at term 1 that has applied index 1 (as raft has it when it lags behind the
+leader's compacted log), steps the message as raft would on receipt, and its last log term must not exceed its
+term. raft's own `MsgSnap`s always keep it, because a leader's snapshot is of its log, whose terms are at most its
+term. etcd's server code uses only `Ready`'s documented fields.
 
 ## Why the fix works
 
@@ -152,10 +180,11 @@ pairing is etcd's. The candidate fixes, and why this one:
 
 ## check.py
 
-No FAIL. WARNs kept:
+2026-10-23: no FAIL. WARNs kept:
 
 - The fix's two-line comment stays: it says why a message is dropped (whose snapshot it would be, and that nothing
   waits for it), not what the condition does.
-- The issue's 355 words of prose cover a three-step scenario and its impact (the panic), which a maintainer needs
+- The issue's prose (the invariant, a four-step scenario and its consequence, the panic) is what a maintainer needs
   in order to care.
-- The PR's words hold two permalinks, the wrong assumption and one sentence of change with why dropping is safe.
+- The PR's words hold two permalinks, the wrong assumption with its effect at the receiver, and one sentence of
+  change with why dropping is safe.

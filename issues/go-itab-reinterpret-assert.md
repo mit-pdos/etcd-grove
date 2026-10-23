@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-23
 links:
   - golang/go#18595 issue closed: the same class through a value conversion (named and unnamed interface, `==` false), fixed by recomputing the itab; a pointer conversion cannot
   - golang/go#26094 issue closed: related, not this bug (the misleading "different packages" wording, now "different scopes", for genuinely different types)
@@ -15,7 +15,7 @@ candidate: issues/upstream/go-itab-reinterpret-assert/
   non-empty interface, and in `==` on two of them (and so map keys). An issue for golang/go is
   drafted in `issues/upstream/go-itab-reinterpret-assert/` (`issue.md`, `meta.md`).
 - **Where**: the Go runtime's type assertion from a non-empty interface (the panic message
-  below), observed with go1.26.0, go1.27.1 and go1.27.2. The spec's type assertion (`x.(T)` holds if the dynamic
+  below), observed with go1.26.0, go1.27.1, go1.27.2 and go1.27.3 (2026-10-23). The spec's type assertion (`x.(T)` holds if the dynamic
   type of `x` is `T`) says nothing about the itab. Found in Perennial's byte-memory review,
   round 3 (`docs/BYTE_MEMORY_REVIEW.md` on Perennial's branch `worktree-byte-heap`,
   7b5230c36).

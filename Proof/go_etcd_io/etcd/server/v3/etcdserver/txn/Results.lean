@@ -341,7 +341,7 @@ pair and a linked result (`Link.lean`).
   always without nested transactions, `opsStable_flat`), the committed state, the verdict and the
   results are the client's `runTxn` at the sole writer's log. etcd evaluates every comparison
   first (`compareToPath`); the client model evaluates a nested transaction's comparisons when it
-  runs (`issues/etcd-txn-nested-compare-snapshot.md`).
+  runs (`issues/nonissues/etcd-txn-nested-compare-snapshot.md`).
 * **Read-only requests make no revision** (`txn_readonly_no_revision`), **a failed check writes
   nothing** (`txn_check_error_no_write`).
 * **The path** (`compareToPath_txnPath`), **serializable is not linearizable**

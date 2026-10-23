@@ -1,15 +1,19 @@
 # Plan: the Kubernetes etcd3 storage backend (`k8s.io/apiserver/pkg/storage/etcd3`)
 
-Status: planned (2026-10-22). Decisions: D30 in `notes/decisions.md` (D30a-f; later ones of
-this work are appended there as D30g, ...). The translation survey is on branch `k8s-etcd3-goose`
-(`notes/k8s-etcd3-goose.md`, not merged into `lean`): the store translates and builds with the
-pinned translator except six functions left names-only; its gaps G1-G3 are under "What blocks
-where", and the Perennial changes they call for in `notes/perennial-changes.md`.
+Status: started (2026-10-22, branch `k8s-etcd3`: `lean` with `k8s-etcd3-goose` merged). Decisions:
+D30 in `notes/decisions.md` (D30a-l; D30h-j and D30l proposed). The translation survey is branch
+`k8s-etcd3-goose` (`notes/k8s-etcd3-goose.md`): the store translates and builds with the pinned
+translator except six functions left names-only; its gaps G1-G3 are under "What blocks where", and
+the Perennial changes they call for in `notes/perennial-changes.md`. Done so far (`notes/STATUS.md`
+has the details): phase 1's contract, phase 2's model, phase 3's client (`Get`, `OptimisticPut`,
+`OptimisticDelete`; one `sorry`, `kvIs_ne_null`: request 3 below), and phase 4's `store.Get`,
+`store.Create`, `store.Delete` and `store.GuaranteedUpdate` (D30l: the read-or-write update;
+`reflect` through local axioms, the user's choice), linked, with restrictions (`notes/STATUS.md`).
 
-Next step: merge `k8s-etcd3-goose` into `lean` (phases 1-4 build on its Goose project
-`k8s-apiserver` and `examples/k8setcd3`). It also changes the etcd project's configuration (it
-translates `client/v3/kubernetes` and owns only `k8s_io/utils/third_party`), so it waits on an OK
-from the etcd client proof's owner. Then phase 1.
+Next steps: phase 6's driver on unary traffic, lifting phase 4's restrictions as its traffic needs.
+Merging `k8s-etcd3` into `lean` waits on an OK from the etcd client proof's owner (the survey
+changes the etcd project's configuration: it translates `client/v3/kubernetes` and owns only
+`k8s_io/utils/third_party`).
 
 ## Goal
 
@@ -47,7 +51,7 @@ Two results:
   the Model's at one linearization point whatever the suggestion was, exactly the class of
   #35415, #43152, #48394, #54780, #77619, #82303, #89828, #113380, #138724.
 
-## The codec contract (and why the driver's codec is non-canonical)
+## The codec contract (and why the driver's codec is non-canonical; D30g)
 
 The specs quantify over a codec, versioner and transformer with a contract. It must be weak
 enough to hold of the real ones:
@@ -59,12 +63,22 @@ enough to hold of the real ones:
   when the stored data is not canonical) lives exactly there, and `GuaranteedUpdate`'s no-op
   check compares bytes (`bytes.Equal(data, origState.data)`).
 
-**The driver's codec must be non-canonical too**, or the driver never exercises that path: e.g.
-a decoder that accepts several encodings of one object (a field order, optional padding or a
-version tag), with the driver seeding some keys in a non-canonical encoding before the traffic
-starts (as an older API server, or a different serializer, would have left them), and a
-transformer that sometimes reports `stale`. The contract's proof for the driver's codec is then
-a real proof (no axiom).
+**`correctness.Model` is wrong on that path (2026-10-22, D30g).** On a no-op update of
+non-canonical or stale data the store rewrites the object at a new resource version, as its
+own unit test requires, while the Model skips the write and rejects the response
+(`issues/k8s-correctness-model-noop-rewrite.md`, reproduced). Decided (D30g):
+- The Lean model's items carry a bit `canon` (the stored value is the codec's current encoding
+  and not stale), and `update` writes unless the object is unchanged and `canon` holds. This is
+  the store's rule, and the generic specs are stated with it. On states whose items are all
+  canonical it is `correctness.Model`.
+- **The driver's codec stays non-canonical** (D30b), for example a decoder that accepts several
+  encodings of one object (a field order, optional padding or a version tag). The driver seeds
+  some keys in a non-canonical encoding before the traffic starts, as an older API server or a
+  different serializer would have left them, and its transformer sometimes reports `stale` (a
+  function of the stored value). It checks against a **fixed `correctness.Model`**: a patched
+  copy of the package in `examples/k8setcd3/`, whose items carry their stored form, so that
+  `update` compares as the store does. That copy is trusted until upstream fixes the Model. The
+  contract's proof for the driver's codec is a real proof (no axiom).
 
 ## The driver and failed writes
 
@@ -123,6 +137,104 @@ when the update function is made, so it is.
    nondeterministic), porcupine with `correctness.Model`, `Replay.Validate`; failed writes as
    above. Then faults: partitions and client cuts from linkv3p's schedule.
 
+## Phase 6: the driver, as carried out (2026-10-22)
+
+`examples/k8setcd3/k8setcd3.go` (translated with project `k8s-apiserver`, package `.`): one
+in-process member, a `kubernetes.New` client (one attempt per call), two keys seeded through the
+client in an older encoding (non-canonical, D30g), the etcd3 store over the client with the
+driver's `Obj`, codec, versioner, decoder and identity transformer, and `lintest.Run` of the
+minimal unary traffic (Create, Delete, GuaranteedUpdate, consistent Get; rejecting callbacks,
+no-op updates) against `Model`, a Go copy of `correctness.Model` (D30m) with the canonical bit and
+linkvtxn's pending failed writes. Go tests: `Main` is linearizable; sequential traffic matches the
+model and reaches every outcome (the non-canonical rewrite included); the model agrees with the
+real `correctness.Model` on random traffic from canonical states and differs only on the
+non-canonical rewrite.
+
+The closed theorem (`k8setcd3_safe`, as `linkvtxn_safe`), in stages:
+
+- **6a. The driver's model in Lean**: the Go model's functions (`lookup`, `setItem`, `delItem`,
+  `mcreate`, `mdelete`, `mupdate`, `mget`, `mstep`, `step`, `closure`, `Model`'s `Step`) proved
+  against Lean functions, as linkvtxn's (`TxnModel.lean`, its per-function proofs).
+- **6b. The refinement**: the store's model (`Model.lean`'s `KSt`, through `absK`) and the
+  driver's (`mstore`, objects with their resource version string, the canonical bit) answer the
+  same: `create`/`delete`/`update`/`get` against `mcreate`/`mdelete`/`mupdate`/`mget`.
+- **6c. The contract's instance**: the driver's `ObjSpec` (its objects are `(name, value)`;
+  `objAt` the `*Obj` points-to) and `contractOk` for its codec, versioner, transformer and
+  decoder. `runtime.Encode` and `runtime.SetZeroValue` are names-only (apimachinery's
+  `runtime`): either their bodies translated (`Encode` writes into a `bytes.Buffer`;
+  `SetZeroValue` uses `reflect`) or trust-boundary specs in terms of the codec's `Encode` and
+  the object's zero value.
+- **6d. The callbacks**: `validateOk` of `validateFor`, `tryUpdateOk` of `tryUpdateFor`
+  (`updated`), matching the model's `validate` and `f`.
+- **6e. `etcd3.New`**: its spec giving `isStore` (from `kubernetes.New`'s, over linkvtxn's
+  client); `path.Join` (not translated by Perennial), the lease manager, the metrics tracker, and
+  `feature.DefaultFeatureSupportChecker.CheckClient` (names-only; its goroutines poll each
+  endpoint with `Status`, a read: a trust-boundary spec).
+- **6f. The history**: the caller's updates (`k8sAuRW` with a token per call, `k8sAu1` for Create,
+  the read update for Get) from an invariant over etcd's state and porcupine's linearization, as
+  linkvtxn's `Inv`/`Apply`, keeping the store's states (`kvWf`: the seeds decode) and the history
+  of key-values (`kvSeen`, D30j's local option: the invariant owns `γh`'s authority).
+- **6g. `Apply`, `Check`, `Main`, adequacy.**
+
+Done (2026-10-22): **6a** (`KModel.lean`: `kSpec st0`, linkv's `PendSpec` of `mstepL`, stated
+on the Go records; `KSteps.lean`: the configurations, `Bounded` on items plus pending inputs;
+every function of the Go model proved, `Model(st0)` against `k8setcd3S g0`), **6b**
+(`ItemList.lean`, `Refine.lean`: `KRel`, `outOf`, `refine_create/delete/update/get`), **6c**
+(`driver_contractOk`), **6d** (`validateD`, `tryUpdateD`, the exact sentinel error; the store's
+`validateOk`/`tryUpdateOk` of them). The store's specs now carry the error shapes 6f needs
+(`unkErr`: an outcome-unknown error is the client's, an `InternalError` or the codec's;
+`KUserErr`: a callback's error keeps its identity). Still to do: 6e, 6f, 6g; 6f's `errOut`
+needs a client error told apart from the sentinels ("From the etcd client proof", item 5), a
+marked trust-boundary assumption until that lands.
+
+Done (2026-10-23), toward 6f (D30n): the linearization points' store side. `Apply` prophesies the
+output's `Err`, `ErrRV`, `RV`; `Client.Get` is prophetic (the etcd fork's `goose-lean-getproph`,
+not yet on `goose-lean`), so a read update fires once, at the prophesied pair; `k8sAuRW` hands the
+caller's token `W` at its linearization point (the write, or a read where the model's step is the
+identity), the first read through `rwInv` (`FirstRead.lean`); `Delete`/`GuaranteedUpdate` and their
+pieces proved on it. Also fixed: `step.lean` (the Go model's `step`), stale against `outEqual`'s
+spec and `Output.Err` as a number, now builds.
+
+Done (2026-10-23): **6f**. The driver's invariant (`Inv.lean`: `KOk`, the store's model refining
+a configuration of porcupine's state, `kStep`/`refine_step`; etcd's state, the pending writes, the
+revisions' map and the store's history `histAuth`), the updates it hands the store and the commits
+it makes (`InvSteps.lean`), `errOut`, `call` (the four store methods through `storage.Interface`)
+and `Apply` (`Apply.lean`, `lintest`'s `applySpec` against `k8setcd3S g0`), with the two marked
+`sorry`s (`revRoom`, `clientErr_other`; D30n). Not yet linked (6g's driver `Link`). Still to do:
+6e (`kubernetes.New`, `etcd3.New`: `isStore` with the driver's prefixes and `driverSpec`, the
+history's allocation `histAuth` from the seeded state), 6g (`Gen`'s spec giving `GenIn`, `Check`,
+`Main`, the initial `kInv` from the seeded store, adequacy, `gen-init` for the driver).
+
+Done (2026-10-23): **6e**, `etcd3.New`'s spec and proof (`isStore` of the arguments' configuration,
+some metrics tracker), with its callees: trust-boundary specs for the names-only
+`metrics.NewEtcdMetricsTracker`, `path.Join`, `strings.TrimSuffix` and the packages' facts
+`checkerInit`/`storageInit` (`Base.lean`); proved: the lease manager, the error aggregator
+factories, the key reverse function. `feature.toml` imports what `client` names (G4), so it is
+concrete. Premises still to discharge in 6g: the client's `ctx` field (item 6 below), `newFunc`
+returning a non-nil object, `kubernetes.New`'s `kc ↦□`.
+
+Done (2026-10-23): **6g**, the closed theorem. `k8setcd3_safe`/`k8setcd3_adequate`
+(`Adequacy.lean`, `Results.lean`; collection `etc/tcb-collections/k8setcd3.txt`): every real
+execution of the driver's initialization and `Main(clients, ops)` has no stuck thread, no panic,
+and returns `Ok` or `Unknown`, under linkvtxn's hypotheses at the driver's configuration
+(`127.0.0.1:23896`), the Kubernetes packages' semantics assumptions and the method-set fact
+`objTyOk` (`*Obj` is a `runtime.Object`, not a `runtime.Unstructured`; `methodSet` is
+uninterpreted). On the way: `Gen` (`GenIn`), `Check` (`lintest.Run` of `Apply` against
+`Model(st0)`), the seeding (`seed` as `seedOne` of each key, the seeding's invariant `seedInv`
+and the seeded state `σs2`/store `g0s`, `kInv_seed`), `Main` (the server's start as linkvtxn's,
+`kubernetes.New`, `etcd3.New` with the driver's arguments, `Check`'s `Ok`), the driver's `Link`
+(`etc/gen-link.py --k8setcd3`; `New` in the store's and the kubernetes client's), and package
+initialization (`etc/gen-init.py`: the driver in `ROOTS`/`PROGRAMS`, entries for `etcd3`,
+`storage`, `storage/feature`, `util/feature`, `etcd3/metrics` and the driver; steps inside a
+translated `init` function, `after`). New trust-boundary axioms: the names-only `labels`/`fields`
+`Everything`, `grpclog.SetLoggerV2`, `os.Getenv`, `strconv.ParseBool`, the conversion of a
+`klogWrapper` to the axiomatized `grpclog.LoggerV2` (G3), and the initializers the facts read
+(`DefaultFeatureGate`, `DefaultFeatureSupportChecker`, `ErrTransactionConflict`). `sharding.toml`
+imports `runtime` (G4), so `storage.SelectionPredicate`'s `sharding.Selector` is concrete and no
+result reaches an axiomatized type's `sorry`. The `sorry`s the result rests on: `revRoom` (the
+revision bound, D30n), `clientErr_other` (item 5 below), `client_ctx_field` (item 6), and the
+store's `kvIs_ne_null` (item 3).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
@@ -159,6 +271,14 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
 - `reflect` is on every unary path (`conversion.EnforcePtr`, `reflect.New(v.Type())` in `Delete`,
   `GuaranteedUpdate`; `MakeSlice`/`Append` in lists) and Perennial's `reflect` has no specs:
   phase 1 needs them, either as an independent Perennial change or as local trust-boundary specs.
+- (2026-10-22) **`reflect.Value` in a variable rests on a `sorry`**: Perennial's generated typed
+  points-to of the axiomatized `reflect.Value` is `sorry`, and `Delete` and `GuaranteedUpdate`
+  pass `v := conversion.EnforcePtr(out)` through parameters (`conditionalDelete`, `deleteOnce`,
+  `updateOnce`, `getCurrentState`, `stateFromEtcdResponse`). This blocks both, waiting on a
+  choice (`notes/perennial-changes.md`): a Perennial change (an opaque `reflect.Value` with real
+  instances and specs of `New`, `Value.Type`/`Addr`/`Interface`), a Goose fork of
+  `k8s.io/apiserver` passing the store's `newFunc` instead (as the etcd fork), or trusted models of
+  the functions that take a `reflect.Value`.
 - No specs yet for `strconv`'s parse/format functions, `encoding/json`, `encoding/base64` and
   `path` (continue tokens, `prepareKey`), or for the names-only apimachinery functions the unary
   path calls (`meta.Accessor`, `runtime.Encode`, the error constructors; klog, metrics, tracing
@@ -172,10 +292,44 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    phase 5, and by the driver once it lists: soundness first ("What blocks where").
 2. `Txn`/`DeleteRange` errors: what the caller learns about whether its update fired (at most
    once already holds: `kvOpAu1`). Needed by phase 4's error cases.
-3. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
+3. (2026-10-22) `txn.kvIs l v` (a response's key-value, `server/v3/etcdserver/txn/Requests.lean`)
+   should carry `⌜l ≠ null⌝`. The store branches on `getResp.KV == nil`, so
+   `kubernetes.Client.Get`'s spec needs a found key's pointer non-nil. Its one `sorry` is
+   exactly that. The fix: `txn.kvAt_persist'` takes it from the struct's typed points-to
+   (`typedPointsto_not_null`), and the dozen destructuring sites gain a pattern.
+4. For the watcher, later: `prevKV` (the watch contract fixes it false), compaction cancels,
    watches under any prefix (the contract's `V.pfx` is fixed).
+5. (2026-10-22; partly landed 2026-10-23 as D37, `kvErr`/`errCellOk`: a client error is no
+   caller's `errors.New` value of another message, `kvErr_ne`. `clientErr_other` is still a marked
+   `sorry`: `errOut`'s `ErrOther` also needs the error's type not `*StorageError`, a method-set
+   fact (`isLeafError` is about the uninterpreted `methodSet`), and an `*errorString` error's value
+   a pointer, which nothing states; the client's specs now carry `kvErr`, the store's still
+   `clientErr ∗ statusErrOk`.) **A client error is not the driver's sentinel.** The driver's
+   `errOut` (as the correctness test) classifies by identity: `*storage.StorageError` of code
+   NotFound/Exists, then `err == errDeleteRejected || err == errUpdateRejected`, else `EOther`
+   (outcome unknown, the prophecy's `false`). The store returns the client's errors unchanged
+   (`Client.Get`/`OptimisticPut`/`OptimisticDelete`: `err ≠ nil ∗ ⌜clientErr err⌝ ∗
+   statusErrOk err`). `clientErr`'s leaf fact already rules out a `*StorageError` (it has
+   `Unwrap`), but the sentinels are `errors.New` leaves too: nothing says `err` is not
+   `interface.mkOk (*errors.errorString) #x` for the driver's cell `x`. Wanted: a persistent fact
+   in the error postcondition (and `ctxErrClient`'s, for the caller's context errors; trivial for
+   `context.Background()`) that tells it apart, e.g. D19k's message cells: an `*errorString`
+   error at `x` has `errStrCell x m` for `m` among the client's `errors.New` messages
+   (`"context canceled"`, ...), so `errStrCell_ne` separates it from the driver's
+   `"k8setcd3: deletion rejected"`.
+6. (2026-10-23) **The client's `ctx` field.** `etcd3.New` calls `c.Ctx()` (for the feature
+   checker), which reads `clientv3.Client.ctx`; `isNewClient` (the client's `New` spec) does not
+   give that field. `etcd3.New`'s spec takes `∃ cx, structFieldRef Client "ctx" cl ↦□ cx` as a
+   premise for now; wanted: `New`'s postcondition (or `isNewClient`) includes it, read-only.
 
 ## Open
+
+- **The real `correctness` package as the driver's checker** (D30m: for now a hand-written Go copy
+  of `correctness.Model`, as close to it as possible). Later: translate a copy of
+  `k8s.io/apiserver/pkg/storage/testing/correctness` (the Model, with D30g's fix), with trusted
+  models for what it needs: `reflect.DeepEqual` (states and write responses, errors included),
+  `runtime.Object` and `meta.Accessor`/`ListAccessor`, `map[string]runtime.Object`, the
+  closures in its requests; then the driver theorem's trusted spec is the maintainers' Model.
 
 - How `reflect` is specified (Perennial change or local specs); how G2 is resolved.
 - Whether `correctness.Model` translates (it uses `reflect.DeepEqual` on objects); if not, the
