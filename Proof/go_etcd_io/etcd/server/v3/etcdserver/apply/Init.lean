@@ -193,7 +193,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     iexact HLNF0
   ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd18
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NMC, #NMF, -, -, #CMC, #CMF⟩
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #NMC, #NMF, -, -, #CMC, #CMF, -⟩
   ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC
   ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF
   ihave HeiE : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []

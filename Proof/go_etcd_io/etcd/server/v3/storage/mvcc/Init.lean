@@ -66,8 +66,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([restoreChunkKeys.init,
-        totalEventsCounter.init,
+    ∀ v ∈ ([totalEventsCounter.init,
         reportDbTotalSizeInBytes.init,
         dbTotalSize.init,
         reportDbTotalSizeInUseInBytes.init,
@@ -214,6 +213,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) watchResyncPeriod _ as HwatchResyncPeriod
   wp_apply wp_GlobalAlloc (V := w64) maxWatchersPerSync _ as HmaxWatchersPerSync
   wp_apply wp_GlobalAlloc (V := w64) chanBufLen _ as HchanBufLen
+  wp_apply wp_GlobalAlloc (V := w64) restoreChunkKeys _ as HrestoreChunkKeys
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrFutureRev _ as HErrFutureRev
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrCompacted _ as HErrCompacted
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrRevisionNotFound _ as HErrRevisionNotFound
@@ -254,10 +254,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrRevisionNotFound))
   -- translated initializer of ErrCompacted))
   -- translated initializer of ErrFutureRev))
+  -- translated initializer of restoreChunkKeys))
   wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF
   wp_apply EtcdGrove.wp_New_errorString_cell as %xCP ⟨#MCP, #CCP⟩
   wp_apply EtcdGrove.wp_New_errorString_cell as %xFR ⟨#MFR, #CFR⟩
-  wp_apply (opaqueInitsOk restoreChunkKeys.init (by mem_tac))
   wp_apply defaultCompactionBatchLimit_init as HdefaultCompactionBatchLimit
   wp_apply defaultCompactionSleepInterval_init as ⟨%ddefaultCompactionSleepInterval, HdefaultCompactionSleepInterval⟩
   wp_apply rangeCounter_init as ⟨%mrangeCounter, HrangeCounter, #S0rangeCounter⟩
@@ -327,6 +327,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HmaxWatchersPerSync
   ipersist HwatchResyncPeriod
   ipersist HwatchBatchMaxRevs
+  ipersist HrestoreChunkKeys
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd5
   icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK⟩
