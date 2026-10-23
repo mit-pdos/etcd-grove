@@ -426,6 +426,32 @@ trust-boundary spec.
      change to the counter spec), which the writer's goroutine may (its spec's fork accepts a panic).
    - The draft `respWrite_spec` (not an axiom yet) corrected: `Write` writes the first `n` bytes, all
      of them unless it fails (`io.Writer`'s contract), with an error whose `Error()` returns.
+   **5c, the stream reader, in progress (2026-10-23).** Done: `streamReader.decodeLoop` (the heart
+   of the reader: each frame decoded is the writer's frame of that index; a message's one-shot
+   part withdrawn with the reader's token for that index and the message handed to `recvc` or
+   `propc` with its bundle, `netRecv`; heartbeats and messages while paused or with a full channel
+   dropped; a failed decode closes the body; the stopped check returns `io.EOF` or the close's
+   error, each error with an `Error()` that returns), `close`, `pause`, `resume`,
+   `peerStatus.isActive`, `messageDecoder.decode`, `newMsgAppV2Decoder`. On the way:
+   `readBytesLimit`'s initializer translated (512 MiB); the reader contract (`readFullAt`) and both
+   decoders say an error's `Error()` returns, and the msgappv2 decoder that a decoded copy has no
+   responses; `decodeLimit` takes the premise that a frame it may read is of an encoding, so
+   `proto.Unmarshal` does not fail by its own spec (no trust change); `Reader.lean` (`decOwn`,
+   `srLockInv`, `srFixed`, `stream_known`, `respReader_readFullAt`, `wp_stream_decode`, and a
+   non-blocking send on a bag channel, `bag_nonblocking_send_au`: a Perennial gap).
+   **For the user's review (5f)**: two trust-boundary specs as `zap.String`'s and
+   `ConfChangeType.String`'s (`zap.Bool`, `raftpb.MessageType.String`: a dropped message's log);
+   draft boundary statements: `ReadFull_resp_spec` states its bound and error, `respCloser` and
+   `RespCloseAny_spec` (a response body closed from another goroutine, as `stop` does while
+   `decodeLoop` reads; Go supports it).
+   Still to do: `dial` (the request: the picker, `NewRequest`, the headers, `WithContext`, the
+   ticket registered as the stream's (`stream_ticket_alloc`), `RoundTrip`; the response: the
+   version checks (`semver.MustParse` of a peer's header may panic,
+   `issues/etcd-rafthttp-stream-dial-bad-server-version-panic.md`; `checkStreamSupport` reads the
+   untranslated `supportedStream`), the status switch, `GracefulClose`, `ReadAll`, the
+   precondition-failed body compared with `errIncompatibleVersion`/`ErrClusterIDMismatch`), `run`
+   (`rate.Limiter.Wait`, `errors.Is`, `transport.IsClosedConnError`, the context's `Err`), `start`
+   and `stop`.
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.

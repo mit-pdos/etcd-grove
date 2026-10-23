@@ -237,3 +237,7 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** (1) The halves lemma in `Golang/Theory/PostLifting.lean`; (2) `len_chan`'s
   unfolding in `wp_auto`'s simp set; (3) `wp_slice_make2_abs`/`make3_abs` beside the existing specs.
   Not yet proposed.
+- (2026-10-23, rafthttp stage 5c) **A non-blocking send on a bag channel** (`select` with a
+  `default`): the bag idiom (`Idioms/Bag.lean`) has the blocking send only. Workaround:
+  `rafthttp/Reader.lean`'s `bag_nonblocking_send_au` (`bag_send_au` without the waiting case).
+  Proposed change: the lemma beside `bag_send_au`. Not yet proposed.
