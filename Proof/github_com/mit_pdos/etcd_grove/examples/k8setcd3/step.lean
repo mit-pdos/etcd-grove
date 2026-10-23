@@ -51,16 +51,19 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
   icases Hc with ⟨#Hcs, #Hcp⟩
   ihave %Hlp := ownSlice_len $$ Hcp
   wp_auto
-  cases hE : y.Err'
+  by_cases hE : y.Err' ≠ W64 4
   · -- no error: `mstep`, then `outEqual`
+    rw [show decide (y.Err' = W64 4) = false by simpa using hE]
     try wp_auto
     wp_apply wp_mstep x c.st' g.st $$ [$Hcs] as %s' %o ⟨#Hs', %Ho⟩
     · ipureintro; exact Hb.1
     subst Ho
-    wp_apply wp_outEqual x.Kind' y (mstepL x g.st).2
-    cases hq : outEqualL x.Kind' y (mstepL x g.st).2
+    wp_apply wp_outEqual y (mstepL x g.st).2
+    cases hq : decide (y = (mstepL x g.st).2)
     · try wp_auto
-      step_nil (by simp [stepL, hE, hq])
+      step_nil (by
+        rw [stepL, ite_cond_eq_false _ _ (eq_false hE),
+          ite_cond_eq_false _ _ (eq_false (of_decide_eq_false hq))])
     · try wp_auto
       wp_apply wp_slice_literal (l := [(⟨s', c.pend'⟩ : mcfg)])
       isplitr
@@ -68,13 +71,15 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       iintro %lsl ⟨Hl1, _⟩
       wp_auto
       iapply HΦ
-      rw [show stepL g x y = [⟨(mstepL x g.st).1, g.pend⟩] by simp [stepL, hE, hq]]
+      rw [show stepL g x y = [⟨(mstepL x g.st).1, g.pend⟩] by
+        rw [stepL, ite_cond_eq_false _ _ (eq_false hE), ite_cond_eq_true _ _ (eq_true (of_decide_eq_true hq))]]
       iframe
       iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
       isplit
       · iexact Hs'
       · iexact Hcp
-  · try wp_auto
+  · rw [show decide (y.Err' = W64 4) = true by simpa using hE]
+    try wp_auto
     wp_apply wp_isWrite x
     cases hw : isWriteL x
     · -- a failed read: `c`
@@ -85,7 +90,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       iintro %lsl ⟨Hl1, _⟩
       wp_auto
       iapply HΦ
-      rw [show stepL g x y = [g] by simp [stepL, hE, hw]]
+      rw [show stepL g x y = [g] by rw [stepL, if_pos (Decidable.of_not_not hE)]; simp [hw]]
       iframe
       iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
       isplit
@@ -111,7 +116,7 @@ theorem step.wp_proof (wp_isWrite : isWrite.spec (GF := GF) (hG := hG))
       iintro %lsl2 ⟨Hl2, _⟩
       wp_auto
       iapply HΦ
-      rw [show stepL g x y = [⟨g.st, x :: g.pend⟩] by simp [stepL, hE, hw]]
+      rw [show stepL g x y = [⟨g.st, x :: g.pend⟩] by rw [stepL, if_pos (Decidable.of_not_not hE)]; simp [hw]]
       iframe
       iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
       isplit

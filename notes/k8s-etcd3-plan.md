@@ -187,6 +187,15 @@ every function of the Go model proved, `Model(st0)` against `k8setcd3S g0`), **6
 needs a client error told apart from the sentinels ("From the etcd client proof", item 5), a
 marked trust-boundary assumption until that lands.
 
+Done (2026-10-23), toward 6f (D30n): the linearization points' store side. `Apply` prophesies the
+output's `Err`, `ErrRV`, `RV`; `Client.Get` is prophetic (the etcd fork's `goose-lean-getproph`,
+not yet on `goose-lean`), so a read update fires once, at the prophesied pair; `k8sAuRW` hands the
+caller's token `W` at its linearization point (the write, or a read where the model's step is the
+identity), the first read through `rwInv` (`FirstRead.lean`); `Delete`/`GuaranteedUpdate` and their
+pieces proved on it. Also fixed: `step.lean` (the Go model's `step`), stale against `outEqual`'s
+spec and `Output.Err` as a number since 6a's last change, now builds (the full build had not
+reached it).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
