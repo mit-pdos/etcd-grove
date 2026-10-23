@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// TestBlackholeTwicePanics confirms issues/etcd-bridge-blackhole-twice-panic.md: a second
+// TestBlackholeTwicePanics confirms issues/nonissues/etcd-bridge-blackhole-twice-panic.md: a second
 // Blackhole without an Unblackhole in between panics ("close of closed channel"), holding the
 // bridge's mutex (so the test does not close the bridge after: Close would wait for it forever).
 func TestBlackholeTwicePanics(t *testing.T) {

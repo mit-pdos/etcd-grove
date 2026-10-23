@@ -11,7 +11,7 @@ counterpart).
 * `txnCheck_ok_iff`: `checkTxnRequest(r, n)` passes iff the widest of the comparisons and the
   branches is at most `n`, every comparison has a key, and every operation of both branches
   passes `checkRequestOp` at `n` less that width (the budget per level:
-  `issues/etcd-max-txn-ops-nested.md`).
+  `issues/nonissues/etcd-max-txn-ops-nested.md`).
 -/
 module
 

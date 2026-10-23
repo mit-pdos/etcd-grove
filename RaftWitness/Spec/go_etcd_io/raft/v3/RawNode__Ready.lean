@@ -70,7 +70,7 @@ raft v3.7 (2026-10-16, stage R5; `notes/decisions.md`, D8): `readyWithoutAccept`
 `acceptReady` (`RawNode.readyWithoutAccept.spec`'s file says what changed): the messages handed
 out (`ms : List QMsg`, a response at half -- `acceptReady` read the other half, which stays with
 the node's way back and is dropped with the queues: the application gets responses read-only,
-`issues/raft-ready-messages-read-after-handout.md`), the entries `entsRO`, the read states
+`issues/nonissues/raft-ready-messages-read-after-handout.md`), the entries `entsRO`, the read states
 `readStatesPts`, `rd.Snapshot` `nil`, and the hard state `hsOpt rd.HardState' h` (new). The
 `ReadState`s' contexts are bytes (D6), `readStateOk` over `ReadStateM`. -/
 abbrev RawNode.Ready.spec : Prop :=

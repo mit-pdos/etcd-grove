@@ -155,7 +155,7 @@ therefore mend every blackhole for the test to finish. That affects only the tes
   (`Proof/.../third_party/bridge/Base.lean`; `Init.lean` generated).
 - **A finding**: a second `Blackhole` without an `Unblackhole` in between panics ("close of
   closed channel"), holding the bridge's mutex
-  (`issues/etcd-bridge-blackhole-twice-panic.md`, reproduced by
+  (`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`, reproduced by
   `third_party/bridge/bridge_test.go`). Since `Main`'s theorem is for every schedule, linkv3p's
   `partitioner` records which bridges are blackholed and skips a second `Blackhole`
   (`clientStep`'s `holed`). The bridge's `Blackhole` spec (D26) takes the bridge unblackholed.
@@ -247,7 +247,7 @@ kept for the record). `Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/`
 - **`serveConn`'s local wait group** (`Add(2)`, which Perennial's join idiom, `Add(1)` at a time,
   does not cover): a pair invariant of its own.
 - **`Blackhole` takes the owner's flag "not blackholed"** (`bridgeHoled γ false`): the panic of a
-  second call (`issues/etcd-bridge-blackhole-twice-panic.md`) is excluded by the premise, which
+  second call (`issues/nonissues/etcd-bridge-blackhole-twice-panic.md`) is excluded by the premise, which
   linkv3p's `clientStep` meets by tracking the flags (`holed`).
 
 Perennial limitations met, worked around locally (to propose upstream): `wp_load` does not load a

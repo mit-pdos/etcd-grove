@@ -123,6 +123,6 @@ lock is held by another session, which is what deletes the shared key.
   new `Mutex` per `Lock` RPC, so two `Lock` RPCs with one lease are two `Mutex` values on one session; the
   canceled-`Lock` variant applies (code reading; not run).
 - `Election.Campaign` has a related gap (it checks nothing after its wait): a separate finding,
-  `issues/election-campaign-key-check.md`, not part of this change.
+  `issues/nonissues/election-campaign-key-check.md`, not part of this change.
 - Backports: `release-3.6` and `release-3.5` have the same final check (`len(gresp.Kvs) == 0` only) and the same
   `tryAcquire`; not run there.

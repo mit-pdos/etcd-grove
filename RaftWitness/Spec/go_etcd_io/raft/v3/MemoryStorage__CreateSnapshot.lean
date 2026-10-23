@@ -30,7 +30,7 @@ The premise: a newer `i` is in the stored log, `prev.index ≤ i ≤ lastIndex`.
 `lastIndex` `CreateSnapshot` calls `Panicf`; below the compaction boundary
 `ms.ents[i-offset]` is out of range (`i - offset` wraps), a runtime panic. Neither
 bound is in the method's documentation
-(issues/raft-memorystorage-createsnapshot-bounds.md).
+(issues/nonissues/raft-memorystorage-createsnapshot-bounds.md).
 
 Like `ApplySnapshot`, it takes `ownMemoryStorage` with nothing pending. The error variable's
 value is passed in, as `Snapshot`'s spec does for its error.

@@ -1,12 +1,65 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/raft#354 issue open: related, not this bug (a rejected ConfChange becomes a silent no-op; same pendingConfIndex guard, no Advance/apply ordering)
 candidate: issues/upstream/etcd-leader-advance-before-applyconfchange/
 ---
 
 # etcdserver: the leader calls raft's Advance before its apply loop has applied a conf change, which lets raft accept an overlapping membership change
+
+**2026-10-23 (investigation: a bad execution is possible, nothing in etcd prevents it; still not reproduced end-to-end).**
+Re-checked against upstream `main` 3aaab3479 and `go.etcd.io/raft/v3` v3.7.0. Verdict: **no etcd check or ordering
+closes the window** — the leader-lag safety violation (two overlapping membership changes both applied, giving
+disjoint quorums and a divergent/lost committed entry) is reachable in principle. It is not prevented; it is only
+made unlikely by timing. Details:
+
+- *The contract gap is live at HEAD.* `TestConfigChangeBlocksApply`, run for `StateLeader` as well as
+  `StateFollower` (the fix branch's test, cherry-picked onto `main` 3aaab3479), still fails for the leader:
+  `raft_test.go:251 unexpected execution: raft routine should block waiting for toApply`; the follower passes. The
+  leader branch of `raftNode.start` (`server/etcdserver/raft.go`, the `else` at the `notifyc <- struct{}{}` after
+  the `confChanged` scan) sends `notifyc` once and calls `r.Advance()` with no wait, unchanged from the draft's
+  base. So `raftLog.applied` moves before the apply loop runs `ApplyConfChange`.
+- *The raft mechanism is real at v3.7.0.* The propose-time guard is `alreadyPending := r.pendingConfIndex >
+  r.raftLog.applied` (`raft.go:1326`, v3.7.0); `DisableConfChangeValidation` is **off** in etcd (`raftConfig`,
+  `server/etcdserver/bootstrap.go:564`, default config: `CheckQuorum` true, no `DisableConfChangeValidation`), so
+  this guard is the only propose-time protection and `Advance` defeats it. The raft `Node` reproduction
+  `TestNodeAdvanceBeforeApplyConfChange` (branch `raft-advance-before-applyconfchange-repro`, commit 3dcedb6,
+  three nodes) commits two *different* entries at index 4 through the public `Node` API.
+- *No etcd apply-time defense turns the second change into a no-op.* `applyConfChange` →
+  `cluster.ValidateConfigurationChange` (`server/etcdserver/api/membership/cluster.go:306`) validates each conf
+  change against the membership store **as sequentially updated by the conf changes already applied in log order**
+  (existence / already-removed / peer-URL conflicts). It has no notion of a pending or unapplied conf change, so
+  when a node applies `C1=add 4` then `C2=remove 2` in log order each passes and `C2` is a *real* removal, applied
+  through `s.r.ApplyConfChange`. The membership API guards that run *before* proposing (`mayAddMember`/
+  `mayRemoveMember`, `isLearnerReady`) read the applied membership and peer health and **do not serialize two
+  concurrent clients**; `configure`'s `<-resp.raftAdvanceC` wait serializes one client's *sequential* changes only
+  (its own request). None of these look at raft's `pendingConfIndex`/`applied` relationship.
+- *Reachable schedule (add-member route; gives disjoint quorums).* Cluster `{1,2,3}`, leader 1, apply loop
+  stalled on the leader (large batch / slow backend commit / defrag; a `beforeApplyOneConfChange` failpoint in a
+  test). (a) client A `MemberAdd(4, started)` → `mayAddMember` ok on `{1,2,3}` → `configure` proposes `C1=add 4`,
+  committed at index 2 by `{1,2}` (`server.go:1376`, `1749`); leader's `Ready` takes the leader branch and calls
+  `r.Advance()` → `applied=2`, but raft config still `{1,2,3}` (`raft.go:331`). (b) concurrent client B
+  `MemberRemove(2)` → `mayRemoveMember` ok on store `{1,2,3}` → proposes `C2=remove 2`; `stepLeader` MsgProp:
+  `pendingConfIndex(2) > applied(2)` is false → accepted, committed at index 3 under `{1,2,3}` by `{1,2}`
+  (`raft.go:1326`). (c) nodes 3 and 4 receive indices 1–3 with commit 3 and apply both → config `{1,3,4}`. (d)
+  leader (still `{1,2,3}`) commits `x` at index 4 by `{1,2}`. (e) partition `{1,2}|{3,4}`: `{1,2}` is a majority of
+  `{1,2,3}` and `{3,4}` a majority of `{1,3,4}`, and the two sets are **disjoint** → node 3 wins with `{3,4}` and
+  commits a different entry at index 4. Two committed entries at one index ⇒ lost committed data. `C2` is committed
+  by `{1,2}`, which is *not* a majority of `{1,2,3,4}` (the config in effect after `C1`): the Raft invariant that
+  consecutive configs share the commit quorum is broken. (A secondary route — leader steps down after `Advance`,
+  before applying, and campaigns with the unapplied change — hits `hasUnappliedConfChanges`/`becomeLeader` the same
+  way; it can also reach the `r.trk.Progress[r.id]` nil panic when a node removed from its own config campaigns.)
+- *Why it stays hard to hit (honest caveat; why no cluster reproduction here).* The window is normally sub-millisecond
+  and needs the leader's apply loop stalled across it; it needs two conf-change clients concurrent (or one forwarded);
+  and the add-member route needs node 4 to catch up and vote on the `{3,4}` side, yet the leader only `transport.AddPeer(4)`s
+  when it applies `C1` — so during the stall node 4 is fed only once node 3 (whose apply loop is not stalled) applies
+  `C1`/`C2`, becomes leader and replicates/snapshots to 4. A gofail integration test (failpoint `beforeApplyOneConfChange`
+  to hold the leader apply, `MemberAdd(4)` + concurrent `MemberRemove(2)`, then the partition and an election on 3) is a
+  large, racy effort and was not built in this pass; the evidence above (contract test at HEAD + raft `Node` reproduction
+  + the code reading that no etcd check closes the gap) establishes possibility without it. Same analysis holds with
+  `--strict-reconfig-check=off` (the `may*` checks are skipped, so the race is *easier*), and for the v2 and v3 membership
+  paths and learner promote, since all route through `configure`/`ProposeConfChange` and the same leader branch.
 
 **2026-10-21**: candidate `issues/upstream/etcd-leader-advance-before-applyconfchange/` (on hold until the raft
 documentation PR is accepted): `TestConfigChangeBlocksApply` run for a leader fails at etcd `main` 7ff040cb8 (the

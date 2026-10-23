@@ -34,7 +34,7 @@ Each is self-contained; pick one or more. They avoid the files above.
 
 1. **Upstream drafts for the two safety findings.** `issues/raft-advance-before-applyconfchange.md`
    (reproduced: `issues/raft-conf-lag-model/leaderlag_test.go`) and
-   `issues/raft-commit-lost-with-entries-kept.md` (abstract model only). Write issue texts
+   `issues/nonissues/raft-commit-lost-with-entries-kept.md` (abstract model only). Write issue texts
    for etcd-io/raft in the format of the etcd drafts listed in `issues/README.md`
    (summary, what happens, how to reproduce, expected, the fix): one asking to document
    the precondition (apply a `Ready`'s conf changes before `Advance`; persist entries and

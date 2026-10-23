@@ -218,7 +218,7 @@ error paths; `checkInvariants` returns `nil` iff `CfgInv`. Choices:
 - the old specs are replaced, not kept beside the new ones; `Restore`'s statement is
   unchanged, and its proof derives the old `Simple` statement (`Simple_votersOnly`).
 Two findings: `Config.Clone` drops `AutoLeave` (`issues/raft-config-clone-autoleave.md`);
-a tracker with a `nil` incoming voter map panics (`issues/raft-changer-nil-incoming.md`,
+a tracker with a `nil` incoming voter map panics (`issues/nonissues/raft-changer-nil-incoming.md`,
 excluded by `ownCfgCC`).
 
 **A Goose bug found on the way.** `cc := cc` (Go's loop-local-copy idiom, used twice in
@@ -3107,7 +3107,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   `mkGteRange("\x00")`); on decoded requests (protobuf-go decodes an empty `bytes` field as
   `nil`) that is the client's `inRange`. A put denotes the server's total `putTxnOp` (the
   ignore flags keep the value or lease whatever the request says), not the client's partial
-  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/etcd-txn-empty-requestop.md`).
+  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/nonissues/etcd-txn-empty-requestop.md`).
   The responses mirror `TxnOpResult` (`txnResponseIs`), recursively; a nested response's
   header revision is `0`.
 - **The index answers the state** (unit 0b, pure): for a well-formed log, mvcc's
@@ -3204,7 +3204,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   the mvcc changes named (the write transaction's pending list); `txn_runTxn` relates it to the
   client's `runTxn` under `OpsStable`. *Rejected:* stating `Txn` over `runTxn` (false for a nested
   comparison on a key written earlier in the transaction: the client model is wrong there,
-  `issues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
+  `issues/nonissues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
   it). (2) **A context never canceled** instead of a panic: in the write path a range or a
   `PrevKv` delete at a done context returns an error that `txn` turns into `lg.Panic`; mvcc's
   `rangeCtx true` now also takes an `isContext` whose Done proposition never holds (`neverDone`:
@@ -4907,7 +4907,7 @@ dropping `snapThin` (the assumed contract would be false of Go's backend once co
   only persistent facts (`isTreeIndex`, `crevLb`, `idxCert`), so it allowed two concurrent
   passes: then one pass can `compact` a key index the other deleted (an empty one: `lg.Panic`),
   or delete by key a key put again in between, and the clone's pointers are not owned by anyone
-  when visited (unprovable, and false of Go: `issues/etcd-index-compact-overlapping.md`). It
+  when visited (unprovable, and false of Go: `issues/nonissues/etcd-index-compact-overlapping.md`). It
   also allowed a pass at a revision below an earlier pass's, whose `available` is then not
   `keepSetIs` (the key indexes are already compacted above it). The new ghost name `IdxNames.cmp`
   (`ghostVar (Int × List Loc)`) holds the last compaction's revision and the pointers a pass has
@@ -5449,7 +5449,7 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   used by the server's construction premise (`srvFieldsAt`/`isServerBuilt` still state
   `lessorOk`/`isApplyLessor`): the lessor's constructor is not proved.
 - **`Revoke` is not proved** (translated): (1) it reads `le.rd` after unlocking `le.mu` (a data
-  race with `SetRangeDeleter`/`Recover`: `issues/etcd-lessor-revoke-rd-unlocked.md`), so it needs a
+  race with `SetRangeDeleter`/`Recover`: `issues/nonissues/etcd-lessor-revoke-rd-unlocked.md`), so it needs a
   share of `rd` outside the lock, which unit 8's `SetRangeDeleter` spec (any caller) does not
   leave; (2) `le.rd()` is the store's write closure: its contract (`NewStore`'s closure over
   `store.Write`, under the sole-writer discipline) would have to be recorded by `SetRangeDeleter`;
@@ -5503,7 +5503,7 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   (the request path's contexts come from grpc's handler axioms, which would have to state it).
 - **`AuthInfoFromTLS` is the trust boundary whole**: `credentials.TLSInfo`, `tls.ConnectionState`
   and `x509.Certificate` are axiomatized types (no field of them steps), and its one-result type
-  assertion panics for a peer with other credentials (`issues/etcd-auth-tls-info-assert.md`;
+  assertion panics for a peer with other credentials (`issues/nonissues/etcd-auth-tls-info-assert.md`;
   unreachable in etcd's servers): the axiom states only its result.
 - **The auth package's instance moved to `auth/Base.lean`** (from the apply package's `Base`, which
   imports it): its facts are its own error variables (`authErrVar`, the shape of `errVarLeaf`,
@@ -5864,7 +5864,7 @@ reply and `Φ`, or a client error. `Client.unaryClientInterceptor` returns such 
 (proved); the client's connection is `isEtcdConn conn addr := ∃ ic, grpcConn conn addr [ic] [] ∗
 etcdInterceptorOk ic`, a definition: what `clientv3.New` dials (`dialSetupOpts`), given no
 `Config.DialOptions` adding interceptors or default call options (an assumption about the
-unverified constructor; `issues/etcd-client-dialoptions-unary-interceptor.md`: a
+unverified constructor; `issues/nonissues/etcd-client-dialoptions-unary-interceptor.md`: a
 `WithUnaryInterceptor` there replaces the retry interceptor). `etcdConn_Invoke`
 (`client/v3/EtcdInvoke.lean`) derives unit C1's statement from the axiom and the contract; the
 stubs use it, so the client's results are unchanged in form, their premise `isGrpcConn` (opaque)
@@ -7164,7 +7164,7 @@ drawn there:
   an unset optional `bool` is unpopulated, not `false`, to `Equal`). The restriction is a real
   one in the code: a `ConfState` with an unknown field (written by a newer raftpb) is "not
   equivalent" to the same configuration and `raft.restore`/`newRaft` panic
-  (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
+  (`issues/nonissues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
   specs inherit it as a premise. Other messages' predicates keep their unknown fields
   existential (`entPts`, `msgPts`, ...): no axiom there compares them.
 
@@ -8058,7 +8058,7 @@ composes the connection from the descriptors as grpc does (the last `WithUnaryIn
 interceptor, no chain, no default call options). An option no axiom describes has no descriptor,
 so a dial holding one is simply not covered: no catch-all "harmless option" is assumed. The
 caller's `Config.DialOptions` are excluded by a premise (empty) rather than modelled
-(`issues/etcd-client-dialoptions-unary-interceptor.md`).
+(`issues/nonissues/etcd-client-dialoptions-unary-interceptor.md`).
 
 **Why `NewClient` asks for etcd's stream interceptor.** `grpcConn` (item 4's `InvGrpc.lean`,
 not ours to change) records the unary chain only, and `ClientConn.NewStream`'s axiom assumes the
@@ -8776,7 +8776,7 @@ the theorem says nothing.
   - *The feature gate's contract was false of Go* (a spec bug of this repository).
     `isFeatureGate` said `Enabled(f)` returns some boolean for every `f`. `featureGate.Enabled`
     panics on a feature it has not registered (its own comment says so; the `FeatureGate`
-    interface's does not: `issues/etcd-featuregate-enabled-panic-undocumented.md`). As a premise
+    interface's does not: `issues/nonissues/etcd-featuregate-enabled-panic-undocumented.md`). As a premise
     of `NewServer.spec` it could not be met, and the trust-boundary spec of
     `NewDefaultServerFeatureGate` would have been a false axiom. Now `isFeatureGate`
     (`Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`, moved there from `InvProposer.lean`)
@@ -9433,7 +9433,7 @@ its proved `time.wp_Since` gives any duration (the local axiom is false in that 
 - *Recommendation:* (C); (A) with the class if the fork should stay at upstream's code.
 
 **(ii) `auth.authStore.AuthInfoFromTLS`** (any context; Go panics on a peer whose `AuthInfo` is
-not a `credentials.TLSInfo`: `issues/etcd-auth-tls-info-assert.md`). Its caller is the server's
+not a `credentials.TLSInfo`: `issues/nonissues/etcd-auth-tls-info-assert.md`). Its caller is the server's
 request contract (`isReqAuth`'s `AuthInfoFromTLS` clause, `AuthReqDerive.lean`), for any context.
 - *(A) A deployment premise* (opaque "etcd's gRPC servers are built with TLS credentials or
   none", so a handler's peer has no `AuthInfo` or a `TLSInfo`), as a class (gen-link
@@ -14504,7 +14504,7 @@ that pausing a peer only loses messages, which the network model allows. Checkin
 `CutPeer` also calls `Pause` on a *remote* of `id` if there is one, and `remote.Pause` stops the
 pipeline, whose `stop` closes a channel unconditionally, so a second `CutPeer` of a remote without
 a `MendPeer` in between panics ("close of closed channel"; reproduced,
-`issues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
+`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The theorem quantifies over every
 schedule, including one that cuts the same link twice, so the S1 axiom was false as stated.
 
 **Options.** (a) Fix the fork (`remote.Pause`/`Resume` idempotent): the axiom is then true of any
@@ -14706,7 +14706,7 @@ leave the program: Perennial's adequacy covers every thread. Its specs
 - `New(addr, l)`, `l` a listener bound at `a` (`netListenerAt`): a bridge to `addr`, not
   blackholed, and `a` serves what `addr` serves, method by method (the forwarding fact).
 - `Blackhole` of a bridge not blackholed (a second one panics:
-  `issues/etcd-bridge-blackhole-twice-panic.md`): blackholed. `Unblackhole`: not blackholed.
+  `issues/nonissues/etcd-bridge-blackhole-twice-panic.md`): blackholed. `Unblackhole`: not blackholed.
   `DropConnections`: unchanged.
 
 Why the forwarding fact holds of the bridge and gRPC: the bridge only copies bytes, so each side
