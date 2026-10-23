@@ -48,8 +48,8 @@ axiom respWriteHeader_ok (H : HttpNet GF) : respWriteHeader_spec H
 /-- `Header.Set` (`HeaderSet_spec`): `textproto.MIMEHeader.Set` of the canonical key. -/
 axiom HeaderSet_ok : HeaderSet_spec (GF := GF)
 
-/-- `ResponseWriter.Header()` (`RespHeader_spec`): the writer's header map. -/
-axiom RespHeader_ok (H : HttpNet GF) : RespHeader_spec H
+/-- `ResponseWriter.Header()` before the commit (`RespHeader_spec`): the writer's header map, lent. -/
+axiom RespHeader_ok : RespHeader_spec (GF := GF)
 
 /-- `io.ReadAll` of a prefix reader (`ReadAll_spec`): it reads until `EOF` or an error. -/
 axiom ReadAll_ok : ReadAll_spec (GF := GF)

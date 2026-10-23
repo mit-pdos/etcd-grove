@@ -101,6 +101,8 @@ structure Proto (GF : BundledGFunctors) where
   req_pers : ∀ R γk, Persistent (req R γk)
   resp : HReq → GName → w64 → List w8 → IProp GF
   resp_pers : ∀ R γk st w, Persistent (resp R γk st w)
+  /-- (2026-10-23, rafthttp stage 5e) The headers a handler of the request may commit. -/
+  rhdr : HReq → List (GoString × GoString) → Prop
 
 instance Proto.req_persistent (P : Proto GF) (R : HReq) (γk : GName) : Persistent (P.req R γk) :=
   P.req_pers R γk
@@ -172,9 +174,29 @@ instance ioEOF_persistent (e : GoInterface) : Persistent (ioEOF (GF := GF) e) :=
 
 /-! ### Headers -/
 
-/-- **A header key canonicalized** (opaque, pure): `textproto.CanonicalMIMEHeaderKey`, which
-`Header.Set` and `Header.Get` apply to their key. -/
-opaque canonKey (k : GoString) : GoString
+/-- A header key's byte (`textproto.validHeaderFieldByte`): a token byte, RFC 7230's `tchar`. -/
+def hdrTokenByte (c : w8) : Bool :=
+  decide ((48 ≤ c.toNat ∧ c.toNat ≤ 57) ∨ (65 ≤ c.toNat ∧ c.toNat ≤ 90) ∨
+    (97 ≤ c.toNat ∧ c.toNat ≤ 122) ∨
+    c.toNat ∈ [33, 35, 36, 37, 38, 39, 42, 43, 45, 46, 94, 95, 96, 124, 126])
+
+/-- `canonicalMIMEHeaderKey`'s loop: the first letter and each letter after `-` upper case, the
+other letters lower case. -/
+def canonLoop : Bool → List w8 → List w8
+  | _, [] => []
+  | upper, c :: cs =>
+    let c' := if upper = true ∧ 97 ≤ c.toNat ∧ c.toNat ≤ 122 then c - W8 32
+      else if upper = false ∧ 65 ≤ c.toNat ∧ c.toNat ≤ 90 then c + W8 32 else c
+    c' :: canonLoop (c' == W8 45) cs
+
+/-- **A header key canonicalized**: `textproto.CanonicalMIMEHeaderKey`, which `Header.Set` and
+`Header.Get` apply to their key; a key with a byte that is not a token byte is left as it is.
+(2026-10-23, rafthttp stage 5e: a definition, until then opaque, so that distinct keys are known
+distinct.) -/
+def canonKey (k : GoString) : GoString := if k.all hdrTokenByte then canonLoop true k else k
+
+example : canonKey go!"X-Etcd-Cluster-ID" = go!"X-Etcd-Cluster-Id" := by decide
+example : canonKey go!"x-server-version" = go!"X-Server-Version" := by decide
 
 /-- `Header.Set(k, v)`'s effect on the list of (canonical key, value) pairs: `k`'s values
 replaced by `v`. -/
@@ -184,6 +206,41 @@ def hdrSet (hs : List (GoString × GoString)) (k v : GoString) : List (GoString 
 /-- `Header.Get(k)`: the first value of `k` (canonical), or `""`. -/
 def hdrGet (hs : List (GoString × GoString)) (k : GoString) : GoString :=
   ((hs.find? (fun kv => kv.1 = canonKey k)).map Prod.snd).getD ""
+
+theorem hdrGet_nil (k : GoString) : hdrGet [] k = "" := rfl
+
+/-- `Get` of a key after `Set` of another (canonically distinct) key. -/
+theorem hdrGet_hdrSet_ne (hs : List (GoString × GoString)) (k k' v : GoString)
+    (h : canonKey k ≠ canonKey k') : hdrGet (hdrSet hs k v) k' = hdrGet hs k' := by
+  unfold hdrGet hdrSet
+  rw [List.find?_append]
+  have h1 : (List.find? (fun kv => decide (kv.1 = canonKey k')) [(canonKey k, v)]) = none := by
+    simp [h]
+  have h2 : List.find? (fun kv => decide (kv.1 = canonKey k'))
+      (List.filter (fun kv => decide (kv.1 ≠ canonKey k)) hs) =
+      List.find? (fun kv => decide (kv.1 = canonKey k')) hs := by
+    induction hs with
+    | nil => rfl
+    | cons x xs ih =>
+      by_cases hx : x.1 = canonKey k
+      · have : ¬ x.1 = canonKey k' := by rw [hx]; exact h
+        rw [List.filter_cons_of_neg (by simp [hx]), List.find?_cons_of_neg (by simp [this]), ih]
+      · rw [List.filter_cons_of_pos (by simp [hx])]
+        by_cases hx' : x.1 = canonKey k'
+        · rw [List.find?_cons_of_pos (by simp [hx']), List.find?_cons_of_pos (by simp [hx'])]
+        · rw [List.find?_cons_of_neg (by simp [hx']), List.find?_cons_of_neg (by simp [hx']), ih]
+  rw [h2, h1]
+  cases List.find? (fun kv => decide (kv.1 = canonKey k')) hs <;> rfl
+
+/-- `Get` of a key after its `Set`. -/
+theorem hdrGet_hdrSet_eq (hs : List (GoString × GoString)) (k v : GoString) :
+    hdrGet (hdrSet hs k v) k = v := by
+  unfold hdrGet hdrSet
+  rw [List.find?_append]
+  have : List.find? (fun kv => decide (kv.1 = canonKey k))
+      (List.filter (fun kv => decide (kv.1 ≠ canonKey k)) hs) = none := by
+    rw [List.find?_eq_none]; intro x hx; simp [List.mem_filter] at hx; simp [hx.2]
+  rw [this]; simp
 
 /-- **A header map `hm` holding `hs`** (exclusive; a request's headers being built, or a response
 writer's). -/
@@ -199,6 +256,23 @@ instance hdrAt_persistent (hm : Loc) (hs : List (GoString × GoString)) :
     Persistent (hdrAt (GF := GF) hm hs) := by
   unfold hdrAt; infer_instance
 
+
+/-- **The response headers Go's server sets itself** (canonical keys): `Date`, the body's
+`Content-Type`, `Content-Length`, `Transfer-Encoding`, `Connection`, and `http.Error`'s
+`X-Content-Type-Options`. (2026-10-23, rafthttp stage 5e.) -/
+def srvKeys : List GoString :=
+  [go!"Date", go!"Content-Type", go!"Content-Length", go!"Transfer-Encoding", go!"Connection",
+    go!"X-Content-Type-Options"]
+
+/-- **What the client sees of a response's committed headers `hs`**: `hc` agrees with them but
+for the keys Go's server sets itself (`srvKeys`). -/
+def srvView (hs hc : List (GoString × GoString)) : Prop :=
+  ∀ k, canonKey k ∉ srvKeys → hdrGet hc k = hdrGet hs k
+
+/-- **A response writer's header map, holding `hs`, not yet committed** (exclusive, opaque;
+2026-10-23, rafthttp stage 5e): what `w.Header()` lends, and what the first `WriteHeader` or
+`Write` commits. -/
+opaque respHdrs (wr : GoInterface) (hs : List (GoString × GoString)) : IProp GF
 
 /-! ### The client's side (continued) -/
 
@@ -253,14 +327,15 @@ opaque respReader (H : HttpNet GF) (rd : GoInterface) (R : HReq) (γk : GName) (
 
 /-- **A received response** at `resp` for `R`, of status `st` (persistent field facts: its
 `StatusCode` is `st`, its `Header` some header map, its `Body` the reader `rd`, not `nil`). -/
-def respAt (resp : Loc) (st : w64) (rd : GoInterface) : IProp GF :=
+def respAt (resp : Loc) (st : w64) (rd : GoInterface) (Hd : List (GoString × GoString) → Prop) :
+    IProp GF :=
   iprop(respF go!"StatusCode" resp ↦□ st ∗
     (∃ (hm : Loc) (hs : List (GoString × GoString)), respF go!"Header" resp ↦□ hm ∗
-      hdrAt (GF := GF) hm hs) ∗
+      hdrAt (GF := GF) hm hs ∗ ⌜Hd hs⌝) ∗
     respF go!"Body" resp ↦□ rd ∗ ⌜rd ≠ GoInterface.nil⌝)
 
-instance respAt_persistent (resp : Loc) (st : w64) (rd : GoInterface) :
-    Persistent (respAt (GF := GF) resp st rd) := by
+instance respAt_persistent (resp : Loc) (st : w64) (rd : GoInterface)
+    (Hd : List (GoString × GoString) → Prop) : Persistent (respAt (GF := GF) resp st rd Hd) := by
   unfold respAt; infer_instance
 
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
@@ -278,7 +353,8 @@ def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
           (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∨
            ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
-            respAt resp st rd ∗ (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
+            respAt resp st rd (fun hc => ∃ hs, (H.proto R.host).rhdr R hs ∧ srvView hs hc) ∗
+            (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
             respReader H rd R γk st []) }}))
 
 instance roundTripperOk_persistent (H : HttpNet GF) (rt : GoInterface) :
@@ -313,18 +389,35 @@ stream handler does). -/
 opaque respWriter (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (γk : GName)
   (st : Option w64) (w : List w8) : IProp GF
 
+/-- **A handler's response writer when it returns** (2026-10-23, rafthttp stage 5e): given back
+(Go: "A ResponseWriter may not be used after the Handler.ServeHTTP method has returned"),
+committed, or not if the handler panics (`Serve` recovers the panic and drops the connection). -/
+def handlerDone (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (γk : GName)
+    (v : val) : IProp GF :=
+  iprop((∃ st w, respWriter H wr a R γk (some st) w) ∨
+    ⌜v.isPanic = true⌝ ∗ respWriter H wr a R γk none [])
+
 /-- **A handler of the address `a`** (persistent), lending each invocation the resource `Rs`:
 `ServeHTTP` of any request the network delivers to `a`, with its ticket, its body reader and a
-fresh response writer (a non-`nil` interface value, an `http.Flusher`: the server's writers are),
-returns `Rs` (or panics, giving it back too: `Serve` recovers the panic). -/
+fresh response writer (a non-`nil` interface value, an `http.Flusher`: the server's writers are)
+with its empty header map, returns `Rs` and the writer (`handlerDone`; or panics, giving them back
+too: `Serve` recovers the panic). -/
 def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicket γk -∗
         bodyReader rd R [] -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
         WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))
-          (Val #r)) {{ _v, Rs }}))
+          (Val #r)) {{ v, Rs ∗ handlerDone H (GoInterface.ok wi) a R γk v }}))
+
+/-- **Before a response's commit, its headers are ready** (2026-10-23, rafthttp stage 5e): the
+header map not yet committed, holding headers of the protocol (`rhdr`); nothing once committed. -/
+def hdrsReady (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) :
+    Option w64 → IProp GF
+  | none => iprop(∃ hs, respHdrs wr hs ∗ ⌜(H.proto a).rhdr R hs⌝)
+  | some _ => iprop(True)
 
 /-! ### The specs (statements for review; see the file header) -/
 
@@ -374,7 +467,7 @@ def respWrite_spec (H : HttpNet GF) : Prop :=
     (st : Option w64) (w : List w8) (b : GoSlice) (bs : List w8) (dq : DFrac),
     wr = GoInterface.ok wi →
     ⊢ {{ respWriter H wr a R γk st w ∗ b ↦*{dq} bs ∗
-          □ (H.proto a).resp R γk (st.getD (W64 200)) (w ++ bs) }}
+          □ (H.proto a).resp R γk (st.getD (W64 200)) (w ++ bs) ∗ hdrsReady H wr a R st }}
         (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #b))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
           ∃ k : Nat, b ↦*{dq} bs ∗ respWriter H wr a R γk (some (st.getD (W64 200))) (w ++ bs.take k) ∗
@@ -387,7 +480,7 @@ def respWriteHeader_spec (H : HttpNet GF) : Prop :=
   ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName) (st : w64),
     wr = GoInterface.ok wi →
     ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk st [] ∗
-          ⌜200 ≤ sint.Z st ∧ sint.Z st ≤ 999⌝ }}
+          ⌜200 ≤ sint.Z st ∧ sint.Z st ≤ 999⌝ ∗ hdrsReady H wr a R none }}
         (App (Val #(methods wi.ty go!"WriteHeader" wi.v)) (Val #st))
       {{ RET #(); respWriter H wr a R γk (some st) [] }}
 
@@ -419,15 +512,15 @@ def HeaderGet_spec : Prop :=
         (App (Val (hm @!! _root_.Perennial.net.http.Header.ty @!! go!"Get")) (Val #k))
       {{ RET #(hdrGet hs k); True }}
 
-/-- `w.Header()` of a response writer: a header map the handler may `Set` freely (the client's
-view of response headers is unconstrained). -/
-def RespHeader_spec (H : HttpNet GF) : Prop :=
-  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName)
-    (st : Option w64) (w : List w8),
+/-- `w.Header()` of a response writer before its commit: its header map, lent to be `Set` (2026-10-23,
+rafthttp stage 5e: the headers it holds, which the commit needs of the protocol; until then a
+map the handler set freely, unconstrained for the client). -/
+def RespHeader_spec : Prop :=
+  ∀ (wr : GoInterface) (wi : GoInterfaceOk) (hs : List (GoString × GoString)),
     wr = GoInterface.ok wi →
-    ⊢ {{ respWriter H wr a R γk st w }}
+    ⊢ {{ respHdrs (GF := GF) wr hs }}
         (App (Val #(methods wi.ty go!"Header" wi.v)) (Val #()))
-      {{ (hm : Loc), RET #hm; respWriter H wr a R γk st w ∗ ∃ hs, hdrOwn hm hs }}
+      {{ (hm : Loc), RET #hm; hdrOwn hm hs ∗ (∀ hs', hdrOwn hm hs' -∗ respHdrs wr hs') }}
 
 /-- **A reader of the bytes `B`** (persistent, D33b): its `Read` from a state `Src r` (`r` read so
 far; `io.EOF`'s value `e`) reads `ys`, still a prefix of `B`, and returns `EOF` (`e`) only once `r ++ ys = B` -- the
@@ -484,7 +577,7 @@ def Flush_spec (H : HttpNet GF) : Prop :=
 def Error_spec (H : HttpNet GF) : Prop :=
   ∀ (wr : GoInterface) (a : GoString) (R : HReq) (γk : GName) (msg : GoString) (code : w64),
     ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk code (msg ++ [W8 10]) ∗
-          ⌜200 ≤ sint.Z code ∧ sint.Z code ≤ 999⌝ }}
+          ⌜200 ≤ sint.Z code ∧ sint.Z code ≤ 999⌝ ∗ hdrsReady H wr a R none }}
         (App (App (App (Val (@! _root_.Perennial.net.http.Error)) (Val #wr)) (Val #msg))
           (Val #code))
       {{ RET #(); respWriter H wr a R γk (some code) (msg ++ [W8 10]) }}
@@ -586,9 +679,10 @@ def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoSt
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ -∗ □ (H.proto a).req R γk -∗
         reqTicket γk -∗ bodyReader rd R [] -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
         WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))
-          (Val #r)) {{ _v, Rs }}))
+          (Val #r)) {{ v, Rs ∗ handlerDone H (GoInterface.ok wi) a R γk v }}))
 
 /-- **A built mux is a handler of `a`** (the mux's dispatch, stated as what its `ServeHTTP` does):
 each registered handler handles what is routed to it; a request routed nowhere (or redirected,
@@ -601,6 +695,8 @@ def mux_handlerOk_spec (H : HttpNet GF) : Prop :=
       (□ ∀ (R : HReq) (γk : GName) (st : w64) (w : List w8),
         ⌜route (regs.map Prod.fst) R.path = none⌝ → (H.proto a).req R γk -∗
           (H.proto a).resp R γk st w) -∗
+      ⌜∀ (R : HReq) (loc : GoString), route (regs.map Prod.fst) R.path = none →
+        (H.proto a).rhdr R [] ∧ (H.proto a).rhdr R (hdrSet [] go!"Location" loc)⌝ -∗
       handlerOk H a Rs (interface.mkOk (go.GoType.PointerType
         _root_.Perennial.net.http.ServeMux.ty) #m)
 

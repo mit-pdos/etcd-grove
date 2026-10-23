@@ -530,6 +530,13 @@ trust-boundary spec.
      Masterminds' grammar with a boundary fact that it parses.
    Then the pipeline's proofs are revisited (its handler sets `Allow` and `X-Etcd-Cluster-ID`).
    **5e-2**: `streamHandler.ServeHTTP`, `closeNotifier`, `peer.attachOutgoingConn`.
+   Its boundary items, accepted by the user (2026-10-23): `types.IDFromString`'s spec (of a
+   member id's string, `idStr x`, it returns `x` and no error: `strconv.ParseUint(s, 16, 64)`
+   inverts `FormatUint`); the version facts (`version.Version` holds `"3.8.0-alpha.0"`, its
+   initializer's value; `semver` parses a version of the simple form `MAJOR.MINOR.PATCH` with an
+   optional `-` prerelease of alphanumerics and dots, which `"3.8.0-alpha.0"` and `"2.0.0"` are).
+   The handler's transport facts (`peerGetter.Get` gives the peer's stream writers; `AddRemote`
+   returns) are premises, which stage 6 proves of `Transport`.
    **5e-3**: `streamReader.dial`'s proof (5c's), over the response's `X-Server-Version`.
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;

@@ -117,7 +117,10 @@ theorem respWriter_writerAt (H : http.HttpNet GF) (hW : http.respWrite_spec H) (
   iintro !> %p %dq %chunk %bs %Φ !> ⟨Hp, Hw, #HA⟩ HΦ
   wp_apply hW (GoInterface.ok wi) wi a R γk (some (W64 200)) bs p chunk dq rfl $$ [$Hp $Hw]
     as %n %err ⟨%k, Hp, Hw, %Hk, #Herr⟩
-  · simp only [Option.getD_some]; iexact HA
+  · simp only [Option.getD_some, http.hdrsReady]
+    isplitl
+    · iexact HA
+    itrivial
   iapply HΦ
   iexists k
   simp only [Option.getD_some]

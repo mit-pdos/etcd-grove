@@ -59,9 +59,11 @@ abbrev rafthttp.pipelineHandler.ServeHTTP.spec : Prop :=
     pipeHandlerOk Rh a γd Rs h -∗
     http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicket γk -∗
     http.bodyReader rd R [] -∗ http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk none [] -∗
+    http.respHdrs (GoInterface.ok wi) [] -∗
     ⌜go.typeSetContains wi.ty net.http.Flusher.ty = true⌝ -∗ Rs -∗
     WP (App (App (Val (h @!! go.GoType.PointerType rafthttp.pipelineHandler.ty @!! go!"ServeHTTP"))
-      (Val #(GoInterface.ok wi))) (Val #r)) {{ _v, Rs }}
+      (Val #(GoInterface.ok wi))) (Val #r))
+      {{ v, Rs ∗ http.handlerDone (raftHttpNet Rh) (GoInterface.ok wi) a R γk v }}
 
 end spec
 

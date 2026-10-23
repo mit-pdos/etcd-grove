@@ -29,6 +29,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pipe
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 
 @[expose] public section
 
@@ -368,17 +369,34 @@ instance streamResp_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) 
     (w : List w8) : Persistent (streamResp Rh R γk st w) := by
   unfold streamResp; infer_instance
 
+/-- **A raft member's response headers** (2026-10-23, rafthttp stage 5e): `X-Server-Version` unset
+or a version that parses (the stream reader's `serverVersion` parses it with `semver.MustParse`;
+the handlers set it to `version.Version` or not at all). -/
+def verHdrOk (hs : List (GoString × GoString)) : Prop :=
+  http.hdrGet hs go!"X-Server-Version" = "" ∨ apply.semverValid (http.hdrGet hs go!"X-Server-Version")
+
+theorem verHdrOk_nil : verHdrOk [] := Or.inl rfl
+
+/-- Setting another header keeps `X-Server-Version`. -/
+theorem verHdrOk_set (hs : List (GoString × GoString)) (k v : GoString)
+    (hk : http.canonKey k ≠ http.canonKey go!"X-Server-Version") (h : verHdrOk hs) :
+    verHdrOk (http.hdrSet hs k v) := by
+  unfold verHdrOk at *
+  rw [http.hdrGet_hdrSet_ne _ _ _ _ hk]
+  exact h
+
 /-- **A raft member's address's protocol** (stage 4: the pipeline's part; stage 5a: the streams'):
 a `POST` to `/raft` is a pipeline request, a `GET` a stream request (rafthttp's other `GET`, the
 prober's, is not translated); a `/raft` response is not a `403` (the status `errMemberRemoved` is
 reported for, which no member of a static cluster answers), and a `200` is a stream's
-(`streamResp`; the pipeline answers `204`). -/
+(`streamResp`; the pipeline answers `204`); its response headers are `verHdrOk`. -/
 def raftProto (Rh : RaftHttp GF) : http.Proto GF where
   req R γk := iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
     (⌜R.meth = go!"GET"⌝ → streamReq Rh R γk))
   req_pers R γk := by infer_instance
   resp R γk st w := iprop(⌜R.path = go!"/raft" → st ≠ W64 403⌝ ∗ streamResp Rh R γk st w)
   resp_pers R γk st w := by infer_instance
+  rhdr _ hs := verHdrOk hs
 
 /-- The raft network's HTTP network: every address's protocol is a raft member's. -/
 def raftHttpNet (Rh : RaftHttp GF) : http.HttpNet GF := ⟨fun _ => raftProto Rh⟩

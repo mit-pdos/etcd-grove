@@ -170,7 +170,7 @@ theorem rafthttp.pipeline.post.wp_proof
   subst Hnil
   wp_auto
   iunfold http.respAt at Hra
-  icases Hra with ⟨#HSC, ⟨%rhm, %rhs, #HRH, #Hrhs⟩, #HBody, %Hrdnn⟩
+  icases Hra with ⟨#HSC, ⟨%rhm, %rhs, #HRH, #Hrhs, %Hrhd⟩, #HBody, %Hrdnn⟩
   wp_auto
   cases rd with
   | nil => exact absurd rfl Hrdnn
@@ -189,8 +189,8 @@ theorem rafthttp.pipeline.post.wp_proof
     iapply HΦ; iexact HberrS
   | nil =>
   wp_auto
-  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to Hlgnn $$ [$Hbsl $Hreq]
-    as %cerr #Hcerr
+  wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to (fun _ => True) Hlgnn
+    $$ [$Hbsl $Hreq] as %cerr #Hcerr
   · unfold http.respAt
     iframe #
     ipureintro; exact Hrdnn

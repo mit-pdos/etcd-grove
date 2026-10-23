@@ -49,7 +49,7 @@ theorem wp_todoCtx_Done' :
   itrivial
 
 theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
-    (hRespHeader : ∀ H : http.HttpNet GF, http.RespHeader_spec H)
+    (hRespHeader : http.RespHeader_spec (GF := GF))
     (hHeaderSet : http.HeaderSet_spec (GF := GF))
     (hError : ∀ H : http.HttpNet GF, http.Error_spec H)
     (hWriteHeader : ∀ H : http.HttpNet GF, http.respWriteHeader_spec H)
@@ -71,7 +71,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
     (hAsT : errors.AsTarget rafthttp.writerToResponse.ty) :
     rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG) := by
   intro Rh a γd Rs h wi r R γk rd Hhost Hpath
-  iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw %hfl HRs
+  iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd %hfl HRs
   iunfold pipeHandlerOk at Hh
   icases Hh with ⟨%hv, #Hhv, %Hhvok, #Hraft, #Haddr⟩
   rw [method_unfold (t := go.GoType.PointerType rafthttp.pipelineHandler.ty) (m := go!"ServeHTTP")]
@@ -84,8 +84,11 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
   wp_if_destruct
   · -- a `POST`: `w.Header().Set("X-Etcd-Cluster-ID", h.cid.String())`
     wp_apply hIDStringPtr _ DFrac.discard hv.cid' $$ [$cid] as %cs ⟨-, %_⟩
-    wp_apply hRespHeader (raftHttpNet Rh) _ wi a R γk none [] rfl $$ [$Hw] as %hm' ⟨Hw, %hs', Hhm'⟩
-    wp_apply hHeaderSet hm' hs' $$ [$Hhm'] as Hhm'
+    wp_apply hRespHeader _ wi [] rfl $$ [$Hhd] as %hm' ⟨Hhm', Hhcl⟩
+    wp_apply hHeaderSet hm' [] $$ [$Hhm'] as Hhm'
+    ihave Hhd := Hhcl $$ Hhm'
+    have Hver : verHdrOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
+      verHdrOk_set _ _ _ (by decide) verHdrOk_nil
     -- the header check
     wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
     ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -123,11 +126,14 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           (try wp_auto)
           wp_apply hWarn hv.lg' _ _ $$ []
           · iframe #; ipureintro; exact Hhvok.1
-          wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
+          wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
           · simp only [raftHttpNet]
             isplitr
             · imodintro; iapply raftProto_resp_of <;> decide
+            isplitr
             · ipureintro; decide
+            simp only [http.hdrsReady]
+            iexists _; iframe; ipureintro; exact Hver
           -- `recvFailures.WithLabelValues(r.RemoteAddr).Inc()`
           wp_apply wp_slice_literal (V := GoString) [ra]
           isplitr
@@ -144,7 +150,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           iunfold prometheus.counterSpec at Hc
           icases Hc with ⟨#HInc, -⟩
           wp_apply HInc
-          iexact HRs
+          iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
         · subst Herr
           -- the protocol: a `POST` to `/raft` carries a message
           ihave #Hpr : pipeReq Rh R γk $$ []
@@ -213,13 +219,16 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           · -- `nil`: `204`
             subst Hpn
             wp_auto
-            wp_apply hWriteHeader (raftHttpNet Rh) _ wi a R γk (W64 204) rfl $$ [$Hw] as Hw
+            wp_apply hWriteHeader (raftHttpNet Rh) _ wi a R γk (W64 204) rfl $$ [$Hw Hhd] as Hw
             · simp only [raftHttpNet]
               isplitr
               · imodintro; iapply raftProto_resp_of <;> decide
+              isplitr
               · ipureintro; decide
+              simp only [http.hdrsReady]
+              iexists _; iframe; ipureintro; exact Hver
             imodintro
-            iexact HRs
+            iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
           · -- `ErrStopped`: not a `writerToResponse`; `500`, then a panic
             ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
             · iPkgInit
@@ -247,27 +256,33 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             (try wp_auto)
             wp_apply hWarn hv.lg' _ _ $$ []
             · iframe #; ipureintro; exact Hhvok.1
-            wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
+            wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
             · simp only [raftHttpNet]
               isplitr
               · imodintro; iapply raftProto_resp_of <;> decide
+              isplitr
               · ipureintro; decide
+              simp only [http.hdrsReady]
+              iexists _; iframe; ipureintro; exact Hver
             -- `w.(http.Flusher).Flush()`, then `panic(err)`, which `Serve` recovers
             rw [ite_cond_eq_true _ _ (eq_true hfl)]
             wp_auto
             wp_apply hFlush (raftHttpNet Rh) _ wi a R γk _ _ rfl $$ [$Hw] as Hw
             wp_apply wp_panic
             imodintro
-            iexact HRs
+            iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
           · -- a context error: none, `TODO()`'s context is never done
             iunfold ctxErr at Hpc
             icases Hpc with ⟨-, #Hf, -, -⟩
             simp only [bgCd]
             iexfalso
             iexact Hf
-      · -- a panic
+      · -- a panic, before any write: the writer given back uncommitted
         wp_auto
-        iexact HRs
+        iframe HRs; unfold http.handlerDone; iright
+        isplitr
+        · ipureintro; rfl
+        iexact Hw
     · -- one of the check's two errors: `412`, its message
       subst Hre
       icases He with (#He | #He)
@@ -277,33 +292,45 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         subst Heq
         wp_auto
         wp_apply HErr
-        wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
+        wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
         · simp only [raftHttpNet]
           isplitr
           · imodintro; iapply raftProto_resp_of <;> decide
+          isplitr
           · ipureintro; decide
-        iexact HRs
+          simp only [http.hdrsReady]
+          iexists _; iframe; ipureintro; exact Hver
+        iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
       · iunfold EtcdGrove.errorsNewVar at HCM
         icases HCM with ⟨%x, #Hx, #HErr⟩
         icombine He Hx gives %Heq
         subst Heq
         wp_auto
         wp_apply HErr
-        wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
+        wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
         · simp only [raftHttpNet]
           isplitr
           · imodintro; iapply raftProto_resp_of <;> decide
+          isplitr
           · ipureintro; decide
-        iexact HRs
+          simp only [http.hdrsReady]
+          iexists _; iframe; ipureintro; exact Hver
+        iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
   -- not a `POST`: `w.Header().Set("Allow", "POST")`, `405`
-  wp_apply hRespHeader (raftHttpNet Rh) _ wi a R γk none [] rfl $$ [$Hw] as %hm' ⟨Hw, %hs', Hhm'⟩
-  wp_apply hHeaderSet hm' hs' $$ [$Hhm'] as Hhm'
-  wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
+  wp_apply hRespHeader _ wi [] rfl $$ [$Hhd] as %hm' ⟨Hhm', Hhcl⟩
+  wp_apply hHeaderSet hm' [] $$ [$Hhm'] as Hhm'
+  ihave Hhd := Hhcl $$ Hhm'
+  have Hver : verHdrOk (http.hdrSet [] go!"Allow" go!"POST") :=
+    verHdrOk_set _ _ _ (by decide) verHdrOk_nil
+  wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
   · simp only [raftHttpNet]
     isplitr
     · imodintro; iapply raftProto_resp_of <;> decide
+    isplitr
     · ipureintro; decide
-  iexact HRs
+    simp only [http.hdrsReady]
+    iexists _; iframe; ipureintro; exact Hver
+  iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
 
 end proof
 

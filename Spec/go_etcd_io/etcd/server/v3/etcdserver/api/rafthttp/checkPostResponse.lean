@@ -24,10 +24,11 @@ variable [sem : go.Semantics]
 `204`). -/
 abbrev rafthttp.checkPostResponse.spec : Prop :=
   ∀ (lg resp : Loc) (st : w64) (rd : GoInterface) (b : GoSlice) (bs : List w8) (req : Loc)
-    (R : http.HReq) (to : go_etcd_io.etcd.client.pkg.v3.types.ID),
+    (R : http.HReq) (to : go_etcd_io.etcd.client.pkg.v3.types.ID)
+    (Hd : List (GoString × GoString) → Prop),
   lg ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      http.respAt resp st rd ∗ b ↦* bs ∗ http.reqOwn req R }}
+      http.respAt resp st rd Hd ∗ b ↦* bs ∗ http.reqOwn req R }}
     (App (App (App (App (App (Val (@! rafthttp.checkPostResponse)) (Val #lg)) (Val #resp))
       (Val #b)) (Val #req)) (Val #to))
   {{ (err : GoInterface), RET #err; postErr st err }}
