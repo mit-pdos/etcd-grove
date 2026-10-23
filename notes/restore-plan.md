@@ -253,6 +253,16 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
   clean), the chunk loop's invariant (the entries sent are the range's prefix up to `min`, `min`
   the next revision), `restoreChunk` per chunk, the goroutine with `TokB`, the leases
   (`restoreLogOk`: none), `currentRev = |L'| - 1`.
+  *Done (2026-10-23)*: `store.restore`'s spec over `R` (`restoreLogOk R`; the view
+  `restoreView`: for `R = []` the empty bucket, `NewStore`'s, else the clean view and
+  `keyCleanRead`; the index published at `[[], []] ++ R`, `currentRev = |L'| - 1`, a receipt per
+  entry), proved for both: the chunk loop's invariant (`entsFrom L' r` the entries not sent, `min`
+  holding `revBytes r`), the range's prefix (`bucketRange_from`, `keyRangeLimSpec`'s `cl`), the
+  next chunk after a full one (`entsFrom_next`, `BytesToRev` on the last key's first 17 bytes,
+  `RevToBytes` of `revNext`), `restoreChunk` over each chunk (no lease: `logEnts_lease`), the
+  goroutine's answer (`restoreLastRev_logEnts`, `idxRestore_logEnts'`, `idxCRep_indexOf`).
+  `kbNoCmp_metaNone`'s premise widened to the clean snapshot (`keyReadSnapC`), the same fact. The
+  code after the loop is written twice (one per exit: a tactic macro cannot hold Iris's `$$`).
 - **R5d. `newTreeIndex` over the store's names** (not `idxFresh`'s): the variant `Restore` needs.
 - **R5e. The ghost moves** (the list below) as `InvStore` lemmas.
 - **R5f. `Restore`'s proof** over R5c-R5e; `NewStore` and `watchableStore.Restore` unchanged.

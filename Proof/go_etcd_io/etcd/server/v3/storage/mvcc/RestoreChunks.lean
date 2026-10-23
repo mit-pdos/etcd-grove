@@ -391,6 +391,87 @@ theorem restoreLastRev_logEnts (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hlen : 
     push_cast
     omega
 
+/-- Every key-value of a state has lease `0`. -/
+def LeaseZero (s : List EtcdKv) : Prop := ∀ kv ∈ s, kv.lease = W64 0
+
+/-- A log's puts carry no lease. -/
+def LogNoLease (log : Log) : Prop :=
+  ∀ cs ∈ log, ∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0
+
+theorem LeaseZero.applyChange {s : List EtcdKv} (hs : LeaseZero s) (r : w64) (c : Change)
+    (hc : ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0) :
+    LeaseZero (applyChange r s c) := by
+  cases c with
+  | put k v l =>
+    have hl := hc k v l rfl
+    subst hl
+    intro kv hkv
+    simp only [mvcc.applyChange, putKv] at hkv
+    rcases btInsert_mem hkv with rfl | h
+    · split <;> rfl
+    · exact hs kv h
+  | del k =>
+    intro kv hkv
+    exact hs kv (List.mem_filter.1 hkv).1
+
+theorem LeaseZero.applyChanges {s : List EtcdKv} (hs : LeaseZero s) (r : w64) (cs : List Change)
+    (hc : ∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0) :
+    LeaseZero (mvcc.applyChanges r s cs) := by
+  induction cs generalizing s with
+  | nil => exact hs
+  | cons c cs ih =>
+    unfold mvcc.applyChanges
+    rw [List.foldl_cons]
+    exact ih (hs.applyChange r c (hc c (by simp))) (fun c' h => hc c' (by simp [h]))
+
+theorem stateAfter_leaseZero (log : Log) (h : LogNoLease log) : LeaseZero (stateAfter log) := by
+  unfold stateAfter
+  have : ∀ (l : List (List Change × Nat)) (s : List EtcdKv), LeaseZero s →
+      (∀ p ∈ l, ∀ c ∈ p.1, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0) →
+      LeaseZero (l.foldl (fun s p => mvcc.applyChanges (W64 p.2) s p.1) s) := by
+    intro l
+    induction l with
+    | nil => intro s hs _; exact hs
+    | cons p l ih =>
+      intro s hs hl
+      rw [List.foldl_cons]
+      exact ih _ (hs.applyChanges _ _ (hl p (by simp))) (fun p' hp => hl p' (by simp [hp]))
+  apply this _ [] (fun _ h => by cases h)
+  intro p hp
+  exact h p.1 (List.fst_mem_of_mem_zipIdx hp)
+
+theorem stateAt_leaseZero (log : Log) (h : LogNoLease log) (r : Nat) :
+    LeaseZero (stateAt log r) :=
+  stateAfter_leaseZero _ (fun cs hcs => h cs (List.mem_of_mem_take hcs))
+
+/-- **No entry of a log without leases has one** (what `restoreChunk` takes: `keyToLease`
+stays empty). -/
+theorem logEnts_lease (log : Log) (h : LogNoLease log) (lo hi : Nat) :
+    ∀ e ∈ logEnts log lo hi, e.kv.lease = W64 0 := by
+  intro e he
+  obtain ⟨j, -, -, he'⟩ := (mem_logEnts log lo hi e).1 he
+  obtain ⟨i, c, kv, hc, hkv, rfl⟩ := (mem_entsOfRev _ _ _ _).1 he'
+  simp only
+  have hcs : ∀ c ∈ log.getD j [], ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0 := by
+    intro c hc k v l hcl
+    rw [List.getD_eq_getElem?_getD] at hc
+    cases hg : log[j]? with
+    | none => rw [hg] at hc; simp at hc
+    | some cs => rw [hg] at hc; exact h cs (List.mem_of_getElem? hg) c hc k v l hcl
+  unfold changeKv at hkv
+  rw [hc] at hkv
+  cases c with
+  | put k v l =>
+    simp only at hkv
+    exact (stateAt_leaseZero log h _).applyChanges _ _
+      (fun c' hc' => hcs c' (List.mem_of_mem_take hc')) kv (findKey_mem hkv)
+  | del k =>
+    simp only [Option.some.injEq] at hkv
+    subst hkv; rfl
+
+theorem sub_succ_nonneg (x : w64) (h : x.toNat < 2 ^ 63 - 1) : 0 ≤ sint.Z (x + W64 1) := by
+  word
+
 end mvcc
 end EtcdGrove
 end Perennial

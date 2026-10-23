@@ -4041,6 +4041,16 @@ def restoreLogOk (R : Log) : Prop :=
   (∀ cs ∈ R, cs ≠ []) ∧ IdxWf ([[], []] ++ R) [] ∧
     ∀ cs ∈ R, ∀ c ∈ cs, ∀ (k v : GoString) (l : w64), c = .put k v l → l = W64 0
 
+/-- **The view `store.restore` reads** of the restored log `[[], []] ++ R`: the empty bucket
+(`NewStore`'s), or the log's bucket over a clean read buffer (the restore plan's R5a, R5c). -/
+def restoreViewOut (γ : StoreNames) (q : Qp) (R : Log) : IProp GF :=
+  if R = [] then bucketView γ q ∅ else bucketViewC γ q (bucketMap ([[], []] ++ R))
+
+/-- `restoreViewOut` with, for a bucket with data, the backend's clean-view `ReadTx`. -/
+def restoreView (b : GoInterface) (γ : StoreNames) (RT : IProp GF) (q : Qp) (R : Log) : IProp GF :=
+  iprop(restoreViewOut γ q R ∗
+    (if R = [] then iprop(True) else keyCleanRead b (bucketViewC γ) RT))
+
 /-- `NewStore`'s log: no revision after its two. -/
 theorem restoreLogOk_nil : restoreLogOk [] := by
   refine ⟨by simp, ⟨⟨fun _ => rfl, ?_⟩, by decide, by decide, by simp⟩, by simp⟩

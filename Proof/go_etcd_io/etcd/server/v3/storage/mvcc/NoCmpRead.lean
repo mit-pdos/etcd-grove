@@ -10,8 +10,9 @@ the backend's readers leaves out every bucket but `Key` (`bridgeParams`: `Meta` 
 what a read of those keys returns cannot be derived; `store.restore` reads both right after
 taking its read transaction's lock, before any store over the backend exists. This states what
 `kbNoCmp` means for such a read: a `ReadTx` of the store's backend (`keyReadSnap` over the store's
-view, `bucketView γ`) finds nothing at either key (`metaReadSpec rt true`). It replaces the whole
-`store.restore` axiom (for the empty bucket `NewStore` restores: option 1 of R4).
+view, `bucketView γ`, or, for a bucket with data, `keyReadSnapC` over its clean view,
+`bucketViewC γ`: the restore plan's R5c) finds nothing at either key (`metaReadSpec rt true`). It
+replaced the whole `store.restore` axiom (option 1 of R4).
 -/
 module
 
@@ -36,7 +37,8 @@ variable [sem : go.Semantics]
 /-- **The trust boundary: a backend that records no compaction finds none** (see the file header). -/
 axiom kbNoCmp_metaNone (γ : StoreNames) (RT : IProp GF) (Del : GoString → IProp GF)
     (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
-    kbNoCmp γ.kb γ.bucket ⊢ keyReadSnap (bucketView γ) RT Del true rt m L -∗
+    kbNoCmp γ.kb γ.bucket ⊢
+      (keyReadSnap (bucketView γ) RT Del true rt m L ∨ keyReadSnapC (bucketViewC γ) RT rt m L) -∗
       □ metaReadSpec rt true
 
 end axioms
