@@ -304,6 +304,55 @@ theorem objAtD_pt (p : Loc) (o : DObj) (n : w64) :
   iframe H
   ipureintro; exact ⟨rfl, Hn, rfl⟩
 
+/-- **An input `Gen` may return**, as far as `Apply` needs: its name one of the workload's keys
+(`workloadKeys`), its kind one of the four. -/
+def GenIn (x : Input) : Prop :=
+  (x.Key' = go!"a" ∨ x.Key' = go!"b" ∨ x.Key' = go!"c") ∧
+    (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3)
+
+/-- A sentinel's value (`errors.New`'s `*errorString`). -/
+abbrev sentV (l : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l
+
+/-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return. -/
+abbrev kInOk (i : GoInterface) : IProp GF := iprop(⌜∃ x, i = boxIn x ∧ GenIn x⌝)
+
+/-- A workload key is one the store takes, under the driver's prefixes, and fits an object. -/
+theorem genIn_ok (x : Input) (hx : GenIn x) :
+    InOk x ∧ prepareKeyM go!"/objs" (storeKeyL x.Key') false = some (storeKeyL x.Key') ∧
+      go!"/registry" ++ storeKeyL x.Key' = mkeyL x.Key' := by
+  refine ⟨?_, ?_, rfl⟩
+  · rcases hx.1 with h | h | h <;> (unfold InOk; rw [h]; decide)
+  · rcases hx.1 with h | h | h <;> (rw [h]; decide)
+
+/-- An answer `call` places is never `EOther`. -/
+theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r) : (outOf r).Err' ≠ W64 4 := by
+  cases r with
+  | obj o rv => simp [outOf, objOutL]
+  | zero => simp [outOf, zeroOutL]
+  | err e =>
+    cases e with
+    | notFound k rv => simp [outOf]
+    | keyExists k => simp [outOf]
+    | user e => simp [outOf, rejectedL]
+    | rvSetOnCreate => exact h.elim
+    | tooLarge _ _ => exact h.elim
+
+/-- **The store's model never answers `EOther`** (at any state). -/
+theorem kStep_err (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
+    (kStep eD eU x ks).2.Err' ≠ W64 4 := by
+  unfold kStep
+  by_cases h0 : x.Kind' = W64 0
+  · rw [if_pos h0]; exact outOf_err _ (create_noOdd _ _ _)
+  rw [if_neg h0]
+  by_cases h1 : x.Kind' = W64 1
+  · rw [if_pos h1]; exact outOf_err _ (delete_noOdd _ _ _ _)
+  rw [if_neg h1]
+  by_cases h2 : x.Kind' = W64 2
+  · rw [if_pos h2]; exact outOf_err _ (update_noOdd _ _ _ _)
+  rw [if_neg h2]
+  exact outOf_err _ (get_noOdd _ _ _)
+
 end defs
 
 end k8setcd3

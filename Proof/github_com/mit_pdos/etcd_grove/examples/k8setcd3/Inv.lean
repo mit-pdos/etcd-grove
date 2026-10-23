@@ -352,6 +352,10 @@ def kState (γ : KNames) (g0 : GSt) (S : linkv.PSet GSt Input) : IProp GF :=
 def pendTok (γ : KNames) (n : Nat) (x : Input) : IProp GF :=
   ghostMapElem γ.p n (DFrac.own 1) x
 
+instance pendTok_timeless (γ : KNames) (n : Nat) (x : Input) :
+    Timeless (pendTok (GF := GF) γ n x) := by
+  unfold pendTok; infer_instance
+
 /-- The revisions' map at the state `σ`: its revision holds it, no later one is there. -/
 def RevOk (Mr : GMap Nat KVState) (σ : KVState) : Prop :=
   Mr !! σ.rev = some σ ∧ ∀ n, σ.rev < n → Mr !! n = none
