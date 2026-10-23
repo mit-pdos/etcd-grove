@@ -243,6 +243,9 @@ watchableStore__Close: store__Close
 store__Restore:
 # (S6) proved: `store.Restore` under its lock, the synced watchers moved to the unsynced group.
 watchableStore__Restore: store__Restore newWatcherGroup watcherGroup__add
+# The store's `Commit` (translated; D22 S-l's sender items, 2026-10-22): under `s.mu`, the
+# backend's `ForceCommit` (its contract in `physOk`).
+store__Commit:
 schedule_job__Do:
 schedule_job__Name:
 schedule_NewJob: schedule_job__Do

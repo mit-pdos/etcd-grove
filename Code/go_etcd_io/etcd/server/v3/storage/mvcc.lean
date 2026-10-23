@@ -2717,6 +2717,29 @@ noncomputable def store.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #())))))))))))
 
+/-- go: kvstore.go:286:17 -/
+noncomputable def store.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType store.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"ForceCommit"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #())))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))))))
+
 /-- go: kvstore.go:292:17 -/
 noncomputable def store.Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -8347,6 +8370,7 @@ class store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   Rev_unfold : MethodUnfold store.ty go!"Rev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ReadView.ty go!"Rev"))) (App (Val (GoInstruction (StructFieldGet store.ty go!"ReadView"))) (Var "$r"))))
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Close" store.Close.impl
+  ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Commit" store.Commit.impl
   ptr_Compact_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"Compact" store.Compact.impl
   ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType store.ty) go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve WriteView.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad WriteView.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"WriteView"))) (Var "$r")))))
@@ -8405,6 +8429,7 @@ attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.Range_unfold
   store.TypeAssumptions.Rev_unfold
   store.TypeAssumptions.ptr_Close_unfold
+  store.TypeAssumptions.ptr_Commit_unfold
   store.TypeAssumptions.ptr_Compact_unfold
   store.TypeAssumptions.ptr_DeleteRange_unfold
   store.TypeAssumptions.ptr_FirstRev_unfold
@@ -8941,6 +8966,8 @@ class watchableStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_stopc : ∀ (x : watchableStore) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet watchableStore.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : watchableStore)))
   get_wg : ∀ (x : watchableStore), go.IsGoStepPureDetTagged under (StructFieldGet watchableStore.underlying go!"wg") #x (Val #(x.wg'))
   set_wg : ∀ (x : watchableStore) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet watchableStore.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : watchableStore)))
+  Commit_unfold : MethodUnfold watchableStore.ty go!"Commit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Commit"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   DeleteRange_unfold : MethodUnfold watchableStore.ty go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"DeleteRange"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   FirstRev_unfold : MethodUnfold watchableStore.ty go!"FirstRev" (LamV "$r"
@@ -8956,6 +8983,8 @@ class watchableStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   Rev_unfold : MethodUnfold watchableStore.ty go!"Rev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Rev"))) (App (Val (GoInstruction (StructFieldGet watchableStore.ty go!"store"))) (Var "$r"))))
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"Close" watchableStore.Close.impl
+  ptr_Commit_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"Commit" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"DeleteRange" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (Var "$r")))))
   ptr_FirstRev_unfold : MethodUnfold (go.GoType.PointerType watchableStore.ty) go!"FirstRev" (LamV "$r"
@@ -9004,6 +9033,7 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.set_stopc
   watchableStore.TypeAssumptions.get_wg
   watchableStore.TypeAssumptions.set_wg
+  watchableStore.TypeAssumptions.Commit_unfold
   watchableStore.TypeAssumptions.DeleteRange_unfold
   watchableStore.TypeAssumptions.FirstRev_unfold
   watchableStore.TypeAssumptions.HashStorage_unfold
@@ -9012,6 +9042,7 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.Read_unfold
   watchableStore.TypeAssumptions.Rev_unfold
   watchableStore.TypeAssumptions.ptr_Close_unfold
+  watchableStore.TypeAssumptions.ptr_Commit_unfold
   watchableStore.TypeAssumptions.ptr_DeleteRange_unfold
   watchableStore.TypeAssumptions.ptr_FirstRev_unfold
   watchableStore.TypeAssumptions.ptr_HashStorage_unfold

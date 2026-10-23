@@ -1110,7 +1110,7 @@ theorem NewServer.wp_proof
     iexists γmc, _
     iframe Hmcb
     iintro !> %mm Hmm
-    iapply srvMsgSnapC_false $$ Hmm
+    iapply rnSnapMsg_false γrn.node (by rw [Hrn1]; exact Hnosnap.1) mm $$ Hmm
   isplitr
   · -- `#Hkvi`
     unfold srvKVInvs Perennial.named

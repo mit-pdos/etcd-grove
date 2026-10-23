@@ -100,6 +100,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore
@@ -790,6 +791,10 @@ theorem schedule.job.wp_Name :
 theorem mvcc.store.wp_Close :
     mvcc.store.Close.spec (GF := GF) (hG := hG) :=
   mvcc.store.Close.wp_proof schedule.Scheduler.wp_Stop
+
+theorem mvcc.store.wp_Commit :
+    mvcc.store.Commit.spec (GF := GF) (hG := hG) :=
+  mvcc.store.Commit.wp_proof
 
 theorem mvcc.store.wp_checkPrevCompactionCompleted :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=

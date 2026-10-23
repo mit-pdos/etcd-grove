@@ -4,8 +4,8 @@ out"): the vocabulary of the specs of `createMergedSnapshotMessage`, `newSnapsho
 `sendMergedSnap` (`snapshot_merge.go`, `server.go`). Lean-first (no Rocq counterpart).
 
 * `srvKVCommitOk kv RC RC'`, `srvBeSnapOk b RS RS' Qd`: the contracts of the two interface calls
-  `createMergedSnapshotMessage` makes, `s.KV().Commit()` (mvcc's `WatchableKV`; `store.Commit` is
-  names-only) and `s.be.Snapshot()` (the backend's `Snapshot`, whose observation `Qd` of the
+  `createMergedSnapshotMessage` makes, `s.KV().Commit()` (mvcc's `WatchableKV`; since D22 S-l's sender items
+  discharged from the proved `store.Commit`, `srvKVCommitOk_of_kv`) and `s.be.Snapshot()` (the backend's `Snapshot`, whose observation `Qd` of the
   committed data the caller chooses: `backend.Snapshot.spec`'s `Q`, `srvBeSnapOk_of_backend`). The
   caller (`applyAll`'s `msgSnapC` branch, live from S-l) discharges them; the resources they move
   (`RC`, `RS`: a write session's token, the backend's read token and open share, the observation's
@@ -16,8 +16,8 @@ out"): the vocabulary of the specs of `createMergedSnapshotMessage`, `newSnapsho
   `rc`, with its `TotalSize` field read-only and its `closeC` a bag channel carrying nothing
   (`sendMergedSnap` reads both).
 * `msgOwn_store_Snapshot`: `m.Snapshot = snapshot` on an owned message (a `MsgSnap` a `Ready` hands
-  out is owned: `readyDq`; the server persists it at `rnReadyData`, InvRaftNode.lean, which S-l
-  must stop doing for a `MsgSnap` it diverts to `msgSnapC`).
+  out is owned: `readyDq`; since D22 S-l's sender items, 2026-10-22, the server keeps it owned,
+  `rnSnapMsg`, through `rnReadyData` and `processMessages` into `msgSnapC`'s bag).
 -/
 module
 

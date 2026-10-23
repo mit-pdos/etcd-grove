@@ -39,7 +39,7 @@ translate = ["!*",
   # kvstore.go
   "ErrCompacted", "ErrFutureRev", "NewStore", "store.Compact", "store.compactLockfree",
   "store.compact", "store.updateCompactRev", "store.checkPrevCompactionCompleted",
-  "store.compactBarrier", "store.Restore", "store.Close", "store.HashStorage",
+  "store.compactBarrier", "store.Restore", "store.Close", "store.HashStorage", "store.Commit",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go
@@ -82,6 +82,8 @@ translate = ["!*",
   "watchableStore.Range", "watchableStore.DeleteRange", "watchableStore.Put",
   # (unit N4, 2026-10-17: `NewServer` calls `srv.kv.HashStorage()` on the watchable store)
   "watchableStore.HashStorage",
+  # (D22 S-l's sender items, 2026-10-22: `applyAll`'s merge calls `s.KV().Commit()`)
+  "watchableStore.Commit",
   "watchableStoreTxnWrite.FirstRev", "watchableStoreTxnWrite.Rev",
   "watchableStoreTxnWrite.Range", "watchableStoreTxnWrite.DeleteRange",
   "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes"]
