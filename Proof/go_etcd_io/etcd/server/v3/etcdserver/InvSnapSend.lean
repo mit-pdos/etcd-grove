@@ -4,8 +4,8 @@ out"): the vocabulary of the specs of `createMergedSnapshotMessage`, `newSnapsho
 `sendMergedSnap` (`snapshot_merge.go`, `server.go`). Lean-first (no Rocq counterpart).
 
 * `srvKVCommitOk kv RC RC'`, `srvBeSnapOk b RS RS' Qd`: the contracts of the two interface calls
-  `createMergedSnapshotMessage` makes, `s.KV().Commit()` (mvcc's `WatchableKV`; `store.Commit` is
-  names-only) and `s.be.Snapshot()` (the backend's `Snapshot`, whose observation `Qd` of the
+  `createMergedSnapshotMessage` makes, `s.KV().Commit()` (mvcc's `WatchableKV`; since D22 S-l's sender items
+  discharged from the proved `store.Commit`, `srvKVCommitOk_of_kv`) and `s.be.Snapshot()` (the backend's `Snapshot`, whose observation `Qd` of the
   committed data the caller chooses: `backend.Snapshot.spec`'s `Q`, `srvBeSnapOk_of_backend`). The
   caller (`applyAll`'s `msgSnapC` branch, live from S-l) discharges them; the resources they move
   (`RC`, `RS`: a write session's token, the backend's read token and open share, the observation's

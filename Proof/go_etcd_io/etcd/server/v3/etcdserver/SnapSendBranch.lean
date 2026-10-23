@@ -8,14 +8,17 @@ The branch is dead in the proof until S-l (`isServerApplyAll`'s `msgSnapC` carri
 `snapBranch_send` is what S-l applies there, after the receive and the `m.GetTerm() ==
 apply.raftTerm` check, with these premises to discharge:
 * the received message owned (`msgOwn m (DFrac.own 1) st`, a `MsgSnap` of raft's with its snapshot
-  `sn0` at most the applied index): raft's `Ready` hands a `MsgSnap` out owned (`readyDq`), but the
-  server's `rnReadyData` persists every message and `isRNMsgSnapC` carries `rnMsgOk` (`msgAt`,
-  read-only), so `m.Snapshot = ...` cannot be proved from today's bag;
-* its protocol facts (`isRaftMsg`, `termLB`: `srvMsgNet`'s), raft's commit invariant;
-* `rnRtBound γ T ai` at the message's term `T = apply.raftTerm` (D22l);
+  `sn0` at most the applied index) with its protocol facts (`isRaftMsg`, `termLB`): since D22 S-l's
+  sender items (2026-10-22) `msgSnapC`'s bag carries exactly these (`rnSnapMsg`, `isRNMsgSnapC`);
+  `sn0`'s bound is still to be stated (raft's storage snapshot, at an applied index); raft's
+  commit invariant;
+* `rnRtBound γ T ai` at the message's term `T = apply.raftTerm` (D22l; `rnRtBound_of_rtOk` from the
+  batch's `rnRtOk`, `rnApP_rtOk`, for `T ≠ 0` and the batch's log reaching `ai`);
 * the applied committed prefix `A` (`|A| = ai`, last term `at`: `kvApplied`'s `srvRLogLb` with
   S-0's `at' = lastTerm` amendment);
-* the contracts of `s.KV().Commit()` and `s.be.Snapshot()` with their resources, and the image
+* the contracts of `s.KV().Commit()` (`srvKVCommitOk_of_kv`, from `store.Commit`, translated and
+  proved since D22 S-l's sender items: the writer's fragment, reader token and a write token,
+  `srvWTPool_take_extra`) and `s.be.Snapshot()` (`srvBeSnapOk_of_backend`) with their resources, and the image
   certificate from the snapshot's observation (`□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)`: the modeled
   half from `backend.Snapshot`'s observation, `imageAt_of_snap`, the rest from the D22c
   determinism fact);
@@ -28,6 +31,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBundle
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Snapshot
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
 
 @[expose] public section
 
@@ -123,6 +129,45 @@ theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF)
   iapply HΦ
   iframe
   ipureintro; exact HQD
+
+/-- **`s.KV().Commit()`'s contract from `store.Commit`** (D22 S-l's sender items, 2026-10-22:
+`store.Commit` translated and proved): over a KV of the store `st` (`txn.isKV`: the store itself
+or the watchable store over it, whose `Commit` is promoted), for the store's sole writer: its
+fragment, its reader token of the backend and a write session's token (`storeWT`: for the real
+backend, a write-back's budget, `srvWTPool_take_extra`). -/
+theorem srvKVCommitOk_of_kv (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    (kv : GoInterface) (st : Loc) (γ : mvcc.StoreNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ txn.isKV kv st γ ⊢
+      srvKVCommitOk kv iprop(mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.storeWT γ)
+        iprop(mvcc.writerFrag γ ∗ mvcc.writerOwn γ) := by
+  iintro ⟨#Hpkg, #Hkv⟩
+  ihave ⟨#Hko, #Hs⟩ := txn.isKV_kvOver kv st γ $$ Hkv
+  ihave %Hok := mvcc.kvOver_ok kv st $$ Hko
+  obtain ⟨ty, v, rfl⟩ := Hok
+  iunfold srvKVCommitOk
+  iexists ⟨ty, v⟩
+  isplitr
+  · ipureintro; rfl
+  iintro %Φ !> ⟨Hfr, Hro, Hwt⟩ HΦ
+  iapply mvcc.kvOver_commit_wp ty v st
+  iframe Hko
+  iapply (hC st γ) $$ [Hfr Hro Hwt] HΦ
+  iframe #; iframe
+
+/-- **The recorded term's commit bound from the batch's** (D22 S-l's sender items; D22l's
+`rnRtOk`, `rnApP_rtOk`): a non-zero raft term recorded with a batch whose log reaches `n`, at least
+the applied index `ai`, has a commit witness at `c ≥ ai` (`rnRtBound`, `snapBranch_send`'s). -/
+theorem rnRtBound_of_rtOk (γ : RNNames) (t ai : w64) (n : Nat) (ht : uint.Z t ≠ 0)
+    (hn : uint.Z ai ≤ (n : Int)) :
+    rnRtOk (GF := GF) γ t n ⊢ rnRtBound γ.node.raft t ai := by
+  iintro H
+  iunfold rnRtOk at H
+  icases H with (%Hz | ⟨%c, #Hc, %Hle⟩)
+  · exact absurd Hz ht
+  iunfold rnRtBound
+  iexists c
+  iframe Hc
+  ipureintro; omega
 
 end proof
 

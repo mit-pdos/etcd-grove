@@ -141,6 +141,23 @@ theorem kvOver_rev_wp (ty : go.GoType) (v : val) (s : Loc) (Φ : val → IProp G
     (try wp_auto)
     iexact Hwp
 
+/-- **`kv.Commit()` is the store's `Commit`** (a WP transfer; D22 S-l's sender items, 2026-10-22:
+the watchable store's is promoted from its embedded `store`). -/
+theorem kvOver_commit_wp (ty : go.GoType) (v : val) (s : Loc) (Φ : val → IProp GF) :
+    kvOver (GF := GF) (interface.mkOk ty v) s ∗
+      WP (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Commit")) (Val #())) {{ Φ }} ⊢
+      WP (App (Val #(methods ty go!"Commit" v)) (Val #())) {{ Φ }} := by
+  iintro ⟨Hk, Hwp⟩
+  iunfold kvOver at Hk
+  icases Hk with (%H | ⟨%ws, %H, #Hst⟩)
+  · cases H
+    iexact Hwp
+  · cases H
+    rw [method_unfold (t := go.GoType.PointerType watchableStore.ty) (m := go!"Commit")]
+    wp_call
+    (try wp_auto)
+    iexact Hwp
+
 /-- **`store.Read`'s spec at a KV over the store** (`kvOver_read_wp`). -/
 theorem kvOver_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
     (ty : go.GoType) (v : val) (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat)

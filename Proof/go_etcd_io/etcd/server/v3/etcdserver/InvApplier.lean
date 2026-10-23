@@ -790,6 +790,37 @@ theorem srvWTPool_take_at (γ : mvcc.StoreNames) (γp : GName) (v : w64)
     have : uint.Z (v + W64 1) = uint.Z v + 1 := by word
     omega) $$ Hlb
 
+/-- (D22 S-l sender, 2026-10-22) **A write token for a receipt, for no entry**: the merged
+snapshot's two write-backs (`KV().Commit()`'s `ForceCommit`, `be.Snapshot()`'s own commit) are
+paid from the pool, a Go step's receipt each, as an entry's is (`srvWTPool_take_at`); the count of
+tokens taken grows past the applied index, whose lower bound (`srvWTAt`) stays one. -/
+theorem srvWTPool_take_extra (γ : mvcc.StoreNames) (γp : GName) :
+    ⊢ srvWTPool (GF := GF) γ γp -∗ ⧗ 1 ={⊤}=∗ mvcc.storeWT γ := by
+  iintro #Hp Hr
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %n, >Ha, >Hn, >Hc, >%Hb⟩ Hclose
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  icases txn.storeWTs_split γ n' $$ Hn with ⟨Ht, Hn⟩
+  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, -⟩
+  imod Hclose $$ [Ha Hn Hc] with -
+  · inext
+    iexists a + 1, n'
+    iframe
+    ipureintro; omega
+  imodintro
+  iframe Ht
+
+/-- (D22 S-l sender) **The merged snapshot's two write tokens**, for two receipts. -/
+theorem srvWTPool_take_two (γ : mvcc.StoreNames) (γp : GName) :
+    ⊢ srvWTPool (GF := GF) γ γp -∗ ⧗ 1 -∗ ⧗ 1 ={⊤}=∗ mvcc.storeWT γ ∗ mvcc.storeWT γ := by
+  iintro #Hp Hr1 Hr2
+  imod srvWTPool_take_extra γ γp $$ Hp Hr1 with Ht1
+  imod srvWTPool_take_extra γ γp $$ Hp Hr2 with Ht2
+  imodintro
+  iframe Ht1 Ht2
+
 /-- (2026-10-19, D21 M3) **The applied index is below the receipts' bound**: at most the tokens
 taken, each with its receipt. -/
 theorem srvWTPool_bound (γ : mvcc.StoreNames) (γp : GName) (v : w64) :

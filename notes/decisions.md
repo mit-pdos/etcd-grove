@@ -15775,3 +15775,110 @@ writer's `txn.kvWriter` at `E.γ.withPhys p'`, with `mvcc.isWatchableStore_withP
 its `wlogOwn`, the old backend's tokens for `oldbe.Close` with the monitor's, the monitor's new
 token). The storage-version monitor's retired token is still S7's (the old backend's `bOpen 1`
 needs it back).
+
+## D22 S-l sender items carried out: the `MsgSnap` owned into `msgSnapC`, `store.Commit` proved; the stored-index window designed, not carried out (2026-10-22)
+
+The sender-side items of stage S-l of T-S (approved by the user, 2026-10-22), on branch
+`worktree-agent-a13029e4d33860881`. What S-h's "For S-l (making the branch live)" listed, short of what waits on other
+stages. The branch stays dead in `applyAll`'s proof (`reNoSnap = true` until S-l proper); no closed
+theorem or exported result changed.
+
+**1. The queued `MsgSnap` handed out owned (done).** `InvRaftNode.lean`: `rnSnapMsg γn m` (a
+`MsgSnap` owned at `DFrac.own 1`, with `isRaftMsg γn.raft st` and `termLB γn.bud st.msg.Term'`:
+its read credit is `0` and `stTks` of a non-`MsgProp` is `emp`, so nothing else of `srvMsgNet`'s
+bundle is lost) and `rnMsgR E γn m` (a `Ready`'s message as the server receives it: read-only with
+`E.M` and a type that is not `MsgSnap`, or `rnSnapMsg`). `rnMsgOk_of_raft` keeps a `MsgSnap` owned
+(`readyDq` of a non-response is `own 1`) and persists the others; `rnReadyData`'s messages are
+`rnMsgR`; `processMessages`' precondition takes `rnMsgR` (its post, for the transport, is still
+`rnMsgOk`): each message is opened at its fraction (`rnMsgR_open`, `wp_msgOwn_GetTo'`/
+`GetType'` at any `dq`), the `MsgSnap` branch hands the owned message to the bag, every other
+branch gets `rnMsgOk` from the type test. `isRNMsgSnapC γ c` (now over the wrapper's names, not
+`E`) is a bag of `rnSnapMsg γ.node`; `rnParts`, `isRaftNode`, `newRaftNode`'s allocation follow.
+`srvMsgSnapC_false` (over `srvEr`'s `srvMsgNoSnap`) is replaced by `rnSnapMsg_false` (raft's
+no-snapshot mode, `isRaftMsg_not_snap`), used by `NewServer` for `srvApplyAllBuilt`'s
+`□ (P m -∗ False)`. **For S-l proper**: `srvApplyAllBuilt` still hides the bag's predicate behind
+that `False`; S-l exposes `isChanBag γc msc (rnSnapMsg γrn.node)` with the names' ties
+(`rnEnvOk`: `E.γr.raft.raft = γ.node.raft`), and the `msgSnapC` branch receives exactly what
+`snapBranch_send` takes (`msgOwn m (own 1) st`, `isRaftMsg`, `termLB`, `st.msg.Type' = MsgSnap`).
+
+**2. `store.Commit` translated and proved (done; no axiom).** `mvcc.toml` translates
+`store.Commit` (`kvstore.go:286-290`) and the watchable store's promoted `Commit`;
+`etc/goose.py --project etcd` (Init unchanged, `gen-init.py --check` clean), mvcc's Link
+regenerated (`etc/link-lean-first-mvcc.txt`: `store__Commit:`, no callee).
+`mvcc.store.Commit.spec`: by the sole writer (its fragment `writerFrag γ`, which pins `s.mu`'s
+share of the fields at `γ`'s names, `fieldShare_pin`; its reader token `writerOwn γ`; a write
+session's token `storeWT γ`), `s.mu.Lock()`, `s.b.ForceCommit()` through `physOk`'s
+`isKeyBackendG` (`{RT ∗ WT} … {RT}`), `Unlock`; back the fragment and the token. Linked in mvcc's
+`Link.lean`. `mvcc.kvOver_commit_wp` (the watchable store's promoted `Commit`) and
+`srvKVCommitOk_of_kv` (`SnapSendBranch.lean`) discharge S-h's `srvKVCommitOk kv RC RC'` with
+`RC = writerFrag γ ∗ writerOwn γ ∗ storeWT γ`, `RC' = writerFrag γ ∗ writerOwn γ` over any
+`txn.isKV kv st γ`. **Not in the spec: that the commit saves the consistent index.** The mvcc
+contract's `ForceCommit` has no evidence that the hook ran (item 3).
+
+**3. The stored-index window: not carried out; why, and the design.** S-f/S-h wanted the
+observation `R` of `backend.Snapshot` to pin the stored index to `ai` at every commit of the window
+(`KV().Commit()` to `be.Snapshot()`), "e.g. the apply thread keeping a share of `mt` once its
+commit stored `k`". The observation is a plain wand (`□ (R -∗ W -∗ Pk -∗ viewAt -∗ hkOwn -∗ ⌜Q⌝)`,
+no update), so `R` must hold a fraction of the stored index's mirror `γ.mt` (`Pk = batchLockInv`
+holds half at the stored `mm.1`), and it must be at `ai` *when the call starts*: the wand is stated
+for every `Pk` that coexists with `R`, including the one the last commit before the window left,
+which may have stored an older index. So the apply thread must learn, from `KV().Commit()`, that a
+commit's hook stored `ai`: a resource out of the commit. No contract along the path gives one
+(`isKeyBackendG`'s `ForceCommit {RT ∗ WT} {RT}`, `backend.ForceCommit {bOpen ∗ wbTok} {bOpen}`,
+`batchTxBuffered.Commit`, `hookFnSpec`/`hooksSpec`: `Pk` to `Pk`), and none can be derived from
+them: an update applied to `Pk` after the commit cannot tell that the hook ran in *this* commit
+(every candidate encoding in `Pk` or `consInv` runs into the same: the generic update does not
+know the hook ran, the hook cannot hand the apply thread anything). Checked and rejected: a commit
+counter in `Pk` (no tie between the backend's count and the hook's record), a request slot in
+`consInv` (the apply thread cannot learn it was served), a fupd observation (an axiom
+restatement, and still blind to the hook's run), `pend` in `R` (vacuous). **The design** (a
+backend interface change, proved, no axiom):
+- *A hook request through the commit.* `hooksSpec`/`hookFnSpec` stay as they are (the request-free
+  hook, for `run`'s and `Unlock`'s commits); a new persistent `hooksReq γ P Pk b t h X Y`: the
+  hooks' `OnPreCommitUnsafe` also takes `X` with `Pk` and gives `Y`. `batchTxBuffered.unsafeCommit`,
+  `commit`, `Commit` and `backend.ForceCommit` get a request variant (`∀ X Y, hooksReq … X Y →
+  {… ∗ X} … {… ∗ Y}`), the request passed to the one hook call of the commit; `isKeyBackendG`'s
+  `ForceCommit` triple the same (`kbReq X Y`), `store.Commit.spec` with `X`/`Y` in pre/post,
+  `srvKVCommitOk` with them in `RC`/`RC'`. The server proves `hooksReq` for its hook
+  (`storage.BackendHooks.OnPreCommitUnsafe`: `ci.UnsafeSave` first, `ci_hook_backend_run`) at the
+  freeze request below.
+- *A frozen mode of `consInv`.* A disjunct: `ghostVar γ.st 1 s ∗ ghostVar γ.mt ¼ mi ∗ ⌜s.k = mi ∧
+  s.k ≠ 0 ∧ s.pending = false⌝` (the apply thread's half of `γ.st` deposited). The request is `X :=
+  applyThread γ s ∗ ⌜s.k ≠ 0 ∧ s.pending = false⌝`, its answer `Y := ghostVar γ.mt ¼ s.k`: the hook
+  (`commit_save_au`'s variant) stores `k`, so the mirror is `k` on both halves, and moves `consInv`
+  to the frozen mode with a quarter out. In the frozen mode a commit stores `k = mm.1` (no update
+  of the mirror), every step that takes `applyThread` finds it absent (`½ + 1 > 1`: excluded),
+  readers of `ci` are served as before; unfreezing gives the quarter back for `applyThread`.
+- *The observation*: `R := ghostVar γ.mt ¼ ai` (with the key bucket's half, the sole writer's
+  `soleWriter`/`clog` share) and `Pk`'s half agree, `metaTM ∗ hkOwn` give `d`'s index `encMeta ai`:
+  `imageAt_of_snap`'s modeled half. It also needs `ciEff = ai` at the branch (S-0's `uint.Z ciEff
+  = max c₀ ai` amendment, not done; for a fresh member `c₀ = 0`, and `k ≠ 0` once an entry is
+  applied: no snapshot is merged before one).
+Size: the backend's commit path (four specs and proofs), the two hook layers (backend `hooks`,
+storage `BackendHooks`), `CindexBackend.lean`, `InvApply.lean`'s steps (each `iinv` gains the
+frozen case), mvcc's `isKeyBackendG`/`bk_forceCommit` and every `isKeyBackendG` destructuring.
+
+**4. Write tokens (done).** `srvWTPool_take_extra` (a write token for a Go step's receipt, for no
+entry: the count of tokens taken grows past the applied index, whose lower bound `srvWTAt` stays
+one) and `srvWTPool_take_two` (the merged snapshot's two: `KV().Commit()`'s `ForceCommit` and
+`be.Snapshot()`'s commit). The receipts come from two Go steps of the branch
+(`wp_go_step_receipt'`, as `apply`'s); `storeWT γ` is the real backend's `wbTok` (`kbWT`).
+
+**5. `srvBeSnapOk` (unchanged).** `srvBeSnapOk_of_backend` (S-h) is the discharge; its observation
+`Q` needs item 3's `R` for the index and the key bucket's half from the sole writer. Not stated
+for the server yet.
+
+**6. `snapBranch_send`'s premises.** Discharged now from the apply thread's state:
+`rnRtBound_of_rtOk` (the batch's `rnRtOk` with `T ≠ 0` and the batch's log reaching `ai`), the
+message's ownership and protocol facts (item 1: `rnSnapMsg`), `srvKVCommitOk` (item 2), the write
+tokens (item 4). **Left explicit, precisely**:
+(a) the image: `□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)`: the non-key buckets (`bkRestAt (pre ++ A) D`
+and no compaction key, from the backend specification over every bucket, D22c decided, a later
+stage; no determinism axiom), and the stored index (`Qd`'s index part: item 3's design);
+(b) `srvBeSnapOk be RS RS' Qd` for the server's backend (item 5, on item 3);
+(c) what the no-snapshot mode being on hides (S-l proper): `srvApplyAllBuilt`'s bag predicate
+(item 1's note), `Hsn`/`Hix` (the message's snapshot `sn0` at most the applied index: raft's
+storage snapshot made by `EtcdServer.snapshot` at an applied index), `Hsok` (`γ.reSnapOk A []`),
+`isCommitted γ A` with `A`'s last term `ep.appliedt` (`kvApplied`'s `srvRLogLb` with
+`termAfter`), the configuration certificate of `ep.confState` (S-b′), `sendMergedSnap`'s
+transport, inflight count and stop channel (the run's).
