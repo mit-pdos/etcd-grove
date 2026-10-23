@@ -15510,7 +15510,8 @@ without. The outbox invariant `XfOk` records it for every queued message in ever
 `SentMsgOk`'s no-transfer mode: the kv example runs with transfer on), and `isRaftMsg` hands it out.
 The transport's boundary: `netBundle` and `netSnapBundle` (what `Send`/`SendSnapshot` take) require
 no responses, and `netRecv` gives the copy none, consistently (the `Transport.Start` axiom asks more
-and promises more; it holds of rafthttp since the wire carries no responses); stage 6 will need
+and promises more; it holds of rafthttp since the wire carries no responses; **accepted by the user**,
+2026-10-23); stage 6 will need
 `pbMessage`'s decoding to say that a decoded message has none. *`From`.* `AppFrom id st` (`MsgApp →
 From = id`): `send` stamps `From = r.id` but on a forwarded read-index or transfer request, never a
 `MsgApp`. It needs the node's id where the queues and the `Ready`s' messages are described: `XfOk`

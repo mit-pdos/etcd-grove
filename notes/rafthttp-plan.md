@@ -206,7 +206,7 @@ trust-boundary spec.
    only "no responses": protobuf-go keeps an enum value outside the declared ones (**Open enums**
    below), so the enum bounds the wire model had are dropped and no entry-type invariant is needed.
    `Send` takes messages with no responses and `Process` gets copies with none (`netBundle`,
-   `netSnapBundle`, `netRecv`). No axiom added, baseline 542. The server's bundle keeps the sender
+   `netSnapBundle`, `netRecv`; accepted by the user, 2026-10-23). No axiom added, baseline 542. The server's bundle keeps the sender
    existential: tying it to the transport's id is stage 6's (`srvEr` indexed by the member id).
    **Next**: stage 4 (the pipeline).
 
