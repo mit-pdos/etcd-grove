@@ -51,7 +51,7 @@ def KRel (ks : KSt DObj) (g : GSt) : Prop :=
     ∀ n, PairRel (ks.items (mkeyL n)) (lookupL g.items n)
 
 /-- **The driver's output of a store answer** (`call`'s `objOut`/`errOut`). -/
-def outOf : KResp DObj GoInterface → Output
+def outOf {E : Type} : KResp DObj E → Output
   | .obj o rv => objOutL ⟨o.1.1, o.1.2, W64 (rv : Int)⟩
   | .zero => zeroOutL
   | .err (.notFound k rv) => ⟨W64 1, k, W64 (rv : Int), [], [], 0⟩
@@ -138,11 +138,11 @@ theorem krel_del (ks : KSt DObj) (g : GSt) (h : KRel ks g) (key : GoString)
 /-! ## The operations -/
 
 /-- **`Create`** of the input's name and value (no resource version). -/
-theorem refine_create (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input)
+theorem refine_create {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input)
     (hlen : x.Key'.length < 256) (hrv : ks.rv + 1 < 2 ^ 64) :
-    KRel (ks.create (E := GoInterface) (mkeyL x.Key') ⟨(x.Key', x.Val'), hlen⟩ 0).1
+    KRel (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.Val'), hlen⟩ 0).1
         (mcreateL x g).1 ∧
-      outOf (ks.create (E := GoInterface) (mkeyL x.Key') ⟨(x.Key', x.Val'), hlen⟩ 0).2 =
+      outOf (ks.create (E := E) (mkeyL x.Key') ⟨(x.Key', x.Val'), hlen⟩ 0).2 =
         (mcreateL x g).2 := by
   unfold KSt.create mcreateL
   simp only [ne_eq, not_true_eq_false, ↓reduceIte]
@@ -242,8 +242,8 @@ theorem refine_update (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) (eU 
       exact ⟨h, rfl⟩
 
 /-- **`Get`** of the input's name (no resource version; `ignoreNotFound` as given). -/
-theorem refine_get (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) :
-    outOf (ks.get (E := GoInterface) (mkeyL x.Key') 0 x.IgnoreNotFound') = mgetL x g := by
+theorem refine_get {E : Type} (ks : KSt DObj) (g : GSt) (h : KRel ks g) (x : Input) :
+    outOf (ks.get (E := E) (mkeyL x.Key') 0 x.IgnoreNotFound') = mgetL x g := by
   unfold KSt.get mgetL
   simp only [gt_iff_lt, Nat.not_lt_zero, ↓reduceIte]
   cases hk : ks.items (mkeyL x.Key') with
