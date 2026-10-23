@@ -188,6 +188,43 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
 - **Status.** Not started.
 
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Status.** Not started.
+
+### `os.Getenv`, `strconv.ParseBool` have no specs
+
+- **Limitation.** Both are names-only in Perennial (no body, no spec).
+- **Needed by.** `k8s.io/apiserver/pkg/storage/etcd3`'s `init` (`watcher.go`: whether
+  `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true), which the driver's initialization runs.
+- **Workaround here.** Trust-boundary specs (`Spec/os/Getenv.lean`, `Spec/strconv/ParseBool.lean`,
+  axioms in `Proof/`): each returns some value.
+- **Proposed fix.** Specs in Perennial (`ParseBool` can be translated: it is pure).
+- **Status.** Not started.
+
+### Goose: a type defined over a type of a package the file does not import (G3)
+
+- **Limitation.** `grpclog.LoggerV2` is `type LoggerV2 internal.LoggerV2`; `grpclog/internal` is
+  not translated, so `LoggerV2` is axiomatized and a conversion to it does not step.
+- **Needed by.** `etcd3`'s `init` (`logger.go`: `grpclog.SetLoggerV2(klogWrapper{})`).
+- **Workaround here.** `etcd3`'s `klogWrapper_toLoggerV2` (generated into its `Init.lean` from
+  `etc/gen-init.py`): the conversion returns some interface value.
+- **Proposed fix.** Translate `grpclog/internal` names-only (configuration here), or G3's general
+  fix in Goose (`notes/k8s-etcd3-goose.md`).
+- **Status.** Not started.
+
 ## Landed
 
 (none yet)

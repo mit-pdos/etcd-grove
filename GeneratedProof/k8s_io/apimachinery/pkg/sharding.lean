@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.sharding
 
@@ -16,25 +17,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace k8s_io.apimachinery.pkg.sharding
-
-namespace Selector
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
-
-instance Selector_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.Selector :=
-  sorry -- axiomatized type
-
-instance Selector_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.Selector k8s_io.apimachinery.pkg.sharding.Selector.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Selector
 
 namespace everythingSelector
 section def_

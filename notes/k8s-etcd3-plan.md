@@ -213,6 +213,28 @@ factories, the key reverse function. `feature.toml` imports what `client` names 
 concrete. Premises still to discharge in 6g: the client's `ctx` field (item 6 below), `newFunc`
 returning a non-nil object, `kubernetes.New`'s `kc ↦□`.
 
+Done (2026-10-23): **6g**, the closed theorem. `k8setcd3_safe`/`k8setcd3_adequate`
+(`Adequacy.lean`, `Results.lean`; collection `etc/tcb-collections/k8setcd3.txt`): every real
+execution of the driver's initialization and `Main(clients, ops)` has no stuck thread, no panic,
+and returns `Ok` or `Unknown`, under linkvtxn's hypotheses at the driver's configuration
+(`127.0.0.1:23896`), the Kubernetes packages' semantics assumptions and the method-set fact
+`objTyOk` (`*Obj` is a `runtime.Object`, not a `runtime.Unstructured`; `methodSet` is
+uninterpreted). On the way: `Gen` (`GenIn`), `Check` (`lintest.Run` of `Apply` against
+`Model(st0)`), the seeding (`seed` as `seedOne` of each key, the seeding's invariant `seedInv`
+and the seeded state `σs2`/store `g0s`, `kInv_seed`), `Main` (the server's start as linkvtxn's,
+`kubernetes.New`, `etcd3.New` with the driver's arguments, `Check`'s `Ok`), the driver's `Link`
+(`etc/gen-link.py --k8setcd3`; `New` in the store's and the kubernetes client's), and package
+initialization (`etc/gen-init.py`: the driver in `ROOTS`/`PROGRAMS`, entries for `etcd3`,
+`storage`, `storage/feature`, `util/feature`, `etcd3/metrics` and the driver; steps inside a
+translated `init` function, `after`). New trust-boundary axioms: the names-only `labels`/`fields`
+`Everything`, `grpclog.SetLoggerV2`, `os.Getenv`, `strconv.ParseBool`, the conversion of a
+`klogWrapper` to the axiomatized `grpclog.LoggerV2` (G3), and the initializers the facts read
+(`DefaultFeatureGate`, `DefaultFeatureSupportChecker`, `ErrTransactionConflict`). `sharding.toml`
+imports `runtime` (G4), so `storage.SelectionPredicate`'s `sharding.Selector` is concrete and no
+result reaches an axiomatized type's `sorry`. The `sorry`s the result rests on: `revRoom` (the
+revision bound, D30n), `clientErr_other` (item 5 below), `client_ctx_field` (item 6), and the
+store's `kvIs_ne_null` (item 3).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

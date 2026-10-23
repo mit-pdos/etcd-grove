@@ -23,6 +23,22 @@ namespace k8setcd3
 
 open Iris Iris.BI Iris.ProofMode k8s
 
+section tyOk
+variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+
+/-- **The method-set fact the store asks of the driver's objects** (`ObjSpec.tyOk`, without the
+ghost state): `*Obj` is in `runtime.Object`'s type set (its methods `GetObjectKind` and
+`DeepCopyObject`, `k8setcd3.go`) and not in `runtime.Unstructured`'s (it has no
+`UnstructuredContent`). `methodSet` is uninterpreted in the model, so this is a premise of the
+results (as `v3rpc.ServerMethodSets`). -/
+def objTyOk : Prop :=
+  go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.ty)
+      k8s_io.apimachinery.pkg.runtime.Object.ty = true ∧
+    go.typeSetContains (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8setcd3.Obj.ty)
+      k8s_io.apimachinery.pkg.runtime.Unstructured.ty = false
+
+end tyOk
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -81,6 +97,8 @@ def driverSpec : ObjSpec GF DObj where
   objAt_ptr := objAtD_ptr
   newObj := objAtD_new
   encErr _ := False
+
+theorem driverSpec_tyOk (h : objTyOk) : (driverSpec (GF := GF)).tyOk := h
 
 end defs
 

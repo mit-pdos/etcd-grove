@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
+# notes/k8s-etcd3-goose.md). It imports `runtime` (names-only) so that `Selector`
+# (`Matches(runtime.Object)`), a field of `storage.SelectionPredicate` (the `storage` package's
+# `Everything`, which its initializer builds), is translated as an interface (G4).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "k8s.io/apimachinery/pkg/runtime"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

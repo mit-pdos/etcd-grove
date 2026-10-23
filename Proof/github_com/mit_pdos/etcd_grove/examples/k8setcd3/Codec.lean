@@ -99,7 +99,11 @@ def parseRVD (s : GoString) : Option w64 :=
 
 theorem bytesBE_rvBytes (n : w64) : bytesBE (rvBytes n) = n := by
   simp only [bytesBE, rvBytes, List.foldl_cons, List.foldl_nil]
-  bv_decide
+  -- bit by bit (not `bv_decide`, whose proof rests on native evaluation)
+  ext i hi
+  simp only [BitVec.getElem_or, BitVec.getElem_shiftLeft]
+  iterate 64 (rcases i with _ | i; · simp)
+  omega
 
 theorem parseRVD_rvStr (n : w64) : parseRVD (rvStr n) = some n := by
   unfold rvStr

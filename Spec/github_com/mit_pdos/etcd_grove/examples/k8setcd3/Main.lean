@@ -14,8 +14,8 @@ not panic and returns `Ok` (the check ran: the history is linearizable) or `Unkn
 before the check failed). The pure premises are putget's (`putget.Main.spec`: the member id and
 bootstrap log, the thread and time-receipt bounds, the server's workload and effect premises,
 gRPC's method sets, `errors.As`'s target, the method-set classes of `*errorString`), the method-set
-fact the store asks of the driver's objects (`driverSpec.tyOk`: `*Obj` is a `runtime.Object` and
-not a `runtime.Unstructured`; `methodSet` is uninterpreted) and `Run`'s bounds on `clients` and
+fact the store asks of the driver's objects (`objTyOk`: `*Obj` is a `runtime.Object` and not a
+`runtime.Unstructured`; `methodSet` is uninterpreted) and `Run`'s bounds on `clients` and
 `ops`. Stated under the cache package's assumptions, as putget's.
 -/
 module
@@ -54,7 +54,7 @@ abbrev Main.spec : Prop :=
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  (driverSpec (GF := GF)).tyOk →
+  objTyOk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ∗
