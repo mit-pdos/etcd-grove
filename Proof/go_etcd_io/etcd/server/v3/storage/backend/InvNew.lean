@@ -10,8 +10,9 @@ counterpart); 2026-10-17, branch `construct`.
 - `newPost γ P W Pk b D`: what the constructor gives: the backend (`isBackend`), its stop
   channels (`isStopChans`, for `Close`), the clients' whole open token, the clients' half of the
   readers' view (of bbolt's data `D`, no buffered writes), the post-lock hook's clients' half
-  (nil), the write-back tokens (`wbInit`: all the model provides) and a reader's token for each
-  of `readTx.mu`'s reader slots.
+  (nil), the write-back tokens (`wbInit`: all the model provides), (D22, 2026-10-23) the client's
+  half of the tracked buckets (`rbOwn`, at `D`'s) and a reader's token for each of `readTx.mu`'s
+  reader slots.
 -/
 module
 
@@ -56,7 +57,7 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
     IProp GF :=
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ b ∗ bOpen γ 1 ∗
     bView γ 1 (vData P (D, ⟨∅, W64 0⟩)) ∗ plHook γ func.nil ∗ ownToks γ.wb wbInit ∗
-    [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b)
+    rbOwn γ (rbData P D) ∗ [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), rdTok γ P b)
 
 end preds
 

@@ -104,20 +104,23 @@ theorem snapBranch_send
 /-- **The snapshot contract from the backend's** (`backend.Snapshot.spec`): the real backend `bl`'s
 `Snapshot()`, with an open share, a write-back's budget token and the caller's resource `R`, whose
 observation `Q` of every commit (with the batch lock's client resource `W` and hooks' `Pk`) is
-what the snapshot's data `D` satisfies (as `Q (sData P D) (hkData P D)`). -/
+what the snapshot's data `D` satisfies (as `Q (sData P D) (hkData P D) (rbData P D)`). -/
 theorem srvBeSnapOk_of_backend (hSnap : backend.backend.Snapshot.spec (GF := GF) (hG := hG))
     (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (bl : Loc) (qo : Qp)
     (R : IProp GF)
-    (Q : backend.VData → GMap (GoString × GoString) GoString → Prop) :
+    (Q : backend.VData → GMap (GoString × GoString) GoString → GMap GoString backend.BktData →
+      Prop) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       backend.isBackend γ P W Pk bl ∗
-      □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString),
-        R -∗ W -∗ Pk -∗ backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ ⌜Q vd d⌝) ⊢
+      □ (∀ (vd : backend.VData) (d : GMap (GoString × GoString) GoString)
+          (r : GMap GoString backend.BktData),
+        R -∗ W -∗ Pk -∗ backend.viewAt γ vd -∗ backend.hkOwn γ d -∗ backend.rbOwn γ r -∗
+          ⌜Q vd d r⌝) ⊢
       srvBeSnapOk
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #bl)
         iprop(backend.bOpen γ qo ∗ backend.wbTok γ ∗ R) iprop(backend.bOpen γ qo ∗ R)
-        (fun D => Q (backend.sData P D) (backend.hkData P D)) := by
+        (fun D => Q (backend.sData P D) (backend.hkData P D) (backend.rbData P D)) := by
   iintro ⟨#Hpkg, #Hb, #HQ⟩
   iunfold srvBeSnapOk
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #bl⟩

@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3backend.DowngradeInfoSet.wp_proof :
     apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG) := by
   intro E p r v3 log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%dm, #Hr⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨%dm, #Hr⟩, HRW, Hpre, Hwt⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -49,7 +49,7 @@ theorem apply.applierV3backend.DowngradeInfoSet.wp_proof :
   cases hen : dm.enabled
   all_goals
     wp_auto
-    wp_apply HSD $$ [$Hcs $Hwt $Hrt $d] as ⟨HPP, Hrt⟩
+    wp_apply HSD $$ [$Hcs $Hwt $Hrt $d $HRW] as ⟨HPP, Hrt, HRW⟩
     ihave Hwo := Hrdb $$ Hrt
     ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
     · iunfold apply.kvOwn; iframe

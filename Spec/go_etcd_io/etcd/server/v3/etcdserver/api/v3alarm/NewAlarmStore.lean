@@ -42,12 +42,15 @@ put or delete the member's encoding in the alarm bucket (`MustPutAlarm`/`MustDel
 put's key is not empty for an alarm type other than `NONE` (the contract's premise of `Activate`,
 `issues/etcd-alarm-activate-none-zero-fatal.md`).
 
-Over a fresh alarm bucket (`bkFresh d.γB "alarm"`, consumed: D14i, 2026-10-17), `restore` loads no
-alarm: the map is empty, and stays so until `Activate`, which only the apply contract calls; so the
+Over an empty alarm bucket (the tracked buckets' half `backend.rbOwn d.γB r` says so, D22,
+2026-10-23; until then the opaque token `bkFresh d.γB "alarm"`, D14i, 2026-10-17: the creation
+needs the half, given back with the bucket present and empty), `restore` loads no alarm: the map is empty, and stays so until `Activate`, which only the apply contract calls; so the
 store is fresh (`alarmFresh a`), `Get` returning an empty slice under it, and the apply contract
-is given up for the token. -/
+is given up for the token. `Activate`/`Deactivate` write a tracked bucket: they take and give back
+the tracked buckets' client half (`srvRestRW d.γB`, the contract's `RW`, D22). -/
 abbrev v3alarm.NewAlarmStore.spec : Prop :=
-  ∀ (lg : Loc) (ab : GoInterface) (abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp),
+  ∀ (lg : Loc) (ab : GoInterface) (abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
+    (r : GMap GoString backend.BktData),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗
       ⌜lg ≠ null⌝ ∗
       ⌜ab = interface.mkOk
@@ -57,14 +60,15 @@ abbrev v3alarm.NewAlarmStore.spec : Prop :=
           #d.be : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"lg" abl ↦□ lg ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
-      bkFresh d.γB go!"alarm" }}
+      backend.rbOwn d.γB r ∗ ⌜(r.lookup go!"alarm").getD ∅ = ∅⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.NewAlarmStore)) (Val #lg))
       (Val #ab))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); backend.bOpen d.γB qo ∗
+      backend.rbOwn d.γB (r.insert go!"alarm" ∅) ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil ∧ a ≠ null⌝ ∗ isAlarmStore a ∗
         alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
         □ (alarmFresh a -∗ □ ∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗
-          backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗ apply.isAlarmStore a γ Pk #f)) }}
+          backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗ apply.isAlarmStore a γ Pk #f (srvRestRW d.γB))) }}
 
 end spec
 

@@ -454,7 +454,7 @@ theorem NewServer.wp_proof
   · iPkgInit
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  ihave ⟨#HB, Hhook, Hopen, Hview, Hwb, Hrts⟩ := bootBackend_of_newPost d.γB d.P
+  ihave ⟨#HB, Hhook, Hopen, Hview, Hwb, Hrbo, Hrts⟩ := bootBackend_of_newPost d.γB d.P
     (fun _ => mvcc.lateW d.gx) (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D N HD HN $$ Hnew
   icases Hopen with ⟨%qo, Hopen⟩
   rw [show N + 7 = (N + 6) + 1 by omega]
@@ -463,14 +463,17 @@ theorem NewServer.wp_proof
   rw [Hbe0]
   -- the grant guard: the workload's (`srvGrantGuard ρ.rd.kv.wl`, D19n, D19q), which grants no
   -- lease (`HnoG`), so the lessor's `expiredC` never delivers
+  -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
+  have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
+    fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
-      (srvGrantGuard ρ.rd.kv.wl))
-    $$ [Hopen Hwl Hfl]
-    as %l ⟨Hopen, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, #Hlbe, #Hllk⟩
+      (srvGrantGuard ρ.rd.kv.wl) (backend.rbData d.P D))
+    $$ [Hopen Hwl Hrbo]
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, #Hlbe, #Hllk⟩
   · iframe #
     unfold backend.wbTok
-    iframe Hopen Hwl Hfl
-    ipureintro; exact ⟨Hlgnn, Hckok, by simp⟩
+    iframe Hopen Hwl Hrbo
+    ipureintro; exact ⟨Hlgnn, Hckok, by simp, hDl go!"lease" (by decide)⟩
   (try wp_auto)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
@@ -568,12 +571,17 @@ theorem NewServer.wp_proof
   (try wp_auto)
   rw [show (4 : Nat) = 2 + 2 from rfl]
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
-  wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo)
-    $$ [Hopen Hhook Hwa Hfa]
-    as %ast ⟨Hopen, Hhook, %RD, HRDs, #HisReq, #HisAuth⟩
+  wp_apply (h30 cfg.Logger' ab tp _ abl d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
+      ((backend.rbData d.P D).insert go!"lease" ∅))
+    $$ [Hopen Hhook Hwa Hrbo]
+    as %ast ⟨Hopen, Hhook, Hrbo, %RD, HRDs, #HisReq, #HisAuth⟩
   · iframe #
-    iframe Hopen Hhook Hwa Hfa
-    ipureintro; exact ⟨Hlgnn, Htpnn, Haufit, Hab⟩
+    iframe Hopen Hhook Hwa Hrbo
+    ipureintro
+    refine ⟨Hlgnn, Htpnn, Haufit, Hab, ?_, ?_, ?_⟩
+    · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"auth" (by decide)
+    · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
+    · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
   (try wp_auto)
   -- the compactor is off (`AutoCompactionRetention = 0`)
   rw [Hacr]
@@ -587,12 +595,21 @@ theorem NewServer.wp_proof
   rw [show (2 : Nat) = 1 + 1 from rfl]
   icases (ownToks_add 1 1 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwal⟩
   wp_apply (h32 s cfg.Logger' d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo _
-      (DFrac.own 1)) $$ [Hopen Hwal alarmStore be Hfal] as %aerr ⟨Hopen, be, Hares⟩
+      (DFrac.own 1) (((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
+        go!"authUsers" ∅).insert go!"authRoles" ∅))
+    $$ [Hopen Hwal alarmStore be Hrbo] as %aerr ⟨Hopen, Hrbo, be, Hares⟩
   · iframe #
     unfold backend.wbTok
     rw [← Hbe0]
-    iframe Hopen Hwal alarmStore be Hfal
-    ipureintro; exact Hlgnn
+    iframe Hopen Hwal alarmStore be Hrbo
+    ipureintro
+    refine ⟨Hlgnn, ?_⟩
+    rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide),
+      GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide)]
+    exact hDl go!"alarm" (by decide)
+  -- the rest buckets after the constructors: the boot state's
+  rw [restBootBk_of_fresh d D HDr]
+  clear hDl HDr
   icases Hares with (⟨%Haerr, -⟩ | ⟨%Haerr, %alst, %Halnn, alarmStore, #HalS, Hafr, #Hget, #HalAf⟩)
   · -- the alarms could not be restored: the error returned, the store and `b` closed
     cases aerr with
@@ -829,7 +846,7 @@ theorem NewServer.wp_proof
     rw [Qp.half_add_half] at h
     exact wand_entails h
   have hγs : envAgree (GF := GF)
-      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ E₀ :=
+      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ E₀ :=
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started
   ispecialize Htstart $$ %([] : List w64) Htlive
@@ -847,7 +864,7 @@ theorem NewServer.wp_proof
     iexact H
   -- the indices
   imod (srvIndices_alloc s
-      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ ρ.rd ⊤
+      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ ρ.rd ⊤
       (by rw [HρRaft]))
     $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
     with ⟨#Hai, Haown, #Hal0, #Hcmi, Hcmown, #Hti⟩
@@ -930,7 +947,7 @@ theorem NewServer.wp_proof
   · iapply lessorOk_of_lessorInv h57 h58 h59 ρ.rd.kv.wl HnoG lp γl
     iframe #
   ihave #Hapl : apply.isApplyLessor (lease.lessorIface lp) kst γw.st
-      (batchLockInv γA (metaTM d.γB d.P)) #hook $$ []
+      (batchLockInv γA (metaTM d.γB d.P)) #hook (srvRestRW d.γB) $$ []
   · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 lp kst γw.st
     rw [Hγw.2.1]
     iframe #
@@ -939,7 +956,8 @@ theorem NewServer.wp_proof
       show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
     iapply Hlbe $$ Hhook
     ipureintro; exact Hhknn
-  ihave #Hast : apply.isAuthStore ast γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook RD false $$ []
+  ihave #Hast : apply.isAuthStore ast γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook RD false
+      (srvRestRW d.γB) $$ []
   · iapply HisAuth $$ %γw.st %hook [] Hhook
     · ipureintro; exact Hγw.2.2.1
     · ipureintro; exact Hhknn
@@ -988,7 +1006,7 @@ theorem NewServer.wp_proof
   ipersist TracerOptionsS
   ipersist MaxConcurrentStreamsS
   ihave Hserve : srvServeBuilt s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF)
       cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
   · unfold srvServeBuilt srvServeFacts srvServeCfg srvBemuReader srvLeadTimeReader
     isplitr
@@ -1021,7 +1039,7 @@ theorem NewServer.wp_proof
     iframe Htrall Htrr
   -- (2026-10-20, watchkv) the watchable store's reader slots for the watch service
   ihave HWR : srvWatchReaders s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF)
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF)
       64 $$ [Hwrx]
   · unfold srvWatchReaders
     iexists ws, γw
@@ -1034,7 +1052,7 @@ theorem NewServer.wp_proof
   isplitr
   · ipureintro; rfl
   iexists γA, cil, metaTM d.γB d.P,
-    (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF),
+    (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
   iframe Hgap Hserve HSV HMon Hnm HWR
@@ -1063,7 +1081,7 @@ theorem NewServer.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl⟩
+    ipureintro; exact ⟨⟨rfl, rfl⟩, rfl, rfl, d.γB, rfl, rfl⟩
   isplitr
   · -- `#Hreqb`
     iexists ⟨gen, GoInterface.nil, cfg.MaxRequestBytes', cfg.ServerFeatureGate',
@@ -1075,7 +1093,7 @@ theorem NewServer.wp_proof
     iframe #
     isplitr
     · have hff : srvFloorFact (GF := GF)
-          ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ =
+          ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ =
           srvFloorFact E₀ := by
         funext a b c; unfold srvFloorFact; simp only [Hγw.2.2.2.1]
       rw [hff]; iexact Hgen
@@ -1154,7 +1172,7 @@ theorem NewServer.wp_proof
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr Hrev Haown Hkhi2 forceDiskSnapshot]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr Hrev Haown Hkhi2 forceDiskSnapshot Hrbo Hmem]
   · -- `Happ`
     unfold applyBuiltNA srvBemuReader
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
@@ -1173,19 +1191,28 @@ theorem NewServer.wp_proof
       ipureintro; intro k hk; simp at hk
     isplitr
     · simp only [bootKV]; rw [← Hlog0]; iexact Hal0
-    unfold kvRun kvApplied kvAppliedL kvCert
-    iframe Hrlb
-    isplitl [Hkhi2]
-    · isplitl [Hkhi2]
+    isplitr [Hrbo Hmem]
+    · unfold kvRun kvApplied kvAppliedL kvCert
+      iframe Hrlb
+      isplitl [Hkhi2]
       · isplitl [Hkhi2]
-        · first
-            | iexact Hkhi2
-            | (simp only [bootKV]; rw [← Hlog0]; iexact Hkhi2)
-        isplitr
-        · ileft; ipureintro; simp [Hlog0, bootKV]
-        ipureintro; simp [kvModel, kvRaftOf_nil, Hlog0, bootKV]
-      ipureintro; simp [bootKV, Hch0]
-    ipureintro; exact ⟨Hc0, by simp [ReqNames.raft, HρRaft]⟩
+        · isplitl [Hkhi2]
+          · first
+              | iexact Hkhi2
+              | (simp only [bootKV]; rw [← Hlog0]; iexact Hkhi2)
+          isplitr
+          · ileft; ipureintro; simp [Hlog0, bootKV]
+          ipureintro; simp [kvModel, kvRaftOf_nil, Hlog0, bootKV]
+        ipureintro; simp [bootKV, Hch0]
+      ipureintro; exact ⟨Hc0, by simp [ReqNames.raft, HρRaft]⟩
+    · -- (D22, 2026-10-23) the rest buckets and the members at the start: the boot state
+      unfold srvRest
+      have hpre : ρ.rd.raft.pre = [] := by simp [HρRaft]
+      have hboot : ρ.rd.raft.raft.reBoot = bootLog := by rw [HρRaft]; exact Hrboot
+      rw [hpre, hboot, List.append_nil, restModel_nil]
+      dsimp only
+      unfold srvRestOwn restBoot
+      iframe Hrbo Hmem
   iframe Hlr3 Hlr4
   isplitl [Hfcr]
   · iexists fcn
@@ -1220,7 +1247,7 @@ theorem NewServer.wp_proof
     intro st; unfold stLoaded; split
     · rename_i h; cases st; simp only at h; subst h; simp [hm0]
     · rfl
-  ihave #Hbo : apply.backendOptsOk (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF) uopts $$ []
+  ihave #Hbo : apply.backendOptsOk (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF) uopts $$ []
   · obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9, Hu10, Hu11, Hu12⟩ := Huopts
     iunfold apply.backendOptsOk
     simp only
@@ -1304,7 +1331,7 @@ theorem NewServer.wp_proof
       · iintro %w ⟨HΦ', %Hw, HP⟩
         subst Hw
         iapply HΦ' $$ HP
-  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil⟩ : apply.AEnv GF) [] Hbo
+  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF) [] Hbo
   · ipureintro; rfl
   icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
   obtain ⟨hns, hcr⟩ := Hz trivial

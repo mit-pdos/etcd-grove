@@ -41,6 +41,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Image
 
 @[expose] public section
@@ -56,36 +57,36 @@ open Iris Iris.BI Iris.ProofMode backend go_etcd_io.etcd.server.v3.storage
 
 /-! ## The other buckets -/
 
-/-- The buckets restore reads besides `Key` and `Meta`. -/
-def restBuckets [FfiSyntax] : List GoString :=
-  [go!"lease", go!"alarm", go!"auth", go!"authUsers", go!"authRoles", go!"members",
-   go!"members_removed", go!"cluster"]
+/-- The buckets restore reads besides `Key` and `Meta` (`mvcc.restBuckets`). -/
+abbrev restBuckets : List GoString := mvcc.restBuckets
 
-/-- The auth bucket `NewAuthStore` leaves on a fresh backend: the revision `1`
-(`commitRevision`), auth disabled (no `authEnabled` key). -/
-def authBoot [FfiSyntax] : BktData := GMap.insert go!"authRevision" (u64Be (W64 1)) ∅
+/-- **The bucket `n` every member's backend holds at the committed log `L`** (D22, 2026-10-23: a
+definition, the rest model's, `InvRest.lean`; until then the boot values and the opaque
+`clusterBktOf`), from the start's consistent index `c0` and the boot log `bootLog`. -/
+def bkRestOf [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) (n : GoString) :
+    Option BktData :=
+  (restModel c0 bootLog L).bk.lookup n
 
-/-- **The membership bucket `n` at the committed log `L`** (opaque; see the file header). -/
-opaque clusterBktOf [FfiSyntax] (n : GoString) (L : List EntryModel) : Option BktData
-
-/-- **The bucket `n` every member's backend holds at the committed log `L`**, for the server's
-workload (see the file header). -/
-def bkRestOf [FfiSyntax] (L : List EntryModel) (n : GoString) : Option BktData :=
-  if n = go!"auth" then some authBoot
-  else if n = go!"lease" ∨ n = go!"alarm" ∨ n = go!"authUsers" ∨ n = go!"authRoles" then some ∅
-  else clusterBktOf n L
+/-- **The membership bucket `n` at the committed log `L`** (D22, 2026-10-23: a definition, the
+rest model's; until then opaque). -/
+abbrev clusterBktOf [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (n : GoString)
+    (L : List EntryModel) : Option BktData :=
+  bkRestOf c0 bootLog L n
 
 /-- **`D`'s other buckets are those of the committed log `L`** (see the file header). -/
-def bkRestAt [FfiSyntax] (L : List EntryModel) (D : Data) : Prop :=
-  ∀ n ∈ restBuckets, D.lookup n = bkRestOf L n
+def bkRestAt [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) (D : Data) :
+    Prop :=
+  ∀ n ∈ restBuckets, D.lookup n = bkRestOf c0 bootLog L n
 
 /-! ## The image -/
 
 /-- **`D` is the image at index `i` of the server's entries `A`, the raft log being `L`** (see
 the file header). -/
-def imageAt [FfiSyntax] (γk : KVNames) (i : w64) (L A : List EntryModel) (D : Data) : Prop :=
+def imageAt [FfiSyntax] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A : List EntryModel)
+    (D : Data) : Prop :=
   mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
-    (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧ bkRestAt L D
+    (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
+    bkRestAt γk.c0 bootLog L D
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -97,7 +98,7 @@ variable [sem : go.Semantics]
 header): of a committed prefix `A` of the server's log ending at `i`. -/
 def dbImage (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) : IProp GF :=
   iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
-    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAt γk i (γ.pre ++ A) A D⌝)
+    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAt γk γ.raft.reBoot i (γ.pre ++ A) A D⌝)
 
 instance dbImage_persistent (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) :
     Persistent (dbImage (GF := GF) γ γk i D) := by
@@ -123,6 +124,7 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
     dbImage (GF := GF) γ γk i D ⊢ dbImage γ γk' i D := by
   have hk : ∀ A, kvModel γk A = kvModel γk' A := by
     intro A; simp only [kvModel, h0, h1, h2]
+  have hc : γk.c0 = γk'.c0 := h0
   iintro H
   iunfold dbImage at H
   iunfold dbImage
@@ -133,7 +135,7 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
   refine ⟨h.1, ?_⟩
   have h2' := h.2
   unfold imageAt at h2' ⊢
-  rw [← hk]
+  rw [← hk, ← hc]
   exact h2'
 
 /-- A member's image certificate is the network's. -/
@@ -170,43 +172,57 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- An image's lease, alarm and auth buckets are the boot state's. -/
-theorem bkRestAt_boot {L : List EntryModel} {D : Data} (h : bkRestAt L D) :
+/-- An image's lease, alarm and auth buckets are the boot state's (the rest model writes only
+`members` and `cluster`: `restModel_keep`). -/
+theorem bkRestAt_boot {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {D : Data}
+    (h : bkRestAt c0 bootLog L D) :
     D.lookup go!"lease" = some ∅ ∧ D.lookup go!"alarm" = some ∅ ∧
       D.lookup go!"auth" = some authBoot ∧ D.lookup go!"authUsers" = some ∅ ∧
       D.lookup go!"authRoles" = some ∅ := by
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
-  · rw [h _ (by simp [restBuckets])]; simp [bkRestOf]
-  · rw [h _ (by simp [restBuckets])]; simp [bkRestOf]
-  · rw [h _ (by simp [restBuckets])]; simp [bkRestOf]
-  · rw [h _ (by simp [restBuckets])]; simp [bkRestOf]
-  · rw [h _ (by simp [restBuckets])]; simp [bkRestOf]
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
+    (rw [h _ (by decide), bkRestOf, restModel_keep _ _ _ _ (by decide) (by decide)]
+     simp [restBoot, restBootBk])
 
 /-- The readers' view of a backend opened over an image (`newPost`'s `bView`), under the bridge's
 parameters, is the `Key` bucket of the image's KV model. -/
 theorem imageAt_keyView {P : BParams} (hP : mvcc.bridgeParams P) {γk : KVNames}
-    {i : w64} {L A : List EntryModel} {D : Data} (h : imageAt γk i L A D) :
+    {bootLog : List EntryM} {i : w64} {L A : List EntryModel} {D : Data}
+    (h : imageAt γk bootLog i L A D) :
     mvcc.keyView (vData P (D, ⟨∅, W64 0⟩)) (mvcc.bucketMap (kvModel γk A)) :=
   mvcc.keyView_of_keyImage hP h.1
 
 /-- The image's stored meta keys are `(i, t)` for some term (`metaIs`, what the consistent
 index's protocol names the backend's start with: `ApplyNames.m0`). -/
-theorem imageAt_metaIs {γk : KVNames} {i : w64} {L A : List EntryModel} {D : Data}
-    (h : imageAt γk i L A D) : ∃ t : w64, metaIs D (i, t) := by
+theorem imageAt_metaIs {γk : KVNames} {bootLog : List EntryM} {i : w64} {L A : List EntryModel}
+    {D : Data} (h : imageAt γk bootLog i L A D) : ∃ t : w64, metaIs D (i, t) := by
   obtain ⟨-, hci, ⟨t, ht⟩, -⟩ := h
   exact ⟨t, hci, ht⟩
 
+/-- **The rest buckets of a snapshot's data from its observation** (D22, 2026-10-23): the
+tracked buckets `rbData P D` the rest model's at `L` (the apply thread's `rbOwn`, which the
+observation agrees with), the tracked buckets the rest buckets. -/
+theorem bkRestAt_of_rb {P : BParams} (hRB : ∀ n ∈ restBuckets, P.RB n = true)
+    {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {D : Data}
+    (hrb : rbData P D = (restModel c0 bootLog L).bk) : bkRestAt c0 bootLog L D := by
+  intro n hn
+  have := congrArg (fun r => GMap.lookup r n) hrb
+  simp only [rbData_lookup, hRB n hn, ↓reduceIte] at this
+  exact this
+
 /-- The modeled half of an image from a snapshot's observation (`backend.Snapshot.spec`'s `Q`):
-the readers' view `sData P D` the `Key` bucket of `kvModel γk A` and the hook's own keys holding
-the index `i` and some term; the unmodeled half (`bkRestAt`, no compaction key) given. -/
+the readers' view `sData P D` the `Key` bucket of `kvModel γk A`, the hook's own keys holding the
+index `i` and some term and (D22, 2026-10-23) the tracked buckets the rest model's at `L`; no
+compaction key given (`bkNoCmp`'s, not modeled). -/
 theorem imageAt_of_snap {P : BParams} (hP : mvcc.bridgeParams P) (hK : ciKeys P)
-    {γk : KVNames} {i : w64} {L A : List EntryModel} {D : Data}
+    (hRB : ∀ n ∈ restBuckets, P.RB n = true)
+    {γk : KVNames} {bootLog : List EntryM} {i : w64} {L A : List EntryModel} {D : Data}
     (hv : mvcc.keyView (sData P D) (mvcc.bucketMap (kvModel γk A)))
     (hci : (hkData P D).lookup (schema.metaName, schema.ciKeyBytes) = encMeta i)
     (htm : ∃ t : w64, (hkData P D).lookup (schema.metaName, schema.termKeyBytes) = encMeta t)
     (hcmp : dget D schema.metaName mvcc.schedKeyBytes = none ∧
       dget D schema.metaName mvcc.finKeyBytes = none)
-    (hrest : bkRestAt L D) : imageAt γk i L A D := by
+    (hrb : rbData P D = (restModel γk.c0 bootLog L).bk) : imageAt γk bootLog i L A D := by
+  have hrest := bkRestAt_of_rb hRB hrb
   obtain ⟨t, ht⟩ := htm
   rw [hkData_lookup, ciKeys_hk hK (Or.inl rfl)] at hci
   rw [hkData_lookup, ciKeys_hk hK (Or.inr rfl)] at ht

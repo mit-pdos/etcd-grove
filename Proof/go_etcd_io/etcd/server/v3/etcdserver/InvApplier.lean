@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Proof.errors
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
@@ -461,19 +462,24 @@ def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
   ∃ (st : ApplyState) (b : GoInterface),
     C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false
 
-/-- The apply environment's threaded resources are the server's (D14i). -/
-def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci
+/-- The apply environment's threaded resources are the server's (D14i); (D22, 2026-10-23) its rest
+buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memory members, its
+write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`). -/
+def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
+  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+    ∃ γB : backend.BNames, E.RO = srvRestOwn γB cl ∧ E.RW = srvRestRW γB
 
 /-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
 is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch
-lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`. -/
+lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
+rest buckets' resource is the backend's tracked buckets and `s.cluster`'s in-memory members
+(`srvRestOwn`, D22, 2026-10-23). -/
 def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       srvUberApplyAddr s ↦□ v.ua ∗ apply.applierFor v.ua E ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E⌝ ∗
+      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk ρ.kv.wl v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗

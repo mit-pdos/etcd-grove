@@ -60,7 +60,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
   · -- dirty: the `confState` saved into `Meta`, one put
     wp_auto
     have hpend : sint.Z st1.pend + 1 < 2 ^ 58 := by
-      have h1 := Hs1.2.2.2.2.2.1
+      have h1 := Hs1.2.2.2.2.2.2.1
       have h2 := Hpre.2.1
       omega
     have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
@@ -80,9 +80,9 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
       ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hpkg3 $HM]
       wp_apply (hPut γ P W Pk b t st1 bk mvcc.metaBI key val schema.confStateKeyBytes vb hP.1
           (by decide) (by decide) hpend hSB)
-        $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -⟩
+        $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -, -⟩
       · iframe #
-        simp only [hkPut, hhk, Bool.false_eq_true, ↓reduceIte]
+        simp only [hkPut, hhk, rbPut, hP.2.2.2.2, Bool.false_eq_true, ↓reduceIte]
         itrivial
       iapply HΦ'
       iexists (st1.put mvcc.metaBI schema.confStateKeyBytes vb false)

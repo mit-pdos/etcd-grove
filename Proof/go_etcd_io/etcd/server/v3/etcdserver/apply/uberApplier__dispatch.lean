@@ -162,8 +162,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hWFR : txn.WarnOfFailedRequest.spec (GF := GF) (hG := hG))
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
-  intro E p opts c a r rq skip v3 log F Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp⟩
+  intro E p opts c a r rq skip v3 log F Pre Q Post rs
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp, HRO⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
@@ -245,16 +245,25 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .clusterVersionSet := by simp [dispatchKind, hs]
     have hsv : semverValid x := by
       have := Hok.1; simp only [rqOk, hk] at this; exact this x hs
-    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt HFS] as ⟨Hpost, HFS⟩
+    wp_apply HCluster $$ %go!"ClusterVersionSet" %lCV %v3 %log %Pre %Q %Post
+        %(apply.ClusterReq.ver x) %rs [] [Hkv Hres Hc Hwt HFS HRO] as ⟨Hpost, HFS, HRO⟩
     · ipureintro; simp [apply.clusterMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
+    · iunfold apply.clusterFacts
+      isplitr
+      · isplitr
+        · ipureintro; rfl
+        iframe HR
+        ipureintro; exact hsv
       iunfold apply.mPreV
       iframe
-      iexists x; iframe HR; ipureintro; exact hsv
     persist_ar
     ok_path
+    ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
+    · rw [show apply.restAfter rq v3 rs = (apply.ClusterReq.ver x).eff v3 rs by
+        simp [apply.restAfter, apply.ClusterReq.eff, hs]]
+      iexact HRO
     iapply HΦ
-    iframe HFS
+    iframe HFS HRO
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
@@ -266,41 +275,40 @@ theorem apply.uberApplier.dispatch.wp_proof
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nCM.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HCM
     have hk : dispatchKind rq = .clusterMemberAttrSet := by simp [dispatchKind, zClusterVersionSet, hs]
-    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt HFS] as ⟨Hpost, HFS⟩
+    wp_apply HCluster $$ %go!"ClusterMemberAttrSet" %lCM %v3 %log %Pre %Q %Post
+        %(apply.ClusterReq.attr x) %rs [] [Hkv Hres Hc Hwt HFS HRO] as ⟨Hpost, HFS, HRO⟩
     · ipureintro; simp [apply.clusterMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
+    · iunfold apply.clusterFacts
+      isplitr
+      · isplitr
+        · ipureintro; rfl
+        iframe HR
       iunfold apply.mPreV
       iframe
-      iexists x; iframe HR
     persist_ar
     ok_path
+    ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
+    · rw [show apply.restAfter rq v3 rs = (apply.ClusterReq.attr x).eff v3 rs by
+        simp [apply.restAfter, apply.ClusterReq.eff, zClusterVersionSet, hs]]
+      iexact HRO
     iapply HΦ
-    iframe HFS
+    iframe HFS HRO
     iunfold apply.mPostV at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     fin_same
     ipureintro; exact ⟨rfl, rfl⟩
   have zClusterMemberAttrSet : rq.clusterMemberAttrSet = none := nCM.1 (by simpa using Hif)
+  -- (D22, 2026-10-23) no other request changes the rest buckets
+  ihave HRO : iprop(E.RO (apply.restAfter rq v3 rs)) $$ [HRO]
+  · rw [apply.restAfter_other rq v3 rs zClusterVersionSet zClusterMemberAttrSet]; iexact HRO
   wp_if_destruct
-  · -- DowngradeInfoSet
+  · -- DowngradeInfoSet (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lDI ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nDI.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HDI
     have hk : dispatchKind rq = .downgradeInfoSet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, hs]
-    wp_apply HCluster $$ %go!"DowngradeInfoSet" %lDI %v3 %log %Pre %Q %Post [] [Hkv Hres Hc Hwt HFS] as ⟨Hpost, HFS⟩
-    · ipureintro; simp [apply.clusterMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPreV
-      iframe
-      iexists x; iframe HR
-    persist_ar
-    ok_path
-    iapply HΦ
-    iframe HFS
-    iunfold apply.mPostV at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    fin_same
-    ipureintro; exact ⟨rfl, rfl⟩
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
   have zDowngradeInfoSet : rq.downgradeInfoSet = none := nDI.1 (by simpa using Hif)
   wp_if_destruct
   · -- DowngradeVersionTest: nothing
@@ -313,7 +321,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     persist_ar
     ok_path
     iapply HΦ
-    iframe HFS
+    iframe HFS HRO
     ihave HPP : iprop(cPost v3 Pre Post) $$ [Hc]
     · iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hc
     fin_same
@@ -326,7 +334,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (try wp_auto)
     ok_path
     iapply HΦ
-    iframe HFS
+    iframe HFS HRO
     iframe Hres
     iexists (GoInterface.ok ai), c, (Outcome.applied log false)
     simp only [apply.Outcome.logAfter]
@@ -486,100 +494,44 @@ theorem apply.uberApplier.dispatch.wp_proof
     simp only [rqOk, hk] at hok
   have zLeaseCheckpoint : rq.leaseCheckpoint = none := nLC.1 (by simpa using Hif)
   wp_if_destruct
-  · -- Alarm: the uber-applier's (`restoreAlarms` on an `ACTIVATE` or `DEACTIVATE`)
+  · -- Alarm: not admitted (`rqOk`; D22, 2026-10-23: its writer takes `AEnv.RW`)
     have hl : lAl ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAl.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAl
     have hk : dispatchKind rq = .alarm := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, hs]
-    wp_apply hAlarm $$ %E %p %opts %c %(GoInterface.ok ai) %lAl %x %log %Pre %Q %Post [Ha Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI, %a', %c', Ha', #Hs', %hc'⟩
-    · iframe HR Hu Hs Ha
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    iframe Hres
-    iexists a', c', (Outcome.applied log false)
-    simp only [apply.Outcome.logAfter]
-    iframe Ha' Hs' Hkv
-    isplitl [HPP]
-    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
-    isplitr
-    · ipureintro
-      refine ⟨by simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter], ?_,
-        by simp [apply.kvFloorOk, apply.isFloorKind, hk]⟩
-      rcases hc' with ⟨h1, -⟩ | h2
-      · exact Or.inl h1
-      · exact Or.inr ⟨rfl, hk, by rw [HcE]; exact h2⟩
-    first | isplitl [Htrc] | isplitl []
-    · iapply apply.resTrace_of $$ H0
-      first | iexact Htrc | iapply apply.traceRes_null
-    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
-    iframe %hn
-    iexists _
-    iframe H0
-    isplitl; rotate_left
-    · first | iexact HeI | iapply applyErrIs_nil
-    simp only [apply.dispatchAnswer, hk]
-    itrivial
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
   have zAlarm : rq.alarm = none := nAl.1 (by simpa using Hif)
   wp_if_destruct
-  · -- Authenticate
+  · -- Authenticate (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lAu ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nAu.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HAu
     have hk : dispatchKind rq = .authenticate := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"Authenticate" %lAu %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iframe HSp; iexists x; iframe HR
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthenticate : rq.authenticate = none := nAu.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthEnable
+  · -- AuthEnable (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lAE ≠ null := by simpa using Hif
     have hs : rq.authEnable = true := by
       cases h : rq.authEnable
       · exact absurd (nAE.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authEnable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, hs]
-    wp_apply HResp0 $$ %go!"AuthEnable" %log %Pre %Q %Post [] [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.resp0Methods]
-    · ipureintro; intro _; exact Hok.2.2.2 hk
-    · iunfold apply.mPre
-      iframe
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthDisable
+  · -- AuthDisable (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lAD ≠ null := by simpa using Hif
     have hs : rq.authDisable = true := by
       cases h : rq.authDisable
       · exact absurd (nAD.2 h) hl
       · rfl
     have hk : dispatchKind rq = .authDisable := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, hs]
-    wp_apply HResp0 $$ %go!"AuthDisable" %log %Pre %Q %Post [] [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.resp0Methods]
-    · ipureintro; intro h; exact absurd h (by decide)
-    · iunfold apply.mPre
-      iframe
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
+    have hok := Hok.1
+    simp only [rqOk, hk] at hok
   have zAuthDisable : rq.authDisable = false := nAD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthStatus
@@ -598,26 +550,16 @@ theorem apply.uberApplier.dispatch.wp_proof
     itrivial
   have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserAdd
+  · -- AuthUserAdd (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUA ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserAdd" %lUA %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iframe HSp; iexists x; iframe HR; ipureintro; exact hok x hs
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserAdd : rq.authUserAdd = none := nUA.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserDelete
+  · -- AuthUserDelete (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUD ≠ null := by simpa using Hif
     have hs : rq.authUserDelete = true := by
       cases h : rq.authUserDelete
@@ -626,20 +568,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserDelete" %lUD %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserDelete : rq.authUserDelete = false := nUD.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserChangePassword
+  · -- AuthUserChangePassword (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUC ≠ null := by simpa using Hif
     have hs : rq.authUserChangePassword = true := by
       cases h : rq.authUserChangePassword
@@ -648,20 +579,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserChangePassword := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserChangePassword" %lUC %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserChangePassword : rq.authUserChangePassword = false := nUC.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserGrantRole
+  · -- AuthUserGrantRole (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUGR ≠ null := by simpa using Hif
     have hs : rq.authUserGrantRole = true := by
       cases h : rq.authUserGrantRole
@@ -670,39 +590,18 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserGrantRole" %lUGR %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserGrantRole : rq.authUserGrantRole = false := nUGR.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserGet
+  · -- AuthUserGet (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUG ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUG.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUG
     have hk : dispatchKind rq = .authUserGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserGet" %lUG %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iframe HSp; iexists x; iframe HR
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserGet : rq.authUserGet = none := nUG.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserRevokeRole
+  · -- AuthUserRevokeRole (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lURR ≠ null := by simpa using Hif
     have hs : rq.authUserRevokeRole = true := by
       cases h : rq.authUserRevokeRole
@@ -711,39 +610,18 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserRevokeRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserRevokeRole" %lURR %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserRevokeRole : rq.authUserRevokeRole = false := nURR.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleAdd
+  · -- AuthRoleAdd (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRA ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRA
     have hk : dispatchKind rq = .authRoleAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleAdd" %lRA %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iframe HSp; iexists x; iframe HR; ipureintro; exact hok x hs
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthRoleAdd : rq.authRoleAdd = none := nRA.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleGrantPermission
+  · -- AuthRoleGrantPermission (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRGP ≠ null := by simpa using Hif
     have hs : rq.authRoleGrantPermission = true := by
       cases h : rq.authRoleGrantPermission
@@ -752,39 +630,18 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleGrantPermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleGrantPermission" %lRGP %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthRoleGrantPermission : rq.authRoleGrantPermission = false := nRGP.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleGet
+  · -- AuthRoleGet (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRG ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRG.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HRG
     have hk : dispatchKind rq = .authRoleGet := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleGet" %lRG %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe; iframe HSp; iexists x; iframe HR
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthRoleGet : rq.authRoleGet = none := nRG.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleRevokePermission
+  · -- AuthRoleRevokePermission (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRRP ≠ null := by simpa using Hif
     have hs : rq.authRoleRevokePermission = true := by
       cases h : rq.authRoleRevokePermission
@@ -793,20 +650,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleRevokePermission := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleRevokePermission" %lRRP %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthRoleRevokePermission : rq.authRoleRevokePermission = false := nRRP.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleDelete
+  · -- AuthRoleDelete (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRD ≠ null := by simpa using Hif
     have hs : rq.authRoleDelete = true := by
       cases h : rq.authRoleDelete
@@ -815,20 +661,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleDelete := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleDelete" %lRD %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthRoleDelete : rq.authRoleDelete = false := nRD.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthUserList
+  · -- AuthUserList (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lUL ≠ null := by simpa using Hif
     have hs : rq.authUserList = true := by
       cases h : rq.authUserList
@@ -837,20 +672,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authUserList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"UserList" %lUL %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthUserList : rq.authUserList = false := nUL.1 (by simpa using Hif)
   wp_if_destruct
-  · -- AuthRoleList
+  · -- AuthRoleList (D22, 2026-10-23: not admitted, `rqOk`)
     have hl : lRL ≠ null := by simpa using Hif
     have hs : rq.authRoleList = true := by
       cases h : rq.authRoleList
@@ -859,17 +683,6 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authRoleList := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HResp $$ %go!"RoleList" %lRL %log %Pre %Q %Post [] [Hkv Hres Hc Hwt] as %resp %err ⟨Hpost, #HeI⟩
-    · ipureintro; simp [apply.respMethods]
-    · simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-      iunfold apply.mPre
-      iframe
-      iframe #
-    iunfold apply.mPost at Hpost
-    icases Hpost with ⟨Hkv, Hres, HPP⟩
-    join_ar
-    fin_same
-    itrivial
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
@@ -882,7 +695,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   dtail
   all_goals
     iapply HΦ
-    iframe HFS
+    iframe HFS HRO
     iexact Hpost
 
 end proof

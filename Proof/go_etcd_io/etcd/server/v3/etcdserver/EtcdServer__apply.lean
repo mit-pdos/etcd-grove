@@ -146,7 +146,7 @@ theorem EtcdServer.apply.wp_proof
   have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp hne hfrom hok hEok
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
-    #HWP, #HWA0, Hfs, Hka, #Hkb⟩
+    #HWP, #HWA0, Hfs, Hka, HRS, #Hkb⟩
   ihave #Hsrv0 := Hsrv
   ihave #Pmem : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
@@ -165,6 +165,7 @@ theorem EtcdServer.apply.wp_proof
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happlier, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
     #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
+  obtain ⟨γB, HROeq, -⟩ := HEo.2.2
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave %Hesl := ownSlice_len _ _ _ $$ Hes
@@ -204,6 +205,7 @@ theorem EtcdServer.apply.wp_proof
       -- (2026-10-19, D21 M3) the write tokens taken through `aw`
       "#HWA" ∷ srvWTAt γp aw ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
+      "HRS" ∷ srvRest E γr (A ++ ms.take (sint.nat j)) ∗
       "%Hxs" ∷ ⌜entriesStep (ciEff γ st.k) (ms.take (sint.nat j)) x xj⌝ ∗
       "Hphi" ∷ (∀ (appliedt appliedi : w64) (shouldStop : Bool),
         srvFS s ∗ (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
@@ -211,7 +213,8 @@ theorem EtcdServer.apply.wp_proof
           epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
           srvWTAt γp appliedi ∗
           (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
-            appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x') ∗
+            appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗
+            srvRest E γr (A ++ ms)) ∗
           ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
             (ms.getLast?).map EntryModel.term = some appliedt ∧
             loopOk γ st' appliedi ∧
@@ -226,7 +229,7 @@ theorem EtcdServer.apply.wp_proof
       "%Hlast" ∷ ⌜∀ m : EntryModel, 0 < sint.nat j → ms[sint.nat j - 1]? = some m →
         m.index = ai ∧ m.term = at'⌝ ∗
       "%Haw" ∷ ⌜uint.Z aw = uint.Z f0 - 1 + sint.Z j⌝ ∗ "%Hsb" ∷ ⌜sb = false⌝ : IProp GF)
-    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr Hgr Hfs HKV Hao HΦ Hka]
+    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr Hgr Hfs HKV Hao HΦ Hka HRS]
   · iexists (W64 0), st, a, at0, cs, false, (W64 0), (W64 0), (W64 0), x, f0 - 1
     simp only [named, show sint.nat (W64 0) = 0 from rfl, List.take_zero,
       List.append_nil]
@@ -300,7 +303,7 @@ theorem EtcdServer.apply.wp_proof
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
     wp_apply_core (wp_ci_get hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
-      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr Hfs HKV Hao Hphi e Hka]
+      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr Hfs HKV Hao Hphi e Hka HRS]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
     obtain ⟨hlp, hlpp, hlpe, hlc⟩ := stLoaded_facts γ st'
@@ -407,10 +410,10 @@ theorem EtcdServer.apply.wp_proof
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr ot aw
-            (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka]
-          as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka⟩, Hpost⟩
+            (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
+          as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HlbJ
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
           isplitr
           · iexact Hreg
           isplitr
@@ -511,10 +514,11 @@ theorem EtcdServer.apply.wp_proof
             applyBackend γ ci b)
           iprop(applyThread γ { { stLoaded γ st' with p := m.index } with k := m.index } ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
-          m.index m.term (Hcb cm Hdec)) $$ [Hcc Hcs Hst Happ Hbe]
-          as %removed %err ⟨%Hrem, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, Hpost⟩
+          m.index m.term γB sv.cluster _ (Hcb cm Hdec) HROeq) $$ [Hcc Hcs Hst Happ Hbe HRS]
+          as %removed %err ⟨%Hrem, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, Hpost⟩
         · rw [ite_eq_left rfl, HEP, HEf]
-          iframe Hcif Hua Happlier Hrn Hcc Hcs
+          iunfold srvRest at HRS
+          iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS
           isplitr
           · isplitr
             · first | iexact Hh | (imodintro; iexact Hh) | (imodintro; imodintro; iexact Hh)
@@ -550,6 +554,11 @@ theorem EtcdServer.apply.wp_proof
             rw [hrec]
             iframe
         icases Hpost' with ⟨%eff', Hst, Happ, Hbe⟩
+        -- (D22, 2026-10-23) the rest buckets: the conf change's effect, `v3` the entry's
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS]
+        · rw [srvRest_snoc, restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+            decide_eq_true ((HkB.2 m hmem).1 (by omega))]
+          iexact HRS
         cc_kv_applied
         subst Hsb Hrem
         (
@@ -625,10 +634,10 @@ theorem EtcdServer.apply.wp_proof
         ihave ⟨%ot, #Hreg⟩ := entryRegd_of_wait ρ E m h0 $$ [Hewo]
         · iframe Hewo; iapply isServer_waitIs $$ Hsrv0
         wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr ot aw
-            (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka]
-          as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka⟩, Hst⟩
+            (A ++ ms.take (sint.nat j))) $$ [Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hka HRS]
+          as ⟨Hbe, Hlr, Hgr, Hfs, ⟨%x1, %out1, HKV, %Hstep1, -, Hpre, Hka, HRS⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HlbJ
+          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr Hfs HKV Hwt Hao Hlog Hcm Hka HRS HlbJ
           isplitr
           · iexact Hreg
           isplitr
@@ -690,11 +699,18 @@ theorem EtcdServer.apply.wp_proof
         icases Hccw with ⟨#Hccf, %Hcb⟩
         (try wp_auto)
         wp_apply (hACC s cc_ptr ep cm csl false ci sv.ua E ρ.raft
-          iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term (Hcb cm Hdec)) $$ [Hcc Hcs]
-          as %removed %err ⟨%Hrem, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, -⟩
+          iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ (Hcb cm Hdec)
+          HROeq) $$ [Hcc Hcs HRS]
+          as %removed %err ⟨%Hrem, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, -⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hcif Hua Happlier Hrn Hcc Hcs
+          iunfold srvRest at HRS
+          iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS
           isplit <;> ipureintro <;> trivial
+        ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS]
+        · rw [srvRest_snoc, restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
+            decide_eq_false (fun h =>
+              (show ¬ uint.Z (ciEff γ st.k) < uint.Z m.index by omega) ((HkB.2 m hmem).2 h))]
+          iexact HRS
         cc_kv_applied
         subst Hsb Hrem
         (
@@ -737,12 +753,12 @@ theorem EtcdServer.apply.wp_proof
     rw [hjn, List.take_of_length_le (Nat.le_refl _)] at Hxs
     iframe Hst Hbe Happ Hcs Hlr Hgr Hao HWA
     have htk' : ms.take (sint.nat j) = ms := by rw [hjn, List.take_of_length_le (Nat.le_refl _)]
-    isplitl [HKV Hka]
+    isplitl [HKV Hka HRS]
     · iexists xj; iframe HKV Hlogf
       isplitr
       · ipureintro; exact Hxs
-      iapply (show kvApplied (GF := GF) γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ⊢
-        kvApplied γr.raft γr.kv (A ++ ms) xj from by rw [htk']) $$ Hka
+      rw [htk']
+      iframe Hka HRS
     ipureintro
     have hne0 : sint.Z j ≠ 0 := by omega
     rw [ite_eq_right hne0] at Hstj

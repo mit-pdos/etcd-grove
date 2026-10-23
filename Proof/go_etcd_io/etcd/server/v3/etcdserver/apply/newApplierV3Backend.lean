@@ -173,52 +173,52 @@ theorem apply.newApplierV3Backend.wp_proof
       iapply (hUserAdd E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hUserDelete E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hUserDelete E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hUserChangePassword E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hUserChangePassword E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hUserGrantRole E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hUserGrantRole E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       iapply (hUserGet E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hUserRevokeRole E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hUserRevokeRole E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       iapply (hRoleAdd E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hRoleGrantPermission E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hRoleGrantPermission E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
     · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
       iapply (hRoleGet E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hRoleRevokePermission E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hRoleRevokePermission E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hRoleDelete E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hRoleDelete E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hUserList E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hUserList E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨-, Hm, Hwt, #Hsp⟩
-      iapply (hRoleList E p r log Pre Q Post) $$ [Hm Hwt] HΦ'
+    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
+      iapply (hRoleList E p r log Pre Q Post) $$ [HR Hm Hwt] HΦ'
       iframe
       iframe #
   isplitr
@@ -254,26 +254,39 @@ theorem apply.newApplierV3Backend.wp_proof
   isplitr
   · -- the cluster's methods
     imodintro
-    iintro %m %r %v3 %log %Pre %Q %Post %hm
+    iintro %m %r %v3 %log %Pre %Q %Post %cr %rs %hm
     imodintro
     iintro %Φ' Hpre HΦ'
-    simp only [apply.clusterMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
-    rcases hm with rfl | rfl | rfl
-    all_goals simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    · icases Hpre with ⟨HR, Hm, Hwt, HFS⟩
-      iapply (hClusterVersionSet E p r v3 log Pre Q Post) $$ [HR Hm Hwt HFS] HΦ'
+    icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
+    cases cr with
+    | ver v =>
+      iunfold apply.clusterFacts at HR
+      icases HR with ⟨%Hmv, #HR, %Hsv⟩
+      subst Hmv
+      iapply (hClusterVersionSet E p r v3 log Pre Q Post v rs) $$ [Hm Hwt HFS HRO] [HΦ']
+      · iframe
+        iframe #
+        ipureintro; exact Hsv
+      inext
+      iintro ⟨H1, H2, H3⟩
+      iapply HΦ'
       iframe
-      iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, HFS⟩
-      iapply (hClusterMemberAttrSet E p r v3 log Pre Q Post) $$ [HR Hm Hwt] [HΦ' HFS]
+    | attr a =>
+      iunfold apply.clusterFacts at HR
+      icases HR with ⟨%Hmv, #HR⟩
+      subst Hmv
+      iapply (hClusterMemberAttrSet E p r v3 log Pre Q Post a rs) $$ [Hm Hwt HRO] [HΦ' HFS]
       · iframe
         iframe #
       inext
-      iintro Hpost
+      iintro ⟨Hpost, HRO⟩
       iapply HΦ'
       iframe
-    · icases Hpre with ⟨HR, Hm, Hwt, HFS⟩
-      iapply (hDowngradeInfoSet E p r v3 log Pre Q Post) $$ [HR Hm Hwt] [HΦ' HFS]
+    | dg d =>
+      iunfold apply.clusterFacts at HR
+      icases HR with ⟨%Hmv, #HR, HRW⟩
+      subst Hmv
+      iapply (hDowngradeInfoSet E p r v3 log Pre Q Post) $$ [Hm Hwt HRW] [HΦ' HFS HRO]
       · iframe
         iframe #
       inext

@@ -147,7 +147,7 @@ def watchSrvOk (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) : I
   iprop(mvcc.isWatchableStore wsl E.s γ ∗ ⌜γ.st = E.γ⌝ ∗ raftStatusOk s ∗
     (∃ (st : GoInterface) (cca : Bool) (P : IProp GF) (f : val),
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authOn) ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ apply.isAuthStore st E.γ P f E.RD E.authOn E.RW) ∗
     watchVars ∗ mvcc.watchTokPool γ)
 
 instance watchSrvOk_persistent (s : Loc) (E : apply.AEnv GF) (γ : mvcc.WsNames) (wsl : Loc) :

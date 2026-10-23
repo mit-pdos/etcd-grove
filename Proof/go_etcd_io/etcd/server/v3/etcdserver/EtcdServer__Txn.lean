@@ -201,7 +201,7 @@ local macro "txn_tail" : tactic => `(tactic| (
     isplitr
     · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authOn a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE, -⟩
+      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD E.authOn E.RW a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE, -⟩
       · iframe # Ha Hard
       iapply HΦ'
       iframe Ha Hard HcE

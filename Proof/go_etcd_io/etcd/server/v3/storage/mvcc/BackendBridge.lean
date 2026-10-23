@@ -94,11 +94,14 @@ def metaBI : BucketInfo := ⟨W64 2, go_etcd_io.etcd.server.v3.storage.schema.me
 /-- The backend's parameters for mvcc: its table has schema's `Key` and `Meta` buckets, and the
 hook's buckets (those whose contents the readers' view `vData` leaves out) are all but `Key`
 (the lessor, auth, membership and the consistent index write the others: their reads promise
-nothing here). -/
+nothing here); neither `Key` nor `Meta` is a tracked bucket (`RB`, D22, 2026-10-23: the store
+writes them without the tracked buckets' half). -/
 def bridgeParams (P : BParams) : Prop :=
   P.has keyBI ∧ P.has metaBI ∧
     (∀ n, P.HB n = decide (n ≠ go_etcd_io.etcd.server.v3.storage.schema.keyName)) ∧
-    ∀ n, P.SB n = decide (n = go_etcd_io.etcd.server.v3.storage.schema.keyName)
+    (∀ n, P.SB n = decide (n = go_etcd_io.etcd.server.v3.storage.schema.keyName)) ∧
+    P.RB go_etcd_io.etcd.server.v3.storage.schema.keyName = false ∧
+    P.RB go_etcd_io.etcd.server.v3.storage.schema.metaName = false
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -406,7 +409,7 @@ theorem keySafe_of {P : BParams} (hP : bridgeParams P) {rv : RView} (h : safeRv 
   refine ⟨fun kc vc e hc he => ?_, hsz⟩
   have hk := hP.1
   unfold BParams.has keyBI at hk
-  exact h _ _ hk (by rw [hP.2.2.2]; simp) kc vc e hc he
+  exact h _ _ hk (by rw [hP.2.2.2.1]; simp) kc vc e hc he
 
 section readers
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -1272,7 +1275,8 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
     | none =>
       rw [hlv, Option.none_or] at hc
       exact hbm kc vc hc
-  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k) hSB)
+  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k)
+    hP.2.2.2.2.1 hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
   iapply HΦ
   isplitr [Hvw]
@@ -1558,16 +1562,18 @@ theorem bt_create (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := 
     push_cast; omega
   icases HKM with (#HK | #HM)
   · ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
+    ihave Hrb := rbPut_other (GF := GF) γ P keyBI.name st.S hP.2.2.2.2.1
     wp_apply (hCB γ P W Pk b t st bk keyBI hP.1 (by decide) (by decide) hpend)
-      $$ [$Hb $Ht $Hl $Hbk] as Hl
+      $$ [$Hb $Ht $Hl $Hbk $Hrb] as ⟨Hl, -⟩
     iapply HΦ
     iunfold bkLockedO
     iexists (st.create keyBI)
     iframe
     ipureintro; exact hpost keyBI
   · ihave #Hbk := meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
+    ihave Hrb := rbPut_other (GF := GF) γ P metaBI.name st.S hP.2.2.2.2.2
     wp_apply (hCB γ P W Pk b t st bk metaBI hP.2.1 (by decide) (by decide) hpend)
-      $$ [$Hb $Ht $Hl $Hbk] as Hl
+      $$ [$Hb $Ht $Hl $Hbk $Hrb] as ⟨Hl, -⟩
     iapply HΦ
     iunfold bkLockedO
     iexists (st.create metaBI)

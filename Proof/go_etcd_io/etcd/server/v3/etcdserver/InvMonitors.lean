@@ -49,17 +49,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 /-- **The requests the monitors propose** (pure): a member's attributes, or a valid cluster
 version, with no range end `[0]` and no auth request field set (`needAdminPermission`: D19k,
-2026-10-18, the KV model's `plainReq` asks it). Every workload admits them (D19q:
+2026-10-18, the KV model's `plainReq` asks it), and (D22, 2026-10-23) no side-effect-free field
+set (`noSideEffect`: the monitors' requests set only their own field). Every workload admits them (D19q:
 `SrvWorkload.admits_cluster`). -/
 def monitorReq (rq : apply.IRRModel) : Prop :=
-  irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧
+  irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧ apply.noSideEffect rq = false ∧
     (apply.dispatchKind rq = .clusterMemberAttrSet ∨
       (apply.dispatchKind rq = .clusterVersionSet ∧
         ∀ v, rq.clusterVersionSet = some v → apply.semverValid v))
 
 /-- A monitor's request has a good shape. -/
 theorem rqShape_of_monitorReq (rq : apply.IRRModel) (h : monitorReq rq) : rqShape rq := by
-  obtain ⟨-, -, hk⟩ := h
+  obtain ⟨-, -, -, hk⟩ := h
   refine ⟨fun on => ?_, fun log _ => ?_⟩
   · unfold apply.dispatchOk
     rcases hk with hk | ⟨hk, -⟩ <;> rw [hk] <;> exact ⟨by decide, by decide, fun h => by cases h⟩
@@ -92,7 +93,7 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   ileft
   ipureintro
   have hs := rqShape_of_monitorReq rq hrq
-  obtain ⟨hz, hna, hk⟩ := hrq
+  obtain ⟨hz, hna, hns, hk⟩ := hrq
   have hk' : apply.dispatchKind rq = .clusterMemberAttrSet ∨
       apply.dispatchKind rq = .clusterVersionSet := by
     rcases hk with hk | ⟨hk, -⟩
@@ -100,7 +101,7 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     · exact Or.inr hk
   refine ⟨?_, ?_, hz, hs, rfl⟩
   · refine ⟨?_, ρ.kv.wl.admits_cluster rq hk'⟩
-    unfold plainCover; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact hna
+    unfold plainCover; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact ⟨hns, hna⟩
   · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide
 
 /-- **The monitors' configuration, as `NewServer` leaves it** (audit B4a; see the file header):

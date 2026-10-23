@@ -84,14 +84,29 @@ structure KBReal where
   be : Loc
   gx : GName
 
+/-- **etcd's rest buckets**: the buckets the server's stores keep besides `Key` and `Meta` (the
+lessor's `lease`, the alarm store's `alarm`, the auth store's `auth`, `authUsers`, `authRoles`,
+the membership's `members`, `members_removed`, `cluster`), which a snapshot's receiver recovers
+(D22 S-f). -/
+def restBuckets : List GoString :=
+  [go!"lease", go!"alarm", go!"auth", go!"authUsers", go!"authRoles", go!"members",
+   go!"members_removed", go!"cluster"]
+
+theorem key_not_rest : keyName ∉ restBuckets := by decide
+
+theorem meta_not_rest :
+    go_etcd_io.etcd.server.v3.storage.schema.metaName ∉ restBuckets := by decide
+
 /-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
 safe-range bucket, the hook's own keys the consistent index's two in `Meta` (2026-10-13, unit 7:
-only the server's pre-commit hook writes them). -/
+only the server's pre-commit hook writes them), the tracked buckets the rest buckets (D22,
+2026-10-23: the backend over every bucket). -/
 def KBReal.P (d : KBReal) : backend.BParams :=
   { BT := d.BT, HB := fun n => decide (n ≠ keyName), SB := fun n => decide (n = keyName),
     HK := fun n k => decide (n = go_etcd_io.etcd.server.v3.storage.schema.metaName ∧
       (k = go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes ∨
         k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes)),
+    RB := fun n => decide (n ∈ restBuckets),
     hookMax := d.hookMax, limit := d.limit }
 
 /-- The ghost names of a store: its index's and its bucket's, and its backend's instance (`kb`:
@@ -186,14 +201,14 @@ instance dbNames_countable : Pos.Countable backend.DBNames :=
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => (x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook, x.opn, x.wb,
-      x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
-    (fun p => ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
+    (fun x : backend.BNames => (x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
+      x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
+    (fun q => let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1⟩)
     (fun _ => rfl)
 
 instance kbReal_countable : Pos.Countable KBReal :=

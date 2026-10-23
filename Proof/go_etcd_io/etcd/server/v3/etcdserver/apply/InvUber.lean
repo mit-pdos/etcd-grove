@@ -108,6 +108,12 @@ def ApplyOut.waived : ApplyOut → Bool
   | .rejected => false
   | .dispatched _ skip => skip
 
+/-- **What `apply.Apply` does to the rest buckets and the cluster's members** (D22, 2026-10-23):
+a dispatched request's `restAfter`; a skipped or rejected one nothing. -/
+def restOut [FfiSyntax] (rq : IRRModel) (v3 : Bool) : ApplyOut → RestM → RestM
+  | .dispatched _ _, r => restAfter rq v3 r
+  | _, r => r
+
 /-- **What `apply.Apply` does with the request `rq`** (`v3`: `shouldApplyV3`) from the state `x`
 to `x'`. -/
 def applyStep (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) : ApplyOut → Prop

@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.authApplierV3.RoleGet.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      (∃ n : GoString, apply.authRoleGetIs r n) ∗
+      ((∃ n : GoString, apply.authRoleGetIs r n) ∗ E.RW) ∗
       apply.mPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"RoleGet")) (Val #r))

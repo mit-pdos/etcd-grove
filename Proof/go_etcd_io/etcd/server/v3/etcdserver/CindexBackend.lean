@@ -62,10 +62,12 @@ def metaIs (S : Data) (m : MetaCI) : Prop :=
     dget S schema.metaName schema.termKeyBytes = encMeta m.2
 
 /-- The backend's parameters make the consistent index's two keys in `Meta` the hook's own
-(`Meta` in the table, a hook's bucket, both keys `HK`), with room for the hook's two puts. -/
+(`Meta` in the table, a hook's bucket, both keys `HK`), with room for the hook's two puts, and
+(D22, 2026-10-23) `Meta` not a tracked bucket (`RB`). -/
 def ciKeys (P : BParams) : Prop :=
   P.has mvcc.metaBI ∧ P.HB schema.metaName = true ∧ 2 ≤ P.hookMax ∧
-    P.HK schema.metaName schema.ciKeyBytes = true ∧ P.HK schema.metaName schema.termKeyBytes = true
+    P.HK schema.metaName schema.ciKeyBytes = true ∧ P.HK schema.metaName schema.termKeyBytes = true ∧
+    P.RB schema.metaName = false
 
 theorem ci_ne_term : schema.ciKeyBytes ≠ schema.termKeyBytes := by decide
 
@@ -74,7 +76,7 @@ theorem ciKeys_hk {P : BParams} (hP : ciKeys P) {k : GoString}
   unfold BParams.hk
   rcases hk with rfl | rfl
   · rw [hP.2.1, hP.2.2.2.1]
-  · rw [hP.2.1, hP.2.2.2.2]
+  · rw [hP.2.1, hP.2.2.2.2.1]
 
 /-- The hook's own keys determine the meta keys. -/
 theorem metaIs_of_hkData {P : BParams} (hP : ciKeys P) {S S' : Data} {m : MetaCI}
@@ -92,21 +94,21 @@ theorem metaIs_of_hkData {P : BParams} (hP : ciKeys P) {S S' : Data} {m : MetaCI
 the term (`ut`), each at most once: only the writer's contents and the write buffer's `Meta`
 bucket changed, one pending operation per put. -/
 def hookRun (P : BParams) (st0 st : BSess) (ui ut : Bool) : Prop :=
-  st.C = st0.C ∧ st.R = st0.R ∧ sData P st.S = sData P st0.S ∧
+  st.C = st0.C ∧ st.R = st0.R ∧ sData P st.S = sData P st0.S ∧ rbData P st.S = rbData P st0.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = bkOf st0.W.bks i) ∧
   sint.Z st.pend = sint.Z st0.pend + (if ui then 1 else 0) + (if ut then 1 else 0) ∧
   st.ndel = st0.ndel ∧ st.tx = st0.tx ∧ st.cnt = st0.cnt
 
 theorem hookRun_refl (P : BParams) (st0 : BSess) :
     hookRun P st0 st0 false false :=
-  ⟨rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl⟩
 
 /-- A run of the hook is a hook step (at most two puts). -/
 theorem hookStep_of_run {P : BParams} (hP : ciKeys P) {st0 st : BSess} {ui ut : Bool}
     (h : hookRun P st0 st ui ut) : hookStep P st0 st := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc⟩ := h
+  obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
   have h2 := hP.2.2.1
-  refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
+  refine ⟨hC, hR, hS, hB, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
 
@@ -116,11 +118,12 @@ theorem hookRun_put {P : BParams} (hPw : P.Wf) (hP : ciKeys P) {st0 st : BSess} 
     (hk : (kb = schema.ciKeyBytes ∧ ui = false) ∨ (kb = schema.termKeyBytes ∧ ut = false)) :
     hookRun P st0 (st.put mvcc.metaBI kb vb false) (ui || decide (kb = schema.ciKeyBytes))
       (ut || decide (kb = schema.termKeyBytes)) := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc⟩ := h
+  obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
-  refine ⟨hC, hR, ?_, ?_, ?_, hn, htx, hc⟩
+  refine ⟨hC, hR, ?_, ?_, ?_, ?_, hn, htx, hc⟩
   · show sData P (st.S.insert mvcc.metaBI.name ((bktOf st.S mvcc.metaBI.name).insert kb vb)) = _
     rw [storage.sData_put_HB (n := mvcc.metaBI.name) hP.2.1]; exact hS
+  · rw [rbData_put_other _ _ _ _ _ hP.2.2.2.2.2]; exact hB
   · intro n i hni hHB
     show bkOf (wbAdd st.W.bks mvcc.metaBI.id (kb, vb)) i = _
     rw [bkOf_wbAdd]
@@ -247,7 +250,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
   imod ownSlice_persist $$ Hval with #Hval
   have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by
-    have h1 := hr.2.2.2.2.1
+    have h1 := hr.2.2.2.2.2.1
     have h2 := hpre.2.1
     have h3 := hP.2.2.1
     simp only [Bool.false_eq_true, ↓reduceIte] at h1
@@ -263,10 +266,13 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
       (by decide) (by decide) hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk⟩
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -⟩
   · iframe #
     rw [hkPut_hk hhk]
-    iexact Hhk
+    iframe Hhk
+    simp only [rbPut, show mvcc.metaBI.name = schema.metaName from rfl, hP.2.2.2.2.2,
+      Bool.false_eq_true, ↓reduceIte]
+    itrivial
   iapply HΦ
   simp only [hkPut, hhk', ↓reduceIte]
   iexists (st.put mvcc.metaBI schema.ciKeyBytes (u64Be x) false), true, ut
@@ -309,7 +315,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hsch $HM]
   imod ownSlice_persist $$ Hval with #Hval
   have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by
-    have h1 := hr.2.2.2.2.1
+    have h1 := hr.2.2.2.2.2.1
     have h2 := hpre.2.1
     have h3 := hP.2.2.1
     simp only [Bool.false_eq_true, ↓reduceIte] at h1
@@ -325,10 +331,13 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
       (by decide) (by decide) hpend hSB)
-    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk⟩
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -⟩
   · iframe #
     rw [hkPut_hk hhk]
-    iexact Hhk
+    iframe Hhk
+    simp only [rbPut, show mvcc.metaBI.name = schema.metaName from rfl, hP.2.2.2.2.2,
+      Bool.false_eq_true, ↓reduceIte]
+    itrivial
   iapply HΦ
   simp only [hkPut, hhk', ↓reduceIte]
   iexists (st.put mvcc.metaBI schema.termKeyBytes (u64Be x) false), ui, true
@@ -417,7 +426,7 @@ theorem hookTM_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) 
     iframe Hvs
     iintro !> HTM
     icases HTM with ⟨%st', %ui', %ut', Hl', Hhk', Hti', Htt', %Hm'⟩
-    have htx : st'.tx = st.tx := by rw [Hm'.2.2.2.2.2.2.2.1, hr.2.2.2.2.2.2.1]
+    have htx : st'.tx = st.tx := by rw [Hm'.2.2.2.2.2.2.2.2.1, hr.2.2.2.2.2.2.2.1]
     ihave Hc := Hcap $$ %vsl %(u64Be (sel m)) %st' Hrd Hl'
     ihave Hc2 := Hc $$ []
     · ipureintro; exact htx
@@ -627,9 +636,9 @@ theorem ci_hookFnSpec (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (hG :=
 theorem hookSaveStep_of_run {P : BParams} (hH : storage.hooksParams P) {st0 st : BSess}
     {ui ut : Bool} (h : hookRun P st0 st ui ut) :
     storage.hookSaveStep P st0 st := by
-  obtain ⟨hC, hR, hS, hW, hp, hn, htx, hc⟩ := h
-  have h3 := hH.2.2.2
-  refine ⟨hC, hR, hS, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
+  obtain ⟨hC, hR, hS, hB, hW, hp, hn, htx, hc⟩ := h
+  have h3 := hH.2.2.2.1
+  refine ⟨hC, hR, hS, hB, hW, ?_, ?_, by rw [hn]; exact Int.le_refl _, htx, hc⟩
   · rw [hp]; split <;> split <;> omega
   · rw [hp]; split <;> split <;> omega
 
