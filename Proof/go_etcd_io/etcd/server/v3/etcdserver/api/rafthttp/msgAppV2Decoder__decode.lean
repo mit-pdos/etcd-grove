@@ -105,7 +105,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     wp_auto
     ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hei with ⟨-, #Hhb⟩
+    icases Hei with ⟨-, #Hhb, -⟩
     have wpC := wp_Clone pbMessage (globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatMessage)
       go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.hbSt
     simp only [pbMessage_ty, pbMessage_ro, pbMessage_dec, pbMessage_eqv] at wpC
@@ -123,7 +123,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     iexists hbWire, [W8 0], m'
     iframe Hl' HB
     ipureintro
-    exact ⟨hF0, rfl, Heqv.symm⟩
+    exact ⟨hF0, rfl, Heqv.1.symm⟩
   · -- AppEntries
     wp_auto
     rw [show _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp =

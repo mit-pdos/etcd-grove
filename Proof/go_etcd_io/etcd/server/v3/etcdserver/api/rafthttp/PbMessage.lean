@@ -16,6 +16,9 @@ Read it against `raftpb/raft.proto` (raft v3.7, `syntax = "proto2"`):
   (`notes/rafthttp-plan.md`, "Open enums", with the Go test that checks it). (Until 2026-10-22 the
   model required declared values, `MessageType` `0`-`23` and `EntryType` `0`-`2`, as proto2's
   closed enums would);
+- a decoded or cloned copy (`eqv`) has the original's wire content, and no responses if the
+  original had none (2026-10-23, rafthttp stage 4: an encoding of a message without responses
+  carries none, and `proto.Clone` of one makes none), what the receiver's `netRecv` needs;
 - decoding (`msgDecode`, opaque) is a function of the bytes: two messages of which the same bytes
   are an encoding agree on the wire (`pbMessage_wire_eq`, `wireEq`). The unknown fields of the
   message, its entries and snapshot are not in the model: an encoding carries them, and decoding
@@ -79,7 +82,7 @@ def pbMessage : PbType GF where
   ro_persistent l st := msgOwn_persistent l st
   marshals := MsgMarshals
   wire := MsgWireOk
-  eqv st st' := wireOf st = wireOf st'
+  eqv st st' := wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])
   blank l := iprop(l ↦ (zero_val raftpb.Message))
   dec l st := msgPtsC l (DFrac.own 1) (DFrac.own 1) true st
 
@@ -90,7 +93,8 @@ def pbMessage : PbType GF where
 @[simp] theorem pbMessage_marshals : (pbMessage (GF := GF)).marshals = MsgMarshals := rfl
 @[simp] theorem pbMessage_wire : (pbMessage (GF := GF)).wire = MsgWireOk := rfl
 @[simp] theorem pbMessage_eqv (st st' : MsgSt) :
-    (pbMessage (GF := GF)).eqv st st' = (wireOf st = wireOf st') := rfl
+    (pbMessage (GF := GF)).eqv st st' = (wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])) :=
+  rfl
 @[simp] theorem pbMessage_blank (l : Loc) :
     (pbMessage (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Message)) := rfl
 @[simp] theorem pbMessage_dec (l : Loc) (st : MsgSt) :

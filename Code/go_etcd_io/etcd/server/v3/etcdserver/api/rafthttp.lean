@@ -260,8 +260,6 @@ attribute [irreducible] urlPicker.ty
 noncomputable def RaftPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.RaftPrefix"
 
-axiom RaftPrefix.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ProbingPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ProbingPrefix"
 
@@ -6484,6 +6482,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(go!"/raft"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6592,7 +6592,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ProbingPrefix.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val RaftPrefix.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (GlobalVarAddr RaftPrefix))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -6652,7 +6652,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.net.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.net.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc RaftPrefix go.string)) (Val #()))))))))
 
 abbrev encoder [FfiSyntax] : Type := GoInterface
 

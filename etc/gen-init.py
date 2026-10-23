@@ -169,16 +169,19 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp'] = dict(
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others.''',
+states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) is
+translated and set.''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded"),
     custom={'linkHeartbeatMessage': dict(
         doc='/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/',
         post='EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt',
         pat='#H@')},
-    finish=['ipersist HErrExceedSizeLimit', 'iframe Hown', 'imodintro', 'isplitr',
+    alloc_types={'RaftPrefix': 'GoString'},
+    finish=['ipersist HErrExceedSizeLimit', 'ipersist HRaftPrefix', 'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
-            '· iexists _; iexact HErrExceedSizeLimit', 'iexact HlinkHeartbeatMessage'],
+            '· iexists _; iexact HErrExceedSizeLimit', 'isplitr', '· iexact HlinkHeartbeatMessage',
+            'iexact HRaftPrefix'],
 )
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',

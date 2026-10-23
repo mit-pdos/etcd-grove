@@ -6,7 +6,8 @@ Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` hol
 error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
 variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others.
+states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) is
+translated and set.
 -/
 module
 
@@ -70,8 +71,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([RaftPrefix.init,
-        ProbingPrefix.init,
+    ∀ v ∈ ([ProbingPrefix.init,
         RaftStreamPrefix.init,
         RaftSnapshotPrefix.init,
         errIncompatibleVersion.init,
@@ -156,6 +156,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoString) RaftPrefix _ as HRaftPrefix
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd30⟩
   wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd29⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd28⟩
@@ -198,7 +199,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
       EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk RaftPrefix.init (by mem_tac))
+  -- translated initializer of RaftPrefix))
   wp_apply (opaqueInitsOk ProbingPrefix.init (by mem_tac))
   wp_apply (opaqueInitsOk RaftStreamPrefix.init (by mem_tac))
   wp_apply (opaqueInitsOk RaftSnapshotPrefix.init (by mem_tac))
@@ -237,6 +238,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrExceedSizeLimit
+  ipersist HRaftPrefix
   iframe Hown
   imodintro
   isplitr
@@ -247,7 +249,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imodintro
   isplitr
   · iexists _; iexact HErrExceedSizeLimit
-  iexact HlinkHeartbeatMessage
+  isplitr
+  · iexact HlinkHeartbeatMessage
+  iexact HRaftPrefix
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

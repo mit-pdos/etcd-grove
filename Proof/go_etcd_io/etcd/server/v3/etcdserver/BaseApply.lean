@@ -163,10 +163,13 @@ def hbSt : EtcdGrove.MsgSt :=
 /-- rafthttp's package fact (2026-10-22, rafthttp stage 3): `ErrExceedSizeLimit`
 (`msg_codec.go`, `errors.New`), the message decoder's error for a message over its limit, holds a
 non-nil error; `linkHeartbeatMessage` (`stream.go`), which the msgappv2 decoder clones for a
-heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it). -/
+heartbeat frame, is a heartbeat with no other field set, read-only for good (no code writes it);
+(2026-10-23) `RaftPrefix` (`http.go`), the pipeline's path, is `"/raft"`, read-only for good. -/
 abbrev rafthttpInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e) ∗
-    EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt)
+    EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
+    -- (2026-10-23, rafthttp stage 4) the pipeline's path (`http.go`, translated)
+    globalAddr RaftPrefix ↦□ go!"/raft")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit
