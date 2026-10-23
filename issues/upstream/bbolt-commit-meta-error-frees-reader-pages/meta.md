@@ -14,8 +14,8 @@
   At the user's request (2026-10-23), "Anything else" explains the cause (`rollback` reloading the new meta's
   freelist), against the skill's symptom-only rule; no code link there (the PR has them), so `check.py` warns
   (length, the name `rollback`) but does not fail.
-- **State**: draft, branch pushed (2026-10-23) to the fork `upamanyus/bbolt` at `eb2b2e0`; the issue's test link
-  (`db_whitebox_test.go#L116-L159`) checked on GitHub: the test's doc comment to its closing brace. Not filed.
+- **State**: filed (2026-10-23): issue etcd-io/bbolt#1311, PR etcd-io/bbolt#1312 (both open), from the fork
+  `upamanyus/bbolt` at `eb2b2e0`; the issue's test link (`db_whitebox_test.go#L116-L159`) checked on GitHub.
 
 ## Commands and results (go1.26.9 linux/amd64)
 
