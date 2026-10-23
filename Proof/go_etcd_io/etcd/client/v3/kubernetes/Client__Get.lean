@@ -43,11 +43,12 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG)) :
     Client.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd key opts Q0 hrev
-  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, #Hau0⟩
+  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
   wp_auto
   wp_apply (linkv.wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph)
     as %pr %xs Hpr
-  ihave #Hau := Hau0 $$ %(xs.getD 0 (W64 0)) %(xs.getD 1 (W64 0))
+  ispecialize Hau0 $$ %(xs.getD 0 (W64 0)) %(xs.getD 1 (W64 0))
+  imod Hau0 with #Hau
   generalize hQ : Q0 (xs.getD 0 (W64 0)) (xs.getD 1 (W64 0)) = Q
   (try wp_auto)
   wp_apply wp_WithRev opts.Revision' as %f1 #Hf1

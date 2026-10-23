@@ -13,8 +13,9 @@ error of the client (`clientErr`, `statusErrOk`: its `Error()` returns some stri
 **The update knows the response** (D30n, 2026-10-23): `Get` prophesies its response's revision
 and the key's mod revision (`0` if absent; the fork's ghost-only `ResolveU64`s), so the caller's
 read update may depend on them (`Q R m`): at every state it fires at, it knows the revision `R`
-and the key's mod revision `m` of the state the response will reflect (`modAt`). The answer is
-`Q` at the response's own pair, so a caller can commit once, at a state with that pair.
+and the key's mod revision `m` of the state the response will reflect (`modAt`). `Get` makes the
+update once, at the prophesied pair (the precondition's `∀ R m, |==> …` is used once), and the
+answer is `Q` at the response's own pair, so a caller can commit once, at a state with that pair.
 -/
 module
 
@@ -55,7 +56,7 @@ abbrev Client.Get.spec : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient kc.Client' (ms.map client.SrvAt.addr) V ∗
       ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      □ (∀ R m, [∧list] x ∈ ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R m)) }}
+      (∀ R m, |==> □ [∧list] x ∈ ms, ⌜Q R m = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv (Q R m)) }}
     (App (App (App (Val (kc @!! go_etcd_io.etcd.client.v3.kubernetes.Client.ty @!! go!"Get"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #opts))
   {{ (resp : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (err : GoInterface),

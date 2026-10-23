@@ -90,7 +90,7 @@ theorem store.getCurrentState.wp_proof
       c.ms c.V ci cd key (zero_val _) (fun _ _ => R) rfl) $$ []
     as %resp %gerr Hget
   · iframe #
-    iintro !> %_ %_
+    iintro %_ %_
     itrivial
   (try wp_auto)
   wp_apply wp_RecordEtcdRequest

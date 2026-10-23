@@ -121,7 +121,7 @@ theorem store.Get.wp_proof
       c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) (fun _ _ => Q) rfl) $$ []
     as %resp %gerr Hget
   · iframe #
-    iintro !> %_ %_
+    iintro %_ %_
     itrivial
   (try wp_auto)
   wp_apply wp_Record c.lt gerr t0 $$ []
