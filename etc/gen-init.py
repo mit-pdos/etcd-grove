@@ -210,13 +210,15 @@ FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPa
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
 SPECIAL['go_etcd_io.etcd.api.v3.version'] = dict(
-    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` and `V3_6` hold fixed values. Its
+    doc='''Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"` and `V3_6` a fixed value. Its
 initializer runs its variables' untranslated initializers (`version.go`): string constants,
 `semver` versions (`*semver.New(3, 6, 0, "", "")`), and `AllVersions`; the trust-boundary axioms
 `Version_init` and `V3_6_init` state the two the fact reads, `opaqueInitsOk` the others.''',
     custom={
-        'Version': dict(doc='/-- `Version = "3.8.0-alpha.0"` (`version.go`): a string. -/',
-                        post='∃ v : GoString, globalAddr Version ↦ v', pat='⟨%v@, H@⟩'),
+        # (2026-10-23, rafthttp stage 5e-2, accepted by the user) its value: the stream handler's
+        # `X-Server-Version`, which the stream reader parses
+        'Version': dict(doc='/-- `Version = "3.8.0-alpha.0"` (`version.go`). -/',
+                        post='globalAddr Version ↦ go!"3.8.0-alpha.0"', pat='H@'),
         'V3_6': dict(doc='/-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/',
                      post='∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v',
                      pat='⟨%v@, H@⟩'),

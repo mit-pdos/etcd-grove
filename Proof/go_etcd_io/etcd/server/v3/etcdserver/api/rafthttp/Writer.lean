@@ -64,11 +64,12 @@ def closeRight (cl : GoInterface) (Q : IProp GF) : IProp GF :=
     ∀ Φ : val → IProp GF, Q -∗ ▷ (∀ e : GoInterface, Φ #e) -∗
       WP (App (Val #(methods ci.ty go!"Close" ci.v)) (Val #())) {{ Φ }})
 
-/-- What closing a connection gives back to its handler: its response writer, at some status and
-bytes. -/
+/-- What closing a connection gives back to its handler: its response writer, committed (2026-10-23,
+stage 5e-2: the handler returns it so, `http.handlerDone`), at some status and bytes. -/
 def connBack (Rh : RaftHttp GF) (wi : GoInterfaceOk) (a : GoString) (R : http.HReq) (γk : GName) :
     IProp GF :=
-  iprop(∃ (st : Option w64) (w : List w8), http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk st w)
+  iprop(∃ (st : w64) (w : List w8),
+    http.respWriter (raftHttpNet Rh) (GoInterface.ok wi) a R γk (some st) w)
 
 /-- **A connection attached to the stream writer of type `ty` from `lid` to `pid`** (`connc`'s,
 `attachOutgoingConn`'s): its type, writer and flusher (the handler's response writer `wi`), closer

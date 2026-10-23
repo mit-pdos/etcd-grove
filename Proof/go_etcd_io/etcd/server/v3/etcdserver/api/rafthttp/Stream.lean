@@ -432,6 +432,37 @@ theorem raftProto_resp_of (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st :
   · ipureintro; intro _; exact h403
   · iapply streamResp_not200 Rh R γk st w h200
 
+/-- Nothing sent is a stream's bytes. -/
+theorem streamSent_nil (C : StreamCodec) (N : NetPayload GF) (γw : GName) (rid : w64) :
+    ⊢ streamSent C N γw rid [] := by
+  unfold streamSent
+  iexists [], C.init
+  isplitr
+  · ipureintro; exact ⟨Chain.nil _, List.nil_prefix⟩
+  iapply BigSepL.bigSepL_nil.2
+  itrivial
+
+/-- **A stream request's `200`, before any byte** (the stream handler's `WriteHeader(200)`): in the
+protocol, for a request registered as a stream's, of a path other than `/raft`. -/
+theorem raftProto_resp_stream_200 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (c : StreamKey)
+    (hp : R.path ≠ go!"/raft") :
+    ⊢ streamReg Rh γk c -∗ (raftProto Rh).resp R γk (W64 200) [] := by
+  iintro #Hreg
+  simp only [raftProto]
+  isplitr
+  · ipureintro; intro h; exact absurd h hp
+  unfold streamResp
+  iintro -
+  iexists c
+  iframe #
+  iapply streamSent_nil
+
+/-- A stream's path is not `/raft`. -/
+theorem streamPath_ne_raft (t : StreamTy) (rid : w64) : streamPath t rid ≠ go!"/raft" := by
+  intro h
+  have := congrArg List.length h
+  cases t <;> simp [streamPath, StreamTy.endpoint] at this <;> omega
+
 /-- A member's `/raft` response is not a `403`. -/
 theorem raftProto_resp_403 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : (raftProto Rh).resp R γk st w ⊢ ⌜R.path = go!"/raft" → st ≠ W64 403⌝ := by

@@ -51,6 +51,9 @@ axiom HeaderSet_ok : HeaderSet_spec (GF := GF)
 /-- `ResponseWriter.Header()` before the commit (`RespHeader_spec`): the writer's header map, lent. -/
 axiom RespHeader_ok : RespHeader_spec (GF := GF)
 
+/-- `Header.Get` through a pointer (`HeaderGetPtr_spec`): the map's `Get`. -/
+axiom HeaderGetPtr_ok : HeaderGetPtr_spec (GF := GF)
+
 /-- `io.ReadAll` of a prefix reader (`ReadAll_spec`): it reads until `EOF` or an error. -/
 axiom ReadAll_ok : ReadAll_spec (GF := GF)
 

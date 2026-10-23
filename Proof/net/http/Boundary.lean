@@ -512,6 +512,15 @@ def HeaderGet_spec : Prop :=
         (App (Val (hm @!! _root_.Perennial.net.http.Header.ty @!! go!"Get")) (Val #k))
       {{ RET #(hdrGet hs k); True }}
 
+/-- `(&hm).Get(k)`, through a pointer to a header map (Go's pointer-method wrapper of `Get`, as
+`r.Header.Get(k)` compiles): the map's `Get`. (2026-10-23, rafthttp stage 5e-2.) -/
+def HeaderGetPtr_spec : Prop :=
+  ∀ (p hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
+    ⊢ {{ p ↦□ hm ∗ hdrAt (GF := GF) hm hs }}
+        (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.http.Header.ty @!! go!"Get"))
+          (Val #k))
+      {{ RET #(hdrGet hs k); True }}
+
 /-- `w.Header()` of a response writer before its commit: its header map, lent to be `Set` (2026-10-23,
 rafthttp stage 5e: the headers it holds, which the commit needs of the protocol; until then a
 map the handler set freely, unconstrained for the client). -/

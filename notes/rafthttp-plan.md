@@ -537,6 +537,17 @@ trust-boundary spec.
    optional `-` prerelease of alphanumerics and dots, which `"3.8.0-alpha.0"` and `"2.0.0"` are).
    The handler's transport facts (`peerGetter.Get` gives the peer's stream writers; `AddRemote`
    returns) are premises, which stage 6 proves of `Transport`.
+   **5e-2 done (2026-10-23)**: `streamHandler.ServeHTTP` proved (`405` off `GET`; the headers set,
+   `verHdrOk` of them; the check's `412`s; the stream type from the path's `Dir` and the reader's
+   id from its `Base`; `410` for a removed member; for an unknown one, `AddRemote` with its
+   `X-PeerURLs` and `404`; `412` on an `X-Raft-To` mismatch; else `200`, flushed, the connection
+   attached to the peer, and the wait on its close notifier, which gives the writer back),
+   `newCloseNotifier`, `closeNotifier.Close`/`closeNotify` (`rafthttp/CloseNotifier.lean`: the
+   writer handed back through a broadcast channel whose invariant holds it or the handler's
+   ticket), `peer.attachOutgoingConn` (`rafthttp/Peer.lean`, `peerStreams`). `connBack` is now a
+   committed writer. One more boundary item, for review in 5f: `Header.Get` through a pointer to
+   the map (`r.Header.Get`, `HeaderGetPtr_ok`; `Get` of the map was already one). Not linked
+   until stage 6.
    **5e-3**: `streamReader.dial`'s proof (5c's), over the response's `X-Server-Version`.
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;

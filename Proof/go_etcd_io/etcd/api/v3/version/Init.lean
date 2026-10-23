@@ -2,7 +2,7 @@
 Package initialization of `go_etcd_io.etcd.api.v3.version`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`server/v3/lease/Base.lean`): `Version` and `V3_6` hold fixed values. Its
+Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"` and `V3_6` a fixed value. Its
 initializer runs its variables' untranslated initializers (`version.go`): string constants,
 `semver` versions (`*semver.New(3, 6, 0, "", "")`), and `AllVersions`; the trust-boundary axioms
 `Version_init` and `V3_6_init` state the two the fact reads, `opaqueInitsOk` the others.
@@ -66,10 +66,10 @@ axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
 
-/-- `Version = "3.8.0-alpha.0"` (`version.go`): a string. -/
+/-- `Version = "3.8.0-alpha.0"` (`version.go`). -/
 axiom Version_init :
     {{ (True : IProp GF) }} (App (Val Version.init) (Val #()))
-    {{ RET #(); ∃ v : GoString, globalAddr Version ↦ v }}
+    {{ RET #(); globalAddr Version ↦ go!"3.8.0-alpha.0" }}
 
 /-- `V3_6 = *semver.New(3, 6, 0, "", "")` (`version.go`): a `semver.Version`. -/
 axiom V3_6_init :
@@ -101,7 +101,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply (opaqueInitsOk MinClusterVersion.init (by mem_tac))
-  wp_apply Version_init as ⟨%vVersion, HVersion⟩
+  wp_apply Version_init as HVersion
   wp_apply (opaqueInitsOk APIVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk GitSHA.init (by mem_tac))
   wp_apply (opaqueInitsOk V3_0.init (by mem_tac))
