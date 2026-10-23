@@ -217,7 +217,73 @@ theorem wp_stream_decode
     have hl : bs.length < 2 ^ 63 := by have := Hb.2.1; omega
     exact ⟨MsgFrameOf.of_wire Hb.2.2 hl, Hb.1, rfl, Hb.2.2.1⟩
 
+/-- The reader's decoder is an interface value (`dec.decode` resolves its method). -/
+theorem decOwn_ok (lid pid : w64) (ty : StreamTy) (dec r : GoInterface) (s : (ty.codec pid lid).S) :
+    decOwn (GF := GF) lid pid ty dec r s ⊢
+      decOwn lid pid ty dec r s ∗ ⌜∃ ei, dec = GoInterface.ok ei⌝ := by
+  cases ty <;>
+  · simp only [decOwn]
+    iintro ⟨%d, %Hd, H⟩
+    isplitl [H]
+    · iexists d
+      iframe
+      ipureintro; exact Hd
+    ipureintro
+    exact ⟨_, Hd⟩
+
 end lemmas
+
+section bag
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] {t : go.GoType}
+  [IntoValTyped (GF := GF) V t]
+open Iris.ProgramLogic Iris.Std OFE
+
+/-- **A non-blocking send on a bag channel** (`select` with a `default`): if it goes through, the
+value with its `P`; a Perennial gap (its bag idiom has the blocking send only,
+`notes/perennial-changes.md`), as `bag_send_au` without the waiting case. -/
+theorem bag_nonblocking_send_au (γ : ChanNames) (ch : Loc) (P : V → IProp GF) (v : V)
+    (Φ : IProp GF) :
+    ⊢ £ 1 -∗ isChanBag γ ch P -∗ P v -∗ ▷ Φ -∗ nonblockingSendAuInner γ v Φ := by
+  rw [isChanBag_unseal]; unfold isChanBagDef nonblockingSendAuInner
+  iintro Hlc1 ⟨#Hch, #Hinv⟩ HP HΦ
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑nroot) $$ Hlc1 Hi with Hi
+  unfold chanBagInv
+  icases Hi with ⟨%s, Hoc0, Hi⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iexists s
+  iframe Hoc0
+  rcases s with buff | _ | _ | _ | _ | _ | _
+  all_goals dsimp only
+  case Buffered =>
+    iintro Hoc
+    imod Hmask with -
+    imod Hclose $$ [Hoc Hi HP] with -
+    · inext; iexists .Buffered (buff ++ [v])
+      dsimp only
+      iframe Hoc
+      iapply BigSepL.bigSepL_append.2
+      iframe Hi
+      iapply BigSepL.bigSepL_singleton.2
+      iexact HP
+    imodintro
+    iexact HΦ
+  case RcvPending =>
+    iintro Hoc
+    imod Hmask with -
+    imod Hclose $$ [Hoc HP] with -
+    · inext; iexists .SndCommit v; iframe
+    imodintro
+    iexact HΦ
+  all_goals first | itrivial | (iexfalso; iexact Hi)
+
+end bag
 
 end EtcdGrove
 end Perennial
