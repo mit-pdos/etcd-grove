@@ -1,8 +1,7 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
 Status: R0 done (2026-10-23, branch `restore-r0`); R1 done (2026-10-23, branch `restore-r1`, see
-"R1's findings"); R3 mostly done (2026-10-23, branch `restore-r3`, see "R3's progress": what is
-left is R3b, the pure bridge from the rebuild's model to the log's index); R2, R4-R6 to do. Removes two of mvcc's trust-boundary axioms,
+"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2, R4-R6 to do. Removes two of mvcc's trust-boundary axioms,
 `mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
 receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
 `restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
@@ -132,11 +131,16 @@ does not make).
    reader's token back and a receipt per entry. The cache (`rstCacheOk`), its purge and the
    lookups through the tree are covered.
 
-Left, **R3b**: `idxRestore (the bucket's entries of log) = indexOf (evsOf log)` for a well-formed
-log without compaction: a new key's first entry is a put with version `1` and create revision its
-own main revision (so `restore` agrees with `put` on the fresh index), and a tombstone is never a
-key's first entry (`LogWf`: a delete only of a present key). Needs the state/index
-correspondence of `LogLemmas.lean` (`kiGet_indexOf`) at each change.
+5. R3b, `RestoreModel.lean`: `idxRestore (logEnts log 0 log.length) = indexOf (evsOf log)`
+   (`idxRestore_logEnts'`) for a well-formed log (`LogWf'`), pure: a new key's first entry is a
+   put with version `1` and its own main revision as create revision, so `restore` agrees with
+   `put` on a fresh key index; a tombstone is never a key's first entry (a delete only of a
+   present key). The state/index correspondence in the middle of a revision is `rev_step`'s.
+
+What R4 takes from R3: `restoreIntoIndex`'s spec with `ents := logEnts ([[], []] ++ R) 0 _`
+(`RestoreEntsOk` from `logEnts`' order, `logEnts_keys_sorted`-style), `idxRestore_logEnts'` to
+turn the returned index into `indexOf (evsOf log)`, and `init_RWMutex` on the private index
+with `idxLockInv` at that log.
 
 **R4. `store.restore`.** The chunk loop: the cursor `min` past every key handed to
 `restoreChunk`, the keys of the bucket below it sent in order (`readTx.UnsafeRange`'s spec over the
