@@ -220,7 +220,10 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
+-- (2026-10-22) the client's and the server's package assumptions, not linkvtxn's: any caller of
+-- `New`'s client uses these calls (also `client/v3/kubernetes`)
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `cli.Get(ctx, listFrom, WithRange(listTo))` by `New`'s client of the members `ms`, with a read
 update or none (see the file header). -/

@@ -10,7 +10,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, etcd, kv, putget, putget3, linkvtxn, porcupine, bridge,
-               lintest, raft-witness or kvwitness; repeatable; default: all).
+               lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -162,12 +162,16 @@ PROJECTS = [
         # issues/etcd-watch-resume-waitgroup-overflow.md), and (D22, the snapshot path) the alarm
         # store recovered in place (8fd98af04, issues/etcd-alarm-store-snapshot-race.md) and a
         # snapshot's older files released only after `applySnapshot` opens it (188113160,
-        # issues/etcd-release-snapdb-before-open.md).
+        # issues/etcd-release-snapdb-before-open.md). Then (D30n, 2026-10-23) branch
+        # `goose-lean-getproph2` (on 188113160; `goose-lean-getproph`'s 942601555 made on
+        # 2aed163b1, cherry-picked): `kubernetes.Client.Get` resolves a prophecy with its
+        # response's revision and the key's mod revision (bc9c3868c; verification only, a no-op
+        # in Go).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="188113160d8753c88a9fe59f324e1f94652789e9",
+        rev="bc9c3868ced67e518fb2fecba44ce0fa70b7303b",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -290,6 +294,11 @@ PROJECTS = [
             "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
+            # with bodies (client/v3/kubernetes.toml): the client the Kubernetes API server's
+            # etcd3 store calls (project k8s-apiserver; notes/k8s-etcd3-goose.md)
+            "go.etcd.io/etcd/client/v3/kubernetes",
+            # names only: grpc's logger, which the etcd3 store names (project k8s-apiserver)
+            "google.golang.org/grpc/grpclog",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
             "go.etcd.io/etcd/api/v3/mvccpb",
             "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
@@ -348,7 +357,8 @@ PROJECTS = [
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
-               "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
+               os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
+               "go_opentelemetry_io",
                "net", "hash", os.path.join("encoding", "hex"), os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
@@ -567,6 +577,70 @@ PROJECTS = [
         counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(
+        name="k8s-apiserver",
+        # The survey of the Kubernetes API server's etcd3 storage backend
+        # (notes/k8s-etcd3-goose.md): `k8s.io/apiserver/pkg/storage/etcd3` and
+        # `k8s.io/apiserver/pkg/storage`, with bodies, over etcd's client (the etcd project's
+        # translation, with `client/v3/kubernetes`). A Go module of this repository
+        # (examples/k8setcd3) requiring k8s.io/apiserver at a master pseudo-version (2026-10-21)
+        # and replacing etcd's modules by the etcd fork at the etcd pin; the API server's other
+        # dependencies names only (their .toml). Also the driver itself (the package `.`,
+        # notes/k8s-etcd3-plan.md phase 6), whose imports beyond the store are the etcd, lintest
+        # and porcupine projects' translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "k8setcd3"),
+        lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
+                    "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    "iter=", "path=", "github.com/mit-pdos/etcd-grove=",
+                    "github.com/anishathalye/porcupine="],
+        packages=[
+            ".",
+            "k8s.io/apiserver/pkg/storage/etcd3",
+            "k8s.io/apiserver/pkg/storage",
+            # types and names only (their .toml): what the two name
+            "k8s.io/apimachinery/pkg/api/errors",
+            "k8s.io/apimachinery/pkg/api/validate/content",
+            "k8s.io/apimachinery/pkg/api/meta",
+            "k8s.io/apimachinery/pkg/apis/meta/v1",
+            "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured",
+            "k8s.io/apimachinery/pkg/conversion",
+            "k8s.io/apimachinery/pkg/fields",
+            "k8s.io/apimachinery/pkg/labels",
+            "k8s.io/apimachinery/pkg/runtime",
+            "k8s.io/apimachinery/pkg/runtime/schema",
+            "k8s.io/apimachinery/pkg/sharding",
+            "k8s.io/apimachinery/pkg/types",
+            "k8s.io/apimachinery/pkg/util/errors",
+            "k8s.io/apimachinery/pkg/util/runtime",
+            "k8s.io/apimachinery/pkg/util/validation/field",
+            "k8s.io/apimachinery/pkg/util/wait",
+            "k8s.io/apimachinery/pkg/watch",
+            "k8s.io/apiserver/pkg/audit",
+            "k8s.io/apiserver/pkg/endpoints/request",
+            "k8s.io/apiserver/pkg/features",
+            "k8s.io/apiserver/pkg/storage/etcd3/metrics",
+            "k8s.io/apiserver/pkg/storage/feature",
+            "k8s.io/apiserver/pkg/storage/value",
+            "k8s.io/apiserver/pkg/util/feature",
+            "k8s.io/apiserver/pkg/util/flowcontrol",
+            "k8s.io/component-base/tracing",
+            "k8s.io/component-base/featuregate",
+            "k8s.io/klog/v2",
+            "k8s.io/utils/clock",
+            "encoding/json",
+            "encoding/base64",
+            "iter",
+            "path",
+        ],
+        owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
+               os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
+               os.path.join("encoding", "base64"), "iter", "path",
+               os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
+        counted_modules=["k8s.io/apiserver"],
+    ),
+    Project(
         name="kvwitness",
         # The key-value store example (project kv) on the witness raft (project raft-witness):
         # a cluster of two voters and an in-process witness (`StartClusterWitness`, `MainWitness`;
@@ -591,11 +665,13 @@ PROJECTS = [
 
 # The Go modules of this repository that build the examples against the forks, and which project's
 # pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
-# examples' module and kvwitness's, whose raft is the witness experiment's. `--check` fails on a
+# examples' module, kvwitness's, whose raft is the witness experiment's, and k8setcd3's. `--check` fails on a
 # mismatch, so that a fork-pin bump cannot leave the examples on the old code.
 GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
+    # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
+    os.path.join("examples", "k8setcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
 }
 
 

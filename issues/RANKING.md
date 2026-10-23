@@ -355,6 +355,14 @@ released: every transaction panics on 32-bit platforms; worth reporting before a
 it), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
 
+## Kubernetes (the API server's etcd3 store and its test model; not etcd's)
+
+For Kubernetes' sig-api-machinery, not etcd's maintainers:
+[k8s-correctness-model-noop-rewrite](k8s-correctness-model-noop-rewrite.md) (2026-10-22). The
+storage test model `correctness.Model` rejects the store's intended rewrite of non-canonical or
+stale data on a no-op update. It is a test-only bug that `TestCorrectness` does not reach, with a
+Go reproduction and a small fix in the Model.
+
 ## How to bring them
 
 Each report or PR should be reviewed and submitted by a person, with its Go reproduction test

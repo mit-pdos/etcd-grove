@@ -1,0 +1,10 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-etcd3-goose.md). It imports `featuregate` (names only) so that the type of
+# `DefaultFeatureGate`'s methods, `featuregate.FeatureGate`, is in scope of its importers: the
+# etcd3 store and the storage package call `utilfeature.DefaultFeatureGate.Enabled` without
+# importing featuregate, and Goose adds no import for it (gap G3).
+translate = ["!*"]
+imports = ["!*", "k8s.io/component-base/featuregate"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

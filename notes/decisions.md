@@ -16370,3 +16370,145 @@ linkv3p's `startCluster` over `common.NewClients`; the four closed theorems' pre
 `common`, `linkvtxn`, `linkv3p` regenerated (`context_WithTimeoutBackground` a root, `context_ErrAny`
 an `@` callee of `context`'s Link, `grpc_KeepaliveEnforcementPolicy` common's), the initializers
 regenerated (`common` imports `time`, grpc and `keepalive` now).
+- **D30g: the Model and non-canonical data** (2026-10-22, decided with the user; amends D30c).
+  `correctness.Model` disagrees with the store when the stored data is non-canonical or stale.
+  The store skips a no-op update only when the new encoding is byte-equal to the stored one and
+  not stale (`store.go:547`, the #48394 fix), and otherwise rewrites it at a new resource
+  version. The Model skips it whenever the objects are equal up to the resource version, so it
+  rejects the store's correct response (`issues/k8s-correctness-model-noop-rewrite.md`,
+  reproduced by a Go test). With the Model as it is, a non-canonical driver (D30b) checked
+  against it (D30c) would make `k8setcd3_porcupine_safe` false. Decided:
+  - **The generic specs** use the Lean model with one more bit per item: whether its stored
+    value is the codec's current encoding of the object and not stale (`canon`). `update` writes
+    unless the object is unchanged *and* the item is canonical. That is the store's rule
+    (`Model.lean`'s `KSt.update`); on all-canonical states it is the Model's (`KSt.update_eq_updateM`).
+  - **The driver** keeps D30b's non-canonical codec and checks against `correctness.Model`
+    fixed to follow the store. Each item carries its stored form (or a needs-rewrite bit set
+    when it is seeded), and `update` compares as the store does. The rewrite is a write with its
+    `Change`, and `NewModelFromStorage` learns which values are non-canonical or stale. The
+    transformer's `stale` must be a function of the stored value. The fixed Model lives as a
+    patched copy of the `correctness` package in `examples/k8setcd3/`, its diff against
+    upstream kept beside it, and it is part of the driver's trusted base until upstream has an
+    equivalent fix. A lemma relates the Lean model's `update` to it. No fork of Kubernetes for
+    this; a fork of the `kubernetes/apiserver` mirror only if G2 is resolved by rewriting
+    `GetList` (phase 5). No upstream issue or PR text is drafted (the user).
+  Rejected: a canonical driver with the unmodified Model, which leaves #48394's path out of
+  the closed theorem.
+- **D30h: the store's atomic updates, split by whether the outcome changes the state**
+  (2026-10-22, proposed; phase 4's design). Some outcomes of `GuaranteedUpdate` and `Delete`
+  linearize at a read: a no-op update (`store.go:547`, after `getCurrentState` or at the
+  initial `Get`), and the errors decided on a current state (a failed precondition, a
+  `validateDeletion` or `tryUpdate` error, not found). The client's read specs take a
+  persistent read update (`kvReadAu`, `□`), because a read may fire at several members
+  (`client_range_any`), so a one-shot update (`kvOpAu1`, what a driver's history needs for
+  writes) cannot be committed at a read. So a store method's update has two parts:
+  - a persistent update for the outcomes that leave the model state unchanged (reads, no-ops,
+    errors), with a persistent result, as linkvtxn's reads (`□ Q σ`);
+  - a one-shot update for the outcomes that write.
+  The store's proof builds each attempt's client update from them. A transaction whose compare
+  fails (a conflict) aborts the one-shot part (the state is unchanged: its else branch is a
+  get), and the attempt that writes commits it. In the model an update whose step at the
+  linearization point is a no-op is then a read, as `Model.Step` treats it (`true, s, nil`).
+  Rejected: one one-shot update for the method, which cannot linearize the no-op path; one
+  persistent update, which would let a write's history entry be recorded twice.
+- **D30i: the model sits on linkv's abstraction** (2026-10-22). The Kubernetes model is
+  stated over `linkv.MSt` (`absSt`: each key's value, mod revision and version, and the
+  revision), whose `absSt_kvOpStep` already proves that the server's step on single-key
+  compare-and-put/get/delete transactions is the model's. `OptimisticPut`/`OptimisticDelete`
+  send exactly `linkv.txnOf [.mod key rev] [put | del] (getOnFailure ? [.get key] : [])`.
+  Their only differences from linkv's sends are the lease (`WithLease(0)`, the same put) and
+  `Get`'s `WithRev(0), WithLimit(1)` (the same selection of one key). Like linkvtxn's
+  `GoodKV`, the specs need the state sorted by key (the caller's invariant).
+- **D30j: a key's mod revision determines its value, across states** (2026-10-22, proposed;
+  phases 4-6). The store's conflict check compares only the mod revision
+  (`ModRevision(key) = origState.rev`) with a state it read earlier. When it succeeds, the
+  store's answer (the decoded `origState.data`) and its checks (preconditions,
+  `validateDeletion`, `tryUpdate` and the no-op test, all run on `origState`) are about the
+  earlier read, while the model's step is at the transaction's state. They agree because
+  etcd never reuses a revision: two states at which a key has the same mod revision give it
+  the same key-value. The server's specs do not export this (`etcdKV` is a ghost variable of the
+  latest `KVState`, with no history). Proposed: the store's updates take, at the linearization
+  point, a persistent witness of the state's key-values by key and mod revision. A caller that
+  keeps a ghost map `(key, modRev) ↦ value` next to its half of `etcdKV` (fresh entries at each
+  commit, at revision `rev + 1`) can provide it. The model lemmas (`absK_delete`,
+  `absK_update`) state the matching item as a premise. The general fix, for the etcd client
+  proof's owner: the server's specs could give that persistent fact themselves (the mvcc log is
+  known there), and every caller would then get it for free.
+- **D30k: the object contract and the store's write updates, as carried out** (2026-10-22).
+  The contract (`Contract.lean`) is a premise of WPs of the exact calls the store makes on its
+  codec, versioner, transformer and decoder (and `runtime.Encode`, `runtime.SetZeroValue`), so a
+  names-only function among them needs no axiom here. The transformer's reading is a function of
+  the stored value (`fromS`, with staleness), its writing a relation (`toS`: encryption may be
+  randomized). For that reason the store's one-shot update (D30h) is relational: `k8sAu1` asks
+  for any next state of the store whose model is the operation's, which the store chooses (the
+  transaction it sends) in `k8sAu1_kvAu1`. Its precondition gives the state as the store's (`kvWf`)
+  with room for one revision (`σ.rev + 2 < 2 ^ 63`: the abstraction reads mod revisions as
+  numbers below `2 ^ 63`), so the caller (the driver) must bound its traffic's revisions.
+  Rejected: a fixed transaction in the caller's update (the caller cannot know the stored bytes).
+- **D30l: D30h as carried out, one persistent update with a write token** (2026-10-22, for
+  `Delete`; proposed for the user's review, since it changes D30h's form). D30h's two updates (a
+  persistent one for read-like outcomes, a one-shot one for the write) cannot be used for a
+  conditional transaction: whether its compare holds is known only at the state it runs at, inside
+  the one atomic step the client's one-shot update (`kvOpAu1`) fires in. Opening the one-shot
+  update there and aborting it on a conflict gives the caller nothing for that state, and opening
+  the read update after the abort may see another state (the caller's abort may change its ghost
+  state). So the caller gives one persistent update per member with a choice at its commit
+  (`k8sAuRW γk c step W Q Φ`, `Updates.lean`): as a read (the state unchanged, `□ Q σ`) any number
+  of times, or as the write (the model's `step`, `Φ σ`), the write branch consuming the caller's
+  exclusive token `W` (given once, in `Delete`'s precondition), so it fires at most once: D30h's
+  objection to one persistent update (a write recorded twice) does not apply. `k8sAuRW_kvAu1`
+  builds the client's update for the transaction: the write when the compare holds, a read
+  handing `W` back on a conflict (`del_cases`: a failed transaction leaves etcd's state exactly
+  as it was). `Delete`'s spec answers `delOut`: the write's `Φ σ`, or a read-like answer at `□ Q σ`
+  with `W` back, or the client's error. `Create` keeps `k8sAu1` (it never retries).
+- **D30m: the driver's checker is a hand-written Go copy of `correctness.Model`, for now**
+  (2026-10-22, the user's choice). The real `correctness.Model` (`testing/correctness/model.go`)
+  is written over `runtime.Object` (`map[string]runtime.Object`, `meta.Accessor`, `NewFunc`) and
+  compares states and write responses with `reflect.DeepEqual`, errors included; its `Step` re-runs
+  the traffic's own `tryUpdate` and `validateDeletion` closures (the survey of
+  `test/integration/apiserver/storage/` and `correctness/`, 2026-10-22). Translating it needs
+  trusted models of `reflect.DeepEqual`, `runtime.Object`/`meta` accessors and more. So phase 6's
+  driver checks against a Go copy of the Model specialized to the driver's own object type, as
+  close to the original as possible (the same operations, the same answers and errors, the same
+  no-op rule with D30g's canonical bit, `Step` re-running the same closures), with a Go test
+  comparing it with the real (fixed) Model on random traffic. Later (the plan's "Open"):
+  translate a copy of the real `correctness` package, with trusted models for `reflect` and
+  whatever else it needs, so that the trusted spec is the maintainers' Model itself.
+- **D30n: the driver's linearization points, from a prophecy of the output's numbers**
+  (2026-10-22). linkvtxn prophesies whether a call failed and, for a read, the revision it was
+  served at (its outputs carry it: a revision determines the state). The store's `Get` returns a
+  found object at its mod revision, not the read's, and its read updates (`kvReadAu`, and
+  `k8sAuRW`'s reads for `Delete`/`GuaranteedUpdate`) are persistent: they may fire at several
+  states, the answer the store returns being one of them. So `Apply` prophesies the output's
+  numeric fields (`Err`, `ErrRV`, `RV`: three `ResolveU64`s, the only prophecy operations Goose's
+  `primitive` has besides `ResolveBool`), and a read firing commits `lintest`'s update, once (a
+  call invariant, as linkv's `callInv`), at the first state whose model answer has those fields.
+  They determine the answer: a found object by its mod revision (the store's history `kvSeen`,
+  D30j: one value per key and mod revision), a not-found answer by the read's revision, the zero
+  object and a callback's rejection are constant. A write's answer carries the next revision, so
+  it never has a read's fields, except an update's no-op answer (`Err` 0 like a write's), whose
+  `RV` is an item's mod revision, at most the state's, below any later write's (the revisions'
+  map, linkvtxn's `revOwn`, orders the firings). A `Create` fires once and commits there; a call
+  whose prophecy says `EOther` commits at its start (a write as pending, linkvtxn's). Two marked
+  `sorry`s until their fixes land (the user's choice): a client error is not a callback's sentinel
+  (the client proof's, "From the etcd client proof" item 5), and etcd's revision stays below
+  `2^63 - 2` at every firing (the store's updates require it; the driver cannot count the writes
+  to come: `lintest`'s `applySpec` gives no budget).
+
+  As carried out (2026-10-23), the design changed in two places. (1) The prophecy of the read
+  moved into the client: the etcd fork's `Client.Get` (branch `goose-lean-getproph`) resolves a
+  prophecy of the response's revision and the key's mod revision, so the store's `Get` hands the
+  caller one read update per prophesied pair (`Q R m`, from a maker the client calls once), and
+  the driver's read commits at the first firing at the prophesied revision `R` (`getCall`, the
+  maker recording `R` in a ghost variable; the revisions' map makes later firings at `R` see the
+  same state). `Apply`'s own prophecy is then used for its first value only: whether the output
+  is `EOther`. (2) The store's persistent updates for `Delete`/`GuaranteedUpdate` (`k8sAuRW`) no
+  longer carry a read postcondition: they fire as plain reads and once as the linearization point,
+  handing the caller's timeless token `W` (the write, or a read where the model's step is the
+  identity, `stepHand`); the driver's `W` is the token of a call invariant holding `lintest`'s
+  update (`rwCall`), or a pending write's token. The store's first read goes through its own call
+  invariant (`rwInv`, `FirstRead.lean`). The caller's updates also learn that etcd's next state is
+  the same or the next revision's (`KvNext`), which the driver's invariant needs to extend the
+  store's history (`histAuth_next`). The two marked `sorry`s are `revRoom`
+  (`Proof/.../k8setcd3/InvSteps.lean`) and `clientErr_other` (`Calls.lean`); `Apply` is proved
+  against `k8setcd3S g0` with them (`Apply.lean`).
