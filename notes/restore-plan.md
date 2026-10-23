@@ -94,6 +94,22 @@ cache only shortens `idx.KeyIndex`). The purge keeps that (it only deletes). `ve
 check holds (revisions arrive in order: `UnsafeRange` returns keys sorted). `treeIndex.KeyIndex`
 and `treeIndex.Insert` are translated and specified (`InvIndex*.lean`).
 
+**R3's design point: who owns the index during the rebuild** (found 2026-10-23, starting R3).
+The goroutine calls `put`/`tombstone` on cached key indexes *outside* the tree's lock
+(`kiCache`), but `isTreeIndex`'s lock invariant (`idxLockInv`) owns every key index's contents.
+So during the rebuild the index cannot be a lock-protected `isTreeIndex`. etcd is right to do
+this: nothing else can reach the index then (`NewStore` has not returned; `Restore` holds `s.mu`).
+Chosen: **the index stays private memory until the rebuild ends.** `newTreeIndex` returns the
+tree and its `RWMutex` as plain memory owned by the caller; the goroutine owns them while it
+runs (`KeyIndex`/`Insert` lock and unlock a mutex nobody else can reach) and hands them back on
+`revc`; `store.restore` then allocates the lock (`init_RWMutex`) with `idxLockInv` at the
+rebuilt log. This needs sequential specs of `RWMutex`'s `RLock`/`RUnlock`/`Lock`/`Unlock` on
+memory no one else can reach (proved here over Perennial's translation of `sync`, a Perennial
+gap recorded in `notes/perennial-changes.md`). The same specs settle R4a: `s.revMu` is private
+memory too while `restore` runs inside `NewStore`. Rejected: a restoring mode inside
+`idxLockInv` (handing the contents back into the lock at the end needs a lock operation the code
+does not make).
+
 **R4. `store.restore`.** The chunk loop: the cursor `min` past every key handed to
 `restoreChunk`, the keys of the bucket below it sent in order (`readTx.UnsafeRange`'s spec over the
 `Key` bucket's view, `bucketView`, with a limit); a short chunk ends it. The compaction reads find
