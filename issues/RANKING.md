@@ -259,6 +259,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 
 ## Probably not worth their time now
 
+- **[etcd-auth-readtx-getallroles-panics](etcd-auth-readtx-getallroles-panics.md)** (2026-10-23):
+  `(*authReadTx).UnsafeGetAllRoles` panics whenever called (a no-limit range of a non-safe
+  bucket on a read transaction); nothing in etcd calls it, so a dead interface method. A one-line
+  fix (`UnsafeForEach`, as the users' twin) or a removal; no user impact.
 - **[etcd-watch-resume-nil-watch-chan](etcd-watch-resume-nil-watch-chan.md)**: a watch canceled
   while the client reconnects can be handed a nil `WatchChan` (a receive blocks forever); needs
   the caller's goroutine to be late by a whole reconnect. Small fix with a test.

@@ -1,12 +1,26 @@
 # The consistent index's reads and writes (cindex.go) and the names they use, with
-# bodies; the `Key` bucket (the mvcc store's) and the `bucket` type's methods (bucket.go,
+# bodies; the auth backend (auth.go, auth_users.go, auth_roles.go) with bodies, with the
+# auth buckets, their names and the two key names (2026-10-23, the auth plan's S1:
+# notes/auth-plan.md); the `Key` bucket (the mvcc store's) and the `bucket` type's methods (bucket.go,
 # with bodies: the backend's `Bucket` interface on schema's buckets); the rest of the
 # package is names only. The alarm and auth backends' constructors (`NewAlarmBackend`,
 # `NewAuthBackend`) with bodies, and (with `zap`, `auth`, `etcdserverpb` among the imports) their
 # structs `alarmBackend`/`authBackend` with fields (2026-10-17, unit N4: the server's
 # construction states that they wrap its backend).
-translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend"]
-imports = ["!*", "encoding/binary", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
+translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
+  "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
+  "Auth", "AuthUsers", "AuthRoles", "authBucketName", "authUsersBucketName", "authRolesBucketName",
+  "AuthEnabledKeyName", "AuthRevisionKeyName",
+  "authBackend.CreateAuthBuckets", "authBackend.ForceCommit", "authBackend.ReadTx", "authBackend.BatchTx",
+  "authBackend.GetUser", "authBackend.GetAllUsers", "authBackend.GetRole", "authBackend.GetAllRoles",
+  "authBatchTx.UnsafeSaveAuthEnabled", "authBatchTx.UnsafeSaveAuthRevision",
+  "authBatchTx.UnsafeReadAuthEnabled", "authBatchTx.UnsafeReadAuthRevision", "authBatchTx.Lock", "authBatchTx.Unlock",
+  "authBatchTx.UnsafeGetUser", "authBatchTx.UnsafeGetAllUsers", "authBatchTx.UnsafePutUser", "authBatchTx.UnsafeDeleteUser",
+  "authBatchTx.UnsafeGetRole", "authBatchTx.UnsafeGetAllRoles", "authBatchTx.UnsafePutRole", "authBatchTx.UnsafeDeleteRole",
+  "authReadTx.UnsafeReadAuthEnabled", "authReadTx.UnsafeReadAuthRevision", "authReadTx.RLock", "authReadTx.RUnlock",
+  "authReadTx.UnsafeGetUser", "authReadTx.UnsafeGetAllUsers", "authReadTx.UnsafeGetRole", "authReadTx.UnsafeGetAllRoles",
+  "unsafeReadAuthEnabled", "unsafeReadAuthRevision", "unsafeGetUser", "unsafeGetAllUsers", "unsafeGetRole", "unsafeGetAllRoles"]
+imports = ["!*", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb"]
 
 # translate the definitions of all type declarations goose supports

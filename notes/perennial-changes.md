@@ -284,7 +284,17 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   rest of the enclosing bullet never ran and the theorem got a `sorryAx` (found only through
   "declaration uses `sorry`", located by printing the `sorryAx` terms' source names). Framing a
   prepared hypothesis (`$HP'`) instead proved it.
+- **A second instance** (2026-10-23, `schema.authBackend.GetUser.wp_proof`, the auth plan's S1):
+  `wp_apply (hRU l rt R Held D) $$ [$Htxf $Hrtx $HD] as HR` at the *deferred* `tx.RUnlock()` call
+  (the goal `WP ((RUnlock #() ;; oldf #()) ;; #u) {{Φ}}` after `wp_with_defer`'s body returned),
+  `hRU` a Lean spec whose instance names `D`, a variable introduced after the defer by an earlier
+  `wp_apply ... as ⟨%D, ...⟩`: no error at the line, the rest of the proof runs on nothing, and the
+  theorem ends with "unsolved goals" showing the goal as it was before the call. `wp_apply_core`
+  of the same term fails with "unknown free variable" (`_fvar...`), while `have h := hRU l rt R
+  Held D` elaborates, and `wp_apply` of the same shape worked for `hRL` two calls earlier (before
+  `D` existed). Workaround: `wp_bind` the call, then `iapply (hRU ...) $$ [Hpkg Htxf Hrtx HD]`,
+  prove the precondition goal by `iframe`, `inext`, `iintro HR`.
 - **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
-  proof for the "declaration uses `sorry`" warning.
+  proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
   the error instead of admitting.

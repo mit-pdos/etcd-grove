@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.IsAuthEnabled()` (read-locks `enabledMu`): `enabled`. -/
 
 abbrev auth.authStore.IsAuthEnabled.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R ∗ enabledRd st }}
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ enabledRd st }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAuthEnabled")) (Val #()))
   {{ (b : Bool), RET #b; enabledRd st }}
 

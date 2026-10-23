@@ -232,26 +232,46 @@ name maps), which the trust-boundary axiom `opaqueInitsOk` says run.''',
 )
 
 SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
-    doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta` and `Key` buckets, as
-`bucket.go` makes them, and the consistent index's two key names (`cindex.go`). Its initializer
-allocates and sets those translated variables (with `keyBucketName`, `metaBucketName`),
-initializes its imports and runs its other variables' untranslated initializers, which the
-trust-boundary axiom `opaqueInitsOk` says run.''',
+    doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
+`AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
+the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
+(`auth.go`; the auth plan's S1, 2026-10-23). Its initializer allocates and sets those translated
+variables (with the buckets' names), initializes its imports and runs its other variables'
+untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run.''',
     alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
-                 'keyBucketName': 'GoSlice'},
+                 'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
+                 'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
+                 'authRolesBucketName': 'GoSlice', 'Auth': 'GoInterface', 'AuthUsers': 'GoInterface',
+                 'AuthRoles': 'GoInterface', 'AuthEnabledKeyName': 'GoSlice',
+                 'AuthRevisionKeyName': 'GoSlice'},
     before={
+        '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
+                'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
+                'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
+                'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto'],
+        'testBucketName': ['wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
+                           'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
+                           'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto'],
         'Lease': ['try wp_auto'],
-        'AuthEnabledKeyName': ['wp_apply wp_string_to_bytes go!"consistent_index" as %sci ⟨Hsci, -⟩',
-                               'try wp_auto'],
-        'MetaConfStateName': ['wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto'],
+        'Test': ['try wp_auto'],
+        'MetaConfStateName': ['wp_apply wp_string_to_bytes go!"consistent_index" as %sci ⟨Hsci, -⟩',
+                              'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"authEnabled" as %sae ⟨Hsae, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"authRevision" as %sar ⟨Hsar, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"term" as %sterm ⟨Hsterm, -⟩', 'try wp_auto'],
     },
     finish=['ipersist Hskey', 'ipersist Hsmeta', 'ipersist Hsci', 'ipersist Hsterm',
+            'ipersist Hsen', 'ipersist Hsdis', 'ipersist Hsauth', 'ipersist Hsausers', 'ipersist Hsaroles',
+            'ipersist Hsae', 'ipersist Hsar',
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
-            'ipersist HMetaTermKeyName'] + FIN_PRE[:6] + ['imodintro', 'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName',
-            'iframe #', 'isplitl []', '· ipureintro; rfl', 'ipureintro; rfl'],
+            'ipersist HMetaTermKeyName', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
+            'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
+            'ipersist HauthDisabled'] + FIN_PRE[:6] + ['imodintro',
+            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName',
+            'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
 
 def counter_inc(x, file='metrics.go'):
@@ -663,7 +683,7 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
              'ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd5',
-             'icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK⟩',
+             'icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK, -⟩',
              'ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []',
              '· unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP',
              'ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []',

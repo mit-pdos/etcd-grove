@@ -28,11 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 the read resource `R` turned into its held token); `beMu`'s reader slot comes back. -/
 
 abbrev auth.authStore.lockedReadTx.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R ∗
-      beRd st R ∗ R }}
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      beRd st R M ∗ R }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"lockedReadTx")) (Val #()))
-  {{ (tx : GoInterface), RET #tx; beRd st R ∗ authReadTxLocked tx R }}
+  {{ (tx : GoInterface), RET #tx; beRd st R M ∗ authReadTxLocked tx R M }}
 
 end spec
 

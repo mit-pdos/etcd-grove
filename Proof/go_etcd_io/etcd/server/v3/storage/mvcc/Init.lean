@@ -330,7 +330,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HrestoreChunkKeys
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd5
-  icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK⟩
+  icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK, -⟩
   ihave #VCP : (EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP
   ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []

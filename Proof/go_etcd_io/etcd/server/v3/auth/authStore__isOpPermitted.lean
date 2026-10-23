@@ -48,7 +48,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
     (h_lockedReadTx : auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG))
     (h_isRangeOpPermitted : auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG)) :
     auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) := by
-  intro st R user rev key re k e dk de pt
+  intro st R M user rev key re k e dk de pt
   wp_start as ⟨#Hinv, Hrd, Hk, He, %Hpt, %Hlen⟩
   iunfold authRd at Hrd
   icases Hrd with ⟨Hen, Hca, Hbr, HR⟩
@@ -71,7 +71,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply (h_IsAuthEnabled st R) $$ [$Hinv $Hen] as %en Hen
+  wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en Hen
   cases en
   · wp_auto
     iapply HΦ
@@ -88,7 +88,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iexists ErrUserEmpty, eUE
     iframe HeUEa
     ipureintro; simp
-  wp_apply (h_Revision st R) $$ [$Hinv] as %cur -
+  wp_apply (h_Revision st R M) $$ [$Hinv] as %cur -
   (try wp_auto)
   wp_if_destruct
   · wp_apply h_Uint64 _ _ as %f1 -
@@ -112,16 +112,18 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iexists ErrAuthOldRevision, eOR
     iframe HeORa
     ipureintro; simp
-  wp_apply (h_lockedReadTx st R) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
+  wp_apply (h_lockedReadTx st R M) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
   iunfold authReadTxLocked at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Tk, Htok, #HUG, #HRU⟩
+  icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
+  iunfold authTxReads at Hreads
+  icases Hreads with ⟨#HUG, -, -, -, #HRU⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #user))
   iapply HUG $$ Htok
   inext
-  iintro %u Htok
+  iintro %u ⟨Htok, -⟩
   wp_auto
   wp_if_destruct
   · wp_apply h_String _ _ as %f -
@@ -151,7 +153,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
   · ipureintro; assumption
   cases root
   · (try wp_auto)
-    wp_apply (h_isRangeOpPermitted st R user key re k e dk de pt) $$ [$Hinv $Hca $Hk $He]
+    wp_apply (h_isRangeOpPermitted st R M user key re k e dk de pt) $$ [$Hinv $Hca $Hk $He]
       as %okr ⟨Hca, Hk, He⟩
     · ipureintro; exact ⟨Hpt, Hlen⟩
     cases okr

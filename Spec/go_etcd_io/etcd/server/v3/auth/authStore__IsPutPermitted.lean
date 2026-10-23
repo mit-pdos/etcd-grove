@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.IsPutPermitted(authInfo, ...)`: `isOpPermitted` of the caller's user and revision (the key's length below `2^63 - 1`: `NewBytesAffinePoint`'s `make`). -/
 
 abbrev auth.authStore.IsPutPermitted.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (a : Loc) (info : AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8) (dk : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R ∗ authRd st R ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (a : Loc) (info : AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8) (dk : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗
       ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
     (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsPutPermitted")) (Val #a)) (Val #key))
-  {{ (err : GoInterface), RET #err; authRd st R ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ authErrIs err }}
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ key ↦*{dk} k ∗ authErrIs err }}
 
 end spec
 

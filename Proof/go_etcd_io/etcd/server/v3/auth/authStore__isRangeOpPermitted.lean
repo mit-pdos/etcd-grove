@@ -34,7 +34,7 @@ theorem auth.authStore.isRangeOpPermitted.wp_proof
     (h_checkKeyInterval : auth.checkKeyInterval.spec (GF := GF) (hG := hG))
     (h_checkKeyPoint : auth.checkKeyPoint.spec (GF := GF) (hG := hG)) :
     auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG) := by
-  intro st R user key re k e dk de pt
+  intro st R M user key re k e dk de pt
   wp_start as ⟨#Hinv, Hrd, Hk, He, %Hpt, %Hlen⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

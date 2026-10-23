@@ -124,14 +124,14 @@ theorem authErrIs_applyErrIs (err : GoInterface) :
 /-- **`isAuthStore`'s `Revision` clause, of the real store** (as the contract states it). -/
 theorem authRevision_of_authInv
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ⊢
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       □ ({{ True }} (App (Val #(methods (go.GoType.PointerType auth.authStore.ty) go!"Revision"
           #st)) (Val #()))
         {{ (x : w64), RET #x; True }}) := by
   iintro ⟨#Hpkg, #Hinv⟩
   iintro !> %Φ !> - HΦ
-  iapply (hRev st R) $$ [] HΦ
+  iapply (hRev st R M) $$ [] HΦ
   iframe Hpkg Hinv
 
 /-- **The apply package's `isAuthStore`, of the real store** at `st` (`auth.authInv st R`),
@@ -145,10 +145,11 @@ theorem isAuthStore_of_authInv
     (hAdmin : auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG))
     (hEn : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RW : IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ∗
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
+    (RW : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ∗
       isAuthStoreAdmin (auth.authIface st) γ P f RW ⊢
-      isAuthStore (auth.authIface st) γ P f (auth.authRd st R) .any RW := by
+      isAuthStore (auth.authIface st) γ P f (auth.authRd st R M) .any RW := by
   iintro ⟨#Hpkg, #Hinv, #Hadm⟩
   iunfold isAuthStoreAdmin at Hadm
   icases Hadm with ⟨%ai', %Hai', #HHas, #HAE, #HAD, #HAu, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
@@ -163,7 +164,7 @@ theorem isAuthStore_of_authInv
   isplitr
   · iunfold permCheck2
     iintro !> %a %info %dq %key %k %dk %Φ !> ⟨Ha, Hk, Hrd, %Hlen⟩ HΦ
-    iapply (hPut st R a info dq key k dk) $$ [Ha Hk Hrd]
+    iapply (hPut st R M a info dq key k dk) $$ [Ha Hk Hrd]
     · iframe; iframe #; ipureintro; exact Hlen
     iintro !> %err ⟨Hrd, Ha, Hk, #Herr⟩
     iapply HΦ
@@ -176,7 +177,7 @@ theorem isAuthStore_of_authInv
   isplitr
   · iunfold permCheck3
     iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
-    iapply (hRange st R a info dq key re k e dk de) $$ [Ha Hk He Hrd]
+    iapply (hRange st R M a info dq key re k e dk de) $$ [Ha Hk He Hrd]
     · iframe; iframe #; ipureintro; exact Hlen
     iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr⟩
     iapply HΦ
@@ -189,7 +190,7 @@ theorem isAuthStore_of_authInv
   isplitr
   · iunfold permCheck3
     iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
-    iapply (hDel st R a info dq key re k e dk de) $$ [Ha Hk He Hrd]
+    iapply (hDel st R M a info dq key re k e dk de) $$ [Ha Hk He Hrd]
     · iframe; iframe #; ipureintro; exact Hlen
     iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr⟩
     iapply HΦ
@@ -201,7 +202,7 @@ theorem isAuthStore_of_authInv
     · iapply auth.permVerdict_any
   isplitr
   · iintro !> %a %info %dq %Φ !> ⟨Ha, Hrd⟩ HΦ
-    iapply (hAdmin st R a info dq) $$ [Ha Hrd]
+    iapply (hAdmin st R M a info dq) $$ [Ha Hrd]
     · iframe; iframe #
     iintro !> %err ⟨Hrd, Ha, #Herr⟩
     iapply HΦ
@@ -216,7 +217,7 @@ theorem isAuthStore_of_authInv
   · iintro !> %Φ !> Hrd HΦ
     iunfold auth.authRd at Hrd
     icases Hrd with ⟨Hen, Hca, HR⟩
-    iapply (hEn st R) $$ [Hen]
+    iapply (hEn st R M) $$ [Hen]
     · iframe; iframe #
     iintro !> %b Hen
     iapply HΦ
@@ -225,7 +226,7 @@ theorem isAuthStore_of_authInv
     iapply auth.enabledVerdict_any
   isplitr
   · iintro !> %Φ !> - HΦ
-    iapply (hRev st R) $$ []
+    iapply (hRev st R M) $$ []
     · iframe #
     inext
     iintro %x -
