@@ -646,12 +646,21 @@ trust-boundary spec.
    `rafthttp/Snapshot.lean`: the snapshot sender opaque (`snapSenderOk`, `snapSenderStop`).
    Proved: `newURLPicker`, `newPeerStatus`, `startPeer` (its pipeline, two stream writers, two
    receiving goroutines calling `Process` with one `R` each, two stream readers, its lock; eight `R`s
-   in all). New boundary specs, for the user's review: `types.NewURLs` (of plain peer URL strings
+   in all). New boundary specs, accepted by the user (2026-10-23): `types.NewURLs` (of plain peer URL strings
    `http://host:port`, `types.plainPeerURL`, decidable: their parses, no error),
    `rate.NewLimiter`, `v2stats.LeaderStats.Follower`, `newSnapshotSender`, `snapshotSender.stop`
    (the snapshot axiom cut at its functions). Next: `peer.send` (its message `peerMsg`: what
    `Send`'s bundle will carry, the sender's id and raft's shape: D33a's deferred step), `Pause`,
    `Resume`, `stop`; `startRemote`; the transport.
+   **6b done (2026-10-23).** The peer: `startPeer`, `peer.send` (over `peerMsg`, its message:
+   marshalable, for the peer, not a snapshot, no responses, a `MsgApp` of raft's shape from the
+   sender, its encoding below `2^50`; `peer.pick`, the channel: the msgappv2 writer's for a `MsgApp`,
+   the message writer's, or the pipeline's; the non-blocking send, or the drop reported unreachable,
+   logged and counted), `Pause`, `Resume` (the readers paused, `paused` under the peer's lock),
+   `stop` (its pipeline's four `R`s back). The remote (never paused: `CutPeer`'s premise): `remoteOk`,
+   `remoteStop`, `startRemote` (four `R`s), `remote.send` (over `pipeMsg`), `remote.stop`. Next, 6c:
+   the transport's lock invariant (`t.mu`, `peers`/`remotes` maps to `peerOk`/`remoteOk`), `Get`,
+   `Send` (its bundle gaining the sender and raft's shape), `Handler`.
 
 ## Costs and risks
 

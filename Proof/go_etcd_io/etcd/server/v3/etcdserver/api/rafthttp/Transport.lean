@@ -98,6 +98,35 @@ def peerStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (p : Loc) : IProp GF 
     p.[rafthttp.peer, go!"pipeline"] ↦□ pl ∗ pipeStarted Rh pl pid R ∗
     p.[rafthttp.peer, go!"snapSender"] ↦□ ss ∗ snapSenderStop ss)
 
+
+/-- **A message for the peer `pid` of the member `lid`** (what `peer.send` takes; stage 6b): read-only,
+marshalable, for `pid`, not a snapshot, without responses, with its bundle; a `MsgApp` of raft's
+shape from `lid` (what the msgappv2 stream encodes: `V2EncOk`); its encoding below `2^50` bytes
+(`swMsgBound`, until the counter's spec takes the `Add` panic, the user's choice for stage 6). -/
+def peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+    ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
+
+/-- **A started remote `g` of `pid` at the member `lid`** (persistent; `startRemote`'s): its logger,
+ids, status and started pipeline (never restarted: a remote is never paused, `CutPeer`'s premise). -/
+def remoteOk (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
+  iprop(∃ (lg ps pl : Loc),
+    g.[rafthttp.remote, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+    g.[rafthttp.remote, go!"localID"] ↦□ lid ∗ g.[rafthttp.remote, go!"id"] ↦□ pid ∗
+    g.[rafthttp.remote, go!"status"] ↦□ ps ∗ peerStatusOk ps ∗
+    g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeHandleOk Rh pl pid R)
+
+set_option synthInstance.maxHeartbeats 2000000 in
+set_option synthInstance.maxSize 16384 in
+instance remoteOk_persistent (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (g : Loc) :
+    Persistent (remoteOk Rh lid pid R g) := by
+  unfold remoteOk; infer_instance
+
+/-- **The right to stop the remote `g`** (exclusive, once: its pipeline's). -/
+def remoteStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
+  iprop(∃ pl : Loc, g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeStarted Rh pl pid R)
+
 end defs
 
 section lemmas
@@ -117,6 +146,45 @@ theorem peerStreams_of_peerOk (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (
   iexists lg, cw2, cw1, R, R
   iframe #
   ipureintro; exact Hlgnn
+
+/-- A peer's message is the pipeline's. -/
+theorem pipeMsg_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
+    peerMsg Rh lid pid ml ⊢ pipeMsg Rh pid ml := by
+  iintro Hpm
+  iunfold peerMsg at Hpm
+  icases Hpm with ⟨%st, Hm, #HP, HO, %H⟩
+  iunfold pipeMsg
+  iexists st
+  iframe; iframe #
+  ipureintro; exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1⟩
+
+/-- A peer's message is the message stream's. -/
+theorem swMsg_message_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) :
+    peerMsg Rh lid pid ml ⊢ swMsg Rh .message lid pid ml := by
+  iintro Hpm
+  iunfold peerMsg at Hpm
+  icases Hpm with ⟨%st, Hm, #HP, HO, %H⟩
+  iunfold swMsg
+  iexists st
+  iframe; iframe #
+  ipureintro
+  exact ⟨H.1, H.2.1, H.2.2.1, H.2.2.2.1, fun h => absurd h (by decide), H.2.2.2.2.2⟩
+
+/-- A peer's `MsgApp` (its type known of the message's state) is the msgappv2 stream's. -/
+theorem swMsg_v2_of_peerMsg (Rh : RaftHttp GF) (lid pid : w64) (ml : Loc) (st : MsgSt)
+    (Hm : MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml)
+    (hty : st.msg.Type' = MsgApp) :
+    ⊢ msgOwn ml DFrac.discard st -∗ □ Rh.γn.N.P st -∗ Rh.γn.N.O st -∗
+      swMsg Rh .msgAppV2 lid pid ml := by
+  iintro Hm' #HP HO
+  iunfold swMsg
+  iexists st
+  iframe; iframe #
+  ipureintro
+  obtain ⟨hmar, hto, hns, hrs, happ, hb⟩ := Hm
+  obtain ⟨hsh, hfr⟩ := happ hty
+  exact ⟨hmar, hto, hns, hrs, fun _ => ⟨hmar, Or.inr ⟨hty, hsh, hfr, hto⟩⟩, hb⟩
 
 end lemmas
 
