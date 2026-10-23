@@ -1,7 +1,9 @@
 /-
 **The HTTP boundary of rafthttp** (D33 (A), stage 2; `notes/rafthttp-http-boundary.md`, reviewed by
-the user 2026-10-22). Lean-first. **A draft for review**: definitions and the statements of the
-boundary's specs (`…_spec : Prop`), not yet axioms, and no proof relies on them.
+the user 2026-10-22). Lean-first. Definitions and the statements of the boundary's specs
+(`…_spec : Prop`); the proofs take them as hypotheses, and those they use are trust-boundary
+axioms in `Proof/net/http/Axioms.lean` (stage 4e, 2026-10-23), with the registration of an
+address's protocol (`http.register`).
 
 The model (the note's points 1-6):
 * An `HReq` is what a client sends: method, host (the address `http://host` names), path, headers
@@ -17,6 +19,14 @@ The model (the note's points 1-6):
   may fail with an error.
 * The response's status is the one the handler set (revised 2026-10-22: a `403`/`410` is
   `errMemberRemoved`, which matters in a dynamic cluster).
+* (2026-10-23, stage 4e) **An address's protocol is registered once.** `HttpNet` names a protocol
+  for every address, but a spec stated for any `H` would let a client and a server of one
+  address use different ones. So the protocol a client sends with and the one a server serves
+  with are tied to the address: `http.register` turns the address's listener (`netListenerAt l
+  a`, one per address in a run: `net.Listen` consumes `netAddrFree a`) into `httpListenerAt l a P`,
+  which `Serve` takes, and `httpProtoAt a P` (persistent), which `RoundTrip` needs of a request's
+  host. Two `httpProtoAt a P` of one address are of the one registration: the facts' model is a
+  global ghost map from addresses to saved protocols, an entry set once with the listener.
 * (2026-10-23, D33b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
   protocols are indexed by the ticket's name. Go's client never replays a `POST`
@@ -120,6 +130,23 @@ theorem reqTicket_alloc : ⊢ |==> ∃ γk, reqTicket (GF := GF) γk := by
   unfold reqTicket
   iapply dghostVar_alloc
 
+/-! ### Registration (stage 4e; see the file header) -/
+
+/-- `httpProtoAt`'s fact, raw (opaque). -/
+opaque httpProtoAtRaw (a : GoString) (P : Proto GF) : IProp GF
+
+/-- **The address `a` is served with the protocol `P`** (persistent): what `http.register` gives
+with the address's listener. -/
+def httpProtoAt (a : GoString) (P : Proto GF) : IProp GF := iprop(□ httpProtoAtRaw a P)
+
+instance httpProtoAt_persistent (a : GoString) (P : Proto GF) :
+    Persistent (httpProtoAt (GF := GF) a P) := by
+  unfold httpProtoAt; infer_instance
+
+/-- **The listener `l` bound at `a`, its protocol registered as `P`** (exclusive, opaque): what
+`Serve` takes. -/
+opaque httpListenerAt (l : GoInterface) (a : GoString) (P : Proto GF) : IProp GF
+
 /-- The concurrency bound (D21 M2's `netProcSlots`, the user's (A)): at most `2 ^ 29` handlers at
 once. -/
 def httpProcSlots : Nat := 2 ^ 29
@@ -127,6 +154,12 @@ def httpProcSlots : Nat := 2 ^ 29
 /-- **The URL string naming `host` and `path`** (opaque, pure): what
 `url.URL{Scheme: "http", Host: host, Path: path}.String()` returns. -/
 opaque urlOf (host path : GoString) : GoString
+
+/-- **A host `url.Parse` accepts** (opaque, pure; 2026-10-23, stage 4e): the `Host` of a URL that
+`url.Parse` returned (rafthttp's peer URLs, `types.NewURLs`). `NewRequest` of `urlOf host path`
+parses again; a host `url.Parse` rejects may fail it (a Go test: `"a b"`, `"a:b:c"`, `"a/b"` make
+`NewRequest` fail), so `NewRequest_spec` asks for it. -/
+opaque urlHostOk (host : GoString) : Prop
 
 /-- `io.EOF`'s value (`io`'s package variable). -/
 def ioEOF (e : GoInterface) : IProp GF := globalAddr _root_.Perennial.io.EOF ↦□ e
@@ -210,13 +243,15 @@ instance respAt_persistent (resp : Loc) (st : w64) (rd : GoInterface) :
 
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
 `NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R`, with
-its ticket `γk` and `□ (H.proto R.host).req R γk`, either fails or returns a response whose status
+its ticket `γk`, the protocol registered for its host (`httpProtoAt`) and
+`□ (H.proto R.host).req R γk`, either fails or returns a response whose status
 `st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`; the
 request is the caller's again (`RoundTrip` must not modify it). -/
 def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜rt = GoInterface.ok ti⌝ ∗
     □ (∀ (r : Loc) (R : HReq) (γk : GName),
-      {{ reqOwn r R ∗ reqTicket γk ∗ □ (H.proto R.host).req R γk }}
+      {{ reqOwn r R ∗ reqTicket γk ∗ httpProtoAt R.host (H.proto R.host) ∗
+          □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
           (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∨
@@ -271,12 +306,13 @@ def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) 
 
 /-! ### The specs (statements for review; see the file header) -/
 
-/-- `http.Serve(l, h)` on the listener bound at `a`, with a handler of `a` and `httpProcSlots`
+/-- `http.Serve(l, h)` on the listener bound at `a` with `a`'s protocol registered, with a handler
+of `a` and `httpProcSlots`
 copies of the resource its invocations borrow: returns an error if it returns (it serves each
 request on its own goroutine). -/
 def Serve_spec (H : HttpNet GF) : Prop :=
   ∀ (l h : GoInterface) (a : GoString) (Rs : IProp GF),
-    ⊢ {{ netListenerAt (GF := GF) l a ∗ handlerOk H a Rs h ∗
+    ⊢ {{ httpListenerAt (GF := GF) l a (H.proto a) ∗ handlerOk H a Rs h ∗
           [∗list] _x ∈ List.replicate httpProcSlots (), Rs }}
         (App (App (Val (@! _root_.Perennial.net.http.Serve)) (Val #l)) (Val #h))
       {{ (err : GoInterface), RET #err; True }}
@@ -319,11 +355,13 @@ def respWrite_spec (H : HttpNet GF) : Prop :=
           b ↦*{dq} bs ∗ respWriter H wr a R γk (some (st.getD (W64 200))) (w ++ bs) }}
 
 /-- `ResponseWriter.WriteHeader(st)` before any write: sets the status, which needs the protocol
-of the (still empty) response with it. -/
+of the (still empty) response with it. (Stage 4e) A final status, `200` to `999`: Go panics
+outside `100`-`999` (`checkWriteHeaderCode`) and does not set an informational `1xx` one. -/
 def respWriteHeader_spec (H : HttpNet GF) : Prop :=
   ∀ (wr : GoInterface) (wi : GoInterfaceOk) (a : GoString) (R : HReq) (γk : GName) (st : w64),
     wr = GoInterface.ok wi →
-    ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk st [] }}
+    ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk st [] ∗
+          ⌜200 ≤ sint.Z st ∧ sint.Z st ≤ 999⌝ }}
         (App (Val #(methods wi.ty go!"WriteHeader" wi.v)) (Val #st))
       {{ RET #(); respWriter H wr a R γk (some st) [] }}
 
@@ -331,10 +369,10 @@ def respWriteHeader_spec (H : HttpNet GF) : Prop :=
 and `path` (`urlOf`, the URL `url.URL{Scheme: "http", Host: host, Path: path}.String()` gives, as
 rafthttp builds them): a request of method, host, path and body, no headers. (2026-10-23, stage 4d)
 No error for `GET` or `POST`: `NewRequest` fails only on an invalid method or a URL that does not
-parse, and the string of a parsed URL's host and a path parses. -/
+parse, and the string of a parsed URL's host and a path parses (`urlHostOk`, stage 4e). -/
 def NewRequest_spec : Prop :=
   ∀ (meth u : GoString) (body : GoInterface) (bs : List w8) (host path : GoString),
-    u = urlOf host path → (meth = go!"POST" ∨ meth = go!"GET") →
+    u = urlOf host path → urlHostOk host → (meth = go!"POST" ∨ meth = go!"GET") →
     ⊢ {{ readerHas (GF := GF) body bs }}
         (App (App (App (Val (@! _root_.Perennial.net.http.NewRequest)) (Val #meth)) (Val #u))
           (Val #body))
@@ -413,10 +451,12 @@ def Flush_spec (H : HttpNet GF) : Prop :=
         (App (Val #(methods wi.ty go!"Flush" wi.v)) (Val #()))
       {{ RET #(); respWriter H wr a R γk st w }}
 
-/-- `http.Error(w, msg, code)` before any write: the status `code`, the body `msg` and a newline. -/
+/-- `http.Error(w, msg, code)` before any write: the status `code`, the body `msg` and a newline.
+(Stage 4e) A final status, as `WriteHeader`'s (`respWriteHeader_spec`), which it calls. -/
 def Error_spec (H : HttpNet GF) : Prop :=
   ∀ (wr : GoInterface) (a : GoString) (R : HReq) (γk : GName) (msg : GoString) (code : w64),
-    ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk code (msg ++ [W8 10]) }}
+    ⊢ {{ respWriter H wr a R γk none [] ∗ □ (H.proto a).resp R γk code (msg ++ [W8 10]) ∗
+          ⌜200 ≤ sint.Z code ∧ sint.Z code ≤ 999⌝ }}
         (App (App (App (Val (@! _root_.Perennial.net.http.Error)) (Val #wr)) (Val #msg))
           (Val #code))
       {{ RET #(); respWriter H wr a R γk (some code) (msg ++ [W8 10]) }}

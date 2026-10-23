@@ -54,7 +54,7 @@ theorem rafthttp.pipeline.post.wp_proof
   wp_start as ⟨#Hs, Hd, #HP, HO⟩
   iunfold pipeSenderOk at Hs
   icases Hs with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, #Htr, #Hpk, #Hsc, #Hec,
-    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop⟩
+    #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hstop, #Hreg⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -145,7 +145,12 @@ theorem rafthttp.pipeline.post.wp_proof
     iframe #
     ipureintro
     exact ⟨Hw, by rw [Hto]; exact Hu.2.symm, Hns, Hrs⟩
-  wp_apply HRT $$ [$Hreq $Htk $Hpr]
+  iunfold pipeReg at Hreg
+  ihave #Hpa0 := Hreg $$ %u.Host' %Hu.2
+  ihave #Hpa : http.httpProtoAt u.Host' ((raftHttpNet Rh).proto u.Host') $$ []
+  · rw [show (raftHttpNet Rh).proto u.Host' = raftProto Rh from rfl]
+    iexact Hpa0
+  wp_apply HRT $$ [$Hreq $Htk $Hpa $Hpr]
     as %resp %rerr ⟨Hreq, Hres⟩
   (try wp_auto)
   -- `done <- struct{}{}`: the future fulfilled

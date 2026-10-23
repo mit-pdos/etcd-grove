@@ -15522,3 +15522,42 @@ tying `sid` to the transport's local id needs the server's raft environment `srv
 member id and `γ.node.id = γ.id`, which `Send`'s spec will ask for in stage 6. No axiom added or
 removed (542); no exported result's statement changed; internal specs changed (`raft.send`,
 `raft.Step`, `stepFollower`, the `Ready` specs, the kv example's `deliver`).
+
+## D33c: an address's protocol registered once; the boundary's statements as axioms (2026-10-23 · rafthttp stage 4e; the user: "do 4e", "follow your recommendations"; for review)
+
+**Context.** The HTTP boundary (`Proof/net/http/Boundary.lean`) states its specs over an
+`HttpNet H`, every address's protocol. As axioms stated for any `H`, a client could send under
+one protocol to a server serving under another, and the handler would receive facts nobody
+proved (a server started with a request protocol of `False` could do anything). The draft (D33,
+the boundary note's point 1) said the protocols are ghost facts fixed per address, but its
+statements did not say so. (The request tickets of D33b, the user's choice of 2026-10-23, are in
+`notes/rafthttp-plan.md`, stage 4.)
+
+**Decision.** As grpc's `grpc.serve` ties a method's handler to the address (`grpcServes`):
+`http.register` (an axiom, `Proof/net/http/Axioms.lean`) turns the address's listener
+`netListenerAt l a` (one per address in a run) into `httpListenerAt l a P`, which `Serve` takes,
+and the persistent `httpProtoAt a P`, which `RoundTrip` asks of a request's host. A model: a
+global ghost map from addresses to saved protocols, the entry for `a` set once with the listener;
+so the two sides of an address agree on its protocol. The specs stated for any `H` are then sound:
+their writers and readers come only from `Serve` and `RoundTrip`. rafthttp's sender gets the
+registration of its peer's hosts (`pipeReg Rh to`, in `pipeSenderOk`): stage 6 must establish it
+for the addresses the network's owner map gives to each member (an owner map giving unknown hosts
+no member).
+
+Then the specs the proofs use became axioms (`Axioms.lean`: `bodyRead_ok`, `respWriteHeader_ok`,
+`HeaderSet_ok`, `RespHeader_ok`, `ReadAll_ok`, `Flush_ok`, `Error_ok`, `NewBuffer_ok`,
+`WithContext_ok`, `ReadAll_resp_ok`, `RespClose_ok`); the others stay statements until used.
+Reviewing them as axioms found three over-claims in the draft, fixed:
+- `NewRequest_spec` claimed no error for any host; Go's `NewRequest` fails for a URL whose host
+  `url.Parse` rejects (a Go test: `"a b"`, `"a:b:c"`, `"a/b"`). It now asks `urlHostOk host` (an
+  opaque predicate: a host `url.Parse` accepted, as rafthttp's peer URLs are, `types.NewURLs`),
+  carried by `urlPlain`.
+- `respWriteHeader_spec` and `Error_spec` took any status; Go's `WriteHeader` panics outside
+  `100`-`999` and does not set an informational `1xx` status. Both now ask `200 ≤ st ≤ 999`.
+*Known imprecision, left:* `RespHeader_spec` gives `∃ hs, hdrOwn hm hs` at each call of
+`w.Header()`, which returns the same map each time, so two `hdrOwn` of one map may coexist. Nothing
+reads a response's headers through `hdrOwn` (the client sees them unconstrained) and no axiom makes
+`hdrOwn` exclusive, so no result depends on it; a writer tracking its header map would remove it.
+*Rejected:* one global `httpNetIs H` fact (the protocols fixed for every address at once): it needs
+the whole cluster's addresses before any listener, where the per-address registration needs only
+the listener, as grpc's.

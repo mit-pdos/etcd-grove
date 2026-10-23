@@ -25,15 +25,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- A URL of only a scheme `http`, a host and a path (what `url.URL.String` is specified for:
-`http.URLString_spec`). -/
+`http.URLString_spec`), its host one `url.Parse` accepts (`http.urlHostOk`, what `NewRequest`
+needs; stage 4e). -/
 def urlPlain (u : net.url.URL) : Prop :=
   u.Scheme' = go!"http" ∧ u.Opaque' = "" ∧ u.User' = null ∧ u.Fragment' = "" ∧
     u.RawQuery' = "" ∧ u.RawPath' = "" ∧ u.RawFragment' = "" ∧ u.ForceQuery' = false ∧
-    u.OmitHost' = false
+    u.OmitHost' = false ∧ http.urlHostOk u.Host'
 
 /-- **A URL of the peer `to`**: plain, its host owned by `to`. -/
 def peerURL (Rh : RaftHttp GF) (to : w64) (u : net.url.URL) : Prop :=
   urlPlain u ∧ Rh.owner u.Host' = to
+
+/-- **The peer `to`'s hosts are served with the raft protocol** (persistent; stage 4e): each
+host the network's owner map gives to `to` has `raftProto Rh` registered (`http.httpProtoAt`), what
+`RoundTrip` needs of a request's host. -/
+def pipeReg (Rh : RaftHttp GF) (to : w64) : IProp GF :=
+  iprop(□ ∀ host : GoString, ⌜Rh.owner host = to⌝ -∗ http.httpProtoAt host (raftProto Rh))
+
+instance pipeReg_persistent (Rh : RaftHttp GF) (to : w64) : Persistent (pipeReg Rh to) := by
+  unfold pipeReg; infer_instance
 
 instance ownBroadcastChan_unknown_persistent (ch : GoChan) (γ : ChanNames) (Q : IProp GF) :
     Persistent (ownBroadcastChan ch γ Q .Unknown) := by
@@ -41,7 +51,7 @@ instance ownBroadcastChan_unknown_persistent (ch : GoChan) (γ : ChanNames) (Q :
 
 /-- **What `post` reads** (persistent) of the pipeline `p` to the peer `to`: its transport's
 logger, URLs, id, cluster id and pipeline round tripper (of the raft network), its picker (of the
-peer's URLs), its stop channel (only closed). -/
+peer's URLs), its stop channel (only closed), the peer's hosts' registration (`pipeReg`). -/
 def pipeSenderOk (Rh : RaftHttp GF) (p : Loc) (to : w64) : IProp GF :=
   iprop(∃ (tr pk : Loc) (sc ec : GoChan) (γs : ChanNames) (lg : Loc) (urls : GoSlice)
       (uvs : List net.url.URL) (lid cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (rt : GoInterface),
@@ -52,7 +62,7 @@ def pipeSenderOk (Rh : RaftHttp GF) (p : Loc) (to : w64) : IProp GF :=
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"ID"] ↦□ lid ∗ tr.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
-    pickerOk pk (peerURL Rh to) ∗ ownBroadcastChan sc γs iprop(True) .Unknown)
+    pickerOk pk (peerURL Rh to) ∗ ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh to)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in

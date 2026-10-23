@@ -66,7 +66,7 @@ theorem rafthttp.pipeline.handle.wp_proof
   ihave #Hs' := Hs
   iunfold pipeSenderOk at Hs'
   icases Hs' with ⟨%tr, %pk, %sc, %ec, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, -, -, #Hsc, -,
-    -, -, -, -, -, -, -, -, -, -, #Hstop⟩
+    -, -, -, -, -, -, -, -, -, -, #Hstop, -⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, ⟨%vSB, #HSB, %HSBl⟩, ⟨%vSF, #HSF, %HSFl⟩, -⟩

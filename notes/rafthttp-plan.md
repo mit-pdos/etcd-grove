@@ -309,8 +309,26 @@ trust-boundary spec.
    `checkClusterCompatibilityFromHeader` (their proofs need `http.StatusText`, untranslated,
    `version.MinClusterVersion`'s initializer, `strings.TrimSuffix`, and the `fmt.Errorf` errors'
    distinctness from `errMemberRemoved`).
-   **Next**: 4e (the boundary statements to axioms, every new trust item for acceptance), and
-   the three callee proofs.
+   **Done 2026-10-23: 4e** (D33c, for the user's review). An address's protocol is registered
+   once, from its listener (`http.register`: `httpListenerAt`, which `Serve` takes, and
+   `httpProtoAt`, which `RoundTrip` asks of a request's host), so the specs stated for any `HttpNet`
+   are sound; the sender gets its peer's hosts' registration (`pipeReg`, for stage 6 to establish).
+   The eleven boundary specs the proofs use are axioms (`Proof/net/http/Axioms.lean`); reviewing
+   them found three over-claims, fixed: `NewRequest` fails for a host `url.Parse` rejects
+   (`urlHostOk`, in `urlPlain`), and `WriteHeader`/`http.Error` panic outside `100`-`999` and do not
+   set a `1xx` status (both now ask `200 ≤ st ≤ 999`). None is reached by a linked result yet (stage
+   6 links the pipeline), so the baseline is unchanged. **For the user's acceptance**, all of stage
+   4's trust items: `http.register` and the eleven boundary axioms; `errors.AsLeaf`; the premises
+   `ErrorStringNotWriter`, `ErrorStringLeaf` and `errors.AsTarget writerToResponse`;
+   `context.WithCancelBackground`; `rafthttp.waitSchedule`; `fmt.SprintfID`;
+   `v2stats.FollowerStats.Fail`; `errMemberRemoved` among `errorsNewVarsInit`'s errors (accepted
+   with the inits: the six metric-vector inits, 542 -> 548).
+   **Next**: the three callee proofs, each needing trust items for the user's review first:
+   `createPostRequest` a fact of `version.MinClusterVersion` (its initializer untranslated: an
+   init axiom, reached through the server); `checkPostResponse` `http.StatusText`, a request's
+   `URL.String()` and `Header.Get` while built, and a fresh-pointer `fmt.Errorf` (a Perennial gap,
+   `notes/perennial-changes.md`); `checkClusterCompatibilityFromHeader` semver's parsing and the
+   version package. Then stage 5 (streams).
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
    `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
    The hardest stage.

@@ -125,7 +125,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           · iframe #; ipureintro; exact Hhvok.1
           wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
           · simp only [raftHttpNet, raftProto]
-            imodintro; ipureintro; intro _; decide
+            isplitr
+            · imodintro; ipureintro; intro _; decide
+            · ipureintro; decide
           -- `recvFailures.WithLabelValues(r.RemoteAddr).Inc()`
           wp_apply wp_slice_literal (V := GoString) [ra]
           isplitr
@@ -214,7 +216,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             wp_auto
             wp_apply hWriteHeader (raftHttpNet Rh) _ wi a R γk (W64 204) rfl $$ [$Hw] as Hw
             · simp only [raftHttpNet, raftProto]
-              imodintro; ipureintro; intro _; decide
+              isplitr
+              · imodintro; ipureintro; intro _; decide
+              · ipureintro; decide
             imodintro
             iexact HRs
           · -- `ErrStopped`: not a `writerToResponse`; `500`, then a panic
@@ -246,7 +250,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             · iframe #; ipureintro; exact Hhvok.1
             wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
             · simp only [raftHttpNet, raftProto]
-              imodintro; ipureintro; intro _; decide
+              isplitr
+              · imodintro; ipureintro; intro _; decide
+              · ipureintro; decide
             -- `w.(http.Flusher).Flush()`, then `panic(err)`, which `Serve` recovers
             rw [if_pos hfl]
             wp_auto
@@ -274,7 +280,9 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         wp_apply HErr
         wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
         · simp only [raftHttpNet, raftProto]
-          imodintro; ipureintro; intro _; decide
+          isplitr
+          · imodintro; ipureintro; intro _; decide
+          · ipureintro; decide
         iexact HRs
       · iunfold EtcdGrove.errorsNewVar at HCM
         icases HCM with ⟨%x, #Hx, #HErr⟩
@@ -284,14 +292,18 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         wp_apply HErr
         wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
         · simp only [raftHttpNet, raftProto]
-          imodintro; ipureintro; intro _; decide
+          isplitr
+          · imodintro; ipureintro; intro _; decide
+          · ipureintro; decide
         iexact HRs
   -- not a `POST`: `w.Header().Set("Allow", "POST")`, `405`
   wp_apply hRespHeader (raftHttpNet Rh) _ wi a R γk none [] rfl $$ [$Hw] as %hm' ⟨Hw, %hs', Hhm'⟩
   wp_apply hHeaderSet hm' hs' $$ [$Hhm'] as Hhm'
   wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw] as Hw
   · simp only [raftHttpNet, raftProto]
-    imodintro; ipureintro; intro _; decide
+    isplitr
+    · imodintro; ipureintro; intro _; decide
+    · ipureintro; decide
   iexact HRs
 
 end proof

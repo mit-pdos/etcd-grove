@@ -175,6 +175,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   some string), covering `Stringer`s generally.
 - **Status.** Not started.
 
+### `fmt.Errorf`'s result: a fresh pointer error (2026-10-23, rafthttp stage 4e, branch `rafthttp-plan`)
+
+- **Missing.** `fmt.Errorf.spec` gives only that the error's `Error()` returns some string; it does
+  not say the error is a fresh pointer (`*fmt.wrapError` or `*errors.errorString`: `IsPointerError`,
+  as `errors.New.spec` says), so a caller cannot show it differs from a package's error variable.
+- **Needed by.** rafthttp's `checkPostResponse`, whose `fmt.Errorf` errors must not be
+  `errMemberRemoved` (`postErr`: `pipeline.post`'s caller reports only that one on `errorc`).
+- **Workaround here.** None yet: `checkPostResponse` is a spec only.
+- **Proposed.** `fmt.Errorf.spec`'s postcondition with `IsPointerError err` (for a format without
+  `%w`), as `errors.New`'s.
+- **Status.** Not started.
+
 ## Landed
 
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork

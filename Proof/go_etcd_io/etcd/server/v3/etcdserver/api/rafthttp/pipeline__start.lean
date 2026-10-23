@@ -42,7 +42,7 @@ theorem rafthttp.pipeline.start.wp_proof
   iunfold pipeFixed at Hf
   icases Hf with ⟨%tr, %pk, %ec, %lg, %urls, %uvs, %lid, %cid, %rt, %ps, %fs, %r, %id, %γd,
     #Htr, #Hpk, #Hec, #Hto, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hlid, #Hcid, #Hrtf, #Hrt, #Hpick, #Hps,
-    #Hpsok, #Hfs, #Hr, #Hraft⟩
+    #Hpsok, #Hfs, #Hr, #Hraft, #Hreg⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
