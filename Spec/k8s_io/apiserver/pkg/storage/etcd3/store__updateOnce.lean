@@ -6,7 +6,7 @@
 One attempt at writing `tryUpdate`'s result `o'` (`data`, its encoding) at the prepared key `key`,
 as `deleteOnce` (D30l): the transformer's value for `data`, then `OptimisticPut(key, value,
 origState.rev, GetOnFailure: true)` through the client with the caller's updates at the members
-(`k8sAuRW`, the model's `update` as the write). `origState` is the store's reading `s` of the
+(`k8sAuRW`, D30n, the model's `update` as the write). `origState` is the store's reading `s` of the
 key-value `kv0` at a state `σ0` the caller's read fired at, on which `tryUpdate` gave `o'`, and
 the store did not skip the write (`o'` and `s` are not unchanged and canonical). Its outcomes:
 
@@ -45,7 +45,7 @@ abbrev store.updateOnce.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (span : Loc) (key : GoString) (dest : GoInterface)
     (o0 : Obj) (rv0 : GoString) (st : Loc) (s : OState Obj) (x : GoInterface) (dsl : GoSlice)
     (σ0 : KVState) (kv0 : EtcdKv) (v : _root_.Perennial.reflect.Value) (p : Loc) (z : Obj)
-    (f : Obj → Nat → Except E Obj) (o' : Obj) (W : IProp GF) (Q Φ : KVState → IProp GF),
+    (f : Obj → Nat → Except E Obj) (o' : Obj) (W : IProp GF) (Φ : KVState → IProp GF),
   c.pfx <+: key →
   mvcc.findKey key σ0.kvs = some kv0 →
   stOfKv c kv0 s →
@@ -54,8 +54,8 @@ abbrev store.updateOnce.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ ⌜span ≠ null⌝ ∗ ownStateX c st s x ∗
       dsl ↦*□ c.S.encode o' ∗ c.S.objAt dest o0 rv0 ∗ ⌜reflectM.reflElem v c.S.objTy p⌝ ∗
-      rdOk c Q σ0 ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key z f) W Q Φ) }}
+      rdFacts c σ0 ∗ W ∗
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (updStep key z f) W Φ) }}
     (App (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"updateOnce")) (Val #(GoInterface.ok ci)))
       (Val #span)) (Val #key)) (Val #dest)) (Val #st)) (Val #dsl)) (Val #(W64 0))) (Val #v))
@@ -64,7 +64,8 @@ abbrev store.updateOnce.spec : Prop :=
       (unkErr c err ∗ ∃ o rv, c.S.objAt dest o rv) ∨
       (⌜ok = true ∧ err = GoInterface.nil⌝ ∗ ∃ σ, Φ σ ∗
         respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err dest) ∨
-      (⌜ok = false⌝ ∗ W ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdOk c Q σ ∗ stAt c key σ st' err) }}
+      (⌜ok = false⌝ ∗ c.S.objAt dest o0 rv0 ∗ ∃ σ, rdFacts c σ ∗ stAt c key σ st' err ∗
+        (if stepHand c (updStep key z f) σ then Φ σ else W)) }}
 
 end spec
 
