@@ -126,6 +126,55 @@ def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :
     ∃ σ : StorState, memSnapTok ms γs σ ∗
       ⌜uint.Z σ.prev.index' ≤ uint.Z ai ∧ uint.Z sl ≤ uint.Z σ.ss.index'⌝)
 
+/-! ## The apply thread's backend, per batch (D22 receiver epochs, S7f) -/
+
+/-- **The apply environment `E` on another backend** (D22 receiver epochs, S7f, 2026-10-23): the
+store's names at the physical names `p` (`mvcc.StoreNames.withPhys`), the batch lock's invariant
+`P` and hook `f`, the consistent index's resources `ciC`, the rest buckets' resource `RO` and the
+write right `RW` of that backend; every other field (the store's logical names, `RD`, `γrev`,
+`authOn`, `FS`, `γbe`, `s`) kept. What `applySnapshot`'s `NewUberApplier` takes after the swap. -/
+def apply.AEnv.onBe (E : apply.AEnv GF) (p : mvcc.PhysNames) (P : IProp GF) (f : val)
+    (ciC : IProp GF → Prop) (RO : apply.RestM → IProp GF) (RW : IProp GF) : apply.AEnv GF :=
+  { E with γ := E.γ.withPhys p, P := P, f := f, ciC := ciC, RO := RO, RW := RW }
+
+/-- **The apply thread's backend after a batch** (D22 receiver epochs, S7f): the protocol's names
+`γ'` are `γ`'s at some physical names, the environment `E'` is `E` on some backend
+(`AEnv.onBe`). `applyAll` keeps its backend but `applySnapshot` moves it (S8). -/
+def beSucc (γ : ApplyNames) (E : apply.AEnv GF) (γ' : ApplyNames) (E' : apply.AEnv GF) : Prop :=
+  γ' = γ.withPh γ'.ph ∧ ∃ (p : mvcc.PhysNames) (P : IProp GF) (f : val) (ciC : IProp GF → Prop)
+    (RO : apply.RestM → IProp GF) (RW : IProp GF), E' = E.onBe p P f ciC RO RW
+
+theorem beSucc_refl (γ : ApplyNames) (E : apply.AEnv GF) : beSucc γ E γ E :=
+  ⟨rfl, E.γ.phys, E.P, E.f, E.ciC, E.RO, E.RW, rfl⟩
+
+theorem beSucc_trans {γ γ' γ'' : ApplyNames} {E E' E'' : apply.AEnv GF}
+    (h1 : beSucc γ E γ' E') (h2 : beSucc γ' E' γ'' E'') : beSucc γ E γ'' E'' := by
+  obtain ⟨hg1, p1, P1, f1, c1, RO1, RW1, rfl⟩ := h1
+  obtain ⟨hg2, p2, P2, f2, c2, RO2, RW2, rfl⟩ := h2
+  refine ⟨?_, p2, P2, f2, c2, RO2, RW2, rfl⟩
+  obtain ⟨⟩ := γ; obtain ⟨⟩ := γ'; obtain ⟨⟩ := γ''
+  simp only [ApplyNames.withPh, ApplyNames.mk.injEq] at hg1 hg2 ⊢
+  grind
+
+/-- The environment's logical fields, kept by `beSucc`. -/
+theorem beSucc_γbe {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E') :
+    E'.γbe = E.γbe := by
+  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
+
+theorem beSucc_ci {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E') :
+    γ'.ci = γ.ci := by
+  rw [h.1]
+
+/-- The batch's claims do not depend on the environment's backend. -/
+theorem batchWaitOk_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
+    (ρ : ReqNames) (ms : List EntryModel) : batchWaitOk ρ E' ms = batchWaitOk ρ E ms := by
+  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
+
+/-- The write budget does not depend on the environment's backend (only on `γbe`). -/
+theorem srvWTPool_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')
+    (γp : GName) : srvWTPool E' γp = srvWTPool E γp := by
+  obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
+
 end defs
 
 end EtcdGrove

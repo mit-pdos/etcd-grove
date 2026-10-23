@@ -70,18 +70,24 @@ abbrev EtcdServer.applyAll.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();
-      ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
+      -- (D22 receiver epochs, S7f, 2026-10-23) the apply thread's backend after the batch: the
+      -- protocol's names `γ'` and the environment `E'` at some backend's (`beSucc`), with the
+      -- server's view at them (`applySnapshot` moves the backend; without a snapshot they are
+      -- `γ`, `TM`, `E`, `b`)
+      ∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
+        (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
+        ⌜beSucc γ E γ' E'⌝ ∗ isServer s γ' ci TM' E' ρ γr ∗
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
-        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
+        srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         srvWTAt γp ai' ∗
-        (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E' ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
-          kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E γr (A ++ unapplied ai ms)) ∗
-        ⌜loopOk γ st' ai' ∧
+          kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E' γr (A ++ unapplied ai ms)) ∗
+        ⌜loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
-          (ciEff γ st'.k = ciEff γ st.k ∨
-            uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
+          (ciEff γ' st'.k = ciEff γ st.k ∨
+            uint.Z (ciEff γ' st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's
           termAfter at0 (unapplied ai ms) at'⌝ }}
 

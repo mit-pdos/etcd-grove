@@ -209,7 +209,9 @@ theorem batchCommittedIdx_of_last (γr : ReadNames) (ai₀ : w64) (A ce : List E
     have h2 := (h.2 (A.length + L.length) b (by simp)).1
     iapply committedAtLeast_le γr b.index m.index (by push_cast at h1 h2; omega) $$ Hl
 
-/-- The names and values the apply thread's resources are stated over (fixed for `run`). -/
+/-- The names and values the apply thread's resources are stated over (fixed for `run`; D22
+receiver epochs, S7f, 2026-10-23: `γ`, `E` and `b` are the start's, the current backend's are
+`applyRes`'s `ApplyBe`). -/
 structure ApplyCtx (GF : BundledGFunctors) where
   s : Loc
   ep : Loc
@@ -228,6 +230,18 @@ structure ApplyCtx (GF : BundledGFunctors) where
   γs : MemStorNames
   /-- (2026-10-19, D21 M3) the write budget's counter (`srvWTPool`) -/
   wt : GName
+  /-- (D22 receiver epochs, S7f) the request path's names (`isServer`'s) -/
+  ρ : ReqNames
+
+/-- **The apply thread's current backend** (D22 receiver epochs, S7f, 2026-10-23): the protocol's
+names at its physical names, its batch lock's meta-keys resource, the apply environment on it and
+the backend's interface value (`ci.be`). `run`'s loop invariant holds them per batch (`applyRes`):
+`applySnapshot` moves them. -/
+structure ApplyBe (GF : BundledGFunctors) where
+  γ : ApplyNames
+  TM : MetaCI → IProp GF
+  E : apply.AEnv GF
+  b : GoInterface
 
 /-- **The apply thread's KV ghost state at the committed raft log `A`** (2026-10-14, unit T1):
 `kvApplied`, with the model's start index and consistent index the apply thread's. -/
@@ -237,15 +251,18 @@ def kvRun (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel) (x : apply.
 /-- **The apply thread's resources at the log `A`** (see the file header; the one place the
 chain's resource is defined: `run`'s loop invariant and its jobs' `Prev`/`Post`). -/
 def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
-  iprop(∃ (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV),
+  iprop(∃ (B : ApplyBe GF) (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV),
+    -- (D22 receiver epochs, S7f, 2026-10-23) the current backend `B`, at the start's logical names,
+    -- with the server's view at it
+    ⌜beSucc C.γ C.E B.γ B.E⌝ ∗ isServer C.s B.γ C.ci B.TM B.E C.ρ C.γr ∗
     epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfState C.ep cs ∗
-    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread C.γ st ∗ applyBackend C.γ C.ci C.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s C.E C.γw x ∗
+    srvSnapState C.s C.ep C.ms C.γs ai (W64 0) ∗ applyThread B.γ st ∗ applyBackend B.γ C.ci B.b ∗ ciApplying C.ci a t ∗
+    srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
-    srvRest C.E C.γr A ∗
+    srvRest B.E C.γr A ∗
     -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap
     srvWTAt C.wt ai ∗
-    ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
+    ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
