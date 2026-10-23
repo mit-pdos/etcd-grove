@@ -408,19 +408,21 @@ instance rwCall_persistent (γ : KNames) (g0 : GSt) (γt : GName) (x : Input)
 
 /-- **A read's call invariant** (`Get`; see the file header): `lintest`'s update with a later
 credit and the commit bit `γc` at `none`, or, once committed at a state `σ`, `γc` read-only at
-`σ` (and `σ` the state of its revision) and the continuation, until `Apply` takes it with its
-token `γt`. -/
-def getCall (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface) (γc γt : GName)
-    (x : Input) (Φ : val → IProp GF) : IProp GF :=
+`σ`, `σ` the state of its revision and that revision the one the client prophesied (`γp`, set
+once by the maker `Get` calls), and the continuation, until `Apply` takes it with its token
+`γt`. -/
+def getCall (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface)
+    (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) : IProp GF :=
   inv callN iprop(
     (linU γ g0 (boxIn x) Φ ∗ £ 1 ∗ dghostVar γc (DFrac.own 1) (none : Option KVState)) ∨
-    (∃ σ : KVState, dghostVar γc DFrac.discard (some σ) ∗
+    (∃ (σ : KVState) (R : w64), dghostVar γc DFrac.discard (some σ) ∗
+      dghostVar γp DFrac.discard (some R) ∗ ⌜σ.rev = uint.nat R⌝ ∗
       ghostMapElem γ.r σ.rev DFrac.discard σ ∗
       (contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ ∨ dghostVar γt (DFrac.own 1) ())))
 
 instance getCall_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface)
-    (γc γt : GName) (x : Input) (Φ : val → IProp GF) :
-    Persistent (getCall γ c g0 eD eU γc γt x Φ) := by
+    (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) :
+    Persistent (getCall γ c g0 eD eU γc γt γp x Φ) := by
   unfold getCall; infer_instance
 
 /-- **A read's result** at a firing at `σ`: the state is the store's, with room, and, at the
