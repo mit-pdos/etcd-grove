@@ -505,6 +505,23 @@ theorem crt_keyRange (hUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF)
   iunfold crtTok
   iframe
 
+/-- `readTx.UnsafeRange` at `rtHeld` (its share of bbolt's transaction, `rtHeld_eq`). -/
+theorem rtUR_held (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView) (qo : Qp)
+    (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString)
+    (dk de : DFrac) (limit : w64) (h1 : endKey = slice.nil ↔ eb = [])
+    (h2 : sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) (h3 : P.has bi) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rtHeld γ P b rtx rv ∗ bOpen γ qo ∗
+        isBucket bk bi ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
+      (App (App (App (App (Val (rt @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty @!! go!"UnsafeRange"))
+        (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
+    {{ (keys vals : GoSlice), RET (PairV #keys #vals); rtHeld γ P b rtx rv ∗ bOpen γ qo ∗
+        key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗ kvsOutRd rtx keys vals (rtRange rv bi kb eb limit) }} := by
+  have h := hUR γ P W Pk b rt rtx rv sync.rfrac.half qo bk bi key endKey kb eb dk de limit h1 h2 h3
+  rw [← rtHeld_eq] at h
+  exact h
+
 /-- The held shared read transaction's single-key read of the `Key` bucket. -/
 theorem rt_keyRange (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
@@ -527,7 +544,7 @@ theorem rt_keyRange (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   iapply wp_fupd
-  wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI key slice.nil k [] dq DFrac.discard (W64 0)
+  wp_apply (rtUR_held hUR γ P W Pk b rt rtx rv qo bk keyBI key slice.nil k [] dq DFrac.discard (W64 0)
       (by simp) (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hkey $Hnil]
       as %ks %vs ⟨Hh, Ho, Hkey, -, Hout⟩
   irevert Hout
@@ -989,7 +1006,7 @@ theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
   have Hks := keySafe_of hP Hsf Hsz
   ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
   iapply wp_fupd
-  wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi (W64 0) Hiff
+  wp_apply (rtUR_held hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi (W64 0) Hiff
       (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Ho, Hlo, Hhi, Hout⟩
   irevert Hout
   rw [rtRange_safe hP Hwf Hks hv klo khi Hne]
@@ -1029,7 +1046,7 @@ theorem rt_rangeLim (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   have Hks := keySafe_of hP Hsf Hsz
   ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
   iapply wp_fupd
-  wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi lim Hiff
+  wp_apply (rtUR_held hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi lim Hiff
       (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Ho, Hlo, Hhi, Hout⟩
   imod kvsOutRd_pairVals rtx ks vs _ $$ Hout with #Hkv
   imodintro
@@ -1037,6 +1054,56 @@ theorem rt_rangeLim (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   iframe Hlo Hhi
   iunfold rtTok
   iframe Hh Ho
+  iexists _
+  iframe Hkv
+  ipureintro
+  exact ⟨rtRange_sublist hP Hwf Hks hv klo khi Hne lim,
+    fun hc hl => rtRange_clean hP Hwf Hks hv (hcl hc) klo khi Hne lim hl⟩
+
+
+/-- `rtHeldF_lend` at a quarter of `readTx.mu`'s reader share. -/
+theorem rtHeld_lendQ (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo : Qp) :
+    rtHeld (GF := GF) γ P b rtx rv ∗ bOpen γ qo ⊢
+      rtHeldF γ P b rtx rv sync.rfrac.half.half ∗ bOpen γ qo ∗ txLive rtx sync.rfrac.half.half := by
+  have h := rtHeldF_lend (GF := GF) γ P b rtx rv qo sync.rfrac.half.half sync.rfrac.half.half
+  rw [Qp.half_add_half] at h
+  exact h
+
+/-- `rtHeldF_return` at a quarter. -/
+theorem rtHeld_returnQ (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
+    rtHeldF (GF := GF) γ P b rtx rv sync.rfrac.half.half ∗ txLive rtx sync.rfrac.half.half ⊢
+      rtHeld γ P b rtx rv := by
+  have h := rtHeldF_return (GF := GF) γ P b rtx rv sync.rfrac.half.half sync.rfrac.half.half
+  rw [Qp.half_add_half] at h
+  exact h
+
+/-- The held shared read transaction's limited range read with a share `p` of bbolt's
+transaction (the restore plan's R5b: what the part that ranges keeps when the other is lent),
+the readers' state's facts known (at the lend). -/
+theorem rt_rangeLimF (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b rt rtx : Loc)
+    (rv : RView) (p qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) (cl : Bool)
+    (hcl : cl = true → rbClean P rv.2) (Hwf : rv.2.Wf) (Hks : keySafe rv) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ⊢
+      keyRangeLimSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
+        m (rdB rtx) iprop(rtHeldF γ P b rtx rv p ∗ bOpen γ qo) cl := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt⟩
+  iunfold keyRangeLimSpec
+  iintro %bk %lo %hi %klo %khi %dqlo %dqhi %lim !> %Φ ⟨#HK, ⟨Hh, Ho⟩, Hlo, Hhi, %Hne⟩ HΦ
+  ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
+  ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
+  iapply wp_fupd
+  wp_apply (hUR γ P W Pk b rt rtx rv p qo bk keyBI lo hi klo khi dqlo dqhi lim Hiff
+      (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Ho, Hlo, Hhi, Hout⟩
+  imod kvsOutRd_pairVals rtx ks vs _ $$ Hout with #Hkv
+  imodintro
+  iapply HΦ
+  iframe Hlo Hhi Hh Ho
   iexists _
   iframe Hkv
   ipureintro
@@ -1133,9 +1200,53 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     · iintro !>
       iapply rt_rangeRead hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv
         $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
+    isplitr
     · iintro !>
       iapply rt_rangeLim hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv cl hcl
         $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
+    iintro !>
+    iunfold rdSplit
+    iintro Ht
+    iunfold rtTok at Ht
+    icases Ht with ⟨Hh, Ho⟩
+    icases rtHeld_wf γ P b rtx rv $$ Hh with ⟨Hh, %Hwf⟩
+    icases rtHeld_safe γ P b rtx rv $$ Hh with ⟨Hh, %Hsf⟩
+    iunfold keySized at Hsafe
+    icases Hsafe $$ %rtx %rv Hh with ⟨Hh, %Hsz⟩
+    have Hks := keySafe_of hP Hsf Hsz
+    icases rtHeld_lendQ γ P b rtx rv qo $$ [$Hh $Ho] with ⟨Hh, Ho, Hl⟩
+    iexists iprop(rtHeldF γ P b rtx rv sync.rfrac.half.half ∗ bOpen γ qo),
+      iprop(txLive rtx sync.rfrac.half.half)
+    iframe Hh Ho Hl
+    isplitr
+    · iunfold rdCap
+      iintro !> %s %v #HRd ⟨Hh, Ho⟩
+      icases rtHeldF_read γ P b rtx rv _ qo s v $$ [$Hh $Ho $HRd] with ⟨%dq, Hs, Hcl⟩
+      iexists dq
+      iframe Hs
+      iintro Hs
+      iapply Hcl $$ Hs
+    isplitr
+    · iunfold rdCap
+      iintro !> %s %v #HRd Hl
+      iunfold rdB at HRd
+      icases HRd with (#Hs | #Hs)
+      · iexists DFrac.discard
+        iframe #
+        iintro _
+        iexact Hl
+      icases txBytes_acc rtx s v _ $$ [$Hs $Hl] with ⟨%dq, Hsl, Hback⟩
+      iexists dq
+      iframe Hsl
+      iexact Hback
+    isplitr
+    · iintro !>
+      iapply rt_rangeLimF hUR hID hName hSafe hP γ W Pk b rt rtx rv _ qo m hv cl hcl Hwf Hks
+        $$ [$Hpkg $Hsch $Hb $Hrt]
+    iintro ⟨Hh, Ho⟩ Hl
+    iunfold rtTok
+    iframe Ho
+    iapply rtHeld_returnQ γ P b rtx rv $$ [$Hh $Hl]
   iunfold rdCap
   iintro !> %s %v #HRd Ht
   iunfold rtTok at Ht

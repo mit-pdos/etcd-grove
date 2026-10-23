@@ -205,20 +205,21 @@ theorem rbAt_frac (txr : Loc) (m : GoMap) (Pb : BksPhys) (R : RBuf) (q1 q2 : Qp)
     · iframe
     iframe
 
-theorem rtIntv_frac (γ : BNames) (P : BParams) (rd : RdSt) (cm : GoMap) (D : Data) (q1 q2 : Qp) :
-    rtIntv (GF := GF) γ P (q1 + q2) rd cm D ⊣⊢ rtIntv γ P q1 rd cm D ∗ rtIntv γ P q2 rd cm D := by
+theorem rtIntv_frac (γ : BNames) (P : BParams) (rd : RdSt) (cm : GoMap) (D : Data) (q1 q2 : Qp)
+    (p1 : Qp := q1.half) (p2 : Qp := q2.half) :
+    rtIntv (GF := GF) γ P (q1 + q2) rd cm D (p1 + p2) ⊣⊢
+      rtIntv γ P q1 rd cm D p1 ∗ rtIntv γ P q2 rd cm D p2 := by
   unfold rtIntv wgOpen
   split
-  · rw [Qp_half_add]
-    constructor
+  · constructor
     · iintro ⟨Hl, #Hs, #Hi, #Hw, Ho, Ht⟩
-      icases ((txLive_fractional rd.rtx).fractional q1.half q2.half).1 $$ Hl with ⟨Hl1, Hl2⟩
+      icases ((txLive_fractional rd.rtx).fractional p1 p2).1 $$ Hl with ⟨Hl1, Hl2⟩
       icases ghostVar_split rd.γw () q1 q2 $$ Ho with ⟨Ho1, Ho2⟩
       icases ghostVar_split rd.γt () q1 q2 $$ Ht with ⟨Ht1, Ht2⟩
       iframe
       iframe #
     · iintro ⟨⟨Hl1, #Hs, #Hi, #Hw, Ho1, Ht1⟩, ⟨Hl2, -, -, -, Ho2, Ht2⟩⟩
-      ihave Hl := ((txLive_fractional rd.rtx).fractional q1.half q2.half).2 $$ [Hl1 Hl2]
+      ihave Hl := ((txLive_fractional rd.rtx).fractional p1 p2).2 $$ [Hl1 Hl2]
       · iframe
       icombine Ho1 Ho2 as Ho
       icombine Ht1 Ht2 as Ht

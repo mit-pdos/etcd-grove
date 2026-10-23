@@ -244,6 +244,11 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
   transaction (`txLive rtx p`, enough to read its bytes: `txBytes_acc`) and the rest, and
   `readTx.UnsafeRange` works with any share; at mvcc, `keyReadLocked`'s range branch gives
   `rdSplit`: `Tok` splits into `TokA` (ranges and reads) and `TokB` (reads), both with `rdCap`.
+  *Done (2026-10-23)*: `rtCore`/`rtRest`/`rtResAt`/`rtIntv` take the share `p` of bbolt's
+  transaction (default `q.half`), `rtHeldF` (`rtHeld = rtHeldF … sync.rfrac.half`), `rtHeldF_lend`/
+  `_return`/`_read`, `readTx.UnsafeRange` over `rtHeldF` at any share; at mvcc `rdSplit` in
+  `keyReadLocked`'s range branch, proved of the real backend in `rt_locked` (`rt_rangeLimF`, a
+  quarter lent). No axiom added.
 - **R5c. `restore` with data.** Its spec over `R` (`bucketView γ q (bucketMap ([[], []] ++ R))`,
   clean), the chunk loop's invariant (the entries sent are the range's prefix up to `min`, `min`
   the next revision), `restoreChunk` per chunk, the goroutine with `TokB`, the leases

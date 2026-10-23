@@ -624,6 +624,14 @@ def metaReadTx (rt : GoInterfaceOk) : IProp GF :=
 instance metaReadTx_persistent (rt : GoInterfaceOk) : Persistent (metaReadTx (GF := GF) rt) := by
   unfold metaReadTx; infer_instance
 
+/-- **Two readers of one read transaction** (the restore plan's R5b): its token splits into a
+part that ranges and reads (`TokA`) and one that reads (`TokB`: `restore`'s goroutine reads the
+keys `restore` sent while `restore` goes on ranging), joined back before `RUnlock`. -/
+def rdSplit (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF) (cl : Bool) : IProp GF :=
+  iprop(Tok -∗ ∃ TokA TokB : IProp GF, TokA ∗ TokB ∗ rdCap Rd TokA ∗ rdCap Rd TokB ∗
+    □ keyRangeLimSpec rt m Rd TokA cl ∗ (TokA -∗ TokB -∗ Tok))
+
 /-- `rt` locked, over the snapshot `m` of the bucket (persistent), with `Tok` the reader's
 token from its `RLock` to its `RUnlock`: `RUnlock` takes `Tok` and gives back the reader's
 budget token `RT` (`isKeyBackendG`), and under `Tok` its reads are the snapshot's: a key's
@@ -636,7 +644,8 @@ def keyReadLocked (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
     (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
     □ keyRangeSpec rt m Rd Tok ∗
-    (if rng then iprop(□ keyRangeReadSpec rt m Rd Tok ∗ □ keyRangeLimSpec rt m Rd Tok cl)
+    (if rng then iprop(□ keyRangeReadSpec rt m Rd Tok ∗ □ keyRangeLimSpec rt m Rd Tok cl ∗
+      □ rdSplit rt m Rd Tok cl)
      else iprop(True)) ∗
     rdCap Rd Tok)
 
@@ -660,7 +669,16 @@ theorem keyReadLocked_rangeLim (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
     keyReadLocked (GF := GF) RT true rt m Rd Tok cl ⊢ □ keyRangeLimSpec rt m Rd Tok cl := by
   unfold keyReadLocked
   simp only [↓reduceIte]
-  iintro ⟨-, -, ⟨-, #H⟩, -⟩
+  iintro ⟨-, -, ⟨-, #H, -⟩, -⟩
+  iexact H
+
+/-- A locked snapshot with its range read splits its token (R5b). -/
+theorem keyReadLocked_split (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) :
+    keyReadLocked (GF := GF) RT true rt m Rd Tok cl ⊢ □ rdSplit rt m Rd Tok cl := by
+  unfold keyReadLocked
+  simp only [↓reduceIte]
+  iintro ⟨-, -, ⟨-, -, #H⟩, -⟩
   iexact H
 
 /-- A locked snapshot with its range read is one without. -/

@@ -423,9 +423,10 @@ def bksOk (Pb : BksPhys) (B : GMap w64 (List Ent)) : Prop :=
 
 /-- The interval's resources at `q`: open (a bbolt read transaction over `D`, its invariants,
 `wgOpen` at `q`), or the backend stopped. -/
-def rtIntv (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data) : IProp GF :=
+def rtIntv (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data)
+    (p : Qp := q.half) : IProp GF :=
   if rd.live then
-    iprop(txLive rd.rtx q.half ∗ rtxSnap rd.rtx D ∗ □ intvInv γ P rd.rtx cm D ∗
+    iprop(txLive rd.rtx p ∗ rtxSnap rd.rtx D ∗ □ intvInv γ P rd.rtx cm D ∗
       □ wgInv γ rd.rtx rd.wg rd.γw rd.γo rd.γt ∗ wgOpen rd.γw q ∗ ghostVar rd.γt q ())
   else iprop(⌜rd.rtx = Loc.null⌝ ∗ bStopped γ)
 
@@ -448,7 +449,7 @@ read buffer canonical, of the table's buckets and writable; the current state th
 the history; a window only at a version's first state), the cache's validity, the window's
 poison mark, the readers' budget's authority, and the interval. -/
 def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (cm : GoMap) (H : GMap (w64 × Nat) RView) : IProp GF :=
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
   iprop(ghostVar γ.rd q rd ∗
     ghostVar γ.rvs q.half (rv, rd.win) ∗ ghostVar γ.cur q.half ((rv.2.ver, rd.idx), rd.win) ∗
     clnPart γ P q rd rv ∗
@@ -459,20 +460,20 @@ def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RVi
       (rd.win = true → rd.idx = 0) ∧ safeRv P rv⌝ ∗
     histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx ∗
     (if rd.win then poisonAt γ rv.2.ver rd.idx else iprop(True)) ∗
-    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1)
+    ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1 p)
 
 /-- `rtCore` with the view's quarter (at `q`). -/
 def rtRest (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (cm : GoMap) (H : GMap (w64 × Nat) RView) : IProp GF :=
-  iprop(ghostVar γ.view q.half.half (vData P rv) ∗ rtCore γ P rt q rd rv cm H)
+    (cm : GoMap) (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
+  iprop(ghostVar γ.view q.half.half (vData P rv) ∗ rtCore γ P rt q rd rv cm H p)
 
 /-- `readTx.mu`'s resource at `q`, in the layout `rd`, the readers' state `rv` and the history
 `H`: the read buffer at `q` (writable buffers), the buckets map's field, and the rest. -/
 def rtResAt (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
-    (H : GMap (w64 × Nat) RView) : IProp GF :=
+    (H : GMap (w64 × Nat) RView) (p : Qp := q.half) : IProp GF :=
   iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap),
     rbAt (rbufOf (baseOf rt)) (DFrac.own q) m Pb rv.2 ∗ ⌜bksOk Pb rv.2.bks⌝ ∗
-    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H)
+    rbktOf (baseOf rt) ↦{DFrac.own q} cm ∗ rtRest γ P rt q rd rv cm H p)
 
 /-- `readTx.mu`'s resource at `q`. -/
 def rtRes (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) : IProp GF :=
@@ -709,6 +710,17 @@ def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IPro
   iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
     sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
     rtResAt γ P rt sync.rfrac rd rv H ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+
+/-- The shared read transaction held with the share `p` of bbolt's transaction (`rtHeld` holds
+`sync.rfrac.half`; a part lent to another reader of the same snapshot, `rtHeld_lend`: the restore
+plan's R5b). -/
+def rtHeldF (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) (p : Qp) : IProp GF :=
+  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
+    sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+    rtResAt γ P rt sync.rfrac rd rv H p ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
+
+theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) :
+    rtHeld (GF := GF) γ P b rtx rv = rtHeldF γ P b rtx rv sync.rfrac.half := rfl
 
 end preds
 
