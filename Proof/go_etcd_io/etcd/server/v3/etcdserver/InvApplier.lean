@@ -310,7 +310,6 @@ def srvLgReader (s : Loc) : IProp GF :=
 structure SrvFields where
   lg : Loc
   w : GoInterface
-  ua : GoInterface
   lessor : GoInterface
   hook : val
   firstCommit : Loc
@@ -469,16 +468,16 @@ def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Lo
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
     ∃ γB : backend.BNames, E.RO = srvRestOwn γB cl ∧ E.RW = srvRestRW γB
 
-/-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
-is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch
+/-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its
 rest buckets' resource is the backend's tracked buckets and `s.cluster`'s in-memory members
-(`srvRestOwn`, D22, 2026-10-23). -/
+(`srvRestOwn`, D22, 2026-10-23). (D22 receiver epochs, S7a, 2026-10-23: `s.uberApply`, which
+`applySnapshot` rebuilds, is no longer here, read-only for good: it is the apply thread's,
+`srvApplyKV`.) -/
 def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
-      srvUberApplyAddr s ↦□ v.ua ∗ apply.applierFor v.ua E ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk ρ.kv.wl v.lessor ∗
@@ -521,12 +520,16 @@ instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     Persistent (isServer s γ ci TM E ρ γr) := by
   unfold isServer; infer_instance
 
-/-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`'s
-(`apply.applyKV`: its current chain `x.chain`, the KV's resources at the committed log
-`x.log`), and the authority of the revisions' tokens at `x.log` (`revAuth`: the apply thread
-mints a revision's token when the log grows to it; the vertical slice's unit V1). -/
+/-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`, owned
+(D22 receiver epochs, S7a, 2026-10-23: the apply thread is its only reader and writer,
+`applySnapshot` rebuilds it; until then `↦□` in `srvFieldsAt`), the apply package's uber-applier
+in the environment `E` (`apply.applierFor`) and its state (`apply.applyKV`: its current chain
+`x.chain`, the KV's resources at the committed log `x.log`), and the authority of the revisions'
+tokens at `x.log` (`revAuth`: the apply thread mints a revision's token when the log grows to it;
+the vertical slice's unit V1). -/
 def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) : IProp GF :=
-  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x ∗ revAuth E x.log ∗
+  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+    apply.applyKV E ua x ∗ revAuth E x.log ∗
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 
@@ -674,16 +677,36 @@ theorem srvApplyKV_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
     srvApplyKV s E γw x ⊢ srvApplyKV s E γw x ∗ mvcc.idxCert E.γ.idx x.log := by
   iintro H
   iunfold srvApplyKV at H
-  icases H with ⟨%ua, #Hua, Hkv, Hw⟩
+  icases H with ⟨%ua, Hua, #Hap, Hkv, Hw⟩
   icases applyKV_idxCert E ua x $$ Hkv with ⟨Hkv, #Hc⟩
   iframe Hc
   iunfold srvApplyKV
   iexists ua
-  isplitr
+  isplitl [Hua]
   · iexact Hua
+  isplitr
+  · iexact Hap
   isplitl [Hkv]
   · iexact Hkv
   iexact Hw
+
+/-- The apply thread's `s.uberApply` and its applier, lent (D22 receiver epochs, S7a). -/
+theorem srvApplyKV_ua (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV s E γw x ⊢ ∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+      (srvUberApplyAddr s ↦ ua -∗ srvApplyKV s E γw x) := by
+  iintro H
+  iunfold srvApplyKV at H
+  icases H with ⟨%ua, Hua, #Hap, Hkv⟩
+  iexists ua
+  iframe Hua Hap
+  iintro Hua
+  iunfold srvApplyKV
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hap
+  iexact Hkv
 
 /-- **The apply thread's KV log is small** (D19c's move, 2026-10-18): the sole writer's log has
 a revision per change past its first two and fewer than `2 ^ 48` changes (`txn.soleWriter_small`:
@@ -694,7 +717,7 @@ theorem srvApplyKV_small' (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply
       ⌜x.log.length ≤ mvcc.logCh x.log + 2 ∧ mvcc.logCh x.log < 2 ^ 48⌝ := by
   iintro H
   iunfold srvApplyKV at H
-  icases H with ⟨%ua, -, Hkv, -⟩
+  icases H with ⟨%ua, -, -, Hkv, -⟩
   iunfold apply.applyKV at Hkv
   icases Hkv with ⟨%p, -, -, Hk⟩
   iunfold apply.kvOwn at Hk

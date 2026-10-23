@@ -195,15 +195,15 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
       #Hrn, %HEr, %Hρrd, Hloop, Happly, Hrdone, #Hcci, #Hwci, Hw, Haw, Hdone, Hstop, Hstopping,
       Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr,
       ⟨%kv, %rv, #Hkv, #HisKV, #Hrv, #HisRV⟩, HWB, #Hsmall, #HNR, #Hcv, %Hbound,
-      ⟨%ua, #Hua, #Hfor, Hakv⟩, Hwtok⟩, Hsnap⟩
+      ⟨%ua, Hua, #Hfor, Hakv⟩, Hwtok⟩, Hsnap⟩
   iframe Hci Hreqb Hrunb Hsab Hai Hkvi Hti Hci' Hrn HNR Hcv Hcci Hwci
   iframe Hloop Happly Hrdone Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg
   iframe HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hsnap Hwtok
   isplitr
   · unfold srvFieldsBuiltNA
-    iexists { v with ua := ua }
+    iexists v
     unfold srvFieldsBuilt
-    iframe Hua Hfor Hfb
+    iframe Hfb
   isplitr
   · unfold srvReadBuiltNK
     iexists { vr with kv := kv, rv := rv }
@@ -222,7 +222,7 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   isplitr
   · ipureintro; exact Hok
   iexists ua
-  iframe Hua Hakv
+  iframe Hua Hfor Hakv
 
 end gap
 

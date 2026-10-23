@@ -963,7 +963,6 @@ theorem NewServer.wp_proof
     · ipureintro; exact Hhknn
   -- the persistent fields
   ipersist reqIDGen
-  ipersist uberApply
   ipersist firstCommitInTerm
   ipersist errorc
   ipersist compactor
@@ -1075,7 +1074,7 @@ theorem NewServer.wp_proof
   iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn
   isplitr
   · -- `#Hfb`
-    iexists ⟨cfg.Logger', GoInterface.nil, ua, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
+    iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuiltNA srvLeadInv
     iframe #

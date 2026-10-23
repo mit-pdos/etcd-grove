@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The membership change's contract.** `s.applyConfChange(cc, ep, v3)` validates the
 change `cc` and applies it to the cluster (`s.cluster`, whose backend is the server's: the
 batch lock `E.P` with the post-lock hook `E.f`: the environment `E` of `s.uberApply`,
-`apply.applierFor`), to raft (`s.r.ApplyConfChange`, the server's raft node's contract in
+`apply.applierFor`; D22 receiver epochs, S7a, 2026-10-23: the field the apply thread's, given
+back), to raft (`s.r.ApplyConfChange`, the server's raft node's contract in
 `srvRaftNode`) and to `ep.confState`. For `v3` (`ApplyBoth`) its writes to the backend happen in
 one critical section of the batch lock, after the hook (as `apply.Apply`'s: the caller's hook
 triple and writes update), or, if the validation fails, there are none and it stores the
@@ -72,7 +73,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (γB : backend.BNames) (cl : Loc) (rs : apply.RestM),
   ccApplyOk γs.raft.reCfg m → E.RO = srvRestOwn γB cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
+      srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
       ownCCV1 cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
@@ -83,7 +84,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyConfChange"))
       (Val #cc)) (Val #ep)) (Val #v3))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
-      ⌜removed = false⌝ ∗
+      ⌜removed = false⌝ ∗ srvUberApplyAddr s ↦ ua ∗
       (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfState ep cs') ∗
       E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) }}

@@ -103,7 +103,7 @@ theorem EtcdServer.start.wp_proof
   icases Hfb' with ⟨%fv, #Hfv⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsBuilt at Hfv'
-  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
+  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
   -- the cluster's id (the request path's view of the same `s.cluster`)
   ihave #Hreqb' := Hreqb
   icases Hreqb' with ⟨%vq0, #Hvq0⟩
@@ -342,7 +342,7 @@ theorem EtcdServer.start.wp_proof
     · iexists { fv with w := w }
       ihave #Hfv2 := Hfv
       iunfold srvFieldsBuilt at Hfv2
-      icases Hfv2 with ⟨#F1, %F2, #F3, #F4, %F5, %F5o, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13,
+      icases Hfv2 with ⟨#F1, %F2, %F5, %F5o, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13,
         #F14, #F15, #F16, #F17, #F18, #F19, #F20⟩
       iunfold srvFieldsAt
       iframe #
@@ -397,9 +397,9 @@ theorem EtcdServer.start.wp_proof
     iexact Hcancel
   -- the apply thread's resources
   iunfold applyBuilt at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, #Hua, Hkv⟩, HRA, Hao,
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, Hao,
     #Hlog, Hkr, Hfs⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hkv HRA Hao Hfs Hwg1 HRD Hkr]
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hua Hkv HRA Hao Hfs Hwg1 HRD Hkr]
   · iunfold applyStart
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog Hkr
@@ -407,8 +407,10 @@ theorem EtcdServer.start.wp_proof
     · ipureintro; exact Hlo
     iunfold srvApplyKV
     iexists ua
-    isplitr
+    isplitl [Hua]
     · iexact Hua
+    isplitr
+    · iexact Hfor
     isplitl [Hkv]
     · iexact Hkv
     isplitl [HRA]

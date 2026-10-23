@@ -163,7 +163,7 @@ theorem EtcdServer.apply.wp_proof
   iunfold isServerCI at Hsci'
   icases Hsci' with ⟨#Hcif, #Hci, #Hinv⟩
   iunfold srvFieldsAt at Hfl
-  icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happlier, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
+  icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
     #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   obtain ⟨γB, HROeq, -⟩ := HEo.2.2
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -502,7 +502,8 @@ theorem EtcdServer.apply.wp_proof
         iunfold hookSpec at Hhook2
         ihave #Hh := Hhook2 $$ %(stLoaded γ st') %m.index %m.term %b
         obtain ⟨HEP, HEf⟩ := HE
-        wp_apply (hACC s cc_ptr ep cm csl true ci sv.ua E ρ.raft
+        icases srvApplyKV_ua s E ρ.wait xj $$ HKV with ⟨%ua, Hua, #Happlier, HKVk⟩
+        wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
             applyBackend γ ci b ∗
             ⌜(stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -514,8 +515,8 @@ theorem EtcdServer.apply.wp_proof
             applyBackend γ ci b)
           iprop(applyThread γ { { stLoaded γ st' with p := m.index } with k := m.index } ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
-          m.index m.term γB sv.cluster _ (Hcb cm Hdec) HROeq) $$ [Hcc Hcs Hst Happ Hbe HRS]
-          as %removed %err ⟨%Hrem, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, Hpost⟩
+          m.index m.term γB sv.cluster _ (Hcb cm Hdec) HROeq) $$ [Hcc Hcs Hst Happ Hbe HRS Hua]
+          as %removed %err ⟨%Hrem, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, Hpost⟩
         · rw [ite_eq_left rfl, HEP, HEf]
           iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS
@@ -542,6 +543,7 @@ theorem EtcdServer.apply.wp_proof
               iframe
           iframe Hst Happ Hbe
           ipureintro; exact hpre
+        ihave HKV := HKVk $$ Hua
         (try rw [ite_eq_left rfl])
         ihave Hpost' : iprop(∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩ ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b) $$ [Hpost]
@@ -698,14 +700,16 @@ theorem EtcdServer.apply.wp_proof
           iexact Hewo
         icases Hccw with ⟨#Hccf, %Hcb⟩
         (try wp_auto)
-        wp_apply (hACC s cc_ptr ep cm csl false ci sv.ua E ρ.raft
+        icases srvApplyKV_ua s E ρ.wait xj $$ HKV with ⟨%ua, Hua, #Happlier, HKVk⟩
+        wp_apply (hACC s cc_ptr ep cm csl false ci ua E ρ.raft
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ (Hcb cm Hdec)
-          HROeq) $$ [Hcc Hcs HRS]
-          as %removed %err ⟨%Hrem, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, -⟩
+          HROeq) $$ [Hcc Hcs HRS Hua]
+          as %removed %err ⟨%Hrem, Hua, ⟨%cm', %cs', Hcc, %hIdEq, Hcs⟩, HRS, -⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
           iunfold srvRest at HRS
           iframe Hcif Hua Happlier Hrn Hcc Hcs Hcl HRS
           isplit <;> ipureintro <;> trivial
+        ihave HKV := HKVk $$ Hua
         ihave HRS : iprop(srvRest E γr (A ++ ms.take (sint.nat j) ++ [m])) $$ [HRS]
         · rw [srvRest_snoc, restEntry_cc _ _ cm _ (by rw [h1]; decide) Hdec,
             decide_eq_false (fun h =>
