@@ -286,7 +286,7 @@ trust-boundary spec.
    `ErrClusterIDMismatch`, `errStopped` (`errorsNewVarsInit`'s list: three more entries) and the four
    metric vectors (`receivedBytes`, `recvFailures`, `sentBytes`, `sentFailures`: **four new
    `<X>_init` axioms**, of `gen-init.py`'s `promvec` kind, reached by every result through rafthttp's
-   initializer: baseline 542 -> 546, awaiting the user's acceptance). `prometheus.counterSpec` gains
+   initializer: baseline 542 -> 546, accepted by the user 2026-10-23). `prometheus.counterSpec` gains
    `Add` (the `WithLabelValues` axiom promises more). Still a spec only:
    `checkClusterCompatibilityFromHeader` (the version check: `semver`, `version`'s values).
    **Next**: 4d, the sender (`pipeline.post`, `handle`).
