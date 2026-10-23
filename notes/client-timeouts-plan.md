@@ -1,8 +1,9 @@
 # Plan: the examples' clients configured as etcd's clients are in practice (timeouts)
 
-**Status.** T0 and T1 carried out (2026-10-23, branch `client-timeouts`; `notes/decisions.md`,
-"D-T1..D-T5"); T2's gates run with them; T3 (the Perennial lemma) not started
-(`notes/perennial-changes.md`, "`WithTimeout`/`WithDeadline` of `Background()`"). What differed
+**Status.** Finished. T0 and T1 carried out (2026-10-23, branch `client-timeouts`;
+`notes/decisions.md`, "D-T1..D-T5"); T2's gates run with them; T3 carried out (2026-10-23, branch
+`with-timeout-bg`: Perennial `c25bef57e`'s `wp_WithTimeout_Background`, the pin moved to it, the
+axiom `context.WithTimeoutBackground.wp_proof` a theorem; `notes/perennial-changes.md`, "Landed"). What differed
 from the plan below: (1) `NewClient(addr, lg)` stays, as `NewClients({addr}, lg)`, so the five
 one-endpoint callers and their proofs are untouched; (2) D-T4's "no statement changes" holds for
 the conclusions only: `putget_safe`, `putget3_safe`, `linkvtxn_safe` and `linkv3p_safe` gain the

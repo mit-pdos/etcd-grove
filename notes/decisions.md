@@ -16340,7 +16340,12 @@ read not retried past the deadline), was never exercised.
   (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`): the context is `ctxOk` (an `isContext`)
   and `ctxErrClient` (from `ctxErrClientAllW_of`), and `cancel` is callable. No new axiom;
   `notes/perennial-changes.md` proposes `wp_WithTimeout_Background` to Perennial (the plan's T3),
-  after which the axiom becomes a theorem.
+  after which the axiom becomes a theorem. *T3 carried out the same day* (branch `with-timeout-bg`):
+  Perennial `c25bef57e` proves `WithDeadlineCause`, `WithDeadline` and `WithTimeout` of
+  `Background()` (the no-deadline branch of `WithDeadlineCause`'s proof over `Background()`'s
+  facts; `propagateCancel`'s spec generalized to any child of a `Background()` parent, since Go
+  never looks at the child when the parent's `Done()` is `nil`), the pin moved to it, and the
+  axiom is a theorem: 538 axioms.
 - **D-T4.** The closed theorems' conclusions are unchanged; their premises gain
   `ContextErrsClient` (the types of Go's `context.Canceled` and `DeadlineExceeded`: leaf errors,
   no `EtcdError`, without `GRPCStatus`), which the watch theorems already took, since a timed-out

@@ -12,6 +12,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.ModelLemmas
 public import Perennial.Std.Word.Automation
+public import Perennial.Golang.Theory.String
 
 @[expose] public section
 
