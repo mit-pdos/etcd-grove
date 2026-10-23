@@ -41,7 +41,16 @@ translate = ["!*",
   # the wrapper's promoted `LeaseRevoke` (the embedded service's, as `quotaKVServer.Range`), what
   # `_Lease_LeaseRevoke_Handler` calls on the registered `*quotaLeaseServer` (stage (c))
   "LeaseServer.LeaseGrant", "LeaseServer.LeaseRevoke", "quotaLeaseServer.LeaseGrant",
-  "quotaLeaseServer.LeaseRevoke"]
+  "quotaLeaseServer.LeaseRevoke",
+  # the auth plan's A2 (2026-10-23): auth.go's AuthAdmin (the API layer's admin and
+  # authenticated-user guards) and maintenance.go's guarded wrappers (the inner
+  # maintenanceServer methods stay names only: the wrappers' specs take their triples)
+  "AuthAdmin.isPermitted", "AuthAdmin.requireAuthInfo",
+  "authMaintenanceServer.isPermitted", "authMaintenanceServer.requireAuthInfo",
+  "authMaintenanceServer.Defragment", "authMaintenanceServer.Snapshot",
+  "authMaintenanceServer.Hash", "authMaintenanceServer.HashKV", "authMaintenanceServer.Alarm",
+  "authMaintenanceServer.Status", "authMaintenanceServer.MoveLeader",
+  "authMaintenanceServer.Downgrade"]
 imports = ["!*", "context", "errors", "time", "unicode/utf8", "go.uber.org/zap",
   "google.golang.org/grpc", "google.golang.org/grpc/metadata",
   "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/client/pkg/v3/types",

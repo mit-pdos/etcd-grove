@@ -33,6 +33,8 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "RangeRequest_VERSION", "RangeRequest_CREATE", "RangeRequest_MOD", "RangeRequest_VALUE",
   "InternalRaftRequest", "RequestHeader", "InternalRaftStringer", "InternalAuthenticateRequest",
   "CompactionRequest", "CompactionResponse",
+  # the auth plan's A2 (2026-10-23): the server's `MemberList` reads the request's `Linearizable`
+  "MemberListRequest",
   "LeaseGrantRequest", "LeaseGrantResponse", "LeaseRevokeRequest", "LeaseCheckpointRequest",
   "LeaseCheckpoint", "LeaseCheckpointResponse",
   "AlarmRequest", "AlarmResponse", "AlarmMember", "AlarmRequest_GET", "AlarmRequest_ACTIVATE",

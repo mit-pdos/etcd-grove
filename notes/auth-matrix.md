@@ -84,3 +84,31 @@ Not yet: the method-level statement for the principal the request's header names
 (`authApplierV3.Put`/`DeleteRange`/`Txn`/`Range`: the principal is hidden in the chain model's
 auth case), `RangeStream`, the lease rows, and everything outside the KV and watch services (A2,
 A3).
+
+## What is proved of the table (A2, 2026-10-23)
+
+The API layer's two guards and the entry points they guard (`notes/decisions.md`, "A2 of the auth
+plan"; `Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthGuard.lean`, `v3rpc/InvAuthAdmin.lean`):
+a passing guard's token (`adminRes`: the admin check passed for the request's auth info, in the
+mode `on γa` a recorded state at which it is admin; `authedRes`: auth disabled at a recorded
+state, or the request carried an auth info), and the entry point's inner operation (names only)
+as a contract whose precondition carries the token, so the operation runs only after a passing
+check, and with auth off always:
+
+- `Compact`: `kvServer.Compact` over the server's `Compact` (`compactOk`, admin);
+- `Defragment`, `Snapshot`, `Hash`, `HashKV`, `MoveLeader`, `Downgrade`: the
+  `authMaintenanceServer` wrappers over the `maintenanceServer`'s (admin; `Snapshot` on the
+  stream's context);
+- `Alarm`: authenticated for `GET`, admin otherwise (`alarmTok`, over `GetAction` as a contract);
+- `Status`: authenticated;
+- `MemberRemove`: `EtcdServer.RemoveMember` over `mayRemoveMember` and `configure` (admin,
+  `checkMembershipOperationPermission`); `MemberAdd`, `MemberUpdate`, `MemberPromote`: the
+  guard's theorem only (`AddMember`/`UpdateMember`/`promoteMember` marshal JSON, which Perennial
+  has no model of);
+- `MemberList`: `EtcdServer.MemberList` (authenticated, after the linearizable read's notify);
+- the lease rows: `requireAuthInfo`'s theorem (the entry points' proofs wait for the leases unit:
+  `raftRequest` has no lease request; `LeaseTimeToLive`/`LeaseLeases`'s key checks need a lessor
+  with a key model).
+
+The admin guards take `IsAdminPermitted(nil)` as a premise (`srvAdminNilOk`: the store's spec
+covers a non-`nil` auth info only; track S).

@@ -169,6 +169,7 @@ HardState__GetTerm: @
 HardState__GetVote: @
 HardState__GetCommit: @
 raftpb_Message__GetTo: @
+raftpb_ConfChangeType__Enum: @
 Message__GetFrom: @
 Message__GetType: @
 Snapshot__GetMetadata: @
@@ -267,6 +268,12 @@ EtcdServer__getCommittedIndex:
 EtcdServer__FeatureEnabled:
 EtcdServer__AuthStore:
 EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
+# the auth plan's A2 (2026-10-23): the server's auth guards and the member operations they guard
+# (`AuthGuard.lean`; `mayRemoveMember` and `configure`, names only, are the spec's contracts)
+EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
+EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
+EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
 EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
 EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
