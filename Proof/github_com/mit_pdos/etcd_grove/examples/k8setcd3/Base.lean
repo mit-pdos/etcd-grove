@@ -32,10 +32,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The error variable `x` holds a fixed non-nil error whose `Error()` returns a string. -/
+/-- The error variable `x` holds a fixed `*errorString` (what `errors.New` returns: `errors.newVar`)
+whose `Error()` returns a string. -/
 abbrev errVarOk (x : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr x ↦□ GoInterface.ok e ∗
-    _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec e)
+  iprop(∃ l : Loc,
+    globalAddr x ↦□ interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #l ∗
+    _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
+      ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #l⟩)
 
 /-- **The driver package's fact** (see the file header). -/
 abbrev drvInit : IProp GF :=
