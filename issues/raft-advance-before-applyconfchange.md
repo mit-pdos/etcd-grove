@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#4203 issue closed: related, flagged: asked in 2016 whether a Ready's conf change must be applied before Advance (maintainer: 'probably fair'); closed by etcd-io/etcd#4049, whose Advance comment allows Advance while applying without that exception; the safety consequence was not raised (maintainer called delaying a conf change apply safe)
   - etcd-io/raft#80 issue open: related, not this bug: the pendingConfIndex > applied proposal check gives false positives; proposes tracking the configuration explicitly

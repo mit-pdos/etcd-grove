@@ -27,11 +27,13 @@ The re-created watch 1 should receive only the event of `b`: "No further events 
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestV3WatchReuseCanceledID`](https://github.com/upamanyus/etcd/blob/fix/etcd-watch-id-reuse-stale-events/tests/integration/clientv3/watch/v3_watch_test.go#L492-L549) on branch [`upamanyus/etcd:fix/etcd-watch-id-reuse-stale-events`](https://github.com/upamanyus/etcd/tree/fix/etcd-watch-id-reuse-stale-events), off `main` (bf9cadf04). On `main` it fails as above, in 80 of 80 runs.
+Integration test: [`TestV3WatchReuseCanceledID`](https://github.com/upamanyus/etcd/blob/fix/etcd-watch-id-reuse-stale-events/tests/integration/clientv3/watch/v3_watch_test.go#L492-L549) on branch [`upamanyus/etcd:fix/etcd-watch-id-reuse-stale-events`](https://github.com/upamanyus/etcd/tree/fix/etcd-watch-id-reuse-stale-events), off `main` (3aaab3479). On `main` it fails as above, in 80 of 80 runs.
 
 ### Anything else we need to know?
 
 `etcdctl` and the Go client never set `WatchId`, so they are not affected.
+
+`rpc.proto` says that creating a watcher with an ID "already in use on the stream" is an error, which suggests that the ID of a canceled watcher may be used again. Is reusing such an ID meant to be supported? If not, should `rpc.proto` instead say that a stream must either set `watch_id` on every create request or on none, and must not reuse the ID of a canceled watcher?
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
@@ -39,7 +41,7 @@ Found while formally verifying etcd. Written with the assistance of generative A
 
 <details>
 
-Integration test at `main` (bf9cadf04), go1.27.3 linux/amd64; no binaries.
+Integration test at `main` (3aaab3479), go1.27.3 linux/amd64; no binaries.
 
 </details>
 

@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#21880 pr open: grpc-proxy honors the client's WatchId (#12819); related, not a fix: with it the bug would also reach clients behind the proxy
   - etcd-io/etcd#21065 pr open: in-process watch deadlock when recvLoop blocks (#18879, #20716); related, not a fix: why the candidate's creates wait only on streams with client-chosen ids
@@ -105,7 +105,11 @@ candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
   when the last earlier cancel was taken (at most the channel's 128); a stream with only automatic
   ids never reuses one, and a wait there would risk the in-process deadlock of etcd-io/etcd#20716
   (`issues/upstream/etcd-watch-id-reuse-stale-events/meta.md` has the costs and the alternatives:
-  tagging mvcc's responses with the watcher, rejecting a create of a canceled id). Also noticed:
+  tagging mvcc's responses with the watcher, rejecting a create of a canceled id). Documentation instead
+  (2026-10-23, the user's review: a stream uses either automatic or explicit ids, and never reuses a
+  canceled one): decided against as the fix, since the server breaks what `rpc.proto` already promises
+  and today's text allows the reuse; asked in the issue as questions, with the documentation-only
+  shape ready if the maintainers prefer it (the candidate's `meta.md`, "If a reviewer asks"). Also noticed:
   [etcd-watch-canceled-pending-retained](nonissues/etcd-watch-canceled-pending-retained.md).
 - **Found**: 2026-10-14, the watch slice's unit W-S (`sendLoop`'s proof: the per-id model of the
   buffering, `SendInv`).

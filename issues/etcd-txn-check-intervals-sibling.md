@@ -108,8 +108,11 @@ func TestProbeSiblingPutThenDelete(t *testing.T) {
   the request path's unit 1 (`v3rpc.check_gives_nodup`,
   `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`), whose docstring names
   this issue.
-- **Possible fixes**: check every nested transaction's puts against the level's final `dels`
-  (a second pass over the collected puts after all unions), as the level's own puts are.
+- **Possible fixes**: check each nested transaction's puts against the deletes of the
+  transactions *after* it too, in a reverse pass over the level's nested transactions (see the
+  2026-10-23 note below). Checking them against the level's final `dels` instead would be too
+  strict: it would reject a then-put whose key the same transaction's else branch deletes, which
+  the two mutually exclusive branches allow.
 - **Found**: 2026-10-12, the request path's unit 0 (stating `checkIntervals`'s semantics in
   `Defs.lean`).
 
@@ -123,3 +126,45 @@ log of the server writes each key at most once per revision, `txn.NoDupKeysPerRe
 `Proof/go_etcd_io/etcd/client/v3/InvWatch.lean`), which the transactions of the recipes and the
 cache meet (their transactions never put and delete one key): the premise is about other writers
 to the same server.
+
+**A simple fix** (2026-10-23, investigated at upstream `main` `3aaab3479`):
+
+- *The old fix and its objections.* In #16380, ahrtr first proposed moving the unions before the
+  put checks, and then one loop collecting every delete before any put is checked. bsbds pointed
+  out that a nested txn's then-put may overlap its own else-delete, which rules out "every delete
+  first". He then opened #16395 (+44/−17 in `key.go`), which checks every *pair* of sibling txns:
+  for each pair (x, y), x's puts against y's deletes and y's against x's. ahrtr rejected it
+  (2023-09-07): "too complicated and inefficient (e.g. triple loops)", O(T²·P·log D) for T sibling
+  txns. He also judged the bug not critical, since Kubernetes does not use nested txns, and said
+  "the key from putThen should be allowed to be overlapped with key range from delElse" (#16395
+  already allowed that within one txn) and "we should clearly define & clarify the expected
+  behaviour firstly". bsbds then wrote the constraints out (six of them). The bug is only his
+  constraint 3: a put in txn X must not overlap a delete in another txn Y. He asked for a cheaper
+  way to check it and got no answer, and both the issue and the PR went stale.
+- *Proposed fix.* Keep the existing forward loop, which checks each nested txn's puts against the
+  level's deletes and the earlier siblings' deletes. Record each nested txn's
+  `(putsThen, putsElse, delsThen, delsElse)`, then add a reverse pass. It walks the nested txns
+  from last to first with a tree `later` of the deletes of the txns after the current one. It
+  checks the current txn's puts against `later`, then unions the current txn's deletes into it.
+  The forward pass covers constraint 3 for X before Y, the reverse pass for X after Y, and neither
+  compares a txn with itself, so then-put/else-delete stays allowed. The cost: each nested put is
+  checked once more (O(log D)), and each nested delete is unioned once more. That is the same
+  asymptotic cost as today, linear in the ops, against #16395's quadratic one. The diff is +25
+  lines in `key.go`, no deletions. The branch is `txn-check-intervals-investigate`, worktree
+  `~/etcd-fixes/txn-check-intervals-investigate`, commit `fc6254021` (+67 lines of
+  `TestCheckIntervals`/`BenchmarkCheckIntervals` in `key_test.go`).
+- *Tests.* `TestCheckIntervals` has 8 cases. Before the fix, 3 fail: put in a txn then delete in a
+  later sibling; put then range delete in a later sibling; a doubly nested put then a later
+  sibling's else-delete. After the fix all 8 pass, including the reversed order, the flat case,
+  then-put/else-delete of one txn (allowed), and a key put in two siblings (rejected). The whole
+  package (`go test ./etcdserver/api/v3rpc/...`) passes, and so do the integration tests
+  `TestV3TxnDuplicateKeys|Revision|CmpHeaderRev|RangeCompare|NestedPath`.
+- *Benchmark* (benchstat, n=6, a noisy 24-core machine; `flat` does not run the new code, so its
+  +9.7% is the noise level): `flat` (128 puts, 128 deletes) 501µs → 549µs; `siblings` (64 nested
+  txns, each 2 puts / 1 else-delete) 604µs → 797µs, +32%, allocs 1871 → 2456; `oneTxn` (one
+  nested txn, 128 puts) unchanged. The cost, the second tree's inserts, is paid only by requests
+  with two or more nested txns at one level.
+- *Worth an upstream-report candidate?* Yes, as a follow-up on #16380, which a maintainer
+  confirmed: this answers both objections (linear, not triple loops; then/else overlap kept) and
+  makes the order-dependence visible in a table test. The impact stays low (put then delete in
+  one revision is harmless downstream; see above).

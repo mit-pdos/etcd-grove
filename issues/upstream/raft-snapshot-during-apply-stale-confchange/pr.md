@@ -6,4 +6,6 @@ Fixes #<issue>
 
 The first commit adds a test of the issue's example, which fails on `main`; the second, the fix, makes it pass.
 
+The `RawNode` change is also the fix of #<other PR> (entries applied on top of a snapshot with `AsyncStorageWrites`); the two PRs merge cleanly in either order. I can combine both fixes in one PR if you prefer.
+
 Written with the assistance of generative AI; I reviewed and tested every change.
