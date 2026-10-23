@@ -55,8 +55,7 @@ local macro "close_tail" : tactic => `(tactic| (
   (try wp_auto)
   subst Hri
   wp_if_destruct
-  · wp_apply HRU $$ [HR] as HR
-    · iexact HR
+  · wp_apply HRU
     (try wp_auto)
     close_fresh
   · close_fresh))

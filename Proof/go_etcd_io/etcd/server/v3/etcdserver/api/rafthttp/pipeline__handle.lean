@@ -126,7 +126,7 @@ theorem rafthttp.pipeline.handle.wp_proof
         (try wp_auto)
         wp_apply hGetTo.1 ml DFrac.discard DFrac.discard false st $$ [$Hm] as -
         (try wp_auto)
-        wp_apply HRU $$ [$HR] as HR
+        wp_apply HRU
         (try wp_auto)
         wp_apply hIsSnap ml st $$ [$Hm]
         rw [decide_eq_false Hst.2.2.1]

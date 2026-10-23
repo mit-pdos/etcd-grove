@@ -85,10 +85,10 @@ local macro "stream_rest" : tactic => `(tactic| (
   (try wp_auto)
   ihave #Ht3 := HIR $$ %rid
   wp_bind (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #rid))
-  iapply Ht3 $$ [HRs]
-  · iexact HRs
+  iapply Ht3
+  · itrivial
   inext
-  iintro HRs
+  iintro -
   · -- not removed (no member is: `netRaftOk`'s `IsIDRemoved`): the peer
     (try wp_auto)
     rw [Hhvok.2.2]

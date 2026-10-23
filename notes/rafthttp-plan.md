@@ -638,6 +638,20 @@ trust-boundary spec.
    report are dead; the reader's `errcOk` premise dropped. The `R` re-budget waits for 6d. Next:
    `types.NewURLs`'s boundary spec (a plain peer URL's parse), the transport's lock invariant
    (`t.mu`'s reader tokens for `Send`, `Get`, `CutPeer`, `MendPeer`, from `Start` and `Serve`).
+   **6a/6b, second part (2026-10-23).** `netRaftOk`'s `IsIDRemoved`, `ReportUnreachable` and
+   `ReportSnapshot` take no `R` (the server's need none; only `Process` reads its logger under
+   `lgMu`), so `Send` and the snapshot sender need none. `rafthttp/Transport.lean`: `trFixed` (the
+   transport's fields after `Start`, the network's registry, every member's hosts registered,
+   `RaftStreamPrefix`'s value), `peerOk` (a started peer, persistent), `peerStop`.
+   `rafthttp/Snapshot.lean`: the snapshot sender opaque (`snapSenderOk`, `snapSenderStop`).
+   Proved: `newURLPicker`, `newPeerStatus`, `startPeer` (its pipeline, two stream writers, two
+   receiving goroutines calling `Process` with one `R` each, two stream readers, its lock; eight `R`s
+   in all). New boundary specs, for the user's review: `types.NewURLs` (of plain peer URL strings
+   `http://host:port`, `types.plainPeerURL`, decidable: their parses, no error),
+   `rate.NewLimiter`, `v2stats.LeaderStats.Follower`, `newSnapshotSender`, `snapshotSender.stop`
+   (the snapshot axiom cut at its functions). Next: `peer.send` (its message `peerMsg`: what
+   `Send`'s bundle will carry, the sender's id and raft's shape: D33a's deferred step), `Pause`,
+   `Resume`, `stop`; `startRemote`; the transport.
 
 ## Costs and risks
 

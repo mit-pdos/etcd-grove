@@ -56,19 +56,19 @@ theorem srv_netRaftOk
     iapply HΦ
     iframe Hlr Herr
   isplitr
-  · iintro !> %x %Φ !> Hlr HΦ
+  · iintro !> %x %Φ !> - HΦ
     wp_apply wp_IsIDRemoved γn s id x
     · iframe #
-    iapply HΦ $$ Hlr
+    iapply HΦ; itrivial
   isplitr
-  · iintro !> %x %Φ !> Hlr HΦ
+  · iintro !> %x %Φ !> - HΦ
     wp_apply wp_ReportUnreachable γn s id x
     · iframe #
-    iapply HΦ $$ Hlr
-  · iintro !> %x %st %Φ !> Hlr HΦ
+    iapply HΦ; itrivial
+  · iintro !> %x %st %Φ !> - HΦ
     wp_apply wp_ReportSnapshot γn s id x st
     · iframe #
-    iapply HΦ $$ Hlr
+    iapply HΦ; itrivial
 
 end bridge
 

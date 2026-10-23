@@ -272,8 +272,7 @@ local macro "run_msg" : tactic => `(tactic| (
     (try wp_auto)
     subst Hri
     (try wp_auto)
-    wp_apply HRU $$ [HR] as HR
-    · iexact HR
+    wp_apply HRU
     (try wp_auto)
     count_failure
     post_idle))

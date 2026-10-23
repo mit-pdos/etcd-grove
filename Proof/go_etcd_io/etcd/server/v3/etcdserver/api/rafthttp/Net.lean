@@ -169,7 +169,8 @@ a context the node API takes, given one of the receiver's resources `R` (back af
 returns raft's error (`nodeErr`: `nil`, `ErrStopped` or the context's; 2026-10-23, rafthttp stage 4:
 the pipeline handler's error branch reads it, until then some error); `IsIDRemoved` (`false`: no
 member is removed, the server's static membership; 2026-10-23, rafthttp stage 6, so the stream
-handler never answers `410`), `ReportUnreachable`, `ReportSnapshot` from `True`, each with an `R` too. (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
+handler never answers `410`), `ReportUnreachable`, `ReportSnapshot` from `True`, with no `R` (2026-10-23, rafthttp stage 6a: the
+server's need none; only `Process` reads its logger under `lgMu`). (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
 def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : GoInterface) :
     IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜r = GoInterface.ok ri⌝ ∗
@@ -177,13 +178,13 @@ def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : G
       {{ nodeCtx ctx cd ∗ R ∗ netRecv γn id γd ml }}
         (App (App (Val #(methods ri.ty go!"Process" ri.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
       {{ (err : GoInterface), RET #err; nodeErr cd err ∗ R }}) ∗
-    □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #x))
-      {{ RET #false; R }}) ∗
-    □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"ReportUnreachable" ri.v)) (Val #x))
-      {{ RET #(); R }}) ∗
-    □ (∀ (x : w64) (s : w64), {{ R }}
+    □ (∀ x : w64, {{ True }} (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #x))
+      {{ RET #false; True }}) ∗
+    □ (∀ x : w64, {{ True }} (App (Val #(methods ri.ty go!"ReportUnreachable" ri.v)) (Val #x))
+      {{ RET #(); True }}) ∗
+    □ (∀ (x : w64) (s : w64), {{ True }}
       (App (App (Val #(methods ri.ty go!"ReportSnapshot" ri.v)) (Val #x)) (Val #s))
-      {{ RET #(); R }}))
+      {{ RET #(); True }}))
 
 /-- **A started transport `tr` of the network `γn`** (persistent; the started transport's part of
 `Transport.Start`'s axiom, D21 M2): `Send` takes the slice of messages, each with its bundle, which
