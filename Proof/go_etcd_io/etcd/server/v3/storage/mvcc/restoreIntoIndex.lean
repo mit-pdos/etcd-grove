@@ -213,7 +213,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
   wp_start as ⟨%Hlg, Hix, #Hrc, Htok, %Hok, #Herr⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HrCK⟩
+  icases Hinit with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HrCK, -⟩
   wp_auto
   wp_apply chan.wp_make2 (V := revKeyValue) (W64 10000) as %rkvc %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
