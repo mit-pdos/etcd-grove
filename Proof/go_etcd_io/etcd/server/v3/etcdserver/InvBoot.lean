@@ -50,6 +50,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 
 @[expose] public section
 
@@ -140,10 +141,24 @@ def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
     ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
     apply.isAuthStore (auth.authIface stl) γ Pk #f RD false RW)
 
+/-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
+receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
+pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
+lends; one write-back token per write, the reader's open share lent. -/
+def lessorApplyOk (lp : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ lease.lessorBeOn lp d.be) -∗
+    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be))
+
+instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
+  unfold lessorApplyOk; infer_instance
+
 /-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c): the alarm store
-`al`'s and the auth store `st`'s user halves of their backend fields, the server's `H` of its
-environment's rest resource and write right (`srvRestOwnH`, `srvRestRWH`). -/
-def srvObjsOn (al st be : Loc) : IProp GF := iprop(alarmBeOn al be ∗ authBeOn st be)
+`al`'s, the auth store `st`'s and the lessor `lp`'s user halves of their backend fields, the
+server's `H` of its environment's rest resource and write right (`srvRestOwnH`, `srvRestRWH`). -/
+def srvObjsOn (al st lp be : Loc) : IProp GF :=
+  iprop(alarmBeOn al be ∗ authBeOn st be ∗ lease.lessorBeOn lp be)
 
 instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
     Persistent (authApplyOk (GF := GF) stl RD) := by
