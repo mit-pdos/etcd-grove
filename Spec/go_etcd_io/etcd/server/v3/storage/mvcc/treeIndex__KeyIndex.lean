@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -22,23 +22,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- `ti.KeyIndex(keyi)` by a reader with the knowledge `kn` of the index (`idxKnows`): the
-pointer to the key index of `keyi`'s key `k` in the tree (with its key, for good), or `nil`.
-If `kn.log` gives `k` an index, it is there; with the writer's knowledge, it is there exactly
-when the writer's log gives `k` one. The reader holds a part of the compaction revision's
-authority at `-1` (no compaction: the key indexes are not compacted, `crevUB`, given back).
-(`restore` uses it on its private index, out of scope.) -/
+/-- `ti.KeyIndex(keyi)` on a tree index no one else can reach (`ownIdxPriv`: its only caller,
+`restoreIntoIndex`'s goroutine, rebuilds a private index; `notes/restore-plan.md`, R3): the pointer
+to the key index of `keyi`'s key `k` in the tree, or `nil`. -/
 abbrev mvcc.treeIndex.KeyIndex.spec : Prop :=
-  ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (keyi : Loc) (k : GoString) (q : Qp),
+  ∀ (ti : Loc) (L : List mvcc.IdxEntry) (keyi : Loc) (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q (-1) ∗
-      mvcc.kiKey keyi k }}
+      mvcc.ownIdxPriv ti L ∗ mvcc.kiKey keyi k }}
     (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"KeyIndex")) (Val #keyi))
-  {{ (p : Loc), RET #p; mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q (-1) ∗
-      (⌜p = null⌝ ∨ ⌜p ≠ null⌝ ∗ mvcc.kiKey p k) ∗
-      ⌜mvcc.kiOfKey (mvcc.evsOf kn.log) k ≠ mvcc.kiEmpty → p ≠ null⌝ ∗
-      ⌜∀ ilog pend, kn = .writer ilog pend → p ≠ null →
-        mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k ≠ mvcc.kiEmpty⌝ }}
+  {{ (p : Loc), RET #p; mvcc.ownIdxPriv ti L ∗
+      ⌜p = ((L.find? fun z => decide (z.2.1 = k)).map Prod.fst).getD null⌝ }}
 
 end spec
 
