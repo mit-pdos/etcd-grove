@@ -1,6 +1,6 @@
 # election-campaign-key-check
 
-- **Finding**: `issues/election-campaign-key-check.md`
+- **Finding**: `issues/nonissues/election-campaign-key-check.md`
 - **Target**: etcd-io/etcd, `main` (`client/v3/concurrency`)
 - **Branch**: `fix/election-campaign-key-check` in `~/etcd-fixes/election-campaign-key-check`, rebuilt 2026-10-18 on the
   base below as two commits: 91d51234f (`client/v3: test Election.Campaign whose key is deleted while it waits`, the

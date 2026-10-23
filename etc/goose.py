@@ -143,7 +143,7 @@ PROJECTS = [
         # `raftAdvancedC` (issues/etcd-compact-past-raft-applied.md; D19i part 1) as 06aa6e6e, and
         # (D19l) etcd-io/etcd#22297 cherry-picked as 5615016f6 (`syncWatchersLoop`'s ticker reset,
         # issues/etcd-watch-sync-ticker-reset-zero.md) and `AuthInfoFromTLS`'s checked assertion
-        # as 17c88a667 (issues/etcd-auth-tls-info-assert.md), and the client's
+        # as 17c88a667 (issues/nonissues/etcd-auth-tls-info-assert.md), and the client's
         # `closeRequireLeader` context alignment (a7bd9a16e,
         # issues/etcd-lease-close-require-leader-ctx-misaligned.md) and the retry interceptor's
         # non-repeatable context-error return (8a24be2a3, issues/etcd-client-retry-put-ctx-error.md),

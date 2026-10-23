@@ -54,6 +54,12 @@ when an issue is added or its upstream state moves.
 upstream state and what matters most in deciding whether to look into it. Add a row when an issue
 is added, and update it when its upstream state or its assessment moves.
 
+`nonissues/` holds the findings judged on review not to be issues (preconditions etcd meets, no
+guarantee etcd makes) and, for now, documentation findings parked there; each says why after its
+front matter, and `nonissues/README.md` indexes them. Move a file there (with its `upstream/`
+candidate, if any, to `nonissues/upstream/`) rather than deleting it, and back if it turns out to
+be an issue.
+
 ## Drafts for etcd-io/etcd
 
 The findings of the etcd client-side work (cache, concurrency, leasing, recipes) are written as
@@ -70,7 +76,7 @@ on the fork `upamanyus/etcd` (`upamanyus/etcd-raft` for raft), one signed-off co
 |---|---|---|---|
 | [cache-ready-after-retry](cache-ready-after-retry.md) | bug | `fix/cache-ready-after-retry` (4c9743e0e test, 27352098d fix, off 22cc5d9ac; pushed) | `cache` (status-history.md "The whole package") |
 | [mutex-lock-recreated](mutex-lock-recreated.md) | bug | `fix/mutex-lock-recreated` (b28d26713 test, 34adb1693 fix, off 22cc5d9ac; pushed) | `concurrency` (Mutex) |
-| [election-campaign-key-check](election-campaign-key-check.md) | bug | `fix/election-campaign-key-check` (91d51234f test, a9699489e fix, off 22cc5d9ac; pushed) | `concurrency` (Election) |
+| [election-campaign-key-check](nonissues/election-campaign-key-check.md) | bug | `fix/election-campaign-key-check` (91d51234f test, a9699489e fix, off 22cc5d9ac; pushed) | `concurrency` (Election) |
 | [stm-serializable-snapshot](stm-serializable-snapshot.md) | documentation | none (`stm-serializable-snapshot` kept local, not proposed) | `concurrency` (STM) |
 | [leasing-evictrange-key](leasing-evictrange-key.md) | bug | `leasing-evictrange-key` (14d1c4bf3) | `leasing` (units 1–2) |
 | [leasing-evalcmp-missing-key](leasing-evalcmp-missing-key.md) | bug | `leasing-evalcmp-missing-key` (06541aec6) | `leasing` (units 1–2) |
@@ -165,7 +171,7 @@ read of the key calls `lg.Fatal` (reproduced through mvcc's API, and on 2026-10-
 gRPC API with a from-key delete, which `checkIntervals` does not see as overlapping the put
 (`etcd-txn-delete-then-ignore-put`): the member exits on the read and, restarted, has lost the
 acknowledged value; found 2026-10-13, mvcc compaction unit 5a; not filed).
-[etcd-index-compact-overlapping](etcd-index-compact-overlapping.md): two overlapping
+[etcd-index-compact-overlapping](nonissues/etcd-index-compact-overlapping.md): two overlapping
 `treeIndex.Compact` passes can compact a key index the other deleted (`lg.Panic`) or delete a key
 put again in between (an unstated precondition of the `index` interface; unreachable through the
 store, whose FIFO scheduler runs the jobs one at a time; reproduced; found 2026-10-13, mvcc
@@ -193,7 +199,7 @@ the client meets the server; not filed).
 indexes `ts[0]` of the token key's metadata values unchecked: a panic on an incoming context whose
 metadata has the key with no value (only an in-process caller can build one; reproduced; found
 2026-10-14, unit P2, the auth store's request side; not filed).
-[etcd-auth-tls-info-assert](etcd-auth-tls-info-assert.md): `AuthInfoFromTLS` asserts the peer's
+[etcd-auth-tls-info-assert](nonissues/etcd-auth-tls-info-assert.md): `AuthInfoFromTLS` asserts the peer's
 `AuthInfo` is a `credentials.TLSInfo` (one-result form): a panic for a peer with other
 credentials, an unstated precondition (unreachable in etcd's servers; reproduced; found
 2026-10-14, unit P2; not filed).
@@ -202,7 +208,13 @@ on an `I1` value read through a `*I2` (two named interfaces with the same method
 "main.I2 is main.T, not main.T", and `==` with an `I2` holding the same value is false, since the
 compiler compares itabs (found 2026-10-13, Perennial's byte-memory review, round 3; the golang/go
 issue drafted in `upstream/go-itab-reinterpret-assert/`, not filed).
-Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
+[etcd-corrupt-check-time-negative-panic](etcd-corrupt-check-time-negative-panic.md) and
+[etcd-downgrade-check-time-negative-spin](etcd-downgrade-check-time-negative-spin.md): two more
+unvalidated duration flags, a startup panic and a spinning monitor for a negative value (code
+reading; found 2026-10-23 while surveying etcd's flag validation for
+`etcd-compaction-negative-batch-limit`; not filed).
+Leads not yet assessed: a negative `--backend-batch-interval` may make the backend's commit timer
+fire at once in a loop (`storage/backend/backend.go:465-477`, 2026-10-23, code reading); the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
 
 ## bbolt

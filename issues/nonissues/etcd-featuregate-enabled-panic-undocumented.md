@@ -6,6 +6,8 @@ links:
   - etcd-io/etcd#18062 pr merged: copied component-base's featuregate into etcd's `pkg/featuregate` with the same interface comment; the panic not discussed
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now).
+
 # pkg/featuregate: `FeatureGate.Enabled` panics on an unregistered feature; the interface does not say so
 
 - **Status**: documentation. The interface's contract omits a panic its only implementation has.

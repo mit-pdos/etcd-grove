@@ -46,3 +46,35 @@ links:
   bound is a second) in `parseCompactionRetention` or the server config's validation, or compute
   the retry interval with a floor of `1` in `getRetryInterval`.
 - **Found**: 2026-10-17, auditing the contract of `v3compactor.New` for `NewServer`'s proof.
+- **Triage (2026-10-23, etcd main `3aaab3479`)**: does etcd validate similar flags?
+  - *Still there at main*: unchanged. `parseCompactionRetention` (`embed/etcd.go:928-947`)
+    accepts any `time.ParseDuration` string, `NewServer` calls `v3compactor.New` for any non-zero
+    retention (`server.go:383-389`), `newPeriodic` sizes `revs` with `getRetentions()`
+    (`periodic.go:60`), `period / (min(period, 1h)/10)` (`periodic.go:177-189`), a division by
+    zero for `|period| < 10ns`. `Config.Validate` checks only the mode (`embed/config.go:999-1005`).
+  - *Siblings*: the same validation pattern as for `--compaction-batch-limit` (that file's
+    triage): `Validate` rejects the values that would crash or wedge the server (zero
+    heartbeat/election, `config.go:981-992`; non-positive `--compact-hash-check-time`,
+    `:1022-1024`; unknown compaction mode) and leaves the rest unvalidated, defaulted or
+    clamped (`--watch-progress-notify-interval` is clamped up to a minimum, `v3rpc/watch.go:77-84`).
+    The retention's own sibling in the same function, a negative periodic duration (`-1h`: a
+    negative retry interval and a busy loop), is what the open PR `#22396` ("server/embed: bound
+    --auto-compaction-retention") rejects in `parseCompactionRetention`; it still accepts `5ns`.
+    A closer unvalidated sibling: a negative `--corrupt-check-time` also panics at startup
+    (`time.NewTicker`, `server.go:2245-2249`).
+  - *Help text*: "Auto compaction retention length. 0 means disable auto compaction."
+    (`etcdmain/help.go:167-170`, `embed/config.go:714-715`); a unit-less integer is hours, so
+    sub-10ns periods need an explicit `ns` (`"5ns"`) or a fraction like `"0.000000001h"`: an
+    accidental value is unlikely, an intended one meaningless.
+  - *Would a startup check break anyone?* No: `"0"` (disabled) is unaffected if the bound is
+    on non-zero values; any positive period below 10ns crashes today, so nobody runs one. A
+    minimum of 1s (or 10ns, the exact crash bound) changes nothing for a working config.
+  - *Upstream*: no duplicate (searches `auto-compaction-retention divide by zero`,
+    `parseCompactionRetention`: only `#22396` and older mode PRs `#14896`, `#15741`).
+  - *Recommendation*: **upstream, but as a comment/suggestion on (or follow-up to) `#22396`**
+    rather than a separate PR: the PR already adds the bounds check in the right place; it
+    should also reject `0 < retention < 10ns` (or, better, a periodic retention below a
+    sensible minimum such as 1s), or `getRetryInterval` should floor at 1ns. If `#22396` lands
+    without it, a one-line follow-up with a regression test (`New(ModePeriodic, 5ns)`). Very low
+    severity (startup panic on an absurd value, fails loudly); documentation adds nothing since
+    the crash already tells the operator.

@@ -29,6 +29,11 @@
   test -count=1 . ./internal/... ./cmd/...`: all `ok` (root package 378 s); `tests/failpoint` with gofail, both
   freelist types: `ok`; `gofmt -l .`: nothing; `golangci-lint` v2.10.1 `run .`: 0 issues; `go vet .`: only
   `db_test.go:1507`, as at the base.
+- Rerun 2026-10-23 (upstream `main` still a4ef197, so no rebase; commits unchanged): at `a6fa226cf`, in a copy
+  (`git archive`), `go test -run TestTx_Commit_MetaWriteError -count=1 .` fails, `expected: "v1"`, `actual  :
+  "v3"` (also with `TEST_FREELIST_TYPE=hashmap`); at `e252fc804` it passes (both freelist types); `go test
+  -count=1 . ./internal/... ./cmd/...`: all `ok` (root package 426 s); `gofmt -l .`: nothing; `go vet .`: only
+  `db_test.go:1507`. Not rerun: `tests/failpoint` and `golangci-lint` (unchanged code since the 2026-10-21 run).
 - The panic path (not in the branch, a temporary test in a copy): `beforeSyncMetaPage` set to `panic("boom")`
   inside `db.Update`, recovered, then one more `Update`: the open reader reads `v3` at the base, `v1` with the fix.
   `Update`'s deferred `rollback` is the same code, so the fix in `rollback` covers it; a fix in `Commit` would not.
@@ -39,7 +44,7 @@
 kept: the fix's comment (it says why the early return is right, which the code does not); the issue's 266
 words (the five steps are needed); the PR's 105 words (about 35 of them the fixed sentences).
 
-## Duplicates (2026-10-21, repo:etcd-io/bbolt, issues and PRs)
+## Duplicates (2026-10-21, rechecked 2026-10-23: `rollback reader pages`, `commit error created:>2026-10-20`, nothing new; repo:etcd-io/bbolt, issues and PRs)
 
 Searched `writeMeta rollback`, `fdatasync error commit`, `rollback freelist reload`, `commit error pending pages`,
 `fsync failure rollback`, `commit failed meta`, `fsync error`, `freelist rollback reader`, `writeMeta`: nothing

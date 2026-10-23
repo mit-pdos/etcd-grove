@@ -20,6 +20,14 @@ on etcd.
   does not exist until then. The evidence is a contract violation shown by a unit test; no wrong result on an etcd
   cluster was reproduced (the ranking: "claiming etcd is affected needs more evidence"), and the issue does not claim
   one. The user decides whether that is enough to file.
+- **Investigation 2026-10-23** (is a bad execution actually possible?): yes in principle, and no etcd check prevents
+  it — see the finding's 2026-10-23 note. Re-verified at upstream `main` 3aaab3479 / raft v3.7.0: the leader branch
+  still does not wait (contract test `StateLeader` fails at HEAD); `DisableConfChangeValidation` is off in
+  `raftConfig` (so the defeated `pendingConfIndex > applied` guard is the only propose-time protection); and
+  `ValidateConfigurationChange` validates each change against the sequentially-applied store, so it does not turn the
+  overlapping change into a no-op. Still no end-to-end cluster reproduction (window sub-ms; needs a stalled leader
+  apply + two concurrent conf-change clients + a partition; add-member route also needs node 4 to catch up via node
+  3). Does not change the "on hold" decision.
 - **Upstream issue**: —
 - **PR**: —
 

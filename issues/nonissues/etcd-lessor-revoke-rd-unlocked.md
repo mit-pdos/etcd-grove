@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: the race needs `SetRangeDeleter` or `Recover` concurrent with `Revoke`, which etcd's server never does.
+
 # lease: `SetRangeDeleter`/`Recover` must not run concurrently with `Revoke` (undocumented)
 
 - **Status**: open, documentation (an unstated precondition, not a bug: unreachable in etcd's

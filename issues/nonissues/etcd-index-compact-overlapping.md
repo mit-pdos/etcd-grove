@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: overlapping `treeIndex.Compact` passes are unreachable through the store, whose scheduler runs compactions one at a time; at most worth documenting on the `index` interface. Checked 2026-10-23 at upstream `main` `3aaab3479`: no such documentation exists (`index.Compact`, `server/storage/mvcc/index.go:31`, and `treeIndex.Compact`, `:205`, have no doc comment); a one-line comment that calls must not overlap is the only change worth proposing, with the unexported interface's only caller already meeting it. Not filed.
+
 # server/storage/mvcc: `treeIndex.Compact` needs its calls not to overlap (an unstated precondition)
 
 - **Status**: open (not filed; documentation only). Not reachable through mvcc's store: every

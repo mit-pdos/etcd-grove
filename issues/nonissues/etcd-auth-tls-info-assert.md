@@ -4,6 +4,8 @@ checked: 2026-10-18
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: `AuthInfoFromTLS` has a precondition (TLS peer credentials) that etcd's servers meet.
+
 # auth: `AuthInfoFromTLS` panics for a peer whose credentials are not TLS (undocumented)
 
 - **Status**: **fixed in the fork** (D19l, 2026-10-18): the two-result assertion below, with the

@@ -1,8 +1,9 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#10907 pr merged: related, not this bug (added RoleAdd's empty-name check, the only name check besides UserAdd's; no length bound)
+candidate: issues/upstream/etcd-auth-useradd-long-name-fatal/
 ---
 
 # A user or role name longer than bbolt's `MaxKeySize` makes every member exit while applying it
@@ -126,8 +127,11 @@ links:
   clauses take the bound.
 - **Possible fixes**: in `authStore.UserAdd` and `RoleAdd`, return an error (a new
   `ErrUserNameTooLong`/`ErrRoleNameTooLong`, or `ErrUserEmpty`'s kind) when `len(r.Name) >
-  bolt.MaxKeySize`; better, reject it in `EtcdServer.UserAdd`/`RoleAdd` before proposing, so the
-  entry never reaches the log.
+  bolt.MaxKeySize`; or reject it in `EtcdServer.UserAdd`/`RoleAdd` before proposing, so the
+  entry never reaches the log. The upstream candidate (`issues/upstream/etcd-auth-useradd-long-name-fatal/`,
+  2026-10-23) takes the first: it is where the empty-name check is, and only an apply-time check lets a
+  cluster whose WAL already holds such an entry restart (checked: the base's crashed data directories
+  restart healthy with the fixed `etcd`).
 - **Found**: 2026-10-17, writing `auth.NewAuthStore`'s contract as an axiom true of the Go code
   (unit N4, D14d): the auth store's admin writes reach `batchTx.UnsafePut`, whose key bound the
   backend's spec states (`batchTxBuffered.UnsafePut.spec`, `kb.length ≤ maxKeySize`).

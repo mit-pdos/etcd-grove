@@ -51,7 +51,7 @@ links between the clients and their members (`notes/client-cut-plan.md`): each c
 every member, through a copy of etcd's test bridge per member, which is part of the network (D26: trust-boundary
 specs, its code not verified): it relays a prefix of each side's bytes, which gRPC sees as the
 member's server or as a failed attempt, as any connection. A blackholed bridge is never blackholed
-again (its `Blackhole` panics on a second call, `issues/etcd-bridge-blackhole-twice-panic.md`).
+again (its `Blackhole` panics on a second call, `issues/nonissues/etcd-bridge-blackhole-twice-panic.md`).
 Each client is configured with every member's bridge (failover, D27): each attempt of a call goes
 to one member, and the reply is that member's; the client's results take the conjunction of the
 members' specs (`Proof/go_etcd_io/etcd/client/v3/Results.lean`, "The client's KV calls").

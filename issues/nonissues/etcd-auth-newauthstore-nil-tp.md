@@ -4,6 +4,8 @@ checked: 2026-10-20
 links: []
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: `NewAuthStore` has a precondition (a non-nil token provider) that etcd's server meets.
+
 # server/auth: `NewAuthStore` needs a non-nil token provider when the backend has auth enabled
 
 - **Status**: a precondition the code needs that its API does not state. Not reachable through

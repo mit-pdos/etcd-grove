@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-23
 links:
   - etcd-io/etcd#9079 issue closed: the same panic ("unexpected error getting unapplied entries (requested index is unavailable due to compaction)", etcd 3.1.9, from tickElection), but after raft restored a leader snapshot (an unstable snapshot above applied), not etcd's compaction; closed as stale; raft v3.7.0's promotable() now refuses to campaign while a snapshot is pending (checked by a raft test, 2026-10-18)
   - etcd-io/etcd#12134 pr merged: made MsgTimeoutNow go through the unapplied conf-change scan before campaigning (the scan that panics here); related, not this bug
@@ -153,9 +153,11 @@ candidate: issues/upstream/etcd-compact-past-raft-applied/
      before it handed the batch out): `compacti = min(compacti, appliedi before applyEntries)`.
   The snapshot itself at `ep.appliedi` is harmless to raft (it is of a committed prefix).
   The upstream candidate (2026-10-21, `issues/upstream/etcd-compact-past-raft-applied/`, branch
-  `fix/etcd-compact-past-raft-applied` off `main` 7ff040cb8) is fix 1, with a test that needs no new failpoint
+  `fix/etcd-compact-past-raft-applied`, rebuilt 2026-10-23 off `main` 3aaab3479) is fix 1, with a test that needs no new failpoint
   (`raftBeforeFollowerSend` with `sleep("2s")`); its `meta.md` compares the layers (raft's scan, the compact bound,
-  reordering `Advance`).
+  reordering `Advance`). A restart clears the crash (checked 2026-10-23: the panicked member's data directory
+  restarts with every applied entry, then campaigns without panicking), but reopens the window on each restart
+  with no disk snapshot (code reading); the candidate's `meta.md`, "Impact".
 - **Found**: 2026-10-18, designing D19i part 1 (which bound raft must publish for the
   application's compaction: `hasUnappliedConfChanges` reads from `applied + 1`, not from
   `applying + 1`). Reproduced end to end on etcd the same day (integration test above). The

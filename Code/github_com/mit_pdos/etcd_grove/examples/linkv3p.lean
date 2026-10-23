@@ -314,7 +314,7 @@ noncomputable def peerStep.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- clientStep applies a client step to member a's bridge (brs[a]), as etcd's integration tests
     do (Member.Bridge().Blackhole(), ...); holed[a] says whether that bridge is blackholed. A
     blackhole of a blackholed bridge does nothing: the bridge's Blackhole closes its channel
-    unguarded, so a second one would panic (issues/etcd-bridge-blackhole-twice-panic.md).
+    unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
 
     go: linkv3p.go:153:6 -/
 noncomputable def clientStep.impl [FfiSyntax] [GoGlobalContext] : val :=
