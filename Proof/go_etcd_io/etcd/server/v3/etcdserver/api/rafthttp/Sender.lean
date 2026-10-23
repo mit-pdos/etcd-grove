@@ -61,12 +61,13 @@ instance pipeSenderOk_persistent (Rh : RaftHttp GF) (p : Loc) (to : w64) :
   unfold pipeSenderOk; infer_instance
 
 /-- **What `checkPostResponse` returns** for the status `st` (persistent): `nil`;
-`errMemberRemoved` for a `403`; or another leaf pointer error, not `errMemberRemoved`'s. -/
+`errMemberRemoved` for a `403`; or another leaf pointer error, not `errMemberRemoved`'s; in each
+case an error whose `Error()` returns (`http.errStrOk`). -/
 def postErr (st : w64) (err : GoInterface) : IProp GF :=
-  iprop(⌜err = GoInterface.nil⌝ ∨
+  iprop(http.errStrOk err ∗ (⌜err = GoInterface.nil⌝ ∨
     (⌜st = W64 403⌝ ∗ globalAddr rafthttp.errMemberRemoved ↦□ err) ∨
     ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e ∧ errLeaf e⌝ ∗
-      □ (∀ eR : GoInterface, globalAddr rafthttp.errMemberRemoved ↦□ eR -∗ ⌜err ≠ eR⌝))
+      □ (∀ eR : GoInterface, globalAddr rafthttp.errMemberRemoved ↦□ eR -∗ ⌜err ≠ eR⌝)))
 
 instance postErr_persistent (st : w64) (err : GoInterface) : Persistent (postErr (GF := GF) st err) := by
   unfold postErr; infer_instance

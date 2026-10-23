@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 
 /-- **`p.post(data)`** of an encoding of the message `st` for the peer `to` (not a snapshot, without
 responses), with its bundle: it posts it to one of the peer's URLs (the request's deposit holding
-the one-shot part, `pipeDeposit`), and returns some error; it reports nothing on `errorc` (the
+the one-shot part, `pipeDeposit`), and returns an error whose `Error()` returns; it reports nothing on `errorc` (the
 member's response is never a `403`, `raftProto`). -/
 abbrev rafthttp.pipeline.post.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (p : Loc) (to : w64) (d : GoSlice) (bs : List w8) (st : MsgSt),
@@ -30,7 +30,7 @@ abbrev rafthttp.pipeline.post.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       pipeSenderOk Rh p to ∗ d ↦* bs ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st }}
     (App (Val (p @!! go.GoType.PointerType rafthttp.pipeline.ty @!! go!"post")) (Val #d))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; http.errStrOk err }}
 
 end spec
 

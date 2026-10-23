@@ -177,6 +177,16 @@ the map `hm`, whose `Set`s before `RoundTrip` build `R.hdr`. -/
 def reqOwn (r : Loc) (R : HReq) : IProp GF :=
   iprop(∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrOwn hm R.hdr ∗ reqRest r R)
 
+/-- **An error whose `Error()` returns** (persistent; `nil`, or a value whose `Error` method
+returns some string): what net/http's errors are (rafthttp logs them, `err.Error()`). -/
+def errStrOk (e : GoInterface) : IProp GF :=
+  iprop(⌜e = GoInterface.nil⌝ ∨ ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗
+    □ (∀ Φ : val → IProp GF, ▷ (∀ s : GoString, Φ #s) -∗
+      WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}))
+
+instance errStrOk_persistent (e : GoInterface) : Persistent (errStrOk (GF := GF) e) := by
+  unfold errStrOk; infer_instance
+
 /-- **A reader holding exactly `bs`** (exclusive; `bytes.NewBuffer(bs)` as an `io.Reader`, or `nil`
 for an empty body): what `NewRequest` takes as the body. -/
 opaque readerHas (rd : GoInterface) (bs : List w8) : IProp GF
@@ -209,7 +219,7 @@ def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
       {{ reqOwn r R ∗ reqTicket γk ∗ □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
-          (⌜err ≠ GoInterface.nil⌝ ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∨
            ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
             respAt resp st rd ∗ (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
             respReader H rd R γk st []) }}))
@@ -437,7 +447,7 @@ def ReadAll_resp_spec (H : HttpNet GF) : Prop :=
     ⊢ {{ respReader H rd R γk st [] }}
         (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
-          ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs }}
+          ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs ∗ errStrOk err }}
 
 /-- A response body's `Close()`: some error. -/
 def RespClose_spec (H : HttpNet GF) : Prop :=

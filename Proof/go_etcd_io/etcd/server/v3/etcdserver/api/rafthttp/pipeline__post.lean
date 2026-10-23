@@ -154,14 +154,14 @@ theorem rafthttp.pipeline.post.wp_proof
     iunfold Fulfilled
     iexists _
     iframe Hfl
-  icases Hres with (%Herr | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr⟩)
+  icases Hres with (⟨%Herr, #HerrS⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr⟩)
   · -- `RoundTrip` failed
     cases rerr with
     | nil => exact absurd rfl Herr
     | ok ei =>
       wp_auto
       wp_apply hUnreach pk (peerURL Rh to) u $$ [$Hpick]
-      iapply HΦ; itrivial
+      iapply HΦ; iexact HerrS
   subst Hnil
   wp_auto
   iunfold http.respAt at Hra
@@ -171,7 +171,7 @@ theorem rafthttp.pipeline.post.wp_proof
   | nil => exact absurd rfl Hrdnn
   | ok ri =>
   wp_auto
-  wp_apply hReadAll (raftHttpNet Rh) _ _ γk rst $$ [$Hrr] as %bsl %berr ⟨%bbs, Hbsl, Hrr⟩
+  wp_apply hReadAll (raftHttpNet Rh) _ _ γk rst $$ [$Hrr] as %bsl %berr ⟨%bbs, Hbsl, Hrr, #HberrS⟩
   cases berr with
   | ok bei =>
     -- the read failed
@@ -181,7 +181,7 @@ theorem rafthttp.pipeline.post.wp_proof
     wp_apply hClose (raftHttpNet Rh) _ ri _ γk rst bbs rfl $$ [$Hrr]
     iintro %_ -
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iexact HberrS
   | nil =>
   wp_auto
   wp_apply hCheck lg resp rst (GoInterface.ok ri) bsl bbs req' _ to Hlgnn $$ [$Hbsl $Hreq]
@@ -193,14 +193,14 @@ theorem rafthttp.pipeline.post.wp_proof
   icases Hrw with ⟨%w, %Hst⟩
   have Hst' : rst ≠ W64 403 := Hst trivial
   iunfold postErr at Hcerr
-  icases Hcerr with (%Hcn | ⟨%H403, -⟩ | ⟨%e, %He, #Hne⟩)
+  icases Hcerr with ⟨#HcerrS, (%Hcn | ⟨%H403, -⟩ | ⟨%e, %He, #Hne⟩)⟩
   · -- `nil`
     subst Hcn
     wp_auto
     wp_apply hClose (raftHttpNet Rh) _ ri _ γk rst bbs rfl $$ [$Hrr]
     iintro %_ -
     wp_auto
-    iapply HΦ; itrivial
+    iapply HΦ; iexact HcerrS
   · exact absurd H403 Hst'
   · -- another error: `errors.Is(err, errMemberRemoved)` is `false`
     obtain ⟨rfl, Hel⟩ := He
@@ -226,7 +226,7 @@ theorem rafthttp.pipeline.post.wp_proof
       wp_apply hClose (raftHttpNet Rh) _ ri _ γk rst bbs rfl $$ [$Hrr]
       iintro %_ -
       wp_auto
-      iapply HΦ; itrivial
+      iapply HΦ; iexact HcerrS
     · exfalso
       obtain ⟨ii, hii, hor⟩ := h3 _ rfl hpt (by simp) rfl
       cases hii
