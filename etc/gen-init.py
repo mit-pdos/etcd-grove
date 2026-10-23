@@ -651,8 +651,8 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
                  'ErrEmptyWatcherRange': 'GoInterface', 'ErrWatcherNotExist': 'GoInterface',
                  'watchResyncPeriod': 'w64', 'maxWatchersPerSync': 'w64', 'chanBufLen': 'w64',
                  'ErrFutureRev': 'GoInterface', 'ErrCompacted': 'GoInterface',
-                 'ErrRevisionNotFound': 'GoInterface'},
-    before={'restoreChunkKeys': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF'] +
+                 'ErrRevisionNotFound': 'GoInterface', 'restoreChunkKeys': 'w64'},
+    before={'defaultCompactionBatchLimit': ['wp_apply _root_.Perennial.context.wp_New_errorString as %xRNF #MRNF'] +
                                 [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩'
                                  for t in ['CP', 'FR']],
             '$inits': [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}'
@@ -660,7 +660,7 @@ fact). `opaqueInitsOk` states its other untranslated initializers run.""",
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
-             'ipersist HwatchBatchMaxRevs',
+             'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
              'ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd5',
              'icases Hsi with ⟨-, -, -, -, -, #HSK, #HFK⟩',
@@ -764,7 +764,7 @@ errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
              '  iexact HLNF0',
              'ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd18',
-             'icases Hmi with ⟨' + '-, ' * 30 + '#NMC, #NMF, -, -, #CMC, #CMF⟩',
+             'icases Hmi with ⟨' + '-, ' * 30 + '#NMC, #NMF, -, -, #CMC, #CMF, -⟩',
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +
             _noSpaceApart() +

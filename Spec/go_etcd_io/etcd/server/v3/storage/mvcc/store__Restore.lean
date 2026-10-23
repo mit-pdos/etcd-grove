@@ -1,5 +1,5 @@
 /-
-`store.Restore` (`kvstore.go`): the trust boundary (translated, its callee `restore` untranslated
+`store.Restore` (`kvstore.go`): the trust boundary (translated, its callee `restore` translated (2026-10-23, `notes/restore-plan.md` R0) but not yet proved
 and its body's ghost argument not carried out: D22m decided, D22 receiver epochs S6).
 Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/

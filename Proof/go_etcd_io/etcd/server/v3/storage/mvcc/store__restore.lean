@@ -1,5 +1,5 @@
 /-
-The trust boundary: `store.restore` (`kvstore.go`, untranslated), over a `Key` bucket with data
+The trust boundary: `store.restore` (`kvstore.go`; translated 2026-10-23, `notes/restore-plan.md` R0, not yet proved), over a `Key` bucket with data
 (D22 S-g).
 -/
 module

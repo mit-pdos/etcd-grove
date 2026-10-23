@@ -1,6 +1,6 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
-Status: planned (2026-10-23), nothing done. Removes two of mvcc's trust-boundary axioms,
+Status: R0 done (2026-10-23, branch `restore-r0`); R1-R6 to do. Removes two of mvcc's trust-boundary axioms,
 `mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
 receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
 `restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
@@ -42,7 +42,16 @@ cover, as today.
 
 ## Stages
 
-**R0. Translate.** Add to `Code/go_etcd_io/etcd/server/v3/storage/mvcc.toml`: `store.restore`,
+**R0. Translate. Done (2026-10-23).** `store.restore`, `store.setupMetricsReporter`,
+`restoreIntoIndex`, `restoreChunk`, `keyIndex.restore`, `keyIndex.restoreTombstone` and the variable
+`restoreChunkKeys` translated (`mvcc.toml`); Goose took all of them as they are (the goroutine's
+`defer`, the channel range as `chan.forRange`, the map range with `delete`), no fork change. The
+type `revKeyValue` was already translated (`translate_types`). `restoreChunkKeys`'s initializer is
+translated, so the generated opaque-initializer axiom `restoreChunkKeys.init` is gone and `mvccInit`
+states its value (`globalAddr restoreChunkKeys ↦□ (W64 10000 : w64)`, appended last; `gen-init.py`:
+its allocation type, the `before` steps re-anchored on `defaultCompactionBatchLimit`, `apply`'s
+pattern of `mvccInit` one conjunct longer). The two axioms still state their specs, now over
+translated bodies. The plan as written: Add to `Code/go_etcd_io/etcd/server/v3/storage/mvcc.toml`: `store.restore`,
 `store.setupMetricsReporter`, `restoreIntoIndex`, `restoreChunk`, `keyIndex.restore`,
 `keyIndex.restoreTombstone` (and the type `revKeyValue` if names-only). `etc/goose.py --project
 etcd`; the translation must build. Check what Goose makes of the goroutine with `defer` and the

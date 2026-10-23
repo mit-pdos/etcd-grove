@@ -1,5 +1,5 @@
 /-
-`store.restore` (`kvstore.go`): the trust boundary (untranslated), over a `Key` bucket with data
+`store.restore` (`kvstore.go`): the trust boundary (translated 2026-10-23, `notes/restore-plan.md` R0; not yet proved), over a `Key` bucket with data
 (D22 S-g).
 Lean-first (no Rocq counterpart); see `InvStore.lean`.
 -/
