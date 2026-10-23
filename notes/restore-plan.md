@@ -140,8 +140,9 @@ The channel protocol's instantiation moves to R3, which is where `P` is fixed.
 `put` records the full revision of the key's first put. They differ when a key's first put is
 not the first change of its transaction (`Sub > 0`). The model (`Lemmas.lean`, `created =
 revs.head`) follows `put`. etcd's behavior is the same either way: only `created.Main` is read
-(`keyIndex.get`'s `CreateRevision`, compaction compares generations by `Main`... to confirm in
-R3). R3 needs a decision: (a) weaken the model's invariant to `created.main = revs.head.main` (and
+(`put`'s `CreateRevision` takes `created.Main`; `keyIndex.since` compares `Revision{Main: rev}`
+with `created` by `GreaterThan`, which gives the same answer for `Sub` 0 and `Sub > 0`; compaction
+reads `revs`, not `created`). R3 needs a decision: (a) weaken the model's invariant to `created.main = revs.head.main` (and
 `created.sub = 0` after a restore), (b) compare key indexes up to `created.sub`, or (c) state the
 rebuilt index as equal to the replayed one only on what readers see.
 
