@@ -17,7 +17,7 @@
   conflict note. They complement each other: with only the sibling's fix, a single entry too large for a page
   is still accepted (a node of one inode cannot be split); with only this fix, several values that each fit
   can still share one page.
-- **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
+- **Issue form**: bbolt has no issue template; `issue.md` is free-form prose, no headings (the 2026-10-23 review).
 - **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
   etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-max-value-size-unusable push origin
   fix/bbolt-max-value-size-unusable`; then check the issue's test link (`bucket_test.go#L1231-L1251`).

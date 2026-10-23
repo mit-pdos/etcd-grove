@@ -137,6 +137,11 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 The bug-report form's sections, as in `example/`. Only the symptom, the expectation and the reproduction: no root
 cause, code names, code links, history, other issues, or claims about other releases.
 
+bbolt's issue form is free-form (no template): no headings. Write the same content as plain paragraphs, in this
+order: the symptom with the setup it needs (base commit, Go version and platform, options) in the first sentence,
+the steps, the expectation in one sentence, the test link and its output, then any question, then the disclosure
+(the 2026-10-23 review). The sections below say what each part contains.
+
 - **Title**: the symptom and the condition, covering every case the issue shows.
 - **What happened?** The configuration that matters ("With `ReadOnlySafe`:"), then, for more than two events,
   numbered steps, each saying when it happens relative to the others ("Before committing an entry in its new term,

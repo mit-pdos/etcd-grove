@@ -10,7 +10,7 @@
   - `eb2b2e0` tx: keep a failed commit's freed pages pending if its meta is current (`tx.go`)
   - No changelog commit: bbolt's `CHANGELOG/` entries are added in commits of their own, mostly by the
     maintainers after merging (the last 15 changelog commits touch no code but two).
-- **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
+- **Issue form**: bbolt has no issue template; `issue.md` is free-form prose, no headings (the 2026-10-23 review).
   At the user's request (2026-10-23), "Anything else" explains the cause (`rollback` reloading the new meta's
   freelist), against the skill's symptom-only rule; no code link there (the PR has them), so `check.py` warns
   (length, the name `rollback`) but does not fail.
