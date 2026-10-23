@@ -2502,7 +2502,7 @@ theorem watchGRPCStream.run.wp_proof
           · iunfold eofOk at Heof
             ihave ⟨%Hc, -⟩ := Heof $$ %err Heo
             ipureintro; exact fun _ => Hc.2
-        wp_apply wp_ctxErr G.ctx G.cd err $$ [] as %err' ⟨%Herr', #Hse'⟩
+        wp_apply wp_ctxErr G.ctx G.cd err $$ [] as %err' ⟨%Herr', #Hse', -⟩
         · iframe #; ipureintro; exact Hce
         (try wp_auto)
         ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []

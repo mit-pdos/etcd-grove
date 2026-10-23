@@ -281,7 +281,7 @@ theorem client_List_st [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     ipureintro
     exact ⟨(srvRangeOk_list _ _ _ hsel).1, hrev, hb⟩
   · iright
-    ipureintro; exact Herr
+    ipureintro; exact Herr.1
 
 /-- **`Commit()` of the model's transaction** through a client of the members `ms` (see the file
 header): its update by its kind, one per member. -/
@@ -308,7 +308,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
             m.hdr.revision = W64 ((if (linkv.MIn.txn cs t e).isWrite then
               (kvOpStep (opIn (.txn cs t e)) σ).rev else σ.rev : Nat) : Int) ∧
             σ.rev + 3 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hst, Hone, Hau⟩ HΦ
   have hw : txnWireOf b.model = linkv.txnOf cs t e := by rw [hb, txnWireOf_clientTxn]
   have hp : client.TxnModel.plain b.model := by rw [hb]; exact clientTxn_plain cs t e
@@ -342,7 +342,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
     · iframe Hobj
       iframe #
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
     · ileft
       isplitl []
       · ipureintro; exact Herr
@@ -366,7 +366,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         omega
       · unfold kvStateOf; simp only; omega
     · iright
-      ipureintro; exact Herr
+      isplitl
+      · ipureintro; first | exact Herr | exact Herr.1
+      · iexact Hke
   · -- writing
     simp only [↓reduceIte]
     simp only [hwr, Bool.not_true] at hro
@@ -392,7 +394,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       iframe Hone
       iexact Hau'
     iapply HΦ
-    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+    icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
     · ileft
       isplitl []
       · ipureintro; exact Herr
@@ -414,7 +416,9 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
       · unfold kvStateOf; simp only; omega
     · iright
-      ipureintro; exact Herr
+      isplitl
+      · ipureintro; first | exact Herr | exact Herr.1
+      · iexact Hke
 
 /-- `opRespsMsg` element by element. -/
 theorem opRespsMsg_getElem (ps : List Loc) (ms : List OpRespM) :

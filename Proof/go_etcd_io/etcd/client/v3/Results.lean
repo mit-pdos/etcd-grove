@@ -2271,7 +2271,7 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ ∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗
             putReplied x.E x.γr F (txn.putOpOf key val (W64 0) false false false) Q x.cid x.mid m) ∨
-          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hregs, #HF, #Hctx', #Hce, #Hopts, Hau⟩ HΦ
   have Hw : putWireOf (opPutModel key val []) =
       txn.putOpOf key val (W64 0) false false false := rfl
@@ -2335,14 +2335,16 @@ theorem client_put_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
   iintro %resp %err Hout
   iapply HΦ
   iunfold putCallOut at Hout
-  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m
     iframe
   · iright
-    ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    isplitl
+    · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 /-- **`kv.Get(ctx, key, opts...)` through a client of the members `ms`** (see the section
 header): each member's `Range` registered at its address, its committed index at least `c` and
@@ -2367,7 +2369,7 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ ∃ x : SrvAt GF,
             ⌜x ∈ ms⌝ ∗ rangeReplyOk x.E x.γr c F (rangeWireOf (opGetModel key gs)) x.cid x.mid Q m) ∨
-          ⌜err ≠ GoInterface.nil ∧ resp = null⌝) }} := by
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hregs, #Hfacts, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
   have hreg := isGrpcRpcs_anySpec (GF := GF) ms SrvAt.addr go!"/etcdserverpb.KV/Range"
     (fun x : SrvAt GF => etcdRangeSpec x.E x.γr x.cid x.mid)
@@ -2412,14 +2414,16 @@ theorem client_range_any (api : Loc) (ms : List (SrvAt GF)) (c : w64) (ci : GoIn
   iapply HΦ
   iframe HR
   iunfold rangeCallOut at Hout
-  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m
     iframe
   · iright
-    ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    isplitl
+    · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 /-- **`kv.Delete(ctx, key)` through a client of the members `ms`** (as `client_put_any`). -/
 theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk)
@@ -2439,7 +2443,7 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗ ∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗
             deleteReplied x.E x.γr F (txn.deleteOpOf key [] false) Q x.cid x.mid m) ∨
-          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hregs, #HF, #Hctx', #Hce, #Hopts, Hau⟩ HΦ
   have Hw : deleteWireOf (opDeleteModel key []) = txn.deleteOpOf key [] false := rfl
   have hreg := isGrpcRpcs_anySpec (GF := GF) ms SrvAt.addr go!"/etcdserverpb.KV/DeleteRange"
@@ -2500,14 +2504,16 @@ theorem client_delete_any (api : Loc) (ms : List (SrvAt GF)) (ci : GoInterfaceOk
   iintro %resp %err Hout
   iapply HΦ
   iunfold deleteCallOut at Hout
-  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m
     iframe
   · iright
-    ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    isplitl
+    · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 /-- **A transaction's update at a member**, at its write names `γw` and read names `γr`: none
 (read-only), a read update (read-only, linearizable) or a write's update (writing). -/
@@ -2538,7 +2544,7 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (γw : SrvAt GF → Rea
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗ ∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗
             txnReplied x.E (γw x) x.γr c F (txnWireOf b.model) Q x.cid x.mid m) ∨
-          ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
+          (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hregs, #Hfacts, Hnp⟩ HΦ
   have hreg := isGrpcRpcs_anySpec (GF := GF) ms SrvAt.addr go!"/etcdserverpb.KV/Txn"
     (fun x : SrvAt GF => etcdTxnSpec x.E (γw x) x.γr x.cid x.mid)
@@ -2595,14 +2601,16 @@ theorem client_txn_any (tp : Loc) (ms : List (SrvAt GF)) (γw : SrvAt GF → Rea
   iintro %resp %err Hout
   iapply HΦ
   iunfold txnCallOut at Hout
-  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, Hm, Hq⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m
     iframe
   · iright
-    ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    isplitl
+    · ipureintro; exact ⟨Herr.1, Herr.2.2⟩
+    · iunfold kvErr; iframe #; ipureintro; exact Herr.2.1
 
 end e2e
 
@@ -2677,7 +2685,7 @@ theorem client_put_end_to_end (api : Loc) (addr : List GoString) (E : apply.AEnv
   inext
   iintro %resp %err Hout
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hr⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
   · obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
     ileft
     isplitl []
@@ -2738,7 +2746,7 @@ theorem client_range_end_to_end (api : Loc) (addr : List GoString) (E : apply.AE
   iintro %resp %err ⟨HR, Hout⟩
   iapply HΦ
   iframe HR
-  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hq⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hq⟩ | ⟨%Herr, -⟩)
   · obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
     ileft
     isplitl []
@@ -2837,7 +2845,7 @@ theorem client_delete_end_to_end (api : Loc) (addr : List GoString) (E : apply.A
   inext
   iintro %resp %err Hout
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hr⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
   · obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
     ileft
     isplitl []
@@ -2910,7 +2918,7 @@ theorem client_txn_end_to_end (tp : Loc) (addr : List GoString) (E : apply.AEnv 
   inext
   iintro %resp %err Hout
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hr⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
   · obtain ⟨a, -, rfl⟩ := srvsAt_mem hx
     ileft
     isplitl []

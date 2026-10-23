@@ -66,7 +66,7 @@ theorem leaseClient.LeaseRevoke.wp_proof
   · iframe #
     iframe
   icases Hin' with ⟨%req', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse, -⟩)
   · subst Herr
     wp_auto
     iapply HΦ

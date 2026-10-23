@@ -162,7 +162,7 @@ theorem watcher.RequestProgress.wp_proof
     iapply context.isContextDone_receive _ _ _ _ $$ Hdone
     iintro -
     wp_auto
-    wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 #Hse
+    wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 #Hse -
     iapply HΦ
     iexact Hse
   iapply BigAndL.bigAndL_cons.2

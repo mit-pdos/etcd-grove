@@ -660,7 +660,15 @@ description is none of `refusalDescs`, the descriptions after which etcd's clien
 when every address of the connection is refusal-free (`noRefusalAt`). True of grpc-go: a status
 the server sends is forwarded unchanged (`grpc-status`, `grpc-message`), and grpc's own errors
 carry grpc's messages (neither of the old balancer's two strings occurs in grpc v1.84's sources;
-the four etcd strings are etcd's). Again a restatement of `grpc.ClientConn.Invoke`'s promise. -/
+the four etcd strings are etcd's). Again a restatement of `grpc.ClientConn.Invoke`'s promise.
+
+Since 2026-10-23 (D37) the error is no caller's `errors.New` value (`errCellOk`: if it is an
+`*errors.errorString`, its cell holds `"EOF"`). True of grpc-go v1.84: `invoke` returns what
+`newClientStream`, `SendMsg`, `CloseSend` and `RecvMsg` return, each through `toRPCErr`
+(`rpc_util.go`), which passes `nil` and `io.EOF` (io's `errors.New("EOF")`) through and turns
+every other error into a status error (`*status.Error`), except one `status.FromError` already
+accepts, whose dynamic type is then not `*errors.errorString` (an `errorString` has no
+`GRPCStatus` method and no `Unwrap`); its own errors are status errors (`status.Error`). -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (m : Req.M)
       (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
@@ -673,7 +681,7 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
     {{ (err : GoInterface), RET #err; Req.send inp m ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            Rep.own out ∗
+            go_etcd_io.etcd.cache.v3.errCellOk err ∗ Rep.own out ∗
             ⌜(∀ a ∈ addrs, noRefusalAt a) → go_etcd_io.etcd.cache.v3.noRefusal err⌝)) }})
 
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :

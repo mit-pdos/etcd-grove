@@ -71,7 +71,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil errCellOk errCellOk_nil)
 
 /-! ## Messages -/
 
@@ -538,7 +538,7 @@ facts (`cache/v3/Base.lean`). -/
 def sortNamesOk : IProp GF :=
   iprop((∃ e : GoInterface,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrInvalidSortOption ↦□ e ∗
-      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e) ∗
+      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e ∗ errCellOk e) ∗
     (∃ (mp : Loc) (M : GMap w32 GoString),
       globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name ↦□ mp ∗
       mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝) ∗
@@ -559,28 +559,53 @@ instance sortNamesIf_persistent (b : Bool) : Persistent (sortNamesIf (GF := GF) 
 theorem sortNamesIf_false : ⊢ sortNamesIf (GF := GF) false := by
   unfold sortNamesIf; iintro; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
 
+/-- **The error of a KV call** (persistent; D37): a client error (`clientErr`: a leaf, as
+`errors.Is` and `errors.As` see it) that grpc's `status` accepts (`statusErrOk`) and that is no
+caller's own `errors.New` value (`errCellOk`: an `*errorString` among the client's errors holds one
+of `clientErrMsgs`; `errCellOk_ne`). What the client's KV results (`client_put_any`, ...) say of a
+returned error; what a program needs to tell its own sentinel errors apart from the client's
+(Kubernetes' storage test: `errors.Is(err, errDeleteRejected)` is `false` for the store's etcd
+errors). -/
+def kvErr (err : GoInterface) : IProp GF :=
+  iprop(⌜clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)
+
+instance kvErr_persistent (err : GoInterface) : Persistent (kvErr (GF := GF) err) := by
+  unfold kvErr; infer_instance
+
+/-- **A KV call's error is no caller's `errors.New(msg)` value** of a message not among the
+client's (`clientErrMsgs`): the caller's error at `y` (whose cell holds `msg`, as Perennial's
+`errors.New` leaves it, `errStrCell y msg`) differs from it; with `clientErr` (a leaf), so does
+`errors.Is` (D37). -/
+theorem kvErr_ne (err : GoInterface) (y : Loc) (msg : GoString)
+    (hmsg : msg ∉ go_etcd_io.etcd.cache.v3.clientErrMsgs) :
+    kvErr (GF := GF) err ⊢ y.[_root_.Perennial.errors.errorString, go!"s"] ↦□ msg -∗
+      ⌜err ≠ interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #y⌝ := by
+  unfold kvErr
+  iintro ⟨-, -, #Hcl⟩ #Hy
+  iapply (go_etcd_io.etcd.cache.v3.errCellOk_ne err y msg hmsg) $$ Hcl Hy
+
 /-- **What a unary `Put` call returns** to the client (every layer's postcondition: the stub's,
 the retry client's, `kv.Do`'s at its `put` field): `nil` and a response holding a message `m`
 (`putRespMsg`) with the run's knowledge `Q m`; or a client error that grpc's `status` accepts
 (`statusErrOk`, unit P3a: `ContextError` passes it to `rpctypes.Error`) and no response. -/
 def putCallOut (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `Range` call returns** to the client (as `putCallOut`). -/
 def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `DeleteRange` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
 def deleteCallOut (Q : DelRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-- **What a unary `Txn` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
 def txnCallOut (Q : TxnRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗ Q m) ∨
-    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
 
 /-! ## The KV service's messages -/
 
@@ -758,7 +783,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }})
 
 instance etcdInterceptorOk_persistent (ic : GoFunc) : Persistent (etcdInterceptorOk (GF := GF) ic) := by
   unfold etcdInterceptorOk; infer_instance
@@ -800,7 +825,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }})
 
 instance etcdInterceptorOkM_persistent (md : AttemptMode) (ic : GoFunc) :
     Persistent (etcdInterceptorOkM (GF := GF) md ic) := by
@@ -891,7 +916,7 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
          | .Done => iprop(⌜err ≠ interface.nil⌝)
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
-        ⌜clientErr err⌝ -∗ statusErrOk err -∗ Φ #err) -∗
+        ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :

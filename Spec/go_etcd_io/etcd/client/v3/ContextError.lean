@@ -13,7 +13,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil errCellOk)
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 (`rpctypes.Error(err)`, or, for a gRPC `DeadlineExceeded`/`Canceled` when the context is done,
 the context's error). The error is one grpc's `status` accepts (`statusErrOk`, unit P3a:
 `rpctypes.Error` and `status.FromError` call its `Error()` and `GRPCStatus()`), and so is the
-result. -/
+result; and (D37) the result is no caller's `errors.New` value (`errCellOk`) if `err` is none. -/
 abbrev ContextError.spec : Prop :=
   ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxErrClient ci cd ∗
@@ -35,7 +35,9 @@ abbrev ContextError.spec : Prop :=
       (Val #err))
   {{ (err' : GoInterface), RET #err';
       ⌜(err = GoInterface.nil → err' = GoInterface.nil) ∧
-        (err ≠ GoInterface.nil → err' ≠ GoInterface.nil ∧ clientErr err')⌝ ∗ statusErrOk err' }}
+        (err ≠ GoInterface.nil → err' ≠ GoInterface.nil ∧ clientErr err')⌝ ∗ statusErrOk err' ∗
+      -- (2026-10-23, D37) no caller's `errors.New` value if `err` is none (the context's error never)
+      □ (errCellOk err -∗ errCellOk err') }}
 
 end spec
 

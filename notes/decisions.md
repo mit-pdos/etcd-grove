@@ -15882,3 +15882,49 @@ storage snapshot made by `EtcdServer.snapshot` at an applied index), `Hsok` (`γ
 `isCommitted γ A` with `A`'s last term `ep.appliedt` (`kvApplied`'s `srvRLogLb` with
 `termAfter`), the configuration certificate of `ep.confState` (S-b′), `sendMergedSnap`'s
 transport, inflight count and stop channel (the run's).
+
+## D37: a client error is no caller's `errors.New` value (`errCellOk`, `kvErr`) (2026-10-23 · asked by the user)
+
+**Why.** Kubernetes' storage correctness test (`test/integration/apiserver/storage/traffic.go`,
+lines 107-108) classifies a store's error by identity: `errors.Is(err, errDeleteRejected)` or
+`errUpdateRejected` (both `errors.New` values of the test) is a deliberate rejection, anything
+else an RPC failure whose effect is unknown. The store returns the etcd client's errors unchanged,
+so a closed driver theorem needs: an error the client returns is neither sentinel (the k8s plan's
+"From the etcd client proof", item 5). `clientErr` already says the client's errors are leaves
+(so `errors.Is` is equality), but the sentinels are `errors.New` leaves too: nothing told a client
+`*errorString` apart from the driver's.
+
+**The fact** (`cache/v3/Base.lean`): `errCellOk err`, persistent: if `err` is an
+`*errors.errorString` at `x`, the cell of `x` holds one of `clientErrMsgs` (`"EOF"`,
+`"context canceled"`) for good. Every other error a unary call returns has another dynamic type (a
+grpc status error, an `rpctypes.EtcdError`, context's `deadlineExceededError`), for which it holds
+outright (`errCellOk_of_ty`). A caller's `errors.New(msg)` at `y`, `msg` not in the list, differs
+(`errCellOk_ne`, through D19k's message cells: two `↦□` of one cell agree). The user suggested a
+predicate listing the allowed error values; the values themselves are pointers fixed only at
+allocation, so the list is of the messages of the one dynamic type a sentinel can have.
+
+**Where it comes from** (each a true statement about Go):
+- grpc's unary invoke (`grpcInvokerOk`, the trust boundary `grpc.ClientConn.Invoke`): grpc-go
+  v1.84's `invoke` returns what `newClientStream`, `SendMsg`, `CloseSend` and `RecvMsg` return,
+  each through `toRPCErr`, which passes `io.EOF` (`errors.New("EOF")`) through and turns every
+  other error into a status error or keeps one `status.FromError` accepts (not an `errorString`:
+  no `GRPCStatus`, no `Unwrap`).
+- a context's `Err()` (`context.ErrAny`, the trust boundary here): `Canceled` is
+  `errors.New("context canceled")`, its `s` field never written again; `DeadlineExceeded` is a
+  `deadlineExceededError{}`. Perennial's context initialization persists `Canceled`'s cell but
+  drops it from `isInit`; carrying it there is a candidate Perennial change
+  (`notes/perennial-changes.md`), after which `ErrAny` need not say it.
+- `rpctypes.Error` keeps it (its result is its argument or an `EtcdError` value), and so does
+  `ContextError` (`toErr`), conditionally (`□ (errCellOk err -∗ errCellOk err')`): the watcher
+  passes `errors.New(resp.CancelReason)`, of a message the server chooses, through `toErr`, so
+  `toErr` cannot require it, and `statusErrOk`, which the watcher's errors carry, cannot include it.
+
+**Where it goes.** The unary path only: grpc's invoke, the retry interceptor (`clientErrOk`,
+`etcdInterceptorOk(M)`), the KV call outputs (`putCallOut`, ...), `ctxErrClient` (proved for
+every context from `ErrAny`: `ctxErrClientAllW_of`; for `TODO`/`Background`, `nil` always), and
+the client's results: `client_put_any`, `client_range_any`, `client_delete_any`, `client_txn_any`,
+the `_st` family of `ClientPutGet.lean` and linkvtxn's `txn_Commit_st` now end their error case in
+`kvErr err` (`clientErr`, `statusErrOk`, `errCellOk`; `kvErr_ne` is the driver's lemma). No closed
+theorem's statement changed (fingerprint: the four `_any` results and the definitions above
+changed, the rest identical); the trust base's axioms are the same 538, two of them stronger
+(`grpc.ClientConn.Invoke` through `grpcInvokerOk`, `context.ErrAny`).

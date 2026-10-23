@@ -177,6 +177,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   every match.
 - **Status.** Open (observed; no change drafted).
 
+### Context: `Canceled`'s message cell in `context`'s package facts
+
+- **Missing.** Perennial's context initialization allocates `Canceled` with `errors.New("context
+  canceled")` and persists the `errorString`'s `s` field, but `isInit`'s `"#HCanceled"` keeps only
+  `isTypedErr`: a proof cannot tell `Canceled` apart from another `errors.New` value (D37, D19k).
+- **Needed by.** `ctxErrClientAllW_of` (`client/v3/ErrorsNewOk.lean`): a context's error is no
+  caller's `errors.New` value (`errCellOk`), for the Kubernetes driver's sentinel errors.
+- **Workaround here.** `context.ErrAny` (this repository's trust-boundary axiom) states the cell
+  of `Canceled`'s value and that `DeadlineExceeded`'s is no `*errorString` (true of Go).
+- **Proposed change.** `"#HCanceled"` with the cell (`x.[errorString, "s"] ↦□ "context
+  canceled"`, as this repository's `errStrCell`), and `"#HDeadlineExceeded"` with its dynamic type
+  (`deadlineExceededError`); then `ErrAny` drops the two facts.
+- **Status.** Not started (found 2026-10-23).
+
 ## Landed
 
 ### Std, PostLifting: generic lemmas the client, the cache and the examples each proved a copy of

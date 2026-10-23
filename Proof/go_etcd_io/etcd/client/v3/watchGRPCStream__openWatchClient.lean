@@ -93,7 +93,7 @@ theorem watchGRPCStream.openWatchClient.wp_proof
         iapply Hce $$ %Broadcast.Done [] 
         · iexact Hcl
         inext
-        iintro %err' %Hne %- #Hse'
+        iintro %err' %Hne %- #Hse' -
         wp_auto
         wp_for_post
         iapply HΦ

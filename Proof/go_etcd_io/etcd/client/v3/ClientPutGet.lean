@@ -310,7 +310,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : RangeRespM) (σ : KVState), rangeRespMsg resp m ∗
           □ Q σ ∗ ⌜m.kvs = σ.kvs.filter (fun v => decide (v.key = key)) ∧
             m.hdr.revision = W64 (σ.rev : Int) ∧ σ.rev + 3 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hrr, #Hst, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
@@ -339,7 +339,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
       | rfl
       | (refine ⟨?_, rfl⟩; unfold opGetPanics opFold OpFull.newOp; simp)
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, #Hq⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
@@ -351,7 +351,9 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     ipureintro
     exact ⟨(srvRangeOk_getKey key _ _ _ hsel).1, hrev, hb⟩
   · iright
-    ipureintro; exact Herr
+    isplitl
+    · ipureintro; exact Herr.1
+    · iexact Hke
 
 /-- A write through `New`'s client sent at most once (D29): its `*kv`'s (`KV` field's). -/
 theorem clientWriteOnce_api (cl api : Loc) (addrs : List GoString) :
@@ -380,7 +382,7 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ ∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗
             putReplied x.E x.γr [] (putKeyOp key val) Q x.cid x.mid m) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hrr, #HF, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
@@ -395,14 +397,16 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
     iframe #
     iexact Hau
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
     iexists m
     iframe Hm Hr
   · iright
-    ipureintro; exact Herr
+    isplitl
+    · ipureintro; exact Herr.1
+    · iexact Hke
 
 /-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` that sends a write at most
 once, with an update fired at most once, one per member (see the file header): `nil`, `Q σ` and
@@ -421,12 +425,12 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
           ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ H HΦ
   wp_apply (client_Put_rep cl ms V ci cd key val sl Q) $$ [H] as %resp %err Hout
   · iexact H
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
@@ -440,7 +444,9 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     · rw [hrev, kvStateOf_rev_succ _ hlen]
     · unfold kvStateOf; simp only; omega
   · iright
-    ipureintro; exact Herr
+    isplitl
+    · ipureintro; exact Herr
+    · iexact Hke
 
 /-- `cli.Delete(ctx, key)` by `New`'s client of the members `ms` that sends a write at most once,
 with an update fired at most once, one per member (see the file header). -/
@@ -461,7 +467,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
             m.hdr.revision =
               W64 ((kvOpStep (.deleteRange (txn.deleteOpOf key [] false)) σ).rev : Int) ∧
             σ.rev + 4 < 2 ^ 63⌝) ∨
-          ⌜err ≠ GoInterface.nil⌝ }} := by
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hone, #Hrr, #HF, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
@@ -476,7 +482,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     iframe #
     iexact Hau
   iapply HΦ
-  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, -⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, %x, %hx, Hr⟩ | ⟨%Herr, #Hke⟩)
   · ileft
     isplitl []
     · ipureintro; exact Herr
@@ -501,7 +507,9 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
       rfl
     · unfold kvStateOf; simp only; omega
   · iright
-    ipureintro; exact Herr
+    isplitl
+    · ipureintro; exact Herr.1
+    · iexact Hke
 
 /-- `cli.Txn(ctx)` by `New`'s client of the members `ms`: the builder, empty, made from the
 client's `*kv` (which sends a write at most once: `txnWriteOnce`). -/

@@ -51,7 +51,7 @@ theorem kv.Delete.wp_proof
         show (W64 3 = W64 2) = False by decide, ↓reduceIte]
     rw [← Heq]; iexact Hout
   iunfold deleteCallOut at Hout'
-  icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
+  icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
     wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
@@ -64,8 +64,9 @@ theorem kv.Delete.wp_proof
     iframe Hm
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
     · iframe #; ipureintro; exact fun _ => Hce'
+    ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ
     unfold deleteCallOut
     iright

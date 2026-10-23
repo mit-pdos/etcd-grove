@@ -311,7 +311,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
   iapply HΦ
   iframe HR
   iunfold rangeCallOut at Hout
-  icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse⟩)
+  icases Hout with (⟨%Herr, %m, #Hm, #Hq⟩ | ⟨%Herr, #Hse, -⟩)
   rotate_left
   · isplitl
     · unfold kvGetResultC; ileft; ipureintro; exact Herr.1

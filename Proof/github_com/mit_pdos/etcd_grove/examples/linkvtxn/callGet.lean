@@ -50,7 +50,7 @@ theorem callGet.wp_proof (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
   wp_apply (client.client_Get_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ []
     as %resp %err Hout
   · iframe #
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hkvs, hrev, hb⟩ := Hσ
     iunfold rangeRespMsg at Hm

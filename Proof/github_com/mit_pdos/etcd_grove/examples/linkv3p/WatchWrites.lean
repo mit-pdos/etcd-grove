@@ -118,7 +118,7 @@ theorem client_Put_hist [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc)
     iframe Hr
     ipureintro; exact hx
   · iright
-    ipureintro; exact Herr
+    ipureintro; exact Herr.1
 
 end put
 

@@ -46,7 +46,7 @@ theorem callDel.wp_proof : callDel.spec (GF := GF) (hG := hG) := by
     as %resp %err Hout
   · iframe #
     iexact Hau
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hdel, hrev, hb⟩ := Hσ
     iunfold delRespMsg at Hm

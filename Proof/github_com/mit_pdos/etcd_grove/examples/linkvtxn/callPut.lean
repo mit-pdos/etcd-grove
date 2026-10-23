@@ -46,7 +46,7 @@ theorem callPut.wp_proof : callPut.spec (GF := GF) (hG := hG) := by
     as %resp %err Hout
   · iframe #
     iexact Hau
-  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hrev, hb⟩ := Hσ
     iunfold putRespMsg at Hm

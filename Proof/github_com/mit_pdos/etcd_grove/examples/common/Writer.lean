@@ -77,7 +77,7 @@ theorem Writer.wp_proof :
       isplitr; · iExactEq Hnc; rfl
       isplitr; · iExactEq Hone; rfl
       iapply BigAndL.bigAndL_singleton.2; iexact Hau
-    icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | %Herr)
+    icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | ⟨%Herr, -⟩)
     · simp only [List.mem_singleton] at hy
       subst hy Herr
       ihave #Hok := okFact_of_reply E γr [] x.Key' x.Val' _ cid mid m $$ Hr

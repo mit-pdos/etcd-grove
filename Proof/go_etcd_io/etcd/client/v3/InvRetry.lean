@@ -37,7 +37,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk errCellOk errCellOk_nil)
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -47,9 +47,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **An error the client's retry path handles** (persistent): `nil`, or a client error
-(`clientErr`) that grpc's `status` accepts (`statusErrOk`). -/
+(`clientErr`) that grpc's `status` accepts (`statusErrOk`) and that is no caller's `errors.New`
+value (`errCellOk`, D37). -/
 def clientErrOk (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil → clientErr err⌝ ∗ statusErrOk err)
+  iprop(⌜err ≠ GoInterface.nil → clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)
 
 instance clientErrOk_persistent (err : GoInterface) : Persistent (clientErrOk (GF := GF) err) := by
   unfold clientErrOk; infer_instance
@@ -58,7 +59,9 @@ theorem clientErrOk_nil : ⊢ clientErrOk (GF := GF) GoInterface.nil := by
   unfold clientErrOk
   isplitl
   · ipureintro; intro h; exact absurd rfl h
-  · iapply statusErrOk_nil
+  · isplitl
+    · iapply statusErrOk_nil
+    · iapply errCellOk_nil
 
 /-- **The interceptor's options value** `ov`: its backoff function returns. -/
 def optionsOk (ov : go_etcd_io.etcd.client.v3.options) : IProp GF := backoffOk ov.backoffFunc'

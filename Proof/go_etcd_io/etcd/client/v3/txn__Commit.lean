@@ -57,7 +57,7 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     iexists cps, sps, fps
     iframe #
   iunfold txnCallOut at Hres
-  icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
+  icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
@@ -72,8 +72,9 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
+      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw⟩
       · iframe #; ipureintro; exact fun _ => Hce'
+      ihave #Hcl' := Hclw $$ Hcl
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]
       · inext; itrivial
       iapply HΦ

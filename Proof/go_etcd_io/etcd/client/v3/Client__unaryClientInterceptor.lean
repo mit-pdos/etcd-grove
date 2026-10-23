@@ -30,7 +30,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
-open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk errorStringSpec)
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil backoffOk errorStringSpec errCellOk)
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -179,7 +179,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       itrivial
     iapply HΨ
     iframe
-    icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, -⟩)
+    icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, -⟩)
     · ileft; iframe; ipureintro; exact He
     · iright; iframe #; ipureintro; exact He
   have Hmax0 := Hif
@@ -188,7 +188,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       "%Hwa" ∷ ⌜md = AttemptMode.write → a = W64 0⌝ ∗
       "attempt" ∷ attempt_ptr ↦ a ∗ "lastErr" ∷ lastErr_ptr ↦ le ∗ "Hsend" ∷ Req.send inp m ∗
       "Hout" ∷ Rep.own out ∗ "Hpb" ∷ grpcPeerBuf p_ptr ∗
-      "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le)) ∗
+      "#Hle" ∷ (⌜a = W64 0⌝ ∨ (⌜le ≠ GoInterface.nil ∧ clientErr le⌝ ∗ statusErrOk le ∗ errCellOk le)) ∗
       -- (D21 M6) the request's precondition: the first attempt's if ordinary
       "Hp" ∷ (if once then iprop(⌜a = W64 0⌝ -∗ ▷ Spec m Φ') else iprop(□ laterHid (Spec m Φ'))))
     $$ [attempt lastErr Hsend Hout Hpb Hpre]
@@ -220,7 +220,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       iframe
       iright
       iunfold clientErrOk at Hwerr
-      icases Hwerr with ⟨%Hce, #Hse⟩
+      icases Hwerr with ⟨%Hce, #Hse, #Hcl⟩
       iframe #
       ipureintro; exact ⟨by simp, Hce (by simp)⟩
     | nil =>
@@ -267,7 +267,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         iapply BigSepL.bigSepL_nil.2
         itrivial
       icases Hpbs with ⟨Hpb, -⟩
-      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, Hout, %Hnr⟩)
+      icases Hres with (⟨%He, Hm⟩ | ⟨%He, #Hse, #Hcl, Hout, %Hnr⟩)
       · subst He
         (try wp_auto)
         wp_for_post
@@ -397,7 +397,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           iframe
           iright
           iunfold clientErrOk at Hgt
-          icases Hgt with ⟨%Hgce, #Hgse⟩
+          icases Hgt with ⟨%Hgce, #Hgse, #Hgcl⟩
           iframe #
           ipureintro; exact ⟨by simp, Hgce (by simp)⟩
         | nil =>
@@ -447,7 +447,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   · iapply HΨ
     iframe
     iright
-    icases Hle with (%Ha | ⟨%Hl, #Hls⟩)
+    icases Hle with (%Ha | ⟨%Hl, #Hls, #Hlcl⟩)
     · exfalso
       subst Ha
       apply Hif
