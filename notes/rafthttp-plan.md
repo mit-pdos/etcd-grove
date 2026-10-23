@@ -571,9 +571,64 @@ trust-boundary spec.
    over the request's fields but its headers (its docstring's meaning; setting a header keeps it).
    For stage 6: a `410` sends `errMemberRemoved` on `ErrorC`, which `Transport.Start`'s axiom says
    never happens (no member is removed: `IsIDRemoved` is false of every member).
+   **5f (2026-10-23): stage 5's trust items, together.** Every boundary spec a stage-5 proof takes is
+   now an axiom; this stage adds the last three the reader and writer use, `http.respWrite_ok`
+   (`Write` writes a prefix of its bytes, all unless it fails), `ReadFull_resp_ok` (a prefix of
+   some response of the protocol) and `RespCloseAny_ok` (a body closed from any goroutine). The
+   whole list, each accepted by the user at its step: (5b) `linkHeartbeatSize_init`; (5c)
+   `http.errStrOk`'s error tree, `transport.IsClosedConnError`, `rate.Limiter.Wait`,
+   `errUnsupportedStreamType` in rafthttp's `errorsNewVarsInit`, `zap.Bool`,
+   `raftpb.MessageType.String`, `respCloser`; (5d) `types.ID.String` names `idStr`; (5e-1) the
+   response headers (`canonKey` defined, `rhdr`, `respHdrs`, `srvView`, `handlerDone`,
+   `RespHeader_ok`); (5e-2) `types.IDFromString`, `version.Version`'s value, `semverValid_simple`,
+   `HeaderGetPtr_ok`; (5e-3) `semver.New`/`Major`/`Minor`, `httputil.GracefulClose`,
+   `strings.TrimSuffix`, `fmt.ErrorfPlain`, `RoundTrip`'s `respCloser`, `MinClusterVersion_init`,
+   `NewRequest_ok`, `URLString_ok`, `readerHas_nil`, `HeaderSetPtr_ok`, `reqRest`'s fields. Of
+   these only the init facts are reached by a linked result today (the rest wait for stage 6).
+   **Accepted by the user (2026-10-23)**, with the trust check: the one new axiom a linked result
+   reaches is `MinClusterVersion_init` (baseline 549 -> 550).
+   **Left for stage 6** (premises of the stage-5 specs, and Go code to prove): `swMsgBound` (a
+   queued message encodes below `2^50` bytes); `RaftStreamPrefix`'s value (`srCfg`,
+   `streamHandlerOk`); `errcOk` of `ErrorC`, and a `410`'s `errMemberRemoved` there against
+   `Transport.Start`'s axiom; the stream handler's transport facts (`peerGetter.Get`, `AddRemote`);
+   the spec-only helpers `createPostRequest`, `checkPostResponse`,
+   `checkClusterCompatibilityFromHeader`, `checkStreamSupport` (`supportedStream`'s value),
+   `setPeerURLsHeader` (`URL.String` of any URL).
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.
+   **Scoped 2026-10-23.** What is axiomatized today and what replaces it:
+   * Axioms to prove: `Transport.Start` (with what its statement promises of every goroutine and
+     handler: `netTransport`'s `Send`/`Stop`/`SendSnapshot`, `Process` only with messages sent to
+     the member, nothing on `ErrorC`), `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`,
+     `EtcdServer.RaftHandler` (`Handler()`'s mux), and D21 M5's `net/http.Serve` of a raft handler
+     (`Spec/net/http/Serve.lean`), replaced by the HTTP boundary's `Serve_spec` (D33) and
+     `register`. The opaque `transportLive`, `transportRemotes` and `raftHandlerOf` become
+     definitions over the transport's fields (`t.mu` guarding `peers`/`remotes`, the stats, the
+     round trippers, the network's `RaftHttp`).
+   * The network's two layers joined: `RaftHttp` (owner of a host, the stream registry) from
+     `NetNames` (`dir`), allocated with it (`netNames_alloc`), and each member's peer listener
+     registered with `raftProto` (`http.register`), its address a URL of `dir id`.
+   Steps: **6a** the transport's state (the predicates as definitions, `RaftHttp` from `NetNames`,
+   the listener's registration; what the stage-5 specs left as premises: `RaftStreamPrefix`'s value,
+   `errcOk` of `ErrorC`, the stream handler's `peerGetter`/`AddRemote` facts); **6b** the peer and
+   the remote (`startPeer`, `peer.send`/`pick`/`Pause`/`Resume`/`stop`, `startRemote`,
+   `remote.send`, the URL picker's construction) and `Transport.Send` (routing by `To`);
+   **6c** `Handler()` (a mux of the pipeline, stream and snapshot handlers and the prober's),
+   `RaftHandler`, `Serve`; **6d** `Start`, `AddPeer`, `AddRemote`, `CutPeer`, `MendPeer`, `Stop`;
+   **6e** the spec-only helpers (`createPostRequest`, `checkPostResponse`,
+   `checkClusterCompatibilityFromHeader`, `checkStreamSupport`, `setPeerURLsHeader`) and
+   `swMsgBound`; **6f** linking (`etc/gen-link.py --server`), the trust base's delta.
+   Decisions, **the user chose the recommendation in each (2026-10-23)**:
+   (1) **the snapshot stream** (`SendSnapshot`, the snapshot sender and handler: untranslated,
+   D22's contract): keep it as a trust-boundary axiom, cut out of `Start`'s at the snapshot
+   sender's and handler's own functions; (2) **`ErrorC`**: `netRaftOk`'s `IsIDRemoved` returns
+   `false` (the server's spec already says so: static membership), so the stream handler never
+   answers `410` and the protocol says it (`raftProto`'s stream responses are not `410`), keeping
+   `Start`'s "nothing on `ErrorC`"; (3) **`swMsgBound`**: let `Counter.Add` of a negative value panic
+   in its spec (Go's behavior), which the writer's goroutine may, instead of a physical bound on a
+   message's size; (4) **the prober** (`addPeerToProber`, `probing`, untranslated): a
+   trust-boundary axiom (it only measures round trips and logs).
 
 ## Costs and risks
 

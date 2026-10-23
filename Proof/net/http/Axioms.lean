@@ -3,8 +3,7 @@
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
 statement's docstring in `Boundary.lean`); the specs not listed (`Serve_spec`, `respRead_spec`,
-`respWrite_spec`, `HeaderGet_spec`, `ReadFull_resp_spec`, the mux's) stay statements until a proof
-uses them.
+`HeaderGet_spec`, the mux's) stay statements until a proof uses them.
 
 Soundness of the specs stated for any `HttpNet` (`Error_ok`, ...): their resources
 (`respWriter H`, `respReader H`) come only from `Serve` and `RoundTrip`, which need an address's
@@ -83,6 +82,17 @@ axiom NewRequest_ok : NewRequest_spec (GF := GF)
 
 /-- (stage 5e-3) `url.URL.String` of a plain URL (`URLString_spec`). -/
 axiom URLString_ok : URLString_spec (GF := GF)
+
+/-- (2026-10-23, stage 5f: the stream writer's) `ResponseWriter.Write` (`respWrite_spec`): writes a
+prefix of its bytes, all unless it fails (`io.Writer`'s contract). -/
+axiom respWrite_ok (H : HttpNet GF) : respWrite_spec H
+
+/-- (stage 5f: the stream reader's) `io.ReadFull` of a response body (`ReadFull_resp_spec`). -/
+axiom ReadFull_resp_ok (H : HttpNet GF) : ReadFull_resp_spec H
+
+/-- (stage 5f: the stream reader's `stop`) a response body's `Close` from any goroutine
+(`RespCloseAny_spec`; Go's body supports a `Close` concurrent with a `Read`). -/
+axiom RespCloseAny_ok : RespCloseAny_spec (GF := GF)
 
 /-- (stage 5e-3) `nil` is a reader of no bytes, an empty request body (`readerHas`'s docstring,
 `NewRequest`'s `nil` body). -/

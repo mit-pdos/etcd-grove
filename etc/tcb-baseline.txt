@@ -74,6 +74,7 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.opaqueInitsOk
+axiom Perennial.go_etcd_io.etcd.api.v3.version.MinClusterVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.V3_6_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.Version_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
