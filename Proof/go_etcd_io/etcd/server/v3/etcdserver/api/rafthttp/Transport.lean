@@ -127,6 +127,13 @@ instance remoteOk_persistent (Rh : RaftHttp GF) (lid pid : w64) (R : IProp GF) (
 def remoteStop (Rh : RaftHttp GF) (pid : w64) (R : IProp GF) (g : Loc) : IProp GF :=
   iprop(∃ pl : Loc, g.[rafthttp.remote, go!"pipeline"] ↦□ pl ∗ pipeStarted Rh pl pid R)
 
+/-- **A message the member `lid` sends** (what `Transport.Send` takes; stage 6c): `peerMsg`'s but
+for its recipient, `Send`'s routing (by `To`). -/
+def sendMsg (Rh : RaftHttp GF) (lid : w64) (ml : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+    ⌜MsgMarshals st ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
+      (st.msg.Type' = MsgApp → AppShape st ∧ st.msg.From' = lid) ∧ swMsgBound ml⌝)
+
 end defs
 
 section lemmas

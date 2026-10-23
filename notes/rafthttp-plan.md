@@ -661,6 +661,14 @@ trust-boundary spec.
    `remoteStop`, `startRemote` (four `R`s), `remote.send` (over `pipeMsg`), `remote.stop`. Next, 6c:
    the transport's lock invariant (`t.mu`, `peers`/`remotes` maps to `peerOk`/`remoteOk`), `Get`,
    `Send` (its bundle gaining the sender and raft's shape), `Handler`.
+   **6c, first part (2026-10-23).** `rafthttp/TransportInv.lean`: `trLockP` (fractional, `t.mu`'s:
+   the two maps, `nil` once stopped (`mapOrNil`), their entries' `peerOk`/`remoteOk`, half of a ghost
+   record of them), `trStopInv` (the other half, with every entry's stop right: `Stop` takes them
+   under the write lock), `trReadTok` (a reader's token: `Send`'s caller, a handler's `Get`),
+   `wp_lookup2_mapOrNil`. Proved: `Transport.Get`, `Transport.Send` (over `sendMsg`, a message the
+   member sends: `peerMsg`'s but its recipient; routed by `To` to `peer.send` (with
+   `ServerStats.SendAppendReq` for a `MsgApp`), `remote.send`, or dropped and logged). New boundary
+   spec, for review: `v2stats.ServerStats.SendAppendReq` (no-op, as `RecvAppendReq`).
 
 ## Costs and risks
 
