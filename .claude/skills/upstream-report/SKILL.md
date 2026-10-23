@@ -16,7 +16,8 @@ From one finding, `issues/<slug>.md`, produce for the user to review:
 Never push, file, or comment on GitHub unless the user asks; a branch already pushed is replaced only by a
 force-push the user approved. Aim for a candidate the user can file as it is. `example/` holds approved candidates:
 `issue.md`/`pr.md` (an `etcdctl` example) and `raft-issue.md`/`raft-pr.md` (a test example, the shape after the
-2026-10-18 review): match their shape, length and tone.
+2026-10-18 review): match their shape, length and tone. `raft-issue.md` predates the 2026-10-23 review: a raft
+issue now has its content without its sections, and explains the cause too ("The issue").
 
 | Target | Clone | Remotes |
 |---|---|---|
@@ -134,13 +135,20 @@ worktree, git in `~/etcd*` is refused: leave the worktree (keep) for that work a
 
 ## The issue
 
-The bug-report form's sections, as in `example/`. Only the symptom, the expectation and the reproduction: no root
-cause, code names, code links, history, other issues, or claims about other releases.
+For etcd, the bug-report form's sections, as in `example/`. Only the symptom, the expectation and the
+reproduction: no root cause, code names, code links, history, other issues, or claims about other releases.
 
-bbolt's issue form is free-form (no template): no headings. Write the same content as plain paragraphs, in this
-order: the symptom with the setup it needs (base commit, Go version and platform, options) in the first sentence,
-the steps, the expectation in one sentence, the test link and its output, then any question, then the disclosure
-(the 2026-10-23 review). The sections below say what each part contains.
+bbolt's and raft's issue forms are free-form (no template; raft has none, and etcd's structured sections read as
+boilerplate there): no headings. Write the same content as plain paragraphs, in this order: the symptom with the
+setup it needs (base commit, Go version and platform, options) in the first sentence, the steps, the expectation
+in one sentence, (raft) the cause, the test link and its output, then any question, then the disclosure (the
+2026-10-23 reviews). The sections below say what each part contains.
+
+A raft issue explains the bug as well as the symptom (the 2026-10-23 review): after the expectation, one paragraph
+saying what raft's code does at each step of the example and which assumption fails, naming the functions, with
+permalinks at the base (`https://github.com/etcd-io/raft/blob/<sha>/<path>#L<a>-L<b>`, the full sha), so that a
+maintainer sees from the issue alone why it happens. Say what is wrong, not how to fix it: the change and its
+alternatives stay in the PR and `meta.md`.
 
 - **Title**: the symptom and the condition, covering every case the issue shows.
 - **What happened?** The configuration that matters ("With `ReadOnlySafe`:"), then, for more than two events,

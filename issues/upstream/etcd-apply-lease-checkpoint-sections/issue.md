@@ -6,7 +6,7 @@ With lease checkpoints enabled and persisted, and `--backend-batch-limit=1`:
 
 1. Leases 1 and 2 are granted with a TTL of 600.
 2. The member applies entry 3, a lease checkpoint request setting the remaining TTL of both leases to 100.
-3. Between the two checkpoints, the backend commits consistent index 3 with remaining TTL 100 for lease 1 and the old 0 for lease 2.
+3. Between applying lease 1's checkpoint and lease 2's, the backend commits consistent index 3 with remaining TTL 100 for lease 1 and the old 0 for lease 2.
 
 The test below runs these steps (output trimmed):
 
@@ -22,7 +22,7 @@ This can happen on any member persisting lease checkpoints whose backend commits
 
 ### What did you expect to happen?
 
-The commit persisting consistent index 3 should also persist lease 2's checkpoint: a member restarting from it does not apply entry 3 again.
+The commit persisting consistent index 3 should also persist lease 2's checkpoint: a member restarting from that commit does not apply entry 3 again, so it would keep lease 2's old remaining TTL.
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 

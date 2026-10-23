@@ -6,7 +6,7 @@ In Raft, a member's log has no term above the member's current term. In a cluste
 
 1. While member 1 is slow to save a Ready (a slow disk), member 1, still leader, makes a `MsgSnap` of term 1 for each of members 4 and 5.
 2. Before that save returns, member 1 steps down to follow member 2 at term 2. Its next Ready carries both `MsgSnap`s.
-3. Member 1 applies an entry of term 2, then sends member 5 a `MsgSnap` of term 1 whose snapshot has term 2.
+3. Member 1 applies an entry of term 2, and only then builds the snapshot it sends member 5, from what it has applied: the `MsgSnap` is of term 1, but its snapshot has term 2.
 4. Member 5, still at term 1, installs the snapshot: its log ends at term 2.
 
 The test below feeds etcd's server member 1's Readys from a fake raft node and delivers the `MsgSnap` to member 5, a raft node (output trimmed):
@@ -27,7 +27,7 @@ Member 5's log should not end at a term above 1: a `MsgSnap` of term 1 should ca
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Unit test: [`TestMergedSnapshotTerm`](https://github.com/upamanyus/etcd/blob/fix/etcd-merged-snapshot-stale-term/server/etcdserver/server_test.go#L759-L884) on branch [`upamanyus/etcd:fix/etcd-merged-snapshot-stale-term`](https://github.com/upamanyus/etcd/tree/fix/etcd-merged-snapshot-stale-term), off `main` (3aaab3479). On `main` it fails as above, in 20 runs of 20.
+Unit test: [`TestMergedSnapshotTerm`](https://github.com/upamanyus/etcd/blob/fix/etcd-merged-snapshot-stale-term/server/etcdserver/server_test.go#L759-L884) on branch [`upamanyus/etcd:fix/etcd-merged-snapshot-stale-term`](https://github.com/upamanyus/etcd/tree/fix/etcd-merged-snapshot-stale-term), off `main` (3aaab3479). On `main` it fails as above in 20 of 20 runs.
 
 ### Anything else we need to know?
 

@@ -31,7 +31,7 @@ theorem mvcc.keyIndex.restoreTombstone.wp_proof
   wp_start as ⟨%Hlg, Hki⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec⟩, -⟩
+  icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec, -⟩, -⟩
   iunfold gaugeSpec at Hgspec
   icases Hgspec with ⟨-, #HDec, -⟩
   wp_auto

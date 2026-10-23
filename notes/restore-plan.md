@@ -1,8 +1,9 @@
 # Plan: prove `store.restore` and close `store.Restore`
 
 Status: R0 done (2026-10-23, branch `restore-r0`); R1 done (2026-10-23, branch `restore-r1`, see
-"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2 done and R4 started
-(2026-10-23, branch `restore-r4`, see "R4's progress"); R5, R6 to do. Removes two of mvcc's trust-boundary axioms,
+"R1's findings"); R3 done (2026-10-23, branch `restore-r3`, see "R3's progress"); R2 done and R4 done
+for the empty bucket (2026-10-23, branches `restore-r4`, `restore-r4b`, see "R4's progress"); R5
+(with `restore` of a bucket with data), R6 to do. Removes two of mvcc's trust-boundary axioms,
 `mvcc.store.restore.wp_proof` and `mvcc.store.Restore.wp_proof` (539 to 537), both on the snapshot
 receiver's path (D22: `applySnapshot` → `watchableStore.Restore` → `store.Restore` → `restore`) and
 `restore` on every boot (`NewStore`). Follows the spec check of 2026-10-23 (`notes/STATUS.md`): both
@@ -198,6 +199,23 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
      show the real `rtTok` splits (the bbolt transaction's pages are immutable while it is open).
    Also needed: `RT` (a reader's token, which `ReadTx` takes) in `restore`'s spec, lent by
    `NewStore` from its slots.
+4. *Option 1, done (branch `restore-r4b`)*: R4b and R4d need changes to the backend's invariant
+   (an "empty read buffer" token, a split reader's token), so `restore` is proved for the bucket
+   `NewStore` hands it, the empty one (`bucketView γ q ∅`), and the rest moves to R5:
+   - `restore`'s spec takes the empty bucket, `RT` (lent by `NewStore` from its slots) and
+     `kbNoCmp`; `mvcc.store.restore.wp_proof` is a theorem.
+   - The contract has a range read with any limit, `keyRangeLimSpec`: the answer is a `Sublist`
+     of the range, which is what the real read gives (a prefix of bbolt's window, then a prefix
+     of the buffer's; `rtRange_sublist`, `rt_rangeLim` in `BackendBridge.lean`). Weak, but enough
+     for an empty bucket (the first chunk is empty, the loop ends), and true without R4b's premise.
+   - R4c: `metaReadSpec rt nc` with `nc = true` says a compaction key read finds nothing;
+     `UnsafeReadFinishedCompact`/`UnsafeReadScheduledCompact` take `nc` and answer "not found"
+     under it; one new axiom, `mvcc.kbNoCmp_metaNone` (`NoCmpRead.lean`): under `kbNoCmp` a key
+     read transaction's `Meta` reads find no compaction key. It is an axiom because the bridge
+     says nothing about the `Meta` bucket (the hook's); its docstring says why it holds.
+   - `keysGauge` got `Set` (`gaugeSetSpec`, `etc/gen-init.py`).
+   - Left for R5: `restore` of a bucket with data, which needs R4b's premise (or a chunk loop
+     over the `Sublist` contract with a progress argument) and R4d's split token.
 
 **R5. `store.Restore`.** The translated body over R4's spec, the ghost moves its spec's "why it is
 true" paragraph lists, as `InvStore` lemmas:

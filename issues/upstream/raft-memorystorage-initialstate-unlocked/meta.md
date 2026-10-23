@@ -106,7 +106,8 @@ test_amd64.yaml` runs target `linux-amd64-unit-4-cpu-race`, which `test_template
   storage.go:133 in `InitialState`), and the `-race` binary fails 20/20; at 15190e3 the test passes (`-count=20`),
   `go test -race -count=1 ./...` ok in all six packages, `gofmt -l .` empty, `go vet ./...` clean.
 - `check.py`: one WARN, the issue names `InitialState`; kept, as it is the exported `Storage` method the
-  application calls and the symptom is about.
+  application calls and the symptom is about. Since the issue's free-form rewrite with the cause (2026-10-23
+  review), no WARN: a raft issue names the code it explains.
 
 ## Review
 

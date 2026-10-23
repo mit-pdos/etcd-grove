@@ -113,11 +113,6 @@ axiom dbCompactionKeysCounter_init :
     {{ (True : IProp GF) }} (App (Val dbCompactionKeysCounter.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦ GoInterface.ok m ∗ counterSpec m }}
 
-/-- `keysGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
-axiom keysGauge_init :
-    {{ (True : IProp GF) }} (App (Val keysGauge.init) (Val #()))
-    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr keysGauge ↦ GoInterface.ok m ∗ gaugeSpec m }}
-
 /-- `watchStreamGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
 axiom watchStreamGauge_init :
     {{ (True : IProp GF) }} (App (Val watchStreamGauge.init) (Val #()))
@@ -142,6 +137,11 @@ axiom totalPutSizeGauge_init :
 axiom slowWatcherGauge_init :
     {{ (True : IProp GF) }} (App (Val slowWatcherGauge.init) (Val #()))
     {{ RET #(); ∃ m : GoInterfaceOk, globalAddr slowWatcherGauge ↦ GoInterface.ok m ∗ gaugeSpec m ∗ gaugeSetSpec m }}
+
+/-- `keysGauge = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
+axiom keysGauge_init :
+    {{ (True : IProp GF) }} (App (Val keysGauge.init) (Val #()))
+    {{ RET #(); ∃ m : GoInterfaceOk, globalAddr keysGauge ↦ GoInterface.ok m ∗ gaugeSpec m ∗ gaugeSetSpec m }}
 
 /-- `dbCompactionLast = prometheus.NewGauge(...)` (`metrics.go`): a `Gauge`, whose `Inc`, `Dec`, `Add`, `Set` return. -/
 axiom dbCompactionLast_init :
@@ -270,7 +270,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply putCounter_init as ⟨%mputCounter, HputCounter, #S0putCounter⟩
   wp_apply deleteCounter_init as ⟨%mdeleteCounter, HdeleteCounter, #S0deleteCounter⟩
   wp_apply txnCounter_init as ⟨%mtxnCounter, HtxnCounter, #S0txnCounter⟩
-  wp_apply keysGauge_init as ⟨%mkeysGauge, HkeysGauge, #S0keysGauge⟩
+  wp_apply keysGauge_init as ⟨%mkeysGauge, HkeysGauge, #S0keysGauge, #S1keysGauge⟩
   wp_apply watchStreamGauge_init as ⟨%mwatchStreamGauge, HwatchStreamGauge, #S0watchStreamGauge⟩
   wp_apply watcherGauge_init as ⟨%mwatcherGauge, HwatcherGauge, #S0watcherGauge⟩
   wp_apply slowWatcherGauge_init as ⟨%mslowWatcherGauge, HslowWatcherGauge, #S0slowWatcherGauge, #S1slowWatcherGauge⟩
@@ -317,12 +317,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HdeleteCounter
   ipersist HtxnCounter
   ipersist HdbCompactionKeysCounter
-  ipersist HkeysGauge
   ipersist HwatchStreamGauge
   ipersist HwatcherGauge
   ipersist HpendingEventsGauge
   ipersist HtotalPutSizeGauge
   ipersist HslowWatcherGauge
+  ipersist HkeysGauge
   ipersist HdbCompactionLast
   ipersist HindexCompactionPauseMs
   ipersist HdbCompactionPauseMs

@@ -23,13 +23,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `UnsafeReadFinishedCompact(tx)` over a reader of the `Meta` bucket's compaction keys (`metaReadSpec`: what the
 store wrote there, `RevToBytes(Revision{Main: x})`, `x ≥ 0`; which one is not modelled): the main
-revision read and `true`, or `0` and `false` (none). -/
+revision read and `true`, or `0` and `false` (none); over a reader that finds nothing (`nc`:
+the restore plan's R4c), `0` and `false`. -/
 abbrev mvcc.UnsafeReadFinishedCompact.spec : Prop :=
-  ∀ (rt : GoInterfaceOk),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ □ mvcc.metaReadSpec rt }}
+  ∀ (rt : GoInterfaceOk) (nc : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ □ mvcc.metaReadSpec rt nc }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact)) (Val #(GoInterface.ok rt)))
   {{ (x : w64) (found : Bool), RET (PairV #x #found);
-      ⌜(found = true → 0 ≤ sint.Z x) ∧ (found = false → x = W64 0)⌝ }}
+      ⌜(found = true → 0 ≤ sint.Z x) ∧ (found = false → x = W64 0) ∧
+        (nc = true → found = false)⌝ }}
 
 end spec
 

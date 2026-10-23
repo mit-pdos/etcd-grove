@@ -306,6 +306,8 @@ No FAIL. WARNs, decided:
   and `storageAppendHeld`'s doc says why nothing goes to the append thread and why it never holds without
   `AsyncStorageWrites`, neither of which the code shows; `restore`'s doc comment is updated to what it now does;
   "This should never happen ..." moved with the code from `restore`.
-- The issue's 272 words (aim 250): kept; it shows two cases (wrong configuration and panic) and both modes.
+- The issue's 386 words (aim 380, rewritten free-form with the cause after the 2026-10-23 review): kept; it shows
+  two cases (wrong configuration and panic) and both modes, and the cause needs why nothing repairs the
+  configuration later (the resent snapshot is ignored).
 - The PR's words (aim 90): kept; the approved raft example has 136, and the change needs both halves (the
   switch in `appliedSnap`, the hold with `AsyncStorageWrites`) plus the overlap note.

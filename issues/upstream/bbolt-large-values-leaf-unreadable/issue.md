@@ -15,9 +15,9 @@ go.etcd.io/bbolt.(*Cursor).seek(0x3be964cc7c90, {0x3be964cc7d04?, 0x5e51ca?, 0x7
 go.etcd.io/bbolt.(*Bucket).Get(0x736fa8?, {0x3be964cc7d04, 0x1, 0x71dae4?})
 ```
 
-The same happens whenever bbolt writes values adding up to more than 2 GiB to one page, as it does for the values of a bucket of up to four keys: the values are committed, and reading them panics. `Get` should return each value committed in step 1.
+This happens whenever values adding up to more than 2 GiB are written to one page: the values are committed, and reading them panics. A bucket of at most four keys always has all its values on one page, since bbolt does not split a leaf that small. `Get` should return each value committed in step 1.
 
-The test above (about 5 GB of memory), in `db_test.go`:
+The test above, in `db_test.go`, needs about 5 GB of memory:
 
 <details>
 
@@ -60,7 +60,7 @@ func TestDB_HugeValues(t *testing.T) {
 
 </details>
 
-Without the memory, [`TestNode_split_MaxAllocSize`](https://github.com/upamanyus/bbolt/blob/fix/bbolt-large-values-leaf-unreadable/node_test.go#L171-L188) (branch [`fix/bbolt-large-values-leaf-unreadable`](https://github.com/upamanyus/bbolt/tree/fix/bbolt-large-values-leaf-unreadable)) checks that the leaf holding these two values is split into pages of at most 2147483647 bytes, the largest page `Get` can read. On `main` it fails:
+A test that needs no such memory, [`TestNode_split_MaxAllocSize`](https://github.com/upamanyus/bbolt/blob/fix/bbolt-large-values-leaf-unreadable/node_test.go#L171-L188) (branch [`fix/bbolt-large-values-leaf-unreadable`](https://github.com/upamanyus/bbolt/tree/fix/bbolt-large-values-leaf-unreadable)) checks that the leaf holding these two values is split into pages of at most 2147483647 bytes, the largest page `Get` can read. On `main` it fails:
 
 ```
     node_test.go:185: exp<=2147483647; got=2147483710
