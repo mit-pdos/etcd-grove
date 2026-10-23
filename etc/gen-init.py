@@ -815,11 +815,13 @@ def _metric(x, kind, preds, file='metrics.go'):
     return dict(doc=f'/-- `{x} = prometheus.{ctor}(...)` (`{file}`): {what}. -/', post=post, pat=pat)
 
 _MV_CNT = ['rangeCounter', 'putCounter', 'deleteCounter', 'txnCounter', 'dbCompactionKeysCounter']
-_MV_GAU = ['keysGauge', 'watchStreamGauge', 'watcherGauge', 'pendingEventsGauge', 'totalPutSizeGauge']
+_MV_GAU = ['watchStreamGauge', 'watcherGauge', 'pendingEventsGauge', 'totalPutSizeGauge']
 _MV_HIS = ['indexCompactionPauseMs', 'dbCompactionPauseMs', 'dbCompactionTotalMs']
 _mv_custom = {x: _metric(x, 'counter', ['counterSpec']) for x in _MV_CNT}
 _mv_custom.update({x: _metric(x, 'gauge', ['gaugeSpec']) for x in _MV_GAU})
 _mv_custom['slowWatcherGauge'] = _metric('slowWatcherGauge', 'gauge', ['gaugeSpec', 'gaugeSetSpec'])
+# (restore plan R4) `restore` sets it (`keysGauge.Set(0)`)
+_mv_custom['keysGauge'] = _metric('keysGauge', 'gauge', ['gaugeSpec', 'gaugeSetSpec'])
 _mv_custom['dbCompactionLast'] = _metric('dbCompactionLast', 'gauge', ['gaugeSetSpec'])
 _mv_custom.update({x: _metric(x, 'hist', ['histSpec']) for x in _MV_HIS})
 _mv_custom['defaultCompactionBatchLimit'] = dict(

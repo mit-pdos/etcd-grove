@@ -897,8 +897,6 @@ axiom MemberUpdateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom MemberUpdateResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom MemberListRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom MemberListResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom MemberPromoteRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -6658,18 +6656,54 @@ attribute [instance] MemberUpdateResponse.TypeAssumptions.type_repr
   MemberUpdateResponse.TypeAssumptions.underlying
   MemberUpdateResponse.TypeAssumptions.isUnderlying
 
-axiom MemberListRequest : Type
-axiom MemberListRequest.zero_val : ZeroVal MemberListRequest
-attribute [instance] MemberListRequest.zero_val
+structure MemberListRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Linearizable' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance MemberListRequest.zero_val [FfiSyntax] : ZeroVal MemberListRequest :=
+  ⟨MemberListRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def MemberListRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Linearizable" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def MemberListRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  MemberListRequest.fieldsUnsealed
+
+instance equals_unfold_MemberListRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold MemberListRequest.fields MemberListRequest.fieldsUnsealed :=
+  ⟨by unfold MemberListRequest.fields; rfl⟩
+
+@[reducible] def MemberListRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType MemberListRequest.fields)
 
 class MemberListRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MemberListRequest.underlying MemberListRequest
   underlying : go.UnderlyingDirectedEq MemberListRequest.ty MemberListRequest.underlying
-  isUnderlying : go.IsUnderlying MemberListRequest.underlying MemberListRequest.underlying
+  get_state : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : MemberListRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : MemberListRequest)))
+  get_Linearizable : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"Linearizable") #x (Val #(x.Linearizable'))
+  set_Linearizable : ∀ (x : MemberListRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"Linearizable") (PairV #x #y) (Val #(({ x with Linearizable' := y } : MemberListRequest)))
+  get_unknownFields : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : MemberListRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : MemberListRequest)))
+  get_sizeCache : ∀ (x : MemberListRequest), go.IsGoStepPureDetTagged under (StructFieldGet MemberListRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : MemberListRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet MemberListRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : MemberListRequest)))
 
 attribute [instance] MemberListRequest.TypeAssumptions.type_repr
   MemberListRequest.TypeAssumptions.underlying
-  MemberListRequest.TypeAssumptions.isUnderlying
+  MemberListRequest.TypeAssumptions.get_state
+  MemberListRequest.TypeAssumptions.set_state
+  MemberListRequest.TypeAssumptions.get_Linearizable
+  MemberListRequest.TypeAssumptions.set_Linearizable
+  MemberListRequest.TypeAssumptions.get_unknownFields
+  MemberListRequest.TypeAssumptions.set_unknownFields
+  MemberListRequest.TypeAssumptions.get_sizeCache
+  MemberListRequest.TypeAssumptions.set_sizeCache
 
 axiom MemberListResponse : Type
 axiom MemberListResponse.zero_val : ZeroVal MemberListResponse

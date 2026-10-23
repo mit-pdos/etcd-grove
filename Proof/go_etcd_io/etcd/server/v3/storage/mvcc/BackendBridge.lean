@@ -745,6 +745,39 @@ theorem windows_range (Cs Rs : List Ent) (C : BktData) (m : Bucket) (klo khi : G
         rw [hl, Option.none_or] at h1
         exact Or.inl ⟨h1, h2, h3⟩
 
+/-- **A limited range of a safe `Key` bucket** in a readers' state is a sublist of the bucket's
+range: a prefix of bbolt's window, then a prefix of the read buffer's (the restore plan's R4b). -/
+theorem rtRange_sublist {P : BParams} (hP : bridgeParams P) {rv : RView} (hR : rv.2.Wf)
+    (hs : keySafe rv) {m : Bucket} (hv : keyView (vData P rv) m) (klo khi : GoString)
+    (hne : khi ≠ []) (lim : w64) :
+    (rtRange rv keyBI klo khi lim).Sublist (bucketRange m klo khi) := by
+  have hk := hP.1
+  unfold BParams.has keyBI at hk
+  simp only at hk
+  have hRsort : entsSorted (bkOf rv.2.bks (W64 1)) := by
+    unfold bkOf
+    cases h : rv.2.bks.lookup (W64 1) with
+    | none => exact entsSorted_nil
+    | some es => exact hR _ es h
+  have hm : ∀ k, m.lookup k = (lastVal (bkOf rv.2.bks (W64 1)) k).or
+      ((bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName).lookup k) := by
+    intro k
+    rw [← vOf_key hP hv k]
+    unfold vOf ovB
+    rw [hk, Option.bind_some, dget_bktOf]
+  have hwin := windows_range (bktEnts (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName))
+    (bkOf rv.2.bks (W64 1)) (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName) m klo khi
+    (mem_bktEnts _) (bktEnts_sorted _) hRsort hm hs.1
+  rw [← hwin]
+  unfold rtRange
+  simp only [show keyBI.id = W64 1 from rfl,
+    show keyBI.name = go_etcd_io.etcd.server.v3.storage.schema.keyName from rfl]
+  rw [bbRange_window _ _ _ _ hne]
+  split
+  · exact (List.take_sublist _ _).trans (List.sublist_append_right _ _)
+  · rw [cursorRange_window _ _ _ _ hne]
+    exact (List.take_sublist _ _).append (List.take_sublist _ _)
+
 /-- **A range of a safe `Key` bucket** in a readers' state is the bucket's range: bbolt's
 window then the read buffer's, the latter's keys above the former's. -/
 theorem rtRange_safe {P : BParams} (hP : bridgeParams P) {rv : RView} (hR : rv.2.Wf)
@@ -935,6 +968,43 @@ theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
   iunfold rtTok
   iframe
 
+/-- The held shared read transaction's limited range read of a safe `Key` bucket (R4b). -/
+theorem rt_rangeLim (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b rt rtx : Loc)
+    (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ⊢
+      keyRangeLimSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
+        m (rdB rtx) (rtTok γ P b rtx rv qo) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe⟩
+  iunfold keyRangeLimSpec
+  iintro %bk %lo %hi %klo %khi %dqlo %dqhi %lim !> %Φ ⟨#HK, Ht, Hlo, Hhi, %Hne⟩ HΦ
+  iunfold rtTok at Ht
+  icases Ht with ⟨Hh, Ho⟩
+  ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
+  icases rtHeld_wf γ P b rtx rv $$ Hh with ⟨Hh, %Hwf⟩
+  icases rtHeld_safe γ P b rtx rv $$ Hh with ⟨Hh, %Hsf⟩
+  iunfold keySized at Hsafe
+  icases Hsafe $$ %rtx %rv Hh with ⟨Hh, %Hsz⟩
+  have Hks := keySafe_of hP Hsf Hsz
+  ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
+  iapply wp_fupd
+  wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi lim Hiff
+      (Or.inr rfl) hP.1) $$ [$Hb $Hrt $Hh $Ho $Hbk $Hlo $Hhi] as %ks %vs ⟨Hh, Ho, Hlo, Hhi, Hout⟩
+  imod kvsOutRd_pairVals rtx ks vs _ $$ Hout with #Hkv
+  imodintro
+  iapply HΦ
+  iframe Hlo Hhi
+  iunfold rtTok
+  iframe Hh Ho
+  iexists _
+  iframe Hkv
+  ipureintro; exact rtRange_sublist hP Hwf Hks hv klo khi Hne lim
+
 end snaps
 
 /-! ## The read transactions -/
@@ -1020,9 +1090,13 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
   · iintro !>
     iapply rt_keyRange hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv $$ [$Hpkg $Hsch $Hb $Hrt]
   isplitr
-  · iintro !>
-    iapply rt_rangeRead hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv
-      $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
+  · isplitr
+    · iintro !>
+      iapply rt_rangeRead hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv
+        $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
+    · iintro !>
+      iapply rt_rangeLim hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv
+        $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
   iunfold rdCap
   iintro !> %s %v #HRd Ht
   iunfold rtTok at Ht

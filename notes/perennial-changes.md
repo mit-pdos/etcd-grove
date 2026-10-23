@@ -436,3 +436,15 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   Perennial's translation (no assumption).
 - **Proposed change.** The same lemmas in Perennial's `Proof/sync` (for `Mutex` and `RWMutex`),
   stated for any number of nested readers if needed; not yet designed.
+
+### `wp_apply` of a hypothesis fails as "unsolved goals" at the proof's `by`
+
+- **Missing.** In `mvcc.store.restore.wp_proof` (2026-10-23), `wp_apply Hru $$ [$Htok]` (an
+  Iris hypothesis, the read transaction's `RUnlock` triple from `keyReadLocked`) failed with
+  "unsolved goals" reported at the theorem's `:= by`, the goal shown being the call, and the
+  tactics after it never ran (a `fail` after it did not fire). The same call is applied this way
+  in `storeTxnRead__End.lean`.
+- **Workaround here.** `wp_bind` the call, then `iapply Hru $$ [Htok]`, `iexact Htok`, `inext`,
+  `iintro`.
+- **Proposed change.** Not designed: a minimal reproduction first; the tactic should report
+  where and why it fails.

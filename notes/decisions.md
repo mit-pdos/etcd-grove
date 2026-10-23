@@ -16709,6 +16709,84 @@ the model's state, so that S3 can re-prove the checks to compute `permitted`.
 base grows by the two `proto.Unmarshal` specs (`etc/tcb-baseline.txt` updated; the `server`
 collection).
 
+## A2 of the auth plan: the API layer's guards and the entry points they guard (2026-10-23 · `notes/auth-plan.md`, branch `auth-a2`)
+
+**Problem.** The advisories' methods outside the KV and watch services (the maintenance
+operations, `Compact`, the membership operations, the lease entry points) check at the API layer
+with one of two guards and then call an inner operation that is names only. A2 states and proves
+what a passing guard establishes, and that each guarded entry point calls its inner operation
+only after a passing guard, without translating the operations (`configure`, the
+`maintenanceServer` methods, `raftRequest`'s lease path) and without axioms for them.
+
+**Decisions.**
+
+- **Two tokens, one per guard** (`Proof/.../etcdserver/AuthGuard.lean`): `adminRes M ai` (the
+  admin check passed for the auth info `ai`, `none` a `nil` pointer: in `on γa` a recorded state
+  at which `ai` is admin, `adminVerdict`'s first half at `nil`; nothing in `off` and `any`) and
+  `authedRes M ai` (the authenticated-user check: auth disabled at a recorded state, or
+  `ai = some _`); the checks' outcomes `adminOut M err` and `authedOut M err` (`applyErrIs err`,
+  the token for some auth info on `nil`; `authedOut` also `M.isOn = false → err = nil`, and
+  `enabledVerdict M true` on an error). The admin guard's error may be `AuthInfoFromCtx`'s, which
+  the request side's contract `isReqAuth` leaves free, so `adminOut` says nothing of the mode.
+  *Rejected:* exposing the auth info's fields in the token (`isReqAuth` does not bind the token
+  to a principal, S5's; the token names what the pin establishes today).
+- **The inner operation's triple is a contract whose precondition carries the token**
+  (`v3rpc/InvAuthAdmin.lean`: `guardedOk2 tok Pin RD t m rcv ctx r Q`, `guardedSnapOk`,
+  `compactOk`; `AuthGuard.lean`: `configureRemoveOk`). The wrapper's spec takes the contract and
+  answers the inner call's answer or a refusal with the caller's `Pin` untouched (`guardOut`,
+  `guardOut1`, `compactOut`). So the inner operation runs only after a passing check (the token
+  is the only way to its triple), and with auth off always. *Rejected:* a `wp_proof` hypothesis
+  per inner method whose Spec states a caller-chosen triple (the same contract, with a spec file
+  per names-only callee); an axiom per callee (the trust base). The contracts are definitions,
+  not inline triples in the precondition: `wp_start` rewrites the first `methods` term of the
+  goal with its `MethodUnfold` instance (`wp_method_call`), and a names-only method has none, so
+  an inline triple fails `wp_start` (the first attempt did).
+- **The server's auth fields in one predicate** (`srvAuthAt s E`: `authStore` with `isReqAuth`,
+  `ClientCertAuthEnabled`, `apply.isAuthStore` in the mode `E.authMode`; from the proposer's and
+  the reader's views of the server, `srvAuthAt_of_views`); the `*AuthAdmin`'s getter is the server
+  (`authAdminIs aa s E`), the `*authMaintenanceServer`'s two embedded pointers `amsIs p ms aa`.
+  `kvServer.Compact`'s spec takes the `aa` field as a premise: `kvServerIs` does not record it,
+  and recording it changes `NewKVServer`'s closed statement (a follow-up).
+- **A premise the contracts lack: `IsAdminPermitted(nil)`** (`adminNilOk st RD M`,
+  `srvAdminNilOk s E`). The admin guards pass `AuthInfoFromCtx`'s answer, `nil` when the request
+  carries no token, to `IsAdminPermitted`; `apply.isAuthStore`'s clause and the real store's spec
+  (`auth.authStore.IsAdminPermitted.spec`) take `a ↦{dq} info`, a non-`nil` pointer. The real
+  method answers `nil` with auth disabled and `ErrUserEmpty` otherwise (`store.go`), the verdict
+  `adminVerdict M none err`. The admin guards' specs take that clause as a premise until the
+  store's spec covers `nil` (track S; then `isAuthStore` gains the clause and the premise goes).
+  *Rejected:* changing `isAuthStore` now (every producer, and the real store's spec in S2's
+  directory); a case split in the guard's spec on the answer (the code calls the method either
+  way). Not an `issues/` entry: the Go code is right; the gap is the specs'.
+- **What is translated and proved** (`etc/link-lean-first-{server,v3rpc}.txt`): the server's
+  `requireAuthInfo` (translated before, now specified), `checkMembershipOperationPermission`,
+  `RemoveMember` (over `mayRemoveOk` and `configureRemoveOk`; the enum's `Enum` through
+  `raftpb_ConfChangeType__Enum: @`) and `MemberList` (over the read loop's `isReadNotify` and
+  `RaftCluster.Members`; `etcdserverpb.MemberListRequest` translated as data, since a spec that
+  names a field of an axiomatized message rests on the message's `sorry` instances, which the
+  trust base refuses); `v3rpc`'s `AuthAdmin.isPermitted`, `AuthAdmin.requireAuthInfo`, their
+  promotions through `authMaintenanceServer` (translated as methods of their own: Goose emits a
+  promoted method only when the toml names it), the eight maintenance wrappers (`Defragment`,
+  `Hash`, `HashKV`, `MoveLeader`, `Downgrade`: admin; `Status`: authenticated; `Alarm`: by the
+  action, `alarmTok`, over `GetAction` as a contract, `alarmActionOk`; `Snapshot`: admin on the
+  stream's `Context()`, `streamCtxOk`), and `kvServer.Compact` (translated before, now proved).
+  Not translated: `AddMember`, `UpdateMember`, `promoteMember` (they call
+  `encoding/json.Marshal`, which Perennial has no model of: the translation does not compile), so
+  `MemberAdd`/`MemberUpdate`/`MemberPromote` rest on the guard's theorem alone; the
+  `ClusterServer` wrappers (nothing of auth in them). The lease entry points:
+  `EtcdServer.LeaseGrant`/`LeaseRevoke` are translated but their proofs go through `raftRequest`,
+  whose `reqPropOk` has no lease request (the leases unit), and the gRPC `LeaseServer` handlers'
+  specs are closed over the server's contract (`raftLessor`), so the guard is stated once, as
+  `requireAuthInfo`'s theorem; `checkLeaseTimeToLive`/`checkLeaseLeases`/`checkLeaseRenew` (admin
+  or RBAC on each key the lease holds) wait for a lessor with a key model (A1's note on
+  `checkLeasePuts`).
+- **The trust base is unchanged** (`etc/tcb-report.py --check` passes without `--update`; the
+  `server` and `v3rpc` collections gain roots, no axiom); no closed theorem's statement changes.
+
+**Next:** the `nil` clause of `IsAdminPermitted` (S), then `srvAdminNilOk` goes; `kvServerIs`
+with the `aa` field (then `NewKVServer` and `Compact` compose); the lease entry points with the
+leases unit, and the lease key checks over a lessor with a key model; the member operations once
+`encoding/json` has a model; A3.
+
 ## S2 of the auth plan: the permission cache computes the model's `coversPoint`/`coversRange`, over an axiomatized bytes-affine interval tree (2026-10-23 · `notes/auth-plan.md`, branch `auth-s2`)
 
 **Problem.** The auth store's permission cache (`range_perm_cache.go`) was a contract: each cached

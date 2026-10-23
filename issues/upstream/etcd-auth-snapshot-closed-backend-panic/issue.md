@@ -5,7 +5,7 @@ Title: Member with auth enabled panics on a permission check while it restores a
 With auth enabled, a member that has fallen behind the leader crashes in the permission check of a read:
 
 1. A follower is cut off from the other members while the leader commits enough writes to compact its log past the follower.
-2. Goroutines keep calling the follower's `AuthStore().IsRangePermitted` for `root`, the check of every serializable `Range`.
+2. Goroutines keep calling the follower's `AuthStore().IsRangePermitted` for `root`, the check every serializable `Range` makes.
 3. Once the follower reconnects, the leader sends it a snapshot. While the follower restores the snapshot, one of the checks panics (output trimmed):
 
 ```

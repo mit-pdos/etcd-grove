@@ -549,6 +549,22 @@ def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoStrin
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
         rangeVals Rd ks vs m klo khi }})
 
+/-- `rt`'s `UnsafeRange(schema.Key, lo, hi, limit)` with any `limit` (the restore plan's R4b), for
+`lo` holding `klo` and `hi` a non-empty `khi`, under the reader's token `Tok`: entries of the
+snapshot `m` with a key in `[klo, khi)`, in key order, some of them: a sublist of the range (with
+`n` entries in the read buffer the real read returns bbolt's first `limit - n`, then the buffer's,
+`issues/etcd-unsafe-range-limit-buffer.md`; all of them with no limit, `keyRangeReadSpec`). -/
+def keyRangeLimSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF) : IProp GF :=
+  iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac) (lim : w64),
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ lo ↦*{dqlo} klo ∗
+        hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
+      (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #lo))
+        (Val #hi)) (Val #lim))
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
+        ∃ res : List (GoString × GoString), pairVals Rd ks vs res ∗
+          ⌜res.Sublist (bucketRange m klo khi)⌝ }})
+
 /-- The bytes of `schema.ScheduledCompactKeyName` (`"scheduledCompactRev"`). -/
 def schedKeyBytes : GoString := go!"scheduledCompactRev"
 /-- The bytes of `schema.FinishedCompactKeyName` (`"finishedCompactRev"`). -/
@@ -562,8 +578,9 @@ def metaRevVal (v : GoString) : Prop := ∃ x : w64, 0 ≤ sint.Z x ∧ v = revB
 
 /-- `rt`'s `UnsafeRange(schema.Meta, key, nil, 0)` at a compaction key: nothing, or the key and
 a value the store wrote there (`metaRevVal`; which one is not modelled: the store's own record
-is `metaCompact`, under the batch lock). -/
-def metaReadSpec (rt : GoInterfaceOk) : IProp GF :=
+is `metaCompact`, under the batch lock). With `nc` (the restore plan's R4c: a backend that records
+no compaction, `kbNoCmp_metaNone`), nothing. -/
+def metaReadSpec (rt : GoInterfaceOk) (nc : Bool := false) : IProp GF :=
   iprop(∀ (b : GoInterface) (key : GoSlice) (kn : GoString) (dq : DFrac),
     ⌜metaCompactKey kn⌝ →
     {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ key ↦*{dq} kn }}
@@ -571,8 +588,8 @@ def metaReadSpec (rt : GoInterfaceOk) : IProp GF :=
         (Val #(slice.nil))) (Val #(W64 0)))
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); key ↦*{dq} kn ∗
         ((ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice)) ∨
-          ∃ (ksl vsl : GoSlice) (v : GoString), ks ↦*□ [ksl] ∗ ksl ↦*□ kn ∗ vs ↦*□ [vsl] ∗
-            vsl ↦*□ v ∗ ⌜metaRevVal v⌝) }})
+          ∃ (ksl vsl : GoSlice) (v : GoString), ⌜nc = false⌝ ∗ ks ↦*□ [ksl] ∗ ksl ↦*□ kn ∗
+            vs ↦*□ [vsl] ∗ vsl ↦*□ v ∗ ⌜metaRevVal v⌝) }})
 
 /-- A snapshot `m'` of the bucket `m` with some of the keys compaction may delete missing
 (`Del`, the store's: `delKey`): the backend's reads after the compaction's `UnsafeDelete`s
@@ -609,14 +626,17 @@ instance metaReadTx_persistent (rt : GoInterfaceOk) : Persistent (metaReadTx (GF
 /-- `rt` locked, over the snapshot `m` of the bucket (persistent), with `Tok` the reader's
 token from its `RLock` to its `RUnlock`: `RUnlock` takes `Tok` and gives back the reader's
 budget token `RT` (`isKeyBackendG`), and under `Tok` its reads are the snapshot's: a key's
-entry (`keyRangeSpec`) and, if `rng`, a range of keys (`keyRangeReadSpec`), their slices readable
+entry (`keyRangeSpec`) and, if `rng`, a range of keys (`keyRangeReadSpec`; with a limit,
+`keyRangeLimSpec`), their slices readable
 through `Rd` while `Tok` is held (`rdCap`). (`rng` is false for a `ConcurrentReadTx`, whose range
 of a safe-range bucket can return a key twice over a stale cached read buffer: 2026-10-13, unit 5,
 `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
 def keyReadLocked (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
     (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) : IProp GF :=
   iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
-    □ keyRangeSpec rt m Rd Tok ∗ (if rng then □ keyRangeReadSpec rt m Rd Tok else iprop(True)) ∗
+    □ keyRangeSpec rt m Rd Tok ∗
+    (if rng then iprop(□ keyRangeReadSpec rt m Rd Tok ∗ □ keyRangeLimSpec rt m Rd Tok)
+     else iprop(True)) ∗
     rdCap Rd Tok)
 
 instance keyReadLocked_persistent (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
@@ -630,7 +650,16 @@ theorem keyReadLocked_range (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
     keyReadLocked (GF := GF) RT true rt m Rd Tok ⊢ □ keyRangeReadSpec rt m Rd Tok := by
   unfold keyReadLocked
   simp only [↓reduceIte]
-  iintro ⟨-, -, #H, -⟩
+  iintro ⟨-, -, ⟨#H, -⟩, -⟩
+  iexact H
+
+/-- A locked snapshot with its range read has the limited one (the restore plan's R4b). -/
+theorem keyReadLocked_rangeLim (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    keyReadLocked (GF := GF) RT true rt m Rd Tok ⊢ □ keyRangeLimSpec rt m Rd Tok := by
+  unfold keyReadLocked
+  simp only [↓reduceIte]
+  iintro ⟨-, -, ⟨-, #H⟩, -⟩
   iexact H
 
 /-- A locked snapshot with its range read is one without. -/

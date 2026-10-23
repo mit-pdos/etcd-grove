@@ -211,4 +211,5 @@ Run as `python3 -I .claude/skills/upstream-report/check.py raft-advance-before-a
 documentation-only shape (one commit changing comments only, the reproduction on `repro/<slug>`): no FAIL. WARNs,
 decided:
 
-- The issue's 272 words (aim 250): kept; the four steps are the shortest execution found (three nodes, one cut).
+- The issue's 383 words (aim 380, rewritten free-form with the cause after the 2026-10-23 review): kept; the four
+  steps are the shortest execution found (three nodes, one cut).

@@ -4,7 +4,7 @@ Title: A restarted member panics on a leader transfer to it while it applies the
 
 In a 3-member cluster with default settings:
 
-1. The cluster takes 150 puts. A follower `m2` is stopped and restarted; it has no snapshot on disk yet, so it replays all 158 committed entries from its WAL.
+1. The cluster commits 150 puts. A follower `m2` is stopped and restarted; it has no snapshot on disk yet, so it replays all 158 committed entries from its WAL.
 2. While `m2` applies the replayed entries, the leader `m1` transfers its leadership to `m2` (`MoveLeader`).
 3. `m2` panics on receiving the transfer:
 
@@ -31,11 +31,11 @@ The window is short: from when the member finishes applying a batch of entries u
 
 ### How can we reproduce it (as minimally and precisely as possible)?
 
-Integration test: [`TestMoveLeaderToRestartedMember`](https://github.com/upamanyus/etcd/blob/fix/etcd-compact-past-raft-applied/tests/integration/v3_leadership_test.go#L185-L222) on branch [`upamanyus/etcd:fix/etcd-compact-past-raft-applied`](https://github.com/upamanyus/etcd/tree/fix/etcd-compact-past-raft-applied), off `main` (3aaab3479). It needs failpoints (`make gofail-enable`); `raftBeforeFollowerSend` with `sleep("2s")` widens the window. On `main` it panics as above, in 3 runs of 3.
+Integration test: [`TestMoveLeaderToRestartedMember`](https://github.com/upamanyus/etcd/blob/fix/etcd-compact-past-raft-applied/tests/integration/v3_leadership_test.go#L185-L222) on branch [`upamanyus/etcd:fix/etcd-compact-past-raft-applied`](https://github.com/upamanyus/etcd/tree/fix/etcd-compact-past-raft-applied), off `main` (3aaab3479). It needs failpoints (`make gofail-enable`); `raftBeforeFollowerSend` with `sleep("2s")` widens the window. On `main` it panics as above in 3 of 3 runs.
 
 ### Anything else we need to know?
 
-Only `m2` crashes, and a restart clears it: started again alone on its data directory, `m2` replayed all 158 entries (all 150 puts) without error and campaigned without panicking. By reading the code, each restart of a member with no snapshot on disk and more than 100 entries to replay reopens the window (not reproduced). Without the failpoint, I did not measure how often a transfer or an election lands in the window.
+Only `m2` crashes, and a restart clears it: started again alone on its data directory, `m2` replayed all 158 entries (all 150 puts) without error and campaigned without panicking. From reading the code, every restart of a member with no snapshot on disk and more than 100 entries to replay reopens the window (not reproduced). Without the failpoint, I did not measure how often a transfer or an election lands in the window.
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 

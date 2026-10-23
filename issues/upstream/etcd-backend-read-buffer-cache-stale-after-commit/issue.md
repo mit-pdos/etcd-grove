@@ -31,7 +31,7 @@ Unit test: [`TestConcurrentReadTxAfterCommit`](https://github.com/upamanyus/etcd
 
 ### Anything else we need to know?
 
-Other tests (not on the branch) also read, after a commit, a key the commit deleted and a key's value from before a pre-commit hook overwrote it. I know of no wrong result through etcd's API: etcd reads through `ConcurrentReadTx` one key at a time.
+Other tests (not on the branch) show two more stale reads after a commit: a key that the commit deleted, and a key's value from before a pre-commit hook overwrote it. I know of no wrong result through etcd's API: etcd reads through `ConcurrentReadTx` one key at a time.
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
 
