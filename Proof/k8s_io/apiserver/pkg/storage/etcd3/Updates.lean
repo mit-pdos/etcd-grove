@@ -8,6 +8,9 @@ Lean-first (no Rocq counterpart).
   the store whose model is the model's `step`'s (`∀∀ σ'`: the store chooses it, the transaction it
   sends), and the caller learns `Φ σ`. Relational, since the caller cannot name the transaction:
   its value is the transformer's (encryption may be randomized).
+- `KvNext σ σ'`: what a firing tells of etcd's next state beyond its model, for the caller's
+  history (`kvSeen`, D30j): the state is kept, or moves to the next revision, every new key-value
+  at that revision (`kvNext_step`: any operation's step).
 - `k8sAu1_kvAu1`: such an update gives the client's update (`kvAu1`) for a transaction whose step
   keeps the store's states and moves the model as `step` (`StepOk`), whose result also says the
   state it fired at was the store's.
@@ -35,12 +38,43 @@ variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable {Obj : Type} [DecidableEq Obj]
 
+/-- **A step of etcd's state, for the caller's history** (see the file header). -/
+def KvNext (σ σ' : KVState) : Prop :=
+  σ' = σ ∨ (σ'.rev = σ.rev + 1 ∧ ∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int))
+
+/-- A commit is such a step. -/
+theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) : KvNext σ (σ.commit cs) := by
+  unfold KVState.commit
+  split
+  · exact Or.inl rfl
+  · refine Or.inr ⟨rfl, fun v hv => ?_⟩
+    by_cases hm : v.modRev = W64 ((σ.rev + 1 : Nat) : Int)
+    · exact Or.inr hm
+    · exact Or.inl (txn.mem_applyChanges_modRev cs _ v hv hm)
+
+/-- **Any operation's step is such a step.** -/
+theorem kvNext_step (op : KVOp) (σ : KVState) : KvNext σ (kvOpStep op σ) := by
+  cases op with
+  | put o =>
+    simp only [kvOpStep]
+    split
+    · exact Or.inl rfl
+    · exact kvNext_commit _ _
+  | range o => exact Or.inl rfl
+  | deleteRange o => exact kvNext_commit _ _
+  | txn t =>
+    simp only [kvOpStep]
+    split
+    · exact kvNext_commit _ _
+    · exact Or.inl rfl
+
 /-- **The caller's update for a write** (see the file header). -/
 def k8sAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
     (Φ : KVState → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ }>
       @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-    <{ ∀∀ (σ' : KVState), etcdKV γk σ' ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ)⌝, COMM Φ σ }>)
+    <{ ∀∀ (σ' : KVState), etcdKV γk σ' ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ'⌝,
+      COMM Φ σ }>)
 
 /-- **A transaction's step is the model's** at the store's states (with room for a revision). -/
 def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop :=
@@ -79,7 +113,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     ispecialize Hcommit $$ %(kvOpStep op σ)
     imod Hcommit $$ [Hkv] with HΦ
     · iframe Hkv
-      ipureintro; exact ⟨hwf', habs⟩
+      ipureintro; exact ⟨hwf', habs, kvNext_step op σ⟩
     imodintro
     iframe HΦ Hseen
     ipureintro; exact Hwf
@@ -116,7 +150,7 @@ def k8sAuRW (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (
   iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ }>
       @ rwMask, ∅
     <{ ∀∀ (b : Bool) (σ' : KVState), etcdKV γk σ' ∗
-        (if b then W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ)⌝ else ⌜σ' = σ⌝),
+        (if b then W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ) ∧ KvNext σ σ'⌝ else ⌜σ' = σ⌝),
       COMM if b then Φ σ else iprop(True) }>)
 
 instance k8sAuRW_persistent (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
@@ -193,7 +227,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
         isimp only [↓reduceIte] at Hcommit
         imod Hcommit $$ [Hkv HW] with HΦ
         · iframe Hkv HW
-          ipureintro; exact ⟨Hwf.1, (hhand hh).symm⟩
+          ipureintro; exact ⟨Hwf.1, (hhand hh).symm, Or.inl rfl⟩
         imodintro
         simp only [Bool.false_or, ↓reduceIte]
         iframe HΦ
@@ -206,7 +240,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
       isimp only [↓reduceIte] at Hcommit
       imod Hcommit $$ [Hkv HW] with HΦ
       · iframe Hkv HW
-        ipureintro; exact ⟨hwf', habs⟩
+        ipureintro; exact ⟨hwf', habs, kvNext_step op σ⟩
       imodintro
       simp only [Bool.true_or, ↓reduceIte]
       iframe HΦ
