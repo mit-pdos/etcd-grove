@@ -217,6 +217,41 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
    - Left for R5: `restore` of a bucket with data, which needs R4b's premise (or a chunk loop
      over the `Sublist` contract with a progress argument) and R4d's split token.
 
+**R5's stages (2026-10-23, branch `restore-r5`).** `Restore` calls `restore` on a backend holding
+`L'`, so R5 first does what option 1 left: `restore` with data. Six stages:
+- **R5a. A clean read buffer (R4b's premise).** The backend's readers' view gets a flag
+  `γ.cln : Bool`, distributed as the view `γ.view` is (the clients' half inside `bView`,
+  existential there; a quarter in the batch lock's ghost share, a quarter in `readTx.mu`'s
+  resource), with the invariant "flag `true` → the read buffer has nothing off the hook's buckets"
+  (`rbClean`) on both sides. `bViewC γ q vd c` names the flag; `bView γ q vd` is `∃ c, bViewC …`,
+  so no spec that mentions `bView` changes. Only a view-changing `Unlock` (which holds the clients'
+  whole view) can falsify it; a `viewSame` one writes nothing back off the hook's buckets; a commit
+  only empties the buffer. `newBackend` makes it `true` (`newPost`'s view is `bViewC … true`:
+  `storage.OpenBackend`'s axiom, stated over `newPost`, promises it too, true of the code, which
+  returns `newBackend`'s backend). A reader holding a share of a clean view learns the buffer is
+  clean (`rtHeld_clean`), and then the limited range is the range's first `limit` entries
+  (`keyRangeLimSpec`'s prefix clause, the bridge's `rtRange` with an empty buffer window).
+  At mvcc: a clean view `kbViewC` (for the model instance, `kbView`), and `isKeyBackendG`'s
+  `ReadTx` clause with a clean view gives the prefix clause.
+  *Done (2026-10-23)*: `BNames.cln`, `RdSt.cln`, `bViewC`, `clnPart` in `rtCore`, `rbClean`
+  (`Model2.lean`), `rtCore_clear_cln` (the view-changing write-back), `rbClean_writeback` (the
+  `viewSame` one), `rbClean_reset` (the commit), `rtHeld_clean`; `newPost`'s view clean. At mvcc:
+  `bkViewC`/`kbViewC`/`bucketViewC`, `keyRangeLimSpec`'s prefix clause (`cl`), `keyReadSnapC`,
+  `keyCleanRead` and the bridge's `rtRange_clean`, `bridge_rt_clean`, `keyCleanRead_of_backend`.
+  `storage.OpenBackend`'s axiom now promises the clean view through `newPost` (true: the code
+  returns `newBackend`'s backend, read buffer empty). No axiom added.
+- **R5b. Two readers of one read transaction (R4d).** `rtHeld` splits into a share of bbolt's
+  transaction (`txLive rtx p`, enough to read its bytes: `txBytes_acc`) and the rest, and
+  `readTx.UnsafeRange` works with any share; at mvcc, `keyReadLocked`'s range branch gives
+  `rdSplit`: `Tok` splits into `TokA` (ranges and reads) and `TokB` (reads), both with `rdCap`.
+- **R5c. `restore` with data.** Its spec over `R` (`bucketView γ q (bucketMap ([[], []] ++ R))`,
+  clean), the chunk loop's invariant (the entries sent are the range's prefix up to `min`, `min`
+  the next revision), `restoreChunk` per chunk, the goroutine with `TokB`, the leases
+  (`restoreLogOk`: none), `currentRev = |L'| - 1`.
+- **R5d. `newTreeIndex` over the store's names** (not `idxFresh`'s): the variant `Restore` needs.
+- **R5e. The ghost moves** (the list below) as `InvStore` lemmas.
+- **R5f. `Restore`'s proof** over R5c-R5e; `NewStore` and `watchableStore.Restore` unchanged.
+
 **R5. `store.Restore`.** The translated body over R4's spec, the ghost moves its spec's "why it is
 true" paragraph lists, as `InvStore` lemmas:
 - gather `cur`'s seven parts under `s.mu` (the writer's eighth from `writerInv`, the readers'

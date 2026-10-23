@@ -48,7 +48,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
   icombine Htm Htm3 gives %Heq
   subst Heq
   unfold rtResAt rtRest rtCore rtIntv
-  icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hhist, Hrtxf, Hwg, %Hfacts,
+  icases HR with ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs, Hcur, Hcln, Hhist, Hrtxf, Hwg, %Hfacts,
     #Hha, #Hcv, Hpo, #Hauth, Hiv⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]

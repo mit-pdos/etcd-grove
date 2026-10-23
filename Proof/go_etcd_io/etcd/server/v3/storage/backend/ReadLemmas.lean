@@ -706,9 +706,9 @@ theorem cache_mark (γ : BNames) (r q : Qp) (ver : w64) (idx : Nat) (win : Bool)
   obtain ⟨rfl, rfl⟩ := Hk
   icases Hwin with (%Hw | ⟨%vd', Hbv'⟩)
   rotate_left
-  · unfold bView
-    icases Hbv with ⟨-, Hc1⟩
-    icases Hbv' with ⟨-, Hc2⟩
+  · unfold bView bViewC
+    icases Hbv with ⟨%c1, -, Hc1, -⟩
+    icases Hbv' with ⟨%c2, -, Hc2, -⟩
     icombine Hc2 Hcvw as Hc3
     ihave %Hv := ghostVar_valid_2 γ.cvw () q.half () _ $$ Hc1 Hc3
     exfalso; have := Hv.1; have := q.half.2
@@ -866,10 +866,35 @@ theorem stats_give (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Dat
 /-- The held shared read transaction reads the clients' view. -/
 theorem rtHeld_view (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (q : Qp) (vd : VData) :
     rtHeld (GF := GF) γ P b rtx rv ∗ bView γ q vd ⊢ ⌜vData P rv = vd⌝ := by
-  unfold rtHeld rtResAt rtRest bView
-  iintro ⟨⟨%rt, %rd, %H, -, -, ⟨%m, %Pb, %cm, -, -, -, Hview, -⟩, -⟩, Hbv, -⟩
+  unfold rtHeld rtResAt rtRest bView bViewC
+  iintro ⟨⟨%rt, %rd, %H, -, -, ⟨%m, %Pb, %cm, -, -, -, Hview, -⟩, -⟩, %c, Hbv, -, -⟩
   icombine Hview Hbv gives %Hv
   ipureintro; exact Hv.2
+
+/-- A held shared read transaction and a share of the clients' view with the read buffer known
+clean: the read buffer is clean off the hook's buckets (the restore plan's R5a). -/
+theorem rtHeld_clean (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (q : Qp) (vd : VData) :
+    rtHeld (GF := GF) γ P b rtx rv ∗ bViewC γ q vd true ⊢
+      rtHeld γ P b rtx rv ∗ bViewC γ q vd true ∗ ⌜rbClean P rv.2 ∧ vData P rv = vd⌝ := by
+  unfold rtHeld rtResAt rtRest rtCore clnPart bViewC
+  iintro ⟨⟨%rt, %rd, %H, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, ⟨Hcln, %Hcl⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩,
+    Hv, Hcw, Hc⟩
+  icombine Hcln Hc gives %Hag
+  have hc : rd.cln = true := Hag.2
+  icombine Hview Hv gives %Hvw
+  iframe Hv Hcw
+  isplitl [Hrt Hrl Hrb Hcm Hview Hrd Hrvs Hcur Hcln Hhist Hrtxf Hwgf Hpo Hiv Hcr]
+  · iexists rt, rd, H
+    iframe Hrt Hrl Hcr
+    isplitl
+    · iexists m, Pb, cm
+      iframe; iframe #
+      ipureintro; exact ⟨Hok, Hcl, Hf⟩
+    ipureintro; exact Hrtx
+  isplitl
+  · iexact Hc
+  ipureintro; exact ⟨Hcl hc, Hvw.2⟩
 
 /-- A held shared read transaction's state keeps the safe-range discipline (`safeRv`: in a
 safe-range bucket, bbolt's keys below the read buffer's). -/
@@ -877,7 +902,7 @@ theorem rtHeld_safe (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ ⌜safeRv P rv⌝ := by
   unfold rtHeld rtResAt rtRest rtCore
   iintro ⟨%rt, %rd, %H, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
   isplitl
   · iexists rt, rd, H
     iframe Hrt Hrl Hcr
@@ -903,7 +928,7 @@ theorem rtHeld_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo :
     iframe
   unfold rtHeld rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
-    Hcur, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
   cases hl : rd.live
   · simp only [Bool.false_eq_true, ↓reduceIte]
     icases Hiv with ⟨-, #Hst⟩

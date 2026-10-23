@@ -201,14 +201,14 @@ instance dbNames_countable : Pos.Countable backend.DBNames :=
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => (x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
+    (fun x : backend.BNames => (x.cln, x.rbk, x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook,
       x.opn, x.wb, x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
-    (fun q => let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
+    (fun q0 => let q := q0.2; let p := q.2; ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
       p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1⟩)
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1, q.1, q0.1⟩)
     (fun _ => rfl)
 
 instance kbReal_countable : Pos.Countable KBReal :=
@@ -555,7 +555,7 @@ snapshot `m` with a key in `[klo, khi)`, in key order, some of them: a sublist o
 `n` entries in the read buffer the real read returns bbolt's first `limit - n`, then the buffer's,
 `issues/etcd-unsafe-range-limit-buffer.md`; all of them with no limit, `keyRangeReadSpec`). -/
 def keyRangeLimSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
-    (Tok : IProp GF) : IProp GF :=
+    (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac) (lim : w64),
     {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ lo ↦*{dqlo} klo ∗
         hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
@@ -563,7 +563,8 @@ def keyRangeLimSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString
         (Val #hi)) (Val #lim))
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
         ∃ res : List (GoString × GoString), pairVals Rd ks vs res ∗
-          ⌜res.Sublist (bucketRange m klo khi)⌝ }})
+          ⌜res.Sublist (bucketRange m klo khi) ∧
+            (cl = true → 0 < sint.Z lim → res = (bucketRange m klo khi).take (sint.Z lim).toNat)⌝ }})
 
 /-- The bytes of `schema.ScheduledCompactKeyName` (`"scheduledCompactRev"`). -/
 def schedKeyBytes : GoString := go!"scheduledCompactRev"
@@ -632,22 +633,22 @@ through `Rd` while `Tok` is held (`rdCap`). (`rng` is false for a `ConcurrentRea
 of a safe-range bucket can return a key twice over a stale cached read buffer: 2026-10-13, unit 5,
 `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
 def keyReadLocked (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
-    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) : IProp GF :=
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) : IProp GF :=
   iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
     □ keyRangeSpec rt m Rd Tok ∗
-    (if rng then iprop(□ keyRangeReadSpec rt m Rd Tok ∗ □ keyRangeLimSpec rt m Rd Tok)
+    (if rng then iprop(□ keyRangeReadSpec rt m Rd Tok ∗ □ keyRangeLimSpec rt m Rd Tok cl)
      else iprop(True)) ∗
     rdCap Rd Tok)
 
 instance keyReadLocked_persistent (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
-    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
-    Persistent (keyReadLocked RT rng rt m Rd Tok) := by
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool) :
+    Persistent (keyReadLocked RT rng rt m Rd Tok cl) := by
   unfold keyReadLocked; cases rng <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 
 /-- A locked snapshot with its range read has it. -/
 theorem keyReadLocked_range (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
-    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
-    keyReadLocked (GF := GF) RT true rt m Rd Tok ⊢ □ keyRangeReadSpec rt m Rd Tok := by
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) :
+    keyReadLocked (GF := GF) RT true rt m Rd Tok cl ⊢ □ keyRangeReadSpec rt m Rd Tok := by
   unfold keyReadLocked
   simp only [↓reduceIte]
   iintro ⟨-, -, ⟨#H, -⟩, -⟩
@@ -655,8 +656,8 @@ theorem keyReadLocked_range (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
 
 /-- A locked snapshot with its range read has the limited one (the restore plan's R4b). -/
 theorem keyReadLocked_rangeLim (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
-    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
-    keyReadLocked (GF := GF) RT true rt m Rd Tok ⊢ □ keyRangeLimSpec rt m Rd Tok := by
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) (cl : Bool := false) :
+    keyReadLocked (GF := GF) RT true rt m Rd Tok cl ⊢ □ keyRangeLimSpec rt m Rd Tok cl := by
   unfold keyReadLocked
   simp only [↓reduceIte]
   iintro ⟨-, -, ⟨-, #H⟩, -⟩
@@ -691,6 +692,19 @@ instance keyReadSnap_persistent (View : Qp → Bucket → IProp GF) (RT : IProp 
     (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
     Persistent (keyReadSnap View RT Del rng rt m L) := by
   unfold keyReadSnap; infer_instance
+
+/-- **A read transaction over a clean read buffer** (the restore plan's R5a): `RLock` gives the
+bucket `m` itself (no key missing) with the limited range's prefix clause (`cl`). -/
+def keyReadSnapC (View : Qp → Bucket → IProp GF) (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (L : IProp GF) : IProp GF :=
+  iprop(□ (∀ q : Qp, {{ L ∗ View q m }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
+    {{ RET #(); View q m ∗ ∃ (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
+        Tok ∗ keyReadLocked RT true rt m Rd Tok true }}))
+
+instance keyReadSnapC_persistent (View : Qp → Bucket → IProp GF) (RT : IProp GF)
+    (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
+    Persistent (keyReadSnapC View RT rt m L) := by
+  unfold keyReadSnapC; infer_instance
 
 /-- **A reader of the bucket `m` but for keys compaction may have deleted** (2026-10-13, unit 6a):
 as `keyReader`, but a key's read may find nothing, for a key compaction may delete (`Del k`): a
@@ -1256,6 +1270,29 @@ def kbView (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) : IProp GF :
   | none => ghostMapAuth γb q m
   | some d => bkView d.γB q m
 
+/-- mvcc's view of the `Key` bucket over the real backend with the read buffer known clean
+(`backend.bViewC … true`, the restore plan's R5a). -/
+def bkViewC (γB : backend.BNames) (q : Qp) (m : Bucket) : IProp GF :=
+  iprop(∃ vd : backend.VData, backend.bViewC γB q vd true ∗ ⌜keyView vd m⌝)
+
+/-- The view of the bucket in the instance `kb` with the read buffer known clean (the model's:
+its view). -/
+def kbViewC (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) : IProp GF :=
+  match kb with
+  | none => ghostMapAuth γb q m
+  | some d => bkViewC d.γB q m
+
+theorem kbViewC_kbView (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) :
+    kbViewC (GF := GF) kb γb q m ⊢ kbView kb γb q m := by
+  cases kb with
+  | none => unfold kbViewC kbView; iintro H; iexact H
+  | some d =>
+    unfold kbViewC kbView bkViewC bkView
+    iintro ⟨%vd, Hv, %Hk⟩
+    iexists vd
+    iframe %Hk
+    iapply backend.bViewC_bView $$ Hv
+
 /-- A reader's token in the instance `kb`: for the real backend, a reader's slot of it and a
 share of it open (given back at the reader's `RUnlock`). -/
 def kbRT (kb : Option KBReal) : IProp GF :=
@@ -1306,6 +1343,14 @@ theorem kbPutMax_le (kb : Option KBReal) : kbPutMax kb ≤ 2 ^ 63 := by
 
 /-- The store's view of the bucket (`kbView` of its instance). -/
 def bucketView (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF := kbView γ.kb γ.bucket q m
+
+/-- The store's view of its bucket with the backend's read buffer known clean (the restore plan's
+R5a). -/
+def bucketViewC (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF := kbViewC γ.kb γ.bucket q m
+
+theorem bucketViewC_bucketView (γ : StoreNames) (q : Qp) (m : Bucket) :
+    bucketViewC (GF := GF) γ q m ⊢ bucketView γ q m :=
+  kbViewC_kbView γ.kb γ.bucket q m
 
 /-- The store's reader token (`kbRT`). -/
 abbrev storeRT (γ : StoreNames) : IProp GF := kbRT γ.kb
@@ -1413,24 +1458,30 @@ instance bucketView_fractional (γ : StoreNames) (m : Bucket) :
       have hv := fun vd : backend.VData =>
         (ghostVar_fractional (GF := GF) d.γB.view vd).fractional q1.half q2.half
       have hc := (ghostVar_fractional (GF := GF) d.γB.cvw ()).fractional q1.half q2.half
+      have hl := fun c : Bool => (ghostVar_fractional (GF := GF) d.γB.cln c).fractional q1.half q2.half
       simp only
-      unfold bkView backend.bView
+      unfold bkView backend.bView backend.bViewC
       rw [Qp_half_add]
       constructor
-      · iintro ⟨%vd, ⟨Hv, Hc⟩, %Hk⟩
+      · iintro ⟨%vd, ⟨%c, Hv, Hc, Hl⟩, %Hk⟩
         icases (hv vd).1 $$ Hv with ⟨Hv1, Hv2⟩
         icases hc.1 $$ Hc with ⟨Hc1, Hc2⟩
-        isplitl [Hv1 Hc1]
+        icases (hl c).1 $$ Hl with ⟨Hl1, Hl2⟩
+        isplitl [Hv1 Hc1 Hl1]
         · iexists vd; iframe; ipureintro; exact Hk
         · iexists vd; iframe; ipureintro; exact Hk
-      · iintro ⟨⟨%vd1, ⟨Hv1, Hc1⟩, %Hk1⟩, ⟨%vd2, ⟨Hv2, Hc2⟩, %Hk2⟩⟩
+      · iintro ⟨⟨%vd1, ⟨%c1, Hv1, Hc1, Hl1⟩, %Hk1⟩, ⟨%vd2, ⟨%c2, Hv2, Hc2, Hl2⟩, %Hk2⟩⟩
         ihave %Heq := ghostVar_agree d.γB.view vd1 _ vd2 _ $$ Hv1 Hv2
-        subst Heq
+        ihave %Heqc := ghostVar_agree d.γB.cln c1 _ c2 _ $$ Hl1 Hl2
+        subst Heq Heqc
         iexists vd1
-        isplitl [Hv1 Hv2 Hc1 Hc2]
-        · isplitl [Hv1 Hv2]
+        isplitl [Hv1 Hv2 Hc1 Hc2 Hl1 Hl2]
+        · iexists c1
+          isplitl [Hv1 Hv2]
           · iapply (hv vd1).2; iframe
+          isplitl [Hc1 Hc2]
           · iapply hc.2; iframe
+          · iapply (hl c1).2; iframe
         ipureintro; exact Hk1
 
 /-- The view as two halves (`s.revMu`'s and the batch lock's). -/
@@ -3047,6 +3098,21 @@ def storeBackendT (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
 instance storeBackendT_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :
     Persistent (storeBackendT (GF := GF) b s γ P) := by
   unfold storeBackendT; infer_instance
+
+/-- **The backend's `ReadTx` over a clean view** (the restore plan's R5a): from a share `View q m`
+of a view whose read buffer is known clean, `ReadTx` then `RLock` read the bucket `m` itself, with
+the limited range's prefix clause (`keyReadSnapC`). What `store.restore` takes of a backend holding
+data (the real one's: `keyCleanRead_of_backend`). -/
+def keyCleanRead (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT : IProp GF) : IProp GF :=
+  iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
+    □ (∀ (q : Qp) (m : Bucket),
+      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
+      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
+          ∃ L : IProp GF, L ∗ keyReadSnapC View RT rt m L }}))
+
+instance keyCleanRead_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT : IProp GF) : Persistent (keyCleanRead (GF := GF) b View RT) := by
+  unfold keyCleanRead; infer_instance
 
 /-- The contract with the witness `True` is the contract. -/
 theorem storeBackend_of_T (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) :

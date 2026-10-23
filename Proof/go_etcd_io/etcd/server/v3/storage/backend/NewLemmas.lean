@@ -232,6 +232,20 @@ theorem rtIntv_frac (γ : BNames) (P : BParams) (rd : RdSt) (cm : GoMap) (D : Da
       iframe #
       ipureintro; exact Hn
 
+theorem clnPart_frac (γ : BNames) (P : BParams) (rd : RdSt) (rv : RView) (q1 q2 : Qp) :
+    clnPart (GF := GF) γ P (q1 + q2) rd rv ⊣⊢ clnPart γ P q1 rd rv ∗ clnPart γ P q2 rd rv := by
+  unfold clnPart
+  rw [Qp_half_add]
+  constructor
+  · iintro ⟨Hc, %Hp⟩
+    icases ghostVar_split γ.cln _ q1.half q2.half $$ Hc with ⟨Hc1, Hc2⟩
+    iframe
+    isplitr <;> ipureintro <;> exact Hp
+  · iintro ⟨⟨Hc1, %Hp⟩, ⟨Hc2, -⟩⟩
+    icombine Hc1 Hc2 as Hc
+    iframe
+    ipureintro; exact Hp
+
 /-- `rtResAt`'s body at fixed witnesses. -/
 def rtW (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
     (H : GMap (w64 × Nat) RView) (m : GoMap) (Pb : BksPhys) (cm : GoMap) : IProp GF :=
@@ -245,26 +259,29 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
   unfold rtW rtRest rtCore
   rw [Qp_half_add, Qp_half_add]
   constructor
-  · iintro ⟨Hrb, %Hok, Hcm, Hv, Hrd, Hrvs, Hcur, Hh, Hrtx, Hwg, %Hp, #Hha, #Hcv, #Hpo, #Hrdt, Hin⟩
+  · iintro ⟨Hrb, %Hok, Hcm, Hv, Hrd, Hrvs, Hcur, Hcln, Hh, Hrtx, Hwg, %Hp, #Hha, #Hcv, #Hpo, #Hrdt,
+      Hin⟩
     icases (rbAt_frac _ m Pb rv.2 q1 q2).1 $$ Hrb with ⟨Hrb1, Hrb2⟩
     icases (typedPointsto_frac_add _ cm q1 q2).1 $$ Hcm with ⟨Hcm1, Hcm2⟩
     icases ghostVar_split γ.view _ q1.half.half q2.half.half $$ Hv with ⟨Hv1, Hv2⟩
     icases ghostVar_split γ.rd rd q1 q2 $$ Hrd with ⟨Hrd1, Hrd2⟩
     icases ghostVar_split γ.rvs _ q1.half q2.half $$ Hrvs with ⟨Hrvs1, Hrvs2⟩
     icases ghostVar_split γ.cur _ q1.half q2.half $$ Hcur with ⟨Hcur1, Hcur2⟩
+    icases (clnPart_frac γ P rd rv q1 q2).1 $$ Hcln with ⟨Hcln1, Hcln2⟩
     icases ((ghostMapAuth_fractional γ.hist H).fractional q1 q2).1 $$ Hh with ⟨Hh1, Hh2⟩
     icases (typedPointsto_frac_add _ rd.rtx q1 q2).1 $$ Hrtx with ⟨Hrtx1, Hrtx2⟩
     icases (typedPointsto_frac_add _ rd.wg q1 q2).1 $$ Hwg with ⟨Hwg1, Hwg2⟩
     icases (rtIntv_frac γ P rd cm rv.1 q1 q2).1 $$ Hin with ⟨Hin1, Hin2⟩
-    isplitl [Hrb1 Hcm1 Hv1 Hrd1 Hrvs1 Hcur1 Hh1 Hrtx1 Hwg1 Hin1]
+    isplitl [Hrb1 Hcm1 Hv1 Hrd1 Hrvs1 Hcur1 Hcln1 Hh1 Hrtx1 Hwg1 Hin1]
     · iframe
       iframe #
       ipureintro; exact ⟨Hok, Hp⟩
     · iframe
       iframe #
       ipureintro; exact ⟨Hok, Hp⟩
-  · iintro ⟨⟨Hrb1, %Hok, Hcm1, Hv1, Hrd1, Hrvs1, Hcur1, Hh1, Hrtx1, Hwg1, %Hp, #Hha, #Hcv, #Hpo,
-      #Hrdt, Hin1⟩, ⟨Hrb2, -, Hcm2, Hv2, Hrd2, Hrvs2, Hcur2, Hh2, Hrtx2, Hwg2, -, -, -, -, -, Hin2⟩⟩
+  · iintro ⟨⟨Hrb1, %Hok, Hcm1, Hv1, Hrd1, Hrvs1, Hcur1, Hcln1, Hh1, Hrtx1, Hwg1, %Hp, #Hha, #Hcv,
+      #Hpo, #Hrdt, Hin1⟩, ⟨Hrb2, -, Hcm2, Hv2, Hrd2, Hrvs2, Hcur2, Hcln2, Hh2, Hrtx2, Hwg2, -, -, -,
+      -, -, Hin2⟩⟩
     ihave Hrb := (rbAt_frac _ m Pb rv.2 q1 q2).2 $$ [Hrb1 Hrb2]
     · iframe
     ihave Hcm := (typedPointsto_frac_add _ cm q1 q2).2 $$ [Hcm1 Hcm2]
@@ -273,6 +290,8 @@ theorem rtW_frac (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RView)
     icombine Hrd1 Hrd2 as Hrd
     icombine Hrvs1 Hrvs2 as Hrvs
     icombine Hcur1 Hcur2 as Hcur
+    ihave Hcln := (clnPart_frac γ P rd rv q1 q2).2 $$ [Hcln1 Hcln2]
+    · iframe
     ihave Hh := ((ghostMapAuth_fractional γ.hist H).fractional q1 q2).2 $$ [Hh1 Hh2]
     · iframe
     ihave Hrtx := (typedPointsto_frac_add _ rd.rtx q1 q2).2 $$ [Hrtx1 Hrtx2]
@@ -292,7 +311,8 @@ theorem rtW_agree (γ : BNames) (P : BParams) (rt : Loc) (q1 q2 : Qp) (rd rd' : 
     rtW (GF := GF) γ P rt q1 rd rv H m Pb cm ∗ rtW γ P rt q2 rd' rv' H' m' Pb' cm' ⊢
       ⌜rd = rd' ∧ rv = rv' ∧ H = H' ∧ m = m' ∧ Pb = Pb' ∧ cm = cm'⌝ := by
   unfold rtW rtRest rtCore
-  iintro ⟨⟨Hrb1, -, Hcm1, -, Hrd1, Hrvs1, -, Hh1, -⟩, ⟨Hrb2, -, Hcm2, -, Hrd2, Hrvs2, -, Hh2, -⟩⟩
+  iintro ⟨⟨Hrb1, -, Hcm1, -, Hrd1, Hrvs1, -, -, Hh1, -⟩, ⟨Hrb2, -, Hcm2, -, Hrd2, Hrvs2, -, -, Hh2,
+    -⟩⟩
   icombine Hrd1 Hrd2 gives %hrd
   icombine Hrvs1 Hrvs2 gives %hrv
   ihave %hH := ghostMapAuth_agree γ.hist q1 q2 H H' $$ Hh1 Hh2

@@ -136,7 +136,7 @@ theorem mvcc.store.restore.wp_proof
       [$HKeyG $Htok $Hmn $Hmx] as %ks %vs ⟨Htok, Hmn, Hmx, %res, #Hpv, %Hres⟩
   · ipureintro; simp [mvcc.revBytes]
   rw [Hbr] at Hres
-  have Hres0 : res = [] := List.sublist_nil.1 Hres
+  have Hres0 : res = [] := List.sublist_nil.1 Hres.1
   subst Hres0
   iunfold mvcc.pairVals at Hpv
   icases Hpv with ⟨%kss, %vss, #Hks, #Hvs, %Hlens, -⟩
