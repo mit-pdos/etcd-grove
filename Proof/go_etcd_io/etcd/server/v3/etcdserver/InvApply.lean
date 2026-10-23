@@ -43,6 +43,20 @@ mirror of them, and `pend`. The read view (what `ReadTx` reads) is only ever rea
 is 0, and then the stored meta keys have not been written since the backend was opened: they
 are `γ.m0`, the meta keys the backend was opened with (`readView`: a read returns `m0` while
 `written` is false). Once a commit stores a non-zero index, `written` is true for good.
+
+**One protocol, several backends** (D22 receiver epochs, S7f, 2026-10-23; `notes/decisions.md`,
+"D22 receiver epochs, S7f carried out"). The names split: the logical ones (`ci`, `st`, `fz`, and
+`cur`, `reg`) are the server's for good, the physical ones (`ApplyPhys`: `mt`, `wr`, `pend`, `m0`)
+a backend's. The invariant reads only the logical names (`consInv (γ.withPh π) = consInv γ`); the
+current backend's physical names are a ghost variable `cur`, half the invariant's, half the apply
+thread's (`curOwn`, in `applyThread` and `freezeY`), so every step of the apply thread is at the
+current backend's names, and the registry `reg` (a monotone list) holds every backend's names the
+protocol has had, the current last. `applySnapshot`'s swap (`ci_swap_au`, at `ci.SetBackend`'s
+store of 0) retires the current names: their mirror's invariant half joins `retiredInv`, bounded by
+`ciEff`, which never decreases; the old backend's batch lock keeps its registration (`applyRegd`, in
+`batchLockInv`), so the commit of its `Close`, which runs the server's hooks (one hooks object for
+every backend), still goes through `commit_save_au` (its retired case). The protocol's allocation
+for the boot backend: `consInv_alloc`.
 -/
 module
 
@@ -77,24 +91,59 @@ instance ApplyState.countable : Pos.Countable ApplyState :=
   .ofInjective (fun s => Pos.Countable.encode (s.k, s.p, s.eff, s.pending))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
-/-- The ghost names (and the backend's initial meta keys) of the protocol. -/
-structure ApplyNames where
-  /-- the consistent index's -/
-  ci : CINames
-  /-- `ghostVar ApplyState`: half the invariant's, half the apply thread's -/
-  st : GName
-  /-- `ghostVar w64`: the batch transaction's stored meta index, half the invariant's, half
-  the batch lock's -/
+/-- **The protocol's physical names** (D22 receiver epochs, S7f, 2026-10-23): those of one
+backend, which `applySnapshot`'s swap replaces: the stored index's mirror `mt`, the read view's
+`wr`, the batch lock's token `pend`, and the meta keys the backend was opened with `m0`. -/
+structure ApplyPhys where
+  /-- `ghostVar w64`: the batch transaction's stored meta index, half the batch lock's, half the
+  invariant's (the current backend's in `consInvAt`, a retired one's in `retiredInv`) -/
   mt : GName
   /-- `ghostVar Bool`: a commit has stored meta keys since the backend was opened -/
   wr : GName
   /-- `token`: the batch lock's; the invariant's while an entry's writes are in flight -/
   pend : GName
+  /-- the meta keys the backend was opened with -/
+  m0 : MetaCI
+
+instance ApplyPhys.countable : Pos.Countable ApplyPhys :=
+  .ofInjective (fun π => Pos.Countable.encode (π.mt, π.wr, π.pend, π.m0))
+    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
+
+/-- The ghost names of the protocol: the logical ones (`ci`, `st`, `fz`, `cur`, `reg`), fixed for
+the server's life, and the current backend's physical ones (`ph`; D22 receiver epochs, S7f,
+2026-10-23: until then all of them fixed, so the protocol was of one backend). -/
+structure ApplyNames where
+  /-- the consistent index's -/
+  ci : CINames
+  /-- `ghostVar ApplyState`: half the invariant's, half the apply thread's -/
+  st : GName
   /-- `token`: the invariant's out of the stored-index window, the window's holder's in it
   (`consFrozen`; D22 the stored-index window, 2026-10-23) -/
   fz : GName
-  /-- the meta keys the backend was opened with -/
-  m0 : MetaCI
+  /-- `ghostVar ApplyPhys` (S7f): the current backend's physical names, half the invariant's, half
+  the apply thread's (`curOwn`, in `applyThread` or `freezeY`) -/
+  cur : GName
+  /-- `monoList ApplyPhys` (S7f): every backend's physical names the protocol has had, the
+  current one last (the invariant's authority); a batch lock holds the index of its own
+  (`applyRegd`), so its commits find their mirror whether its backend is current or retired -/
+  reg : GName
+  /-- the physical names these names are at (the current backend's for the apply thread) -/
+  ph : ApplyPhys
+
+/-- The stored index's mirror of the names' backend. -/
+abbrev ApplyNames.mt (γ : ApplyNames) : GName := γ.ph.mt
+/-- The read view's `written` flag of the names' backend. -/
+abbrev ApplyNames.wr (γ : ApplyNames) : GName := γ.ph.wr
+/-- The batch lock's token of the names' backend. -/
+abbrev ApplyNames.pend (γ : ApplyNames) : GName := γ.ph.pend
+/-- The meta keys the names' backend was opened with. -/
+abbrev ApplyNames.m0 (γ : ApplyNames) : MetaCI := γ.ph.m0
+
+/-- **The names `γ` at the physical names `π`** (S7f): `γ`'s logical names. -/
+abbrev ApplyNames.withPh (γ : ApplyNames) (π : ApplyPhys) : ApplyNames :=
+  ⟨γ.ci, γ.st, γ.fz, γ.cur, γ.reg, π⟩
+
+theorem ApplyNames.withPh_ph (γ : ApplyNames) : γ.withPh γ.ph = γ := rfl
 
 /-- The consistent index as an index of the backend: while `ci` is 0 (unloaded) the stored
 meta index, which then is still the one the backend was opened with; else `ci`. -/
@@ -145,23 +194,134 @@ def consFrozen (γ : ApplyNames) (s : ApplyState) (mi : w64) (w : Bool) : IProp 
     ghostVar γ.mt (1 : Qp).half.half mi ∗ ghostVar γ.wr 1 w ∗
     ⌜s.k = mi ∧ s.k ≠ W64 0 ∧ s.pending = false ∧ w = true ∧ stOk γ s⌝)
 
-/-- The protocol invariant: out of the stored-index window (`consInvAt`), or frozen in it
-(`consFrozen`). -/
+/-- **The retired backends' mirrors** (D22 receiver epochs, S7f, 2026-10-23): for every backend
+`applySnapshot` replaced, the invariant's half of its stored index's mirror, at most `c` (the
+current consistent index as an index, `ciEff`): an old backend's batch lock (its `Close` commits
+through the server's hooks, one hooks object for every backend) stores whatever `ci` holds, which,
+when not 0, is not below its stored index (`commit_save_au`'s retired case). -/
+def retiredInv (l : List ApplyPhys) (c : w64) : IProp GF :=
+  iprop([∗list] π ∈ l, ∃ mr : w64, ghostVar π.mt (1 : Qp).half mr ∗ ⌜uint.Z mr ≤ uint.Z c⌝)
+
+instance retiredInv_timeless (l : List ApplyPhys) (c : w64) :
+    Timeless (retiredInv (GF := GF) l c) := by
+  unfold retiredInv; infer_instance
+
+/-- The retired mirrors' bound only grows. -/
+theorem retiredInv_mono (l : List ApplyPhys) (c c' : w64) (h : uint.Z c ≤ uint.Z c') :
+    retiredInv (GF := GF) l c ⊢ retiredInv l c' := by
+  unfold retiredInv
+  apply BigSepL.bigSepL_mono_of_forall
+  intro _ π
+  iintro ⟨%mr, Hm, %Hr⟩
+  iexists mr
+  iframe Hm
+  ipureintro; omega
+
+/-- **The protocol's registry and retired backends** at the names `γ` (S7f): the authority of the
+registry (the retired backends' physical names `l`, then the current `γ.ph`) and the retired
+mirrors (`retiredInv`, at most `c`). -/
+def consRest (γ : ApplyNames) (l : List ApplyPhys) (c : w64) : IProp GF :=
+  iprop(monoListAuthOwn γ.reg 1 (l ++ [γ.ph]) ∗ retiredInv l c)
+
+instance consRest_timeless (γ : ApplyNames) (l : List ApplyPhys) (c : w64) :
+    Timeless (consRest (GF := GF) γ l c) := by
+  unfold consRest; infer_instance
+
+/-- The protocol invariant: the current backend's physical names `π` (half of `γ.cur`), the
+protocol at them out of the stored-index window (`consInvAt`) or frozen in it (`consFrozen`), the
+registry and the retired backends' mirrors (`consRest`; D22 receiver epochs, S7f, 2026-10-23:
+until then of one backend, all names fixed). Only `γ`'s logical names are read: `consInv
+(γ.withPh π) = consInv γ`. -/
 def consInv (γ : ApplyNames) : IProp GF :=
-  iprop(∃ (s : ApplyState) (mi : w64) (w : Bool), consInvAt γ s mi w ∨ consFrozen γ s mi w)
+  iprop(∃ (π : ApplyPhys) (l : List ApplyPhys) (s : ApplyState) (mi : w64) (w : Bool),
+    ghostVar γ.cur (1 : Qp).half π ∗
+    (consInvAt (γ.withPh π) s mi w ∨ consFrozen (γ.withPh π) s mi w) ∗
+    consRest (γ.withPh π) l (ciEff (γ.withPh π) s.k))
 
 instance consInv_timeless (γ : ApplyNames) : Timeless (consInv (GF := GF) γ) := by
   unfold consInv consInvAt consFrozen; infer_instance
 
-/-- The apply thread's half: the protocol's state is `s`. -/
+theorem consInv_withPh (γ : ApplyNames) (π : ApplyPhys) :
+    consInv (GF := GF) (γ.withPh π) = consInv γ := rfl
+
+/-- The apply thread's (or the window's holder's) half of the current physical names: `γ.ph`
+(S7f). -/
+def curOwn (γ : ApplyNames) : IProp GF :=
+  ghostVar γ.cur (1 : Qp).half γ.ph
+
+instance curOwn_timeless (γ : ApplyNames) : Timeless (curOwn (GF := GF) γ) := by
+  unfold curOwn; infer_instance
+
+/-- The apply thread's half: the protocol's state is `s`, at the current backend's physical names
+`γ.ph` (`curOwn`, S7f). -/
 def applyThread (γ : ApplyNames) (s : ApplyState) : IProp GF :=
-  ghostVar γ.st (1 : Qp).half s
+  iprop(ghostVar γ.st (1 : Qp).half s ∗ curOwn γ)
+
+/-- **A batch lock's registration** (persistent; S7f): the physical names `γ.ph` are in the
+protocol's registry. -/
+def applyRegd (γ : ApplyNames) : IProp GF :=
+  iprop(∃ i : Nat, monoListIdxOwn γ.reg i γ.ph)
+
+instance applyRegd_persistent (γ : ApplyNames) : Persistent (applyRegd (GF := GF) γ) := by
+  unfold applyRegd; infer_instance
+
+instance applyRegd_timeless (γ : ApplyNames) : Timeless (applyRegd (GF := GF) γ) := by
+  unfold applyRegd monoListIdxOwn monoListLbOwn; infer_instance
+
+/-- The protocol's parts at `γ.withPh γ.ph` are at `γ`. -/
+theorem consParts_ph (γ : ApplyNames) (l : List ApplyPhys) (s : ApplyState) (mi : w64) (w : Bool) :
+    ((consInvAt (GF := GF) (γ.withPh γ.ph) s mi w ∨ consFrozen (γ.withPh γ.ph) s mi w) ∗
+      consRest (γ.withPh γ.ph) l (ciEff (γ.withPh γ.ph) s.k)) ⊢
+      (consInvAt γ s mi w ∨ consFrozen γ s mi w) ∗ consRest γ l (ciEff γ s.k) := .rfl
+
+/-- The protocol's parts at `γ` are at `γ.withPh γ.ph`. -/
+theorem consParts_ph' (γ : ApplyNames) (l : List ApplyPhys) (s : ApplyState) (mi : w64)
+    (w : Bool) :
+    ((consInvAt (GF := GF) γ s mi w ∨ consFrozen γ s mi w) ∗ consRest γ l (ciEff γ s.k)) ⊢
+      (consInvAt (γ.withPh γ.ph) s mi w ∨ consFrozen (γ.withPh γ.ph) s mi w) ∗
+        consRest (γ.withPh γ.ph) l (ciEff (γ.withPh γ.ph) s.k) := .rfl
+
+/-- **Opening the invariant with the apply thread's part of the current names** (S7f): the
+current names are `γ.ph`; the invariant's half of them comes out with the protocol at `γ`. -/
+theorem consInv_open (γ : ApplyNames) :
+    consInv (GF := GF) γ ∗ curOwn γ ⊢ curOwn γ ∗ curOwn γ ∗
+      ∃ (l : List ApplyPhys) (s : ApplyState) (mi : w64) (w : Bool),
+        (consInvAt γ s mi w ∨ consFrozen γ s mi w) ∗ consRest γ l (ciEff γ s.k) := by
+  iintro ⟨Hi, Hc⟩
+  iunfold consInv at Hi
+  icases Hi with ⟨%π, %l, %s, %mi, %w, Hc', Hi, Hr⟩
+  iunfold curOwn at Hc
+  icombine Hc Hc' gives %Heq
+  obtain ⟨-, rfl⟩ := Heq
+  icases consParts_ph γ l s mi w $$ [$Hi $Hr] with ⟨Hi, Hr⟩
+  iunfold curOwn
+  iframe Hc Hc'
+  iexists l, s, mi, w
+  iframe Hi Hr
+
+/-- **Closing the invariant** at the current names `γ.ph` (S7f), the protocol from `s` to `s'`,
+whose consistent index as an index (`ciEff`) has not decreased (the retired mirrors' bound). -/
+theorem consInv_close (γ : ApplyNames) (l : List ApplyPhys) (s s' : ApplyState) (mi : w64)
+    (w : Bool) (hle : uint.Z (ciEff γ s.k) ≤ uint.Z (ciEff γ s'.k)) :
+    curOwn (GF := GF) γ ∗ consRest γ l (ciEff γ s.k) ∗
+      (consInvAt γ s' mi w ∨ consFrozen γ s' mi w) ⊢ consInv γ := by
+  iintro ⟨Hc, Hr, Hi⟩
+  iunfold consRest at Hr
+  icases Hr with ⟨Ha, Hr⟩
+  ihave Hr := retiredInv_mono l _ _ hle $$ Hr
+  icases consParts_ph' γ l s' mi w $$ [$Hi Ha Hr] with ⟨Hi, Hr⟩
+  · iunfold consRest
+    iframe Ha Hr
+  iunfold consInv
+  iexists γ.ph, l, s', mi, w
+  iunfold curOwn at Hc
+  iframe Hc Hi Hr
 
 /-- The frozen invariant holds three quarters of the protocol's state: the apply thread,
 holding its half, is not frozen. -/
 theorem frozen_thread_false (γ : ApplyNames) (s s' : ApplyState) (mi : w64) (w : Bool) :
-    consFrozen (GF := GF) γ s mi w ∗ applyThread γ s' ⊢ False := by
-  unfold consFrozen applyThread
+    consFrozen (GF := GF) γ s mi w ∗ ghostVar γ.st (1 : Qp).half s' ⊢ False := by
+  unfold consFrozen
   iintro ⟨⟨-, Hs, Hq, -⟩, Hst⟩
   icombine Hs Hst gives %Hv
   obtain ⟨-, rfl⟩ := Hv
@@ -172,15 +332,71 @@ theorem frozen_thread_false (γ : ApplyNames) (s s' : ApplyState) (mi : w64) (w 
   exact Qp_one_add_not_le _ Hv.1
 
 /-- The batch transaction lock's invariant, for the backend's meta-keys resource `TM`: the
-keys, the lock's half of the stored index's mirror, and the token `pend`. -/
+keys, the lock's half of the stored index's mirror, the token `pend`, and (S7f) the registration
+of the backend's physical names (`applyRegd`), so that its commits find their mirror once the
+backend is retired. -/
 def batchLockInv (γ : ApplyNames) (TM : MetaCI → IProp GF) : IProp GF :=
-  iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ token γ.pend)
+  iprop(∃ mm : MetaCI, ghostVar γ.mt (1 : Qp).half mm.1 ∗ TM mm ∗ token γ.pend ∗ applyRegd γ)
 
 /-- The read view of the meta keys, as the backend's `ReadTx` contract (`metaReadTx`) sees
 it: while no commit has stored meta keys, they read as `γ.m0`. `γ.wr` is the invariant's;
 a reader's linearization point borrows it. -/
 def readView (γ : ApplyNames) (m : MetaCI) : IProp GF :=
   iprop(ghostVar γ.wr 1 false ∗ ⌜m = γ.m0⌝)
+
+/-- The protocol's state out of the window: `ci` and the stored index, as an index (`ciEff`), at
+least the stored index. -/
+theorem consInvAt_mi (γ : ApplyNames) (s : ApplyState) (mi : w64) (w : Bool)
+    (Hmk : s.k ≠ W64 0 → uint.Z mi ≤ uint.Z s.k) (Hk0 : s.k = W64 0 → w = false)
+    (Hw0 : w = false → mi = γ.m0.1) : uint.Z mi ≤ uint.Z (ciEff γ s.k) := by
+  unfold ciEff
+  by_cases hk : s.k = W64 0
+  · have := Hw0 (Hk0 hk); subst this; simp [hk]
+  · simp only [hk, ↓reduceIte]; exact Hmk hk
+/-- A registry index of the authority, the authority kept. -/
+theorem reg_lookup (γr : GName) (l : List ApplyPhys) (i : Nat) (π : ApplyPhys) :
+    monoListAuthOwn (GF := GF) γr 1 l ∗ monoListIdxOwn γr i π ⊢
+      ⌜l[i]? = some π⌝ ∗ (monoListAuthOwn γr 1 l ∗ monoListIdxOwn γr i π) :=
+  persistent_entails_right (by
+    iintro ⟨Ha, Hi⟩
+    iapply mono_list_auth_idx_lookup γr 1 l i π $$ Ha Hi)
+
+/-- The consistent index out of the protocol (in or out of the window), and back. -/
+theorem consCore_ci (γ : ApplyNames) (s : ApplyState) (mi : w64) (w : Bool) :
+    (consInvAt (GF := GF) γ s mi w ∨ consFrozen γ s mi w) ⊢
+      ciIdx γ.ci s.k ∗ (ciIdx γ.ci s.k -∗ (consInvAt γ s mi w ∨ consFrozen γ s mi w)) := by
+  iintro (Hi | Hi)
+  · iunfold consInvAt at Hi
+    icases Hi with ⟨Hk, Hrest⟩
+    iframe Hk
+    iintro Hk
+    ileft
+    iunfold consInvAt
+    iframe
+  · iunfold consFrozen at Hi
+    icases Hi with ⟨Hk, Hrest⟩
+    iframe Hk
+    iintro Hk
+    iright
+    iunfold consFrozen
+    iframe
+
+/-- `ciEff` past a larger index `i`: `i` itself (not 0). -/
+theorem ciEff_le_of_lt (γ : ApplyNames) (k i : w64) (h : uint.Z (ciEff γ k) < uint.Z i) :
+    uint.Z (ciEff γ k) ≤ uint.Z (ciEff γ i) := by
+  have hi0 : i ≠ W64 0 := by
+    intro h0; rw [h0] at h; have : (0 : Int) ≤ uint.Z (ciEff γ k) := by word
+    simp at h
+  unfold ciEff at h ⊢
+  rw [if_neg hi0]
+  omega
+
+/-- Loading `ci` (0) as the stored index `γ.m0.1` leaves `ciEff`. -/
+theorem ciEff_load_le (γ : ApplyNames) (k : w64) (hk : k = W64 0) :
+    uint.Z (ciEff γ k) ≤ uint.Z (ciEff γ γ.m0.1) := by
+  unfold ciEff
+  rw [if_pos hk]
+  split <;> exact Int.le_refl _
 
 /-! ## The protocol's steps -/
 
@@ -195,14 +411,14 @@ theorem hook_set_au (γ : ApplyNames) (s : ApplyState) (i : w64) (Φ : IProp GF)
   iintro #Hinv Hst Htok HΦ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   iunfold flightInv at Hrel
@@ -215,10 +431,10 @@ theorem hook_set_au (γ : ApplyNames) (s : ApplyState) (i : w64) (Φ : IProp GF)
   iintro Hk
   imod Hmask with -
   imod ghostVar_update_halves { s with k := i, pending := true } $$ Hst Hs with ⟨Hst, Hs⟩
-  imod Hclose $$ [Hk Hs Hm Hw Htok Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Htok Hfzt] with -
   · inext
-    iunfold consInv
-    iexists { s with k := i, pending := true }, mi, w
+    iapply consInv_close γ l s ({ s with k := i, pending := true }) mi w (ciEff_le_of_lt γ s.k i (by have := Hok.2; omega))
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -237,6 +453,7 @@ theorem hook_set_au (γ : ApplyNames) (s : ApplyState) (i : w64) (Φ : IProp GF)
   imodintro
   iapply HΦ
   iunfold applyThread
+  iframe Hcu
   iexact Hst
 
 /-- Reading `ci` (the fast path of `ConsistentIndex`/`UnsafeConsistentIndex`): it is the
@@ -247,14 +464,14 @@ theorem ci_read_au (γ : ApplyNames) (s : ApplyState) (Ψ : w64 → IProp GF) :
   iintro #Hinv Hst HΨ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
@@ -263,10 +480,10 @@ theorem ci_read_au (γ : ApplyNames) (s : ApplyState) (Ψ : w64 → IProp GF) :
   iframe Hk
   iintro Hk
   imod Hmask with -
-  imod Hclose $$ [Hk Hs Hm Hw Hrel Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hrel Hfzt] with -
   · inext
-    iunfold consInv
-    iexists s, mi, w
+    iapply consInv_close γ l s (s) mi w (Int.le_refl _)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -276,6 +493,7 @@ theorem ci_read_au (γ : ApplyNames) (s : ApplyState) (Ψ : w64 → IProp GF) :
   imodintro
   iapply HΨ
   iunfold applyThread
+  iframe Hcu
   iexact Hst
 
 /-- What `UnsafeReadConsistentIndex` returns for stored meta keys `m`. -/
@@ -292,14 +510,14 @@ theorem read_view_au (γ : ApplyNames) (s : ApplyState) (hk : s.k = W64 0) (Ψ :
   unfold readAU
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   have hw : w = false := Hk0 hk
@@ -311,10 +529,10 @@ theorem read_view_au (γ : ApplyNames) (s : ApplyState) (hk : s.k = W64 0) (Ψ :
   isplitr
   · ipureintro; rfl
   iintro ⟨Hw, -⟩
-  imod Hclose $$ [Hk Hs Hm Hw Hrel Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hrel Hfzt] with -
   · inext
-    iunfold consInv
-    iexists s, mi, false
+    iapply consInv_close γ l s (s) mi false (Int.le_refl _)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -324,6 +542,7 @@ theorem read_view_au (γ : ApplyNames) (s : ApplyState) (hk : s.k = W64 0) (Ψ :
   imodintro
   iapply HΨ
   iunfold applyThread
+  iframe Hcu
   iexact Hst
 
 /-- The two reads of `UnsafeReadConsistentIndex` while `ci` is 0 (the slow path of
@@ -355,14 +574,14 @@ theorem ci_load_store_au (γ : ApplyNames) (s : ApplyState) (hk : s.k = W64 0)
   iintro #Hinv Hst HΦ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   have hw : w = false := Hk0 hk
@@ -379,10 +598,10 @@ theorem ci_load_store_au (γ : ApplyNames) (s : ApplyState) (hk : s.k = W64 0)
   iintro Hk
   imod Hmask with -
   imod ghostVar_update_halves { s with k := γ.m0.1 } $$ Hst Hs with ⟨Hst, Hs⟩
-  imod Hclose $$ [Hk Hs Hm Hw Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hfzt] with -
   · inext
-    iunfold consInv
-    iexists { s with k := γ.m0.1 }, γ.m0.1, false
+    iapply consInv_close γ l s ({ s with k := γ.m0.1 }) γ.m0.1 false (ciEff_load_le γ s.k hk)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -398,6 +617,7 @@ theorem ci_load_store_au (γ : ApplyNames) (s : ApplyState) (hk : s.k = W64 0)
   imodintro
   iapply HΦ
   iunfold applyThread
+  iframe Hcu
   (try rw [hp])
   iexact Hst
 
@@ -409,14 +629,14 @@ theorem writes_done (γ : ApplyNames) (s : ApplyState) (hp : s.pending = true) :
   iintro #Hinv Hst
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   iunfold flightInv at Hrel
@@ -424,10 +644,10 @@ theorem writes_done (γ : ApplyNames) (s : ApplyState) (hp : s.pending = true) :
   icases Hrel with ⟨Htok, %Hkp, %Hep, %Hlt⟩
   imod ghostVar_update_halves { k := s.k, p := s.k, eff := s.k, pending := false } $$ Hst Hs
     with ⟨Hst, Hs⟩
-  imod Hclose $$ [Hk Hs Hm Hw Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hfzt] with -
   · inext
-    iunfold consInv
-    iexists { k := s.k, p := s.k, eff := s.k, pending := false }, mi, w
+    iapply consInv_close γ l s ({ k := s.k, p := s.k, eff := s.k, pending := false }) mi w (Int.le_refl _)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -444,6 +664,7 @@ theorem writes_done (γ : ApplyNames) (s : ApplyState) (hp : s.pending = true) :
   imodintro
   iframe Htok
   iunfold applyThread
+  iframe Hcu
   (try rw [hp])
   iexact Hst
 
@@ -456,24 +677,24 @@ theorem skip_done (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pending =
   iintro #Hinv Hst
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   iunfold flightInv at Hrel
   rw [hp]
   icases Hrel with %Hok
   imod ghostVar_update_halves { s with p := i } $$ Hst Hs with ⟨Hst, Hs⟩
-  imod Hclose $$ [Hk Hs Hm Hw Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hfzt] with -
   · inext
-    iunfold consInv
-    iexists { s with p := i }, mi, w
+    iapply consInv_close γ l s ({ s with p := i }) mi w (Int.le_refl _)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -488,6 +709,7 @@ theorem skip_done (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pending =
     omega
   imodintro
   iunfold applyThread
+  iframe Hcu
   (try rw [hp])
   iexact Hst
 
@@ -500,14 +722,14 @@ theorem ci_advance_au (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pendi
   iintro #Hinv Hst HΦ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   iunfold flightInv at Hrel
@@ -526,10 +748,10 @@ theorem ci_advance_au (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pendi
     · have := Hw0 (Hk0 hk); subst this; simp [hk]
     · have := Hmk hk; simp only [hk, ↓reduceIte]; exact this
   have hi0 : i ≠ W64 0 := by intro h; rw [h] at hlt; simp at hlt
-  imod Hclose $$ [Hk Hs Hm Hw Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hfzt] with -
   · inext
-    iunfold consInv
-    iexists { s with k := i }, mi, w
+    iapply consInv_close γ l s ({ s with k := i }) mi w (ciEff_le_of_lt γ s.k i hlt)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -546,6 +768,7 @@ theorem ci_advance_au (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pendi
   imodintro
   iapply HΦ
   iunfold applyThread
+  iframe Hcu
   (try rw [hp])
   iexact Hst
 
@@ -554,21 +777,78 @@ the buffer, and every entry at or below it has been processed. -/
 def commitOk (s : ApplyState) (m : w64) : Prop :=
   uint.Z s.eff ≤ uint.Z m ∧ uint.Z m ≤ uint.Z s.p
 
-/-- A commit's `UnsafeSave`, holding the batch lock (its token and its half of the stored
-index's mirror `mm.1`): it reads `ci = k`, which is not below the stored index, and stores
-`k` if it is not 0; the mirror follows, and what the commit persists is consistent. -/
+/-- A commit's `UnsafeSave`, holding the batch lock of the backend of the names `γ` (its token, its
+half of the stored index's mirror `mm.1`, its registration `applyRegd`): it reads `ci = k`, which
+is not below the stored index, and stores `k` if it is not 0; the mirror follows. If `γ`'s backend
+is the current one, what the commit persists is consistent (`commitOk` of the protocol's state);
+if it is a retired one (D22 receiver epochs, S7f, 2026-10-23: an old backend's `Close`, which
+commits through the server's hooks, one hooks object for every backend), its mirror's other half is
+the invariant's `retiredInv`, at most `ciEff`, and the protocol's state is not its concern
+(`commitOk` of a state made of the stored index). -/
 theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
-    inv applyN (consInv γ) ⊢ ghostVar γ.mt (1 : Qp).half mm.1 -∗ token γ.pend -∗
+    inv applyN (consInv γ) ⊢ ghostVar γ.mt (1 : Qp).half mm.1 -∗ token γ.pend -∗ applyRegd γ -∗
       (∀ (k : w64) (s : ApplyState),
         ⌜k ≠ W64 0 → uint.Z mm.1 ≤ uint.Z k⌝ -∗
         ⌜commitOk s (if k = W64 0 then mm.1 else k)⌝ -∗
         ghostVar γ.mt (1 : Qp).half (if k = W64 0 then mm.1 else k) -∗ token γ.pend -∗ Ψ k) -∗
       |={⊤ \ ↑ciN, ∅}=> ∃ k : w64, ciIdx γ.ci k ∗ (ciIdx γ.ci k ={∅, ⊤ \ ↑ciN}=∗ Ψ k) := by
-  iintro #Hinv Hml Htok HΨ
+  iintro #Hinv Hml Htok #Hreg HΨ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
   iunfold consInv at Hi
-  icases Hi with ⟨%s, %mi, %w, Hi⟩
+  icases Hi with ⟨%π, %l, %s, %mi, %w, Hci, Hi, Hr⟩
+  by_cases hπ : π = γ.ph
+  rotate_left
+  · -- retired (S7f): the mirror's other half is the registry's entry of `γ.ph`
+    iunfold consRest at Hr
+    icases Hr with ⟨Ha, Hret⟩
+    iunfold applyRegd at Hreg
+    icases Hreg with ⟨%i, #Hidx⟩
+    icases reg_lookup γ.reg (l ++ [π]) i γ.ph $$ [$Ha $Hidx] with ⟨%Hli, Ha, -⟩
+    have hmem : γ.ph ∈ l := by
+      have h1 := List.mem_of_getElem? Hli
+      rw [List.mem_append, List.mem_singleton] at h1
+      exact h1.resolve_right (fun h => hπ h.symm)
+    iunfold retiredInv at Hret
+    icases (BigSepL.bigSepL_mem_acc hmem) $$ Hret with ⟨⟨%mr, Hmr, %Hmr⟩, Hret⟩
+    icombine Hml Hmr gives %Heq
+    obtain ⟨_, hmr⟩ := Heq
+    subst hmr
+    icases consCore_ci (γ.withPh π) s mi w $$ Hi with ⟨Hk, Hi⟩
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    iexists s.k
+    iframe Hk
+    iintro Hk
+    imod Hmask with -
+    imod ghostVar_update_halves (if s.k = W64 0 then mm.1 else s.k) $$ Hml Hmr with ⟨Hml, Hmr⟩
+    ihave Hi := Hi $$ Hk
+    have hbound : uint.Z (if s.k = W64 0 then mm.1 else s.k) ≤
+        uint.Z (ciEff (γ.withPh π) s.k) := by
+      by_cases hk : s.k = W64 0
+      · rw [if_pos hk]; exact Hmr
+      · rw [if_neg hk]; unfold ciEff; rw [if_neg hk]; exact Int.le_refl _
+    imod Hclose $$ [Hci Hi Ha Hret Hmr] with -
+    · inext
+      iunfold consInv
+      iexists π, l, s, mi, w
+      iframe Hci Hi
+      iunfold consRest
+      iframe Ha
+      iunfold retiredInv
+      iapply Hret
+      iexists (if s.k = W64 0 then mm.1 else s.k)
+      iframe Hmr
+      ipureintro; exact hbound
+    imodintro
+    have hmono : s.k ≠ W64 0 → uint.Z mm.1 ≤ uint.Z s.k := fun hk => by
+      unfold ciEff at Hmr; rw [if_neg hk] at Hmr; exact Hmr
+    have hsave : commitOk ⟨W64 0, (if s.k = W64 0 then mm.1 else s.k),
+        (if s.k = W64 0 then mm.1 else s.k), false⟩ (if s.k = W64 0 then mm.1 else s.k) :=
+      ⟨Int.le_refl _, Int.le_refl _⟩
+    iapply HΨ $$ %s.k %_ %hmono %hsave Hml Htok
+  subst hπ
+  icases consParts_ph γ l s mi w $$ [$Hi $Hr] with ⟨Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · -- frozen (the stored-index window): `ci` is the stored index, which the commit stores again
@@ -583,10 +863,11 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
     iframe Hk
     iintro Hk
     imod Hmask with -
-    imod Hclose $$ [Hk Hs Hsq Hm Hw] with -
+    imod Hclose $$ [Hci Hr Hk Hs Hsq Hm Hw] with -
     · inext
-      iunfold consInv
-      iexists s, mi, w
+      iapply consInv_close γ l s s mi w (Int.le_refl _)
+      iunfold curOwn
+      iframe Hci Hr
       iright
       iunfold consFrozen
       iframe Hk Hm Hw
@@ -635,10 +916,12 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
     by_cases hk : s.k = W64 0
     · have := Hw0 (Hk0 hk); simp only [hk, ↓reduceIte] at Hok ⊢; rw [this]; exact Hok
     · simp only [hk, ↓reduceIte] at Hok ⊢; exact Hok
-  imod Hclose $$ [Hk Hs Hm Hw Hfzt] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hm Hw Hfzt] with -
   · inext
-    iunfold consInv
-    iexists s, (if s.k = W64 0 then mm.1 else s.k), (w || decide (s.k ≠ W64 0))
+    iapply consInv_close γ l s s (if s.k = W64 0 then mm.1 else s.k) (w || decide (s.k ≠ W64 0))
+      (Int.le_refl _)
+    iunfold curOwn
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe Hfzt
@@ -664,7 +947,8 @@ theorem commit_save_au (γ : ApplyNames) (mm : MetaCI) (Ψ : w64 → IProp GF) :
 stored-index window, 2026-10-23): a quarter of its state, a quarter of the stored index's mirror
 (at `s.k`) and the window's token. -/
 def freezeY (γ : ApplyNames) (s : ApplyState) : IProp GF :=
-  iprop(ghostVar γ.st (1 : Qp).half.half s ∗ ghostVar γ.mt (1 : Qp).half.half s.k ∗ token γ.fz)
+  iprop(ghostVar γ.st (1 : Qp).half.half s ∗ ghostVar γ.mt (1 : Qp).half.half s.k ∗ token γ.fz ∗
+    curOwn γ)
 
 /-- **The stored-index window opened** (D22 the stored-index window, 2026-10-23; `notes/decisions.md`,
 "D22 the stored-index window carried out"): a commit's `UnsafeSave` as in `commit_save_au`, at the
@@ -684,14 +968,14 @@ theorem commit_freeze_au (γ : ApplyNames) (mm : MetaCI) (s : ApplyState) (Ψ : 
   iintro #Hinv Hml Htok Hst HΨ
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   rotate_left
   · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
   iunfold consInvAt at Hi
   icases Hi with ⟨Hk, Hs, Hm, Hw, %Hmk, %Hk0, %Hw0, Hrel, Hfzt⟩
-  iunfold applyThread at Hst
   icombine Hst Hs gives %Heq
   obtain ⟨_, rfl⟩ := Heq
   icombine Hml Hm gives %Heq
@@ -710,10 +994,10 @@ theorem commit_freeze_au (γ : ApplyNames) (mm : MetaCI) (s : ApplyState) (Ψ : 
   imod ghostVar_update true $$ Hw with Hw
   icases (ghostVar_split_half γ.mt (1 : Qp).half s.k).1 $$ Hm with ⟨Hm, Hmq⟩
   icases (ghostVar_split_half γ.st (1 : Qp).half s).1 $$ Hst with ⟨Hsq, Hsq'⟩
-  imod Hclose $$ [Hk Hs Hsq Hm Hw] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hsq Hm Hw] with -
   · inext
-    iunfold consInv
-    iexists s, s.k, true
+    iapply consInv_close γ l s s s.k true (Int.le_refl _)
+    iframe Hci Hr
     iright
     iunfold consFrozen
     iframe Hk Hm Hw
@@ -732,7 +1016,7 @@ theorem commit_freeze_au (γ : ApplyNames) (mm : MetaCI) (s : ApplyState) (Ψ : 
   ihave Hml : ghostVar γ.mt (1 : Qp).half (if s.k = W64 0 then mm.1 else s.k) $$ [Hml]
   · rw [if_neg hk0]
     iexact Hml
-  iapply HΨ $$ %s.k %s %(Hmk) %hsave Hml Htok [Hsq' Hmq Hfzt]
+  iapply HΨ $$ %s.k %s %(Hmk) %hsave Hml Htok [Hsq' Hmq Hfzt Hcu]
   unfold freezeY
   iframe
 
@@ -742,11 +1026,10 @@ theorem unfreeze (γ : ApplyNames) (s : ApplyState) :
     inv applyN (consInv (GF := GF) γ) ⊢ freezeY γ s ={⊤}=∗ applyThread γ s := by
   iintro #Hinv HY
   iunfold freezeY at HY
-  icases HY with ⟨Hsq, Hmq, Htok⟩
+  icases HY with ⟨Hsq, Hmq, Htok, Hcu⟩
   iinv Hinv with Hi Hclose
   imod Hi with Hi
-  iunfold consInv at Hi
-  icases Hi with ⟨%s0, %mi, %w, Hi⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
   icases Hi with (Hi | Hfz)
   · iunfold consInvAt at Hi
     icases Hi with ⟨-, -, -, -, -, -, -, -, Hfzt⟩
@@ -760,10 +1043,10 @@ theorem unfreeze (γ : ApplyNames) (s : ApplyState) :
   subst hmi
   ihave Hst := (ghostVar_split_half γ.st (1 : Qp).half s).2 $$ [$Hsq $Hsq0]
   ihave Hmh := (ghostVar_split_half γ.mt (1 : Qp).half s.k).2 $$ [$Hmq $Hm]
-  imod Hclose $$ [Hk Hs Hmh Hw Htok] with -
+  imod Hclose $$ [Hci Hr Hk Hs Hmh Hw Htok] with -
   · inext
-    iunfold consInv
-    iexists s, s.k, w
+    iapply consInv_close γ l s s s.k w (Int.le_refl _)
+    iframe Hci Hr
     ileft
     iunfold consInvAt
     iframe
@@ -776,7 +1059,155 @@ theorem unfreeze (γ : ApplyNames) (s : ApplyState) :
     cases h
   imodintro
   iunfold applyThread
+  iframe Hcu
   iexact Hst
+
+/-! ## The backend's swap (D22 receiver epochs, S7f) -/
+
+/-- **The backend's swap** (D22 receiver epochs, S7f, 2026-10-23; `notes/decisions.md`, "D22
+receiver epochs, S7f carried out"), at the linearization point of `ci.SetBackend(newbe)` in
+`applySnapshot` (its store of `ci = 0`: `consistentIndex.SetBackend.spec`'s update): the apply
+thread, at `s` out of the window, moves the protocol to the new backend's physical names `π'` (its
+mirror `π'.mt`, whole, at the meta keys it was opened with `π'.m0`, its read view's `π'.wr`, whole,
+unwritten), at the state `s'` (`ci = 0`, nothing in flight, `stOk`); the old backend's names are
+retired: their mirror's invariant half joins `retiredInv`, at most the new `ciEff` (`π'.m0.1`,
+which must not be below the old one: `hle`), so the old backend's commits (its `Close`) still go
+through `commit_save_au`. The apply thread gets its state at the new names, the new batch lock's
+half of the mirror and the new names' registration (`applyRegd`), for the new backend's
+`batchLockInv`. -/
+theorem ci_swap_au (γ : ApplyNames) (s s' : ApplyState) (π' : ApplyPhys) (Φ : IProp GF)
+    (hk' : s'.k = W64 0) (hps' : s'.pending = false) (hok : stOk (γ.withPh π') s')
+    (hle : uint.Z (ciEff γ s.k) ≤ uint.Z π'.m0.1) :
+    inv applyN (consInv γ) ⊢ applyThread γ s -∗ ghostVar π'.mt 1 π'.m0.1 -∗
+      ghostVar π'.wr 1 false -∗
+      (applyThread (γ.withPh π') s' -∗ ghostVar π'.mt (1 : Qp).half π'.m0.1 -∗
+        applyRegd (γ.withPh π') -∗ Φ) -∗
+      |={⊤ \ ↑ciN, ∅}=> ∃ k0 : w64, ciIdx γ.ci k0 ∗ (ciIdx γ.ci (W64 0) ={∅, ⊤ \ ↑ciN}=∗ Φ) := by
+  iintro #Hinv Hst Hmt' Hwr' HΦ
+  iinv Hinv with Hi Hclose
+  imod Hi with Hi
+  iunfold applyThread at Hst
+  icases Hst with ⟨Hst, Hcu⟩
+  icases consInv_open γ $$ [$Hi $Hcu] with ⟨Hcu, Hci, %l, %s0, %mi, %w, Hi, Hr⟩
+  icases Hi with (Hi | Hfz)
+  rotate_left
+  · iexfalso; iapply frozen_thread_false $$ [$Hfz $Hst]
+  iunfold consInvAt at Hi
+  icases Hi with ⟨Hk, Hs, Hm, -, %Hmk, %Hk0, %Hw0, -, Hfzt⟩
+  icombine Hst Hs gives %Heq
+  obtain ⟨_, rfl⟩ := Heq
+  have hmi : uint.Z mi ≤ uint.Z (ciEff γ s.k) := consInvAt_mi γ s mi w Hmk Hk0 Hw0
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists s.k
+  iframe Hk
+  iintro Hk
+  imod Hmask with -
+  imod ghostVar_update_halves s' $$ Hst Hs with ⟨Hst, Hs⟩
+  iunfold curOwn at Hcu Hci
+  imod ghostVar_update_halves π' $$ Hcu Hci with ⟨Hcu, Hci⟩
+  iunfold consRest at Hr
+  icases Hr with ⟨Ha, Hret⟩
+  imod monoListAuthOwn_update_app [π'] $$ Ha with ⟨Ha, #Hlb⟩
+  ihave #Hidx := monoListIdxOwn_get (l ++ [γ.ph]).length π' (by simp) $$ Hlb
+  icases (ghostVar_split_half π'.mt 1 π'.m0.1).1 $$ Hmt' with ⟨Hm1, Hm2⟩
+  ihave Hret := retiredInv_mono l _ π'.m0.1 hle $$ Hret
+  imod Hclose $$ [Hci Hk Hs Hm1 Hwr' Hfzt Ha Hret Hm] with -
+  · inext
+    iunfold consInv
+    iexists π', l ++ [γ.ph], s', π'.m0.1, false
+    iframe Hci
+    isplitl [Hk Hs Hm1 Hwr' Hfzt]
+    · ileft
+      iunfold consInvAt
+      rw [hk']
+      iframe Hk Hs Hm1 Hwr' Hfzt
+      iunfold flightInv
+      rw [hps']
+      ipureintro
+      exact ⟨fun h => absurd rfl h, fun _ => rfl, fun _ => rfl, hok⟩
+    iunfold consRest
+    iframe Ha
+    iunfold retiredInv
+    iapply BigSepL.bigSepL_snoc.2
+    rw [hk']
+    have hc : ciEff (γ.withPh π') (W64 0) = π'.m0.1 := by unfold ciEff; rw [if_pos rfl]
+    rw [hc]
+    iunfold retiredInv at Hret
+    iframe Hret
+    iexists mi
+    iframe Hm
+    ipureintro; omega
+  imodintro
+  iapply HΦ $$ [Hst Hcu] Hm2
+  · iunfold applyThread
+    iunfold curOwn
+    iframe Hst Hcu
+  iunfold applyRegd
+  iexists (l ++ [γ.ph]).length
+  iexact Hidx
+
+/-! ## The protocol's allocation -/
+
+/-- **The protocol's allocation** (D22 receiver epochs, S7f, 2026-10-23; for whoever discharges
+`bootstrap`'s contract, `InvBoot.lean`'s `bootOk`: its `inv applyN (consInv γA)`,
+`applyThread γA ⟨0, 0, 0, false⟩` and the batch lock's `batchLockInv γA`, whose names exist before
+the backend does): over a consistent index holding 0 (`NewConsistentIndex`'s), for a backend opened
+at the meta keys `m0`, fresh names with the registry holding them alone; the apply thread at
+`ci = 0`, processed through the stored index; the batch lock's half of the mirror, its token and
+its registration. -/
+theorem consInv_alloc (γci : CINames) (m0 : MetaCI) (Ms : CoPset) :
+    ciIdx (GF := GF) γci (W64 0) ⊢ |={Ms}=> ∃ γ : ApplyNames, ⌜γ.ci = γci ∧ γ.m0 = m0⌝ ∗
+      inv applyN (consInv γ) ∗ applyThread γ ⟨W64 0, m0.1, W64 0, false⟩ ∗
+      ghostVar γ.mt (1 : Qp).half m0.1 ∗ token γ.pend ∗ applyRegd γ := by
+  iintro Hk
+  imod (ghostVar_alloc (GF := GF) (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState)) with ⟨%γst, Hst⟩
+  imod (ghostVar_alloc (GF := GF) m0.1) with ⟨%γmt, Hmt⟩
+  imod (ghostVar_alloc (GF := GF) false) with ⟨%γwr, Hwr⟩
+  imod token_alloc with ⟨%γpend, Hpend⟩
+  imod token_alloc with ⟨%γfz, Hfz⟩
+  imod (ghostVar_alloc (GF := GF) (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys)) with ⟨%γcur, Hcur⟩
+  imod (mono_list_own_alloc (GF := GF) [(⟨γmt, γwr, γpend, m0⟩ : ApplyPhys)])
+    with ⟨%γreg, Ha, #Hlb⟩
+  ihave #Hidx := monoListIdxOwn_get (γ := γreg) 0 (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys) rfl $$ Hlb
+  icases (ghostVar_split_half γst 1 (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState)).1 $$ Hst
+    with ⟨Hst1, Hst2⟩
+  icases (ghostVar_split_half γmt 1 m0.1).1 $$ Hmt with ⟨Hmt1, Hmt2⟩
+  icases (ghostVar_split_half γcur 1 (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys)).1 $$ Hcur
+    with ⟨Hcur1, Hcur2⟩
+  iexists (⟨γci, γst, γfz, γcur, γreg, ⟨γmt, γwr, γpend, m0⟩⟩ : ApplyNames)
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl⟩
+  isplitl [Hk Hst1 Hmt1 Hwr Hfz Hcur1 Ha]
+  · iapply inv_alloc applyN Ms
+    inext
+    iunfold consInv
+    iexists (⟨γmt, γwr, γpend, m0⟩ : ApplyPhys), ([] : List ApplyPhys),
+      (⟨W64 0, m0.1, W64 0, false⟩ : ApplyState), m0.1, false
+    iframe Hcur1
+    isplitl [Hk Hst1 Hmt1 Hwr Hfz]
+    · ileft
+      iunfold consInvAt
+      iframe Hk Hst1 Hmt1 Hwr Hfz
+      iunfold flightInv
+      ipureintro
+      refine ⟨fun h => absurd rfl h, fun _ => rfl, fun _ => rfl, ?_⟩
+      unfold stOk ciEff
+      simp only [↓reduceIte]
+      refine ⟨by word, Int.le_refl _⟩
+    iunfold consRest
+    rw [List.nil_append]
+    iframe Ha
+    iunfold retiredInv
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  imodintro
+  iunfold applyThread
+  iunfold curOwn
+  iframe Hst2 Hcur2 Hmt2 Hpend
+  iunfold applyRegd
+  iexists 0
+  iexact Hidx
 
 end defs
 

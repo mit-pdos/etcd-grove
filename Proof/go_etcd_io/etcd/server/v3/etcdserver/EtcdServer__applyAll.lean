@@ -86,7 +86,7 @@ theorem EtcdServer.applyAll.wp_proof
     iexists σ0; iframe Htok; ipureintro; exact ⟨by have := Hσ0.1; omega, by word⟩
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
-  wp_apply hBk s $$ [Hbr] as %be Hbr
+  wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
   · iframe #; iframe Hbr
   wp_apply hLg s sv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgnn
@@ -134,7 +134,10 @@ theorem EtcdServer.applyAll.wp_proof
       iintro ⟨-, -⟩
       (try wp_auto)
       iapply HΦ
-      iexists st', ai', at', a', t', cs'
+      iexists γ, TM, E, b, st', ai', at', a', t', cs'
+      iframe Hsrv
+      isplitr
+      · ipureintro; exact beSucc_refl γ E
       iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
       isplitl [Hao]
       · iexact Hao
@@ -212,7 +215,10 @@ theorem EtcdServer.applyAll.wp_proof
     ihave Hcs : epConfState ep cs' $$ [Hcs]
     · iunfold epConfState; iframe Hcs Hcsok
     iapply HΦ
-    iexists st'', ai', at', a', t', cs'
+    iexists γ, TM, E, b, st'', ai', at', a', t', cs'
+    iframe Hsrv
+    isplitr
+    · ipureintro; exact beSucc_refl γ E
     iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
     isplitl [Hao]
     · iexact Hao

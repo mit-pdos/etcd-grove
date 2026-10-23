@@ -16078,3 +16078,295 @@ S-l's assembly at `applyAll`'s branch: `Commit()` with `X = applyThread γA s` (
 **Left** (S-l proper): `ciEff = ai` at the branch (the apply thread's `s.k` is the applied index
 when the branch runs: `applyAll`'s invariant), the key half (`keyView` of the snapshot's data: the
 apply thread's view of `Key` as the observation's `viewAt`), the compaction keys (`bkNoCmp`).
+
+## D22 receiver epochs, S7 carried out: the server's fields and the objects' backends; the apply protocol's per-backend names designed, not carried out (2026-10-23)
+
+S7 of the simplest true `Restore` plan (`notes/snapshot-receiver-epochs.md` §4 S7; "D22 S-j2
+carried out" items 1-6, "D22m revisited", "D22 fork fixes"), on branch
+`worktree-agent-a9f17bc977f014063`, five commits, each a full build. Everything `applySnapshot`
+writes or swaps but the apply protocol's per-backend names is now stated truly: no persistent fact
+names `s.be`, `s.uberApply`, or which backend the lessor, the auth store, the alarm store or the
+cluster writes to. Trust base 538 -> 539 axioms (`v3alarm.AlarmStore.restore.wp_proof`, below),
+0 sorries; only the `server` collection moved (the new axiom, under `AlarmStore.Recover`).
+
+**S7a (`4b74d82e50`): `s.uberApply` the apply thread's.** `srvFieldsAt`/`srvFieldsBuilt` drop
+`srvUberApplyAddr s ↦□` and `applierFor`; `srvApplyKV` owns the field with the applier's contract
+(`srvApplyKV_ua` lends it). `applyConfChange`'s axiom takes the owned field and gives it back.
+
+**S7b (`f6ba9e3a1a`): `s.be` owned; `bemu` over the current backend; the write budget per
+backend.** `AEnv.γbe` (a server name the apply package ignores, as `γrev`): a ghost variable of the
+current backend `d : KBReal`, half in `bemuP s γbe q` (with `s.be ↦{q/2} srvBeIface d.be` and
+`srvBeRO d`, the backend's `isBackend`; fractional: the witnesses agree by the ghost variable), a
+quarter the apply thread's (`srvBeOwn s E`: with the other half of `s.be` and `E.γ.kb = some d`, a
+conjunct of `srvApplyKV`), a quarter the write budget's. `srvWTPool E γp` (was `srvWTPool E.γ
+γp`): `ownToks d.γB.wb n` of the current `d` and the storage-version monitor's read token of `d`
+(`mvcc.bkRTx`), or, while the monitor has it checked out for a session, a part of its `bemuP` share
+of `γbe` (so the swap, holding all of `γbe`, finds it in); takers agree on `d` through their part
+(`srvWTPool_take_at_d`, `_extra_d`; the apply thread's through `srvBeOwn`, `srvWTPool_take_at`).
+`srvWTStock E N` (`NewServer` -> `start`): the stock, the pool's quarter, the monitor's token.
+`srvBemuReaderAt s γbe` (the apply thread's and the monitor's), `srvBemuReader s := ∃ γbe, …` (the
+request path's, signature unchanged). `srvSVRes s E := srvBemuReaderAt s E.γbe ∗ srvLgReader s`.
+`Backend()` (`∀ γbe`) returns some backend with `srvBeRO`; `createMergedSnapshotMessage` and
+`snapBranch_send` take `s.be ↦{dq}`, given back. `NewServer` no longer persists `s.be`.
+*Deviation from S-j2 item 3:* no separate monitor pool: the monitor's read token sits in the write
+budget's invariant, which the monitor already shares (one invariant over the current backend).
+
+**S7c (`05c8e7d323`): `AlarmStore.Recover` proved; the alarm and auth stores on whichever
+backend.** `v3alarm.toml` translates `AlarmStore.Recover`; its proof (lock, `a.be := ab`, a fresh
+`a.types`, `restore`, unlock) rests on `AlarmStore.restore.spec`, **a new trust-boundary axiom**:
+`restore` reads the alarm bucket through `schema`'s names-only alarm backend
+(`CreateAlarmBucket`, `GetAllAlarms`, which decodes protobuf records, `ForceCommit`); stated over an
+empty or absent alarm bucket (the image's, under the workload: `rbOwn`), no error, the map
+unchanged, the bucket created. Unavoidable short of three axioms for the alarm backend's methods;
+`Recover` an axiom instead would have been the same count. The design for "the per-backend
+contracts true across a `Recover`": **the objects' backend fields as the fragment**, not a ghost
+variable: each object's field naming its backend is half its lock's, half its user's (the apply
+thread's), and the write contracts take the user's half in their write right (`rwLens RW X`: `RW`
+lends `X`), so a contract is for whichever backend the half names and stays true when `Recover`
+(which takes the user's half with the lock) moves both halves. Alarm store: `alarmLockInv` holds
+`a.be ↦{½}`, `alarmBeOn a be` the user's (with the schema alarm backend's fields `↦□`);
+`NewAlarmStore`'s post gives it and `alarmApplyOk a` (for every backend `d` with its `isBackend`
+`Pk` and frozen hook, given `rwLens RW (srvRestRW d.γB ∗ alarmBeOn a d.be)`). Auth store:
+`auth.beP` holds `as.be ↦{q/2}` (was `↦{q}`), `authBeOn`, `authApplyOk`. The server's environment:
+`srvRestOwnH γB c H`, `srvRestRWH γB H` (`srvRestOwn`/`srvRestRW` and the objects' parts `H`);
+`NewLessor`'s contract takes any `RW` holding the tracked buckets' half (completed in S7d).
+
+**S7d (`a7916b114c`): the lessor.** `lessorBackend lp P f T R` no longer holds `le.b ↦□`: the write
+token `T` lends a fraction of `le.b` (`Grant` and `Checkpoint` read it so); `lessorExtra` holds the
+lock's half; `lease.lessorBeOn lp be` the user's; `NewLessor` gives it and `lessorApplyOk lp`.
+
+**S7e (`5a71db7352`): the cluster.** `c.be` has no lock and the apply thread is its only user
+(`SetVersion`, `UpdateAttributes`, `AddMember`, `ValidateConfigurationChange`, `SetBackend`,
+`Recover`): `clusterBeOn c be` owns it (a schema membership backend over `be`). `bootOk`'s `#Hisc`
+is now `clusterApplyOk bc.cl'` (for every backend, given `roLens RO (srvRestOwn d.γB c ∗
+clusterBeOn c d.be)` and the `RW` lens), and a new row `"HclBe" ∷ clusterBeOn bc.cl' d.be`
+(bootstrap's `SetBackend` set it): **a change of the closed theorems' bootstrap premise**, true of
+the bootstrap and no stronger in substance (the contract framed by the field). `srvObjsOn al st lp
+c be` (the four parts); `srvEnvOk` pins `H = srvObjsOn … d.be` with `E.γ.kb = some d`;
+`applyConfChange`'s axiom takes that shape (`E.RO = srvRestOwnH γB cl (srvObjsOn … cl d.be)`,
+`E.γ.kb = some d`, `d.γB = γB`): its writes go through `c.be`, which the frame pins to `E`'s
+backend.
+
+**Statements changed.** No closed theorem's text; their premise `bootOk` as above; `env₀` (the
+examples' stand-in environment) gains `γbe := 0`. Trust-boundary axioms restated (each true of the
+Go code, the docstrings say why): `monitorStorageVersion` (`srvSVRes s E`, `srvWTPool E γp`),
+`applyConfChange` (owned `s.uberApply`; the `RO` shape), `NewAlarmStore`, `NewAuthStore`,
+`NewLessor` (the user's half and the generic contract). Intermediate specs: `Backend`,
+`createMergedSnapshotMessage`, `applyAll`, `applyEntries`, `apply`, `snapshotIfNeeded…`, `start`,
+`Start`, `run`, `NewServer` (`srvWTPool E`, `srvBemuReaderAt s E.γbe`, `srvSVRes s E`),
+`restoreAlarms`, `lessor.Grant`/`Checkpoint` (through `lessorBackend`). Exported results whose
+definitions changed: `request_delivered` (`srvApplyKV`), `lessor_apply_contract`
+(`lessorBackend`).
+
+**What S8 (`applySnapshot`) uses.**
+1. `s.bemu.Lock()` through the guard of the apply thread's `srvBemuReaderAt s E.γbe` (`bemuP 1`:
+   half of `s.be`, half of `γbe`); `srvApplyKV_beOwn`/`srvBeOwn_frag` the other half of `s.be` and a
+   quarter of `γbe`; open `srvWTPool E γp` for the last quarter (a checked-out monitor token is
+   refuted: its part makes more than the whole); `dghostVar_update` to the new `d'`; store `s.be`;
+   close the pool with the new backend's write-back tokens (`n' ≥ receiptBound GF`: `wbInit` is a
+   constant) and a surplus reader token of `d'` for the monitor (`store.Restore`'s post leaves
+   `nReaders - (k + 1)`), the old pool's tokens and the monitor's old token to `oldbe.Close`.
+2. `s.uberApply` from `srvApplyKV_ua`; `NewUberApplier` at `E'` (`E` with `γ := E.γ.withPhys p'`,
+   the new `P`, `f`, `RO := srvRestOwnH γB' cl H'`, `RW`, the same `γbe`).
+3. The objects: `AlarmStore.Recover` (proved: `alarmBeOn a d.be` -> `alarmBeOn a d'.be`); axioms to
+   write, true as stated thanks to S7: `authStore.Recover` (`authBeOn st d.be` and `beMu`'s write
+   side -> `authBeOn st d'.be`), `lessor.Recover` (`lessorBeOn lp d.be`, under `le.mu` ->
+   `lessorBeOn lp d'.be`), `RaftCluster.SetBackend` (`clusterBeOn cl d.be` -> `clusterBeOn cl
+   d'.be`, from `NewMembershipBackend`), `RaftCluster.Recover`, `Transport.RemoveAllPeers`. The new
+   contracts from the persistent `alarmApplyOk`, `authApplyOk`, `lessorApplyOk`, `clusterApplyOk` at
+   `d'` (`OpenSnapshotBackend`'s `isBackend`, `plHookRO d'.γB f'` after
+   `SetTxPostLockInsideApplyHook`).
+4. The store: `restorePre_of_apply` and `watchableStore.Restore` (S6).
+5. **Not done: the apply protocol's per-backend names (S7f).** `ApplyNames.mt`, `wr`, `pend`, `fz`,
+   `m0` and `TM = metaTM d.γB d.P` are the backend's; `inv applyN (consInv γA)` (in `bootOk` and
+   `isServerCI`) holds `ciIdx γA.ci` (the consistent index, logical, the same object for both
+   backends) with them, and `isServer`, `hookSpec` and `run`'s `ApplyCtx` fix `γA`, `TM`, `E`, `b`.
+   Found while designing it: **the old backend's `Close` commits** (`CommitAndStop` runs
+   `s.beHooks`' `OnPreCommitUnsafe`, one hooks object for both backends: `ci.UnsafeSave` reads `ci`
+   and writes it into the old backend's `meta`), so the old batch lock's commit must stay provable
+   after the swap: it holds the old `mt`'s lock half and `pend`, and `commit_save_au` needs the
+   invariant's half of the old `mt` and `ciIdx`. A "retired" disjunct of `consInv` (the apply
+   thread's half of `st` deposited, so no old step of the apply thread runs) is not enough for that
+   commit. Design: `consInv γ := ∃ π, (consInvAt ∨ consFrozen) at γ.withPhysA π ∗ retired γ`, `π`
+   the current physical names pinned by a fraction of a new ghost variable (half `consInv`, half
+   `applyThread`); `retired γ` holds, for every physical names ever retired (a monotone set, its
+   lower bounds persistent, given to each batch lock's hooks when it is made), the invariant's
+   half of their `mt` and their `wr`, so a commit of a retired backend updates its own mirror at
+   whatever `ciIdx` holds; the swap (`applySnapshot`, holding `applyThread`'s half) moves `π` to the
+   retired set and starts `π'` at `m0 = (i, t)`. Then `isServer`/`hookSpec` at the new `TM'` hold of
+   the new backend, and `run`'s loop invariant (`applyRes`) quantifies `γA`'s physical part, `TM`,
+   `E` and `b` per batch (`isServer` at them, persistent, re-established by S8). About 20 files
+   (`InvApply`'s eleven protocol lemmas, `CindexBackend`, `InvServer`, `InvRun`, `applyAll`'s spec,
+   `run`, `start`, `NewServer`, `bootOk`'s `consInv`): about the size of S7c-S7e together.
+
+## D22 receiver epochs, S7f carried out: the apply protocol's per-backend names (2026-10-23)
+
+S7f of the simplest true `Restore` plan ("D22 receiver epochs, S7 carried out", item 5 of its "What
+S8 uses"), on branch `worktree-agent-a5fae76133d772e18`, two commits, each a full build. After it the
+apply protocol is stated over the current backend's physical names, so `applySnapshot` (S8) can swap
+the backend while the old backend's `Close` (in its goroutine) still commits soundly through the
+shared hooks. No axiom added, no sorry; no closed theorem's text changed; `bootOk`'s text unchanged
+(its `inv applyN (consInv γA)`, `applyThread γA ⟨0, 0, 0, false⟩` and `newPost`'s `batchLockInv γA`
+now hold more: the registry, the current names' ghost variable, the batch lock's registration;
+allocatable as before, `consInv_alloc` proves it).
+
+**S7f-a (`36947ab197`): the protocol's names split** (`InvApply.lean`).
+- `ApplyPhys` (`mt`, `wr`, `pend`, `m0`): one backend's names. `ApplyNames` = the logical `ci`, `st`,
+  `fz` (the window's token stays logical: only the apply thread opens the window, never across a
+  swap), two new logical names `cur` (`ghostVar ApplyPhys`) and `reg` (`monoList ApplyPhys`), and
+  `ph : ApplyPhys`; `γ.mt`/`γ.wr`/`γ.pend`/`γ.m0` are abbreviations of `γ.ph`'s, so no user changed;
+  `γ.withPh π` (an abbreviation: the proof mode unifies its projections, unlike mvcc's
+  `withPhys`; `γ.withPh γ.ph = γ` by `rfl`, `consParts_ph` converts the opened parts).
+- `consInv γ := ∃ π l s mi w, ghostVar γ.cur ½ π ∗ (consInvAt ∨ consFrozen) (γ.withPh π) s mi w ∗
+  consRest (γ.withPh π) l (ciEff …)`: only logical names (`consInv_withPh`, `rfl`). `consRest`:
+  the registry's authority at `l ++ [γ.ph]` (the retired names, then the current) and
+  `retiredInv l c`: for each retired backend the invariant's half of its mirror, at most `c` =
+  `ciEff` of the current state. `ciEff` never decreases over the apply thread's steps
+  (`ciEff_le_of_lt`, `ciEff_load_le`), so the bound is kept (`retiredInv_mono`).
+- `curOwn γ := ghostVar γ.cur ½ γ.ph`, in `applyThread` and in `freezeY` (the window's holder has the
+  apply thread's place): every step of the apply thread opens the invariant at its own `γ.ph`
+  (`consInv_open`, `consInv_close`; the eleven protocol lemmas re-plumbed, statements unchanged).
+- `batchLockInv γ TM` and `hookDone γ TM` gain `applyRegd γ` (persistent: `γ.ph`'s index in the
+  registry). `commit_save_au` takes it (statement +1 premise) and has a **retired case**: the lock's
+  names are not the current ones, so its index is a retired entry (`reg_lookup`), whose mirror half
+  is in `retiredInv`; the commit reads `ci = k`, the verify premise `k ≠ 0 → mm.1 ≤ k` holds by the
+  bound (`k ≠ 0` is `ciEff`), and the mirror is updated (still within the bound). `commitOk` is then
+  of a state made of the stored index (the protocol's state is not a retired backend's concern; no
+  caller uses it). `ci_hook_backend(_run)`, `ci_saveSpec`, `ci_hookFnSpec` and the exported
+  `cindex_hook_backend`, `cindex_hookFnSpec` keep their text (`batchLockInv` holds the registration).
+- **`ci_swap_au`** (for S8, proved): at `ci.SetBackend(newbe)`'s store of 0 (the update its spec
+  takes), from `applyThread γ s` (out of the window), the new names `π'` (`ghostVar π'.mt 1
+  π'.m0.1`, `ghostVar π'.wr 1 false`), a new state `s'` (`k = 0`, not pending, `stOk` at `π'`) and
+  `ciEff γ s.k ≤ π'.m0.1`: the old names retired (their mirror half into `retiredInv`), the
+  registry extended, `cur` moved; it gives `applyThread (γ.withPh π') s'`, the new lock's mirror half
+  and `applyRegd (γ.withPh π')`. The swap must be atomic with `ci := 0`: with `ci` still the old
+  value, `π'`'s `k ≠ 0 → mi ≤ k` fails (`mi = π'.m0.1` is the snapshot's index), and with the old
+  names and `ci = 0`, `k = 0 → w = false` fails.
+- `consInv_alloc` (the boot backend: fresh names, the registry `[π]`; `BuildAlloc.lean`'s
+  docstring named it, it did not exist).
+
+**S7f-b (`45390449c3`): `run`'s loop invariant per backend.** `beSucc γ E γ' E'` (`InvApplyAll.lean`):
+`γ' = γ.withPh γ'.ph` and `E' = E.onBe p P f ciC RO RW` (`apply.AEnv.onBe`: the store's names at
+other physical names, another batch lock's `P`, `f`, the consistent index's `ciC`, `RO`, `RW`; the
+rest kept: `s`, the store's logical names, `RD`, `γrev`, `authOn`, `FS`, `γbe`); reflexive,
+transitive (`beSucc_refl`, `beSucc_trans`); what the raft contract and the write budget see does not
+change (`batchWaitOk_beSucc`, `srvWTPool_beSucc`, `beSucc_γbe`: `rfl` after the `onBe`).
+`applyAll`'s post now gives `∃ γ' TM' E' b', ⌜beSucc γ E γ' E'⌝ ∗ isServer s γ' ci TM' E' ρ γr ∗ …`
+with the apply thread's state, backend, KV and rest buckets at them (its proof: `γ`, `TM`, `E`, `b`,
+no snapshot yet). `applyRes C A` holds `∃ B : ApplyBe` (`γ`, `TM`, `E`, `b`), `beSucc C.γ C.E B.γ B.E`,
+`isServer` at `B`, and the rest at `B` (the `bemu` slot at `C.E.γbe`); `ApplyCtx` gains `ρ`;
+`run_job_body` takes no `isServer`/`TM` (they are in `applyRes`). `start`, `NewServer`,
+`isServerRun` unchanged.
+
+**Statements changed.** Closed theorems: none. Exported results: `applyAll_model`
+(`EtcdServer.applyAll.spec`'s post). Intermediate: `commit_save_au` (premise `applyRegd γ`),
+`frozen_thread_false` (the state's half, not `applyThread`), `run_job_body`, `applyRes`,
+`ApplyCtx`. Definitions: `ApplyNames`, `consInv`, `applyThread`, `freezeY`, `batchLockInv`,
+`hookDone`.
+
+**What S8 (`applySnapshot`) uses for the swap.**
+1. Before `OpenSnapshotBackend`: fresh `π' = ⟨mt', wr', pend', m0'⟩` (`ghostVar_alloc` of `m0'.1`,
+   of `false`, `token_alloc`), `m0'` the snapshot backend's stored meta keys. **Open issue**: the new
+   backend's batch lock needs its hooks' resource `batchLockInv (γ.withPh π') TM'` (with
+   `applyRegd`) at `Open` (its `isBackend`'s `hooksSpec` is for every commit), but the names are
+   registered only at `SetBackend`, and a hook run in between would store the old `ci` (below the
+   snapshot's index: `UnsafeSave`'s verify premise fails, and in Go the new backend would then be
+   reloaded at the old index: a double apply). Go relies on no commit happening: `backend.run`
+   commits only with `pending ≠ 0` and nothing writes the new backend before `SetBackend`. S8 needs
+   that fact from the backend's contract (e.g. `hooksSpec` assumed only with a pending write or a
+   forced commit, and the new backend's write right held by `applySnapshot` until after
+   `SetBackend`), or a "future" status in the registry whose hook triple is refuted by a token the
+   swap consumes; `ci_swap_au` would then take the registration from that status instead of
+   extending the registry.
+2. `consistentIndex.SetBackend.spec`'s update: `ci_swap_au γ s s' π'` with `s' = ⟨0, p', eff', false⟩`,
+   `stOk (γ.withPh π') s'` (e.g. `p' = eff' = m0'.1`), and `ciEff γ s.k ≤ m0'.1`: from
+   `applySnapshot`'s guard (snapshot index `> ep.appliedi`) and `loopOk`/`ciJ`, if the snapshot's
+   stored index is its index; note `ciJ` allows `ciEff = c₀ > ai₀` at the start (a backend ahead of
+   raft's snapshot), so S8 must show a snapshot below `c₀` cannot arrive or weaken the premise.
+3. The new lock's resource: `batchLockInv (γ.withPh π') (metaTM d'.γB d'.P)` from the swap's mirror
+   half, `pend'`, `metaTM` of the open backend, `applyRegd`.
+4. After the swap, `isServer s (γ.withPh π') ci TM' E' ρ γr` with `E' = E.onBe d'.phys … (srvCiC
+   (γ.withPh π') ci) (srvRestOwnH …) (srvRestRWH …)` (`hookSpec` at the new names from
+   `getTxPostLockInsideApplyHook`'s proof at them; `srvEnvOk`, `waitInv`, `srvAtomics`, `srvGenAt`
+   carry over: their `E` parts are logical), `applyBackend (γ.withPh π') ci newbe` (`ciOwner` from
+   `SetBackend`, `isMetaBackend newbe (readView (γ.withPh π'))` from the open's contract), and
+   `beSucc γ E (γ.withPh π') E'`: then `applyAll`'s post at `B'`.
+5. The old backend's `Close`: its commit runs the shared hooks with the old lock's
+   `batchLockInv γ TM` (registered, now retired): `commit_save_au`'s retired case, nothing to supply.
+
+## D29 amended: refusal-freedom for the KV service only (2026-10-23 · asked by the user)
+
+`noRefusalAt addr` said no status the server at `addr` sends has a refusal's description, and the
+axiom `etcd_noRefusal` gave it for an etcd member with authentication off. That is false of etcd:
+`v3rpc.Server` registers the Auth service on the same gRPC server, and `authStore.UserAdd` returns
+`auth.ErrUserEmpty` for an empty name before checking whether authentication is on, which
+`togRPCError` sends as `"etcdserver: user name is empty"`, one of the refusals. Harmless so far
+(`noRefusalAt` is opaque, and its one consumer is the client's attempt contract for its own KV
+calls), but a trust-boundary statement must be true.
+
+Now `noRefusalAt addr` speaks of the answers to calls of etcd's KV service only (`kvMethod`: the
+method name starts `/etcdserverpb.KV/`), and the attempt contract (`grpcInvokerOk`) reads it only
+for such a call: `(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) → noRefusal err`. The write mode
+of the retry interceptor's contract (`modePre .write`) and the connection's request precondition
+(`reqPre`) carry the method and its `kvMethod` fact; the KV stubs' and the retry client's specs
+name their method (`/etcdserverpb.KV/Put`, `DeleteRange`, `Txn`). `etcd_noRefusal`'s statement is
+unchanged, its docstring's argument restated for the KV service (the `UserAdd` case and the watch
+stream's cancel reasons named as why the claim is so scoped). No closed theorem changed
+(fingerprint); `grpcInvokerOk`, an axiom's definition, claims less.
+
+## D-T1..D-T5: the examples' clients configured as etcd's clients are in practice (2026-10-23 · `notes/client-timeouts-plan.md`, T0 and T1 carried out on `client-timeouts`)
+
+**Problem.** The etcd examples made every client call with `context.Background()` (no request
+timeout) and configured no `DialTimeout`; keepalive was linkv3p's alone. No etcd client is used
+that way: etcdctl dials with a 2s timeout, gives each command 5s and pings every 2s with a 6s
+timeout; client/v3's documentation wraps every call in `context.WithTimeout`. The behaviour the
+models were built for, a call that fails at its deadline (its write perhaps applied later, its
+read not retried past the deadline), was never exercised.
+
+**Decisions** (the plan's D-T1 to D-T5, the user's choice of T0 and T1):
+
+- **D-T1.** One configuration in `examples/common` with etcdctl's defaults (`DialTimeout` 2s,
+  `RequestTimeout` 5s, `KeepAliveTime` 2s, which grpc raises to its 10s floor, `KeepAliveTimeout`
+  6s); `common.NewClients(eps, lg)` builds the `clientv3.Config` (`NewClient(addr, lg)` is
+  `NewClients({addr}, lg)`); linkv3p's `newClient` (10s / 2s) is gone. *Rejected:* the README's
+  5s dial timeout without keepalive; Kubernetes' values (30s / 10s: minutes-long failover tests).
+- **D-T2.** Every unary call under `ctx, cancel := context.WithTimeout(context.Background(),
+  common.RequestTimeout)`, `cancel()` right after the call, the README's form (no `defer`: none of
+  the examples' translated code uses it). Watches keep `WithCancel`. Ten call sites: putget's and
+  putget3's Put and Get, `common.Writer`'s Put, linkv3p's `writer`, linkvtxn's `callGet`,
+  `callList`, `callPut`, `callDel`, `callTxn`.
+- **D-T3.** The proofs use the existing trust-boundary spec `context.WithTimeoutBackground`
+  (the read loop's), through one lemma, `client.wp_WithTimeout_bg`
+  (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`): the context is `ctxOk` (an `isContext`)
+  and `ctxErrClient` (from `ctxErrClientAllW_of`), and `cancel` is callable. No new axiom;
+  `notes/perennial-changes.md` proposes `wp_WithTimeout_Background` to Perennial (the plan's T3),
+  after which the axiom becomes a theorem. *T3 carried out the same day* (branch `with-timeout-bg`):
+  Perennial `c25bef57e` proves `WithDeadlineCause`, `WithDeadline` and `WithTimeout` of
+  `Background()` (the no-deadline branch of `WithDeadlineCause`'s proof over `Background()`'s
+  facts; `propagateCancel`'s spec generalized to any child of a `Background()` parent, since Go
+  never looks at the child when the parent's `Done()` is `nil`), the pin moved to it, and the
+  axiom is a theorem: 538 axioms.
+- **D-T4.** The closed theorems' conclusions are unchanged; their premises gain
+  `ContextErrsClient` (the types of Go's `context.Canceled` and `DeadlineExceeded`: leaf errors,
+  no `EtcdError`, without `GRPCStatus`), which the watch theorems already took, since a timed-out
+  call's error now flows through the client: `putget_safe`, `putget3_safe`, `linkvtxn_safe`,
+  `linkv3p_safe` (`watch_safe`, `cache_safe` and `linkv3p_watch_safe` had it). Every spec on the
+  call chains takes `ContextReadErrs` and `ContextErrsClient` as class premises, as
+  `cache.v3.Assumptions`. Nontriviality by the Go tests: linkv3p's `TestFailover` now shows the
+  calls on the blackholed member's connection failing at 5s, 10s and 15s (request timeouts, reads
+  included: the client never retries past the caller's deadline) and the keepalive close at 16s
+  failing the calls in flight, then failover; its phases and checks are rewritten around that
+  (`cutRun` accepts a read that failed at its request timeout, no other read failure).
+- **D-T5.** `common.Serve` passes `grpc.KeepaliveEnforcementPolicy{MinTime: 5s}` (embed's
+  default), as linkv3p's `startMember`: a keepalive client needs it (grpc's own policy answers a
+  second ping within 5 minutes with `GOAWAY too_many_pings`, D28). D28's axiom enters the other
+  examples' collections; no new axiom. `KeepaliveParams` (embed's server-side pings) not added
+  (one more axiom, nothing a test observes).
+
+**What moved in the proofs.** `common`: `NewClients` (spec and proof: linkv3p's `newClient`'s),
+`NewClient` over it, `Serve` with the policy option, `Writer` with the timeout context; the ten
+call sites as D-T2, each `wp_WithTimeout_bg`, the call at the new context, `cancel`'s triple;
+linkv3p's `startCluster` over `common.NewClients`; the four closed theorems' premise; the Links of
+`common`, `linkvtxn`, `linkv3p` regenerated (`context_WithTimeoutBackground` a root, `context_ErrAny`
+an `@` callee of `context`'s Link, `grpc_KeepaliveEnforcementPolicy` common's), the initializers
+regenerated (`common` imports `time`, grpc and `keepalive` now).

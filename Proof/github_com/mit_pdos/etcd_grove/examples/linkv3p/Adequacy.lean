@@ -180,6 +180,7 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
     [context.DeadlineExceededIsError] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC linkvGF, ContextErrsClient (GF := linkvGF) (hG := linkvHeapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (Hbf : linkv3p.BootFacts id₁ id₂ id₃ bootLog)
@@ -211,6 +212,7 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG
+  haveI := Hcec hG
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.linkv3p.wp_initialize' _ github_com.mit_pdos.etcd_grove.examples.linkv3p.getIsPkgInit_wf, ?_⟩
   ihave #Hprem' := Hprem hG

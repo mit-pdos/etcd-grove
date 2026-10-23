@@ -13,6 +13,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Link
 public import Proof.go_uber_org.zap.NewNop
 public import Perennial.Proof.context.Link
+public import Proof.context.Link
+public import Proof.context.WithTimeoutBackground
 
 @[expose] public section
 
@@ -42,7 +44,8 @@ and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
 theorem putget.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     putget.Main.spec (GF := GF) (hG := hG) :=
   putget.Main.wp_proof zap.NewNop.wp_proof common.wp_StartServer common.wp_Serve
-    common.wp_NewClient context.wp_Background
+    common.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
+    context.wp_ErrAny
 
 end results
 

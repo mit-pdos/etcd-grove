@@ -196,7 +196,9 @@ histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs
 `Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`); and
 (item 8, 2026-10-17) `ErrCompacted` and `ErrFutureRev` as the `errors.New` errors they are, which
 the apply package's facts take from here; and (D19j, 2026-10-18) `ErrEmptyWatcherRange` and
-`ErrWatcherDuplicateID` as theirs, which `v3rpc`'s facts take from here. -/
+`ErrWatcherDuplicateID` as theirs, which `v3rpc`'s facts take from here; and (2026-10-23, the
+restore plan's R0) `restoreChunkKeys` (`kvstore.go`: `10000`, a `var` for tests only, read-only at
+its initial value), the chunk size and channel capacity of `store.restore`. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -236,7 +238,8 @@ abbrev mvccInit : IProp GF :=
     EtcdGrove.errorsNewVar ErrWatcherDuplicateID
       go!"mvcc: duplicate watch ID provided on the WatchStream" ∗
     EtcdGrove.errVarCell ErrCompacted go!"mvcc: required revision has been compacted" ∗
-    EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision")
+    EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" ∗
+    globalAddr restoreChunkKeys ↦□ (W64 10000 : w64))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

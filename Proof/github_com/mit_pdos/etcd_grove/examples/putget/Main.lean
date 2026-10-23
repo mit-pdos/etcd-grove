@@ -8,7 +8,10 @@ The steps: `Main`'s premises in the shared start's form (`common.bootPremise_of`
 `putgetWorkload`); `common.StartServer` (the member's configuration, `NewServer`, `Start`);
 `common.Serve` (`v3rpc.Server`, `Listen`, `go gs.Serve(l)`) with the ghost step
 `common.kv_served` (one gRPC slot; etcd's `Put` and `Range` registered at the address);
-`common.NewClient` (`clientv3.New`); `context.Background()` (quiet, `background_ctx`); the client's
+`common.NewClient` (`clientv3.New`); each call's context with the request timeout
+(`context.WithTimeout(context.Background(), common.RequestTimeout)`, `client.wp_WithTimeout_bg`:
+an `isContext` whose `Err()` returns client errors, cancelled after the call; since 2026-10-23,
+`notes/client-timeouts-plan.md`; `context.Background()` alone, quiet, until then); the client's
 invariant at the bootstrap log (`putGetInv_alloc_log`); `cli.Put` (`client_Put_own`, its flag),
 `cli.Get` (`client_Get_own`: the first key-value's value is `v`); the check, on the reply's message
 (`rangeRespMsg`), takes the `else` branch. Every step's error ends `Main` (`return`).
@@ -25,6 +28,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Alloc
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Served
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -53,9 +57,11 @@ theorem Main.wp_proof
     (wp_StartServer : common.StartServer.spec (GF := GF) (hG := hG))
     (wp_Serve : common.Serve.spec (GF := GF) (hG := hG))
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
-    (wp_Background : context.Background.spec (GF := GF) (hG := hG)) :
+    (wp_Background : context.Background.spec (GF := GF) (hG := hG))
+    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS ESL ESE CRE CEC N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
@@ -79,6 +85,8 @@ theorem Main.wp_proof
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
   · iPkgInit
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
+  · iPkgInit
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
@@ -143,9 +151,11 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Hcerr
   wp_auto
-  -- `ctx := context.Background()`
+  -- `pctx, pcancel := context.WithTimeout(context.Background(), common.RequestTimeout)`
   wp_apply wp_Background
-  imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
   imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries bootLog)) go!"k" go!"v" (by rw [hwl]; trivial) ⊤)
@@ -163,8 +173,11 @@ theorem Main.wp_proof
     simp at Hf
   -- `cli.Put(ctx, "k", "v")`
   wp_apply (client.client_Put_own cl go!"127.0.0.1:23790" _ E ρ.rd γf cid mid
-      context.backgroundCtxVal cd go!"k" go!"v" slice.nil []) as %presp %perr Hput
+      pctx pcd go!"k" go!"v" slice.nil []) as %presp %perr Hput
   · iframe #
+  -- `pcancel()`
+  (try wp_auto)
+  wp_apply Hpcancel
   icases Hput with (⟨%Hperr, -, #Hflag⟩ | %Hpfail)
   rotate_left
   · obtain ⟨Hperr, -⟩ := Hpfail
@@ -175,13 +188,22 @@ theorem Main.wp_proof
     iapply HΦ; itrivial
   subst Hperr
   (try wp_auto)
-  -- `cli.Get(ctx, "k")`
+  -- `gctx, gcancel := context.WithTimeout(context.Background(), common.RequestTimeout)`
+  wp_apply wp_Background
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %gctx %gcd %gcancel ⟨#Hgcancel, #Hgctx, #Hgce, -⟩
+  (try wp_auto)
+  -- `cli.Get(gctx, "k")`
   imod monoNatLbOwn_0 (GF := GF) ρ.rd.committed with #Hc0
   wp_apply (client.client_Get_own cl go!"127.0.0.1:23790" _ E ρ.rd γf (W64 0) cid mid
-      context.backgroundCtxVal cd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
+      gctx gcd go!"k" go!"v" slice.nil []) as %gresp %gerr Hget
   · iframe #
     iunfold committedAtLeast
     iExactEq Hc0; rfl
+  -- `gcancel()`
+  (try wp_auto)
+  wp_apply Hgcancel
   icases Hget with (⟨%Hgerr, %m, #Hm, %Hv⟩ | %Hgfail)
   rotate_left
   · obtain ⟨Hgerr, -⟩ := Hgfail

@@ -41,7 +41,7 @@ theorem EtcdServer.restoreAlarms.wp_proof
   wp_apply hAB lg _ $$ [] as %ab ⟨%abl, %Hab, #Habl, #Habb⟩
   wp_apply hAS lg ab abl d W Pk qo r $$ [Ho Hwb Hrb] as %a %err ⟨Ho, Hrb, Hres⟩
   · iframe #; iframe Ho Hwb Hrb; ipureintro; exact ⟨Hlgnn, Hab, Hal⟩
-  icases Hres with (%Herr | ⟨⟨%Herr, %Hann⟩, #Has, Hfr, #Hget, #Hap⟩)
+  icases Hres with (%Herr | ⟨⟨%Herr, %Hann⟩, #Has, Hon, Hfr, #Hget, #Hap⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>

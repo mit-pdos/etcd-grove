@@ -44,12 +44,12 @@ theorem wp_Start_built (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
   iunfold memberBuilt at Hmb
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff, Hlgm,
-    #Hnm, HWR⟩
+    Hrc, #Hnm, HWR⟩
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hwpi, Hbemu, Hlts, Hlgs, Hrds, Hsts, Hbms⟩
   icases replicate_take2 _ _ (by omega) $$ Hlgs with ⟨Hlg1, Hlg2, Hlgs⟩
   wp_apply (wp_Start s γA ci TM E ρ ρ.rd _ γrn b (W64 0) (W64 0) (W64 0) bootKV N HrbN rfl)
-    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, -⟩
+    $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, Hgo, Hlg3, Hrslots, -, -⟩
   · iframe; iframe #
   iapply HΦ
   iunfold memberUp

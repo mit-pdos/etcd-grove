@@ -106,7 +106,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   -- (D29) a write's ordinary precondition, never retried (`.write`), or a persistent one (`.any`)
   obtain ⟨once, hon⟩ : ∃ b : Bool, b = (md != AttemptMode.any) := ⟨_, rfl⟩
   ihave ⟨Hpre, %Hw⟩ : iprop((if once then laterHid (Spec m Φ') else iprop(□ laterHid (Spec m Φ'))) ∗
-      ⌜md = AttemptMode.write → (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]
+      ⌜md = AttemptMode.write → kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝) $$ [Hpre]
   · subst hon
     cases md
     · unfold modePre laterHid
@@ -150,7 +150,7 @@ theorem Client.unaryClientInterceptor.wp_proof
   ihave %Hcovpol : ⌜md = AttemptMode.write → cov.retryPolicy' = W8 1⌝ $$ []
   · cases md
     · ipureintro; intro h; cases h
-    · have Hcoio : co = io := Hco0 (Hnone (Hw rfl).2)
+    · have Hcoio : co = io := Hco0 (Hnone (Hw rfl).2.2)
       subst Hcoio
       iunfold retryOptsPol at Hiop
       icases Hiop with ⟨%ov2, #Hov2, %Hp2⟩
@@ -409,7 +409,7 @@ theorem Client.unaryClientInterceptor.wp_proof
           isplitr
           · -- (D29) a refresh follows an auth refusal, which a refusal-free connection never sends
             ipureintro; intro hw; exfalso
-            rcases Hnr (Hw hw).1 with h | h
+            rcases Hnr ⟨(Hw hw).1, (Hw hw).2.1⟩ with h | h
             · exact Hne h
             · exact h (Hb2 rfl)
           iframe
@@ -436,7 +436,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         · -- (D29) a write is retried only after a refusal
           ipureintro; intro hw; exfalso
           rcases Hb3 rfl with h | h
-          · rcases Hnr (Hw hw).1 with h' | h'
+          · rcases Hnr ⟨(Hw hw).1, (Hw hw).2.1⟩ with h' | h'
             · exact Hne h'
             · exact h' h
           · rw [Hcovpol hw] at h; simp at h

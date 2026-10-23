@@ -533,7 +533,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   apply texan_of_strong _ _ _ _ _ (by rfl)
   iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, %Hpre⟩ HΦ
   iunfold batchLockInv at Hbl
-  icases Hbl with ⟨%mm, Hmt, HTM, Hpend⟩
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #Hreg⟩
   icases metaTM_agree γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm⟩
   imod token_alloc with ⟨%γi, Hti⟩
   imod token_alloc with ⟨%γt, Htt⟩
@@ -550,7 +550,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   iapply (hSave ci γA.ci (btIface t) (hookTM γ P b st γi γt) (token γi) (token γt) mm) $$
     [HTM Hti Htt] [Hmt Hpend HΦ]
   · iframe Hcpkg Hci Hw HTM Hti Htt
-  iapply (commit_save_au γA mm) $$ Hinv Hmt Hpend
+  iapply (commit_save_au γA mm) $$ Hinv Hmt Hpend Hreg
   iintro %k %s %Hmono %Hok Hmt Hpend
   isplitr
   · ipureintro; exact Hmono
@@ -564,7 +564,7 @@ theorem ci_hook_backend_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) 
   · unfold batchLockInv
     iexists (metaAfterSave mm k tm)
     rw [metaAfterSave_fst]
-    iframe Hmt Hpend
+    iframe Hmt Hpend Hreg
     unfold metaTM
     iexists st'.S
     iframe Hhk
@@ -699,7 +699,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
   apply texan_of_strong _ _ _ _ _ (by rfl)
   iintro ⟨#Hpkg, #Hsch, #Hcpkg, #Hb, #Ht, #Hci, #Hinv⟩ %Φ ⟨Hl, Hbl, Hst, %Hpre⟩ HΦ
   iunfold batchLockInv at Hbl
-  icases Hbl with ⟨%mm, Hmt, HTM, Hpend⟩
+  icases Hbl with ⟨%mm, Hmt, HTM, Hpend, #Hreg⟩
   icases metaTM_agree γ hP b st mm $$ [$Hl $HTM] with ⟨Hl, Hhk, %Hmm⟩
   imod token_alloc with ⟨%γi, Hti⟩
   imod token_alloc with ⟨%γt, Htt⟩
@@ -730,7 +730,7 @@ theorem ci_hook_freeze_run (hSave : consistentIndex.UnsafeSave.spec (GF := GF) (
   · unfold batchLockInv
     iexists (metaAfterSave mm k tm)
     rw [metaAfterSave_fst]
-    iframe Hmt Hpend
+    iframe Hmt Hpend Hreg
     unfold metaTM
     iexists st'.S
     iframe Hhk

@@ -7,7 +7,8 @@
 // Main calls only what the proofs specify: the examples' shared start (examples/common:
 // StartServer, which configures the member and calls etcdserver.NewServer and (*EtcdServer).Start;
 // Serve, v3rpc.Server, net.Listen and (*grpc.Server).Serve on a goroutine; NewClient,
-// clientv3.New), the client's Put and Get. An error from any step ends Main without a check: the specs
+// clientv3.New), the client's Put and Get, each in a context with the examples' request timeout
+// (context.WithTimeout of Background, cancelled after the call). An error from any step ends Main without a check: the specs
 // allow every step to fail (no leader in time, a dial error, ...), and the conclusion is about
 // the Get's value when both succeed.
 package putget
@@ -39,11 +40,16 @@ func Main() {
 	if err != nil {
 		return
 	}
-	ctx := context.Background()
-	if _, err := cli.Put(ctx, "k", "v"); err != nil {
+	// each call in a context with the request timeout, cancelled after the call
+	pctx, pcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	_, err = cli.Put(pctx, "k", "v")
+	pcancel()
+	if err != nil {
 		return
 	}
-	resp, err := cli.Get(ctx, "k")
+	gctx, gcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Get(gctx, "k")
+	gcancel()
 	if err != nil {
 		return
 	}

@@ -9,6 +9,7 @@ fired at (`callRes`): the server's run of the transaction at `σ` (its verdict a
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -29,7 +30,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev callTxn.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (x : Input) (cs : List (linkv.MCmp GoString GoString)) (t e : List (linkv.MOp GoString GoString))

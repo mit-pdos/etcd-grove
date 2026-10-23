@@ -77,7 +77,7 @@ theorem NewMember.wp_proof
   -- `go http.Serve(l, s.RaftHandler())`
   iunfold memberBuilt at Hmb
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff, Hlgm,
-    #Hnm, HWR⟩
+    Hrc, #Hnm, HWR⟩
   wp_apply (wp_RaftHandler s γn id) as %h #Hh
   · iframe #
   (try wp_auto)

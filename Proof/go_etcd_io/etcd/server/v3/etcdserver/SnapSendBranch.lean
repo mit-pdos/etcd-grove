@@ -64,7 +64,7 @@ theorem snapBranch_send
     (hCM : EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG))
     (hSMS : EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG))
     (s ml : Loc) (st : MsgSt) (sn0 : SnapshotM) (ai at_ : w64) (cs lg : Loc) (kv be : GoInterface)
-    (RC RC' RS RS' : IProp GF) (Qd : backend.Data → Prop) (γ : RaftNames) (bud : BudgetNames)
+    (dq : DFrac) (RC RC' RS RS' : IProp GF) (Qd : backend.Data → Prop) (γ : RaftNames) (bud : BudgetNames)
     (A : List EntryM) (id : w64) (stg : Loc) (tr : GoInterface) (γn : NetNames GF)
     (Hty : st.msg.Type' = MsgSnap) (Hsn : st.snap = some sn0)
     (Hix : uint.Z sn0.Metadata'.Index' ≤ uint.Z ai)
@@ -75,7 +75,7 @@ theorem snapBranch_send
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         srvGoRes s ∗ srvLgReader s ∗ srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
         srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ RC ∗
-        srvBeAddr s ↦□ be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
+        srvBeAddr s ↦{dq} be ∗ srvBeSnapOk be RS RS' Qd ∗ (RC' -∗ RS) ∗
         msgOwn ml (DFrac.own 1) st ∗ epCsOk cs ∗
         raftCommitInv γ ∗ isRaftMsg γ st ∗ termLB bud st.msg.Term' ∗ rnRtBound γ st.msg.Term' ai ∗
         isCommitted γ A ∗ □ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D) ∗
@@ -88,11 +88,11 @@ theorem snapBranch_send
       (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"sendMergedSnap"))
         (App (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
           go!"createMergedSnapshotMessage")) (Val #ml)) (Val #at_)) (Val #ai)) (Val #cs)))
-    {{ RET #(); srvGoRes s ∗ srvLgReader s ∗ RS' }} := by
-  iintro %Φ ⟨#Hpkg, Hgr, Hlr, #Hlgf, %Hlgnn, #Hkvf, Hkc, HRC, #Hbef, Hbs, HRS, Hm, #Hcs, #Hinv,
+    {{ RET #(); srvGoRes s ∗ srvLgReader s ∗ RS' ∗ srvBeAddr s ↦{dq} be }} := by
+  iintro %Φ ⟨#Hpkg, Hgr, Hlr, #Hlgf, %Hlgnn, #Hkvf, Hkc, HRC, Hbef, Hbs, HRS, Hm, #Hcs, #Hinv,
     #Hrm, #Htlb, #Hbnd, #HA, #Himg, #Hccs, #Hidf, #Hinf, #Hstgf, #Hstg, #Htrf, #Htr⟩ HΦ
-  wp_apply hCM s ml st at_ ai cs lg kv be RC RC' RS RS' Qd $$ [Hlr Hkc HRC Hbs HRS Hm]
-    as %mg ⟨Hlr, HRS', %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQ⟩
+  wp_apply hCM s ml st at_ ai cs lg kv be dq RC RC' RS RS' Qd $$ [Hlr Hkc HRC Hbef Hbs HRS Hm]
+    as %mg ⟨Hlr, HRS', Hbef, %rc, %D, %c, #Hmg, #Hml, #Hcso, Hrs, %HQ⟩
   · iframe #; iframe
     ipureintro; exact Hlgnn
   ihave #HimgD := Himg $$ %D %HQ

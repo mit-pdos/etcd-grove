@@ -24,6 +24,7 @@ assumptions, as putget3's.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Defs
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -45,6 +46,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (clients ops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.linkv3p.Step),

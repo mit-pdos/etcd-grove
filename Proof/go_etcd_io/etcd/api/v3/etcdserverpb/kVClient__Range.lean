@@ -58,7 +58,7 @@ theorem kVClient.Range.wp_proof
     ([sm] ++ vs)
   rw [show (pbRangeRequest (GF := GF)).ty = etcdserverpb.RangeRequest.ty from rfl,
     show (pbRangeResponse (GF := GF)).ty = etcdserverpb.RangeResponse.ty from rfl] at hI
-  ihave Hpre' := reqPre_box conn addr ([sm] ++ vs) _ $$ Hpre
+  ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre
   wp_apply hI $$ [Hsend Hblank Hpre'] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe

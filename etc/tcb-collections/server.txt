@@ -105,7 +105,6 @@ axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
@@ -187,6 +186,7 @@ axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof
+axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3compactor.New.wp_proof
 axiom verify.Assert.wp_proof

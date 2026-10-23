@@ -8,7 +8,8 @@
 // (etcdserver.NewServer over bootstrap's contract, the member's raft handler served on its peer
 // URL's listener, (*EtcdServer).Start), then, for the first member only, what putget does: Serve
 // (v3rpc.Server, net.Listen, (*grpc.Server).Serve on a goroutine), NewClient (clientv3.New, one
-// endpoint), the client's Put and Get. An error from any step ends Main
+// endpoint), the client's Put and Get, each in a context with the examples' request timeout
+// (context.WithTimeout of Background, cancelled after the call). An error from any step ends Main
 // without a check, as in putget.
 package putget3
 
@@ -62,11 +63,16 @@ func Main() {
 	if err != nil {
 		return
 	}
-	ctx := context.Background()
-	if _, err := cli.Put(ctx, "k", "v"); err != nil {
+	// each call in a context with the request timeout, cancelled after the call
+	pctx, pcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	_, err = cli.Put(pctx, "k", "v")
+	pcancel()
+	if err != nil {
 		return
 	}
-	resp, err := cli.Get(ctx, "k")
+	gctx, gcancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Get(gctx, "k")
+	gcancel()
 	if err != nil {
 		return
 	}

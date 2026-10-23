@@ -19,7 +19,8 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   - the consistent index at `0` (`isCI`, `ciOwner` of the backend, the applying index at `0`)
     and the apply protocol's names and invariant (`consInv`, the apply thread's half at the start:
     the backend's batch lock's resource names them, so they exist before the backend; the
-    protocol's allocation is `consInv_alloc`, `BuildAlloc.lean`), the backend's meta keys at
+    protocol's allocation is `consInv_alloc`, `InvApply.lean`: since S7f its registry holds the boot
+    backend's physical names, `batchLockInv`'s `applyRegd`), the backend's meta keys at
     `(0, 0)` (a new cluster's fresh backend);
   - the backend of the real instance `d` with the server's hooks (`server_kv_backend_hooks`'s
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,
@@ -49,6 +50,8 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 
 @[expose] public section
 
@@ -95,6 +98,71 @@ def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
 alarm (`Activate`, the only writer of its map, is in its apply contract, which taking this token
 gives: the axiom's postcondition). -/
 opaque alarmFresh (a : Loc) : IProp GF
+
+/-- **The alarm store `a`'s apply contract on whichever backend it is on** (persistent; D22 receiver
+epochs, S7c, 2026-10-23; `v3alarm.NewAlarmStore.spec`'s, the trust boundary): for a real backend
+`d` (its contract at some `W`, `Pk`, its frozen post-lock hook `f`) and a write right `RW` lending
+the tracked buckets' half of `d` and the store's user's half of `a.be` at an alarm backend over
+`d` (`alarmBeOn`), the apply package's contract at `d`'s batch lock `Pk` and hook `f`. The user's
+half, with the lock's (`alarmLockInv`), is what pins the store's writes to `d`, so the contract
+stays true when `Recover` moves the store to another backend (the old user's half is gone, the new
+one names the new backend; until S7c the contract was for `NewAlarmStore`'s backend only, false
+once `Recover` runs). -/
+def alarmApplyOk (a : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
+    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ alarmBeOn a d.be) -∗
+    apply.isAlarmStore a γ Pk #f RW)
+
+instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
+  unfold alarmApplyOk; infer_instance
+
+/-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
+`auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
+`alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
+def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
+    ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
+    apply.isAuthStore (auth.authIface stl) γ Pk #f RD false RW)
+
+/-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
+receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
+pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
+lends; one write-back token per write, the reader's open share lent. -/
+def lessorApplyOk (lp : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ lease.lessorBeOn lp d.be) -∗
+    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be))
+
+instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
+  unfold lessorApplyOk; infer_instance
+
+/-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
+epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
+contract at some `W`, `Pk`, its frozen post-lock hook `f`), the apply package's `isCluster` at `d`'s
+batch lock `Pk` and hook `f`, given a rest resource `RO` lending the backend's tracked buckets'
+half and the cluster's in-memory members with its `be` field at a membership backend over `d`
+(`clusterBeOn`, `roLens`), and a write right `RW` lending the half and the field (`rwLens`). The
+field (`c.be`: no lock guards it, the apply thread is its only reader and writer) pins the
+cluster's writes to `d`; `SetBackend` replaces it. Until S7e the contract was for the boot
+backend's batch lock only, false once `applySnapshot` calls `SetBackend`. -/
+def clusterApplyOk (c : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
+      (RO : apply.RestM → IProp GF) (RW : IProp GF),
+    ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
+    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
+    apply.isCluster c γ' Pk #f RO RW)
+
+instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
+  unfold clusterApplyOk; infer_instance
+
+instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
+    Persistent (authApplyOk (GF := GF) stl RD) := by
+  unfold authApplyOk; infer_instance
 
 /-- **The lessor's checkpointer's effects** (opaque, the named premise of D14g, 2026-10-17): the
 lessor's loop, once its lessor is promoted, calls the server's checkpointer (`NewServer`'s closure
@@ -209,11 +277,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
     -- `clusterVersionOk`
     "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
-    "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
-      backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-      (∃ n : Loc, membership.rcVersionChangedAddr bc.cl' ↦□ n) -∗
-      apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f (srvRestOwn d.γB bc.cl')
-        (srvRestRW d.γB)) ∗
+    -- (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field names, which
+    -- `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards it, the
+    -- apply thread is its only user); until then for the boot backend's batch lock only
+    "#Hisc" ∷ clusterApplyOk bc.cl' ∗
+    "HclBe" ∷ clusterBeOn bc.cl' d.be ∗
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
     -- entries' contexts are)

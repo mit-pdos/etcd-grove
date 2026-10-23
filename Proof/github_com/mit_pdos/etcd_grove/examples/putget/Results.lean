@@ -60,6 +60,7 @@ theorem putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
     [context.DeadlineExceededIsError] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
@@ -78,7 +79,7 @@ theorem putget_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  putget_adequate Hctx Hms hAs id bootLog Hbf Hck Haf Hbuq Hdbo HNs HAs n Hprem σ g
+  putget_adequate Hctx Hcec Hms hAs id bootLog Hbf Hck Haf Hbuq Hdbo HNs HAs n Hprem σ g
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

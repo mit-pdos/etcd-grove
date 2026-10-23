@@ -27,11 +27,12 @@ until it succeeds or `stopping` is closed). It proposes, through `s.raftRequest`
 `ClusterMemberAttrSet` requests (`server.go`: `req := pb.InternalRaftRequest{ClusterMemberAttrSet:
 …}`), with the permission `srvMonitorPermit` gives (D19c, 2026-10-18, `InvMonitors.lean`; until
 then the contract took only the package's initialization, and its proposals were outside the
-model). -/
+model). On success it closes `s.readych` (`close(s.readych)`), with the right to (`srvReadyCloser`,
+2026-10-23: until then the contract closed a channel it did not own). -/
 abbrev EtcdServer.publishV3.spec : Prop :=
   ∀ (s : Loc) (d : _root_.Perennial.time.Duration) (E : apply.AEnv GF) (ρ : ReqNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvMonitorPermit s E ρ }}
+      srvMonitorPermit s E ρ ∗ srvReadyCloser s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"publishV3")) (Val #d))
   {{ RET #(); True }}
 

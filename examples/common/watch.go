@@ -60,13 +60,15 @@ func GenAll(n int, keys []string) []KV {
 	return all
 }
 
-// Writer does the Puts tried[lo:hi] through cli, in order, logging in w each that returned no
-// error, with its reply's revision.
+// Writer does the Puts tried[lo:hi] through cli, in order, each in a context with the request
+// timeout (RequestTimeout, cancelled after the call), logging in w each that returned no error,
+// with its reply's revision.
 func Writer(cli *clientv3.Client, w *Writes, tried []KV, lo int, hi int) {
-	ctx := context.Background()
 	for k := lo; k < hi; k++ {
 		p := tried[k]
+		ctx, cancel := context.WithTimeout(context.Background(), RequestTimeout)
 		resp, err := cli.Put(ctx, p.Key, p.Val)
+		cancel()
 		if err == nil {
 			w.Mu.Lock()
 			w.Ok = append(w.Ok, PutRec{Rev: resp.Header.Revision, Key: p.Key, Val: p.Val})

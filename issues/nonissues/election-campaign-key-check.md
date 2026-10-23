@@ -5,7 +5,7 @@ links:
   - etcd-io/etcd#11051 issue closed: same bug (Campaign returns nil after the prior keys go though its own key was deleted); closed by the stale bot, never fixed
   - etcd-io/etcd#11777 issue closed: same bug (own key deleted before waitDeletes, Campaign still returns nil); closed by the stale bot, never fixed
   - etcd-io/etcd#21165 pr open: Campaign resigns on any waitDeletes error; same lines, not this bug (textual conflict)
-candidate: issues/nonissues/nonissues/upstream/election-campaign-key-check/
+candidate: issues/nonissues/upstream/election-campaign-key-check/
 ---
 
 > Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: `Campaign` returning nil after its key is gone is equivalent to the leadership expiring at once, which every caller must handle anyway (leadership needs fencing).

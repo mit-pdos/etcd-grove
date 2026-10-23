@@ -241,6 +241,18 @@ def kiTombstone (ki : KeyIndex) (rev : Rev) : KeyIndex :=
   let ki' := kiPut ki rev
   { ki' with gens := ki'.gens ++ [Gen.empty] }
 
+/-- `ki.restore(lg, created, modified, ver)` on a key index with no generation (the restore plan,
+R1): one generation `{created, ver, [modified]}`, `modified` its last change. `restoreIntoIndex`
+calls it for a key's first entry read from the backend, with `created` the entry's
+`Revision{Main: CreateRevision}` (sub-revision `0`). -/
+def kiRestore (created modified : Rev) (ver : w64) : KeyIndex :=
+  { modified := modified, gens := [{ ver := ver, created := created, revs := [modified] }] }
+
+/-- `ki.restoreTombstone(lg, main, sub)` on a key index with no generation: `restore` with
+`Revision{}` and version `1`, then a new empty generation. -/
+def kiRestoreTombstone (rev : Rev) : KeyIndex :=
+  { modified := rev, gens := [{ ver := W64 1, created := Rev.zero, revs := [rev] }, Gen.empty] }
+
 /-- `keyIndex.isEmpty()`: one generation, with no revision. -/
 def kiIsEmpty (ki : KeyIndex) : Bool :=
   match ki.gens with

@@ -629,10 +629,18 @@ theorem ctxOk_of_isContext (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp
     context.isContext (GF := GF) ci cd ⊢ ctxOk ci cd := by
   iintro #H; unfold ctxOk; ileft; iexact H
 
-/-- **The server at `addr` never answers with a refusal** (opaque; D29, 2026-10-21): no status it
-sends has a description among `refusalDescs`. Established by the trust-boundary axiom of etcd's
-members (`etcd_noRefusal`), carried by the network's relays (linkv3p's `forwards`), and read by the
-attempt contract (`grpcInvokerOk`). -/
+/-- **A method of etcd's KV service** (`/etcdserverpb.KV/Range`, `Put`, `DeleteRange`, `Txn`,
+`Compact`: the full method names grpc sends; 2026-10-23). -/
+def kvMethod (method : GoString) : Prop := go!"/etcdserverpb.KV/" <+: method
+
+/-- **The server at `addr` never answers a unary call of etcd's KV service with a refusal**
+(opaque; D29, 2026-10-21; narrowed to the KV service 2026-10-23): no status it sends in answer to a
+`kvMethod` call has a description among `refusalDescs`. Established by the trust-boundary axiom of
+etcd's members (`etcd_noRefusal`), carried by the network's relays (linkv3p's `forwards`), and read
+by the attempt contract (`grpcInvokerOk`) for a `kvMethod` call only. Until 2026-10-23 it covered
+every status the server sends, which is false of etcd: its Auth service answers `UserAdd` of an
+empty name with `"etcdserver: user name is empty"` even with authentication off
+(`authStore.UserAdd`). -/
 opaque noRefusalAt : GoString → Prop
 
 /-- **One attempt** (persistent; the contract of grpc's `invoke`, the final invoker of a
@@ -657,7 +665,8 @@ definition); no axiom is added.
 
 Since 2026-10-21 (D29, the user's choice) the error is not a refusal (`noRefusal`: its
 description is none of `refusalDescs`, the descriptions after which etcd's client resends a write)
-when every address of the connection is refusal-free (`noRefusalAt`). True of grpc-go: a status
+when every address of the connection is refusal-free (`noRefusalAt`) and (2026-10-23) the method is
+one of etcd's KV service (`kvMethod`), the calls `noRefusalAt` speaks of. True of grpc-go: a status
 the server sends is forwarded unchanged (`grpc-status`, `grpc-message`), and grpc's own errors
 carry grpc's messages (neither of the old balancer's two strings occurs in grpc v1.84's sources;
 the four etcd strings are etcd's). Again a restatement of `grpc.ClientConn.Invoke`'s promise.
@@ -682,7 +691,8 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             go_etcd_io.etcd.cache.v3.errCellOk err ∗ Rep.own out ∗
-            ⌜(∀ a ∈ addrs, noRefusalAt a) → go_etcd_io.etcd.cache.v3.noRefusal err⌝)) }})
+            ⌜(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) →
+              go_etcd_io.etcd.cache.v3.noRefusal err⌝)) }})
 
 instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :
     Persistent (grpcInvokerOk (GF := GF) conn addrs inv) := by

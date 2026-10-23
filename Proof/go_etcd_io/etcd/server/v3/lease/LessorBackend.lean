@@ -14,8 +14,9 @@ needs the backend open), gives a token `Lk (Post ∗ R)` that `UnsafePut` into t
 keeps and `Unlock()` turns into `Post ∗ R`. A contract on the lessor's environment (as mvcc's `isKeyBackend`
 was for the store before `BackendBridge.lean`): not yet proved of the real backend.
 
-`lessorBackend lp P f`: the lessor's `b` (read-only: `newLessor` sets it; `Recover`, not
-proved, would replace it) is such a backend.
+`lessorBackend lp P f`: the lessor's `b` is such a backend (`newLessor` sets it; `Recover`,
+names-only, replaces it under the lessor's lock: D22 receiver epochs, S7c, the field half the
+lock's, half its user's, `lessorBeOn`, which the write token lends).
 
 `lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
 returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
@@ -80,13 +81,26 @@ instance leaseBackend_persistent (b : GoInterface) (P : IProp GF) (f : val) (T R
     Persistent (leaseBackend b P f T R) := by
   unfold leaseBackend; infer_instance
 
-/-- **The lessor's backend** (persistent): its `b` field, read-only, a `leaseBackend`. -/
+/-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the write token `T` lends a
+fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23: the field is no
+longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
+the writes read `le.b` under the lessor's lock, holding the token. -/
 def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF) : IProp GF :=
-  iprop(∃ b : GoInterface, lF go!"b" lp ↦□ b ∗ leaseBackend b P f T R)
+  iprop(∃ b : GoInterface, leaseBackend b P f T R ∗
+    □ (T -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ T)))
 
 instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF) :
     Persistent (lessorBackend lp P f T R) := by
   unfold lessorBackend; infer_instance
+
+/-- **The lessor `lp` is on the backend at `be`** (D22 receiver epochs, S7c, 2026-10-23; not
+persistent): its user's half of `le.b` (the other half is the lessor's lock's, `lessorExtra`), the
+backend's `*backend` at `be`. The writes' contract (`NewLessor`'s) takes it in their write right,
+so that it names the backend they write to; `Recover` replaces both halves under the lock. -/
+def lessorBeOn (lp be : Loc) : IProp GF :=
+  iprop(lF go!"b" lp ↦{DFrac.own (1 : Qp).half}
+    (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+      #be : GoInterface))
 
 /-- The lessor's `expiredC` (persistent): read-only, a channel of slices of leases, some lease of
 each meeting the grant guard `GA` (D19n). -/

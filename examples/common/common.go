@@ -13,8 +13,11 @@ package common
 import (
 	"net"
 	"net/http"
+	"time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"go.etcd.io/etcd/client/pkg/v3/types"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -22,6 +25,20 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
 	"go.etcd.io/etcd/server/v3/features"
+)
+
+// The clients' timeouts, etcdctl's defaults (etcdctl/ctlv3/ctl.go; notes/client-timeouts-plan.md):
+// the dial timeout; the timeout of one request (etcdctl's --command-timeout), in which every unary
+// call of the examples is made (context.WithTimeout(context.Background(), RequestTimeout), the
+// context cancelled after the call, as client/v3's documentation shows); and gRPC keepalive, a
+// ping every KeepAliveTime of no reads (grpc raises it to its 10s floor), the connection closed
+// when a ping is not answered within KeepAliveTimeout, so that a silently cut member's calls fail
+// and the balancer moves on (notes/keepalive-plan.md).
+const (
+	DialTimeout      = 2 * time.Second
+	RequestTimeout   = 5 * time.Second
+	KeepAliveTime    = 2 * time.Second
+	KeepAliveTimeout = 6 * time.Second
 )
 
 // newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
@@ -101,9 +118,14 @@ func StartMember(name string, peer types.URLs, peerAddr string, client string,
 }
 
 // Serve serves the started member s's gRPC API (etcd's v3rpc.Server, no TLS, no extra
-// interceptor) on a listener at addr, on a goroutine.
+// interceptor) on a listener at addr, on a goroutine. The clients' keepalive pings are allowed
+// every 5s, as etcd's embed does with its default GRPCKeepAliveMinTime (grpc's own default
+// refuses a ping more often than every 5 minutes, which would close a keepalive client's
+// connection).
 func Serve(s *etcdserver.EtcdServer, addr string) error {
-	gs := v3rpc.Server(s, nil, nil)
+	gs := v3rpc.Server(s, nil, nil, grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+		MinTime: 5 * time.Second,
+	}))
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
@@ -113,10 +135,22 @@ func Serve(s *etcdserver.EtcdServer, addr string) error {
 }
 
 // NewClient connects a client to the one endpoint addr (a plain host:port, clientv3.New's premise
-// plainEndpoint), with etcd's default client configuration (its default retries).
+// plainEndpoint): NewClients of it.
 func NewClient(addr string, lg *zap.Logger) (*clientv3.Client, error) {
+	return NewClients([]string{addr}, lg)
+}
+
+// NewClients connects a client to the endpoints eps (plain host:ports), each call's attempt to one
+// of them, configured as etcd's clients are in practice: the timeouts above (DialTimeout,
+// keepalive) and etcd's default retries -- a read that fails with Unavailable is retried, on the
+// next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
+// which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
+func NewClients(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
 	return clientv3.New(clientv3.Config{
-		Endpoints: []string{addr},
-		Logger:    lg,
+		Endpoints:            eps,
+		DialTimeout:          DialTimeout,
+		DialKeepAliveTime:    KeepAliveTime,
+		DialKeepAliveTimeout: KeepAliveTimeout,
+		Logger:               lg,
 	})
 }

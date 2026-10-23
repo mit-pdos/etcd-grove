@@ -284,7 +284,6 @@ axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelTodo.wp_proof
-axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -304,6 +303,7 @@ axiom grpc.ChainUnaryInterceptor.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.CustomCodec.wp_proof
+axiom grpc.KeepaliveEnforcementPolicy.wp_proof
 axiom grpc.MaxConcurrentStreams.wp_proof
 axiom grpc.MaxRecvMsgSize.wp_proof
 axiom grpc.MaxSendMsgSize.wp_proof

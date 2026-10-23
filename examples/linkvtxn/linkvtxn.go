@@ -685,9 +685,15 @@ func opsOf(ops []TOp) []clientv3.Op {
 	return out
 }
 
+// Every call below is made in a context with the examples' request timeout
+// (common.RequestTimeout, cancelled after the call), as etcd's clients are used in practice: a
+// call that takes longer fails (context.DeadlineExceeded) and the operation is recorded as failed.
+
 // callGet runs a get of key through the client cli: its output.
 func callGet(cli *clientv3.Client, key string) Output {
-	resp, err := cli.Get(context.Background(), key)
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Get(ctx, key)
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -711,7 +717,9 @@ func kvsFrom(kvs []*mvccpb.KeyValue) []KV {
 
 // callList runs a list of the keys through the client cli: its output.
 func callList(cli *clientv3.Client) Output {
-	resp, err := cli.Get(context.Background(), listFrom, clientv3.WithRange(listTo))
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Get(ctx, listFrom, clientv3.WithRange(listTo))
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -720,7 +728,9 @@ func callList(cli *clientv3.Client) Output {
 
 // callPut runs a put of key with val through the client cli: its output.
 func callPut(cli *clientv3.Client, key string, val string) Output {
-	resp, err := cli.Put(context.Background(), key, val)
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Put(ctx, key, val)
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -729,7 +739,9 @@ func callPut(cli *clientv3.Client, key string, val string) Output {
 
 // callDel runs a delete of key through the client cli: its output.
 func callDel(cli *clientv3.Client, key string) Output {
-	resp, err := cli.Delete(context.Background(), key)
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Delete(ctx, key)
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}
@@ -777,7 +789,9 @@ func txnRes(ops []TOp, resps []*etcdserverpb.ResponseOp) []TRes {
 
 // callTxn runs a transaction through the client cli: its output.
 func callTxn(cli *clientv3.Client, in Input) Output {
-	resp, err := cli.Txn(context.Background()).If(cmpsFor(in)...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
+	ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
+	resp, err := cli.Txn(ctx).If(cmpsFor(in)...).Then(opsOf(thenOf(in))...).Else(opsOf(elseOf(in))...).Commit()
+	cancel()
 	if err != nil {
 		return Output{Err: true}
 	}

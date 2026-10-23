@@ -114,6 +114,10 @@ EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
+# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8): `restore` is
+# the trust boundary (names-only).
+AlarmStore__restore:
+AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:

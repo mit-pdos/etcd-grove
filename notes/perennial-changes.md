@@ -193,6 +193,35 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Landed
 
+### Specs: `context.WithTimeout`/`WithDeadline` of `Background()`
+
+- **Missing.** A spec of `context.WithTimeout(parent, d)` (and `WithDeadline`,
+  `WithDeadlineCause`) whose parent is `context.Background()` (or `TODO()`): Perennial's
+  `context.WithTimeout.spec` takes `isContext parent`, which `Background()`'s value is not (its
+  `Done()` is `nil`). `WithCancel` has the counterpart (`wp_WithCancel_Background`,
+  `WithCancelGen.lean`), and the pieces of the deadline case are there too (`wp_background_Deadline`,
+  `wp_propagateCancel_background`, `isContext_timerCtx_of`).
+- **Needed by.** The pattern of client/v3's documentation, `ctx, cancel :=
+  context.WithTimeout(context.Background(), timeout)` around each call: the examples' call sites
+  since 2026-10-23 (`notes/client-timeouts-plan.md`, D-T2, D-T3) and the server's read loop
+  (`sendReadIndex`, the request path's unit 4a).
+- **Workaround here.** The trust-boundary axiom `context.WithTimeoutBackground.wp_proof`
+  (`Spec/context/WithTimeoutBackground.lean`: an `isContext` of some descriptor and a callable
+  `cancel`), in the `read`, `server` and every etcd example's collection; the examples use it
+  through `client.wp_WithTimeout_bg` (`Proof/go_etcd_io/etcd/client/v3/TimeoutCtx.lean`).
+- **Proposed change.** `wp_WithTimeout_Background` and `wp_WithDeadline_Background` (the
+  `Background()` parent of `WithDeadlineCause`'s proof, as `wp_WithCancel_Background` is of
+  `WithCancel`'s), with the descriptor they give (`Deadline := some d`, `PDone := True`, fresh
+  Done names). Then the axiom here becomes a theorem (one axiom fewer in the baseline and in
+  those collections: the plan's T3).
+- **Status.** Landed: Perennial `c25bef57e` (branch `with-timeout-background` off `lean`
+  `d761e15b2`, 2026-10-23: `wp_WithDeadlineCause_Background_of`, `wp_WithDeadline_Background_of`,
+  `wp_WithTimeout_Background_of` in `Proof/context/WithDeadlineBackground.lean`, exposed in
+  `Results.lean`; `propagateCancel`'s spec takes any child for a `Background()` parent,
+  `wp_propagateCancel_background_any`); the pin moved to it and the axiom here is the theorem
+  `context.WithTimeoutBackground.wp_proof` over `wp_WithTimeout_Background` (one axiom fewer in
+  the baseline and in the `read`, `server` and every etcd example's collection).
+
 ### Std, PostLifting: generic lemmas the client, the cache and the examples each proved a copy of
 
 - **Missing.** Facts about Perennial's and Lean's own definitions, proved in several places here
@@ -247,3 +276,15 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   tier 0-2 trust change), recorded with `etc/land.sh mark-reviewed`.
 - **Status.** Landed 2026-10-22: Perennial `lean` `537c426e0` (`3c3e83e2c`, `9e52da638`,
   `537c426e0`), the pin since; the local copies are deleted (etcd-grove branch `perennial-idioms`).
+
+### `wp_apply`'s frame list can admit a goal silently
+
+- **Missing.** In `mvcc.restoreChunk.wp_proof` (2026-10-23), `wp_apply (wp_spsc_send …) $$
+  [$Hsp $Hprod HP]` followed by a bullet for `HP`'s subgoal elaborated with no error, but the
+  rest of the enclosing bullet never ran and the theorem got a `sorryAx` (found only through
+  "declaration uses `sorry`", located by printing the `sorryAx` terms' source names). Framing a
+  prepared hypothesis (`$HP'`) instead proved it.
+- **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
+  proof for the "declaration uses `sorry`" warning.
+- **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
+  the error instead of admitting.

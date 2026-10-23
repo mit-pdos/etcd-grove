@@ -657,7 +657,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h123 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.common (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h22, h38, h9, h40, h37, h50, h114, h121, h113, h6, h4, h122, h19, True.intro⟩
+    exact ⟨h22, h38, h5, h9, h13, h25, h40, h37, h50, h114, h121, h113, h6, h4, h122, h19, True.intro⟩
   have h124 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.watchkv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

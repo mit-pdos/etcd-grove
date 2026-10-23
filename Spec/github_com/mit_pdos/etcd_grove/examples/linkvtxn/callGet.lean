@@ -7,6 +7,7 @@ the update fired at (`□ Q σ`): its revision and its key-values of `key`.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Calls
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -27,7 +28,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 
 /-- See the file header. -/
 abbrev callGet.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (cl : Loc) (ms : List (client.SrvAt GF))
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+    [ContextErrsClient (GF := GF) (hG := hG)]
+    (cl : Loc) (ms : List (client.SrvAt GF))
     (V : client.WEnv GF),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   ∀ (key : GoString) (Q : KVState → IProp GF),

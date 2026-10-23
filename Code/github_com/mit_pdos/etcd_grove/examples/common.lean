@@ -3,7 +3,10 @@ module
 
 public import Code.net
 public import Code.net.http
+public import Perennial.Code.time
 public import Code.go_uber_org.zap
+public import Code.google_golang_org.grpc
+public import Code.google_golang_org.grpc.keepalive
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.client.v3
 public import Code.go_etcd_io.etcd.server.v3.config
@@ -54,6 +57,18 @@ def Writes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Writes.ty
 
+@[reducible] noncomputable def DialTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 2000000000)
+
+@[reducible] noncomputable def RequestTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 5000000000)
+
+@[reducible] noncomputable def KeepAliveTime [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 2000000000)
+
+@[reducible] noncomputable def KeepAliveTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 6000000000)
+
 noncomputable def newServer [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.newServer"
 
@@ -71,6 +86,9 @@ noncomputable def Serve [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def NewClient [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.NewClient"
+
+noncomputable def NewClients [FfiSyntax] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/common.NewClients"
 
 noncomputable def Gen [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/common.Gen"
@@ -96,7 +114,7 @@ noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
 /-- newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
     whose token is token: the member's peer URLs are peer, its one client URL http://client.
 
-    go: common.go:29:6 -/
+    go: common.go:46:6 -/
 noncomputable def newServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -146,7 +164,7 @@ noncomputable def newServer.impl [FfiSyntax] [GoGlobalContext] : val :=
     name, with the one peer URL http://peerAddr (not served: the cluster has no other member) and
     the one client URL http://clientAddr.
 
-    go: common.go:63:6 -/
+    go: common.go:80:6 -/
 noncomputable def StartServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -201,7 +219,7 @@ noncomputable def StartServer.impl [FfiSyntax] [GoGlobalContext] : val :=
     whose token is token, its peer URLs peer (the one URL http://peerAddr) and its one client URL
     http://client, and serves its raft handler on a listener at peerAddr; it does not start it.
 
-    go: common.go:77:6 -/
+    go: common.go:94:6 -/
 noncomputable def NewMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -275,7 +293,7 @@ noncomputable def NewMember.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- StartMember starts member name of a new cluster: NewMember, then the server started.
 
-    go: common.go:93:6 -/
+    go: common.go:110:6 -/
 noncomputable def StartMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -325,9 +343,12 @@ noncomputable def StartMember.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))))))))))))))))
 
 /-- Serve serves the started member s's gRPC API (etcd's v3rpc.Server, no TLS, no extra
-    interceptor) on a listener at addr, on a goroutine.
+    interceptor) on a listener at addr, on a goroutine. The clients' keepalive pings are allowed
+    every 5s, as etcd's embed does with its default GRPCKeepAliveMinTime (grpc's own default
+    refuses a ping more often than every 5 minutes, which would close a keepalive client's
+    connection).
 
-    go: common.go:105:6 -/
+    go: common.go:125:6 -/
 noncomputable def Serve.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"
@@ -337,7 +358,10 @@ noncomputable def Serve.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)))) (Val UntypedNil))
   (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil))
-  (Let "$a3" (Val #slice.nil)
+  (Let "$a3" (Let "$sl0" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second)))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MinTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.KeepaliveEnforcementPolicy []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.ServerOption.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerOption.ty (Var "$sl0")))])))
   (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
   (Let "gs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -374,19 +398,43 @@ noncomputable def Serve.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.Server.ty)))) (Pair (Var "gs") (Var "$r0"))))))))))))
 
 /-- NewClient connects a client to the one endpoint addr (a plain host:port, clientv3.New's premise
-    plainEndpoint), with etcd's default client configuration (its default retries).
+    plainEndpoint): NewClients of it.
 
-    go: common.go:117:6 -/
+    go: common.go:139:6 -/
 noncomputable def NewClient.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
   (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
-  (Let "__p" (Let "$a0" (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
+  (Let "__p" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "addr"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (App (Val (GoInstruction (FuncResolve NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1")))))))))))
+
+/-- NewClients connects a client to the endpoints eps (plain host:ports), each call's attempt to one
+    of them, configured as etcd's clients are in practice: the timeouts above (DialTimeout,
+    keepalive) and etcd's default retries -- a read that fails with Unavailable is retried, on the
+    next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
+    which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
+
+    go: common.go:148:6 -/
+noncomputable def NewClients.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "eps"
+  (Lam "lg"
+  (App (Val exceptionDo)
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "__p" (Let "$a0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
+  (Let "$v1" (Val DialTimeout)
+  (Let "$v2" (Val KeepAliveTime)
+  (Let "$v3" (Val KeepAliveTimeout)
+  (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Endpoints")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v0"))), (KeyedElement (some (KeyField go!"DialTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"DialKeepAliveTime")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"DialKeepAliveTimeout")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v4")))])))))))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.client.v3.New []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -462,10 +510,11 @@ noncomputable def GenAll.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))
 
-/-- Writer does the Puts tried[lo:hi] through cli, in order, logging in w each that returned no
-    error, with its reply's revision.
+/-- Writer does the Puts tried[lo:hi] through cli, in order, each in a context with the request
+    timeout (RequestTimeout, cancelled after the call), logging in w each that returned no error,
+    with its reply's revision.
 
-    go: watch.go:65:6 -/
+    go: watch.go:66:6 -/
 noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "w"
@@ -481,9 +530,6 @@ noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
-  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "lo"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -491,6 +537,17 @@ noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (App (Val (GoInstruction (GoLoad go.int))) (Var "hi")))))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad KV.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType KV.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType KV.ty)))) (Var "tried")) (App (Val (GoInstruction (GoLoad go.int))) (Var "k")))))
   (Let "p" (App (Val (GoInstruction (GoAlloc KV.ty))) (App (Val (GoInstruction (GoZeroVal KV.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.Background []))) (Val #())) (Val #()))
+  (Let "$a1" (Val RequestTimeout)
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.context.WithTimeout []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "cancel" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.CancelFunc.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.CancelFunc.ty))) (Val #())))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef KV.ty go!"Key"))) (Var "p")))
@@ -503,6 +560,7 @@ noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
@@ -524,22 +582,26 @@ noncomputable def Writer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad _root_.Perennial.context.CancelFunc.ty))) (Var "cancel")) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.PutResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.CancelFunc.ty))) (Pair (Var "cancel") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore KV.ty))) (Pair (Var "p") (Var "$r0")))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "k")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "k") (Var "$r0")))))))))))))))))))
 
 /-- MaxRev is the highest revision of the successful Puts oks (0 if there is none).
 
-    go: watch.go:79:6 -/
+    go: watch.go:81:6 -/
 noncomputable def MaxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "oks"
   (App (Val exceptionDo)
@@ -570,7 +632,7 @@ noncomputable def MaxRev.impl [FfiSyntax] [GoGlobalContext] : val :=
     upTo is 0), returning the events read and true; false if the channel closed, or a response
     reported an error, before.
 
-    go: watch.go:92:6 -/
+    go: watch.go:94:6 -/
 noncomputable def Collect.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
@@ -638,7 +700,7 @@ noncomputable def Collect.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Attempted reports whether (key, val) is one of the Puts tried.
 
-    go: watch.go:118:6 -/
+    go: watch.go:120:6 -/
 noncomputable def Attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "tried"
   (Lam "key"
@@ -672,7 +734,7 @@ noncomputable def Attempted.impl [FfiSyntax] [GoGlobalContext] : val :=
     (oks) the event at its revision with its key and value. Its panic messages start with name and
     call a write put.
 
-    go: watch.go:131:6 -/
+    go: watch.go:133:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "put"
@@ -773,7 +835,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Event.ty))) (Pair (Var "e") (Var "$value")))))))))))))))))))))))))
 
 instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.common where
-  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.context, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.net, pkg_id.net.http, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.context, pkg_id.sync, pkg_id.github_com.goose_lang.primitive, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
 noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -791,12 +853,21 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -995,6 +1066,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   StartMember_unfold : FuncUnfold StartMember [] StartMember.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
+  NewClients_unfold : FuncUnfold NewClients [] NewClients.impl
   Gen_unfold : FuncUnfold Gen [] Gen.impl
   GenAll_unfold : FuncUnfold GenAll [] GenAll.impl
   Writer_unfold : FuncUnfold Writer [] Writer.impl
@@ -1004,7 +1076,10 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Check_unfold : FuncUnfold Check [] Check.impl
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
+  import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_clientv3_Assumption : _root_.Perennial.go_etcd_io.etcd.client.v3.Assumptions
   import_config_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.config.Assumptions
@@ -1026,6 +1101,7 @@ attribute [instance] Assumptions.KV_instance
   Assumptions.StartMember_unfold
   Assumptions.Serve_unfold
   Assumptions.NewClient_unfold
+  Assumptions.NewClients_unfold
   Assumptions.Gen_unfold
   Assumptions.GenAll_unfold
   Assumptions.Writer_unfold
@@ -1035,7 +1111,10 @@ attribute [instance] Assumptions.KV_instance
   Assumptions.Check_unfold
   Assumptions.import_net_Assumption
   Assumptions.import_http_Assumption
+  Assumptions.import_time_Assumption
   Assumptions.import_zap_Assumption
+  Assumptions.import_grpc_Assumption
+  Assumptions.import_keepalive_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_clientv3_Assumption
   Assumptions.import_config_Assumption

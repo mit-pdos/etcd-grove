@@ -125,6 +125,17 @@ def srvMonitorsOff (s : Loc) : IProp GF :=
 instance srvMonitorsOff_persistent (s : Loc) : Persistent (srvMonitorsOff (GF := GF) s) := by
   unfold srvMonitorsOff; infer_instance
 
+/-- **The right to close `s.readych`** (2026-10-23): the channel `NewServer` makes
+(`readych: make(chan struct{})`, read-only in its field), allocated as a broadcast channel
+(Perennial's `Broadcast` idiom, nothing promised to receivers: `True`) not yet closed. Only
+`publishV3` closes it (`close(s.readych)`, once the member's attributes are published), so
+`NewServer` hands this to `Start`, which hands it to `publishV3`'s goroutine; a receiver
+(`ReadyNotify()`) would take the idiom's persistent part. Until then the axiom `publishV3.spec`
+closed the channel without owning it. -/
+def srvReadyCloser (s : Loc) : IProp GF :=
+  iprop(∃ (rdc : GoChan) (γ : ChanNames), structFieldRef EtcdServer go!"readych" s ↦□ rdc ∗
+    ownBroadcastChan rdc γ iprop(True) .Pending)
+
 end defs
 
 end EtcdGrove

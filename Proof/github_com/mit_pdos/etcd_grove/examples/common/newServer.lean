@@ -103,7 +103,7 @@ theorem newServer.wp_proof
     iapply Htk
     ipureintro; rfl
   icases Hres with (⟨%Hsn, %Herr⟩ | ⟨%Herr, %γA, %ci, %TM, %E, %γrn, %b, %HE, #Hwb, -, -, Hbuilt,
-    Hgap, Hserve, Hsv, Hmon, #Hnm, HWR⟩)
+    Hgap, Hserve, Hsv, Hmon, Hrc, #Hnm, HWR⟩)
   · -- `NewServer` failed: the error returned
     iapply HΦ; ileft; ipureintro; exact Herr
   subst Herr

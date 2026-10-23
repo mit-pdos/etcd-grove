@@ -62,7 +62,13 @@ at the etcd pin):
   `NewAuthStore`): the lock's slots, one per reader (D14i, 2026-10-17: the request path's and the
   apply thread's each hold one; the Go `RWMutex` panics only beyond `2 ^ 30` readers); likewise of
   `rangePermCacheMu` and (the fork's d52eec43e, D22k (A)) of `beMu`, under which the permission
-  checks take their read transaction (`lockedReadTx`) and `Recover` replaces `be`. -/
+  checks take their read transaction (`lockedReadTx`) and `Recover` replaces `be`.
+* (D22 receiver epochs, S7c, 2026-10-23) `beMu`'s lock holds half of `as.be` (`auth.beP`), the
+  caller gets the other (`authBeOn stl d.be`: `ab` wraps `d.be`); the writes read `as.be` (through
+  the auth backend's batch transaction), so they write to the backend the caller's half names: the
+  apply contract (`authApplyOk`) is for whichever backend that is, given a write right lending that
+  half; `Recover` (names-only) needs both halves, the write lock's and the caller's. Until S7c the
+  contract was for `d` only, which `Recover` falsifies. -/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
     (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData),
@@ -83,11 +89,9 @@ abbrev auth.NewAuthStore.spec : Prop :=
   {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
       backend.rbOwn d.γB (((r.insert go!"auth" authBoot).insert go!"authUsers" ∅).insert
         go!"authRoles" ∅) ∗
-      ∃ RD : IProp GF,
+      ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
-      isReqAuth st RD ∗
-      □ (∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗ backend.plHookRO d.γB f -∗
-        ⌜f ≠ func.nil⌝ -∗ apply.isAuthStore st γ Pk #f RD false (srvRestRW d.γB)) }}
+      isReqAuth st RD ∗ authApplyOk stl RD }}
 
 end spec
 

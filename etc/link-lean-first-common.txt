@@ -18,21 +18,28 @@ http_Serve:
 common_NewMember: common_newServer net_Listen EtcdServer__RaftHandler http_Serve
 common_StartMember: common_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
-# grpc's trust-boundary axioms)
+# grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @
 grpc_Server__Serve:
-common_Serve: v3rpc_Server net_Listen grpc_Server__Serve
-# `NewClient`: a client of one address (the client's `New`, linked in its `Link.lean`)
+grpc_KeepaliveEnforcementPolicy:
+common_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve
+# `NewClients`: a client of the endpoints, with the examples' timeouts (the client's `New`, linked
+# in its `Link.lean`); `NewClient`: of one address (notes/client-timeouts-plan.md, D-T1)
 client_v3_New: @
-common_NewClient: client_v3_New
+common_NewClients: client_v3_New
+common_NewClient: common_NewClients
 # the watch workload's shared part (`watch.go`): `Gen`, `GenAll`, `MaxRev`, `Attempted`, `Check`,
-# `Writer` (over the client's `Put`, which its proof uses directly) and `Collect` (a watch
+# `Writer` (over the client's `Put`, which its proof uses directly, in a context with the request
+# timeout: `context.WithTimeout` of `Background()`'s trust-boundary axiom and a context's `Err`,
+# in `context`'s `Link.lean`; notes/client-timeouts-plan.md, D-T2) and `Collect` (a watch
 # response's `Err`, linked in the client's `Link.lean`)
 common_Gen:
 common_GenAll: common_Gen
 common_MaxRev:
 common_Attempted:
 common_Check: common_Attempted
-common_Writer:
+context_WithTimeoutBackground:
+context_ErrAny: @
+common_Writer: context_WithTimeoutBackground context_ErrAny
 WatchResponse__Err: @
 common_Collect: WatchResponse__Err

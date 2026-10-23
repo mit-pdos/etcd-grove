@@ -53,7 +53,7 @@ abbrev etcdConn.Invoke.spec : Prop :=
     (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ isEtcdConn conn addr ∗
-      isGrpcRpcs addr method Spec ∗ reqPre conn addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
+      isGrpcRpcs addr method Spec ∗ reqPre conn method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗ Req.send inp m ∗
       Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))

@@ -197,23 +197,6 @@ func Check(clis []*clientv3.Client, clients int, ops int, timeout time.Duration)
 		timeout)
 }
 
-// newClient connects a client with the default retries to the members (through their bridges)
-// at eps, each attempt to one of them: a read that fails with Unavailable is retried, on the next
-// member; a write is retried only after a refusal (a learner's, an authentication error), which
-// these members never send, so it is sent at most once (notes/read-retry-plan.md). Keepalive
-// closes a connection that stops answering (notes/keepalive-plan.md).
-func newClient(eps []string, lg *zap.Logger) (*clientv3.Client, error) {
-	return clientv3.New(clientv3.Config{
-		Endpoints: eps,
-		Logger:    lg,
-		// keepalive pings every 10s (grpc's floor) while calls are in flight; a ping not answered
-		// within 2s closes the connection, so a silently cut member's calls fail and the balancer
-		// moves on (production values are larger: Kubernetes' API server uses 30s and 10s)
-		DialKeepAliveTime:    10 * time.Second,
-		DialKeepAliveTimeout: 2 * time.Second,
-	})
-}
-
 // startCluster starts the three members of a new cluster, a bridge to each member's client
 // address, and three clients, each of every bridge (failover). It returns the members, the
 // bridges and the clients, and false if a step failed (the specs allow every step to fail).
@@ -252,17 +235,21 @@ func startCluster(lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge, []
 	}
 	brs := []bridge.Bridge{br1, br2, br3}
 
-	// every client has every member's bridge: an attempt goes to one of them (failover)
+	// every client has every member's bridge: an attempt goes to one of them (failover); the
+	// examples' client configuration (common.NewClients: etcdctl's timeouts and keepalive, the
+	// default retries -- a write is sent at most once, these members sending no refusal,
+	// notes/read-retry-plan.md; keepalive closes a connection that stops answering,
+	// notes/keepalive-plan.md)
 	eps := []string{bridgeAddr1, bridgeAddr2, bridgeAddr3}
-	cli1, err := newClient(eps, lg)
+	cli1, err := common.NewClients(eps, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
-	cli2, err := newClient(eps, lg)
+	cli2, err := common.NewClients(eps, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
-	cli3, err := newClient(eps, lg)
+	cli3, err := common.NewClients(eps, lg)
 	if err != nil {
 		return nil, nil, nil, false
 	}
@@ -306,11 +293,13 @@ const (
 // writer does the puts tried[lo:hi] in order, each through a client of clis picked at random,
 // logging in w each that returned no error, with its reply's revision.
 func writer(clis []*clientv3.Client, w *common.Writes, tried []common.KV, lo int, hi int) {
-	ctx := context.Background()
 	for k := lo; k < hi; k++ {
 		p := tried[k]
 		cli := clis[primitive.RandomUint64()%uint64(len(clis))]
+		// each Put in a context with the examples' request timeout, cancelled after the call
+		ctx, cancel := context.WithTimeout(context.Background(), common.RequestTimeout)
 		resp, err := cli.Put(ctx, p.Key, p.Val)
+		cancel()
 		if err == nil {
 			w.Mu.Lock()
 			w.Ok = append(w.Ok, common.PutRec{Rev: resp.Header.Revision, Key: p.Key, Val: p.Val})

@@ -1,16 +1,16 @@
 /-
 `NewClient(addr, lg)` (`examples/common/common.go`; 2026-10-22, D33): a client of the one endpoint
-`addr`, with etcd's default client configuration -- `clientv3.New(Config{Endpoints: {addr}, Logger:
-lg})`, what the examples' `Main`s called. Lean-first (no Rocq counterpart).
+`addr` -- `NewClients({addr}, lg)` since 2026-10-23 (`notes/client-timeouts-plan.md` D-T1: the
+examples' client configuration, etcdctl's timeouts and keepalive, the default retries; until then
+`clientv3.New(Config{Endpoints: {addr}, Logger: lg})` inline). Lean-first (no Rocq counterpart).
 
-**The triple:** `clientv3.New.spec` at that configuration (its `clientCfgOk` from the literal: a
-plain endpoint, a logger): a new client of `[addr]` at the watch environment `V`, the caller's
-choice, or an error and `nil`.
+**The triple:** `NewClients.spec` at the one-element slice (`plainEndpoints` of it from the plain
+endpoint): a new client of `[addr]` at the watch environment `V`, the caller's choice, or an error
+and `nil`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Base
-public import Spec.go_etcd_io.etcd.client.v3.New
+public import Spec.github_com.mit_pdos.etcd_grove.examples.common.NewClients
 
 @[expose] public section
 

@@ -43,8 +43,8 @@ theorem txn.Commit.wp_proof (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) (h
   · iPkgInit
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, -⟩
   ipersist Hcsl; ipersist Hssl; ipersist Hfsl
-  ihave Hrun' : reqPre conn addr vs (Spec (txnWireOf b.model) Q) $$ [Hrun]
-  · iapply kvReqPre_conn api rkv conn addr vs _ Hsc $$ [Hrun]
+  ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Txn" addr vs (Spec (txnWireOf b.model) Q) $$ [Hrun]
+  · iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Txn" ⟨go!"Txn", rfl⟩ addr vs _ Hsc $$ [Hrun]
     iframe Hremote Hrkv
     iapply txnReqPre_kv tp api addr $$ [Hrun]
     iframe Hrun

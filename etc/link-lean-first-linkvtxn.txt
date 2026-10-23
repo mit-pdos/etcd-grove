@@ -61,11 +61,16 @@ opsOf: opOf
 cmpsFor: cmpsOf cmpOf
 kvsFrom: vrOf
 txnRes: vrOf ResponseOp__GetResponseRange ResponseOp__GetResponseDeleteRange
-callGet: vrOf
-callList: kvsFrom withKVs WithRange
-callPut:
-callDel:
-callTxn: cmpsFor opsOf thenOf elseOf txnRes withRes
+# each call in a context with the request timeout (notes/client-timeouts-plan.md, D-T2):
+# `context.WithTimeout` of `Background()`'s trust-boundary axiom, a context's `Err` (in
+# `context`'s `Link.lean`)
+context_WithTimeoutBackground:
+context_ErrAny: @
+callGet: context_WithTimeoutBackground context_ErrAny vrOf
+callList: context_WithTimeoutBackground context_ErrAny kvsFrom withKVs WithRange
+callPut: context_WithTimeoutBackground context_ErrAny
+callDel: context_WithTimeoutBackground context_ErrAny
+callTxn: context_WithTimeoutBackground context_ErrAny cmpsFor opsOf thenOf elseOf txnRes withRes
 call: callGet callList callPut callDel callTxn
 linkvtxn_Apply: call isWrite
 #

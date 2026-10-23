@@ -9,6 +9,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.callGet
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkvtxn.vrOf
 public import Perennial.Proof.context.Link
+public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 
 @[expose] public section
 
@@ -36,20 +37,29 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 theorem zero_val_Output :
     (zero_val github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) = zOut := rfl
 
-theorem callGet.wp_proof (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
+theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
     callGet.spec (GF := GF) (hG := hG) := by
-  intro _ cl ms V hAs key Q
+  intro _ CRE CEC cl ms V hAs key Q
   wp_start as ⟨#Hcl, #Hregs, #Hau⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   wp_auto
   wp_apply context.wp_Background
-  imod client.background_ctx (GF := GF) hAs with ⟨%cd, #Hctx, #Hce⟩
+  (try wp_auto)
+  wp_apply (client.wp_WithTimeout_bg hWT wp_ErrAny hAs _) $$ []
+    as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
   imod (client.srvStart_alloc (GF := GF) ms) with #Hst
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
   ihave #Hrr := client.kvRegs_range ms $$ Hregs
-  wp_apply (client.client_Get_st cl ms V context.backgroundCtxVal cd key slice.nil Q) $$ []
+  wp_apply (client.client_Get_st cl ms V cctx ccd key slice.nil Q) $$ []
     as %resp %err Hout
   · iframe #
+  -- `cancel()`
+  (try wp_auto)
+  wp_apply Hccancel
   icases Hout with (⟨%Herr, %m, %σ, #Hm, #HQ, %Hσ⟩ | ⟨%Herr, -⟩)
   · subst Herr
     obtain ⟨hkvs, hrev, hb⟩ := Hσ

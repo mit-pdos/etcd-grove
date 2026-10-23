@@ -52,7 +52,7 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Ha] as ⟨Hlocked, HR⟩
   iunfold alarmLockInv at HR
-  icases HR with ⟨%tm, %gm, Htypes, Hm, Hin⟩
+  icases HR with ⟨%tm, %gm, %ab, Htypes, Hm, Hin, Hbe⟩
   ihave Hret := alarmRet_nil ret_ptr $$ ret
   (try wp_auto)
   wp_if_destruct
@@ -116,10 +116,10 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
     iunfold alarmRet at Hret
     icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
     (try wp_auto)
-    wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin Hbe]
     · inext
       iunfold alarmLockInv
-      iexists tm, gm
+      iexists tm, gm, ab
       iframe
     (try wp_auto)
     iapply HΦ
@@ -137,10 +137,10 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
       iunfold alarmRet at Hret
       icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hin Hbe]
       · inext
         iunfold alarmLockInv
-        iexists tm, gm
+        iexists tm, gm, ab
         iframe
       (try wp_auto)
       iapply HΦ
@@ -181,10 +181,10 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
       iunfold alarmRet at Hret
       icases Hret with ⟨%sl, %l, Hret, Hsl, Hcap⟩
       (try wp_auto)
-      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hback Him]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Ha $Hlocked Htypes Hm Hback Him Hbe]
       · inext
         iunfold alarmLockInv
-        iexists tm, gm
+        iexists tm, gm, ab
         iframe
         iapply Hback
         iexists im; iframe Him
