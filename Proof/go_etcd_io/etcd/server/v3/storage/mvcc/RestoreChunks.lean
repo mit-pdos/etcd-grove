@@ -10,6 +10,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreModel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
 
 @[expose] public section
 
@@ -303,6 +304,92 @@ theorem logEnts_restoreOk (log : Log) (hlen : log.length < 2 ^ 63)
     obtain ⟨j, i, h1, hj, hi, hr⟩ := hb e he
     rw [hr]
     constructor <;> word
+
+/-- A log's index with a revision of changes `pend` so far is its compacted form at `-1`. -/
+theorem idxCRep_indexOf_pend (ilog : Log) (pend : List Change)
+    (hb : LogB (ilog ++ [pend])) (h : IdxCRep (-1) (evsOf ilog) (indexOf (evsOf ilog))) :
+    IdxCRep (-1) (evsOf (ilog ++ [pend])) (indexOf (evsOf (ilog ++ [pend]))) := by
+  obtain ⟨n, hn⟩ : ∃ n, pend.length = n := ⟨_, rfl⟩
+  induction n generalizing pend with
+  | zero =>
+    have : pend = [] := List.eq_nil_of_length_eq_zero hn
+    subst this
+    rw [evsOf_append]
+    simpa [evsOfRev] using h
+  | succ n ih =>
+    have hne : pend ≠ [] := by intro h'; simp [h'] at hn
+    rw [← List.dropLast_concat_getLast hne] at hb ⊢
+    have hb' : LogB (ilog ++ [pend.dropLast]) := by
+      refine ⟨by simpa using hb.1, ?_⟩
+      intro cs hcs
+      rcases List.mem_append.1 hcs with h1 | h1
+      · exact hb.2 cs (List.mem_append_left _ h1)
+      · rw [List.mem_singleton] at h1; subst h1
+        have := hb.2 (pend.dropLast ++ [pend.getLast hne]) (by simp)
+        simp at this; simp; omega
+    have hl : pend.dropLast.length = n := by simp [hn]
+    have := IdxCRep.step ilog pend.dropLast (pend.getLast hne) hb (cmax := -1) (by omega)
+      (ih pend.dropLast hb' hl)
+    rw [evsOf_append_change]
+    unfold indexOf at this ⊢
+    rw [List.foldl_append]
+    rw [evsOf_append_change] at this
+    exact this
+
+/-- **A log's index is its own compacted form at `-1`** (no compaction). -/
+theorem idxCRep_indexOf (log : Log) (hb : LogB log) :
+    IdxCRep (-1) (evsOf log) (indexOf (evsOf log)) := by
+  obtain ⟨n, hn⟩ : ∃ n, log.length = n := ⟨_, rfl⟩
+  induction n generalizing log with
+  | zero =>
+    have : log = [] := List.eq_nil_of_length_eq_zero hn
+    subst this
+    exact IdxCRep.nil (by omega)
+  | succ n ih =>
+    have hne : log ≠ [] := by intro h'; simp [h'] at hn
+    rw [← List.dropLast_concat_getLast hne] at hb ⊢
+    have hl : log.dropLast.length = n := by simp [hn]
+    exact idxCRep_indexOf_pend log.dropLast (log.getLast hne) hb (ih log.dropLast hb.prefix hl)
+
+/-- A revision with changes has an entry. -/
+theorem entsOfRev_ne_nil (r : Nat) (b : List EtcdKv) (hb : b.Pairwise etcdKvLess)
+    (cs : List Change) (hne : cs ≠ []) : entsOfRev r b cs ≠ [] := by
+  have h0 : 0 < cs.length := List.length_pos_iff.2 hne
+  obtain ⟨kv, hkv⟩ := changeKv_isSome (W64 r) b hb cs h0
+  intro h
+  have hc : cs[0]? = some cs[0] := List.getElem?_eq_getElem h0
+  have hm := (mem_entsOfRev r b cs ⟨⟨W64 r, W64 0⟩, cs[0].isDel, kv⟩).2 ⟨0, cs[0], kv, hc, hkv, rfl⟩
+  rw [h] at hm
+  simp at hm
+
+/-- **The last revision `restoreIntoIndex` answers** for a restored log `[[], []] ++ R` whose
+revisions all have changes: its last revision. -/
+theorem restoreLastRev_logEnts (R : Log) (hR : ∀ cs ∈ R, cs ≠ []) (hlen : R.length + 2 < 2 ^ 63) :
+    restoreLastRev (logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) =
+      W64 ((([[], []] ++ R).length : Int) - 1) := by
+  rcases List.eq_nil_or_concat R with rfl | ⟨R0, cs, rfl⟩
+  · decide
+  · simp only [List.concat_eq_append] at hR hlen ⊢
+    have hcs : cs ≠ [] := hR cs (by simp)
+    have hsnoc := logEnts_snoc ([[], []] ++ R0) cs
+    have hl : ([[], []] ++ R0 ++ [cs]).length = ([[], []] ++ R0).length + 1 := by simp
+    rw [← List.append_assoc, hl, hsnoc]
+    have hB := entsOfRev_ne_nil ([[], []] ++ R0).length
+      (stateAt (([[], []] ++ R0) ++ [cs]) (([[], []] ++ R0).length - 1))
+      (stateAt_sorted _ _) cs hcs
+    unfold restoreLastRev
+    obtain ⟨e, he⟩ : ∃ e, (entsOfRev ([[], []] ++ R0).length
+        (stateAt (([[], []] ++ R0) ++ [cs]) (([[], []] ++ R0).length - 1)) cs).getLast? = some e :=
+      Option.isSome_iff_exists.1 (by
+        rw [List.getLast?_isSome]; exact hB)
+    rw [List.getLast?_append, he]
+    simp only [Option.some_or]
+    have hem := List.mem_of_getLast? he
+    obtain ⟨i, c, kv, -, -, rfl⟩ := (mem_entsOfRev _ _ _ _).1 hem
+    simp only [List.length_append, List.length_cons, List.length_nil]
+    congr 1
+    push_cast
+    omega
 
 end mvcc
 end EtcdGrove
