@@ -11,7 +11,10 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 `True` but the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
 `txnError` returns for a failed comparison, holds some error) and `util/feature`'s
 (`featureInit`: `DefaultFeatureGate` holds a gate whose `Enabled` answers some `bool`; the gate is
-names-only, `component-base/featuregate`, and which features are on is the deployment's). As in the cache's `Base.lean`, these
+names-only, `component-base/featuregate`, and which features are on is the deployment's) and
+`storage/feature`'s (`checkerInit`: `DefaultFeatureSupportChecker` holds a checker whose
+`CheckClient`, which `etcd3.New` calls, returns; names-only, it starts goroutines that poll each
+endpoint's `Status`, reads). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -54,6 +57,16 @@ abbrev featureInit : IProp GF :=
     globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
     □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
       WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }})
+
+/-- `storage/feature`'s fact: `DefaultFeatureSupportChecker` holds a checker whose `CheckClient`
+returns (see the file header). -/
+abbrev checkerInit : IProp GF :=
+  iprop(∃ g : GoInterfaceOk,
+    globalAddr k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker ↦□
+      GoInterface.ok g ∗
+    □ ∀ (ctx cl f : val) (Φ : val → IProp GF), ▷ Φ #() -∗
+      WP (App (App (App (Val #(methods g.ty go!"CheckClient" g.v)) (Val ctx)) (Val cl)) (Val f))
+        {{ Φ }})
 
 instance k8s_io_apimachinery_pkg_runtime_schema_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime.schema :=
@@ -288,7 +301,7 @@ instance k8s_io_apiserver_pkg_audit_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apiserver_pkg_storage_feature_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.feature :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init checkerInit
 instance k8s_io_apiserver_pkg_storage_feature_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.feature :=
   build_get_is_pkg_init_wf
