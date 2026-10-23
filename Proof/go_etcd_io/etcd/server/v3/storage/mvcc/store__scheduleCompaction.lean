@@ -634,8 +634,11 @@ theorem mvcc.store.scheduleCompaction.wp_proof
   (try wp_auto)
   wp_apply (h15 _ lst bs (Or.inl Hbs)) $$ [$HlastS $HlastC] as %lst2 ⟨HlastS, HlastC⟩
   (try wp_auto)
-  wp_apply HForce $$ []
-  · isplitl [] <;> itrivial
+  wp_apply HForce $$ %iprop(True) %iprop(True) [] as -
+  · isplitr; · itrivial
+    isplitr; · itrivial
+    isplitr; · itrivial
+    iintro !> -; itrivial
   (try wp_auto)
   wp_apply time.wp_Since as %d5 -
   (try wp_auto)

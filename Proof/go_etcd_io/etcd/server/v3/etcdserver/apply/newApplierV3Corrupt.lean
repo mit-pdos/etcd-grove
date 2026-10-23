@@ -162,11 +162,11 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨Hpre, Hwt⟩
+      icases Hpre with ⟨Hpre, Hwt, HRW⟩
       iunfold apply.mPre at Hpre
       icases Hpre with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs Hwt]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post [] [] [Hkv Hres Hcs Hwt HRW]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
       · iunfold apply.mPre
@@ -199,7 +199,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
   isplitr
   · -- the cluster's methods: the inner applier's (promoted)
     imodintro
-    iintro %m %r %v3 %log %Pre %Q %Post %hm
+    iintro %m %r %v3 %log %Pre %Q %Post %cr %rs %hm
     imodintro
     iintro %Φ' Hpre HΦ'
     simp only [apply.clusterMethods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
@@ -208,19 +208,19 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, HFS⟩
+      icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
       iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs Hwt HFS]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs [] [HR Hkv Hres Hcs Hwt HFS HRO]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
         iunfold apply.mPreV
         iframe
       inext
-      iintro ⟨Hpost, HFS⟩
+      iintro ⟨Hpost, HFS, HRO⟩
       iapply HΦ'
-      iframe HFS
+      iframe HFS HRO
       iunfold apply.mPostV at Hpost
       iunfold apply.mPostV
       icases Hpost with ⟨Hkv, Hres, HPP⟩

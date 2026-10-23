@@ -31,11 +31,12 @@ write session's token (`storeWT`: the real backend's write-back budget, which th
 The commit's effect on the backend's data is not in the store's model (the readers' view is
 unchanged: `isKeyBackendG`'s `ForceCommit`). -/
 abbrev mvcc.store.Commit.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (X Y : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.storeWT γ }}
+      mvcc.isStore s γ ∗ mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ mvcc.storeWT γ ∗
+      X ∗ mvcc.storeReq γ X Y }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Commit")) (Val #()))
-  {{ RET #(); mvcc.writerFrag γ ∗ mvcc.writerOwn γ }}
+  {{ RET #(); mvcc.writerFrag γ ∗ mvcc.writerOwn γ ∗ Y }}
 
 end spec
 

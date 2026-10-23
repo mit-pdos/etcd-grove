@@ -1,5 +1,8 @@
 # Tracking the backend's rest buckets instead of the D22c determinism axiom
 
+**Carried out** (2026-10-23): `notes/decisions.md`, "D22 the backend over every bucket carried
+out"; `notes/STATUS.md`, "D22 the backend over every bucket". What follows is the study.
+
 Read-only study, 2026-10-22, worktree `d22` at `lean` c7c4b2b441. Go at the etcd pin
 `2aed163b` (`etc/goose.py:164`), extracted from `.lake/go-src/etcd`; Go paths are under
 `server/`. `notes/snapshot-path-s0.md` quotes the older pin `8a24be2a3`, so its Go line numbers

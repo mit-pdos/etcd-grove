@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.applierV3backend.LeaseGrant.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      (∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗
+      ((∃ g : LeaseGrantModel, apply.leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW) ∗
       apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"LeaseGrant")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗ applyErrIs err }}

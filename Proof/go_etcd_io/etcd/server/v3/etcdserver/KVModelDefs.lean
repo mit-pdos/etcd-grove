@@ -62,7 +62,10 @@ flags but a lease, any delete, a plain transaction (`txn.txnPlain`: its gets at 
 puts with no lease and no `IgnoreLease`). D19k (2026-10-18): only the kinds the verified proposers
 send (the KV writes, the monitors' member attributes and cluster version), none with an auth
 field set (`needAdminPermission`); every other kind was `True` and its answer's error unknown,
-which kept `applyEntryNormal`'s NOSPACE branch reachable in the model. A workload admitting
+which kept `applyEntryNormal`'s NOSPACE branch reachable in the model. D22 (2026-10-23): a
+cluster request has no side-effect-free field set either (`noSideEffect`: with one, `Apply` skips
+it on a member where no one waits for it, so the rest buckets would depend on where the request
+was proposed). A workload admitting
 more (a lease-enabled one: `LeaseGrant`, `LeaseRevoke`) extends this predicate and the generic
 proofs over it. -/
 def plainCover (rq : apply.IRRModel) : Prop :=
@@ -72,7 +75,8 @@ def plainCover (rq : apply.IRRModel) : Prop :=
   | .deleteRange => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
   | .txn => apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false ∧
       ∀ t, rq.txn = some t → txn.txnPlain t
-  | .clusterVersionSet | .clusterMemberAttrSet => apply.needAdminPermission rq = false
+  | .clusterVersionSet | .clusterMemberAttrSet =>
+      apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = false
   | _ => False
 
 /-- **A KV operation** as the server applies it. -/

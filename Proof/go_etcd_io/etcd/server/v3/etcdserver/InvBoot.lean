@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 
 @[expose] public section
 
@@ -88,16 +89,6 @@ def memberDirIs (dir : w64 → List GoString) (m : Loc) (id : w64) : IProp GF :=
     membership.mIsLearnerAddr m ↦ il ∗ membership.mNameAddr m ↦ nm ∗
     membership.mClientURLsAddr m ↦ cu ∗ pu ↦* pus ∗ cu ↦* cus ∗
     ⌜membership.peerURLsOk pus ∧ pus = dir id⌝)
-
-/-- **A bucket of the backend fresh** (opaque, D14g, 2026-10-17): the bbolt file of the backend
-`γB` was created empty by `bootstrap` (a new cluster's data directory), so its bucket `name` holds
-no data, and only the store that owns it (the lessor `"lease"`, the auth store `"auth"`) writes it:
-the owner's token, which its constructor consumes. The model cannot state a bucket's contents to
-its clients (the readers' view leaves out every bucket but `Key`: `mvcc.bridgeParams`), so this
-is a name for what `bootstrap`'s contract promises and the constructors' axioms
-(`lease.NewLessor`, `auth.NewAuthStore`) rely on: their recovery decodes the bucket (a panic on
-undecodable data) and the auth store reads its enabled flag (unset). -/
-opaque bkFresh (γB : backend.BNames) (name : GoString) : IProp GF
 
 /-- **A fresh alarm store** `a` (opaque, exclusive; D14i, 2026-10-17): made by
 `v3alarm.NewAlarmStore` over a fresh alarm bucket and not yet handed to an applier, it has no
@@ -209,7 +200,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
         (Val #())) {{ Φ }}) ∗
     -- the cluster's contracts (unit N4, 2026-10-17): the lessor's (`Version()`), and the apply
     -- package's at the backend's batch lock and any frozen hook (its writes: one write-back
-    -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f)
+    -- each, `membershipBackend`'s `LockInsideApply`/`Unlock`, as the stores', D14f); (D22,
+    -- 2026-10-23: the backend over every bucket) its writes' effect on the tracked buckets and
+    -- its in-memory members (`srvRestOwn`), `SetDowngradeInfo` with the write right
+    -- (`srvRestRW`)
     "#Hclok" ∷ lease.clusterOk (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) #bc.cl') ∗
     -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
@@ -218,7 +212,12 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
       backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
       (∃ n : Loc, membership.rcVersionChangedAddr bc.cl' ↦□ n) -∗
-      apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f) ∗
+      apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f (srvRestOwn d.γB bc.cl')
+        (srvRestRW d.γB)) ∗
+    -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
+    -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
+    -- entries' contexts are)
+    "Hmem" ∷ membership.clusterMem bc.cl' (memBoot bootLog) ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
@@ -234,15 +233,20 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- `isBackend` names the apply protocol's batch lock), over bbolt's data `D` with an empty
     -- key bucket (a new cluster's), the budget within its `wbInit` write-backs (`N` for the
     -- entries, seven for the construction); and what `bootstrap` adds: the store's registration
-    -- right, `keySized`, the fresh buckets' tokens (`bootBackend_of_newPost` turns `newPost` into
-    -- the resources `NewServer` uses)
+    -- right, `keySized` (`bootBackend_of_newPost` turns `newPost` into the resources `NewServer`
+    -- uses)
     "Hnew" ∷ backend.newPost d.γB d.P (fun _ => mvcc.lateW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) d.be D ∗
     "%HD" ∷ ⌜mvcc.keyView (backend.vData d.P (D, ⟨∅, W64 0⟩)) ∅⌝ ∗
     "%HN" ∷ ⌜N + 7 ≤ backend.wbInit⌝ ∗
     "#Hsz" ∷ mvcc.keySized d.γB d.P d.be ∗ "Hlate" ∷ mvcc.lateReg d.gx ∗
-    "Hfl" ∷ bkFresh d.γB go!"lease" ∗ "Hfa" ∷ bkFresh d.γB go!"auth" ∗
-    "Hfal" ∷ bkFresh d.γB go!"alarm" ∗
+    -- (D22, 2026-10-23: the backend over every bucket; a widening of the fresh data directory's
+    -- facts, until then the opaque tokens `bkFresh d.γB "lease"`, `"auth"`, `"alarm"`) every rest
+    -- bucket of the fresh file empty (absent or empty), the membership's three present
+    -- (`bootstrap`'s `cluster.SetBackend` creates them: `MustCreateBackendBuckets`)
+    "%HDr" ∷ ⌜(∀ n ∈ mvcc.restBuckets, (D.lookup n).getD ∅ = ∅) ∧
+      D.lookup go!"members" = some ∅ ∧ D.lookup go!"members_removed" = some ∅ ∧
+      D.lookup go!"cluster" = some ∅⌝ ∗
     -- (D22 S-g, D19l (v) (A); until then the opaque premise `mvcc.backendNoCompaction` of
     -- `NewServer.spec`) the fresh bbolt file records no compaction (`mvcc.store.restore`'s)
     "Hncmp" ∷ mvcc.bkNoCmp d.γB ∗

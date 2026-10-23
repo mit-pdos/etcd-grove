@@ -288,8 +288,11 @@ theorem mvcc.store.updateCompactRev.wp_proof
       (try wp_auto)
       -- `s.b.ForceCommit()`
       wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      iapply HForce $$ [] [-]
-      · itrivial
+      iapply HForce $$ %iprop(True) %iprop(True) [] [-]
+      · isplitr; · itrivial
+        isplitr; · itrivial
+        isplitr; · itrivial
+        iintro !> -; itrivial
       inext
       iintro -
       (try wp_auto)

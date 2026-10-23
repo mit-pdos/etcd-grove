@@ -34,8 +34,8 @@ theorem backend.batchTxBuffered.Commit.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t qo
-  wp_start as ⟨#Hb, #Ht, Ho, Htok⟩
+  intro γ P W Pk b t qo X Y
+  wp_start as ⟨#Hb, #Ht, Ho, Htok, HX, #Hrq⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_b γ P W Pk b $$ Hb with
@@ -46,7 +46,7 @@ theorem backend.batchTxBuffered.Commit.wp_proof
   wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Ho⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  wp_apply (hC γ P W Pk b t rt st false false 0 0) $$ [$Hl $HWR Htok] as ⟨HWR, -, Hpost⟩
+  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y) $$ [$Hl $HWR Htok $HX] as ⟨HY, HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro
@@ -54,7 +54,7 @@ theorem backend.batchTxBuffered.Commit.wp_proof
         fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1⟩
     unfold payIn
     rw [if_neg (by decide), if_pos rfl]
-    iexact Htok
+    iframe Htok
   try simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, -⟩
   wp_method_call

@@ -33,15 +33,15 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG)) :
     storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t bh ix lg st hP
-  wp_start as ⟨#Hh, #Hsave, #Hb, #Ht, Hl, HPk, %Hpre⟩
+  intro γ P W Pk b t bh ix lg st X Y hP
+  wp_start as ⟨#Hh, #Hsave, #Hb, #Ht, Hl, HPk, HX, %Hpre⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isBackendHooks at Hh
   icases Hh with ⟨#Hix, #Hlg, #Hmu⟩
   wp_apply wp_with_defer as %defer defer
-  iunfold saveSpec at Hsave
-  wp_apply Hsave $$ %st [$Hl $HPk] as ⟨%st1, Hl, HPk, %Hs1⟩
+  iunfold saveReq at Hsave
+  wp_apply Hsave $$ %st [$Hl $HPk $HX] as ⟨%st1, Hl, HPk, HY, %Hs1⟩
   · ipureintro; exact Hpre
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold csInv at HR
@@ -55,12 +55,12 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd
     iapply HΦ
     iexists st1
-    iframe Hl HPk
+    iframe Hl HPk HY
     ipureintro; exact hookStep_of_save Hs1
   · -- dirty: the `confState` saved into `Meta`, one put
     wp_auto
     have hpend : sint.Z st1.pend + 1 < 2 ^ 58 := by
-      have h1 := Hs1.2.2.2.2.2.1
+      have h1 := Hs1.2.2.2.2.2.2.1
       have h2 := Hpre.2.1
       omega
     have hSB : P.SB mvcc.metaBI.name = true → ∀ kc vc,
@@ -80,9 +80,9 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
       ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hpkg3 $HM]
       wp_apply (hPut γ P W Pk b t st1 bk mvcc.metaBI key val schema.confStateKeyBytes vb hP.1
           (by decide) (by decide) hpend hSB)
-        $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -⟩
+        $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -, -⟩
       · iframe #
-        simp only [hkPut, hhk, Bool.false_eq_true, ↓reduceIte]
+        simp only [hkPut, hhk, rbPut, hP.2.2.2.2, Bool.false_eq_true, ↓reduceIte]
         itrivial
       iapply HΦ'
       iexists (st1.put mvcc.metaBI schema.confStateKeyBytes vb false)
@@ -92,7 +92,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd
     iapply HΦ
     iexists st2
-    iframe Hl HPk
+    iframe Hl HPk HY
     ipureintro; exact Hs2
 
 end proof

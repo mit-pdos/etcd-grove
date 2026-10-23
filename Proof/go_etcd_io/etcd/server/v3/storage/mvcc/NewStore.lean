@@ -391,7 +391,9 @@ theorem mvcc.NewStore.wp_proof
   iintro #Hdep
   (try wp_auto)
   -- `s.b.ForceCommit()`
-  wp_apply HForce $$ [$Hrt1 $Hwt2] as Hrt1
+  ihave #Hrq0 := mvcc.storeReq_true (GF := GF) γ
+  wp_apply HForce $$ %iprop(True) %iprop(True) [$Hrt1 $Hwt2] as ⟨Hrt1, -⟩
+  · iframe #
   ispecialize Hrts $$ Hrt1
   -- the readers' pool: every slot of the index's lock in (D22 receiver epochs, S4)
   -- (S5a) each slot with a reader token of the backend
@@ -482,6 +484,7 @@ theorem mvcc.NewStore.wp_proof
   ihave HrstQ := HfrstQ
   iunfold mvcc.storeFields at HfldsQ
   iNamedSuffix HfldsQ "R"
+  ihave #HbkW := mvcc.isKeyBackendG_wand $$ Hbk0
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
       %(1 : Qp).half %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ %([] : mvcc.Log)
       %(DFrac.own (1 : Qp).half) %(DFrac.own (1 : Qp).half)

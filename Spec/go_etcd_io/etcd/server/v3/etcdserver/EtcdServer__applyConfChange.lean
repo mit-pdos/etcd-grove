@@ -55,14 +55,25 @@ transport's `AddPeer`, which returns at once for a member the construction added
 `transportEffectsOk`), and what it hands raft
 (the change, or on a failed validation the change with `NodeId` `0`) leaves raft's configuration
 as it is (`ccRaftOk`, `raftPropose`'s premise for `ApplyConfChange`). The server's policy admits
-no other conf change (`srvCCPolicy`, `ccBootOk`). -/
+no other conf change (`srvCCPolicy`, `ccBootOk`).
+
+**Its effect on the rest buckets and the members** (D22, 2026-10-23: the backend over every
+bucket): the environment's `RO` is the server's (`srvRestOwn γB cl`: the backend's tracked
+buckets' half and the in-memory members of `s.cluster = cl`), taken at `rs` and given back at
+`ccRest v3 m rs`: with `v3`, `ValidateConfigurationChange` reads the `members` and
+`members_removed` buckets (`MustReadMembersFromBackend`, a read transaction: what the apply
+thread, their only writer, last wrote, `Unlock` having written back) and returns `nil` iff
+`membership.ccValidOn rs.bk m`; then `AddMember` saves the context's member
+(`membership.ccMemberOf m.context`: `members/<id> := json(m)`) and puts it in `c.members`; on a
+failed validation, or without `v3`, nothing. -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
-    (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64),
-  ccApplyOk γs.raft.reCfg m →
+    (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
+    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM),
+  ccApplyOk γs.raft.reCfg m → E.RO = srvRestOwn γB cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦□ ua ∗ apply.applierFor ua E ∗
-      srvRaftNode s γs ∗
+      srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
       ownCCV1 cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
@@ -75,7 +86,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       ⌜removed = false⌝ ∗
       (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfState ep cs') ∗
-      (if v3 then iprop(Post ∨ Adv) else Pre) }}
+      E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) }}
 
 end spec
 

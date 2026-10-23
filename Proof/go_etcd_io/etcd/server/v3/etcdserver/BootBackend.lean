@@ -77,19 +77,19 @@ theorem bkRTx_of_rdToks (γ : backend.BNames) (P : backend.BParams) (b : Loc) (n
 
 /-- **The backend `NewServer` uses, from `backend.New`'s postcondition** (see the file header):
 bbolt's data with an empty key bucket gives the store's key view `∅`, and `N + 7` of the
-`wbInit` write-backs. -/
+`wbInit` write-backs; (D22, 2026-10-23) the client's half of the tracked buckets, at `D`'s. -/
 theorem bootBackend_of_newPost (γ : backend.BNames) (P : backend.BParams)
     (W Pk : backend.BNames → IProp GF) (b : Loc) (D : backend.Data) (N : Nat)
     (hD : mvcc.keyView (backend.vData P (D, ⟨∅, W64 0⟩)) ∅) (hN : N + 7 ≤ backend.wbInit) :
     backend.newPost γ P W Pk b D ⊢
       backend.isBackend γ P (W γ) (Pk γ) b ∗ backend.plHook γ func.nil ∗
       (∃ qo : Qp, backend.bOpen γ qo) ∗ mvcc.bkView γ 1 (∅ : mvcc.Bucket) ∗
-      ownToks γ.wb (N + 7) ∗
+      ownToks γ.wb (N + 7) ∗ backend.rbOwn γ (backend.rbData P D) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.bkRTx γ P b) := by
   unfold backend.newPost
-  iintro ⟨#Hb, -, Ho, Hv, Hh, Hw, Hrd⟩
-  iframe Hb Hh
+  iintro ⟨#Hb, -, Ho, Hv, Hh, Hw, Hrb, Hrd⟩
+  iframe Hb Hh Hrb
   icases bkRTx_of_rdToks γ P b _ 1 $$ [$Hrd $Ho] with ⟨Hrts, Ho⟩
   iframe Hrts Ho
   isplitl [Hv]

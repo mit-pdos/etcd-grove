@@ -70,14 +70,15 @@ theorem isApplyLessor_of_lessorInv
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
     (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
-    (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+    (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RW : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f (mvcc.storeWT γ) (mvcc.storeRT γ) ∗
+      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
+      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType lease.lessor.ty @!! go!"Lookup"))
           (Val #id))
         {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ leaseIs l id }}) ⊢
-      isApplyLessor (lease.lessorIface lp) s γ P f := by
+      isApplyLessor (lease.lessorIface lp) s γ P f RW := by
   iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hbe, #HLookup⟩
   iunfold isApplyLessor
   isplitl []
@@ -86,8 +87,9 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt, #Hgr⟩ HΦ
-    iapply (hGrant lp γ.leases id ttl L P f (mvcc.storeWT γ) (mvcc.storeRT γ) Pre Q Post) $$ [Hcs Hown Hwt Hrt]
+  · iintro !> %id %ttl %L %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt, #Hgr, HRW⟩ HΦ
+    iapply (hGrant lp γ.leases id ttl L P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
+      $$ [Hcs Hown Hwt Hrt HRW]
     · iframe; iframe #
     iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, HPre⟩ | ⟨%Hok, Hown, HPost, #HID, ⟨%t, #Ht⟩⟩)⟩
     · iapply HΦ
@@ -130,8 +132,9 @@ theorem isApplyLessor_of_lessorInv
     iintro !> %id %log %L %Pre %Q %Post %Φ !> ⟨%hF, -⟩ -
     exact hF.elim
   isplitr
-  · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt⟩ HΦ
-    iapply (hCk lp γ.leases id rem P f (mvcc.storeWT γ) (mvcc.storeRT γ) Pre Q Post) $$ [Hcs Hwt Hrt]
+  · iintro !> %id %rem %Pre %Q %Post %Φ !> ⟨Hcs, Hwt, Hrt, HRW⟩ HΦ
+    iapply (hCk lp γ.leases id rem P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
+      $$ [Hcs Hwt Hrt HRW]
     · iframe; iframe #
     iintro !> %err ⟨Hrt, %He, HPP⟩
     subst He

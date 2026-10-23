@@ -54,11 +54,42 @@ theorem isBackend_backendHooks
   isplitr
   · ipureintro; rfl
   iintro !> %st %Φ !> ⟨Hl, HPk, %Hpre⟩ HΦ
-  ihave Hs : ▷ saveSpec γ P Pk b t ix $$ []
+  ihave Hs : ▷ saveReq γ P Pk b t ix iprop(True) iprop(True) $$ []
   · inext
+    iapply saveReq_of_saveSpec
     iapply Hsv $$ Hb Ht
-  iapply (hOn γ P W Pk b t bh ix lg st hH) $$ [Hl HPk Hs] HΦ
-  iframe Hspkg Hbpkg Hsch Hh Hs Hb Ht Hl HPk
+  iapply (hOn γ P W Pk b t bh ix lg st iprop(True) iprop(True) hH) $$ [Hl HPk Hs]
+  · iframe Hspkg Hbpkg Hsch Hh Hs Hb Ht Hl HPk
+    isplitr
+    · itrivial
+    ipureintro; exact Hpre
+  iintro !> ⟨%st', Hl, HPk, -, %Hst⟩
+  iapply HΦ
+  iexists st'
+  iframe Hl HPk
+  ipureintro; exact Hst
+
+/-- **The server's hooks serve a commit's request** (D22 the stored-index window, 2026-10-23): the
+hooks `bh` of the backend `b` serve `X ⇒ Y` (`backend.hooksReq`) if the indexer's save does
+(`saveReq`): `BackendHooks.OnPreCommitUnsafe` runs the save once. -/
+theorem hooksReq_backendHooks
+    (hOn : storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t bh : Loc) (ix : GoInterfaceOk) (lg : Loc)
+    (hH : hooksParams P) (X Y : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackendHooks bh ix lg ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗
+      saveReq γ P Pk b t ix X Y ⊢
+      hooksReq γ P Pk b t (hooksIface bh) X Y := by
+  iintro ⟨#Hspkg, #Hbpkg, #Hsch, #Hh, #Hb, #Ht, #Hsv⟩
+  unfold hooksReq
+  iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty, #bh⟩
+  isplitr
+  · ipureintro; rfl
+  iintro !> %st %Φ !> ⟨Hl, HPk, HX, %Hpre⟩ HΦ
+  iapply (hOn γ P W Pk b t bh ix lg st X Y hH) $$ [Hl HPk HX] HΦ
+  iframe Hspkg Hbpkg Hsch Hh Hsv Hb Ht Hl HPk HX
   ipureintro; exact Hpre
 
 end proof

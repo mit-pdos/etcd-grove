@@ -50,8 +50,8 @@ theorem apply.authApplierV3.Put.wp_proof
   icases Ht with ⟨#HI, -⟩
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
-  ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ $$ Hle
-  wp_apply (hPut st le E.γ E.P E.f E.RD E.authOn _ info (DFrac.own 1) r o) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff⟩
+  ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
+  wp_apply (hPut st le E.γ E.P E.f E.RD E.authOn E.RW _ info (DFrac.own 1) r o) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>

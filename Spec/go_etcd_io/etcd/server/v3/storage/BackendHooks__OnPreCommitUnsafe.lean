@@ -31,17 +31,17 @@ backend's own contract (`hooksSpec`, inside `isBackend`) is then derivable by L�
 (`isBackend_of_hooks`). -/
 abbrev storage.BackendHooks.OnPreCommitUnsafe.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t bh : Loc) (ix : GoInterfaceOk) (lg : Loc)
-    (st : BSess),
+    (st : BSess) (X Y : IProp GF),
   hooksParams P →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackendHooks bh ix lg ∗ ▷ saveSpec γ P Pk b t ix ∗ ▷ isBackend γ P W Pk b ∗
-      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
+      isBackendHooks bh ix lg ∗ ▷ saveReq γ P Pk b t ix X Y ∗ ▷ isBackend γ P W Pk b ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ Pk ∗ X ∗ ⌜hookPre P st⌝ }}
     (App (Val (bh @!! go.GoType.PointerType BackendHooks.ty @!! go!"OnPreCommitUnsafe"))
       (Val #(interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
-  {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }}
+  {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ Y ∗ ⌜hookStep P st st'⌝ }}
 
 end spec
 

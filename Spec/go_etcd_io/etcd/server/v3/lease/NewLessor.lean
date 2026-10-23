@@ -39,7 +39,9 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   a non-negative one, `lessorCfg`; audit B4b, 2026-10-18), then `initAndRecover`:
   `b.BatchTx()`'s `LockOutsideApply` (no hook: the backend open, `bOpen`), `UnsafeCreateLeaseBucket`,
   `MustUnsafeGetAllLeases` (it decodes every record of the `Lease` bucket, a panic on an
-  undecodable one: the bucket is fresh, `bkFresh d.γB "lease"`, consumed), `Unlock` (one
+  undecodable one: the bucket is empty, the tracked buckets' half `backend.rbOwn d.γB r` says so,
+  D22, 2026-10-23; until then the opaque token `bkFresh d.γB "lease"`, consumed; the creation
+  needs the half, given back with the bucket present and empty), `Unlock` (one
   write-back: the token), the heap's `Init`, and `b.ForceCommit()`, which commits first so its
   `Unlock` finds nothing pending and does not write back (the backend's `ForceCommit.spec` charges
   a token: the spec is coarser than the code). Its commit runs the backend's hooks (`isBackend`).
@@ -61,7 +63,11 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   backend open (a share of `bOpen`, in the reader's token `mvcc.bkRTx`, lent) and runs the frozen
   hook `f` under `Pk` (`csContract Pk f`); `UnsafePut` into the `Lease` bucket (created by
   `initAndRecover`; a hook bucket, `bridgeParams`, so the readers' view is unchanged) of an
-  8-byte key never fails; `Unlock` writes back at most once (`wbTok`).
+  8-byte key never fails; `Unlock` writes back at most once (`wbTok`). The `Lease` bucket is a
+  tracked bucket (D22, 2026-10-23: `KBReal.P`'s `RB`): each write takes, with its write-back
+  token, the tracked buckets' client half (`srvRestRW d.γB`), which its put needs; the server's
+  apply thread holds that half at its model and never lends it (the workload has no lease
+  request), so no lease is written.
 * `Lookup(id)` (unit N4, D14h, 2026-10-17: `isApplyLessor`'s `Lookup` clause, a premise of
   `isApplyLessor_of_lessorInv` until then): it read-locks the lessor's `mu` and returns the map's
   lease or `nil`; a lease's `ID` is never written after `NewLease`, its `TTL()` and `Keys()` take the
@@ -72,22 +78,25 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   2026-10-17: the store's and the apply thread's lease owner each hold one). -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
-    (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF),
+    (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)
+    (r : GMap GoString backend.BktData),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ ⌜lg ≠ null⌝ ∗
       ⌜ckptEffectsOk⌝ ∗ ⌜0 ≤ sint.Z cfg.leaseRevokeRate'⌝ ∗ lease.clusterOk cl ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ backend.wbTok d.γB ∗
-      bkFresh d.γB go!"lease" }}
+      backend.rbOwn d.γB r ∗ ⌜(r.lookup go!"lease").getD ∅ = ∅⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.NewLessor)) (Val #lg))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
       (Val #cl)) (Val #cfg))
-  {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗ ∃ (lp : Loc) (γl : GName),
+  {{ (l : GoInterface), RET #l; backend.bOpen d.γB qo ∗ backend.rbOwn d.γB (r.insert go!"lease" ∅) ∗
+      ∃ (lp : Loc) (γl : GName),
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
       lease.leaseOwn γl [] ∗ lessorCkptOk l ∗
       □ (∀ f : GoFunc, backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-        lease.lessorBackend lp Pk #f (backend.wbTok d.γB) (mvcc.bkRTx d.γB d.P d.be)) ∗
+        lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ srvRestRW d.γB)
+          (mvcc.bkRTx d.γB d.P d.be)) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

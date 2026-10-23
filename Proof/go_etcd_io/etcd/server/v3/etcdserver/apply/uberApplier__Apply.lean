@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
-  intro E p opts x r rq skip v3 F Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF, HFS, HSp⟩
+  intro E p opts x r rq skip v3 F Pre Q Post rs
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, Hwt, Hcs, %Hok, %Hskip, #HF, HFS, HSp, HRO⟩
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE⟩
   ihave #Hs' := Hs
@@ -45,34 +45,34 @@ theorem apply.uberApplier.Apply.wp_proof
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗ apply.kvOwn E x.log ∗
         mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗ E.FS ∗
-        (if v3 then apply.ciSplit E Pre else iprop(True))))
-      %(fun ar => iprop(E.FS ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
+        (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs))
+      %(fun ar => iprop(E.FS ∗ E.RO (apply.restAfter rq v3 rs) ∗ ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c' ∧
           apply.kvFloorOk rq v3 F x.log o⌝ ∗
         apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
-      [Ha Hkv Hwt Hcs HFS HSp] as %ar Hpost
-  · iframe Hw Ha Hkv Hwt Hcs HFS HSp
+      [Ha Hkv Hwt Hcs HFS HSp HRO] as %ar Hpost
+  · iframe Hw Ha Hkv Hwt Hcs HFS HSp HRO
     imodintro
-    iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp⟩ HΦ'
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post) $$ [Hres Ha Hkv Hwt Hcs HFS HSp]
+    iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs, HFS, HSp, HRO⟩ HΦ'
+    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log F Pre Q Post rs) $$ [Hres Ha Hkv Hwt Hcs HFS HSp HRO]
     · iframe #
-      iframe Hres Ha Hkv Hwt Hcs HFS HSp
+      iframe Hres Ha Hkv Hwt Hcs HFS HSp HRO
       ipureintro; exact ⟨Hok, HcE⟩
     inext
-    iintro %ar ⟨Hres, HFS, HB⟩
+    iintro %ar ⟨Hres, HFS, HRO, HB⟩
     iapply HΦ'
     simp only []
-    iframe Hres HFS
+    iframe Hres HFS HRO
     iexact HB
-  icases Hpost with (⟨HFS, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Htr, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -⟩, Hrej⟩)
+  icases Hpost with (⟨HFS, HRO, %a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Htr, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs, HFS, -, HRO⟩, Hrej⟩)
   · imodintro
     iapply HΦ
     iframe HFS
     iexists ⟨o.logAfter x.log, c'⟩, (.dispatched o skip)
-    simp only [apply.applyResultIs]
-    iframe Hkv HPP Hres Htr
+    simp only [apply.applyResultIs, apply.restOut]
+    iframe Hkv HPP Hres Htr HRO
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists a'; iframe Ha' Hs''
       ipureintro
@@ -85,8 +85,10 @@ theorem apply.uberApplier.Apply.wp_proof
     imodintro
     iapply HΦ
     iframe HFS
+    ihave HRO : iprop(E.RO (apply.restOut rq v3 .rejected rs)) $$ [HRO]
+    · rw [show apply.restOut rq v3 .rejected rs = rs from rfl]; iexact HRO
     iexists x, .rejected
-    iframe Hkv
+    iframe Hkv HRO
     isplitl [Ha]
     · iunfold apply.uberOwn; iexists _; iframe Ha Hs; ipureintro; exact HcE
     isplitl [Hcs]

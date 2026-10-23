@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3backend.ClusterMemberAttrSet.wp_proof :
     apply.applierV3backend.ClusterMemberAttrSet.spec (GF := GF) (hG := hG) := by
-  intro E p r v3 log Pre Q Post
-  wp_start as ⟨#Hb, ⟨%mm, #Hr⟩, Hpre, Hwt⟩
+  intro E p r v3 log Pre Q Post mm rs
+  wp_start as ⟨#Hb, #Hr, Hpre, Hwt, HRO⟩
   iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -46,12 +46,14 @@ theorem apply.applierV3backend.ClusterMemberAttrSet.wp_proof :
   icases Hr with ⟨%Hrnn, %a, %sl, #Hid, #Ha, %Hann, #Hname, #Hurls, #Hsl⟩
   iStructNamed Hopts
   wp_auto
-  wp_apply HUA $$ [$Hcs $Hwt $Hrt] as ⟨HPP, Hrt⟩
+  wp_apply HUA $$ [$Hcs $Hwt $Hrt $HRO] as ⟨HPP, Hrt, HRO⟩
+  · iframe Hsl
   ihave Hwo := Hrdb $$ Hrt
   ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
   · iunfold apply.kvOwn; iframe
   iapply HΦ
   iunfold apply.mPostV
+  iframe HRO
   iframe
 
 end proof

@@ -15928,3 +15928,153 @@ the `_st` family of `ClientPutGet.lean` and linkvtxn's `txn_Commit_st` now end t
 theorem's statement changed (fingerprint: the four `_any` results and the definitions above
 changed, the rest identical); the trust base's axioms are the same 538, two of them stronger
 (`grpc.ClientConn.Invoke` through `grpcInvokerOk`, `context.ErrAny`).
+
+## D22 the backend over every bucket carried out (2026-10-23)
+
+"D22c decided" (the user, 2026-10-22) carried out on branch `worktree-agent-abc119190b6e832f9`: the
+backend's specification covers every bucket a client can observe, the apply thread holds the
+buckets it alone writes at their model of the applied log, and `bkRestAt` is derived; no
+determinism axiom (S-h's `snapOf γB D ∗ srvRestSole γB` is not used), no new axiom.
+
+**The backend model** (`storage/backend`). `BParams.RB` (the tracked buckets; the real instance's
+are `mvcc.restBuckets`, `KBReal.P`), `rbData P S` (each tracked bucket of the writer's contents,
+absent if absent: `S.filter`), a ghost variable `γ.rbk` half in the batch lock (`trkHalf`, with the
+hook's own keys' half `γ.hkd`), half the client's (`rbOwn γ r`). `UnsafePut`, `UnsafeDelete`,
+`UnsafeCreateBucket`, `UnsafeDeleteBucket` take and give back `rbPut γ P n S` (the client's half
+if `n` is tracked; `True` else); `UnsafeSeqPut` excludes tracked buckets (`P.RB n = false`);
+`hookStep` (the pre-commit hook's contract) keeps `rbData`; `newPost` gives `rbOwn γ (rbData P D)`.
+`backend.Snapshot.spec`'s observation passes the batch lock's `rbOwn γ r` too and its post is
+`Q (sData P D) (hkData P D) (rbData P D)` (the axiom's docstring: the committer held `rbOwn` of the
+writer's contents, which a commit makes committed). `bridgeParams` adds `RB Key = RB Meta = false`,
+`ciKeys`/`hooksParams` `RB Meta = false`.
+
+**The rest model** (`etcdserver/apply/RestModel.lean`, `etcdserver/InvRest.lean`). `apply.RestM`:
+the rest buckets and the cluster's in-memory members (`MemberM`); the environment gets `AEnv.RO :
+RestM → IProp` (the server's: `srvRestOwn γB c r = rbOwn γB r.bk ∗ membership.clusterMem c r.mem`)
+and `AEnv.RW : IProp` (the write right of the writers the workload does not reach; the server's:
+`srvRestRW γB = ∃ r, rbOwn γB r`, the same half, which the apply thread never lends).
+`restModel c0 bootLog L` folds `restEntry c0` over the raft log from `restBoot bootLog` (every rest
+bucket empty but `auth = authBoot`, the in-memory members the boot log's contexts' `memBoot`):
+a normal entry's request through `apply.restAfter` (the cluster version: `restSetVersion v3 s`,
+`cluster/clusterVersion := semverNorm s`; the member attributes: `restUpdateAttrs v3 a`, the
+**in-memory** member's attributes replaced whatever `v3`, saved with `v3`), a conf change through
+`ccRest v3 cc` (a validated `AddNode`, `membership.ccValidOn r.bk cc`, saves the context's member
+`membership.ccMemberOf ctx` in memory and in `members`), `v3` iff above `c0`. Opaque pure functions
+(`memberKey`, `memberEnc`, `semverNorm`, `ccMemberOf`, `ccValidOn`) each named in one statement;
+`membership.clusterMem c mem` opaque exclusive (option (i): the in-memory member list as ghost state).
+It is a function of the log and of cluster-wide values (`c0`, the boot log `γ.reBoot`), so every
+member computes the same buckets.
+
+**The apply package.** `isCluster c γ P f RO RW`: `SetVersion` (of `v` with `semverIs v s`, which
+`semver.MustParse`'s spec now gives) changes `RO r` to `RO (restSetVersion b s r)`;
+`UpdateAttributes(id, attr, b)` (with `attr.ClientURLs ↦*□ cus`) to `RO (restUpdateAttrs b ⟨id,
+attr.Name, cus⟩ r)`; `SetDowngradeInfo` takes `RW`. The auth store's writes, the alarm store's
+`Activate`/`Deactivate` take and give back `RW` (`isAuthStore … RW`, `isAlarmStore … RW`); the
+lessor's `Grant`/`Checkpoint` take it (spent with the write token: `lease.lessorBackend`'s `T`).
+`applierTriples`: the cluster methods take `clusterFacts E m cr r` (the request as a `ClusterReq`)
+and `E.RO rs` and give `E.RO (cr.eff v3 rs)`; the facts of the methods that leave the log
+(`reqFacts`, the lease, alarm and auth requests) and `AuthEnable`/`AuthDisable` include `E.RW`.
+`apply.rqOk` is `False` for the alarm, auth (but `AuthStatus`) and downgrade requests (as for the
+lease requests since D14h): `dispatch` reaches none of them, so it never needs `E.RW`.
+`dispatch`, `uberApplier.Apply`, `apply.Apply` take `E.RO rs` and give `E.RO (restAfter rq v3 rs)`
+(`restOut rq v3 out rs`: nothing for a skipped or rejected request).
+
+**The server.** `srvEnvOk s γ ci E cl` adds `∃ γB, E.RO = srvRestOwn γB cl ∧ E.RW = srvRestRW γB`
+(`cl` the server's `s.cluster`). The apply loop's specs (`applyEntryNormal`, `apply`, `applyEntries`,
+`applyAll`) and the apply thread's resources (`applyRes`, `applyStart`, `applyBuiltNA`) carry
+`srvRest E γr A = E.RO (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A))`; a covered
+request's effect is `dispatch`'s (`restOut_plain`: `plainCover` now also asks a cluster request no
+side-effect-free field, so `Apply` never skips one; `monitorReq` likewise), a conf change's
+`applyConfChange`'s. `NewServer` threads the constructors' halves and starts the apply thread at
+`restBoot bootLog` (`restBootBk_of_fresh`).
+
+**The restated trusted statements** (no new axiom):
+- `bootOk` (the bootstrap contract, a premise): `"%HDr"`: the fresh file's every rest bucket empty
+  (absent or empty) and the membership's three present and empty (`MustCreateBackendBuckets`),
+  replacing the opaque tokens `bkFresh d.γB "lease"`/`"auth"`/`"alarm"` (deleted); `"Hmem"`:
+  `membership.clusterMem bc.cl' (memBoot bootLog)`; `Hisc`'s `isCluster` at `srvRestOwn d.γB bc.cl'`,
+  `srvRestRW d.γB`. **A widening of the environment premise.**
+- `lease.NewLessor` (axiom): takes `rbOwn d.γB r` with `lease` empty, gives it back with `lease`
+  created; `lessorBackend`'s write token `wbTok ∗ srvRestRW`.
+- `auth.NewAuthStore` (axiom): takes `rbOwn d.γB r` with the auth buckets empty, gives it back with
+  them created and `auth = authBoot` (`commitRevision`); its apply contract at `RW = srvRestRW`.
+- `v3alarm.NewAlarmStore` (axiom) and `EtcdServer.restoreAlarms` (proved): `rbOwn` with `alarm`
+  empty, given back with it created; the apply contract at `srvRestRW`. (Since the fork fix the
+  receiver recovers the alarm store in place, `AlarmStore.Recover`, not yet specified: S-j.)
+- `isCluster`'s three clauses (in `bootOk`, a premise): above.
+- `EtcdServer.applyConfChange` (axiom): for `E.RO = srvRestOwn γB cl` with `s.cluster ↦□ cl`, takes
+  `E.RO rs`, gives `E.RO (ccRest v3 m rs)`.
+- `semver.MustParse` (axiom): the version it returns is `s`'s (`apply.semverIs v s`).
+- `backend.Snapshot` (axiom): the observation and the post over `rbData`.
+- S-f's vocabulary: `bkRestOf c0 bootLog L n = (restModel c0 bootLog L).bk.lookup n`, `clusterBktOf`
+  its abbreviation (a definition, no longer opaque), `bkRestAt c0 bootLog L D`, `imageAt γk bootLog
+  i L A D` (with `bkRestAt γk.c0`), `dbImage` at `γ.raft.reBoot`; `bkRestAt_of_rb` derives it from
+  `rbData P D = (restModel …).bk`, `imageAt_of_snap` takes that instead of `bkRestAt`.
+
+**What did not change.** The closed theorems' statements (their `bootOk` premise is widened, as
+above); `kvModel`, `ApplyKV`, `applyStep`; the compaction keys (`bkNoCmp` stays an opaque token:
+tracking `meta/scheduledCompactRev`/`finishedCompactRev` would be the same mechanism on keys).
+Exported results restated: `request_delivered` (applyEntryNormal's restatement, `srvRest` pre and
+post), `lessor_apply_contract` (the `RW` parameter), the apply package's specs above.
+
+## D22 the stored-index window carried out (2026-10-23)
+
+The window "D22 S-l sender items carried out" designed (a hook request through `ForceCommit`, a
+frozen mode of `consInv`), carried out on branch `worktree-agent-abc119190b6e832f9`; no axiom
+added, none restated but `bootOk`'s `inv applyN (consInv γA)` (a new token in the invariant, below).
+
+**The request through the commit** (`storage/backend`). `backend.hooksReq γ P Pk b t h X Y`: the
+hooks `h` with a frame they transform (`{batchLocked ∗ Pk ∗ X ∗ ⌜hookPre⌝} OnPreCommitUnsafe(t)
+{∃ st', batchLocked ∗ Pk ∗ Y ∗ ⌜hookStep⌝}`); `backend.commitReq γ P Pk b X Y := □ (X -∗ Y) ∨
+∃ t h, batchTx ↦□ t ∗ hooks ↦□ h ∗ hooksReq …` (persistent; `commitReq_true`). The specs of
+`batchTxBuffered.unsafeCommit`, `commit`, `Commit` and `backend.ForceCommit` take `X ∗ commitReq
+… X Y` and give `Y`; `unsafeCommit` runs the hook once, through `hooksSpec` (then the wand) or
+through the request's `hooksReq` (the hooks field agrees, `↦□`). `Unlock`, `run`, `CommitAndStop`
+ask nothing (`True`). Why not a mailbox in `Pk`: the committer must know its own commit ran the
+hook, which only a post of the commit can say.
+
+**The storage hooks and the consistent index.** `storage.saveReq` (`saveSpec` with the frame;
+`saveReq_of_saveSpec`); `BackendHooks.OnPreCommitUnsafe.spec` takes `▷ saveReq … X Y` and `X`,
+gives `Y` (`isBackend_backendHooks` at `True`); `storage.hooksReq_backendHooks` (the server's
+hooks serve what the save serves). `ci_hook_freeze_run`/`ci_saveFreeze` (`CindexBackend.lean`):
+the save at the apply thread's request `applyThread γA s ⇒ freezeY γA s` (`s.k ≠ 0`, not pending)
+through `commit_freeze_au`.
+
+**The frozen protocol** (`InvApply.lean`). `ApplyNames.fz` (a token); `consInv γ := ∃ s mi w,
+consInvAt γ s mi w ∨ consFrozen γ s mi w`: `consInvAt` the old body with the token `γ.fz`;
+`consFrozen` holds `ci = s.k`, three quarters of the protocol's state (the invariant's half and
+a quarter the apply thread deposited), a quarter of the stored index's mirror at `mi = s.k`,
+`wr = true`, `stOk`. `freezeY γ s` (the window's holder's): the other quarters of the state and of
+the mirror, the token. `frozen_thread_false`: no step of the apply thread opens the frozen
+invariant (it has no half of the state); `commit_save_au` has a frozen case (it reads and stores
+`s.k` again, no ghost update); `commit_freeze_au` freezes; `unfreeze` (`freezeY γ s ={⊤}=∗
+applyThread γ s`). A new token in the invariant is a change of `bootOk`'s `inv applyN (consInv
+γA)` (allocatable as before, with a fresh token).
+
+**mvcc.** `isKeyBackendG` gains `Req` (default `fun X Y => □ (X -∗ Y)`), its `ForceCommit` clause
+`∀ X Y, {RT ∗ WT ∗ X ∗ Req X Y} … {RT ∗ Y}`; `bkReq γB P b X Y := □ (X -∗ Y) ∨ ∃ W Pk,
+isBackend … ∗ commitReq …`, `kbReq`/`storeReq γ` (the instance's); `physOk`, `storeBackend`,
+`storeBackendT` at `storeReq γ`; `isKeyBackendG_wand` (to the default, for `store.restore`'s axiom
+and `rangeEvents`, which keep their statements); `store.Commit.spec` takes `X ∗ storeReq γ X Y`,
+gives `Y` (`NewStore`, `updateCompactRev`, `scheduleCompaction` ask nothing).
+Since `kbReq` names the real backend's `isBackend` and `commitReq` (its hooks' triple over
+`batchLocked`), every result whose statement reaches the store (`isStore`, `physOk`) now depends
+on the backend's bbolt-boundary predicates (`backend.isDB`, `ownDB`, `ownWTx`, `txDB`, opaque
+`axiom` constants already in the trust base): 11 collections (`apply`, `cache-client`, `client`,
+`lease-served`, `mvcc`, `mvcc-compaction`, `recipes`, `slice`, `txn`, `v3rpc`, `watch`) list them
+now; the trust base's axioms are unchanged. Avoiding it would need the store's request family
+outside its definitions (the store's names, `StoreNames.kb : Option KBReal`, are data, no `IProp`).
+
+**The server.** `createMergedSnapshotMessage.spec` and `snapBranch_send` take `RC' -∗ RS` instead
+of `RS` (the snapshot's resource from what the commit gives back) and no longer return `RC'`.
+`SnapSendBranch.lean`: `commitReq_freeze`, `storeReq_freeze` (over the server's backend facts:
+`isBackendNH`, `isBackendHooks`, `isCI`, `consInv`), `srvKVCommitOk_of_kv` (with `X`, `Y` and a
+frame `F`), `snapObs_window` (the observation: the committed hook keys hold `s.k` and some term,
+`ciObs`, and the tracked buckets are the apply thread's `rb`), `srvBeSnapOk_window`. With these,
+S-l's assembly at `applyAll`'s branch: `Commit()` with `X = applyThread γA s` (`s.k = ai`),
+`F` = the backend's open share, a write-back token and `rbOwn γB rb` (from `srvRest`), then
+`Snapshot()`, then `unfreeze`; `imageAt_of_snap` gets `hci`, `htm`, `hrb` from `Qd D`.
+
+**Left** (S-l proper): `ciEff = ai` at the branch (the apply thread's `s.k` is the applied index
+when the branch runs: `applyAll`'s invariant), the key half (`keyView` of the snapshot's data: the
+apply thread's view of `Key` as the observation's `viewAt`), the compaction keys (`bkNoCmp`).

@@ -26,8 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 fragment pins at `γ`'s names: `s.b` is the backend of `γ`'s contract (`physOk`), whose
 `ForceCommit()` takes the writer's reader token and a write session's token. -/
 theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG) := by
-  intro s γ
-  wp_start as ⟨#Hs, Hfr, Hro, Hwt⟩
+  intro s γ X Y
+  wp_start as ⟨#Hs, Hfr, Hro, Hwt, HX, #Hrq⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -58,11 +58,12 @@ theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG
   (try wp_auto)
   -- `s.b.ForceCommit()`
   wp_bind (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-  iapply HForce $$ [Hro Hwt] [-]
+  iapply HForce $$ %X %Y [Hro Hwt HX] [-]
   · iunfold mvcc.writerOwn at Hro
-    iframe Hro Hwt
+    iframe Hro Hwt HX
+    iframe #
   inext
-  iintro Hro
+  iintro ⟨Hro, HY⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hmi Hwr Hcur Hfb Hfidx Hfsch Hfstop Hfrst]
   · inext
@@ -79,7 +80,7 @@ theorem mvcc.store.Commit.wp_proof : mvcc.store.Commit.spec (GF := GF) (hG := hG
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.writerOwn
-  iframe Hro
+  iframe Hro HY
   iunfold mvcc.writerFrag
   iexists o
   iexact Hpin

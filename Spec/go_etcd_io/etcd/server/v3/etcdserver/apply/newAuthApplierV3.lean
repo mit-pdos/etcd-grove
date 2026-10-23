@@ -34,7 +34,7 @@ abbrev apply.newAuthApplierV3.spec : Prop :=
       (Val #st)) (Val #base)) (Val #le))
   {{ (p : Loc), RET #p;
       □ (∀ (E : AEnv GF) (c : apply.Chain), ⌜E.RD = RD⌝ -∗
-        apply.isAuthStore st E.γ E.P E.f E.RD E.authOn -∗ apply.isApplyLessor le E.s E.γ E.P E.f -∗
+        apply.isAuthStore st E.γ E.P E.f E.RD E.authOn E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
         apply.applierSpec E c base -∗
         apply.applierSpec E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p)) }}
 

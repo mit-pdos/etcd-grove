@@ -303,6 +303,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   · rw [mvcc.crevFrozen_withPhys]; iexact HfrzR
   ihave #HcertP : mvcc.idxCert (γ.st.withPhys p).idx C $$ []
   · rw [mvcc.idxCert_withPhys]; iexact HcertQ
+  ihave #HbkS := mvcc.isKeyBackendG_wand $$ HbkS
   wp_apply (lc := 1) (hRange _ _ (γ.st.withPhys p) _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
     $$ [$HbkS $HrtR $HfrzP $HbucketQ $HcertP $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap,
       %Hpslen, #HevIs⟩

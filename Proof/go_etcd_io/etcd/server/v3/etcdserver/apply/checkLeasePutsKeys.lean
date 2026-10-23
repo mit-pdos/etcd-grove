@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePutsKeys.wp_proof :
     apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) := by
-  intro st γ P f RD on ai info dq l id
+  intro st γ P f RD on RW ai info dq l id
   wp_start as ⟨#Hst, Hai, #Hl, Hrd⟩
   iunfold apply.isAuthStore at Hst
   icases Hst with ⟨%sti, %Hsti, #HPut, -, -, #HAdmin, -⟩

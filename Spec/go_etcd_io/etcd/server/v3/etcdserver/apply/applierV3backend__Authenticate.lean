@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 abbrev apply.applierV3backend.Authenticate.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
-      (∃ am : AuthenticateModel, apply.authenticateIs r am) ∗
+      ((∃ am : AuthenticateModel, apply.authenticateIs r am) ∗ E.RW) ∗
       apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post ∗ mvcc.storeWT E.γ ∗
       apply.ciSplit E Pre }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Authenticate")) (Val #r))

@@ -79,6 +79,8 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   iapply Hcommit $$ HRC
   inext
   iintro HRC'
+  -- (D22 the stored-index window, 2026-10-23) what `Snapshot()` takes, from what `Commit()` gave
+  ihave HRS := HRS $$ HRC'
   (try wp_auto)
   -- `s.be.Snapshot()`
   iunfold srvBeSnapOk at Hbs
@@ -146,7 +148,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   (try wp_auto)
   iapply HΦ
   simp only [mergedSt]
-  iframe Hlr HRC' HRS'
+  iframe Hlr HRS'
   iexists rc, D, c
   iframe Hm Hc Hrs
   isplitr

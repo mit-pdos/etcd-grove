@@ -33,9 +33,10 @@ bbolt's committed data `D` at that moment, and returns it as the snapshot. Why `
 `DB.Begin(false)`), and that commit was the call's own (`batchTx.Commit`) or a later one (the
 `run` goroutine's, an `Unlock`'s), or the call's own found nothing pending, the writer's contents
 then being the committed data and the read buffer empty; at the end of each, its committer held
-the batch lock's resources `W ∗ Pk`, the lock's ghost shares were `viewAt γ (sData P C)` and
-`hkOwn γ (hkData P C)` of the committed `C`, and the caller held `R`, so the observation gives
-`Q`. What would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
+the batch lock's resources `W ∗ Pk`, the lock's ghost shares were `viewAt γ (sData P C)`,
+`hkOwn γ (hkData P C)` and (D22, 2026-10-23) `rbOwn γ (rbData P C)` of the committed `C` (a
+commit makes the writer's contents committed: the hook's shares are of the writer's contents), and
+the caller held `R`, so the observation gives `Q`. What would discharge it: bbolt's `DB.Begin(false)` read isolation and the backend's
 commit protocol (`batchTxBuffered.commit`) with a read transaction begun outside the batch lock,
 in a model of bbolt where the database's committed state is shared (a fraction of `ownDB`)
 rather than the batch lock's alone. -/
