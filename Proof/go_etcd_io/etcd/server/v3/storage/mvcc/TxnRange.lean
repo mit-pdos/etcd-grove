@@ -271,7 +271,7 @@ theorem isTxn_readRev (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : In
     ihave %Hr : ⌜0 ≤ sint.Z rev⌝ $$ [H]
     · iunfold isTxnRead at H
       iNamed H
-      ihave %Hr := storeTxnReadIs_rev tr s rt trace γ log rev crev Z $$ Htr
+      ihave %Hr := storeTxnReadIs_rev tr s rt trace (γ.withPhys p) log rev crev Z $$ Htr
       ipureintro; exact Hr.1
     iframe H
     ipureintro; exact Hr

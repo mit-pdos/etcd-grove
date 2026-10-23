@@ -91,9 +91,12 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     wp_auto
     rw [Hli]
     wp_auto
-    icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+    icases Hard with ⟨Hard, Hwo⟩
+    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
     wp_apply HCk $$ [$Hcs $Hwt $Hrt] as %err ⟨HPP, Hrt, #HeI⟩
-    ihave Hrd := Hrdb $$ Hrt
+    ihave Hwo := Hrdb $$ Hrt
+    ihave Hard : iprop(E.RD ∗ mvcc.writerOwn E.γ) $$ [Hard Hwo]
+    · iframe Hard Hwo
     cases err with
     | nil =>
       wp_auto

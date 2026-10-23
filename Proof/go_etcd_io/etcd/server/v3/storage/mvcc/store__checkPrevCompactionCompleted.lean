@@ -35,8 +35,13 @@ theorem mvcc.store.checkPrevCompactionCompleted.wp_proof
   wp_start as ⟨#Hs, #Hstop⟩
   iunfold mvcc.isStore at Hs
   iNamed Hs
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
-  · iframe Hpin Hstop
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hbk' := mvcc.isKeyBackendG_cmp b s γ Dep Ph (mvcc.hookFn γ) hcmp $$ Hbk
   iunfold mvcc.isKeyBackendG at Hbk'
   icases Hbk' with ⟨%bi, %Hbi, -, -, -, -, -, -, #HCmp⟩

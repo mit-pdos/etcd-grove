@@ -62,12 +62,18 @@ theorem mvcc.store.updateCompactRev.wp_proof
     (h3 : mvcc.SetScheduledCompact.spec (GF := GF) (hG := hG)) :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post logc hcmp
-  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, #HhookC, Hcs⟩
+  wp_start as ⟨#Hs, #Hstop, HmuA, Hright, #HcertC, %HndC, HhookC, Hcs⟩
+  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, -⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
-  icases mvcc.storeStop_fields s γ _ _ _ _ $$ [Hpin Hstop] with ⟨#Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd⟩
-  · iframe Hpin Hstop
+  -- the compaction's objects, the current ones for good (D22 receiver epochs, S5b: until then
+  -- `isStore`'s, pinned)
+  icases mvcc.storeStop_open s γ $$ Hstop with
+    ⟨%b, %ti, %ssched, %sstop, #Hb, #Hidx, #Hsched, #Hstopc, #Hstopch, #Hrstd, #Hph, #Hcurd⟩
+  iunfold mvcc.physOk at Hph
+  iNamed Hph
+  try simp only
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
@@ -75,8 +81,8 @@ theorem mvcc.store.updateCompactRev.wp_proof
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$HrevMu] as ⟨Hwl, HR⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HR with HR
-  icases mvcc.revMuInv_open s γ _ _ $$ [HR Hrstd] with ⟨HR, HrstR, -⟩
-  · iframe HR Hrstd
+  icases mvcc.revMuInv_open_cur s γ _ _ _ _ $$ [HR Hrstd Hcurd] with ⟨HR, HrstR, -, -⟩
+  · iframe HR Hrstd Hcurd
   iunfold mvcc.revMuBody at HR
   icases HR with ⟨%log, %ntok, %c', HR⟩
   iNamed HR
@@ -218,7 +224,7 @@ theorem mvcc.store.updateCompactRev.wp_proof
       -- the caller's hook is the store's
       imod mvcc.hookP_agree_lc ⊤ γ P Ph f $$ [$Hlc2 $HhookC $Hhook] with ⟨#HPP0, #HP0P⟩
       ihave #HhookC' := HhookC
-      iunfold mvcc.hookIs at HhookC'
+      iunfold mvcc.hookOk at HhookC'
       icases HhookC' with ⟨-, #Hhf⟩
       iunfold mvcc.csContract at Hcs
       icases Hcs with ⟨HPre, #Htriple, Hupd⟩

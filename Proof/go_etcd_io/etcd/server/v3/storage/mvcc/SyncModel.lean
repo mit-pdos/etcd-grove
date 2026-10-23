@@ -714,7 +714,7 @@ theorem logEnts_keys_sorted (log : Log) (hlen : log.length < 2 ^ 63)
 `{Main: _}`: sub `0`, no tombstone mark), returns the entries of the revisions `[lo, hi)` in
 revision order. -/
 theorem bucketRange_logEnts (log : Log) (hwf : LogWf' log) (hlen : log.length < 2 ^ 63)
-    (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63) (lo hi : Nat) (hlohi : lo ≤ hi)
+    (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63) (lo hi : Nat) (hlohi : lo < 2 ^ 63)
     (hhi : hi ≤ log.length) :
     bucketRange (bucketMap log) (revBytes ⟨W64 lo, W64 0⟩ false) (revBytes ⟨W64 hi, W64 0⟩ false) =
       (logEnts log lo hi).map KvEnt.pair := by

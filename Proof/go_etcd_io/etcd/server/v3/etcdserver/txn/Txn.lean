@@ -111,7 +111,7 @@ theorem txn.Txn_sole
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   iunfold txn.kvWriter at Hsw
-  icases Hsw with ⟨Hsw, Hwl⟩
+  icases Hsw with ⟨Hsw, Hwl, Hfrag⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   ihave %Hkvok := txn.isKV_ok kv s γ $$ Hkv
@@ -201,8 +201,8 @@ theorem txn.Txn_sole
       iframe Hce HPre
       isplitr
       · ipureintro; exact ⟨rfl, rfl, Hne, Hnp⟩
-      isplitl [Hsw Hwl]
-      · iunfold txn.kvWriter; iframe Hsw Hwl
+      isplitl [Hsw Hwl Hfrag]
+      · iunfold txn.kvWriter; iframe Hsw Hwl Hfrag
       iexists trace, te9
       iframe Htrc
       ipureintro; exact Hteq
@@ -273,8 +273,8 @@ theorem txn.Txn_sole
     · ipureintro; exact Hteq
     simp only [mvcc.commitLog, ↓reduceIte]
     iframe Hresp Hhdr
-    isplitl [Hsw Hwl]
-    · iunfold txn.kvWriter; iframe Hsw Hwl
+    isplitl [Hsw Hwl Hfrag]
+    · iunfold txn.kvWriter; iframe Hsw Hwl Hfrag
     isplitl []
     · iexact Hknown
     simp only [hro, ↓reduceIte]
@@ -292,9 +292,12 @@ theorem txn.Txn_sole
     iunfold soleWriterOpen at Hsw
     icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
     have hsb : soleBudget log - 1 + 1 = soleBudget log := by unfold soleBudget; omega
+    -- the writer's hook: the hook's facts and the writer's fragment (D22 receiver epochs, S5b)
+    ihave HhookW : mvcc.hookIs γ P f $$ [Hfrag]
+    · iapply (mvcc.hookIs_split γ P f).2; iframe Hhook Hfrag
     wp_apply (txn.kv_Write hWrite hWWrite kty kvv s γ trace P Pre Q f te6 (soleBudget log - 1) log)
-      $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $Hhook $HPre $Htr $Htrc]
-      as %tyX %vX ⟨%ilog, %mw', Htx, Hte, Htoks, -, HQ⟩
+      $$ [$Hkv $Hrd $Htok $Hwt $Htoks $Hwl $HhookW $HPre $Htr $Htrc]
+      as %tyX %vX ⟨%ilog, %mw', Htx, Hte, Htoks, -, HQ, HhookW⟩
     · ipureintro; exact ⟨fun _ => ⟨hsb, hlen4⟩, Htr⟩
     ihave ⟨Hte, #Hw⟩ := txn.twEnd_wrap s γ tyX vX mw' ilog $$ Hte
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
@@ -330,15 +333,16 @@ theorem txn.Txn_sole
     ihave Htx := Hva $$ Hv
     simp only [mvcc.isTxn]
     wp_apply (txn.tw_End hEnd hWEnd tyX vX s γ trace mw' log _ p1 p2 p3 (soleBudget log - 1) P f)
-      $$ [$Htx $Hte $Htoks HP] as ⟨Hrd, ⟨%te5, Htrc⟩, #Hc', Htok, Htoks, Hwl⟩
-    · iframe HP Hhook
+      $$ [$Htx $Hte $Htoks HP HhookW] as ⟨Hrd, ⟨%te5, Htrc⟩, #Hc', Htok, Htoks, Hwl, HhookW⟩
+    · iframe HP HhookW
       isplitl []
       · ipureintro; exact fun _ => hsb
       simp only [hro, Bool.false_eq_true, ↓reduceIte]; isimp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn] at Hcok; iapply Hcok; ipureintro; exact Hign
+    icases (mvcc.hookIs_split γ P f).1 $$ HhookW with ⟨-, Hfrag⟩
     ihave Hsw := soleWriter_close γ log _ hlen4 $$ [Htoks Hc' Htok]
     · iframe Hc' Htok; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
-    ihave Hsw : txn.kvWriter s γ (mvcc.commitLog log _) $$ [Hsw Hwl]
-    · iunfold txn.kvWriter; iframe Hsw Hwl
+    ihave Hsw : txn.kvWriter s γ (mvcc.commitLog log _) $$ [Hsw Hwl Hfrag]
+    · iunfold txn.kvWriter; iframe Hsw Hwl Hfrag
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
     icases Hresp2 with ⟨%Hrn, #Hf⟩

@@ -54,7 +54,7 @@ abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
       mvcc.idxCert γ.idx lc ∗ ⌜lc <+: log ∧ c < lc.length⌝ ∗
       mvcc.idxKnows γ.idx kn ∗ ⌜kn.log = log⌝ ∗ ⌜log ≠ []⌝ ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝ ∗
-      mvcc.idxPin γ ti ∗ s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.isTreeIndex ti γ.idx ∗ s.[store, go!"kvindex"] ↦{dqi} (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗ mvcc.crevUB γ.idx qc c ∗
       ⌜-1 ≤ c ∧ c < 2 ^ 63⌝ ∗ traceutil.ownTrace trace te }}

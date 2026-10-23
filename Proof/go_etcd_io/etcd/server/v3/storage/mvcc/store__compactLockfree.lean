@@ -35,14 +35,14 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
   intro s γ rev c P f Pre Q Post log hcmp
-  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, #Hhook, Hcs⟩
+  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #HcertC, %HndC, Hhook, Hcs⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
   wp_apply (h0 s γ hcmp) $$ [] as %pcc -
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs] as %ch %prev %err Hres
+  wp_apply (h1 s γ rev c P f Pre Q Post log hcmp) $$ [$Hmu $Hright $Hcs $Hhook] as %ch %prev %err Hres
   · iframe #; ipureintro; exact HndC
   (try wp_auto)
   icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |

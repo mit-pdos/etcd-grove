@@ -53,7 +53,7 @@ theorem mvcc.txnReadWrite.Rev.wp_proof
     iexists mw
     iframe Hf
     iunfold mvcc.isTxnRead
-    iexists trw, tr, ti, rt, ranges
+    iexists p, trw, tr, ti, rt, ranges
     iframe
     iframe #
   ipureintro

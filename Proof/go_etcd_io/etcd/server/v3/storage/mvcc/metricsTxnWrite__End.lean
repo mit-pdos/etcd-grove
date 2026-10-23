@@ -66,14 +66,19 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       -- the deferred `tw.TxnWrite.End()`: `txnReadWrite`'s promoted `End`, `storeTxnRead.End`
       rw [method_unfold (t := go.GoType.PointerType txnReadWrite.ty) (m := go!"End")]; wp_call
       (try wp_auto)
-      wp_apply (hEnd tr s trace ti rt γ log rev crev Z) $$ [$Hs $Htr $Hrd $Hidx $Hmu $HrevMu $Hti] as ⟨Hrd, #HZ⟩
+      ihave #Hs' : mvcc.isStore s (γ.withPhys p) $$ []
+      · rw [mvcc.isStore_withPhys]; iexact Hs
+      ihave HrevMu : sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s (γ.withPhys p)) $$ [HrevMu]
+      · rw [mvcc.revMuInv_withPhys]; iexact HrevMu
+      wp_apply (hEnd tr s trace ti rt (γ.withPhys p) log rev crev Z) $$ [$Hs' $Htr $Hrd $Hmu $HrevMu $Hti] as ⟨Hrd, #HZ⟩
       (try wp_auto)
+      rw [mvcc.storeReaderC_withPhys]
       iapply HΦ
       iframe Hrd HZ Htrc
       (try itrivial)
   | write ilog pend puts deletes putSize =>
     simp only [mvcc.isTxnEnd, mvcc.txnEndPost, mvcc.txnEndPre]
-    icases Hpre with ⟨%P, %f, #Hhook, HP⟩
+    icases Hpre with ⟨%P, %f, Hhook, HP⟩
     icases Htx with ⟨%chs, %ps, %sealed, Htx⟩
     iunfold mvcc.isTxnWriteCore at Htx
     iNamed Htx

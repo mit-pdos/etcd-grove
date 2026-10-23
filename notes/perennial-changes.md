@@ -157,6 +157,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
   provable); then this repository's `hash` translation goes.
 
+### Tactics: framing up to the projections of a structure instance
+
+- **Missing.** The proof mode's matching of a hypothesis against a goal (`iframe`, the `$$`
+  arguments of `iapply`/`ihave`) does not see through the projection of an anonymous constructor:
+  `dghostVar (γ.withPhys p).rst dq v` does not frame `dghostVar γ.rst dq v`, nor `crevFrozen γ`
+  the premise `crevFrozen (γ.withPhys p)`, though they are definitionally equal (`rfl`) and Lean's
+  `exact` accepts them.
+- **Needed by.** The store's names at the current physical names (`mvcc.StoreNames.withPhys`,
+  D22 receiver epochs S5b, 2026-10-22): every proof that works at `γ.withPhys p` and uses a
+  logical fact of `γ`.
+- **Workaround.** Explicit rewrites by `rfl` lemmas (`mvcc.isStore_withPhys`, ..., the
+  `withPhys_simp` tactic of `InvStore.lean`), lemmas bridged in term mode
+  (`readerPool_checkout_p`, `revMuInv_open_cur`), and `revMuBody` with separate logical and
+  physical names.
+- **Proposed.** iris-lean's (not Perennial's) frame and specialization matching could unify up to
+  `whnfR` of projections of constructor applications (structure eta), as Lean's `isDefEq` does at
+  reducible transparency for `instances`. Not proposed yet: to be weighed against the cost of
+  every match.
+- **Status.** Open (observed; no change drafted).
+
 ## Landed
 
 ### Std, PostLifting: generic lemmas the client, the cache and the examples each proved a copy of

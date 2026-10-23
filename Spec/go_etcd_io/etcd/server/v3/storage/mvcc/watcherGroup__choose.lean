@@ -23,8 +23,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `wg.choose(maxWatchers, curRev, compactRev)`, under `chooseAll`'s premise: the group itself
 if it has fewer than `maxWatchers` members, else a fresh group of `max 0 maxWatchers` of them
-(which ones: the map's iteration order), with the least `minRev` of the group returned. The
-group below `2 ^ 63 - 1` members (the fresh group's `add`: its tree's bound). -/
+(which ones: the map's iteration order), with the least `minRev` of the group returned; the
+chosen members above `curRev` have their restore flag cleared (`chooseAll`, D22 receiver epochs
+S6). The group below `2 ^ 63 - 1` members (the fresh group's `add`: its tree's bound). -/
 abbrev mvcc.watcherGroup.choose.spec : Prop :=
   ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (ST : GMap Loc mvcc.WatcherSt)
     (maxWatchers curRev compactRev : w64),
@@ -32,18 +33,21 @@ abbrev mvcc.watcherGroup.choose.spec : Prop :=
       mvcc.ownWatcherGroup wg W ∗ mvcc.ownStates ST ∗
       ⌜(∀ w, (W !! w).isSome → (ST !! w).isSome) ∧
         ∀ w st, ST !! w = some st → sint.Z compactRev ≤ sint.Z st.minRev ∧
-          sint.Z st.minRev ≤ sint.Z curRev ∧ st.restore = false⌝ ∗
+          (sint.Z st.minRev ≤ sint.Z curRev ∨ st.restore = true)⌝ ∗
       ⌜GMap.size W + 1 < 2 ^ 63⌝ }}
     (App (App (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"choose"))
       (Val #maxWatchers)) (Val #curRev)) (Val #compactRev))
-  {{ (g : Loc) (minRev : w64), RET (PairV #g #minRev); mvcc.ownStates ST ∗
+  {{ (g : Loc) (minRev : w64), RET (PairV #g #minRev);
       ((⌜g = wg ∧ (GMap.size W : Int) < sint.Z maxWatchers⌝ ∗ mvcc.ownWatcherGroup wg W ∗
+          mvcc.ownStates (mvcc.chooseRst curRev (domSet W) ST) ∗
           ⌜sint.Z minRev = mvcc.minRevOf ST (domSet W)⌝) ∨
        (∃ W' : GMap Loc mvcc.WatchRange,
           ⌜W' ⊆ W ∧ sint.Z maxWatchers ≤ (GMap.size W : Int) ∧
             (GMap.size W' : Int) = max 0 (sint.Z maxWatchers)⌝ ∗
           mvcc.ownWatcherGroup wg W ∗ mvcc.ownWatcherGroup g W' ∗
+          mvcc.ownStates (mvcc.chooseRst curRev (domSet W') ST) ∗
           ⌜sint.Z minRev = mvcc.minRevOf ST (domSet W')⌝)) }}
+
 
 end spec
 

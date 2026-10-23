@@ -25,7 +25,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend chs ps sealed P f crev Z
-  wp_start as ⟨Htw, #HhookC, HP, #HokN, Hq⟩
+  wp_start as ⟨Htw, HhookC, HP, #HokN, Hq⟩
+  -- the caller's hook: its facts, and the writer's fragment, given back (D22 receiver epochs, S5b)
+  icases (mvcc.hookIs_split γ P f).1 $$ HhookC with ⟨#HhookC, Hfrag⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
   obtain ⟨Hps, Hlen⟩ := Hps
@@ -33,16 +35,6 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamedSuffix Hs "S"
-  iunfold mvcc.idxPin at Hidx
-  icases Hidx with ⟨%o0, #Hpin0, %Ho0⟩
-  ihave %Hoo := mvcc.objsPin_agree γ _ o0 $$ [HpinS Hpin0]
-  · iframe HpinS Hpin0
-  subst Hoo
-  simp only at Ho0
-  have Ho1 := Ho0.symm
-  subst Ho1
-  ihave #Hidx : mvcc.idxPin γ ti $$ []
-  · iunfold mvcc.idxPin; iexists _; iframe Hpin0; ipureintro; rfl
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
   have hsplit := dfrac_own_half_half (1 : Qp)
@@ -57,7 +49,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
   wp_auto_lc 3
   -- the caller's invariant is the store's
-  imod mvcc.hookIs_agree_lc ⊤ γ P Pw f fw $$ [$Hlc1 $HhookC $Hhook] with ⟨-, #HPPw, -⟩
+  imod mvcc.hookOk_agree_lc ⊤ γ P Pw f fw $$ [$Hlc1 $HhookC $Hhook] with ⟨-, #HPPw, -⟩
   ihave HP := HPPw $$ HP
   -- `len(tw.changes) != 0`
   wp_if_destruct
@@ -76,7 +68,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe Htoks Hw Hclog Hwv Hcur Hlrd
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
-    imod mvcc.writerInv_checkin s γ ilog $$ Hlc2 HwiS HL HwvW with ⟨Hwk, Hwr, HwvW⟩
+    icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
+    imod mvcc.writerInv_checkin s γ ilog _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
     ihave HW : mvcc.writerRes s γ $$ [Hwk HwvW Hbv Hcres]
     · iunfold mvcc.writerRes
       iexists ilog
@@ -94,24 +87,28 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       exact Hif (hpend.1 rfl)
     (try wp_auto)
     -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
-    imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti] Htko with ⟨Htk, Hwr2⟩
-    · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti
+    subst Ho
+    imod mvcc.readerPool_checkin γ _ o $$ Hlc3 HpoolS Hpin [Hti Hrt] Htko with ⟨Htk, Hwr2, Hpin⟩
+    · iunfold mvcc.idxSlot; iframe Hti Hrt
+    ihave Hmu := Hmub $$ Hpin
     iunfold mvcc.muHeld at Hmu
-    icases Hmu with ⟨Hmu, Hmua, Hfs⟩
+    icases Hmu with ⟨Hmu, Hmua, %o', %Ho', Hfs⟩
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hwr2 Hfs] as Hmu
-    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs
-      iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
+    · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua
+      isplitl [Hwr Hwr2]
+      · iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
+      iapply mvcc.fieldShare_of_at s γ _ o'; iexact Hfs
     (try wp_auto)
     iapply HΦ
     iframe HZ
-    isplitl [Hmu HrevMu Htk Hrt]
+    isplitl [Hmu HrevMu Htk]
     · iunfold mvcc.storeReaderC
       simp only [named]
-      iframe Hmu HrevMu Htk Hrt
+      iframe Hmu HrevMu Htk
     unfold mvcc.commitLog
     rw [ite_eq_left rfl, mvcc.logQPost_nil]
     try rw [if_pos rfl]
-    iframe Hcert Htok
+    iframe Hcert Htok Hfrag
 
   · -- a change: commit the pending revision under `s.revMu`
     have hne' : pend ≠ [] := fun h => Hif (hpend.1 h)
@@ -177,7 +174,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe #
       ipureintro
       exact ⟨by simp; omega, by simp⟩
-    imod mvcc.writerInv_checkin s γ (ilog ++ [pend]) $$ Hlc2 HwiS HL HwvW with ⟨Hwk, Hwr, HwvW⟩
+    icases mvcc.muHeld_cur s γ crev ti $$ Hmu with ⟨%o, %Ho, Hpin, Hmub⟩
+    imod mvcc.writerInv_checkin s γ (ilog ++ [pend]) _ o $$ Hlc2 HwiS Hpin HL HwvW with ⟨Hwk, Hwr, HwvW, Hpin⟩
     ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
     wp_apply HUnlock' $$ [$Hlocked $Hview $HP Hwk HwvW Hcres] as Hbucket
@@ -216,24 +214,28 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
       -- the slot of the index's lock back in the readers' pool (D22 receiver epochs, S4)
-      imod mvcc.readerPool_checkin γ $$ Hlc3 HpoolS [Hti] Htko with ⟨Htk, Hwr2⟩
-      · iunfold mvcc.idxSlot; iexists ti; iframe Hidx Hti
+      subst Ho
+      imod mvcc.readerPool_checkin γ _ o $$ Hlc3 HpoolS Hpin [Hti Hrt] Htko with ⟨Htk, Hwr2, Hpin⟩
+      · iunfold mvcc.idxSlot; iframe Hti Hrt
+      ihave Hmu := Hmub $$ Hpin
       iunfold mvcc.muHeld at Hmu
-      icases Hmu with ⟨Hmu, Hmua, Hfs⟩
+      icases Hmu with ⟨Hmu, Hmua, %o', %Ho', Hfs⟩
       wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua Hwr Hwr2 Hfs] as Hmu
-      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua Hfs
-        iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
+      · inext; iunfold mvcc.muInv; iexists crev; iframe Hmua
+        isplitl [Hwr Hwr2]
+        · iapply (mvcc.wDep_halves γ).2; iframe Hwr Hwr2
+        iapply mvcc.fieldShare_of_at s γ _ o'; iexact Hfs
       (try wp_auto)
       iapply HΦ
       iframe HZ
-      isplitl [Hmu HrevMu Htk Hrt]
+      isplitl [Hmu HrevMu Htk]
       · iunfold mvcc.storeReaderC
         simp only [named]
-        iframe Hmu HrevMu Htk Hrt
+        iframe Hmu HrevMu Htk
       unfold mvcc.commitLog
       rw [ite_eq_right hne']
       try rw [ite_eq_right hne']
-      iframe Hcert' Hq
+      iframe Hcert' Hq Hfrag
 end proof
 
 end EtcdGrove

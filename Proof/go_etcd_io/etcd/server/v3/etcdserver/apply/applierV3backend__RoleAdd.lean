@@ -36,7 +36,8 @@ theorem apply.applierV3backend.RoleAdd.wp_proof
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases mvcc.storeReader_rt _ _ $$ Hrd with ⟨Hrt, Hrdb⟩
+  icases Hard with ⟨Hard, Hwo⟩
+  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -50,7 +51,7 @@ theorem apply.applierV3backend.RoleAdd.wp_proof
   rw [Hai]
   wp_apply HM $$ %r %n %Pre %Q %Post [$Hcs $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI⟩
   · iframe Hr; ipureintro; exact Hn
-  ihave Hrd := Hrdb $$ Hrt
+  ihave Hwo := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response
     iapply HΦ

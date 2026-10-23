@@ -84,8 +84,10 @@ theorem mvcc.rangeEvents.wp_proof
   · ipureintro; simp [mvcc.revBytes]
   (try wp_auto)
   obtain ⟨hwf, hlen, hcs⟩ := Hwf
-  have h1 : 0 ≤ sint.Z maxRev := by omega
-  have hlo : sint.nat minRev ≤ sint.nat maxRev := by unfold sint.nat; unfold sint.Z at *; omega
+  have h1 : 0 ≤ sint.Z maxRev := Hrng.2.1
+  have hlo : sint.nat minRev < 2 ^ 63 := by
+    have : sint.Z minRev < 2 ^ 63 := by word
+    show (sint.Z minRev).toNat < 2 ^ 63; omega
   have hhi : sint.nat maxRev ≤ log.length := by unfold sint.nat; unfold sint.Z at *; omega
   have hbr : mvcc.bucketRange (mvcc.bucketMap log) (mvcc.revBytes ⟨minRev, 0⟩ false)
       (mvcc.revBytes ⟨maxRev, 0⟩ false) =

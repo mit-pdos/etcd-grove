@@ -15418,6 +15418,114 @@ recommendation; the alternative, a proof that the boot entries validate with `cc
 the member record, not chosen). `bootOk`'s fresh-directory premise covers every bucket. Sequenced
 with the server-level receiver steps, after S5 (both touch `isKeyBackendG`'s users).
 
+## D22 receiver epochs, S5 carried out: the current objects and names a ghost variable, nothing persistent of them (2026-10-22)
+
+S5 of the simplest true `Restore` plan ("D22 receiver epochs, S1-S5 carried out" above, its design
+items 1-4), on branch `worktree-agent-ab03038efa73b7686`, in two commits (`0e9bbff557`, `81028d9a76`), each a full build: **S5a**
+(the readers' backend tokens pooled) and **S5b** (the physical record, `γ.cur` fractional, the
+physical facts out of `isStore`, the transactions at the names their share pins, the writer's
+fragment). No re-translation; no raft, bbolt, alarm-store or `raftNode__start` file. Trust base
+unchanged (537 axioms, 0 sorries; every collection unchanged). No statement of a closed theorem or
+an exported result changed (the Results files' statements, `writeView.Put`/`DeleteRange`'s specs);
+intermediate specs did (listed below). 92 files (mvcc 54, txn 11, apply 24, server 3).
+
+**S5a: the readers' backend tokens in the pool** (S4's deviation undone). A slot of the readers'
+pool is the index's reader slot *and* a reader token of the backend (`idxSlot := idxReader o.ti
+γ.idx ∗ storeRT γ`); `storeReader`/`storeReaderC` are a ticket and the two locks' slots only. The
+pool counts three kinds of slots out (`tko`, under `s.mu` with a `wDep`; `tkw`, under the
+watchable store's lock with its deposit `wsDep` = all of the new ghost `StoreNames.wsd`, which
+`wsFields` holds at its fraction: `syncWatchers` reads the backend without `s.mu`,
+`readerPool_checkout_ws`; and retired ones). *Deviation (the design said "the server's own
+tokens"):* the backend hands out exactly `nReaders` tokens and every reader takes a ticket, so the
+apply thread's and the storage-version monitor's own tokens are *retired* readers
+(`readerPool_retire`, `storeReader_retire`: a ticket given up for a token of its own, its index
+slot dropped), retired in `NewServer` (two of the watchable store's readers). The apply thread's
+is `mvcc.writerOwn γ` (= `storeRT γ`), a new fifth component of `apply.kvOwn` (the 22 appliers that
+borrowed `storeReader_rt` now borrow `writerOwn_rt`, `Hard` the pair `E.RD ∗ writerOwn`). A
+restore takes the retired tokens back from their holders (the caller's `writerOwn`; the monitor's
+in S7). `NewStore`'s post gains `wsDep γ`.
+
+**S5b: the physical record.** As designed, with these specifics:
+- `PhysNames` (`nev cmp bucket hook hookFn kb cmeta fin sch wk wv`), `StoreNames.phys`,
+  `StoreNames.withPhys` (an anonymous constructor, so that `(γ.withPhys p).phys = p`,
+  `γ.withPhys γ.phys = γ`, `(γ.withPhys p).withPhys p' = γ.withPhys p'` are `rfl`); simp lemmas
+  for every projection and a tactic `withPhys_simp` (end of `InvStore.lean`) rewriting the logical
+  predicates at `γ.withPhys p` back to `γ` (`isStore_withPhys`, `idxCert_withPhys`, ...: all `rfl`).
+  The proof mode does not unify `(γ.withPhys p).rst` with `γ.rst` (`iframe`, `$$` fail), so the
+  conversions are explicit (a `rw [mvcc.X_withPhys]` on a goal, or the bridging lemmas
+  `readerPool_checkout_p`, ... stated in term mode).
+- `γ.cur` is a `dghostVar` of `StoreObjs × PhysNames`; `curAt γ dq o` its part at `(o, γ.phys)`.
+  The fractions: the fields' shares half of it (`fieldShareAt s γ q o` holds `q/2`: `muInv`'s ¼,
+  the closer's ⅛, the watchable store's ⅛), an eighth each for `s.revMu` (in its not-restoring
+  body, `revMuCur`), `writerInv`, `readerPool` and the writer's fragment `writerFrag γ`.
+- `physOk s γ o` (persistent): the backend's contract at `γ`'s names with `hookP`, the deposit
+  witness, `storeRegd`, the tree index, the scheduler: what `isStore` held, now in every share
+  (`fieldShareAt`'s `□ physOk`) and in the compaction's `storeStop` (with a discarded part of
+  `cur`: a compacted store is never restored). `isStore` keeps the lessor, logger, configuration,
+  hash storage, the guards, `writerInv`, `readerPool`, `idxCert [[], []]` and the receipts' bound:
+  `isStore s (γ.withPhys p) = isStore s γ` by `rfl`.
+- `fieldShare s γ q := ∃ p o, fieldShareAt s (γ.withPhys p) q o`; `muInv`, `revMuInv`,
+  `writerInv`, `readerPool` are at "some" physical names, agreeing through `cur`. Lemmas take a
+  pin (a part of `cur`): `fieldShare_pin`, `revMuInv_open_pin`/`_cur`/`_share`, the pool's and the
+  writer's invariant's checkouts.
+- *Deviation:* `revMuBody s γ γp q` takes the logical names `γ` and the physical ones `γp` (the
+  bucket's view and the index's count at `γp`), so that the watch side (`watch`, `moveVictims`,
+  `syncWatchers`), which opens `s.revMu` at the watchable store's share's names, keeps every
+  logical fact at `γ.st` (`revMuInv_open_ws` gives `∃ γp, revMuBody st γ.st γp q ∗ revMuTok ...`).
+- `muHeld s γ c ti`: a transaction's `s.mu` with its share at `γ`'s names, whose index is `ti`
+  (`idxPin` gone; `muHeld_tree`, `muHeld_phys`, `muHeld_cur`). The read transaction is at the
+  names its share pins: `isTxnRead mw s γ ... := ∃ p ..., ... at γ.withPhys p` (the reader's `γ`
+  is logical); `storeTxnCommon.Range`/`storeTxnRead.End` are applied at `γ.withPhys p`. A write
+  transaction is at the writer's names (its fragment pins them at `store.Write`).
+- `storeCloser s γ` holds a quarter share at `γ`'s names (`fieldShareAt`), the stop channel of its
+  objects, the stop token and the queue; `compactRight_of_closer` discards its part of `cur`
+  (`storeStop`).
+- **The writer's fragment.** `hookIs γ P f := hookOk γ P f ∗ writerFrag γ` (`hookOk`, persistent:
+  the old `hookIs`, facts of the names). `store.Write`/`watchableStore.Write` take `hookIs` and
+  give it back; `storeTxnWrite.End`/`watchableStoreTxnWrite.End`/`txnEndPost` give the fragment
+  back. *Deviation (where the apply thread keeps it):* in `txn.kvWriter` (`soleWriter ∗ wlogOwn ∗
+  mvcc.writerFrag γ`), not in `kvOwn` nor in a persistent applier fact: `server_kv_watchable`'s
+  statement (exported) returns `txn.kvWriter` and nothing else the fragment could go in;
+  `apply.backendOptsOk` holds `hookOk`, the txn package's `Txn` spec and the `SoleWriterKV`
+  lemmas take `hookOk` and build `hookIs` from the writer's fragment, `txn.Put`/`DeleteRange`
+  take `hookIs` and give it back. The exported statements with `hookIs` in their precondition
+  (`server_kv_backend`, the txn Results, `store_Write_backend`, ...) keep their text: they drop
+  the fragment (`hookIs_split`). `hookIs_of_init` takes the fragment (`hookOk_of_init` is the old
+  one); `hookIs_agree_lc` is kept (for mvcc's Results), `hookOk_agree_lc`/`hookP_agree_lc` are
+  what proofs use.
+- `NewStore`/`newWatchableStore`/`New` return `writerFrag γ`; `NewStore` allocates `cur`, sets it
+  at `(o, γ.phys)` once the names are made (`dghostVar_update`), and splits it.
+
+Intermediate specs changed: `NewStore`, `newWatchableStore`, `New` (posts: `wsDep`, `writerFrag`),
+`store.Write` (post: `hookIs`), `storeTxnWrite.End`, `watchableStoreTxnWrite.End` (post:
+`writerFrag`), `watchableStore.Write` (post: `hookIs`), `storeTxnCommon.Range`,
+`storeTxnRead.End`, `storeTxnCommon.rangeKeys` (`muHeld … ti`, no `idxPin`; `rangeKeys` takes
+`isTreeIndex`), FrozenSpecs' corollaries likewise, `txn.Put`/`DeleteRange` (post: `hookIs`),
+`txn.Txn` (pre: `hookOk`), the `SoleWriterKV` lemmas (pre: `hookOk`).
+
+**What S6 (the `Restore` axioms) must use.** `store.Restore`'s precondition collects every part of
+`cur` and the old physical resources:
+- `muInv s γ 1` (from `s.mu.Lock`: `cur` ¼; all of `γ.wr`, so `writerInv` holds `writerL` and no
+  slot is out under `s.mu`), `revMuInv s γ 1` (taken by `revMu.Lock`: `cur` ⅛, and the window in
+  restoring mode, `revMuRest`), the watchable store's `wsFields ws γw 1` (its caller holding the
+  watchable `s.mu`: `cur` ⅛ and all of `γ.wsd`, so no slot is out under it), `storeCloser s γ`
+  (`cur` ⅛, the stop channel's close, `schedStopTok`, `compactQueue γ (-1)`), the writer's fragment
+  `writerFrag γ` (`cur` ⅛; for the server, out of `txn.kvWriter`), `crevFrozen γ`; the two
+  invariants' eighths (`writerInv`, `readerPool`) are opened inside (the update of `cur` is at the
+  full fraction, so it needs all seven parts at once), with `γ` the caller's current names
+  (`curAt γ` parts agree: `γ.withPhys γ.phys = γ`).
+- The retired tokens: the caller's `writerOwn γ` (old backend) given back; the pool's idle slots
+  (`k` of them, `k + j + w ≤ nReaders`, `j = w = 0` from the deposits) taken, `oldbe`'s `bOpen`
+  shares returned in the post; the monitor's token is S7's.
+- The new backend's: `storeBackend b' s γ' P'` at the new names `γ' := γ.withPhys p'` (fresh
+  `bucket`, `hook`, `hookFn`, `cmeta`, `fin`, `sch`, `wk`, `wv`; fresh `nev`/`cmp` from the new
+  index), its view of the restored bucket, `kbNoCmp`, `lateReg`, reader tokens for the idle slots
+  and the caller's `writerOwn γ'`, write tokens; `ownToks γ.revs (|L'| - |L|)`, `⌜L <+: L'⌝`,
+  `restoreLogOk`, `certOk γ L'`.
+- Post: `writerFrag γ'` (the caller's `kvWriter s γ' L'`, `txn.wlogOwn` with `{γw with st := γ'}`:
+  `isWatchableStore` reads only `γw.st`'s logical names), `storeCloser s γ'`, `idxCert γ.idx L'`,
+  the old backend's tokens; `isStore s γ` unchanged (logical).
+
 ## D33: the examples' shared code in one Go package, `examples/common` (2026-10-22)
 
 **Problem.** The etcd examples repeated Go code verbatim, and with it its translation, specs and
@@ -15579,3 +15687,91 @@ until it lands.
 
 **Statements.** Every `*_adequate` and `*_safe` theorem's header byte-identical; fingerprint
 unchanged but for the new module's roots-free definitions; no axiom added.
+
+## D22 receiver epochs, S6 carried out: `store.Restore` a true axiom, `watchableStore.Restore` proved (2026-10-22)
+
+S6 of the simplest true `Restore` plan ("D22 receiver epochs, S5 carried out", "What S6 must use"),
+on branch `worktree-agent-a65035decfc6b261e`, two commits (each a full build). Trust base 537 -> 538
+axioms (`mvcc.store.Restore.wp_proof`), 0 sorries; only the `mvcc` collection moved (33 -> 34). No
+closed theorem or exported result changed; no caller yet (S8's `applySnapshot` calls `kv.Restore`).
+
+**1. The registration of a restored backend (a gap in S5's design, needed for a true spec).**
+`physOk` held `storeRegd s γ` (the store registered in its backend's late-bound batch-lock slot),
+so every share of the fields claimed the current backend registered. Go's `Restore` never locks
+the new backend's batch transaction (`restore()` reads through a `ReadTx`), so the new backend's
+`lateW` stays unregistered: a post with the fields' shares at the new names would promise what Go
+does not do. `storeRegd` moved to the writer's invariant: checked in with `writerReg s γ :=
+storeRegd s γ ∨ kbRegRight γ.kb ∗ writerRes s γ` (pending: the registration right and the batch
+lock's resource to deposit), checked out with `storeRegd`. `writerInv_checkout` now takes the
+batch lock's resource from the writer's `LockInsideApply` (`storeW`) and makes a pending
+registration then (`storeW_pending`, `writerReg_get`), returning the resource but its key;
+`writerInv_checkin` keeps `storeRegd`. Changed: `InvStore` (`physOk`, `writerInv`, the two
+lemmas), `store__Write` (its checkout), `NewStore` (the invariant allocated after its
+registration, checked in registered). `storeTxnWriteIs`'s `Hreg` is unchanged (from the checkout).
+
+**2. `store.Restore.spec` and its axiom** (`Spec/.../mvcc/store__Restore.lean`; the docstring
+walks `kvstore.go:292-314` line by line and says what would discharge it, S-g2). Pre: `isStore s
+γ`, both backends real (`∃ d, γ.kb = some d`, the new one `d'`), the caller's parts of `γ.cur`
+(`storeCloser`, the watchable store's `fieldShare ¼` and `wsDep`, `writerFrag`), `writerOwn γ`,
+`crevFrozen γ`; the sole writer at `L` (`idxCert γ.idx L`, `ownToks γ.revs (2^63-3-|L|)`, and for a
+watchable store's `logQ γ L`: with the writer state's budget bound these make the committed log
+exactly `L`); `L <+: [[], []] ++ R`, `restoreLogOk R`, `certOk γ ([[], []] ++ R)`; the new backend:
+`storeBackendT` (new: `storeBackend` with the witness `True`, the real backend's,
+`storeBackendT_of_backend`; `Restore` makes no first `Unlock`, so it has no witness of its own) at
+every physical names of its bucket and instance, `kbView … 1 (bucketMap L')`, `kbNoCmp`,
+`kbRegRight`, `nReaders` reader tokens. Post: `nil`; at fresh physical names `p'` (bucket and
+instance the new backend's), `storeCloser s γ'`, the quarter share and `wsDep` back, `writerFrag
+γ'`, `writerOwn γ'`, `hookP γ' P'`, `idxCert γ.idx L'`, `ownToks γ.revs (2^63-3-|L'|)`, `logQ γ
+L'` (watchable), the old backend's `k + 1` tokens (the pool's `k` and the writer's) and the new
+one's `nReaders - (k + 1)` (`k + 1 ≤ nReaders`: the caller's token is a slot of the old backend's
+read lock, bounded by its discarded authority, so the pool holds fewer). Why each part of `cur`
+is available is the docstring: `muInv 1` and `revMuInv 1` from the two locks, the writer's
+invariant and the pool opened with all of `γ.wr` and `wsDep` held (no writer, no slot out), the
+three caller parts; a compacted store's discarded part of `cur` (`storeStop`) cannot coexist with
+the closer. Soundness check of what Restore writes (`b`, `kvindex`, `fifoSched`, `stopc`,
+`currentRev`, `compactMainRev`, `restore`'s index and `revMu` window): no `↦□` of them outside
+`storeStop` (excluded); `currentRev`/`compactMainRev` only fractionally (`revMuBody`, `writerL`,
+`muInvAt`, `revMuRest`); the old physical facts that persist (`physOk`, `hookOk`, `storeRegd`,
+`isTreeIndex`, `idxNevLb`, `compactedAt` at the old names) stay true of the old objects and claim
+no currency (that is `cur`'s). Nothing persistent is promised in the post.
+
+**3. The watch side.** `WsOk.st_flags`/`wo_flags` no longer say `restore = false` (a moved
+watcher keeps the flag until `chooseAll` clears it, and may become synced or a victim first). The
+restore fact is a separate pure part of `watchStoreInv`, `WsState.unsRst` (an unsynced watcher is
+below the notified log or restoring): not a `WsOk` field, since `chooseAll`'s clearing breaks it
+inside `syncWatchers`' critical section. `popFacts`: a synced watcher's events are also those up
+to its `minRev` (`evsWf … (sint.nat minRev)`: `notify` sets `minRev` past every revision with an
+event of the range), which a move needs to be delivered up to its `minRev` with no event lost or
+repeated; an unsynced watcher's `minRev` is at most `max lo |Lc|` of a committed log `Lc` (was
+`< |Lc|`: a moved watcher may be ahead of every committed log, its start revision in the future,
+Go's "proxy-namespace__lostleader" case). *Deviation from the S-g note ("its `minRev` at most
+`curRev + 1`")*: false of a future-start watcher; the bound above is what Go keeps. `chooseAll`'s
+spec takes `minRev ≤ curRev ∨ restore` and returns the states with the flag of each member above
+`curRev` cleared (`chooseRst`; `gmapMapK` moved to `InvWatchBatch`); `choose` passes it on.
+`rangeEvents` takes `0 ≤ maxRev ≤ |log|` without `minRev ≤ maxRev` (an empty range past it;
+`bucketRange_logEnts` with `lo < 2^63`). `syncWatchers`: the loop starts from the reset states
+(`SyncLoop` takes its initial states `ST0` and keeps the processed unsynced below the notified
+log, `uns`), a member above `curRev` is moved to the synced group at its `minRev` with no event,
+`unsRst` re-established at the end. `notify`'s spec says it leaves the unsynced group and its
+states untouched (for `End`); `watch`, `moveVictims`, `cancelWatcher`, `End`, `newWatchableStore`
+re-establish `unsRst` (`unsRst_addW`, `takeState_unsRst`, `readdState_unsRst`,
+`appendState_unsRst`, `cancelState_unsRst`).
+
+**4. `watchableStore.Restore` proved** (`Proof/.../mvcc/watchableStore__Restore.lean`, linked;
+`watchable_store.go:207-220`): under the lock, `store.Restore`'s axiom (the lock gives `wsFields 1`
+and the outer quarter, `wlogQ`; the writer's notified-log half agrees with the lock's), the loop
+over the synced set (each watcher's `restore` field set, `unsynced.add`), the synced group fresh,
+the lock's state `WsState.restoreSt L'` (notified log `L'`, the moved watchers unsynced delivered
+up to their `minRev`: `memberRes_restoreSt`; the released length raised to `|L'|`); the writer
+back at `L'` (`watchWriter γ L'`). A move delivers no event: `chanWatcher`'s own delivery and its
+half of the events are untouched, so `isClientWatcher`'s delivered-up-to is unchanged.
+
+**5. For S7/S8.** `etcdserver.restorePre_of_apply` (`etcdserver/RestorePre.lean`) assembles the
+store half of `watchableStore.Restore`'s precondition from `apply.kvOwn E log` and `srvKVCloser`
+(with `E.γ.watchQ`); its docstring lists what the snapshot path must supply besides (the real
+backend, the restored log and its certificate, the new backend's contract, view, no-compaction
+token, registration right and reader tokens) and what comes back (the closer re-made, the
+writer's `txn.kvWriter` at `E.γ.withPhys p'`, with `mvcc.isWatchableStore_withPhys` (`rfl`) for
+its `wlogOwn`, the old backend's tokens for `oldbe.Close` with the monitor's, the monitor's new
+token). The storage-version monitor's retired token is still S7's (the old backend's `bOpen 1`
+needs it back).
