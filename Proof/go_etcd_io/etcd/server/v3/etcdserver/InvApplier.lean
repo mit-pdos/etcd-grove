@@ -467,10 +467,14 @@ def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
 /-- The apply environment's threaded resources are the server's (D14i); (D22, 2026-10-23) its rest
 buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memory members, its
 write right the tracked buckets' half (`srvRestOwn`, `srvRestRW`); (D22 receiver epochs, S7c,
-2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`). -/
+2026-10-23) both with the server's objects' backend parts `H` (`srvRestOwnH`, `srvRestRWH`): the
+alarm store's, the auth store's, the lessor's and (S7e) the cluster's, on the store's backend
+(`srvObjsOn`). -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
   E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
-    ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H
+    ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH γB cl H ∧ E.RW = srvRestRWH γB H ∧
+      ∃ (d : mvcc.KBReal) (al st lp : Loc), E.γ.kb = some d ∧ d.γB = γB ∧
+        H = srvObjsOn al st lp cl d.be
 
 /-- The server `s`'s fields hold `v`, with their contracts; the apply environment `E`'s batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`; its

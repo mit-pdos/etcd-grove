@@ -30,6 +30,9 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.RestModel
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 
 @[expose] public section
 
@@ -287,6 +290,54 @@ def rwLens (RW X : IProp GF) : IProp GF := iprop(□ (RW -∗ X ∗ (X -∗ RW))
 
 instance rwLens_persistent (RW X : IProp GF) : Persistent (rwLens RW X) := by
   unfold rwLens; infer_instance
+
+/-- The schema auth backend `*authBackend` `abl` as an interface value. -/
+abbrev authBkIface (abl : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
+    #abl
+
+/-- **The auth store `st` is on the real backend at `be`** (D22 receiver epochs, S7c, 2026-10-23;
+not persistent): its user's half of `st.be` (the other half `beMu`'s, `auth.beP`), a schema auth
+backend over `be` with a logger (read-only). -/
+def authBeOn (st be : Loc) : IProp GF :=
+  iprop(∃ (abl lg : Loc), ⌜lg ≠ null⌝ ∗
+    auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} authBkIface abl ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        #be : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg)
+
+/-- The schema membership backend `*membershipBackend` `mbl` as an interface value. -/
+abbrev clusterBkIface (mbl : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty)
+    #mbl
+
+/-- **The cluster `c` is on the real backend at `be`** (D22 receiver epochs, S7e, 2026-10-23; not
+persistent): its `be` field, owned (no lock guards it: the apply thread is its only reader and
+writer, `SetBackend` included), a schema membership backend over `be` with a logger (read-only). -/
+def clusterBeOn (c be : Loc) : IProp GF :=
+  iprop(∃ (mbl lg : Loc), ⌜lg ≠ null⌝ ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" c ↦
+      clusterBkIface mbl ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" mbl ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        #be : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"lg" mbl ↦□ lg)
+
+/-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c, S7e): the alarm
+store `al`'s, the auth store `st`'s and the lessor `lp`'s user halves of their backend fields and
+the cluster `c`'s field, the server's `H` of its environment's rest resource and write right
+(`srvRestOwnH`, `srvRestRWH`). -/
+def srvObjsOn (al st lp c be : Loc) : IProp GF :=
+  iprop(alarmBeOn al be ∗ authBeOn st be ∗ lease.lessorBeOn lp be ∗ clusterBeOn c be)
+
+/-- **`RO` lends `X`** (persistent; S7e): a rest resource holding, at every value, the resources
+`X` a contract's writes take at that value and give back at another (`srvRestOwnH`'s). -/
+def roLens (RO X : apply.RestM → IProp GF) : IProp GF :=
+  iprop(□ ∀ r : apply.RestM, RO r -∗ X r ∗ (∀ r' : apply.RestM, X r' -∗ RO r'))
+
+instance roLens_persistent (RO X : apply.RestM → IProp GF) : Persistent (roLens RO X) := by
+  unfold roLens; infer_instance
 
 /-- **The apply thread's rest buckets at the applied log `A`** (`AEnv.RO` at `restModel` of the
 log through `A`, from the start's consistent index and the boot log). -/

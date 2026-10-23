@@ -116,22 +116,6 @@ def alarmApplyOk (a : Loc) : IProp GF :=
 instance alarmApplyOk_persistent (a : Loc) : Persistent (alarmApplyOk (GF := GF) a) := by
   unfold alarmApplyOk; infer_instance
 
-/-- The schema auth backend `*authBackend` `abl` as an interface value. -/
-abbrev authBkIface (abl : Loc) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-    #abl
-
-/-- **The auth store `st` is on the real backend at `be`** (D22 receiver epochs, S7c, 2026-10-23;
-not persistent): its user's half of `st.be` (the other half `beMu`'s, `auth.beP`), a schema auth
-backend over `be` with a logger (read-only). -/
-def authBeOn (st be : Loc) : IProp GF :=
-  iprop(∃ (abl lg : Loc), ⌜lg ≠ null⌝ ∗
-    auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} authBkIface abl ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-        #be : GoInterface) ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg)
-
 /-- **The auth store `stl`'s apply contract on whichever backend it is on** (persistent; S7c;
 `auth.NewAuthStore.spec`'s, the trust boundary), with the reader resource `RD`: as
 `alarmApplyOk`, its writes pinned to the backend by the user's half of `st.be` (`authBeOn`). -/
@@ -154,11 +138,26 @@ def lessorApplyOk (lp : Loc) : IProp GF :=
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
   unfold lessorApplyOk; infer_instance
 
-/-- **The server's objects on the backend at `be`** (D22 receiver epochs, S7c): the alarm store
-`al`'s, the auth store `st`'s and the lessor `lp`'s user halves of their backend fields, the
-server's `H` of its environment's rest resource and write right (`srvRestOwnH`, `srvRestRWH`). -/
-def srvObjsOn (al st lp be : Loc) : IProp GF :=
-  iprop(alarmBeOn al be ∗ authBeOn st be ∗ lease.lessorBeOn lp be)
+/-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
+epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its
+contract at some `W`, `Pk`, its frozen post-lock hook `f`), the apply package's `isCluster` at `d`'s
+batch lock `Pk` and hook `f`, given a rest resource `RO` lending the backend's tracked buckets'
+half and the cluster's in-memory members with its `be` field at a membership backend over `d`
+(`clusterBeOn`, `roLens`), and a write right `RW` lending the half and the field (`rwLens`). The
+field (`c.be`: no lock guards it, the apply thread is its only reader and writer) pins the
+cluster's writes to `d`; `SetBackend` replaces it. Until S7e the contract was for the boot
+backend's batch lock only, false once `applySnapshot` calls `SetBackend`. -/
+def clusterApplyOk (c : Loc) : IProp GF :=
+  iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ' : mvcc.StoreNames) (f : GoFunc)
+      (RO : apply.RestM → IProp GF) (RW : IProp GF),
+    ⌜γ'.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
+    roLens RO (fun r => iprop(srvRestOwn d.γB c r ∗ clusterBeOn c d.be)) -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
+    apply.isCluster c γ' Pk #f RO RW)
+
+instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
+  unfold clusterApplyOk; infer_instance
 
 instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
     Persistent (authApplyOk (GF := GF) stl RD) := by
@@ -277,11 +276,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (srvBuildGap's rows, 2026-10-17) its `Version()` monotone, for `start`'s
     -- `clusterVersionOk`
     "#Hcvm" ∷ (∃ γcv : GName, clusterVersionMono bc.cl' γcv) ∗
-    "#Hisc" ∷ □ (∀ (γ' : mvcc.StoreNames) (f : GoFunc), ⌜γ'.kb = some d⌝ -∗
-      backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-      (∃ n : Loc, membership.rcVersionChangedAddr bc.cl' ↦□ n) -∗
-      apply.isCluster bc.cl' γ' (batchLockInv γA (metaTM d.γB d.P)) #f (srvRestOwn d.γB bc.cl')
-        (srvRestRW d.γB)) ∗
+    -- (D22 receiver epochs, S7e, 2026-10-23) on whichever backend its `be` field names, which
+    -- `bootstrap` set to the boot backend and gives owned (`clusterBeOn`: no lock guards it, the
+    -- apply thread is its only user); until then for the boot backend's batch lock only
+    "#Hisc" ∷ clusterApplyOk bc.cl' ∗
+    "HclBe" ∷ clusterBeOn bc.cl' d.be ∗
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
     -- entries' contexts are)

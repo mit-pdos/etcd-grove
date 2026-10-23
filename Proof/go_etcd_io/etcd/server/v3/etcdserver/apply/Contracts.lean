@@ -462,45 +462,6 @@ instance isCluster_persistent (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f
     (RO : RestM → IProp GF) (RW : IProp GF) : Persistent (isCluster c γ P f RO RW) := by
   unfold isCluster; infer_instance
 
-open Iris.ProofMode in
-/-- **The cluster's contract with a frame `H` on its resources** (D22 receiver epochs, S7c,
-2026-10-23: the server's `RO`/`RW` hold its objects' backend parts besides the cluster's). -/
-theorem isCluster_frame (c : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RO : RestM → IProp GF) (RW H : IProp GF) :
-    isCluster c γ P f RO RW ⊢ isCluster c γ P f (fun r => iprop(RO r ∗ H)) iprop(RW ∗ H) := by
-  iintro #Hc
-  iunfold isCluster at Hc
-  icases Hc with ⟨%Hcn, #HV, #HID, #HSV, #HUA, #HSD⟩
-  iunfold isCluster
-  isplitr
-  · ipureintro; exact Hcn
-  iframe HV HID
-  isplitr
-  · iintro !> %v %s %onSet %b %Pre %Q %Post %r %Φ !> ⟨Hc, Hwt, Hrt, %Hv, Hsv, HRO, HH⟩ HΦ
-    iapply HSV $$ [Hc Hwt Hrt Hsv HRO] [HΦ HH]
-    · iframe Hc Hwt Hrt Hsv HRO; ipureintro; exact Hv
-    inext
-    iintro ⟨Hp, Hrt, HRO⟩
-    iapply HΦ
-    dsimp only
-    iframe
-  isplitr
-  · iintro !> %id %attr %cus %b %Pre %Q %Post %r %Φ !> ⟨Hc, Hwt, Hrt, #Hcus, HRO, HH⟩ HΦ
-    iapply HUA $$ [Hc Hwt Hrt Hcus HRO] [HΦ HH]
-    · iframe Hc Hwt Hrt Hcus HRO
-    inext
-    iintro ⟨Hp, Hrt, HRO⟩
-    iapply HΦ
-    dsimp only
-    iframe
-  · iintro !> %d %di %b %Pre %Q %Post %Φ !> ⟨Hc, Hwt, Hrt, Hd, HRW, HH⟩ HΦ
-    iapply HSD $$ [Hc Hwt Hrt Hd HRW] [HΦ HH]
-    · iframe Hc Hwt Hrt Hd HRW
-    inext
-    iintro ⟨Hp, Hrt, HRW⟩
-    iapply HΦ
-    iframe
-
 /-- **The `RaftStatusGetter` `rs`** (the server): `MemberID`, `Leader`, `Term` return. -/
 def isRaftStatus (rs : GoInterface) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rs = GoInterface.ok ri⌝ ∗
