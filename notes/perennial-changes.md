@@ -288,3 +288,15 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   proof for the "declaration uses `sorry`" warning.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
   the error instead of admitting.
+
+### Sequential specs of an `RWMutex` no one else can reach
+
+- **Missing.** Perennial's `RWMutex` specs need the lock allocated (`isRWMutex`/`ownRWMutex`,
+  `init_RWMutex`); code that locks a mutex of an object not yet shared (etcd's `restoreIntoIndex`
+  on the index it is rebuilding, `restore` on `s.revMu` inside `NewStore`) has no spec.
+- **Workaround here.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/PlainRWMutex.lean`:
+  `plain.wp_RLock`/`wp_RUnlock`/`wp_Lock`/`wp_Unlock` on owned memory (values `rwZero`, `rwR1`,
+  `rwW`), and `plain.wp_Mutex_Lock`/`wp_Mutex_Unlock` for the trusted spin lock, proved over
+  Perennial's translation (no assumption).
+- **Proposed change.** The same lemmas in Perennial's `Proof/sync` (for `Mutex` and `RWMutex`),
+  stated for any number of nested readers if needed; not yet designed.

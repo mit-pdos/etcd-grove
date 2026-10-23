@@ -276,3 +276,4 @@ store__Compact: store__checkPrevCompactionCompleted store__updateCompactRev trac
 keyIndex__restore: zap_Int zap_Logger__Panic
 keyIndex__restoreTombstone: keyIndex__restore
 restoreChunk: proto_Unmarshal isTombstone
+restoreIntoIndex: keyIndex__put keyIndex__tombstone keyIndex__restore keyIndex__restoreTombstone treeIndex__KeyIndex treeIndex__Insert BytesToRev isTombstone verify_Verify zap_Error zap_Logger__Warn
