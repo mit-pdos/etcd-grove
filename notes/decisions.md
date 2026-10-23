@@ -15523,7 +15523,7 @@ member id and `γ.node.id = γ.id`, which `Send`'s spec will ask for in stage 6.
 removed (542); no exported result's statement changed; internal specs changed (`raft.send`,
 `raft.Step`, `stepFollower`, the `Ready` specs, the kv example's `deliver`).
 
-## D33c: an address's protocol registered once; the boundary's statements as axioms (2026-10-23 · rafthttp stage 4e; the user: "do 4e", "follow your recommendations"; for review)
+## D33c: an address's protocol registered once; the boundary's statements as axioms (2026-10-23 · rafthttp stage 4e; the user: "do 4e", "follow your recommendations"; accepted by the user 2026-10-23)
 
 **Context.** The HTTP boundary (`Proof/net/http/Boundary.lean`) states its specs over an
 `HttpNet H`, every address's protocol. As axioms stated for any `H`, a client could send under

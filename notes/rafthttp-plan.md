@@ -317,8 +317,8 @@ trust-boundary spec.
    them found three over-claims, fixed: `NewRequest` fails for a host `url.Parse` rejects
    (`urlHostOk`, in `urlPlain`), and `WriteHeader`/`http.Error` panic outside `100`-`999` and do not
    set a `1xx` status (both now ask `200 ≤ st ≤ 999`). None is reached by a linked result yet (stage
-   6 links the pipeline), so the baseline is unchanged. **For the user's acceptance**, all of stage
-   4's trust items: `http.register` and the eleven boundary axioms; `errors.AsLeaf`; the premises
+   6 links the pipeline), so the baseline is unchanged. **Accepted by the user (2026-10-23)**, all of
+   stage 4's trust items: `http.register` and the eleven boundary axioms; `errors.AsLeaf`; the premises
    `ErrorStringNotWriter`, `ErrorStringLeaf` and `errors.AsTarget writerToResponse`;
    `context.WithCancelBackground`; `rafthttp.waitSchedule`; `fmt.SprintfID`;
    `v2stats.FollowerStats.Fail`; `errMemberRemoved` among `errorsNewVarsInit`'s errors (accepted
@@ -328,7 +328,8 @@ trust-boundary spec.
    init axiom, reached through the server); `checkPostResponse` `http.StatusText`, a request's
    `URL.String()` and `Header.Get` while built, and a fresh-pointer `fmt.Errorf` (a Perennial gap,
    `notes/perennial-changes.md`); `checkClusterCompatibilityFromHeader` semver's parsing and the
-   version package. Then stage 5 (streams).
+   version package. Then stage 5 (streams). Deferred by the user's choice (2026-10-23, "start stage
+   5"): stage 5 first.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
    `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
    The hardest stage.
