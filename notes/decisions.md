@@ -16293,3 +16293,23 @@ no snapshot yet). `applyRes C A` holds `∃ B : ApplyBe` (`γ`, `TM`, `E`, `b`),
    `beSucc γ E (γ.withPh π') E'`: then `applyAll`'s post at `B'`.
 5. The old backend's `Close`: its commit runs the shared hooks with the old lock's
    `batchLockInv γ TM` (registered, now retired): `commit_save_au`'s retired case, nothing to supply.
+
+## D29 amended: refusal-freedom for the KV service only (2026-10-23 · asked by the user)
+
+`noRefusalAt addr` said no status the server at `addr` sends has a refusal's description, and the
+axiom `etcd_noRefusal` gave it for an etcd member with authentication off. That is false of etcd:
+`v3rpc.Server` registers the Auth service on the same gRPC server, and `authStore.UserAdd` returns
+`auth.ErrUserEmpty` for an empty name before checking whether authentication is on, which
+`togRPCError` sends as `"etcdserver: user name is empty"`, one of the refusals. Harmless so far
+(`noRefusalAt` is opaque, and its one consumer is the client's attempt contract for its own KV
+calls), but a trust-boundary statement must be true.
+
+Now `noRefusalAt addr` speaks of the answers to calls of etcd's KV service only (`kvMethod`: the
+method name starts `/etcdserverpb.KV/`), and the attempt contract (`grpcInvokerOk`) reads it only
+for such a call: `(kvMethod method ∧ ∀ a ∈ addrs, noRefusalAt a) → noRefusal err`. The write mode
+of the retry interceptor's contract (`modePre .write`) and the connection's request precondition
+(`reqPre`) carry the method and its `kvMethod` fact; the KV stubs' and the retry client's specs
+name their method (`/etcdserverpb.KV/Put`, `DeleteRange`, `Txn`). `etcd_noRefusal`'s statement is
+unchanged, its docstring's argument restated for the KV service (the `UserAdd` case and the watch
+stream's cancel reasons named as why the claim is so scoped). No closed theorem changed
+(fingerprint); `grpcInvokerOk`, an axiom's definition, claims less.

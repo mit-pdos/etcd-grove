@@ -803,11 +803,11 @@ inductive AttemptMode where
   deriving DecidableEq
 
 /-- The request's precondition in a mode. -/
-def modePre (md : AttemptMode) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
-    IProp GF :=
+def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P : IProp GF) : IProp GF :=
   match md with
   | .any => iprop(□ ▷ P)
-  | .write => iprop(▷ P ∗ ⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝)
+  | .write => iprop(▷ P ∗ ⌜kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝)
 
 /-- The retry interceptor's contract in a mode (D29): `etcdInterceptorOk` (`.any`),
 `etcdInterceptorOkW` (`.write`). -/
@@ -818,7 +818,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcs addr method Spec ∗
-        modePre md addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗
+        modePre md method addr vs (Spec m Φ) ∗ ctxOk ctx cd ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
@@ -875,27 +875,27 @@ instance isEtcdConn_persistent (conn : Loc) (addr : List GoString) :
 /-- **A request's precondition on a connection, with the call options `vs`** (D29): persistent
 (any number of attempts), or ordinary on a refusal-free connection with scalar call options (a
 write, never retried). -/
-def reqPre (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
-    IProp GF :=
-  iprop(□ ▷ P ∨ (⌜(∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
+def reqPre (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P : IProp GF) : IProp GF :=
+  iprop(□ ▷ P ∨ (⌜kvMethod method ∧ (∀ a ∈ addr, noRefusalAt a) ∧ scalarOpts vs⌝ ∗ ▷ P))
 
-theorem reqPre_box (conn : Loc) (addr : List GoString) (vs : List GoInterface) (P : IProp GF) :
-    (□ ▷ P : IProp GF) ⊢ reqPre conn addr vs P := by
+theorem reqPre_box (conn : Loc) (method : GoString) (addr : List GoString) (vs : List GoInterface)
+    (P : IProp GF) : (□ ▷ P : IProp GF) ⊢ reqPre conn method addr vs P := by
   unfold reqPre; iintro #H; ileft; iexact H
 
 /-- Scalar options added to a call's options keep its precondition (the stubs' `StaticMethod`). -/
-theorem reqPre_scalar_app (conn : Loc) (addr : List GoString) (ws vs : List GoInterface)
-    (P : IProp GF) (h : scalarOpts ws) :
-    reqPre (GF := GF) conn addr vs P ⊢ reqPre conn addr (ws ++ vs) P := by
+theorem reqPre_scalar_app (conn : Loc) (method : GoString) (addr : List GoString)
+    (ws vs : List GoInterface) (P : IProp GF) (h : scalarOpts ws) :
+    reqPre (GF := GF) conn method addr vs P ⊢ reqPre conn method addr (ws ++ vs) P := by
   unfold reqPre
   iintro (#H | ⟨%Hw, H⟩)
   · ileft; iexact H
   · iright; iframe H
     ipureintro
-    refine ⟨Hw.1, fun v hv => ?_⟩
+    refine ⟨Hw.1, Hw.2.1, fun v hv => ?_⟩
     rcases List.mem_append.1 hv with hv | hv
     · exact h v hv
-    · exact Hw.2 v hv
+    · exact Hw.2.2 v hv
 
 /-! ## Context errors -/
 
@@ -989,18 +989,18 @@ theorem kvReqPre_box (api : Loc) (addr : List GoString) (P : IProp GF) :
   unfold kvReqPre; iintro #H; ileft; iexact H
 
 /-- A `*kv`'s precondition is its connection's, with scalar call options. -/
-theorem kvReqPre_conn (api rkv conn : Loc) (addr : List GoString) (vs : List GoInterface)
-    (P : IProp GF) (hvs : scalarOpts vs) :
+theorem kvReqPre_conn (api rkv conn : Loc) (method : GoString) (hm : kvMethod method)
+    (addr : List GoString) (vs : List GoInterface) (P : IProp GF) (hvs : scalarOpts vs) :
     structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
-        GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn addr vs P := by
+        GoInterface) ∗ retryKVAt rkv conn ∗ kvReqPre api addr P ⊢ reqPre conn method addr vs P := by
   iintro ⟨-, -, H⟩
   unfold kvReqPre reqPre
   icases H with (#H | ⟨%Hnr, H⟩)
   · ileft; iexact H
   · iright
     iframe H
-    ipureintro; exact ⟨Hnr, hvs⟩
+    ipureintro; exact ⟨hm, Hnr, hvs⟩
 
 /-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to the server at `addr`) and call
 options, fixed since `clientv3.New` (an assumption about the unverified constructor). -/

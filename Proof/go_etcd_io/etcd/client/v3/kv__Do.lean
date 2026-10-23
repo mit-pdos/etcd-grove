@@ -130,13 +130,13 @@ theorem kv.Do.wp_proof
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
     obtain ⟨-, -, -, -, hlease, hiv, hil, -⟩ := Hf2
-    ihave Hrun' : reqPre conn addr vs (Sp (putReqOp
+    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/Put" addr vs (Sp (putReqOp
         { state' := zeroValDef, Key' := opv.key', Value' := opv.val', Lease' := opv.leaseID',
           PrevKv' := opv.prevKV', IgnoreValue' := opv.ignoreValue',
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.val) Qp) $$ [Hrun]
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
-      iapply kvReqPre_conn api rkv conn addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/Put" ⟨go!"Put", rfl⟩ addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_Put rkv conn addr Sp Qp ci cd _ _ o.key o.val sl vs $$ [«$r0» Hrun']
       as %resp %err ⟨-, Hres⟩
@@ -181,12 +181,12 @@ theorem kv.Do.wp_proof
     icases Hat0 with ⟨%Hf, #Hend⟩
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
-    ihave Hrun' : reqPre conn addr vs (Sd (deleteReqOp
+    ihave Hrun' : reqPre conn go!"/etcdserverpb.KV/DeleteRange" addr vs (Sd (deleteReqOp
         { state' := zeroValDef, Key' := opv.key', RangeEnd' := opv.end', PrevKv' := opv.prevKV',
           unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.base.rangeEnd) Qd) $$ [Hrun]
     · simp only [deleteReqOp, deleteWireOf, hpk]
-      iapply kvReqPre_conn api rkv conn addr vs _ Hsc $$ [Hrun]
+      iapply kvReqPre_conn api rkv conn go!"/etcdserverpb.KV/DeleteRange" ⟨go!"DeleteRange", rfl⟩ addr vs _ Hsc $$ [Hrun]
       iframe Hremote Hrkv Hrun
     wp_apply wp_retry_DeleteRange rkv conn addr Sd Qd ci cd _ _ o.key o.base.rangeEnd sl vs
       $$ [«$r0» Hrun'] as %resp %err ⟨-, Hres⟩
