@@ -5,6 +5,8 @@ links:
   - etcd-io/etcd#8102 pr merged: related, not this bug (introduced nested txns; does not document when a nested guard is evaluated)
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now).
+
 # server/etcdserver/txn: a nested transaction's comparisons see the state before the outer transaction's operations
 
 - **Status**: open (documentation: the behavior is not documented; not filed).

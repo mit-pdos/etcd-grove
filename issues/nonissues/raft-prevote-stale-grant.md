@@ -6,6 +6,8 @@ links:
   - etcd-io/etcd#8243 issue closed: related, not this bug: the PreVote stall #8288 fixed by answering with the request's term, which is what lets the stale grant through
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: discussed upstream before (etcd-io/etcd#8288's review accepted it as a rare false positive); revisit only with a demonstrated problem.
+
 # raft: a pre-candidate counts a pre-vote granted in an earlier pre-campaign
 
 - **Status**: a bug in pre-vote's guarantee (not in safety): a delayed `MsgPreVoteResp` from an

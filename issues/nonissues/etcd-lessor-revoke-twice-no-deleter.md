@@ -5,6 +5,8 @@ links:
   - etcd-io/etcd#10710 pr merged: related, not this bug (the lease benchmark's Revoke left leases in leaseMap until the PR set a fake range deleter; a reviewer noted it, the lessor was not changed)
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now).
+
 # server/lease: without a range deleter, `Revoke` keeps the lease and a second `Revoke` panics
 
 - **Status**: documentation the code contradicts (the `Lessor` interface says `Revoke` removes

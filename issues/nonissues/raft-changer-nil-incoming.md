@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a precondition of an internal `confchange` API that raft's callers meet.
+
 # raft: a `confchange.Changer` over a tracker with a `nil` incoming voter map panics
 
 **Status**: open (not reported upstream; minor: raft's own trackers never have it).

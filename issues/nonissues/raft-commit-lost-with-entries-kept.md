@@ -6,11 +6,14 @@ links:
   - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: atomic persistence of entries and `HardState` is part of the storage contract a raft specification has to state, not a raft bug.
+
 # raft: entries persisted without their `HardState.Commit` can break membership safety
 
 - **Status**: open (documentation precondition; plausibility only, not demonstrated on etcd).
-  Upstream draft (with the `Advance` precondition):
-  [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md).
+  An upstream draft of its documentation (with the `Advance` precondition) was deleted on review
+  (2026-10-23) as a duplicate of [raft-advance-before-applyconfchange](../raft-advance-before-applyconfchange.md)'s
+  candidate; it is in git history (`issues/raft-document-confchange-before-advance.md`).
   The guard fix (`raft-conf-lag-model/guard-fix.md`) does not address it.
 - **Where**: etcd-raft at the pinned revision: `hasUnappliedConfChanges` (`raft.go:990`)
   scans `(applied, committed]` with the *persisted* commit after a restart; `doc.go:74-76`
@@ -82,7 +85,7 @@ links:
 - **Possible fixes**: document atomic persistence in `doc.go` step 1; or persist the commit
   index with the entries, atomically, in etcd's WAL.
 - **Found**: 2026-10-13, the same analysis as
-  [raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md). 2026-10-14:
+  [raft-advance-before-applyconfchange](../raft-advance-before-applyconfchange.md). 2026-10-14:
   the model checker (`raft-conf-lag-model/checker/`) finds a 16-step execution by search
   (`raft-conf-lag-model/trace-check-crash-sms.txt`, two removals, the restarted node on
   `C0` wins with the removed node's vote): `notes/reconfiguration-model-check.md`.

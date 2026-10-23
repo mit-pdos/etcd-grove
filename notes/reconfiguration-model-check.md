@@ -201,12 +201,12 @@ Does not cover:
   then learns entries before the candidate wins; pre-vote equals vote. `MsgTimeoutNow`
   (leader transfer) is not modelled.
 - **Snapshots, compaction, learners, restarts** (outside the crash mode, which is
-  `issues/raft-commit-lost-with-entries-kept.md`'s fault): none. So
+  `issues/nonissues/raft-commit-lost-with-entries-kept.md`'s fault): none. So
   `issues/raft-snapshot-during-apply-stale-confchange.md` is out of scope.
 - **Joining nodes start from `C0`.** An addable node starts with an empty log and the
   initial configuration `C0` (it is not a member of it, so it cannot campaign until it has
   applied its own `add`). This is the bootstrap assumption B1 makes and the fix that
-  `issues/raft-joiner-empty-confstate.md` asks for; that issue's execution (a joiner whose
+  `issues/nonissues/raft-joiner-empty-confstate.md` asks for; that issue's execution (a joiner whose
   configuration is the fold of the changes onto an empty one, winning alone) is excluded
   by construction.
 - **Conf change shapes**: `add`/`rem` of one voter (simple), or entering a joint

@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a configuration precondition; at most worth documenting.
+
 # raft: zero `MaxSizePerMsg` and `MaxCommittedSizePerReady` panic on the first commit
 
 **Status**: open (not reported upstream; not checked whether raft after `40f8be7` fixed it).

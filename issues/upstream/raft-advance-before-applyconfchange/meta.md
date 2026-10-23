@@ -183,7 +183,7 @@ for and every example follows, the check is right; making it right under the per
   to cancel) and `Node.ApplyConfChange`/`RawNode.ApplyConfChange` ("must not be called" for a rejected change):
   left alone; the new sentences say "apply" (see `ApplyConfChange`), which reads right under either.
 - Non-atomic persistence of entries and `HardState` hides a committed conf change from the campaign check after a
-  restart (`issues/raft-commit-lost-with-entries-kept.md`): a different precondition, not in this PR.
+  restart (`issues/nonissues/raft-commit-lost-with-entries-kept.md`): a different precondition, not in this PR.
 
 ## check.py (2026-10-21)
 

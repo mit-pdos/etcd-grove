@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now).
+
 # raft: `MemoryStorage.CreateSnapshot` panics outside `[firstIndex-1, lastIndex]`, undocumented
 
 **Status**: open (not reported upstream).

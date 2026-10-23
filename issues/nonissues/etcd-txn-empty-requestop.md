@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: the precondition (a non-empty `RequestOp`) is met, since the gRPC layer rejects an empty one before `txn.Txn`.
+
 # server/etcdserver/txn: `Txn` panics on a `RequestOp` with an empty oneof
 
 - **Status**: open (a precondition the package's API does not state; not reachable through

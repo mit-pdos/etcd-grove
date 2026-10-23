@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now).
+
 # concurrency: the STM's "revision of the first read" doc comment does not hold for retried attempts
 
 ## Summary

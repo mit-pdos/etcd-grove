@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now). The review asks whether `Dequeue` is really not linearizable: the linearization point might lie between the read and the delete that goes through, by a prophecy-like argument (see the note at the end).
+
 # recipes: `PriorityQueue.Dequeue`'s "FIFO order" comment, and its order at the claim
 
 **Status**: open (a documentation request; not filed; no fix branch).

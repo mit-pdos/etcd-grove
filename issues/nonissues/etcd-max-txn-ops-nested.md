@@ -5,6 +5,8 @@ links:
   - etcd-io/etcd#22134 pr merged: related, not this bug (costTxnReq ignored nested RequestTxn; the same per-level blind spot in a different check)
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): parked (documentation, skipped for now).
+
 # etcdserver: --max-txn-ops does not bound the operations of a transaction with nested transactions
 
 - **Status**: open (documentation; not filed).

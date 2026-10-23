@@ -6,6 +6,8 @@ links:
   - etcd-io/raft#441 pr merged: related, not this bug: EnsureSnapshot/EnsureSnapshotMetadata no longer reassign non-nil fields, after a race found in etcd-io/etcd#21778 (ApplySnapshot writing its argument); EnsureConfState still writes AutoLeave
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: at most a documentation change.
+
 # raft v3.7: `Step` writes into the caller's message and keeps it; `MemoryStorage.ApplySnapshot` writes into its argument
 
 - **Status**: open (documentation the code contradicts; not reported). Introduced with the move of

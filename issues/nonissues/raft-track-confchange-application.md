@@ -7,6 +7,8 @@ links:
   - etcd-io/raft#234 issue closed: related, not this bug: split brain with a stalled apply; closed citing hasUnappliedConfChanges (assumes conf changes applied before the applied index moves)
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a design proposal, not a bug.
+
 # raft: track which conf changes have been applied, so that Advance before ApplyConfChange is safe
 
 **2026-10-21: not filing (for now).** The candidate for this finding

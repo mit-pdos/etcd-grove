@@ -4,10 +4,12 @@ checked: 2026-10-21
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: the responses kept are bounded and give no wrong result (the earlier write-up's "wrong result" kind contradicted its own text).
+
 # A canceled watcher's responses taken after its canceled response stay buffered until the stream closes
 
 - **Status**: bug, minor (memory held and never delivered; no wrong result). From code reading during
-  the upstream report of [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md);
+  the upstream report of [etcd-watch-id-reuse-stale-events](../etcd-watch-id-reuse-stale-events.md);
   not reproduced on its own.
 - **Where**: `server/etcdserver/api/v3rpc/watch.go` at upstream `main` b25719d10 (the same code as the
   pin `bc8b52a50`): `serverWatchStream.sendLoop`, the buffering of a response whose id is not

@@ -4,6 +4,8 @@ checked: 2026-10-16
 links:
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a precondition (a known transition) applications meet; at most worth documenting.
+
 # raft: a `ConfChangeV2` with an undefined `Transition` is committed, then panics every node that applies it
 
 **Status**: open (not reported upstream; an undocumented precondition: applications that build

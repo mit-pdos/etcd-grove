@@ -1,7 +1,7 @@
 # etcd-watch-id-reuse-stale-events
 
 - **Finding**: `issues/etcd-watch-id-reuse-stale-events.md` (the fix also covers
-  `issues/etcd-watch-canceled-pending-retained.md`: a canceled watcher's responses taken after its canceled response
+  `issues/nonissues/etcd-watch-canceled-pending-retained.md`: a canceled watcher's responses taken after its canceled response
   are now dropped instead of kept in `pending` until the stream closes, on every stream; the PR does not mention it)
 - **Target**: etcd-io/etcd, `main`
 - **Branch**: `fix/etcd-watch-id-reuse-stale-events` in `~/etcd-fixes/etcd-watch-id-reuse-stale-events`, two commits:

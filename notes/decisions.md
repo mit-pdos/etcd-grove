@@ -218,7 +218,7 @@ error paths; `checkInvariants` returns `nil` iff `CfgInv`. Choices:
 - the old specs are replaced, not kept beside the new ones; `Restore`'s statement is
   unchanged, and its proof derives the old `Simple` statement (`Simple_votersOnly`).
 Two findings: `Config.Clone` drops `AutoLeave` (`issues/raft-config-clone-autoleave.md`);
-a tracker with a `nil` incoming voter map panics (`issues/raft-changer-nil-incoming.md`,
+a tracker with a `nil` incoming voter map panics (`issues/nonissues/raft-changer-nil-incoming.md`,
 excluded by `ownCfgCC`).
 
 **A Goose bug found on the way.** `cc := cc` (Go's loop-local-copy idiom, used twice in
@@ -3107,7 +3107,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   `mkGteRange("\x00")`); on decoded requests (protobuf-go decodes an empty `bytes` field as
   `nil`) that is the client's `inRange`. A put denotes the server's total `putTxnOp` (the
   ignore flags keep the value or lease whatever the request says), not the client's partial
-  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/etcd-txn-empty-requestop.md`).
+  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/nonissues/etcd-txn-empty-requestop.md`).
   The responses mirror `TxnOpResult` (`txnResponseIs`), recursively; a nested response's
   header revision is `0`.
 - **The index answers the state** (unit 0b, pure): for a well-formed log, mvcc's
@@ -3204,7 +3204,7 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   the mvcc changes named (the write transaction's pending list); `txn_runTxn` relates it to the
   client's `runTxn` under `OpsStable`. *Rejected:* stating `Txn` over `runTxn` (false for a nested
   comparison on a key written earlier in the transaction: the client model is wrong there,
-  `issues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
+  `issues/nonissues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
   it). (2) **A context never canceled** instead of a panic: in the write path a range or a
   `PrevKv` delete at a done context returns an error that `txn` turns into `lg.Panic`; mvcc's
   `rangeCtx true` now also takes an `isContext` whose Done proposition never holds (`neverDone`:

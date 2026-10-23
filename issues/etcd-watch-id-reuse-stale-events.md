@@ -106,6 +106,6 @@ candidate: issues/upstream/etcd-watch-id-reuse-stale-events/
   ids never reuses one, and a wait there would risk the in-process deadlock of etcd-io/etcd#20716
   (`issues/upstream/etcd-watch-id-reuse-stale-events/meta.md` has the costs and the alternatives:
   tagging mvcc's responses with the watcher, rejecting a create of a canceled id). Also noticed:
-  [etcd-watch-canceled-pending-retained](etcd-watch-canceled-pending-retained.md).
+  [etcd-watch-canceled-pending-retained](nonissues/etcd-watch-canceled-pending-retained.md).
 - **Found**: 2026-10-14, the watch slice's unit W-S (`sendLoop`'s proof: the per-id model of the
   buffering, `SendInv`).

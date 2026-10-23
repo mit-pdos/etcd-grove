@@ -11,7 +11,7 @@ messages, which is trusted) can trigger it.
 
 ## Candidate
 
-- **Finding**: `issues/raft-joint-empty-transition-panic.md`
+- **Finding**: `issues/nonissues/raft-joint-empty-transition-panic.md`
 - **Target**: etcd-io/raft, `main` (raftpb on protobuf-go v2; v3.7.0 has the same `stepLeader` check)
 - **Branch**: `fix/raft-joint-empty-transition-panic` in `~/etcd-fixes/raft-joint-empty-transition-panic`, three
   commits (rebuilt 2026-10-18): 9659828 adds the test, which fails there; e3f1575 is the fix; 4ea35f1 adds the

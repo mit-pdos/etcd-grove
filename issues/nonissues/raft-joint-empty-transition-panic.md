@@ -2,8 +2,10 @@
 upstream: none
 checked: 2026-10-18
 links:
-candidate: issues/upstream/raft-joint-empty-transition-panic/
+candidate: issues/nonissues/upstream/raft-joint-empty-transition-panic/
 ---
+
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: the bad execution needs the application to violate raft's documented instructions.
 
 # raft: an empty `ConfChangeV2` with a non-`Auto` transition is accepted while joint, then panics every node that applies it
 

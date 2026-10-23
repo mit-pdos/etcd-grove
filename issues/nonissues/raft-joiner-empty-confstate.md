@@ -5,6 +5,8 @@ links:
   - etcd-io/raft#370 pr merged: related, where it starts: allows the index-0 ConfState-only bootstrap snapshot; the discussion does not consider nodes added later
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a precondition of how an application bootstraps a joining node; at most worth documenting.
+
 # raft: with the initial `ConfState` in an index-0 snapshot, a node added later replays conf changes onto an empty configuration and can win alone
 
 - **Status**: open (undocumented precondition; not reported upstream).
@@ -109,7 +111,7 @@ links:
   without re-applying the conf entries in between; `MemoryStorage.InitialState` returns the
   snapshot's `ConfState`. An application that restarts with `Applied` past a conf entry newer
   than its stored `ConfState` gets a configuration behind `applied`: the window of
-  [raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md), at restart.
+  [raft-advance-before-applyconfchange](../raft-advance-before-applyconfchange.md), at restart.
   Not reproduced (restarts are outside the proof's scope).
 - **Found**: 2026-10-14, adversarial review of the reconfiguration paper proof
   (`notes/reconfiguration-safety-review.md`, scope), reproduced by the test above.

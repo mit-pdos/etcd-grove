@@ -27,7 +27,7 @@ Conclusions, in short:
   the fold of its whole committed prefix (`k`). "At most one conf entry above `k`" follows
   from I1 alone.
 * No counterexample to the design; one new code finding, unrelated to safety but in the
-  same validation: `issues/raft-joint-empty-transition-panic.md` (an empty `ConfChangeV2`
+  same validation: `issues/nonissues/raft-joint-empty-transition-panic.md` (an empty `ConfChangeV2`
   with a non-`Auto` transition is accepted while joint, committed, and panics every node;
   reproduced by a Go test).
 * `CfgOk`'s size bound must be `< 2^62`, not raft's `≤ 2^62`: at `2^62` two disjoint incoming
@@ -43,7 +43,7 @@ Conclusions, in short:
   `applied ≤ a ≤ commit` (more precisely `a ≤ applying`, or `a = base` after a snapshot not yet
   applied, see 4.10).
 * **Fresh nodes**: no crash-restart with persisted state (so **A2**, atomic persistence of
-  entries and `HardState`, `issues/raft-commit-lost-with-entries-kept.md`, is moot). Every
+  entries and `HardState`, `issues/nonissues/raft-commit-lost-with-entries-kept.md`, is moot). Every
   node starts from one configuration `c0` with `CfgOk c0` and the same initial log. (Go's
   bootstrap applies its conf entries on every node before any message; a node added later
   starts with an empty configuration and log and is unpromotable until it has applied a
@@ -55,7 +55,7 @@ Conclusions, in short:
 * `DisableConfChangeValidation = false` (already `newRaft`'s premise).
 * **No panic**: every committed conf entry applies (`ccApplyM ... = some _`), and every
   configuration tracks fewer than `2^62` ids. An entry that would panic every node
-  (`issues/raft-unknown-transition-panic.md`, `issues/raft-joint-empty-transition-panic.md`,
+  (`issues/nonissues/raft-unknown-transition-panic.md`, `issues/nonissues/raft-joint-empty-transition-panic.md`,
   "removed all voters") is applied by no node of the argument: `cfgFold` is `none` past it and
   `RawNode.ApplyConfChange.spec` requires `some`.
 * Synchronous storage (no `AsyncStorageWrites`): see 4.10 (the window once thought to open
@@ -183,7 +183,7 @@ I3(a): the new `pci` is the new entry's position. I3(b): every other conf entry 
 `≤ applied`. A second conf entry of the batch is refused (`pci > lastIndex ≥ applied`).
 Auto-leave (`appliedTo`, `raft.go:740-761`) is this rule (an empty `ConfChangeV2` stepped as
 `MsgProp`), with the same checks. (Validation is the leader's only defence: the `Changer`'s
-errors surface at apply time, as panics: `issues/raft-joint-empty-transition-panic.md`.)
+errors surface at apply time, as panics: `issues/nonissues/raft-joint-empty-transition-panic.md`.)
 
 **4.5 appAccept** (`handleAppendEntries`, `maybeAppend`). New log: the sender's log up to
 `lastnewi`, then (only if no entry conflicted) the old tail beyond it; new commit

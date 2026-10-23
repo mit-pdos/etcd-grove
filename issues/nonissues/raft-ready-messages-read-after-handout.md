@@ -5,6 +5,8 @@ links:
   - etcd-io/raft#430 pr merged: related, flagged: a reviewer noted etcd mutates Ready.Messages (To = 0) and concluded there is no raft-side retained-pointer race; acceptReady's reads of handed-out messages were not considered
 ---
 
+> Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a precondition the application meets; at most worth documenting.
+
 # raft v3.7: `node.go` reads `Ready.Messages` responses after handing the `Ready` out
 
 - **Status**: open (not reported; not reproduced by a test). A documentation issue: an
