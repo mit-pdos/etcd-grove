@@ -193,8 +193,7 @@ not yet on `goose-lean`), so a read update fires once, at the prophesied pair; `
 caller's token `W` at its linearization point (the write, or a read where the model's step is the
 identity), the first read through `rwInv` (`FirstRead.lean`); `Delete`/`GuaranteedUpdate` and their
 pieces proved on it. Also fixed: `step.lean` (the Go model's `step`), stale against `outEqual`'s
-spec and `Output.Err` as a number since 6a's last change, now builds (the full build had not
-reached it).
+spec and `Output.Err` as a number, now builds.
 
 ## What blocks where
 
