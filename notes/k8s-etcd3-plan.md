@@ -195,6 +195,16 @@ identity), the first read through `rwInv` (`FirstRead.lean`); `Delete`/`Guarante
 pieces proved on it. Also fixed: `step.lean` (the Go model's `step`), stale against `outEqual`'s
 spec and `Output.Err` as a number, now builds.
 
+Done (2026-10-23): **6f**. The driver's invariant (`Inv.lean`: `KOk`, the store's model refining
+a configuration of porcupine's state, `kStep`/`refine_step`; etcd's state, the pending writes, the
+revisions' map and the store's history `histAuth`), the updates it hands the store and the commits
+it makes (`InvSteps.lean`), `errOut`, `call` (the four store methods through `storage.Interface`)
+and `Apply` (`Apply.lean`, `lintest`'s `applySpec` against `k8setcd3S g0`), with the two marked
+`sorry`s (`revRoom`, `clientErr_other`; D30n). Not yet linked (6g's driver `Link`). Still to do:
+6e (`kubernetes.New`, `etcd3.New`: `isStore` with the driver's prefixes and `driverSpec`, the
+history's allocation `histAuth` from the seeded state), 6g (`Gen`'s spec giving `GenIn`, `Check`,
+`Main`, the initial `kInv` from the seeded store, adequacy, `gen-init` for the driver).
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error

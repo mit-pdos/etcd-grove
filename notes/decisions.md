@@ -15188,3 +15188,21 @@ from the plan.
   (the client proof's, "From the etcd client proof" item 5), and etcd's revision stays below
   `2^63 - 2` at every firing (the store's updates require it; the driver cannot count the writes
   to come: `lintest`'s `applySpec` gives no budget).
+
+  As carried out (2026-10-23), the design changed in two places. (1) The prophecy of the read
+  moved into the client: the etcd fork's `Client.Get` (branch `goose-lean-getproph`) resolves a
+  prophecy of the response's revision and the key's mod revision, so the store's `Get` hands the
+  caller one read update per prophesied pair (`Q R m`, from a maker the client calls once), and
+  the driver's read commits at the first firing at the prophesied revision `R` (`getCall`, the
+  maker recording `R` in a ghost variable; the revisions' map makes later firings at `R` see the
+  same state). `Apply`'s own prophecy is then used for its first value only: whether the output
+  is `EOther`. (2) The store's persistent updates for `Delete`/`GuaranteedUpdate` (`k8sAuRW`) no
+  longer carry a read postcondition: they fire as plain reads and once as the linearization point,
+  handing the caller's timeless token `W` (the write, or a read where the model's step is the
+  identity, `stepHand`); the driver's `W` is the token of a call invariant holding `lintest`'s
+  update (`rwCall`), or a pending write's token. The store's first read goes through its own call
+  invariant (`rwInv`, `FirstRead.lean`). The caller's updates also learn that etcd's next state is
+  the same or the next revision's (`KvNext`), which the driver's invariant needs to extend the
+  store's history (`histAuth_next`). The two marked `sorry`s are `revRoom`
+  (`Proof/.../k8setcd3/InvSteps.lean`) and `clientErr_other` (`Calls.lean`); `Apply` is proved
+  against `k8setcd3S g0` with them (`Apply.lean`).
