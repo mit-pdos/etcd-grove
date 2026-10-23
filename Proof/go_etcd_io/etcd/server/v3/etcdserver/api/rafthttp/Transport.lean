@@ -45,7 +45,7 @@ borrow an `R`: see the file header. -/
 def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) : IProp GF :=
   iprop(∃ (lg ls ss : Loc) (urls : GoSlice) (uvs : List net.url.URL)
       (cid : go_etcd_io.etcd.client.pkg.v3.types.ID) (r : GoInterface) (ec : GoChan)
-      (srt prt : GoInterface) (drf : w64),
+      (srt prt : GoInterface) (drf : w64) (pp sp : GoInterface),
     t.[rafthttp.Transport, go!"Logger"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
     t.[rafthttp.Transport, go!"ID"] ↦□ lid ∗
     t.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
@@ -57,11 +57,13 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"DialRetryFrequency"] ↦□ drf ∗
     t.[rafthttp.Transport, go!"LeaderStats"] ↦□ ls ∗ ⌜ls ≠ null⌝ ∗
     t.[rafthttp.Transport, go!"ServerStats"] ↦□ ss ∗ ⌜ss ≠ null⌝ ∗
+    t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
+    t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, pipeReg Rh pid) ∗
     globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream")
 
-set_option synthInstance.maxHeartbeats 2000000 in
-set_option synthInstance.maxSize 16384 in
+set_option synthInstance.maxHeartbeats 8000000 in
+set_option synthInstance.maxSize 65536 in
 instance trFixed_persistent (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) :
     Persistent (trFixed Rh t lid γd R) := by
   unfold trFixed; infer_instance

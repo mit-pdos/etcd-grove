@@ -251,9 +251,14 @@ SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['activePe
     'activePeers', 'Gauge', ['Local', 'Remote'])
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['disconnectedPeers'] = promvec(
     'disconnectedPeers', 'Counter', ['Local', 'Remote'])
+# (2026-10-23, rafthttp stage 6c) the probers' round-trip histogram, which `AddPeer` hands to
+# `addPeerToProber` (untranslated, the prober's axiom)
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom']['rttSec'] = dict(
+    doc='/-- `rttSec = prometheus.NewHistogramVec(...)` (`metrics.go`): some pointer, read-only for good. -/',
+    post='∃ v : Loc, globalAddr rttSec ↦ v', pat='⟨%v@, H@⟩')
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
     'ipersist HreceivedBytes', 'ipersist HrecvFailures', 'ipersist HsentBytes', 'ipersist HsentFailures',
-    'ipersist HactivePeers', 'ipersist HdisconnectedPeers']
+    'ipersist HactivePeers', 'ipersist HdisconnectedPeers', 'ipersist HrttSec']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer

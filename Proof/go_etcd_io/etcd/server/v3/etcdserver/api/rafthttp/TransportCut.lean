@@ -39,13 +39,13 @@ local macro "cut_body" : tactic => `(tactic| (
   wp_apply sync.RWMutex.wp_RLock $$ [Htok] as ⟨Hrl, HP⟩
   · iframe Htok
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
-  imod trRemotes_agree γr rs rs' _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+  imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
   subst Heq
   have Hnone : RM !! id = none := by
     cases h : RM !! id with
     | none => rfl
-    | some _ => exact absurd (Hrs id (by simp [h])) Hid
+    | some _ => exact absurd (Hrs.1 id (by simp [h])) Hid
   (try wp_auto)
   wp_apply wp_lookup2_mapOrNil _ pm _ PM id $$ [Hpm] as Hpm
   · iframe Hpm
@@ -55,7 +55,7 @@ local macro "cut_body" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [Hrl Hp Hr Hpm Hrm Hg Hgr] as Htok
   · iframe Hrl
-    iunfold trLockP; iexists pm, rm, PM, RM, rs'; iframe; iframe #
+    iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
     (try inext)
     ipureintro; exact Hrs
   (try wp_auto)

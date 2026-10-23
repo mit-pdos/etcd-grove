@@ -36,9 +36,9 @@ theorem rafthttp.startRemote.wp_proof
   wp_start as ⟨#Htr, #Hus, HR1, HR2, HR3, HR4⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
-  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, #Hlg, %Hlgnn,
+  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hreg, #Hpreg, #HPfx⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx⟩
   wp_auto
   wp_apply hNewPicker urls uvs (peerURL Rh pid) Hne Hurls $$ [] as %pk #Hpk
   · iframe #

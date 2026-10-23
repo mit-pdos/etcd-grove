@@ -171,9 +171,9 @@ theorem rafthttp.startPeer.wp_proof
   icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨HR8, -⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
-  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, #Hlg, %Hlgnn,
+  icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hreg, #Hpreg, #HPfx⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   rw [_root_.decide_eq_false Hlgnn]

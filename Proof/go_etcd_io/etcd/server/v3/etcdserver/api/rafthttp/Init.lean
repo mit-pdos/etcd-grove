@@ -84,7 +84,6 @@ axiom opaqueInitsOk :
         snapshotReceiveInflights.init,
         snapshotReceiveFailures.init,
         snapshotReceiveSeconds.init,
-        rttSec.init,
         ConnWriteTimeout.init,
         proberInterval.init,
         statusMonitoringInterval.init,
@@ -161,6 +160,11 @@ axiom activePeers_init :
 axiom disconnectedPeers_init :
     {{ (True : IProp GF) }} (App (Val disconnectedPeers.init) (Val #()))
     {{ RET #(); ∃ v : Loc, globalAddr disconnectedPeers ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝ }}
+
+/-- `rttSec = prometheus.NewHistogramVec(...)` (`metrics.go`): some pointer, read-only for good. -/
+axiom rttSec_init :
+    {{ (True : IProp GF) }} (App (Val rttSec.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr rttSec ↦ v }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -257,7 +261,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk snapshotReceiveInflights.init (by mem_tac))
   wp_apply (opaqueInitsOk snapshotReceiveFailures.init (by mem_tac))
   wp_apply (opaqueInitsOk snapshotReceiveSeconds.init (by mem_tac))
-  wp_apply (opaqueInitsOk rttSec.init (by mem_tac))
+  wp_apply rttSec_init as ⟨%vrttSec, HrttSec⟩
   -- translated initializer of readBytesLimit))
   wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
     as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
@@ -286,6 +290,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HsentFailures
   ipersist HactivePeers
   ipersist HdisconnectedPeers
+  ipersist HrttSec
   ipersist HErrExceedSizeLimit
   ipersist HerrIncompatibleVersion
   ipersist HErrClusterIDMismatch

@@ -109,6 +109,7 @@ axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.linkHeartbeatS
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.receivedBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.recvFailures_init
+axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rttSec_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentBytes_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.sentFailures_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.initFuncsOk
@@ -400,6 +401,7 @@ axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
+axiom httpProtoFree
 axiom initLb_of_spec
 axiom insecure.NewCredentials.wp_proof
 axiom io.Pipe.wp_proof

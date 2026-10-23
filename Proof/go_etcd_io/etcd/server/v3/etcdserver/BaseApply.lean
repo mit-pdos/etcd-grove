@@ -198,7 +198,10 @@ abbrev rafthttpInit : IProp GF :=
     globalAddr readBytesLimit ↦□ (W64 536870912) ∗
     -- (2026-10-23, rafthttp stage 5c) the stream reader's dial error for a stream type an older
     -- peer does not support (`stream.go`, `fmt.Errorf` without verbs: an `errors.New` error)
-    EtcdGrove.errorsNewVar errUnsupportedStreamType go!"unsupported stream type")
+    EtcdGrove.errorsNewVar errUnsupportedStreamType go!"unsupported stream type" ∗
+    -- (2026-10-23, rafthttp stage 6c) the probers' round-trip histogram (`metrics.go`, untranslated):
+    -- some pointer, read-only for good (`AddPeer` hands it to the prober)
+    (∃ v : Loc, globalAddr rttSec ↦□ v))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit
