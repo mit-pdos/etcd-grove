@@ -84,91 +84,76 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     iframe HΦ Hseen
     ipureintro; exact Hwf
 
-/-- **The caller's update for an operation that may write, read-like outcomes persistent** (see
-the file header). -/
+
+/-! ## Operations that may write: `Delete`, `GuaranteedUpdate` (D30n) -/
+
+/-- The store's namespace: its first read's invariant (`rwInv`). -/
+def k8sN : Namespace := nroot .@ "k8sStore"
+
+theorem k8sN_mask : (↑k8sN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
+    fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
+
+/-- The mask of the caller's updates for operations that may write: the client's, without the
+store's namespace (the store opens its invariant around them). -/
+abbrev rwMask : CoPset := ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑k8sN
+
+theorem rwMask_sub : rwMask ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff] at hp
+  exact hp.1
+
+/-- **The caller's update for an operation that may write** (persistent; D30l, D30n): it fires
+any number of times as a plain read (`b = false`: the state unchanged, nothing committed), and
+once as the operation's linearization point (`b = true`), handing the caller's token `W` back:
+the next state's model is the model's `step` (the write; or, at a state where the step is the
+identity, a read-like answer, the state unchanged), and the caller learns `Φ σ`. Once `W` is
+handed, the store fires it as a plain read only. -/
 def k8sAuRW (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (W : IProp GF)
-    (Q Φ : KVState → IProp GF) : IProp GF :=
+    (Φ : KVState → IProp GF) : IProp GF :=
   iprop(□ AU <{ ∃∃ (σ : KVState), etcdKV γk σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ }>
-      @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+      @ rwMask, ∅
     <{ ∀∀ (b : Bool) (σ' : KVState), etcdKV γk σ' ∗
         (if b then W ∗ ⌜kvWf c σ' ∧ c.abs σ' = step (c.abs σ)⌝ else ⌜σ' = σ⌝),
-      COMM if b then Φ σ else □ Q σ }>)
+      COMM if b then Φ σ else iprop(True) }>)
 
 instance k8sAuRW_persistent (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
-    (W : IProp GF) (Q Φ : KVState → IProp GF) : Persistent (k8sAuRW γk c step W Q Φ) := by
+    (W : IProp GF) (Φ : KVState → IProp GF) : Persistent (k8sAuRW γk c step W Φ) := by
   unfold k8sAuRW; infer_instance
 
-/-- What a read through `k8sAuRW` learns of the state it fired at. -/
-def rdOk (c : StoreCfg GF Obj) (Q : KVState → IProp GF) (σ : KVState) : IProp GF :=
-  iprop(□ Q σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)
+/-- What a read through `k8sAuRW` learns of the state it fired at: the store's, with room for a
+revision, and seen in the history. -/
+def rdFacts (c : StoreCfg GF Obj) (σ : KVState) : IProp GF :=
+  iprop(⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)
 
-instance rdOk_persistent (c : StoreCfg GF Obj) (Q : KVState → IProp GF) (σ : KVState) :
-    Persistent (rdOk c Q σ) := by
-  unfold rdOk; infer_instance
-
-/-- **The update fires as a read.** -/
-theorem k8sAuRW_read (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
-    (W : IProp GF) (Q Φ : KVState → IProp GF) :
-    k8sAuRW γk c step W Q Φ ⊢ kvReadAu γk (rdOk c Q) := by
-  have h : k8sAuRW γk c step W Q Φ ⊢
-      AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
-        <{ etcdKV γk ((fun σ => σ) σ), COMM □ rdOk c Q σ }> := by
-    refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
-    iintro ⟨-, #HAU⟩
-    unfold k8sAuRW
-    ihave HAC := aupd_aacc $$ HAU
-    iunfold atomic_acc at HAC
-    unfold atomic_acc
-    imod HAC with HAC
-    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at HAC
-    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-    icases HAC with ⟨%σ, ⟨Hkv, %Hwf, #Hseen⟩, Hcl⟩
-    imodintro
-    iexists σ
-    iframe Hkv
-    isplit
-    · iintro Hkv
-      icases Hcl with ⟨Habort, -⟩
-      imod Habort $$ [Hkv] with -
-      · iframe Hkv Hseen
-        ipureintro; exact Hwf
-      imodintro
-      iexact HAU
-    · iintro Hkv
-      icases Hcl with ⟨-, Hcommit⟩
-      ispecialize Hcommit $$ %false %σ
-      isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
-      imod Hcommit $$ [Hkv] with #HQ
-      · iframe Hkv
-      imodintro
-      imodintro
-      unfold rdOk
-      iframe HQ Hseen
-      ipureintro; exact Hwf
-  unfold kvReadAu kvAu
-  iintro #H
-  imodintro
-  ihave H2 := h $$ H
-  iexact H2
+instance rdFacts_persistent (c : StoreCfg GF Obj) (σ : KVState) :
+    Persistent (rdFacts c σ) := by
+  unfold rdFacts; infer_instance
 
 /-- **A conditional transaction's update, from the caller's** (see the file header): at a state
 of the store where `A` holds (what the store's history `kvSeen` tells, `HA`), the transaction's
 step is the model's when it succeeds (`ok σ`) and the identity when it fails; it fires the
-caller's update as the write, or as a read, giving `W` back. -/
+caller's update as the linearization point when it succeeds, or when it fails at a state whose
+model step is the identity and the store hands `W` there (`hand σ`, a read-like answer), and as a
+plain read otherwise, keeping `W`. -/
 theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj)
-    (W : IProp GF) (Q Φ : KVState → IProp GF) (op : KVOp) (ok : KVState → Bool)
+    (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp) (ok hand : KVState → Bool)
     (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
-      (ok σ = false → kvOpStep op σ = σ)) :
-    k8sAuRW γk c step W Q Φ ∗ W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝) ⊢
-      kvAu1 γk (kvOpStep op) (fun σ => iprop((if ok σ then Φ σ else iprop(□ Q σ ∗ W)) ∗
-        ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ A σ⌝ ∗ kvSeen c.γh σ)) := by
+      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ))) :
+    k8sAuRW γk c step W Φ ∗ W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝) ⊢
+      kvAu1 γk (kvOpStep op) (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
+        rdFacts c σ ∗ ⌜A σ⌝)) := by
   unfold kvAu1
   refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
-  iintro ⟨-, #HAU, HW, #HA⟩
-  unfold k8sAuRW
-  ihave HAC := aupd_aacc $$ HAU
+  iintro ⟨-, #HAU0, HW, #HA⟩
+  ihave #HAU := HAU0
+  iunfold k8sAuRW at HAU
+  ihave #HAU' := atomic_update_mask_weaken rwMask_sub $$ HAU
+  ihave HAC := aupd_aacc $$ HAU'
   iunfold atomic_acc at HAC
   unfold atomic_acc
   imod HAC with HAC
@@ -187,19 +172,34 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
     · iframe Hkv Hseen
       ipureintro; exact Hwf
     imodintro
-    iframe HAU HW HA
+    iframe HAU0 HW HA
   · icases Hcl with ⟨-, Hcommit⟩
     cases hok : ok σ
-    · rw [hst.2 hok]
+    · obtain ⟨hid, hhand⟩ := hst.2 hok
+      rw [hid]
       iintro Hkv
-      ispecialize Hcommit $$ %false %σ
-      isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
-      imod Hcommit $$ [Hkv] with #HQ
-      · iframe Hkv
-      imodintro
-      isimp only [Bool.false_eq_true, ↓reduceIte]
-      iframe HQ HW Hseen
-      ipureintro; exact ⟨Hwf.1, Hwf.2, HAσ⟩
+      cases hh : hand σ
+      · ispecialize Hcommit $$ %false %σ
+        isimp only [Bool.false_eq_true, ↓reduceIte] at Hcommit
+        imod Hcommit $$ [Hkv] with -
+        · iframe Hkv
+        imodintro
+        simp only [Bool.false_or, Bool.false_eq_true, ↓reduceIte]
+        iframe HW
+        unfold rdFacts
+        iframe Hseen
+        ipureintro; exact ⟨Hwf, HAσ⟩
+      · ispecialize Hcommit $$ %true %σ
+        isimp only [↓reduceIte] at Hcommit
+        imod Hcommit $$ [Hkv HW] with HΦ
+        · iframe Hkv HW
+          ipureintro; exact ⟨Hwf.1, (hhand hh).symm⟩
+        imodintro
+        simp only [Bool.false_or, ↓reduceIte]
+        iframe HΦ
+        unfold rdFacts
+        iframe Hseen
+        ipureintro; exact ⟨Hwf, HAσ⟩
     · obtain ⟨hwf', habs⟩ := hst.1 hok
       iintro Hkv
       ispecialize Hcommit $$ %true %(kvOpStep op σ)
@@ -208,42 +208,30 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
       · iframe Hkv HW
         ipureintro; exact ⟨hwf', habs⟩
       imodintro
-      isimp only [↓reduceIte]
-      iframe HΦ Hseen
-      ipureintro; exact ⟨Hwf.1, Hwf.2, HAσ⟩
-
-/-- **The caller's updates at the members give the client's reads.** -/
-theorem k8sAusRW_read (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
-    (step : KSt Obj → KSt Obj) (W : IProp GF) (Q Φ : KVState → IProp GF) :
-    ([∗list] x ∈ ms, k8sAuRW x.γr.kv c step W Q Φ) ⊢
-      □ [∧list] x ∈ ms, kvReadAu x.γr.kv (rdOk c Q) := by
-  iintro #H
-  imodintro
-  refine BigAndL.bigAndL_intro fun k x hk => ?_
-  have hx : x ∈ ms := List.mem_of_getElem? hk
-  iintro #H
-  iapply k8sAuRW_read x.γr.kv c step W Q Φ
-  iapply (BigSepL.bigSepL_mem (Φ := fun x : client.SrvAt GF => k8sAuRW x.γr.kv c step W Q Φ)
-    hx) $$ H
+      simp only [Bool.true_or, ↓reduceIte]
+      iframe HΦ
+      unfold rdFacts
+      iframe Hseen
+      ipureintro; exact ⟨Hwf, HAσ⟩
 
 /-- **The caller's updates at the members and its token give the client's updates** for a
 conditional transaction (`k8sAuRW_kvAu1` at each member). -/
 theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
-    (step : KSt Obj → KSt Obj) (W : IProp GF) (Q Φ : KVState → IProp GF) (op : KVOp)
-    (ok : KVState → Bool) (A : KVState → Prop) (hw : ∀ x ∈ ms, x.γr.kv.wl.writes op)
+    (step : KSt Obj → KSt Obj) (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp)
+    (ok hand : KVState → Bool) (A : KVState → Prop) (hw : ∀ x ∈ ms, x.γr.kv.wl.writes op)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
-      (ok σ = false → kvOpStep op σ = σ)) :
-    (W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝)) ∗ ([∗list] x ∈ ms, k8sAuRW x.γr.kv c step W Q Φ) ⊢
-      [∧list] x ∈ ms, kvOpAu1 x.γr.kv op (fun σ => iprop((if ok σ then Φ σ else iprop(□ Q σ ∗ W)) ∗
-        ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ A σ⌝ ∗ kvSeen c.γh σ)) := by
-  apply client.bigAndL_of_sep ms _ (fun x => k8sAuRW x.γr.kv c step W Q Φ)
+      (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ))) :
+    (W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝)) ∗ ([∗list] x ∈ ms, k8sAuRW x.γr.kv c step W Φ) ⊢
+      [∧list] x ∈ ms, kvOpAu1 x.γr.kv op (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
+        rdFacts c σ ∗ ⌜A σ⌝)) := by
+  apply client.bigAndL_of_sep ms _ (fun x => k8sAuRW x.γr.kv c step W Φ)
   intro x hx
   iintro ⟨⟨HW, #HA⟩, #Hx⟩
   unfold kvOpAu1
   isplitr
   · ipureintro; exact hw x hx
-  iapply k8sAuRW_kvAu1 x.γr.kv c step W Q Φ op ok A h
+  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op ok hand A h
   iframe Hx HW HA
 
 end defs
