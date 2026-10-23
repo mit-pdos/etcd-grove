@@ -14,9 +14,8 @@
   At the user's request (2026-10-23), "Anything else" explains the cause (`rollback` reloading the new meta's
   freelist), against the skill's symptom-only rule; no code link there (the PR has them), so `check.py` warns
   (length, the name `rollback`) but does not fail.
-- **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
-  etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages push origin
-  fix/bbolt-commit-meta-error-frees-reader-pages`; then check the issue's test link (`db_whitebox_test.go#L116-L159`).
+- **State**: draft, branch pushed (2026-10-23) to the fork `upamanyus/bbolt` at `eb2b2e0`; the issue's test link
+  (`db_whitebox_test.go#L116-L159`) checked on GitHub: the test's doc comment to its closing brace. Not filed.
 
 ## Commands and results (go1.26.9 linux/amd64)
 
