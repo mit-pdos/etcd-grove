@@ -74,8 +74,6 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([ProbingPrefix.init,
         RaftStreamPrefix.init,
         RaftSnapshotPrefix.init,
-        activePeers.init,
-        disconnectedPeers.init,
         snapshotSend.init,
         snapshotSendInflights.init,
         snapshotSendFailures.init,
@@ -147,6 +145,18 @@ axiom sentBytes_init :
 axiom sentFailures_init :
     {{ (True : IProp GF) }} (App (Val sentFailures.init) (Val #()))
     {{ RET #(); ∃ v : Loc, globalAddr sentFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
+
+/-- `activePeers = prometheus.NewGaugeVec(..., []string{"Local", "Remote"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
+axiom activePeers_init :
+    {{ (True : IProp GF) }} (App (Val activePeers.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr activePeers ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝ }}
+
+/-- `disconnectedPeers = prometheus.NewCounterVec(..., []string{"Local", "Remote"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom disconnectedPeers_init :
+    {{ (True : IProp GF) }} (App (Val disconnectedPeers.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr disconnectedPeers ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -227,8 +237,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     as ⟨%xerrIncompatibleVersion, HerrIncompatibleVersion, #MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
   wp_apply (errorsNewVarsInit ErrClusterIDMismatch.init ErrClusterIDMismatch go!"cluster ID mismatch" (by mem_tac))
     as ⟨%xErrClusterIDMismatch, HErrClusterIDMismatch, #MErrClusterIDMismatch, #CErrClusterIDMismatch⟩
-  wp_apply (opaqueInitsOk activePeers.init (by mem_tac))
-  wp_apply (opaqueInitsOk disconnectedPeers.init (by mem_tac))
+  wp_apply activePeers_init as ⟨%vactivePeers, HactivePeers, #LactivePeers⟩
+  wp_apply disconnectedPeers_init as ⟨%vdisconnectedPeers, HdisconnectedPeers, #LdisconnectedPeers⟩
   wp_apply sentBytes_init as ⟨%vsentBytes, HsentBytes, #LsentBytes⟩
   wp_apply receivedBytes_init as ⟨%vreceivedBytes, HreceivedBytes, #LreceivedBytes⟩
   wp_apply sentFailures_init as ⟨%vsentFailures, HsentFailures, #LsentFailures⟩
@@ -265,6 +275,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HrecvFailures
   ipersist HsentBytes
   ipersist HsentFailures
+  ipersist HactivePeers
+  ipersist HdisconnectedPeers
   ipersist HErrExceedSizeLimit
   ipersist HerrIncompatibleVersion
   ipersist HErrClusterIDMismatch

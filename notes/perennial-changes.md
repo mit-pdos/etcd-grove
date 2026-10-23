@@ -157,6 +157,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   boundary.
 - **Status.** Not started.
 
+### The `WaitGroup` join idiom's `Add(n)`, and `Sprintf` of a `Stringer` (2026-10-23, rafthttp stage 4d, branch `rafthttp-plan`)
+
+- **Missing.** (1) `sync.join.WaitGroup.wp_Add_of` (and `sync.tokJoin`'s) covers `Add(1)` only,
+  though `sync.WaitGroup.Add.spec` takes any delta. (2) `fmt.wp_Sprintf` admits arguments of
+  predeclared basic types only (`fmt.ArgsWf`): an argument with a `String` method (a
+  `types.ID`) is outside it, though Go's formatting then only calls that method.
+- **Needed by.** (1) rafthttp's `pipeline.start`, `p.wg.Add(connPerPipeline)` (`4`). (2) rafthttp's
+  `peerStatus.deactivate`, `Sprintf("failed to %s %s on %s (%s)", action, s.id, source, reason)`.
+- **Workaround here.** (1) `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/
+  WaitGroupAdd.lean`, `wgJoin_wp_Add4_of` (`wp_Add_of`'s proof with four ghost steps; proved, no
+  trust). (2) `Spec/fmt/SprintfID.lean`, a trust-boundary axiom for `types.ID` arguments (as
+  `SprintfNamed`, `SprintfClientPtr`).
+- **Proposed.** (1) `wp_Add_of` for a delta `n` (`0 < n`, the bound `num_added + n < 2^31`),
+  giving `n` `ownDone`s (a `[∗list]` over `List.replicate n`); the `Add(1)` statement derived.
+  (2) `wp_Sprintf` over arguments whose `String`/`Error` method has a given spec (a WP returning
+  some string), covering `Stringer`s generally.
+- **Status.** Not started.
+
 ## Landed
 
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork

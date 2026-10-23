@@ -289,7 +289,28 @@ trust-boundary spec.
    initializer: baseline 542 -> 546, accepted by the user 2026-10-23). `prometheus.counterSpec` gains
    `Add` (the `WithLabelValues` axiom promises more). Still a spec only:
    `checkClusterCompatibilityFromHeader` (the version check: `semver`, `version`'s values).
-   **Next**: 4d, the sender (`pipeline.post`, `handle`).
+   **Done 2026-10-23: 4d** (over its callees' specs as hypotheses; not linked until stage 6).
+   `urlPicker.pick`/`unreachable` proved (`Picker.lean`, `pickerOk`). **`pipeline.post`** proved
+   (`Sender.lean`: `pipeSenderOk`, `peerURL`, `postErr`): the request gets a fresh ticket and the
+   message's deposit, the response is read and checked, and the error returned has an `Error()`
+   (`http.errStrOk`, a boundary fact of net/http's errors). **`pipeline.handle`** proved
+   (`Handle.lean`: `pipeMsg`, what a message on `msgc` carries, a bag; `pipeHandleOk`): each
+   message is marshalled and posted; on failure the peer is deactivated, `ReportUnreachable`, the
+   failure counted; on success activated, the bytes counted; on `stopc` it returns, handing its
+   `Raft` resource to `wg.Done()`. **`pipeline.start`/`stop`** proved (`pipeFixed`,
+   `pipeStarted`): `start` makes the channels, `Add(4)`, forks four `handle`s, each with one of
+   four `R`s; `stop` closes `stopc` and `Wait` gives them back. Also proved: `peerStatus.activate`/
+   `deactivate` (`PeerStatus.lean`), `isMsgApp`, `isMsgSnap`, and a local join `Add(4)`
+   (`WaitGroupAdd.lean`: Perennial's covers `Add(1)` only, `notes/perennial-changes.md`). New
+   trust items, for 4e: `fmt.SprintfID` (an axiom: `Sprintf` of a `types.ID`, whose `String` Go
+   calls), `v2stats.FollowerStats.Fail` (an axiom, as `Succ`), two more metric-vector inits
+   (`activePeers`, `disconnectedPeers`, `gen-init.py`'s `promvec` kind), and the net/http
+   boundary fact `errStrOk`. Still specs only: `createPostRequest`, `checkPostResponse`,
+   `checkClusterCompatibilityFromHeader` (their proofs need `http.StatusText`, untranslated,
+   `version.MinClusterVersion`'s initializer, `strings.TrimSuffix`, and the `fmt.Errorf` errors'
+   distinctness from `errMemberRemoved`).
+   **Next**: 4e (the boundary statements to axioms, every new trust item for acceptance), and
+   the three callee proofs.
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
    `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
    The hardest stage.

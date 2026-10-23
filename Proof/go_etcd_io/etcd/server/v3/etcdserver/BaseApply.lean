@@ -180,7 +180,12 @@ abbrev rafthttpInit : IProp GF :=
     (∃ v : Loc, globalAddr receivedBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
     (∃ v : Loc, globalAddr recvFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
     (∃ v : Loc, globalAddr sentBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
-    (∃ v : Loc, globalAddr sentFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝))
+    (∃ v : Loc, globalAddr sentFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    -- (2026-10-23, rafthttp stage 4d) the peer status's metric vectors (`metrics.go`)
+    (∃ v : Loc, globalAddr activePeers ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝) ∗
+    (∃ v : Loc, globalAddr disconnectedPeers ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"Local", go!"Remote"]⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit
