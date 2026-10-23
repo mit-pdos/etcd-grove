@@ -48,7 +48,7 @@ theorem NewMemoryStorage.wp_proof
   wp_auto
   iStructNamed «$r0»
   -- the lock's half of `hardState` and its counters (2026-10-12)
-  icases (ptsto_halves _ _).1 $$ hardState with ⟨hardState, HhardState⟩
+  icases (typedPointsto_half_split _ _ 1).1 $$ hardState with ⟨hardState, HhardState⟩
   iStructNamedPrefix callStats "cs_"
   imod ownSlice_persist $$ Hsl with #Hsl
   -- the ghost state: `hist` and `done` at the one state, `ep` arbitrary

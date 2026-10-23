@@ -444,20 +444,6 @@ end defs
 
 /-! ## Lemmas -/
 
-theorem prefix_drop_cons {α : Type} {sent recv rs : List α} {r : α} (hp : recv <+: sent)
-    (hd : sent.drop recv.length = r :: rs) :
-    recv ++ [r] <+: sent ∧ sent.drop (recv ++ [r]).length = rs := by
-  obtain ⟨t, rfl⟩ := hp
-  simp only [List.drop_left] at hd
-  subst hd
-  refine ⟨⟨rs, by simp⟩, ?_⟩
-  simp
-
-theorem prefix_snoc_drop {α : Type} {sent recv : List α} (r : α) (hp : recv <+: sent) :
-    recv <+: sent ++ [r] ∧ (sent ++ [r]).drop recv.length = sent.drop recv.length ++ [r] := by
-  refine ⟨hp.trans (List.prefix_append _ _), ?_⟩
-  exact List.drop_append_of_le_length hp.length_le
-
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

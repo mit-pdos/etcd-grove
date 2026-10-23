@@ -37,11 +37,8 @@ open github_com.mit_pdos.etcd_grove.examples.watchkv
 /-- The program's KV invariant's namespace. -/
 def wkN : Namespace := nroot .@ "watchkv_kv"
 
-theorem wkN_mask : (↑wkN : CoPset) ⊆ (⊤ \ ↑(nroot.@"raft_commit")) \ ↑(nroot.@"server_kv") := by
-  intro p hp
-  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
-  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
-    fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
+theorem wkN_mask : (↑wkN : CoPset) ⊆ (⊤ \ ↑(nroot.@"raft_commit")) \ ↑(nroot.@"server_kv") :=
+  Perennial.mask_ndot_ne2 nroot _ _ _ (by decide) (by decide)
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

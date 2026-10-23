@@ -157,6 +157,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `hash/crc32`'s model, which would make `newKVHasher`, `kvHasher.WriteKeyValue` and `Hash`
   provable); then this repository's `hash` translation goes.
 
+## Landed
+
 ### Std, PostLifting: generic lemmas the client, the cache and the examples each proved a copy of
 
 - **Missing.** Facts about Perennial's and Lean's own definitions, proved in several places here
@@ -169,7 +171,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `getElem?_snoc_cases`, `prefix_drop_cons`, the `crl_*_mid` three, `flatten_getElem?`, ...);
   `GoStringLt` on cons cells (`client/v3/PrefixRange.lean`).
 - **Needed by.** `Proof/go_etcd_io/etcd/{client,cache}/v3/`, `examples/{linkvtxn,lintest}`.
-- **Workaround here.** The local copies stay until the pin moves (CLAUDE.md: no `Proof/Lib`).
+- **Workaround here.** None now (the local copies stayed until the pin moved).
 - **Proposed change.** Perennial branch `dedup-lemmas` (`f97c83add`, off the pin `537c426e0`;
   worktree `/shared/perennial-dd`): `typedPointsto_half_split`/`_half_combine`/`_half_fractional`
   (`Golang/Theory/PostLifting.lean`), `mask_ndot_ne2` (`Std/Namespaces.lean`), the list lemmas
@@ -177,10 +179,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `goStringLt_cons_iff`/`_nil_cons`/`_not_nil` (`Golang/Defn/String.lean`). Theorems only.
   Then, here: each copy deleted and its uses pointed at Perennial's (the `_take_succ` three stay
   one-liners over `foldl_apply_take_succ`: `opFold` and its kin are in specs' statements).
-- **Status.** Branch built (every Perennial module); not landed (landing pushes to GitHub, which
-  this machine cannot reach). Found 2026-10-22.
-
-## Landed
+- **Status.** Landed 2026-10-22: Perennial `lean` `f97c83add`, the pin since; the local copies are
+  deleted (etcd-grove branch `dedup-pin`), their uses pointed at Perennial's (the server's
+  `mask_ndot_ne2` at `nroot` and the three `_take_succ` one-liners over Perennial's; raft's
+  `ptsto_halves` too). Found 2026-10-22.
 
 ### Proof idioms: a synchronous SPSC channel, a thread-token join, a ghost update at a fork
 

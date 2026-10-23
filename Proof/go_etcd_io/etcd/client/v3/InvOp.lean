@@ -434,10 +434,8 @@ attribute [op_simps] opFold OpFull.newOp OpModel.zero opGetModel OpFull.getInit 
 
 theorem opFold_take_succ (gs : List (OpFull → OpFull)) (o : OpFull) (n : Nat)
     (g : OpFull → OpFull) (h : gs[n]? = some g) :
-    opFold (gs.take (n + 1)) o = g (opFold (gs.take n) o) := by
-  unfold opFold
-  rw [List.take_add_one, h]
-  simp
+    opFold (gs.take (n + 1)) o = g (opFold (gs.take n) o) :=
+  foldl_apply_take_succ gs o n g h
 
 end EtcdGrove
 end Perennial

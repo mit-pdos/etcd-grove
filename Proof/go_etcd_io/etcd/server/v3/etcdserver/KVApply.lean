@@ -218,11 +218,8 @@ theorem kvApplied_log (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMode
 
 /-- A namespace `nroot.@x` inside `⊤` without two other ones. -/
 theorem mask_ndot_ne2 (x y z : String) (hxy : x ≠ y) (hxz : x ≠ z) :
-    (↑(nroot.@x) : CoPset) ⊆ (⊤ \ ↑(nroot.@y)) \ ↑(nroot.@z) := by
-  intro p hp
-  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
-  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot hxy p ⟨hp, h'⟩⟩,
-    fun h' => ndot_ne_disjoint nroot hxz p ⟨hp, h'⟩⟩
+    (↑(nroot.@x) : CoPset) ⊆ (⊤ \ ↑(nroot.@y)) \ ↑(nroot.@z) :=
+  Perennial.mask_ndot_ne2 nroot x y z hxy hxz
 
 /-- **A certified log is below the committed KV state** (unit W-M3): the state `σ` of a holder of
 `etcdKV` is the state of the committed raft log's model (the KV invariant's other half), and a

@@ -237,11 +237,8 @@ instance kvAnyAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
 /-- The namespace of a client's invariant holding `etcdKV`. -/
 def kvClientN : Namespace := nroot .@ "kv_client"
 
-theorem kvClientN_mask : (↑kvClientN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
-  intro p hp
-  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
-  exact ⟨⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩,
-    fun h' => ndot_ne_disjoint nroot (by decide) p ⟨hp, h'⟩⟩
+theorem kvClientN_mask : (↑kvClientN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN :=
+  Perennial.mask_ndot_ne2 nroot _ _ _ (by decide) (by decide)
 
 /-- **A client's invariant holding the abstract state** (unit W-M3: with its revision as a
 monotone counter at `γm`, so a revision the client saw is a lower bound of every later state). -/

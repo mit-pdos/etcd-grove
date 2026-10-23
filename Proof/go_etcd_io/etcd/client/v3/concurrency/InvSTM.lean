@@ -246,10 +246,8 @@ def stmOptsFold (gs : List (STMOpts → STMOpts)) (o : STMOpts) : STMOpts :=
 
 theorem stmOptsFold_take_succ (gs : List (STMOpts → STMOpts)) (o : STMOpts) (n : Nat)
     (g : STMOpts → STMOpts) (h : gs[n]? = some g) :
-    stmOptsFold (gs.take (n + 1)) o = g (stmOptsFold (gs.take n) o) := by
-  unfold stmOptsFold
-  rw [List.take_add_one, h]
-  simp
+    stmOptsFold (gs.take (n + 1)) o = g (stmOptsFold (gs.take n) o) :=
+  foldl_apply_take_succ gs o n g h
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]

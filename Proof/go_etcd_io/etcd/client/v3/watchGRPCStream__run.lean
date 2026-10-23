@@ -327,7 +327,7 @@ theorem watchGRPCStream.run.wp_proof
       ipersist ctx; ipersist key; ipersist end'; ipersist createdNotify; ipersist progressNotify
       ipersist fragment; ipersist watchBufLogEnabled; ipersist filters; ipersist prevKV
       ipersist recvc
-      icases client.ptsto_split_half _ _ $$ rev with ⟨Hrev1, Hrev2⟩
+      icases (typedPointsto_half_split _ _ 1).1 $$ rev with ⟨Hrev1, Hrev2⟩
       wp_bind (If _ _ _)
       iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ws_ptr ↦ «$r0_ptr» ∗ ∃ bl : Loc,
           wsF «$r0_ptr» go!"bufLogger" ↦ bl ∗ bufLogOk «$r0_ptr» bl)))
@@ -354,7 +354,7 @@ theorem watchGRPCStream.run.wp_proof
       subst Hv
       wp_auto
       wp_apply (chan.wp_make1 (V := Unit)) as %dnc %γdn ⟨#Hdnc, %-, Hdno⟩
-      icases client.ptsto_split_half_loc _ _ $$ donec with ⟨Hdnf1, Hdnf2⟩
+      icases (typedPointsto_half_split _ _ 1).1 $$ donec with ⟨Hdnf1, Hdnf2⟩
       imod dghostVar_alloc false with ⟨%γx, Hx⟩
       -- (D25) the goroutine's first lifetime: its deposit's flag, `run`'s token
       imod dghostVar_alloc false with ⟨%γt, Hγt⟩
@@ -718,7 +718,7 @@ theorem watchGRPCStream.run.wp_proof
       icases Hel with ⟨%m, %Lm, Hm1, HDn, #HLlb, %HLlen⟩
       iunfold v3rpc.downLbW at HDlb HLlb
       ihave %Hcmp := mono_list_lb_valid _ _ _ $$ HDlb HLlb
-      have HLm : Lm = S.Dm := client.prefix_snoc_eq Hcmp (by simp at HLlen; omega)
+      have HLm : Lm = S.Dm := Perennial.prefix_snoc_eq Hcmp (by simp at HLlen; omega)
       subst HLm
       clear HLlen Hcmp
       irevert HDn

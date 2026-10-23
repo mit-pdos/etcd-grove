@@ -20,20 +20,6 @@ namespace concurrency
 
 /-! ## Prefix ranges -/
 
-theorem goStringLt_cons_iff (x y : w8) (xs ys : GoString) :
-    go.GoStringLt (x :: xs) (y :: ys) ↔ uint.Z x < uint.Z y ∨ (x = y ∧ go.GoStringLt xs ys) := by
-  constructor
-  · intro h; cases h with
-    | cons h => exact Or.inr ⟨rfl, h⟩
-    | rel h => exact Or.inl h
-  · rintro (h | ⟨rfl, h⟩)
-    · exact List.Lex.rel h
-    · exact List.Lex.cons h
-
-theorem goStringLt_nil_cons (x : w8) (xs : GoString) : go.GoStringLt [] (x :: xs) := List.Lex.nil
-
-theorem goStringLt_not_nil (k : GoString) : ¬ go.GoStringLt k [] := by intro h; cases h
-
 theorem w8_eq_of_Z {x y : w8} (h1 : ¬ uint.Z x < uint.Z y) (h2 : ¬ uint.Z y < uint.Z x) : x = y := by
   apply BitVec.eq_of_toNat_eq
   simp only [uint.Z] at h1 h2
@@ -48,15 +34,15 @@ theorem w8_succ (b : w8) (h : b ≠ W8 255) : uint.Z (b + W8 1) = uint.Z b + 1 :
 theorem ff_not_lt_iff (fs k : GoString) (hfs : ∀ x ∈ fs, x = W8 255) :
     ¬ go.GoStringLt k fs ↔ fs <+: k := by
   induction fs generalizing k with
-  | nil => simp [goStringLt_not_nil]
+  | nil => simp [go.goStringLt_not_nil]
   | cons f fs ih =>
     have hf : f = W8 255 := hfs f (by simp)
     have hfs' : ∀ x ∈ fs, x = W8 255 := fun x hx => hfs x (List.mem_cons_of_mem _ hx)
     subst hf
     cases k with
-    | nil => simp [goStringLt_nil_cons]
+    | nil => simp [go.goStringLt_nil_cons]
     | cons d k' =>
-      rw [goStringLt_cons_iff, List.cons_prefix_cons, ← ih k' hfs']
+      rw [go.goStringLt_cons_iff, List.cons_prefix_cons, ← ih k' hfs']
       by_cases hd : d = W8 255
       · subst hd; simp
       · have := w8_lt_ff d hd
@@ -94,9 +80,9 @@ theorem prefix_lt_iff_aux (q : GoString) (b : w8) (fs k : GoString) (hb : b ≠ 
   induction q generalizing k with
   | nil =>
     cases k with
-    | nil => simp [goStringLt_nil_cons]
+    | nil => simp [go.goStringLt_nil_cons]
     | cons d k' =>
-      simp only [List.nil_append, goStringLt_cons_iff, List.cons_prefix_cons, goStringLt_not_nil,
+      simp only [List.nil_append, go.goStringLt_cons_iff, List.cons_prefix_cons, go.goStringLt_not_nil,
         and_false, or_false]
       rw [← ff_not_lt_iff fs k' hfs]
       have hs := w8_succ b hb
@@ -115,9 +101,9 @@ theorem prefix_lt_iff_aux (q : GoString) (b : w8) (fs k : GoString) (hb : b ≠ 
         · exact h h'
   | cons c q ih =>
     cases k with
-    | nil => simp [goStringLt_nil_cons]
+    | nil => simp [go.goStringLt_nil_cons]
     | cons d k' =>
-      simp only [List.cons_append, goStringLt_cons_iff, List.cons_prefix_cons]
+      simp only [List.cons_append, go.goStringLt_cons_iff, List.cons_prefix_cons]
       rw [← ih k']
       constructor
       · rintro ⟨h1, h2⟩

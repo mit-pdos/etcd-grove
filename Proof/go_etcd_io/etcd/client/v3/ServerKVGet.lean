@@ -211,10 +211,6 @@ theorem isPrefixGet_rev (pfx : GoString) (o : OpFull) (hp : o.isPrefixGet pfx = 
   simp only [OpFull.isPrefixGet, decide_eq_true_eq] at hp
   exact hp.2.2.2.2.2.1
 
-theorem zip_get_snd {α β : Type} (a : List α) (b : List β) (i : Nat) (e : α × β)
-    (h : (a.zip b)[i]? = some e) : b[i]? = some e.2 := by
-  rw [List.getElem?_zip_eq_some] at h; exact h.2
-
 section kvs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -402,7 +398,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
         unfold kvValsAt
         iintro !> %i %e %w %He %Hw
         rw [← hkv] at Hw
-        have h1 := zip_get_snd _ _ i e He
+        have h1 := zip_getElem?_snd _ _ i e He
         ihave Hkw := Hall $$ %i %e.2 %w %h1 %Hw
         unfold kvValAt; iunfold txn.kvIs at Hkw; iexact Hkw
       · unfold getRespKvs

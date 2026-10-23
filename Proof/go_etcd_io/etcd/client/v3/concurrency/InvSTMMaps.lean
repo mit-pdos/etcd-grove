@@ -74,18 +74,6 @@ theorem FirstUpTo_final {reads : GMap GoString ReadM} {rsMap : GMap GoString Loc
 
 /-! ## Lists built by appending in a map's order -/
 
-theorem filterMap_take_succ {A B : Type} (f : A → Option B) (l : List A) (n : Nat) (a : A) (b : B)
-    (ha : l[n]? = some a) (hb : f a = some b) :
-    (l.take (n + 1)).filterMap f = (l.take n).filterMap f ++ [b] := by
-  rw [List.take_add_one, ha]
-  simp [List.filterMap_append, hb]
-
-theorem map_take_succ {A B : Type} (f : A → B) (l : List A) (n : Nat) (a : A)
-    (ha : l[n]? = some a) :
-    (l.take (n + 1)).map f = (l.take n).map f ++ [f a] := by
-  rw [List.take_add_one, ha]
-  simp
-
 /-! ## `readSet.add` -/
 
 theorem readsAdd_take_succ (reads : GMap GoString ReadM) (ks : List GoString) (es : List ReadM)

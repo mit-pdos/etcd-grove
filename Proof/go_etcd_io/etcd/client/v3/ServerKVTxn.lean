@@ -154,14 +154,6 @@ theorem runOps_underPfx (pfx : GoString) (r : w64) :
     simp only
     rw [ih]
 
-theorem all_congr_mem {α : Type} (l : List α) (f g : α → Bool) (h : ∀ x ∈ l, f x = g x) :
-    l.all f = l.all g := by
-  induction l with
-  | nil => rfl
-  | cons a l ih =>
-    simp only [List.all_cons, h a List.mem_cons_self,
-      ih (fun x hx => h x (List.mem_cons_of_mem _ hx))]
-
 /-- **A transaction under the prefix, on etcd's state restricted to it**: the same verdict and
 results, the state after it the restriction of the full state's (plain operations). -/
 theorem runTxn_underPfx (pfx : GoString) (r : w64) (s : List EtcdKv) (t : TxnModel)

@@ -31,12 +31,18 @@ audit (section "Pending" below).
 - **C8, checked, left.** `resOfL` and `kvsOfL` are not maps of each other: they read different
   fields of the generated `Output` struct; only their four length lemmas share a proof, and merging
   them would move the work to the call sites.
-- **C3, D: the local copies wait for Perennial.** Step 1's branch is Perennial's `dedup-lemmas`
-  (`notes/perennial-changes.md`, "Std, PostLifting: generic lemmas ..."): C1's half lemmas, C2's
-  `set_length_append_replicate`, C3's `foldl_apply_take_succ`, C4's `mask_ndot_ne2`, D's list and
-  `GoStringLt` lemmas. Not landed (no push from this machine). Found already upstream, and used
-  now: `flatten_length` is Perennial's `join_same_len_length`, `prefix_snoc_cases` Lean's
-  `List.prefix_concat_iff`, leasing's `Qp_half_add` Perennial's.
+- **C1-C4, D, done** (branch `dedup-pin`). Perennial's `dedup-lemmas` landed (`f97c83add`, the pin
+  since; `notes/perennial-changes.md`): C1's `typedPointsto_half_split`/`_half_combine`/
+  `_half_fractional`, C2's `set_length_append_replicate(_pos)`, C3's `foldl_apply_take_succ`, C4's
+  `mask_ndot_ne2`, D's list and `GoStringLt` lemmas. The local copies are deleted and their uses
+  point at Perennial's; `opFold_take_succ`, `stmOptsFold_take_succ`, `cfgApply_take_succ` stay as
+  one-liners (their folds are in specs' statements), as do `crl_set_repl'` and
+  `set_append_replicate` (the `M - k` forms) and the `*_mask` names (one-liners now). Two more
+  copies found on the way: raft's `ptsto_halves` (deleted) and the server's `mask_ndot_ne2` at
+  `nroot` (a one-liner now); raft's `getElem?_snoc_cases` is a stronger statement and stays (the
+  client names Perennial's explicitly). Found already upstream, and used now: `flatten_length` is
+  Perennial's `join_same_len_length`, `prefix_snoc_cases` Lean's `List.prefix_concat_iff`,
+  leasing's `Qp_half_add` Perennial's.
 - **C6, E: not started**, each waiting on the decision the plan names (Perennial's `tokJoin` with owed
   tokens; where the kv model lives; common's parameters).
 

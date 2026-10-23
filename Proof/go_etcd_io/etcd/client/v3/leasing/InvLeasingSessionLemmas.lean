@@ -114,51 +114,6 @@ theorem readyN_le (st : LeaseCacheSt) : st.readyN ≤ 1 := by
 
 /-! ## The session monitor's halves -/
 
-/-- Two halves of a points-to make the whole, with agreement. -/
-theorem loc_halves (l : Loc) (v w : Loc) :
-    typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-      typedPointsto l w (DFrac.own (1 : Qp).half) ⊢ ⌜v = w⌝ ∗ typedPointsto l w (DFrac.own 1) := by
-  iintro ⟨H1, H2⟩
-  icombine H1 H2 gives %Hc
-  obtain ⟨-, rfl⟩ := Hc
-  isplitr
-  · ipureintro; rfl
-  have hf := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hf
-  iapply hf.2
-  iframe
-
-theorem chan_halves (l : Loc) (v w : GoChan) :
-    typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-      typedPointsto l w (DFrac.own (1 : Qp).half) ⊢ ⌜v = w⌝ ∗ typedPointsto l w (DFrac.own 1) := by
-  iintro ⟨H1, H2⟩
-  icombine H1 H2 gives %Hc
-  obtain ⟨-, rfl⟩ := Hc
-  isplitr
-  · ipureintro; rfl
-  have hf := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hf
-  iapply hf.2
-  iframe
-
-theorem loc_split (l : Loc) (v : Loc) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto l v (DFrac.own (1 : Qp).half) ∗ typedPointsto l v (DFrac.own (1 : Qp).half) := by
-  have hf := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hf
-  exact hf.1
-
-theorem chan_split (l : Loc) (v : GoChan) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto l v (DFrac.own (1 : Qp).half) ∗ typedPointsto l v (DFrac.own (1 : Qp).half) := by
-  have hf := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-    (1 : Qp).half (1 : Qp).half
-  rw [Qp.half_add_half] at hf
-  exact hf.1
-
 /-- **The session monitor under the whole lock**: the KV's part for `st` and the monitor's halves
 (`s`, `sc`) give the two fields whole, and the way back for new values `s'` (a session counter not
 going down), `sc'` and a new state `st'` of the log (a step `st → st'`, which may repeat `st`),
@@ -182,8 +137,8 @@ theorem leasingX_monitor_open (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt
   iintro ⟨⟨%x, Hs, Hsc, Hl, %Hlast, Hn, #Hso, #Hsco⟩, Hs2, Hsc2⟩
   obtain ⟨xs, xsc, xl⟩ := x
   simp only at Hlast
-  icases loc_halves _ xs s $$ [$Hs $Hs2] with ⟨%h1, Hs⟩
-  icases chan_halves _ xsc sc $$ [$Hsc $Hsc2] with ⟨%h2, Hsc⟩
+  icases typedPointsto_half_combine _ xs s 1 $$ [$Hs $Hs2] with ⟨%h1, Hs⟩
+  icases typedPointsto_half_combine _ xsc sc 1 $$ [$Hsc $Hsc2] with ⟨%h2, Hsc⟩
   subst h1 h2
   iframe Hs Hsc
   iintro %s' %sc' %st' %Hle #Hso' #Hsco' Hs Hsc
@@ -199,8 +154,8 @@ theorem leasingX_monitor_open (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt
     exact Hlast
   ihave #H1 := monoListIdxOwn_get (xl.length - 1) st hi1' $$ Hlb
   ihave #H2 := monoListIdxOwn_get (xl.length - 1 + 1) st' hi2 $$ Hlb
-  icases loc_split _ s' $$ Hs with ⟨Hs, Hs2⟩
-  icases chan_split _ sc' $$ Hsc with ⟨Hsc, Hsc2⟩
+  icases (typedPointsto_half_split _ s' 1).1 $$ Hs with ⟨Hs, Hs2⟩
+  icases (typedPointsto_half_split _ sc' 1).1 $$ Hsc with ⟨Hsc, Hsc2⟩
   imodintro
   iframe Hs2 Hsc2 Hnlb
   isplitl [Hs Hsc Hl Hn]

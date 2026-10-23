@@ -141,29 +141,12 @@ def leasingXBody (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
 def leasingX (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q : Qp) : IProp GF :=
   iprop(∃ x : Loc × GoChan × List LeaseCacheSt, leasingXBody lkv γ st x q)
 
-/-- A points-to at half the fraction is fractional. -/
-theorem half_pointsto_fractional_loc (l : Loc) (v : Loc) :
-    Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q.half)) where
-  fractional p q := by
-    have h := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-      p.half q.half
-    rw [Qp_half_add]
-    exact h
-
-theorem half_pointsto_fractional_chan (l : Loc) (v : GoChan) :
-    Fractional (fun q : Qp => typedPointsto (GF := GF) l v (DFrac.own q.half)) where
-  fractional p q := by
-    have h := (fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)).fractional
-      p.half q.half
-    rw [Qp_half_add]
-    exact h
-
 theorem leasingXBody_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt)
     (x : Loc × GoChan × List LeaseCacheSt) :
     Fractional (leasingXBody (GF := GF) lkv γ st x) := by
   unfold leasingXBody
-  haveI := half_pointsto_fractional_loc (GF := GF) (structFieldRef leasingKV go!"session" lkv) x.1
-  haveI := half_pointsto_fractional_chan (GF := GF) (structFieldRef leasingKV go!"sessionc" lkv) x.2.1
+  haveI := typedPointsto_half_fractional (GF := GF) (structFieldRef leasingKV go!"session" lkv) x.1
+  haveI := typedPointsto_half_fractional (GF := GF) (structFieldRef leasingKV go!"sessionc" lkv) x.2.1
   infer_instance
 
 instance leasingX_fractional (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) :
