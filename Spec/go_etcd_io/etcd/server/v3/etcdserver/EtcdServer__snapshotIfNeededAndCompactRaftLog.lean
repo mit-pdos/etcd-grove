@@ -35,7 +35,7 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.spec : Prop :=
   loopOk γ st ai →
   1 ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerApplyAll s γr ∗ srvWTPool E.γ γp ∗ srvWTAt γp ai ∗ srvSnapState s ep ms γs ai (W64 0) ∗
+      isServerApplyAll s γr ∗ srvWTPool E γp ∗ srvWTAt γp ai ∗ srvSnapState s ep ms γs ai (W64 0) ∗
       -- (D19i part 1) the storage's floor past the applied index (`raftAdvancedC`'s)
       memFloorAtLeast ms γs (uint.Z ai) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗

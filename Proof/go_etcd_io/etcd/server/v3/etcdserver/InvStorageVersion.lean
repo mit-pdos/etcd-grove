@@ -11,23 +11,27 @@ deletes, `meta/storageVersion`, which since the fork's fix of
 `issues/etcd-backend-duplicate-put-stale-read.md` may be put several times in one session) and
 `Unlock`.
 
-The model admits these writes (`srvSVRes`):
+The model admits these writes (`srvSVRes`, D22 receiver epochs, S7b, 2026-10-23: of whatever backend
+is current, which `applySnapshot` may swap between two sessions):
 
-* `s.be` is the real backend `d.be` for good: `s.be ↦□` (`NewServer` keeps half of the field's
-  points-to out of `s.bemu`'s lock invariant, which holds the other half, `bemuP`), and a reader
-  slot of `s.bemu`;
-* the backend's contract (`isBackend` at the store's late-bound writer resource and some hooks'
-  resource `Pk`), and a read token with an open share (`mvcc.bkRTx`: `ReadTx`'s reads, and the
-  open share `LockOutsideApply` needs);
+* a reader slot of `s.bemu` at its lock invariant over the current backend's ghost variable
+  `E.γbe` (`srvBemuReaderAt`); in a session (under the read lock) `bemuP` gives the current
+  backend `d`: `s.be` holds it, its contract (`srvBeRO`: `isBackend` at the store's late-bound
+  writer resource and some hooks' resource `Pk`), and a part of `E.γbe` at `d`;
+* from the write budget `srvWTPool E` (shared with the apply thread; `start` allocates it and
+  gives it back), which agrees on `d` with that part: the read token of `d` with an open share
+  (`mvcc.bkRTx`: `ReadTx`'s reads, and the open share `LockOutsideApply` needs), checked out for
+  the session (a part of the session's share of `E.γbe` deposited in its place) and checked back
+  in before `RUnlock`, and one write-back token of `d` per `Unlock` (`backend.wbTok`), for a time
+  receipt of a step of that round (`srvWTPool_take_d`, as `apply` does: the pool's count is of
+  all the receipts spent on it, whoever spends them);
 * `meta` is a hook bucket and `storageVersion` not a hook's own key, so the session leaves the
   readers' view and the hook's keys as they were: `Unlock`'s `viewSame` branch gives the
   writer's resource and `Pk` back unchanged;
-* each `Unlock` spends a write-back token (`backend.wbTok`, the store's `storeWT` for
-  `E.γ.kb = some d`), which the monitor takes from the write budget it shares with the apply
-  thread, `srvWTPool E.γ` (`start` allocates it and gives it back; not in `srvSVRes`, which
-  `NewServer` makes), with a time receipt of a step of that round (`srvWTPool_take`, as `apply`
-  does: the pool's count is of all the receipts spent on it, whoever spends them);
 * a reader slot of `s.lgMu` (`s.Logger()`).
+
+Until S7b the monitor held `s.be ↦□` (the backend for good) and the read token of the boot
+backend for good, which `applySnapshot`'s swap refutes.
 
 Not in it (as for the other monitors, `notes/audit.md`): the reads of `s.cluster` (the cluster
 version, the downgrade info: the persistent `isServerReq` in the contract's precondition names
@@ -57,19 +61,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The real backend `be` as the server's `s.be` holds it. -/
-abbrev srvBeIface (be : Loc) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #be
-
-/-- **The storage-version monitor's resources but its write budget** (see the file header): the
-server's backend for good, `s.bemu`'s and `s.lgMu`'s reader slots, and the backend's contract
-with a read token and an open share, for the store's names `γ` (`γ.kb = some d`). -/
-def srvSVRes (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(∃ (d : mvcc.KBReal) (Pk : IProp GF),
-    ⌜γ.kb = some d⌝ ∗
-    srvBeAddr s ↦□ srvBeIface d.be ∗ srvBemuReader s ∗
-    backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ mvcc.bkRTx d.γB d.P d.be ∗
-    srvLgReader s)
+/-- **The storage-version monitor's resources but its write budget** (see the file header): a
+reader slot of `s.bemu` at the current backend's ghost variable `E.γbe`, and one of `s.lgMu`. -/
+def srvSVRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvBemuReaderAt s E.γbe ∗ srvLgReader s)
 
 end defs
 

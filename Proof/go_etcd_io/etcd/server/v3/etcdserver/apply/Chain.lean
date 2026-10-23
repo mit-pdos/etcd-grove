@@ -319,6 +319,9 @@ structure AEnv (GF : BundledGFunctors) where
   store's, the auth store's, the lessor's, the cluster's `SetDowngradeInfo`); the server's is
   `False` -/
   RW : IProp GF
+  /-- (D22 receiver epochs, S7b, 2026-10-23) the server's ghost variable of its current backend
+  (`s.be`'s, `bemuP`), which the apply package does not use (as `γrev`) -/
+  γbe : GName
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of

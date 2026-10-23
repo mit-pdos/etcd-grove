@@ -45,6 +45,35 @@ attribute [irreducible] AlarmStore.ty
 noncomputable def NewAlarmStore [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm.NewAlarmStore"
 
+/-- go: alarms.go:53:22 -/
+noncomputable def AlarmStore.Recover.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "be"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))
+  (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Var "be"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Var "be"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)]))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType AlarmStore.ty) go!"restore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty alarmSet.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"types"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend.ty))) (Pair (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef AlarmStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType AlarmStore.ty)))) (Var "a")))) (Val #()))))))))))
+
 /-- go: alarms.go:95:22 -/
 noncomputable def AlarmStore.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "a"
@@ -205,6 +234,7 @@ class AlarmStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   get_be : ∀ (x : AlarmStore), go.IsGoStepPureDetTagged under (StructFieldGet AlarmStore.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : AlarmStore) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend), go.IsGoStepPureDetTagged under (StructFieldSet AlarmStore.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : AlarmStore)))
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Get" AlarmStore.Get.impl
+  ptr_Recover_unfold : MethodUnfold (go.GoType.PointerType AlarmStore.ty) go!"Recover" AlarmStore.Recover.impl
 
 attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.underlying
@@ -217,6 +247,7 @@ attribute [instance] AlarmStore.TypeAssumptions.type_repr
   AlarmStore.TypeAssumptions.get_be
   AlarmStore.TypeAssumptions.set_be
   AlarmStore.TypeAssumptions.ptr_Get_unfold
+  AlarmStore.TypeAssumptions.ptr_Recover_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BackendGetter_instance : BackendGetter.TypeAssumptions

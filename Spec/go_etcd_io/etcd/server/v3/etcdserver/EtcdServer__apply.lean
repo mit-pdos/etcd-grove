@@ -46,7 +46,7 @@ of its result (`applyEntryNormal`'s `srvAppliedPre`). **The KV model** (2026-10-
 apply thread at the committed raft log `A` through `f0 - 1` (`kvApplied`), the batch committed after
 it (`kvBatch`), at `A ++ ms` after. **The write budget**
 (2026-10-13, unit 6): one write token of the store per entry, spent (a conf change's is wasted);
-since D19b (2026-10-18) taken from the budget `srvWTPool E.γ` with a time receipt of the entry's
+since D19b (2026-10-18) taken from the budget `srvWTPool E` with a time receipt of the entry's
 iteration, until then handed in (`txn.storeWTs E.γ ms.length`). **The stop** (D19m, 2026-10-18): it
 returns `shouldStop = false`, since `applyConfChange` removes no member (`ccApplyOk`), so the
 caller's `stopWithDelay` is never reached. -/
@@ -59,7 +59,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfState ep cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
-      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ γp ∗
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTAt γp (f0 - 1) ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))

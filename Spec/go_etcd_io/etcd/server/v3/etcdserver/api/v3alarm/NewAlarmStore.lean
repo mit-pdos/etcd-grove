@@ -47,7 +47,14 @@ Over an empty alarm bucket (the tracked buckets' half `backend.rbOwn d.γB r` sa
 needs the half, given back with the bucket present and empty), `restore` loads no alarm: the map is empty, and stays so until `Activate`, which only the apply contract calls; so the
 store is fresh (`alarmFresh a`), `Get` returning an empty slice under it, and the apply contract
 is given up for the token. `Activate`/`Deactivate` write a tracked bucket: they take and give back
-the tracked buckets' client half (`srvRestRW d.γB`, the contract's `RW`, D22). -/
+the tracked buckets' client half (`srvRestRW d.γB`, the contract's `RW`, D22).
+
+(D22 receiver epochs, S7c, 2026-10-23) The store's lock holds half of `a.be` (`alarmLockInv`), the
+caller gets the other (`alarmBeOn a d.be`: `ab` wraps `d.be`); `Activate`/`Deactivate` read `a.be`
+under the lock, so they write to the backend the caller's half names: the contract
+(`alarmApplyOk`) is for whichever backend that is, at its batch lock and frozen hook, given a write
+right lending that half; `Recover` (proved, `AlarmStore__Recover.lean`) moves both halves to a new
+backend under the lock. Until S7c the contract was for `d` only, which `Recover` falsifies. -/
 abbrev v3alarm.NewAlarmStore.spec : Prop :=
   ∀ (lg : Loc) (ab : GoInterface) (abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
     (r : GMap GoString backend.BktData),
@@ -66,9 +73,8 @@ abbrev v3alarm.NewAlarmStore.spec : Prop :=
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); backend.bOpen d.γB qo ∗
       backend.rbOwn d.γB (r.insert go!"alarm" ∅) ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil ∧ a ≠ null⌝ ∗ isAlarmStore a ∗
-        alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
-        □ (alarmFresh a -∗ □ ∀ (γ : mvcc.StoreNames) (f : GoFunc), ⌜γ.kb = some d⌝ -∗
-          backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗ apply.isAlarmStore a γ Pk #f (srvRestRW d.γB))) }}
+        alarmBeOn a d.be ∗ alarmFresh a ∗ apply.alarmGetIs a (alarmFresh a) true ∗
+        □ (alarmFresh a -∗ alarmApplyOk a)) }}
 
 end spec
 

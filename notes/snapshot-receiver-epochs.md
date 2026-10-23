@@ -284,6 +284,12 @@ exists only because a reader's slot and token are exclusive, bounded, and must a
     `BuildLemmas`, `NewServer` (+spec), `InvStorageVersion` (+monitor), `EtcdServer__Backend`,
     `InvRead`, `Contracts`, `Chain`, `AuthDerive`, the three constructor specs,
     `EtcdServer__{apply,applyEntryNormal,applyAll,run,start}`, `Results`. About 35 files.
+  *Done 2026-10-23 but the first bullet* (`notes/decisions.md`, "D22 receiver epochs, S7 carried
+  out"): the fields, `bemu`'s ghost variable, the monitor's token in the write budget, and the
+  objects' backend fields as their "on backend `d`" fragments (half the lock's, half the user's,
+  lent by the write right) instead of ghost variables; `AlarmStore.Recover` proved (+1 axiom,
+  `restore`). The apply protocol's physical names (the first bullet) designed there, not done: the
+  old backend's `Close` commits through the shared hooks, which a retired set must allow.
 - **S8. `applySnapshot`'s spec and proof** (S-j2 item 6, unchanged in substance).
   - `s.be` is written under `bemu.Lock`, with the apply thread's half plus `bemuP 1`.
   - `s.uberApply` and `s.alarmStore` are owned points-to.

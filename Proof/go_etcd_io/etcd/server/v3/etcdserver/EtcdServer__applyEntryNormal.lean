@@ -258,7 +258,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   ihave ⟨Hka, #Hkc⟩ := kvAppliedL_cert _ _ _ _ $$ Hka
   have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
+  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, %HE, %HEo, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave ⟨%Hnn, %d, #Hfd, #Hds⟩ := entryAt_fields _ _ $$ He
   ihave %Hdlen := ownSlice_len _ _ _ $$ Hds
@@ -336,12 +336,10 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua', #Hua', HKV, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
-      icombine Hua Hua' gives %Hueq
-      subst Hueq
+      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
-      ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
+      ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
       ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq false
         (Hpe Htyp hdata rq hdec).1 Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
@@ -351,7 +349,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       iapply wp_fupd
       iunfold srvRest at HRS
-      wp_apply hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
+      (try wp_auto)
+      wp_apply hA fv.lg e m ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot x.log
         _ $$ [HKV Hwt HRD HFSE HSpF HRS]
         as %ar %id ⟨HRD, HFS, -, #Har, -, %Hid, %x', %out, HKV, HRS, %Hstep0, -, #Hdel⟩
@@ -371,7 +370,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
       rw [srvRest_apply E γr A m rq false x x' out Htyp hdata hdec HkA.2 (Hpl rq hdata hdec) Hstep]
-      ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
+      ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
       (try wp_auto)
@@ -388,8 +387,10 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       iexists x', out
       iframe Hpre Hka HRS
       isplitl
-      · iunfold srvApplyKV; iexists fv.ua; isplitr; · iexact Hua
+      · iunfold srvApplyKV; iexists ua; isplitl [Hua]; · iexact Hua
+        isplitr; · iexact Happl
         isplitl [HKV]; · iexact HKV
+        isplitl [Hbo]; · iexact Hbo
         isplitl [HRA]; · iexact HRA
         iexists fv.w, RD; iframe Hw Hwok' HRD
       isplitr
@@ -458,12 +459,10 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua', #Hua', HKV, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
-      icombine Hua Hua' gives %Hueq
-      subst Hueq
+      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
-      ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
+      ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
       ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq true
         (Hpe Htyp hdata rq hdec).1 Hoff Htyp
         hdata hdec HkA.2 $$ Hkc
@@ -527,7 +526,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index⌝) else iprop(True)) $$ []
       · simp only [↓reduceIte]; iexact HSp
-      wp_apply hA fv.lg e m fv.ua fv.w true E
+      (try wp_auto)
+      wp_apply hA fv.lg e m ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index⌝)
@@ -578,7 +578,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         · imod skip_done γ st m.index Hp hi hlt $$ Hinv Hst with Hst
           imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; right; rfl
       imod Hj with ⟨%st1, Hst, Happ, Hbe, %hst1⟩
-      ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
+      ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       have hes : entryStep m true x x' out := by
@@ -592,12 +592,14 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut), srvApplyKV s E ρ.wait x'' ∗
           ⌜entryStep m true x x'' out'⌝ ∗ entryDelivered ρ.wait m ot out' ∗
           srvAppliedPre γr v m.index x''.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x'' ∗
-          srvRest E γr (A ++ [m])) $$ [HKV HRD HRA Hpre Hka HRS]
+          srvRest E γr (A ++ [m])) $$ [HKV Hua Hbo HRD HRA Hpre Hka HRS]
       · iexists x', out
         iframe Hpre Hka HRS
         isplitl
-        · iunfold srvApplyKV; iexists fv.ua; isplitr; · iexact Hua
+        · iunfold srvApplyKV; iexists ua; isplitl [Hua]; · iexact Hua
+          isplitr; · iexact Happl
           isplitl [HKV]; · iexact HKV
+          isplitl [Hbo]; · iexact Hbo
           isplitl [HRA]; · iexact HRA
           iexists fv.w, RD; iframe Hw Hwok' HRD
         isplitr

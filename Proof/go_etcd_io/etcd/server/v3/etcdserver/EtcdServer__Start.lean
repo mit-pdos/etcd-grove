@@ -134,7 +134,7 @@ theorem EtcdServer.Start.wp_proof
     · iframe #; iapply srvMonitorPermit_of $$ Hreq
     iapply HΦ'
     try itrivial
-  wp_apply hGA s _ (srvSVRes s E.γ) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
+  wp_apply hGA s _ (srvSVRes s E) $$ [Hgr Hlg Hsv] as ⟨Hgr, Hlg⟩
   · iframe Hgr Hlg Hsv
     iintro !> %Φ' HL HΦ'
     wp_apply hMSV s E { wait := γw, rd := ρ.rd } γp $$ [HL]
