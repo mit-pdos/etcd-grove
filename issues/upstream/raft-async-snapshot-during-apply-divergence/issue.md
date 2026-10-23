@@ -19,6 +19,6 @@ Unit test: [`TestRawNodeAsyncSnapshotDuringApply`](https://github.com/upamanyus/
         	            	actual  : "aba"
 ```
 
-An application avoids this if its append thread waits for its apply thread to finish every earlier `MsgStorageApply` before installing a snapshot. Is that required? If so, `Config.AsyncStorageWrites` should say so. Also, [doc.go's example append thread](https://github.com/etcd-io/raft/blob/1931ff5beacc1e2539003c0c70f096285f04c425/doc.go#L227-L238) only saves the snapshot to storage, and nothing in the example installs it in the state machine: which thread should?
+An application avoids this if its append thread waits for its apply thread to finish every earlier `MsgStorageApply` before installing a snapshot. Is that required? If so, `Config.AsyncStorageWrites` should say so.
 
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
