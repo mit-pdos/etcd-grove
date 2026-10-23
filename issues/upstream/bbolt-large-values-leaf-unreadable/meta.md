@@ -14,7 +14,7 @@
   fix/bbolt-large-values-leaf-unreadable` is clean (16bf905), different files, so no conflict note in the PRs.
   They complement each other: this split cannot help a node of a single inode, so a single entry too large for
   a page needs the sibling's check in `Put`; with both, every page bbolt writes fits in `MaxAllocSize`.
-- **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
+- **Issue form**: bbolt has no issue template; `issue.md` is free-form prose, no headings (the 2026-10-23 review).
 - **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
   etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-large-values-leaf-unreadable push origin
   fix/bbolt-large-values-leaf-unreadable`; then check the issue's test link (`node_test.go#L171-L188`).

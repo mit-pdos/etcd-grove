@@ -1,8 +1,6 @@
 Title: Get panics on values committed together whose sizes add up to more than 2 GiB
 
-### What happened?
-
-On linux/amd64, two values that `Put` accepts and `Commit` stores cannot be read back:
+On `main` (a4ef197), go1.26.9 linux/amd64, default options, two values that `Put` accepts and `Commit` stores cannot be read back:
 
 1. A write transaction creates a bucket, puts two values of 1073741823 bytes (1 GiB − 1) under the keys `a` and `b`, and commits without error.
 2. A read transaction gets `b` from the bucket, and `Get` panics:
@@ -17,15 +15,9 @@ go.etcd.io/bbolt.(*Cursor).seek(0x3be964cc7c90, {0x3be964cc7d04?, 0x5e51ca?, 0x7
 go.etcd.io/bbolt.(*Bucket).Get(0x736fa8?, {0x3be964cc7d04, 0x1, 0x71dae4?})
 ```
 
-The same happens whenever bbolt writes values adding up to more than 2 GiB to one page, as it does for the values of a bucket of up to four keys: the values are committed, and reading them panics.
+The same happens whenever bbolt writes values adding up to more than 2 GiB to one page, as it does for the values of a bucket of up to four keys: the values are committed, and reading them panics. `Get` should return each value committed in step 1.
 
-### What did you expect to happen?
-
-`Get` should return each value committed in step 1.
-
-### How can we reproduce it (as minimally and precisely as possible)?
-
-The test above (about 5 GB of memory), at `main` (a4ef197), in `db_test.go`:
+The test above (about 5 GB of memory), in `db_test.go`:
 
 <details>
 
@@ -68,29 +60,11 @@ func TestDB_HugeValues(t *testing.T) {
 
 </details>
 
-Unit test, without the memory: [`TestNode_split_MaxAllocSize`](https://github.com/upamanyus/bbolt/blob/fix/bbolt-large-values-leaf-unreadable/node_test.go#L171-L188) on branch [`upamanyus/bbolt:fix/bbolt-large-values-leaf-unreadable`](https://github.com/upamanyus/bbolt/tree/fix/bbolt-large-values-leaf-unreadable), off `main` (a4ef197), checks that the leaf holding these two values is split into pages of at most 2147483647 bytes, the largest page `Get` can read. On `main` it fails:
+Without the memory, [`TestNode_split_MaxAllocSize`](https://github.com/upamanyus/bbolt/blob/fix/bbolt-large-values-leaf-unreadable/node_test.go#L171-L188) (branch [`fix/bbolt-large-values-leaf-unreadable`](https://github.com/upamanyus/bbolt/tree/fix/bbolt-large-values-leaf-unreadable)) checks that the leaf holding these two values is split into pages of at most 2147483647 bytes, the largest page `Get` can read. On `main` it fails:
 
 ```
     node_test.go:185: exp<=2147483647; got=2147483710
 --- FAIL: TestNode_split_MaxAllocSize (0.01s)
 ```
 
-### Anything else we need to know?
-
 Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
-
-### bbolt version
-
-<details>
-
-`main` (a4ef197), go1.26.9 linux/amd64.
-
-</details>
-
-### Configuration
-
-<details>
-
-Default options.
-
-</details>

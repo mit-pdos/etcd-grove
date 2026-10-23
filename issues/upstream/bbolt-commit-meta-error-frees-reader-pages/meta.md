@@ -10,10 +10,12 @@
   - `eb2b2e0` tx: keep a failed commit's freed pages pending if its meta is current (`tx.go`)
   - No changelog commit: bbolt's `CHANGELOG/` entries are added in commits of their own, mostly by the
     maintainers after merging (the last 15 changelog commits touch no code but two).
-- **Issue form**: bbolt has no issue template; `issue.md` keeps etcd's sections with a bbolt version section.
-- **State**: draft. The fork `upamanyus/bbolt` does not exist yet (GitHub 404 on 2026-10-21): create it (fork
-  etcd-io/bbolt) before `git -C ~/etcd-fixes/bbolt-commit-meta-error-frees-reader-pages push origin
-  fix/bbolt-commit-meta-error-frees-reader-pages`; then check the issue's test link (`db_whitebox_test.go#L116-L159`).
+- **Issue form**: bbolt has no issue template; `issue.md` is free-form prose, no headings (the 2026-10-23 review).
+  At the user's request (2026-10-23), "Anything else" explains the cause (`rollback` reloading the new meta's
+  freelist), against the skill's symptom-only rule; no code link there (the PR has them), so `check.py` warns
+  (length, the name `rollback`) but does not fail.
+- **State**: filed (2026-10-23): issue etcd-io/bbolt#1311, PR etcd-io/bbolt#1312 (both open), from the fork
+  `upamanyus/bbolt` at `eb2b2e0`; the issue's test link (`db_whitebox_test.go#L116-L159`) checked on GitHub.
 
 ## Commands and results (go1.26.9 linux/amd64)
 

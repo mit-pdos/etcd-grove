@@ -236,6 +236,10 @@ what is left to do:
 6. **[leasing-update-stale](leasing-update-stale.md)**: reported in part, etcd-io/etcd#20704
    (2025-09-23, its bugs 1 and 3 are this finding's cases 3 and 4; cases 1 and 2 are not in it),
    closed by the stale bot, unfixed. Reviving it belongs with the leasing umbrella below.
+7. **[bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)**:
+   reported, etcd-io/bbolt#1311 with our fix PR #1312 (both open, filed 2026-10-23). A `Commit` that
+   fails after its meta page reached the file frees pages an open read transaction still reads (a
+   serializability violation); not reachable through etcd. Left to do: see the PR through review.
 
 Earlier filings of ours that the files link as related but not the finding: etcd-io/etcd#19091 and
 its fix #19092 (2024-12, the leasing session-expiry stale read, closed unmerged; linked from
@@ -343,8 +347,8 @@ tx")`), bounds requests at 1.5 MiB by default and uses the default page size, so
 reaches etcd. For bbolt's own maintainers the order would be:
 [bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)
 (MVCC broken after an I/O error, for any user that keeps the `DB` after a failed `Commit`;
-reproduced, small fix; still on bbolt `main` 2026-10-21; **to file now** (the user's decision,
-2026-10-21): bbolt's own failpoint `beforeWriteMetaError` tests this rollback path but fires before
+reproduced, small fix; filed 2026-10-23 as etcd-io/bbolt#1311 with PR #1312, see "Filed by
+us"; bbolt's own failpoint `beforeWriteMetaError` tests this rollback path but fires before
 the meta reaches the file, which is the case missed), [bbolt-max-value-size-unusable](bbolt-max-value-size-unusable.md)
 (values `Put` accepts make data unreadable; reproduced; the 256 MB variant, etcd-io/bbolt#931,
 was fixed; candidate drafted 2026-10-23), [bbolt-large-values-leaf-unreadable](bbolt-large-values-leaf-unreadable.md)
