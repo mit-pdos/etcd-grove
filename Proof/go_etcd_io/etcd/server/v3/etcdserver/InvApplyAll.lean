@@ -38,8 +38,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-abbrev srvBemuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"bemu" s
-abbrev srvBeAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"be" s
 abbrev srvForceSnapAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"forceDiskSnapshot" s
 abbrev epDiskSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"diskSnapshotIndex" ep
 abbrev epMemSnapAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"memorySnapshotIndex" ep
@@ -55,11 +53,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `s.bemu`'s lock invariant at fraction `q`: `s.be`, at half the fraction (D19i part 2: the
-other half of the field is `↦□`, `NewServer`'s, so the backend `s.be` holds is known for good;
-`InvStorageVersion.lean`). -/
-def bemuP (s : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ b : GoInterface, srvBeAddr s ↦{DFrac.own q.half} b)
+/-- `s.bemu`'s lock invariant at fraction `q`: `s.be` at half the fraction, holding the real
+backend `d`, the current backend's ghost variable `γbe` at `d` at half the fraction, and
+`d`'s persistent facts (`srvBeRO`). (D22 receiver epochs, S7b, 2026-10-23: the other half of `s.be`
+and a quarter of `γbe` are the apply thread's, `srvBeOwn`, a quarter of `γbe` the write budget's,
+`srvWTPool`; `applySnapshot` holds all of them to swap the backend. Until then (D19i part 2) the
+other half of `s.be` was `↦□`, `NewServer`'s, so the backend was known for good, which
+`applySnapshot`'s store refutes.) -/
+def bemuP (s : Loc) (γbe : GName) (q : Qp) : IProp GF :=
+  iprop(∃ d : mvcc.KBReal, srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be ∗
+    dghostVar γbe (DFrac.own q.half) d ∗ srvBeRO d)
 
 /-- The namespace of `s.inflightSnapshots`'s invariant. -/
 def srvInflightN : Namespace := nroot .@ "etcdserver_inflight_snapshots"
@@ -74,9 +77,16 @@ def srvInflight (s : Loc) : IProp GF :=
 instance srvInflight_persistent (s : Loc) : Persistent (srvInflight (GF := GF) s) := by
   unfold srvInflight; infer_instance
 
-/-- **A reader slot of `s.bemu`** (the apply thread's, for `Backend`). -/
+/-- **A reader slot of `s.bemu`** at its lock invariant over the current backend's ghost variable
+`γbe` (D22 receiver epochs, S7b: the apply thread's, for `Backend` and, for `applySnapshot`, the
+lock's write side; the storage-version monitor's, `srvSVRes`). -/
+def srvBemuReaderAt (s : Loc) (γbe : GName) : IProp GF :=
+  sync.ownRWMutex (srvBemuAddr s) (bemuP s γbe)
+
+/-- **A reader slot of `s.bemu`** (for `Backend`: the quota checks' and `v3rpc.Server`'s), at
+some current backend's ghost variable. -/
 def srvBemuReader (s : Loc) : IProp GF :=
-  sync.ownRWMutex (srvBemuAddr s) (bemuP s)
+  iprop(∃ γbe : GName, srvBemuReaderAt s γbe)
 
 /-- **The server, as `applyAll` sees it** (persistent; see the file header). -/
 def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=

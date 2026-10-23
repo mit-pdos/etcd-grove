@@ -156,7 +156,8 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
     γ := { idx := idx, bucket := 0, clog := 0, leases := 0, revs := 0, hook := 0, hookFn := 0,
            kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0⟩, cok := cok, watchQ := false },
     P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authOn := false,
-    FS := iprop(True), ciC := fun _ => True, RO := fun _ => iprop(True), RW := iprop(True) }
+    FS := iprop(True), ciC := fun _ => True, RO := fun _ => iprop(True), RW := iprop(True),
+    γbe := 0 }
 
 /-- **What member `id`'s `NewServer` takes of the ghost state** (its pure facts, the cluster's
 resources at its names, its share): `NewServer.spec`'s precondition but the network's and the
@@ -195,7 +196,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvWatchBuilt s E ∗
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud) γrn b (W64 0)
       (W64 0) (W64 0) bootKV N ∗
-    srvServeBuilt s E cfg 64 ∗ srvSVRes s E.γ ∗ srvMonitorsOff s ∗ srvLgReader s ∗
+    srvServeBuilt s E cfg 64 ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
     srvNetMember γn s id ∗ srvWatchReaders s E 64)
 
 /-- **A member started** (`Start`'s success from `memberBuilt`): the server `s` started with its

@@ -336,7 +336,8 @@ theorem EtcdServer.apply.wp_proof
     iapply wp_value'
     -- (2026-10-19, D21 M3) the token's count, past the entry's index
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
-    imod srvWTPool_take_at E.γ γp aw (by have := hma; word) $$ HWP Hr HWA with ⟨Hwt, #HWA1⟩
+    imod srvWTPool_take_at s E γp ρ.wait xj aw (by have := hma; word) $$ HWP Hr HWA HKV
+      with ⟨Hwt, #HWA1, HKV⟩
     ihave #HWA2 : srvWTAt γp m.index $$ []
     · rw [show m.index = aw + W64 1 by
         apply BitVec.eq_of_toNat_eq

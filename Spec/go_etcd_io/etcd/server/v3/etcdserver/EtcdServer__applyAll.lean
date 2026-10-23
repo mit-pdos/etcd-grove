@@ -38,7 +38,7 @@ ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV
 `snapshot`/`compactRaftLog` contracts), and a pending merged-snapshot request on `msgSnapC`
 (names-only contracts). The apply thread's resources come back at `ai'`, with `loopOk`. **The
 write budget** (the backend's unit 6, merged 2026-10-13): `applyEntries`' one write token of the
-store per entry above `ai`, from the budget `srvWTPool E.γ` (D19b, 2026-10-18; until then
+store per entry above `ai`, from the budget `srvWTPool E` (D19b, 2026-10-18; until then
 `txn.storeWTs E.γ (unapplied ai ms).length`, handed in). **The KV model**
 (2026-10-14, unit T1): as `applyEntries` (`kvApplied`, `kvBatch`). (D22 S-h, 2026-10-20, S-0's
 amendment) The applied term: `ep.appliedt` the last applied entry's term, unchanged with none
@@ -64,8 +64,8 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       taNotifycAddr ap ↦□ nc ∗ isUnitBag nc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E.γ γp ∗ srvWTAt γp ai ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
+      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTAt γp ai ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
@@ -73,7 +73,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
+        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
         srvWTAt γp ai' ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗

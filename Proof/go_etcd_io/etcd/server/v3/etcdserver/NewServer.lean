@@ -136,19 +136,31 @@ instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) :=
       icombine H1 H2 gives %H
       ipureintro; exact H)
 
-/-- `bemu`'s resource is fractional (for `sync.init_RWMutex`). -/
-instance bemuP_fractional (s : Loc) : Fractional (bemuP (GF := GF) s) := by
+/-- `bemu`'s resource is fractional (for `sync.init_RWMutex`); (D22 receiver epochs, S7b) the
+witnesses agree by the current backend's ghost variable. -/
+instance bemuP_fractional (s : Loc) (γbe : GName) : Fractional (bemuP (GF := GF) s γbe) := by
   unfold bemuP
-  exact fractional_exists_agree
-    (fun (b : GoInterface) q => iprop(srvBeAddr s ↦{DFrac.own q.half} b))
-    (fun b => ⟨fun q1 q2 => by
+  have h1 : ∀ d : mvcc.KBReal, Fractional (fun q : Qp =>
+      iprop(srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be)) := fun d =>
+    ⟨fun q1 q2 => by
       rw [show (q1 + q2).half = q1.half + q2.half from Subtype.ext (by grind)]
       exact (fractional_of_dfractional
-        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) b dq)).fractional q1.half q2.half⟩)
+        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) (srvBeIface d.be) dq)).fractional
+          q1.half q2.half⟩
+  have h2 : ∀ d : mvcc.KBReal, Fractional (fun q : Qp =>
+      dghostVar (GF := GF) γbe (DFrac.own q.half) d) := fun d =>
+    ⟨fun q1 q2 => by
+      rw [show (q1 + q2).half = q1.half + q2.half from Subtype.ext (by grind)]
+      exact (dghostVar_fractional (GF := GF) γbe d).fractional q1.half q2.half⟩
+  have h3 : ∀ d : mvcc.KBReal, Fractional (fun _ : Qp => srvBeRO (GF := GF) d) := fun d =>
+    persistent_fractional
+  exact fractional_exists_agree
+    (fun (d : mvcc.KBReal) q => iprop(srvBeAddr s ↦{DFrac.own q.half} srvBeIface d.be ∗
+      dghostVar γbe (DFrac.own q.half) d ∗ srvBeRO d))
+    (fun d => @fractional_sep _ _ _ _ (h1 d) (@fractional_sep _ _ _ _ (h2 d) (h3 d)))
     (fun x y q1 q2 => by
-      iintro ⟨H1, H2⟩
-      icombine H1 H2 gives %H
-      ipureintro; exact H)
+      iintro ⟨⟨-, H1, -⟩, ⟨-, H2, -⟩⟩
+      iapply dghostVar_agree γbe x _ y _ $$ H1 H2)
 
 -- (2026-10-22) the unused-variables linter walks the proof's info tree: 30s of this module's
 -- CPU (on the build's critical path)
@@ -551,6 +563,15 @@ theorem NewServer.wp_proof
   imod mvcc.storeReader_retire kst γw.st _ ow $$ Hlc2 Hs Hpinw HwrA with ⟨HrtA, Hpinw⟩
   ihave Hkvw : txn.kvWriter kst γw.st [[], []] $$ [Hkvw0 Hkvw1 Hpinw]
   · iunfold txn.kvWriter; iframe Hkvw0 Hkvw1; iunfold mvcc.writerFrag; iexists ow; iexact Hpinw
+  -- (D22 receiver epochs, S7b) the current backend's ghost variable, at the real backend: half
+  -- `bemu`'s lock invariant's, a quarter the apply thread's, a quarter the write budget's
+  imod (dghostVar_alloc (GF := GF) d) with ⟨%γbe, Hγbe⟩
+  icases (dghostVar_split (GF := GF) γbe d (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half))
+    $$ [Hγbe] with ⟨Hγbm, Hγbe⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
+  icases (dghostVar_split (GF := GF) γbe d (DFrac.own (1 : Qp).half.half)
+      (DFrac.own (1 : Qp).half.half)) $$ [Hγbe] with ⟨HγbA, HγbW⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
   -- `newCorruptionChecker(lg, srv, srv.kv.HashStorage())`
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty)
     (m := go!"HashStorage")]
@@ -846,7 +867,7 @@ theorem NewServer.wp_proof
     rw [Qp.half_add_half] at h
     exact wand_entails h
   have hγs : envAgree (GF := GF)
-      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ E₀ :=
+      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ E₀ :=
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started
   ispecialize Htstart $$ %([] : List w64) Htlive
@@ -864,7 +885,7 @@ theorem NewServer.wp_proof
     iexact H
   -- the indices
   imod (srvIndices_alloc s
-      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ ρ.rd ⊤
+      ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ ρ.rd ⊤
       (by rw [HρRaft]))
     $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
     with ⟨#Hai, Haown, #Hal0, #Hcmi, Hcmown, #Hti⟩
@@ -894,14 +915,15 @@ theorem NewServer.wp_proof
   icases sync.ownRWMutex_slots_guard _ _ $$ Hltslots with ⟨Hltslots, #Hltg⟩
   -- (D19g (b)) `leadTimeMu`'s reader slots for request goroutines
   icases replicate_takeN _ 64 _ (by omega) $$ Hltslots with ⟨Hlts, -⟩
-  -- (D19i part 2) half of `s.be` kept out of `bemu`, for good: the storage version monitor's
+  -- (D22 receiver epochs, S7b) half of `s.be` the apply thread's (`srvBeOwn`); until then (D19i
+  -- part 2) kept out of `bemu` for good, the storage version monitor's
   icases (typedPointsto_dfractional (GF := GF) (srvBeAddr s) (srvBeIface d.be)).dfractional
-      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) |>.1 $$ [be] with ⟨be, beSV⟩
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) |>.1 $$ [be] with ⟨be, beA⟩
   · rw [DFrac.op_own, Qp.half_add_half]; iexact be
-  imod (typedPointsto_dfractional (GF := GF) (srvBeAddr s) (srvBeIface d.be)).dfractional_persist _
-    $$ beSV with #beSV
-  imod sync.init_RWMutex (bemuP s) (E := ⊤) (srvBemuAddr s) $$ [be] bemu with Hbmslots
-  · inext; iunfold bemuP; iexists _; iexact be
+  imod sync.init_RWMutex (bemuP s γbe) (E := ⊤) (srvBemuAddr s) $$ [be Hγbm] bemu with Hbmslots
+  · inext; iunfold bemuP; iexists d
+    iframe be Hγbm
+    iunfold srvBeRO; iexists batchLockInv γA (metaTM d.γB d.P); iexact HB
   icases replicate_take1 _ _ hM1 $$ Hbmslots with ⟨Hbmr, Hbmslots⟩
   -- (D19g (b)) `v3rpc.Server`'s reader slot of `bemu`
   icases replicate_take1 _ _ (by omega) $$ Hbmslots with ⟨Hbmr2, Hbmslots⟩
@@ -1004,10 +1026,15 @@ theorem NewServer.wp_proof
   ipersist EnableDistributedTracingS
   ipersist TracerOptionsS
   ipersist MaxConcurrentStreamsS
+  -- (S7b) the request path's `bemu` reader slots, at some current backend's ghost variable
+  ihave Hbmr2 : srvBemuReader (GF := GF) s $$ [Hbmr2]
+  · iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact Hbmr2
+  ihave Hbms := replicate_mono _ (srvBemuReader (GF := GF) s) 64
+    (by iintro H; iunfold srvBemuReader; iexists γbe; iunfold srvBemuReaderAt; iexact H) $$ Hbms
   ihave Hserve : srvServeBuilt s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF)
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ : apply.AEnv GF)
       cfg 64 $$ [WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms]
-  · unfold srvServeBuilt srvServeFacts srvServeCfg srvBemuReader srvLeadTimeReader
+  · unfold srvServeBuilt srvServeFacts srvServeCfg srvLeadTimeReader
     isplitr
     · isplitr
       · iexists ws, γw
@@ -1017,17 +1044,11 @@ theorem NewServer.wp_proof
     iframe WatchProgressNotifyIntervalS Hbmr2 Hlts Hlgs HRDs Hsrs Hbms
   -- (D19i part 2) the storage version monitor's read token, with an open share
   -- (D19i part 2) the storage version monitor's backend access
-  ihave HSV : srvSVRes s γw.st $$ [HbmSV HrtSV HlgSV]
-  · unfold srvSVRes srvBemuReader
-    iexists d, batchLockInv γA (metaTM d.γB d.P)
-    iframe beSV HbmSV HlgSV HB
-    isplitr
-    · ipureintro; exact Hγw.2.2.1
-    ihave HrtSV : mvcc.kbRT (GF := GF) (some d) $$ [HrtSV]
-    · rw [← Hγw.2.2.1]; iexact HrtSV
-    unfold mvcc.bkRTx
-    iunfold mvcc.kbRT at HrtSV
-    iexact HrtSV
+  ihave HSV : srvSVRes s
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ : apply.AEnv GF)
+      $$ [HbmSV HlgSV]
+  · unfold srvSVRes srvBemuReaderAt
+    iframe HbmSV HlgSV
   -- (D21 M5) the server is member `id` of the network: `RaftHandler`'s premise
   ihave #Hnm : srvNetMember γn s id $$ []
   · iunfold srvNetMember
@@ -1038,7 +1059,7 @@ theorem NewServer.wp_proof
     iframe Htrall Htrr
   -- (2026-10-20, watchkv) the watchable store's reader slots for the watch service
   ihave HWR : srvWatchReaders s
-      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF)
+      (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ : apply.AEnv GF)
       64 $$ [Hwrx]
   · unfold srvWatchReaders
     iexists ws, γw
@@ -1051,7 +1072,7 @@ theorem NewServer.wp_proof
   isplitr
   · ipureintro; rfl
   iexists γA, cil, metaTM d.γB d.P,
-    (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF),
+    (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ : apply.AEnv GF),
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface)
   iframe Hgap Hserve HSV HMon Hnm HWR
@@ -1092,7 +1113,7 @@ theorem NewServer.wp_proof
     iframe #
     isplitr
     · have hff : srvFloorFact (GF := GF)
-          ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ =
+          ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ =
           srvFloorFact E₀ := by
         funext a b c; unfold srvFloorFact; simp only [Hγw.2.2.2.1]
       rw [hff]; iexact Hgen
@@ -1171,9 +1192,9 @@ theorem NewServer.wp_proof
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr Hrev Haown Hkhi2 forceDiskSnapshot Hrbo Hmem]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev Haown Hkhi2 forceDiskSnapshot Hrbo Hmem]
   · -- `Happ`
-    unfold applyBuiltNA srvBemuReader
+    unfold applyBuiltNA srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
     iframe Hthr Happ Hlr5 Hbmr Haown forceDiskSnapshot
     isplitr
@@ -1183,6 +1204,8 @@ theorem NewServer.wp_proof
     isplitl [Hown]
     · unfold applyBackend
       iframe Hown Hmeta
+    isplitl [beA HγbA]
+    · iunfold srvBeOwn; iexists d; iframe beA HγbA; ipureintro; exact Hγw.2.2.1
     isplitl [Hrev]
     · unfold revAuth
       iexists ∅
@@ -1221,8 +1244,16 @@ theorem NewServer.wp_proof
     iexists _, rv
     iframe #
   -- `HWB`: the stores' write budget
-  isplitl [Hwts]
-  · iexact Hwts
+  isplitl [Hwts HγbW HrtSV]
+  · iunfold srvWTStock; iexists d
+    isplitr
+    · ipureintro; exact Hγw.2.2.1
+    iframe Hwts HγbW
+    ihave HrtSV : mvcc.kbRT (GF := GF) (some d) $$ [HrtSV]
+    · rw [← Hγw.2.2.1]; iexact HrtSV
+    unfold mvcc.bkRTx
+    iunfold mvcc.kbRT at HrtSV
+    iexact HrtSV
   -- the lifetime premises (D17): `storeSmall` at the store's names (`E₀`'s index names), the id
   -- supply from the time-receipt bound (D19b), the thread bound; `ClusterVersion()` from the cluster's
   -- `Version` contract
@@ -1246,7 +1277,7 @@ theorem NewServer.wp_proof
     intro st; unfold stLoaded; split
     · rename_i h; cases st; simp only at h; subst h; simp [hm0]
     · rfl
-  ihave #Hbo : apply.backendOptsOk (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF) uopts $$ []
+  ihave #Hbo : apply.backendOptsOk (⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ : apply.AEnv GF) uopts $$ []
   · obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9, Hu10, Hu11, Hu12⟩ := Huopts
     iunfold apply.backendOptsOk
     simp only
@@ -1330,7 +1361,7 @@ theorem NewServer.wp_proof
       · iintro %w ⟨HΦ', %Hw, HP⟩
         subst Hw
         iapply HΦ' $$ HP
-  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB⟩ : apply.AEnv GF) [] Hbo
+  ihave Hul := Hulate $$ %(⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, false, srvFS s, srvCiC γA cil, srvRestOwn d.γB bc.cl', srvRestRW d.γB, γbe⟩ : apply.AEnv GF) [] Hbo
   · ipureintro; rfl
   icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
   obtain ⟨hns, hcr⟩ := Hz trivial

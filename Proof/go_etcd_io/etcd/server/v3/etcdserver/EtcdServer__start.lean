@@ -397,9 +397,9 @@ theorem EtcdServer.start.wp_proof
     iexact Hcancel
   -- the apply thread's resources
   iunfold applyBuilt at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, Hao,
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo, ⟨%ua, Hua, #Hfor, Hkv⟩, HRA, Hao,
     #Hlog, Hkr, Hfs⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hua Hkv HRA Hao Hfs Hwg1 HRD Hkr]
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hbo Hua Hkv HRA Hao Hfs Hwg1 HRD Hkr]
   · iunfold applyStart
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog Hkr
@@ -413,6 +413,8 @@ theorem EtcdServer.start.wp_proof
     · iexact Hfor
     isplitl [Hkv]
     · iexact Hkv
+    isplitl [Hbo]
+    · iexact Hbo
     isplitl [HRA]
     · iexact HRA
     iexists w, RD
@@ -422,7 +424,7 @@ theorem EtcdServer.start.wp_proof
     · iapply isWait_waitOk $$ Hwait
     iexact HRD
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
-  imod srvWTPool_alloc E.γ N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
   wp_apply wp_fork $$ [Hsnap Hloop Happly Hrdone Hcomm Hdc Hclose Hstart Hlr]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
@@ -501,7 +503,7 @@ theorem EtcdServer.start.wp_proof
   · rw [← HEr.2]
     iapply isReadRaft_of_raftNode hRSt hRI Er γn (srvRAddr s) $$ [$Hpkg $Hrn]
   icases replicate_take1 _ _ (by have := sync.actualMaxReaders_ge_2; omega) $$ Hlcslots with ⟨Hlc1, Hlcslots⟩
-  ihave #HWBx : iprop(∃ γp, srvWTPool (GF := GF) E.γ γp) $$ []
+  ihave #HWBx : iprop(∃ γp, srvWTPool (GF := GF) E γp) $$ []
   · iexists γp; iexact HWB
   iapply HΦ
   iexists γw

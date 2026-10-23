@@ -216,9 +216,9 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNA applyBuilt
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hra, Hao, Hal, Hkr, Hfs⟩
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hlg Hbm Hra Hao Hal Hkr Hfs
+  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hfs
   isplitr
   · ipureintro; exact Hok
   iexists ua
