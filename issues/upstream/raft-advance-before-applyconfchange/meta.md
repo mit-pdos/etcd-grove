@@ -71,14 +71,14 @@ this fix.
 
 ## Other candidates
 
-- **`raft-snapshot-during-apply-stale-confchange`** (draft, off 1931ff5, fix 9dc2d50, no changelog commit since
+- **`raft-snapshot-during-apply-stale-confchange`** (draft, off c51f010, fix 2425490, no changelog commit and no `AsyncStorageWrites` hold since
   2026-10-23): independent bug (it needs no
   lag: a faithful application, a snapshot stepped between `Ready` and `ApplyConfChange`) and independent fix
   (`handleSnapshot` defers a snapshot while `applying > applied`). The two fit together: that fix's meta says it
   "assumes conf changes are applied before `Advance`, as doc.go's example loop does"; this PR makes that the
   documented rule, so the case it leaves uncovered becomes a misuse. The ranking's "the track patch fixes it too"
   applies to the `track` patch (alternative (b) below), which this candidate does not take, so the snapshot
-  candidate is still needed. No conflict: `git merge-tree --write-tree` of this branch with 9dc2d50 and with
+  candidate is still needed. No conflict: `git merge-tree --write-tree` of this branch with 9dc2d50 (whose `raft.go` 2425490 keeps; not rerun) and with
   `raft-async-snapshot-during-apply-divergence`'s b60b90c is clean (2026-10-23; this PR touches only comments,
   in `raft.go` the `Config.AsyncStorageWrites` one). Not mentioned in either PR (not a split).
 - Also clean against `fix/raft-memorystorage-initialstate-unlocked`; against `fix/raft-confstate-unknown-fields-panic`
