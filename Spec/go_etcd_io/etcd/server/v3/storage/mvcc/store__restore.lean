@@ -6,6 +6,7 @@ Lean-first (no Rocq counterpart); see `InvStore.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IdxPriv
 
 @[expose] public section
 
@@ -28,18 +29,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 log `[[], []] ++ R` (`bucketView γ q (bucketMap _)`, read-only; D22 S-g, 2026-10-19: until then
 only an empty bucket, `R = []`), returning `nil`.
 
-* **The index** (`isTreeIndex ti γ.idx`, empty) is rebuilt from the bucket (`restoreIntoIndex`,
-  per change): `restoreIdxPre`/`restoreIdxPost`, the writer's handle at the log `[[], []] ++ R`
-  with a time receipt per change (D22h restated: `restore`'s own steps pay for the image's
-  changes). With `R = []` the bucket is empty, nothing is read and the index is not touched.
+* **The index** is rebuilt from the bucket (`restoreIntoIndex`, per change) while it is private
+  (`ownIdxPriv`, as `newTreeIndex` returns it: the goroutine updates key indexes outside the tree's
+  lock; the restore plan's R3 design point), then made a lock-protected index (`isTreeIndex`,
+  with every reader's token: `idx_publish`) at the log `[[], []] ++ R`: the lock's ghost part
+  (`idxLockG`), the writer's handle and the caller's half of the committed log's authority, at
+  `[[], []]`, come back at that log, with its certificate; the handle holds a time receipt per
+  change (D22h restated: `restore`'s own steps pay for the image's changes, one per entry the
+  goroutine takes).
 * **`currentRev`** is stored the last revision seen (`restoreIntoIndex` sends it through its
   channel; `1` if none: the log's last, as every revision of `R` has an entry, `restoreLogOk`),
-  under `s.revMu`, locked and unlocked fresh (back at its zero value). With `R = []` the store of
-  `1` is modelled as no write and `NewStore` holds only half of `currentRev` here (`qc`; the
-  batch lock holds the other half since `NewStore`'s first `tx.Unlock()`, as the writers'
-  resource; in the code the write is protected by `s.mu` held exclusively, which the model's
-  `s.mu`, holding nothing, does not express); with data the write changes the value, so the
-  whole of it is taken.
+  under `s.revMu`, locked and unlocked while it is private memory (back at its zero value,
+  `PlainRWMutex.lean`); the whole of `currentRev` is taken (until 2026-10-23, with `R = []`, only
+  half, the store of `1` modelled as no write: unprovable, `notes/restore-plan.md`, R4).
 * **No compaction** is found (`kbNoCmp`, the backend records none: D19l (v) (A), in place of the
   opaque premise `backendNoCompaction`; consumed): `compactMainRev` stays `-1` and no compaction
   is resumed (`compactLockfree` is not called). An unfinished compaction (scheduled above the
@@ -50,11 +52,11 @@ only an empty bucket, `R = []`), returning `nil`.
 * **No lease** is attached (`restoreLogOk`: no put with a lease, so `keyToLease` stays empty and
   `s.le` is not called). -/
 abbrev mvcc.store.restore.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q qc : Qp) (P : IProp GF)
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (HF : val → IProp GF) (RT WT W Wi Dep : IProp GF) (Cmp : Prop)
     (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop) (R : mvcc.Log)
     (dqb dqi : DFrac),
-  mvcc.restoreLogOk R → (R.isEmpty = false → qc = 1) →
+  mvcc.restoreLogOk R →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       s.[store, go!"b"] ↦{dqb} b ∗
       mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) W Wi Dep Cmp P HF ∗
@@ -62,17 +64,21 @@ abbrev mvcc.store.restore.spec : Prop :=
       mvcc.bucketView γ q (mvcc.bucketMap ([[], []] ++ R)) ∗
       s.[store, go!"kvindex"] ↦{dqi}
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-      mvcc.isTreeIndex ti γ.idx ∗ mvcc.restoreIdxPre γ.idx R ∗
+      mvcc.ownIdxPriv ti [] ∗ mvcc.idxLockG γ.idx 0 ∗ mvcc.idxWriter γ.idx [[], []] [] ∗
+      mvcc.idxLogAuth γ.idx (1 : Qp).half [[], []] ∗
       s.[store, go!"le"] ↦□ le ∗ s.[store, go!"lg"] ↦□ lg ∗
       ⌜lg ≠ null⌝ ∗
-      s.[store, go!"currentRev"] ↦{DFrac.own qc} (W64 1 : w64) ∗
+      s.[store, go!"currentRev"] ↦ (W64 1 : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
       s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"restore")) (Val #()))
   {{ RET #GoInterface.nil; mvcc.bucketView γ q (mvcc.bucketMap ([[], []] ++ R)) ∗
-      mvcc.restoreIdxPost γ.idx R ∗
-      s.[store, go!"currentRev"] ↦{DFrac.own qc}
-        (W64 (((([[], []] ++ R).length : Nat) : Int) - 1) : w64) ∗
+      mvcc.isTreeIndex ti γ.idx ∗
+      ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+        mvcc.idxReader ti γ.idx) ∗
+      mvcc.idxWriter γ.idx ([[], []] ++ R) [] ∗ mvcc.idxLogAuth γ.idx (1 : Qp).half ([[], []] ++ R) ∗
+      mvcc.idxCert γ.idx ([[], []] ++ R) ∗
+      s.[store, go!"currentRev"] ↦ (W64 (((([[], []] ++ R).length : Nat) : Int) - 1) : w64) ∗
       s.[store, go!"compactMainRev"] ↦ (W64 (-1) : w64) ∗
       s.[store, go!"revMu"] ↦ (zero_val sync.RWMutex) ∗
       s.[store, go!"b"] ↦{dqb} b ∗

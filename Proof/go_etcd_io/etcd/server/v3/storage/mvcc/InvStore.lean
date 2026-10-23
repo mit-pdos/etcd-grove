@@ -3956,34 +3956,6 @@ theorem restoreLogOk_len {R : Log} (h : restoreLogOk R) :
   simp only [List.length_cons, List.length_nil]
   omega
 
-/-- **What `restore` takes of the index** for the revisions `R`: nothing for none (the `Key`
-bucket is empty, `restore` reads nothing, as in `NewStore`, whose index writer is under the batch
-lock by then); else the index writer's handle at `NewStore`'s log with no pending change and the
-other half of the committed log's authority (the caller's: a store whose writer resource is not
-yet in its backend's batch lock, as after `Restore`'s `newTreeIndex`). -/
-def restoreIdxPre (γ : IdxNames) (R : Log) : IProp GF :=
-  if R.isEmpty then iprop(True)
-  else iprop(idxWriter γ [[], []] [] ∗ idxLogAuth γ (1 : Qp).half [[], []])
-
-/-- **What `restore` gives back of the index** for the revisions `R`: nothing for none; else the
-index rebuilt at the log `[[], []] ++ R` (`restoreIntoIndex`'s `put`/`tombstone`/`restore` and
-`Insert` per change, under the index's lock): the writer's handle there, with a time receipt per
-change (D22h restated, D22 S-g: each change is put into the index by a step of `restore`'s
-goroutine, whose receipt `restore` takes, as `treeIndex.Put`/`Tombstone` do per change for a
-write transaction: so the restored log, made by other members' writes, is bounded by this
-member's own steps, and `idxSealed`'s `logCh log < receiptBound` holds of it), the committed
-log's authority's other half and the index's certificate of the log. -/
-def restoreIdxPost (γ : IdxNames) (R : Log) : IProp GF :=
-  if R.isEmpty then iprop(True)
-  else iprop(idxWriter γ ([[], []] ++ R) [] ∗ idxLogAuth γ (1 : Qp).half ([[], []] ++ R) ∗
-    idxCert γ ([[], []] ++ R))
-
-@[simp] theorem restoreIdxPre_nil (γ : IdxNames) :
-    restoreIdxPre (GF := GF) γ [] = iprop(True) := by unfold restoreIdxPre; simp
-
-@[simp] theorem restoreIdxPost_nil (γ : IdxNames) :
-    restoreIdxPost (GF := GF) γ [] = iprop(True) := by unfold restoreIdxPost; simp
-
 end reprs
 
 section hookLc
