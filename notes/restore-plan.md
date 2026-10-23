@@ -178,6 +178,12 @@ nothing (`kbNoCmp`), so `compactMainRev` stays `-1` and no compaction is resumed
      (`UnsafeRange(Key, min, max, restoreChunkKeys)`); `keyRangeReadSpec` has limit `0` only.
      Proposed: quantify it over the limit, the answer the first `limit` entries if positive
      (`takeLimit`); the bridge's cursor lemmas already have the limit (`cursorRange_window`).
+     *But* the real read is a prefix only when the read buffer has no entry in the range: with
+     `n` buffered entries it returns bbolt's first `limit - n`, then the buffer's
+     (`issues/etcd-unsafe-range-limit-buffer.md`). So the limited contract needs a premise the
+     backend's abstraction does not have yet ("nothing buffered in the `Key` bucket", true at
+     `restore`: `NewStore` wrote no key, a snapshot's backend is fresh), e.g. a token of the
+     store's backend that the batch lock's first `Unlock` with puts consumes.
    - **(R4c) the compaction keys under a key read transaction.** `restore` calls
      `UnsafeReadFinishedCompact`/`UnsafeReadScheduledCompact` on its `ReadTx`, whose specs need
      `metaReadSpec`, which only the compaction's `metaReadTx` has. Proposed: `keyReadLocked` also
