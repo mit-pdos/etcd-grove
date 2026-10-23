@@ -116,6 +116,15 @@ instance membershippb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.membershippb :=
   build_get_is_pkg_init_wf
 
+-- `protoreflect` (names only), before `authpb`, whose translation imports it (the auth plan's S1,
+-- 2026-10-23: `authpb`'s messages and getters are translated with bodies, `authpb.toml`).
+instance protoreflect_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  define_is_pkg_init iprop(True)
+instance protoreflect_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
+  build_get_is_pkg_init_wf
+
 instance authpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   define_is_pkg_init iprop(True)
 instance authpb_get_is_pkg_init_wf_inst :
@@ -454,15 +463,8 @@ instance zap_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap :=
   build_get_is_pkg_init_wf
 
--- protobuf's `proto` (`clientv3.cloneCompare` calls `proto.Clone`) and `protoreflect`, which
--- it imports (names only).
-instance protoreflect_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  define_is_pkg_init iprop(True)
-instance protoreflect_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect :=
-  build_get_is_pkg_init_wf
-
+-- protobuf's `proto` (`clientv3.cloneCompare` calls `proto.Clone`; names only; `protoreflect`,
+-- which it imports, is above `authpb`).
 instance proto_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.protobuf.proto :=
   define_is_pkg_init iprop(True)
 instance proto_get_is_pkg_init_wf_inst :

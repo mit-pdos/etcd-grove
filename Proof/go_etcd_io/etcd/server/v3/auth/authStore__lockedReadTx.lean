@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.lockedReadTx.wp_proof :
     auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG) := by
-  intro st R
+  intro st R M
   wp_start as ⟨#Hinv, Hrd, HR⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -47,12 +47,12 @@ theorem auth.authStore.lockedReadTx.wp_proof :
   iunfold authReadTxOk at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Tk, #HRL, #HUG, #HRU⟩
+  icases Htx with ⟨%Hs, #HRL, #Hreads⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
   iapply HRL $$ HR
   inext
-  iintro Htok
+  iintro ⟨%sta, Htok, #Hsnap⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hbe] as Hrd
   · inext; iunfold beP; iexists _; iframe Hbe; iexact Hbeok
@@ -63,7 +63,7 @@ theorem auth.authStore.lockedReadTx.wp_proof :
   iexists ti
   isplitr
   · ipureintro; rfl
-  iexists Tk
+  iexists sta, Hs
   iframe Htok
   iframe #
 

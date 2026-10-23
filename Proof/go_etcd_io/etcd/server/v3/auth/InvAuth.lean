@@ -19,23 +19,31 @@ P2)".
   freshly built trees).
 
 **Contracts** (the store calls them through interfaces; not yet proved of the real objects):
-- the backend `be` (`authBackendOk be R`: schema's `authBackend` in the server): `ReadTx()`
-  returns a transaction whose `RLock()` turns the caller's read resource `R` into a held token,
-  which `UnsafeGetUser(name)` keeps and `RUnlock()` turns back into `R` (the backend's own read
-  transaction needs a reader slot, `backend.rdTok`, hence `R`);
+- the backend `be` (`authBackendOk be R M`: schema's `authBackend` in the server): `ReadTx()`
+  returns a transaction whose `RLock()` turns the caller's read resource `R` into the held token
+  of a state `st` of the mode `M` (`authSnap`, `Buckets.lean`; the auth plan's S1, 2026-10-23:
+  until then the token held no state), under which `UnsafeGetUser(name)`/`UnsafeGetRole(name)`
+  return the state's user/role (`userOut`/`roleOut`), `UnsafeReadAuthEnabled()`/
+  `UnsafeReadAuthRevision()` its flag and revision, and which `RUnlock()` turns back into `R` (the
+  backend's own read transaction needs a reader slot, `backend.rdTok`, hence `R`); schema's
+  `authReadTx` meets it over the buckets (`etcdserver/InvAuthBackend.lean`, `authBucketsAre`);
 - the token provider (`tokenProviderOk`): `info(ctx, token, rev)` returns an auth info (nil, or
   one with read-only fields) and a boolean;
 - each cached tree (`ivtQuery`): `Intersects` and `Contains` of a bytes-affine interval return,
   keeping the interval's slices (the tree's proof, `adt.ownIvt`, covers string-affine intervals
   only).
 
-**The readers** (`authRd as R`): `IsAuthEnabled` read-locks `enabledMu` and the permission checks
+**The mode** `M` (`AuthMode`, `Model.lean`) of the store's contract: what the backend's states are
+(`authSnap`); the request side's specs are proved for every mode (their verdicts are track S's).
+
+**The readers** (`authRd as R M`): `IsAuthEnabled` read-locks `enabledMu` and the permission checks
 also `rangePermCacheMu` and `beMu`, each needing a reader slot (`sync.ownRWMutex`: Perennial bounds
 an `RWMutex`'s readers), and the backend's read transaction needs `R`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
+public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
 
 @[expose] public section
@@ -118,30 +126,55 @@ def cacheP (st : Loc) (q : Qp) : IProp GF :=
   iprop(∃ (mp : GoMap) (M : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q} mp ∗
     mp ↦${DFrac.own q} M ∗ [∗map] _u ↦ p ∈ M, permsOk p)
 
-/-- **The backend's read transaction** `tx` (an `AuthReadTx`, not nil; a contract) for the read
-resource `R`: `RLock()` turns `R` into a held token `H`, which `UnsafeGetUser(name)` keeps (and
-returns a user or nil) and `RUnlock()` turns back into `R`. -/
-def authReadTxOk (tx : GoInterface) (R : IProp GF) : IProp GF :=
-  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ H : IProp GF,
-    □ ({{ R }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #())) {{ RET #(); H }}) ∗
-    □ (∀ name : GoString,
-      {{ H }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
-      {{ (u : Loc), RET #u; H }}) ∗
-    □ ({{ H }} (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #())) {{ RET #(); R }}))
+/-- **The transaction's reads under the held token** `Hs st` of the state `st` (the shared part of
+`authReadTxOk` and `authReadTxLocked`): `UnsafeGetUser(name)` and `UnsafeGetRole(name)` return
+the state's user and role (`userOut`, `roleOut`: nil if none, else the message, owned),
+`UnsafeReadAuthEnabled()` its flag, `UnsafeReadAuthRevision()` its revision, each keeping the
+token, and `RUnlock()` turns the token back into `R`. -/
+def authTxReads (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthState → IProp GF) : IProp GF :=
+  iprop(□ (∀ (st : AuthState) (name : GoString),
+      {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
+      {{ (u : Loc), RET #u; Hs st ∗ userOut u st name }}) ∗
+    □ (∀ (st : AuthState) (name : GoString),
+      {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #name))
+      {{ (r : Loc), RET #r; Hs st ∗ roleOut r st name }}) ∗
+    □ (∀ st : AuthState,
+      {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeReadAuthEnabled" ti.v)) (Val #()))
+      {{ (b : Bool), RET #b; Hs st ∗ ⌜b = st.enabled⌝ }}) ∗
+    □ (∀ st : AuthState,
+      {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
+      {{ (x : w64), RET #x; Hs st ∗ ⌜uint.nat x = st.revision⌝ }}) ∗
+    □ (∀ st : AuthState,
+      {{ Hs st }} (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #())) {{ RET #(); R }}))
 
-instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) :
-    Persistent (authReadTxOk (GF := GF) tx R) := by
+instance authTxReads_persistent (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthState → IProp GF) :
+    Persistent (authTxReads (GF := GF) ti R Hs) := by
+  unfold authTxReads; infer_instance
+
+/-- **The backend's read transaction** `tx` (an `AuthReadTx`, not nil; a contract) for the read
+resource `R` in the mode `M`: `RLock()` turns `R` into the held token `Hs st` of a state `st` of
+the mode (`authSnap M st`), under which its reads are the state's (`authTxReads`) and which
+`RUnlock()` turns back into `R`. (The auth plan's S1, 2026-10-23; until then: a token holding no
+state, `UnsafeGetUser` returning any pointer.) -/
+def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
+  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
+    □ ({{ R }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+      {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st }}) ∗
+    authTxReads ti R Hs)
+
+instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) (M : AuthMode) :
+    Persistent (authReadTxOk (GF := GF) tx R M) := by
   unfold authReadTxOk; infer_instance
 
 /-- **The auth backend** `be` (an `AuthBackend`, not nil; a contract): `ReadTx()` returns a read
-transaction (`authReadTxOk`) for `R`. -/
-def authBackendOk (be : GoInterface) (R : IProp GF) : IProp GF :=
+transaction (`authReadTxOk`) for `R` in the mode `M`. -/
+def authBackendOk (be : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜be = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-      {{ (tx : GoInterface), RET #tx; authReadTxOk tx R }}))
+      {{ (tx : GoInterface), RET #tx; authReadTxOk tx R M }}))
 
-instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) :
-    Persistent (authBackendOk (GF := GF) be R) := by
+instance authBackendOk_persistent (be : GoInterface) (R : IProp GF) (M : AuthMode) :
+    Persistent (authBackendOk (GF := GF) be R M) := by
   unfold authBackendOk; infer_instance
 
 /-- **The token provider** `tp` (a `TokenProvider`, not nil; a contract): `info(ctx, token,
@@ -162,34 +195,33 @@ instance tokenProviderOk_persistent (tp : GoInterface) :
 of `be` is the store's user's, the server's apply thread, `authBeOn`, which `Recover` takes with
 the write lock; so the user's half names the backend the store's writes go to. Until then `beMu`
 held all of it.) -/
-def beP (st : Loc) (R : IProp GF) (q : Qp) : IProp GF :=
-  iprop(∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R)
+def beP (st : Loc) (R : IProp GF) (M : AuthMode) (q : Qp) : IProp GF :=
+  iprop(∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own q.half} be ∗ authBackendOk be R M)
 
-/-- **A locked read transaction** `tx` for the read resource `R` (what `lockedReadTx` returns):
-its held token `H`, which `UnsafeGetUser(name)` keeps and `RUnlock()` turns back into `R`. -/
-def authReadTxLocked (tx : GoInterface) (R : IProp GF) : IProp GF :=
-  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ H : IProp GF, H ∗
-    □ (∀ name : GoString,
-      {{ H }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
-      {{ (u : Loc), RET #u; H }}) ∗
-    □ ({{ H }} (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #())) {{ RET #(); R }}))
+/-- **A locked read transaction** `tx` for the read resource `R` in the mode `M` (what
+`lockedReadTx` returns): the held token `Hs sta` of a state `sta` of the mode, under which its
+reads are the state's (`authTxReads`) and which `RUnlock()` turns back into `R`. -/
+def authReadTxLocked (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
+  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
+    ∃ (sta : AuthState) (Hs : AuthState → IProp GF), Hs sta ∗ authSnap M sta ∗ authTxReads ti R Hs)
 
 /-- The invariant of `revision` (an atomic). -/
 def revInv (st : Loc) : IProp GF :=
   iprop(∃ r : w64, aF go!"revision" st ↦ r)
 
-/-- **The auth store** at `as` (persistent), its backend's read resource `R`: the atomic
-`revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` with its contract, and
-the guards of its three locks (`beMu`'s holds `be` with its contract). -/
-def authInv (st : Loc) (R : IProp GF) : IProp GF :=
+/-- **The auth store** at `as` (persistent), its backend's read resource `R`, its mode `M`: the
+atomic `revision`'s invariant, the read-only `lg` (not nil) and `tokenProvider` with its contract,
+and the guards of its three locks (`beMu`'s holds `be` with its contract in the mode). -/
+def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(⌜st ≠ null⌝ ∗ inv (nroot.@"authRev") (revInv st) ∗
     (∃ lg : Loc, aF go!"lg" st ↦□ lg ∗ ⌜lg ≠ null⌝) ∗
-    sync.isRWMutexGuard (aF go!"beMu" st) (beP st R) ∗
+    sync.isRWMutexGuard (aF go!"beMu" st) (beP st R M) ∗
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st) ∗
     sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st))
 
-instance authInv_persistent (st : Loc) (R : IProp GF) : Persistent (authInv (GF := GF) st R) := by
+instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
+    Persistent (authInv (GF := GF) st R M) := by
   unfold authInv; infer_instance
 
 /-- A reader slot of `enabledMu` (`IsAuthEnabled`). -/
@@ -201,12 +233,12 @@ def cacheRd (st : Loc) : IProp GF :=
   sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st)
 
 /-- A reader slot of `beMu` (`lockedReadTx`). -/
-def beRd (st : Loc) (R : IProp GF) : IProp GF :=
-  sync.ownRWMutex (aF go!"beMu" st) (beP st R)
+def beRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
+  sync.ownRWMutex (aF go!"beMu" st) (beP st R M)
 
 /-- **A permission check's reader resource**: a slot of each lock and the backend's `R`. -/
-def authRd (st : Loc) (R : IProp GF) : IProp GF :=
-  iprop(enabledRd st ∗ cacheRd st ∗ beRd st R ∗ R)
+def authRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
+  iprop(enabledRd st ∗ cacheRd st ∗ beRd st R M ∗ R)
 
 /-- `err` is `nil` or one of the error variables the request side returns. -/
 def authErrIs (err : GoInterface) : IProp GF :=

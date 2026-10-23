@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.authInfoFromToken.wp_proof
     (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG)) :
     auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) := by
-  intro st R ctx token
+  intro st R M ctx token
   wp_start as #Hinv
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
@@ -37,7 +37,7 @@ theorem auth.authStore.authInfoFromToken.wp_proof
   icases Htpok with ⟨%ti, %Hti, #Hinfo⟩
   subst Hti
   (try wp_auto)
-  wp_apply (h_Revision st R) $$ [$Hinv] as %rev -
+  wp_apply (h_Revision st R M) $$ [$Hinv] as %rev -
   (try wp_auto)
   wp_apply Hinfo as %a %ok Ha
   iapply HΦ

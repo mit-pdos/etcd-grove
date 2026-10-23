@@ -25,9 +25,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.isRangeOpPermitted(user, key, rangeEnd, permtyp)` (read-locks `rangePermCacheMu`): some boolean; the slices kept. -/
 
 abbrev auth.authStore.isRangeOpPermitted.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (user : GoString) (key re : GoSlice) (k e : List w8) (dk de : DFrac)
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (user : GoString) (key re : GoSlice) (k e : List w8) (dk de : DFrac)
     (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R ∗ cacheRd st ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ cacheRd st ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ ⌜permTypOk pt⌝ ∗
       ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
     (App (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"isRangeOpPermitted")) (Val #user)) (Val #key)) (Val #re)) (Val #pt))
   {{ (b : Bool), RET #b; cacheRd st ∗ key ↦*{dk} k ∗ re ↦*{de} e }}

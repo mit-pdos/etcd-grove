@@ -1,6 +1,13 @@
 # Plan: specifying and proving etcd's authentication and authorization (auth, RBAC)
 
-**Status.** A0 carried out (2026-10-23, branch `auth-a0`; `notes/decisions.md`, "A0 of the auth
+**Status.** S1 carried out (2026-10-23, branch `auth-s1`; `notes/decisions.md`, "S1 of the auth plan"):
+`authpb` translated as data (`authpb.toml`), schema's auth backend translated and its read side
+proved over the buckets (`etcdserver/InvAuthBackend.lean`: `authReader`/`authRTx`/`authBE`,
+`authBucketsAre`; `auth/Buckets.lean`: the records, `userOut`/`roleOut`, `authSnap`), the store's
+contract `authReadTxOk` returning the model's state in the mode `M`, which now threads through
+`authInv` and the 13 request-side specs; +2 trust-boundary axioms (`proto.Unmarshal` on `User` and
+`Role`); not done: `GetAllUsers` (no `UnsafeForEach` spec), the write side (S4), the derivation of
+`authReadTxOk` from schema's proofs (S4). A0 carried out (2026-10-23, branch `auth-a0`; `notes/decisions.md`, "A0 of the auth
 plan"): the model `Proof/go_etcd_io/etcd/server/v3/auth/Model.lean` (`AuthState`, `permitted`,
 `adminOk`, the history `authHist`/`authStateAt`, the mode `AuthMode` with `off`/`any`/`on γa`, the
 verdicts `permVerdict`/`adminVerdict`/`enabledVerdict`/`revisionVerdict`), the contracts
@@ -8,7 +15,7 @@ verdicts `permVerdict`/`adminVerdict`/`enabledVerdict`/`revisionVerdict`), the c
 `notes/auth-matrix.md`. What differed from the plan: the verdicts are two one-directional facts
 over recorded states, not `↔` at one state (the checks' own TOCTOU, decisions); the history is
 indexed by position, not by the auth revision (`AuthEnable` does not bump it); `isReqAuth` is
-untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). S1 started in parallel (branch `auth-s1`); S2 to S5, A2 to A4, E not started. Prompted by etcd-io/etcd#22595 (the
+untouched (the token binding is S5's). A1 carried out 2026-10-23 (branch `auth-a1`: the class statement for the verified checks and the API-layer handlers, `apply/AuthClass.lean`; the method-level statement is its follow-up, `notes/decisions.md`, "A1 of the auth plan"). S1 carried out 2026-10-23 (branch `auth-s1`: `authpb` as data, schema's auth backend's read side proved over the buckets, the store's contract with the mode, two `proto.Unmarshal` sibling axioms; `notes/decisions.md`, "S1 of the auth plan"); S2 to S5, A2 to A4, E not started. Prompted by etcd-io/etcd#22595 (the
 proposal to revert Auth to Beta: "the feature was never really finished", a stream of security
 reports) and #22540 / PR #22541 (an "auth matrix" test: every gRPC method on the client port
 classified public / authenticated / RBAC / admin and probed with no token, an invalid token and an
@@ -209,9 +216,10 @@ the repository has; S3 says what "permitted" is.
    (`notes/auth-matrix.md`, from PR #22541's list, re-derived from the handlers at the pin rather
    than copied), the contracts' restatement with the oracle (D-AU2), gates unchanged (the
    examples run with `enabled = false`).
-2. S1 in `auth/store`: `authpb.toml` as `raftpb`'s; `schema/auth*.go` translated with bodies;
-   `unsafeGetUser` proved; `authInv` gains the authority `γa` and the backend contract becomes
-   "the buckets hold `st.users`/`st.roles`".
+2. S1 in `auth/store` (done 2026-10-23): `authpb.toml` as `raftpb`'s; `schema/auth*.go`
+   translated with bodies; the read side proved; `authInv` takes the mode and the backend contract
+   returns the state (`authReadTxOk`), "the buckets hold `st.users`/`st.roles`" being
+   `authBucketsAre` (the derivation through it is S4's).
 3. A1 on the KV handlers, in parallel.
 
 ## Go findings to expect

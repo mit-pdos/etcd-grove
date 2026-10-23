@@ -218,6 +218,8 @@ public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
+public import Proof.google_golang_org.protobuf.proto.UnmarshalRole
+public import Proof.google_golang_org.protobuf.proto.UnmarshalUser
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
@@ -242,6 +244,19 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ReadTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RLock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RUnlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthRevision
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetRole
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetUser
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__CloseNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__GetTo
@@ -879,6 +894,14 @@ theorem os.wp_Rename :
     os.Rename.spec (GF := GF) (hG := hG) :=
   os.Rename.wp_proof
 
+theorem proto.wp_UnmarshalRole :
+    proto.UnmarshalRole.spec (GF := GF) (hG := hG) :=
+  proto.UnmarshalRole.wp_proof
+
+theorem proto.wp_UnmarshalUser :
+    proto.UnmarshalUser.spec (GF := GF) (hG := hG) :=
+  proto.UnmarshalUser.wp_proof
+
 theorem schema.wp_MustUnsafeSaveConfStateToBackend :
     schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
   schema.MustUnsafeSaveConfStateToBackend.wp_proof
@@ -886,6 +909,58 @@ theorem schema.wp_MustUnsafeSaveConfStateToBackend :
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
+
+theorem schema.authBackend.wp_ReadTx :
+    schema.authBackend.ReadTx.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.ReadTx.wp_proof
+
+theorem schema.authReadTx.wp_RLock :
+    schema.authReadTx.RLock.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.RLock.wp_proof
+
+theorem schema.wp_unsafeGetRole :
+    schema.unsafeGetRole.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetRole.wp_proof proto.wp_UnmarshalRole
+
+theorem schema.authReadTx.wp_UnsafeGetRole :
+    schema.authReadTx.UnsafeGetRole.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeGetRole.wp_proof schema.wp_unsafeGetRole
+
+theorem schema.authReadTx.wp_RUnlock :
+    schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.RUnlock.wp_proof
+
+theorem schema.authBackend.wp_GetRole :
+    schema.authBackend.GetRole.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.GetRole.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetRole schema.authReadTx.wp_RUnlock
+
+theorem schema.wp_unsafeGetUser :
+    schema.unsafeGetUser.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetUser.wp_proof proto.wp_UnmarshalUser
+
+theorem schema.authReadTx.wp_UnsafeGetUser :
+    schema.authReadTx.UnsafeGetUser.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeGetUser.wp_proof schema.wp_unsafeGetUser
+
+theorem schema.authBackend.wp_GetUser :
+    schema.authBackend.GetUser.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.GetUser.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetUser schema.authReadTx.wp_RUnlock
+
+theorem schema.wp_unsafeReadAuthEnabled :
+    schema.unsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.unsafeReadAuthEnabled.wp_proof
+
+theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
+    schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
+
+theorem schema.wp_unsafeReadAuthRevision :
+    schema.unsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.unsafeReadAuthRevision.wp_proof binary.bigEndian.wp_Uint64
+
+theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
+    schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
 
 theorem snap.Snapshotter.wp_DBFilePath :
     snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG) :=

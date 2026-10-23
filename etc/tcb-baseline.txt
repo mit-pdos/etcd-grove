@@ -505,6 +505,8 @@ axiom proto.SizeMessage.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom proto.UnmarshalConfChange.wp_proof
 axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom proto.UnmarshalRole.wp_proof
+axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.Transport.AddPeer.wp_proof
 axiom rafthttp.Transport.AddRemote.wp_proof
 axiom rafthttp.Transport.CutPeer.wp_proof

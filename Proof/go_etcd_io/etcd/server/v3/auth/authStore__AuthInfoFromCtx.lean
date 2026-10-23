@@ -39,7 +39,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
-  intro st R ctx
+  intro st R M ctx
   wp_start as ⟨#Hinv, Hen⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -53,7 +53,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   wp_auto
-  wp_apply (h_IsAuthEnabled st R) $$ [$Hinv $Hen] as %en Hen
+  wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en Hen
   cases en
   · wp_auto
     iapply HΦ
@@ -104,7 +104,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
     · iframe Hts; ipureintro; exact hv0
     wp_apply strings.wp_TrimPrefix
     (try wp_auto)
-    wp_apply (h_authInfoFromToken st R) $$ [$Hinv] as %ai %uok Hai
+    wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok Hai
     cases uok
     · (try wp_auto)
       wp_apply h_redactToken _ as %fp -
@@ -160,7 +160,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       · iframe Hts; ipureintro; exact hv0
       wp_apply strings.wp_TrimPrefix
       (try wp_auto)
-      wp_apply (h_authInfoFromToken st R) $$ [$Hinv] as %ai %uok Hai
+      wp_apply (h_authInfoFromToken st R M) $$ [$Hinv] as %ai %uok Hai
       cases uok
       · (try wp_auto)
         wp_apply h_redactToken _ as %fp -

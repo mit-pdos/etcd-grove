@@ -11,6 +11,27 @@ schema_ReadConsistentIndex: schema_UnsafeReadConsistentIndex
 schema_unsafeUpdateConsistentIndex: binary_bigEndian__PutUint64 verify_Verify schema_UnsafeReadConsistentIndex
 schema_UnsafeUpdateConsistentIndex: schema_unsafeUpdateConsistentIndex
 schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
+# schema's auth backend, the read side (server/storage/schema/auth.go, auth_users.go, auth_roles.go;
+# the auth plan's S1, 2026-10-23), see etcdserver/InvAuthBackend.lean. The trust boundary:
+# proto.Unmarshal on authpb.User and authpb.Role (the encodings opaque, auth/Buckets.lean).
+# bytes.Equal is Perennial's. Not linked: unsafeGetAllUsers (backend.UnsafeForEach has no spec),
+# unsafeGetAllRoles (a range of a non-safe bucket: only a batch transaction may do it,
+# issues/etcd-auth-readtx-getallroles-panics.md), the batch-transaction methods (the admin side, S4).
+proto_UnmarshalUser:
+proto_UnmarshalRole:
+schema_unsafeReadAuthEnabled:
+schema_unsafeReadAuthRevision: binary_bigEndian__Uint64
+schema_unsafeGetUser: proto_UnmarshalUser
+schema_unsafeGetRole: proto_UnmarshalRole
+schema_authReadTx__UnsafeReadAuthEnabled: schema_unsafeReadAuthEnabled
+schema_authReadTx__UnsafeReadAuthRevision: schema_unsafeReadAuthRevision
+schema_authReadTx__UnsafeGetUser: schema_unsafeGetUser
+schema_authReadTx__UnsafeGetRole: schema_unsafeGetRole
+schema_authReadTx__RLock:
+schema_authReadTx__RUnlock:
+schema_authBackend__ReadTx:
+schema_authBackend__GetUser: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetUser schema_authReadTx__RUnlock
+schema_authBackend__GetRole: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetRole schema_authReadTx__RUnlock
 # The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
 NewConsistentIndex:
 consistentIndex__SetConsistentIndex:

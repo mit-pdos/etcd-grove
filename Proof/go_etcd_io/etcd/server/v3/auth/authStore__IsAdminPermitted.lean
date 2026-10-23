@@ -32,7 +32,7 @@ theorem auth.authStore.IsAdminPermitted.wp_proof
     (h_lockedReadTx : auth.authStore.lockedReadTx.spec (GF := GF) (hG := hG))
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG)) :
     auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) := by
-  intro st R a info dq
+  intro st R M a info dq
   wp_start as ⟨#Hinv, Hrd, Ha⟩
   iunfold authRd at Hrd
   icases Hrd with ⟨Hen, Hca, Hbr, HR⟩
@@ -54,7 +54,7 @@ theorem auth.authStore.IsAdminPermitted.wp_proof
   icases Hinv' with ⟨%Hst, -, -, -, -, -, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply (h_IsAuthEnabled st R) $$ [$Hinv $Hen] as %en Hen
+  wp_apply (h_IsAuthEnabled st R M) $$ [$Hinv $Hen] as %en Hen
   cases en
   · wp_auto
     iapply HΦ
@@ -79,16 +79,18 @@ theorem auth.authStore.IsAdminPermitted.wp_proof
     iexists ErrUserEmpty, eUE
     iframe HeUEa
     ipureintro; simp
-  wp_apply (h_lockedReadTx st R) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
+  wp_apply (h_lockedReadTx st R M) $$ [$Hinv $Hbr $HR] as %tx ⟨Hbr, Htx⟩
   iunfold authReadTxLocked at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%Tk, Htok, #HUG, #HRU⟩
+  icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
+  iunfold authTxReads at Hreads
+  icases Hreads with ⟨#HUG, -, -, -, #HRU⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #info.Username'))
   iapply HUG $$ Htok
   inext
-  iintro %u Htok
+  iintro %u ⟨Htok, -⟩
   ihave Ha : a ↦{dq} info $$ [Username Revision]
   · iapply typedPointsto_combine a info dq Hann
     simp only [TypedPointsto.typedPointstoDef]

@@ -16635,3 +16635,76 @@ column is a theorem of the pin rather than a reading of it.
 
 **Next:** the method-level statement above; A4 (the watch shapes over `isWatchPermitted`'s new
 conjunct); A2's handlers.
+
+## S1 of the auth plan: `authpb` as data, schema's auth backend proved over the buckets, the store's contract with the mode (2026-10-23 · `notes/auth-plan.md`, branch `auth-s1`)
+
+**Problem.** The auth store's request side (unit P2) is proved against a contract on the backend's
+read transaction (`authReadTxOk`) that promised nothing of what `UnsafeGetUser` returns, over an
+axiomatized `authpb.User`; the auth buckets were untranslated; and the mode `A0` introduced
+(`AuthMode`) reached the apply layer's contract only. Track S needs the backend's reads to return
+the model's state, so that S3 can re-prove the checks to compute `permitted`.
+
+**Decisions.**
+
+- **`authpb` is translated as `raftpb` was** (`Code/go_etcd_io/etcd/api/v3/authpb.toml`): the
+  messages' types and getters and the enum's `Enum()` with bodies, the protobuf plumbing
+  (`ProtoReflect`, `Descriptor`, `Reset`, `String`, `ProtoMessage`, the enum's `Type`/`Number`/
+  `EnumDescriptor`, the file descriptor, `init`) and the enum's name maps (`Permission_Type_name`/
+  `_value`: map literals nothing reads; keeping them out spares the initializer proof) names
+  only. Its initializer proof is generated as before (`opaqueInitsOk`, `initFuncsOk`); the
+  cache's `Base.lean` declares `protoreflect`'s package-init instance before `authpb`'s, which now
+  imports it.
+- **Schema's auth backend is translated with bodies** (`auth.go`, `auth_users.go`,
+  `auth_roles.go`), with the three buckets, their names, the two key names and `authEnabled`/
+  `authDisabled` as package variables, so `schemaInit` (`etcdserver/Base.lean`) gains seven
+  conjuncts, appended (every destructuring ends in `-`; gen-init's `before`/`finish` steps for
+  schema extended). **Proved: the read side through a `ReadTx`** -- `unsafeReadAuthEnabled`,
+  `unsafeReadAuthRevision`, `unsafeGetUser`, `unsafeGetRole`, the `authReadTx` wrappers of the
+  four with `RLock`/`RUnlock`, `authBackend.ReadTx`/`GetUser`/`GetRole` (13 functions, linked in the
+  server's `Link.lean`). Not proved: `unsafeGetAllUsers` (`backend.UnsafeForEach` has no spec),
+  `unsafeGetAllRoles` through a read transaction (it panics: `issues/etcd-auth-readtx-getallroles-
+  panics.md`), the batch-transaction methods (the admin side, S4).
+- **The records are data, the encodings opaque** (`auth/Buckets.lean`): `UserRec`, `RoleRec`,
+  `PermW` (the permission type as the wire's `int32`; `permOfWire` maps unknown types to no
+  permission, as `getMergedPerms` grants nothing for them), `userEncode`/`roleEncode` (`opaque`,
+  as `mvcc.kvEncode`), decoded by two new trust-boundary specs of `proto.Unmarshal`
+  (`Spec/google_golang_org/protobuf/proto/Unmarshal{User,Role}.lean`, the pattern of
+  `Unmarshal.lean` for `mvccpb.KeyValue`): **+2 axioms** (540). `ownUser`/`ownRole`: the message
+  owned, its byte fields fresh read-only slices (as `proto.Unmarshal` leaves them).
+  *Rejected:* a concrete protobuf encoding (nothing needs it; `proto` is names-only).
+- **Two levels of contract, the bucket data between them** (`etcdserver/InvAuthBackend.lean`):
+  schema's functions are proved over `authReader r H D` (an `UnsafeReader` whose point reads of
+  the three buckets are the snapshot `D : AuthData`'s under the token `H`, the values readable
+  while `H` is held, `pointValsA`: the shape of `metaReader`/`metaValsA` for the consistent index),
+  `authRTx rt R Held` (a `ReadTx` whose `RLock` gives the token of a well-formed snapshot with
+  its reader, `RUnlock` takes it back) and `authBE` (a `Backend` whose `ReadTx()` is one); their
+  posts are over `D` (`enabledOf`, `revisionOf`, `userOutD`, `roleOutD`), with `authWf D` (every
+  user and role value an encoding, the revision 8 bytes) as the premise that keeps the panics
+  out. The auth store's contract (`InvAuth.lean`, `authReadTxOk tx R M`) is over the model:
+  `RLock` gives the token `Hs st` of a state `st` of the mode (`authSnap M st`: `off`, never
+  enabled; `any`, nothing; `on γa`, a recorded state), the reads under it are the state's
+  (`authTxReads`: `userOut`/`roleOut`, the flag, the revision). **`authBucketsAre st D`** ties the
+  two (the flag `[1]` iff enabled, the revision big-endian, each user's value the encoding of a
+  record of that name whose roles are the state's, sorted, likewise the roles), with
+  `userOutD_are`/`roleOutD_are` turning a bucket's read into the state's (given the encodings
+  injective: a premise, since they are opaque). The derivation of the store's contract from
+  schema's proofs, with the link of the history's latest state to the tracked buckets (`rbOwn`),
+  is S4's: `NewAuthStore`'s axiom still gives the derived contracts in `off`.
+  *Rejected:* one contract over `AuthState` at the schema level (schema does not know the model;
+  the Go function is the same for any bucket content, so its spec is over the data).
+- **The mode threads through the store's contract**: `authReadTxOk`, `authBackendOk`, `beP`,
+  `authInv`, `beRd`, `authRd`, `authReadTxLocked` take `M : AuthMode`; the 13 request-side specs
+  quantify over it (`∀ (st : Loc) (R : IProp GF) (M : AuthMode)`), their proofs drop the new
+  facts (`-`); `isAuthStore_of_authInv`/`isReqAuth_of_authInv`/`authRevision_of_authInv` are for
+  any `M` (still deriving `.any`: the verdicts are S3's). Nothing produces `authInv` yet
+  (`NewAuthStore` is an axiom over the derived contracts), so no closed theorem changes.
+- **A tactic finding, recorded** (`notes/perennial-changes.md`, "`wp_apply`'s frame list can admit
+  a goal silently"): `wp_apply` of a Lean spec at a deferred call (`authBackend.GetUser`'s
+  `defer tx.RUnlock()`) elaborated with no error and left the theorem with an unsolved goal
+  reported at its header; `wp_bind` then `iapply spec $$ [...]` works. `wp_apply_core` there
+  reports "unknown free variable".
+
+**Consequences.** S3 can state the checks over `authReadTxOk`'s states; S4 proves schema's
+`authReadTx` meets `authReadTxOk` through `authBucketsAre` and adds the write side; the trust
+base grows by the two `proto.Unmarshal` specs (`etc/tcb-baseline.txt` updated; the `server`
+collection).

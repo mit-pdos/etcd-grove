@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.Revision.wp_proof :
     auth.authStore.Revision.spec (GF := GF) (hG := hG) := by
-  intro st R
+  intro st R M
   wp_start as #Hinv
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit

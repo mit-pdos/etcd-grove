@@ -28,12 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.IsRangePermitted.wp_proof
     (h_isOpPermitted : auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG)) :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) := by
-  intro st R a info dq key re k e dk de
+  intro st R M a info dq key re k e dk de
   wp_start as ⟨#Hinv, Hrd, Ha, Hk, He, %Hlen⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   iStructNamed Ha
   wp_auto
-  wp_apply (h_isOpPermitted st R info.Username' info.Revision' key re k e dk de
+  wp_apply (h_isOpPermitted st R M info.Username' info.Revision' key re k e dk de
       (W32 0)) $$ [$Hinv $Hrd $Hk $He] as %err ⟨Hrd, Hk, He, Herr⟩
   · ipureintro; exact ⟨by simp [permTypOk], Hlen⟩
   iapply HΦ

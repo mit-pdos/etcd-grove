@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.IsAdminPermitted(authInfo)`: `nil` or one of the package's errors. -/
 
 abbrev auth.authStore.IsAdminPermitted.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (a : Loc) (info : AuthInfo) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R ∗ authRd st R ∗ a ↦{dq} info }}
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (a : Loc) (info : AuthInfo) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authRd st R M ∗ a ↦{dq} info }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"IsAdminPermitted")) (Val #a))
-  {{ (err : GoInterface), RET #err; authRd st R ∗ a ↦{dq} info ∗ authErrIs err }}
+  {{ (err : GoInterface), RET #err; authRd st R M ∗ a ↦{dq} info ∗ authErrIs err }}
 
 end spec
 

@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 /-- `as.Revision()`: the atomic load of `revision`. -/
 
 abbrev auth.authStore.Revision.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R }}
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Revision")) (Val #()))
   {{ (x : w64), RET #x; True }}
 

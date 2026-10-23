@@ -28,12 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.IsPutPermitted.wp_proof
     (h_isOpPermitted : auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG)) :
     auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG) := by
-  intro st R a info dq key k dk
+  intro st R M a info dq key k dk
   wp_start as ⟨#Hinv, Hrd, Ha, Hk, %Hlen⟩
   ihave %Hann := typedPointsto_not_null $$ Ha
   iStructNamed Ha
   wp_auto
-  wp_apply (h_isOpPermitted st R info.Username' info.Revision' key slice.nil k [] dk (DFrac.own 1)
+  wp_apply (h_isOpPermitted st R M info.Username' info.Revision' key slice.nil k [] dk (DFrac.own 1)
       (W32 1)) $$ [$Hinv $Hrd $Hk] as %err ⟨Hrd, Hk, -, Herr⟩
   · isplitl
     · iapply ownSlice_nil (V := w8) (DFrac.own 1)
