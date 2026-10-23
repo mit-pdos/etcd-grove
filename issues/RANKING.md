@@ -80,14 +80,14 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
    etcd-io/etcd#18424 was closed as unreachable; the since-merged #21122 undercuts that, a reason
    to reopen.
 7. **[raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md)** (one finding
-   in three files, with
-   [raft-track-confchange-application](nonissues/raft-track-confchange-application.md),
+   in two files, with
    [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md)):
    `Advance` before `ApplyConfChange`, which the documentation allows, lets two different entries
    commit at the same index. The highest severity of all, but reproduced only on raft's
-   `RawNode`; etcd's path is unconfirmed (concurrent membership changes, a slow apply loop, a
-   partition). The documentation fix and etcd's five-line change are easy to argue for; claiming
-   etcd is affected needs more evidence.
+   `RawNode`; etcd's path is possible and no etcd check prevents it, only timing (investigated
+   2026-10-23: concurrent membership changes, a slow apply loop, a partition), not reproduced on a
+   cluster. The documentation fix and etcd's five-line change are easy to argue for; claiming
+   etcd is affected in practice needs more evidence.
 8. **[etcd-quota-stale-backend-after-snapshot](etcd-quota-stale-backend-after-snapshot.md)**
     (not in the current filing list, 2026-10-21: availability, the user prefers safety findings)
     (2026-10-19): the gRPC quota check keeps the backend it saw at startup, so after a member
@@ -153,8 +153,6 @@ open), [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) with
 (etcd-io/etcd#20229 blocks the lagging-member trigger, but reproduced at upstream `main` on
 2026-10-23 with one member and a concurrent `RequestProgress` on the same client, through the
 server's unfixed progress-before-`Created` ordering; a spurious `ErrCompacted`, not lost data),
-[raft-prevote-stale-grant](nonissues/raft-prevote-stale-grant.md) (disruption, not safety; known since
-etcd-io/etcd#8288's review in 2017, accepted then as a rare false positive),
 [raft-stale-term-appresp-index-zero-ack](raft-stale-term-appresp-index-zero-ack.md) (a needless
 log resend or snapshot to a caught-up follower after a delayed stale-term message; upstream's
 `TestLeaderAppResp` pins the behavior),
@@ -285,34 +283,19 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
-  [etcd-lessor-revoke-twice-no-deleter](nonissues/etcd-lessor-revoke-twice-no-deleter.md),
-  [etcd-txn-empty-requestop](nonissues/etcd-txn-empty-requestop.md),
   [etcd-stream-interceptor-err-before-done](etcd-stream-interceptor-err-before-done.md).
 - **Raft-library edge cases unreachable from etcd as configured**:
-  [raft-joint-empty-transition-panic](nonissues/raft-joint-empty-transition-panic.md),
-  [raft-unknown-transition-panic](nonissues/raft-unknown-transition-panic.md) and
-  [raft-remove-last-voter-panic](raft-remove-last-voter-panic.md) (one class: `stepLeader` does
-  not validate the conf changes it accepts; the last is the one etcd can reach, a `member remove`
+  [raft-remove-last-voter-panic](raft-remove-last-voter-panic.md) (`stepLeader` does not
+  validate the conf changes it accepts; of that class, the one etcd can reach, a `member remove`
   of the only member with `--strict-reconfig-check=false`, which panics it at apply and at every
   restart; a self-inflicted loss of the whole cluster, with a one-line refusal in
   `mayRemoveMember` as the etcd fix; etcd-io/etcd#13848 hit the same panic through
   `--force-new-cluster` and was closed not planned),
-  [raft-changer-nil-incoming](nonissues/raft-changer-nil-incoming.md),
   [raft-config-clone-autoleave](raft-config-clone-autoleave.md),
-  [raft-zero-max-size-per-msg](nonissues/raft-zero-max-size-per-msg.md),
-  [raft-memorystorage-createsnapshot-bounds](nonissues/raft-memorystorage-createsnapshot-bounds.md),
   [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialstate-unlocked.md),
-  [raft-joiner-empty-confstate](nonissues/raft-joiner-empty-confstate.md),
   [raft-confstate-unknown-fields-panic](raft-confstate-unknown-fields-panic.md) (a mixed-version
   panic, hypothetical until a field is added).
-- **Model or documentation only**: [raft-commit-lost-with-entries-kept](nonissues/raft-commit-lost-with-entries-kept.md),
-  [raft-ready-messages-read-after-handout](nonissues/raft-ready-messages-read-after-handout.md),
-  [raft-step-writes-caller-message](nonissues/raft-step-writes-caller-message.md),
-  [etcd-txn-nested-compare-snapshot](nonissues/etcd-txn-nested-compare-snapshot.md),
-  [etcd-max-txn-ops-nested](nonissues/etcd-max-txn-ops-nested.md),
-  [stm-serializable-snapshot](nonissues/stm-serializable-snapshot.md),
-  [recipes-pqueue-dequeue-order](nonissues/recipes-pqueue-dequeue-order.md),
-  [etcd-robustness-model-equal-mutates](etcd-robustness-model-equal-mutates.md) (test code: the
+- **Test code**: [etcd-robustness-model-equal-mutates](etcd-robustness-model-equal-mutates.md) (test code: the
   robustness model's `Equal` sorts its arguments, against porcupine's contract; harmless, a cheap
   fix).
 - **Absurd configurations or sizes**: [etcd-compactor-periodic-tiny-retention](etcd-compactor-periodic-tiny-retention.md)
@@ -327,7 +310,9 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   the documentation findings parked there for now: [election-campaign-key-check](nonissues/election-campaign-key-check.md)
   (`not-filing`: `Campaign` returning nil after its own key was deleted is the same as the session
   expiring right after it returns; the guarantee is fencing on the key's create revision, which
-  fails correctly), and the preconditions etcd meets or test helpers' preconditions listed there.
+  fails correctly), and the preconditions etcd or raft's applications meet, test helpers'
+  preconditions, raft behavior the review accepted ([raft-prevote-stale-grant](nonissues/raft-prevote-stale-grant.md),
+  discussed upstream in 2017) and the documentation-only findings listed there.
 - **Client-triggered, with clients trusted**:
   [etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md) (a `UserAdd` or
   `RoleAdd` name over 32 KiB is fatal on every member and again on replay; root-only with auth
@@ -344,9 +329,6 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
   reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond),
-  [etcd-watch-canceled-pending-retained](nonissues/etcd-watch-canceled-pending-retained.md) (up to 128
-  responses of a canceled watcher kept per cancel until the gRPC stream closes; no wrong result;
-  the `etcd-watch-id-reuse-stale-events` candidate's fix drops them, so it rides on that one),
   [raft-switchtoconfig-pending-reads](raft-switchtoconfig-pending-reads.md) (reads postponed to
   the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a
   bug for an application that applies conf changes before `Advance`, so not filing: it is one more
