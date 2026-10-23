@@ -12,9 +12,12 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 `txnError` returns for a failed comparison, holds some error) and `util/feature`'s
 (`featureInit`: `DefaultFeatureGate` holds a gate whose `Enabled` answers some `bool`; the gate is
 names-only, `component-base/featuregate`, and which features are on is the deployment's) and
-`storage/feature`'s (`checkerInit`: `DefaultFeatureSupportChecker` holds a checker whose
-`CheckClient`, which `etcd3.New` calls, returns; names-only, it starts goroutines that poll each
-endpoint's `Status`, reads). As in the cache's `Base.lean`, these
+`storage/feature`'s (`checkerInit`: `CheckClient` on `DefaultFeatureSupportChecker`'s checker,
+which `etcd3.New` calls, returns; names-only, it starts goroutines that poll each endpoint's
+`Status`, reads; stated as the call's own WP, the variable's load included, since the interface
+type is axiomatized: its methods name `storage.Feature`, an alias, Goose's gap G1 of
+`notes/k8s-etcd3-goose.md`) and `storage`'s (`storageInit`: `RequestWatchProgress` holds a
+string). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -58,15 +61,19 @@ abbrev featureInit : IProp GF :=
     □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
       WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }})
 
-/-- `storage/feature`'s fact: `DefaultFeatureSupportChecker` holds a checker whose `CheckClient`
-returns (see the file header). -/
+/-- `storage/feature`'s fact: `CheckClient` on `DefaultFeatureSupportChecker`'s checker returns
+(see the file header). -/
 abbrev checkerInit : IProp GF :=
-  iprop(∃ g : GoInterfaceOk,
-    globalAddr k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker ↦□
-      GoInterface.ok g ∗
-    □ ∀ (ctx cl f : val) (Φ : val → IProp GF), ▷ Φ #() -∗
-      WP (App (App (App (Val #(methods g.ty go!"CheckClient" g.v)) (Val ctx)) (Val cl)) (Val f))
-        {{ Φ }})
+  iprop(□ ∀ (ctx cl f : val) (Φ : val → IProp GF), ▷ Φ #() -∗
+    WP (App (App (App (App (Val (GoInstruction (MethodResolve
+        k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker.ty go!"CheckClient")))
+        (App (Val (GoInstruction (GoLoad k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker.ty)))
+          (Val #(globalAddr k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker))))
+        (Val ctx)) (Val cl)) (Val f)) {{ Φ }})
+
+/-- `storage`'s fact: `RequestWatchProgress` holds a string (see the file header). -/
+abbrev storageInit : IProp GF :=
+  iprop(∃ rw : GoString, globalAddr k8s_io.apiserver.pkg.storage.RequestWatchProgress ↦□ rw)
 
 instance k8s_io_apimachinery_pkg_runtime_schema_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime.schema :=
@@ -231,7 +238,7 @@ instance k8s_io_apimachinery_pkg_api_validate_content_get_is_pkg_init_wf_inst :
 
 instance k8s_io_apiserver_pkg_storage_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init storageInit
 instance k8s_io_apiserver_pkg_storage_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage :=
   build_get_is_pkg_init_wf

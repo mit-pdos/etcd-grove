@@ -205,6 +205,14 @@ and `Apply` (`Apply.lean`, `lintest`'s `applySpec` against `k8setcd3S g0`), with
 history's allocation `histAuth` from the seeded state), 6g (`Gen`'s spec giving `GenIn`, `Check`,
 `Main`, the initial `kInv` from the seeded store, adequacy, `gen-init` for the driver).
 
+Done (2026-10-23): **6e**, `etcd3.New`'s spec and proof (`isStore` of the arguments' configuration,
+some metrics tracker), with its callees: trust-boundary specs for the names-only
+`metrics.NewEtcdMetricsTracker`, `path.Join`, `strings.TrimSuffix` and the packages' facts
+`checkerInit`/`storageInit` (`Base.lean`); proved: the lease manager, the error aggregator
+factories, the key reverse function. `feature.toml` imports what `client` names (G4), so it is
+concrete. Premises still to discharge in 6g: the client's `ctx` field (item 6 below), `newFunc`
+returning a non-nil object, `kubernetes.New`'s `kc ↦□`.
+
 ## What blocks where
 
 **Error identity (`Range`'s errors).** Only the list and watch paths branch on which etcd error
@@ -282,6 +290,10 @@ A driver without list traffic (phase 6 first, then lists) does not need it at al
    error at `x` has `errStrCell x m` for `m` among the client's `errors.New` messages
    (`"context canceled"`, ...), so `errStrCell_ne` separates it from the driver's
    `"k8setcd3: deletion rejected"`.
+6. (2026-10-23) **The client's `ctx` field.** `etcd3.New` calls `c.Ctx()` (for the feature
+   checker), which reads `clientv3.Client.ctx`; `isNewClient` (the client's `New` spec) does not
+   give that field. `etcd3.New`'s spec takes `∃ cx, structFieldRef Client "ctx" cl ↦□ cx` as a
+   premise for now; wanted: `New`'s postcondition (or `isNewClient`) includes it, read-only.
 
 ## Open
 

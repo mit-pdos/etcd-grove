@@ -114,7 +114,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed.** Translations (or trusted models) of the four in Perennial's standard library, and
   the specs above, each with the subset proofs use.
 - **Status.** Not started. (2026-10-22) Local trust-boundary specs here for `strings.HasSuffix`,
-  `strings.Contains` (`Spec/strings/`).
+  `strings.Contains` (`Spec/strings/`). (2026-10-23) Also `strings.TrimSuffix` (`Spec/strings/TrimSuffix.lean`: Perennial's
+  `strings` has no body for it) and `path.Join` for the one case `etcd3.New` uses
+  (`Spec/path/Join.lean`: `Join(["/", p])` of a clean absolute `p` is `p`, `PathCleanAbs`).
 
 ### `reflect.Value` held in a variable: its typed points-to is `sorry`
 
@@ -155,6 +157,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   constant expressions, never code), or emit with each axiomatized constant the fact that it is a
   value of its Go type (`#(c : V)` for a Lean type `V` of the constant's type), from which
   `isPanic_intoVal` gives the premise.
+- **Status.** Not started.
+
+### Goose: interface types whose methods name an alias stay axiomatized (G1)
+
+- **Limitation.** Goose's `getStructInfo`/type translation does not see through type aliases
+  (`notes/k8s-etcd3-goose.md`, G1): a type naming an alias is skipped by `translate_types`, so it
+  is axiomatized. (2026-10-23) `k8s.io/apiserver/pkg/storage/feature.FeatureSupportChecker`
+  (`CheckClient(ctx, client, storage.Feature)`, `storage.Feature = string`) stays axiomatized even
+  with its imports configured (G4's fix made `client` concrete).
+- **Needed by.** `etcd3.New` calls `feature.DefaultFeatureSupportChecker.CheckClient(...)`.
+- **Workaround here.** The `storage/feature` package's fact (`checkerInit`,
+  `Proof/k8s_io/apiserver/pkg/storage/etcd3/Base.lean`) is the call's own WP, the variable's load
+  included, so no proof touches the axiomatized type's `sorry` instances.
+- **Proposed fix.** `types.Unalias` in Goose where it resolves a named type (G1).
 - **Status.** Not started.
 
 ## Landed
