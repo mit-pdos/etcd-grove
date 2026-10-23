@@ -81,6 +81,4 @@ panic: interface conversion: main.I2 is main.T, not main.T (types from different
 
 ### What did you expect to see?
 
-`true`, `true`, `true`, `main.T`, and no panic: `b`'s dynamic type is `T`, so by the spec `b.(T)` holds and `b == c`, as `any(b) == any(c)` already does. If the conversion should be rejected instead, the spec's conversion rules need to say so. The panic's "types from different scopes" is misleading too: both are `main.T`.
-
-Found while formally verifying etcd. Written with the assistance of generative AI; I reproduced the bug and reviewed the report.
+`true`, `true`, `true`, `main.T`, and no panic: `b`'s dynamic type is `T`, so by the spec `b.(T)` holds and `b == c`, as `any(b) == any(c)` already does. The panic's "types from different scopes" is misleading too since both are `main.T`.
