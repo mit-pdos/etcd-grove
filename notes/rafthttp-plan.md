@@ -669,6 +669,15 @@ trust-boundary spec.
    member sends: `peerMsg`'s but its recipient; routed by `To` to `peer.send` (with
    `ServerStats.SendAppendReq` for a `MsgApp`), `remote.send`, or dropped and logged). New boundary
    spec, for review: `v2stats.ServerStats.SendAppendReq` (no-op, as `RecvAppendReq`).
+   **6c, second part (2026-10-23).** The lock also keeps half of a ghost list `γr` of the ids
+   `AddRemote` was called for, the remotes' keys among them; the other half goes, once
+   `transportLive` is given up, into an invariant (`trRemotesFrozen`), what `transportRemotes`
+   will be. Proved over the lock (`rafthttp/TransportCut.lean`; the axioms' statements restated
+   over them in 6d): `CutPeer`, `MendPeer` (`id ∉ rs`: no remote of `id`; the peer, if any,
+   paused or resumed). New method-set premise, for review: `PeerPausable` (`*peer` implements
+   `Pausable`; `methodSet` is uninterpreted, as `ErrorStringLeaf`). Reader tokens: `Send`'s caller
+   (the server's raft loop), `CutPeer`'s and `MendPeer`'s callers and each handler invocation hold
+   one (`trReadTok`); `Start` gives a supply (6d: the server's and the examples' specs carry them).
 
 ## Costs and risks
 

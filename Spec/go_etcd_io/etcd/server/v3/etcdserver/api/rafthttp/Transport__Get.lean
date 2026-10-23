@@ -23,11 +23,11 @@ variable [sem : go.Semantics]
 /-- **`t.Get(id)`** with a reader's token of the transport's mutex: `nil`, or the started peer of
 `id` (`peerOk`); the token back. -/
 abbrev rafthttp.Transport.Get.spec : Prop :=
-  ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs : GName) (pid : w64),
+  ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName) (pid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trReadTok Rh t lid γd R γs }}
+      trReadTok Rh t lid γd R γs γr }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Get")) (Val #pid))
-  {{ (pi : GoInterface), RET #pi; trReadTok Rh t lid γd R γs ∗
+  {{ (pi : GoInterface), RET #pi; trReadTok Rh t lid γd R γs γr ∗
       (⌜pi = GoInterface.nil⌝ ∨ ∃ p : Loc,
         ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗
         peerOk Rh lid pid γd R p) }}

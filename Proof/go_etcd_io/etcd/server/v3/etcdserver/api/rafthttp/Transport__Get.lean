@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 
 theorem rafthttp.Transport.Get.wp_proof :
     rafthttp.Transport.Get.spec (GF := GF) (hG := hG) := by
-  intro Rh t lid γd R γs pid
+  intro Rh t lid γd R γs γr pid
   wp_start as Htok
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -34,7 +34,7 @@ theorem rafthttp.Transport.Get.wp_proof :
   iunfold trReadTok at Htok
   wp_apply sync.RWMutex.wp_RLock $$ [$Htok] as ⟨Hrl, HP⟩
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, Hp, Hr, Hpm, Hrm, Hg, #Hpo, #Hro⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %rs, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
   (try wp_auto)
   -- the entry's facts: `nil`, or a started peer
   ihave #Hent : iprop(⌜(PM !! pid).getD (zero_val GoInterface) = GoInterface.nil⌝ ∨
@@ -57,9 +57,12 @@ theorem rafthttp.Transport.Get.wp_proof :
   · subst Hpm HPM
     rw [show (null : Loc) = map.nil from rfl]
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hrm Hg] as Htok
-    · iunfold trLockP; iexists map.nil, rm, ∅, RM; iframe; iframe #
-      iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hrm Hg Hgr] as Htok
+    · iunfold trLockP; iexists map.nil, rm, ∅, RM, rs; iframe; iframe #
+      inext
+      isplitl
+      · iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
+      ipureintro; exact Hrs
     (try wp_auto)
     iapply HΦ
     iunfold trReadTok
@@ -67,9 +70,12 @@ theorem rafthttp.Transport.Get.wp_proof :
     ileft; ipureintro; rfl
   · wp_apply wp_map_lookup1 $$ [$Hpm] as Hpm
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hpm Hrm Hg] as Htok
-    · iunfold trLockP; iexists pm, rm, PM, RM; iframe; iframe #
-      iunfold mapOrNil; iright; iframe
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hpm Hrm Hg Hgr] as Htok
+    · iunfold trLockP; iexists pm, rm, PM, RM, rs; iframe; iframe #
+      inext
+      isplitl
+      · iunfold mapOrNil; iright; iframe
+      ipureintro; exact Hrs
     (try wp_auto)
     iapply HΦ
     iunfold trReadTok

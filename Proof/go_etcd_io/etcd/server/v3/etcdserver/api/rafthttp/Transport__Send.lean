@@ -63,7 +63,7 @@ theorem rafthttp.Transport.Send.wp_proof
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hZString : zap.String.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Send.spec (GF := GF) (hG := hG) := by
-  intro Rh t lid γd R γs sl msL
+  intro Rh t lid γd R γs γr sl msL
   wp_start as ⟨#Htr, Htok, Hsl, Hms⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
@@ -74,7 +74,7 @@ theorem rafthttp.Transport.Send.wp_proof
   ihave %Hsll := ownSlice_len $$ Hsl
   ipersist Hsl
   ihave IH : iprop(∃ (n : w64) (m0 : Loc) (rest : List Loc),
-      "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ m0 ∗ "Htok" ∷ trReadTok Rh t lid γd R γs ∗
+      "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ m0 ∗ "Htok" ∷ trReadTok Rh t lid γd R γs γr ∗
       "Hms" ∷ ([∗list] mm ∈ rest, sendMsg Rh lid mm) ∗
       "%Hr" ∷ ⌜msL.drop (sint.nat n) = rest⌝ ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (msL.length : Int)⌝) $$ [i m Htok Hms]
@@ -116,14 +116,16 @@ theorem rafthttp.Transport.Send.wp_proof
     iunfold trReadTok at Htok
     wp_apply sync.RWMutex.wp_RLock $$ [$Htok] as ⟨Hrl, HP⟩
     iunfold trLockP at HP
-    icases HP with ⟨%pm, %rm, %PM, %RM, Hp, Hr, Hpm, Hrm, Hg, #Hpo, #Hro⟩
+    icases HP with ⟨%pm, %rm, %PM, %RM, %rs, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
     (try wp_auto)
     wp_apply wp_lookup2_mapOrNil _ pm _ PM st.msg.To' $$ [$Hpm] as Hpm
     (try wp_auto)
     wp_apply wp_lookup2_mapOrNil _ rm _ RM st.msg.To' $$ [$Hrm] as Hrm
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hpm Hrm Hg] as Htok
-    · iunfold trLockP; iexists pm, rm, PM, RM; iframe; iframe #
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hpm Hrm Hg Hgr] as Htok
+    · iunfold trLockP; iexists pm, rm, PM, RM, rs; iframe; iframe #
+      (try inext)
+      ipureintro; exact Hrs
     (try wp_auto)
     cases hp : PM !! st.msg.To' with
     | some pi =>

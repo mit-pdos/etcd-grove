@@ -27,6 +27,13 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
+/-- **A method-set premise** (as `ErrorStringLeaf`; stage 6c): `*peer` implements `Pausable` (it
+has `Pause` and `Resume`, `peer.go`): what `CutPeer`'s and `MendPeer`'s `p.(Pausable)` reads.
+`methodSet` is uninterpreted in the model, so the results that reach it take it as a premise. -/
+class PeerPausable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+  pausable : go.typeSetContains (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty)
+    go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pausable.ty = true
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

@@ -25,13 +25,13 @@ mutex, of messages the member sends (`sendMsg`): it returns, each message handed
 remote of its `To` (`peer.send`, `remote.send`), or dropped (none such, or `To` zero); the token
 back. -/
 abbrev rafthttp.Transport.Send.spec : Prop :=
-  ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs : GName)
+  ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
     (sl : GoSlice) (msL : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trFixed Rh t lid γd R ∗ trReadTok Rh t lid γd R γs ∗ sl ↦* msL ∗
+      trFixed Rh t lid γd R ∗ trReadTok Rh t lid γd R γs γr ∗ sl ↦* msL ∗
       [∗list] m ∈ msL, sendMsg Rh lid m }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Send")) (Val #sl))
-  {{ RET #(); trReadTok Rh t lid γd R γs }}
+  {{ RET #(); trReadTok Rh t lid γd R γs γr }}
 
 end spec
 

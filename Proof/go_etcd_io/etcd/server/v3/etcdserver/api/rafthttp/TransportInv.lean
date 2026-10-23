@@ -1,8 +1,10 @@
 /-
 **The transport's lock and its stop rights** (rafthttp stage 6c; D34). Lean-first.
 * `trLockP` (fractional, `t.mu`'s, an `RWMutex`): the `peers` and `remotes` maps (each `nil` once
-  `Stop` ran: `mapOrNil`), their entries' facts (`peerOk`, `remoteOk`, persistent), and half of a
-  ghost record `γs` of the maps (`trRec`).
+  `Stop` ran: `mapOrNil`), their entries' facts (`peerOk`, `remoteOk`, persistent), half of a
+  ghost record `γs` of the maps (`trRec`), and half of a ghost list `γr` of the ids `AddRemote` was
+  called for, the remotes' keys among them (the other half with `transportLive` while remotes may
+  be added, then in an invariant for good: `transportRemotes`).
 * `trStopInv` (an invariant): the other half of the record, with the right to stop each peer and
   remote it lists (`peerStop`, `remoteStop`): `AddPeer`/`AddRemote` add one under the write lock,
   `Stop` takes them all under it.
@@ -47,19 +49,31 @@ def remotesOk (Rh : RaftHttp GF) (lid : w64) (R : IProp GF) (RM : GMap w64 Loc) 
   iprop([∗map] id ↦ g ∈ RM, remoteOk Rh lid id R g)
 
 /-- **What the transport `t`'s mutex guards** at the fraction `q` (see the file header). -/
-def trLockP (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs : GName)
+def trLockP (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
     (q : Qp) : IProp GF :=
-  iprop(∃ (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc),
+  iprop(∃ (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (rs : List w64),
     t.[rafthttp.Transport, go!"peers"] ↦{DFrac.own q} pm ∗
     t.[rafthttp.Transport, go!"remotes"] ↦{DFrac.own q} rm ∗
     mapOrNil pm q PM ∗ mapOrNil rm q RM ∗ ghostVar γs q.half ((pm, rm, PM, RM) : trRec) ∗
+    ghostVar γr q.half rs ∗ ⌜∀ id, (RM !! id).isSome → id ∈ rs⌝ ∗
     □ peersOk Rh lid γd R PM ∗ □ remotesOk Rh lid R RM)
 
 /-- **A reader's token of the transport's mutex** (exclusive): what `RLock` takes; `Start` gives a
 supply of them (`Send`'s caller, each handler invocation's `Get`, `CutPeer`'s and `MendPeer`'s). -/
-def trReadTok (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs : GName) :
-    IProp GF :=
-  sync.ownRWMutex (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs)
+def trReadTok (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF)
+    (γs γr : GName) : IProp GF :=
+  sync.ownRWMutex (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr)
+
+def trRemN : Namespace := nroot.@"rafthttp_tr_remotes"
+
+/-- **The ids `AddRemote` was called for, `rs`, for good** (persistent): the half of `γr` no
+longer with `transportLive` (no more `AddRemote`). -/
+def trRemotesFrozen (γr : GName) (rs : List w64) : IProp GF :=
+  inv trRemN (ghostVar (GF := GF) γr (1 : Qp).half rs)
+
+instance trRemotesFrozen_persistent (γr : GName) (rs : List w64) :
+    Persistent (trRemotesFrozen (GF := GF) γr rs) := by
+  unfold trRemotesFrozen; infer_instance
 
 def trStopN : Namespace := nroot.@"rafthttp_tr_stop"
 
@@ -101,7 +115,7 @@ theorem mapOrNil_fractional {V : Type} [ZeroVal V] (m : Loc) (M : GMap w64 V)
       iframe
 
 instance trLockP_fractional (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF)
-    (γs : GName) : Fractional (trLockP Rh t lid γd R γs) where
+    (γs γr : GName) : Fractional (trLockP Rh t lid γd R γs γr) where
   fractional q1 q2 := by
     have hpt : ∀ v : Loc, ∀ f : GoString,
         (t.[rafthttp.Transport, f] ↦{DFrac.own (q1 + q2)} v : IProp GF) ⊣⊢
@@ -109,23 +123,28 @@ instance trLockP_fractional (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GNam
       fun v f => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1)
         (DFrac.own q2)
     have hgv := fun (x : trRec) => (ghostVar_fractional (GF := GF) γs x).fractional q1.half q2.half
+    have hgr := fun (x : List w64) =>
+      (ghostVar_fractional (GF := GF) γr x).fractional q1.half q2.half
     unfold trLockP
     rw [Qp_half_add]
     refine ⟨?_, ?_⟩
-    · iintro ⟨%pm, %rm, %PM, %RM, Hp, Hr, Hpm, Hrm, Hg, #Hpo, #Hro⟩
+    · iintro ⟨%pm, %rm, %PM, %RM, %rs, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
+      icases (hgr rs).1 $$ Hgr with ⟨Hgr1, Hgr2⟩
       icases (hpt pm _).1 $$ Hp with ⟨Hp1, Hp2⟩
       icases (hpt rm _).1 $$ Hr with ⟨Hr1, Hr2⟩
       icases (mapOrNil_fractional pm PM q1 q2).1 $$ Hpm with ⟨Hpm1, Hpm2⟩
       icases (mapOrNil_fractional rm RM q1 q2).1 $$ Hrm with ⟨Hrm1, Hrm2⟩
       icases (hgv (pm, rm, PM, RM)).1 $$ Hg with ⟨Hg1, Hg2⟩
-      isplitl [Hp1 Hr1 Hpm1 Hrm1 Hg1]
-      · iexists pm, rm, PM, RM; iframe; iframe #
-      · iexists pm, rm, PM, RM; iframe; iframe #
-    · iintro ⟨⟨%pm, %rm, %PM, %RM, Hp1, Hr1, Hpm1, Hrm1, Hg1, #Hpo, #Hro⟩,
-        ⟨%pm', %rm', %PM', %RM', Hp2, Hr2, Hpm2, Hrm2, Hg2, -, -⟩⟩
+      isplitl [Hp1 Hr1 Hpm1 Hrm1 Hg1 Hgr1]
+      · iexists pm, rm, PM, RM, rs; iframe; iframe #; ipureintro; exact Hrs
+      · iexists pm, rm, PM, RM, rs; iframe; iframe #; ipureintro; exact Hrs
+    · iintro ⟨⟨%pm, %rm, %PM, %RM, %rs, Hp1, Hr1, Hpm1, Hrm1, Hg1, Hgr1, %Hrs, #Hpo, #Hro⟩,
+        ⟨%pm', %rm', %PM', %RM', %rs', Hp2, Hr2, Hpm2, Hrm2, Hg2, Hgr2, -, -, -⟩⟩
       ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg1 Hg2
+      ihave %Hagr := ghostVar_agree γr _ _ _ _ $$ Hgr1 Hgr2
       cases Hag
-      iexists pm, rm, PM, RM
+      cases Hagr
+      iexists pm, rm, PM, RM, rs
       isplitl [Hp1 Hp2]
       · iapply (hpt pm _).2; iframe
       isplitl [Hr1 Hr2]
@@ -136,7 +155,10 @@ instance trLockP_fractional (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GNam
       · iapply (mapOrNil_fractional rm RM q1 q2).2; iframe
       isplitl [Hg1 Hg2]
       · iapply (hgv (pm, rm, PM, RM)).2; iframe
+      isplitl [Hgr1 Hgr2]
+      · iapply (hgr rs).2; iframe
       iframe #
+      ipureintro; exact Hrs
 
 /-- `v, ok := m[k]` of a map keyed by member ids that may be `nil` (`mapOrNil`). -/
 theorem wp_lookup2_mapOrNil [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
@@ -160,6 +182,20 @@ theorem wp_lookup2_mapOrNil [package_sem : go_etcd_io.etcd.server.v3.etcdserver.
   · wp_apply wp_map_lookup2 $$ [$Hm] as Hm
     iapply HΦ
     iunfold mapOrNil; iright; iexact Hm
+
+/-- The frozen list of remotes' ids is any share's. -/
+theorem trRemotes_agree (γr : GName) (rs rs' : List w64) (q : Qp) :
+    ⊢ trRemotesFrozen (GF := GF) γr rs -∗ ghostVar γr q rs' ={⊤}=∗ ghostVar γr q rs' ∗ ⌜rs' = rs⌝ := by
+  iintro #Hinv Hg
+  unfold trRemotesFrozen
+  iinv Hinv with Hi Hclose
+  imod Hi with Hi
+  ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hi Hg
+  imod Hclose $$ [Hi] with -
+  · iexact Hi
+  imodintro
+  iframe
+  ipureintro; exact Hag.symm
 
 end lemmas
 
