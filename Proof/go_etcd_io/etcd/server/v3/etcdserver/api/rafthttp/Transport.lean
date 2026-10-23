@@ -40,6 +40,25 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **A prober** (`probing.Prober`, an interface; `github.com/xiang90/probing` is names-only):
+its `RemoveAll()` returns (`Transport.Stop`'s). `probing.NewProber`'s trust-boundary spec (`Start`,
+stage 6c) gives it. -/
+def probing.proberOk (p : GoInterface) : IProp GF :=
+  iprop(∃ ti : GoInterfaceOk, ⌜p = GoInterface.ok ti⌝ ∗
+    {{ True }} (App (Val #(methods ti.ty go!"RemoveAll" ti.v)) (Val #())) {{ RET #(); True }})
+
+instance probing.proberOk_persistent (p : GoInterface) : Persistent (probing.proberOk (GF := GF) p) := by
+  unfold probing.proberOk; infer_instance
+
+/-- **The transport `t`'s probers** (persistent; what `Stop` reads, `Start`'s). -/
+def trProbers (t : Loc) : IProp GF :=
+  iprop(∃ pp sp : GoInterface,
+    t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗ probing.proberOk pp ∗
+    t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗ probing.proberOk sp)
+
+instance trProbers_persistent (t : Loc) : Persistent (trProbers (GF := GF) t) := by
+  unfold trProbers; infer_instance
+
 /-- **The transport `t`'s fixed fields** (persistent) of the member `lid`, whose `Raft` calls
 borrow an `R`: see the file header. -/
 def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) : IProp GF :=

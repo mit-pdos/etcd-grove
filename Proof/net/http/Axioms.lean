@@ -102,6 +102,10 @@ axiom ReadFull_resp_ok (H : HttpNet GF) : ReadFull_resp_spec H
 (`RespCloseAny_spec`; Go's body supports a `Close` concurrent with a `Read`). -/
 axiom RespCloseAny_ok : RespCloseAny_spec (GF := GF)
 
+/-- (stage 6c: `rafthttp.Transport.Stop`) closing a `*http.Transport` round tripper's idle
+connections (`CloseIdleConnections_spec`). -/
+axiom CloseIdleConnections_ok (H : HttpNet GF) : CloseIdleConnections_spec H
+
 /-- (stage 5e-3) `nil` is a reader of no bytes, an empty request body (`readerHas`'s docstring,
 `NewRequest`'s `nil` body). -/
 axiom readerHas_nil : ⊢ readerHas (GF := GF) GoInterface.nil []

@@ -259,6 +259,121 @@ theorem trStop_add_remote (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (pm rm
   imodintro
   iexact Hg
 
+/-- **The transport stopped** (`Stop`, under the write lock): the peers' and remotes' stop rights
+leave the stop invariant, whose record (and the lock's half) becomes the empty one. -/
+theorem trStop_take (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (pm rm : Loc)
+    (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) :
+    ⊢ trStopInv Rh R γs -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM) : trRec) -∗ £ 1 -∗ £ 1 ={⊤}=∗
+      ghostVar γs (1 : Qp).half (((null : Loc), (null : Loc), ∅, ∅) : trRec) ∗
+      ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
+        ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗ peerStop Rh id R p) ∗
+      ([∗map] id ↦ g ∈ RM, remoteStop Rh id R g) := by
+  iintro #Hinv Hg Hlc1 Hlc2
+  unfold trStopInv
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%pm', %rm', %PM', %RM', Hg', Hps, Hrs⟩
+  imod Hg' with Hg'
+  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
+  cases Hag
+  imod ghostVar_update_halves (((null : Loc), (null : Loc), ∅, ∅) : trRec) γs _ _ $$ Hg Hg'
+    with ⟨Hg, Hg'⟩
+  imod Hclose $$ [Hg'] with -
+  · inext
+    iexists null, null, ∅, ∅
+    iframe Hg'
+    isplitl
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+  imod lc_fupd_elim_later $$ Hlc1 Hps with Hps
+  imod lc_fupd_elim_later $$ Hlc2 Hrs with Hrs
+  imodintro
+  iframe
+
+/-- **The transport marked stopped** (`Stop`, under the write lock): both halves of `γr`. -/
+theorem trRemotes_stop (γr : GName) (rs : List w64) (sb : Bool) :
+    ⊢ trRemotesFrozen (GF := GF) γr rs -∗ ghostVar γr (1 : Qp).half (rs, sb) ={⊤}=∗
+      ghostVar γr (1 : Qp).half (rs, true) := by
+  iintro #Hinv Hg
+  unfold trRemotesFrozen
+  iinv Hinv with Hi Hclose
+  imod Hi with ⟨%sb', Hi⟩
+  imod ghostVar_update_halves (rs, true) γr _ _ $$ Hi Hg with ⟨Hi, Hg⟩
+  imod Hclose $$ [Hi] with -
+  · iexists true; iexact Hi
+  imodintro
+  iexact Hg
+
+/-- A key of a duplicate-free enumeration is in its suffix from its index, and the suffix after
+it holds only other keys. -/
+theorem drop_mem_step {α : Type} {keys : List α} (hnd : keys.Nodup) {i : Nat} {key : α}
+    (hi : keys[i]? = some key) :
+    key ∈ keys.drop i ∧ ∀ k ∈ keys.drop (i + 1), k ≠ key ∧ k ∈ keys.drop i := by
+  obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 hi
+  have heq : keys.drop i = key :: keys.drop (i + 1) := by
+    rw [List.drop_eq_getElem_cons hlt, hget]
+  have hnd' : (keys.drop i).Nodup := hnd.sublist (List.drop_sublist i keys)
+  rw [heq] at hnd'
+  rw [heq]
+  refine ⟨by simp, fun k hk => ⟨fun h => ?_, by simp [hk]⟩⟩
+  subst h; exact (List.nodup_cons.1 hnd').1 hk
+
+/-- **Ranging over a `mapOrNil` map, consuming each entry's `S`** (`Stop`'s loops), with a loop
+resource `I` (the loop variable's cell): the body of an entry `k ↦ v`, given `S k v`, executes. -/
+theorem wp_range_mapOrNil {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (key_type elem_type : go.GoType) [IntoValTyped (GF := GF) w64 key_type]
+    (m : Loc) (q : Qp) (M : GMap w64 V) (body : GoFunc) (S : w64 → V → IProp GF) (I : IProp GF)
+    (Φ : val → IProp GF) :
+    ⊢ mapOrNil m q M -∗ ([∗map] k ↦ v ∈ M, S k v) -∗ I -∗
+      ((□ ∀ (k : w64) (v : V), ⌜M !! k = some v⌝ -∗ I -∗ S k v -∗
+          WP (App (App (Val #body) (Val #k)) (Val #v)) {{ bv, ⌜bv = executeVal⌝ ∗ I }}) ∗
+       (mapOrNil m q M -∗ I -∗ Φ executeVal)) -∗
+      WP (App (App (Val (map.forRange key_type elem_type)) (Val #m)) (Val #body)) {{ Φ }} := by
+  iintro Hm HS HI ⟨#Hb, HΦ⟩
+  iunfold mapOrNil at Hm
+  icases Hm with (⟨%Hmn, %HMe⟩ | Hm)
+  · subst Hmn; subst HMe
+    wp_call
+    try simp only [show (null : Loc) = map.nil from rfl]
+    iapply HΦ $$ [] HI
+    iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  iapply wp_map_for_range (fun keys (i : Int) => iprop(⌜0 ≤ i⌝ ∗ I ∗ ∃ M' : GMap w64 V,
+      ⌜∀ k ∈ keys.drop i.toNat, M' !! k = M !! k⌝ ∗ [∗map] k ↦ v ∈ M', S k v))
+    body key_type elem_type m M (DFrac.own q) $$ Hm
+  iintro %keys ⟨%Hkset, %Hklen, %Hknd⟩
+  isplitl [HS HI]
+  · isplitr
+    · ipureintro; omega
+    iframe HI
+    iexists M; iframe; ipureintro; intro _ _; rfl
+  isplitr
+  · imodintro
+    iintro %i %key %v ⟨%Hki, %Hmv⟩ ⟨%Hi0, HI, %M', %HM', HS⟩
+    obtain ⟨hk, hstep⟩ := drop_mem_step Hknd Hki
+    have HM'k : M' !! key = some v := by rw [HM' key hk]; exact Hmv
+    icases (BigSepM.bigSepM_delete (Φ := S) (m := M') HM'k).1 $$ HS with ⟨Hk, HS⟩
+    iapply wp_wand $$ [Hk HI]
+    · iapply Hb $$ %key %v %Hmv HI Hk
+    iintro %bv ⟨%Hbv, HI⟩
+    subst Hbv
+    unfold forMapPostcondition
+    iright; ileft
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; omega
+    iframe HI
+    iexists _; iframe HS
+    ipureintro
+    intro k hk'
+    have hn : (i + 1).toNat = i.toNat + 1 := by omega
+    rw [hn] at hk'
+    obtain ⟨hne, hk2⟩ := hstep k hk'
+    rw [← HM' k hk2]
+    exact GMap.lookup_delete_ne _ (Ne.symm hne)
+  iintro ⟨-, HI, -⟩ Hm
+  iapply HΦ $$ [Hm] HI
+  iunfold mapOrNil; iright; iexact Hm
+
 end lemmas
 
 end EtcdGrove

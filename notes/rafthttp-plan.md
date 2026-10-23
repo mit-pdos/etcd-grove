@@ -678,6 +678,22 @@ trust-boundary spec.
    `Pausable`; `methodSet` is uninterpreted, as `ErrorStringLeaf`). Reader tokens: `Send`'s caller
    (the server's raft loop), `CutPeer`'s and `MendPeer`'s callers and each handler invocation hold
    one (`trReadTok`); `Start` gives a supply (6d: the server's and the examples' specs carry them).
+   **6c, third part (2026-10-23).** `γr`'s record also carries the stopped flag (`trLockP`: not
+   stopped, so both maps non-`nil`). Proved over the lock (`rafthttp/TransportAdd.lean`,
+   `TransportStop.lean`): `AddPeer` (eight `R`s; the peer started, its stop right into `trStopInv`,
+   `addPeerToProber`, the leader's follower stats), `AddRemote` (four `R`s; `id` joins `rs`, the
+   remote started unless `id` is a peer or remote already), `Stop` (under the write lock, after
+   `trRemotesFrozen`: every stop right out of `trStopInv` (two later credits), the remotes' and
+   peers' `stop` over a general `mapOrNil` range (`wp_range_mapOrNil`, a loop resource for the loop
+   variable's cell), the probers' `RemoveAll`, the round trippers' `CloseIdleConnections` if
+   `*http.Transport`, the maps `nil`, the flag set; a second `Stop` finds empty maps). For review:
+   the `addPeerToProber` axiom, `zap.Strings`, rafthttp's `rttSec` init fact (`rttSec_init`;
+   baseline 550 -> 552 with D34a's `httpProtoFree`, which the baseline had missed),
+   `http.CloseIdleConnections_ok` (an axiom: a `*http.Transport` round tripper of `roundTripperOk`
+   is a pointer, and closing its idle connections returns) and `probing.proberOk` (a definition:
+   the prober's `RemoveAll` returns; `NewProber`'s spec will give it). Left in 6c: `Start` (its
+   names-only callees `newStreamRoundTripper`, `NewRoundTripper`, `probing.NewProber`,
+   `rate.Every` need boundary specs: for the user) and `Handler` (`probing.NewHandler`, the mux).
 
 ## Costs and risks
 

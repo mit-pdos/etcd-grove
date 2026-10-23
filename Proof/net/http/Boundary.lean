@@ -663,6 +663,19 @@ def RespCloseAny_spec : Prop :=
         (App (Val #(methods ri.ty go!"Close" ri.v)) (Val #()))
       {{ (err : GoInterface), RET #err; errStrOk err }}
 
+/-- (`rafthttp.Transport.Stop`'s; stage 6c) `tr.CloseIdleConnections()` of a round tripper of
+`roundTripperOk` whose dynamic type is `*http.Transport`: its value is a pointer `tr` (Go's typing:
+a value of a pointer type), and closing `tr`'s idle connections returns. Go's
+`CloseIdleConnections` is safe concurrently with requests; a `*http.Transport` round tripper is
+not `nil` (`RoundTrip` of a `nil` one panics, which `roundTripperOk`'s `RoundTrip` does not). -/
+def CloseIdleConnections_spec (H : HttpNet GF) : Prop :=
+  ∀ ti : GoInterfaceOk, ti.ty = go.GoType.PointerType _root_.Perennial.net.http.Transport.ty →
+    ⊢ roundTripperOk H (GoInterface.ok ti) -∗ ∃ tr : Loc, ⌜ti.v = #tr⌝ ∗
+      {{ True }}
+        (App (Val (tr @!! go.GoType.PointerType _root_.Perennial.net.http.Transport.ty @!!
+          go!"CloseIdleConnections")) (Val #()))
+      {{ RET #(); True }}
+
 /-- A response body's `Close()`: some error. -/
 def RespClose_spec (H : HttpNet GF) : Prop :=
   ∀ (rd : GoInterface) (ri : GoInterfaceOk) (R : HReq) (γk : GName) (st : w64) (r : List w8),
