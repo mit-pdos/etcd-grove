@@ -19,7 +19,8 @@ used by `NewServer`'s proof alone (unit N2 does not read them), and N1 refines t
   - the consistent index at `0` (`isCI`, `ciOwner` of the backend, the applying index at `0`)
     and the apply protocol's names and invariant (`consInv`, the apply thread's half at the start:
     the backend's batch lock's resource names them, so they exist before the backend; the
-    protocol's allocation is `consInv_alloc`, `BuildAlloc.lean`), the backend's meta keys at
+    protocol's allocation is `consInv_alloc`, `InvApply.lean`: since S7f its registry holds the boot
+    backend's physical names, `batchLockInv`'s `applyRegd`), the backend's meta keys at
     `(0, 0)` (a new cluster's fresh backend);
   - the backend of the real instance `d` with the server's hooks (`server_kv_backend_hooks`'s
     premises but the post-lock hook's, which `NewServer` sets: the hook's half, its open fraction,

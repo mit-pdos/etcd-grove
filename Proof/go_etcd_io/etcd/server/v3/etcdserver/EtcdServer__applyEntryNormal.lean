@@ -558,11 +558,11 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             imod writes_done γ { st with k := m.index, pending := true } rfl $$ Hinv Hst
               with ⟨Hst, Htok⟩
             iunfold hookDone at Hdone
-            icases Hdone with ⟨%mm, Hmt, HTM⟩
+            icases Hdone with ⟨%mm, Hmt, HTM, #Hreg⟩
             imodintro
             iframe Happ Hbe
             isplitl [Hmt HTM Htok]
-            · iunfold batchLockInv; iexists mm; iframe
+            · iunfold batchLockInv; iexists mm; iframe; iexact Hreg
             iexact Hst
         · iframe Hst Happ Hbe HcF
           ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk⟩

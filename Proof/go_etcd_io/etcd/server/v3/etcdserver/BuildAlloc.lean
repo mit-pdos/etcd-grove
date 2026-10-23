@@ -14,9 +14,10 @@ proofs are unit N2's.
 * `srvIndices_alloc`: the applied and committed indices' invariants and the term's, at index `0`.
 * `srvMintInv_alloc`: the mints, from `allocClientBoot`'s fresh-token authorities and raft's read
   credits.
-* `consInv_alloc`: the apply protocol's invariant over a fresh consistent index (for whoever
-  discharges `bootstrap`'s contract, `InvBoot.lean`: the backend's batch lock's resource names the
-  protocol's names, so they exist before the backend does).
+* `consInv_alloc` (in `InvApply.lean` since D22 receiver epochs S7f, 2026-10-23): the apply
+  protocol's invariant over a fresh consistent index (for whoever discharges `bootstrap`'s contract,
+  `InvBoot.lean`: the backend's batch lock's resource names the protocol's names, so they exist
+  before the backend does).
 -/
 module
 

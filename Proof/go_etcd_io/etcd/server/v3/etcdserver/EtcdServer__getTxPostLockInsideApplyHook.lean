@@ -59,7 +59,7 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
   -- the applying index is above `ci`: set it
   wp_if_destruct
   · iunfold batchLockInv at HL
-    icases HL with ⟨%mm, Hmt, HTM, Htok⟩
+    icases HL with ⟨%mm, Hmt, HTM, Htok, #Hreg⟩
     have hlst : (stLoaded γ st).pending = false ∧ i = (stLoaded γ st).p + 1 := by
       unfold stLoaded; split <;> exact ⟨hp, hi⟩
     wp_apply_core (wp_ci_hookSet hS γ ci (stLoaded γ st) i t hlst.1 hlst.2 (by
@@ -70,7 +70,7 @@ theorem EtcdServer.getTxPostLockInsideApplyHook.wp_proof
     iapply HΦ
     iframe Happ Hbe
     isplitl [Hmt HTM]
-    · iunfold hookDone; iexists mm; iframe
+    · iunfold hookDone; iexists mm; iframe; iexact Hreg
     have hw : { stLoaded γ st with k := i, pending := true } = { st with k := i, pending := true } := by
       unfold stLoaded; split <;> rfl
     rw [hw] at *

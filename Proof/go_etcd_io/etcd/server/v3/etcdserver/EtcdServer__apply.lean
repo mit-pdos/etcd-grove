@@ -530,12 +530,13 @@ theorem EtcdServer.apply.wp_proof
               imod (writes_done γ { stLoaded γ st' with k := m.index, pending := true } rfl) $$ Hinv Hst
                 with ⟨Hst, Htok⟩
               iunfold hookDone at Hhd
-              icases Hhd with ⟨%mm, Hmt, HTM⟩
+              icases Hhd with ⟨%mm, Hmt, HTM, #Hreg⟩
               imodintro
               iframe Hst Happ Hbe
               iunfold batchLockInv
               iexists mm
               iframe
+              iexact Hreg
             · iintro ⟨Hst, Happ, Hbe, -⟩
               imod (skip_done γ (stLoaded γ st') m.index hpre.1 hpre.2.1 hpre.2.2.1) $$ Hinv Hst with Hst
               wp_apply_core (wp_ci_advance hSCI γ ci { stLoaded γ st' with p := m.index } m.index m.term
