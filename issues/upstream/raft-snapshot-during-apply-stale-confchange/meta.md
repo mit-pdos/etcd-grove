@@ -12,24 +12,27 @@ uses v1 conf changes only, so there the outcome is a wrong configuration on one 
 - **Target**: etcd-io/raft, `main` (also in v3.7.0, which etcd `main` uses: `raft.go` and `rawnode.go` are identical
   in the lines changed)
 - **Branch**: `fix/raft-snapshot-during-apply-stale-confchange` in `~/etcd-fixes/raft-snapshot-during-apply-stale-confchange`,
-  two commits: 43af980 adds the test, which fails there; 9dc2d50 is the fix (`raft.go` 22 lines added, 18
-  removed; `rawnode.go` 35 added, 17 removed; and the tests that relied on `restore` switching the configuration:
-  `raft_test.go`, `raft_snap_test.go`, eight `testdata/` files). 2026-10-23: the changelog commit (4a0c81d) dropped
-  (a bug fix the maintainers would backport gets none, the etcd-io/raft#536 review) and `storageAppendHeld`'s doc
-  comment shortened to the one of `raft-async-snapshot-during-apply-divergence`, split off (below); the fix was
-  a896f58; the old head is kept as `backup/raft-snapshot-during-apply-stale-confchange-v4-changelog` (4a0c81d).
+  two commits: de03c18 adds the test, which fails there; 2425490 is the fix (`raft.go` 22 lines added, 18
+  removed; and the tests that relied on `restore` switching the configuration: `raft_test.go`, `raft_snap_test.go`,
+  eight `testdata/` files). Rebuilt 2026-10-23 without anything for `AsyncStorageWrites`: the hold in `rawnode.go`
+  (`storageAppendHeld`) and the test's async subtests are gone, left to `raft-async-snapshot-during-apply-divergence`
+  (below), and the branch is rebased onto `main` c51f010; the old head is kept as
+  `backup/raft-snapshot-during-apply-stale-confchange-v5-async` (9dc2d50, the hold included). Earlier the same
+  day the changelog commit (4a0c81d) was dropped (a bug fix the maintainers would backport gets none, the
+  etcd-io/raft#536 review), the old head kept as `backup/raft-snapshot-during-apply-stale-confchange-v4-changelog`.
   Rebuilt 2026-10-21 with a fourth fix, option A: switch to the snapshot's configuration when the
-  snapshot is applied (`appliedSnap`) instead of when it is restored, and with `AsyncStorageWrites` hold the append
-  thread's work while a snapshot waits for older entries (the user's choice over the third fix, which kept a copy
-  of the pre-snapshot configuration; below). Earlier fixes kept as local branches:
+  snapshot is applied (`appliedSnap`) instead of when it is restored (the user's choice over the third fix, which
+  kept a copy of the pre-snapshot configuration; below). Earlier fixes kept as local branches:
   `backup/raft-snapshot-during-apply-stale-confchange-v3-keepconf` (9f77761: a016d92, b556234, 9f77761, the copy),
   `backup/raft-snapshot-during-apply-stale-confchange-v2-defer` (48dafe8, the deferral) and
   `backup/raft-snapshot-during-apply-stale-confchange-v1` (da0e9bf, the first push's head).
-- **Base**: upstream `main` 1931ff5beacc1e2539003c0c70f096285f04c425 (2026-10-19, the merge of #536; still `main`
-  on 2026-10-23, so not rebuilt). The test's lines are `rawnode_test.go#L718-L851`; the PR's permalinks are at
-  1931ff5. Pushed before: the fork still has `da0e9bf` (the deferral, on the old base, checked with `git ls-remote
-  origin` 2026-10-23); replace it, once the user approves, with
-  `git -C ~/etcd-fixes/raft-snapshot-during-apply-stale-confchange push --force-with-lease=fix/raft-snapshot-during-apply-stale-confchange:da0e9bf origin fix/raft-snapshot-during-apply-stale-confchange`
+- **Base**: upstream `main` c51f010c851edd0dada5af41bafbf68e54617767 (2026-10-23, the merge of #537, a Go version
+  bump over 1931ff5: `.go-version` and `go.mod` only, so the permalinks' lines are those at 1931ff5). The test's
+  lines are `rawnode_test.go#L718-L788`; the PR's permalinks are at c51f010. Pushed before: the fork still has
+  `da0e9bf` (the deferral, on the old base, checked with `git ls-remote origin` 2026-10-23); replace it, once the
+  user approves, with
+  `git -C ~/etcd-fixes/raft-snapshot-during-apply-stale-confchange push --force-with-lease=fix/raft-snapshot-during-apply-stale-confchange:da0e9bf origin fix/raft-snapshot-during-apply-stale-confchange`,
+  then check the issue's link `#L718-L788` on GitHub.
 - **State**: draft (2026-10-23)
 - **Upstream issue**: —
 - **PR**: —
@@ -68,26 +71,24 @@ writes snapshot` (#8, #37), `LocalApplyThread` (#8); and the review threads of #
 
 ## Other candidates
 
-The fix touches `raft.go` (`appliedSnap`, `restore`) and `rawnode.go` (`readyWithoutAccept`, `acceptReady`,
-`HasReady`, a new `storageAppendHeld`). a896f58 (whose code 9dc2d50 keeps) merged cleanly
-(`git merge-tree`, 2026-10-21) with the code commits of `raft-confstate-unknown-fields-panic` (71ca492) and
-`raft-joint-empty-transition-panic` (e3f1575) (each branch's commit before its changelog tip; both are still on
-638f42739) and with the tips of `raft-advance-before-applyconfchange` (fd30b41),
-`raft-memorystorage-initialstate-unlocked` (15190e3) and `raft-readindex-singleton-stale` (3d0bd8a); each of the
-first four merges builds, vets and passes `go test ./...`. Now that this branch has no changelog commit, only those
-siblings' changelog commits conflict, with `main` itself. Not mentioned in the PR (not a split). 2026-10-23: 9dc2d50
-merges cleanly with fd30b41 (`git merge-tree`).
+The fix touches `raft.go` only (`appliedSnap`, `restore`). Its code (unchanged since a896f58 but for the
+`rawnode.go` hold, now gone) merged cleanly (`git merge-tree`, 2026-10-21) with the code commits of
+`raft-confstate-unknown-fields-panic` (71ca492) and `raft-joint-empty-transition-panic` (e3f1575) and with the tips
+of `raft-advance-before-applyconfchange` (fd30b41), `raft-memorystorage-initialstate-unlocked` (15190e3) and
+`raft-readindex-singleton-stale` (3d0bd8a); not rerun for 2425490, which only removes a file's changes. Only those
+siblings' changelog commits conflict, with `main` itself. Not mentioned in the PR (not a split).
 
 **`raft-async-snapshot-during-apply-divergence`** (split off 2026-10-23, `issues/upstream/raft-async-snapshot-during-apply-divergence/`,
-branch `fix/raft-async-snapshot-during-apply-divergence`, fix b60b90c): the `AsyncStorageWrites` half (the hold)
-also fixes the state machine applying older entries after a snapshot that includes them, a distinct trigger (no
-conf change), symptom and workaround, so by the split rule it is an issue and PR of its own. Until 2026-10-21's
-review it was kept here because this fix needs the hold (with `AsyncStorageWrites`, without it, `appliedSnap` can
-switch the configuration before the stale `ApplyConfChange` calls: the two async subtests fail). Both branches
-therefore carry the identical `rawnode.go` change (same hunks, same doc comment, `git diff b60b90c 9dc2d50 --
-rawnode.go` empty), so they merge cleanly in either order (`git merge-tree`; the merged tree vets and passes `go test
-./...`, both new tests included), and neither depends on the other: that fix alone leaves this test failing (three
-of four subtests), this fix alone passes that test. Each PR ends with a note on the overlap.
+branch `fix/raft-async-snapshot-during-apply-divergence`, fix b60b90c): with `AsyncStorageWrites`, the snapshot goes
+to the append thread and the older entries to the apply thread, "processed in any order"
+(`Config.AsyncStorageWrites`), so `appliedSnap` can switch the configuration before the older entries'
+`ApplyConfChange` calls, and this fix alone does not fix the async case (the old async subtests fail with it,
+below). That branch's hold (`storageAppendHeld`: `RawNode` hands nothing to the append thread while a snapshot
+waits for older entries) makes the snapshot apply after them, which also fixes the state machine applying older
+entries on top of the snapshot, a distinct trigger (no conf change), symptom and workaround. Since 2026-10-23 this
+candidate leaves `AsyncStorageWrites` to that one entirely (the user's decision): no hold here, no async subtests.
+`git merge-tree --write-tree 2425490 b60b90c` is clean; the merged tree passes `go test ./...` and the old four
+subtests, async included (below). The PR ends with a note on the dependency.
 
 ## Why the fix works
 
@@ -110,22 +111,14 @@ snapshot; the application applies it and calls `Advance`, which steps the `MsgSt
 - Without `AsyncStorageWrites`, the order is forced: `RawNode` refuses a second `Ready` before `Advance`, so the
   snapshot's `Ready` (and its acknowledgement) comes after the `Advance` of the entries handed out before it, and
   doc.go's protocol puts their `ApplyConfChange` calls before that `Advance`.
-- With `AsyncStorageWrites`, the snapshot goes to the append thread and the older entries to the apply thread,
-  "processed in any order" (`Config.AsyncStorageWrites`), so the snapshot could be acknowledged first (the async
-  subtests fail without the hold). `storageAppendHeld`: while an unstable snapshot is not yet handed out and
-  `applying > applied`, `RawNode` hands nothing to the append thread: not the snapshot, not the entries after it,
-  not a `HardState` (its commit index is the snapshot's), not `msgsAfterAppend` (the `MsgAppResp` acknowledging
-  the snapshot must wait until it is durable). `HasReady` ignores them meanwhile, and `acceptReady` keeps
-  `msgsAfterAppend` and does not mark the unstable log in progress. The apply thread's response for the older
-  entries makes `applied == applying`, and the next `Ready` hands everything out. The condition can only become
-  true at a restore: no committed entries are handed out while a snapshot is pending
-  (`hasNextOrInProgressSnapshot`).
+- With `AsyncStorageWrites`, the order is not forced (the snapshot and the older entries go to different
+  threads), so the fix needs `raft-async-snapshot-during-apply-divergence`'s hold there (above); this candidate
+  does not deal with that mode.
 - Nothing else reads a follower's configuration for a decision in the window between the restore and
   `appliedSnap`: the follower cannot campaign (`promotable` is false while a snapshot is pending, `hup` checks it),
   so it never counts votes or commits; granting a vote does not read the configuration; the window ends at the
   acknowledgement, which the application must deliver.
-- Without a snapshot restored, nothing changes: the configuration switch happens at the same acknowledgement as
-  `appliedTo`, and the hold's condition is false.
+- Without a snapshot restored, nothing changes.
 
 ## Why the test shows the bug, not a misuse
 
@@ -144,31 +137,23 @@ compaction point while it is still applying an older batch. The test's second `S
 needed by the fix; it stays so that the test asserts only the guarantee (the follower ends with the snapshot's
 configuration, `ApplyConfChange` returns the configuration at the entry's index) and not when raft restores the
 snapshot. The application processes every `Ready` until none is left, so the test does not depend on when raft
-switches the configuration either. The async subtests run the append thread ahead of the apply thread, the order
-doc.go allows that exposes the race; the apply thread calls `ApplyConfChange` before delivering its response, as
-doc.go's apply thread does.
+switches the configuration either.
 
-## Verification (go1.26.9 linux/amd64, 2026-10-21; rerun 2026-10-23)
+## Verification (go1.26.10 linux/amd64, 2026-10-23)
 
-2026-10-23, after dropping the changelog commit and amending the comment: at 43af980 the test fails as below
-(`0/async=false`, `0/async=true` `expected: []uint64{0x1, 0x2, 0x3}`, `actual  : []uint64{0x1, 0x2, 0x3, 0x4}`;
-`1/async=false` `panic: config is already joint [recovered, repanicked]`); at 9dc2d50 it passes, `go test -count=1
-./...` ok, also with `-race`; `gofmt -l .` empty; `go vet ./...` clean.
+`TestRawNodeSnapshotDuringConfChangeApply` (`rawnode_test.go`, after `TestRawNodeRestartFromSnapshot`), two cases,
+without `AsyncStorageWrites`: v1 "add 4" with a snapshot of voters `{1,2,3}`; a `ConfChangeV2` "add 4" entering a
+joint configuration (`JointExplicit`) with a snapshot in `(1 2 3 4)&&(1 2 3)`. Asserts the guarantee:
+`ApplyConfChange` returns the configuration at index 1, and both halves of node 2's voters equal the snapshot's.
 
-
-`TestRawNodeSnapshotDuringConfChangeApply` (`rawnode_test.go`, after `TestRawNodeRestartFromSnapshot`), two cases
-times two modes: v1 "add 4" with a snapshot of voters `{1,2,3}`; a `ConfChangeV2` "add 4" entering a joint
-configuration (`JointExplicit`) with a snapshot in `(1 2 3 4)&&(1 2 3)`; each without and with
-`AsyncStorageWrites`. Asserts the guarantee: `ApplyConfChange` returns the configuration at index 1, and both
-halves of node 2's voters equal the snapshot's.
-
-- At the tests commit 43af980 (`go test -count=1 -run 'TestRawNodeSnapshotDuringConfChangeApply$' .`): fails,
-  `0/async=false` and `0/async=true` `expected: []uint64{0x1, 0x2, 0x3}`, `actual: []uint64{0x1, 0x2, 0x3, 0x4}`;
-  `1/async=false` `panic: config is already joint` (which ends the run).
-- At the fix commit a896f58 (9dc2d50 differs only in a comment): passes (all four); `go test -count=1 ./...`
-  (raft, confchange, quorum, raftpb, rafttest, tracker) ok, also with `-race`; `gofmt -l .` empty; `go vet ./...`
-  clean. golangci-lint not installed, not run.
-- Without the hold (`storageAppendHeld` returning false): the two `async=true` subtests fail, the two others pass.
+- At the tests commit de03c18 (`go test -count=1 -run 'TestRawNodeSnapshotDuringConfChangeApply$' .`): fails,
+  `0` `expected: []uint64{0x1, 0x2, 0x3}`, `actual  : []uint64{0x1, 0x2, 0x3, 0x4}`; `1` `panic: config is already
+  joint [recovered, repanicked]`.
+- At the fix commit 2425490: passes; `go test -count=1 ./...` (raft, confchange, quorum, raftpb, rafttest, tracker)
+  ok, also with `-race`; `gofmt -l .` empty; `go vet ./...` clean. golangci-lint not installed, not run.
+- With `AsyncStorageWrites` (the old test of 43af980, with its async subtests, by `go test -overlay`): at 2425490
+  the two `async=true` subtests fail (`1/async=true` panics "config is already joint"), the two others pass; on
+  2425490 merged with b60b90c all four pass, and the merged tree passes `go test -count=1 ./...`.
 - The tests the fix changes: `TestRestore`, `TestRestoreWithLearner`, `TestRestoreWithVotersOutgoing` and
   `TestRestoreLearnerPromotion` now check that the configuration is unchanged after `restore` (where the old
   assertion was on it) and is the snapshot's after the snapshot is applied (`applyRestoredSnapshot`, a helper doing
@@ -178,16 +163,11 @@ halves of node 2's voters equal the snapshot's.
   from the snapshot). `TestInteraction` (`-rewrite`): eight files, nine "switched to configuration" lines, each
   moved from the step delivering the `MsgSnap` to the step applying the snapshot; no other line changes, messages
   included.
-- Temporary tests, not on the branch (`go test -overlay`, in the job's scratch directory), at the fix:
+- Temporary tests, 2026-10-21, at a896f58 (which also had the hold; without `AsyncStorageWrites` it runs
+  the same code as 2425490), not on the branch:
   - `RawNode`: right after the restore the configuration is still `[1 2 3]`; the stale "add 4" returns
     `[1 2 3 4]` and makes the configuration `[1 2 3 4]` (the configuration at index 1); after the snapshot's
     `Ready`, `[1 2 3]`; an "add 4" at index 3 then makes it `[1 2 3 4]`.
-  - `AsyncStorageWrites` `RawNode`, the append thread run as soon as it has work: after the `MsgSnap` nothing is
-    handed to the append thread and `applied` stays 0; a `MsgApp` at index 3, a heartbeat and a probe at index 2
-    arriving meanwhile are answered with no rejection (only the heartbeat response goes out: the `MsgAppResp`s are
-    held); the apply thread's "add 4" returns `[1 2 3 4]`; its response releases the snapshot: a state machine
-    appending entries ends with "ab" (the snapshot's), not "aba"; the held `MsgAppResp`s (up to index 3) go out;
-    the configuration is `[1 2 3]`; entry 3 is handed out after the snapshot and its "add 4" gives `[1 2 3 4]`.
   - `Node`: `Step(MsgSnap)` while the application holds the `Ready`; `ApplyConfChange` returns `[1 2 3 4]`; after
     `Advance` the next `Ready` carries the snapshot; `Status` then shows `[1 2 3]`, commit 2.
   - `Node`, a stale "remove 2" at node 2 with a snapshot that keeps 2: node 2 ends with `[1 2 3]`, but `Propose` at
@@ -195,11 +175,8 @@ halves of node 2's voters equal the snapshot's.
     `node.run` stop taking proposals until the leader changes (below). At the base: `[1 3]` (the bug) and
     `Propose` blocks; with the third fix (the copy): `[1 2 3]` and `Propose` succeeds.
 - Not re-run for this fix: the resend count against a real leader (the third fix's table: 1 `MsgSnap` in each
-  variant; the temporary test is gone). Without `AsyncStorageWrites` the follower's messages are those of the base
-  (the interaction tests' traces are unchanged but for the log lines; `restore` and its `MsgAppResp` are
-  untouched). With it, the follower's log holds the snapshot from the restore on, so a probe at or after it is
-  accepted, not rejected (checked above), and only a rejection below the leader's first index makes the leader
-  send another snapshot.
+  variant; the temporary test is gone). The follower's messages are those of the base (the interaction tests'
+  traces are unchanged but for the log lines; `restore` and its `MsgAppResp` are untouched).
 
 Not run: etcd's tests, `make verify`. Not reproduced on a cluster or on etcd.
 
@@ -256,8 +233,8 @@ Candidate layers and fixes, and why this one:
 - This fix (option A): the configuration changes when the snapshot is applied. No new state in `raft`; the
   snapshot is restored at once, so nothing is sent twice; each `ApplyConfChange` returns what it returns at the
   base without the snapshot; it does not count calls. It restores an invariant raft already relies on for conf
-  change entries (the configuration is the one at the applied index), where `restore` was the exception. The
-  async hold is the one extra piece, and it also makes a snapshot apply after the entries before it.
+  change entries (the configuration is the one at the applied index), where `restore` was the exception. With
+  `AsyncStorageWrites` it needs `raft-async-snapshot-during-apply-divergence`'s fix too (above).
 
 Other questions:
 
@@ -276,38 +253,32 @@ Other questions:
   proposals until the leader changes (`node.go:403-427`, "not very sound and likely has bugs"), as a
   remove-then-re-add without a snapshot does at the base (measured above; the third fix avoided it). etcd reads
   `Status().Lead` and, on the leader only, `Status().Progress`.
-- Cost of the hold (only with `AsyncStorageWrites`, only while a snapshot waits for older entries): the follower
-  persists nothing meanwhile, so its `MsgAppResp`s and vote responses wait for the older entries' application;
-  heartbeat responses do not wait. The wait ends at the apply thread's response, which the application must
-  deliver.
+- Why not fix `AsyncStorageWrites` here too: it is a separate bug with its own trigger and symptom (the state
+  machine, no conf change needed), fixed by `raft-async-snapshot-during-apply-divergence`'s PR; with both merged
+  the async case passes this test's old async subtests (above).
 - Not covered: an application that calls `Advance` before `ApplyConfChange`, which doc.go's step 4 ("at any time
   after step 1") and `Node.Advance`'s comment allow. The snapshot's `Ready` can then be applied before the late
   `ApplyConfChange`, which applies on top of the snapshot's configuration as before. That ordering breaks raft's
   other conf-change guards too (`issues/raft-advance-before-applyconfchange.md`); this fix assumes conf changes
   are applied before `Advance`, as doc.go's example loop does (and etcd, for a follower's `Ready` with a conf
   change).
-- Comments: one in `appliedSnap` (why the switch waits for the snapshot to be applied), the doc of
-  `storageAppendHeld` (why nothing goes to the append thread, and why it never holds without
-  `AsyncStorageWrites`); `restore`'s doc comment says the configuration is restored in `appliedSnap`.
+- Comments: one in `appliedSnap` (why the switch waits for the snapshot to be applied); `restore`'s doc comment
+  says the configuration is restored in `appliedSnap`.
 - `ReportSnapshot`'s comment ("Calling ReportSnapshot with SnapshotFinish is a no-op"): not true at the base
   (`issues/raft-reportsnapshot-finish-not-noop.md`), not part of this PR; the fix does not depend on it.
-- Backports: v3.7.0 has the same `restore`, `appliedSnap` and `RawNode` code; not tried on a release branch. No
+- Backports: v3.7.0 has the same `restore` and `appliedSnap` code; not tried on a release branch. No
   changelog entry (a bug fix to backport; add one in `CHANGELOG-3.8.md` if a reviewer asks). etcd uses v3.7.0, so
   the fix reaches etcd only with v3.8.0 or a v3.7.1 patch release, which raft has never made: the maintainers'
   call; if wanted, cherry-pick the fix commit to `release-3.7` in a separate PR.
 - An application that calls `Advance` before `ApplyConfChange` (not covered, above): `raft-advance-before-applyconfchange`'s
   documentation PR makes that order a misuse, so the case this fix leaves out is then outside the contract.
 
-## check.py (2026-10-23)
+## check.py (2026-10-23, after dropping `AsyncStorageWrites`)
 
 No FAIL. WARNs, decided:
 
 - The comments added: kept. The one in `appliedSnap` says why the switch waits for the snapshot to be applied,
-  and `storageAppendHeld`'s doc says why nothing goes to the append thread and why it never holds without
-  `AsyncStorageWrites`, neither of which the code shows; `restore`'s doc comment is updated to what it now does;
-  "This should never happen ..." moved with the code from `restore`.
-- The issue's 386 words (aim 380, rewritten free-form with the cause after the 2026-10-23 review): kept; it shows
-  two cases (wrong configuration and panic) and both modes, and the cause needs why nothing repairs the
-  configuration later (the resent snapshot is ignored).
-- The PR's words (aim 90): kept; the approved raft example has 136, and the change needs both halves (the
-  switch in `appliedSnap`, the hold with `AsyncStorageWrites`) plus the overlap note.
+  which the code does not show; `restore`'s doc comment is updated to what it now does; "This should never happen
+  ..." moved with the code from `restore`.
+- The PR's 149 words (aim 90): kept; the approved raft example has 136, and the change needs the root cause plus
+  the note on the `AsyncStorageWrites` sibling it relies on in that mode.

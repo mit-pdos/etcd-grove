@@ -47,13 +47,14 @@ open PRs: none touches this. No duplicate, no open PR.
 
 ## Other candidates
 
-- **`raft-snapshot-during-apply-stale-confchange`** (draft, fix 9dc2d50): its fix contains this branch's
-  `rawnode.go` change byte for byte (the same hunks, the same doc comment), because with `AsyncStorageWrites` it
-  needs the snapshot applied after the older entries' `ApplyConfChange` calls. `git merge-tree --write-tree b60b90c
-  9dc2d50` is clean in either order (identical hunks); the merged tree vets and passes `go test ./...`, both tests
-  included. This fix alone does not fix that one (its test still fails, three of four subtests, with this fix on
-  `main`); that fix alone fixes this one (this test passes on it). Each PR ends with a note on the overlap (the
-  skill's split note, adapted: they do not conflict).
+- **`raft-snapshot-during-apply-stale-confchange`** (draft, fix 2425490 on `main` c51f010): since 2026-10-23 it
+  does not deal with `AsyncStorageWrites` (no hold, no async subtests; until then, 9dc2d50, it carried this
+  branch's `rawnode.go` change byte for byte). With `AsyncStorageWrites` it needs this fix: the snapshot applied
+  after the older entries' `ApplyConfChange` calls. `git merge-tree --write-tree 2425490 b60b90c` is clean; the
+  merged tree passes `go test ./...` and that candidate's old test with its async subtests (all four). This fix
+  alone does not fix that one (its old test fails, three of four subtests, with this fix on `main`, 2026-10-21);
+  that fix alone does not fix this one either (it no longer has the hold). Each PR ends with a note on the
+  dependency (the skill's split note, adapted: they do not conflict).
 - Merges cleanly with `fix/raft-advance-before-applyconfchange` (fd30b41), `raft-memorystorage-initialstate-unlocked`
   (15190e3) and `raft-readindex-singleton-stale` (3d0bd8a) (`git merge-tree`, 2026-10-23).
 
