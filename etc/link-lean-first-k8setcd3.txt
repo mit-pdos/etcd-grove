@@ -1,0 +1,88 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --k8setcd3`: `<fn>: <callees in the order of
+# <fn>.wp_proof's hypotheses>`. The results are in the namespace `k8setcd3`
+# (notes/k8s-etcd3-plan.md, phase 6).
+#
+# the driver's Go model of the store (`model.go`) and its porcupine model
+lookup:
+setItem:
+delItem:
+storeKey:
+objOut:
+notFound: storeKey
+validateFor:
+updated:
+tryUpdateFor: updated
+mcreate: lookup setItem storeKey objOut
+mdelete: lookup delItem notFound objOut validateFor
+mupdate: lookup setItem notFound objOut updated
+mget: lookup notFound objOut
+mstep: mcreate mdelete mupdate mget
+isWrite:
+outEqual:
+storeEqual:
+inputEqual:
+configEqual: storeEqual inputEqual
+removeAt:
+addConfig: configEqual
+closure: addConfig mstep removeAt
+step: isWrite mstep outEqual
+k8setcd3_Model: step addConfig closure configEqual
+#
+# the codec, versioner, transformer and decoder (`codec.go`)
+encodeWith:
+encodeObj: encodeWith
+encodeV0: encodeWith
+decodeObj:
+parseRV:
+# apimachinery's runtime, with bodies (stage 6c): what the driver's contract rests on (the trust
+# boundary: `bytes.Buffer`'s and `reflect`'s specs, and `conversion.EnforcePtr`)
+Buffer__Bytes:
+Buffer__Write:
+reflect_Value__Type:
+reflect_Zero:
+reflect_Value__Set:
+EnforcePtr:
+runtime_Encode: Buffer__Bytes
+SetZeroValue: EnforcePtr reflect_Value__Type reflect_Zero reflect_Value__Set
+codec__Encode: encodeObj Buffer__Write
+decoder__Decode: decodeObj
+versioner__UpdateObject:
+versioner__PrepareObjectForStorage:
+versioner__ObjectResourceVersion:
+versioner__ParseResourceVersion: parseRV
+identity__TransformFromStorage:
+identity__TransformToStorage:
+newObj:
+#
+# the calls to the store (`call`, over the store's, `@`), `Apply`, the generator and `Check`
+etcd3_store__Create: @
+etcd3_store__Delete: @
+etcd3_store__GuaranteedUpdate: @
+etcd3_store__Get: @
+errOut:
+k8setcd3_call: errOut objOut storeKey validateFor tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get
+k8setcd3_Apply: k8setcd3_call
+workloadKeys:
+workloadVals:
+pick:
+genFrom: workloadKeys workloadVals pick
+k8setcd3_Gen: genFrom
+Run: @
+CounterClock: @
+k8setcd3_Check: Run CounterClock k8setcd3_Model k8setcd3_Gen k8setcd3_Apply
+#
+# the seeding and `Main` (over the server's, v3rpc's, the clients' and the store's, `@`)
+seedOne: storeKey encodeV0 setItem
+seed: seedOne
+etcdserver_NewServer: @
+EtcdServer__Start: @
+v3rpc_Server: @
+kubernetes_New: @
+etcd3_New: @
+NewDefaultLeaseManagerConfig: @
+zap_NewNop:
+features_NewDefaultServerFeatureGate:
+net_Listen:
+grpc_Server__Serve:
+k8setcd3_Main: zap_NewNop features_NewDefaultServerFeatureGate etcdserver_NewServer EtcdServer__Start v3rpc_Server net_Listen grpc_Server__Serve kubernetes_New seed etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue k8setcd3_Check

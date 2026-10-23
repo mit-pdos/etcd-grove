@@ -30,3 +30,6 @@ kvFromTxnResponse: ResponseOp__GetResponseRange
 Client__Get: WithRev WithLimit
 Client__OptimisticPut: v3_WithLease OpPut OpGet ModRevision v3_Compare kvFromTxnResponse
 Client__OptimisticDelete: OpDelete OpGet ModRevision v3_Compare kvFromTxnResponse
+# the constructor (stage 6e): `New(cfg)`, over the client's (`@`)
+client_v3_New: @
+kubernetes_New: client_v3_New

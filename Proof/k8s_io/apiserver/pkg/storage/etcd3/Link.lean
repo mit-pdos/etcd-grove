@@ -8,9 +8,12 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.Client__Ctx
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
 public import Proof.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Proof.strings.HasSuffix
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.NewEtcdMetricsTracker
 public import Proof.k8s_io.apiserver.pkg.storage.NewInternalError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyExistsError
 public import Proof.k8s_io.apiserver.pkg.storage.NewKeyNotFoundError
@@ -20,11 +23,19 @@ public import Proof.k8s_io.apiserver.pkg.storage.PrepareKey
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.component_base.tracing.Span__End
+public import Proof.strings.TrimSuffix
 public import Proof.reflect.TypeOf
 public import Proof.k8s_io.klog.v2.Verbose__Infof
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFactory
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregatorFactory
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newDefaultLeaseManager
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newLeaseManager
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newStorageKeyReverseFunc
+public import Proof.path.Join
 public import Proof.reflect.New
 public import Proof.reflect.Value__Addr
 public import Proof.reflect.Value__Interface
@@ -65,6 +76,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
+
+theorem v3.Client.wp_Ctx :
+    EtcdGrove.Client.Ctx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.Ctx.wp_proof
 
 theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
@@ -117,6 +132,14 @@ theorem strings.wp_HasSuffix :
     EtcdGrove.strings.HasSuffix.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strings.HasSuffix.wp_proof
 
+theorem wp_NewDefaultLeaseManagerConfig :
+    EtcdGrove.k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.NewDefaultLeaseManagerConfig.wp_proof
+
+theorem metrics.wp_NewEtcdMetricsTracker :
+    EtcdGrove.metrics.NewEtcdMetricsTracker.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metrics.NewEtcdMetricsTracker.wp_proof
+
 theorem storage.wp_NewInternalError :
     EtcdGrove.storage.NewInternalError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.NewInternalError.wp_proof
@@ -157,9 +180,41 @@ theorem tracing.Span.wp_End :
     EtcdGrove.tracing.Span.End.spec (GF := GF) (hG := hG) :=
   EtcdGrove.tracing.Span.End.wp_proof
 
+theorem strings.wp_TrimSuffix :
+    EtcdGrove.strings.TrimSuffix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.TrimSuffix.wp_proof
+
 theorem klog.Verbose.wp_Infof :
     EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG) :=
   EtcdGrove.klog.Verbose.Infof.wp_proof
+
+theorem wp_corruptObjErrAggregatorFactory :
+    EtcdGrove.k8s.corruptObjErrAggregatorFactory.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.corruptObjErrAggregatorFactory.wp_proof
+
+theorem wp_defaultListErrorAggregatorFactory :
+    EtcdGrove.k8s.defaultListErrorAggregatorFactory.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.defaultListErrorAggregatorFactory.wp_proof
+
+theorem wp_newLeaseManager :
+    EtcdGrove.k8s.newLeaseManager.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.newLeaseManager.wp_proof
+
+theorem wp_newDefaultLeaseManager :
+    EtcdGrove.k8s.newDefaultLeaseManager.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.newDefaultLeaseManager.wp_proof wp_newLeaseManager
+
+theorem wp_newStorageKeyReverseFunc :
+    EtcdGrove.k8s.newStorageKeyReverseFunc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.newStorageKeyReverseFunc.wp_proof
+
+theorem path.wp_Join :
+    EtcdGrove.path.Join.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.path.Join.wp_proof
+
+theorem wp_New :
+    EtcdGrove.k8s.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.New.wp_proof wp_newDefaultLeaseManager wp_defaultListErrorAggregatorFactory wp_corruptObjErrAggregatorFactory wp_newStorageKeyReverseFunc metrics.wp_NewEtcdMetricsTracker path.wp_Join strings.wp_TrimSuffix v3.Client.wp_Ctx reflect.wp_TypeOf
 
 theorem wp_getTypeName :
     EtcdGrove.k8s.getTypeName.spec (GF := GF) (hG := hG) :=

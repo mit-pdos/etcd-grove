@@ -46,6 +46,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
        etc/gen-link.py --k8s-etcd3 > Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean
+       etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -345,6 +346,16 @@ LEAN_FIRST = {
               "go_etcd_io.etcd.client.v3.kubernetes",
               "go_etcd_io.etcd.client.v3.kubernetes.Assumptions",
               "The Kubernetes client's proofs (`client/v3/kubernetes`)", [""]),
+    # the Kubernetes etcd3 store's linearizability driver (examples/k8setcd3,
+    # notes/k8s-etcd3-plan.md phase 6): its Go model of the store and porcupine model, its codec,
+    # `Apply` (over the store's, `@`), its generator, `Check` (over the porcupine driver's, `@`),
+    # the seeding and `Main` (over the server's, v3rpc's, the clients' and the store's, `@`)
+    "--k8setcd3": ("link-lean-first-k8setcd3.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.k8setcd3 "
+                   "github_com.mit_pdos.etcd_grove.examples.lintest "
+                   "github_com.anishathalye.porcupine",
+                   "github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumptions",
+                   "The Kubernetes etcd3 store's linearizability driver's proofs (`examples/k8setcd3`)", [""]),
     # the Kubernetes etcd3 store (k8s.io/apiserver/pkg/storage/etcd3 and storage,
     # notes/k8s-etcd3-plan.md phases 1 and 4), over the kubernetes client (`@`)
     "--k8s-etcd3": ("link-lean-first-k8s-etcd3.txt",
@@ -355,7 +366,7 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv": "linkv", "--linkv3": "linkv3", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -372,7 +383,7 @@ if mode is None:
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
 NA_MODES = {"--porcupine", "--lintest", "--lintest-counter", "--kv", "--linkv", "--linkv3", "--linkv3p",
-            "--linkvtxn", "--kvwitness"}
+            "--linkvtxn", "--kvwitness", "--k8setcd3"}
 em = (("variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else "")
       + ("variable [NaInvG GF]\n" if sys.argv[1] in NA_MODES else ""))
 cache = mode is not None

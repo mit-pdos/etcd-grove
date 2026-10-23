@@ -25,12 +25,14 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseR
 public import Proof.go_etcd_io.etcd.client.v3.WithLimit
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.go_etcd_io.etcd.client.v3.kubernetes.New
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_etcd_io.etcd.client.v3.WithLease
+public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
 
@@ -151,6 +153,10 @@ theorem Client.wp_OptimisticDelete :
 theorem Client.wp_OptimisticPut :
     EtcdGrove.kubernetes.Client.OptimisticPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kubernetes.Client.OptimisticPut.wp_proof v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_ModRevision v3.wp_Compare wp_kvFromTxnResponse
+
+theorem wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.kubernetes.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kubernetes.New.wp_proof client.v3.clientv3.wp_New
 
 end links_hasLC
 

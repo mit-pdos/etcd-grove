@@ -90,13 +90,22 @@ theorem Main.wp_proof
     (wp_sNew : k8s.New.spec (GF := GF) (hG := hG))
     (wp_lmc : k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG))
     (wp_newObj : newObj.spec (GF := GF) (hG := hG))
-    (hcon : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime ∗
-      isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ⊢
-      k8s.contractOk (driverSpec (GF := GF)) codecI versionerI identityI decoderI)
+    (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG))
+    (wp_cEncode : codec.Encode.spec (GF := GF) (hG := hG))
+    (wp_Upd : versioner.UpdateObject.spec (GF := GF) (hG := hG))
+    (wp_Prep : versioner.PrepareObjectForStorage.spec (GF := GF) (hG := hG))
+    (wp_ORV : versioner.ObjectResourceVersion.spec (GF := GF) (hG := hG))
+    (wp_Parse : versioner.ParseResourceVersion.spec (GF := GF) (hG := hG))
+    (wp_From : identity.TransformFromStorage.spec (GF := GF) (hG := hG))
+    (wp_To : identity.TransformToStorage.spec (GF := GF) (hG := hG))
+    (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG))
+    (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS EK RT SC ST VA ESL ESE N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
-    H0 H31 Hops Hmul
+    Hty H0 H31 Hops Hmul
+  have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
+    wp_Dec wp_SetZero Hty
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
