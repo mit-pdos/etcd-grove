@@ -6,9 +6,10 @@
 `Delete`'s loop on the prepared key `key`: read the key (`getCurrentState`), check
 `validateDeletion` on the object (`validateOk`), try the conditional delete (`deleteOnce`), and
 retry on a conflict from the state the conflict saw. With the caller's updates at the members
-(`k8sAuRW`, the model's `delete` as the write, `W` its token), the outcome is the model's
-`delete` (`delOut`): at the state the write fired at, or at the read a read-like answer ("not
-found", `validateDeletion`'s error) came from, or an error of the client.
+(`k8sAuRW`, D30n: handing the caller's timeless token `W` at the linearization point), the outcome
+is the model's `delete` (`delOut`): at the state the write fired at, or at a read whose state the
+answer ("not found", `validateDeletion`'s error) came from (the first read's through `rwInv`, a
+conflict's directly), or an error of the client.
 
 For now no preconditions, no cached object, and decode errors not expected.
 -/
@@ -39,18 +40,19 @@ abbrev store.conditionalDelete.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (out : GoInterface) (o0 : Obj)
     (rv0 : GoString) (v : _root_.Perennial.reflect.Value) (p : Loc)
-    (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) (Q Φ : KVState → IProp GF),
+    (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) [Timeless W]
+    (Φ : KVState → IProp GF),
   c.pfx <+: key →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗
       ⌜reflectM.reflElem v c.S.objTy p⌝ ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key validate) W Q Φ) ∗
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep key validate) W Φ) ∗
       validateOk c validate vf }}
     (App (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"conditionalDelete"))
       (Val #(GoInterface.ok ci))) (Val #key)) (Val #out)) (Val #v)) (Val #null)) (Val #vf))
       (Val #GoInterface.nil)) (Val #false))
-  {{ (err : GoInterface), RET #err; delOut c key validate W Q Φ err out }}
+  {{ (err : GoInterface), RET #err; delOut c key validate Φ err out }}
 
 end spec
 

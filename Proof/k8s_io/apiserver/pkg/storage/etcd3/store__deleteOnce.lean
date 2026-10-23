@@ -50,7 +50,7 @@ theorem store.deleteOnce.wp_proof
     (wp_Infof : klog.Verbose.Infof.spec (GF := GF) (hG := hG))
     (wp_kDel : kubernetes.Client.OptimisticDelete.spec (GF := GF) (hG := hG)) :
     store.deleteOnce.spec (GF := GF) (hG := hG) := by
-  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 st s σ0 kv0 v p validate W Q Φu hk hkv0 hs hval
+  intro _ _ Obj _ E _ sp c ci cd key out o0 rv0 st s σ0 kv0 v p validate W Φu hk hkv0 hs hval
   wp_start as ⟨#Hst, #Hctx, #Hce, Hos, Hout, %Hv, #Hrd0, HW, #Hau⟩
   ihave Hst' := Hst
   iunfold isStore at Hst'
@@ -71,8 +71,8 @@ theorem store.deleteOnce.wp_proof
   ihave Hkc' := Hkc
   iStructNamed Hkc'
   -- what the read at σ0 tells
-  iunfold rdOk at Hrd0
-  icases Hrd0 with ⟨#HQ0, %Hwf0, #Hseen0⟩
+  iunfold rdFacts at Hrd0
+  icases Hrd0 with ⟨%Hwf0, #Hseen0⟩
   have hrev0 := hs.1
   have hr : s.rev ≠ W64 0 := by
     have hx : (linkv.absSt σ0).kv key = some (linkv.absVR kv0) := by
@@ -95,12 +95,15 @@ theorem store.deleteOnce.wp_proof
   (try wp_auto)
   wp_apply _root_.Perennial.time.wp_Now as %t0 -
   (try wp_auto)
-  ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key validate) W Q Φu
+  ihave Hau' := (k8sAusRW_kvAu1 c.ms c (delStep key validate) W Φu
     (.txn (kubernetes.optDelTxn key s.rev true))
     (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
       (kubernetes.optDelTxn key s.rev true)).1)
+    (stepHand c (delStep key validate))
     (sameAt key s.rev kv0) (fun x hx => Hwl x hx _)
-    (delStepOk c key hk kv0 s hs hr validate hval)) $$ [HW Hau]
+    (fun σ hw hb hA => ⟨(delStepOk c key hk kv0 s hs hr validate hval σ hw hb hA).1,
+      fun hf => ⟨(delStepOk c key hk kv0 s hs hr validate hval σ hw hb hA).2 hf,
+        fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
   · iframe HW HA Hau
   rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
     (m := go!"OptimisticDelete")]
@@ -117,8 +120,12 @@ theorem store.deleteOnce.wp_proof
   (try wp_auto)
   wp_apply wp_RecordEtcdRequest
   (try wp_auto)
-  icases Hdel with (⟨%Hde, %σ, ⟨Hres, %Hσf, #Hseen⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse⟩)
+  icases Hdel with (⟨%Hde, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hde, %Hdce, #Hdse⟩)
   · subst Hde
+    ihave Hfs' := Hfs
+    iunfold rdFacts at Hfs'
+    icases Hfs' with ⟨%Hw, #Hseen⟩
+    have Hσf : kvWf c σ ∧ σ.rev + 2 < 2 ^ 63 ∧ sameAt key s.rev kv0 σ := ⟨Hw.1, Hw.2, HAσ⟩
     obtain ⟨hsucc, hrevσ, hb⟩ := Hσ
     have hc := del_cases c σ Hσf.1 Hσf.2.1 key s.rev hr
     (try wp_auto)
@@ -127,8 +134,7 @@ theorem store.deleteOnce.wp_proof
       have hf : (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
           (kubernetes.optDelTxn key s.rev true)).1 = false := hsucc.symm.trans hsc
       have hid := hc.1 hf
-      isimp only [hf, Bool.false_eq_true, ↓reduceIte] at Hres
-      icases Hres with ⟨#HQ, HW⟩
+      isimp only [hf, Bool.false_or] at Hres
       isimp only [hsc, Bool.not_false, Bool.and_self, ↓reduceIte] at Hkvo
       isimp only [single_filter key σ.kvs Hσf.1.1] at Hkvo
       icases Hkvo with #Hkvo
@@ -147,7 +153,7 @@ theorem store.deleteOnce.wp_proof
       wp_apply wp_Infof
       (try wp_auto)
       wp_apply (wp_stateFrom Obj sp c (GoInterface.ok ci) resp.KV' (mvcc.findKey key σ.kvs)
-          resp.Revision' key v p hdk) $$ [] as %st' %err' Hres
+          resp.Revision' key v p hdk) $$ [] as %st' %err' Hsr
       · iframe #
         ipureintro; exact Hv
       (try wp_auto)
@@ -156,15 +162,12 @@ theorem store.deleteOnce.wp_proof
       iright
       isplitr
       · ipureintro; rfl
-      iframe HW Hout
+      iframe Hout
       iexists σ
-      isplitl []
-      · iunfold rdOk
-        iframe HQ Hseen
-        ipureintro; exact ⟨Hσf.1, Hσf.2.1⟩
+      iframe Hfs Hres
       unfold stAt
       rw [← hrevσ]
-      iexact Hres
+      iexact Hsr
     · -- deleted
       have ht : (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
           (kubernetes.optDelTxn key s.rev true)).1 = true := hsucc.symm.trans hsc
@@ -172,7 +175,7 @@ theorem store.deleteOnce.wp_proof
       have hwv : w.value = kv0.value :=
         Hσf.2.2 w (mvcc.findKey_mem hw) (mvcc.findKey_key hw) hwm
       have hdel := delete_at c σ key hk w kv0 hw s hs hwv hwm validate hval
-      isimp only [ht, ↓reduceIte] at Hres
+      isimp only [ht, Bool.true_or, ↓reduceIte] at Hres
       simp only [Bool.not_true]
       (try wp_auto)
       iunfold decoderOk at Hdec

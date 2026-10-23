@@ -4,11 +4,11 @@
 (no Rocq counterpart).
 
 A delete, retried on conflicts: with the caller's updates at the members (`k8sAuRW`: persistent,
-firing as a read any number of times, or as the write, the model's `delete`, consuming the
-caller's token `W`, D30h as carried out), its outcome is `correctness.Model`'s `delete`
-(`delOut`): at the state the write fired at (`Φ σ`, `out` the deleted object at the new revision),
-or at the read a read-like answer came from (`□ Q σ`, nothing changed, `W` back: "not found",
-`validateDeletion`'s error), or an error of the client. `validateDeletion` is the caller's
+firing as a plain read any number of times, and once as the linearization point, handing the
+caller's timeless token `W` back, D30n), its outcome is `correctness.Model`'s `delete`
+(`delOut`): at the state the update fired at as the linearization point (`Φ σ`): the write
+(`out` the deleted object at the new revision), or a read-like answer ("not found",
+`validateDeletion`'s error, nothing changed); or an error of the client. `validateDeletion` is the caller's
 callback, answering `validate` (`validateOk`).
 
 For now the key is valid, there are no preconditions and no cached object, and the caller does not
@@ -43,18 +43,18 @@ abbrev store.Delete.spec : Prop :=
     (Obj : Type) [DecidableEq Obj] (E : Type) [KUserErr E] (sp : Loc) (c : StoreCfg GF Obj) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (out : GoInterface) (o0 : Obj)
     (rv0 : GoString) (opts : k8s_io.apiserver.pkg.storage.DeleteOptions)
-    (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) (Q Φ : KVState → IProp GF)
-    (k : GoString),
+    (validate : Obj → Nat → Option E) (vf : GoFunc) (W : IProp GF) [Timeless W]
+    (Φ : KVState → IProp GF) (k : GoString),
   prepareKeyM c.resourcePrefix key false = some k →
   opts.ExpectTransformOrDecodeError' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗ isStore sp c ∗
       ctxOk ci cd ∗ ctxErrClient ci cd ∗ c.S.objAt out o0 rv0 ∗ W ∗
-      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep (c.pathPrefix ++ k) validate) W Q Φ) ∗
+      ([∗list] x ∈ c.ms, k8sAuRW x.γr.kv c (delStep (c.pathPrefix ++ k) validate) W Φ) ∗
       validateOk c validate vf }}
     (App (App (App (App (App (App (App (Val (sp @!! go.GoType.PointerType
       k8s_io.apiserver.pkg.storage.etcd3.store.ty @!! go!"Delete")) (Val #(GoInterface.ok ci)))
       (Val #key)) (Val #out)) (Val #null)) (Val #vf)) (Val #GoInterface.nil)) (Val #opts))
-  {{ (err : GoInterface), RET #err; delOut c (c.pathPrefix ++ k) validate W Q Φ err out }}
+  {{ (err : GoInterface), RET #err; delOut c (c.pathPrefix ++ k) validate Φ err out }}
 
 end spec
 

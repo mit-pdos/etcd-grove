@@ -13,7 +13,7 @@ linkv's `absSt_kvOpStep`), and keeps the store's states (`KWf_*`, sortedness by
 -/
 module
 
-public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Updates
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.FirstRead
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.State
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.TxnModelKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkvtxn.Enc
@@ -265,14 +265,13 @@ instance validateOk_persistent {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (va
   unfold validateOk; infer_instance
 
 /-- **`Delete`'s outcome** for the prepared key `key`: an error whose outcome is unknown
-(`unkErr`: the client's, the update fired at most once); the model's `delete` as the write at `σ` (`Φ σ`); or a read-like answer at `σ`
-(`□ Q σ`, nothing changed, `W` back). -/
+(`unkErr`: the client's, the update fired at most once); or the model's `delete` at the state `σ`
+the caller's update fired at as the linearization point (`Φ σ`, D30n: the write, or a read-like
+answer at a state where the step is the identity). -/
 def delOut {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (key : GoString) (validate : Obj → Nat → Option E)
-    (W : IProp GF) (Q Φ : KVState → IProp GF) (err out : GoInterface) : IProp GF :=
+    (Φ : KVState → IProp GF) (err out : GoInterface) : IProp GF :=
   iprop((unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
-    (∃ σ, Φ σ ∗ respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out) ∨
-    (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).delete key (fun _ _ => none) validate).1 = c.abs σ⌝ ∗
-      respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out))
+    (∃ σ, Φ σ ∗ respIs c ((c.abs σ).delete key (fun _ _ => none) validate).2 err out))
 
 /-- **`GuaranteedUpdate`'s model step** (no preconditions for now; the key must exist,
 `ignoreNotFound` false; `f`, the caller's `tryUpdate`). -/
@@ -424,16 +423,14 @@ instance tryUpdateOk_persistent {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (f
     (uf : GoFunc) : Persistent (tryUpdateOk c f uf) := by
   unfold tryUpdateOk; infer_instance
 
-/-- **`GuaranteedUpdate`'s outcome** for the prepared key `key` (as `delOut`): an error; the
-model's `update` as the write at `σ` (`Φ σ`); or a read-like answer at `σ` (`□ Q σ`, nothing
-changed, `W` back: a no-op, not found, `tryUpdate`'s error). -/
+/-- **`GuaranteedUpdate`'s outcome** for the prepared key `key` (as `delOut`): an error; or the
+model's `update` at the state `σ` the caller's update fired at as the linearization point (`Φ σ`:
+the write, or a read-like answer: a no-op, not found, `tryUpdate`'s error). -/
 def updOut {E : Type} [KUserErr E] (c : StoreCfg GF Obj) (key : GoString) (z : Obj)
-    (f : Obj → Nat → Except E Obj) (W : IProp GF) (Q Φ : KVState → IProp GF)
+    (f : Obj → Nat → Except E Obj) (Φ : KVState → IProp GF)
     (err out : GoInterface) : IProp GF :=
   iprop((unkErr c err ∗ ∃ o rv, c.S.objAt out o rv) ∨
-    (∃ σ, Φ σ ∗ respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out) ∨
-    (∃ σ, □ Q σ ∗ W ∗ ⌜((c.abs σ).update key false z (fun _ _ => none) f).1 = c.abs σ⌝ ∗
-      respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out))
+    (∃ σ, Φ σ ∗ respIs c ((c.abs σ).update key false z (fun _ _ => none) f).2 err out))
 
 /-- **The model's `update` of a key the state lacks** (`ignoreNotFound` false): "not found",
 nothing changed. -/
@@ -480,6 +477,117 @@ theorem update_skip {E : Type} (c : StoreCfg GF Obj) (σ : KVState) (key : GoStr
   rw [hit]
   simp only [← hrev, hok]
   simp [hc]
+
+/-! ## Where the store hands the caller's token at a read (D30n) -/
+
+open Classical in
+/-- **The store hands the token at a read** exactly where the model's step is the identity. -/
+noncomputable def stepHand (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (σ : KVState) : Bool :=
+  decide (step (c.abs σ) = c.abs σ)
+
+/-- A write moves the resource version, so it is not the identity. -/
+theorem KSt.ne_of_rv {s : KSt Obj} {items : GoString → Option (KItem Obj)} :
+    (⟨items, s.rv + 1⟩ : KSt Obj) ≠ s := fun h => by
+  have := congrArg KSt.rv h
+  simp at this
+
+/-- Whether `delete` is the identity depends on the key's item only. -/
+theorem delStep_loc {E : Type} (key : GoString) (validate : Obj → Nat → Option E) (s1 s2 : KSt Obj)
+    (hi : s1.items key = s2.items key) :
+    delStep key validate s1 = s1 ↔ delStep key validate s2 = s2 := by
+  unfold delStep KSt.delete
+  rw [hi]
+  cases s2.items key with
+  | none => simp
+  | some it =>
+    simp only
+    cases validate it.obj it.rv with
+    | some _ => simp
+    | none => exact ⟨fun h => absurd h KSt.ne_of_rv, fun h => absurd h KSt.ne_of_rv⟩
+
+/-- Whether `update` is the identity depends on the key's item only. -/
+theorem updStep_loc {E : Type} (key : GoString) (z : Obj) (f : Obj → Nat → Except E Obj)
+    (s1 s2 : KSt Obj) (hi : s1.items key = s2.items key) :
+    updStep key z f s1 = s1 ↔ updStep key z f s2 = s2 := by
+  unfold updStep KSt.update KSt.current
+  rw [hi]
+  cases s2.items key with
+  | none => simp
+  | some it =>
+    simp only
+    cases f it.obj it.rv with
+    | error _ => simp
+    | ok o' =>
+      simp only
+      split
+      · simp
+      · exact ⟨fun h => absurd h KSt.ne_of_rv, fun h => absurd h KSt.ne_of_rv⟩
+
+/-- **`Delete`'s handing** (`HandOk`). -/
+theorem handOk_del {E : Type} (c : StoreCfg GF Obj) (key : GoString)
+    (validate : Obj → Nat → Option E) :
+    HandOk c key (delStep key validate) (stepHand c (delStep key validate)) where
+  id σ _ h := by simpa [stepHand] using h
+  loc σ1 σ2 hi _ := by
+    simp only [stepHand]
+    exact decide_eq_decide.2 (delStep_loc key validate _ _ hi)
+
+/-- **`GuaranteedUpdate`'s handing** (`HandOk`). -/
+theorem handOk_upd {E : Type} (c : StoreCfg GF Obj) (key : GoString) (z : Obj)
+    (f : Obj → Nat → Except E Obj) :
+    HandOk c key (updStep key z f) (stepHand c (updStep key z f)) where
+  id σ _ h := by simpa [stepHand] using h
+  loc σ1 σ2 hi _ := by
+    simp only [stepHand]
+    exact decide_eq_decide.2 (updStep_loc key z f _ _ hi)
+
+/-- `delete`'s answer depends on the key's item and the resource version only. -/
+theorem delete_local {E : Type} (key : GoString) (pre validate : Obj → Nat → Option E)
+    (s1 s2 : KSt Obj) (hi : s1.items key = s2.items key) (hr : s1.rv = s2.rv) :
+    (s1.delete key pre validate).2 = (s2.delete key pre validate).2 := by
+  unfold KSt.delete
+  rw [hi, hr]
+  cases s2.items key with
+  | none => rfl
+  | some it =>
+    simp only
+    cases pre it.obj it.rv with
+    | some _ => rfl
+    | none =>
+      simp only
+      cases validate it.obj it.rv <;> rfl
+
+/-- `update`'s answer depends on the key's item and the resource version only. -/
+theorem update_local {E : Type} (key : GoString) (z : Obj) (pre : Obj → Nat → Option E)
+    (f : Obj → Nat → Except E Obj) (s1 s2 : KSt Obj) (hi : s1.items key = s2.items key)
+    (hr : s1.rv = s2.rv) :
+    (s1.update key false z pre f).2 = (s2.update key false z pre f).2 := by
+  unfold KSt.update KSt.current
+  rw [hi, hr]
+  cases s2.items key with
+  | none => rfl
+  | some it =>
+    simp only
+    cases pre it.obj it.rv with
+    | some _ => rfl
+    | none =>
+      simp only
+      cases f it.obj it.rv with
+      | error _ => rfl
+      | ok o' =>
+        simp only
+        split <;> rfl
+
+/-- The model's state of a store state, its resource version: the state's revision. -/
+theorem abs_rv (c : StoreCfg GF Obj) (σ : KVState) : (c.abs σ).rv = σ.rev := rfl
+
+theorem hand_true (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (σ : KVState)
+    (h : step (c.abs σ) = c.abs σ) : stepHand c step σ = true := by
+  simp [stepHand, h]
+
+theorem hand_false (c : StoreCfg GF Obj) (step : KSt Obj → KSt Obj) (σ : KVState)
+    (h : step (c.abs σ) ≠ c.abs σ) : stepHand c step σ = false := by
+  simp [stepHand, h]
 
 end steps
 

@@ -43,7 +43,7 @@ theorem store.getCurrentState.wp_proof
     (wp_kGet : kubernetes.Client.Get.spec (GF := GF) (hG := hG)) :
     store.getCurrentState.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ sp c ci cd verb key v p R hk hR
-  wp_start as ⟨#Hst, #Hctx, #Hce, %Hv, #Hau⟩
+  wp_start as ⟨#Hst, #Hctx, #Hce, %Hv⟩
   iapply wp_fupd
   (try wp_auto)
   ipersist s
@@ -58,7 +58,7 @@ theorem store.getCurrentState.wp_proof
   iapply HΦ
   iunfold getStateOk
   imodintro
-  iintro %Ψ HΨ
+  iintro %Ψ Hmk HΨ
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
@@ -81,23 +81,18 @@ theorem store.getCurrentState.wp_proof
     (m := go!"Get")]
   wp_call
   (try wp_auto)
-  have hm : ∀ (i : Nat) (x : client.SrvAt GF), c.ms[i]? = some x →
-      kvReadAu (GF := GF) x.γr.kv R ⊢ iprop(⌜R = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv R) :=
-    fun _ _ _ => by iintro #h; iright; iexact h
-  ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci cd key (zero_val _) (fun _ _ => R) rfl) $$ []
+      c.ms c.V ci cd key (zero_val _) R rfl) $$ [Hmk]
     as %resp %gerr Hget
   · iframe #
-    iintro %_ %_
-    itrivial
+    iexact Hmk
   (try wp_auto)
   wp_apply wp_RecordEtcdRequest
   icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse⟩)
   · subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
-    ihave %Hwf := (hR σ) $$ HR
+    ihave %Hwf := (hR _ _ σ) $$ HR
     have hdk : ∀ kv, mvcc.findKey key σ.kvs = some kv → ∃ o b, c.S.dec kv.value = some (o, b) :=
       fun kv hkv => c.dec_of_wf σ Hwf key hk kv hkv
     (try wp_auto)

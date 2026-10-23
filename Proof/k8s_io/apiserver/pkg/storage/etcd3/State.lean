@@ -16,6 +16,7 @@ mod revision, the transformed data and its staleness, and whether it was just re
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
+public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 
 @[expose] public section
 
@@ -82,17 +83,22 @@ def stAt (c : StoreCfg GF Obj) (key : GoString) (σ : KVState) (st : Loc) (err :
   | none => iprop(⌜st = null⌝ ∗ storageErrIs err (W64 1) key (W64 (σ.rev : Int)))
   | some kv => iprop(⌜err = GoInterface.nil⌝ ∗ ∃ s, ownState c st s ∗ ⌜stOfKv c kv s⌝)
 
-/-- **`getCurrentState`'s closure `f`** (persistent: called at each retry): it reads the key
-through the client, the caller's read update firing at a state `σ` (`□ R σ`), and answers
-`stAt`, or fails with the client's error. -/
-def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : KVState → IProp GF) (f : GoFunc) :
-    IProp GF :=
+/-- **`getCurrentState`'s closure `f`** (persistent: callable at each retry): given, for the call,
+the caller's single-use maker of a read update at each member for the response's pair
+(`Client.Get.spec`'s, D30n), it reads the key through the client and answers `stAt` at the state
+`σ` the update fired at, with `R` at `σ`'s pair (`rdPair`'s parts), or fails with the client's
+error. -/
+def getStateOk (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVState → IProp GF)
+    (f : GoFunc) : IProp GF :=
   iprop(□ ∀ Ψ : val → IProp GF,
+    (∀ R0 m, |==> □ [∧list] x ∈ c.ms, ⌜R R0 m = fun _ => iprop(True)⌝ ∨
+      kvReadAu x.γr.kv (R R0 m)) -∗
     ▷ (∀ (st : Loc) (err : GoInterface),
-        (unkErr c err ∨ ∃ σ, □ R σ ∗ stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
+        (unkErr c err ∨ ∃ σ, □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
+          stAt c key σ st err) -∗ Ψ (PairV #st #err)) -∗
     WP (App (Val #f) (Val #())) {{ Ψ }})
 
-instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (R : KVState → IProp GF)
+instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (R : w64 → w64 → KVState → IProp GF)
     (f : GoFunc) : Persistent (getStateOk c key R f) := by
   unfold getStateOk; infer_instance
 

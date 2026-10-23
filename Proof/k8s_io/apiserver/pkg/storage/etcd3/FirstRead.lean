@@ -421,6 +421,35 @@ theorem rwInv_maker (γc γt γp : GName) (c : StoreCfg GF Obj) (key : GoString)
   iapply (BigSepL.bigSepL_mem (Φ := fun x : client.SrvAt GF => k8sAuRW x.γr.kv c step W Φ)
     hx) $$ Haus
 
+/-- **After the response at `σ`**: the caller's result at a state with `σ`'s item and revision, if
+`σ` hands; else the token back. -/
+theorem rwInv_after (γc γt γp : GName) (c : StoreCfg GF Obj) (key : GoString)
+    (step : KSt Obj → KSt Obj) (hand : KVState → Bool) (hok : HandOk c key step hand)
+    (W : IProp GF) [Timeless W] (Φ : KVState → IProp GF) (σ : KVState) :
+    rwInv γc γt γp c key hand W Φ ∗ dghostVar γt (DFrac.own 1) () ∗
+      rdQ γc γp c key hand (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗ £ 1 ⊢
+      |={⊤}=> if hand σ then iprop(∃ σ1, Φ σ1 ∗
+        ⌜(c.abs σ1).items key = (c.abs σ).items key ∧ σ1.rev = σ.rev⌝) else W := by
+  iintro ⟨#Hc, Htok, #HQ, Hlc⟩
+  cases hh : hand σ
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iapply rwInv_unfired γc γt γp c key step hand hok W Φ σ (W64 (σ.rev : Int)) (kubernetes.modAt key σ) rfl hh
+    iframe Hc Htok HQ Hlc
+  · simp only [↓reduceIte]
+    ihave #HQ' := HQ
+    iunfold rdQ at HQ'
+    icases HQ' with ⟨#Hfs, -, #Himp⟩
+    have hm : rdPair key σ = (W64 (σ.rev : Int), kubernetes.modAt key σ) ∧ hand σ = true := ⟨rfl, hh⟩
+    ihave ⟨%σ1, #Hc1, %Hf1, #Hfs1⟩ := Himp $$ %hm
+    imod rwInv_fired γc γt γp c key hand W Φ σ1 $$ [Hc Hc1 Htok Hlc] with HΦ
+    · iframe Hc Hc1 Htok Hlc
+    ihave %Hsame := rdPair_items c key σ1 σ Hf1.1 $$ [Hfs1 Hfs]
+    · iframe Hfs1 Hfs
+    imodintro
+    iexists σ1
+    iframe HΦ
+    ipureintro; exact Hsame
+
 end defs
 
 end k8s
