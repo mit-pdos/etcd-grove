@@ -87,9 +87,11 @@ theorem store.getCurrentState.wp_proof
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci cd key (zero_val _) R rfl) $$ []
+      c.ms c.V ci cd key (zero_val _) (fun _ _ => R) rfl) $$ []
     as %resp %gerr Hget
   · iframe #
+    iintro !> %_ %_
+    itrivial
   (try wp_auto)
   wp_apply wp_RecordEtcdRequest
   icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse⟩)

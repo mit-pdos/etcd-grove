@@ -156,12 +156,15 @@ PROJECTS = [
         # (c15c7dda8, issues/etcd-watch-resume-nil-watch-chan.md) and the resume revision only
         # moving forward (2e2dc077c, issues/etcd-watch-resume-below-start-revision.md) and
         # `waitCancelSubstreams` adding one goroutine at a time to its wait group (2aed163b1,
-        # issues/etcd-watch-resume-waitgroup-overflow.md).
+        # issues/etcd-watch-resume-waitgroup-overflow.md). Then (D30n, 2026-10-23) branch
+        # `goose-lean-getproph` (made on 2aed163b1): `kubernetes.Client.Get` resolves a prophecy
+        # with its response's revision and the key's mod revision (942601555; verification only,
+        # a no-op in Go).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="2aed163b15c64eb415382dcedb6558a09dff203a",
+        rev="942601555991712b11ec88926670aea8300af735",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

@@ -3,13 +3,18 @@ Lean-first (no Rocq counterpart).
 
 The proof of `kubernetes.Client.Get`: the options `[WithRev(0), WithLimit(1)]`, then
 `client_range_any` through the client's `*kv` (as linkvtxn's `client_Get_st`), and the response's
-`KV` from the selection (`srvRangeOk_getKey1`; not `nil`: `kvIs_ne_null`).
+`KV` from the selection (`srvRangeOk_getKey1`; not `nil`: `kvIs_ne_null`). The prophecy
+(`NewProph`, then the two `ResolveU64`s) is of the response's revision and the key's mod
+revision: the read update used is `Q` at the prophesied pair, which the resolutions show is the
+response's.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv.Proph
+public import Perennial.Proof.github_com.goose_lang.primitive.Link
 
 @[expose] public section
 
@@ -37,9 +42,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG)) :
     Client.Get.spec (GF := GF) (hG := hG) := by
-  intro _ _ kc ms V ci cd key opts Q hrev
-  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, #Hau⟩
+  intro _ _ kc ms V ci cd key opts Q0 hrev
+  wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, #Hau0⟩
   wp_auto
+  wp_apply (linkv.wp_NewProph_typed (τ := w64) github_com.goose_lang.primitive.wp_NewProph)
+    as %pr %xs Hpr
+  ihave #Hau := Hau0 $$ %(xs.getD 0 (W64 0)) %(xs.getD 1 (W64 0))
+  generalize hQ : Q0 (xs.getD 0 (W64 0)) (xs.getD 1 (W64 0)) = Q
+  (try wp_auto)
   wp_apply wp_WithRev opts.Revision' as %f1 #Hf1
   wp_apply wp_WithLimit (W64 1) as %f2 #Hf2
   wp_apply wp_slice_literal
@@ -117,14 +127,24 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       subst hps
       wp_if_destruct
       · exfalso; simp at Hsll; word
-      · iapply HΦ
+      · wp_apply (linkv.wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64)
+          $$ [$p $Hpr] as %xs1 ⟨%Hx1, p, Hpr⟩
+        (try wp_auto)
+        wp_apply (linkv.wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64)
+          $$ [$p $Hpr] as %xs2 ⟨%Hx2, p, Hpr⟩
+        (try wp_auto)
+        subst Hx2; subst Hx1; subst hQ
+        isimp only [List.getD_cons_zero, List.getD_cons_succ] at HQ
+        have e1 : modAt key σ = W64 0 := by simp [modAt, hk]
+        iapply HΦ
         ileft
         isplitl []
         · ipureintro; rfl
         iexists σ
+        rw [e1, ← hrevσ]
         iframe HQ
         isplitl []
-        · ipureintro; exact ⟨hrevσ, hb⟩
+        · ipureintro; exact ⟨rfl, hb⟩
         rw [hk]
         simp only [kvOut]
         ipureintro; first | rfl | trivial
@@ -142,17 +162,33 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
         simp only [Hbnd0, _root_.and_self, ↓reduceIte]
         wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ DFrac.discard p0 Hbnd0.1 $$ [Hsl2] as -
         · iframe Hsl2; ipureintro; exact Hp0
-        iapply HΦ
-        ileft
-        isplitl []
-        · ipureintro; rfl
-        iexists σ
-        iframe HQ
-        isplitl []
-        · ipureintro; exact ⟨hrevσ, hb⟩
-        rw [hk]
-        iapply kvOut_some
-        iexact Hkv
+        ihave %Hpn := kvIs_ne_null p0 v $$ Hkv
+        ihave #Hkv' := Hkv
+        iunfold txn.kvIs at Hkv'
+        icases Hkv' with ⟨%ksl, %vsl, -, -, -, #Hmod, -, -, -, -⟩
+        wp_apply (linkv.wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64)
+          $$ [$p $Hpr] as %xs1 ⟨%Hx1, p, Hpr⟩
+        (try wp_auto)
+        wp_if_destruct
+        · exact absurd rfl Hpn
+        · wp_apply (linkv.wp_ptr_ResolveU64_typed github_com.goose_lang.primitive.ProphId.wp_ResolveU64)
+            $$ [$p $Hpr] as %xs2 ⟨%Hx2, p, Hpr⟩
+          (try wp_auto)
+          subst Hx2; subst Hx1; subst hQ
+          isimp only [List.getD_cons_zero, List.getD_cons_succ] at HQ
+          have e1 : modAt key σ = v.modRev := by simp [modAt, hk]
+          iapply HΦ
+          ileft
+          isplitl []
+          · ipureintro; rfl
+          iexists σ
+          rw [e1, ← hrevσ]
+          iframe HQ
+          isplitl []
+          · ipureintro; exact ⟨rfl, hb⟩
+          rw [hk]
+          iapply kvOut_some
+          iexact Hkv
       · exfalso
         have h1 : ps.length = 1 := by rw [Hlen, hkvs]; rfl
         obtain ⟨h2, h3⟩ := Hsll

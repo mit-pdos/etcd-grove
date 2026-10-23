@@ -118,9 +118,11 @@ theorem store.Get.wp_proof
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   wp_apply (wp_kGet (go_etcd_io.etcd.client.v3.kubernetes.Client.mk c.cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #c.kc))
-      c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) Q rfl) $$ []
+      c.ms c.V ci' cd (c.pathPrefix ++ k) (zero_val _) (fun _ _ => Q) rfl) $$ []
     as %resp %gerr Hget
   · iframe #
+    iintro !> %_ %_
+    itrivial
   (try wp_auto)
   wp_apply wp_Record c.lt gerr t0 $$ []
   · iframe #
