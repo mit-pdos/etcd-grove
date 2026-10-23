@@ -155,10 +155,13 @@ below).
 ### What is verified
 
 `etc/verified-code.py` (needs an up-to-date `lake build`, and `go`) counts it per project,
-package and file: run it for current numbers. The last counts recorded in these notes: raft 260
-of 327 functions, etcd 997 of 3,599 (2026-10-16, stage R8b: status-history.md, "Retargeting raft
-to v3.7, stage R8b"); raft-witness 291 of 360, kvwitness 44 of 53 (2026-10-21, "Witness support:
-the `RaftWitness` part" below); every function of `linkvtxn.go` (46) and of linkv3p (6). How much
+package and file: run it for current numbers. The last counts recorded in these notes
+(2026-10-23, at `lean` 17fdef90d0, Perennial c25bef57e): raft 264 of 327 functions (3,126 of
+3,707 code lines), etcd 1,077 of 3,602 (12,646 of 45,631 lines; 77 assumed, 55 names-only),
+raft-witness 291 of 360, kvwitness 44 of 53, kv 43 of 52, porcupine 25 of 45, lintest 8 of 9;
+every function of `common` (14), `linkvtxn` (46), `linkv3p` (11), `watchkv` and `cachekv`
+(putget's and putget3's `Main`, linked by hand in their `Results.lean`, are not attributed by
+the script). Before: raft 260 of 327, etcd 997 of 3,599 (2026-10-16, stage R8b). How much
 of the linked code a closed theorem reaches (2026-10-21): "Clean-up: unused declarations
 removed, ..., adequacy coverage" below.
 
