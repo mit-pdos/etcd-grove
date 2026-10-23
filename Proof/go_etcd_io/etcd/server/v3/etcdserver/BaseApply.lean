@@ -169,7 +169,16 @@ abbrev rafthttpInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e) ∗
     EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
     -- (2026-10-23, rafthttp stage 4) the pipeline's path (`http.go`, translated)
-    globalAddr RaftPrefix ↦□ go!"/raft")
+    globalAddr RaftPrefix ↦□ go!"/raft" ∗
+    -- (2026-10-23) the `errors.New` errors the pipeline answers with or reports
+    EtcdGrove.errorsNewVar errIncompatibleVersion go!"incompatible version" ∗
+    EtcdGrove.errorsNewVar ErrClusterIDMismatch go!"cluster ID mismatch" ∗
+    EtcdGrove.errorsNewVar errStopped go!"stopped" ∗
+    -- (2026-10-23) the pipeline's metric vectors (`metrics.go`), with their label names
+    (∃ v : Loc, globalAddr receivedBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr recvFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr sentBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr sentFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

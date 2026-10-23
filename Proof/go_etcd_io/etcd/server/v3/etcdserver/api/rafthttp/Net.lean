@@ -148,15 +148,16 @@ def netRecv (γn : NetNames GF) (id : w64) (γd : GName) (ml : Loc) : IProp GF :
 
 /-- **The receiver's `Raft`** (`rafthttp.Raft`, persistent): `Process` of a received message with
 a context the node API takes, given one of the receiver's resources `R` (back after the call),
-returns some error; `IsIDRemoved`, `ReportUnreachable`, `ReportSnapshot` from `True`, each with
-an `R` too. (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
+returns raft's error (`nodeErr`: `nil`, `ErrStopped` or the context's; 2026-10-23, rafthttp stage 4:
+the pipeline handler's error branch reads it, until then some error); `IsIDRemoved`,
+`ReportUnreachable`, `ReportSnapshot` from `True`, each with an `R` too. (D22 S-i) `γd` names the receiver's snapshot directory (`netRecv`). -/
 def netRaftOk (γn : NetNames GF) (id : w64) (γd : GName) (R : IProp GF) (r : GoInterface) :
     IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜r = GoInterface.ok ri⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (ml : Loc),
       {{ nodeCtx ctx cd ∗ R ∗ netRecv γn id γd ml }}
         (App (App (Val #(methods ri.ty go!"Process" ri.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
-      {{ (err : GoInterface), RET #err; R }}) ∗
+      {{ (err : GoInterface), RET #err; nodeErr cd err ∗ R }}) ∗
     □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"IsIDRemoved" ri.v)) (Val #x))
       {{ (b : Bool), RET #b; R }}) ∗
     □ (∀ x : w64, {{ R }} (App (Val #(methods ri.ty go!"ReportUnreachable" ri.v)) (Val #x))

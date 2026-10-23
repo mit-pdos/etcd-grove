@@ -38,6 +38,7 @@ public import Perennial.Code.io
 public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.DGhostVar
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -142,8 +143,11 @@ def hdrGet (hs : List (GoString × GoString)) (k : GoString) : GoString :=
 writer's). -/
 opaque hdrOwn (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
 
+/-- The header map `hm` of a received request, holding `hs` (opaque). -/
+opaque hdrAtRaw (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
+
 /-- **A received request's header map `hm`, holding `hs`** (persistent): `Get` reads it. -/
-opaque hdrAt (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
+def hdrAt (hm : Loc) (hs : List (GoString × GoString)) : IProp GF := iprop(□ hdrAtRaw hm hs)
 
 /-! ### The client's side (continued) -/
 
@@ -187,15 +191,24 @@ def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
 /-! ### The server's side -/
 
 /-- **A received request** at `r` (persistent field facts): its `Method`, `URL` (a `*url.URL` whose
-`Path` is `R.path`), `Header` (`hdrAt` of `R.hdr`), `RemoteAddr` (some string) and `Body` (the
-reader `rd`). -/
+`Path` is `R.path`), `Header` (`hdrAt` of `R.hdr`), `RemoteAddr` (some ASCII string: the server
+writes the peer's `ip:port`) and `Body` (the reader `rd`, never `nil`: the server sets `NoBody`
+for an empty one). -/
 def reqAt (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF :=
   iprop(reqF go!"Method" r ↦□ R.meth ∗
     (∃ u : Loc, reqF go!"URL" r ↦□ u ∗
       urlF go!"Path" u ↦□ R.path) ∗
     (∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrAt hm R.hdr) ∗
-    (∃ ra : GoString, reqF go!"RemoteAddr" r ↦□ ra) ∗
-    reqF go!"Body" r ↦□ rd)
+    (∃ ra : GoString, reqF go!"RemoteAddr" r ↦□ ra ∗ ⌜asciiStr ra⌝) ∗
+    reqF go!"Body" r ↦□ rd ∗ ⌜rd ≠ GoInterface.nil⌝)
+
+instance hdrAt_persistent (hm : Loc) (hs : List (GoString × GoString)) :
+    Persistent (hdrAt (GF := GF) hm hs) := by
+  unfold hdrAt; infer_instance
+
+instance reqAt_persistent (r : Loc) (R : HReq) (rd : GoInterface) :
+    Persistent (reqAt (GF := GF) r R rd) := by
+  unfold reqAt; infer_instance
 
 /-- **A request body's reader** for `R`, having read `r` (exclusive): reads stay a prefix of
 `R.body`; `EOF` only once all of it is read. -/
@@ -209,14 +222,16 @@ opaque respWriter (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) 
 
 /-- **A handler of the address `a`** (persistent), lending each invocation the resource `Rs`:
 `ServeHTTP` of any request the network delivers to `a`, with its ticket, its body reader and a
-fresh response writer, returns `Rs` (or panics, giving it back too: `Serve` recovers the panic). -/
+fresh response writer (a non-`nil` interface value, an `http.Flusher`: the server's writers are),
+returns `Rs` (or panics, giving it back too: `Serve` recovers the panic). -/
 def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
-    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
+    □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicket γk -∗
-        bodyReader rd R [] -∗ respWriter H wr a R γk none [] -∗ Rs -∗
-        WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
-          {{ _v, Rs }}))
+        bodyReader rd R [] -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
+        WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))
+          (Val #r)) {{ _v, Rs }}))
 
 /-! ### The specs (statements for review; see the file header) -/
 
@@ -407,11 +422,12 @@ requests whose path `route` sends to `pat`. -/
 def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoString)
     (pat : GoString) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
-    □ (∀ (wr : GoInterface) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
+    □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ -∗ □ (H.proto a).req R γk -∗
-        reqTicket γk -∗ bodyReader rd R [] -∗ respWriter H wr a R γk none [] -∗ Rs -∗
-        WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #wr)) (Val #r))
-          {{ _v, Rs }}))
+        reqTicket γk -∗ bodyReader rd R [] -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
+        WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))
+          (Val #r)) {{ _v, Rs }}))
 
 /-- **A built mux is a handler of `a`** (the mux's dispatch, stated as what its `ServeHTTP` does):
 each registered handler handles what is routed to it; a request routed nowhere (or redirected,
@@ -441,6 +457,21 @@ def URLString_spec : Prop :=
 
 /-! `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) are
 `Spec/encoding/binary/{WriteUint64,WriteUint8,ReadUint64}.lean`. -/
+
+/-- A request body's reader keeps the prefix contract (`bodyRead_spec`). -/
+theorem bodyReader_prefixOk (hR : bodyRead_spec (GF := GF)) (rd : GoInterface) (R : HReq)
+    (e : GoInterface) (hrd : rd ≠ GoInterface.nil) :
+    ⊢ prefixReaderOk (GF := GF) rd (bodyReader rd R) R.body e := by
+  cases rd with
+  | nil => exact absurd rfl hrd
+  | ok ri =>
+    unfold prefixReaderOk
+    iexists ri
+    isplitr
+    · ipureintro; rfl
+    iintro !> %r %p %xs %Φ !> ⟨Hs, Hp, #He⟩ HΦ
+    iapply (hR _ ri R r p xs e rfl) $$ [$Hs $Hp $He]
+    iexact HΦ
 
 end defs
 

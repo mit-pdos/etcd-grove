@@ -268,6 +268,28 @@ trust-boundary spec.
    - 4d. The sender: `pipeline.post` (`createPostRequest`, `RoundTrip`, the response read and
      checked, the picker), `pipeline.handle`, `start`/`stop`.
    - 4e. The boundary specs the proofs use become axioms (for the user's acceptance).
+   **Done 2026-10-23: 4a, 4b, 4c.** The boundary revised (tickets; a handler's writer non-`nil` and an
+   `http.Flusher`; a received request's `RemoteAddr` ASCII and `Body` non-`nil`; `prefixReaderOk`);
+   `ioutil.NewLimitedBufferReader` translated and proved; `Pipe.lean` (the protocol, the deposit,
+   `pipe_withdraw`); `pbMessage`'s `eqv` keeps "no responses"; net/http's method and status
+   constants and rafthttp's `RaftPrefix` initializer translated. **`pipelineHandler.ServeHTTP`
+   proved** (`rafthttp/pipelineHandler__ServeHTTP.lean`) over its callees' specs as hypotheses: it
+   calls `Process` with the decoded copy and its bundle (the persistent part from the protocol, the
+   one-shot part withdrawn with the ticket), answers `204`, or `405`/`412`/`400` on a refused request,
+   or `500` and panics on `Process`'s `ErrStopped` (`Serve` recovers). On the way, with the user's
+   agreement (2026-10-23): `netRaftOk`'s `Process` returns raft's `nodeErr` (the server's `Process`
+   spec says so); `errors.AsLeaf` (`Spec/errors/AsLeaf.lean`, a new trust-boundary axiom: `As` of an
+   `errors.New` error outside the target's type set is `false`; Perennial's `As` axiom allows any
+   result), with the method-set premise `ErrorStringNotWriter` and `errors.AsTarget writerToResponse`
+   (a premise, as the examples' `AsTarget` of `EtcdError`); `addRemoteFromRequest` a premise of the
+   handler (`pipeHandlerOk`) until stage 6. rafthttp's package fact gains `errIncompatibleVersion`,
+   `ErrClusterIDMismatch`, `errStopped` (`errorsNewVarsInit`'s list: three more entries) and the four
+   metric vectors (`receivedBytes`, `recvFailures`, `sentBytes`, `sentFailures`: **four new
+   `<X>_init` axioms**, of `gen-init.py`'s `promvec` kind, reached by every result through rafthttp's
+   initializer: baseline 542 -> 546, awaiting the user's acceptance). `prometheus.counterSpec` gains
+   `Add` (the `WithLabelValues` axiom promises more). Still a spec only:
+   `checkClusterCompatibilityFromHeader` (the version check: `semver`, `version`'s values).
+   **Next**: 4d, the sender (`pipeline.post`, `handle`).
 5. **Streams**: `streamWriter.run` (its five-way select, the queue replaced on close),
    `streamReader.run`/`decodeLoop`/`dial`, `streamHandler`, `attachOutgoingConn`; reconnection.
    The hardest stage.

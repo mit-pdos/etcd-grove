@@ -124,11 +124,11 @@ theorem EtcdServer.Process.wp_proof
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Step")]
     wp_pures
     (try wp_auto)
-    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err -
+    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err #Herr
     · iframe Hctx Hstep
     (try wp_auto)
     iapply HΦ
-    iexact Hlr
+    iframe Hlr Herr
   · (try wp_auto)
     -- `s.r.Step(ctx, m)`: raft's, of what the network delivered
     ihave Hrecv : netRecv γn γ.id γd ml $$ [Hm HO]
@@ -148,11 +148,11 @@ theorem EtcdServer.Process.wp_proof
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Step")]
     wp_pures
     (try wp_auto)
-    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err -
+    wp_apply HStep $$ %ctx %cd %ml [Hstep] as %err #Herr
     · iframe Hctx Hstep
     (try wp_auto)
     iapply HΦ
-    iexact Hlr
+    iframe Hlr Herr
 
 end proof
 

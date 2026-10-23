@@ -37,6 +37,13 @@ variable [sem : go.Semantics]
 
 def pipeN : Namespace := nroot.@"rafthttp_pipe"
 
+/-- **A method-set premise** (as `EtcdGrove.ErrorStringLeaf`): an `errors.New` error (a
+`*errorString`, whose methods are `Error` only) is not a `writerToResponse` (no `WriteTo`): what
+the pipeline handler's `errors.As(err, &writerErr)` reads of `Process`'s `ErrStopped`. -/
+class ErrorStringNotWriter [GoSemanticsFunctions] : Prop where
+  notIn : go.typeSetContains (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+    go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.writerToResponse.ty = false
+
 /-- **The pipeline's deposit for the request of ticket `γk`** (persistent): the message's one-shot
 part, until the ticket's holder takes it and leaves the ticket. -/
 def pipeDeposit (N : NetPayload GF) (γk : GName) (st : MsgSt) : IProp GF :=

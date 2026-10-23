@@ -51,9 +51,10 @@ theorem srv_netRaftOk
   · ipureintro; rfl
   isplitr
   · iintro !> %ctx %cd %ml %Φ !> ⟨#Hctx, Hlr, Hrecv⟩ HΦ
-    wp_apply wp_Process γn γd s id ctx cd ml $$ [Hlr Hrecv] as %err Hlr
+    wp_apply wp_Process γn γd s id ctx cd ml $$ [Hlr Hrecv] as %err ⟨#Herr, Hlr⟩
     · iframe #; iframe Hlr Hrecv
-    iapply HΦ $$ Hlr
+    iapply HΦ
+    iframe Hlr Herr
   isplitr
   · iintro !> %x %Φ !> Hlr HΦ
     wp_apply wp_IsIDRemoved γn s id x

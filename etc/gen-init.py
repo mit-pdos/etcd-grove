@@ -171,17 +171,22 @@ variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` 
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
 states `linkHeartbeatMessage`'s (`stream.go`); `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) is
 translated and set.''',
-    newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded"),
+    newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
+        errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
+        errStopped="stopped"),
     custom={'linkHeartbeatMessage': dict(
         doc='/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/',
         post='EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt',
         pat='#H@')},
     alloc_types={'RaftPrefix': 'GoString'},
-    finish=['ipersist HErrExceedSizeLimit', 'ipersist HRaftPrefix', 'iframe Hown', 'imodintro', 'isplitr',
+    finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
+            'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HRaftPrefix',
+            'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
             '· iexists _; iexact HErrExceedSizeLimit', 'isplitr', '· iexact HlinkHeartbeatMessage',
-            'iexact HRaftPrefix'],
+            'isplitr', '· iexact HRaftPrefix',
+            'simp only [EtcdGrove.errorsNewVar]', 'iframe #'],
 )
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
@@ -211,6 +216,13 @@ def promvec(x, kind, labels, file='metrics.go'):
         doc=f'/-- `{x} = prometheus.New{kind}Vec(..., []string{{{golist}}})`\n(`{file}`): a `*{kind}Vec` with those label names (`vecLabels`). -/',
         post=f'∃ v : Loc, globalAddr {x} ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v {ls}⌝',
         pat='⟨%v@, H@, #L@⟩')
+
+# (2026-10-23, rafthttp stage 4) the pipeline's metric vectors
+for _x, _l in [('receivedBytes', 'From'), ('recvFailures', 'From'), ('sentBytes', 'To'),
+               ('sentFailures', 'To')]:
+    SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['custom'][_x] = promvec(_x, 'Counter', [_l])
+SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp']['finish'][0:0] = [
+    'ipersist HreceivedBytes', 'ipersist HrecvFailures', 'ipersist HsentBytes', 'ipersist HsentFailures']
 
 SPECIAL['go_etcd_io.etcd.server.v3.etcdserver.api.membership'] = dict(
     doc='''Its fact (`etcdserver/apply/Base.lean`): `ClusterVersionMetrics` holds a fixed pointer

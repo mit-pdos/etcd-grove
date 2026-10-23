@@ -74,14 +74,8 @@ axiom opaqueInitsOk :
     ∀ v ∈ ([ProbingPrefix.init,
         RaftStreamPrefix.init,
         RaftSnapshotPrefix.init,
-        errIncompatibleVersion.init,
-        ErrClusterIDMismatch.init,
         activePeers.init,
         disconnectedPeers.init,
-        sentBytes.init,
-        receivedBytes.init,
-        sentFailures.init,
-        recvFailures.init,
         snapshotSend.init,
         snapshotSendInflights.init,
         snapshotSendFailures.init,
@@ -94,7 +88,6 @@ axiom opaqueInitsOk :
         readBytesLimit.init,
         ConnReadTimeout.init,
         ConnWriteTimeout.init,
-        errStopped.init,
         proberInterval.init,
         statusMonitoringInterval.init,
         statusErrorInterval.init,
@@ -120,13 +113,40 @@ axiom initFuncsOk :
 listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
 it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
 axiom errorsNewVarsInit :
-    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrExceedSizeLimit.init, ErrExceedSizeLimit, go!"rafthttp: error limit exceeded")] : List (val × GoString × GoString)) →
+    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrExceedSizeLimit.init, ErrExceedSizeLimit, go!"rafthttp: error limit exceeded"),
+        (errIncompatibleVersion.init, errIncompatibleVersion, go!"incompatible version"),
+        (ErrClusterIDMismatch.init, ErrClusterIDMismatch, go!"cluster ID mismatch"),
+        (errStopped.init, errStopped, go!"stopped")] : List (val × GoString × GoString)) →
     EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 /-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/
 axiom linkHeartbeatMessage_init :
     {{ (True : IProp GF) }} (App (Val linkHeartbeatMessage.init) (Val #()))
     {{ RET #(); EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt }}
+
+/-- `receivedBytes = prometheus.NewCounterVec(..., []string{"From"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom receivedBytes_init :
+    {{ (True : IProp GF) }} (App (Val receivedBytes.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr receivedBytes ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
+
+/-- `recvFailures = prometheus.NewCounterVec(..., []string{"From"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom recvFailures_init :
+    {{ (True : IProp GF) }} (App (Val recvFailures.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr recvFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
+
+/-- `sentBytes = prometheus.NewCounterVec(..., []string{"To"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom sentBytes_init :
+    {{ (True : IProp GF) }} (App (Val sentBytes.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr sentBytes ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
+
+/-- `sentFailures = prometheus.NewCounterVec(..., []string{"To"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom sentFailures_init :
+    {{ (True : IProp GF) }} (App (Val sentFailures.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr sentFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -203,14 +223,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk ProbingPrefix.init (by mem_tac))
   wp_apply (opaqueInitsOk RaftStreamPrefix.init (by mem_tac))
   wp_apply (opaqueInitsOk RaftSnapshotPrefix.init (by mem_tac))
-  wp_apply (opaqueInitsOk errIncompatibleVersion.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrClusterIDMismatch.init (by mem_tac))
+  wp_apply (errorsNewVarsInit errIncompatibleVersion.init errIncompatibleVersion go!"incompatible version" (by mem_tac))
+    as ⟨%xerrIncompatibleVersion, HerrIncompatibleVersion, #MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
+  wp_apply (errorsNewVarsInit ErrClusterIDMismatch.init ErrClusterIDMismatch go!"cluster ID mismatch" (by mem_tac))
+    as ⟨%xErrClusterIDMismatch, HErrClusterIDMismatch, #MErrClusterIDMismatch, #CErrClusterIDMismatch⟩
   wp_apply (opaqueInitsOk activePeers.init (by mem_tac))
   wp_apply (opaqueInitsOk disconnectedPeers.init (by mem_tac))
-  wp_apply (opaqueInitsOk sentBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk receivedBytes.init (by mem_tac))
-  wp_apply (opaqueInitsOk sentFailures.init (by mem_tac))
-  wp_apply (opaqueInitsOk recvFailures.init (by mem_tac))
+  wp_apply sentBytes_init as ⟨%vsentBytes, HsentBytes, #LsentBytes⟩
+  wp_apply receivedBytes_init as ⟨%vreceivedBytes, HreceivedBytes, #LreceivedBytes⟩
+  wp_apply sentFailures_init as ⟨%vsentFailures, HsentFailures, #LsentFailures⟩
+  wp_apply recvFailures_init as ⟨%vrecvFailures, HrecvFailures, #LrecvFailures⟩
   wp_apply (opaqueInitsOk snapshotSend.init (by mem_tac))
   wp_apply (opaqueInitsOk snapshotSendInflights.init (by mem_tac))
   wp_apply (opaqueInitsOk snapshotSendFailures.init (by mem_tac))
@@ -225,7 +247,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
   wp_apply (opaqueInitsOk ConnReadTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk ConnWriteTimeout.init (by mem_tac))
-  wp_apply (opaqueInitsOk errStopped.init (by mem_tac))
+  wp_apply (errorsNewVarsInit errStopped.init errStopped go!"stopped" (by mem_tac))
+    as ⟨%xerrStopped, HerrStopped, #MerrStopped, #CerrStopped⟩
   wp_apply (opaqueInitsOk proberInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk statusMonitoringInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk statusErrorInterval.init (by mem_tac))
@@ -237,7 +260,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk errMemberRemoved.init (by mem_tac))
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  ipersist HreceivedBytes
+  ipersist HrecvFailures
+  ipersist HsentBytes
+  ipersist HsentFailures
   ipersist HErrExceedSizeLimit
+  ipersist HerrIncompatibleVersion
+  ipersist HErrClusterIDMismatch
+  ipersist HerrStopped
   ipersist HRaftPrefix
   iframe Hown
   imodintro
@@ -251,7 +281,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexists _; iexact HErrExceedSizeLimit
   isplitr
   · iexact HlinkHeartbeatMessage
-  iexact HRaftPrefix
+  isplitr
+  · iexact HRaftPrefix
+  simp only [EtcdGrove.errorsNewVar]
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
