@@ -695,6 +695,19 @@ trust-boundary spec.
    names-only callees `newStreamRoundTripper`, `NewRoundTripper`, `probing.NewProber`,
    `rate.Every` need boundary specs: for the user) and `Handler` (`probing.NewHandler`, the mux).
 
+   **6c, fourth part (2026-10-23).** The third part's boundary items accepted by the user, and
+   `Start`'s four boundary specs (axioms, not reached by a linked result): `newStreamRoundTripper`
+   and `NewRoundTripper` (an error, or a round tripper of any network `H`, `roundTripperOk`: both
+   are `transport.NewTimeoutTransport`, an `*http.Transport`), `probing.NewProber` (a prober,
+   `probing.proberOk`, which moved to its spec, `Spec/github_com/xiang90/probing/NewProber.lean`)
+   and `rate.Every` (some limit). `Start` proved on the fields it reads and writes
+   (`rafthttp/TransportStart.lean`, `Start_core`: an error, its round trippers' fields written, or
+   the two round trippers of `H`, the two maps empty, the two probers, a dial-retry rate); 6d
+   gathers the fields into `trFixed`, `trProbers` and the lock. Left in 6c: `Handler`
+   (`probing.NewHandler`, the mux; the prober's `GET`s of `/raft/probing` are requests the raft
+   protocol must then allow, `addPeerToProber`'s axiom sends them on the pipeline's round
+   tripper).
+
 ## Costs and risks
 
 - Several weeks, comparable to the watch client. Stage 5 carries most of the risk (a goroutine

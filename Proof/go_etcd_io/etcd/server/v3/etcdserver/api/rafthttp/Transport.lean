@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Peer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ReaderRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PeerStatus
+public import Spec.github_com.xiang90.probing.NewProber
 
 @[expose] public section
 
@@ -39,16 +40,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-
-/-- **A prober** (`probing.Prober`, an interface; `github.com/xiang90/probing` is names-only):
-its `RemoveAll()` returns (`Transport.Stop`'s). `probing.NewProber`'s trust-boundary spec (`Start`,
-stage 6c) gives it. -/
-def probing.proberOk (p : GoInterface) : IProp GF :=
-  iprop(∃ ti : GoInterfaceOk, ⌜p = GoInterface.ok ti⌝ ∗
-    {{ True }} (App (Val #(methods ti.ty go!"RemoveAll" ti.v)) (Val #())) {{ RET #(); True }})
-
-instance probing.proberOk_persistent (p : GoInterface) : Persistent (probing.proberOk (GF := GF) p) := by
-  unfold probing.proberOk; infer_instance
 
 /-- **The transport `t`'s probers** (persistent; what `Stop` reads, `Start`'s). -/
 def trProbers (t : Loc) : IProp GF :=
