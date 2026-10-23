@@ -95,7 +95,6 @@ axiom opaqueInitsOk :
         errUnsupportedStreamType.init,
         supportedStream.init,
         linkHeartbeatSize.init,
-        errMemberRemoved.init,
         errMemberNotFound.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
@@ -116,7 +115,8 @@ axiom errorsNewVarsInit :
     ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrExceedSizeLimit.init, ErrExceedSizeLimit, go!"rafthttp: error limit exceeded"),
         (errIncompatibleVersion.init, errIncompatibleVersion, go!"incompatible version"),
         (ErrClusterIDMismatch.init, ErrClusterIDMismatch, go!"cluster ID mismatch"),
-        (errStopped.init, errStopped, go!"stopped")] : List (val × GoString × GoString)) →
+        (errStopped.init, errStopped, go!"stopped"),
+        (errMemberRemoved.init, errMemberRemoved, go!"the member has been permanently removed from the cluster")] : List (val × GoString × GoString)) →
     EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 /-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/
@@ -257,7 +257,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk supportedStream.init (by mem_tac))
   wp_apply linkHeartbeatMessage_init as #HlinkHeartbeatMessage
   wp_apply (opaqueInitsOk linkHeartbeatSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk errMemberRemoved.init (by mem_tac))
+  wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
+    as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
   wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HreceivedBytes
@@ -268,6 +269,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HerrIncompatibleVersion
   ipersist HErrClusterIDMismatch
   ipersist HerrStopped
+  ipersist HerrMemberRemoved
   ipersist HRaftPrefix
   iframe Hown
   imodintro

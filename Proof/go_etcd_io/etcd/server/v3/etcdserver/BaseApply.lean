@@ -174,6 +174,8 @@ abbrev rafthttpInit : IProp GF :=
     EtcdGrove.errorsNewVar errIncompatibleVersion go!"incompatible version" ∗
     EtcdGrove.errorsNewVar ErrClusterIDMismatch go!"cluster ID mismatch" ∗
     EtcdGrove.errorsNewVar errStopped go!"stopped" ∗
+    EtcdGrove.errorsNewVar errMemberRemoved
+      go!"the member has been permanently removed from the cluster" ∗
     -- (2026-10-23) the pipeline's metric vectors (`metrics.go`), with their label names
     (∃ v : Loc, globalAddr receivedBytes ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
     (∃ v : Loc, globalAddr recvFailures ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗

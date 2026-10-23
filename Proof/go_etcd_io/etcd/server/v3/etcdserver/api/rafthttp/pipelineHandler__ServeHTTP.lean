@@ -90,7 +90,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
     wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
     ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hri with ⟨-, -, -, #HIV, #HCM, #HES, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -, -⟩
+    icases Hri with ⟨-, -, -, #HIV, #HCM, #HES, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -, -⟩
     icases Hrv with (%Hrv | ⟨%e, %Hre, #He⟩)
     · rcases Hrv with rfl | ⟨p, rfl⟩
       · -- `nil`: `addRemoteFromRequest(h.tr, r)`, then the body, read whole

@@ -35,6 +35,7 @@ public import Proof.net.InvNet
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import Perennial.Code.io
+public import Perennial.Code.bytes
 public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.DGhostVar
@@ -71,6 +72,10 @@ abbrev reqF (f : GoString) (r : Loc) : Loc :=
 abbrev urlF (f : GoString) (u : Loc) : Loc :=
   structFieldRef _root_.Perennial.net.url.URL f u
 
+/-- The field `f` of the `*http.Response` at `r`. -/
+abbrev respF (f : GoString) (r : Loc) : Loc :=
+  structFieldRef _root_.Perennial.net.http.Response f r
+
 end fields
 
 section defs
@@ -85,6 +90,13 @@ structure Proto (GF : BundledGFunctors) where
   req_pers : ∀ R γk, Persistent (req R γk)
   resp : HReq → GName → w64 → List w8 → IProp GF
   resp_pers : ∀ R γk st w, Persistent (resp R γk st w)
+
+instance Proto.req_persistent (P : Proto GF) (R : HReq) (γk : GName) : Persistent (P.req R γk) :=
+  P.req_pers R γk
+
+instance Proto.resp_persistent (P : Proto GF) (R : HReq) (γk : GName) (st : w64) (w : List w8) :
+    Persistent (P.resp R γk st w) :=
+  P.resp_pers R γk st w
 
 /-- **The program's HTTP network**: each address's protocol, fixed for the run. -/
 structure HttpNet (GF : BundledGFunctors) where
@@ -149,6 +161,11 @@ opaque hdrAtRaw (hm : Loc) (hs : List (GoString × GoString)) : IProp GF
 /-- **A received request's header map `hm`, holding `hs`** (persistent): `Get` reads it. -/
 def hdrAt (hm : Loc) (hs : List (GoString × GoString)) : IProp GF := iprop(□ hdrAtRaw hm hs)
 
+instance hdrAt_persistent (hm : Loc) (hs : List (GoString × GoString)) :
+    Persistent (hdrAt (GF := GF) hm hs) := by
+  unfold hdrAt; infer_instance
+
+
 /-! ### The client's side (continued) -/
 
 /-- **The rest of a request being built** at `r` (exclusive, opaque): its method, URL, body and
@@ -170,23 +187,36 @@ opaque respReader (H : HttpNet GF) (rd : GoInterface) (R : HReq) (γk : GName) (
   (r : List w8) : IProp GF
 
 /-- **A received response** at `resp` for `R`, of status `st` (persistent field facts: its
-`StatusCode` is `st`, its `Header` some header map, its `Body` the reader `rd`). -/
-opaque respAt (resp : Loc) (st : w64) (rd : GoInterface) : IProp GF
+`StatusCode` is `st`, its `Header` some header map, its `Body` the reader `rd`, not `nil`). -/
+def respAt (resp : Loc) (st : w64) (rd : GoInterface) : IProp GF :=
+  iprop(respF go!"StatusCode" resp ↦□ st ∗
+    (∃ (hm : Loc) (hs : List (GoString × GoString)), respF go!"Header" resp ↦□ hm ∗
+      hdrAt (GF := GF) hm hs) ∗
+    respF go!"Body" resp ↦□ rd ∗ ⌜rd ≠ GoInterface.nil⌝)
+
+instance respAt_persistent (resp : Loc) (st : w64) (rd : GoInterface) :
+    Persistent (respAt (GF := GF) resp st rd) := by
+  unfold respAt; infer_instance
 
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
 `NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R`, with
 its ticket `γk` and `□ (H.proto R.host).req R γk`, either fails or returns a response whose status
-`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`. -/
+`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`; the
+request is the caller's again (`RoundTrip` must not modify it). -/
 def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜rt = GoInterface.ok ti⌝ ∗
     □ (∀ (r : Loc) (R : HReq) (γk : GName),
       {{ reqOwn r R ∗ reqTicket γk ∗ □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨
-          ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
+          (⌜err ≠ GoInterface.nil⌝ ∨
+           ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
             respAt resp st rd ∗ (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
-            respReader H rd R γk st [] }}))
+            respReader H rd R γk st []) }}))
+
+instance roundTripperOk_persistent (H : HttpNet GF) (rt : GoInterface) :
+    Persistent (roundTripperOk H rt) := by
+  unfold roundTripperOk; infer_instance
 
 /-! ### The server's side -/
 
@@ -201,10 +231,6 @@ def reqAt (r : Loc) (R : HReq) (rd : GoInterface) : IProp GF :=
     (∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrAt hm R.hdr) ∗
     (∃ ra : GoString, reqF go!"RemoteAddr" r ↦□ ra ∗ ⌜asciiStr ra⌝) ∗
     reqF go!"Body" r ↦□ rd ∗ ⌜rd ≠ GoInterface.nil⌝)
-
-instance hdrAt_persistent (hm : Loc) (hs : List (GoString × GoString)) :
-    Persistent (hdrAt (GF := GF) hm hs) := by
-  unfold hdrAt; infer_instance
 
 instance reqAt_persistent (r : Loc) (R : HReq) (rd : GoInterface) :
     Persistent (reqAt (GF := GF) r R rd) := by
@@ -293,16 +319,16 @@ def respWriteHeader_spec (H : HttpNet GF) : Prop :=
 
 /-- `http.NewRequest(method, url, body)`, with a body reader holding `bs` and a URL naming `host`
 and `path` (`urlOf`, the URL `url.URL{Scheme: "http", Host: host, Path: path}.String()` gives, as
-rafthttp builds them): a request of method, host, path and body, no headers, or an error. -/
+rafthttp builds them): a request of method, host, path and body, no headers. (2026-10-23, stage 4d)
+No error for `GET` or `POST`: `NewRequest` fails only on an invalid method or a URL that does not
+parse, and the string of a parsed URL's host and a path parses. -/
 def NewRequest_spec : Prop :=
   ∀ (meth u : GoString) (body : GoInterface) (bs : List w8) (host path : GoString),
-    u = urlOf host path →
+    u = urlOf host path → (meth = go!"POST" ∨ meth = go!"GET") →
     ⊢ {{ readerHas (GF := GF) body bs }}
         (App (App (App (Val (@! _root_.Perennial.net.http.NewRequest)) (Val #meth)) (Val #u))
           (Val #body))
-      {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-          ⌜err ≠ GoInterface.nil⌝ ∨
-          ⌜err = GoInterface.nil⌝ ∗ reqOwn r ⟨meth, host, path, [], bs⟩ }}
+      {{ (r : Loc), RET (PairV #r #GoInterface.nil); reqOwn r ⟨meth, host, path, [], bs⟩ }}
 
 /-- `hm.Set(k, v)` (`http.Header`'s, a method of the map type) on a header map being built. -/
 def HeaderSet_spec : Prop :=
@@ -384,6 +410,42 @@ def Error_spec (H : HttpNet GF) : Prop :=
         (App (App (App (Val (@! _root_.Perennial.net.http.Error)) (Val #wr)) (Val #msg))
           (Val #code))
       {{ RET #(); respWriter H wr a R γk (some code) (msg ++ [W8 10]) }}
+
+/-! ### The pipeline's client side (rafthttp stage 4d) -/
+
+/-- `bytes.NewBuffer(b)` (`bytes`, names-only): a reader holding `b`'s bytes, which it takes. -/
+def NewBuffer_spec : Prop :=
+  ∀ (b : GoSlice) (bs : List w8),
+    ⊢ {{ (b ↦* bs : IProp GF) }}
+        (App (Val (@! _root_.Perennial.bytes.NewBuffer)) (Val #b))
+      {{ (rd : Loc), RET #rd;
+          readerHas (interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #rd) bs }}
+
+/-- `r.WithContext(ctx)` of a request being built: a shallow copy, the same request (for a
+non-`nil` context). -/
+def WithContext_spec : Prop :=
+  ∀ (r : Loc) (R : HReq) (ctx : GoInterfaceOk),
+    ⊢ {{ reqOwn (GF := GF) r R }}
+        (App (Val (r @!! go.GoType.PointerType _root_.Perennial.net.http.Request.ty @!! go!"WithContext"))
+          (Val #(GoInterface.ok ctx)))
+      {{ (r' : Loc), RET #r'; reqOwn r' R }}
+
+/-- `io.ReadAll(rd)` of a response body: some bytes read (a prefix of what the handler wrote,
+`respRead_spec`'s), or an error. -/
+def ReadAll_resp_spec (H : HttpNet GF) : Prop :=
+  ∀ (rd : GoInterface) (R : HReq) (γk : GName) (st : w64),
+    ⊢ {{ respReader H rd R γk st [] }}
+        (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
+      {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
+          ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs }}
+
+/-- A response body's `Close()`: some error. -/
+def RespClose_spec (H : HttpNet GF) : Prop :=
+  ∀ (rd : GoInterface) (ri : GoInterfaceOk) (R : HReq) (γk : GName) (st : w64) (r : List w8),
+    rd = GoInterface.ok ri →
+    ⊢ {{ respReader H rd R γk st r }}
+        (App (Val #(methods ri.ty go!"Close" ri.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; True }}
 
 /-! ### Routing (`http.ServeMux`) -/
 
