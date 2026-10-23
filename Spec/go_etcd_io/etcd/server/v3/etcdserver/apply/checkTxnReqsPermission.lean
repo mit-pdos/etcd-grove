@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`checkTxnReqsPermission(as, ai, lessor, reqs)`**: each operation's check (a range's `IsRangePermitted`, a put's `checkPutAuth`, a delete's `IsRangePermitted` with `PrevKv` and `IsDeleteRangePermitted`, a nested transaction's `checkTxnPermission`): the first error, or `nil`; the `AuthInfo` kept, nothing written. -/
 abbrev apply.checkTxnReqsPermission.spec : Prop :=
-  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool) (RW : IProp GF) (ai : Loc)
+  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice) (ps : List Loc) (ops : List TxnOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ apply.isApplyLessorAny le γ P f RW ∗ ai ↦{dq} info ∗ RD ∗
       reqs ↦*□ ps ∗ txn.requestOpsIs ps ops }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
   {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
-      ⌜on = false → err = GoInterface.nil⌝ }}
+      ⌜on.isOn = false → err = GoInterface.nil⌝ }}
 
 end spec
 

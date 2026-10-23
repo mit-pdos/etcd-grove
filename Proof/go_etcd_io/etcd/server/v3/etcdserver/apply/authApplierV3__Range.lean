@@ -54,7 +54,7 @@ theorem apply.authApplierV3.Range.wp_proof :
   icases Ht with ⟨-, -, #HRangeI, -⟩
   wp_auto
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, -⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with

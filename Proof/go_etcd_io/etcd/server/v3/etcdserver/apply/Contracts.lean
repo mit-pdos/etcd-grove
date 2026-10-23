@@ -52,6 +52,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Writer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.auth.Model
 
 @[expose] public section
 
@@ -141,25 +142,31 @@ def authReqContractN (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.S
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
         respHdrOk T resp ∗ applyErrIs err ∗ RW }}))
 
-/-- A permission check `m(authInfo, key...)` of the auth store, with the caller's reader
-resource `RD` (held and given back) and the key shorter than `2 ^ 63 - 1`: some error; the
-caller's `AuthInfo` and keys kept. -/
-def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (on : Bool) : IProp GF :=
+/-- A permission check `m(authInfo, key)` of the auth store (`IsPutPermitted`: a write of the
+point `key`), with the caller's reader resource `RD` (held and given back) and the key shorter
+than `2 ^ 63 - 1`: an error the gRPC layer can take, with its verdict in the mode `M`
+(`auth.permVerdict`: in the mode `off` the check passes; `notes/auth-plan.md`, A0); the caller's
+`AuthInfo` and keys kept. -/
+def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode) :
+    IProp GF :=
   iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
       (dk : DFrac),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err ∗
-        ⌜on = false → err = GoInterface.nil⌝ }}))
+        ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.permVerdict M info k [] .write err }}))
 
-/-- A permission check `m(authInfo, key, rangeEnd)` of the auth store (as `permCheck2`). -/
-def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (on : Bool) : IProp GF :=
+/-- A permission check `m(authInfo, key, rangeEnd)` of the auth store (as `permCheck2`;
+`IsRangePermitted` with `op = .read`, `IsDeleteRangePermitted` with `op = .write`). -/
+def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode)
+    (op : auth.PermType) : IProp GF :=
   iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
       (dk de : DFrac),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
-        applyErrIs err ∗ ⌜on = false → err = GoInterface.nil⌝ }}))
+        applyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
+        auth.permVerdict M info k e op err }}))
 
 /-- **The `auth.AuthStore` `st`** as the apply package uses it, whose writes run under the batch
 lock with invariant `P` and hook `f`, and whose request side takes the caller's reader resource
@@ -169,35 +176,39 @@ read transaction, a reader slot each; `auth.authRd st R` of the real store). The
 `AuthDerive.lean`); `HasRole` and the admin requests (`AuthEnable` ...) are its contract
 (`isAuthStoreAdmin`, the premise).
 
-**Its mode `on`** (2026-10-14, unit T1): with `on = false` the store is disabled and stays so
-(Go's `isOpPermitted` and `IsAdminPermitted` return `nil` when `!as.IsAuthEnabled()`): the
-permission checks and `IsAdminPermitted` return `nil`, and `AuthEnable` is not called (its
-precondition `⌜on = true⌝`). The real store meets the contract at `on = true` (`AuthDerive.lean`).
+**Its mode `M`** (`auth.AuthMode`; 2026-10-14, unit T1, as a boolean; 2026-10-23, the auth plan's
+A0, with the verdicts): in the mode `off` the store is disabled and stays so (Go's `isOpPermitted`
+and `IsAdminPermitted` return `nil` when `!as.IsAuthEnabled()`): the permission checks and
+`IsAdminPermitted` return `nil`, `IsAuthEnabled` `false`, and `AuthEnable` is not called (its
+precondition `⌜M.isOn = true⌝`); in the mode `on γa` each check's answer is a verdict over the
+store's recorded states (`auth.permVerdict`, `auth.adminVerdict`, `auth.enabledVerdict`,
+`auth.revisionVerdict`: `auth/Model.lean`); in the mode `any` nothing is promised of the answers,
+which is what the real store's proofs give until the auth plan's track S (`AuthDerive.lean`).
 
 **Its writes' right `RW`** (D22, 2026-10-23: the backend over every bucket): the writing methods
 take and give back the right to write the auth buckets (the real store's, `∃ r, backend.rbOwn γB
 r`: its writes change the backend's tracked buckets); the server's environment has none (`AEnv.RW
 = False`), its workload admitting no auth request. -/
 def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF)
-    (on : Bool) (RW : IProp GF) :
+    (M : auth.AuthMode) (RW : IProp GF) :
     IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    permCheck2 ai go!"IsPutPermitted" RD on ∗
-    permCheck3 ai go!"IsRangePermitted" RD on ∗
-    permCheck3 ai go!"IsDeleteRangePermitted" RD on ∗
+    permCheck2 ai go!"IsPutPermitted" RD M ∗
+    permCheck3 ai go!"IsRangePermitted" RD M .read ∗
+    permCheck3 ai go!"IsDeleteRangePermitted" RD M .write ∗
     □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac),
       {{ a ↦{dq} info ∗ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
       {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ applyErrIs err ∗
-          ⌜on = false → err = GoInterface.nil⌝ }}) ∗
+          ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.adminVerdict M (some info) err }}) ∗
     □ (∀ (u r : GoString),
       {{ True }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
       {{ (b : Bool), RET #b; True }}) ∗
     □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
-      {{ (b : Bool), RET #b; RD }}) ∗
+      {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdict M b }}) ∗
     □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
-      {{ (x : w64), RET #x; True }}) ∗
+      {{ (x : w64), RET #x; auth.revisionVerdict M x }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
-      {{ ⌜on = true⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
+      {{ ⌜M.isOn = true⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ mvcc.storeRT γ ∗ applyErrIs err ∗ RW }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
@@ -225,7 +236,7 @@ def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : va
     authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse γ P f RW)
 
 instance isAuthStore_persistent (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RD : IProp GF) (on : Bool) (RW : IProp GF) : Persistent (isAuthStore st γ P f RD on RW) := by
+    (RD : IProp GF) (M : auth.AuthMode) (RW : IProp GF) : Persistent (isAuthStore st γ P f RD M RW) := by
   unfold isAuthStore permCheck2 permCheck3 authReqContract authReqContractN; infer_instance
 
 /-! ## The lessor -/

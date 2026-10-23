@@ -51,7 +51,7 @@ theorem apply.authApplierV3.Txn.wp_proof
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
-  wp_apply (hTxn st le E.γ E.P E.f E.RD E.authOn E.RW _ info (DFrac.own 1) r t) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff⟩
+  wp_apply (hTxn st le E.γ E.P E.f E.RD E.authMode E.RW _ info (DFrac.own 1) r t) $$ [$Hst $HleA $Hinfo $Hard $Hr] as %err ⟨Hinfo, Hard, #HeI, %Hoff⟩
   ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>

@@ -155,7 +155,7 @@ def env₀ (idx : mvcc.IdxNames) (cok rev : GName) : apply.AEnv GF :=
   { s := null,
     γ := { idx := idx, bucket := 0, clog := 0, leases := 0, revs := 0, hook := 0, hookFn := 0,
            kb := none, cmeta := 0, fin := 0, sch := ⟨0, 0⟩, cok := cok, watchQ := false },
-    P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authOn := false,
+    P := iprop(True), f := #(), RD := iprop(True), γrev := rev, authMode := .off,
     FS := iprop(True), ciC := fun _ => True, RO := fun _ => iprop(True), RW := iprop(True),
     γbe := 0 }
 

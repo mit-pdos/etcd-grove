@@ -43,7 +43,7 @@ theorem apply.applierV3backend.AuthStatus.wp_proof
   rw [Hai]
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown, Hard, Hwo⟩
-  wp_apply HEn $$ [$Hard] as %en Hard
+  wp_apply HEn $$ [$Hard] as %en ⟨Hard, -⟩
   wp_apply HRev as %rev -
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
   wp_alloc l as Hl

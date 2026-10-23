@@ -16370,3 +16370,62 @@ linkv3p's `startCluster` over `common.NewClients`; the four closed theorems' pre
 `common`, `linkvtxn`, `linkv3p` regenerated (`context_WithTimeoutBackground` a root, `context_ErrAny`
 an `@` callee of `context`'s Link, `grpc_KeepaliveEnforcementPolicy` common's), the initializers
 regenerated (`common` imports `time`, grpc and `keepalive` now).
+
+## A0 of the auth plan: the authorization model, and the auth contracts over it (2026-10-23 · `notes/auth-plan.md`, branch `auth-a0`)
+
+**Problem.** The auth store's and the apply layer's contracts (`apply.isAuthStore`,
+`permCheck2`/`permCheck3`) said of a permission check only "some error the gRPC layer can take",
+with a boolean mode `on` whose `false` case made every check pass (unit T1, P2). Nothing could be
+stated about *what* is permitted, so nothing of track A (every method enforces its class) or
+track S (the store computes the meaning) could be stated either.
+
+**Decisions.**
+
+- **The model is pure and small** (`Proof/go_etcd_io/etcd/server/v3/auth/Model.lean`, D-AU1):
+  `AuthState` (enabled, revision, users as role names, roles as key permissions), `permitted st ai
+  key rangeEnd op` (`isOpPermitted`'s meaning: auth disabled, or a named principal whose revision
+  is not `0` and not older than the store's, whose user exists and is root or whose roles'
+  permissions of the type cover the key, a point by some permission, a range by the union of
+  them), `adminOk`. The bytes-affine order is `GoStringLt`; a point permission's interval
+  `[key, key\x00)` is the singleton, an open-ended range runs to the end of the key space.
+  *Rejected:* modelling the interval trees (the cache is an implementation of the union); a
+  decidable `permits` (nothing needs to compute it).
+- **The history, not the state** (`authHist γa hs`, `authStateAt γa i st`; a `MonoList`): the
+  store's states in order, each a persistent fact once recorded. Indexing by the auth revision
+  was rejected: `AuthEnable` sets `enabled` without bumping the revision (it restores the stored
+  revision), so the revision does not determine the state.
+- **The verdicts are honest about the checks' TOCTOU** (`permVerdict`, `adminVerdict`): Go's
+  `isOpPermitted` reads `enabled`, the revision, the user (the backend's read transaction) and
+  the permission cache under four separate locks, so a check racing with an admin change answers
+  from a mix of two states, and no `err = nil ↔ permitted st` holds at any single recorded state
+  (root at the first, the cache at the second). The verdict is two one-directional facts: if the
+  check passed, some recorded state permitted; if it refused, some recorded state did not. Track A
+  needs the first; track S can prove both (each half from the state the respective read saw).
+  *Rejected:* an atomic-update (TaDa) shape (the check is not atomic); a single state with
+  `↔` (false under the race).
+- **A three-valued mode** (`auth.AuthMode`: `off`, `any`, `on γa`) replaces the boolean:
+  `off` is the old `false` (the checks pass, `IsAuthEnabled` returns `false`, `AuthEnable` is not
+  called; what `NewAuthStore`'s axiom gives on an empty backend and every closed theorem runs in),
+  `on γa` carries the verdicts over the history `γa`, and `any` promises nothing: the old `true`,
+  which is what the real store's proofs of unit P2 give (`isAuthStore_of_authInv` derives `.any`)
+  until track S re-proves them in `on γa`. The chain model keeps its boolean (`Chain.auth
+  E.authOn`): `AEnv.authOn` is now the definition `E.authMode.isOn` (false exactly in `off`), so
+  the 40-odd files that use the boolean are unchanged; `AEnv` has the field `authMode`.
+  *Rejected:* making `isAuthStore` take a structure of verdict predicates (the same churn, less
+  readable at the call sites); dropping `isAuthStore_of_authInv` (it is what shows the real
+  store has the contract's shape).
+- **The contracts' new conjuncts are appended**, so the proofs that destructure a check's
+  postcondition change by one `-` (eleven sites in the apply package); the pure
+  `⌜M.isOn = false → err = nil⌝` stays beside the verdict for them. `IsAuthEnabled` returns
+  `enabledVerdict M b` (`b = false` in `off`), `Revision` `revisionVerdict M x`.
+  `isReqAuth` (`AuthInfoFromCtx`) is unchanged: the token's binding to a principal is the token
+  provider's (S5), not the state's.
+- **The trust base is unchanged** (the axiom `NewAuthStore` now gives the mode `off` instead of
+  `false`; `authApplyOk` restated). No closed theorem's statement changes: the examples'
+  environment has `authMode := .off`, and their premises `E.authOn = false` still read as before.
+- **The matrix** (`notes/auth-matrix.md`): the 49 methods with their classes and the keys their
+  RBAC checks must cover, derived from the handlers at the pin (etcd-io/etcd#22541's counts
+  reproduced), the specification track A proves per row.
+
+**Next (the plan's order):** A1, the class statement for the verified KV and watch handlers
+over `permVerdict`'s first half; S1, `authpb` translated and schema's auth backend proved.

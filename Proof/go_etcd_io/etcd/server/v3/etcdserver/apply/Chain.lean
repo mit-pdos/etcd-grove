@@ -301,9 +301,10 @@ structure AEnv (GF : BundledGFunctors) where
   f : val
   RD : IProp GF
   γrev : GName
-  /-- whether the auth store is enabled (2026-10-14, unit T1): the auth layer's mode
-  (`Chain.auth E.authOn`), the auth store's contract's (`isAuthStore … E.authOn`) -/
-  authOn : Bool
+  /-- the auth store's mode (2026-10-14, unit T1, a boolean; 2026-10-23, the auth plan's A0,
+  `auth.AuthMode`): the auth store's contract's (`isAuthStore … E.authMode`); the auth layer's
+  boolean mode (`Chain.auth E.authOn`) is `E.authOn`, whether it may refuse -/
+  authMode : auth.AuthMode
   /-- the apply thread's right to `ForceSnapshot` (D14i, 2026-10-17: the server's
   `s.forceDiskSnapshot`, which `ForceSnapshot` writes), threaded to the cluster methods -/
   FS : IProp GF
@@ -322,6 +323,12 @@ structure AEnv (GF : BundledGFunctors) where
   /-- (D22 receiver epochs, S7b, 2026-10-23) the server's ghost variable of its current backend
   (`s.be`'s, `bemuP`), which the apply package does not use (as `γrev`) -/
   γbe : GName
+
+/-- Whether the auth store may refuse (`Chain.auth E.authOn`; until the auth plan's A0 a field):
+`false` exactly in the mode `off`. -/
+def AEnv.authOn (E : AEnv GF) : Bool := E.authMode.isOn
+
+theorem AEnv.authOn_eq (E : AEnv GF) : E.authOn = E.authMode.isOn := rfl
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -801,7 +808,7 @@ whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookOk E.γ E.P E.f ∗
     isApplyLessor opts.Lessor' E.s E.γ E.P E.f E.RW ∗
-    isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authOn E.RW ∗
+    isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authMode E.RW ∗
     isAlarmStore opts.AlarmStore' E.γ E.P E.f E.RW ∗ isCluster opts.Cluster' E.γ E.P E.f E.RO E.RW ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗
     isConsistentIndexer opts.ConsistentIndex' E.ciC)
@@ -847,7 +854,7 @@ store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
-      isAuthStore st E.γ E.P E.f E.RD E.authOn E.RW) ∗
+      isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
       isApplyLessor le E.s E.γ E.P E.f E.RW) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))

@@ -124,7 +124,7 @@ def authApplyOk (stl : Loc) (RD : IProp GF) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (γ : mvcc.StoreNames) (f : GoFunc) (RW : IProp GF),
     ⌜γ.kb = some d⌝ -∗ backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
     ⌜f ≠ func.nil⌝ -∗ rwLens RW iprop(srvRestRW d.γB ∗ authBeOn stl d.be) -∗
-    apply.isAuthStore (auth.authIface stl) γ Pk #f RD false RW)
+    apply.isAuthStore (auth.authIface stl) γ Pk #f RD .off RW)
 
 /-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
 receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes

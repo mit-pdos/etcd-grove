@@ -1,6 +1,14 @@
 # Plan: specifying and proving etcd's authentication and authorization (auth, RBAC)
 
-**Status.** Planned (2026-10-23). Nothing carried out. Prompted by etcd-io/etcd#22595 (the
+**Status.** A0 carried out (2026-10-23, branch `auth-a0`; `notes/decisions.md`, "A0 of the auth
+plan"): the model `Proof/go_etcd_io/etcd/server/v3/auth/Model.lean` (`AuthState`, `permitted`,
+`adminOk`, the history `authHist`/`authStateAt`, the mode `AuthMode` with `off`/`any`/`on γa`, the
+verdicts `permVerdict`/`adminVerdict`/`enabledVerdict`/`revisionVerdict`), the contracts
+`apply.isAuthStore`/`permCheck2`/`permCheck3` and `AEnv.authMode` over it, the matrix
+`notes/auth-matrix.md`. What differed from the plan: the verdicts are two one-directional facts
+over recorded states, not `↔` at one state (the checks' own TOCTOU, decisions); the history is
+indexed by position, not by the auth revision (`AuthEnable` does not bump it); `isReqAuth` is
+untouched (the token binding is S5's). S1 to S5 and A1 to A4, E not started. Prompted by etcd-io/etcd#22595 (the
 proposal to revert Auth to Beta: "the feature was never really finished", a stream of security
 reports) and #22540 / PR #22541 (an "auth matrix" test: every gRPC method on the client port
 classified public / authenticated / RBAC / admin and probed with no token, an invalid token and an

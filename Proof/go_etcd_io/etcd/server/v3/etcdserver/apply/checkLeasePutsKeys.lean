@@ -34,7 +34,7 @@ theorem apply.checkLeasePutsKeys.wp_proof :
   iunfold apply.leaseIs at Hl
   icases Hl with ⟨%Hln, -, -, #HKeys⟩
   wp_auto
-  wp_apply HAdmin $$ [$Hai $Hrd] as %err ⟨Hai, Hrd, #HeI1, %Hoff⟩
+  wp_apply HAdmin $$ [$Hai $Hrd] as %err ⟨Hai, Hrd, #HeI1, %Hoff, -⟩
   cases err with
   | nil =>
     wp_auto

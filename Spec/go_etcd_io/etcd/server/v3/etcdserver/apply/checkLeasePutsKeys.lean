@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`checkLeasePutsKeys(as, ai, l)`**: `nil` for an admin (`IsAdminPermitted`); else `IsPutPermitted` of each of the lease's keys (`l.Keys()`): the first error, or `nil`; the `AuthInfo` kept, nothing written. -/
 abbrev apply.checkLeasePutsKeys.spec : Prop :=
-  ∀ (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool) (RW : IProp GF)
+  ∀ (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : auth.AuthMode) (RW : IProp GF)
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (l : Loc) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st γ P f RD on RW ∗ ai ↦{dq} info ∗ apply.leaseIs l id ∗ RD }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys))
       (Val #st)) (Val #ai)) (Val #l))
   {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
-      ⌜on = false → err = GoInterface.nil⌝ }}
+      ⌜on.isOn = false → err = GoInterface.nil⌝ }}
 
 end spec
 

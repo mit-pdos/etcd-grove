@@ -58,7 +58,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   wp_apply HDel $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, -⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with
@@ -94,7 +94,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   wp_auto
   ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
-    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff⟩
+    as %err ⟨Hinfo, -, -, Hard, #HeI, %Hoff, -⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   ihave Hkv := Hkv $$ Hard
   cases err with

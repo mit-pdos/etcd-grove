@@ -39,7 +39,7 @@ theorem apply.checkPutAuth.wp_proof
   icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, #HL, #HPK, -, -, -, -, %Hkb⟩
   wp_auto
   rw [Hsti]
-  wp_apply HPut $$ [$Hai $Hk $Hrd] as %err ⟨Hai, -, Hrd, #HeI1, %Hoff1⟩
+  wp_apply HPut $$ [$Hai $Hk $Hrd] as %err ⟨Hai, -, Hrd, #HeI1, %Hoff1, -⟩
   · ipureintro; exact Hkb
   cases err with
   | ok e =>
@@ -61,7 +61,7 @@ theorem apply.checkPutAuth.wp_proof
   wp_auto
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   rw [Hsti]
-  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil Hrd] as %err ⟨Hai, -, -, Hrd, #HeI3, %Hoff3⟩
+  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil Hrd] as %err ⟨Hai, -, -, Hrd, #HeI3, %Hoff3, -⟩
   · iframe; iframe #; try (ipureintro; exact Hkb)
   cases err with
   | ok e =>
