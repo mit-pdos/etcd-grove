@@ -556,6 +556,257 @@ theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : K
   imodintro
   iexact HΦ
 
+/-- A `Get` leaves the store's model as it is. -/
+theorem kStep_get (eD eU : GoInterface) (x : Input) (hk : x.Kind' = W64 3) (ks : KSt DObj) :
+    (kStep eD eU x ks).1 = ks := by
+  simp [kStep, hk]
+
+/-- What a plain read learns: the state is the store's, with room. -/
+abbrev plainQ (c : StoreCfg GF DObj) : KVState → IProp GF :=
+  fun σ => iprop(⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝)
+
+/-- **A read of the store's states** (a `Get` whose prophecy says `EOther`). -/
+theorem plain_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) :
+    kInv γ c g0 γk ⊢ kvReadAu γk (plainQ c) := by
+  have Hm := drvInvN_mask'
+  iintro #Hinv
+  unfold kvReadAu kvAu
+  imodintro
+  iauintro
+  unfold atomic_acc
+  iunfold kInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with >Hi Hclose
+  iunfold kInvBody at Hi
+  icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
+  obtain ⟨Hr, Hok⟩ := Hok
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact ⟨Hr, Hok⟩
+    imodintro
+    iempintro
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact ⟨Hr, Hok⟩
+    imodintro
+    imodintro
+    ipureintro; exact ⟨Hok.wf, Hok.room⟩
+
+/-- **A `Get`'s read update for the prophesied revision `R`** (see the file header): at its
+first firing at a state of revision `R`, `lintest`'s update commits with the model's output
+there and the commit bit records the state; a later firing at revision `R` sees the same state
+(the revisions' map). -/
+theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames)
+    (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
+    (R : w64) (Φ : val → IProp GF) :
+    kInv γ c g0 γk ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γp DFrac.discard (some R) ⊢
+      kvReadAu γk (readQ c γc R) := by
+  have Hm := drvInvN_mask'
+  have Hcm := callN_mask'
+  have HE := drvE_mask'
+  iintro ⟨#Hinv, #Hc, #Hp⟩
+  unfold kvReadAu kvAu
+  imodintro
+  iauintro
+  unfold atomic_acc
+  iunfold kInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with >Hi Hclose
+  iunfold kInvBody at Hi
+  icases Hi with ⟨%h, %S, %σ, %M, %nx, Hh, Hσ, HM, Hrv, Hhist, %Hok⟩
+  obtain ⟨Hr, Hok⟩ := Hok
+  ihave ⟨Hrv, #Hel⟩ := revOwn_elem γ σ $$ Hrv
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ((⊤ \ ↑srvRaftN) \ ↑kvN) \ ↑drvInvN from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists σ
+  iframe Hσ
+  isplit
+  · iintro Hσ
+    imod Hclose2 with -
+    imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+    · inext
+      iunfold kInvBody
+      iexists h, S, σ, M, nx
+      iframe
+      ipureintro; exact ⟨Hr, Hok⟩
+    imodintro
+    iempintro
+  · iintro Hσ
+    imod Hclose2 with -
+    by_cases Hrev : σ.rev = uint.nat R
+    · unfold getCall
+      iinv Hc with Hci Hclosec
+      icases Hci with (⟨HU, >Hlc, >Hγc⟩ | ⟨%σ0, %R0, >#Hv, >#Hp0, >%Hrev0, >#HL, Hrest⟩)
+      · -- the first firing at revision `R`: commit
+        imod lc_fupd_elim_later $$ Hlc HU with HU
+        have habs' : c.abs σ = (kStep eD eU x (c.abs σ)).1 := (kStep_get eD eU x hk _).symm
+        obtain ⟨S', HS', Hok'⟩ := kOk_ok Hok eD eU x hx habs' Hok.wf Hok.room
+        have Hst : (k8setcd3S (GF := GF) g0).M.step S
+            (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
+          rw [step_box, kStep_ans Hok eD eU x hx]; exact HS'
+        imod (fupd_mask_subseteq HE) with Hclose3
+        imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
+        · iframe
+        imod Hclose3 with -
+        imod dghostVar_update (some σ) γc none $$ Hγc with Hγc
+        imod dghostVar_persist γc 1 _ $$ Hγc with #Hγc
+        imod Hclosec $$ [HΦ] with -
+        · inext
+          iright
+          iexists σ, R
+          iframe Hγc Hp Hel
+          isplitr
+          · ipureintro; exact Hrev
+          ileft
+          iexact HΦ
+        imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+        · inext
+          iunfold kInvBody
+          iexists _, S', σ, M, nx
+          iframe
+          ipureintro; exact ⟨run_snoc g0 h S S' _ Hr Hst, Hok'⟩
+        imodintro
+        imodintro
+        unfold readQ
+        isplitr
+        · ipureintro; exact ⟨Hok.wf, Hok.room⟩
+        iintro %_
+        iexact Hγc
+      · -- a later firing at revision `R`: the same state, nothing to do
+        ihave %HpR := dghostVar_agree γp _ _ _ _ $$ Hp Hp0
+        simp only [Option.some.injEq] at HpR
+        subst HpR
+        ihave %HLe := ghostMapElem_agree σ.rev γ.r _ _ _ _ $$ [HL] Hel
+        · rw [Hrev, ← Hrev0]; iexact HL
+        subst HLe
+        imod Hclosec $$ [Hrest] with -
+        · inext
+          iright
+          iexists σ0, R
+          iframe Hv Hp0 HL Hrest
+          ipureintro; exact Hrev0
+        imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+        · inext
+          iunfold kInvBody
+          iexists h, S, _, M, nx
+          iframe
+          ipureintro; exact ⟨Hr, Hok⟩
+        imodintro
+        imodintro
+        unfold readQ
+        isplitr
+        · ipureintro; exact ⟨Hok.wf, Hok.room⟩
+        iintro %_
+        iexact Hv
+    · imod Hclose $$ [Hh Hσ HM Hrv Hhist] with -
+      · inext
+        iunfold kInvBody
+        iexists h, S, σ, M, nx
+        iframe
+        ipureintro; exact ⟨Hr, Hok⟩
+      imodintro
+      imodintro
+      unfold readQ
+      isplitr
+      · ipureintro; exact ⟨Hok.wf, Hok.room⟩
+      iintro %H
+      exact absurd H Hrev
+
+/-- **The maker `Get` takes** (a `Get` whose prophecy says it answers): for the pair the client
+prophesies, the revision recorded (`γp`) and each member's read update for it. -/
+theorem get_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (ms : List (client.SrvAt GF))
+    (eD eU : GoInterface) (γc γt γp : GName) (x : Input) (hx : InOk x) (hk : x.Kind' = W64 3)
+    (Φ : val → IProp GF) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ∗ getCall γ c g0 eD eU γc γt γp x Φ ∗
+      dghostVar γp (DFrac.own 1) (none : Option w64) ⊢
+      (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
+        ⌜(fun σ => readQ c γc R σ) = fun _ => iprop(True)⌝ ∨
+          kvReadAu sv.γr.kv (fun σ => readQ c γc R σ)) : IProp GF) := by
+  iintro ⟨#Hinvs, #Hc, Hp⟩ %R %m
+  imod dghostVar_update (some R) γp none $$ Hp with Hp
+  imod dghostVar_persist γp 1 _ $$ Hp with #Hp
+  imodintro
+  imodintro
+  refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
+  have hsv : sv ∈ ms := List.mem_of_getElem? hj
+  iintro ⟨⟨#Hinvs, #Hc⟩, #Hp⟩
+  iright
+  iapply get_read_au γ c g0 sv.γr.kv eD eU γc γt γp x hx hk R Φ
+  iframe Hc Hp
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+    hsv) $$ Hinvs
+
+/-- **The maker of plain reads** (a `Get` whose prophecy says `EOther`). -/
+theorem plain_maker (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt)
+    (ms : List (client.SrvAt GF)) :
+    □ ([∗list] sv ∈ ms, kInv γ c g0 sv.γr.kv) ⊢
+      (iprop(∀ (R m : w64), |==> □ [∧list] sv ∈ ms,
+        ⌜plainQ c = fun _ => iprop(True)⌝ ∨ kvReadAu sv.γr.kv (plainQ c)) :
+        IProp GF) := by
+  iintro #Hinvs %R %m
+  imodintro
+  imodintro
+  refine BigAndL.bigAndL_intro (PROP := IProp GF) fun j sv hj => ?_
+  have hsv : sv ∈ ms := List.mem_of_getElem? hj
+  iintro #Hinvs
+  iright
+  iapply plain_read_au γ c g0 sv.γr.kv
+  iapply (BigSepL.bigSepL_mem (Φ := fun sv : client.SrvAt GF => kInv γ c g0 sv.γr.kv)
+    hsv) $$ Hinvs
+
+/-- **`Apply` takes the continuation** after the reply: the commit bit holds `σ`, so the call
+invariant is on its committed side, its continuation still there (`Apply` holds the token). -/
+theorem getCall_take (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (eD eU : GoInterface)
+    (γc γt γp : GName) (x : Input) (Φ : val → IProp GF) (σ : KVState) :
+    getCall γ c g0 eD eU γc γt γp x Φ ∗ dghostVar γc DFrac.discard (some σ) ∗
+      dghostVar γt (DFrac.own 1) () ∗ £ 1 ⊢
+      |={⊤}=> contAt g0 x (kStep eD eU x (c.abs σ)).2 Φ := by
+  iintro ⟨#Hc, #Hv, Htok, Hlc⟩
+  unfold getCall
+  iinv Hc with Hci Hclosec
+  icases Hci with (⟨-, -, >Hγc⟩ | ⟨%σ', %R', >#Hv', >#Hp', >%Hrev', >#HL, Hrest⟩)
+  · ihave %Hbad := dghostVar_valid_2 γc _ _ _ _ $$ Hv Hγc
+    exfalso
+    cases Hbad.2
+  · ihave %Hvv := dghostVar_agree γc _ _ _ _ $$ Hv Hv'
+    simp only [Option.some.injEq] at Hvv
+    subst Hvv
+    imod lc_fupd_elim_later $$ Hlc Hrest with Hrest
+    icases Hrest with (HΦ | Htok')
+    · imod Hclosec $$ [Htok] with -
+      · inext
+        iright
+        iexists σ, R'
+        iframe Hv Hp' HL
+        isplitr
+        · ipureintro; exact Hrev'
+        iright
+        iexact Htok
+      imodintro
+      iexact HΦ
+    · iexfalso
+      iapply tok_excl γt
+      iframe Htok Htok'
+
 end proofs
 
 end k8setcd3
