@@ -19,6 +19,8 @@ The test below runs these steps (output trimmed):
         	            	actual  : "v3"
 ```
 
+The read transaction sees two different values of a key it does not write, which no serial order of the transactions allows.
+
 This affects any application that keeps using the database after such a `Commit` error while read transactions are open.
 
 ### What did you expect to happen?
