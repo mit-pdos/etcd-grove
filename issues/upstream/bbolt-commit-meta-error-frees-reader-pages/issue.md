@@ -1,4 +1,4 @@
-Title: A read transaction reads a later value of a key it already read, after a Commit fails once its meta page is written
+Title: A read transaction violates serializability, after a Commit fails once its meta page is written
 
 ### What happened?
 
@@ -33,7 +33,7 @@ Unit test: [`TestTx_Commit_MetaWriteError_KeepsReaderSnapshot`](https://github.c
 
 ### Anything else we need to know?
 
-The cause, as far as I can tell: the failed `Commit` calls `Tx.rollback`, which assumes the meta the transaction started from is still current. It drops the pages the transaction freed from the pending list, then reloads the free pages from the freelist page of `db.meta()`. Here the transaction's own meta reached the file, so `db.meta()` returns it, and its freelist page lists the pages the transaction freed, which the read transaction still reads, as free. The `v3` transaction can then reuse them. When the meta write fails before reaching the file, `db.meta()` is still the old meta, whose freelist does not list those pages, and the rollback is correct.
+The cause, as far as I can tell: the failed `Commit` calls `Tx.rollback`, which assumes the meta the transaction started from is still current. It drops the pages the transaction freed from the pending list, then reloads the free pages from the freelist page of `db.meta()`. Here the transaction's own meta reached the file, so `db.meta()` returns it, and its freelist page lists the pages the transaction freed, which the read transaction still reads, as free. The `v3` transaction can then reuse them. 
 
 After step 3, new transactions also read `v2`, although that `Commit` returned an error. Is the outcome of a failed `Commit` meant to be unknown, and should its documentation say so?
 
