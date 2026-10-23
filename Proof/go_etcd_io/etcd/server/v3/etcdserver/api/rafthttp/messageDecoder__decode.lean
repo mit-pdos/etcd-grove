@@ -32,7 +32,7 @@ theorem rafthttp.messageDecoder.decode.wp_proof
   wp_start as ⟨#Hr, #Hrf, HRd, #HV⟩
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HRBL⟩
+  icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HRBL, -⟩
   wp_auto
   wp_apply hLimit dec r Rd B rs (W64 536870912) (by decide) $$ [HRd]
     as %ml %err ⟨#Herr, %rs', HRd, Hok⟩

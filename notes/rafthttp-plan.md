@@ -426,32 +426,57 @@ trust-boundary spec.
      change to the counter spec), which the writer's goroutine may (its spec's fork accepts a panic).
    - The draft `respWrite_spec` (not an axiom yet) corrected: `Write` writes the first `n` bytes, all
      of them unless it fails (`io.Writer`'s contract), with an error whose `Error()` returns.
-   **5c, the stream reader, in progress (2026-10-23).** Done: `streamReader.decodeLoop` (the heart
-   of the reader: each frame decoded is the writer's frame of that index; a message's one-shot
-   part withdrawn with the reader's token for that index and the message handed to `recvc` or
-   `propc` with its bundle, `netRecv`; heartbeats and messages while paused or with a full channel
-   dropped; a failed decode closes the body; the stopped check returns `io.EOF` or the close's
-   error, each error with an `Error()` that returns), `close`, `pause`, `resume`,
-   `peerStatus.isActive`, `messageDecoder.decode`, `newMsgAppV2Decoder`. On the way:
-   `readBytesLimit`'s initializer translated (512 MiB); the reader contract (`readFullAt`) and both
-   decoders say an error's `Error()` returns, and the msgappv2 decoder that a decoded copy has no
-   responses; `decodeLimit` takes the premise that a frame it may read is of an encoding, so
-   `proto.Unmarshal` does not fail by its own spec (no trust change); `Reader.lean` (`decOwn`,
-   `srLockInv`, `srFixed`, `stream_known`, `respReader_readFullAt`, `wp_stream_decode`, and a
-   non-blocking send on a bag channel, `bag_nonblocking_send_au`: a Perennial gap).
-   **For the user's review (5f)**: two trust-boundary specs as `zap.String`'s and
-   `ConfChangeType.String`'s (`zap.Bool`, `raftpb.MessageType.String`: a dropped message's log);
-   draft boundary statements: `ReadFull_resp_spec` states its bound and error, `respCloser` and
-   `RespCloseAny_spec` (a response body closed from another goroutine, as `stop` does while
-   `decodeLoop` reads; Go supports it).
-   Still to do: `dial` (the request: the picker, `NewRequest`, the headers, `WithContext`, the
-   ticket registered as the stream's (`stream_ticket_alloc`), `RoundTrip`; the response: the
-   version checks (`semver.MustParse` of a peer's header may panic,
-   `issues/etcd-rafthttp-stream-dial-bad-server-version-panic.md`; `checkStreamSupport` reads the
-   untranslated `supportedStream`), the status switch, `GracefulClose`, `ReadAll`, the
-   precondition-failed body compared with `errIncompatibleVersion`/`ErrClusterIDMismatch`), `run`
-   (`rate.Limiter.Wait`, `errors.Is`, `transport.IsClosedConnError`, the context's `Err`), `start`
-   and `stop`.
+   **5c, the stream reader, done but `dial`'s proof (2026-10-23).** Proved over their callees'
+   specs (not linked until stage 6): `streamReader.decodeLoop` (the heart of the reader: each
+   frame decoded is the writer's frame of that index; a message's one-shot part withdrawn with
+   the reader's token for that index and the message handed to `recvc` or `propc` with its bundle,
+   `netRecv`; heartbeats and messages while paused or with a full channel dropped; a failed
+   decode closes the body; the stopped check returns `io.EOF` or the close's error; the error
+   never `nil`, its `Error()` returns), `run` (dial, decode, the peer status, the rate limiter,
+   the context's `Err`, `close(done)`), `start` (the `done` channel, `errorc`, a cancellable
+   context, the goroutine), `stop` (cancel, close under `mu`, wait for `done`), `close`, `pause`,
+   `resume`, `peerStatus.isActive`, `messageDecoder.decode`, `newMsgAppV2Decoder`.
+   `rafthttp/Reader.lean` (`decOwn`, `srLockInv`, `srFixed`, `stream_known`,
+   `respReader_readFullAt`, `wp_stream_decode`, `bag_nonblocking_send_au`: a Perennial gap) and
+   `rafthttp/ReaderRun.lean` (`srCfg`: what `dial` and `run` read; `srDial`; `srFixed0`, the fields
+   before `start` sets the context; `srStopRight`, `srDoneRight`; `wp_Is_errStrOk`: `errors.Is`
+   of an `http.errStrOk` error; `wp_ctx_Err`: `ctx.Err()` from `isContext` alone). On the way:
+   `readBytesLimit`'s initializer translated (512 MiB); the reader contract (`readFullAt`) and
+   both decoders say an error's `Error()` returns, and the msgappv2 decoder that a decoded copy
+   has no responses; `decodeLimit` takes the premise that a frame it may read is of an encoding,
+   so `proto.Unmarshal` does not fail by its own spec (no trust change).
+   **`dial`: spec only.** Its spec (`streamReader__dial.lean`, a hypothesis of `run`'s proof)
+   says it does not panic: `semver.MustParse` of the peer's `X-Server-Version`
+   (`issues/etcd-rafthttp-stream-dial-bad-server-version-panic.md`) parses, since the peer is a
+   member of the program, whose handlers set it to `version.Version`. A goroutine may not panic
+   (`wp_fork`), so `run` needs this. Its proof (with 5d's path and id lemmas) needs **the
+   response's headers in the HTTP boundary's protocol**, which today has only status and bytes
+   (`respAt`'s header is some map): a design question for 5e, where the handler that sets the
+   header is proved. The rest of `dial`: the picker, `NewRequest`, the headers,
+   `WithContext`, the ticket (`stream_ticket_alloc`), `RoundTrip`, `checkStreamSupport` (reads
+   the untranslated `supportedStream`), the status switch, `GracefulClose`, `ReadAll`, the
+   precondition-failed body against `errIncompatibleVersion`/`ErrClusterIDMismatch`,
+   `reportCriticalError` on `errorc` (`srDial`'s `errorc` and `ErrorC` carry no channel fact yet:
+   to add with the proof).
+   **For the user's review (5f)**:
+   * `http.errStrOk` now also says the error is of a well-formed error tree (`http.errTreeOk`:
+     for a pointer target, Perennial's `errors.errorIsTree` and `TreeTyped`), what `errors.Is`
+     needs (`run` asks `errors.Is(err, errUnsupportedStreamType)` of `dial`'s error and
+     `errors.Is(err, io.EOF)` of `decodeLoop`'s). The accepted boundary specs that give
+     `errStrOk` (`RoundTrip`, `respWrite_spec`, ...) so now also assume net/http's errors are
+     such trees (true of Go's: their `Is`/`Unwrap` methods return); `errors.New`'s are proved to
+     be (`errorString_errStrOk`, under the method-set premise `ErrorStringLeaf`).
+   * `transport.IsClosedConnError` (a names-only package; its body is
+     `err != nil && strings.Contains(err.Error(), "closed")`: translatable once `strings.Contains`
+     has a spec) and `(*rate.Limiter).Wait` (`golang.org/x/time/rate`, names-only; any error,
+     with the opaque persistent `rate.limiterOk`, which `rate.NewLimiter` will give in stage 6):
+     two trust-boundary specs, axioms, not reached yet.
+   * rafthttp's `errorsNewVarsInit` gains `errUnsupportedStreamType` (`fmt.Errorf` without verbs,
+     an `errors.New` error; it leaves `opaqueInitsOk`), so the package fact says it.
+   * Earlier: `zap.Bool` and `raftpb.MessageType.String` (as `zap.String`'s and
+     `ConfChangeType.String`'s); `ReadFull_resp_spec` states its bound and error, `respCloser` and
+     `RespCloseAny_spec` (a response body closed from another goroutine, as `stop` does while
+     `decodeLoop` reads; Go supports it).
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.

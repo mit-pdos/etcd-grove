@@ -110,7 +110,7 @@ theorem rafthttp.pipeline.handle.wp_proof
     | ok ei =>
       -- the post failed
       iunfold http.errStrOk at Herr
-      icases Herr with (%Hn | ⟨%ei', %He, #HE⟩)
+      icases Herr with (%Hn | ⟨%ei', %He, #HE, -⟩)
       · cases Hn
       cases He
       wp_auto

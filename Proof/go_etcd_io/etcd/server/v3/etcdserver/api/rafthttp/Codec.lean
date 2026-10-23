@@ -84,8 +84,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 open Iris.ProofMode
 
-/-- An `errors.New` error's `Error()` returns (`errorsNewVar`'s method fact). -/
-theorem errorString_errStrOk (x : Loc) (msg : GoString) :
+/-- An `errors.New` error's `Error()` returns (`errorsNewVar`'s method fact), and it is a leaf of
+an error tree (`ErrorStringLeaf`). -/
+theorem errorString_errStrOk [ErrorStringLeaf] [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
           go!"Error" #x)) (Val #())) {{ Φ }}) -∗
@@ -96,10 +97,20 @@ theorem errorString_errStrOk (x : Loc) (msg : GoString) :
   iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
   isplitr
   · ipureintro; rfl
-  iintro !> %Φ HΦ
-  iapply HM
-  inext
-  iapply HΦ
+  isplitr
+  · iintro !> %Φ HΦ
+    iapply HM
+    inext
+    iapply HΦ
+  have hl := errorString_leaf x
+  unfold http.errTreeOk
+  iintro !> %target %Ht
+  iexists (· = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x),
+    (fun _ => False)
+  isplitr
+  · ipureintro
+    exact ⟨rfl, _root_.Perennial.errors.treeTyped_pointer _ _ hl.1⟩
+  iapply _root_.Perennial.errors.errorIsTree_leaf _ _ _ hl.2.1 hl.2.2
 
 end lemmas
 

@@ -246,7 +246,7 @@ local macro "run_msg" : tactic => `(tactic| (
   | ok e2 =>
     wp_auto
     iunfold http.errStrOk at Herr
-    icases Herr with (%Hn | ⟨%e3, %He3, #HE⟩)
+    icases Herr with (%Hn | ⟨%e3, %He3, #HE, -⟩)
     · cases Hn
     cases He3
     wp_apply hTString _ _ _ $$ [t] as %ts t
@@ -352,7 +352,7 @@ local macro "run_hb" : tactic => `(tactic| (
   | ok e2 =>
     wp_auto
     iunfold http.errStrOk at Herr
-    icases Herr with (%Hn | ⟨%e3, %He3, #HE⟩)
+    icases Herr with (%Hn | ⟨%e3, %He3, #HE, -⟩)
     · cases Hn
     cases He3
     wp_apply hTString _ _ _ $$ [t] as %ts t

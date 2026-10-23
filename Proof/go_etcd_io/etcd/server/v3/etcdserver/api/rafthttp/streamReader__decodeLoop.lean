@@ -38,6 +38,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
+variable [ErrorStringLeaf]
 
 set_option hygiene false in
 /-- The loop continues past the frame `(w, bs)`, the tokens moved past it (`Hrd`). -/
@@ -210,7 +211,8 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
         ileft; ipureintro; rfl
       wp_for_post
       iapply HΦ
-      iexact Herr
+      iframe Herr
+      ipureintro; simp
     | nil =>
       ihave ⟨%w, %bs, %st, %Hfr, #HB, Hm⟩ := Hok $$ %rfl
       obtain ⟨Hf, rfl, Hw, Hres⟩ := Hfr
@@ -311,7 +313,8 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
         | ok ce =>
           wp_auto
           iapply HΦ
-          iexact Hcerr
+          iframe Hcerr
+          ipureintro; simp
         | nil =>
           ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
           · iPkgInit
@@ -320,6 +323,8 @@ local macro "dl_rest" T:term : tactic => `(tactic| (
           icases Heof with ⟨%xe, #He, #HeM⟩
           wp_auto
           iapply HΦ
+          isplitr
+          · ipureintro; simp
           iapply errorString_errStrOk $$ HeM
     · simp only [named]
       iframe))

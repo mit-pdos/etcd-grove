@@ -50,6 +50,7 @@ public import Perennial.Code.encoding.binary
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Ghost.DGhostVar
 public import Proof.unicode.utf8.Valid
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 
@@ -210,12 +211,28 @@ the map `hm`, whose `Set`s before `RoundTrip` build `R.hdr`. -/
 def reqOwn (r : Loc) (R : HReq) : IProp GF :=
   iprop(∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrOwn hm R.hdr ∗ reqRest r R)
 
+/-- **An error `ei` is of a well-formed error tree** (persistent; Perennial's `errors.errorIsTree`):
+for a pointer target, it is in a tree `S` whose `Is` and `Unwrap` methods return, and whose errors
+of the target's type hold pointers (`errors.TreeTyped`, Go's typing): what `errors.Is(err, target)`
+needs (`errors.Is.spec`). (2026-10-23, rafthttp stage 5c: the stream reader's `run` asks
+`errors.Is` of the errors `dial` and `decodeLoop` return.) -/
+def errTreeOk (ei : GoInterfaceOk) : IProp GF :=
+  iprop(□ ∀ target : GoInterface,
+    ⌜∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii⌝ -∗
+    ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+      ⌜S (GoInterface.ok ei) ∧ _root_.Perennial.errors.TreeTyped S target⌝ ∗
+      _root_.Perennial.errors.errorIsTree S M target)
+
+instance errTreeOk_persistent (ei : GoInterfaceOk) : Persistent (errTreeOk (GF := GF) ei) := by
+  unfold errTreeOk; infer_instance
+
 /-- **An error whose `Error()` returns** (persistent; `nil`, or a value whose `Error` method
-returns some string): what net/http's errors are (rafthttp logs them, `err.Error()`). -/
+returns some string, of a well-formed error tree, `errTreeOk`): what net/http's errors are (rafthttp
+logs them, `err.Error()`, and asks `errors.Is` of them; the tree since 2026-10-23, stage 5c). -/
 def errStrOk (e : GoInterface) : IProp GF :=
   iprop(⌜e = GoInterface.nil⌝ ∨ ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗
     □ (∀ Φ : val → IProp GF, ▷ (∀ s : GoString, Φ #s) -∗
-      WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}))
+      WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}) ∗ errTreeOk ei)
 
 instance errStrOk_persistent (e : GoInterface) : Persistent (errStrOk (GF := GF) e) := by
   unfold errStrOk; infer_instance

@@ -26,7 +26,8 @@ registered as `(γw, ty, lid)` to the address of `pid` (`Rh.owner`), with the ri
 reader's tokens: decodes the stream's frames and hands each message (but heartbeats, and messages
 while paused or with a full channel, dropped) to `recvc` or `propc` (`netRecv`: its one-shot part
 withdrawn with the token of its frame's index); returns once a decode fails (closing the body), or
-at once if the reader is stopped, with an error whose `Error()` returns. -/
+at once if the reader is stopped, with an error (never `nil`: `io.EOF` once stopped, if the close
+succeeds) whose `Error()` returns. -/
 abbrev rafthttp.streamReader.decodeLoop.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy) (rc : GoInterface)
     (R : http.HReq) (γk γw : GName),
@@ -36,7 +37,7 @@ abbrev rafthttp.streamReader.decodeLoop.spec : Prop :=
       http.respCloser rc ∗ ⌜rc ≠ GoInterface.nil⌝ ∗ streamReg Rh γk (γw, ty, lid) ∗ streamRd γw 0 }}
     (App (App (Val (cr @!! go.GoType.PointerType rafthttp.streamReader.ty @!! go!"decodeLoop"))
       (Val #rc)) (Val #ty.str))
-  {{ (err : GoInterface), RET #err; http.errStrOk err }}
+  {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∗ http.errStrOk err }}
 
 end spec
 

@@ -195,7 +195,10 @@ abbrev rafthttpInit : IProp GF :=
     (∃ n : w64, globalAddr linkHeartbeatSize ↦□ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝) ∗
     -- (2026-10-23, rafthttp stage 5c) the message decoder's limit (`msg_codec.go`, translated):
     -- 512 MiB, read-only for good
-    globalAddr readBytesLimit ↦□ (W64 536870912))
+    globalAddr readBytesLimit ↦□ (W64 536870912) ∗
+    -- (2026-10-23, rafthttp stage 5c) the stream reader's dial error for a stream type an older
+    -- peer does not support (`stream.go`, `fmt.Errorf` without verbs: an `errors.New` error)
+    EtcdGrove.errorsNewVar errUnsupportedStreamType go!"unsupported stream type")
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

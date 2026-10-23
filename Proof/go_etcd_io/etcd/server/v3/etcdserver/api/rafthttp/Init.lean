@@ -90,7 +90,6 @@ axiom opaqueInitsOk :
         statusMonitoringInterval.init,
         statusErrorInterval.init,
         snapResponseReadTimeout.init,
-        errUnsupportedStreamType.init,
         supportedStream.init,
         errMemberNotFound.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
@@ -113,7 +112,8 @@ axiom errorsNewVarsInit :
         (errIncompatibleVersion.init, errIncompatibleVersion, go!"incompatible version"),
         (ErrClusterIDMismatch.init, ErrClusterIDMismatch, go!"cluster ID mismatch"),
         (errStopped.init, errStopped, go!"stopped"),
-        (errMemberRemoved.init, errMemberRemoved, go!"the member has been permanently removed from the cluster")] : List (val × GoString × GoString)) →
+        (errMemberRemoved.init, errMemberRemoved, go!"the member has been permanently removed from the cluster"),
+        (errUnsupportedStreamType.init, errUnsupportedStreamType, go!"unsupported stream type")] : List (val × GoString × GoString)) →
     EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 /-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/
@@ -271,7 +271,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk statusMonitoringInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk statusErrorInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk snapResponseReadTimeout.init (by mem_tac))
-  wp_apply (opaqueInitsOk errUnsupportedStreamType.init (by mem_tac))
+  wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
+    as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
   wp_apply (opaqueInitsOk supportedStream.init (by mem_tac))
   wp_apply linkHeartbeatMessage_init as #HlinkHeartbeatMessage
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
@@ -294,6 +295,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HConnReadTimeout
   ipersist HlinkHeartbeatSize
   ipersist HreadBytesLimit
+  ipersist HerrUnsupportedStreamType
   iframe Hown
   imodintro
   isplitr
