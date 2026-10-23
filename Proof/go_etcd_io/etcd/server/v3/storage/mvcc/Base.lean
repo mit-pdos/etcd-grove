@@ -229,7 +229,7 @@ abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok e) ∗
-    (∃ g : GoInterfaceOk, globalAddr keysGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr keysGauge ↦□ GoInterface.ok g ∗ gaugeSpec g ∗ gaugeSetSpec g) ∗
     (∃ c : GoInterfaceOk, globalAddr txnCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr rangeCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr putCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗

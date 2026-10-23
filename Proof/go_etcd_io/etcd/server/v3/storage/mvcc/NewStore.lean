@@ -377,29 +377,24 @@ theorem mvcc.NewStore.wp_proof
   -- `s.mu.Lock()` on private memory (its invariant names the index, which `restore` makes)
   wp_apply (plain.wp_Lock sync.atomic.Int32.wp_Add (mvcc.muAddr «$r0_ptr»)) $$ [$mu] as mu
   (try wp_auto)
-  -- `s.restore()` on the fresh backend (no revision after the initial log's, `R = []`): nothing
-  -- changes (`err == nil`); the backend's no-compaction token consumed (D22 S-g)
-  have hbm : mvcc.bucketMap ([[], []] ++ ([] : mvcc.Log)) = (∅ : mvcc.Bucket) := by
-    rw [List.append_nil]; exact mvcc.bucketMap_init
-  have hcv : (W64 (((([[], []] ++ ([] : mvcc.Log)).length : Nat) : Int) - 1) : w64) = W64 1 := rfl
-  ihave Hbv2 : mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ([[], []] ++ ([] : mvcc.Log)))
-      $$ [Hbv2]
-  · rw [hbm]; iexact Hbv2
+  -- `s.restore()` on the fresh backend (an empty bucket): nothing changes (`err == nil`); a
+  -- reader's slot lent; the backend's no-compaction token consumed (D22 S-g)
   ihave Hncmp : mvcc.kbNoCmp γ.kb γ.bucket $$ [Hncmp]
   · rw [hγk, hγb]; iexact Hncmp
   ihave #HbkW := mvcc.isKeyBackendG_wand $$ Hbk0
+  icases mvcc.slot_take _ $$ Hrts with ⟨Hrt1, Hrts⟩
+  ihave Hrt1 : mvcc.storeRT (GF := GF) γ $$ [Hrt1]
+  · first | iexact Hrt1 | (rw [hγk]; iexact Hrt1)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
-      %(1 : Qp).half %P %(mvcc.hookFn γ) %_ %_ %_ %_ %_ %_ %_ %([] : mvcc.Log)
-      %(DFrac.own 1) %(DFrac.own 1) %mvcc.restoreLogOk_nil
-      [$Hbv2 $currentRev $compactMainRev $revMu $Hncmp $b $kvindex $Hix $Hig $Hiw $Hil]
-      as ⟨Hbv2, #Hti, Hird, Hiw, Hil, -, currentRev, compactMainRev, revMu, b, kvindex⟩
+      %(1 : Qp).half %P %(mvcc.hookFn γ) %(mvcc.storeRT γ) %_ %_ %_ %_ %_ %_
+      %(DFrac.own 1) %(DFrac.own 1)
+      [$Hbv2 $Hrt1 $currentRev $compactMainRev $revMu $Hncmp $b $kvindex $Hix $Hig $Hiw]
+      as ⟨Hbv2, Hrt1, #Hti, Hird, Hiw, currentRev, compactMainRev, revMu, b, kvindex⟩
   · iframe #; ipureintro; exact Hlgnn
+  ihave Hrt1 : mvcc.kbRT (GF := GF) γ.kb $$ [Hrt1]
+  · iexact Hrt1
+  ispecialize Hrts $$ Hrt1
   (try wp_auto)
-  simp only [List.append_nil]
-  ihave Hbv2 : mvcc.bucketView γ (1 : Qp).half (∅ : mvcc.Bucket) $$ [Hbv2]
-  · rw [← hbm, List.append_nil]; iexact Hbv2
-  ihave currentRev : («$r0_ptr».[store, go!"currentRev"] ↦ (W64 1 : w64) : IProp GF) $$ [currentRev]
-  · rw [hone]; iexact currentRev
   ihave Hcur2 : («$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
       (W64 1 : w64) : IProp GF) $$ [currentRev]
   · rw [← hsplit]; iexact currentRev
