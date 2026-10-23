@@ -16,22 +16,28 @@ P2)".
 - `rangePermCacheMu` (an `RWMutex`) guards the permission cache `rangePermCache` (`cacheP`): a
   map from user name to a `*unifiedRangePermissions` whose two interval trees (`readPerms`,
   `writePerms`) are read-only once built (`refreshRangePermCache` replaces the map whole with
-  freshly built trees).
+  freshly built trees). The auth plan's S2 (2026-10-23): each entry's trees hold lists of
+  bytes-affine entries (`permsAt`, `adt.ownIvtB`), and in the mode `on γa` the whole map is of
+  one recorded state (`cacheOk`): its keys are the state's users and each entry's intervals are
+  the user's permissions' (`cacheEntryIs`, `PermTree.lean`), so that `isRangeOpPermitted`
+  computes the model's `coversPoint`/`coversRange` of that state (`cacheVerdict`).
 
 **Contracts** (the store calls them through interfaces; not yet proved of the real objects):
 - the backend `be` (`authBackendOk be R M`: schema's `authBackend` in the server): `ReadTx()`
   returns a transaction whose `RLock()` turns the caller's read resource `R` into the held token
   of a state `st` of the mode `M` (`authSnap`, `Buckets.lean`; the auth plan's S1, 2026-10-23:
   until then the token held no state), under which `UnsafeGetUser(name)`/`UnsafeGetRole(name)`
-  return the state's user/role (`userOut`/`roleOut`), `UnsafeReadAuthEnabled()`/
-  `UnsafeReadAuthRevision()` its flag and revision, and which `RUnlock()` turns back into `R` (the
-  backend's own read transaction needs a reader slot, `backend.rdTok`, hence `R`); schema's
-  `authReadTx` meets it over the buckets (`etcdserver/InvAuthBackend.lean`, `authBucketsAre`);
+  return the state's user/role (`userOut`/`roleOut`), `UnsafeGetAllUsers()` its users,
+  `UnsafeReadAuthEnabled()`/`UnsafeReadAuthRevision()` its flag and revision (`authReaderOk`, the
+  `UnsafeAuthReader` interface's methods, which `refreshRangePermCache` takes), and which
+  `RUnlock()` turns back into `R` (the backend's own read transaction needs a reader slot,
+  `backend.rdTok`, hence `R`); schema's `authReadTx` meets it over the buckets
+  (`etcdserver/InvAuthBackend.lean`, `authBucketsAre`);
 - the token provider (`tokenProviderOk`): `info(ctx, token, rev)` returns an auth info (nil, or
   one with read-only fields) and a boolean;
-- each cached tree (`ivtQuery`): `Intersects` and `Contains` of a bytes-affine interval return,
-  keeping the interval's slices (the tree's proof, `adt.ownIvt`, covers string-affine intervals
-  only).
+- the cached trees are the interval tree's over bytes-affine keys (`adt.ownIvtB`,
+  `adt/BytesIvl.lean`: its `Insert`/`Intersects`/`Contains` axioms pending the tree's comparator
+  generalization; until S2 the trees were a contract, `ivtQuery`, returning any boolean).
 
 **The mode** `M` (`AuthMode`, `Model.lean`) of the store's contract: what the backend's states are
 (`authSnap`); the request side's specs are proved for every mode (their verdicts are track S's).
@@ -44,6 +50,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
+public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.BytesIvl
 
 @[expose] public section
@@ -84,6 +91,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- An auth info `a`: `nil`, or one whose `Username` and `Revision` are read-only. -/
 def authInfoRO (a : Loc) : IProp GF :=
@@ -93,45 +101,203 @@ def authInfoRO (a : Loc) : IProp GF :=
 instance authInfoRO_persistent (a : Loc) : Persistent (authInfoRO (GF := GF) a) := by
   unfold authInfoRO; infer_instance
 
-/-- **A cached interval tree** `t` (an `adt.IntervalTree`, not nil; a contract): `Intersects` and
-`Contains` of a bytes-affine interval return a boolean, keeping the interval's slices. -/
-def ivtQuery (t : GoInterface) : IProp GF :=
-  iprop(∃ ti : GoInterfaceOk, ⌜t = GoInterface.ok ti⌝ ∗
-    □ (∀ (b e : GoSlice) (bs es : List w8) (db de : DFrac),
-      {{ b ↦*{db} bs ∗ e ↦*{de} es }}
-        (App (Val #(methods ti.ty go!"Intersects" ti.v)) (Val #(adt.bytesIvl b e)))
-      {{ (r : Bool), RET #r; b ↦*{db} bs ∗ e ↦*{de} es }}) ∗
-    □ (∀ (b e : GoSlice) (bs es : List w8) (db de : DFrac),
-      {{ b ↦*{db} bs ∗ e ↦*{de} es }}
-        (App (Val #(methods ti.ty go!"Contains" ti.v)) (Val #(adt.bytesIvl b e)))
-      {{ (r : Bool), RET #r; b ↦*{db} bs ∗ e ↦*{de} es }}))
+/-- **A cache entry** `p` (a `*unifiedRangePermissions`, not nil; persistent): its two interval
+trees (`*intervalTree`s behind the `IntervalTree` interface), read-only, holding the entries `Lr`
+(`readPerms`) and `Lw` (`writePerms`) over bytes-affine keys (`adt.ownIvtB`). -/
+def permsAt (p : Loc) (Lr Lw : List adt.Entry) : IProp GF :=
+  iprop(⌜p ≠ null⌝ ∗ ∃ (tr tw : Loc),
+    upF go!"readPerms" p ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tr ∗
+    upF go!"writePerms" p ↦□ interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tw ∗
+    adt.ownIvtB tr Lr .discard ∗ adt.ownIvtB tw Lw .discard)
 
-instance ivtQuery_persistent (t : GoInterface) : Persistent (ivtQuery (GF := GF) t) := by
-  unfold ivtQuery; infer_instance
+set_option synthInstance.maxSize 512 in
+instance permsAt_persistent (p : Loc) (Lr Lw : List adt.Entry) :
+    Persistent (permsAt (GF := GF) p Lr Lw) := by
+  unfold permsAt; infer_instance
 
-/-- **A cache entry** `p` (a `*unifiedRangePermissions`, not nil): its two trees, read-only. -/
-def permsOk (p : Loc) : IProp GF :=
-  iprop(⌜p ≠ null⌝ ∗ ∃ r w : go_etcd_io.etcd.pkg.v3.adt.IntervalTree,
-    upF go!"readPerms" p ↦□ r ∗ upF go!"writePerms" p ↦□ w ∗ ivtQuery r ∗ ivtQuery w)
+/-- The entry's trees' lists for the user `u` at the state `st` (`getMergedPerms`): the user
+exists, and the lists' intervals are, as multisets (the tree orders them), the intervals of the
+user's permissions granting reads, resp. writes (`ivlsOf`, `PermTree.lean`). -/
+def cacheEntryIs (st : AuthState) (u : GoString) (Lr Lw : List adt.Entry) : Prop :=
+  ∃ roles, st.users !! u = some roles ∧
+    (Lr.map Prod.fst).Perm (ivlsOf .read (userPerms st roles)) ∧
+    (Lw.map Prod.fst).Perm (ivlsOf .write (userPerms st roles))
 
-instance permsOk_persistent (p : Loc) : Persistent (permsOk (GF := GF) p) := by
-  unfold permsOk; infer_instance
+/-- **The cache's map** `Mp` in the mode `M` (persistent): every entry a `permsAt`; in `on γa`,
+all of one recorded state `sta` (`refreshRangePermCache` builds the map from one transaction):
+the map's keys are `sta`'s users and each entry's trees hold its user's permissions
+(`cacheEntryIs`). -/
+def cacheOk (M : AuthMode) (Mp : GMap GoString Loc) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (i : Nat) (sta : AuthState), authStateAt γa i sta ∗
+      ⌜∀ u, (Mp !! u).isSome ↔ (sta.users !! u).isSome⌝ ∗
+      [∗map] u ↦ p ∈ Mp, ∃ Lr Lw, permsAt p Lr Lw ∗ ⌜cacheEntryIs sta u Lr Lw⌝)
+  | _ => iprop([∗map] _u ↦ p ∈ Mp, ∃ Lr Lw, permsAt p Lr Lw)
+
+set_option synthInstance.maxSize 512 in
+instance cacheOk_persistent (M : AuthMode) (Mp : GMap GoString Loc) :
+    Persistent (cacheOk (GF := GF) M Mp) := by
+  unfold cacheOk; cases M <;> infer_instance
+
+/-- **`isRangeOpPermitted`'s verdict** `b` in the mode `M` for the user `user` on `[k, e)` with
+the permission type `pt` (persistent): `on γa`, a recorded state in which the user's permissions
+of the type cover the point (`e` empty: `checkKeyPoint`) or the range (`checkKeyInterval`)
+exactly when the check passed, for a request with a non-empty key and a range that is open-ended
+or proper, of a state whose permissions' keys are non-empty (`permKeysOk`, what
+`isValidPermissionRange` enforces on grants); a user absent from that state is the check
+refusing. In the other modes nothing. -/
+def cacheVerdict (M : AuthMode) (user k e : GoString)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (i : Nat) (sta : AuthState), authStateAt γa i sta ∗
+      ⌜k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) → permKeysOk sta →
+        (b = true ↔ ∃ roles, sta.users !! user = some roles ∧
+          (if e = [] then coversPoint sta roles (permOp pt) k
+            else coversRange sta roles (permOp pt) k e))⌝)
+  | _ => iprop(True)
+
+instance cacheVerdict_persistent (M : AuthMode) (user k e : GoString)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) :
+    Persistent (cacheVerdict (GF := GF) M user k e pt b) := by
+  unfold cacheVerdict; cases M <;> infer_instance
+
+/-- A cache entry's model in the mode `M`: `on γa`, a recorded state whose user's permissions the
+entry's trees hold (`cacheEntryIs`); else nothing. -/
+def entryVerdict (M : AuthMode) (user : GoString) (Lr Lw : List adt.Entry) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (i : Nat) (sta : AuthState), authStateAt γa i sta ∗ ⌜cacheEntryIs sta user Lr Lw⌝)
+  | _ => iprop(True)
+
+instance entryVerdict_persistent (M : AuthMode) (user : GoString) (Lr Lw : List adt.Entry) :
+    Persistent (entryVerdict (GF := GF) M user Lr Lw) := by
+  unfold entryVerdict; cases M <;> infer_instance
+
+/-- The cache's entry of a user: its trees' lists, with their model in the mode. -/
+theorem cacheOk_lookup (M : AuthMode) (Mp : GMap GoString Loc) (user : GoString) (p : Loc)
+    (h : Mp !! user = some p) :
+    cacheOk (GF := GF) M Mp ⊢ ∃ Lr Lw, permsAt p Lr Lw ∗ entryVerdict M user Lr Lw := by
+  cases M with
+  | on γa =>
+    unfold cacheOk entryVerdict
+    iintro ⟨%i, %sta, #Hst, %Hdom, Hall⟩
+    ihave #Hp := BigSepM.bigSepM_lookup (Φ := fun (u : GoString) (p : Loc) =>
+      iprop(∃ Lr Lw, permsAt (GF := GF) p Lr Lw ∗ ⌜cacheEntryIs sta u Lr Lw⌝)) h $$ Hall
+    icases Hp with ⟨%Lr, %Lw, #Hp, %Hent⟩
+    iexists Lr, Lw
+    iframe Hp
+    iexists i, sta
+    iframe Hst
+    ipureintro; exact Hent
+  | off =>
+    unfold cacheOk entryVerdict
+    iintro Hall
+    ihave #Hp := BigSepM.bigSepM_lookup (Φ := fun (_ : GoString) (p : Loc) =>
+      iprop(∃ Lr Lw, permsAt (GF := GF) p Lr Lw)) h $$ Hall
+    icases Hp with ⟨%Lr, %Lw, #Hp⟩
+    iexists Lr, Lw
+    iframe Hp
+  | any =>
+    unfold cacheOk entryVerdict
+    iintro Hall
+    ihave #Hp := BigSepM.bigSepM_lookup (Φ := fun (_ : GoString) (p : Loc) =>
+      iprop(∃ Lr Lw, permsAt (GF := GF) p Lr Lw)) h $$ Hall
+    icases Hp with ⟨%Lr, %Lw, #Hp⟩
+    iexists Lr, Lw
+    iframe Hp
+
+/-- No entry for the user: the check refuses, and in `on γa` the recorded state has no such user. -/
+theorem cacheOk_absent (M : AuthMode) (Mp : GMap GoString Loc) (user k e : GoString)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (h : Mp !! user = none) :
+    cacheOk (GF := GF) M Mp ⊢ cacheVerdict M user k e pt false := by
+  cases M with
+  | on γa =>
+    unfold cacheOk cacheVerdict
+    iintro ⟨%i, %sta, #Hst, %Hdom, -⟩
+    iexists i, sta
+    iframe Hst
+    ipureintro
+    intro _ _ _
+    have hu : sta.users !! user = none := by
+      have hd := Hdom user
+      rw [h] at hd
+      cases hs : sta.users !! user with
+      | none => rfl
+      | some r => rw [hs] at hd; simp at hd
+    simp only [hu, Bool.false_eq_true, false_iff, not_exists, not_and]
+    intro _ hr; cases hr
+  | off => unfold cacheVerdict; iintro -; itrivial
+  | any => unfold cacheVerdict; iintro -; itrivial
+
+/-- **The check's result over the entry's trees is the verdict**: the point query or the
+coverage of the queried interval over the tree of the permission type (`checkKeyPoint`,
+`checkKeyInterval`), for a request with a non-empty key and an empty, open-ended or proper range,
+is the model's `coversPoint`/`coversRange` of the entry's state (`PermTree.lean`). -/
+theorem cacheVerdict_entry (M : AuthMode) (user k e : GoString)
+    (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type) (b : Bool) (Lr Lw : List adt.Entry)
+    (hpt : pt = W32 0 ∨ pt = W32 1)
+    (hb : k ≠ [] → (e = [] ∨ isOpenEnded e ∨ go.GoStringLt k e) →
+      (b = true ↔ if e = [] then ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 k
+        else ∀ x, adt.inIvl (queryIvl k e) x →
+          ∃ z ∈ (if pt = W32 0 then Lr else Lw), adt.inIvl z.1 x)) :
+    entryVerdict (GF := GF) M user Lr Lw ⊢ cacheVerdict M user k e pt b := by
+  cases M with
+  | on γa =>
+    unfold entryVerdict cacheVerdict
+    iintro ⟨%i, %sta, #Hst, %Hent⟩
+    iexists i, sta
+    iframe Hst
+    ipureintro
+    intro hk hr hkeys
+    obtain ⟨roles, hroles, hLr, hLw⟩ := Hent
+    rw [hb hk hr]
+    -- the tree of the type holds the intervals of the permissions granting the operation
+    have hL : ((if pt = W32 0 then Lr else Lw).map Prod.fst).Perm
+        (ivlsOf (permOp pt) (userPerms sta roles)) := by
+      unfold permOp
+      rcases hpt with rfl | rfl
+      · simp only [↓reduceIte]; exact hLr
+      · rw [if_neg (by word), if_neg (by word)]; exact hLw
+    have hiff : ∀ roles', sta.users !! user = some roles' ↔ roles' = roles := by
+      intro roles'; rw [hroles]; constructor
+      · intro h; cases h; rfl
+      · rintro rfl; rfl
+    simp only [hiff, exists_eq_left]
+    by_cases he : e = []
+    · simp only [he, ↓reduceIte]
+      rw [coversPoint_iff sta roles (permOp pt) k hkeys]
+      exact exists_inIvl_perm hL k
+    · simp only [he, ↓reduceIte]
+      rw [coversRange_iff sta roles (permOp pt) k e hk he hkeys]
+      constructor
+      · intro H x hx; exact (exists_inIvl_perm hL x).1 (H x hx)
+      · intro H x hx; exact (exists_inIvl_perm hL x).2 (H x hx)
+  | off => unfold cacheVerdict; iintro -; itrivial
+  | any => unfold cacheVerdict; iintro -; itrivial
+
+theorem cacheVerdict_any (user k e : GoString) (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type)
+    (b : Bool) : ⊢ cacheVerdict (GF := GF) .any user k e pt b := by
+  unfold cacheVerdict; itrivial
+
+theorem cacheVerdict_off (user k e : GoString) (pt : go_etcd_io.etcd.api.v3.authpb.Permission_Type)
+    (b : Bool) : ⊢ cacheVerdict (GF := GF) .off user k e pt b := by
+  unfold cacheVerdict; itrivial
 
 /-- What `enabledMu` guards at `q`: `enabled`. -/
 def enabledP (st : Loc) (q : Qp) : IProp GF :=
   iprop(∃ b : Bool, aF go!"enabled" st ↦{DFrac.own q} b)
 
-/-- What `rangePermCacheMu` guards at `q`: the cache's map, every entry `permsOk`. -/
-def cacheP (st : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (mp : GoMap) (M : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q} mp ∗
-    mp ↦${DFrac.own q} M ∗ [∗map] _u ↦ p ∈ M, permsOk p)
+/-- What `rangePermCacheMu` guards at `q` in the mode `M`: the cache's map, `cacheOk`. -/
+def cacheP (st : Loc) (M : AuthMode) (q : Qp) : IProp GF :=
+  iprop(∃ (mp : GoMap) (Mp : GMap GoString Loc), aF go!"rangePermCache" st ↦{DFrac.own q} mp ∗
+    mp ↦${DFrac.own q} Mp ∗ cacheOk M Mp)
 
-/-- **The transaction's reads under the held token** `Hs st` of the state `st` (the shared part of
-`authReadTxOk` and `authReadTxLocked`): `UnsafeGetUser(name)` and `UnsafeGetRole(name)` return
-the state's user and role (`userOut`, `roleOut`: nil if none, else the message, owned),
-`UnsafeReadAuthEnabled()` its flag, `UnsafeReadAuthRevision()` its revision, each keeping the
-token, and `RUnlock()` turns the token back into `R`. -/
-def authTxReads (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthState → IProp GF) : IProp GF :=
+/-- **The reads of an `UnsafeAuthReader`** `ti` (a read or a batch transaction) under the held
+token `Hs st` of the state `st`: `UnsafeGetUser(name)` and `UnsafeGetRole(name)` return the
+state's user and role (`userOut`, `roleOut`: nil if none, else the message, owned),
+`UnsafeReadAuthEnabled()` its flag, `UnsafeReadAuthRevision()` its revision, and
+`UnsafeGetAllUsers()` its users (a slice of their messages, the names exactly the state's users,
+each once), each keeping the token. -/
+def authReaderOk (ti : GoInterfaceOk) (Hs : AuthState → IProp GF) : IProp GF :=
   iprop(□ (∀ (st : AuthState) (name : GoString),
       {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #name))
       {{ (u : Loc), RET #u; Hs st ∗ userOut u st name }}) ∗
@@ -144,6 +310,22 @@ def authTxReads (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthState → IProp GF
     □ (∀ st : AuthState,
       {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
       {{ (x : w64), RET #x; Hs st ∗ ⌜uint.nat x = st.revision⌝ }}) ∗
+    □ (∀ st : AuthState,
+      {{ Hs st }} (App (Val #(methods ti.ty go!"UnsafeGetAllUsers" ti.v)) (Val #()))
+      {{ (s : GoSlice) (us : List Loc) (names : List GoString), RET #s; Hs st ∗ s ↦* us ∗
+          ⌜us.length = names.length ∧ names.Nodup ∧
+            ∀ n, n ∈ names ↔ (st.users !! n).isSome⌝ ∗
+          [∗list] x ∈ us.zip names, userOut x.1 st x.2 }}))
+
+instance authReaderOk_persistent (ti : GoInterfaceOk) (Hs : AuthState → IProp GF) :
+    Persistent (authReaderOk (GF := GF) ti Hs) := by
+  unfold authReaderOk; infer_instance
+
+/-- **The transaction's reads under the held token** `Hs st` of the state `st` (the shared part of
+`authReadTxOk` and `authReadTxLocked`): the reads (`authReaderOk`), and `RUnlock()` turns the
+token back into `R`. -/
+def authTxReads (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthState → IProp GF) : IProp GF :=
+  iprop(authReaderOk ti Hs ∗
     □ (∀ st : AuthState,
       {{ Hs st }} (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #())) {{ RET #(); R }}))
 
@@ -218,7 +400,7 @@ def authInv (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
     sync.isRWMutexGuard (aF go!"beMu" st) (beP st R M) ∗
     (∃ tp : TokenProvider, aF go!"tokenProvider" st ↦□ tp ∗ tokenProviderOk tp) ∗
     sync.isRWMutexGuard (aF go!"enabledMu" st) (enabledP st) ∗
-    sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st))
+    sync.isRWMutexGuard (aF go!"rangePermCacheMu" st) (cacheP st M))
 
 instance authInv_persistent (st : Loc) (R : IProp GF) (M : AuthMode) :
     Persistent (authInv (GF := GF) st R M) := by
@@ -229,8 +411,8 @@ def enabledRd (st : Loc) : IProp GF :=
   sync.ownRWMutex (aF go!"enabledMu" st) (enabledP st)
 
 /-- A reader slot of `rangePermCacheMu` (`isRangeOpPermitted`). -/
-def cacheRd (st : Loc) : IProp GF :=
-  sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st)
+def cacheRd (st : Loc) (M : AuthMode) : IProp GF :=
+  sync.ownRWMutex (aF go!"rangePermCacheMu" st) (cacheP st M)
 
 /-- A reader slot of `beMu` (`lockedReadTx`). -/
 def beRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
@@ -238,7 +420,7 @@ def beRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
 
 /-- **A permission check's reader resource**: a slot of each lock and the backend's `R`. -/
 def authRd (st : Loc) (R : IProp GF) (M : AuthMode) : IProp GF :=
-  iprop(enabledRd st ∗ cacheRd st ∗ beRd st R M ∗ R)
+  iprop(enabledRd st ∗ cacheRd st M ∗ beRd st R M ∗ R)
 
 /-- `err` is `nil` or one of the error variables the request side returns. -/
 def authErrIs (err : GoInterface) : IProp GF :=

@@ -19,6 +19,7 @@ translate = ["!*", "AuthInfo",
   "authStore.isOpPermitted", "authStore.IsPutPermitted", "authStore.IsRangePermitted",
   "authStore.IsDeleteRangePermitted", "authStore.IsAdminPermitted", "authStore.lockedReadTx",
   "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
+  "getMergedPerms", "authStore.refreshRangePermCache", "isValidPermissionRange",
   "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
   "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
   "ErrInvalidAuthToken"]

@@ -354,6 +354,36 @@ instance revisionVerdict_persistent (M : AuthMode) (x : w64) :
 theorem revisionVerdict_any (x : w64) : ⊢ revisionVerdict (GF := GF) .any x := by
   unfold revisionVerdict; itrivial
 
+/-! ## Well-formedness of a state's permissions (the request side's premises; the auth plan's S2) -/
+
+/-- `isValidPermissionRange(key, rangeEnd)` (`range_perm_cache.go`, checked by
+`RoleGrantPermission`): a non-empty key, and a point, a range with `key < rangeEnd`, or an
+open-ended range. -/
+def rangeValid (key rangeEnd : GoString) : Prop :=
+  key ≠ [] ∧ (rangeEnd = [] ∨ go.GoStringLt key rangeEnd ∨ isOpenEnded rangeEnd)
+
+/-- Every permission of every role has a non-empty key (`rangeValid`'s first rule): the
+permission cache's interval trees take the empty key as the top of the key space (`adt.affCmp`,
+the affine order), the model as its least key; the cache computes `coversPoint`/`coversRange` of
+such states. -/
+def permKeysOk (st : AuthState) : Prop :=
+  ∀ r ps, st.roles !! r = some ps → ∀ p ∈ ps, p.key ≠ []
+
+/-- A user's permissions fit an interval tree's count (`getMergedPerms` inserts each into a tree
+whose count is a `uint64` kept below `2^63`, `adt.ownIvt`). -/
+def permsFit (st : AuthState) : Prop :=
+  ∀ u roles, st.users !! u = some roles → (userPerms st roles).length < 2 ^ 63
+
+/-- A permission of the user `u` is one of a role of the state. -/
+theorem mem_userPerms {st : AuthState} {u : User} {p : Perm} (h : p ∈ userPerms st u) :
+    ∃ r ps, st.roles !! r = some ps ∧ p ∈ ps := by
+  unfold userPerms at h
+  rw [List.mem_flatMap] at h
+  obtain ⟨r, -, hp⟩ := h
+  cases hr : st.roles !! r with
+  | none => rw [hr] at hp; cases hp
+  | some ps => rw [hr] at hp; exact ⟨r, ps, hr, hp⟩
+
 end ghost
 
 end auth

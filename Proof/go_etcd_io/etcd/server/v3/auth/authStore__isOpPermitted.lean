@@ -118,7 +118,9 @@ theorem auth.authStore.isOpPermitted.wp_proof
   subst Hti
   icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
   iunfold authTxReads at Hreads
-  icases Hreads with ⟨#HUG, -, -, -, #HRU⟩
+  icases Hreads with ⟨#Hrds, #HRU⟩
+  iunfold authReaderOk at Hrds
+  icases Hrds with ⟨#HUG, -, -, -, -⟩
   wp_auto
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #user))
   iapply HUG $$ Htok
@@ -154,7 +156,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
   cases root
   · (try wp_auto)
     wp_apply (h_isRangeOpPermitted st R M user key re k e dk de pt) $$ [$Hinv $Hca $Hk $He]
-      as %okr ⟨Hca, Hk, He⟩
+      as %okr ⟨Hca, Hk, He, -⟩
     · ipureintro; exact ⟨Hpt, Hlen⟩
     cases okr
     · (try wp_auto)

@@ -109,9 +109,11 @@ def ownUser (p : Loc) (u : UserRec) : IProp GF :=
       unknownFields' := uf, sizeCache' := sc } : authpb.User) ∗
     name ↦*□ u.name ∗ pw ↦*□ u.password ∗ roles ↦*□ u.roles ∗ userOptsAt o u.noPassword)
 
-/-- The `*authpb.Permission` at `p` (not nil, read-only) holds the wire permission `w`. -/
+/-- The `*authpb.Permission` at `p` (not nil, read-only) holds the wire permission `w`, whose key
+fits a Go slice with room for one more byte (`NewBytesAffinePoint` appends `"\x00"` to it: a key
+of `2^63 - 1` bytes cannot be unmarshalled; the auth plan's S2). -/
 def ownPermW (p : Loc) (w : PermW) : IProp GF :=
-  iprop(⌜p ≠ null⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+  iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
     (k re : GoSlice) (uf : GoSlice) (sc : w32),
     p ↦□ ({
       state' := st, PermType' := w.ty, Key' := k, RangeEnd' := re, unknownFields' := uf,

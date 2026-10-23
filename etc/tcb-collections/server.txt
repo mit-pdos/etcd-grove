@@ -39,6 +39,9 @@ axiom EtcdServer.snapshot.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof
+axiom adt.intervalTree.wp_Contains_bytes
+axiom adt.intervalTree.wp_Insert_bytes
+axiom adt.intervalTree.wp_Intersects_bytes
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof

@@ -16708,3 +16708,107 @@ the model's state, so that S3 can re-prove the checks to compute `permitted`.
 `authReadTx` meets `authReadTxOk` through `authBucketsAre` and adds the write side; the trust
 base grows by the two `proto.Unmarshal` specs (`etc/tcb-baseline.txt` updated; the `server`
 collection).
+
+## S2 of the auth plan: the permission cache computes the model's `coversPoint`/`coversRange`, over an axiomatized bytes-affine interval tree (2026-10-23 · `notes/auth-plan.md`, branch `auth-s2`)
+
+**Problem.** The auth store's permission cache (`range_perm_cache.go`) was a contract: each cached
+`unifiedRangePermissions` held two trees whose `Intersects`/`Contains` returned some boolean
+(`ivtQuery`), `getMergedPerms`/`refreshRangePermCache` were names only, and `isRangeOpPermitted`
+promised nothing of its result. S3 needs `isOpPermitted` to return `permVerdict`, which needs the
+cache's answer to be the model's `coversPoint`/`coversRange` of a recorded state. The interval
+tree's proof (`adt`, 8,200 lines) is for string-affine keys (`StringAffineComparable`, a Go
+string compared by `<`); the cache's trees hold bytes-affine keys (`BytesAffineComparable`, a
+byte slice compared by `bytes.Compare`, the empty slice the top), whose comparison reads memory.
+
+**Decisions.**
+
+- **The pure meaning of the two queries, over the model** (`adt/Contains.lean`): `inIvl x k`
+  (`k` in the affine interval `x`: not below its begin, below its end), **`stab_point_iff`**
+  (`Intersects` of a key's point interval `[k, k ++ "\x00")`: some entry holds `k`; the
+  watchable store's `strLt_succ_le`/`ivlCmp_point_iff` restated, since `auth` cannot import
+  `mvcc`), and **`containsRes`**, the loop of `Contains` transcribed (over the stabbed entries in
+  tree order: the first's begin, the running maximum end, a break at a gap), with
+  **`containsRes_iff`**: for a query whose begin is below its end, over entries in the tree's
+  order, `Contains` is true exactly when every key of the query is in some entry. No premise on
+  the entries (an inverted or empty entry holds no key and the scan never needs it): the proof
+  is that a gap or a short maximum exhibits an uncovered key of the query, and conversely the
+  scan's interval `[first.begin, max)` is the union of the scanned entries.
+  *Rejected:* stating `Contains` as the Go scan only and proving the coverage at the auth level
+  (the fact is the tree's, and the string-affine `Contains` will want it too).
+- **The bytes-affine tree is `ownIvt` with slices, its three facts axioms** (`adt/BytesIvl.lean`):
+  `ownIvtB t L dq` is the string-affine `ownIvt` (`Defs.lean`) over the same model (entries over
+  the keys' contents, `GoString`), each node holding its begin, end and `max` as read-only byte
+  slices (`↦*□`), at a `DFrac` so a built tree can be made read-only (`ownIvtB_persist`: the
+  cache's trees are never modified; proved), with `ownIvtB_of_empty` (`NewIntervalTree`'s empty
+  tree is a bytes-affine tree: proved) and `ownIvtB_sorted`. **Axioms: `intervalTree.
+  wp_Insert_bytes`, `wp_Intersects_bytes`, `wp_Contains_bytes`** (+3, 618), stated exactly as the
+  string-affine specs are (`Insert` the model's `ivtInsert` under the count bound; `Intersects`
+  the stab) and as `containsRes` (for a query with its begin the top or below its end, `Visit`'s
+  premise; some boolean otherwise). They are the generalization of the tree's proof to a
+  comparator (the key type, its Go value, its `Compare` spec and the resource a comparison
+  needs: nothing for strings, a slice's read-only contents for bytes), which touches every node
+  unfolding (about 130 sites) and every `Compare` call (about 25) of the 8,200 lines, and the
+  pure model's uses of `affCmp_eq_zero_iff` (equal keys are equal strings; for bytes, equal
+  contents in different slices): **stage S2b of the plan**, independent of S3. `Contains` for
+  string-affine keys is not proved either: `Visit`'s spec is for visitors that never stop,
+  `Contains`' stops at a gap (`ivVisitorOk` would take a stop).
+  *Rejected:* making the auth store's trees a weaker contract (the point of S2); a separate
+  bytes-affine proof of the tree (the same 8,200 lines again); a generic tree in this stage (the
+  week the plan gave S2 is the auth side; the generalization is a refactor with its own review).
+- **`BytesAffineComparable.Compare` proved** (`Spec/Proof/go_etcd_io/etcd/pkg/v3/adt/
+  BytesAffineComparable__Compare.lean`): the affine order `affCmp` on the slices' contents, through
+  Perennial's `bytes.wp_Compare` (not a hypothesis of the link: an external result, as `strings`'
+  are used elsewhere); `isValidPermissionRange` proved over it (`rangeValid`, for S4's grants).
+- **The cache entry and the cache's map** (`auth/InvAuth.lean`): `permsAt p Lr Lw` replaces
+  `permsOk`/`ivtQuery` (the two trees `ownIvtB` at `.discard`, their lists); **`cacheP st M q`**
+  takes the mode, and holds `cacheOk M Mp`: in `on γa`, one recorded state `sta` whose users are
+  exactly the map's keys and each entry's lists are, as multisets (the tree's order is its own),
+  the intervals of the user's permissions granting reads, resp. writes (`cacheEntryIs`, with
+  `ivlsOf`/`permIvl` of `auth/PermTree.lean`: the point `[key, key ++ "\x00")`, the open range
+  `[key, "")` for `"\x00"`, else `[key, rangeEnd)`; `READWRITE` in both trees, an unknown type in
+  neither); in `off`/`any`, the entries only. `refreshRangePermCache` builds the whole map from
+  one transaction, so one state suffices; a user absent from the map is absent from that state,
+  which is how the check's refusal ("user doesn't exist") becomes a verdict.
+  *Rejected:* a state per entry (true but weaker: the refusal for a missing user would say nothing).
+- **The specs restated** (unit P2's, now the model's): `checkKeyPoint` returns whether some entry
+  of the type's tree holds the key; `checkKeyInterval`, for a non-empty key and an open-ended or
+  proper range, whether the entries cover the queried interval (`queryIvl`); `isOpenEnded` the
+  model's; `isRangeOpPermitted` returns **`cacheVerdict M user k e pt b`**: in `on γa`, a recorded
+  state in which the user's permissions of the type cover the point or the range exactly when
+  the check passed, for a request with a non-empty key and an empty, open-ended or proper range,
+  of a state whose permissions' keys are non-empty (`permKeysOk`); the user absent is the check
+  refusing. The bridge (`PermTree.lean`): a permission's interval holds a key exactly when its
+  range does (`inIvl_permIvl`), for a non-empty key -- the affine order's `""` is the top, the
+  model's its least key, so a permission or a request with an empty key means different things
+  to the two (`isValidPermissionRange` refuses the former on grant; the latter is a premise of
+  the verdict, and `permitted` on it is S3's to decide). `isOpPermitted` and the `Is*Permitted`
+  take the verdict and drop it (S3 turns it into `permVerdict`).
+- **New premises in the model** (`Model.lean`, additive): `permKeysOk st` (every permission's key
+  non-empty), `permsFit st` (a user's permissions below `2^63`: the trees' counts), `rangeValid`
+  (`isValidPermissionRange`); and the wire record's key fits a slice with room for `"\x00"`
+  (`ownPermW`, `Buckets.lean`: `w.key.length < 2^63 - 1`, `NewBytesAffinePoint`'s premise; a fact
+  of `proto.Unmarshal`'s output, so of S1's trust-boundary spec). Which states satisfy them is the
+  write side's (S4): `permKeysOk` by `isValidPermissionRange` on grant, `permsFit` by the record
+  sizes (`issues/`'s fatals).
+- **`getMergedPerms` and `refreshRangePermCache` proved** (translated with bodies, with
+  `isValidPermissionRange`; `authReaderOk ti Hs`, the `UnsafeAuthReader`'s reads split out of
+  `authTxReads`, gains `UnsafeGetAllUsers`: a slice of the state's users, their names exactly the
+  state's, each once -- schema's `unsafeGetAllUsers` is still unproved, `backend.UnsafeForEach`
+  having no spec; unlike `UnsafeGetAllRoles` it does not panic on a read transaction,
+  `baseReadTx.UnsafeForEach` iterates the buffer and bolt). `getMergedPerms(tx, name)`: nil iff
+  the state has no such user, else a read-only `permsAt` with `cacheEntryIs` (the roles loop over
+  `userOut`'s roles, a missing role skipped; the permissions loop over `roleOut`'s wire records;
+  the three branches of the range -- `"\x00"`, empty, a range -- joined by `wp_join` before the
+  interval is built, the interval's two branches joined before the type switch, the switch's four
+  cases joined before the loop's post, so the invariant is re-established once per loop).
+  `refreshRangePermCache(tx)`: under the write lock (`wp_Lock_guard` on `authInv`'s guard), the
+  new map from `UnsafeGetAllUsers` and `getMergedPerms` for each (never nil: the user exists in
+  the same transaction), `cacheOk` of the transaction's state (`authSnap M sta` the premise: in
+  `on γa` the caller, S4's write side, records the state first).
+
+**Consequences.** S3 restates `isOpPermitted`/`Is*Permitted` to return `permVerdict` from
+`cacheVerdict` with `hasRootRole`, the revision and the enabled flag, under `permKeysOk` of the
+recorded states (an invariant S4 establishes). The trust base grows by the three bytes-affine
+tree axioms until S2b (`etc/tcb-baseline.txt`, the `server` collection); S2b removes them by
+proving the tree once over a comparator and instantiating it twice, and proves `Contains` for
+strings by extending `Visit`'s visitor contract with a stop.

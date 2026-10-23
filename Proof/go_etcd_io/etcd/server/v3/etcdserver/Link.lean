@@ -134,10 +134,13 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__lockedReadTx
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
+public import Proof.go_etcd_io.etcd.server.v3.auth.getMergedPerms
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
+public import Proof.go_etcd_io.etcd.server.v3.auth.isValidPermissionRange
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
@@ -737,6 +740,18 @@ theorem auth.authStore.wp_IsPutPermitted :
 theorem auth.authStore.wp_IsRangePermitted :
     auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.wp_getMergedPerms :
+    auth.getMergedPerms.spec (GF := GF) (hG := hG) :=
+  auth.getMergedPerms.wp_proof adt.wp_NewIntervalTree adt.wp_NewBytesAffineInterval adt.wp_NewBytesAffinePoint
+
+theorem auth.authStore.wp_refreshRangePermCache :
+    auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) :=
+  auth.authStore.refreshRangePermCache.wp_proof zap.Logger.wp_Debug zap.wp_String zap.Logger.wp_Error auth.wp_getMergedPerms
+
+theorem auth.wp_isValidPermissionRange :
+    auth.isValidPermissionRange.spec (GF := GF) (hG := hG) :=
+  auth.isValidPermissionRange.wp_proof auth.wp_isOpenEnded adt.BytesAffineComparable.wp_Compare
 
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
