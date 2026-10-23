@@ -13,7 +13,8 @@ the plan: `notes/rafthttp-plan.md`, stage 3.
 * `readFullAt r Rd B` (persistent): the contract of `io.ReadFull` of the reader `r` the decoder
   reads from, by `Rd rs`, the bytes `rs` read so far, and what is known of them, `B`: `ReadFull`
   into a slice of `xs.length` bytes reads `ys`, all of them unless the error is non-nil, and
-  `□ B (rs ++ ys)` (a response body's: some response the protocol allows extends them).
+  `□ B (rs ++ ys)` (a response body's: some response the protocol allows extends them), with an
+  error whose `Error()` returns (2026-10-23, stage 5c: the stream reader logs it).
 * `msgFrame bs`: a message's frame, its encoding `bs` after its length as eight big-endian bytes.
 -/
 module
@@ -21,6 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.encoding.binary.Defs
 public import Proof.net.http.Boundary
+public import Proof.errors.NewVar
 
 @[expose] public section
 
@@ -63,7 +65,7 @@ def readFullAt (r : GoInterface) (Rd B : List w8 → IProp GF) : IProp GF :=
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ∃ ys : List w8, p ↦* (ys ++ xs.drop ys.length) ∗ Rd (rs ++ ys) ∗ □ B (rs ++ ys) ∗
           ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
-            (err = GoInterface.nil → ys.length = xs.length)⌝ }})
+            (err = GoInterface.nil → ys.length = xs.length)⌝ ∗ http.errStrOk err }})
 
 instance readFullAt_persistent (r : GoInterface) (Rd B : List w8 → IProp GF) :
     Persistent (readFullAt r Rd B) := by
@@ -74,6 +76,32 @@ big-endian bytes. -/
 def msgFrame (bs : List w8) : List w8 := u64Be (W64 bs.length) ++ bs
 
 end defs
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+open Iris.ProofMode
+
+/-- An `errors.New` error's `Error()` returns (`errorsNewVar`'s method fact). -/
+theorem errorString_errStrOk (x : Loc) (msg : GoString) :
+    ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+        WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+          go!"Error" #x)) (Val #())) {{ Φ }}) -∗
+      http.errStrOk (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  iintro #HM
+  unfold http.errStrOk
+  iright
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  isplitr
+  · ipureintro; rfl
+  iintro !> %Φ HΦ
+  iapply HM
+  inext
+  iapply HΦ
+
+end lemmas
 
 end EtcdGrove
 end Perennial

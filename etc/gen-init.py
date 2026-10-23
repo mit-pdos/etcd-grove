@@ -171,7 +171,8 @@ variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` 
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
 states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
 `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
-`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) are translated and set.''',
+`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated
+and set.''',
     newvars=dict(ErrExceedSizeLimit="rafthttp: error limit exceeded",
         errIncompatibleVersion="incompatible version", ErrClusterIDMismatch="cluster ID mismatch",
         errStopped="stopped",
@@ -186,16 +187,18 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
         doc='/-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat\'s encoding\'s size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/',
         post='∃ n : w64, globalAddr linkHeartbeatSize ↦ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝',
         pat='⟨%n@, H@, %B@⟩')},
-    alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64'},
+    alloc_types={'RaftPrefix': 'GoString', 'ConnReadTimeout': 'w64', 'readBytesLimit': 'w64'},
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto']},
     finish=['ipersist HErrExceedSizeLimit', 'ipersist HerrIncompatibleVersion',
             'ipersist HErrClusterIDMismatch', 'ipersist HerrStopped', 'ipersist HerrMemberRemoved',
             'ipersist HRaftPrefix', 'ipersist HConnReadTimeout', 'ipersist HlinkHeartbeatSize',
+            'ipersist HreadBytesLimit',
             'iframe Hown', 'imodintro', 'isplitr',
             '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
             'try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'isplitr',
-            '· iexists _; iexact HErrExceedSizeLimit', 'isplitr', '· iexact HlinkHeartbeatMessage',
+            '· simp only [EtcdGrove.errorsNewVar]; iframe #',
+            'isplitr', '· iexact HlinkHeartbeatMessage',
             'isplitr', '· iexact HRaftPrefix',
             'simp only [EtcdGrove.errorsNewVar]', 'iframe #',
             'try (ipureintro; exact BlinkHeartbeatSize)'],

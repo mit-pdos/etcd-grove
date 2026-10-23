@@ -600,5 +600,29 @@ theorem ents_enc (els : List Loc) (ents : List EntryM) :
 
 end preds
 
+section make
+open Iris.ProofMode
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- `make([]byte, len)`, its zero bytes abstracted (so that no proof term holds a concrete list of
+`msgAppV2BufSize` bytes, which the kernel would unfold). -/
+theorem wp_make_bytes_abs (len : w64) (h : 0 ≤ sint.Z len) :
+    {{ (True : IProp GF) }}
+      (App (Val #(functions go.make2 [go.GoType.SliceType go.byte])) (Val #len))
+    {{ (sl : GoSlice), RET #sl; ∃ zs : List w8, sl ↦* zs ∗ ownSliceCap w8 sl (DFrac.own 1) ∗
+        ⌜zs.length = sint.nat len⌝ }} := by
+  wp_start as -
+  wp_apply (wp_slice_make3 (V := w8) len len ⟨h, Int.le_refl _⟩) as %sl ⟨Hs, Hc, -⟩
+  iapply HΦ
+  iexists _
+  iframe
+  ipureintro
+  simp
+
+end make
+
 end EtcdGrove
 end Perennial

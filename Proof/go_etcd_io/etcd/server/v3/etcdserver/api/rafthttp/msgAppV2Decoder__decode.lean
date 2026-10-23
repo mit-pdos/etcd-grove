@@ -41,6 +41,8 @@ set_option hygiene false in
 local macro "dec_err" cs:term "," zs:term "," x8:term "," x1:term : tactic => `(tactic| (
   wp_auto
   iapply HΦ
+  isplitr
+  · iexact HerrS
   iexists _, $cs
   iframe HRd
   isplitl
@@ -56,6 +58,8 @@ local macro "dec_err_l" cs:term "," zs:term "," x8:term "," x1:term : tactic => 
   wp_auto
   wp_for_post
   iapply HΦ
+  isplitr
+  · iexact HerrS
   iexists _, $cs
   iframe HRd
   isplitl
@@ -81,7 +85,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
   iunfold v2DecOwn at Hdec
   iNamed Hdec
   wp_auto
-  wp_apply Hrf $$ %s1 %x1 %rs [$Hs1s $HRd] as %n %err ⟨%ys, Hs1s, HRd, #HB, %Hys⟩
+  wp_apply Hrf $$ %s1 %x1 %rs [$Hs1s $HRd] as %n %err ⟨%ys, Hs1s, HRd, #HB, %Hys, #HerrS⟩
   (try wp_auto)
   cases err with
   | ok ei => dec_err cst, zs, x8, (ys ++ x1.drop ys.length)
@@ -113,6 +117,8 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     · iexact Hhb
     (try wp_auto)
     iapply HΦ
+    isplitr
+    · iapply http.errStrOk_nil
     iexists _, cst
     iframe HRd
     isplitl [Hterm Hindex Hbufs Hbufc Hs8s Hs1s]
@@ -123,7 +129,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     iexists hbWire, [W8 0], m'
     iframe Hl' HB
     ipureintro
-    exact ⟨hF0, rfl, Heqv.1.symm⟩
+    exact ⟨hF0, rfl, Heqv.1.symm, Heqv.2 rfl⟩
   · -- AppEntries
     wp_auto
     rw [show _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp =
@@ -133,7 +139,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
     imod cellRO_alloc $$ Hpty with #cTy
     (try wp_auto)
     -- the count
-    wp_apply Hrf $$ %s8 %x8 %(rs ++ [W8 1]) [$Hs8s $HRd] as %n0 %err ⟨%c8, Hs8s, HRd, #HB8, %Hc8⟩
+    wp_apply Hrf $$ %s8 %x8 %(rs ++ [W8 1]) [$Hs8s $HRd] as %n0 %err ⟨%c8, Hs8s, HRd, #HB8, %Hc8, #HerrS⟩
     (try wp_auto)
     cases err with
     | ok ei => dec_err cst, zs, (c8 ++ x8.drop c8.length), [W8 1]
@@ -189,7 +195,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         have : sint.Z (W64 (n : Int)) = n := by word
         omega
       wp_apply Hrf $$ %s8 %x8' %(rs ++ W8 1 :: (u64Be (W64 n) ++ entFrames pre)) [$Hs8s $HRd]
-        as %n0 %err ⟨%ys8, Hs8s, HRd, #HB8, %Hy8⟩
+        as %n0 %err ⟨%ys8, Hs8s, HRd, #HB8, %Hy8, #HerrS⟩
       (try wp_auto)
       cases err with
       | ok ei => dec_err_l ⟨cst.term, cst.index + W64 j⟩, zs', (ys8 ++ x8'.drop ys8.length), [W8 1]
@@ -227,7 +233,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         wp_apply Hrf $$ %(slice.slice buf w8 (W64 0) (W64 sz))
           %(subslice (sint.nat (W64 0)) (sint.nat (W64 sz)) zs')
           %(rs ++ W8 1 :: (u64Be (W64 n) ++ entFrames pre ++ u64Be (W64 sz))) [$Hbm $HRd]
-          as %n1 %err1 ⟨%eb, Hbm, HRd, #HBe, %Heb⟩
+          as %n1 %err1 ⟨%eb, Hbm, HRd, #HBe, %Heb, #HerrS⟩
         (try wp_auto)
         have hzl : zs'.length = 1048576 := by
           rw [Hzl.1]; show (sint.Z buf.len).toNat = 1048576; rw [Hbuflen]; rfl
@@ -306,7 +312,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         (try wp_auto)
         wp_apply Hrf $$ %mb %(List.replicate (sint.nat (W64 sz)) (zero_val w8))
           %(rs ++ W8 1 :: (u64Be (W64 n) ++ entFrames pre ++ u64Be (W64 sz))) [$Hbm $HRd]
-          as %n1 %err1 ⟨%eb, Hbm, HRd, #HBe, %Heb⟩
+          as %n1 %err1 ⟨%eb, Hbm, HRd, #HBe, %Heb, #HerrS⟩
         (try wp_auto)
         cases err1 with
         | ok ei => dec_err_l ⟨cst.term, cst.index + W64 j⟩, zs', u64Be (W64 sz), [W8 1]
@@ -366,7 +372,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       subst hjn
       rw [Nat.sub_self, List.replicate_zero, List.append_nil]
       wp_apply Hrf $$ %s8 %x8' %(rs ++ W8 1 :: (u64Be (W64 j) ++ entFrames pre)) [$Hs8s $HRd]
-        as %n0 %err ⟨%c8, Hs8s, HRd, #HBc, %Hc8⟩
+        as %n0 %err ⟨%c8, Hs8s, HRd, #HBc, %Hc8, #HerrS⟩
       (try wp_auto)
       cases err with
       | ok ei => dec_err ⟨cst.term, cst.index + W64 j⟩, zs', (c8 ++ x8'.drop c8.length), [W8 1]
@@ -401,6 +407,8 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         iapply ownSlice_nil
       imodintro
       iapply HΦ
+      isplitr
+      · iapply http.errStrOk_nil
       iexists _, ⟨cst.term, cst.index + W64 j⟩
       iframe HRd
       isplitl [Hterm Hindex Hbufs Hbufc Hs8s Hs1s]
@@ -411,23 +419,24 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iexists shortWire frm to cst des c, shortBytes pre c, _
       iframe Hmsg HBc
       ipureintro
-      refine ⟨Hfr, by simp [shortBytes, Hprel, List.append_assoc], rfl⟩
+      refine ⟨Hfr, by simp [shortBytes, Hprel, List.append_assoc], rfl, rfl⟩
   · -- App: the length, then the message
     wp_auto
     ihave Hbr := wp_ReadUint64 r size_ptr _ iprop(Rd (rs ++ [W8 2]))
-      (fun ys _ _ => iprop(Rd (rs ++ [W8 2] ++ ys) ∗ □ B (rs ++ [W8 2] ++ ys))) $$ []
+      (fun ys _ err => iprop(Rd (rs ++ [W8 2] ++ ys) ∗ □ B (rs ++ [W8 2] ++ ys) ∗
+        http.errStrOk err)) $$ []
     · iintro !> %sl %xs !> %Φ ⟨Hsl, %Hxs, HRd⟩ HΦ
-      wp_apply Hrf $$ %sl %xs %(rs ++ [W8 2]) [$Hsl $HRd] as %n %err ⟨%ys, Hsl, HRd, #HB, %Hys⟩
+      wp_apply Hrf $$ %sl %xs %(rs ++ [W8 2]) [$Hsl $HRd] as %n %err ⟨%ys, Hsl, HRd, #HB, %Hys, #HerrS⟩
       iapply HΦ
       iexists ys
-      iframe Hsl HRd HB
+      iframe Hsl HRd HB HerrS
       ipureintro
       exact ⟨by omega, fun h => by have := Hys.2.2 h; omega⟩
     wp_apply (encoding.binary.wp_load_struct_nofields (V := encoding.binary.bigEndian)
       (globalAddr encoding.binary.BigEndian))
     iintro -
     wp_auto
-    wp_apply Hbr $$ [$HRd $size] as %err ⟨%ys8, %n, ⟨HRd, #HB8⟩, Hsz⟩
+    wp_apply Hbr $$ [$HRd $size] as %err ⟨%ys8, %n, ⟨HRd, #HB8, #HerrS⟩, Hsz⟩
     icases Hsz with (⟨%Hok8, size⟩ | ⟨%Herr, %x', size⟩)
     · obtain ⟨rfl, hl8⟩ := Hok8
       rw [show rs ++ [W8 2] ++ ys8 = rs ++ (W8 2 :: ys8) by simp]
@@ -439,7 +448,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       · ipureintro; word
       (try wp_auto)
       wp_apply Hrf $$ %mb %(List.replicate (sint.nat (W64 nn)) (zero_val w8))
-        %(rs ++ W8 2 :: u64Be (W64 nn)) [$Hmb $HRd] as %n2 %err2 ⟨%yb, Hmb, HRd, #HBb, %Hyb⟩
+        %(rs ++ W8 2 :: u64Be (W64 nn)) [$Hmb $HRd] as %n2 %err2 ⟨%yb, Hmb, HRd, #HBb, %Hyb, #HerrS⟩
       (try wp_auto)
       cases err2 with
       | ok ei => dec_err cst, zs, x8, [W8 2]
@@ -506,6 +515,8 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       subst Hix
       ihave Hm' := Hclose $$ HEs Hes
       iapply HΦ
+      isplitr
+      · iapply http.errStrOk_nil
       iexists _, ⟨st'.msg.Term', lastIdx (wireOf st')⟩
       iframe HRd
       isplitl [Hterm Hindex Hbufs Hbufc Hs8s Hs1s]
@@ -517,7 +528,7 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iframe Hm' HBb
       ipureintro
       have hmsg : st'.msg = st0.msg := Heq.1
-      refine ⟨?_, ?_, rfl⟩
+      refine ⟨?_, ?_, rfl, Hw'.1⟩
       · rw [Hwo, hmsg]; exact Hfr
       · simp [msgFrame, hyl]
     · cases err with

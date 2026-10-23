@@ -501,7 +501,7 @@ theorem rafthttp.streamWriter.run.wp_proof
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, #Hhb, -, -, -, -, -, -, -, ⟨%vSB, #HSB, %HSBl⟩, ⟨%vSF, #HSF, %HSFl⟩, -, -,
-    #HCRT, ⟨%nHB, #HHBS, %HnHB⟩⟩
+    #HCRT, ⟨%nHB, #HHBS, %HnHB⟩, -⟩
   iunfold netRaftOk at Hraft
   icases Hraft with ⟨%ri, %Hri, -, -, #HRU, -⟩
   wp_apply wp_with_defer as %defer defer

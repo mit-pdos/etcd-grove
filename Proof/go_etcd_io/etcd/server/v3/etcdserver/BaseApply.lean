@@ -167,7 +167,7 @@ heartbeat frame, is a heartbeat with no other field set, read-only for good (no 
 (2026-10-23) `RaftPrefix` (`http.go`), the pipeline's path, is `"/raft"`, read-only for good;
 (stage 5b) `ConnReadTimeout` (`peer.go`) is five seconds, read-only for good. -/
 abbrev rafthttpInit : IProp GF :=
-  iprop((∃ e : GoInterfaceOk, globalAddr ErrExceedSizeLimit ↦□ GoInterface.ok e) ∗
+  iprop(EtcdGrove.errorsNewVar ErrExceedSizeLimit go!"rafthttp: error limit exceeded" ∗
     EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt ∗
     -- (2026-10-23, rafthttp stage 4) the pipeline's path (`http.go`, translated)
     globalAddr RaftPrefix ↦□ go!"/raft" ∗
@@ -192,7 +192,10 @@ abbrev rafthttpInit : IProp GF :=
     globalAddr ConnReadTimeout ↦□ (W64 5000000000) ∗
     -- (2026-10-23, rafthttp stage 5b) the heartbeat's size (`stream.go`, untranslated), which the
     -- stream writer counts: some `int`, read-only for good
-    (∃ n : w64, globalAddr linkHeartbeatSize ↦□ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝))
+    (∃ n : w64, globalAddr linkHeartbeatSize ↦□ n ∗ ⌜0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 50⌝) ∗
+    -- (2026-10-23, rafthttp stage 5c) the message decoder's limit (`msg_codec.go`, translated):
+    -- 512 MiB, read-only for good
+    globalAddr readBytesLimit ↦□ (W64 536870912))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit

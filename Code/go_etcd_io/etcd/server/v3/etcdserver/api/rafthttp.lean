@@ -363,8 +363,6 @@ axiom rttSec.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def readBytesLimit [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.readBytesLimit"
 
-axiom readBytesLimit.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def ErrExceedSizeLimit [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrExceedSizeLimit"
 
@@ -6481,6 +6479,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"/raft"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6503,6 +6502,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 536870912))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val DefaultConnReadTimeout)
@@ -6550,7 +6550,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrExceedSizeLimit.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val readBytesLimit.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (GlobalVarAddr readBytesLimit))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val rttSec.init) (Val #()))))))
   (App (Val doExecute)
@@ -6655,6 +6655,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc RaftPrefix go.string)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc readBytesLimit go.uint64)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ConnReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 

@@ -439,16 +439,18 @@ def ReadAll_spec : Prop :=
           ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ sl ↦* B }}
 
 /-- `io.ReadFull(rd, p)` of a response body: `len(p)` bytes, still a prefix of what the handler
-wrote, or an error. -/
+wrote, or fewer and an error (2026-10-23, stage 5c: the bound stated, and the error's `Error()`
+returns, net/http's or `io.ErrUnexpectedEOF`). -/
 def ReadFull_resp_spec (H : HttpNet GF) : Prop :=
   ∀ (rd : GoInterface) (R : HReq) (γk : GName) (st : w64) (r : List w8) (p : GoSlice)
     (xs : List w8),
     ⊢ {{ respReader H rd R γk st r ∗ p ↦* xs }}
         (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #rd)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ (err = GoInterface.nil → n = p.len)⌝ ∗
+          ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
+            (err = GoInterface.nil → ys.length = xs.length)⌝ ∗
           (□ ∃ w, ⌜r ++ ys <+: w⌝ ∗ (H.proto R.host).resp R γk st w) ∗
-          p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R γk st (r ++ ys) }}
+          p ↦* (ys ++ xs.drop ys.length) ∗ respReader H rd R γk st (r ++ ys) ∗ errStrOk err }}
 
 /-- `w.(http.Flusher).Flush()` on a response writer: returns (it matters for latency, not for
 safety). -/
@@ -497,6 +499,27 @@ def ReadAll_resp_spec (H : HttpNet GF) : Prop :=
         (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
           ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs ∗ errStrOk err }}
+
+/-- `respCloserRaw`'s fact, raw (opaque). -/
+opaque respCloserRaw (rd : GoInterface) : IProp GF
+
+/-- **The right to close a response's body** `rd` (persistent; 2026-10-23, stage 5c): what
+`RoundTrip` gives with the body. Go's response body supports a `Close` from another goroutine,
+concurrent with a `Read` (it ends the connection's read: the reader then fails), and more than one
+`Close`; the stream reader's `stop` closes the body its `decodeLoop` reads. -/
+def respCloser (rd : GoInterface) : IProp GF := iprop(□ respCloserRaw rd)
+
+instance respCloser_persistent (rd : GoInterface) : Persistent (respCloser (GF := GF) rd) := by
+  unfold respCloser; infer_instance
+
+/-- A response body's `Close()` with its closer right, from any goroutine, any number of times:
+some error, whose `Error()` returns. -/
+def RespCloseAny_spec : Prop :=
+  ∀ (rd : GoInterface) (ri : GoInterfaceOk),
+    rd = GoInterface.ok ri →
+    ⊢ {{ respCloser (GF := GF) rd }}
+        (App (Val #(methods ri.ty go!"Close" ri.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; errStrOk err }}
 
 /-- A response body's `Close()`: some error. -/
 def RespClose_spec (H : HttpNet GF) : Prop :=

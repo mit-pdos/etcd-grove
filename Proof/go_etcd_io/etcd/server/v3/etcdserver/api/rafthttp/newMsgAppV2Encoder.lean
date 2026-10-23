@@ -24,21 +24,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-/-- `make([]byte, len)`, its zero bytes abstracted (so that no proof term holds a concrete list of
-`msgAppV2BufSize` bytes, which the kernel would unfold). -/
-theorem wp_make_bytes_abs (len : w64) (h : 0 ≤ sint.Z len) :
-    {{ (True : IProp GF) }}
-      (App (Val #(functions go.make2 [go.GoType.SliceType go.byte])) (Val #len))
-    {{ (sl : GoSlice), RET #sl; ∃ zs : List w8, sl ↦* zs ∗ ownSliceCap w8 sl (DFrac.own 1) ∗
-        ⌜zs.length = sint.nat len⌝ }} := by
-  wp_start as -
-  wp_apply (wp_slice_make3 (V := w8) len len ⟨h, Int.le_refl _⟩) as %sl ⟨Hs, Hc, -⟩
-  iapply HΦ
-  iexists _
-  iframe
-  ipureintro
-  simp
-
 theorem rafthttp.newMsgAppV2Encoder.wp_proof :
     rafthttp.newMsgAppV2Encoder.spec (GF := GF) (hG := hG) := by
   intro wi fs

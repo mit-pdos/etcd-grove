@@ -8,7 +8,8 @@ variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` 
 (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
 states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
 `opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`) and
-`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) are translated and set.
+`ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated
+and set.
 -/
 module
 
@@ -84,7 +85,6 @@ axiom opaqueInitsOk :
         snapshotReceiveFailures.init,
         snapshotReceiveSeconds.init,
         rttSec.init,
-        readBytesLimit.init,
         ConnWriteTimeout.init,
         proberInterval.init,
         statusMonitoringInterval.init,
@@ -191,6 +191,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
+  wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
   wp_apply wp_GlobalAlloc (V := GoString) RaftPrefix _ as HRaftPrefix
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd30⟩
   wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd29⟩
@@ -257,7 +258,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk snapshotReceiveFailures.init (by mem_tac))
   wp_apply (opaqueInitsOk snapshotReceiveSeconds.init (by mem_tac))
   wp_apply (opaqueInitsOk rttSec.init (by mem_tac))
-  wp_apply (opaqueInitsOk readBytesLimit.init (by mem_tac))
+  -- translated initializer of readBytesLimit))
   wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
     as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
   -- translated initializer of ConnReadTimeout))
@@ -292,6 +293,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HRaftPrefix
   ipersist HConnReadTimeout
   ipersist HlinkHeartbeatSize
+  ipersist HreadBytesLimit
   iframe Hown
   imodintro
   isplitr
@@ -301,7 +303,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try (isplitl []; · (imodintro; itrivial))
   imodintro
   isplitr
-  · iexists _; iexact HErrExceedSizeLimit
+  · simp only [EtcdGrove.errorsNewVar]; iframe #
   isplitr
   · iexact HlinkHeartbeatMessage
   isplitr
