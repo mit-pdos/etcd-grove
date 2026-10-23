@@ -53,6 +53,30 @@ theorem types.hexNatF_digits (f n : Nat) :
       · exact ih _ b hb
       · exact ⟨n % 16, Nat.mod_lt _ (by decide), hb⟩
 
+/-- `hexNatF` of a number below `16 ^ (k + 1)` has at most `k + 1` digits. -/
+theorem types.hexNatF_length (f n k : Nat) (hk : n < 16 ^ (k + 1)) :
+    (types.hexNatF f n).length ≤ k + 1 := by
+  induction f generalizing n k with
+  | zero => simp [types.hexNatF]
+  | succ f ih =>
+    simp only [types.hexNatF]
+    split
+    · simp
+    · rename_i hn
+      cases k with
+      | zero => simp at hk; omega
+      | succ k =>
+        have h2 : n / 16 < 16 ^ (k + 1) := by
+          rw [Nat.div_lt_iff_lt_mul (by decide)]
+          rw [Nat.pow_succ] at hk; exact hk
+        simp only [List.length_append, List.length_singleton]
+        have := ih (n / 16) k h2
+        omega
+
+/-- A member id's string has at most 16 digits. -/
+theorem types.idStr_length (id : w64) : (types.idStr id).length ≤ 16 :=
+  types.hexNatF_length _ _ 15 (lt_of_lt_of_eq id.isLt (by rfl))
+
 theorem types.hexNatF_ne_nil (f n : Nat) (hf : 1 ≤ f) : types.hexNatF f n ≠ [] := by
   cases f with
   | zero => omega

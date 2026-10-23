@@ -3,8 +3,8 @@
 of `Proof/net/http/Boundary.lean` the proofs use, assumed, and the registration of an address's
 protocol. Lean-first. Each is a fact about Go's `net/http`, `io` and `bytes` (read against the
 statement's docstring in `Boundary.lean`); the specs not listed (`Serve_spec`, `respRead_spec`,
-`respWrite_spec`, `HeaderGet_spec`, `ReadFull_resp_spec`, the mux's, `URLString_spec`,
-`NewRequest_spec`) stay statements until a proof uses them.
+`respWrite_spec`, `HeaderGet_spec`, `ReadFull_resp_spec`, the mux's) stay statements until a proof
+uses them.
 
 Soundness of the specs stated for any `HttpNet` (`Error_ok`, ...): their resources
 (`respWriter H`, `respReader H`) come only from `Serve` and `RoundTrip`, which need an address's
@@ -54,6 +54,9 @@ axiom RespHeader_ok : RespHeader_spec (GF := GF)
 /-- `Header.Get` through a pointer (`HeaderGetPtr_spec`): the map's `Get`. -/
 axiom HeaderGetPtr_ok : HeaderGetPtr_spec (GF := GF)
 
+/-- `Header.Set` through a pointer (`HeaderSetPtr_spec`): the map's `Set`. (Stage 5e-3.) -/
+axiom HeaderSetPtr_ok : HeaderSetPtr_spec (GF := GF)
+
 /-- `io.ReadAll` of a prefix reader (`ReadAll_spec`): it reads until `EOF` or an error. -/
 axiom ReadAll_ok : ReadAll_spec (GF := GF)
 
@@ -74,6 +77,16 @@ axiom ReadAll_resp_ok (H : HttpNet GF) : ReadAll_resp_spec H
 
 /-- A response body's `Close` (`RespClose_spec`). -/
 axiom RespClose_ok (H : HttpNet GF) : RespClose_spec H
+
+/-- (2026-10-23, stage 5e-3: the stream reader's `dial`) `http.NewRequest` (`NewRequest_spec`). -/
+axiom NewRequest_ok : NewRequest_spec (GF := GF)
+
+/-- (stage 5e-3) `url.URL.String` of a plain URL (`URLString_spec`). -/
+axiom URLString_ok : URLString_spec (GF := GF)
+
+/-- (stage 5e-3) `nil` is a reader of no bytes, an empty request body (`readerHas`'s docstring,
+`NewRequest`'s `nil` body). -/
+axiom readerHas_nil : ⊢ readerHas (GF := GF) GoInterface.nil []
 
 end axioms
 

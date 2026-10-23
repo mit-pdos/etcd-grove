@@ -182,9 +182,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   as `errors.New.spec` says), so a caller cannot show it differs from a package's error variable.
 - **Needed by.** rafthttp's `checkPostResponse`, whose `fmt.Errorf` errors must not be
   `errMemberRemoved` (`postErr`: `pipeline.post`'s caller reports only that one on `errorc`).
-- **Workaround here.** None yet: `checkPostResponse` is a spec only.
+- **Workaround here.** None yet: `checkPostResponse` is a spec only. (Stage 5e-3) The stream
+  reader's `dial` uses a local trust-boundary spec, `Spec/fmt/ErrorfPlain.lean`: with no `%w` the
+  error is an `*errors.errorString` (Go's `Errorf` returns `errors.New(s)`), whose `Error()`
+  returns the message, so a leaf of an error tree (`errors.Is` of it, in `run`).
 - **Proposed.** `fmt.Errorf.spec`'s postcondition with `IsPointerError err` (for a format without
-  `%w`), as `errors.New`'s.
+  `%w`), as `errors.New`'s; or the `*errors.errorString` form above.
+- **Status.** Not started.
+
+### `strings.TrimSuffix` without a spec (2026-10-23, rafthttp stage 5e-3, branch `rafthttp-plan`)
+
+- **Missing.** Perennial translates `strings.TrimSuffix` names-only and has no spec for it
+  (`TrimPrefix` has one).
+- **Needed by.** rafthttp's `streamReader.dial` (a `412`'s body, `TrimSuffix(string(b), "\n")`).
+- **Workaround here.** `Spec/strings/TrimSuffix.lean`, a trust-boundary axiom: some string.
+- **Proposed.** A translation or model of `TrimSuffix` with a spec (the string without the suffix,
+  if it ends with it), as `TrimPrefix`'s.
 - **Status.** Not started.
 
 ## Landed

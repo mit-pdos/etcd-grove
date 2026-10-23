@@ -549,6 +549,28 @@ trust-boundary spec.
    the map (`r.Header.Get`, `HeaderGetPtr_ok`; `Get` of the map was already one). Not linked
    until stage 6.
    **5e-3**: `streamReader.dial`'s proof (5c's), over the response's `X-Server-Version`.
+   **5e-3 done (2026-10-23)**: `streamReader.dial` proved over its callees' specs: the URL (the
+   picker's, its path `Join(endpoint, idStr lid)`, `streamPath`), the request (`NewRequest` of a
+   `GET` with a `nil` body, its five headers set through `Header`'s pointer wrapper, the peer URLs,
+   `WithContext`), the stopped check under `mu` (`ctx.Done()`, an `fmt.Errorf` error), the
+   `RoundTrip` with a fresh stream ticket (`stream_ticket_alloc`), the peer's version (no panic:
+   `serverVersion` of a member's headers, `verHdrOk` through `srvView`) and ours (`"3.8.0-alpha.0"`
+   parses), the stream-type check, and the status switch (`410`: `errMemberRemoved` reported on
+   `errorc`; `200`: the stream; `404`, `412` (its body against the two package errors), others:
+   errors). Proved with it: `serverVersion`, `compareMajorMinorVersion`, `reportCriticalError`;
+   spec only: `checkStreamSupport` (reads the untranslated `supportedStream`), `setPeerURLsHeader`
+   (`URL.String` of any URL), to prove with `createPostRequest` before stage 6. The reader's
+   configuration (`srCfg`) gains `errcOk` of `ErrorC` (a bag of errors whose `Error()` returns) and
+   `RaftStreamPrefix`'s value, premises stage 6 provides.
+   Boundary items, accepted by the user (2026-10-23): `semver.New`, `Version.Major`/`Minor`,
+   `httputil.GracefulClose`, `strings.TrimSuffix` (a Perennial gap), `fmt.ErrorfPlain` (no `%w`: an
+   `errors.New` error), `RoundTrip`'s `respCloser`, `version.MinClusterVersion`'s value. Found on the
+   way, also accepted by the user: `http.NewRequest_ok` and `URLString_ok` (statements since stage 2, now
+   used; `URLString_spec` restated on the pointer, `String`'s receiver), `readerHas_nil` (a `nil`
+   body), `HeaderSetPtr_ok` (`Set` through the pointer, as `HeaderGetPtr_ok`); `reqRest` restated
+   over the request's fields but its headers (its docstring's meaning; setting a header keeps it).
+   For stage 6: a `410` sends `errMemberRemoved` on `ErrorC`, which `Transport.Start`'s axiom says
+   never happens (no member is removed: `IsIDRemoved` is false of every member).
 6. **`Transport`**: `Start`, `AddPeer`, `AddRemote`, `Send`, `Handler` (and `RaftHandler` over
    it), `CutPeer`/`MendPeer` (peers only, `id ∉ rs` as today), proving today's axioms' statements;
    then the trust base drops by those axioms and `RaftHandler`'s, gains the HTTP specs.

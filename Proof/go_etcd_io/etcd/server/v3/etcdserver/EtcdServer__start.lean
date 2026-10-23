@@ -240,7 +240,8 @@ theorem EtcdServer.start.wp_proof
   · iPkgInit
   ihave #Hvi : iprop(globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ go!"3.8.0-alpha.0" ∗
       (∃ v : github_com.Masterminds.semver.v3.Version,
-        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v)) $$ []
+        globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v) ∗
+      globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0") $$ []
   · iapply isPkgInit_access $$ Hpver
   icases Hvi with ⟨#Hverv, -⟩
   ihave #Hpmem : isPkgInit (PROP := IProp GF)

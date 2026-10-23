@@ -2,10 +2,12 @@
 Package initialization of `go_etcd_io.etcd.api.v3.version`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"` and `V3_6` a fixed value. Its
+Its fact (`server/v3/lease/Base.lean`): `Version` holds `"3.8.0-alpha.0"`, `V3_6` a fixed value and
+`MinClusterVersion` `"3.0.0"`. Its
 initializer runs its variables' untranslated initializers (`version.go`): string constants,
 `semver` versions (`*semver.New(3, 6, 0, "", "")`), and `AllVersions`; the trust-boundary axioms
-`Version_init` and `V3_6_init` state the two the fact reads, `opaqueInitsOk` the others.
+`Version_init`, `V3_6_init` and `MinClusterVersion_init` state the three the fact reads,
+`opaqueInitsOk` the others.
 -/
 module
 
@@ -40,8 +42,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([MinClusterVersion.init,
-        APIVersion.init,
+    ∀ v ∈ ([APIVersion.init,
         GitSHA.init,
         V3_0.init,
         V3_1.init,
@@ -76,6 +77,11 @@ axiom V3_6_init :
     {{ (True : IProp GF) }} (App (Val V3_6.init) (Val #()))
     {{ RET #(); ∃ v : github_com.Masterminds.semver.v3.Version, globalAddr V3_6 ↦ v }}
 
+/-- `MinClusterVersion = "3.0.0"` (`version.go`). -/
+axiom MinClusterVersion_init :
+    {{ (True : IProp GF) }} (App (Val MinClusterVersion.init) (Val #()))
+    {{ RET #(); globalAddr MinClusterVersion ↦ go!"3.0.0" }}
+
 end go_etcd_io.etcd.api.v3.version
 end opaqueInits
 
@@ -100,7 +106,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply (opaqueInitsOk MinClusterVersion.init (by mem_tac))
+  wp_apply MinClusterVersion_init as HMinClusterVersion
   wp_apply Version_init as HVersion
   wp_apply (opaqueInitsOk APIVersion.init (by mem_tac))
   wp_apply (opaqueInitsOk GitSHA.init (by mem_tac))
@@ -119,6 +125,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HVersion
   ipersist HV3_6
+  ipersist HMinClusterVersion
   iframe Hown
   imodintro
   isplitr

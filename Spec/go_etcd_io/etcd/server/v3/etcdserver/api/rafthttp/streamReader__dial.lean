@@ -26,8 +26,8 @@ URLs, with a fresh ticket registered as the stream's (`(γw, ty, lid)`), whose r
 is the stream: its body (to read, with the right to close it) and the reader's tokens; or an error
 whose `Error()` returns. No panic: `semver.MustParse` of the peer's `X-Server-Version` header
 (`issues/etcd-rafthttp-stream-dial-bad-server-version-panic.md`) parses, the peer being a member of
-the program, whose handlers set it to `version.Version`; the proof (stage 5d) needs the response's
-headers in the HTTP boundary's protocol, which it does not have yet (`notes/rafthttp-plan.md`). -/
+the program, whose handlers set it to `version.Version` or not at all (the protocol's `rhdr`,
+`verHdrOk`; proved in stage 5e-3). A `410` reports `errMemberRemoved` on `errorc` (`errcOk`). -/
 abbrev rafthttp.streamReader.dial.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc) (ty : StreamTy),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗

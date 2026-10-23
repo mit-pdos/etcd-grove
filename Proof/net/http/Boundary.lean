@@ -276,9 +276,13 @@ opaque respHdrs (wr : GoInterface) (hs : List (GoString × GoString)) : IProp GF
 
 /-! ### The client's side (continued) -/
 
-/-- **The rest of a request being built** at `r` (exclusive, opaque): its method, URL, body and
-context, those of `R` but for the headers, which `reqOwn` keeps in its `Header` map. -/
-opaque reqRest (r : Loc) (R : HReq) : IProp GF
+/-- `reqRest`'s fact, raw (opaque): of the method, host, path and body only. -/
+opaque reqRestRaw (r : Loc) (meth host path : GoString) (body : List w8) : IProp GF
+
+/-- **The rest of a request being built** at `r` (exclusive): its method, URL, body and
+context, those of `R` but for the headers, which `reqOwn` keeps in its `Header` map (2026-10-23,
+stage 5e-3: stated over those fields only, so that setting a header leaves it as it is). -/
+def reqRest (r : Loc) (R : HReq) : IProp GF := reqRestRaw r R.meth R.host R.path R.body
 
 /-- **A request being built** at `r` (exclusive): `NewRequest`'s result; its `Header` field holds
 the map `hm`, whose `Set`s before `RoundTrip` build `R.hdr`. -/
@@ -338,12 +342,25 @@ instance respAt_persistent (resp : Loc) (st : w64) (rd : GoInterface)
     (Hd : List (GoString × GoString) → Prop) : Persistent (respAt (GF := GF) resp st rd Hd) := by
   unfold respAt; infer_instance
 
+/-- `respCloserRaw`'s fact, raw (opaque). -/
+opaque respCloserRaw (rd : GoInterface) : IProp GF
+
+/-- **The right to close a response's body** `rd` (persistent; 2026-10-23, stage 5c): what
+`RoundTrip` gives with the body. Go's response body supports a `Close` from another goroutine,
+concurrent with a `Read` (it ends the connection's read: the reader then fails), and more than one
+`Close`; the stream reader's `stop` closes the body its `decodeLoop` reads. -/
+def respCloser (rd : GoInterface) : IProp GF := iprop(□ respCloserRaw rd)
+
+instance respCloser_persistent (rd : GoInterface) : Persistent (respCloser (GF := GF) rd) := by
+  unfold respCloser; infer_instance
+
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
 `NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R`, with
 its ticket `γk`, the protocol registered for its host (`httpProtoAt`) and
 `□ (H.proto R.host).req R γk`, either fails or returns a response whose status
-`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`; the
-request is the caller's again (`RoundTrip` must not modify it). -/
+`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`, with
+the right to close the body (`respCloser`, 2026-10-23, stage 5e-3); the request is the caller's
+again (`RoundTrip` must not modify it). -/
 def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜rt = GoInterface.ok ti⌝ ∗
     □ (∀ (r : Loc) (R : HReq) (γk : GName),
@@ -355,7 +372,7 @@ def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
            ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
             respAt resp st rd (fun hc => ∃ hs, (H.proto R.host).rhdr R hs ∧ srvView hs hc) ∗
             (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
-            respReader H rd R γk st []) }}))
+            respReader H rd R γk st [] ∗ respCloser rd) }}))
 
 instance roundTripperOk_persistent (H : HttpNet GF) (rt : GoInterface) :
     Persistent (roundTripperOk H rt) := by
@@ -505,6 +522,15 @@ def HeaderSet_spec : Prop :=
           (Val #v))
       {{ RET #(); hdrOwn hm (hdrSet hs k v) }}
 
+/-- `(&hm).Set(k, v)`, through a pointer to a header map being built (Go's pointer-method wrapper of
+`Set`, as `req.Header.Set(k, v)` compiles): the map's `Set`. (2026-10-23, rafthttp stage 5e-3.) -/
+def HeaderSetPtr_spec : Prop :=
+  ∀ (p hm : Loc) (hs : List (GoString × GoString)) (k v : GoString),
+    ⊢ {{ p ↦□ hm ∗ hdrOwn (GF := GF) hm hs }}
+        (App (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.http.Header.ty @!! go!"Set"))
+          (Val #k)) (Val #v))
+      {{ RET #(); hdrOwn hm (hdrSet hs k v) }}
+
 /-- `hm.Get(k)` on a received request's header map. -/
 def HeaderGet_spec : Prop :=
   ∀ (hm : Loc) (hs : List (GoString × GoString)) (k : GoString),
@@ -619,18 +645,6 @@ def ReadAll_resp_spec (H : HttpNet GF) : Prop :=
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
           ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs ∗ errStrOk err }}
 
-/-- `respCloserRaw`'s fact, raw (opaque). -/
-opaque respCloserRaw (rd : GoInterface) : IProp GF
-
-/-- **The right to close a response's body** `rd` (persistent; 2026-10-23, stage 5c): what
-`RoundTrip` gives with the body. Go's response body supports a `Close` from another goroutine,
-concurrent with a `Read` (it ends the connection's read: the reader then fails), and more than one
-`Close`; the stream reader's `stop` closes the body its `decodeLoop` reads. -/
-def respCloser (rd : GoInterface) : IProp GF := iprop(□ respCloserRaw rd)
-
-instance respCloser_persistent (rd : GoInterface) : Persistent (respCloser (GF := GF) rd) := by
-  unfold respCloser; infer_instance
-
 /-- A response body's `Close()` with its closer right, from any goroutine, any number of times:
 some error, whose `Error()` returns. -/
 def RespCloseAny_spec : Prop :=
@@ -711,15 +725,17 @@ def mux_handlerOk_spec (H : HttpNet GF) : Prop :=
 
 /-! ### URLs -/
 
-/-- `u.String()` of a `url.URL` with only `Scheme = "http"`, `Host` and `Path` set: `urlOf`. -/
+/-- `p.String()` of a `url.URL` at `p` (`String` has a pointer receiver; 2026-10-23, stage 5e-3,
+was stated of the value) with only `Scheme = "http"`, `Host` and `Path` set: `urlOf`. -/
 def URLString_spec : Prop :=
-  ∀ (u : _root_.Perennial.net.url.URL),
+  ∀ (p : Loc) (dq : DFrac) (u : _root_.Perennial.net.url.URL),
     u.Scheme' = go!"http" → u.Opaque' = "" → u.User' = null → u.Fragment' = "" →
     u.RawQuery' = "" → u.RawPath' = "" → u.RawFragment' = "" → u.ForceQuery' = false →
     u.OmitHost' = false →
-    ⊢ {{ (True : IProp GF) }}
-        (App (Val (u @!! _root_.Perennial.net.url.URL.ty @!! go!"String")) (Val #()))
-      {{ RET #(urlOf u.Host' u.Path'); True }}
+    ⊢ {{ (p ↦{dq} u : IProp GF) }}
+        (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.url.URL.ty @!! go!"String"))
+          (Val #()))
+      {{ RET #(urlOf u.Host' u.Path'); p ↦{dq} u }}
 
 /-! `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) are
 `Spec/encoding/binary/{WriteUint64,WriteUint8,ReadUint64}.lean`. -/

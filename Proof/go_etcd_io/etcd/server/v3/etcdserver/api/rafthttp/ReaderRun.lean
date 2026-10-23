@@ -4,8 +4,8 @@
 
 * `srCfg`: the fields `dial` and `run` read and nothing writes once the reader is made: its type,
   rate limiter (`rate.limiterOk`), picker (of the peer's URLs), its transport's URLs, cluster id,
-  stream round tripper (of the raft network) and `ErrorC`; the stream registry (`streamRegInv`)
-  and the peer's hosts' registration (`pipeReg`).
+  stream round tripper (of the raft network) and `ErrorC` (`errcOk`); the stream registry
+  (`streamRegInv`), the peer's hosts' registration (`pipeReg`) and `RaftStreamPrefix`'s value.
 * `srDial`: `srCfg` and the reader's `errorc`, which `start` sets.
 * `srFixed0`: `srFixed` but the context, which `start` sets (`srFixed_intro`).
 * `srStopRight` (persistent): the context's cancel function and the `done` channel, which `stop`
@@ -37,6 +37,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **The critical-error channel** `ec` (persistent; `Transport.ErrorC`, rafthttp stage 5e-3): a
+channel of errors on which any error whose `Error()` returns may be offered
+(`reportCriticalError`'s send without blocking: `dial`'s `errMemberRemoved` on a `410`). -/
+def errcOk (ec : GoChan) : IProp GF :=
+  iprop(∃ γ : ChanNames, isChanBag (V := GoInterface) γ ec (fun e => http.errStrOk e))
+
+instance errcOk_persistent (ec : GoChan) : Persistent (errcOk (GF := GF) ec) := by
+  unfold errcOk; infer_instance
+
 /-- **The reader's configuration** (persistent) of the local member `lid`, reading the stream of
 type `ty` from `pid`: its type, rate limiter, picker (of `pid`'s URLs), its transport's URLs,
 cluster id, stream round tripper (of the raft network) and `ErrorC`; the stream registry and
@@ -52,8 +61,10 @@ def srCfg (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : Loc) : IProp GF :
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"ClusterID"] ↦□ cid ∗
     tr.[rafthttp.Transport, go!"streamRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
-    tr.[rafthttp.Transport, go!"ErrorC"] ↦□ ec ∗
-    streamRegInv Rh ∗ pipeReg Rh pid)
+    tr.[rafthttp.Transport, go!"ErrorC"] ↦□ ec ∗ errcOk ec ∗
+    streamRegInv Rh ∗ pipeReg Rh pid ∗
+    -- (stage 5e-3) the stream endpoints' prefix, `streamType.endpoint`'s premise (stage 6)
+    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream")
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
@@ -63,7 +74,8 @@ instance srCfg_persistent (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : L
 
 /-- **What `dial` reads** (persistent): the configuration and the reader's `errorc`. -/
 def srDial (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : Loc) : IProp GF :=
-  iprop(srCfg Rh pid ty cr ∗ ∃ ec : GoChan, cr.[rafthttp.streamReader, go!"errorc"] ↦□ ec)
+  iprop(srCfg Rh pid ty cr ∗ ∃ ec : GoChan, cr.[rafthttp.streamReader, go!"errorc"] ↦□ ec ∗
+    errcOk ec)
 
 instance srDial_persistent (Rh : RaftHttp GF) (pid : w64) (ty : StreamTy) (cr : Loc) :
     Persistent (srDial Rh pid ty cr) := by

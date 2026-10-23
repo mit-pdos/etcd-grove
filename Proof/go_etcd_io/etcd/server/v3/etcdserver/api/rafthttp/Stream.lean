@@ -377,6 +377,10 @@ def verHdrOk (hs : List (GoString × GoString)) : Prop :=
 
 theorem verHdrOk_nil : verHdrOk [] := Or.inl rfl
 
+/-- The empty Go string (as a Lean literal, `""`) is the empty byte list. -/
+theorem goString_empty : (("" : String) : GoString) = [] := by
+  simp [stringToGoString]
+
 /-- Setting another header keeps `X-Server-Version`. -/
 theorem verHdrOk_set (hs : List (GoString × GoString)) (k v : GoString)
     (hk : http.canonKey k ≠ http.canonKey go!"X-Server-Version") (h : verHdrOk hs) :

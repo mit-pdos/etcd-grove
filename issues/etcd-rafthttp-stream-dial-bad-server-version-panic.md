@@ -48,10 +48,13 @@ func TestStreamReaderDialBadServerVersion(t *testing.T) {
 **Expected**: a peer's bad response is a failed dial (`dial` already returns errors for bad
 statuses, unsupported stream types and unparsable precondition bodies), not a crash.
 
-**How the proof handles it**: the HTTP boundary does not constrain a response's headers
-(`Proof/net/http/Boundary.lean`, `RespHeader_spec`, `respAt`), so `dial`'s spec (rafthttp stage
-5c, `notes/rafthttp-plan.md`) allows the panic, and `semver.MustParse`'s spec says it may panic on
-a string that is not a version; the safety results are unaffected (a crashed member is a loss).
+**How the proof handles it**: the HTTP boundary's protocol constrains the headers a handler
+commits (`rhdr`, `Proof/net/http/Boundary.lean`, rafthttp stage 5e); a raft member's
+(`raftProto`'s `verHdrOk`) has `X-Server-Version` unset or a version that parses, which the stream
+handler's proof establishes (it sets `version.Version`, `"3.8.0-alpha.0"`). `dial`'s proof (stage
+5e-3) reads the header through `RoundTrip`'s view of the committed headers, so `serverVersion`'s
+`MustParse` does not panic: the proof excludes the panic for peers that are members of the
+program, and the bug stays reachable from anything else at a peer URL.
 
 **Possible fixes**: parse with `semver.NewVersion` in `serverVersion` (and `minClusterVersion`),
 returning an error that `dial` turns into a failed dial (`cr.picker.unreachable(u)`), or treat an
